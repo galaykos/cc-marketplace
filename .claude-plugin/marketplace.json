@@ -13,7 +13,7 @@
     { "name": "vue3", "source": "./plugins/vue3", "description": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia. Includes /vue3:review." },
     { "name": "laravel", "source": "./plugins/laravel", "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies. Includes /laravel:review." },
     { "name": "livewire", "source": "./plugins/livewire", "description": "Livewire 3 best practices: component conventions, wire:model modifiers, performance, Alpine interop. Includes /livewire:review." },
-    { "name": "code-architecture", "source": "./plugins/code-architecture", "description": "Engineering process: plan-before-code, YAGNI checks, task orchestration, work verification, low-cognitive-load code. Includes /code-architecture:plan|verify|yagni and an architecture-reviewer agent." },
+    { "name": "code-architecture", "source": "./plugins/code-architecture", "description": "Engineering process: plan-before-code, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles. Includes /code-architecture:plan|verify|yagni and an architecture-reviewer agent." },
     { "name": "design-patterns", "source": "./plugins/design-patterns", "description": "Design pattern selection: which pattern fits where, and when NOT to use one. Includes /design-patterns:suggest." },
     { "name": "api-docs-first", "source": "./plugins/api-docs-first", "description": "Verify current API docs before writing integration code; asks for a URL or file when docs are not visible. Includes /api-docs-first:check and a UserPromptSubmit reminder hook." }
   ]
