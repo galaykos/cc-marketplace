@@ -1,59 +1,258 @@
 {
   "name": "cc-plugins-marketplace",
-  "owner": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "owner": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
     "version": "0.22.0"
   },
   "plugins": [
-    { "name": "ui-ux", "source": "./plugins/ui-ux", "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and ui-ux-reviewer + ui-ux-engineer agents." },
-    { "name": "react", "source": "./plugins/react", "description": "React best practices: hooks rules, render/memo performance, state management, component patterns. Includes /react:review." },
-    { "name": "react-native", "source": "./plugins/react-native", "description": "React Native best practices: list performance, navigation, platform-specific code, animations. Includes /react-native:review." },
-    { "name": "vue2", "source": "./plugins/vue2", "description": "Vue 2.7 best practices: Composition API backport, defineProperty reactivity caveats, Vue 3 migration readiness. Includes /vue2:review." },
-    { "name": "vue3", "source": "./plugins/vue3", "description": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia. Includes /vue3:review." },
-    { "name": "php", "source": "./plugins/php", "description": "PHP best practices: strict types, === discipline, PSR-4/PSR-12 conventions, version-aware advice pinned to the composer.json floor with a per-version leverage map (8.1-8.5), exceptions, DateTimeImmutable, boundary security, value objects, static analysis. Includes /php:review." },
-    { "name": "laravel", "source": "./plugins/laravel", "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies. Includes /laravel:review." },
-    { "name": "livewire", "source": "./plugins/livewire", "description": "Livewire 3 best practices: component conventions, wire:model modifiers, performance, Alpine interop. Includes /livewire:review." },
-    { "name": "sql", "source": "./plugins/sql", "description": "Engine-agnostic SQL best practices: sargable predicates, join correctness, composite index logic, NULL traps, transactions, constraints, keyset pagination, additive migrations, parameterization. Includes /sql:review." },
-    { "name": "mysql", "source": "./plugins/mysql", "description": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL and metadata locks, gap locking, JSON limits, 8.0-8.4 LTS version leverage. Includes /mysql:review." },
-    { "name": "mariadb", "source": "./plugins/mariadb", "description": "MariaDB 10.6+ best practices: not-MySQL divergences, RETURNING, sequences, system-versioned tables, native UUID type, uca1400 collations, Galera awareness. Includes /mariadb:review." },
-    { "name": "postgresql", "source": "./plugins/postgresql", "description": "PostgreSQL 14+ best practices: MVCC/vacuum reality, timestamptz/jsonb/uuid types, partial/expression/GIN/BRIN indexes, lock-aware migrations, ON CONFLICT/RETURNING, version leverage through 17/18. Includes /postgresql:review." },
-    { "name": "code-architecture", "source": "./plugins/code-architecture", "description": "Engineering process: plan-before-code with current-vs-target architecture diagrams on a live preview URL for structural changes, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles, and always-on surgical-coding discipline (surface assumptions, every changed line traces to the request, orphan rule, verifiable success criteria — after Karpathy's LLM-coding guidelines). Includes /code-architecture:plan|verify|yagni and an architecture-reviewer agent." },
-    { "name": "design-patterns", "source": "./plugins/design-patterns", "description": "Design pattern selection: which pattern fits where, and when NOT to use one. Includes /design-patterns:suggest." },
-    { "name": "api-docs-first", "source": "./plugins/api-docs-first", "description": "Verify current API docs before writing integration code; asks for a URL or file when docs are not visible. Includes /api-docs-first:check and a UserPromptSubmit reminder hook." },
-    { "name": "meta-api", "source": "./plugins/meta-api", "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook." },
-    { "name": "taskmaster", "source": "./plugins/taskmaster", "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated ASCII/HTML mockups (full / ASCII-only / none, asked once per session) on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, a context-scout agent, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)." },
-    { "name": "git-workflow", "source": "./plugins/git-workflow", "description": "Git workflow discipline: isolated worktrees for feature work, a structured finish protocol for development branches (verify, present options, merge/PR/park, clean up), and review-exchange rigor — what to include when requesting review, and technical verification before implementing received feedback. Includes /git-workflow:finish." },
-    { "name": "debugging", "source": "./plugins/debugging", "description": "Systematic debugging: root cause before any fix — reproduce first, read the actual error, isolate with hypothesis tests and bisection, one change at a time, verify against the original symptom; escalation rule after three failed fixes. Includes /debugging:debug." },
-    { "name": "task-runner", "source": "./plugins/task-runner", "description": "Disciplined task execution: one task at a time, scope locked, bounded verify-fix inner loop (max three cycles, then park with evidence), no unbounded outer loop, full-suite completion gate; status lives in the task index, not HTML dashboards. Includes /task-runner:run and /task-runner:plan (computed subagents-vs-inline verdict: dependency levels, agent count, speedup estimate)." },
-    { "name": "stack-scan", "source": "./plugins/stack-scan", "description": "Inventory the actual stack from composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI images; required-vs-installed table with drift, missing-lock, and EOL flags. Includes /stack-scan:report." },
-    { "name": "plugin-scout", "source": "./plugins/plugin-scout", "description": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install — stack-matched tier and always-useful tier — then install the picked ones after confirmation. Includes /plugin-scout:suggest." },
-    { "name": "testing", "source": "./plugins/testing", "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review and a test-engineer worker agent." },
-    { "name": "security", "source": "./plugins/security", "description": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review and a security-engineer worker agent." },
-    { "name": "typescript", "source": "./plugins/typescript", "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review." },
-    { "name": "inertia", "source": "./plugins/inertia", "description": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review." },
-    { "name": "api-design", "source": "./plugins/api-design", "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, and a live contract-preview artifact with real example payloads for new endpoints. Includes /api-design:review." },
-    { "name": "dev-env", "source": "./plugins/dev-env", "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Proposes the topology as a diagram before writing YAML. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan." },
-    { "name": "web-dev", "source": "./plugins/web-dev", "description": "Generalist web development worker agent: routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, baseline accessibility — implements, not just reviews. Stack-agnostic; defers to the per-framework review plugins. Includes a web-developer agent." },
-    { "name": "system-design", "source": "./plugins/system-design", "description": "System-level design worker agent: service boundaries, data modeling, scaling paths, caching layers, sync vs async decisions — documents trade-offs while implementing. Complements code-architecture (code-level structure) without overlapping it. Includes a system-architect agent." },
-    { "name": "devops", "source": "./plugins/devops", "description": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Includes a devops-engineer agent." },
-    { "name": "database", "source": "./plugins/database", "description": "Database worker agent: schema design, additive migrations, indexing strategy, query optimization, connection pooling — implements database changes engine-agnostically and defers dialect review to the sql/mysql/mariadb/postgresql plugins. Includes a database-engineer agent." },
-    { "name": "performance", "source": "./plugins/performance", "description": "Performance worker agent: measure-first profiling, bundle-size reduction, caching strategy, Core Web Vitals, N+1 elimination, load-test setup — optimizes only what a measurement proves slow. Includes a performance-engineer agent." },
-    { "name": "claude-authoring", "source": "./plugins/claude-authoring", "description": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands." },
-    { "name": "code-review", "source": "./plugins/code-review", "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings. Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, and a code-smells skill." },
-    { "name": "approaches", "source": "./plugins/approaches", "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats. Includes /approaches:compare." },
-    { "name": "decision-records", "source": "./plugins/decision-records", "description": "Architecture Decision Records: persist every significant technical choice — approach picks, schema shapes, dependency adoptions — to taskmaster-docs/adr/ with context, rejected options, consequences, and a revisit-when trigger. Status lifecycle proposed/accepted/superseded. Includes /decision-records:new." },
-    { "name": "retrospective", "source": "./plugins/retrospective", "description": "Post-milestone learning loop: five-minute retro after a task run or feature lands — surprises become CLAUDE.md candidates, repetition becomes skill suggestions, friction becomes process tweaks. Closes the amnesia gap where every run starts smart and ends forgotten. Includes /retrospective:run." },
-    { "name": "hindsight", "source": "./plugins/hindsight", "description": "Cross-session self-improvement loop: a SessionEnd hook records per-session friction stats (turns, errors, best-effort friction events) to a project-local ledger; /hindsight:harvest ranks high-friction sessions, deep-mines transcripts via a transcript-miner agent with a ≥2-session recurrence gate, and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on explicit approval. Includes /hindsight:harvest and a transcript-miner agent." },
-    { "name": "build-vs-buy", "source": "./plugins/build-vs-buy", "description": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). Includes /build-vs-buy:check." },
-    { "name": "rollout", "source": "./plugins/rollout", "description": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan." },
-    { "name": "resilience", "source": "./plugins/resilience", "description": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review." },
-    { "name": "docs-upkeep", "source": "./plugins/docs-upkeep", "description": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check." },
-    { "name": "packages", "source": "./plugins/packages", "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, upgrade lanes. Includes /packages:audit" },
-    { "name": "orchestration", "source": "./plugins/orchestration", "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry, completeness critic). Includes /orchestration:review." },
-    { "name": "estimation", "source": "./plugins/estimation", "description": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking that feeds retrospectives. Includes /estimation:size." },
-    { "name": "a11y", "source": "./plugins/a11y", "description": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit." },
-    { "name": "everything", "source": "./plugins/everything", "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins." },
-    { "name": "taskmaster-suite", "source": "./plugins/taskmaster-suite", "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins." }
+    {
+      "name": "ui-ux",
+      "source": "./plugins/ui-ux",
+      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and ui-ux-reviewer + ui-ux-engineer agents."
+    },
+    {
+      "name": "react",
+      "source": "./plugins/react",
+      "description": "React best practices: hooks rules, render/memo performance, state management, component patterns. Includes /react:review."
+    },
+    {
+      "name": "react-native",
+      "source": "./plugins/react-native",
+      "description": "React Native best practices: list performance, navigation, platform-specific code, animations. Includes /react-native:review."
+    },
+    {
+      "name": "vue2",
+      "source": "./plugins/vue2",
+      "description": "Vue 2.7 best practices: Composition API backport, defineProperty reactivity caveats, Vue 3 migration readiness. Includes /vue2:review."
+    },
+    {
+      "name": "vue3",
+      "source": "./plugins/vue3",
+      "description": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia. Includes /vue3:review."
+    },
+    {
+      "name": "php",
+      "source": "./plugins/php",
+      "description": "PHP best practices: strict types, === discipline, PSR-4/PSR-12 conventions, version-aware advice pinned to the composer.json floor with a per-version leverage map (8.1-8.5), exceptions, DateTimeImmutable, boundary security, value objects, static analysis. Includes /php:review."
+    },
+    {
+      "name": "laravel",
+      "source": "./plugins/laravel",
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies. Includes /laravel:review."
+    },
+    {
+      "name": "livewire",
+      "source": "./plugins/livewire",
+      "description": "Livewire 3 best practices: component conventions, wire:model modifiers, performance, Alpine interop. Includes /livewire:review."
+    },
+    {
+      "name": "sql",
+      "source": "./plugins/sql",
+      "description": "Engine-agnostic SQL best practices: sargable predicates, join correctness, composite index logic, NULL traps, transactions, constraints, keyset pagination, additive migrations, parameterization. Includes /sql:review."
+    },
+    {
+      "name": "mysql",
+      "source": "./plugins/mysql",
+      "description": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL and metadata locks, gap locking, JSON limits, 8.0-8.4 LTS version leverage. Includes /mysql:review."
+    },
+    {
+      "name": "mariadb",
+      "source": "./plugins/mariadb",
+      "description": "MariaDB 10.6+ best practices: not-MySQL divergences, RETURNING, sequences, system-versioned tables, native UUID type, uca1400 collations, Galera awareness. Includes /mariadb:review."
+    },
+    {
+      "name": "postgresql",
+      "source": "./plugins/postgresql",
+      "description": "PostgreSQL 14+ best practices: MVCC/vacuum reality, timestamptz/jsonb/uuid types, partial/expression/GIN/BRIN indexes, lock-aware migrations, ON CONFLICT/RETURNING, version leverage through 17/18. Includes /postgresql:review."
+    },
+    {
+      "name": "code-architecture",
+      "source": "./plugins/code-architecture",
+      "description": "Engineering process: plan-before-code with current-vs-target architecture diagrams on a live preview URL for structural changes, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles, and always-on surgical-coding discipline (surface assumptions, every changed line traces to the request, orphan rule, verifiable success criteria — after Karpathy's LLM-coding guidelines). Includes /code-architecture:plan|verify|yagni and an architecture-reviewer agent."
+    },
+    {
+      "name": "design-patterns",
+      "source": "./plugins/design-patterns",
+      "description": "Design pattern selection: which pattern fits where, and when NOT to use one. Includes /design-patterns:suggest."
+    },
+    {
+      "name": "api-docs-first",
+      "source": "./plugins/api-docs-first",
+      "description": "Verify current API docs before writing integration code; asks for a URL or file when docs are not visible. Includes /api-docs-first:check and a UserPromptSubmit reminder hook."
+    },
+    {
+      "name": "meta-api",
+      "source": "./plugins/meta-api",
+      "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook."
+    },
+    {
+      "name": "taskmaster",
+      "source": "./plugins/taskmaster",
+      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes and tradeoff callouts, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, a context-scout agent, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)."
+    },
+    {
+      "name": "git-workflow",
+      "source": "./plugins/git-workflow",
+      "description": "Git workflow discipline: isolated worktrees for feature work, a structured finish protocol for development branches (verify, present options, merge/PR/park, clean up), and review-exchange rigor — what to include when requesting review, and technical verification before implementing received feedback. Includes /git-workflow:finish."
+    },
+    {
+      "name": "debugging",
+      "source": "./plugins/debugging",
+      "description": "Systematic debugging: root cause before any fix — reproduce first, read the actual error, isolate with hypothesis tests and bisection, one change at a time, verify against the original symptom; escalation rule after three failed fixes. Includes /debugging:debug."
+    },
+    {
+      "name": "task-runner",
+      "source": "./plugins/task-runner",
+      "description": "Disciplined task execution: one task at a time, scope locked, bounded verify-fix inner loop (max three cycles, then park with evidence), no unbounded outer loop, full-suite completion gate; status lives in the task index, not HTML dashboards. Includes /task-runner:run and /task-runner:plan (computed subagents-vs-inline verdict: dependency levels, agent count, speedup estimate)."
+    },
+    {
+      "name": "stack-scan",
+      "source": "./plugins/stack-scan",
+      "description": "Inventory the actual stack from composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI images; required-vs-installed table with drift, missing-lock, and EOL flags. Includes /stack-scan:report."
+    },
+    {
+      "name": "plugin-scout",
+      "source": "./plugins/plugin-scout",
+      "description": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install — stack-matched tier and always-useful tier — then install the picked ones after confirmation. Includes /plugin-scout:suggest."
+    },
+    {
+      "name": "testing",
+      "source": "./plugins/testing",
+      "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review and a test-engineer worker agent."
+    },
+    {
+      "name": "security",
+      "source": "./plugins/security",
+      "description": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review and a security-engineer worker agent."
+    },
+    {
+      "name": "typescript",
+      "source": "./plugins/typescript",
+      "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review."
+    },
+    {
+      "name": "inertia",
+      "source": "./plugins/inertia",
+      "description": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review."
+    },
+    {
+      "name": "api-design",
+      "source": "./plugins/api-design",
+      "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, and a live contract-preview artifact with real example payloads for new endpoints. Includes /api-design:review."
+    },
+    {
+      "name": "dev-env",
+      "source": "./plugins/dev-env",
+      "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Proposes the topology as a diagram before writing YAML. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan."
+    },
+    {
+      "name": "web-dev",
+      "source": "./plugins/web-dev",
+      "description": "Generalist web development worker agent: routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, baseline accessibility — implements, not just reviews. Stack-agnostic; defers to the per-framework review plugins. Includes a web-developer agent."
+    },
+    {
+      "name": "system-design",
+      "source": "./plugins/system-design",
+      "description": "System-level design worker agent: service boundaries, data modeling, scaling paths, caching layers, sync vs async decisions — documents trade-offs while implementing. Complements code-architecture (code-level structure) without overlapping it. Includes a system-architect agent."
+    },
+    {
+      "name": "devops",
+      "source": "./plugins/devops",
+      "description": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Includes a devops-engineer agent."
+    },
+    {
+      "name": "database",
+      "source": "./plugins/database",
+      "description": "Database worker agent: schema design, additive migrations, indexing strategy, query optimization, connection pooling — implements database changes engine-agnostically and defers dialect review to the sql/mysql/mariadb/postgresql plugins. Includes a database-engineer agent."
+    },
+    {
+      "name": "performance",
+      "source": "./plugins/performance",
+      "description": "Performance worker agent: measure-first profiling, bundle-size reduction, caching strategy, Core Web Vitals, N+1 elimination, load-test setup — optimizes only what a measurement proves slow. Includes a performance-engineer agent."
+    },
+    {
+      "name": "claude-authoring",
+      "source": "./plugins/claude-authoring",
+      "description": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands."
+    },
+    {
+      "name": "code-review",
+      "source": "./plugins/code-review",
+      "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings. Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, and a code-smells skill."
+    },
+    {
+      "name": "approaches",
+      "source": "./plugins/approaches",
+      "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats. Includes /approaches:compare."
+    },
+    {
+      "name": "decision-records",
+      "source": "./plugins/decision-records",
+      "description": "Architecture Decision Records: persist every significant technical choice — approach picks, schema shapes, dependency adoptions — to taskmaster-docs/adr/ with context, rejected options, consequences, and a revisit-when trigger. Status lifecycle proposed/accepted/superseded. Includes /decision-records:new."
+    },
+    {
+      "name": "retrospective",
+      "source": "./plugins/retrospective",
+      "description": "Post-milestone learning loop: five-minute retro after a task run or feature lands — surprises become CLAUDE.md candidates, repetition becomes skill suggestions, friction becomes process tweaks. Closes the amnesia gap where every run starts smart and ends forgotten. Includes /retrospective:run."
+    },
+    {
+      "name": "hindsight",
+      "source": "./plugins/hindsight",
+      "description": "Cross-session self-improvement loop: a SessionEnd hook records per-session friction stats (turns, errors, best-effort friction events) to a project-local ledger; /hindsight:harvest ranks high-friction sessions, deep-mines transcripts via a transcript-miner agent with a ≥2-session recurrence gate, and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on explicit approval. Includes /hindsight:harvest and a transcript-miner agent."
+    },
+    {
+      "name": "build-vs-buy",
+      "source": "./plugins/build-vs-buy",
+      "description": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). Includes /build-vs-buy:check."
+    },
+    {
+      "name": "rollout",
+      "source": "./plugins/rollout",
+      "description": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan."
+    },
+    {
+      "name": "resilience",
+      "source": "./plugins/resilience",
+      "description": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review."
+    },
+    {
+      "name": "docs-upkeep",
+      "source": "./plugins/docs-upkeep",
+      "description": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check."
+    },
+    {
+      "name": "packages",
+      "source": "./plugins/packages",
+      "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, upgrade lanes. Includes /packages:audit"
+    },
+    {
+      "name": "orchestration",
+      "source": "./plugins/orchestration",
+      "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry, completeness critic). Includes /orchestration:review."
+    },
+    {
+      "name": "estimation",
+      "source": "./plugins/estimation",
+      "description": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking that feeds retrospectives. Includes /estimation:size."
+    },
+    {
+      "name": "a11y",
+      "source": "./plugins/a11y",
+      "description": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit."
+    },
+    {
+      "name": "everything",
+      "source": "./plugins/everything",
+      "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "taskmaster-suite",
+      "source": "./plugins/taskmaster-suite",
+      "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    }
   ]
 }

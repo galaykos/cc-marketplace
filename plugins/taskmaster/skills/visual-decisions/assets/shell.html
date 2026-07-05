@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" data-vd-theme="baseline">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — pick a variant</title>
+<style>
+/* ---- Theme tokens -------------------------------------------------- */
+/* Baseline: cool neutral + blue accent. Tokens style chrome and accents
+   ONLY; content text and surfaces use the fixed neutrals below so a
+   broken project palette can never make the page unreadable. */
+:root {
+  --vd-primary: #2563eb;
+  --vd-surface: #fafafa;
+  --vd-text: #18181b;
+  --vd-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --vd-radius: 8px;
+  --vd-space: 8px;
+  /* fixed neutrals — never overridden by project tokens */
+  --vd-ink: #18181b;
+  --vd-ink-soft: #52525b;
+  --vd-paper: #ffffff;
+  --vd-line: #e4e4e7;
+  --vd-shadow: 0 1px 3px rgba(0, 0, 0, .07), 0 4px 14px rgba(0, 0, 0, .05);
+}
+html[data-vd-theme="project"] {
+  /* SLOT: theme-project */
+}
+
+/* ---- Base ----------------------------------------------------------- */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--vd-font);
+  color: var(--vd-ink);
+  background: var(--vd-surface);
+}
+
+/* ---- Sticky decision header ----------------------------------------- */
+#vd-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--vd-paper);
+  border-bottom: 2px solid var(--vd-primary);
+  box-shadow: var(--vd-shadow);
+  padding: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--vd-space) * 2);
+}
+#vd-header .vd-q {
+  flex: 1 1 320px;
+  min-width: 240px;
+}
+#vd-header .vd-q h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+#vd-header .vd-q .vd-meta {
+  margin-top: 2px;
+  font-size: .78rem;
+  color: var(--vd-ink-soft);
+}
+#vd-header .vd-meta .vd-axis { color: var(--vd-primary); font-weight: 600; }
+.vd-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--vd-space);
+  flex-wrap: wrap;
+}
+.vd-jump {
+  display: inline-flex;
+  gap: 4px;
+}
+.vd-jump a {
+  display: inline-block;
+  min-width: 1.9em;
+  text-align: center;
+  padding: 4px 6px;
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  color: var(--vd-primary);
+  font-weight: 600;
+  font-size: .85rem;
+  text-decoration: none;
+}
+.vd-jump a:hover { border-color: var(--vd-primary); }
+.vd-seg {
+  display: inline-flex;
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  overflow: hidden;
+}
+.vd-seg button {
+  border: 0;
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.vd-seg button + button { border-left: 1px solid var(--vd-line); }
+.vd-seg button[aria-pressed="true"] {
+  background: var(--vd-primary);
+  color: #fff;
+}
+#vd-theme-toggle {
+  border: 1px solid var(--vd-line);
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  padding: 5px 10px;
+  border-radius: var(--vd-radius);
+  cursor: pointer;
+}
+#vd-theme-toggle:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+.vd-note {
+  font-size: .78rem;
+  color: var(--vd-ink-soft);
+  font-style: italic;
+}
+
+/* ---- Variant frames -------------------------------------------------- */
+#vd-frames {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: calc(var(--vd-space) * 3);
+  padding: calc(var(--vd-space) * 3);
+  align-items: start;
+}
+.vd-frame {
+  background: var(--vd-paper);
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  box-shadow: var(--vd-shadow);
+  overflow: hidden;
+}
+.vd-frame > h2 {
+  margin: 0;
+  padding: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 2);
+  font-size: .95rem;
+  background: var(--vd-surface);
+  border-bottom: 1px solid var(--vd-line);
+}
+.vd-frame > h2 .vd-badge {
+  display: inline-block;
+  min-width: 1.6em;
+  text-align: center;
+  margin-right: 8px;
+  padding: 2px 6px;
+  border-radius: var(--vd-radius);
+  background: var(--vd-primary);
+  color: #fff;
+  font-size: .8rem;
+}
+.vd-frame .vd-caption {
+  margin: 0;
+  padding: var(--vd-space) calc(var(--vd-space) * 2);
+  font-size: .82rem;
+  color: var(--vd-ink-soft);
+  border-bottom: 1px solid var(--vd-line);
+}
+.vd-frame .vd-content {
+  padding: calc(var(--vd-space) * 2);
+  min-height: 120px;
+}
+.vd-frame:focus-within, .vd-frame.vd-focus { outline: 2px solid var(--vd-primary); }
+
+/* ---- Callouts and tradeoffs ------------------------------------------ */
+.vd-callout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  margin: 0 3px;
+  border-radius: 50%;
+  background: var(--vd-primary);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: default;
+  vertical-align: middle;
+}
+.vd-tradeoffs {
+  margin: 0;
+  padding: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 2)
+           calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 4.5);
+  border-top: 1px solid var(--vd-line);
+  background: var(--vd-surface);
+  font-size: .84rem;
+}
+.vd-tradeoffs li { margin: 4px 0; }
+.vd-tradeoffs li::marker { color: var(--vd-primary); font-weight: 700; }
+.vd-hl { outline: 2px solid var(--vd-primary); outline-offset: 2px; border-radius: 4px; }
+li.vd-hl { outline-offset: 0; }
+
+/* ---- Compare modes ---------------------------------------------------- */
+body[data-vd-mode="stack"] #vd-frames { grid-template-columns: 1fr; max-width: 860px; margin: 0 auto; }
+body[data-vd-mode="flip"] #vd-frames { grid-template-columns: 1fr; max-width: 860px; margin: 0 auto; }
+body[data-vd-mode="flip"] .vd-frame { display: none; }
+body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
+</style>
+</head>
+<body data-vd-mode="side">
+
+<header id="vd-header">
+  <div class="vd-q">
+    <h1><!-- SLOT: question --></h1>
+    <div class="vd-meta">
+      axis <span class="vd-axis"><!-- SLOT: axis --></span>
+      · <span class="vd-pass"><!-- SLOT: pass --></span>
+      · <span class="vd-note"><!-- SLOT: theme-note --></span>
+    </div>
+  </div>
+  <div class="vd-controls">
+    <nav class="vd-jump" aria-label="Jump to variant">
+      <a href="#vd-a">A</a><a href="#vd-b">B</a><a href="#vd-c">C</a>
+    </nav>
+    <div class="vd-seg" role="group" aria-label="Compare mode">
+      <button type="button" data-vd-set-mode="side" aria-pressed="true">Side-by-side</button>
+      <button type="button" data-vd-set-mode="stack" aria-pressed="false">Stacked</button>
+      <button type="button" data-vd-set-mode="flip" aria-pressed="false">Flip</button>
+    </div>
+    <button type="button" id="vd-theme-toggle" hidden>Theme</button>
+  </div>
+</header>
+
+<main id="vd-frames">
+  <section class="vd-frame" id="vd-a" data-vd-active tabindex="-1">
+    <h2><span class="vd-badge">A</span><!-- SLOT: variant-A-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-A-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-A-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-A --></ul>
+  </section>
+
+  <section class="vd-frame" id="vd-b" tabindex="-1">
+    <h2><span class="vd-badge">B</span><!-- SLOT: variant-B-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-B-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-B-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-B --></ul>
+  </section>
+
+  <!-- FRAME-C-START -->
+  <section class="vd-frame" id="vd-c" tabindex="-1">
+    <h2><span class="vd-badge">C</span><!-- SLOT: variant-C-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-C-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-C-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-C --></ul>
+  </section>
+  <!-- FRAME-C-END -->
+</main>
+
+<script>
+(() => {
+  const frames = Array.from(document.querySelectorAll('.vd-frame'));
+
+  // Compare modes
+  const segButtons = Array.from(document.querySelectorAll('[data-vd-set-mode]'));
+  function setMode(mode) {
+    document.body.dataset.vdMode = mode;
+    segButtons.forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.vdSetMode === mode)));
+  }
+  segButtons.forEach(b =>
+    b.addEventListener('click', () => setMode(b.dataset.vdSetMode)));
+
+  // Focus variant N: scroll in side/stack, show in flip
+  function focusVariant(i) {
+    const frame = frames[i];
+    if (!frame) return;
+    if (document.body.dataset.vdMode === 'flip') {
+      frames.forEach(f => delete f.dataset.vdActive);
+      frame.dataset.vdActive = '';
+    } else {
+      frame.scrollIntoView({ block: 'start' });
+      frames.forEach(f => f.classList.remove('vd-focus'));
+      frame.classList.add('vd-focus');
+      setTimeout(() => frame.classList.remove('vd-focus'), 900);
+    }
+  }
+  document.addEventListener('keydown', e => {
+    if (e.target instanceof Element && e.target.closest('input, textarea, select')) return;
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= frames.length) focusVariant(n - 1);
+  });
+  document.querySelectorAll('.vd-jump a').forEach((a, i) =>
+    a.addEventListener('click', e => {
+      if (document.body.dataset.vdMode === 'flip') {
+        e.preventDefault();
+        focusVariant(i);
+      }
+    }));
+
+  // Callout pairing: highlight badge + matching tradeoff bullet per frame
+  function pairOf(el) {
+    const frame = el.closest('.vd-frame');
+    if (!frame || !el.dataset.n) return [];
+    const sel = '[data-n="' + el.dataset.n + '"]';
+    return Array.from(frame.querySelectorAll('.vd-callout' + sel + ', li' + sel));
+  }
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('.vd-callout, .vd-tradeoffs li');
+    if (el) pairOf(el).forEach(m => m.classList.add('vd-hl'));
+  });
+  document.addEventListener('mouseout', e => {
+    const el = e.target.closest('.vd-callout, .vd-tradeoffs li');
+    if (el) pairOf(el).forEach(m => m.classList.remove('vd-hl'));
+  });
+
+  // Theme toggle (un-hidden by the skill when project tokens are injected)
+  const toggle = document.getElementById('vd-theme-toggle');
+  function labelToggle() {
+    const cur = document.documentElement.dataset.vdTheme;
+    toggle.textContent = cur === 'project' ? 'Theme, project' : 'Theme, baseline';
+  }
+  toggle.addEventListener('click', () => {
+    const root = document.documentElement;
+    root.dataset.vdTheme = root.dataset.vdTheme === 'project' ? 'baseline' : 'project';
+    labelToggle();
+  });
+  labelToggle();
+})();
+</script>
+
+<script>
+(() => {
+  let last = null;
+  setInterval(async () => {
+    try {
+      const body = await (await fetch(location.href, { cache: 'no-store' })).text();
+      if (last !== null && body !== last) location.reload();
+      last = body;
+    } catch { /* server gone: stop reloading, page stays usable */ }
+  }, 1000);
+})();
+</script>
+
+</body>
+</html>
