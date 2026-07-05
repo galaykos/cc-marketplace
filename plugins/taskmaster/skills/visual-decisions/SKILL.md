@@ -33,8 +33,9 @@ genuinely visual choice exists and a build is imminent, never at task intake.
    hierarchy, density, or motion drives the choice and boxes cannot carry it.
 3. **Inline SVG inside a variant slot** — for flows and topology diagrams.
 
-There is no rung 4 — never build a working prototype to decide; mockups die at the
-pick. Validating the ASSEMBLED experience afterwards is the experience-walkthrough skill.
+Real-component fidelity beyond the shell: the design-preview plugin, when installed.
+There is no prototype rung — mockups die at the pick; validating the ASSEMBLED
+experience afterwards is the experience-walkthrough skill.
 
 ## ASCII wireframes
 
