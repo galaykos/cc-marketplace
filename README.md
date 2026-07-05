@@ -1,10 +1,10 @@
-# cc-plgun: Claude Code Plugin Marketplace
+# cc-plugins-marketplace: Claude Code Plugin Marketplace
 
-cc-plgun is a self-hosted marketplace of best-practice plugins for Claude Code. Each plugin bundles skills, commands, and agents that enforce code quality standards across your projects—from React and Vue to Laravel and beyond.
+cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for Claude Code. Each plugin bundles skills, commands, and agents that enforce code quality standards across your projects—from React and Vue to Laravel and beyond.
 
 ## Installation
 
-To add the cc-plgun marketplace to your Claude Code config:
+To add the cc-plugins-marketplace marketplace to your Claude Code config:
 
 ```bash
 /plugin marketplace add <git-url-or-local-path>
@@ -13,15 +13,15 @@ To add the cc-plgun marketplace to your Claude Code config:
 Then install individual plugins:
 
 ```bash
-/plugin install <plugin>@cc-plgun
+/plugin install <plugin>@cc-plugins-marketplace
 ```
 
 For example:
 
 ```bash
-/plugin install react@cc-plgun
-/plugin install laravel@cc-plgun
-/plugin install code-architecture@cc-plgun
+/plugin install react@cc-plugins-marketplace
+/plugin install laravel@cc-plugins-marketplace
+/plugin install code-architecture@cc-plugins-marketplace
 ```
 
 ## Plugins

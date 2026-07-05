@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Validates cc-plgun marketplace structure. Exits non-zero on first category of failure.
+# Validates cc-plugins-marketplace structure. Exits non-zero on first category of failure.
 set -u
 cd "$(dirname "$0")/.."
 fail=0

@@ -1,5 +1,5 @@
 {
-  "name": "cc-plgun",
+  "name": "cc-plugins-marketplace",
   "owner": { "name": "Ivan-WG", "email": "dev@intername.media" },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, architecture, design patterns, API-docs-first workflow.",
