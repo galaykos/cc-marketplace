@@ -1,7 +1,7 @@
 {
   "name": "everything",
-  "version": "0.1.0",
-  "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite.",
+  "version": "0.2.0",
+  "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "dependencies": [
     "ui-ux",

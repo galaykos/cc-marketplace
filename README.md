@@ -48,7 +48,10 @@ plugin (react, laravel, postgresql, …) individually on top as your stack
 requires.
 
 Uninstall a bundle together with its auto-installed dependencies (plugins you
-installed manually are never touched; requires Claude Code 2.1.121+):
+installed manually are never touched; requires Claude Code 2.1.121+). Easiest:
+each bundle ships its own cleanup command — run `/taskmaster-suite:uninstall`
+or `/everything:uninstall` from inside Claude Code (confirms, then uninstalls
+the bundle and prunes its dependencies). CLI equivalent:
 
 ```bash
 claude plugin uninstall taskmaster-suite --prune
@@ -107,8 +110,8 @@ afterwards to sweep the orphans.
 | **docs-upkeep** | Doc drift prevention: README/changelog/ADR/API-doc sync in the same change that invalidated them | `/docs-upkeep:check` |
 | **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
 | **a11y** | WCAG 2.1 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
-| **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | — |
-| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, UI/UX, worker agents) — no framework/dialect plugins | — |
+| **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
+| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, UI/UX, worker agents) — no framework/dialect plugins | `/taskmaster-suite:uninstall` |
 
 ## Usage
 
