@@ -57,11 +57,11 @@ diverges enough that branching in one file hurts readability.
 ```jsx
 // Bad: scattered inline branches for a whole style object
 const shadow = Platform.OS === 'ios'
-  ? { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4 }
+  ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 }
   : { elevation: 4 };
 // Good: one declarative call, same shape either way
 const shadow = Platform.select({
-  ios: { shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4 },
+  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 },
   android: { elevation: 4 },
 });
 ```
@@ -71,11 +71,12 @@ build time, so a shape mismatch is a runtime error on only one platform, not a t
 
 ## Animated/Reanimated: useNativeDriver's limited scope
 
-`useNativeDriver: true` runs an animation on the native UI thread instead of JS, so it stays
-smooth even when JS is busy — but it only supports non-layout properties: `transform`
-(translate/scale/rotate) and `opacity`. It cannot animate `width`, `height`, `top`, `left`,
-`flex`, or margin/padding, since those require re-running layout. Requesting it for a layout
-property throws or no-ops instead of animating.
+`useNativeDriver: true` runs an animation on the native UI thread instead of JS, so it stays smooth
+even when JS is busy — true on the New Architecture too (default since RN 0.76: JSI replaces the
+async bridge, but JS-thread congestion still janks). It only supports non-layout properties:
+`transform` (translate/scale/rotate) and `opacity`, not `width`, `height`, `top`, `left`, `flex`,
+or margin/padding, since those require re-running layout. Requesting it for a layout property
+throws at runtime (e.g. "Style property 'width' is not supported") instead of animating.
 
 ```jsx
 // Bad: width is a layout property — not eligible for the native driver
@@ -101,16 +102,19 @@ layout. Set `resizeMode` deliberately instead of relying on the default.
 ```
 
 React Native's built-in `Image` has limited disk-cache control. For screens with many remote
-images, use `react-native-fast-image` or `expo-image` so images cache to disk instead of refetching.
+images, use `expo-image` so images cache to disk instead of refetching; `react-native-fast-image`
+offers the same idea but its maintenance has slowed, so prefer `expo-image` for new code.
 
-## Minimize bridge crossings
+## Minimize JS-to-native crossings
 
 Every JS-to-native call has overhead. Batch state updates instead of issuing one per frame, and let
 native handle continuous, high-frequency values (scroll position, gesture deltas) instead of
-routing them through JS state.
+routing them through JS state. "Bridge" here means the Old Architecture/interop layer; on the New
+Architecture (default since RN 0.76) it's the synchronous JSI, not the async bridge — but per-frame
+JS work still congests the JS thread and still janks, so the advice holds either way.
 
 ```jsx
-// Bad: a JS state update — and a bridge crossing — on every scroll frame
+// Bad: a JS state update — and a JS/native crossing — on every scroll frame
 <ScrollView onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)} scrollEventThrottle={1} />
 // Good: drive UI from a shared value updated on the native side
 const scrollY = useSharedValue(0);
