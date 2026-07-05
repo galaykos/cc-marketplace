@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.20.0] - 2026-07-05
+
+### Changed
+
+- **everything** 0.4.0: dependencies now include plugin-scout — added to the marketplace in 0.16.0 but never picked up by the bundle, leaving "installs every plugin" one plugin short
+
 ## [0.19.0] - 2026-07-05
 
 ### Added
