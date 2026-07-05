@@ -39,7 +39,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 # engineering discipline, UI/UX, worker agents). No framework/dialect plugins.
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
-# Everything in the marketplace — all 33 plugins.
+# Everything in the marketplace — every plugin, all stacks.
 /plugin install everything@cc-plugins-marketplace
 ```
 
