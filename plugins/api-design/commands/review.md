@@ -12,3 +12,8 @@ semantics, verify against the RFCs (9110 for methods/status codes, 9457 for prob
 details) instead of answering from memory. Report findings as
 `path:line — problem — fix`, ordered by severity. Skip naming nits unless they leak
 into the public contract.
+
+When $ARGUMENTS describes endpoints that do not exist yet (a design task rather than
+a review), switch to the skill's contract-preview protocol: render the proposed
+contract as the live HTML artifact with real example payloads and get it approved
+before any implementation.

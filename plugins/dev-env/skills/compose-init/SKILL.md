@@ -50,6 +50,18 @@ Generate a service only when evidence demands it:
 A production S3 bucket in .env is NOT evidence for minio. `QUEUE_CONNECTION=sync`
 is NOT evidence for a worker. When in doubt, leave the service out and say so.
 
+## Diagram before YAML
+
+A service table reads as a list; topology mistakes hide in lists. Alongside
+the service-plan table, render the proposed stack as a diagram — inline SVG in
+one self-contained HTML (boxes per service with pinned image tag and source
+citation; arrows for connections with ports; volume cylinders on stateful
+services) — served on the live preview pattern (port 8123 + auto-reload, see
+taskmaster's visual-decisions skill) or opened via `file://`. "Why is there a
+minio box?" asked at the picture costs nothing; asked after generation it
+costs a regeneration round. ASCII boxes in chat are an acceptable fallback
+for 3 services or fewer.
+
 ## Image pinning
 
 Exact minor tags, always: `php:8.3-fpm`, `mysql:8.4`, `postgres:17`,

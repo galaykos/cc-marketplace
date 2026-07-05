@@ -31,6 +31,11 @@ Uncertain semantics are verified against RFC 9110/9457 rather than answered
 from memory; the small honest status-code set beats creative 200-with-error
 responses every time.
 
+For endpoints that don't exist yet, the skill renders a **contract preview** —
+a live HTML page with every proposed endpoint, real example request/response
+payloads, and problem+json error bodies — approved before implementation and
+reused as the fixture source for tests.
+
 ## Pairs well with
 
 - **sql** — its keyset-pagination rule backs this plugin's cursor-pagination advice

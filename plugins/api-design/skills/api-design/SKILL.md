@@ -122,6 +122,20 @@ and stop. Every other code is a trivia question for your consumers.
 - Policies for authorization (`authorize` in the FormRequest or controller) →
   403; named `RateLimiter` limiters per consumer tier → 429 with `Retry-After`.
 
+## Preview the contract before building it
+
+For new endpoints or breaking redesigns, render the proposed contract as one
+self-contained HTML page and get it approved before any route exists:
+
+- Per endpoint: method + path, a REAL example request and response (actual
+  field values, not `<string>`), the error responses with their problem+json
+  bodies, and the required auth/permissions.
+- Realistic data exposes what schemas hide: a `total` that should be
+  `total_cents`, a missing `created_at`, pagination meta nobody specified.
+- Serve on the live preview pattern (port 8123 + auto-reload, see taskmaster's
+  visual-decisions skill) so iteration lands in the open tab; the approved
+  page is the spec input for implementation and the fixture source for tests.
+
 ## Anti-patterns
 
 - Verbs in paths (`/createOrder`, `/orders/delete/{id}`) — the method is the verb.

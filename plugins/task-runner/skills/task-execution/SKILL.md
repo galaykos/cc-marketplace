@@ -61,6 +61,21 @@ misunderstanding, and token burn scales with confusion, not progress. Instead:
 - A parked task never blocks unrelated tasks; dependency-blocked tasks are marked
   blocked-by, not attempted anyway.
 
+## Live run board
+
+For runs past ~3 tasks, render the index as a live artifact so "how is it
+going" never needs asking:
+
+- Generate `run-board.html` next to the index: one row per task (status,
+  verify command, evidence tail, parked reason), current task highlighted,
+  the follow-up backlog below. Regenerate the file at EVERY status flip.
+- Serve it once (`python3 -m http.server 8123` from the tasks directory) with
+  a body-compare auto-reload snippet — the open tab tracks the run in real
+  time. Kill the server at the completion report.
+- The board is a VIEW: regenerated from `00-INDEX.md`, never edited, never a
+  second source of truth. If the board and index disagree, the board is stale
+  — regenerate it; never "fix" the board.
+
 ## Drift tripwires
 
 Stop and re-read the current task the moment any of these appears:

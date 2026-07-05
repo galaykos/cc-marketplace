@@ -14,7 +14,9 @@ repository root if no argument). Steps:
    update anything to observe it.
 2. Propose the service plan BEFORE writing files: one table of services with
    the pinned image tag, the evidence that demanded each service (source
-   citation per row), and any `ASSUMED` markers with a one-line reason.
+   citation per row), and any `ASSUMED` markers with a one-line reason — plus
+   the topology diagram per the skill's "Diagram before YAML" section (SVG on
+   the live preview URL, or ASCII in chat for 3 services or fewer).
    Wait for confirmation.
 3. Generate docker-compose.yml, and a multi-stage Dockerfile only when an
    official image plus compose config cannot run the project as-is. Never

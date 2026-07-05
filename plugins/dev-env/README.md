@@ -28,7 +28,10 @@ queues, mail.
 The generator works evidence-first: PHP version from `composer.json`
 (`config.platform.php` beats the `require` floor), extensions from `ext-*`
 requires, the database engine from `.env` DSNs and CI images — every choice
-cites its source, guesses are marked ASSUMED. It never overwrites an existing
+cites its source, guesses are marked ASSUMED. Before any YAML is written you
+get the proposed topology as a **diagram** (SVG on the live preview URL, ASCII
+for tiny stacks) — "why is there a minio box?" gets asked at the picture, not
+after generation. It never overwrites an existing
 `docker-compose.yml` or `Dockerfile` without showing a diff first, and it isn't
 done until `docker compose up -d --wait` plus a smoke check actually pass.
 

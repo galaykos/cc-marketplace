@@ -74,6 +74,27 @@ interface is `exportNotesAsMarkdown(notes: NoteWithTags[])` from the start. The 
 function is trivially reusable from both the route and the cron job because it never depended
 on HTTP in the first place.
 
+## Draw structural changes: current vs target
+
+When the plan moves boundaries — a new service, a changed data flow, a split
+module — prose plans hide the disagreement that matters: what the reader thinks
+exists today vs what you found in the code. Render both as one artifact:
+
+- One self-contained HTML file with two inline-SVG panels side by side:
+  **current** (how it works — boxes/arrows drawn from code evidence, each box
+  citing its file) and **target** (how it should work after the change), the
+  changed elements visually marked.
+- The current panel must come from the codebase, not intention — a mismatch
+  between the drawn current state and the actual code is a plan bug caught
+  free of charge.
+- Serve it on the live preview URL pattern (port 8123, `current.html`,
+  auto-reload — see the taskmaster plugin's visual-decisions skill when
+  installed; plain `file://` open works too). Get a yes on the target picture
+  BEFORE writing the task sequence — redrawing an arrow is cheaper than
+  re-planning six tasks.
+- Skip the artifact for non-structural changes; a diagram of a renamed method
+  is theater.
+
 ## Red flags that you skipped this step
 
 - You're not sure which file a new piece of logic belongs in while you're writing it.

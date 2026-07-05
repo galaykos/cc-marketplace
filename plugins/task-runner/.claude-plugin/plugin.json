@@ -1,6 +1,6 @@
 {
   "name": "task-runner",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

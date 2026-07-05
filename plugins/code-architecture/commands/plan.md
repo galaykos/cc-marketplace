@@ -10,7 +10,10 @@ described there, or the current uncommitted diff/context if no argument is given
 2. Output a file map: every file to create or touch, with a one-sentence responsibility each.
 3. Output the interfaces between the units in that map: signatures, data shapes crossing
    boundaries, and error/validation ownership.
-4. Output a task sequence: dependency order, and which tasks (if any) are independent enough to
+4. For structural changes (new service, moved boundary, changed data flow): render the
+   current-vs-target diagram artifact per the skill and get the target shape approved
+   before the task sequence.
+5. Output a task sequence: dependency order, and which tasks (if any) are independent enough to
    parallelize, per the task-orchestration skill.
-5. Do not write implementation code in this step. The output is the plan only — code comes
+6. Do not write implementation code in this step. The output is the plan only — code comes
    after the plan is reviewed.

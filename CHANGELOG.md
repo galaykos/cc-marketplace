@@ -4,6 +4,17 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.11.0] - 2026-07-05
+
+### Added
+
+Interactive artifacts across the suite — closing "how it works" vs "how it should work" gaps with things you can look at and click:
+
+- **code-architecture** 0.2.0: structural plans render a current-vs-target architecture diagram (two SVG panels, current drawn from code evidence with file citations) on the live preview URL; target approved before the task sequence
+- **task-runner** 0.2.0: live run board — auto-reloading HTML view of the task index (statuses, current task, evidence tails, backlog), regenerated at every status flip; the index stays the single source of truth
+- **dev-env** 0.2.0: topology diagram before YAML — proposed services, connections, ports, and volumes as SVG alongside the service-plan table
+- **api-design** 0.2.0: contract preview artifact — proposed endpoints with real example payloads and problem+json error bodies as a live page, approved before implementation
+
 ## [0.10.1] - 2026-07-05
 
 ### Changed
