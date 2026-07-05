@@ -17,3 +17,9 @@ When $ARGUMENTS describes endpoints that do not exist yet (a design task rather 
 a review), switch to the skill's contract-preview protocol: render the proposed
 contract as the live HTML artifact with real example payloads and get it approved
 before any implementation.
+
+End with an offer, not a bare report: after review findings, ask via
+AskUserQuestion "Apply these fixes now (Recommended)" / "Skip — findings
+only"; after an approved contract preview, ask "Start implementing this
+contract now (Recommended)" / "Stop here — spec only". Headless: findings
+or approved contract only.

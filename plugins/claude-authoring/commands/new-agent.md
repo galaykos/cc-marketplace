@@ -53,5 +53,8 @@ Scaffold a new subagent from $ARGUMENTS. Steps:
    head -1 "$f" | grep -q '^---$' && echo frontmatter-opener-ok
    awk '/^---$/{c++; next} c==1' "$f" | grep -Ec '^(name|description|tools|model|effort):'   # expect 5
    ```
-5. Remind the user: load the authoring-agents skill from this plugin for the
+5. Offer the next step as a selectable choice (AskUserQuestion): "Load the
+   authoring-agents skill and flesh out the TODOs now (Recommended)" /
+   "Skip — I'll fill the scaffold in myself". On yes, load the skill and
+   continue; plain text only when headless. Deeper rules live there — the
    deeper rules — PROACTIVELY phrasing, tool scoping, worker vs reviewer.

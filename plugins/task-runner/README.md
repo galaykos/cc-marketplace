@@ -20,8 +20,8 @@ full-suite completion gate.
 ## Example
 
 ```bash
-/task-runner:run docs/tasks/2026-07-05-orders-csv-export/00-INDEX.md
-/task-runner:run           # picks the most recent docs/tasks/*/00-INDEX.md
+/task-runner:run taskmaster-docs/tasks/2026-07-05-orders-csv-export/00-INDEX.md
+/task-runner:run           # picks the most recent taskmaster-docs/tasks/*/00-INDEX.md
 ```
 
 Each task runs its EXACT verify command; three failed fix cycles park the task

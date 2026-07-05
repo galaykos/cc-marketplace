@@ -1,0 +1,6 @@
+{
+  "name": "resilience",
+  "version": "0.1.0",
+  "description": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

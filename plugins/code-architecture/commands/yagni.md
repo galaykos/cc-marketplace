@@ -16,3 +16,7 @@ description), or the current uncommitted diff if no argument is given. Steps:
    and what the resulting simpler code looks like).
 5. Do not flag genuine handling of current, real requirements (error handling, validation,
    tests) — only flag flexibility with no current caller or need.
+
+6. When violations were found, ask via AskUserQuestion: "Apply these
+   deletions/simplifications now (Recommended)" / "Skip — report only".
+   Apply only the listed proposals on acceptance. Headless: report only.

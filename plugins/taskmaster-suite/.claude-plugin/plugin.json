@@ -23,6 +23,16 @@
     "devops",
     "database",
     "performance",
-    "claude-authoring"
+    "claude-authoring",
+    "code-review",
+    "approaches",
+    "decision-records",
+    "retrospective",
+    "build-vs-buy",
+    "rollout",
+    "resilience",
+    "docs-upkeep",
+    "estimation",
+    "a11y"
   ]
 }

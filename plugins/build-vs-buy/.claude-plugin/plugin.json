@@ -1,0 +1,6 @@
+{
+  "name": "build-vs-buy",
+  "version": "0.1.0",
+  "description": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). Includes /build-vs-buy:check.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

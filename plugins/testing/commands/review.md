@@ -14,3 +14,7 @@ for production code changed without a corresponding test, name the missing test
 and the pyramid layer it belongs at. Report findings as
 `path:line — problem — fix`, ordered by severity. Skip formatting nits unless
 they change behavior.
+
+When findings or missing tests exist, offer the next step as a selectable
+choice (AskUserQuestion): "Apply the fixes and write the missing tests now
+(Recommended)" / "Skip — report only". Bare instructions only when headless.

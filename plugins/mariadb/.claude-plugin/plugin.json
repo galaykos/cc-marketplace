@@ -1,6 +1,6 @@
 {
   "name": "mariadb",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MariaDB 10.6+ best practices: not-MySQL divergences, RETURNING, sequences, system-versioned tables, UUID type, uca1400 collations, JSON-as-text reality, Galera awareness.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

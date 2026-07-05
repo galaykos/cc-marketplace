@@ -73,7 +73,7 @@ boundary problem worth fixing on the whiteboard, not in the code.
 
 ## The design doc
 
-Write the approved design to `docs/specs/YYYY-MM-DD-<slug>-design.md`: the
+Write the approved design to `taskmaster-docs/specs/YYYY-MM-DD-<slug>-design.md`: the
 problem, the chosen approach and the alternatives rejected (with reasons),
 component map, data flow, error handling, success criteria, non-goals.
 
@@ -91,7 +91,9 @@ conversation, the doc — and change it until they approve it.
 
 ## Handoff
 
-The approved design feeds the grill pipeline, not the editor: run the grill
+The approved design feeds the grill pipeline, not the editor — but offer,
+do not auto-run: ask "Continue into the grill pipeline now (Recommended)" /
+"Stop at the approved design" via AskUserQuestion. On continue, run the grill
 skill with the design doc as input. Most ledger dimensions arrive pre-answered
 (CLEAR, source: the design doc); grill closes what design legitimately left
 open — edge cases, sequencing, exact data shapes — then visual decisions,

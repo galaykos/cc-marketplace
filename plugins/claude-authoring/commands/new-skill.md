@@ -53,5 +53,8 @@ Scaffold a new skill from $ARGUMENTS. Steps:
    awk '/^---$/{c++; next} c==1' "$f" | grep -Eq '^(name|description):' && echo frontmatter-keys-ok
    awk '/^---$/{c++; next} c>=2' "$f" | wc -l   # marketplace target: 100–150
    ```
-5. Remind the user: load the authoring-skills skill from this plugin for the
+5. Offer the next step as a selectable choice (AskUserQuestion): "Load the
+   authoring-skills skill and flesh out the TODOs now (Recommended)" /
+   "Skip — I'll fill the scaffold in myself". On yes, load the skill and
+   continue; plain text only when headless. Deeper rules live there — the
    deeper rules — description writing, scoping, and budget techniques.

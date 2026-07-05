@@ -15,3 +15,7 @@ described there, or the current uncommitted work if no argument is given). Steps
 4. Report pass/fail for each criterion with the exact command and its actual output, per the
    exact-command + expected-output discipline. Include failures and warnings, not just passes.
 5. If something fails, report it plainly and stop short of claiming the work is done.
+
+6. If any criterion failed, ask via AskUserQuestion: "Fix the failing checks
+   now (Recommended)" / "Stop here — report only". On fix, address the
+   failures and re-run this verification. Headless: report only.

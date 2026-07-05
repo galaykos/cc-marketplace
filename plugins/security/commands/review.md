@@ -12,3 +12,7 @@ are present, run `composer audit` / `npm audit` and fold known advisories into t
 findings. Report findings as `path:line — problem — fix`, ordered by severity
 (critical, high, medium, low), each with a one-line note on who can exploit it and how.
 Skip theoretical issues with no reachable input path unless nothing else is found.
+
+When findings exist, offer remediation as a selectable choice (AskUserQuestion):
+"Apply the fixes now, critical first (Recommended)" / "Skip — report only".
+Bare instructions only when headless.

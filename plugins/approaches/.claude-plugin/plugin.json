@@ -1,0 +1,6 @@
+{
+  "name": "approaches",
+  "version": "0.1.0",
+  "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats. Includes /approaches:compare.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

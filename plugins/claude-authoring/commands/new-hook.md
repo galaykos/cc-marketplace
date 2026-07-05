@@ -61,6 +61,9 @@ Scaffold a new hook from $ARGUMENTS. Steps:
    jq empty <hooks-dir>/hooks.json && echo json-ok
    test -x <hooks-dir>/<name>.sh && echo script-executable
    ```
-6. Remind the user: load the authoring-hooks skill from this plugin for the
+6. Offer the next step as a selectable choice (AskUserQuestion): "Load the
+   authoring-hooks skill and finish the hook logic now (Recommended)" /
+   "Skip — I'll finish the script myself". On yes, load the skill and
+   continue; plain text only when headless. Deeper rules live there — the
    deeper rules — event semantics, matchers, exit codes, and when NOT to
    use a hook.

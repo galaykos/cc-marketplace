@@ -1,6 +1,6 @@
 {
   "name": "api-docs-first",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

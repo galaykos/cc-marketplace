@@ -53,6 +53,8 @@ Scaffold a new plugin from $ARGUMENTS. Steps:
    jq -r '.name, .version, .description, .author.name' <plugin-root>/.claude-plugin/plugin.json
    jq -e --arg n <name> '.plugins[] | select(.name == $n)' .claude-plugin/marketplace.json && echo registered
    ```
-6. Remind the user: load the authoring-plugins skill from this plugin for
-   the deeper rules — layout, versioning, registration, and release
-   conventions.
+6. Offer the next step as a selectable choice (AskUserQuestion): "Load the
+   authoring-plugins skill and finish the release steps now (Recommended)" /
+   "Skip — the scaffold is enough". On yes, load the skill and continue;
+   plain text only when headless. Deeper rules live there — layout,
+   versioning, registration, release conventions.

@@ -39,7 +39,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 # engineering discipline, UI/UX, worker agents). No framework/dialect plugins.
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
-# Everything in the marketplace — all 33 plugins.
+# Everything in the marketplace — every plugin, all stacks.
 /plugin install everything@cc-plugins-marketplace
 ```
 
@@ -68,7 +68,7 @@ requires.
 | **api-docs-first** | API-docs-first: verify docs before writing integration code | `/api-docs-first:check` |
 | **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness | `/meta-api:check` |
 | **[taskmaster](plugins/taskmaster/README.md)** | Idea-to-execution clarification: brainstorming fuzzy ideas into designs, ambiguity ledger, batched questions, mockups + interactive experience walkthroughs on one always-live preview URL, milestone-grouped single-prompt task cards + context-scout agent | `/taskmaster:task` (or `/taskmaster`), `/taskmaster:brainstorm` |
-| **[task-runner](plugins/task-runner/README.md)** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate | `/task-runner:run` |
+| **[task-runner](plugins/task-runner/README.md)** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate + parallel-planning (computed subagents-vs-inline verdict, agent count, speedup estimate) | `/task-runner:run`, `/task-runner:plan` |
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
@@ -84,6 +84,16 @@ requires.
 | **database** | Database worker: schema design, additive migrations, indexing, query optimization, connection pooling + database-engineer agent | — |
 | **performance** | Performance worker: measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing + performance-engineer agent | — |
 | **claude-authoring** | Authoring guides for skills/agents/hooks/plugins + routine-detector that suggests capturing repetitive work as a project skill | `/claude-authoring:new-skill`, `/claude-authoring:new-agent`, `/claude-authoring:new-hook`, `/claude-authoring:new-plugin` |
+| **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill | `/code-review:review` |
+| **approaches** | Approach deliberation: 2–3 structurally different candidates, trade-off table, pick + kill-trigger + strategy catalog (tracer bullet, spike, strangler fig, inversion…) | `/approaches:compare` |
+| **decision-records** | ADRs: persist approach/schema/dependency decisions to taskmaster-docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
+| **retrospective** | Post-milestone learning loop: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks | `/retrospective:run` |
+| **build-vs-buy** | Gate zero for generic capability: library/stdlib search, health table, take/wrap/write verdict, never-hand-roll list | `/build-vs-buy:check` |
+| **rollout** | Per-feature rollout: flags with removal dates, compat windows, expand-migrate-contract, staged exposure with gate metrics, rollback path before ship | `/rollout:plan` |
+| **resilience** | Failure-mode design at integration points: timeouts, safe retries + idempotency, circuit breaking, degradation, backpressure, delivery semantics | `/resilience:review` |
+| **docs-upkeep** | Doc drift prevention: README/changelog/ADR/API-doc sync in the same change that invalidated them | `/docs-upkeep:check` |
+| **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
+| **a11y** | WCAG 2.1 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | — |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, UI/UX, worker agents) — no framework/dialect plugins | — |
 
@@ -127,7 +137,7 @@ The full loop for a feature:
 ```bash
 /stack-scan:report                                    # ground truth: what's actually installed
 /taskmaster:task <one-paragraph task description>     # interrogate → spec → task cards
-/task-runner:run docs/tasks/<date>-<slug>/00-INDEX.md # execute cards, verify each one
+/task-runner:run taskmaster-docs/tasks/<date>-<slug>/00-INDEX.md # execute cards, verify each one
 /code-architecture:verify                             # final verification pass
 ```
 

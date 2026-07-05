@@ -37,9 +37,9 @@ Without arguments it asks for a description first. The pipeline then:
    clickable walkthrough demo** on the same preview URL — every screen, state
    variant, and failure exit navigable — and walks you through it with a task
    script; gaps found by clicking become ledger rows before the spec freezes
-5. Writes a spec to `docs/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
+5. Writes a spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
    path and cross-screen contracts when one was built)
-6. Emits single-prompt task cards to `docs/tasks/YYYY-MM-DD-<slug>/` with a
+6. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
    `00-INDEX.md`, grouped into independently shippable milestones on big runs
 7. When task-runner is installed, asks "Start execution now?" — one approval and
    it hands the index straight to the task-execution discipline, no manual
@@ -82,11 +82,11 @@ Claude:  Round 2 — 1 question, 1 assumption:
 You:     Both fine.
 
 Claude:  Ledger: 5 CLEAR, 1 ASSUMED.
-         Spec: docs/specs/2026-07-05-orders-csv-export.md
-         Cards: docs/tasks/2026-07-05-orders-csv-export/
+         Spec: taskmaster-docs/specs/2026-07-05-orders-csv-export.md
+         Cards: taskmaster-docs/tasks/2026-07-05-orders-csv-export/
            01 export class · 02 controller + route + policy · 03 UI button ·
            04 feature tests (02 and 03 run in parallel after 01)
-         Start: /task-runner:run docs/tasks/2026-07-05-orders-csv-export/00-INDEX.md
+         Start: /task-runner:run taskmaster-docs/tasks/2026-07-05-orders-csv-export/00-INDEX.md
 ```
 
 Notice what the starting prompt does and doesn't do: it states the goal, one

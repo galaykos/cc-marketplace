@@ -17,3 +17,8 @@ described there, or the current uncommitted diff/context if no argument is given
    parallelize, per the task-orchestration skill.
 6. Do not write implementation code in this step. The output is the plan only — code comes
    after the plan is reviewed.
+
+7. Handoff — offer, do not instruct: ask via AskUserQuestion "Plan is ready.
+   Implement it now?" — "Implement now (Recommended)" / "Stop here — plan
+   only". On implement, execute the task sequence per the task-orchestration
+   skill. Headless: output the plan and stop.

@@ -18,5 +18,8 @@ from this plugin and follow it exactly.
 4. Iterate per the skill's protocol: one axis per round, picks via
    AskUserQuestion, regenerate in place so the open tab reloads itself.
 5. On acceptance: show the diff against the existing `globals.css` (plus
-   `tailwind.config` mappings on v3) and apply only after a yes. Kill the
-   preview server, report the final token block and where it was written.
+   `tailwind.config` mappings on v3), then offer the write as a selectable
+   choice (AskUserQuestion): "Apply this theme to globals.css now
+   (Recommended)" / "Skip — keep the preview only"; write only on the first
+   option. Kill the preview server, report the final token block and where
+   it was written.

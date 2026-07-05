@@ -93,7 +93,7 @@ flat ledger — it explodes past readability by round 2:
 Stop when every row is CLEAR, or ASSUMED with the user having seen and accepted the
 assumption list, or the user says "enough". Then:
 
-1. Write the spec to `docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
+1. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
    rows with sources), accepted assumptions, non-goals, success criteria.
 2. Invoke the `task-cards` skill from this plugin to split the spec into
    single-prompt task cards.

@@ -6,7 +6,7 @@ argument-hint: [tasks-dir-index-or-list]
 Invoke the task-execution skill from this plugin and run the task list in
 $ARGUMENTS — a taskmaster `00-INDEX.md` path, a tasks directory, a plan's task
 sequence, or an inline list. If no argument, look for the most recent
-`docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
+`taskmaster-docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
 
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
    groups, verify command per task) before executing.
@@ -19,3 +19,10 @@ sequence, or an inline list. If no argument, look for the most recent
 4. Finish with the full project check suite and the completion report table
    (task / status / verify command / evidence), parked tasks with reasons, and
    the follow-up backlog. Kill the run-board server if one was started.
+
+5. Handoff — on a green completion report, if the git-workflow plugin is
+   installed, ask via AskUserQuestion: "Finish the branch now (Recommended)"
+   / "Stop here — I'll finish it later"; on finish, proceed exactly as
+   /git-workflow:finish would. If tasks were parked, offer instead: "Retry
+   parked tasks now" / "Stop here" — one offer, not both. Headless: print
+   the exact next command.

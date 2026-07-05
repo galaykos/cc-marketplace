@@ -15,4 +15,8 @@ against the compose-init skill's service derivation table. Verify EOL claims
 against endoflife.date rather than memory. Report findings as
 `file:line — problem — fix`, ordered by severity, with layer-cache and
 secret-leak findings first. This command audits and proposes diffs only —
-it never rewrites files; use this plugin's init command for generation.
+it never rewrites files unprompted: after the findings, ask via
+AskUserQuestion "Apply the proposed diffs now (Recommended)" / "Skip —
+audit only", and apply exactly the shown diffs on acceptance. Headless:
+findings and diffs only, no writes. Use this plugin's init command for
+generation from scratch.
