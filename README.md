@@ -77,6 +77,47 @@ Execute the resulting cards with the task-runner plugin: `/task-runner:run docs/
 
 A reminder hook also nudges you toward `/taskmaster:task` when it detects a short, feature-shaped prompt (build/add/implement…) with thin detail.
 
+### Conversation example
+
+A good starting prompt is one paragraph: the goal, hard constraints, and pointers to existing code if you know them. Don't pre-answer design questions — the interrogation surfaces those. Here's how a session flows:
+
+```text
+You:     /taskmaster:task Add CSV export to the orders page. Users should be able
+         to export the current filtered view with a date range. Needs to handle
+         large order sets. Follow existing export patterns if any exist.
+
+Claude:  Scanned the codebase first (context-scout): orders page at
+         resources/js/Pages/Orders/Index.vue, an existing queued + chunked XLSX
+         export in app/Exports/InvoiceExport.php, Laravel 11.34 and
+         maatwebsite/excel 3.1 installed (composer.lock).
+
+         Round 1 — 4 questions:
+         1. Columns: all 14 order fields, or the 6 visible in the table?
+         2. Large sets: stream the download, or queue + email a link like
+            InvoiceExport does?
+         3. Date range filters on created_at or updated_at?
+         4. Who can export — every role that sees the page, or admin only?
+
+You:     1: the visible 6. 2: queue + email, same as invoices.
+         3: created_at. 4: admin and manager.
+
+Claude:  Round 2 — 1 question, 1 assumption:
+         1. Filename: orders-2026-07-05.csv okay?
+         A1. Assuming UTF-8 with BOM for Excel compatibility (matches
+             InvoiceExport) — accept as ASSUMED?
+
+You:     Both fine.
+
+Claude:  Ledger: 5 CLEAR, 1 ASSUMED.
+         Spec: docs/specs/2026-07-05-orders-csv-export.md
+         Cards: docs/tasks/2026-07-05-orders-csv-export/
+           01 export class · 02 controller + route + policy · 03 UI button ·
+           04 feature tests (02 and 03 run in parallel after 01)
+         Start: /task-runner:run docs/tasks/2026-07-05-orders-csv-export/00-INDEX.md
+```
+
+Notice what the starting prompt does and doesn't do: it states the goal, one performance constraint, and a pointer ("follow existing export patterns") — but leaves column choice, delivery mechanism, and permissions open. Those come out grounded in what context-scout actually found, so the answers become decisions in the spec instead of assumptions buried in code.
+
 ### Optimal setup: the taskmaster workflow suite
 
 taskmaster works standalone, but it reaches its full potential with three companion plugins installed alongside it:
