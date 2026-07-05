@@ -1,0 +1,6 @@
+{
+  "name": "ui-ux",
+  "version": "0.1.0",
+  "description": "UI/UX best practices with per-stack skills: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox.",
+  "author": { "name": "Ivan-WG", "email": "dev@intername.media" }
+}

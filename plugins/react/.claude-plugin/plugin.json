@@ -1,0 +1,6 @@
+{
+  "name": "react",
+  "version": "0.1.0",
+  "description": "React best practices: hooks rules, render/memo performance, state management, component patterns.",
+  "author": { "name": "Ivan-WG", "email": "dev@intername.media" }
+}
