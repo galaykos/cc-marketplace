@@ -4,6 +4,13 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.7.0] - 2026-07-05
+
+### Added
+
+- **ui-ux** 0.2.0: shadcn-theming skill and `/ui-ux:theme` command — design a shadcn/ui token set (light + dark, contrast-checked) and iterate on one always-live preview URL showing swatches and real component mockups; applies to `globals.css` only after a confirmed diff
+- ui-ux plugin README
+
 ## [0.6.0] - 2026-07-05
 
 ### Added

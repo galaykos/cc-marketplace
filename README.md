@@ -34,7 +34,7 @@ For example:
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **ui-ux** | UI/UX best practices: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + ui-ux-reviewer agent | `/ui-ux:review` |
+| **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + shadcn theme builder with live colour preview + ui-ux-reviewer agent | `/ui-ux:review`, `/ui-ux:theme` |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |

@@ -3,10 +3,10 @@
   "owner": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.6.0"
+    "version": "0.7.0"
   },
   "plugins": [
-    { "name": "ui-ux", "source": "./plugins/ui-ux", "description": "UI/UX best practices with per-stack skills: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox. Includes /ui-ux:review and a ui-ux-reviewer agent." },
+    { "name": "ui-ux", "source": "./plugins/ui-ux", "description": "UI/UX best practices with per-stack skills: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and a ui-ux-reviewer agent." },
     { "name": "react", "source": "./plugins/react", "description": "React best practices: hooks rules, render/memo performance, state management, component patterns. Includes /react:review." },
     { "name": "react-native", "source": "./plugins/react-native", "description": "React Native best practices: list performance, navigation, platform-specific code, animations. Includes /react-native:review." },
     { "name": "vue2", "source": "./plugins/vue2", "description": "Vue 2.7 best practices: Composition API backport, defineProperty reactivity caveats, Vue 3 migration readiness. Includes /vue2:review." },
