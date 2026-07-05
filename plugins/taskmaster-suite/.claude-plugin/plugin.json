@@ -23,6 +23,7 @@
     "devops",
     "database",
     "performance",
-    "claude-authoring"
+    "claude-authoring",
+    "code-review"
   ]
 }

@@ -14,8 +14,9 @@ version in their `plugin.json`.
 - **database** 0.1.0: database-engineer worker agent — schema design, additive migrations, indexing strategy, query optimization, connection pooling; defers dialect review to sql/mysql/mariadb/postgresql
 - **performance** 0.1.0: performance-engineer worker agent — measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing; before/after evidence required
 - **claude-authoring** 0.1.0: authoring guides for skills, agents, hooks, and plugins; routine-detector skill that proposes capturing repetitive work as a project skill; /claude-authoring:new-skill, /claude-authoring:new-agent, /claude-authoring:new-hook, /claude-authoring:new-plugin scaffold commands
-- **everything** 0.1.0: meta-bundle — one install auto-installs all 33 plugins via the dependencies field
-- **taskmaster-suite** 0.1.0: meta-bundle — taskmaster workflow plus the 20 stack-agnostic plugins (task pipeline, engineering discipline, UI/UX, worker agents); excludes framework/dialect plugins
+- **code-review** 0.1.0: stack-agnostic review — /code-review:review command, proactive code-reviewer agent, code-smells skill (bloaters/couplers/change-preventers/dispensables + when-not-a-smell judgment); defers structure to code-architecture, depth to security, idioms to per-stack plugins
+- **everything** 0.1.0: meta-bundle — one install auto-installs all 34 plugins via the dependencies field
+- **taskmaster-suite** 0.1.0: meta-bundle — taskmaster workflow plus the 21 stack-agnostic plugins (task pipeline, engineering discipline, UI/UX, code review, worker agents); excludes framework/dialect plugins
 
 ### Changed
 
