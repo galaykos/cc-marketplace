@@ -2,7 +2,7 @@
 name: system-architect
 description: Use PROACTIVELY for system-level design work — service boundaries, data modeling, scaling, caching layers, sync vs async integration — before or while structural implementation happens.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: opus
 effort: xhigh
 ---
 

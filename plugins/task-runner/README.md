@@ -28,9 +28,9 @@ Each task runs its EXACT verify command; three failed fix cycles park the task
 with evidence instead of drifting. The run only completes when every task is
 done or parked AND the project's full check suite passes.
 
-Runs past ~3 tasks get a **live run board**: an auto-reloading HTML view of the
-index (statuses, current task, evidence tails, backlog) served on the preview
-URL — watch the run without asking "how's it going".
+Status lives in the task index and the conversation — no HTML dashboards.
+HTML/preview artifacts are reserved for content that needs them: mockups,
+interactive walkthroughs, demos.
 
 ## Pairs well with
 

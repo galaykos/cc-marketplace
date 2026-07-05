@@ -34,3 +34,4 @@ taskmaster's context-scout, and dev-env's compose generator.
 
 - **taskmaster** — hard constraints for the interrogation come from this inventory
 - **dev-env** — `/dev-env:init` reuses the report instead of re-scanning
+- **plugin-scout** — consumes stack-scan's inventory as detection input to suggest which marketplace plugins fit the project

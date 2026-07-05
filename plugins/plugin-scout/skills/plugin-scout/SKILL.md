@@ -1,0 +1,120 @@
+---
+name: plugin-scout
+description: Use when setting up Claude Code plugins for a project, when the user asks "which plugins should I install" or "what plugins fit this repo", when starting work in a repo without marketplace plugins, or right after cloning an unfamiliar codebase — scans manifests (composer.json, package.json, tsconfig.json, .env, Dockerfiles) for stack signals, suggests cc-plugins-marketplace plugins in two tiers (stack-matched and always-useful), and installs the picked ones after confirmation.
+---
+
+## Purpose
+
+Scan the current project, suggest marketplace plugins in two tiers — tier 1
+stack-specific (earned by a detection signal, evidence cited) and tier 2
+universal (always useful, no signal needed) — then install exactly the ones
+the user picks. Nothing installs without an explicit pick.
+
+## Preflight
+
+- Run `claude plugin marketplace list`. If `cc-plugins-marketplace` is absent,
+  ask via AskUserQuestion: "Add marketplace (Recommended)" / "Stop". On the
+  recommended pick, run `claude plugin marketplace add galaykos/cc-marketplace`
+  before anything else. Headless: print that add command, then continue in
+  command-printing mode (see Install).
+- Run `claude plugin list` and record the installed set — it drives the
+  installed column of the report and filters the install choices.
+- If the `claude` CLI is unavailable, continue anyway: skip installed-detection
+  (mark the column unknown) and fall back to printing install commands at the
+  Install step instead of running them.
+
+## Detection
+
+If the stack-scan plugin is installed, reuse its inventory output (required vs
+installed, manifests already parsed) as the detection input — do not re-scan
+what it already read. Otherwise self-scan: read composer.json, package.json,
+tsconfig.json, .env, and Dockerfile/docker-compose files, checking exactly the
+signal table below. Rules:
+
+- Detection is read-only. Never install anything and never run package
+  managers (composer, npm, yarn, pnpm, bun) during detection.
+- A signal counts only with evidence: the file plus the dependency or line
+  that triggered it. No evidence, no tier-1 suggestion.
+- Missing manifests are fine — absence of composer.json simply means no PHP
+  signals, not a failure.
+
+## Stack signals (tier 1)
+
+Thirteen plugins, each earned by one signal:
+
+| Signal (evidence file) | Plugin |
+|---|---|
+| composer.json exists | php |
+| composer.json require laravel/framework | laravel |
+| composer.json require livewire/livewire | livewire |
+| composer.json require inertiajs/inertia-laravel OR package.json @inertiajs/* | inertia |
+| package.json dep react (and NOT react-native) | react |
+| package.json dep react-native | react-native |
+| package.json dep vue ^2 | vue2 |
+| package.json dep vue ^3 | vue3 |
+| package.json dep typescript OR tsconfig.json exists | typescript |
+| .env DB_CONNECTION=mysql OR mysql docker image | mysql |
+| mariadb docker image or DSN | mariadb |
+| pgsql/postgres DSN or docker image | postgresql |
+| facebook/graph SDK deps (composer or npm) | meta-api |
+
+When the vue major is ambiguous (constraint spans majors, or lock and manifest
+disagree), ask via AskUserQuestion: "Vue 3 (Recommended)" / "Vue 2" — never
+guess. Headless: suggest neither vue plugin; add a report line naming the
+ambiguous constraint instead.
+
+## Universal set (tier 2)
+
+Suggest these 30 regardless of stack: a11y, api-design, api-docs-first,
+approaches, build-vs-buy, claude-authoring, code-architecture, code-review,
+database, debugging, decision-records, design-patterns, dev-env, devops,
+docs-upkeep, estimation, git-workflow, performance, resilience, retrospective,
+rollout, security, sql, stack-scan, system-design, task-runner, taskmaster,
+testing, ui-ux, web-dev.
+
+## Report
+
+Print one table:
+
+| Plugin | Tier | Evidence | Installed |
+|---|---|---|---|
+| laravel | 1 | composer.json: laravel/framework ^11 | — |
+| debugging | 2 | universal | ✓ |
+
+- Evidence cites file and dependency (e.g. `composer.json: laravel/framework
+  ^11`); tier-2 rows just say "universal".
+- Installed column: ✓ when `claude plugin list` shows it, — otherwise.
+- Exclude plugin-scout itself and the bundles everything and taskmaster-suite
+  from the table.
+- When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite
+  installs the universal set as one bundle, if picking individually feels slow.
+- Zero stack signals → print the tier-2-only report with the note "no stack
+  signals found".
+
+## Install
+
+1. Ask via AskUserQuestion with multiSelect over the not-yet-installed
+   suggestions, tier-1 picks listed first and pre-described with their
+   evidence: "Install selected (Recommended)" framing, plus a "Skip — report
+   only" option. Headless: print the exact install commands for every
+   not-installed suggestion instead of running anything, then stop.
+2. For each pick, run via Bash:
+
+   ```bash
+   claude plugin install <name>@cc-plugins-marketplace
+   ```
+
+   That is the only install command form — no other syntax, no bundles here.
+3. Report per-plugin success or failure as each command finishes; a failure
+   does not abort the remaining picks.
+4. Finish with a one-line summary: installed n, failed m, skipped k (already
+   installed).
+
+## Boundaries
+
+- Suggests and installs only cc-plugins-marketplace plugins; it does not
+  audit, configure, or uninstall anything.
+- Detection never mutates the project — no lockfile writes, no installs, no
+  package-manager invocations.
+- If every suggestion is already installed, say so and stop; do not invent
+  work.

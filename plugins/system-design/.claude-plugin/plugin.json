@@ -1,6 +1,6 @@
 {
   "name": "system-design",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "System-level design worker agent: service boundaries, data modeling, scaling paths, caching layers, sync vs async decisions — documents trade-offs while implementing. Complements code-architecture (code-level structure) without overlapping it.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

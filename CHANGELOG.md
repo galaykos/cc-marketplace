@@ -4,6 +4,24 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.18.0] - 2026-07-05
+
+### Changed
+
+- **task-runner** 0.4.0: dropped the live run-board HTML — a status table duplicates what the task index and the conversation already show and goes stale when regeneration is forgotten. New rule in the task-execution skill ("No status theater"): HTML/localhost artifacts are reserved for content that earns the medium — mockups, interactive walkthroughs, behavior-proving demos, brainstorm canvases; command, README, and marketplace description updated to match
+
+## [0.17.0] - 2026-07-05
+
+### Changed
+
+- Model-tier convention for agents — model now matches the cost of a wrong answer: **code-architecture** 0.5.0 (architecture-reviewer), **code-review** 0.2.0 (code-reviewer), and **system-design** 0.2.0 (system-architect) switch judgment-heavy agents from `model: sonnet` to `model: opus`; **taskmaster** 0.5.0 drops context-scout from `effort: xhigh` to `effort: high` (mechanical recon); **claude-authoring** 0.2.0 documents the tier table (opus/sonnet/haiku by wrong-answer cost), the orthogonal effort knob, and the per-invocation dispatch override in the authoring-agents skill
+
+## [0.16.0] - 2026-07-05
+
+### Added
+
+- **plugin-scout** 0.1.0: new plugin — scans the current project's manifests (composer.json, package.json, tsconfig.json, .env, docker files) and suggests marketplace plugins in two tiers: stack-matched with per-row evidence, and the universal always-useful set; marks already-installed plugins via `claude plugin list`, reuses stack-scan's inventory when installed, and installs picked plugins via `claude plugin install <name>@cc-plugins-marketplace` after an AskUserQuestion confirm (headless: prints the commands). Includes /plugin-scout:suggest
+
 ## [0.15.0] - 2026-07-05
 
 ### Changed
