@@ -3,7 +3,7 @@
   "owner": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.7.0"
+    "version": "0.7.1"
   },
   "plugins": [
     { "name": "ui-ux", "source": "./plugins/ui-ux", "description": "UI/UX best practices with per-stack skills: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and a ui-ux-reviewer agent." },
@@ -27,7 +27,7 @@
     { "name": "testing", "source": "./plugins/testing", "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps. Includes /testing:review." },
     { "name": "security", "source": "./plugins/security", "description": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review." },
     { "name": "typescript", "source": "./plugins/typescript", "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review." },
-    { "name": "inertia", "source": "./plugins/inertia", "description": "Inertia.js best practices (Laravel + Vue): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 feature awareness. Includes /inertia:review." },
+    { "name": "inertia", "source": "./plugins/inertia", "description": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review." },
     { "name": "api-design", "source": "./plugins/api-design", "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources. Includes /api-design:review." },
     { "name": "dev-env", "source": "./plugins/dev-env", "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan." }
   ]

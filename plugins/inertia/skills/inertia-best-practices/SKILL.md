@@ -1,6 +1,6 @@
 ---
 name: inertia-best-practices
-description: Use when writing or reviewing Inertia.js code in a Laravel + Vue app — prop hygiene and page contracts, partial reloads, lazy vs deferred props, useForm flow, shared data via HandleInertiaRequests, Link navigation, flash/redirect patterns, SSR, code splitting, with v1 vs v2 advice pinned to the installed versions.
+description: Use when writing or reviewing Inertia.js code in a Laravel app with the Vue, React, or Svelte adapter — prop hygiene and page contracts, partial reloads, lazy vs deferred props, useForm flow, shared data via HandleInertiaRequests, Link navigation, flash/redirect patterns, SSR, code splitting, with v1 vs v2 and adapter-specific advice pinned to the installed packages.
 ---
 
 ## Know the version before advising
@@ -9,8 +9,10 @@ Inertia is two packages that must agree — check both before recommending anyth
 
 - `composer.lock` → `inertiajs/inertia-laravel` major governs server APIs: `Inertia::defer`,
   `Inertia::merge`, `Inertia::optional` are v2-only; v1 has `Inertia::lazy`.
-- `package.json`/lockfile → `@inertiajs/vue3` governs client APIs: `<Deferred>`, `<WhenVisible>`,
-  `usePoll`, link prefetching, infinite scroll via merge props are v2-only.
+- `package.json`/lockfile → the adapter (`@inertiajs/vue3`, `@inertiajs/react`, or
+  `@inertiajs/svelte`) governs client APIs — `<Deferred>`, `<WhenVisible>`, `usePoll`, link
+  prefetching, merge props are v2-only — and pins which idiom advice must use: the core API
+  (useForm, Link, router, usePage) is the same across adapters, the framework glue is not.
 - Never suggest v2 APIs on a v1 install; flag v1 workarounds (manual polling, hand-rolled
   prefetch) only when an installed v2 can replace them.
 
@@ -111,20 +113,20 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
 
 ## Code splitting and SSR
 
-- `resolvePageComponent(name, import.meta.glob('./Pages/**/*.vue'))` with the default lazy glob
-  yields one chunk per page. `{ eager: true }` bundles every page into the entry — only defensible
+- `resolvePageComponent(name, import.meta.glob('./Pages/**/*.vue'))` — `*.tsx`/`*.jsx` on the
+  React adapter, `*.svelte` on Svelte — with the default lazy glob yields one chunk per page. `{ eager: true }` bundles every page into the entry — only defensible
   when measured on a small app; on anything sizable it is pure first-load bloat.
 - SSR pays off on SEO- and share-facing pages (marketing, listings, profiles); a login-walled
   dashboard can skip the extra Node process entirely. If enabled: build the `ssr.js` target, run
-  the SSR server in deploy, and keep `window`/`document` out of setup — gate browser APIs behind
-  `onMounted`, which never runs during the server render.
+  the SSR server in deploy, and keep `window`/`document` out of setup/render — gate browser APIs
+  behind `onMounted` (Vue) or `useEffect` (React), which never run during the server render.
 
 ## Anti-patterns
 
 - Fetching page data with axios/fetch next to Inertia props — two data channels, two auth paths,
   no partial-reload story. Props are the data layer; async endpoints are for true widgets only.
-- Mirroring `auth.user` or permissions into a Pinia store — shared props already are the store,
-  refreshed per navigation; the copy goes stale at the first server-side change.
+- Mirroring `auth.user` or permissions into a Pinia/Zustand/Redux store — shared props already
+  are the store, refreshed per navigation; the copy goes stale at the first server-side change.
 - Whole models or `->all()` as props — leaks plus payload bloat (see contract section).
 - `setInterval` polling when v2's `usePoll` is installed; manual visit-chaining for infinite
   scroll when merge props exist.
