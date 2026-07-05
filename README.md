@@ -56,6 +56,10 @@ claude plugin uninstall everything --prune
 claude plugin prune --dry-run   # or: preview orphaned auto-deps anytime
 ```
 
+Note: uninstalling from the /plugin menu inside Claude Code does NOT prune —
+dependencies stay installed. Run `claude plugin prune` from a terminal
+afterwards to sweep the orphans.
+
 ## Plugins
 
 | Plugin | Description | Commands |
