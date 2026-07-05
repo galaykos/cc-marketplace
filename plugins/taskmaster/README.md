@@ -1,9 +1,10 @@
 # taskmaster
 
 Interrogation-first task clarification: batched clarifying questions against an
-ambiguity ledger, ASCII/HTML mockups on a single always-live preview URL for
-visual decisions (consent-gated: full mockups, ASCII only, or none — asked once
-per session), then a spec and single-prompt task cards.
+ambiguity ledger, theme-aware shell mockups on a single always-live preview URL
+for visual decisions — rendered in the project's own colors when detectable, with
+compare modes and tradeoff callouts (consent-gated: full mockups, ASCII only, or
+none — asked once per session), then a spec and single-prompt task cards.
 
 ## Install
 
@@ -33,10 +34,14 @@ Without arguments it asks for a description first. The pipeline then:
 2. Dispatches the context-scout agent to scan the codebase before asking you anything
 3. Asks batched clarifying questions until every item in the ambiguity ledger is
    resolved. Choices between options that look or flow differently are decided via
-   mockups on a live preview URL — context-scout's visual-surface report decides
-   what counts as visual, and a one-time fidelity question (full mockups / ASCII
-   only / none) runs before any mockup is built; whole-experience tasks get sliced
-   into screens/flows first and grilled slice by slice
+   shell-based mockups on a live preview URL — built from a shipped template with
+   a sticky decision header, side-by-side/stacked/flip compare modes, and numbered
+   callouts pairing tradeoff bullets to mockup regions, rendered in the project's
+   own theme tokens when context-scout detects them (toggleable against a neutral
+   baseline). Context-scout's visual-surface report decides what counts as visual,
+   and a one-time fidelity question (full mockups / ASCII only / none) runs before
+   any mockup is built; whole-experience tasks get sliced into screens/flows first
+   and grilled slice by slice
 4. For multi-screen work, assembles the accepted picks into an **interactive
    clickable walkthrough demo** on the same preview URL — every screen, state
    variant, and failure exit navigable — and walks you through it with a task
@@ -110,7 +115,8 @@ for the full workflow suite.
 
 - **Skills**: brainstorm (fuzzy idea → approved design doc, upstream of
   everything), grill (interrogation + ambiguity ledger + big-task slicing),
-  visual-decisions (mockups on a live preview URL), experience-walkthrough
+  visual-decisions (theme-aware shell mockups — `assets/shell.html` — with
+  compare modes, callouts, and motion passes on a live preview URL), experience-walkthrough
   (interactive clickable demo of the whole assembled flow), task-cards
   (spec → milestone-grouped single-prompt cards)
 - **Agent**: context-scout — read-only codebase reconnaissance before questioning

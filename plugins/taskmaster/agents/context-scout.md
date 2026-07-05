@@ -21,8 +21,16 @@ never opinions, designs, or code. Output six compact sections:
    UX choices the codebase is silent on. Phrase each as a direct question.
 6. **Visual surface** — does the task touch user-facing UI? List the specific
    screens/components/templates involved, plus design-system constraints that
-   bound mockup options (theme tokens, component library, CSS framework), each
-   with a path citation. Write "None" for backend-only tasks.
+   bound mockup options (component library, CSS framework), each with a path
+   citation. Write "None" for backend-only tasks — and skip token extraction.
+   When the surface is NOT "None", add a `Theme tokens` subsection: a compact
+   table with rows `primary`, `surface`, `text`, `font-family`, `radius`,
+   `spacing`, each with its value and source `path:line`, extracted from the
+   entry stylesheet (`globals.css` or equivalent), Tailwind config, and CSS
+   custom properties. One confidence flag for the set: `found` (all core
+   tokens located), `partial` (missing rows say "not found"), or `none` (no
+   theme signals — omit the table, state `Theme tokens: none`). Table only,
+   no prose — it counts toward the report's line budget.
 
 Rules: no recommendations, no refactoring notes, no praise. If the repo is empty or
 the task is greenfield, say so in one line and fill section 5 only. Keep the whole

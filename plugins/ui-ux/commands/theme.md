@@ -13,13 +13,14 @@ from this plugin and follow it exactly.
 2. If $ARGUMENTS is empty, ask for direction in one round: brand color or hue
    family, light/dark priority, and any reference the user wants to echo.
 3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),
-   write `theme-preview.html`, start the preview server, and give the user the
-   stable URL — candidates as columns, light and dark side by side.
+   write `docs/mockups/theme.html`, reuse-or-start the shared preview server
+   (port 8123), and give the user the stable URL — candidates as columns,
+   light and dark side by side.
 4. Iterate per the skill's protocol: one axis per round, picks via
    AskUserQuestion, regenerate in place so the open tab reloads itself.
 5. On acceptance: show the diff against the existing `globals.css` (plus
    `tailwind.config` mappings on v3), then offer the write as a selectable
    choice (AskUserQuestion): "Apply this theme to globals.css now
    (Recommended)" / "Skip — keep the preview only"; write only on the first
-   option. Kill the preview server, report the final token block and where
-   it was written.
+   option. Kill the preview server only if this flow started it (other flows
+   share it), then report the final token block and where it was written.
