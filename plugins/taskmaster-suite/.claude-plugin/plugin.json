@@ -1,0 +1,28 @@
+{
+  "name": "taskmaster-suite",
+  "version": "0.1.0",
+  "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "dependencies": [
+    "taskmaster",
+    "task-runner",
+    "stack-scan",
+    "code-architecture",
+    "design-patterns",
+    "git-workflow",
+    "debugging",
+    "testing",
+    "security",
+    "api-design",
+    "api-docs-first",
+    "sql",
+    "dev-env",
+    "ui-ux",
+    "web-dev",
+    "system-design",
+    "devops",
+    "database",
+    "performance",
+    "claude-authoring"
+  ]
+}

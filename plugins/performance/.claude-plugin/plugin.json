@@ -1,0 +1,6 @@
+{
+  "name": "performance",
+  "version": "0.1.0",
+  "description": "Performance worker agent: measure-first profiling, bundle-size reduction, caching strategy, Core Web Vitals, N+1 elimination, load-test setup — optimizes only what a measurement proves slow.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

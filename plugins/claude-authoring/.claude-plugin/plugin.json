@@ -1,0 +1,6 @@
+{
+  "name": "claude-authoring",
+  "version": "0.1.0",
+  "description": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}
