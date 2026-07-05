@@ -4,6 +4,22 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.20.0] - 2026-07-05
+
+### Changed
+
+- **everything** 0.4.0: dependencies now include plugin-scout — added to the marketplace in 0.16.0 but never picked up by the bundle, leaving "installs every plugin" one plugin short
+
+## [0.19.0] - 2026-07-05
+
+### Added
+
+- **hindsight** 0.1.0: new plugin — cross-session self-improvement loop. A SessionEnd hook appends per-session friction stats (turns, errors, best-effort friction events) to a gitignored project-local ledger (`.claude/hindsight/ledger.jsonl`); `/hindsight:harvest` ranks unmined sessions by friction score (fallback: direct transcript listing covers pre-install history), fans out a transcript-miner agent per session, applies a ≥2-session recurrence gate, and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on explicit approval; each report is also saved to `.claude/hindsight/reports/`
+
+### Changed
+
+- **everything** 0.3.0, **taskmaster-suite** 0.3.0: hindsight added to bundle dependencies
+
 ## [0.18.0] - 2026-07-05
 
 ### Changed
