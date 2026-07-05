@@ -25,6 +25,9 @@
     "performance",
     "claude-authoring",
     "code-review",
-    "approaches"
+    "approaches",
+    "decision-records",
+    "retrospective",
+    "build-vs-buy"
   ]
 }

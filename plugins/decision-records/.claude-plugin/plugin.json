@@ -1,0 +1,6 @@
+{
+  "name": "decision-records",
+  "version": "0.1.0",
+  "description": "Architecture Decision Records: persist every significant technical choice — approach picks, schema shapes, dependency adoptions — to docs/adr/ with context, rejected options, consequences, and a revisit-when trigger. Status lifecycle proposed/accepted/superseded. Includes /decision-records:new.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}
