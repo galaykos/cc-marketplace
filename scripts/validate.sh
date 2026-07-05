@@ -29,13 +29,32 @@ for dir in plugins/*/; do
     || err "directory plugins/$name not listed in marketplace.json"
 done
 
-# Every SKILL.md needs frontmatter with name: and description:
-while IFS= read -r f; do
+# Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
+# name: + description:, and a 100-150 line body
+for d in plugins/*/skills/*/; do
+  [ -d "$d" ] || continue
+  f="${d}SKILL.md"
+  [ -f "$f" ] || { err "$d: SKILL.md missing"; continue; }
   head -1 "$f" | grep -q '^---$' || { err "$f: missing frontmatter opener"; continue; }
+  awk '/^---$/{c++} END{exit !(c>=2)}' "$f" || { err "$f: frontmatter not terminated"; continue; }
   fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
   echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
-done < <(find plugins -name SKILL.md)
+  lines=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
+  { [ "$lines" -ge 100 ] && [ "$lines" -le 150 ]; } || err "$f: body is $lines lines, outside 100-150 budget"
+done
+
+# Commands need frontmatter with description:; agents additionally need name:
+for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
+  [ -f "$f" ] || continue
+  head -1 "$f" | grep -q '^---$' || { err "$f: missing frontmatter opener"; continue; }
+  awk '/^---$/{c++} END{exit !(c>=2)}' "$f" || { err "$f: frontmatter not terminated"; continue; }
+  fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
+  echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
+  case "$f" in
+    */agents/*) echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:" ;;
+  esac
+done
 
 # hooks.json files must parse and referenced scripts must be executable
 while IFS= read -r f; do
