@@ -52,6 +52,7 @@ installed manually are never touched; requires Claude Code 2.1.121+):
 
 ```bash
 claude plugin uninstall taskmaster-suite --prune
+claude plugin uninstall everything --prune
 claude plugin prune --dry-run   # or: preview orphaned auto-deps anytime
 ```
 
