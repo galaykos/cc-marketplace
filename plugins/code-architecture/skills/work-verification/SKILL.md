@@ -107,8 +107,3 @@ Apply this before every claim of completion, in every task handoff, and especial
 committing, opening a PR, or telling a user something is fixed. It is the last gate before work
 is considered done — treat "I verified it" as a claim that itself needs the command and output
 to back it up.
-
-Apply this before every claim of completion, in every task handoff, and especially before
-committing, opening a PR, or telling a user something is fixed. It is the last gate before work
-is considered done — treat "I verified it" as a claim that itself needs the command and output
-to back it up.

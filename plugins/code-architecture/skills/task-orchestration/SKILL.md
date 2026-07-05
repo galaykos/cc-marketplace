@@ -107,8 +107,3 @@ Apply this whenever a piece of work is larger than a single sitting, or before d
 multiple subagents/collaborators. For solo, small changes, the overhead of formal decomposition
 isn't worth it — but the moment you're tempted to say "and also" while describing the task,
 that's the seam where it should split.
-
-Apply this whenever a piece of work is larger than a single sitting, or before dispatching to
-multiple subagents/collaborators. For solo, small changes, the overhead of formal decomposition
-isn't worth it — but the moment you're tempted to say "and also" while describing the task,
-that's the seam where it should split.
