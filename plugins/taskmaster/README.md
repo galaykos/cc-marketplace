@@ -17,6 +17,7 @@ visual decisions, then a spec and single-prompt task cards.
 |---------|--------------|
 | `/taskmaster:task <description>` | Run the full pipeline: interrogate → spec → task cards |
 | `/taskmaster <description>` | Shorthand alias for the same pipeline |
+| `/taskmaster:brainstorm <idea>` | Upstream of the pipeline: shape a fuzzy idea into an approved design doc (one question at a time, 2–3 explored approaches, sectional approval), then hand off to `/taskmaster:task` |
 
 Run it with a one-paragraph task description:
 
@@ -103,7 +104,8 @@ for the full workflow suite.
 
 ## Contents
 
-- **Skills**: grill (interrogation + ambiguity ledger + big-task slicing),
+- **Skills**: brainstorm (fuzzy idea → approved design doc, upstream of
+  everything), grill (interrogation + ambiguity ledger + big-task slicing),
   visual-decisions (mockups on a live preview URL), experience-walkthrough
   (interactive clickable demo of the whole assembled flow), task-cards
   (spec → milestone-grouped single-prompt cards)

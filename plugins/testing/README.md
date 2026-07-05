@@ -28,6 +28,12 @@ The skill also auto-triggers when writing or refactoring tests, keeping advice
 pinned to the test stack actually installed (Pest vs PHPUnit, Vitest vs Jest —
 resolved from lockfiles, not assumed).
 
+A second skill, **tdd**, carries the workflow: red-green-refactor with
+"fail for the right reason" verification, one behavior per cycle, and the
+red-green regression proof for bug fixes (test must fail on unfixed code —
+revert-fail-restore when the fix already exists). Taskmaster card acceptance
+criteria double as the test list.
+
 ## Pairs well with
 
 - **task-runner** — its verify commands are only as good as the tests behind them

@@ -4,6 +4,21 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.12.0] - 2026-07-05
+
+Superpowers parity batch — ports the remaining high-value workflows from obra/superpowers (MIT) into the suite, rewritten in house voice, so the marketplace stands alone without it.
+
+### Added
+
+- **taskmaster** 0.3.0: brainstorm skill + `/taskmaster:brainstorm` — fuzzy idea → approved design doc (one question at a time, decomposition of oversized ideas, 2–3 explored approaches, sectional approval, spec self-review, user gate), then approval-gated handoff into the grill pipeline with the design pre-seeding the ledger
+- **debugging** plugin: systematic-debugging skill + `/debugging:debug` — root cause before any fix; reproduce → first error → what changed → one falsifiable hypothesis → smallest experiment; bisection; three-failed-fixes stop rule mirroring task-runner's park rule
+- **git-workflow** plugin: worktree-isolation, branch-completion (full-suite gate → evidence → merge/PR/keep/discard with cleanup), and review-exchange (self-review before requesting; verify feedback technically before implementing) + `/git-workflow:finish`
+- **testing** 0.2.0: tdd skill — red-green-refactor with fail-for-the-right-reason verification, red-green regression proof for bug fixes (revert-fail-restore), test-list burn-down, taskmaster acceptance criteria as the test list
+
+### Covered without porting
+
+writing-plans/executing-plans (taskmaster cards + task-runner), verification-before-completion (task-runner evidence discipline), dispatching-parallel-agents/subagent-driven-development (task-runner parallel groups + re-verification)
+
 ## [0.11.0] - 2026-07-05
 
 ### Added

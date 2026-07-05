@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "0.2.1",
-  "description": "Interrogation-first task clarification: grill requirements until zero ambiguity, decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards.",
+  "version": "0.3.0",
+  "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

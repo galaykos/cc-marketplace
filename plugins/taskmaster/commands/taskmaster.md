@@ -6,7 +6,10 @@ argument-hint: [task-description]
 <!-- Alias of task.md — keep the pipeline steps in sync with commands/task.md -->
 
 Run the full taskmaster pipeline on $ARGUMENTS (if empty, ask for a one-paragraph task
-description first). Do not write implementation code at any step.
+description first). Do not write implementation code at any step. If $ARGUMENTS is
+still an idea without a concrete capability list, run the brainstorm skill first
+(/taskmaster:brainstorm) — its approved design doc becomes this pipeline's input and
+pre-seeds the ledger.
 
 1. If the stack-scan plugin is installed (the installed-versions skill or
    /stack-scan:report is available), run its inventory first and hand the
