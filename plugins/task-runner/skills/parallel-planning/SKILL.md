@@ -111,3 +111,5 @@ The plan is priced once, then reality edits it:
   skill; this skill takes the decomposition as given and prices execution.
 - Execution discipline (scope lock, bounded fix loops, evidence) is the
   task-execution skill — the plan feeds it, never replaces it.
+- Writing the dispatch prompts and returns is the orchestration plugin's
+  delegation-contracts skill; adversarial review, its verification-panels.

@@ -1,0 +1,6 @@
+{
+  "name": "orchestration",
+  "version": "0.1.0",
+  "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry, completeness critic). Includes /orchestration:review.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

@@ -1,6 +1,6 @@
 {
   "name": "git-workflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Git workflow discipline: isolated worktrees for feature work, a structured finish protocol for development branches (verify, present options, merge/PR/park, clean up), and review-exchange rigor — what to include when requesting review, and technical verification before implementing received feedback. Includes /git-workflow:finish.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }
