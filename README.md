@@ -60,4 +60,4 @@ To add a new plugin:
 3. Update `.claude-plugin/marketplace.json` with your plugin entry
 4. Run `bash scripts/validate.sh` to verify the structure
 
-All plugins are versioned at `0.1.0` and owned by Ivan-WG <public@galayko.com>.
+All plugins are versioned at `0.5.0` and owned by Ivan-WG <public@galayko.com>.
