@@ -30,6 +30,23 @@ For example:
 /plugin install code-architecture@cc-plugins-marketplace
 ```
 
+### Bundles
+
+Meta-plugins that pull in a whole set via dependencies — one install, no picking:
+
+```bash
+# Full taskmaster workflow + every stack-agnostic plugin (task pipeline,
+# engineering discipline, UI/UX, worker agents). No framework/dialect plugins.
+/plugin install taskmaster-suite@cc-plugins-marketplace
+
+# Everything in the marketplace — all 33 plugins.
+/plugin install everything@cc-plugins-marketplace
+```
+
+Dependencies are resolved and installed automatically; add any framework
+plugin (react, laravel, postgresql, …) individually on top as your stack
+requires.
+
 ## Plugins
 
 | Plugin | Description | Commands |
