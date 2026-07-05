@@ -1,5 +1,6 @@
 ---
 description: Suggest (or reject) a design pattern for a described problem
+argument-hint: [problem-description]
 ---
 
 Invoke the pattern-selection skill from this plugin, then respond to $ARGUMENTS with:

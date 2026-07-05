@@ -1,5 +1,6 @@
 ---
 description: Produce a file-level implementation plan before writing code
+argument-hint: [feature-or-change]
 ---
 
 Invoke the plan-before-code skill from this plugin against $ARGUMENTS (the feature or change

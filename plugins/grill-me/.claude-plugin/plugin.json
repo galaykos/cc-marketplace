@@ -1,0 +1,6 @@
+{
+  "name": "grill-me",
+  "version": "0.1.0",
+  "description": "Interrogation-first task clarification: grill requirements until zero ambiguity, decide visual choices with mockups, then emit single-prompt task cards.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

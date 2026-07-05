@@ -1,5 +1,6 @@
 ---
 description: Audit code or a design for speculative generality
+argument-hint: [file-module-or-design]
 ---
 
 Invoke the yagni-check skill from this plugin against $ARGUMENTS (a file, module, or design

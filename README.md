@@ -33,11 +33,13 @@ For example:
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
 | **vue3** | Vue 3: script setup, composables, ref/reactive, Pinia | `/vue3:review` |
+| **php** | PHP: strict types, === discipline, PSR conventions, version-aware 8.1–8.5 leverage map, exceptions, boundary security | `/php:review` |
 | **laravel** | Laravel: Eloquent N+1, form requests, service layer, queues, policies | `/laravel:review` |
 | **livewire** | Livewire 3: components, wire:model, performance, Alpine interop | `/livewire:review` |
 | **code-architecture** | Engineering process: plan-before-code, YAGNI, task orchestration, work verification, low-cognitive-load, KISS/DRY simplicity + architecture-reviewer agent | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code | `/api-docs-first:check` |
+| **grill-me** | Interrogation-first clarification: ambiguity ledger, batched questions, mockups on one always-live preview URL for visual decisions, single-prompt task cards + context-scout agent | `/grill-me:task` |
 
 ## Usage
 

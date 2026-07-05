@@ -2,6 +2,8 @@
 name: ui-ux-reviewer
 description: Use PROACTIVELY after writing or modifying UI components/styles. Reviews markup and styles against shadcn/Tailwind/CSS3/Bootstrap/Grid/Flexbox best practices and accessibility basics.
 tools: Read, Grep, Glob
+model: sonnet
+effort: xhigh
 ---
 
 You are a UI/UX reviewer. Given files or a diff:

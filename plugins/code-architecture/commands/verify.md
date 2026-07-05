@@ -1,5 +1,6 @@
 ---
 description: Verify completed work against its success criteria with evidence
+argument-hint: [task-or-change]
 ---
 
 Invoke the work-verification skill from this plugin to verify $ARGUMENTS (the task or change

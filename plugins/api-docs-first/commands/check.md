@@ -1,5 +1,6 @@
 ---
 description: Check that current API docs back the integration code you are about to write or review
+argument-hint: [library-sdk-or-api]
 ---
 
 Invoke the api-docs-first skill from this plugin for $ARGUMENTS (a library, SDK, or API

@@ -39,6 +39,8 @@ for d in plugins/*/skills/*/; do
   awk '/^---$/{c++} END{exit !(c>=2)}' "$f" || { err "$f: frontmatter not terminated"; continue; }
   fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
   echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:"
+  sname=$(echo "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1)
+  [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
   lines=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
   { [ "$lines" -ge 100 ] && [ "$lines" -le 150 ]; } || err "$f: body is $lines lines, outside 100-150 budget"
@@ -52,7 +54,11 @@ for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
   fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
   case "$f" in
-    */agents/*) echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:" ;;
+    */agents/*)
+      echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:"
+      echo "$fm" | grep -q '^model:' || err "$f: frontmatter missing model: (agents default to sonnet)"
+      echo "$fm" | grep -q '^effort:' || err "$f: frontmatter missing effort: (agents default to xhigh)"
+      ;;
   esac
 done
 
