@@ -64,8 +64,13 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
 - Example-driven disambiguation: when words stay ambiguous, fabricate 2–3 concrete
   input → output examples ("user submits X, sees Y / sees Z — which?") and ask
   which is correct. One picked example beats three paragraphs of requirements.
-- Visual decisions (layout, flow, architecture shape, data shape) — switch to the
-  `visual-decisions` skill from this plugin: mock the options, then ask for a pick.
+- Visual decisions — switch to the `visual-decisions` skill from this plugin when
+  the user must pick between options that look or flow differently (layout variants,
+  component placement, user flows, architecture topology, data shapes); not for
+  text-native tradeoffs, even on UI tasks. Use context-scout's Visual surface
+  section as the prior. The skill asks its own fidelity consent on first use —
+  never build a mockup before that gate; on a "no mockups" answer, present the
+  choice as plain multiple-choice instead.
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
   default and move on — but never silently. The user approves the assumption list
   at the end even if they delegated every call.

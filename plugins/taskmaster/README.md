@@ -2,7 +2,8 @@
 
 Interrogation-first task clarification: batched clarifying questions against an
 ambiguity ledger, ASCII/HTML mockups on a single always-live preview URL for
-visual decisions, then a spec and single-prompt task cards.
+visual decisions (consent-gated: full mockups, ASCII only, or none — asked once
+per session), then a spec and single-prompt task cards.
 
 ## Install
 
@@ -31,8 +32,11 @@ Without arguments it asks for a description first. The pipeline then:
    constraints come from lockfiles instead of guesses
 2. Dispatches the context-scout agent to scan the codebase before asking you anything
 3. Asks batched clarifying questions until every item in the ambiguity ledger is
-   resolved (visual/structural choices are decided via mockups on a live preview URL);
-   whole-experience tasks get sliced into screens/flows first and grilled slice by slice
+   resolved. Choices between options that look or flow differently are decided via
+   mockups on a live preview URL — context-scout's visual-surface report decides
+   what counts as visual, and a one-time fidelity question (full mockups / ASCII
+   only / none) runs before any mockup is built; whole-experience tasks get sliced
+   into screens/flows first and grilled slice by slice
 4. For multi-screen work, assembles the accepted picks into an **interactive
    clickable walkthrough demo** on the same preview URL — every screen, state
    variant, and failure exit navigable — and walks you through it with a task

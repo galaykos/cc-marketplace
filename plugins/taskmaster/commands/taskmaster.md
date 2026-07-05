@@ -20,8 +20,11 @@ pre-seeds the ledger.
    user anything.
 3. Run batched question rounds per the grill skill until every ledger row is CLEAR
    or explicitly accepted as ASSUMED. For whole-experience tasks, slice first per
-   the grill skill's big-task rule. Switch to the visual-decisions skill whenever
-   a choice is visual or structural (layout, flow, architecture shape, data shape).
+   the grill skill's big-task rule. Switch to the visual-decisions skill when a
+   choice is between options that look or flow differently (layout, flow,
+   architecture shape, data shape) — the skill asks fidelity consent (full mockups
+   / ASCII only / none) on first use per session, with context-scout's Visual
+   surface section as the prior.
 4. For multi-screen or whole-experience tasks (three-plus screens, or a flow whose
    sequence is itself a requirement), invoke the experience-walkthrough skill once
    visual decisions land: assemble the accepted picks into one clickable demo on
