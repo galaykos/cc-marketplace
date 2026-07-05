@@ -13,12 +13,11 @@ sequence, or an inline list. If no argument, look for the most recent
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking.
 3. Update status in the index only; collect scope-lock follow-ups as a backlog
-   list, never as in-run detours. For runs past ~3 tasks, keep the live run
-   board (per the task-execution skill) regenerated at every status flip and
-   give the user its URL at run start.
+   list, never as in-run detours. No status HTML — the index and the
+   conversation are the run's views (per the task-execution skill).
 4. Finish with the full project check suite and the completion report table
    (task / status / verify command / evidence), parked tasks with reasons, and
-   the follow-up backlog. Kill the run-board server if one was started.
+   the follow-up backlog.
 
 5. Handoff — on a green completion report, if the git-workflow plugin is
    installed, ask via AskUserQuestion: "Finish the branch now (Recommended)"

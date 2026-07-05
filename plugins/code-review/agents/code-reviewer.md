@@ -2,7 +2,7 @@
 name: code-reviewer
 description: Use PROACTIVELY after writing or modifying code. Reviews the change for correctness bugs, code smells, and convention drift; severity-sorted one-line findings, stack-agnostic.
 tools: Read, Grep, Glob
-model: sonnet
+model: opus
 effort: xhigh
 ---
 

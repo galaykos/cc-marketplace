@@ -33,6 +33,31 @@ missing one of the four required keys:
 explicitly; an unscoped agent is a standing permission grant nobody
 reviewed.
 
+## Model and effort tiers
+
+Match `model:` to the cost of a wrong answer, not to prestige:
+
+- `opus` — judgment-heavy and wrong-answer-expensive: review verdicts
+  (architecture, code), system-design trade-offs, adversarial
+  verification, security exploitability calls.
+- `sonnet` — checklist-driven review and implementation; the default
+  worker tier.
+- `haiku` — mechanical locate/grep/report with no judgment in the output.
+
+`effort:` is orthogonal and tunes reasoning depth on the same model:
+sonnet + xhigh buys deep reasoning at worker prices; opus + medium is not
+equivalent — opus has the better raw judgment, sonnet xhigh the better
+cost-per-token. Drop scouts and locators to `high` or below; xhigh on a
+grep-shaped agent only slows the pipeline.
+
+Frontmatter is the static default; the dispatcher can override per
+invocation (the Agent tool's model parameter). Set frontmatter for the
+agent's typical difficulty and let the caller escalate the hard cases.
+
+Assignments in this marketplace: architecture-reviewer, code-reviewer,
+and system-architect run opus/xhigh; context-scout runs sonnet/high;
+every other agent runs sonnet/xhigh.
+
 ## Description as dispatch trigger
 
 The main thread decides whether to delegate from the description alone; the
