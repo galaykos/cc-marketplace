@@ -53,8 +53,9 @@ Recommend DELEGATE when ALL hold:
 Otherwise recommend INLINE. Borderline (1.2–1.5×): present both, note the
 tie, default inline — predictability beats a thin win.
 
-The recommendation is OPTIONAL by contract: present the table, take the
-user's pick. Never silently spawn a fleet.
+The recommendation is OPTIONAL by contract: present the table, then offer
+the pick as a selectable choice (delegate per plan / inline / adjust) —
+never a command the user must type, never a silently spawned fleet.
 
 ## Output shape
 

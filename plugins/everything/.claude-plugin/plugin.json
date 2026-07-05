@@ -41,6 +41,11 @@
     "approaches",
     "decision-records",
     "retrospective",
-    "build-vs-buy"
+    "build-vs-buy",
+    "rollout",
+    "resilience",
+    "docs-upkeep",
+    "estimation",
+    "a11y"
   ]
 }

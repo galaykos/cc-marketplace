@@ -19,11 +19,18 @@ version in their `plugin.json`.
 - **decision-records** 0.1.0: ADR skill with template, status lifecycle (proposed/accepted/superseded), immutable-history rule, and reading discipline (standing ADRs bind, revisit-when reopens); /decision-records:new
 - **retrospective** 0.1.0: evidence-first retro protocol with three sinks (CLAUDE.md candidates proposed never silently written, skill suggestions via routine-detector, process tweaks); /retrospective:run
 - **build-vs-buy** 0.1.0: gate-zero check for generic capability — shelf order (stdlib → installed deps → registry), candidate health table, take/wrap/write verdict, never-hand-roll list, wrap-thinness discipline; /build-vs-buy:check
-- **everything** 0.1.0: meta-bundle — one install auto-installs all 38 plugins via the dependencies field
-- **taskmaster-suite** 0.1.0: meta-bundle — taskmaster workflow plus the 25 stack-agnostic plugins (task pipeline, approach deliberation, decision records, retrospectives, build-vs-buy, engineering discipline, UI/UX, code review, worker agents); excludes framework/dialect plugins
+- **rollout** 0.1.0: per-feature rollout planning — flag discipline with removal dates, backward-compat windows, expand-migrate-contract sequencing, staged exposure with gate metrics, rollback path stated before ship; /rollout:plan
+- **resilience** 0.1.0: failure-mode design at every integration point — explicit timeouts with budget propagation, idempotency-first retries with backoff+jitter, circuit breaking, graceful degradation, bounded queues, delivery semantics; /resilience:review
+- **docs-upkeep** 0.1.0: documentation drift prevention — drift catalog (README, changelog, API docs, config, ADR links), same-change rule, one-place-per-fact placement ladder, freshness signals; /docs-upkeep:check
+- **estimation** 0.1.0: S/M/L/XL sizing with reference-class anchors, uncertainty multipliers, split triggers, size-to-done rule, estimate-vs-actual retro loop; weights align with task-runner parallel-planning; /estimation:size
+- **a11y** 0.1.0: WCAG 2.1 AA audit — semantics-first, ARIA first-rule, keyboard operability, focus management, contrast ratios, forms, media, touch targets; /a11y:audit
+- **everything** 0.1.0: meta-bundle — one install auto-installs all 43 plugins via the dependencies field
+- **taskmaster-suite** 0.1.0: meta-bundle — taskmaster workflow plus the 30 stack-agnostic plugins (task pipeline, approach deliberation, decision records, retrospectives, build-vs-buy, rollout, resilience, docs upkeep, estimation, a11y, engineering discipline, UI/UX, code review, worker agents); excludes framework/dialect plugins
 
 ### Changed
 
+- **taskmaster** 0.4.0: pipeline outputs move from docs/ to taskmaster-docs/ (specs and task cards) — no collision with a project's own docs/ or superpowers' docs/plans
+- **claude-authoring** (within 0.1.0): authoring-skills guide gains the handoff-offer convention — completed skills/commands offer the logical next command as a selectable choice (AskUserQuestion), never homework to type; bare commands only when headless. Applied across task-runner:plan, approaches:compare, build-vs-buy:check, retrospective:run, rollout:plan, resilience:review, estimation:size, a11y:audit
 - **task-runner** 0.3.0: parallel-planning skill + /task-runner:plan — computes the subagents-vs-inline decision from the task list itself (dependency levels, disjoint-file groups, critical path, ≥1.5x adjusted-speedup gate, ≤6-agent cap, replan rules); recommendation is optional, user picks the mode
 - **ui-ux** 0.4.0: ui-ux-engineer worker agent — implements layouts, responsive breakpoints, spacing/color systems, element placement alongside the existing ui-ux-reviewer
 - **testing** 0.3.0: test-engineer worker agent — authors and runs unit/integration/e2e tests, coverage-gap analysis, fixtures and boundary-only mocking

@@ -1,0 +1,25 @@
+---
+description: "Audit UI code against WCAG 2.1 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix."
+---
+
+# Accessibility Audit
+
+1. **Determine scope** from `$ARGUMENTS`: a component, a page, or a diff.
+   With no arguments, default to recent UI changes (`git diff` against the
+   default branch, filtered to markup, style, and component files).
+2. **Apply the checklist** from the `a11y-audit` skill: semantics first,
+   the ARIA rules, keyboard operability, focus management, contrast (AA
+   ratios and every interaction state), forms, media, and touch targets.
+   Read the actual markup and styles — never infer from file names.
+3. **Report one line per violation** in the format
+   `path:line — WCAG criterion — violation — fix`.
+   Sort blockers first (keyboard traps, missing labels, contrast
+   failures), then minors.
+4. **End with what was NOT checkable statically** as a manual-test list:
+   real screen-reader behavior (VoiceOver/NVDA), 200% zoom and reflow,
+   live focus order in a running browser, reduced-motion rendering — so
+   a human can finish the audit.
+5. **When violations exist, offer the next step** as a selectable choice
+   (AskUserQuestion): "Apply the fixes now (Recommended)" / "Blockers
+   only" / "Stop here" — implementation follows the ui-ux plugin's
+   conventions (its ui-ux-engineer agent territory).

@@ -11,4 +11,5 @@ ask which capability is about to be implemented).
 3. Produce the candidate table: health (maintenance, adoption), license fit,
    coverage of the need (%), integration cost vs write-and-maintain cost.
 4. Verdict: take / wrap / write — with the one-paragraph reason.
-5. Significant verdict → offer to persist as an ADR (/decision-records:new).
+5. Significant verdict → offer as a selectable choice: "Persist as ADR now
+   (Recommended)" / "Skip" — on yes, proceed as /decision-records:new would.

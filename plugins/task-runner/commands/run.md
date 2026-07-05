@@ -6,7 +6,7 @@ argument-hint: [tasks-dir-index-or-list]
 Invoke the task-execution skill from this plugin and run the task list in
 $ARGUMENTS — a taskmaster `00-INDEX.md` path, a tasks directory, a plan's task
 sequence, or an inline list. If no argument, look for the most recent
-`docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
+`taskmaster-docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
 
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
    groups, verify command per task) before executing.

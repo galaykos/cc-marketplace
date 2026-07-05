@@ -16,6 +16,8 @@ description first). Do not write implementation code.
    Honest entries — no strawman column built to make a favorite win.
 4. Pick one. One paragraph why. State the kill-trigger: the concrete discovery
    mid-implementation that would flip this choice.
-5. Hand off: plan-before-code (code-architecture plugin) for the file-level
-   plan. If the comparison exposed product-shape uncertainty, stop and
-   recommend /taskmaster:brainstorm instead.
+5. Hand off via selectable offer (AskUserQuestion), not typed commands:
+   "Persist as ADR + continue to file-level plan (Recommended)" /
+   "Plan only" / "Stop here". ADR = decision-records plugin; plan =
+   plan-before-code (code-architecture). If the comparison exposed
+   product-shape uncertainty, offer /taskmaster:brainstorm instead.

@@ -16,7 +16,7 @@ creation beyond the design doc at any point.
    choice preferred, visual questions through the visual-decisions skill.
 4. Propose 2–3 approaches with tradeoffs, recommendation first. Present the
    chosen design in sections with per-section approval.
-5. Write the design doc to `docs/specs/YYYY-MM-DD-<slug>-design.md`, run the
+5. Write the design doc to `taskmaster-docs/specs/YYYY-MM-DD-<slug>-design.md`, run the
    self-review pass, then have the user review the written doc and iterate to
    approval.
 6. Handoff: ask via AskUserQuestion whether to continue into the taskmaster

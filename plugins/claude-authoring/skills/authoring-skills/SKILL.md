@@ -92,6 +92,19 @@ Style:
 - Show commands and paths as literal, copyable text, not prose descriptions
   of them.
 
+## Handoff offers, not homework
+
+When a skill or command finishes and a logical next step exists as another
+command (persist the ADR, run the cards, apply the fixes):
+
+- OFFER it as a selectable choice (AskUserQuestion): "Run X now
+  (Recommended)" / "Skip — I'll run it later". The user picks; nobody types.
+- Print the bare command as text ONLY in headless runs where selection UI
+  is unavailable — and print it exactly, copy-paste ready.
+- Never auto-run the next step silently; the offer IS the consent gate.
+- One offer per handoff moment — a completion that spawns three questions
+  is a quiz, not a handoff.
+
 ## Common failures
 
 - Vague descriptions. "Helps with testing" gives the dispatcher nothing to

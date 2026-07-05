@@ -11,6 +11,9 @@ this session; if the session holds no completed work, say so and stop).
    known.
 2. Produce the three-sink table (CLAUDE.md candidates / skill or automation
    suggestions / process tweaks) per the skill.
-3. Propose — never silently write. CLAUDE.md lines are drafted for approval;
-   skill suggestions hand to /claude-authoring:new-skill; tweaks are stated.
+3. Propose — never silently write. Offer each banked artifact as a
+   selectable choice: "Apply CLAUDE.md lines" (multi-select per line),
+   "Scaffold the suggested skill now" (proceeds as
+   /claude-authoring:new-skill would) / "Skip". Typed commands only when
+   headless.
 4. Keep it under a page. A retro longer than the work it reviews is theater.

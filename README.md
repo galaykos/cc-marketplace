@@ -89,6 +89,11 @@ requires.
 | **decision-records** | ADRs: persist approach/schema/dependency decisions to docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
 | **retrospective** | Post-milestone learning loop: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks | `/retrospective:run` |
 | **build-vs-buy** | Gate zero for generic capability: library/stdlib search, health table, take/wrap/write verdict, never-hand-roll list | `/build-vs-buy:check` |
+| **rollout** | Per-feature rollout: flags with removal dates, compat windows, expand-migrate-contract, staged exposure with gate metrics, rollback path before ship | `/rollout:plan` |
+| **resilience** | Failure-mode design at integration points: timeouts, safe retries + idempotency, circuit breaking, degradation, backpressure, delivery semantics | `/resilience:review` |
+| **docs-upkeep** | Doc drift prevention: README/changelog/ADR/API-doc sync in the same change that invalidated them | `/docs-upkeep:check` |
+| **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
+| **a11y** | WCAG 2.1 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | — |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, UI/UX, worker agents) — no framework/dialect plugins | — |
 
@@ -132,7 +137,7 @@ The full loop for a feature:
 ```bash
 /stack-scan:report                                    # ground truth: what's actually installed
 /taskmaster:task <one-paragraph task description>     # interrogate → spec → task cards
-/task-runner:run docs/tasks/<date>-<slug>/00-INDEX.md # execute cards, verify each one
+/task-runner:run taskmaster-docs/tasks/<date>-<slug>/00-INDEX.md # execute cards, verify each one
 /code-architecture:verify                             # final verification pass
 ```
 

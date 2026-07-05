@@ -92,7 +92,7 @@ milestones — each one independently shippable and verifiable:
 ## Output layout
 
 ```
-docs/tasks/YYYY-MM-DD-<slug>/
+taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
   00-INDEX.md
   01-extract-invoice-totals.md
   02-add-soft-delete-migration.md

@@ -27,11 +27,11 @@ pre-seeds the ledger.
    visual decisions land: assemble the accepted picks into one clickable demo on
    the live preview URL, walk the user through it with a task script, and fold
    every discovered gap back into the ledger before freezing anything.
-5. Write the spec to `docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions with
+5. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions with
    sources, accepted assumptions, non-goals, success criteria — plus the
    walkthrough file path and cross-screen contracts when step 4 ran.
 6. Invoke the task-cards skill to split the spec into single-prompt task cards
-   under `docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
+   under `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
    milestones when the run is large.
 7. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
    the card list in execution order with parallel groups (and milestones) marked.
@@ -40,7 +40,7 @@ pre-seeds the ledger.
      ready. Start execution now?" with options "Run now (Recommended)" and "Stop
      here — I'll run it later". On "Run now", immediately invoke the
      task-execution skill from the task-runner plugin on the new `00-INDEX.md`,
-     exactly as `/task-runner:run docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md`
+     exactly as `/task-runner:run taskmaster-docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md`
      would — same scope lock, same bounded verify-fix loops.
    - On "Stop here", or when AskUserQuestion is unavailable (headless), print
      that exact command as the next step.

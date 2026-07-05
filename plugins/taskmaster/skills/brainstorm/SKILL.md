@@ -73,7 +73,7 @@ boundary problem worth fixing on the whiteboard, not in the code.
 
 ## The design doc
 
-Write the approved design to `docs/specs/YYYY-MM-DD-<slug>-design.md`: the
+Write the approved design to `taskmaster-docs/specs/YYYY-MM-DD-<slug>-design.md`: the
 problem, the chosen approach and the alternatives rejected (with reasons),
 component map, data flow, error handling, success criteria, non-goals.
 
