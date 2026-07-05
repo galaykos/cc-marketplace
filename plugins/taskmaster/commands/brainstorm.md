@@ -13,7 +13,8 @@ creation beyond the design doc at any point.
 2. Size the idea: if it spans multiple independent subsystems, decompose and
    agree an order; brainstorm only the first piece now.
 3. Refine through one-question-at-a-time dialogue per the skill — multiple
-   choice preferred, visual questions through the visual-decisions skill.
+   choice preferred, visual questions through the visual-decisions skill (it
+   asks fidelity consent on first use).
 4. Propose 2–3 approaches with tradeoffs, recommendation first. Present the
    chosen design in sections with per-section approval.
 5. Write the design doc to `taskmaster-docs/specs/YYYY-MM-DD-<slug>-design.md`, run the

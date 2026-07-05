@@ -47,9 +47,11 @@ asking next — a batch built before the answer is a batch half-wasted. Rules:
 - Focus the sequence on purpose (what problem, for whom), constraints (stack,
   budget, deadline, compatibility), and success criteria (how we know it
   worked).
-- When a question is genuinely visual (layout, flow shape), switch to the
-  visual-decisions skill and its live preview URL — but only for questions
-  that are visual, not merely UI-flavored.
+- When a question is genuinely visual — options that look or flow differently
+  (layout, flow shape), not merely UI-flavored — switch to the visual-decisions
+  skill and its live preview URL, with context-scout's Visual surface section as
+  the prior. The skill asks fidelity consent on first use; respect a "no mockups"
+  answer for the rest of the session.
 
 ## Explore alternatives before committing
 
