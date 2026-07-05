@@ -24,6 +24,7 @@ version in their `plugin.json`.
 
 ### Changed
 
+- **task-runner** 0.3.0: parallel-planning skill + /task-runner:plan — computes the subagents-vs-inline decision from the task list itself (dependency levels, disjoint-file groups, critical path, ≥1.5x adjusted-speedup gate, ≤6-agent cap, replan rules); recommendation is optional, user picks the mode
 - **ui-ux** 0.4.0: ui-ux-engineer worker agent — implements layouts, responsive breakpoints, spacing/color systems, element placement alongside the existing ui-ux-reviewer
 - **testing** 0.3.0: test-engineer worker agent — authors and runs unit/integration/e2e tests, coverage-gap analysis, fixtures and boundary-only mocking
 - **security** 0.2.0: security-engineer worker agent — implements defensive fixes: auth flows, OWASP remediations, headers/CSP, dependency-audit remediation
