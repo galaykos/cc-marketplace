@@ -79,11 +79,11 @@ class UpdatePostRequest extends FormRequest {
 
 ## Queue slow work — small, idempotent payloads
 
-Dispatch anything slow (email, exports, external API calls) to a queued job instead of
-blocking the request. Pass IDs, not hydrated models: `SerializesModels` serializes a model
-reference and re-fetches it from the database when the job runs, so a full model instance in
-the constructor bloats the payload without keeping data any fresher. Jobs run more than once
-(retries, timeouts, manual re-dispatch) — write `handle()` so running it twice is safe.
+Dispatch anything slow (email, exports, external API calls) to a queued job instead of blocking
+the request. Pass IDs, not hydrated models: `SerializesModels` re-fetches a fresh copy on
+execution, so dispatch-time attributes are discarded — don't rely on stale state. The real
+bloat/fragility risk is loaded relations (serialized recursively, re-fetched too) and
+appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write `handle()` so it's safe to run twice.
 
 ```php
 // Bad: hydrated model in the constructor, non-idempotent charge
