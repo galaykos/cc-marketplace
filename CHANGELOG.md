@@ -4,6 +4,17 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.22.0] - 2026-07-05
+
+### Added
+
+- **orchestration** 0.1.0: new plugin — subagent orchestration discipline. delegation-contracts skill (self-contained prompt contracts with scope locks, compressed evidence-backed return formats, model/effort tiering per stage, scout-then-fanout, isolation rules for parallel writers) and verification-panels skill (cost-gated refuter voting, judge panels over independent attempts, loop-until-dry discovery, completeness-critic passes). Both auto-trigger from context. Includes /orchestration:review (report-only audit of fan-out plans and drafted agent prompts)
+
+### Changed
+
+- **everything** 0.6.0, **taskmaster-suite** 0.5.0: orchestration added to bundle dependencies
+- **task-runner** 0.4.1, **code-architecture** 0.5.1, **taskmaster** 0.5.1, **git-workflow** 0.1.1: one-line delegation pointers to the orchestration plugin (parallel-planning, task-execution, task-orchestration, task-cards, worktree-isolation skills)
+
 ## [0.21.0] - 2026-07-05
 
 ### Added

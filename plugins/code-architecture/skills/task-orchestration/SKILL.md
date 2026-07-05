@@ -107,3 +107,6 @@ Apply this whenever a piece of work is larger than a single sitting, or before d
 multiple subagents/collaborators. For solo, small changes, the overhead of formal decomposition
 isn't worth it — but the moment you're tempted to say "and also" while describing the task,
 that's the seam where it should split.
+
+Dispatching the resulting tasks to subagents — prompt contracts, compressed returns,
+verification panels — is the orchestration plugin's job.

@@ -104,6 +104,9 @@ group / status), and the run note — each card is executed by pasting it into a
 fresh session or `claude "$(cat 01-*.md)"`. Update the status column as cards
 land; the index is the only file that mutates during execution.
 
+When cards are executed by subagents, the dispatch-prompt and return-format
+contract is the orchestration plugin's delegation-contracts skill.
+
 ## Anti-patterns
 
 - Cards that only make sense in sequence-of-conversation order — the fresh-session

@@ -104,6 +104,9 @@ git branch -D <branch>        # only for an explicitly confirmed discard
 Order matters: worktree first, branch second — and only remove worktrees this
 workflow created; a harness-provided workspace is the harness's to reclaim.
 
+Per-agent worktrees for parallel subagent WRITERS are the orchestration
+plugin's delegation-contracts skill; this skill covers feature branches.
+
 ## Anti-patterns
 
 - A project-local worktree directory whose ignore status was assumed, not

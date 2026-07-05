@@ -95,6 +95,8 @@ claim; the runner's own execution of the verify command is the evidence. One
 failed re-verification sends the task back with the failing output; a second
 failure reclaims it for inline execution. Never mark a delegated task done on
 the subagent's word alone.
+Prompt and return contracts for the delegated groups live in the orchestration
+plugin's delegation-contracts skill.
 
 ## Evidence format
 

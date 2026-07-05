@@ -3,7 +3,7 @@
   "owner": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.21.0"
+    "version": "0.22.0"
   },
   "plugins": [
     { "name": "ui-ux", "source": "./plugins/ui-ux", "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and ui-ux-reviewer + ui-ux-engineer agents." },
@@ -50,6 +50,7 @@
     { "name": "resilience", "source": "./plugins/resilience", "description": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review." },
     { "name": "docs-upkeep", "source": "./plugins/docs-upkeep", "description": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check." },
     { "name": "packages", "source": "./plugins/packages", "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, upgrade lanes. Includes /packages:audit" },
+    { "name": "orchestration", "source": "./plugins/orchestration", "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry, completeness critic). Includes /orchestration:review." },
     { "name": "estimation", "source": "./plugins/estimation", "description": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking that feeds retrospectives. Includes /estimation:size." },
     { "name": "a11y", "source": "./plugins/a11y", "description": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit." },
     { "name": "everything", "source": "./plugins/everything", "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins." },
