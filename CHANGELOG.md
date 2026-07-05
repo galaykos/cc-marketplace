@@ -15,8 +15,9 @@ version in their `plugin.json`.
 - **performance** 0.1.0: performance-engineer worker agent — measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing; before/after evidence required
 - **claude-authoring** 0.1.0: authoring guides for skills, agents, hooks, and plugins; routine-detector skill that proposes capturing repetitive work as a project skill; /claude-authoring:new-skill, /claude-authoring:new-agent, /claude-authoring:new-hook, /claude-authoring:new-plugin scaffold commands
 - **code-review** 0.1.0: stack-agnostic review — /code-review:review command, proactive code-reviewer agent, code-smells skill (bloaters/couplers/change-preventers/dispensables + when-not-a-smell judgment); defers structure to code-architecture, depth to security, idioms to per-stack plugins
-- **everything** 0.1.0: meta-bundle — one install auto-installs all 34 plugins via the dependencies field
-- **taskmaster-suite** 0.1.0: meta-bundle — taskmaster workflow plus the 21 stack-agnostic plugins (task pipeline, engineering discipline, UI/UX, code review, worker agents); excludes framework/dialect plugins
+- **approaches** 0.1.0: approach-deliberation skill (2-3 structurally different candidates, honest trade-off table, pick with kill-trigger — kills first-idea anchoring), strategy-catalog skill (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya, simplest-thing, top-down/bottom-up, explain-first — each mapped to the risk it beats), /approaches:compare command
+- **everything** 0.1.0: meta-bundle — one install auto-installs all 35 plugins via the dependencies field
+- **taskmaster-suite** 0.1.0: meta-bundle — taskmaster workflow plus the 22 stack-agnostic plugins (task pipeline, approach deliberation, engineering discipline, UI/UX, code review, worker agents); excludes framework/dialect plugins
 
 ### Changed
 
