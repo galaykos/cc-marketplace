@@ -49,74 +49,30 @@ For example:
 | **code-architecture** | Engineering process: plan-before-code, YAGNI, task orchestration, work verification, low-cognitive-load, KISS/DRY simplicity + architecture-reviewer agent | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code | `/api-docs-first:check` |
-| **taskmaster** | Interrogation-first clarification: ambiguity ledger, batched questions, mockups on one always-live preview URL for visual decisions, single-prompt task cards + context-scout agent | `/taskmaster:task` |
-| **task-runner** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate | `/task-runner:run` |
-| **stack-scan** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
+| **[taskmaster](plugins/taskmaster/README.md)** | Interrogation-first clarification: ambiguity ledger, batched questions, mockups on one always-live preview URL for visual decisions, single-prompt task cards + context-scout agent | `/taskmaster:task` (or `/taskmaster`) |
+| **[task-runner](plugins/task-runner/README.md)** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate | `/task-runner:run` |
+| **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
+| **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps | `/testing:review` |
+| **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics | `/security:review` |
+| **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
+| **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 awareness | `/inertia:review` |
+| **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources | `/api-design:review` |
+| **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files | `/dev-env:init`, `/dev-env:review` |
 
 ## Usage
 
 Skills auto-trigger based on context (e.g., `react-best-practices` activates when writing React code). Commands like `/react:review` are invoked manually. You can also invoke them from the command line or via the plugin menu.
 
-### Running taskmaster
+Plugins with their own README carry detailed usage and examples — see the links in the plugin table above. The highlights:
 
-Install the plugin, then start it with a one-paragraph task description:
+### Running taskmaster
 
 ```bash
 /plugin install taskmaster@cc-plugins-marketplace
-/taskmaster:task Add CSV export to the orders page with date-range filtering
+/taskmaster Add CSV export to the orders page with date-range filtering
 ```
 
-If you run `/taskmaster:task` without arguments, it asks for a task description first. The pipeline then:
-
-1. Dispatches the context-scout agent to scan the codebase before asking you anything
-2. Asks batched clarifying questions until every item in the ambiguity ledger is resolved (visual/structural choices are decided via mockups on a live preview URL)
-3. Writes a spec to `docs/specs/YYYY-MM-DD-<slug>.md`
-4. Emits single-prompt task cards to `docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`
-
-Execute the resulting cards with the task-runner plugin: `/task-runner:run docs/tasks/<date>-<slug>/00-INDEX.md`.
-
-A reminder hook also nudges you toward `/taskmaster:task` when it detects a short, feature-shaped prompt (build/add/implement…) with thin detail.
-
-### Conversation example
-
-A good starting prompt is one paragraph: the goal, hard constraints, and pointers to existing code if you know them. Don't pre-answer design questions — the interrogation surfaces those. Here's how a session flows:
-
-```text
-You:     /taskmaster:task Add CSV export to the orders page. Users should be able
-         to export the current filtered view with a date range. Needs to handle
-         large order sets. Follow existing export patterns if any exist.
-
-Claude:  Scanned the codebase first (context-scout): orders page at
-         resources/js/Pages/Orders/Index.vue, an existing queued + chunked XLSX
-         export in app/Exports/InvoiceExport.php, Laravel 11.34 and
-         maatwebsite/excel 3.1 installed (composer.lock).
-
-         Round 1 — 4 questions:
-         1. Columns: all 14 order fields, or the 6 visible in the table?
-         2. Large sets: stream the download, or queue + email a link like
-            InvoiceExport does?
-         3. Date range filters on created_at or updated_at?
-         4. Who can export — every role that sees the page, or admin only?
-
-You:     1: the visible 6. 2: queue + email, same as invoices.
-         3: created_at. 4: admin and manager.
-
-Claude:  Round 2 — 1 question, 1 assumption:
-         1. Filename: orders-2026-07-05.csv okay?
-         A1. Assuming UTF-8 with BOM for Excel compatibility (matches
-             InvoiceExport) — accept as ASSUMED?
-
-You:     Both fine.
-
-Claude:  Ledger: 5 CLEAR, 1 ASSUMED.
-         Spec: docs/specs/2026-07-05-orders-csv-export.md
-         Cards: docs/tasks/2026-07-05-orders-csv-export/
-           01 export class · 02 controller + route + policy · 03 UI button ·
-           04 feature tests (02 and 03 run in parallel after 01)
-         Start: /task-runner:run docs/tasks/2026-07-05-orders-csv-export/00-INDEX.md
-```
-
-Notice what the starting prompt does and doesn't do: it states the goal, one performance constraint, and a pointer ("follow existing export patterns") — but leaves column choice, delivery mechanism, and permissions open. Those come out grounded in what context-scout actually found, so the answers become decisions in the spec instead of assumptions buried in code.
+`/taskmaster` is shorthand for `/taskmaster:task`. It interrogates the task with batched questions (grounded in a codebase scan by the context-scout agent), writes a spec, and emits single-prompt task cards for `/task-runner:run`. A full annotated conversation example lives in the [taskmaster README](plugins/taskmaster/README.md).
 
 ### Optimal setup: the taskmaster workflow suite
 
@@ -160,4 +116,4 @@ To add a new plugin:
 3. Update `.claude-plugin/marketplace.json` with your plugin entry
 4. Run `bash scripts/validate.sh` to verify the structure
 
-All plugins are versioned at `0.5.0` and owned by Ivan-WG <public@galayko.com>.
+Individual plugins are versioned in their own `plugin.json` (currently `0.1.0`); the marketplace version lives in `.claude-plugin/marketplace.json` and is tracked in [CHANGELOG.md](CHANGELOG.md). All plugins are owned by Ivan-WG <public@galayko.com> and released under the [MIT License](LICENSE).

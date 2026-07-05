@@ -1,0 +1,6 @@
+{
+  "name": "testing",
+  "version": "0.1.0",
+  "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps. Includes /testing:review.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

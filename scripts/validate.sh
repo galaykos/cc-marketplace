@@ -62,6 +62,15 @@ for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
   esac
 done
 
+# Every /plugin:command reference in docs must resolve to a listed plugin
+known=$(jq -r '.plugins[].name' "$MP")
+while IFS=: read -r file ref; do
+  pname="${ref#/}"; pname="${pname%%:*}"
+  echo "$known" | grep -qx "$pname" \
+    || err "$file: reference '$ref' names unknown plugin '$pname'"
+done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/README.md plugins/*/commands plugins/*/skills plugins/*/agents 2>/dev/null \
+         | grep -v 'https\?:' | sort -u)
+
 # hooks.json files must parse and referenced scripts must be executable
 while IFS= read -r f; do
   jq empty "$f" 2>/dev/null || { err "$f: invalid JSON"; continue; }

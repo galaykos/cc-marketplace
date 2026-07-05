@@ -1,9 +1,9 @@
 ---
-description: Grill a task until zero ambiguity, decide visual choices with mockups, then emit a spec and single-prompt task cards
+description: Shorthand for /taskmaster:task — grill a task until zero ambiguity, then emit a spec and single-prompt task cards
 argument-hint: [task-description]
 ---
 
-<!-- Canonical pipeline — keep commands/taskmaster.md (the /taskmaster alias) in sync -->
+<!-- Alias of task.md — keep the pipeline steps in sync with commands/task.md -->
 
 Run the full taskmaster pipeline on $ARGUMENTS (if empty, ask for a one-paragraph task
 description first). Do not write implementation code at any step.
