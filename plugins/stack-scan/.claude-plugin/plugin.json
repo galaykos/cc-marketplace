@@ -1,0 +1,6 @@
+{
+  "name": "stack-scan",
+  "version": "0.1.0",
+  "description": "Inventory the project's actual stack: manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints, docker images. Reports required vs installed versions and flags drift, missing locks, and EOL majors.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}
