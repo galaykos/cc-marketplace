@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.13.0] - 2026-07-05
+
+### Added
+
+- **code-architecture** 0.3.0: surgical-coding skill — always-on discipline for everyday edits outside the pipeline, adapted from Andrej Karpathy's LLM-coding guidelines (multica-ai/andrej-karpathy-skills, MIT): surface assumptions and competing interpretations before coding, every changed line traces to the request, the orphan rule (delete your own orphans incl. tests, flag pre-existing dead code instead), simplicity floor, vague-ask → verifiable-goal transformation with step→verify plans
+
 ## [0.12.0] - 2026-07-05
 
 Superpowers parity batch — ports the remaining high-value workflows from obra/superpowers (MIT) into the suite, rewritten in house voice, so the marketplace stands alone without it.

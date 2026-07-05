@@ -3,7 +3,7 @@
   "owner": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.12.0"
+    "version": "0.13.0"
   },
   "plugins": [
     { "name": "ui-ux", "source": "./plugins/ui-ux", "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and a ui-ux-reviewer agent." },
@@ -18,7 +18,7 @@
     { "name": "mysql", "source": "./plugins/mysql", "description": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL and metadata locks, gap locking, JSON limits, 8.0-8.4 LTS version leverage. Includes /mysql:review." },
     { "name": "mariadb", "source": "./plugins/mariadb", "description": "MariaDB 10.6+ best practices: not-MySQL divergences, RETURNING, sequences, system-versioned tables, native UUID type, uca1400 collations, Galera awareness. Includes /mariadb:review." },
     { "name": "postgresql", "source": "./plugins/postgresql", "description": "PostgreSQL 14+ best practices: MVCC/vacuum reality, timestamptz/jsonb/uuid types, partial/expression/GIN/BRIN indexes, lock-aware migrations, ON CONFLICT/RETURNING, version leverage through 17/18. Includes /postgresql:review." },
-    { "name": "code-architecture", "source": "./plugins/code-architecture", "description": "Engineering process: plan-before-code with current-vs-target architecture diagrams on a live preview URL for structural changes, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles. Includes /code-architecture:plan|verify|yagni and an architecture-reviewer agent." },
+    { "name": "code-architecture", "source": "./plugins/code-architecture", "description": "Engineering process: plan-before-code with current-vs-target architecture diagrams on a live preview URL for structural changes, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles, and always-on surgical-coding discipline (surface assumptions, every changed line traces to the request, orphan rule, verifiable success criteria — after Karpathy's LLM-coding guidelines). Includes /code-architecture:plan|verify|yagni and an architecture-reviewer agent." },
     { "name": "design-patterns", "source": "./plugins/design-patterns", "description": "Design pattern selection: which pattern fits where, and when NOT to use one. Includes /design-patterns:suggest." },
     { "name": "api-docs-first", "source": "./plugins/api-docs-first", "description": "Verify current API docs before writing integration code; asks for a URL or file when docs are not visible. Includes /api-docs-first:check and a UserPromptSubmit reminder hook." },
     { "name": "meta-api", "source": "./plugins/meta-api", "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook." },

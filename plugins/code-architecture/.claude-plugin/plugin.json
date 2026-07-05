@@ -1,6 +1,6 @@
 {
   "name": "code-architecture",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Engineering process: plan-before-code, YAGNI, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }
