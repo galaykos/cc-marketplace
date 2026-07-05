@@ -65,7 +65,7 @@ Every plugin directory contains:
 | vue3 | vue3-best-practices (script setup, composables, ref/reactive pitfalls, Pinia) | review | — | — |
 | laravel | laravel-best-practices (Eloquent N+1, form requests, service layer, queues, policies) | review | — | — |
 | livewire | livewire-best-practices (Livewire 3 conventions, wire:model modifiers, performance, Alpine interop) | review | — | — |
-| code-architecture | plan-before-code, yagni-check, task-orchestration, work-verification, low-cognitive-load | plan, verify, yagni | architecture-reviewer | — |
+| code-architecture | plan-before-code, yagni-check, simplicity-principles (KISS + DRY), task-orchestration, work-verification, low-cognitive-load | plan, verify, yagni | architecture-reviewer | — |
 | design-patterns | pattern-selection (which pattern where, and when NOT to use one) | suggest | — | — |
 | api-docs-first | api-docs-first (verify current API docs before writing integration code; if none visible, ask user for a URL or file) | check | — | UserPromptSubmit: keyword detection (API/SDK/integrate/endpoint) injects a docs-check reminder |
 

@@ -310,21 +310,23 @@ Skill description: `Use when writing or reviewing Livewire 3 code — component 
 ### Task 9: code-architecture plugin
 
 **Files:**
-- Create: `plugins/code-architecture/skills/{plan-before-code,yagni-check,task-orchestration,work-verification,low-cognitive-load}/SKILL.md`
+- Create: `plugins/code-architecture/skills/{plan-before-code,yagni-check,simplicity-principles,task-orchestration,work-verification,low-cognitive-load}/SKILL.md`
 - Create: `plugins/code-architecture/commands/{plan,verify,yagni}.md`
 - Create: `plugins/code-architecture/agents/architecture-reviewer.md`
+- Modify: `.claude-plugin/marketplace.json` and `plugins/code-architecture/.claude-plugin/plugin.json` — append ", KISS/DRY simplicity principles" to the code-architecture description in both.
 
-- [ ] **Step 1: Five SKILL.md files.** Frontmatter table:
+- [ ] **Step 1: Six SKILL.md files.** Frontmatter table:
 
 | dir | description |
 |---|---|
 | plan-before-code | Use before writing any non-trivial code — decide which files change, what each new unit owns, interfaces between units, and where code should live, before writing it. |
 | yagni-check | Use when designing or reviewing code for speculative generality — flags abstractions, config options, and flexibility nobody asked for. |
+| simplicity-principles | Use when writing or reviewing any code — KISS and DRY applied with judgment: simplest thing that works, duplication removed only after the rule of three, DRY of knowledge not of incidental text. |
 | task-orchestration | Use when breaking work into tasks or delegating to subagents — decomposition into independently verifiable units, sequencing by dependency, parallelizing independent work. |
 | work-verification | Use before claiming any work is done — define success criteria up front, run the verification commands, show evidence, never assert without output. |
 | low-cognitive-load | Use when writing or reviewing code for readability — small focused units, few live variables, shallow nesting, names that carry meaning, no clever tricks. |
 
-Bodies (100–150 lines each): concrete procedure/checklist + short before/after examples. plan-before-code: file-map-first procedure (list files to touch, one responsibility per file, define interfaces, then code). yagni-check: red-flag list (unused params "for later", single-implementation interfaces, config nobody sets, premature plugin systems) + "delete until it hurts" test. task-orchestration: task = smallest independently verifiable unit; dependency ordering; parallel dispatch criteria (no shared state); review gates between tasks. work-verification: criteria-before-work; evidence-before-assertion; exact-command + expected-output discipline. low-cognitive-load: function-fits-on-screen rule, guard clauses over nesting, avoid boolean params, locality of behavior.
+Bodies (100–150 lines each): concrete procedure/checklist + short before/after examples. plan-before-code: file-map-first procedure (list files to touch, one responsibility per file, define interfaces, then code). yagni-check: red-flag list (unused params "for later", single-implementation interfaces, config nobody sets, premature plugin systems) + "delete until it hurts" test. task-orchestration: task = smallest independently verifiable unit; dependency ordering; parallel dispatch criteria (no shared state); review gates between tasks. work-verification: criteria-before-work; evidence-before-assertion; exact-command + expected-output discipline. low-cognitive-load: function-fits-on-screen rule, guard clauses over nesting, avoid boolean params, locality of behavior. simplicity-principles: KISS (simplest design that meets today's requirement; clever code is a cost; prefer boring technology); DRY done right (duplicate knowledge, not incidental similarity; rule of three before extracting; wrong abstraction costs more than duplication — inline it back when it fights you); how KISS/DRY/YAGNI interact and which wins on conflict (YAGNI > DRY for speculative reuse; KISS > DRY when the abstraction is harder to read than the duplication).
 
 - [ ] **Step 2: Three commands.** `plan.md`: description `Produce a file-level implementation plan before writing code`; body: invoke plan-before-code skill on `$ARGUMENTS`, output file map + interfaces + task sequence, do not write code. `verify.md`: description `Verify completed work against its success criteria with evidence`; body: invoke work-verification, run the project's test/lint commands, report pass/fail with output. `yagni.md`: description `Audit code or a design for speculative generality`; body: invoke yagni-check on `$ARGUMENTS` or diff, list violations with deletion proposals.
 
@@ -347,7 +349,7 @@ You are an architecture reviewer. Given a diff or module:
    No praise. No restating the diff.
 ```
 
-- [ ] **Step 4: Validate + commit** — `bash scripts/validate.sh` OK; `git add plugins/code-architecture && git commit -m "feat(code-architecture): five process skills, three commands, reviewer agent"`.
+- [ ] **Step 4: Validate + commit** — `bash scripts/validate.sh` OK; `git add plugins/code-architecture .claude-plugin/marketplace.json && git commit -m "feat(code-architecture): six process skills, three commands, reviewer agent"`.
 
 ---
 
@@ -423,5 +425,5 @@ Expected: no output, exit 0.
 
 - [ ] **Step 1:** `bash scripts/validate.sh` → `OK: marketplace valid`.
 - [ ] **Step 2:** `claude plugin validate . 2>/dev/null || echo "CLI validator unavailable — validate.sh is the gate"` — record result.
-- [ ] **Step 3:** Count check: `find plugins -name SKILL.md | wc -l` → expected 19; `find plugins -path '*/commands/*.md' | wc -l` → expected 12; agents → 2; hooks.json → 1.
+- [ ] **Step 3:** Count check: `find plugins -name SKILL.md | wc -l` → expected 20; `find plugins -path '*/commands/*.md' | wc -l` → expected 12; agents → 2; hooks.json → 1.
 - [ ] **Step 4:** Commit any remaining changes: `git add -A && git commit -m "chore: final validation pass"` (skip if clean).
