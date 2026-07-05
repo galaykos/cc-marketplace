@@ -74,6 +74,21 @@ inline the discussion's conclusion instead.
 - Cards coupled through shared work-in-progress state are ordering bugs: merge
   them or move the shared piece into its own earlier card.
 
+## Milestones for big runs
+
+Past ~10 cards, a flat list hides the shape of the work. Group cards into
+milestones — each one independently shippable and verifiable:
+
+- A milestone ends at a state worth having even if work stops there: "landing
+  page live without signup", "export works for admins only".
+- The index gains a milestone grouping; each milestone closes with its own
+  full-suite verify, not just per-card checks — milestone boundaries are where
+  integration bugs surface.
+- Order milestones by risk and value, not by architectural layer: "walking
+  skeleton first" beats "all migrations, then all endpoints, then all UI".
+- Parallel groups stay within a milestone; cards from different milestones
+  never interleave.
+
 ## Output layout
 
 ```

@@ -72,6 +72,22 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
 - Typical interrogations run 2–4 rounds. Round 1 is broad (outcome, scope, actors);
   later rounds go narrow (edge cases, examples, sequencing) using earlier answers.
 
+## Big tasks: slice before grilling
+
+When the task is a whole experience or crosses several subsystems (a full
+landing-page experience, onboarding funnel, multi-view feature), do not run one
+flat ledger — it explodes past readability by round 2:
+
+- Round 1 becomes decomposition: propose the slices (screens, flows,
+  capabilities) and confirm the slice list itself with the user first.
+- The ledger gains a Slice column; grill slice by slice in priority order —
+  depth-first beats breadth-first, a half-grilled everything helps no one.
+- Cross-slice contracts (data one screen collects that another consumes) get
+  their own ledger rows — they are the rows a per-slice view would miss.
+- For multi-screen slices, run the experience-walkthrough skill after their
+  visual decisions land: assemble accepted picks into a clickable demo and
+  walk it before freezing the spec.
+
 ## Stopping and handoff
 
 Stop when every row is CLEAR, or ASSUMED with the user having seen and accepted the

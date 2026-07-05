@@ -30,9 +30,16 @@ Without arguments it asks for a description first. The pipeline then:
    constraints come from lockfiles instead of guesses
 2. Dispatches the context-scout agent to scan the codebase before asking you anything
 3. Asks batched clarifying questions until every item in the ambiguity ledger is
-   resolved (visual/structural choices are decided via mockups on a live preview URL)
-4. Writes a spec to `docs/specs/YYYY-MM-DD-<slug>.md`
-5. Emits single-prompt task cards to `docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`
+   resolved (visual/structural choices are decided via mockups on a live preview URL);
+   whole-experience tasks get sliced into screens/flows first and grilled slice by slice
+4. For multi-screen work, assembles the accepted picks into an **interactive
+   clickable walkthrough demo** on the same preview URL — every screen, state
+   variant, and failure exit navigable — and walks you through it with a task
+   script; gaps found by clicking become ledger rows before the spec freezes
+5. Writes a spec to `docs/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
+   path and cross-screen contracts when one was built)
+6. Emits single-prompt task cards to `docs/tasks/YYYY-MM-DD-<slug>/` with a
+   `00-INDEX.md`, grouped into independently shippable milestones on big runs
 
 A reminder hook also nudges you toward `/taskmaster` when it detects a short,
 feature-shaped prompt (build/add/implement…) with thin detail.
@@ -93,7 +100,9 @@ for the full workflow suite.
 
 ## Contents
 
-- **Skills**: grill (interrogation + ambiguity ledger), visual-decisions
-  (mockups on a live preview URL), task-cards (spec → single-prompt cards)
+- **Skills**: grill (interrogation + ambiguity ledger + big-task slicing),
+  visual-decisions (mockups on a live preview URL), experience-walkthrough
+  (interactive clickable demo of the whole assembled flow), task-cards
+  (spec → milestone-grouped single-prompt cards)
 - **Agent**: context-scout — read-only codebase reconnaissance before questioning
 - **Hook**: thin-feature-prompt reminder on UserPromptSubmit

@@ -26,7 +26,9 @@ Climb only as high as the decision requires, never higher:
 3. **Inline SVG inside that HTML** — for flows and topology diagrams.
 
 There is no rung 4 — never build a working prototype to make a decision; mockups
-are throwaway by design and die the moment the pick is made.
+are throwaway by design and die the moment the pick is made. Validating the
+ASSEMBLED experience after picks land (multi-screen flows, whole landing
+experiences) is a different job: the experience-walkthrough skill in this plugin.
 
 ## ASCII wireframes
 
