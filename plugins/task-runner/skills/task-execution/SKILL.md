@@ -1,6 +1,6 @@
 ---
 name: task-execution
-description: Use when executing a list of defined tasks (grill-me task cards, a plan's task sequence, a todo list) — one task at a time, scope locked to the current task, a bounded implement-verify-fix inner loop per task, explicit status tracking, and a halt-with-evidence protocol instead of drifting or looping forever.
+description: Use when executing a list of defined tasks (taskman task cards, a plan's task sequence, a todo list) — one task at a time, scope locked to the current task, a bounded implement-verify-fix inner loop per task, explicit status tracking, and a halt-with-evidence protocol instead of drifting or looping forever.
 ---
 
 ## The contract
@@ -55,7 +55,7 @@ misunderstanding, and token burn scales with confusion, not progress. Instead:
 
 - Execute in index order, respecting `Depends on`; parallel groups may be
   delegated to subagents ONLY if their file sets are disjoint — otherwise serial.
-- Status lives in one place (the task index / todo list, e.g. grill-me's
+- Status lives in one place (the task index / todo list, e.g. taskman's
   `00-INDEX.md`): pending → in_progress (exactly one) → done | parked(reason).
   Task definitions themselves stay immutable during the run.
 - A parked task never blocks unrelated tasks; dependency-blocked tasks are marked

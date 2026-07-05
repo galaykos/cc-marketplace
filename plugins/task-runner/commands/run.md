@@ -4,7 +4,7 @@ argument-hint: [tasks-dir-index-or-list]
 ---
 
 Invoke the task-execution skill from this plugin and run the task list in
-$ARGUMENTS — a grill-me `00-INDEX.md` path, a tasks directory, a plan's task
+$ARGUMENTS — a taskman `00-INDEX.md` path, a tasks directory, a plan's task
 sequence, or an inline list. If no argument, look for the most recent
 `docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
 
