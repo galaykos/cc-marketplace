@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "dependencies": [
@@ -22,6 +22,7 @@
     "meta-api",
     "taskmaster",
     "git-workflow",
+    "hindsight",
     "debugging",
     "task-runner",
     "stack-scan",
