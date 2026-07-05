@@ -30,8 +30,16 @@ description first). Do not write implementation code at any step.
 6. Invoke the task-cards skill to split the spec into single-prompt task cards
    under `docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
    milestones when the run is large.
-7. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, the
-   card list in execution order with parallel groups (and milestones) marked, and
-   the exact command to start card 01. If the task-runner plugin is installed,
-   name `/task-runner:run docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md` as that
-   command; otherwise give the card path to run manually.
+7. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
+   the card list in execution order with parallel groups (and milestones) marked.
+8. Handoff — do not just print a command and stop:
+   - If the task-runner plugin is installed, ask via AskUserQuestion: "Cards are
+     ready. Start execution now?" with options "Run now (Recommended)" and "Stop
+     here — I'll run it later". On "Run now", immediately invoke the
+     task-execution skill from the task-runner plugin on the new `00-INDEX.md`,
+     exactly as `/task-runner:run docs/tasks/YYYY-MM-DD-<slug>/00-INDEX.md`
+     would — same scope lock, same bounded verify-fix loops.
+   - On "Stop here", or when AskUserQuestion is unavailable (headless), print
+     that exact command as the next step.
+   - Without task-runner installed, give the card paths and note each card is
+     designed to run in a fresh session.

@@ -40,6 +40,9 @@ Without arguments it asks for a description first. The pipeline then:
    path and cross-screen contracts when one was built)
 6. Emits single-prompt task cards to `docs/tasks/YYYY-MM-DD-<slug>/` with a
    `00-INDEX.md`, grouped into independently shippable milestones on big runs
+7. When task-runner is installed, asks "Start execution now?" — one approval and
+   it hands the index straight to the task-execution discipline, no manual
+   `/task-runner:run` needed (still printed as the fallback if you decline)
 
 A reminder hook also nudges you toward `/taskmaster` when it detects a short,
 feature-shaped prompt (build/add/implement…) with thin detail.
