@@ -4,6 +4,16 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.21.0] - 2026-07-05
+
+### Added
+
+- **packages** 0.1.0: new plugin — composer/npm dependency hygiene: semver constraint strategy (caret default, exact-pin cases, composer ~ vs npm ~ trap), lockfile discipline (commit always, npm ci/composer install in CI, regenerate on conflict), security-audit triage with fix lanes, and patch/minor/major upgrade lanes. Includes /packages:audit (report-only)
+
+### Changed
+
+- **everything** 0.5.0, **taskmaster-suite** 0.4.0: packages added to bundle dependencies
+
 ## [0.20.0] - 2026-07-05
 
 ### Changed
