@@ -77,6 +77,39 @@ Execute the resulting cards with the task-runner plugin: `/task-runner:run docs/
 
 A reminder hook also nudges you toward `/taskmaster:task` when it detects a short, feature-shaped prompt (build/add/implement…) with thin detail.
 
+### Optimal setup: the taskmaster workflow suite
+
+taskmaster works standalone, but it reaches its full potential with three companion plugins installed alongside it:
+
+```bash
+/plugin install stack-scan@cc-plugins-marketplace
+/plugin install taskmaster@cc-plugins-marketplace
+/plugin install task-runner@cc-plugins-marketplace
+/plugin install code-architecture@cc-plugins-marketplace
+```
+
+How the pieces fit together:
+
+| Plugin | Role in the workflow |
+|--------|----------------------|
+| **stack-scan** | Runs first. Inventories the actual installed versions (lockfiles, runtime pins, docker images) so taskmaster's context-scout cites real constraints instead of guesses |
+| **taskmaster** | Clarifies the task: interrogation → spec → single-prompt task cards |
+| **task-runner** | Executes the cards one at a time with scope lock, bounded verify-fix loops, and a full-suite completion gate |
+| **code-architecture** | Supplies the process gates used throughout: plan-before-code, YAGNI checks, and the work-verification discipline task-runner applies to the whole run |
+
+The full loop for a feature:
+
+```bash
+/stack-scan:report                                    # ground truth: what's actually installed
+/taskmaster:task <one-paragraph task description>     # interrogate → spec → task cards
+/task-runner:run docs/tasks/<date>-<slug>/00-INDEX.md # execute cards, verify each one
+/code-architecture:verify                             # final verification pass
+```
+
+Each plugin degrades gracefully when a companion is missing — taskmaster scans manifests itself without stack-scan, and task-runner accepts any task list, not just taskmaster cards. But installed together, version facts flow into clarifying questions, cards flow into disciplined execution, and verification gates close the loop.
+
+If you work on a specific stack, add its review plugin on top (e.g. `laravel` + `mysql` for a Laravel app, `react` + `ui-ux` for a React frontend) — stack-scan's inventory feeds those review commands too.
+
 ## Contributing
 
 To add a new plugin:
