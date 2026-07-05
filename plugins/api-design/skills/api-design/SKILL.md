@@ -132,9 +132,9 @@ self-contained HTML page and get it approved before any route exists:
   bodies, and the required auth/permissions.
 - Realistic data exposes what schemas hide: a `total` that should be
   `total_cents`, a missing `created_at`, pagination meta nobody specified.
-- Serve on the live preview pattern (port 8123 + auto-reload, see taskmaster's
-  visual-decisions skill) so iteration lands in the open tab; the approved
-  page is the spec input for implementation and the fixture source for tests.
+- Serve on the live preview pattern (port 8123, `api.html`, auto-reload — see
+  taskmaster's visual-decisions skill) so iteration lands in the open tab; the
+  approved page is the spec input for implementation and the fixture source for tests.
 
 ## Anti-patterns
 

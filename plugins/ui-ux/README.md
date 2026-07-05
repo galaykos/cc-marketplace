@@ -36,7 +36,7 @@ What happens:
 1. Reads `components.json`, the current `globals.css`, and the Tailwind major
    version from the lockfile — v4 gets oklch tokens, v3 gets HSL triplets.
 2. Generates up to 3 candidate token sets (light + dark, contrast-checked) and
-   serves them at a stable URL like `http://localhost:8124/theme-preview.html` —
+   serves them at the shared preview URL `http://localhost:8123/theme.html` —
    swatch grid plus real component mockups (buttons, card, alert, badges,
    chart strip), light and dark side by side.
 3. You pick per round (one axis at a time: hue → warmth → radius); the page

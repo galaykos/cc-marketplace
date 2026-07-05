@@ -1,6 +1,9 @@
 {
   "name": "api-design",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources. Includes /api-design:review.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

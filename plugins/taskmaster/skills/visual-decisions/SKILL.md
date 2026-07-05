@@ -117,8 +117,9 @@ Always serve — every decision lands in the same tab. One server, one canonical
 3. Auto-reload needs no setup: the shell embeds a body-compare polling snippet
    (server gone → the page stays usable; any static server works).
 
-Kill the server by PID at pipeline end; stale recovery: `lsof -ti :8123 | xargs kill`.
-Bind `0.0.0.0` only for phone-on-LAN; `file://` is the no-runtime fallback.
+Other flows share this server via per-purpose files: `theme.html` (ui-ux),
+`walkthrough.html`, `diagram.html`, `api.html` — kill it only at pipeline end.
+Stale recovery: `lsof -ti :8123 | xargs kill`. `file://` is the no-runtime fallback.
 
 ## Data-shape decisions
 
@@ -126,9 +127,8 @@ Show 2–3 shapes carrying the SAME real scenario, edge case included — which 
 
 ```jsonc
 // A: flat            // B: nested
-{ "user_id": 7,       { "user": { "id": 7 },
-  "total_cents": 124000, "total": { "cents": 124000,
-  "currency": "USD" }     "currency": "USD" } }
+{ "user_id": 7,          { "user": { "id": 7 },
+  "total_cents": 124000 }  "total": { "cents": 124000 } }
 ```
 
 ## Asking for the pick
