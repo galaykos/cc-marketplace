@@ -1,6 +1,6 @@
 {
   "name": "cc-plugins-marketplace",
-  "owner": { "name": "Ivan-WG", "email": "dev@intername.media" },
+  "owner": { "name": "Ivan-WG", "email": "ivan@galayko.com" },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, architecture, design patterns, API-docs-first workflow.",
     "version": "0.1.0"
