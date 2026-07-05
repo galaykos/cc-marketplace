@@ -49,6 +49,7 @@ For example:
 | **code-architecture** | Engineering process: plan-before-code, YAGNI, task orchestration, work verification, low-cognitive-load, KISS/DRY simplicity + architecture-reviewer agent | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code | `/api-docs-first:check` |
+| **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness | `/meta-api:check` |
 | **[taskmaster](plugins/taskmaster/README.md)** | Interrogation-first clarification: ambiguity ledger, batched questions, mockups on one always-live preview URL for visual decisions, single-prompt task cards + context-scout agent | `/taskmaster:task` (or `/taskmaster`) |
 | **[task-runner](plugins/task-runner/README.md)** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate | `/task-runner:run` |
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
