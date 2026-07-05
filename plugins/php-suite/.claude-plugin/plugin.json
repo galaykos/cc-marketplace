@@ -1,0 +1,13 @@
+{
+  "name": "php-suite",
+  "version": "0.1.0",
+  "description": "Meta-bundle: the PHP category in one install — PHP and Laravel best practices, Livewire, Inertia, and the generalist web worker. Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "dependencies": [
+    "php",
+    "laravel",
+    "livewire",
+    "inertia",
+    "web-dev"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "observability",
+  "version": "0.1.0",
+  "description": "Application observability with judgment: structured JSON logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace-context propagation, symptom-based alerting, honest health checks. Includes /observability:review.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

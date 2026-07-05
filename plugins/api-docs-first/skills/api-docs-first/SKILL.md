@@ -1,6 +1,6 @@
 ---
 name: api-docs-first
-description: Use before writing any code that calls an external API, SDK, or third-party library — verify current official docs first; if docs are not accessible, stop and ask the user for a docs URL or file. Never code an integration from memory alone.
+description: Use before writing any code that calls an external API, SDK, or third-party library — verify current official docs first; if docs are not accessible, stop and ask the user for a docs URL or file. Never code an integration from memory alone. Designing your own REST APIs is the api-design plugin's domain.
 ---
 
 ## Why this exists

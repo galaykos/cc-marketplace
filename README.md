@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins) or `everything` (all 49 plugins).
+2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 51 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -49,6 +49,13 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 # Everything in the marketplace — every plugin, all stacks.
 /plugin install everything@cc-plugins-marketplace
+
+# Or one category at a time:
+/plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, React, Vue, TS, Inertia, Livewire, a11y
+/plugin install php-suite@cc-plugins-marketplace        # PHP, Laravel, Livewire, Inertia
+/plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
+/plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
+/plugin install process-suite@cc-plugins-marketplace    # git workflow, estimation, orchestration, task-runner…
 ```
 
 Dependencies are resolved and installed automatically; add any framework
@@ -87,7 +94,7 @@ afterwards to sweep the orphans.
 | **livewire** | Livewire 3: components, wire:model, performance, Alpine interop | `/livewire:review` |
 | **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
 | **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue/React/Svelte): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 + adapter awareness | `/inertia:review` |
-| **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness | `/meta-api:check` |
+| **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness; general third-party docs → api-docs-first, own APIs → api-design | `/meta-api:check` |
 
 ### Databases & SQL
 
@@ -117,23 +124,26 @@ afterwards to sweep the orphans.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **code-architecture** | Engineering process: plan-before-code (+ current-vs-target diagrams), YAGNI, task orchestration, work verification, low-cognitive-load, KISS/DRY, always-on surgical-coding discipline (Karpathy guidelines) + architecture-reviewer agent | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni` |
+| **code-architecture** | Engineering process: plan-before-code (+ current-vs-target diagrams), YAGNI, SOLID applied with judgment, task orchestration, work verification, low-cognitive-load, KISS/DRY, always-on surgical-coding discipline (Karpathy guidelines) + architecture-reviewer agent; system-level topology → system-design | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni`, `/code-architecture:solid` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
-| **api-docs-first** | API-docs-first: verify docs before writing integration code | `/api-docs-first:check` |
-| **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources | `/api-design:review` |
-| **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill | `/code-review:review` |
+| **api-docs-first** | API-docs-first: verify docs before writing integration code; own APIs → api-design | `/api-docs-first:check` |
+| **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources; third-party docs → api-docs-first | `/api-design:review` |
+| **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill; stack idioms → framework review plugins | `/code-review:review` |
 | **approaches** | Approach deliberation: 2–3 structurally different candidates, trade-off table, pick + kill-trigger + strategy catalog (tracer bullet, spike, strangler fig, inversion…) | `/approaches:compare` |
 | **build-vs-buy** | Gate zero for generic capability: library/stdlib search, health table, take/wrap/write verdict, never-hand-roll list | `/build-vs-buy:check` |
 | **rollout** | Per-feature rollout: flags with removal dates, compat windows, expand-migrate-contract, staged exposure with gate metrics, rollback path before ship | `/rollout:plan` |
 | **resilience** | Failure-mode design at integration points: timeouts, safe retries + idempotency, circuit breaking, degradation, backpressure, delivery semantics | `/resilience:review` |
 | **docs-upkeep** | Doc drift prevention: README/changelog/ADR/API-doc sync in the same change that invalidated them | `/docs-upkeep:check` |
 | **packages** | Composer/npm dependency hygiene — constraints, lockfiles, audit triage, upgrade lanes | `/packages:audit` |
+| **observability** | Structured JSON logs + correlation IDs, log-level semantics, RED/USE metrics without cardinality bombs, trace propagation, symptom-based alerting, honest health checks | `/observability:review` |
+| **error-handling** | Crash on programmer errors, handle operational errors where you can act, typed errors over message matching, cause chains, one report per failure, no swallowed exceptions | `/error-handling:review` |
+| **concurrency** | Check-then-act races, optimistic vs pessimistic locking, idempotency keys, queue-consumer dedup under at-least-once, distributed locks with TTL + fencing, async parallel-write pitfalls | `/concurrency:review` |
 | **orchestration** | Subagent orchestration: delegation contracts, compressed returns, model tiering, refuter/judge panels, loop-until-dry | `/orchestration:review` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
 | **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent | `/security:review` |
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
-| **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files | `/dev-env:init`, `/dev-env:review` |
+| **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files; CI/CD + prod deploys → devops | `/dev-env:init`, `/dev-env:review` |
 | **a11y** | WCAG 2.1 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
 | **claude-authoring** | Authoring guides for skills/agents/hooks/plugins + routine-detector that suggests capturing repetitive work as a project skill | `/claude-authoring:new-skill`, `/claude-authoring:new-agent`, `/claude-authoring:new-hook`, `/claude-authoring:new-plugin` |
 
@@ -142,8 +152,8 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **web-dev** | Generalist web implementation worker: routing, REST/API integration, forms, state, SSR/CSR trade-offs, accessibility baseline + web-developer agent | — |
-| **system-design** | System-level design worker: service boundaries, data modeling, scaling, caching, sync vs async with documented trade-offs + system-architect agent | — |
-| **devops** | DevOps worker: CI/CD pipelines, Docker/K8s, deploy strategies with rollback paths, observability, secrets discipline + devops-engineer agent | — |
+| **system-design** | System-level design worker: service boundaries, data modeling, scaling, caching, sync vs async with documented trade-offs + system-architect agent; code-level structure → code-architecture | — |
+| **devops** | DevOps worker: CI/CD pipelines, Docker/K8s, deploy strategies with rollback paths, observability, secrets discipline + devops-engineer agent; local dev environments → dev-env | — |
 | **performance** | Performance worker: measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing + performance-engineer agent | — |
 
 ### Bundles
@@ -152,6 +162,11 @@ afterwards to sweep the orphans.
 |--------|-------------|----------|
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, UI/UX, worker agents) — no framework/dialect plugins | `/taskmaster-suite:uninstall` |
+| **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, web worker, a11y | `/frontend-suite:uninstall` |
+| **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
+| **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
+| **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency | `/quality-suite:uninstall` |
+| **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, ADRs, retrospectives, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
 
 ## Usage
 

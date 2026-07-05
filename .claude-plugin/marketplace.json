@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.23.0"
+    "version": "0.24.0"
   },
   "plugins": [
     {
@@ -72,7 +72,7 @@
     {
       "name": "code-architecture",
       "source": "./plugins/code-architecture",
-      "description": "Engineering process: plan-before-code with current-vs-target architecture diagrams on a live preview URL for structural changes, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles, and always-on surgical-coding discipline (surface assumptions, every changed line traces to the request, orphan rule, verifiable success criteria — after Karpathy's LLM-coding guidelines). Includes /code-architecture:plan|verify|yagni and an architecture-reviewer agent."
+      "description": "Engineering process: plan-before-code with current-vs-target architecture diagrams on a live preview URL for structural changes, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles, SOLID principles applied with judgment, and always-on surgical-coding discipline (surface assumptions, every changed line traces to the request, orphan rule, verifiable success criteria — after Karpathy's LLM-coding guidelines). Includes /code-architecture:plan|verify|yagni|solid and an architecture-reviewer agent. Owns code-level structure; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin."
     },
     {
       "name": "design-patterns",
@@ -82,12 +82,12 @@
     {
       "name": "api-docs-first",
       "source": "./plugins/api-docs-first",
-      "description": "Verify current API docs before writing integration code; asks for a URL or file when docs are not visible. Includes /api-docs-first:check and a UserPromptSubmit reminder hook."
+      "description": "Verify current API docs before writing integration code; asks for a URL or file when docs are not visible. Includes /api-docs-first:check and a UserPromptSubmit reminder hook. For consuming third-party APIs; defers designing your own REST APIs to api-design and Meta/Facebook platform specifics to meta-api."
     },
     {
       "name": "meta-api",
       "source": "./plugins/meta-api",
-      "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook."
+      "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook. Meta platform only; defers general third-party doc verification to api-docs-first and designing your own APIs to api-design."
     },
     {
       "name": "taskmaster",
@@ -147,12 +147,12 @@
     {
       "name": "api-design",
       "source": "./plugins/api-design",
-      "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, and a live contract-preview artifact with real example payloads for new endpoints. Includes /api-design:review."
+      "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, and a live contract-preview artifact with real example payloads for new endpoints. Includes /api-design:review. For designing your own APIs; defers consuming third-party API docs to api-docs-first and Meta/Facebook platform specifics to meta-api."
     },
     {
       "name": "dev-env",
       "source": "./plugins/dev-env",
-      "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Proposes the topology as a diagram before writing YAML. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan."
+      "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Proposes the topology as a diagram before writing YAML. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan. Owns local development environments; defers CI/CD pipelines and production deploys to the devops plugin."
     },
     {
       "name": "web-dev",
@@ -167,7 +167,7 @@
     {
       "name": "devops",
       "source": "./plugins/devops",
-      "description": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Includes a devops-engineer agent."
+      "description": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Includes a devops-engineer agent. Owns CI/CD and production infrastructure; defers generating local docker-compose dev environments to the dev-env plugin."
     },
     {
       "name": "database",
@@ -248,6 +248,46 @@
       "name": "a11y",
       "source": "./plugins/a11y",
       "description": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit."
+    },
+    {
+      "name": "observability",
+      "source": "./plugins/observability",
+      "description": "Application observability with judgment: structured JSON logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace-context propagation, symptom-based alerting, honest health checks. Includes /observability:review."
+    },
+    {
+      "name": "error-handling",
+      "source": "./plugins/error-handling",
+      "description": "Language-agnostic error-handling discipline: crash on programmer errors, handle operational errors where you can act, typed errors over message-string matching, cause chains preserved across boundaries, one report per failure — no swallowed exceptions, no catch-log-continue towers. Includes /error-handling:review."
+    },
+    {
+      "name": "concurrency",
+      "source": "./plugins/concurrency",
+      "description": "Application-level concurrency safety: check-then-act races, optimistic vs pessimistic locking, idempotency keys for retried operations, queue-consumer dedup under at-least-once delivery, distributed locks with TTL and fencing, async parallel-write pitfalls — safe when two copies run at once. Includes /concurrency:review."
+    },
+    {
+      "name": "frontend-suite",
+      "source": "./plugins/frontend-suite",
+      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, the generalist web worker, and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "php-suite",
+      "source": "./plugins/php-suite",
+      "description": "Meta-bundle: the PHP category in one install — PHP and Laravel best practices, Livewire, Inertia, and the generalist web worker. Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "db-suite",
+      "source": "./plugins/db-suite",
+      "description": "Meta-bundle: the database category in one install — engine-agnostic SQL discipline, MySQL, MariaDB, PostgreSQL best practices, and the database worker agent. Uninstall cleanly with /db-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "quality-suite",
+      "source": "./plugins/quality-suite",
+      "description": "Meta-bundle: the code-quality category in one install — review, architecture principles, design patterns, testing, security, accessibility, debugging, performance, resilience, dependency hygiene, observability, error handling, and concurrency safety. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "process-suite",
+      "source": "./plugins/process-suite",
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, decision records, retrospectives, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, and plugin scouting. Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "everything",

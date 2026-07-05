@@ -4,6 +4,32 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.24.0] - 2026-07-05
+
+### Added
+
+- **observability** 0.1.0: new plugin — application observability with judgment: structured JSON logs with correlation IDs, log-level semantics, log hygiene (no secrets/PII, bounded payloads), RED/USE metrics without cardinality bombs, trace-context propagation, symptom-based alerting, liveness-vs-readiness health checks. Includes /observability:review
+- **error-handling** 0.1.0: new plugin — language-agnostic error-handling discipline: fail fast on programmer errors, handle operational errors where you can act, no swallowed exceptions, wrap-and-rethrow with cause chains, typed errors over message-string matching, one report per failure, operator-grade messages, user-facing vs internal split. Includes /error-handling:review
+- **concurrency** 0.1.0: new plugin — application-level concurrency safety: check-then-act races, optimistic vs pessimistic locking, idempotency keys for retried operations, queue-consumer dedup under at-least-once delivery, distributed locks with TTL + fencing, async parallel-write pitfalls, transaction limits. Includes /concurrency:review
+- **frontend-suite**, **php-suite**, **db-suite**, **quality-suite**, **process-suite** 0.1.0: five category bundles — schema-native one-command install per README category, each with its own /`<bundle>`:uninstall prune command. A plugin may appear in several bundles; bundles never contain other bundles
+- **code-architecture** 0.6.0: new solid-principles skill (SOLID applied with judgment — detection cue, fix, and when-NOT counterweight per principle) and /code-architecture:solid review command
+
+### Changed
+
+- **everything** 0.7.0: design-preview, observability, error-handling, concurrency added to bundle dependencies (now 51 — every non-bundle plugin)
+- Boundary sharpening — overlap-cluster descriptions now name their deferrals in both directions: **dev-env** 0.3.2 ↔ **devops** 0.1.1 (local dev environments vs CI/CD + production), **api-design** 0.3.2 ↔ **api-docs-first** 0.2.1 ↔ **meta-api** 0.2.1 (own APIs vs third-party docs vs Meta platform), **code-architecture** ↔ system-design (code-level structure vs system topology), code-review → framework review plugins (already stated; README row synced)
+
+## [0.23.0] - 2026-07-05
+
+### Added
+
+- **design-preview** 0.1.0: new plugin — real-component visual decisions for Vite + React: candidate variants rendered with the project's own components on its dev server via a scratch HTML entry, strict consent + verified cleanup; falls back to taskmaster's shell mockups. Includes /design-preview:preview
+
+### Changed
+
+- **taskmaster** 0.9.0: theme-aware mockup shell with content primitives, motion decision passes, live-preview infra unified on one server with per-purpose files
+- **api-design** 0.3.1, **code-architecture** 0.5.2, **dev-env** 0.3.1: live-preview integration mentions (contract-preview artifact, current-vs-target diagrams, topology diagram before YAML)
+
 ## [0.22.0] - 2026-07-05
 
 ### Added
