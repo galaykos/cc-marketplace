@@ -22,8 +22,7 @@ Before building the session's FIRST visual artifact, ask via `AskUserQuestion`:
 - **Full mockups (Recommended)** — shell-based HTML at the live preview URL.
 - **Quick ASCII only** — inline wireframes and tables only; skip the HTML mockups,
   click-through, and Preview sections entirely — no server, no files.
-- **No mockups** — dormant for the session; visual choices become plain-text
-  `AskUserQuestion`s.
+- **No mockups** — dormant for the session; visual choices become plain multiple-choice.
 
 The answer holds all session — never re-ask. The gate is lazy: fire only when a
 genuinely visual choice exists and a build is imminent, never at task intake.
@@ -66,10 +65,14 @@ directory) to `docs/mockups/YYYY-MM-DD-<topic>.html` and fill its slots:
 - Place `<span class="vd-callout" data-n="1">1</span>` badges in variant content
   where each numbered bullet applies — hover highlights the pair.
 - Two variants only? Delete the `FRAME-C-START…FRAME-C-END` block.
+- Build variant content from the shell's primitives (`vd-app`, `vd-nav`,
+  `vd-sidenav`, `vd-tabs`, `vd-toolbar`, `vd-table`, `vd-cards`, `vd-split`,
+  `vd-kpi`, `vd-form`, `vd-chip`, `vd-alert`, `vd-dialog`…) — real density, no inline styles.
+- No primitive fits? Add shared classes to the `SLOT: custom-css` block — never
+  style one variant differently from its rivals.
 
-The shell carries the polish — sticky header, equal frames, tradeoff panels,
-compare modes (keys 1/2/3 focus a variant), auto-reload. Do not restyle it.
-Discipline unchanged:
+The shell carries the polish — header, frames, panels, compare modes, auto-reload.
+Do not restyle it. Discipline unchanged:
 
 - At most 3 variants, differing on ONE axis at a time — two axes are two
   decisions, two mockup passes.
@@ -81,23 +84,20 @@ Discipline unchanged:
 ## Theme tokens: mockups in the project's own look
 
 Map context-scout's `Theme tokens` table into the shell's `SLOT: theme-project`
-block as `--vd-primary`, `--vd-surface`, `--vd-text`, `--vd-font`, `--vd-radius`,
-`--vd-space`; un-hide `#vd-theme-toggle` and set `data-vd-theme="project"` on
-`<html>` so the user can flip project ↔ baseline while judging. Rules:
+block as the `--vd-*` variables; un-hide `#vd-theme-toggle` and set
+`data-vd-theme="project"` on `<html>` so the user can flip project ↔ baseline. Rules:
 
 - Missing tokens keep baseline defaults; tokens style chrome and accents only —
   content text stays high-contrast neutrals by shell design.
 - No scout report? One glob for `globals.css`/`components.json`/Tailwind config,
   read only on hit. Miss or confidence `none`: keep baseline and hidden toggle,
-  put "baseline theme" in `SLOT: theme-note` so baseline colors are never
-  mistaken for the app's.
+  put "baseline theme" in `SLOT: theme-note` — never pass baseline off as the app's.
 - Theme never differs between variants — equal application is non-negotiable.
 
 ## Flows and topology as SVG
 
-Embed inline SVG in a variant content slot: boxes, arrows, labels — nothing
-animated. In chat, ASCII arrows (`login -> otp -> dashboard`) often suffice; climb
-to SVG when branches make ASCII unreadable.
+Embed inline SVG in a variant content slot: boxes, arrows, labels — nothing animated.
+ASCII arrows (`login -> otp -> dashboard`) suffice in chat; SVG when branches grow.
 
 ## Click-through flows without a server
 
@@ -110,8 +110,8 @@ screens. A clickable prototype, zero JavaScript, works over `file://`.
 Always serve — every decision lands in the same tab. One server, one canonical file:
 
 1. On the first visual decision, start `python3 -m http.server 8123 -d docs/mockups`
-   in the background, note the PID (`php -S localhost:8123 -t docs/mockups` in PHP
-   projects). Port busy? `lsof -ti :8123` — reuse a prior mockup server, else bump.
+   in the background, note the PID (`php -S` for PHP projects). Port busy?
+   `lsof -ti :8123` — reuse a prior mockup server, else bump.
 2. Write each pass to a dated file (ledger trail), copy to `current.html` — the
    user's tab at `http://localhost:8123/current.html` sees every pass in place.
 3. Auto-reload needs no setup: the shell embeds a body-compare polling snippet
@@ -137,8 +137,8 @@ Show 2–3 shapes carrying the SAME real scenario, edge case included — which 
   include "mix of the above" only when a mix is actually mergeable.
 - On a mix answer ("A's layout with C's nav"): ONE merged variant, one re-ask —
   at most two passes; decision aid, not design sprint.
-- Record the pick as a CLEAR row in the grill skill's ambiguity ledger, with the
-  mockup file path as the source, and quote the choice in the spec.
+- Record the pick as a CLEAR ledger row (source: the mockup file path); quote it
+  in the spec.
 
 ## Anti-patterns
 
