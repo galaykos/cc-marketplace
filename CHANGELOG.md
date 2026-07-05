@@ -4,6 +4,13 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.15.0] - 2026-07-05
+
+### Changed
+
+- **everything** 0.2.0, **taskmaster-suite** 0.2.0: self-cleaning uninstall — each bundle ships /everything:uninstall and /taskmaster-suite:uninstall, which confirm via a selectable choice, then run `claude plugin uninstall <bundle> --prune -y` so the bundle and its auto-installed dependencies go in one step (the /plugin menu's uninstall does not prune); bundle descriptions now say so
+- README: bundle uninstall instructions — --prune flag, standalone `claude plugin prune`, and the /plugin-menu-does-not-prune gotcha
+
 ## [0.14.0] - 2026-07-05
 
 ### Added

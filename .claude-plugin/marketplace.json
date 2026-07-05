@@ -3,7 +3,7 @@
   "owner": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.14.0"
+    "version": "0.15.0"
   },
   "plugins": [
     { "name": "ui-ux", "source": "./plugins/ui-ux", "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and ui-ux-reviewer + ui-ux-engineer agents." },
@@ -49,7 +49,7 @@
     { "name": "docs-upkeep", "source": "./plugins/docs-upkeep", "description": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check." },
     { "name": "estimation", "source": "./plugins/estimation", "description": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking that feeds retrospectives. Includes /estimation:size." },
     { "name": "a11y", "source": "./plugins/a11y", "description": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit." },
-    { "name": "everything", "source": "./plugins/everything", "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite." },
-    { "name": "taskmaster-suite", "source": "./plugins/taskmaster-suite", "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins." }
+    { "name": "everything", "source": "./plugins/everything", "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins." },
+    { "name": "taskmaster-suite", "source": "./plugins/taskmaster-suite", "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins." }
   ]
 }
