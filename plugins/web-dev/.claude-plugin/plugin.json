@@ -1,0 +1,6 @@
+{
+  "name": "web-dev",
+  "version": "0.1.0",
+  "description": "Generalist web development worker agent: routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, baseline accessibility — implements, not just reviews. Stack-agnostic; defers to the per-framework review plugins.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}

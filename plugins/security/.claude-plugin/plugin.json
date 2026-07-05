@@ -1,6 +1,6 @@
 {
   "name": "security",
-  "version": "0.1.0",
-  "description": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review.",
+  "version": "0.2.0",
+  "description": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review and a security-engineer worker agent.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

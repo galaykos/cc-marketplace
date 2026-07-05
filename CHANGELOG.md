@@ -4,6 +4,25 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.14.0] - 2026-07-05
+
+### Added
+
+- **web-dev** 0.1.0: web-developer worker agent — generalist web implementation (routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, accessibility baseline); stack-agnostic, defers to per-framework review plugins
+- **system-design** 0.1.0: system-architect worker agent — service boundaries, data modeling, scaling paths, caching layers, sync vs async decisions with documented trade-offs; complements code-architecture's code-level scope
+- **devops** 0.1.0: devops-engineer worker agent — CI/CD pipeline design, Dockerfile/compose, Kubernetes manifests, deploy strategies with stated rollback paths, observability, secrets discipline
+- **database** 0.1.0: database-engineer worker agent — schema design, additive migrations, indexing strategy, query optimization, connection pooling; defers dialect review to sql/mysql/mariadb/postgresql
+- **performance** 0.1.0: performance-engineer worker agent — measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing; before/after evidence required
+- **claude-authoring** 0.1.0: authoring guides for skills, agents, hooks, and plugins; routine-detector skill that proposes capturing repetitive work as a project skill; /claude-authoring:new-skill, /claude-authoring:new-agent, /claude-authoring:new-hook, /claude-authoring:new-plugin scaffold commands
+- **everything** 0.1.0: meta-bundle — one install auto-installs all 33 plugins via the dependencies field
+- **taskmaster-suite** 0.1.0: meta-bundle — taskmaster workflow plus the 20 stack-agnostic plugins (task pipeline, engineering discipline, UI/UX, worker agents); excludes framework/dialect plugins
+
+### Changed
+
+- **ui-ux** 0.4.0: ui-ux-engineer worker agent — implements layouts, responsive breakpoints, spacing/color systems, element placement alongside the existing ui-ux-reviewer
+- **testing** 0.3.0: test-engineer worker agent — authors and runs unit/integration/e2e tests, coverage-gap analysis, fixtures and boundary-only mocking
+- **security** 0.2.0: security-engineer worker agent — implements defensive fixes: auth flows, OWASP remediations, headers/CSP, dependency-audit remediation
+
 ## [0.13.0] - 2026-07-05
 
 ### Added

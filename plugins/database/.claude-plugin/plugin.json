@@ -1,0 +1,6 @@
+{
+  "name": "database",
+  "version": "0.1.0",
+  "description": "Database worker agent: schema design, additive migrations, indexing strategy, query optimization, connection pooling — implements database changes engine-agnostically and defers dialect review to the sql/mysql/mariadb/postgresql plugins.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}
