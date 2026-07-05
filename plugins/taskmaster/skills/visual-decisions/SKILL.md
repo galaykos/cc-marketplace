@@ -20,21 +20,17 @@ a mockup of a sentence is theater. Those stay as multiple-choice questions.
 Before building the session's FIRST visual artifact, ask via `AskUserQuestion`:
 
 - **Full mockups (Recommended)** — shell-based HTML at the live preview URL.
-- **Quick ASCII only** — inline wireframes and tables only; skip the HTML mockups,
-  click-through, and Preview sections entirely — no server, no files.
+- **Quick ASCII only** — wireframes/tables in chat; no server, no files, skip HTML/Preview.
 - **No mockups** — dormant for the session; visual choices become plain multiple-choice.
 
 The answer holds all session — never re-ask. The gate is lazy: fire only when a
 genuinely visual choice exists and a build is imminent, never at task intake.
 
-## The fidelity ladder
+## The fidelity ladder — climb only as high as the decision requires
 
-Climb only as high as the decision requires, never higher:
-
-1. **ASCII wireframe in chat** — seconds. Right for structure questions: rough
-   placement, column counts, what is above the fold.
-2. **Shell-based HTML mockup** — minutes; served at the session preview URL. Right
-   when spacing, hierarchy, or density drives the choice and boxes cannot carry it.
+1. **ASCII wireframe in chat** — seconds. For structure: placement, column counts.
+2. **Shell-based HTML mockup** — minutes, on the preview URL; when spacing,
+   hierarchy, density, or motion drives the choice and boxes cannot carry it.
 3. **Inline SVG inside a variant slot** — for flows and topology diagrams.
 
 There is no rung 4 — never build a working prototype to decide; mockups die at the
@@ -51,8 +47,7 @@ pick. Validating the ASSEMBLED experience afterwards is the experience-walkthrou
       A: sidebar + grid                 B: topbar + list
 ```
 
-Label variants A/B/C at equal detail, caption each with its one-line tradeoff,
-ask for the pick immediately below the drawing.
+Label A/B/C at equal detail, one-line tradeoff caption each, pick asked right below.
 
 ## HTML mockups from the shell
 
@@ -70,6 +65,10 @@ directory) to `docs/mockups/YYYY-MM-DD-<topic>.html` and fill its slots:
   `vd-kpi`, `vd-form`, `vd-chip`, `vd-alert`, `vd-dialog`…) — real density, no inline styles.
 - No primitive fits? Add shared classes to the `SLOT: custom-css` block — never
   style one variant differently from its rivals.
+- Motion passes: variants identical in structure, differing on ONE motion axis
+  via the shell's `vd-anim` + `vd-m-*` classes (fade/slide/scale/spring,
+  `-fast`/`-slow`, hover/press feedback); a Replay button appears per frame;
+  `prefers-reduced-motion` renders static. Decorative animation elsewhere: banned.
 
 The shell carries the polish — header, frames, panels, compare modes, auto-reload.
 Do not restyle it. Discipline unchanged:

@@ -92,7 +92,7 @@
     {
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
-      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes and tradeoff callouts, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, a context-scout agent, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)."
+      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes, tradeoff callouts, and motion passes, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, a context-scout agent, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)."
     },
     {
       "name": "git-workflow",

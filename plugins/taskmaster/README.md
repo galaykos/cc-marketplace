@@ -116,7 +116,7 @@ for the full workflow suite.
 - **Skills**: brainstorm (fuzzy idea → approved design doc, upstream of
   everything), grill (interrogation + ambiguity ledger + big-task slicing),
   visual-decisions (theme-aware shell mockups — `assets/shell.html` — with
-  compare modes and callouts on a live preview URL), experience-walkthrough
+  compare modes, callouts, and motion passes on a live preview URL), experience-walkthrough
   (interactive clickable demo of the whole assembled flow), task-cards
   (spec → milestone-grouped single-prompt cards)
 - **Agent**: context-scout — read-only codebase reconnaissance before questioning

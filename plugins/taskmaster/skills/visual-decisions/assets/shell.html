@@ -429,6 +429,48 @@ li.vd-hl { outline-offset: 0; }
 }
 .vd-dialog h4 { margin: 0 0 6px; }
 
+/* ---- Motion kit --------------------------------------------------------
+   For motion-decision passes: variants identical in structure, differing on
+   ONE motion axis. Elements with .vd-anim + one vd-m-* class play on load;
+   frames containing them get an auto-injected Replay button. */
+@keyframes vd-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vd-slide-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-slide-down { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-slide-left { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-slide-right { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-scale { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+.vd-anim { animation-duration: .2s; animation-fill-mode: both; animation-timing-function: ease-out; }
+.vd-anim.vd-m-fade { animation-name: vd-fade; }
+.vd-anim.vd-m-slide-up { animation-name: vd-slide-up; }
+.vd-anim.vd-m-slide-down { animation-name: vd-slide-down; }
+.vd-anim.vd-m-slide-left { animation-name: vd-slide-left; }
+.vd-anim.vd-m-slide-right { animation-name: vd-slide-right; }
+.vd-anim.vd-m-scale { animation-name: vd-scale; }
+.vd-anim.vd-m-spring { animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); } /* modifier: overshoot feel for any vd-m-* enter */
+.vd-anim.vd-m-fast { animation-duration: .12s; }
+.vd-anim.vd-m-slow { animation-duration: .35s; }
+.vd-m-hover-lift { transition: transform .15s, box-shadow .15s; }
+.vd-m-hover-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, .14); }
+.vd-m-hover-glow { transition: box-shadow .15s, border-color .15s; }
+.vd-m-hover-glow:hover { border-color: var(--vd-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary) 25%, transparent); }
+.vd-m-press { transition: transform .08s; }
+.vd-m-press:active { transform: scale(.97); }
+.vd-replay {
+  border: 1px solid var(--vd-line);
+  background: var(--vd-paper);
+  color: var(--vd-primary);
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--vd-radius);
+  cursor: pointer;
+  float: right;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vd-anim, .vd-m-hover-lift, .vd-m-hover-glow, .vd-m-press { animation: none; transition: none; }
+}
+
 /* ---- Compare modes ---------------------------------------------------- */
 body[data-vd-mode="stack"] #vd-frames { grid-template-columns: 1fr; max-width: 860px; margin: 0 auto; }
 body[data-vd-mode="flip"] #vd-frames { grid-template-columns: 1fr; max-width: 860px; margin: 0 auto; }
@@ -544,6 +586,24 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
   document.addEventListener('mouseout', e => {
     const el = e.target.closest('.vd-callout, .vd-tradeoffs li');
     if (el) pairOf(el).forEach(m => m.classList.remove('vd-hl'));
+  });
+
+  // Motion replay: frames containing .vd-anim get a Replay button that
+  // re-triggers their animations via class toggle
+  frames.forEach(frame => {
+    if (!frame.querySelector('.vd-anim')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'vd-replay';
+    btn.textContent = 'Replay';
+    btn.addEventListener('click', () => {
+      frame.querySelectorAll('.vd-anim').forEach(el => {
+        el.classList.remove('vd-anim');
+        void el.offsetWidth;
+        el.classList.add('vd-anim');
+      });
+    });
+    frame.querySelector('h2').appendChild(btn);
   });
 
   // Theme toggle (un-hidden by the skill when project tokens are injected)
