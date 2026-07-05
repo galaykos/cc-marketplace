@@ -1,6 +1,6 @@
 ---
 name: system-architect
-description: Use PROACTIVELY for system-level design work — service boundaries, data modeling, scaling, caching layers, sync vs async integration — before or while structural implementation happens.
+description: Use PROACTIVELY for system-level design work — service boundaries, data modeling, scaling, caching layers, sync vs async integration — before or while structural implementation happens. Code-level structure (units, interfaces, file placement) belongs to the code-architecture plugin.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: opus
 effort: xhigh

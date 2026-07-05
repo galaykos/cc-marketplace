@@ -1,6 +1,6 @@
 {
   "name": "meta-api",
-  "version": "0.2.0",
-  "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook.",
+  "version": "0.2.1",
+  "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook. Meta platform only; defers general third-party doc verification to api-docs-first and designing your own APIs to api-design.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

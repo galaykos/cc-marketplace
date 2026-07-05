@@ -1,0 +1,21 @@
+{
+  "name": "process-suite",
+  "version": "0.1.0",
+  "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, decision records, retrospectives, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, and plugin scouting. Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "dependencies": [
+    "git-workflow",
+    "approaches",
+    "decision-records",
+    "retrospective",
+    "hindsight",
+    "build-vs-buy",
+    "rollout",
+    "docs-upkeep",
+    "estimation",
+    "orchestration",
+    "task-runner",
+    "stack-scan",
+    "plugin-scout"
+  ]
+}
