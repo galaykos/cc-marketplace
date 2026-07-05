@@ -28,20 +28,20 @@ For example:
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **ui-ux** | UI/UX best practices: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox | `/ui-ux:review` |
+| **ui-ux** | UI/UX best practices: shadcn/ui, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + ui-ux-reviewer agent | `/ui-ux:review` |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
 | **vue3** | Vue 3: script setup, composables, ref/reactive, Pinia | `/vue3:review` |
 | **laravel** | Laravel: Eloquent N+1, form requests, service layer, queues, policies | `/laravel:review` |
 | **livewire** | Livewire 3: components, wire:model, performance, Alpine interop | `/livewire:review` |
-| **code-architecture** | Engineering process: plan-before-code, YAGNI, task orchestration, work verification | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni` |
+| **code-architecture** | Engineering process: plan-before-code, YAGNI, task orchestration, work verification, low-cognitive-load, KISS/DRY simplicity + architecture-reviewer agent | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code | `/api-docs-first:check` |
 
 ## Usage
 
-Skills auto-trigger based on context (e.g., `/react:review` auto-invokes when reviewing React code). You can also invoke them manually from the command line or via the plugin menu.
+Skills auto-trigger based on context (e.g., `react-best-practices` activates when writing React code). Commands like `/react:review` are invoked manually. You can also invoke them from the command line or via the plugin menu.
 
 ## Contributing
 
