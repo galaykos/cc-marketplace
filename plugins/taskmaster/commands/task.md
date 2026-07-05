@@ -3,7 +3,7 @@ description: Grill a task until zero ambiguity, decide visual choices with mocku
 argument-hint: [task-description]
 ---
 
-Run the full taskman pipeline on $ARGUMENTS (if empty, ask for a one-paragraph task
+Run the full taskmaster pipeline on $ARGUMENTS (if empty, ask for a one-paragraph task
 description first). Do not write implementation code at any step.
 
 1. Invoke the grill skill from this plugin. Dispatch the context-scout agent on the

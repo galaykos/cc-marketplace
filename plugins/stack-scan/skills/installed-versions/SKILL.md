@@ -95,7 +95,7 @@ input for other work — advice pinning, upgrade planning — not an essay.
 ## Feeding the other plugins
 
 This inventory is the version input the review commands and version-aware skills
-(php, mysql, mariadb, postgresql, react, vue) pin against, and what taskman's
+(php, mysql, mariadb, postgresql, react, vue) pin against, and what taskmaster's
 context-scout cites as hard constraints. Run it once per session in an unfamiliar
 repo; cite `installed (source)` values, never bare version numbers from memory.
 

@@ -49,7 +49,7 @@ For example:
 | **code-architecture** | Engineering process: plan-before-code, YAGNI, task orchestration, work verification, low-cognitive-load, KISS/DRY simplicity + architecture-reviewer agent | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code | `/api-docs-first:check` |
-| **taskman** | Interrogation-first clarification: ambiguity ledger, batched questions, mockups on one always-live preview URL for visual decisions, single-prompt task cards + context-scout agent | `/taskman:task` |
+| **taskmaster** | Interrogation-first clarification: ambiguity ledger, batched questions, mockups on one always-live preview URL for visual decisions, single-prompt task cards + context-scout agent | `/taskmaster:task` |
 | **task-runner** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate | `/task-runner:run` |
 | **stack-scan** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
 
@@ -57,16 +57,16 @@ For example:
 
 Skills auto-trigger based on context (e.g., `react-best-practices` activates when writing React code). Commands like `/react:review` are invoked manually. You can also invoke them from the command line or via the plugin menu.
 
-### Running taskman
+### Running taskmaster
 
 Install the plugin, then start it with a one-paragraph task description:
 
 ```bash
-/plugin install taskman@cc-plugins-marketplace
-/taskman:task Add CSV export to the orders page with date-range filtering
+/plugin install taskmaster@cc-plugins-marketplace
+/taskmaster:task Add CSV export to the orders page with date-range filtering
 ```
 
-If you run `/taskman:task` without arguments, it asks for a task description first. The pipeline then:
+If you run `/taskmaster:task` without arguments, it asks for a task description first. The pipeline then:
 
 1. Dispatches the context-scout agent to scan the codebase before asking you anything
 2. Asks batched clarifying questions until every item in the ambiguity ledger is resolved (visual/structural choices are decided via mockups on a live preview URL)
@@ -75,7 +75,7 @@ If you run `/taskman:task` without arguments, it asks for a task description fir
 
 Execute the resulting cards with the task-runner plugin: `/task-runner:run docs/tasks/<date>-<slug>/00-INDEX.md`.
 
-A reminder hook also nudges you toward `/taskman:task` when it detects a short, feature-shaped prompt (build/add/implement…) with thin detail.
+A reminder hook also nudges you toward `/taskmaster:task` when it detects a short, feature-shaped prompt (build/add/implement…) with thin detail.
 
 ## Contributing
 
