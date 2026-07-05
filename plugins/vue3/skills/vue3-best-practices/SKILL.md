@@ -25,10 +25,10 @@ const count = ref(0);
 
 Prefer `ref` for most state, even objects: it's uniform for primitives and objects, survives
 whole-value reassignment (`user.value = newUser`), and survives destructuring since access
-goes through `.value`. `reactive` only wraps objects/arrays, can't be reassigned without
-losing reactivity, and stops tracking once a property is pulled out. `ref` auto-unwraps in
-templates and inside `reactive()`, but not in plain JS — logging a ref logs the object, not
-its value.
+goes through `.value`. `reactive` only wraps objects/arrays, reassigning the variable orphans
+anything still bound to the old proxy, and stops tracking once a property is pulled out. `ref`
+auto-unwraps in templates and inside `reactive()`, but not in plain JS — logging a ref logs
+the object, not its value.
 
 ```js
 let state = reactive({ count: 0 });
