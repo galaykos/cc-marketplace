@@ -47,6 +47,14 @@ Dependencies are resolved and installed automatically; add any framework
 plugin (react, laravel, postgresql, …) individually on top as your stack
 requires.
 
+Uninstall a bundle together with its auto-installed dependencies (plugins you
+installed manually are never touched; requires Claude Code 2.1.121+):
+
+```bash
+claude plugin uninstall taskmaster-suite --prune
+claude plugin prune --dry-run   # or: preview orphaned auto-deps anytime
+```
+
 ## Plugins
 
 | Plugin | Description | Commands |
