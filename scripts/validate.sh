@@ -29,6 +29,16 @@ for dir in plugins/*/; do
     || err "directory plugins/$name not listed in marketplace.json"
 done
 
+# Installer rejects string authors: author (and marketplace owner) must be an
+# object with a string .name
+author_ok='if type == "object" then (.name | type == "string") else false end'
+for pj in plugins/*/.claude-plugin/plugin.json; do
+  jq -e ".author | $author_ok" "$pj" >/dev/null 2>&1 \
+    || err "$pj: author must be an object with a string .name"
+done
+jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
+  || err "$MP: owner must be an object with a string .name"
+
 # Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
 # name: + description:, and a 100-150 line body
 for d in plugins/*/skills/*/; do
