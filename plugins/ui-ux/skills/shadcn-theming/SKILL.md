@@ -95,8 +95,9 @@ as variable names:
 - Emit the full `:root` + `.dark` blocks (v4: oklch + `@theme inline` mapping
   already present; v3: HSL triplets, plus any missing `tailwind.config`
   mappings).
-- Non-token colors found in components during the work are findings for
-  `/ui-ux:review`, not silent fixes.
+- Non-token colors found during the work are not silent fixes — after the
+  theme is applied, offer as a selectable choice: "Run the ui-ux review on
+  the flagged components now (Recommended)" / "Skip".
 - For sharing across projects, the same tokens can ship as a registry-style
   JSON theme object — offer it, don't force it.
 

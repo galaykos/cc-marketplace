@@ -32,3 +32,7 @@ Output rules:
   issues → /security:review; stack-idiom detail → the matching per-framework
   review command when that plugin is installed.
 - Close with a one-line verdict: merge-ready, merge-after-blockers, or rework.
+
+After the verdict, if blocker or major findings exist, ask via
+AskUserQuestion: "Fix the blockers now (Recommended)" / "Skip — review
+only". Headless: verdict only.

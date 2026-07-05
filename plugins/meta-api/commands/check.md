@@ -23,3 +23,8 @@ reported must come from pages fetched now, not memory.
      availability, field requirements
 4. If any needed page is unreachable, name it, say what could not be verified,
    and ask for a docs excerpt — do not substitute memory for the missing page.
+
+5. When versions, permissions, and constraints all resolved, ask via
+   AskUserQuestion: "Proceed with the task using these doc-backed versions
+   and permissions now (Recommended)" / "Stop here — report only".
+   Headless: report only.

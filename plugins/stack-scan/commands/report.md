@@ -15,3 +15,7 @@ repository root if no argument). Steps:
    explicitly that none were found.
 4. End with the one-line stack summary other commands can reuse (e.g. "PHP 8.3 /
    Laravel 11 / MariaDB 11.4 / Node 22 + pnpm / Vue 3.5").
+
+5. If red flags were found, ask via AskUserQuestion: "Fix the addressable
+   flags now (Recommended)" (e.g. remove the duplicate lockfile, align the
+   runtime pin) / "Skip — inventory only". Headless: inventory only.

@@ -37,7 +37,9 @@ a code change can silently invalidate:
   renamed config keys, and the sample config files that mirror them.
 - **Architecture docs and ADR links** — does the change contradict a
   standing decision record? A superseded ADR needs an explicit successor:
-  run /decision-records:new to record the new decision and link the old
+  offer to record the successor as a selectable choice ("Record the
+  superseding ADR now (Recommended)" / "Skip" — proceeds as
+  /decision-records:new would) and link the old
   one as superseded, rather than leaving both claiming to be current.
 - **Inline examples and snippets** — code blocks in any doc that claim to
   be runnable. If you cannot paste them into a shell or REPL and have
@@ -127,7 +129,8 @@ what deserves to be documented in the first place.
 
 When the same kind of drift keeps recurring (every release the changelog
 is reconstructed, every rename misses the README), that is a process
-finding — feed it into /retrospective:run so the team fixes the workflow,
+finding — offer a retro ("Run the retrospective now (Recommended)" / "Skip",
+proceeding as /retrospective:run would) so the team fixes the workflow,
 not just the instance.
 
 ## Anti-patterns

@@ -22,7 +22,9 @@ Classes align with the task-runner plugin's parallel-planning weights
   well-cut task card.
 - **L** (weight 8, multi-hour) — crosses modules or layers, needs its own
   verification plan. Usually a sign the task should be split into cards
-  first: run it through /taskmaster:task instead of estimating it whole.
+  first: offer the split as a selectable choice ("Split into cards now
+  (Recommended)" / "Estimate whole anyway", proceeding as /taskmaster:task
+  would) instead of estimating it whole.
 - **XL** (unsizeable) — contains at least one unknown you cannot bound.
   Not a task but a project, or a spike trigger. Never assign XL a weight;
   assign it a next action (split or spike).
@@ -84,7 +86,8 @@ The pattern of misses is the calibration data — one miss is noise, the
 same miss twice is a finding.
 
 - A miss of two or more classes (S that became L, M that became XL) is a
-  retro finding: bring it to /retrospective:run so the cause gets banked
+  retro finding: offer a retro ("Run the retrospective now (Recommended)" / "Skip",
+  proceeding as /retrospective:run would) so the cause gets banked
   instead of re-discovered.
 - Never revise the original estimate after the fact; the gap IS the
   signal. A corrected history calibrates nothing.

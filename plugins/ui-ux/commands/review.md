@@ -19,3 +19,6 @@ ui-ux plugin skills. Steps:
    have no npm version to pin — their current docs page is the only source of truth.
 5. Report findings as `path:line — problem — fix`, ordered by severity.
 6. Do not report formatting nits unless they change rendering behavior.
+7. When findings exist, offer the fix as a selectable choice (AskUserQuestion):
+   "Apply the fixes now (Recommended)" / "Skip — report only". Bare
+   instructions only when headless.

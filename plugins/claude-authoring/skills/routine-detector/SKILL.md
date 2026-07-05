@@ -46,7 +46,9 @@ Sequence is fixed:
    - **Artifact** — which kind would capture it (see selection below).
    - **Payoff** — one line: what the next repetition costs with vs without.
    - **Scaffold path** — the command or file path that creates it.
-3. Stop. Do not scaffold. Wait for an explicit yes.
+3. Offer it as a selectable choice (AskUserQuestion): "Scaffold it now
+   (Recommended)" / "Skip — leave it manual". Never scaffold without the
+   yes; bare scaffold command only when headless.
 
 If the answer is yes, scaffold with /claude-authoring:new-skill or
 /claude-authoring:new-agent and fill the body from what this session
@@ -104,7 +106,9 @@ dry-informative tone. Deliver the summary first, exactly as asked. Then:
 > order, and tone.
 > **Payoff:** next release, "write the release notes" produces this format
 > in one pass instead of a fresh briefing.
-> **Scaffold:** /claude-authoring:new-skill release-notes — say the word.
+> **Scaffold:** offered as a selectable choice — "Scaffold the release-notes
+    skill now (Recommended)" / "Skip" (proceeds as /claude-authoring:new-skill
+    would).
 
 If the user says yes, scaffold it and fill the body from this session's
 example. If no, drop it for good.

@@ -11,3 +11,7 @@ name). Report:
 3. The specific symbols/endpoints verified against those docs.
 4. If no docs are accessible: a direct request to the user for a docs URL or file,
    and what you will NOT do until then (no integration code from memory).
+
+5. When docs were located and symbols verified, ask via AskUserQuestion:
+   "Proceed with the integration against these verified docs now
+   (Recommended)" / "Stop here — check only". Headless: report only.

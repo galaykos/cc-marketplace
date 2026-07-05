@@ -14,4 +14,6 @@ description: "Scan the current change (or repo) for documentation drift — READ
 
    Group lines by document. If no drift is found, say so explicitly and list which surfaces were checked.
 
-4. **Offer to apply the fixes.** Ask the user whether to apply all listed fixes, a subset, or none. On approval, edit the documents so the doc updates ride in the same change that caused them — do not defer to a follow-up.
+4. **Offer to apply the fixes.** Offer as a selectable choice (AskUserQuestion): "Apply all fixes now
+   (Recommended)" / "Let me pick a subset" / "Skip". Plain fix list only
+   when headless. On approval, edit the documents so the doc updates ride in the same change that caused them — do not defer to a follow-up.

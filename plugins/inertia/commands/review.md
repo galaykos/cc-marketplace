@@ -14,3 +14,7 @@ React codebase or vice versa. When uncertain about an API or behavior, verify
 against the official docs for the pinned version — https://inertiajs.com — instead of answering
 from memory. Report findings as `path:line — problem — fix`, ordered by severity. Skip
 formatting nits unless they change behavior.
+
+When findings exist, offer the next step as a selectable choice (AskUserQuestion):
+"Apply the fixes now (Recommended)" / "Skip — report only". Print bare
+instructions only in headless runs.

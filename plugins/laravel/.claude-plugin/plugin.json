@@ -1,6 +1,6 @@
 {
   "name": "laravel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }
