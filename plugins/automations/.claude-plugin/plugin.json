@@ -1,0 +1,14 @@
+{
+  "name": "automations",
+  "version": "0.1.0",
+  "description": "Meta-bundle: the browser-automation category in one install — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox navigators plus the automation-builder planner and browser-automation-engineer agent. Uninstall cleanly with /automations:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "dependencies": [
+    "playwright",
+    "puppeteer",
+    "adspower",
+    "kameleo",
+    "camoufox",
+    "automation-builder"
+  ]
+}
