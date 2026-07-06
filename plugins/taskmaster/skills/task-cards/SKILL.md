@@ -63,6 +63,8 @@ e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
   each "know" half an interface will disagree.
 - Cards that touch persistence must reference the spec's approved `## Data Model`
   section (the `erd` skill's output); deviation requires model re-approval, not drift.
+- Cards implement the spec's chosen approach and respect its kill-trigger. A card
+  that silently picks a different shape reopens a decision the persona round settled.
 - Name the conventions to follow ("service classes live in `app/Services`, one
   public method") — the fresh session has not read the scout report.
 - Skills to apply: stamp the stack/framework skills relevant to each card from

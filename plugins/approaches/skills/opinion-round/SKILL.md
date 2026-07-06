@@ -1,12 +1,12 @@
 ---
 name: opinion-round
-description: Use when a prompt asks to refactor, rewrite, restructure, migrate, or redesign existing code — a fixed trio of opinion personas (Standards Purist, Quality-over-Speed, Skeptic-Investigator) argue the approach as three parallel BLIND subagents, each seeing only its own brief, and the main thread synthesizes the takes into one pick with a kill-trigger in a single round, proceeding automatically unless the takes split on the structural shape of the plan.
+description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — a fixed quartet of opinion personas (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue the approach as four parallel BLIND subagents, each seeing only its own brief, and the main thread synthesizes the takes into one pick with a kill-trigger in a single round, proceeding automatically unless the takes split on the structural shape of the plan.
 ---
 
 The failure mode this kills: correlated opinions on rework-shaped tasks.
-One model role-playing three hats produces three variations of a single
+One model role-playing the personas produces variations of a single
 view — every "persona" anchors on the same draft plan. Independence is
-the point: three BLIND subagents, each given only its own brief, argue
+the point: four BLIND subagents, each given only its own brief, argue
 once, cheaply, before the first file changes.
 
 ## The gate
@@ -35,15 +35,15 @@ The manual command does not bypass this guard.
 
 The taskmaster pipeline is active on the same task — a grill ledger is
 open, a brainstorm dialogue is running, or task cards are executing →
-the opinion round steps back entirely. Taskmaster owns approach
-decisions inside its pipeline; a persona round there is a second
-deliberation body ruling on a settled question.
+the auto-nudged round steps back. Taskmaster now runs its own blind
+persona round (these four briefs) at its design and spec step; a second
+round here would only re-litigate that settled one.
 
 ## The personas — fixed, non-configurable
 
-Three voices, always the same three. No adding, swapping, or renaming
-them per task: the value is that each round covers the same three blind
-spots.
+Four voices, always the same four — two push for more work (Purist,
+Quality), two restrain it (Pragmatist, Skeptic). No adding, swapping, or
+renaming per task: each round covers the same four blind spots.
 
 - **Standards Purist** — argues the idiomatic, ecosystem-convention
   approach: framework defaults, community patterns, boring technology.
@@ -52,6 +52,11 @@ spots.
 - **Quality-over-Speed** — argues the durable approach: tests first, the
   deeper refactor over the patch, paying down adjacent debt while the
   files are open. Accepts slower delivery as the explicit price.
+- **Pragmatist-Minimalist** — argues the smallest reversible change that
+  solves the stated problem: fewest files, least new abstraction, ship
+  and iterate. Treats every added layer or "while we're here" as cost
+  that must earn its place. The counterweight to Quality-over-Speed —
+  banks speed-to-signal and easy rollback, not durability.
 - **Skeptic-Investigator** — questions the premise itself: is the
   rewrite needed, is the old code actually broken, what claims are
   unverified? Lists the unknowns and proposes a spike or investigation
@@ -59,9 +64,11 @@ spots.
 
 ## Blind-dispatch contract
 
-Spawn the `opinion-lens` agent three times in parallel — one persona
-brief per dispatch, all three in a single message so they run
-concurrently. Each dispatch carries EXACTLY three things:
+Spawn the `opinion-lens` agent four times in parallel — one persona
+brief per dispatch, all four in a single message so they run
+concurrently, across different models where the host allows so no
+single-model prior survives the blind. Each dispatch carries EXACTLY
+three things:
 
 1. The task description, verbatim from the user.
 2. The repo path.
@@ -104,7 +111,7 @@ the pick mid-build, that is the kill-trigger firing — handle it as
 approach-deliberation prescribes, not by re-running the round.
 
 If subagents are unavailable, skip the round entirely. There is no
-inline fallback: role-playing the trio in the main thread reintroduces
+inline fallback: role-playing the quartet in the main thread reintroduces
 exactly the correlated-opinion failure this skill exists to kill.
 
 ## The proceed rule
@@ -140,8 +147,8 @@ proceeding; the interrupt exists for forked roads, not for taste.
   resolved.
 - **Re-running the round**: a second deliberation without a fired
   kill-trigger is anchoring in committee form.
-- **Inline role-play fallback**: playing the three personas in the main
+- **Inline role-play fallback**: playing the four personas in the main
   thread when dispatch is unavailable or inconvenient. One model in
-  three hats is one opinion; skip the round instead.
+  four hats is one opinion; skip the round instead.
 - **Leaking takes**: including one persona's take — or any main-thread
   leaning — in another persona's dispatch. The blind is the product.

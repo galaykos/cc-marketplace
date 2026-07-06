@@ -100,11 +100,21 @@ flat ledger — it explodes past readability by round 2:
 Stop when every row is CLEAR, or ASSUMED with the user having seen and accepted the
 assumption list, or the user says "enough". Then:
 
-1. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
-   rows with sources), accepted assumptions, non-goals, success criteria.
-2. If the decision-records plugin is installed, offer ADR capture for the spec's
+1. Decide the implementation approach when the settled requirements admit two or
+   more structurally different implementations (new module vs extend, sync vs
+   async, rewrite vs strangler) and the task is not mechanical. approaches plugin
+   installed → run its opinion-round: dispatch the four blind `opinion-lens`
+   personas (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist,
+   Skeptic-Investigator) on the requirements per that skill's blind-dispatch
+   contract, then synthesize one pick + kill-trigger. Absent → propose 2–3
+   approaches inline and pick. Skip for single-approach or mechanical tasks, or
+   when an upstream brainstorm design already recorded the approach.
+2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
+   rows with sources), accepted assumptions, the chosen approach with alternatives
+   rejected and its kill-trigger, non-goals, success criteria.
+3. If the decision-records plugin is installed, offer ADR capture for the spec's
    significant decisions; skip silently when absent.
-3. Invoke the `task-cards` skill from this plugin to split the spec into
+4. Invoke the `task-cards` skill from this plugin to split the spec into
    single-prompt task cards.
 
 Do not skip the written spec even when the ledger is short — the spec is what makes
