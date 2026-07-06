@@ -23,6 +23,9 @@ Skip it — the first reasonable approach is correct — when:
 - Bugfix with a located cause, mechanical rename/sweep, config tweak.
 - One obvious continuation of an existing pattern (third handler in a file
   of handlers).
+- The opinion-round skill already ran for this task: approach-deliberation is
+  the user-initiated structural deliberation, opinion-round the auto-nudged
+  blind persona round — each skips when the other already ran for the task.
 - A prior deliberation or spec already made this call; do not re-litigate.
 
 ## The protocol
