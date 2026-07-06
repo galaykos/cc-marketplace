@@ -100,7 +100,9 @@ assumption list, or the user says "enough". Then:
 
 1. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
    rows with sources), accepted assumptions, non-goals, success criteria.
-2. Invoke the `task-cards` skill from this plugin to split the spec into
+2. If the decision-records plugin is installed, offer ADR capture for the spec's
+   significant decisions; skip silently when absent.
+3. Invoke the `task-cards` skill from this plugin to split the spec into
    single-prompt task cards.
 
 Do not skip the written spec even when the ledger is short — the spec is what makes

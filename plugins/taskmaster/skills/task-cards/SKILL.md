@@ -36,6 +36,9 @@ inline the discussion's conclusion instead.
 **Out of scope:** what an eager implementer might also touch, but must not.
 
 **Depends on:** 02, 03 — or "none".
+
+**Skills to apply:** <stack skills for this card from the stack-scan inventory,
+e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
 ```
 
 ## Sizing rules
@@ -47,6 +50,9 @@ inline the discussion's conclusion instead.
 - Every card ends verifiable. "Part 1: types only" is valid ONLY if something
   checks it (compiles, tests pass); a split whose first half cannot be verified
   is one card pretending to be two.
+- If the estimation plugin is installed, size each card per its anchored
+  S/M/L/XL scale; anything L+ is split or spiked before it enters the index.
+  Skip when not installed.
 
 ## Context rules
 
@@ -57,6 +63,10 @@ inline the discussion's conclusion instead.
   each "know" half an interface will disagree.
 - Name the conventions to follow ("service classes live in `app/Services`, one
   public method") — the fresh session has not read the scout report.
+- Skills to apply: stamp the stack/framework skills relevant to each card from
+  the stack-scan inventory taken at pipeline step 1 (fall back to reading
+  manifests when stack-scan is absent). The executing session loads the named
+  skills deterministically instead of relying on description matching.
 
 ## Acceptance criteria rules
 

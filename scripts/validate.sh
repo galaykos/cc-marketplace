@@ -52,6 +52,7 @@ for d in plugins/*/skills/*/; do
   sname=$(echo "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1)
   [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
+  echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during)"
   lines=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
   { [ "$lines" -ge 100 ] && [ "$lines" -le 150 ]; } || err "$f: body is $lines lines, outside 100-150 budget"
 done
@@ -68,6 +69,7 @@ for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
       echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:"
       echo "$fm" | grep -q '^model:' || err "$f: frontmatter missing model: (agents default to sonnet)"
       echo "$fm" | grep -q '^effort:' || err "$f: frontmatter missing effort: (agents default to xhigh)"
+      echo "$fm" | grep -q '^description:.*\(PROACTIVELY\|Spawned by\)' || err "$f: agent description needs PROACTIVELY or a sub-dispatch marker (Spawned by)"
       ;;
   esac
 done

@@ -33,12 +33,19 @@ pre-seeds the ledger.
 5. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions with
    sources, accepted assumptions, non-goals, success criteria — plus the
    walkthrough file path and cross-screen contracts when step 4 ran.
-6. Invoke the task-cards skill to split the spec into single-prompt task cards
+6. If the code-architecture plugin is installed (the plan-before-code skill is
+   available), run a plan check on the spec before splitting cards — file-level
+   change plan, unit ownership, interfaces — and fold any corrections back into
+   the spec. If the decision-records plugin is installed, offer capturing the
+   spec's significant decisions as ADRs (`/decision-records:new`). Skip either
+   when its plugin is not installed.
+7. Invoke the task-cards skill to split the spec into single-prompt task cards
    under `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
-   milestones when the run is large.
-7. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
+   milestones when the run is large — cards sized per the estimation plugin's
+   skill when it is installed (S/M/L/XL; anything L+ is split).
+8. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
    the card list in execution order with parallel groups (and milestones) marked.
-8. Handoff — do not just print a command and stop:
+9. Handoff — do not just print a command and stop:
    - If the task-runner plugin is installed, ask via AskUserQuestion: "Cards are
      ready. Start execution now?" with options "Run now (Recommended)" and "Stop
      here — I'll run it later". On "Run now", immediately invoke the
