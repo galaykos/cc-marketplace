@@ -4,6 +4,21 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.29.0] - 2026-07-06
+
+### Added
+
+- **javascript** 0.1.0: new plugin — vanilla (non-TypeScript) JavaScript best practices: version-aware ES feature floors (ES2020–ES2024) resolved from engines/browserslist/lockfile, strict equality and coercion traps, ESM vs CommonJS interop, async correctness and the event loop, this-binding and closures/leaks, immutability, error handling, boundary validation, number precision/BigInt, prototype-pollution safety. Includes /javascript:review
+- **vite** 0.1.0: new plugin — Vite best practices: VITE_-prefix env security (secrets never shipped to client bundles), dep pre-bundling, code splitting and manualChunks, base for sub-path deploys, dev server.proxy, define stringify pitfalls, import.meta.glob, asset handling, build.target alignment, SSR, library mode, plugin order, HMR guards; version-pinned to the locked vite version and vite.config. Includes /vite:review
+- **README.md** for 11 stack plugins that lacked one (php, laravel, react, react-native, vue2, vue3, livewire, sql, mysql, mariadb, postgresql) — install / commands / example / pairs-well-with, mirroring the typescript/inertia template
+
+### Changed
+
+- **laravel** 0.2.0: skill gains a version-awareness pair of sections (know-the-version + a doc-verified per-version leverage map for Laravel 10/11/12) and a mass-assignment security section ($fillable vs $guarded, the $request->all() OWASP trap, casts()/API-Resource notes); two new Common-mistakes bullets; plugin.json and marketplace descriptions synced
+- **frontend-suite** 0.2.0: javascript and vite added to bundle dependencies
+- **php-suite** 0.2.0: vite added to bundle dependencies (Laravel's default asset bundler)
+- **everything** 0.9.0: javascript and vite added to bundle dependencies
+
 ## [0.28.0] - 2026-07-06
 
 ### Added

@@ -92,7 +92,9 @@ afterwards to sweep the orphans.
 | **php** | PHP: strict types, === discipline, PSR conventions, version-aware 8.1–8.5 leverage map, exceptions, boundary security | `/php:review` |
 | **laravel** | Laravel: Eloquent N+1, form requests, service layer, queues, policies | `/laravel:review` |
 | **livewire** | Livewire 3: components, wire:model, performance, Alpine interop | `/livewire:review` |
+| **[javascript](plugins/javascript/README.md)** | Vanilla JS: version-aware ES feature floors, === and coercion traps, ESM vs CommonJS interop, async correctness + event loop, this-binding & closures/leaks, boundary validation, BigInt, prototype-pollution safety | `/javascript:review` |
 | **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
+| **[vite](plugins/vite/README.md)** | Vite: VITE_ env-leak security, dep pre-bundling, code splitting/manualChunks, base for sub-path deploys, dev server.proxy, define pitfalls, SSR, library mode, plugin order, HMR guards | `/vite:review` |
 | **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue/React/Svelte): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 + adapter awareness | `/inertia:review` |
 | **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness; general third-party docs → api-docs-first, own APIs → api-design | `/meta-api:check` |
 

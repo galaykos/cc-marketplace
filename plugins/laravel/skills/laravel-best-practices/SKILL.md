@@ -3,6 +3,33 @@ name: laravel-best-practices
 description: Use when writing or reviewing Laravel code — Eloquent N+1 prevention and eager loading, form request validation, thin controllers with service/action classes, queued jobs, authorization policies, migrations.
 ---
 
+## Know the version before advising
+
+Version facts come from the manifests, never from assumption:
+
+- `composer.json` `require.laravel/framework` is the advice floor — recommend nothing above
+  it. `composer.lock` says what is ACTUALLY installed (`^11.0` says nothing about whether
+  11.20's fix is present — the lock does).
+- The floor implies a PHP floor: Laravel 10 needs PHP 8.1+, 11 and 12 need 8.2+. Cross-check
+  `require.php`; a mixed repo's `package.json` governs the JS side only — never infer
+  framework capabilities from it.
+
+## Per-version leverage (advise at or below the floor)
+
+Recommend the newer idiom only when the floor is at or above the release that shipped it.
+Verify anything version-sensitive against https://laravel.com/docs before pinning it:
+
+- **Laravel 11** — the slimmed skeleton: `bootstrap/app.php` is the single config surface for
+  routing, middleware, and exceptions, so there is no `Http/Kernel.php` or console kernel and
+  the old middleware files are gone (customize via `->withMiddleware`). Model casts as a
+  `casts()` METHOD, not the `$casts` property, so casts take arguments. Per-second rate
+  limiting (`Limit::perSecond(...)`). Health-check routing (`health: '/up'`). The `once()`
+  helper memoizes a callback for the current request.
+- **Laravel 12** — a maintenance release: upstream dependency updates and new React/Vue/
+  Svelte/Livewire starter kits, with deliberately minimal breaking changes (most apps upgrade
+  without code changes). Do not attribute new idioms to 12 by default — if a capability's
+  introducing version is uncertain, describe it without pinning a version.
+
 ## N+1 prevention — eager load, don't lazy load in loops
 
 Accessing a relationship inside a loop fires one query per iteration. Eager load with
@@ -77,6 +104,28 @@ class UpdatePostRequest extends FormRequest {
 }
 ```
 
+## Mass assignment — guard model input
+
+Every model needs an explicit allowlist. Prefer `$fillable` (allowlist) over `$guarded`
+(denylist) — a denylist silently opens every column you forget to add. Passing raw input into
+an unguarded model is the OWASP mass-assignment bug: `Model::create($request->all())` lets an
+attacker set columns you never intended (`role`, `is_admin`, `user_id`). Feed models validated
+data from the FormRequest, backed by a real `$fillable`.
+
+```php
+// Bad: raw input into an unguarded model — attacker POSTs "is_admin": true
+class User extends Model { protected $guarded = []; }
+User::create($request->all());
+// Good: validated data + explicit allowlist, dangerous columns not fillable
+class User extends Model { protected $fillable = ['name', 'email']; }
+User::create($request->validated()); // FormRequest already dropped unknown keys
+```
+
+Type attributes with the `casts()` method (Laravel 11+) or the `$casts` property so
+`is_admin` is a real `bool`, not a string that compares wrong. Shape API output through an
+API Resource (`JsonResource`) rather than returning the model directly — returning `$model`
+leaks every attribute (password hashes, internal flags) and couples clients to column names.
+
 ## Queue slow work — small, idempotent payloads
 
 Dispatch anything slow (email, exports, external API calls) to a queued job instead of blocking
@@ -140,6 +189,10 @@ public function down(): void { Schema::table('users', fn ($t) => $t->dropColumn(
 - Validating in the controller instead of a `FormRequest`, scattering rules across actions.
 - Fat controllers reaching into multiple models/services directly instead of delegating.
 - Relying on `@can` in Blade as the only authorization check, leaving the route open.
+- Mass assignment via an unguarded model fed `$request->all()`; use a real `$fillable` plus
+  `$request->validated()`.
+- Returning a full Eloquent model to the client instead of an API Resource, leaking internal
+  attributes to consumers.
 - Passing whole Eloquent models into queued job constructors instead of IDs.
 - Writing job `handle()` methods that aren't safe to run twice.
 - Calling `env()` outside `config/*.php`, which breaks silently after `config:cache`.

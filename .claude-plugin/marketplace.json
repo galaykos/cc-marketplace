@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.28.0"
+    "version": "0.29.0"
   },
   "plugins": [
     {
@@ -42,7 +42,7 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies. Includes /laravel:review."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12), and mass-assignment security. Includes /laravel:review."
     },
     {
       "name": "livewire",
@@ -135,9 +135,19 @@
       "description": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review and a security-engineer worker agent."
     },
     {
+      "name": "javascript",
+      "source": "./plugins/javascript",
+      "description": "Vanilla JavaScript best practices: version-aware ES feature floors from engines/browserslist/lockfile, strict equality and coercion traps, ESM vs CommonJS interop, async correctness and the event loop, this-binding and closures, immutability, error handling, boundary validation, number precision and BigInt, security at boundaries. Includes /javascript:review."
+    },
+    {
       "name": "typescript",
       "source": "./plugins/typescript",
       "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review."
+    },
+    {
+      "name": "vite",
+      "source": "./plugins/vite",
+      "description": "Vite best practices: VITE_-prefix env security, dep pre-bundling, code splitting and manualChunks, base for sub-path deploys, dev server.proxy, define stringify pitfalls, import.meta.glob, asset handling, build.target alignment, SSR, library mode, plugin order, HMR guards, version-aware against the locked vite version and vite.config. Includes /vite:review."
     },
     {
       "name": "inertia",

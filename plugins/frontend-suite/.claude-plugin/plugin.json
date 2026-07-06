@@ -1,7 +1,7 @@
 {
   "name": "frontend-suite",
-  "version": "0.1.0",
-  "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, the generalist web worker, and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "version": "0.2.0",
+  "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 2/3, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "dependencies": [
     "ui-ux",
@@ -9,7 +9,9 @@
     "react-native",
     "vue2",
     "vue3",
+    "javascript",
     "typescript",
+    "vite",
     "inertia",
     "livewire",
     "web-dev",
