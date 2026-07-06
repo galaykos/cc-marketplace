@@ -61,6 +61,8 @@ e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
   session will trust the card verbatim.
 - Spell out data shapes and signatures crossing card boundaries; two cards that
   each "know" half an interface will disagree.
+- Cards that touch persistence must reference the spec's approved `## Data Model`
+  section (the `erd` skill's output); deviation requires model re-approval, not drift.
 - Name the conventions to follow ("service classes live in `app/Services`, one
   public method") — the fresh session has not read the scout report.
 - Skills to apply: stamp the stack/framework skills relevant to each card from

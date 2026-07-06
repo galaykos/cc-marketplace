@@ -71,6 +71,8 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
   section as the prior. The skill asks its own fidelity consent on first use —
   never build a mockup before that gate; on a "no mockups" answer, present the
   choice as plain multiple-choice instead.
+- Data models — switch to the `erd` skill when the ledger touches persistent data (two-plus
+  entities, any relation change); the approved model lands in the spec's Data Model section.
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
   default and move on — but never silently. The user approves the assumption list
   at the end even if they delegated every call.

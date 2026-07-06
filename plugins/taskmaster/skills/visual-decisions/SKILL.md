@@ -34,8 +34,8 @@ genuinely visual choice exists and a build is imminent, never at task intake.
 3. **Inline SVG inside a variant slot** — for flows and topology diagrams.
 
 Real-component fidelity beyond the shell: the design-preview plugin, when installed.
-There is no prototype rung — mockups die at the pick; validating the ASSEMBLED
-experience afterwards is the experience-walkthrough skill.
+Entity/relation modeling: the `erd` skill. No prototype rung — mockups die at the
+pick; validating the ASSEMBLED experience afterwards is the experience-walkthrough skill.
 
 ## ASCII wireframes
 

@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.27.0] - 2026-07-06
+
+### Added
+
+- **taskmaster** 0.11.0: new `erd` skill — spec-time data-model diagrams (mermaid erDiagram in the spec's Data Model section, inline-SVG approval preview via the shared diagram.html slot); pointer hooks in grill, visual-decisions, and task-cards; Data Model section is a binding contract for implementation cards. README row synced
+
 ## [0.26.0] - 2026-07-06
 
 ### Changed

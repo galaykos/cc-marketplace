@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/).",
   "author": {
     "name": "Ivan-WG",
