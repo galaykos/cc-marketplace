@@ -48,9 +48,14 @@ Without arguments it asks for a description first. The pipeline then:
    script; gaps found by clicking become ledger rows before the spec freezes
 5. Writes a spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
    path and cross-screen contracts when one was built)
-6. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
-   `00-INDEX.md`, grouped into independently shippable milestones on big runs
-7. When task-runner is installed, asks "Start execution now?" — one approval and
+6. When code-architecture is installed, runs a plan check on the spec before
+   card-splitting; when decision-records is installed, offers ADR capture of the
+   spec's significant decisions
+7. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
+   `00-INDEX.md` — each card stamped with the stack skills it needs (from the
+   stack-scan inventory), sized via the estimation plugin when installed, and
+   grouped into independently shippable milestones on big runs
+8. When task-runner is installed, asks "Start execution now?" — one approval and
    it hands the index straight to the task-execution discipline, no manual
    `/task-runner:run` needed (still printed as the fallback if you decline)
 

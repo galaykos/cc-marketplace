@@ -38,6 +38,28 @@ Never make the loop pass by weakening the check: no skipping tests, no editing
 acceptance criteria mid-task, no swapping the verify command for one that happens
 to pass, no `|| true`. The check is the task; gaming it is failing it silently.
 
+## Reviewer pass (per task)
+
+After the task's verify command passes — and before its status flips to done —
+run a conditional reviewer pass on the task's diff:
+
+- **code-reviewer** (code-review plugin): every task's diff, no condition.
+- **ui-ux-reviewer** (ui-ux plugin): only when the diff touches UI files —
+  components, styles, templates.
+- **architecture-reviewer** (code-architecture plugin): only on structural
+  tasks — new modules, boundary changes, or API changes.
+- **security review** (security plugin): only on tasks touching auth, input
+  validation, or dependencies.
+
+Each reviewer fires only if its plugin is installed — skip silently when
+absent; a missing reviewer is never a failure and needs no note.
+
+Blocker/major findings send the task back into the fix loop; each such round
+counts toward the SAME three-cycle ceiling as verify failures — the reviewer
+pass must not create an unbounded loop. Minor findings go to the follow-up
+backlog, not the current diff. After a reviewer-driven fix, re-run the verify
+command before re-review.
+
 ## No unbounded outer loop
 
 The bounded inner loop above is the good part of the Ralph pattern. The infinite
@@ -113,7 +135,9 @@ The run is complete only when:
 1. Every task is done or parked-with-reason — none silently skipped.
 2. The project's FULL check suite (tests, lint, type-check, build — whatever the
    repo defines) passes at the end, not just each task's local verify: local
-   passes can compose into a global failure.
+   passes can compose into a global failure. If the docs-upkeep plugin is
+   installed, run its drift check as part of the full-suite gate — documentation
+   made stale by the run blocks completion the same way a failing test does.
 3. The final report is a table: task / status / verify command / evidence line,
    plus the parked list with reasons and the follow-up backlog collected by the
    scope lock.

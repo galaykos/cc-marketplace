@@ -4,6 +4,14 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.25.0] - 2026-07-06
+
+### Changed
+
+- **taskmaster** 0.10.0: pipeline wires companions in — code-architecture plan check on the spec before card-splitting and a decision-records ADR offer, both installed-guarded (grill handoff mirrors the offer); task cards carry a "Skills to apply" field stamped from the stack-scan inventory and are sized via the estimation plugin when installed
+- **task-runner** 0.5.0: conditional reviewer pass after each task's verify passes (code-reviewer always; ui-ux/architecture/security reviewers by task content) — blocker/major findings re-enter the bounded fix loop under the same 3-cycle cap; docs-upkeep drift check joins the completion gate
+- validator: hard trigger-surface gates — skill descriptions must carry "Use when/before/after/during" phrasing, agent descriptions need PROACTIVELY or an explicit sub-dispatch marker ("Spawned by")
+
 ## [0.24.0] - 2026-07-05
 
 ### Added

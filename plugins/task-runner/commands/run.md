@@ -11,7 +11,9 @@ sequence, or an inline list. If no argument, look for the most recent
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
    groups, verify command per task) before executing.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
-   exact verify command per task, at most three fix cycles before parking.
+   exact verify command per task, at most three fix cycles before parking; after
+   each task's verify passes, run the reviewer pass per the skill (conditional
+   on the review plugins installed).
 3. Update status in the index only; collect scope-lock follow-ups as a backlog
    list, never as in-run detours. No status HTML — the index and the
    conversation are the run's views (per the task-execution skill).
