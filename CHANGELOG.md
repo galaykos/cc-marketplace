@@ -4,6 +4,22 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.28.0] - 2026-07-06
+
+### Added
+
+- **automations-suite** 0.1.0: new plugin suite for browser automation and anti-detect browsing — five per-tool navigator plugins, a cross-tool planner, and a shared worker agent, bundled by the `automations-suite` meta-bundle
+- **playwright** 0.1.0: new plugin — Playwright navigator: current API from live docs (playwright.dev), link map (locators, auto-wait, network interception, storageState auth, test runner, trace, connectOverCDP), robust-automation patterns, and driving an anti-detect browser over CDP. Includes /playwright:check
+- **puppeteer** 0.1.0: new plugin — Puppeteer navigator: current API from live docs (pptr.dev), waits, request interception, puppeteer-extra stealth, and attaching to an anti-detect browser via browserWSEndpoint. Includes /puppeteer:check
+- **adspower** 0.1.0: new plugin — AdsPower Local API navigator: profile lifecycle, start/stop browser, the CDP/WebSocket handoff to a driver, rate limits and status codes. Includes /adspower:check
+- **kameleo** 0.1.0: new plugin — Kameleo Local API/SDK navigator: fingerprint → profile → start flow, connecting a driver over CDP, fingerprint configuration. Includes /kameleo:check
+- **camoufox** 0.1.0: new plugin — Camoufox navigator: current Python usage (camoufox.com), launch options (humanize, geoip, os, proxy, config), and the Playwright-Firefox integration it exposes. Includes /camoufox:check
+- **automation-builder** 0.1.0: new plugin — browser-automation planner and worker: a think-process skill (tool choice → sequenced plan) plus a browser-automation-engineer agent that scaffolds and runs automations. Includes /automation-builder:build
+
+### Changed
+
+- **everything** 0.8.0: playwright, puppeteer, adspower, kameleo, camoufox, automation-builder added to bundle dependencies (six new leaf plugins)
+
 ## [0.27.0] - 2026-07-06
 
 ### Added

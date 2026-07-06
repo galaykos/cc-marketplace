@@ -96,6 +96,17 @@ afterwards to sweep the orphans.
 | **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue/React/Svelte): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 + adapter awareness | `/inertia:review` |
 | **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness; general third-party docs → api-docs-first, own APIs → api-design | `/meta-api:check` |
 
+### Automation & browser
+
+| Plugin | Description | Commands |
+|--------|-------------|----------|
+| **[playwright](plugins/playwright/README.md)** | Playwright navigator: current API from live docs, locators/auto-wait/network/storageState/trace, robust patterns, connectOverCDP to an anti-detect browser | `/playwright:check` |
+| **[puppeteer](plugins/puppeteer/README.md)** | Puppeteer navigator: current API, waits, request interception, puppeteer-extra stealth, connect via browserWSEndpoint | `/puppeteer:check` |
+| **[adspower](plugins/adspower/README.md)** | AdsPower Local API: profile lifecycle, start/stop browser, CDP/WebSocket handoff to a driver, rate limits | `/adspower:check` |
+| **[kameleo](plugins/kameleo/README.md)** | Kameleo Local API/SDK: fingerprint → profile → start, connect a driver over CDP, fingerprint config | `/kameleo:check` |
+| **[camoufox](plugins/camoufox/README.md)** | Camoufox (anti-detect Firefox, Python): launch options (humanize, geoip, proxy, config), Playwright-Firefox integration | `/camoufox:check` |
+| **[automation-builder](plugins/automation-builder/README.md)** | Automation planner + worker: tool-choice think-process, sequenced plan, browser-automation-engineer agent that scaffolds and runs | `/automation-builder:build` |
+
 ### Databases & SQL
 
 | Plugin | Description | Commands |
@@ -167,6 +178,7 @@ afterwards to sweep the orphans.
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, ADRs, retrospectives, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
+| **automations-suite** | Meta-bundle: browser-automation category — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox, automation-builder | `/automations-suite:uninstall` |
 
 ## Usage
 

@@ -5,8 +5,8 @@
     "email": "public@galayko.com"
   },
   "metadata": {
-    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.27.0"
+    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
+    "version": "0.28.0"
   },
   "plugins": [
     {
@@ -265,6 +265,36 @@
       "description": "Application-level concurrency safety: check-then-act races, optimistic vs pessimistic locking, idempotency keys for retried operations, queue-consumer dedup under at-least-once delivery, distributed locks with TTL and fencing, async parallel-write pitfalls — safe when two copies run at once. Includes /concurrency:review."
     },
     {
+      "name": "playwright",
+      "source": "./plugins/playwright",
+      "description": "Playwright automation navigator: current API from live docs (playwright.dev), link map (locators, auto-waiting, network interception, storageState auth, test runner, trace, connectOverCDP), robust-automation patterns, and driving an anti-detect browser (AdsPower/Kameleo) over CDP. Includes /playwright:check. Defers general third-party doc verification to api-docs-first."
+    },
+    {
+      "name": "puppeteer",
+      "source": "./plugins/puppeteer",
+      "description": "Puppeteer automation navigator: current API from live docs (pptr.dev), waits, request interception, puppeteer-extra stealth, and attaching to an anti-detect browser via browserWSEndpoint. Includes /puppeteer:check. Defers general third-party doc verification to api-docs-first."
+    },
+    {
+      "name": "adspower",
+      "source": "./plugins/adspower",
+      "description": "AdsPower Local API navigator: profile lifecycle (list/create profile, start/stop browser, obtain the CDP/WebSocket endpoint), rate limits and status codes, and handing the started browser to Playwright or Puppeteer. Includes /adspower:check. Defers general third-party doc verification to api-docs-first."
+    },
+    {
+      "name": "kameleo",
+      "source": "./plugins/kameleo",
+      "description": "Kameleo Local API navigator: current endpoints and SDK usage from live docs, the fingerprint → profile → start flow, connecting Playwright/Puppeteer to a started profile over CDP, and fingerprint configuration. Includes /kameleo:check. Defers general third-party doc verification to api-docs-first."
+    },
+    {
+      "name": "camoufox",
+      "source": "./plugins/camoufox",
+      "description": "Camoufox navigator: current Python usage from live docs (camoufox.com), launch options (humanize, geoip, os, proxy, block_images, config), the Playwright-Firefox integration it exposes, and fingerprint injection. Includes /camoufox:check. Defers general third-party doc verification to api-docs-first."
+    },
+    {
+      "name": "automation-builder",
+      "source": "./plugins/automation-builder",
+      "description": "Browser-automation planner and worker: a think-process skill that turns an automation goal into a tool choice (Playwright/Puppeteer vs anti-detect AdsPower/Kameleo/Camoufox) and a sequenced plan, plus a browser-automation-engineer agent that scaffolds and runs the automation. Includes /automation-builder:build. Pairs with the playwright, puppeteer, adspower, kameleo, and camoufox plugins; defers doc verification to api-docs-first."
+    },
+    {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
       "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, the generalist web worker, and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
@@ -298,6 +328,11 @@
       "name": "taskmaster-suite",
       "source": "./plugins/taskmaster-suite",
       "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "automations-suite",
+      "source": "./plugins/automations-suite",
+      "description": "Meta-bundle: the browser-automation category in one install — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox navigators plus the automation-builder planner and browser-automation-engineer agent. Uninstall cleanly with /automations-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     }
   ]
 }

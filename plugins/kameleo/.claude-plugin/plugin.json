@@ -1,0 +1,6 @@
+{
+  "name": "kameleo",
+  "version": "0.1.0",
+  "description": "Kameleo Local API navigator: current endpoints and SDK usage from live docs, the fingerprint → profile → start flow, connecting Playwright/Puppeteer to a started profile over CDP, and profile/fingerprint configuration. Includes /kameleo:check and a Kameleo-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}
