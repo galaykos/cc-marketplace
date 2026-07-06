@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.26.0] - 2026-07-06
+
+### Changed
+
+- **approaches** 0.2.0: new second-opinions skill — fixed persona trio (Standards Purist, Quality-over-Speed, Skeptic-Investigator) argues refactor-shaped tasks inline and converges to one pick + kill-trigger in a single round, auto-proceeding unless the split is structural; UserPromptSubmit nudge hook (fail-open, non-blocking) and /approaches:opinions manual command
+
 ## [0.25.0] - 2026-07-06
 
 ### Changed
