@@ -10,10 +10,11 @@ from it, start the profile, connect a driver to the browser it launches, do the
 work, stop the profile. Resolve the exact endpoints/SDK methods for each step
 with the kameleo-docs skill first — this skill is the shape, not the contract.
 
-1. **Search fingerprints.** Query the fingerprint endpoint with the filters you
-   need (device, OS, browser, language). You get back fingerprint records;
-   choose one and keep its id.
-2. **Create the profile.** Build a profile FROM the chosen fingerprint. Set
+1. **Search fingerprints.** Query with filters (device, OS, browser) — SDK e.g.
+   `client.fingerprint.searchFingerprints('desktop', undefined, 'chrome')`. You
+   get back fingerprint records; choose one and keep its id.
+2. **Create the profile.** Build a profile FROM the chosen fingerprint — SDK
+   e.g. `client.profile.createProfile({ fingerprintId })`. Set
    spoofing options (canvas, WebGL, geolocation, timezone) at creation or
    update them after. The create call returns a profile `guid` — hold onto it.
 3. **Start the profile.** Starting launches the profile's browser and exposes a
@@ -27,16 +28,20 @@ with the kameleo-docs skill first — this skill is the shape, not the contract.
 
 ## Connecting a driver over CDP
 
-The started profile speaks the Chrome DevTools Protocol over a WebSocket. Get
-the endpoint from the start response or the SDK's connection-string helper —
-prefer the helper, it stays correct across releases.
+The Engine exposes per-protocol endpoints on the Local API port, routed by the
+profile id. The observed pattern (confirm against the running Swagger / examples
+repo, since the port and shape can change across releases):
 
-- **Playwright**: use `chromium.connectOverCDP(<endpoint>)` (in the language of
-  your choice), then take the existing context/page rather than launching a new
-  browser — the browser is already Kameleo's.
-- **Puppeteer**: use `puppeteer.connect({ browserWSEndpoint: <endpoint> })`.
-- **Selenium**: Kameleo's SDK provides the WebDriver connection details; point
-  a remote WebDriver at the profile's endpoint.
+- **Playwright (Chromium)**:
+  `chromium.connectOverCDP('ws://localhost:5050/playwright/' + profile.id)`,
+  then take the existing context/page rather than launching a new browser.
+- **Puppeteer**:
+  `puppeteer.connect({ browserWSEndpoint: 'ws://localhost:5050/puppeteer/' + profile.id })`.
+- **Selenium**: point a remote WebDriver at
+  `http://localhost:5050/webdriver/' + profile.id`.
+
+Prefer the SDK's connection helper over hand-building these strings — it stays
+correct if Kameleo changes the routing.
 
 Defer the driver-side specifics — selectors, waits, connection API surface — to
 `/playwright:check` and `/puppeteer:check`; verify the current connect API

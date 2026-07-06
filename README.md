@@ -178,7 +178,7 @@ afterwards to sweep the orphans.
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, ADRs, retrospectives, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
-| **automations** | Meta-bundle: browser-automation category — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox, automation-builder | `/automations:uninstall` |
+| **automations-suite** | Meta-bundle: browser-automation category — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox, automation-builder | `/automations-suite:uninstall` |
 
 ## Usage
 

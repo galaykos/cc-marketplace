@@ -14,7 +14,7 @@ this skill controls profiles, the driver skills drive pages.
 ```
 list/create profile (user_id)
   -> GET /api/v1/browser/start?user_id=...
-     -> read data.ws.puppeteer  (or data.debug_port)
+     -> read data.ws.puppeteer  (CDP WebSocket URL)
         -> connect a driver, do the work
   -> GET /api/v1/browser/stop?user_id=...   (always, even on failure)
 ```
@@ -29,8 +29,10 @@ them rather than launching a browser yourself:
 
 - **Puppeteer:** pass the WebSocket endpoint straight through —
   `puppeteer.connect({ browserWSEndpoint: data.ws.puppeteer })`.
-- **Playwright:** connect over CDP using the debug port —
-  `chromium.connectOverCDP('http://127.0.0.1:' + data.debug_port)`.
+- **Playwright:** connect over CDP with the same ws URL —
+  `chromium.connectOverCDP(data.ws.puppeteer)`.
+- **Selenium:** set Chrome option `debuggerAddress` to `data.ws.selenium`
+  (a `host:port` like `127.0.0.1:9333`).
 
 Either way you `connect`, never `launch` — AdsPower already launched the browser
 with the profile's fingerprint and proxy. Launching your own browser throws away
@@ -39,7 +41,7 @@ the driver-side details; this skill owns getting the endpoint to hand over.
 
 ## Handle `code != 0` before connecting
 
-Never read `data.ws` or `data.debug_port` until you have checked `code === 0`.
+Never read `data.ws` until you have checked `code === 0`.
 On a non-zero code the `data` may be empty or stale, and connecting to a missing
 endpoint fails with a confusing driver error far from the real cause.
 
@@ -103,7 +105,7 @@ try {
 
 ## Anti-patterns
 
-- Reading `data.ws` / `debug_port` before checking `code === 0`.
+- Reading `data.ws` before checking `code === 0`.
 - `launch`-ing your own browser instead of `connect`-ing — discards the profile.
 - Setting proxy or fingerprint on the driver, duplicating the profile's config.
 - Parallel `browser/start` fan-out that blows past the ~1 req/s limit.

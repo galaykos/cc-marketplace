@@ -15,11 +15,14 @@ gap from memory.
 
 ## Resolving the current API
 
-- Fetch the reference: https://developer.kameleo.io/reference/api-reference/
-  (the "Kameleo Local API"). The page is OpenAPI/swagger-driven and often
-  renders JS-only — if the fetch returns little, name that gap explicitly and
-  ask the user for the `swagger.json` (linked from the reference) or a pasted
-  excerpt of the endpoint you need. Do not proceed on assumed paths.
+- Reference (may render JS-only):
+  https://developer.kameleo.io/reference/api-reference/ (the "Kameleo Local
+  API"). Two sources that fetch cleanly when the reference does not:
+  - The running Engine's own Swagger UI at `http://localhost:5050/swagger` —
+    the authoritative live endpoint list for the installed version.
+  - The examples repo: https://github.com/kameleo-io/local-api-examples —
+    real fingerprint→profile→start→connect flows per language.
+  If none is reachable, name the gap and ask for an excerpt; never assume paths.
 - The Local API is served locally by the running Kameleo app. The default base
   URL is `http://localhost:5050`. Confirm the port against the current docs and
   the user's install — it is configurable, not guaranteed.

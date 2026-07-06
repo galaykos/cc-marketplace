@@ -1,5 +1,5 @@
 ---
-description: Uninstall the automations bundle AND prune every plugin it auto-installed — one step, no orphans. Manually installed plugins are never touched.
+description: Uninstall the automations-suite bundle AND prune every plugin it auto-installed — one step, no orphans. Manually installed plugins are never touched.
 ---
 
 Uninstall this bundle cleanly.
@@ -13,7 +13,7 @@ Uninstall this bundle cleanly.
 3. On confirm, run:
 
    ```bash
-   claude plugin uninstall automations --prune -y
+   claude plugin uninstall automations-suite --prune -y
    ```
 
 4. Report what was removed and what survived. Note: restart or `/plugin`

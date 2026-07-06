@@ -330,9 +330,9 @@
       "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
-      "name": "automations",
-      "source": "./plugins/automations",
-      "description": "Meta-bundle: the browser-automation category in one install — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox navigators plus the automation-builder planner and browser-automation-engineer agent. Uninstall cleanly with /automations:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "name": "automations-suite",
+      "source": "./plugins/automations-suite",
+      "description": "Meta-bundle: the browser-automation category in one install — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox navigators plus the automation-builder planner and browser-automation-engineer agent. Uninstall cleanly with /automations-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     }
   ]
 }

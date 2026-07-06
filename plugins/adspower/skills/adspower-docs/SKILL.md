@@ -11,18 +11,19 @@ memory can be wrong on the very next release. Every endpoint path, port, and
 response field in your output must come from a page fetched THIS session, not
 recall. Verify against the live docs each session before writing code.
 
-The reference is Postman-hosted, which renders JavaScript-only: a plain fetch
-often returns just the page title, not the endpoint tables. When that happens,
-say so explicitly and ask the user for the endpoint reference (or a docs
-excerpt) — the api-docs-first rule. Do not fill the gap by inventing endpoints
-beyond the ones confirmed below.
+The Postman reference (documenter.getpostman.com) renders JavaScript-only, so a
+plain fetch returns just the page title. Prefer the official static docs, which
+fetch cleanly, and fall back to asking the user for an excerpt only if both are
+unreachable — the api-docs-first rule. Do not invent endpoints beyond what a
+fetched page confirms.
 
 ## Resolving the current endpoints
 
-- Fetch the AdsPower Local API docs:
+- Official docs (static, fetch these first):
+  https://localapi-doc-en.adspower.com/ — "API Overview" and "Code Samples"
+  sections carry the request/response examples.
+- Postman reference (JS-only, needs a rendered browser):
   https://documenter.getpostman.com/view/45822952/2sB34hEzQH
-- If the Postman page is JS-only and the fetch returns little, name that gap
-  and ask the user for the current endpoint reference before proceeding.
 - Confirm the app's configured API port in the AdsPower client (Settings →
   Local API). The default below is only a default — the user may have changed
   it, and older versions used different ports.
@@ -34,8 +35,9 @@ beyond the ones confirmed below.
 - Every response uses the envelope `{ "code": 0, "msg": "...", "data": {...} }`.
   `code: 0` means success. A non-zero `code` is a failure — read `msg` for the
   reason and branch on `code`, never on the wording of `msg`.
-- This is a local, unauthenticated API: no token, no OAuth. Access control is
-  that the API only listens on the local machine.
+- Local API, local-only: it listens on the machine running AdsPower, no cloud
+  host. Auth is off by default; when "security verification" is enabled in the
+  client, every call needs an `Authorization: Bearer <apiKey>` header.
 
 ## The endpoint map
 
@@ -62,17 +64,19 @@ back to `serial_number` when the live doc says a call requires it.
 ## What "start browser" returns
 
 On success (`code: 0`), `/api/v1/browser/start` returns a `data` object with the
-connection endpoints for the launched browser:
+connection endpoints for the launched browser (verified response shape):
 
-- `data.ws.puppeteer` — WebSocket endpoint for Puppeteer
-  (`puppeteer.connect({ browserWSEndpoint })`).
-- `data.ws.selenium` — endpoint for Selenium-style attachment.
-- `data.debug_port` — the CDP debugging port, usable with Playwright
-  `connectOverCDP('http://127.0.0.1:<debug_port>')`.
+- `data.ws.puppeteer` — CDP WebSocket URL, e.g.
+  `ws://127.0.0.1:9222/devtools/browser/...`. Use it for Puppeteer
+  (`puppeteer.connect({ browserWSEndpoint })`) AND Playwright
+  (`chromium.connectOverCDP(data.ws.puppeteer)`).
+- `data.ws.selenium` — a `host:port` (e.g. `127.0.0.1:9333`) for Selenium's
+  Chrome `debuggerAddress` option.
 - `data.webdriver` — path to the matching WebDriver binary for that browser.
+- `data.marionette_port` — Firefox remote-debugging port (newer patch builds).
 
-Read these from the live response, not from memory — the exact nesting can vary
-by version. The adspower-patterns skill owns how to hand these to a driver.
+Read these from the live response, not from memory. The adspower-patterns skill
+owns how to hand these to a driver.
 
 `browser/start` also accepts optional query flags the live doc lists — for
 example a headless flag and a flag to disable loaded extensions. Check the doc

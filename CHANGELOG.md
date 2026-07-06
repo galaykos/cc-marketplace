@@ -8,7 +8,7 @@ version in their `plugin.json`.
 
 ### Added
 
-- **automations** 0.1.0: new plugin suite for browser automation and anti-detect browsing — five per-tool navigator plugins, a cross-tool planner, and a shared worker agent, bundled by the `automations` meta-bundle
+- **automations-suite** 0.1.0: new plugin suite for browser automation and anti-detect browsing — five per-tool navigator plugins, a cross-tool planner, and a shared worker agent, bundled by the `automations-suite` meta-bundle
 - **playwright** 0.1.0: new plugin — Playwright navigator: current API from live docs (playwright.dev), link map (locators, auto-wait, network interception, storageState auth, test runner, trace, connectOverCDP), robust-automation patterns, and driving an anti-detect browser over CDP. Includes /playwright:check
 - **puppeteer** 0.1.0: new plugin — Puppeteer navigator: current API from live docs (pptr.dev), waits, request interception, puppeteer-extra stealth, and attaching to an anti-detect browser via browserWSEndpoint. Includes /puppeteer:check
 - **adspower** 0.1.0: new plugin — AdsPower Local API navigator: profile lifecycle, start/stop browser, the CDP/WebSocket handoff to a driver, rate limits and status codes. Includes /adspower:check
