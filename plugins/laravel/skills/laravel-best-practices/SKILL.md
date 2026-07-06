@@ -7,37 +7,19 @@ description: Use when writing or reviewing Laravel code — Eloquent N+1 prevent
 
 Version facts come from the manifests, never from assumption:
 
-- `composer.json` `require.laravel/framework` is the advice floor — recommend nothing above
-  it. `composer.lock` says what is ACTUALLY installed (`^11.0` says nothing about whether
-  11.20's fix is present — the lock does).
-- The floor implies a PHP floor: Laravel 10 needs PHP 8.1+, 11 and 12 need 8.2+. Cross-check
-  `require.php`; a mixed repo's `package.json` governs the JS side only — never infer
-  framework capabilities from it.
+- `composer.json` `require.laravel/framework` is the advice floor — recommend nothing above it. `composer.lock` says what is ACTUALLY installed (`^11.0` says nothing about whether 11.20's fix is present — the lock does).
+- The floor implies a PHP floor: Laravel 10 needs PHP 8.1+, 11 and 12 need 8.2+. Cross-check `require.php`; a mixed repo's `package.json` governs the JS side only — never infer framework capabilities from it.
 
 ## Per-version leverage (advise at or below the floor)
 
-Recommend the newer idiom only when the floor is at or above the release that shipped it.
-Verify anything version-sensitive against https://laravel.com/docs before pinning it:
+Recommend the newer idiom only when the floor is at or above the release that shipped it. Verify anything version-sensitive against https://laravel.com/docs before pinning it:
 
-- **Laravel 11** — the slimmed skeleton: `bootstrap/app.php` is the single config surface for
-  routing, middleware, and exceptions, so there is no `Http/Kernel.php` or console kernel and
-  the old middleware files are gone (customize via `->withMiddleware`). Model casts as a
-  `casts()` METHOD, not the `$casts` property, so casts take arguments. Per-second rate
-  limiting (`Limit::perSecond(...)`). Health-check routing (`health: '/up'`). The `once()`
-  helper memoizes a callback for the current request.
-- **Laravel 12** — a maintenance release: upstream dependency updates and new React/Vue/
-  Svelte/Livewire starter kits, with deliberately minimal breaking changes (most apps upgrade
-  without code changes). Do not attribute new idioms to 12 by default — if a capability's
-  introducing version is uncertain, describe it without pinning a version.
+- **Laravel 11** — the slimmed skeleton: `bootstrap/app.php` is the single config surface for routing, middleware, and exceptions, so there is no `Http/Kernel.php` or console kernel and the old middleware files are gone (customize via `->withMiddleware`). Model casts as a `casts()` METHOD, not the `$casts` property, so casts take arguments. Per-second rate limiting (`Limit::perSecond(...)`). Health-check routing (`health: '/up'`). The `once()` helper memoizes a callback for the current request.
+- **Laravel 12** — a maintenance release: upstream dependency updates and new React/Vue/Svelte/Livewire starter kits, with deliberately minimal breaking changes (most apps upgrade without code changes). Do not attribute new idioms to 12 by default — if a capability's introducing version is uncertain, describe it without pinning a version.
 
 ## N+1 prevention — eager load, don't lazy load in loops
 
-Accessing a relationship inside a loop fires one query per iteration. Eager load with
-`with()` before the loop, or `loadMissing()` when a collection may already have some
-relations loaded (skips ones already present). In dev/CI, call
-`Model::preventLazyLoading(! app()->isProduction())` in `AppServiceProvider::boot()` so a
-missed eager load throws in tests/local dev instead of silently degrading production —
-staying off in production so an unexpected access degrades rather than 500s for real users.
+Accessing a relationship inside a loop fires one query per iteration. Eager load with `with()` before the loop, or `loadMissing()` when a collection may already have some relations loaded (skips ones already present). In dev/CI, call `Model::preventLazyLoading(! app()->isProduction())` in `AppServiceProvider::boot()` so a missed eager load throws in tests/local dev instead of silently degrading production — staying off in production so an unexpected access degrades rather than 500s for real users.
 
 ```php
 // Bad: N+1 — one query per post to fetch its author
@@ -48,9 +30,7 @@ foreach (Post::with('author')->get() as $post) { echo $post->author->name; }
 
 ## Validation belongs in FormRequest classes
 
-Controllers should not call `$request->validate()` inline or hand-roll rules. Extract a
-`FormRequest` per action: it centralizes rules, keeps `authorize()` next to validation, and
-is testable independent of the controller.
+Controllers should not call `$request->validate()` inline or hand-roll rules. Extract a `FormRequest` per action: it centralizes rules, keeps `authorize()` next to validation, and is testable independent of the controller.
 
 ```php
 // Bad: validation logic living in the controller
@@ -69,10 +49,7 @@ class StorePostRequest extends FormRequest {
 
 ## Thin controllers — push logic into actions/services
 
-A controller method should orchestrate: validate (FormRequest), authorize, delegate, return
-a response. Multi-step business logic (side effects, external calls, cross-model
-coordination) belongs in a single-purpose action class, reusable from jobs/commands and
-testable without an HTTP request.
+A controller method should orchestrate: validate (FormRequest), authorize, delegate, return a response. Multi-step business logic (side effects, external calls, cross-model coordination) belongs in a single-purpose action class, reusable from jobs/commands and testable without an HTTP request.
 
 ```php
 // Bad: business logic inline in the controller
@@ -90,10 +67,7 @@ public function store(StorePostRequest $request, PublishPost $action) {
 
 ## Authorization — policies and gates, never Blade-only
 
-Register a `Policy` per model and check it in `FormRequest::authorize()` or via
-`$this->authorize()` / `Gate::authorize()` in the controller. Blade's `@can` only hides UI —
-it doesn't stop a direct request to the route, so relying on it alone leaves the action
-unprotected.
+Register a `Policy` per model and check it in `FormRequest::authorize()` or via `$this->authorize()` / `Gate::authorize()` in the controller. Blade's `@can` only hides UI — it doesn't stop a direct request to the route, so relying on it alone leaves the action unprotected.
 
 ```php
 // Bad: only guarded in the view; controller has no check, route stays reachable directly
@@ -106,11 +80,7 @@ class UpdatePostRequest extends FormRequest {
 
 ## Mass assignment — guard model input
 
-Every model needs an explicit allowlist. Prefer `$fillable` (allowlist) over `$guarded`
-(denylist) — a denylist silently opens every column you forget to add. Passing raw input into
-an unguarded model is the OWASP mass-assignment bug: `Model::create($request->all())` lets an
-attacker set columns you never intended (`role`, `is_admin`, `user_id`). Feed models validated
-data from the FormRequest, backed by a real `$fillable`.
+Every model needs an explicit allowlist. Prefer `$fillable` (allowlist) over `$guarded` (denylist) — a denylist silently opens every column you forget to add. Passing raw input into an unguarded model is the OWASP mass-assignment bug: `Model::create($request->all())` lets an attacker set columns you never intended (`role`, `is_admin`, `user_id`). Feed models validated data from the FormRequest, backed by a real `$fillable`.
 
 ```php
 // Bad: raw input into an unguarded model — attacker POSTs "is_admin": true
@@ -121,18 +91,11 @@ class User extends Model { protected $fillable = ['name', 'email']; }
 User::create($request->validated()); // FormRequest already dropped unknown keys
 ```
 
-Type attributes with the `casts()` method (Laravel 11+) or the `$casts` property so
-`is_admin` is a real `bool`, not a string that compares wrong. Shape API output through an
-API Resource (`JsonResource`) rather than returning the model directly — returning `$model`
-leaks every attribute (password hashes, internal flags) and couples clients to column names.
+Type attributes with the `casts()` method (Laravel 11+) or the `$casts` property so `is_admin` is a real `bool`, not a string that compares wrong. Shape API output through an API Resource (`JsonResource`) rather than returning the model directly — returning `$model` leaks every attribute (password hashes, internal flags) and couples clients to column names.
 
 ## Queue slow work — small, idempotent payloads
 
-Dispatch anything slow (email, exports, external API calls) to a queued job instead of blocking
-the request. Pass IDs, not hydrated models: `SerializesModels` re-fetches a fresh copy on
-execution, so dispatch-time attributes are discarded — don't rely on stale state. The real
-bloat/fragility risk is loaded relations (serialized recursively, re-fetched too) and
-appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write `handle()` so it's safe to run twice.
+Dispatch anything slow (email, exports, external API calls) to a queued job instead of blocking the request. Pass IDs, not hydrated models: `SerializesModels` re-fetches a fresh copy on execution, so dispatch-time attributes are discarded — don't rely on stale state. The real bloat/fragility risk is loaded relations (serialized recursively, re-fetched too) and appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write `handle()` so it's safe to run twice.
 
 ```php
 // Bad: hydrated model in the constructor, non-idempotent charge
@@ -154,11 +117,7 @@ class ChargeOrder implements ShouldQueue {
 
 ## Config/env discipline — `config()`, not `env()`, outside config files
 
-Only read `env()` inside `config/*.php` files. Once `php artisan config:cache` runs (every
-production deploy should), Laravel loads the cached config array and `env()` calls outside
-config files return `null` — the raw `.env` file is no longer consulted. Read values via
-`config('services.stripe.key')` everywhere else so cached and uncached environments behave
-the same.
+Only read `env()` inside `config/*.php` files. Once `php artisan config:cache` runs (every production deploy should), Laravel loads the cached config array and `env()` calls outside config files return `null` — the raw `.env` file is no longer consulted. Read values via `config('services.stripe.key')` everywhere else so cached and uncached environments behave the same.
 
 ```php
 // Bad: works locally, returns null once config is cached in production
@@ -169,11 +128,7 @@ $key = config('services.stripe.key'); // config/services.php: 'key' => env('STRI
 
 ## Migrations — additive-first, honest `down()`, never edit shipped ones
 
-Prefer additive migrations (new column, new table) over destructive ones on tables with
-data; drop/rename later once code no longer depends on the old shape. Write a `down()` that
-actually reverses `up()` — an empty or wrong `down()` makes rollback silently lose data or
-fail. Once a migration ships to any shared environment, don't edit it: add a new migration
-instead, since editing history breaks anyone who already ran it.
+Prefer additive migrations (new column, new table) over destructive ones on tables with data; drop/rename later once code no longer depends on the old shape. Write a `down()` that actually reverses `up()` — an empty or wrong `down()` makes rollback silently lose data or fail. Once a migration ships to any shared environment, don't edit it: add a new migration instead, since editing history breaks anyone who already ran it.
 
 ```php
 // Bad: down() doesn't reverse up() — rollback leaves the column behind
@@ -189,19 +144,11 @@ public function down(): void { Schema::table('users', fn ($t) => $t->dropColumn(
 - Validating in the controller instead of a `FormRequest`, scattering rules across actions.
 - Fat controllers reaching into multiple models/services directly instead of delegating.
 - Relying on `@can` in Blade as the only authorization check, leaving the route open.
-- Mass assignment via an unguarded model fed `$request->all()`; use a real `$fillable` plus
-  `$request->validated()`.
-- Returning a full Eloquent model to the client instead of an API Resource, leaking internal
-  attributes to consumers.
-- Passing whole Eloquent models into queued job constructors instead of IDs.
-- Writing job `handle()` methods that aren't safe to run twice.
-- Calling `env()` outside `config/*.php`, which breaks silently after `config:cache`.
-- Editing a migration that already ran in a shared environment instead of adding a new one.
-- Leaving `down()` empty or incorrect, making rollback unsafe.
+- Mass assignment via an unguarded model fed `$request->all()`; use a real `$fillable` plus `$request->validated()`.
+- Returning a full Eloquent model to the client instead of an API Resource, leaking internal attributes.
+- Passing whole Eloquent models into queued job constructors instead of IDs, or writing `handle()` methods that aren't safe to run twice.
+- Calling `env()` outside `config/*.php` (breaks after `config:cache`), editing a migration that already ran, or leaving `down()` empty/incorrect.
 
 ## Verify Against Current Docs
 
-Eloquent eager-loading APIs, the `preventLazyLoading`/strict-mode toggles, queue
-configuration, and policy/gate registration have changed across Laravel major versions.
-Before relying on memory for version-sensitive APIs, check https://laravel.com/docs against
-the actual `laravel/framework` version in the project's `composer.json`.
+Eloquent eager-loading APIs, the `preventLazyLoading`/strict-mode toggles, queue configuration, and policy/gate registration have changed across Laravel major versions. Before relying on memory for version-sensitive APIs, check https://laravel.com/docs against the actual `laravel/framework` version in the project's `composer.json`.

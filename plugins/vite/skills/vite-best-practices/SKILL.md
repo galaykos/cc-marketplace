@@ -148,8 +148,4 @@ boundaries against the docs.
 
 ## Verify Against Current Docs
 
-Config surface and defaults shift across majors. Confirm any version-sensitive
-option — `build.target` defaults, `resolve.conditions`, the Environment API, Node
-floor, Rolldown status — against https://vite.dev/ for the exact vite version in the
-lockfile, and read `vite.config.{js,ts}` before advising so you don't flag what the
-config already handles.
+Config surface and defaults shift across majors. Confirm any version-sensitive option — `build.target` defaults, `resolve.conditions`, the Environment API, Node floor, Rolldown status — against https://vite.dev/ for the exact vite version in the lockfile, and read `vite.config.{js,ts}` before advising so you don't flag what the config already handles.
