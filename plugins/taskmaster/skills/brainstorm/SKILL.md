@@ -55,12 +55,17 @@ asking next — a batch built before the answer is a batch half-wasted. Rules:
 
 ## Explore alternatives before committing
 
-Never present the first workable idea as the design. Propose 2–3 genuinely
-different approaches with honest tradeoffs, your recommendation first and
-argued. If only one approach exists, say so and say why — "alternatives
-considered: none viable because X" is a legitimate answer; silence is not.
-YAGNI applies at design level: strike every capability the idea does not need
-this round; moved-to-later is a decision, not a loss.
+Never present the first workable idea as the design. When two or more genuinely
+different design shapes are viable, do not generate them from one voice — that
+anchors every "alternative" on a single draft. approaches plugin installed →
+dispatch the four blind `opinion-lens` personas (Standards Purist,
+Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) on the design
+question, then synthesize the alternatives and your recommendation from their
+takes. Absent → propose 2–3 yourself, recommendation first and argued. If only
+one approach exists, say so — "alternatives considered: none viable because X" is
+a legitimate answer; silence is not. YAGNI applies at design level: strike every
+capability the idea does not need this round; moved-to-later is a decision, not
+a loss.
 
 ## Present the design in sections
 
