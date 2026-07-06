@@ -4,6 +4,17 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.30.0] - 2026-07-06
+
+### Changed
+
+- **taskmaster-suite** 0.7.0: error-handling, concurrency, observability, and plugin-scout added to bundle dependencies — closing a drift gap. The suite bundles "every stack-agnostic capability" and already carried 10 of 13 quality-suite plugins; the first three (all 0.1.0, added after taskmaster-suite last bumped at 0.5.0) were backfilled into everything 0.7.0 and quality-suite but missed here — application-level and language-agnostic, matching the suite's stack-agnostic scope. plugin-scout (stack-agnostic marketplace scout, already in process-suite) joins alongside its sibling stack-scan
+- **frontend-suite** 0.3.0: design-preview added to bundle dependencies — Vite+React real-component visual decisions, a frontend-category plugin previously reachable only via everything
+
+### Fixed
+
+- **laravel** 0.2.1, **javascript** 0.1.1, **vite** 0.1.1: skill bodies brought within the 100-150 line validator budget by unwrapping hard-wrapped prose to one line per paragraph (matching the php/js house style) — laravel 203→150 (also merged the redundant tail of Common mistakes), javascript and vite 151→150. No technical content removed; `scripts/validate.sh` now passes clean
+
 ## [0.29.0] - 2026-07-06
 
 ### Added
