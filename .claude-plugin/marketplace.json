@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.25.0"
+    "version": "0.26.0"
   },
   "plugins": [
     {
@@ -192,7 +192,7 @@
     {
       "name": "approaches",
       "source": "./plugins/approaches",
-      "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats. Includes /approaches:compare."
+      "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged second-opinions round where a fixed persona trio (Standards Purist, Quality-over-Speed, Skeptic-Investigator) argues refactor-shaped tasks to one pick in a single round. Includes /approaches:compare and /approaches:opinions."
     },
     {
       "name": "decision-records",
