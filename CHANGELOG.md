@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.33.0] - 2026-07-07
+
+### Added
+
+- **taskmaster** 0.14.0: new `coverage-check` skill + `/taskmaster:coverage` command — a spec↔card traceability gate. At the tail of task-cards (after the index is written, before the execution handoff) it cross-checks the spec's `## Success criteria` against every card's `**Acceptance criteria:**` in both directions: a criterion no card satisfies is a GAP (dropped scope), a card that serves no criterion is an ORPHAN, a card asserting behavior in no criterion or decision is DRIFT (added scope). It blocks the handoff until each finding is resolved (add a card — deferred to task-cards — / fold / reclassify as non-goal / accept-with-reason for gaps; tie / add-criterion / drop for orphans) or explicitly accepted, and persists a `## Coverage` matrix into `00-INDEX.md`. Closes the pipeline's worst silent failure: a card set that quietly misses a requirement or drifts from the spec, shipped straight into execution. An independent verifier — it checks documents against documents, distinct from work-verification / task-runner which check delivered code
+
 ## [0.32.0] - 2026-07-07
 
 ### Added
