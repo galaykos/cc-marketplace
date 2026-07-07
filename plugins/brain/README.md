@@ -30,9 +30,10 @@ Install the `brain` plugin from this marketplace.
 | Command | Does |
 |---------|------|
 | `/brain` | Print the whole map (`brain/INDEX.md`). If none exists, prompts you to initialize. |
-| `/brain <area>` | Print one area's section. Unknown area → a not-found message listing known areas. |
-| `/brain index` | Build or rebuild the whole map. Bootstraps `brain/` on first run. |
-| `/brain index <area>` | Rebuild just one area, leaving the rest untouched. |
+| `/brain <area>` | Print one area's detail. Unknown area → a not-found message listing known areas. |
+| `/brain index` | **Incremental refresh** — diffs what changed since the map was built and re-indexes only the affected areas. Bootstraps a full build on first run. |
+| `/brain index --full` | Force a full rebuild — re-picks areas; the only mode that discovers **new** subsystems. |
+| `/brain index <area>` | Rebuild just one named area, leaving the rest untouched. |
 
 ## Freshness
 

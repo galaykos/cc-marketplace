@@ -1,6 +1,6 @@
 ---
-description: Read and build the project brain codebase map — /brain prints the map, /brain <area> prints one area, /brain index [area] builds or refreshes it.
-argument-hint: "[area|index]"
+description: Read and build the project brain codebase map — /brain prints the map, /brain <area> prints one area, /brain index refreshes changed areas (--full rebuilds all).
+argument-hint: "[area | index [--full|<area>]]"
 ---
 
 # /brain
@@ -13,15 +13,20 @@ Parse the first token of `$ARGUMENTS` and act:
 
 ## `index` — build or refresh (reserved word)
 
-`/brain index` or `/brain index <area>`:
+Dispatch the **indexer** agent (this plugin's `agents/indexer.md`) with the mode implied by
+the argument after `index`:
 
-- Dispatch the **indexer** agent (this plugin's `agents/indexer.md`) to (re)build the
-  map. Pass the `<area>` through when given; otherwise rebuild the whole map.
-- If `brain/` does not exist yet, this bootstraps it (the indexer creates
-  `brain/INDEX.md`).
-- Report the indexer's summary (areas written, file count, `built:` hash).
+- **no argument** → **incremental** (default): the indexer diffs what changed since the map's
+  `built:` hash and re-indexes only the affected areas. If no `brain/` exists yet, it bootstraps
+  a full build instead.
+- **`--full`** (or `all`) → full rebuild: re-pick areas and rewrite everything. Use after adding
+  a whole new subsystem — this is the only mode that discovers new areas.
+- **`<area>`** → rebuild just that one area.
 
-`index` is a reserved subcommand — it is never treated as an area name.
+Report the indexer's summary (mode, areas refreshed, any unassigned new files it suggests
+`--full` for, `built:` hash).
+
+`index`, `--full`, and `all` are reserved — never treated as area names.
 
 ## `<area>` — print one area
 
