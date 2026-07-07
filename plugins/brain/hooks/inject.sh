@@ -13,8 +13,14 @@
   [ -d "$cwd" ] || exit 0
 
   index="$cwd/brain/INDEX.md"
-  [ -f "$index" ] || exit 0
-  [ -s "$index" ] || exit 0
+  # Discoverability nudge: plugin enabled but no map yet → emit one short hint so it is
+  # not silently forgettable. This is the plugin talking (not project data), so it is NOT
+  # inside the fenced block. The nudge stops for good the moment a map exists. Still a pure
+  # read — no state written.
+  if [ ! -f "$index" ] || [ ! -s "$index" ]; then
+    printf '%s\n' "ℹ brain: no map for this project yet — run /brain index to create one."
+    exit 0
+  fi
 
   # Staleness hint: the header records `built: <short-hash>`. Prefix-match it against
   # the FULL current HEAD hash — robust to git's abbreviation length changing over time

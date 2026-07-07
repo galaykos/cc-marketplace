@@ -53,9 +53,14 @@ is delimited and labeled as project data.
 
 ## Disabling
 
-`brain` is opt-in and inert by default — it does nothing until you run `/brain index`
-to create `brain/INDEX.md`, and the `SessionStart` hook is fail-open (any error → silent
-exit, never blocks a session).
+`brain` is opt-in by install. Until you build a map with `/brain index`, the only thing
+it does is emit a **single one-line hint** at session start — `ℹ brain: no map for this
+project yet — run /brain index to create one.` — so an enabled-but-unused install is not
+silently forgotten. The `SessionStart` hook is fail-open (any error → silent exit, never
+blocks a session) and writes nothing.
+
+If you have `brain` enabled in a repo where you never intend to build a map and don't want
+even that hint, disable the plugin locally (below).
 
 To turn it off:
 
