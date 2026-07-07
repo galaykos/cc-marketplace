@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.34.0] - 2026-07-07
+
+### Changed
+
+- **taskmaster** 0.15.0: grill now persists its ambiguity ledger to a gitignored `.claude/taskmaster/ledger-<slug>.md` after each round (a `Task:` header plus the table), and at grill start offers Resume / Start fresh when an unfinished ledger is found — so an interruption mid-interrogation (context loss, crash, session end) resumes from the ledger with the context-scout findings and every answered row intact, instead of re-scouting and re-asking from scratch. The working file is deleted when the spec is written. Closes the pipeline's only ephemeral pre-execution state — execution already resumes from `00-INDEX.md`, but grill's ledger previously lived only in the conversation (Track E1)
+
 ## [0.33.0] - 2026-07-07
 
 ### Added

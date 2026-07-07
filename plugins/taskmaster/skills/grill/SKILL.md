@@ -38,6 +38,16 @@ round so the user always sees what is settled and what still blocks:
 Statuses: **CLEAR** (user said it, or code proves it), **ASSUMED** (a default was
 chosen and named, awaiting confirmation), **UNKNOWN** (blocks implementation).
 
+## Persist and resume
+
+After reprinting the ledger each round, also write it — a `Task: <description>`
+header plus the table — to `.claude/taskmaster/ledger-<slug>.md` (gitignored;
+`<slug>` a kebab of the task description), so an interrupted interrogation is not
+lost. At grill start, if an unfinished `.claude/taskmaster/ledger-*.md` exists, show
+its task and offer Resume / Start fresh; Resume loads the table and continues from
+the first UNKNOWN row — no re-scout, no re-asking resolved rows. Delete the file
+when the spec is written.
+
 ## Question dimensions
 
 Walk these ten dimensions; skip any the scout or the prompt already settled:
