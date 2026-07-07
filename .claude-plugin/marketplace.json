@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.30.0"
+    "version": "0.31.0"
   },
   "plugins": [
     {
@@ -343,6 +343,11 @@
       "name": "automations-suite",
       "source": "./plugins/automations-suite",
       "description": "Meta-bundle: the browser-automation category in one install — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox navigators plus the automation-builder planner and browser-automation-engineer agent. Uninstall cleanly with /automations-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "skill-router",
+      "source": "./plugins/skill-router",
+      "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session."
     }
   ]
 }

@@ -4,6 +4,16 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.31.0] - 2026-07-07
+
+### Added
+
+- **skill-router** 0.1.0: new plugin — file-aware skill auto-routing. A `PostToolUse` hook (`Edit|Write|MultiEdit`) matches the edited file against a declarative `rules.tsv` and injects a directive to load the relevant best-practice skill: high-confidence path/extension signals (sql, ui-ux, a11y, testing, dev-env, packages) fire inline once per signal per session; low-confidence content signals (concurrency, error-handling, security, resilience) accumulate into a `SessionEnd` digest instead of interrupting. A `SessionStart` hook primes a repo-tailored skill index sniffed directly from manifests — stack-scan is a conversational skill with no hook-readable output, so the primer does its own detection. Fail-open throughout (any error or missing `jq` exits silently, never blocks an edit); rules filtered to installed plugins via a sibling-directory check; per-session dedup state at `.claude/skill-router/` (gitignored). Closes the gap where ~50 suite skills fired only when the model happened to notice their description trigger. Design + spec + task cards under `taskmaster-docs/` (Track A of a taskmaster-suite improvement brainstorm)
+
+### Changed
+
+- **taskmaster-suite** 0.8.0, **everything** 0.10.0: skill-router added to bundle dependencies
+
 ## [0.30.0] - 2026-07-06
 
 ### Changed
