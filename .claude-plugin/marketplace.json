@@ -220,6 +220,11 @@
       "description": "Cross-session self-improvement loop: a SessionEnd hook records per-session friction stats (turns, errors, best-effort friction events) to a project-local ledger; /hindsight:harvest ranks high-friction sessions, deep-mines transcripts via a transcript-miner agent with a ≥2-session recurrence gate, and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on explicit approval. Includes /hindsight:harvest and a transcript-miner agent."
     },
     {
+      "name": "brain",
+      "source": "./plugins/brain",
+      "description": "Committed, Obsidian-style codebase map: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it, /brain <area> prints one area, /brain index builds or refreshes it. Reads code in place — nothing outside brain/ is modified. Map-only tracer (Phase 1a); an anchored-notes layer is planned. Includes /brain and an indexer agent."
+    },
+    {
       "name": "build-vs-buy",
       "source": "./plugins/build-vs-buy",
       "description": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). Includes /build-vs-buy:check."
