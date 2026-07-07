@@ -44,6 +44,21 @@ Use the map in real work. If you catch yourself wanting to jot a gotcha and ther
 to put it → 1b earned its keep, build it (re-grilled against current code). If you never
 reach for that → 1b was never worth the fragility. Let usage decide, not momentum.
 
+## Resuming (fresh conversation — no prior context needed)
+
+1. **Check the trigger first.** If you never missed having notes while using the map, stop —
+   1b isn't needed. This is a usage decision, not a schedule.
+2. **If it earned its keep,** open Claude Code in this marketplace repo and run:
+   ```
+   /taskmaster:task Build Phase 1b of the brain plugin per plugins/brain/ROADMAP.md —
+   the value slice (anchored notes + file-anchors + freshness). Re-scout and re-grill
+   against the CURRENT plugins/brain/ code; deferred: sym-anchors and the sibling-.md
+   graph. Layer on the shipped tracer (indexer, /brain, inject hook) — do not rebuild it.
+   ```
+3. The pipeline regenerates a **current-accurate** spec + task cards from this roadmap plus
+   today's code. Do **not** resurrect the old gitignored `taskmaster-docs/` specs — they are
+   a stale snapshot by design.
+
 ## Invariants to keep in any phase
 
 Index-in-place (never write outside `brain/`) · agent-instruction-driven (the only shipped
