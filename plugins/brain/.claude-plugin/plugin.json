@@ -1,0 +1,9 @@
+{
+  "name": "brain",
+  "version": "0.1.0",
+  "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Map-only tracer (Phase 1a); an anchored-notes layer is planned. Nothing outside brain/ is ever modified.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
+}
