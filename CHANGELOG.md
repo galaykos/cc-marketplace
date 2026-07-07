@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.35.0] - 2026-07-07
+
+### Added
+
+- **taskmaster** 0.16.0: new `spec-redteam` skill + `spec-adversary` agent + `/taskmaster:redteam` command — a blast-radius-gated adversarial review of a frozen spec, between spec-freeze and task-cards. When the spec warrants it (≥3 success criteria, crosses modules, touches a security/auth/data/external surface, or carries unconfirmed ASSUMED rows), a single **blind** `spec-adversary` agent (opus, read-only) is dispatched with only the spec path — never the grill conversation — and attacks it across four lenses: missing edge cases, unstated assumptions (verified against the codebase via grep), conflicting or underspecified requirements, and failure/security gaps. Each returned hole is resolved through a blocking gate (amend the spec / accept as a known risk / dismiss as a non-issue) before cards are cut; minor-only findings are waved through. Wired into grill's handoff and `task.md` before the plan-check. Closes the gap where nothing attacked the spec's own soundness — opinion-round argues the approach, coverage-check trusts the criteria, grill asks the user; the fresh-context adversary finds what neither the user nor the model thought to ask (Track D)
+
 ## [0.34.0] - 2026-07-07
 
 ### Changed

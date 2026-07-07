@@ -33,8 +33,11 @@ pre-seeds the ledger.
 5. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions with
    sources, accepted assumptions, non-goals, success criteria — plus the
    walkthrough file path and cross-screen contracts when step 4 ran.
-6. If the code-architecture plugin is installed (the plan-before-code skill is
-   available), run a plan check on the spec before splitting cards — file-level
+6. Red-team the spec first when its blast radius warrants — run the `spec-redteam`
+   skill to attack the frozen spec for holes (missing edge cases, unstated
+   assumptions, conflicts, failure/security gaps) and resolve each before planning.
+   Then, if the code-architecture plugin is installed (the plan-before-code skill
+   is available), run a plan check on the spec before splitting cards — file-level
    change plan, unit ownership, interfaces — and fold any corrections back into
    the spec. If the decision-records plugin is installed, offer capturing the
    spec's significant decisions as ADRs (`/decision-records:new`). Skip either

@@ -122,9 +122,11 @@ assumption list, or the user says "enough". Then:
 2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
    rows with sources), accepted assumptions, the chosen approach with alternatives
    rejected and its kill-trigger, non-goals, success criteria.
-3. If the decision-records plugin is installed, offer ADR capture for the spec's
+3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
+   attack the frozen spec for holes and resolve each before cards; trivial specs skip.
+4. If the decision-records plugin is installed, offer ADR capture for the spec's
    significant decisions; skip silently when absent.
-4. Invoke the `task-cards` skill from this plugin to split the spec into
+5. Invoke the `task-cards` skill from this plugin to split the spec into
    single-prompt task cards.
 
 Do not skip the written spec even when the ledger is short — the spec is what makes

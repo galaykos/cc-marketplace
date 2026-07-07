@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.34.0"
+    "version": "0.35.0"
   },
   "plugins": [
     {
@@ -92,7 +92,7 @@
     {
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
-      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes, tradeoff callouts, and motion passes, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, /taskmaster:coverage, a context-scout agent, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)."
+      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes, tradeoff callouts, and motion passes, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, /taskmaster:coverage, /taskmaster:redteam, context-scout and spec-adversary agents, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)."
     },
     {
       "name": "design-preview",
