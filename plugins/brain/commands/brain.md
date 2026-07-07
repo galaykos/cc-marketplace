@@ -5,8 +5,9 @@ argument-hint: "[area|index]"
 
 # /brain
 
-Read or build the **brain map** — the committed `brain/INDEX.md` that indexes the
-project's areas, key files, and notable classes/entrypoints.
+Read or build the **brain map** — a terse `brain/INDEX.md` table of contents (one line per
+area, injected at session start) plus per-area `brain/<area>.md` detail files (files, key
+classes, meaning) loaded on demand.
 
 Parse the first token of `$ARGUMENTS` and act:
 
@@ -26,10 +27,12 @@ Parse the first token of `$ARGUMENTS` and act:
 
 Any other non-empty argument is an area name:
 
-- Print that area's `## <area>` section from `brain/INDEX.md` (and its `brain/<area>.md`
-  detail file if one exists).
-- If no such area exists, print `no such area: <area>` followed by the list of known
-  area names (the `## ` headings in `brain/INDEX.md`).
+- Print that area's **`brain/<area>.md` detail file** (files, key classes, meaning) — this is
+  where the depth lives.
+- If no detail file exists but the area appears in `brain/INDEX.md`, print its one-line entry
+  and note no detail file was built (suggest `/brain index <area>`).
+- If the area is unknown (no detail file and no `INDEX.md` line), print `no such area: <area>`
+  followed by the known area names (the `- <area>` lines in `brain/INDEX.md`).
 
 ## empty — print the whole map
 

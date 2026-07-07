@@ -1,8 +1,9 @@
 # brain
 
-A committed, Obsidian-style **codebase map** for a project. `brain/INDEX.md` indexes the
-project's areas, key files, and notable classes/entrypoints so a fresh Claude session
-starts a task already oriented instead of re-scouting from zero.
+A committed, Obsidian-style **codebase map** for a project. A terse `brain/INDEX.md` table
+of contents (one line per area) is injected at session start so a fresh Claude session is
+oriented immediately; per-area `brain/<area>.md` detail files (key files, classes,
+entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 
 > **Status: map-only tracer (Phase 1a).** An anchored-notes + backlink layer (notes you
 > and Claude write against symbols, with staleness stamps) is planned as Phase 1b. This
@@ -13,9 +14,9 @@ starts a task already oriented instead of re-scouting from zero.
 - **Scans the code, in place.** The map is derived from reading your source. `brain`
   **never modifies, moves, or deletes any file outside `brain/`** — not your source, not
   docs, not other plugins.
-- **Auto-orients every session.** A `SessionStart` hook injects the compact map (bounded
-  to ~30 lines / ~2 KB, delimited and labeled as project data) so Claude sees the layout
-  immediately.
+- **Auto-orients every session.** A `SessionStart` hook injects the terse `INDEX.md` table
+  of contents (bounded ~30 lines / ~2 KB, delimited as project data) so Claude sees every
+  area immediately; per-area depth loads on demand with `/brain <area>`.
 - **Warns when stale.** `brain/INDEX.md` records the commit it was built against. If the
   repo has moved past it, the injected map carries a one-line hint:
   `⚠ brain map is behind HEAD — run /brain index to refresh.`
