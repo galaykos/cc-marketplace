@@ -44,6 +44,32 @@ Use the map in real work. If you catch yourself wanting to jot a gotcha and ther
 to put it → 1b earned its keep, build it (re-grilled against current code). If you never
 reach for that → 1b was never worth the fragility. Let usage decide, not momentum.
 
+## Dogfooding learnings (2026-07-07)
+
+Building + running the tracer on a real Laravel/Inertia app surfaced more than a clean build
+would. These update the Phase-1b calculus:
+
+- **Agent quality is high — better than the red-team feared.** The indexer produced skill
+  cross-refs, "do not hand-edit" warnings on generated code, and a sensible area taxonomy
+  unprompted. The agent-instruction-driven mechanism 1b's notes/stamps depend on is more
+  reliable in practice than red-team hole H6 assumed → **1b risk is lower than priced.**
+- **The map wants layering.** One file could not be both the injected summary and the full
+  depth, so it split into a terse `INDEX.md` TOC + per-area `brain/<area>.md`. 1b's notes are a
+  natural **third layer** on the same structure → the split de-risks 1b integration.
+- **Auto-refresh is technically blocked, not merely deferred.** Claude Code hooks are
+  deterministic shell — they cannot run the LLM indexer. "Re-index on change" needs an
+  agent/command run, which can't fire cheaply or silently. The Phase-2 fence is a hard limit;
+  do not re-litigate it. Best available freshness = incremental `/brain index` (built this
+  session) + the ⚠ staleness hint; run it manually when you wrap a chunk of work.
+- **"Phase 1a" grew.** Split + incremental refresh were not in the original tracer scope; real
+  usage demanded them. The shipped plugin is bigger than the first tracer.
+- **Biggest friction was distribution, not design.** "Push ≠ update install" caused stale-
+  install confusion (fixes committed but not live until the plugin is reinstalled/updated).
+  Worth a short update-flow note for users.
+- **The go-trigger has NOT fired yet.** The map was generated + inspected, not yet used on a
+  real task where a note was wanted. So 1b stays **HOLD** — with the friendlier risk profile
+  above for when it does fire.
+
 ## Resuming (fresh conversation — no prior context needed)
 
 1. **Check the trigger first.** If you never missed having notes while using the map, stop —
