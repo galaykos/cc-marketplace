@@ -86,8 +86,9 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
   default and move on — but never silently. The user approves the assumption list
   at the end even if they delegated every call.
-- Typical interrogations run 2–4 rounds. Round 1 is broad (outcome, scope, actors);
-  later rounds go narrow (edge cases, examples, sequencing) using earlier answers.
+- Converge, don't loop: 2–4 rounds scaled to blast radius, broad then narrow. At the
+  cap, or the first round that closes no new UNKNOWN, stop asking — convert remaining
+  UNKNOWNs to ASSUMED with named defaults and route to Stopping (assumption list for veto).
 
 ## Big tasks: slice before grilling
 

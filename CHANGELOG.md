@@ -4,6 +4,12 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.36.0] - 2026-07-07
+
+### Changed
+
+- **taskmaster** 0.17.0: grill now enforces convergence instead of relying on the user to call "enough". It stops adding rounds at a soft cap (~4, scaled to blast radius) or the first round that closes no new UNKNOWN, then converts remaining UNKNOWN rows to ASSUMED with named defaults and routes them into the existing Stopping assumption-list gate (accept/veto) — the interactive analogue of the headless fallback. A runaway interrogation that keeps spawning UNKNOWNs now terminates on its own; the user still sees and can veto every parked assumption (Track E3)
+
 ## [0.35.0] - 2026-07-07
 
 ### Added
