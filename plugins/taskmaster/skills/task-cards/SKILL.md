@@ -121,6 +121,15 @@ land; the index is the only file that mutates during execution.
 When cards are executed by subagents, the dispatch-prompt and return-format
 contract is the orchestration plugin's delegation-contracts skill.
 
+## After the index — suggest a project skill
+
+Once `00-INDEX.md` is written and before the task-runner handoff, if the
+claude-authoring plugin is installed, invoke its project-skill-suggester skill on
+the finished card set: when three or more cards lean on the same not-yet-captured
+repository-specific knowledge, it offers to scaffold a project skill or agent for
+it. Skip silently when claude-authoring is absent; the offer never blocks the
+handoff.
+
 ## Anti-patterns
 
 - Cards that only make sense in sequence-of-conversation order — the fresh-session

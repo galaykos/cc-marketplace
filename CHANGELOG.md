@@ -4,6 +4,16 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.32.0] - 2026-07-07
+
+### Added
+
+- **claude-authoring** 0.3.0: new `project-skill-suggester` skill — proactive, task-content-driven suggestion of a repository-specific project skill or agent. At the task-cards stage it clusters the freshly split cards and, when three or more lean on the same not-yet-captured repo knowledge (a house convention, an internal API/helper, one subsystem's rules) that no existing skill covers, offers once to scaffold it — deferring the artifact-type choice to `routine-detector`'s shape table and the scaffolding to `/claude-authoring:new-skill`|`new-agent`, and honoring the same consent etiquette (explicit yes, one suggestion per run, a decline is final). Fills the whitespace the three post-hoc detectors leave: routine-detector needs three occurrences over time, hindsight needs two sessions, retrospective runs after a milestone — none inspect a single in-flight task
+
+### Changed
+
+- **taskmaster** 0.13.0: `task-cards` skill wires the new suggester in — after the index is written and before the task-runner handoff, it invokes `project-skill-suggester` on the finished card set when claude-authoring is installed (silent otherwise); mirrors the estimation/approaches/ADR installed-guarded handoff pattern
+
 ## [0.31.0] - 2026-07-07
 
 ### Added

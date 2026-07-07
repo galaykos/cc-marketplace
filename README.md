@@ -158,7 +158,7 @@ afterwards to sweep the orphans.
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
 | **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files; CI/CD + prod deploys → devops | `/dev-env:init`, `/dev-env:review` |
 | **a11y** | WCAG 2.1 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
-| **claude-authoring** | Authoring guides for skills/agents/hooks/plugins + routine-detector that suggests capturing repetitive work as a project skill | `/claude-authoring:new-skill`, `/claude-authoring:new-agent`, `/claude-authoring:new-hook`, `/claude-authoring:new-plugin` |
+| **claude-authoring** | Authoring guides for skills/agents/hooks/plugins + routine-detector (capture repetitive work as a project skill) + project-skill-suggester (proactively offer one when a task's cards share uncovered repo knowledge) | `/claude-authoring:new-skill`, `/claude-authoring:new-agent`, `/claude-authoring:new-hook`, `/claude-authoring:new-plugin` |
 
 ### Worker agents
 
