@@ -1,0 +1,43 @@
+{
+  "sourceBase": "https://example.com",
+  "capturedAt": "2026-07-06T00:00:00.000Z",
+  "steps": [
+    {
+      "index": 0,
+      "file": "step-0.html",
+      "url": "https://example.com/register/step1",
+      "title": "Create your account (1/2)",
+      "forms": [
+        {
+          "index": 0,
+          "id": "signup",
+          "action": "https://example.com/register/credentials",
+          "method": "post",
+          "fields": [
+            { "tag": "input", "name": "email", "type": "email", "required": true, "placeholder": "you@example.com" },
+            { "tag": "input", "name": "password", "type": "password", "required": true, "placeholder": null }
+          ]
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "file": "step-1.html",
+      "url": "https://example.com/register/step2",
+      "title": "Complete your profile (2/2)",
+      "forms": [
+        {
+          "index": 0,
+          "id": "profile",
+          "action": "https://example.com/register/profile",
+          "method": "post",
+          "fields": [
+            { "tag": "input", "name": "username", "type": "text", "required": true, "placeholder": "handle" },
+            { "tag": "input", "name": "fullname", "type": "text", "required": true, "placeholder": null },
+            { "tag": "input", "name": "age", "type": "number", "required": false, "placeholder": null }
+          ]
+        }
+      ]
+    }
+  ]
+}
