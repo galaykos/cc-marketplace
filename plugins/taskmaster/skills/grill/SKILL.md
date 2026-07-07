@@ -38,6 +38,16 @@ round so the user always sees what is settled and what still blocks:
 Statuses: **CLEAR** (user said it, or code proves it), **ASSUMED** (a default was
 chosen and named, awaiting confirmation), **UNKNOWN** (blocks implementation).
 
+## Persist and resume
+
+After reprinting the ledger each round, also write it — a `Task: <description>`
+header plus the table — to `.claude/taskmaster/ledger-<slug>.md` (gitignored;
+`<slug>` a kebab of the task description), so an interrupted interrogation is not
+lost. At grill start, if an unfinished `.claude/taskmaster/ledger-*.md` exists, show
+its task and offer Resume / Start fresh; Resume loads the table and continues from
+the first UNKNOWN row — no re-scout, no re-asking resolved rows. Delete the file
+when the spec is written.
+
 ## Question dimensions
 
 Walk these ten dimensions; skip any the scout or the prompt already settled:
@@ -76,8 +86,9 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
   default and move on — but never silently. The user approves the assumption list
   at the end even if they delegated every call.
-- Typical interrogations run 2–4 rounds. Round 1 is broad (outcome, scope, actors);
-  later rounds go narrow (edge cases, examples, sequencing) using earlier answers.
+- Converge, don't loop: 2–4 rounds scaled to blast radius, broad then narrow. At the
+  cap, or the first round that closes no new UNKNOWN, stop asking — convert remaining
+  UNKNOWNs to ASSUMED with named defaults and route to Stopping (assumption list for veto).
 
 ## Big tasks: slice before grilling
 
@@ -112,9 +123,11 @@ assumption list, or the user says "enough". Then:
 2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
    rows with sources), accepted assumptions, the chosen approach with alternatives
    rejected and its kill-trigger, non-goals, success criteria.
-3. If the decision-records plugin is installed, offer ADR capture for the spec's
+3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
+   attack the frozen spec for holes and resolve each before cards; trivial specs skip.
+4. If the decision-records plugin is installed, offer ADR capture for the spec's
    significant decisions; skip silently when absent.
-4. Invoke the `task-cards` skill from this plugin to split the spec into
+5. Invoke the `task-cards` skill from this plugin to split the spec into
    single-prompt task cards.
 
 Do not skip the written spec even when the ledger is short — the spec is what makes

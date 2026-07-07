@@ -3,3 +3,5 @@
 docs
 .junie
 taskmaster-docs
+.claude/skill-router/
+.claude/taskmaster/

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.30.0"
+    "version": "0.36.0"
   },
   "plugins": [
     {
@@ -92,7 +92,7 @@
     {
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
-      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes, tradeoff callouts, and motion passes, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, a context-scout agent, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)."
+      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes, tradeoff callouts, and motion passes, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, /taskmaster:coverage, /taskmaster:redteam, context-scout and spec-adversary agents, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README)."
     },
     {
       "name": "design-preview",
@@ -192,7 +192,7 @@
     {
       "name": "claude-authoring",
       "source": "./plugins/claude-authoring",
-      "description": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands."
+      "description": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, a project-skill-suggester that proactively offers one when a task's cards share uncovered repository-specific knowledge, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands."
     },
     {
       "name": "code-review",
@@ -343,6 +343,11 @@
       "name": "automations-suite",
       "source": "./plugins/automations-suite",
       "description": "Meta-bundle: the browser-automation category in one install — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox navigators plus the automation-builder planner and browser-automation-engineer agent. Uninstall cleanly with /automations-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "skill-router",
+      "source": "./plugins/skill-router",
+      "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session."
     }
   ]
 }

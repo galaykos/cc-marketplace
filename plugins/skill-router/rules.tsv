@@ -1,0 +1,21 @@
+# signal_type	pattern	skill	owning_plugin	confidence
+glob	*.sql	sql-best-practices	sql	high
+glob	**/migrations/**	sql-best-practices	sql	high
+glob	*.tsx	ui-ux-stack	ui-ux	high
+glob	*.jsx	ui-ux-stack	ui-ux	high
+glob	**/components/**	ui-ux-stack	ui-ux	high
+glob	*.tsx	a11y-audit	a11y	high
+glob	*.css	ui-ux-stack	ui-ux	high
+glob	*.scss	ui-ux-stack	ui-ux	high
+glob	*.test.*	testing-best-practices	testing	high
+glob	*.spec.*	testing-best-practices	testing	high
+glob	**/tests/**	testing-best-practices	testing	high
+glob	Dockerfile*	docker-best-practices	dev-env	high
+glob	docker-compose*.yml	docker-best-practices	dev-env	high
+glob	compose*.yml	docker-best-practices	dev-env	high
+glob	package.json	package-hygiene	packages	high
+glob	composer.json	package-hygiene	packages	high
+content	\b(async|await|Promise\.all|mutex|goroutine|\.lock\(|queue)\b	concurrency-safety	concurrency	low
+content	\b(catch|throw|rescue)\b	error-handling-design	error-handling	low
+content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
+content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resilience	low

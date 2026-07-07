@@ -4,6 +4,50 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.36.0] - 2026-07-07
+
+### Changed
+
+- **taskmaster** 0.17.0: grill now enforces convergence instead of relying on the user to call "enough". It stops adding rounds at a soft cap (~4, scaled to blast radius) or the first round that closes no new UNKNOWN, then converts remaining UNKNOWN rows to ASSUMED with named defaults and routes them into the existing Stopping assumption-list gate (accept/veto) — the interactive analogue of the headless fallback. A runaway interrogation that keeps spawning UNKNOWNs now terminates on its own; the user still sees and can veto every parked assumption (Track E3)
+
+## [0.35.0] - 2026-07-07
+
+### Added
+
+- **taskmaster** 0.16.0: new `spec-redteam` skill + `spec-adversary` agent + `/taskmaster:redteam` command — a blast-radius-gated adversarial review of a frozen spec, between spec-freeze and task-cards. When the spec warrants it (≥3 success criteria, crosses modules, touches a security/auth/data/external surface, or carries unconfirmed ASSUMED rows), a single **blind** `spec-adversary` agent (opus, read-only) is dispatched with only the spec path — never the grill conversation — and attacks it across four lenses: missing edge cases, unstated assumptions (verified against the codebase via grep), conflicting or underspecified requirements, and failure/security gaps. Each returned hole is resolved through a blocking gate (amend the spec / accept as a known risk / dismiss as a non-issue) before cards are cut; minor-only findings are waved through. Wired into grill's handoff and `task.md` before the plan-check. Closes the gap where nothing attacked the spec's own soundness — opinion-round argues the approach, coverage-check trusts the criteria, grill asks the user; the fresh-context adversary finds what neither the user nor the model thought to ask (Track D)
+
+## [0.34.0] - 2026-07-07
+
+### Changed
+
+- **taskmaster** 0.15.0: grill now persists its ambiguity ledger to a gitignored `.claude/taskmaster/ledger-<slug>.md` after each round (a `Task:` header plus the table), and at grill start offers Resume / Start fresh when an unfinished ledger is found — so an interruption mid-interrogation (context loss, crash, session end) resumes from the ledger with the context-scout findings and every answered row intact, instead of re-scouting and re-asking from scratch. The working file is deleted when the spec is written. Closes the pipeline's only ephemeral pre-execution state — execution already resumes from `00-INDEX.md`, but grill's ledger previously lived only in the conversation (Track E1)
+
+## [0.33.0] - 2026-07-07
+
+### Added
+
+- **taskmaster** 0.14.0: new `coverage-check` skill + `/taskmaster:coverage` command — a spec↔card traceability gate. At the tail of task-cards (after the index is written, before the execution handoff) it cross-checks the spec's `## Success criteria` against every card's `**Acceptance criteria:**` in both directions: a criterion no card satisfies is a GAP (dropped scope), a card that serves no criterion is an ORPHAN, a card asserting behavior in no criterion or decision is DRIFT (added scope). It blocks the handoff until each finding is resolved (add a card — deferred to task-cards — / fold / reclassify as non-goal / accept-with-reason for gaps; tie / add-criterion / drop for orphans) or explicitly accepted, and persists a `## Coverage` matrix into `00-INDEX.md`. Closes the pipeline's worst silent failure: a card set that quietly misses a requirement or drifts from the spec, shipped straight into execution. An independent verifier — it checks documents against documents, distinct from work-verification / task-runner which check delivered code
+
+## [0.32.0] - 2026-07-07
+
+### Added
+
+- **claude-authoring** 0.3.0: new `project-skill-suggester` skill — proactive, task-content-driven suggestion of a repository-specific project skill or agent. At the task-cards stage it clusters the freshly split cards and, when three or more lean on the same not-yet-captured repo knowledge (a house convention, an internal API/helper, one subsystem's rules) that no existing skill covers, offers once to scaffold it — deferring the artifact-type choice to `routine-detector`'s shape table and the scaffolding to `/claude-authoring:new-skill`|`new-agent`, and honoring the same consent etiquette (explicit yes, one suggestion per run, a decline is final). Fills the whitespace the three post-hoc detectors leave: routine-detector needs three occurrences over time, hindsight needs two sessions, retrospective runs after a milestone — none inspect a single in-flight task
+
+### Changed
+
+- **taskmaster** 0.13.0: `task-cards` skill wires the new suggester in — after the index is written and before the task-runner handoff, it invokes `project-skill-suggester` on the finished card set when claude-authoring is installed (silent otherwise); mirrors the estimation/approaches/ADR installed-guarded handoff pattern
+
+## [0.31.0] - 2026-07-07
+
+### Added
+
+- **skill-router** 0.1.0: new plugin — file-aware skill auto-routing. A `PostToolUse` hook (`Edit|Write|MultiEdit`) matches the edited file against a declarative `rules.tsv` and injects a directive to load the relevant best-practice skill: high-confidence path/extension signals (sql, ui-ux, a11y, testing, dev-env, packages) fire inline once per signal per session; low-confidence content signals (concurrency, error-handling, security, resilience) accumulate into a `SessionEnd` digest instead of interrupting. A `SessionStart` hook primes a repo-tailored skill index sniffed directly from manifests — stack-scan is a conversational skill with no hook-readable output, so the primer does its own detection. Fail-open throughout (any error or missing `jq` exits silently, never blocks an edit); rules filtered to installed plugins via a sibling-directory check; per-session dedup state at `.claude/skill-router/` (gitignored). Closes the gap where ~50 suite skills fired only when the model happened to notice their description trigger. Design + spec + task cards under `taskmaster-docs/` (Track A of a taskmaster-suite improvement brainstorm)
+
+### Changed
+
+- **taskmaster-suite** 0.8.0, **everything** 0.10.0: skill-router added to bundle dependencies
+
 ## [0.30.0] - 2026-07-06
 
 ### Changed

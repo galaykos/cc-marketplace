@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 51 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
+2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 60 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -123,7 +123,7 @@ afterwards to sweep the orphans.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **[taskmaster](plugins/taskmaster/README.md)** | Idea-to-execution clarification: brainstorming fuzzy ideas into designs, ambiguity ledger, batched questions, theme-aware shell mockups (project colors when detectable, compare modes, tradeoff callouts, motion passes) + interactive experience walkthroughs on one always-live preview URL, milestone-grouped single-prompt task cards + context-scout agent, spec-time ERDs (mermaid + SVG preview) | `/taskmaster:task` (or `/taskmaster`), `/taskmaster:brainstorm` |
+| **[taskmaster](plugins/taskmaster/README.md)** | Idea-to-execution clarification: brainstorming fuzzy ideas into designs, ambiguity ledger, batched questions, theme-aware shell mockups (project colors when detectable, compare modes, tradeoff callouts, motion passes) + interactive experience walkthroughs on one always-live preview URL, milestone-grouped single-prompt task cards + context-scout agent, spec-time ERDs (mermaid + SVG preview), spec↔card coverage gate, adversarial spec red-team | `/taskmaster:task` (or `/taskmaster`), `/taskmaster:brainstorm`, `/taskmaster:coverage`, `/taskmaster:redteam` |
 | **[design-preview](plugins/design-preview/README.md)** | Real-component visual decisions for Vite + React: candidate variants rendered with the project's own components on its dev server via a scratch HTML entry (zero edits to existing files), strict consent + verified cleanup; falls back to taskmaster's shell mockups | `/design-preview:preview` |
 | **[task-runner](plugins/task-runner/README.md)** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate + parallel-planning (computed subagents-vs-inline verdict, agent count, speedup estimate) | `/task-runner:run`, `/task-runner:plan` |
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
@@ -132,6 +132,7 @@ afterwards to sweep the orphans.
 | **decision-records** | ADRs: persist approach/schema/dependency decisions to taskmaster-docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
 | **retrospective** | Post-milestone learning loop: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks | `/retrospective:run` |
 | **[hindsight](plugins/hindsight/README.md)** | Cross-session self-improvement loop: SessionEnd hook logs friction stats to a local ledger; harvest mines high-friction transcripts → CLAUDE.md rule candidates, skill/plugin ideas, failed-approach warnings — apply on approval + transcript-miner agent | `/hindsight:harvest` |
+| **[skill-router](plugins/skill-router/README.md)** | File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo skill index, low-confidence content signals surface in a SessionEnd digest; fail-open, once per signal per session | — |
 
 ### Engineering discipline
 
@@ -158,7 +159,7 @@ afterwards to sweep the orphans.
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
 | **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files; CI/CD + prod deploys → devops | `/dev-env:init`, `/dev-env:review` |
 | **a11y** | WCAG 2.1 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
-| **claude-authoring** | Authoring guides for skills/agents/hooks/plugins + routine-detector that suggests capturing repetitive work as a project skill | `/claude-authoring:new-skill`, `/claude-authoring:new-agent`, `/claude-authoring:new-hook`, `/claude-authoring:new-plugin` |
+| **claude-authoring** | Authoring guides for skills/agents/hooks/plugins + routine-detector (capture repetitive work as a project skill) + project-skill-suggester (proactively offer one when a task's cards share uncovered repo knowledge) | `/claude-authoring:new-skill`, `/claude-authoring:new-agent`, `/claude-authoring:new-hook`, `/claude-authoring:new-plugin` |
 
 ### Worker agents
 
@@ -198,6 +199,8 @@ Plugins with their own README carry detailed usage and examples — see the link
 | **taskmaster** | Clarifies the task: interrogation → spec → single-prompt task cards |
 | **task-runner** | Executes the cards one at a time with scope lock, bounded verify-fix loops, and a full-suite completion gate |
 | **code-architecture** | Supplies the process gates used throughout: plan-before-code, YAGNI checks, and the work-verification discipline task-runner applies to the whole run |
+
+Beyond the core four, the pipeline auto-wires more companions **when they are installed** (all of them ship in the `taskmaster-suite` bundle): **approaches** (blind opinion-round personas at the approach-decision step), **claude-authoring** (the project-skill-suggester offer after card-split), **decision-records** (ADR capture), and **estimation** (S/M/L/XL card sizing). It also runs internal stages that need no companion: a resumable grill ledger, a convergence cap on interrogation, an adversarial spec red-team before cards, and a spec↔card coverage gate after them.
 
 The full loop for a feature:
 
