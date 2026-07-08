@@ -75,12 +75,14 @@ For each shotlist entry, in list order:
 
 1. Navigate to the route; let the screen settle (fonts, images, first-paint
    animation); capture a full raw screenshot.
-2. **Frame it.** Copy `assets/frame-shell.html` (relative to this skill) to a
-   scratch file, fill its slots — `SLOT:SHOT_SRC` with the raw capture (data URI
-   or local path), `SLOT:CAPTION` with the entry's caption, `SLOT:BG` optional.
-   Serve it, render in the same backend, and re-screenshot the `#mc-capture-target`
-   element. This is the framed output — zero image-library dependency, all
-   HTML+CSS. Tune `--mc-accent`/the gradient to the brand; do not restyle per shot.
+2. **Frame + refine.** If the `image-ops` skill is available, route framing,
+   resizing, and optimization through it (it detects an image MCP and degrades on
+   its own) — one detection point, do not probe for an MCP here. Otherwise use the
+   inline composite: copy `assets/frame-shell.html` to a scratch file, fill its
+   slots — `SLOT:SHOT_SRC` with the raw capture (data URI or local path),
+   `SLOT:CAPTION` with the caption, `SLOT:BG` optional — serve it, render in the
+   same backend, and re-screenshot the `#mc-capture-target` element. Zero
+   image-library dependency; tune `--mc-accent`/the gradient, never per shot.
 3. Write the framed image to `marketing/shot-01.png`, `shot-02.png`, …
    Keep each shot's caption paired with its file — the `marketing-copy` skill
    consumes those captions. Delete scratch frame files after each write.

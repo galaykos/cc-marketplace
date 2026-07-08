@@ -7,6 +7,9 @@ Meta-bundle: turn a working repo or app into launch assets in one install.
   screenshots + a native-only demo GIF under `marketing/`.
 - **[marketing-copy](../marketing-copy/README.md)** — slogans, feature blurbs,
   and a demo script grounded in the README, manifests, and the capture captions.
+- **[marketing-image-ops](../marketing-image-ops/README.md)** — resize, optimize,
+  OG images, favicons, and frames via an adopted third-party image MCP (you
+  register one; see that plugin's README).
 
 `design-preview` is used opportunistically as a live-app driver when present —
 it is **not** a bundled dependency, so it installs and uninstalls independently.
@@ -30,5 +33,6 @@ Removes the bundle and prunes its auto-installed members (`marketing-capture`,
 ## Typical flow
 
 1. `marketing-capture` → shoot the real app into `marketing/`.
-2. `marketing-copy` → read those shot captions and write `marketing/copy.md`.
-3. Ship the framed screenshots, the GIF, and the copy together.
+2. `marketing-image-ops` → resize/optimize the shots, build an OG image + favicon.
+3. `marketing-copy` → read those shot captions and write `marketing/copy.md`.
+4. Ship the framed screenshots, the GIF, the images, and the copy together.

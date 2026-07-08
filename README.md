@@ -177,6 +177,7 @@ afterwards to sweep the orphans.
 |--------|-------------|----------|
 | **[marketing-capture](plugins/marketing-capture/README.md)** | Capture the real running app into framed screenshots + a native-only demo GIF under `marketing/`, via an auto-detected browser backend (claude-in-chrome / Playwright / Claude_Preview / Puppeteer); reuses design-preview as an opportunistic live-app driver, never installs anything | `capture-assets` skill |
 | **[marketing-copy](plugins/marketing-copy/README.md)** | Slogans, feature blurbs, and a demo script grounded in the README, manifests, a brief, and the capture captions — writes `marketing/copy.md`; pure text, no browser | `marketing-copy` skill |
+| **[marketing-image-ops](plugins/marketing-image-ops/README.md)** | Resize / crop / optimize / OG-image (1200×630) / favicon / captioned frame by delegating to an adopted third-party image MCP (Sharp or ImageMagick) and composing marketing presets; MCP-agnostic, never installs, degrades gracefully | `image-ops` skill |
 
 ### Bundles
 
@@ -190,7 +191,7 @@ afterwards to sweep the orphans.
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, ADRs, retrospectives, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
 | **automations-suite** | Meta-bundle: browser-automation category — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox, automation-builder | `/automations-suite:uninstall` |
-| **marketing-suite** | Meta-bundle: marketing category — marketing-capture (framed screenshots + demo GIF of the real app) and marketing-copy (slogans, blurbs, demo script) | `/marketing-suite:uninstall` |
+| **marketing-suite** | Meta-bundle: marketing category — marketing-capture (framed screenshots + demo GIF of the real app), marketing-copy (slogans, blurbs, demo script), and marketing-image-ops (resize/optimize/OG-image/favicon via an adopted image MCP) | `/marketing-suite:uninstall` |
 
 ## Usage
 

@@ -100,6 +100,14 @@ under a short H1 naming the product. Create `marketing/` if it does not
 exist. If a `copy.md` is already there, show the diff intent and confirm before
 overwriting — prior copy may have been hand-edited.
 
+### Social share image
+
+If the `image-ops` skill is available, request an `og_image` (1200×630) built
+from the recommended slogan and a hero screenshot, written beside `copy.md` (e.g.
+`marketing/og-image.png`). Let `image-ops` handle MCP detection and degradation —
+do not probe here. If it is unavailable, note the OG image was skipped; never
+fabricate one.
+
 End by reporting the file path and the recommended slogan, so the user has the
 one-line takeaway without opening the file.
 

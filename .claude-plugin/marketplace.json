@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, marketing assets, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.38.0"
+    "version": "0.39.0"
   },
   "plugins": [
     {
@@ -367,7 +367,12 @@
     {
       "name": "marketing-suite",
       "source": "./plugins/marketing-suite",
-      "description": "Meta-bundle: turn a working repo/app into launch assets — marketing-capture (framed screenshots + native-only demo GIF of the real app, via an auto-detected browser backend) and marketing-copy (slogans, feature blurbs, demo script). Uninstall cleanly with /marketing-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: turn a working repo/app into launch assets — marketing-capture (framed screenshots + native-only demo GIF of the real app, via an auto-detected browser backend), marketing-copy (slogans, feature blurbs, demo script), and marketing-image-ops (resize/optimize/OG-image/favicon via an adopted image MCP). Uninstall cleanly with /marketing-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "marketing-image-ops",
+      "source": "./plugins/marketing-image-ops",
+      "description": "Deterministic image work for the marketing suite: detects a generic third-party image MCP (Sharp or ImageMagick based) and delegates raster primitives (resize, crop, optimize, convert), then composes marketing presets those servers don't ship — OG images (1200x630), app-store frames, favicon sets, captioned frames. MCP-agnostic; degrades to an HTML composite for framing and skips-with-note for raster when no MCP is registered. Never installs anything. Includes the image-ops skill."
     }
   ]
 }
