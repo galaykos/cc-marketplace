@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 60 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
+2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 60 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`, `marketing-suite`.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -56,6 +56,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
 /plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, estimation, orchestration, task-runner…
+/plugin install marketing-suite@cc-plugins-marketplace  # capture screenshots + demo GIF, marketing copy
 ```
 
 Dependencies are resolved and installed automatically; add any framework
@@ -170,6 +171,13 @@ afterwards to sweep the orphans.
 | **devops** | DevOps worker: CI/CD pipelines, Docker/K8s, deploy strategies with rollback paths, observability, secrets discipline + devops-engineer agent; local dev environments → dev-env | — |
 | **performance** | Performance worker: measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing + performance-engineer agent | — |
 
+### Marketing
+
+| Plugin | Description | Commands |
+|--------|-------------|----------|
+| **[marketing-capture](plugins/marketing-capture/README.md)** | Capture the real running app into framed screenshots + a native-only demo GIF under `docs/marketing/`, via an auto-detected browser backend (claude-in-chrome / Playwright / Claude_Preview / Puppeteer); reuses design-preview as an opportunistic live-app driver, never installs anything | `capture-assets` skill |
+| **[marketing-copy](plugins/marketing-copy/README.md)** | Slogans, feature blurbs, and a demo script grounded in the README, manifests, a brief, and the capture captions — writes `docs/marketing/copy.md`; pure text, no browser | `marketing-copy` skill |
+
 ### Bundles
 
 | Plugin | Description | Commands |
@@ -182,6 +190,7 @@ afterwards to sweep the orphans.
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, ADRs, retrospectives, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
 | **automations-suite** | Meta-bundle: browser-automation category — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox, automation-builder | `/automations-suite:uninstall` |
+| **marketing-suite** | Meta-bundle: marketing category — marketing-capture (framed screenshots + demo GIF of the real app) and marketing-copy (slogans, blurbs, demo script) | `/marketing-suite:uninstall` |
 
 ## Usage
 
