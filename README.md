@@ -175,8 +175,8 @@ afterwards to sweep the orphans.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **[marketing-capture](plugins/marketing-capture/README.md)** | Capture the real running app into framed screenshots + a native-only demo GIF under `docs/marketing/`, via an auto-detected browser backend (claude-in-chrome / Playwright / Claude_Preview / Puppeteer); reuses design-preview as an opportunistic live-app driver, never installs anything | `capture-assets` skill |
-| **[marketing-copy](plugins/marketing-copy/README.md)** | Slogans, feature blurbs, and a demo script grounded in the README, manifests, a brief, and the capture captions — writes `docs/marketing/copy.md`; pure text, no browser | `marketing-copy` skill |
+| **[marketing-capture](plugins/marketing-capture/README.md)** | Capture the real running app into framed screenshots + a native-only demo GIF under `marketing/`, via an auto-detected browser backend (claude-in-chrome / Playwright / Claude_Preview / Puppeteer); reuses design-preview as an opportunistic live-app driver, never installs anything | `capture-assets` skill |
+| **[marketing-copy](plugins/marketing-copy/README.md)** | Slogans, feature blurbs, and a demo script grounded in the README, manifests, a brief, and the capture captions — writes `marketing/copy.md`; pure text, no browser | `marketing-copy` skill |
 
 ### Bundles
 

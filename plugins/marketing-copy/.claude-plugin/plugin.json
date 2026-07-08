@@ -1,6 +1,6 @@
 {
   "name": "marketing-copy",
   "version": "0.1.0",
-  "description": "Generate marketing copy from the repo: slogans, feature blurbs, and a demo script, drawn from the README, plugin manifests, a short user brief, and — when present — the capture shotlist captions so the words match the screenshots. Pure-LLM, no browser, no capture; writes docs/marketing/copy.md. Ships the marketing-copy skill.",
+  "description": "Generate marketing copy from the repo: slogans, feature blurbs, and a demo script, drawn from the README, plugin manifests, a short user brief, and — when present — the capture shotlist captions so the words match the screenshots. Pure-LLM, no browser, no capture; writes marketing/copy.md. Ships the marketing-copy skill.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

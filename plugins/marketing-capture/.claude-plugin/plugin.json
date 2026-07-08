@@ -1,6 +1,6 @@
 {
   "name": "marketing-capture",
   "version": "0.1.0",
-  "description": "Capture the real running app into marketing assets: auto-detects an available browser backend (claude-in-chrome, Playwright MCP, Claude_Preview, Puppeteer), gets the app on screen, and — behind an up-front consent gate — writes framed screenshots and a native-only demo GIF to docs/marketing/. Reuses design-preview as an opportunistic live-app driver; never installs anything. Ships the capture-assets skill.",
+  "description": "Capture the real running app into marketing assets: auto-detects an available browser backend (claude-in-chrome, Playwright MCP, Claude_Preview, Puppeteer), gets the app on screen, and — behind an up-front consent gate — writes framed screenshots and a native-only demo GIF to marketing/. Reuses design-preview as an opportunistic live-app driver; never installs anything. Ships the capture-assets skill.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

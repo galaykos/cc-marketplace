@@ -1,11 +1,11 @@
 ---
 name: marketing-copy
-description: Use when a project needs marketing words — slogans, feature blurbs, or a demo script — grounded in what the product actually is. Reads the README, plugin/package manifests, a short user brief, and any capture shotlist captions in docs/marketing/, then writes docs/marketing/copy.md. Pure text: no browser, no screenshots, no capture — pair it with a capture skill for the visuals.
+description: Use when a project needs marketing words — slogans, feature blurbs, or a demo script — grounded in what the product actually is. Reads the README, plugin/package manifests, a short user brief, and any capture shotlist captions in marketing/, then writes marketing/copy.md. Pure text: no browser, no screenshots, no capture — pair it with a capture skill for the visuals.
 ---
 
 ## What this produces
 
-One markdown file, `docs/marketing/copy.md`, with three sections:
+One markdown file, `marketing/copy.md`, with three sections:
 
 1. **Slogans** — 5–8 candidate taglines, short, each a different angle
    (outcome, speed, pain removed, audience). One is marked the recommended pick.
@@ -28,7 +28,7 @@ Gather these before writing a single line; do not invent facts about the product
 - **User brief** — ask for it if not given: audience, tone (playful vs.
   enterprise), and the single most important thing to land. Keep it to a
   sentence or two; this is steering, not a questionnaire.
-- **Shotlist captions** — if `docs/marketing/` holds captured shots with
+- **Shotlist captions** — if `marketing/` holds captured shots with
   captions (from the capture skill), read them so the demo script and blurbs
   describe exactly what the reader will see. No captions present? The skill
   still runs standalone; the demo script becomes a suggested shot order instead.
@@ -95,8 +95,8 @@ of shots when a shotlist exists.
 
 ## Output
 
-Write `docs/marketing/copy.md` with the three sections above, in that order,
-under a short H1 naming the product. Create `docs/marketing/` if it does not
+Write `marketing/copy.md` with the three sections above, in that order,
+under a short H1 naming the product. Create `marketing/` if it does not
 exist. If a `copy.md` is already there, show the diff intent and confirm before
 overwriting — prior copy may have been hand-edited.
 

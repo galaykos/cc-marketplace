@@ -1,6 +1,6 @@
 ---
 name: capture-assets
-description: Use when a working app or repo needs marketing screenshots and a demo GIF of the REAL running product — actual screens, not mockups. Auto-detects an available browser backend, gets the app on screen, asks consent up front naming exact artifacts, shoots a user shotlist, frames each screenshot into a marketing image, and records a native-only GIF — all into docs/marketing/.
+description: Use when a working app or repo needs marketing screenshots and a demo GIF of the REAL running product — actual screens, not mockups. Auto-detects an available browser backend, gets the app on screen, asks consent up front naming exact artifacts, shoots a user shotlist, frames each screenshot into a marketing image, and records a native-only GIF — all into marketing/.
 ---
 
 ## When to reach for this
@@ -46,8 +46,8 @@ local files — including the frame shell below).
 This flow starts servers and writes image files. Before ANY of that, ask via
 `AskUserQuestion`, naming the exact artifacts:
 
-> Capture marketing assets? Writes framed `docs/marketing/shot-01.png …` (one
-> per shot) and, on a backend that supports it, `docs/marketing/demo.gif`.
+> Capture marketing assets? Writes framed `marketing/shot-01.png …` (one
+> per shot) and, on a backend that supports it, `marketing/demo.gif`.
 > Starts a preview server only if the app is not already running; stopped at end.
 
 Options: proceed / skip. Ask once per session; the answer holds all session.
@@ -81,7 +81,7 @@ For each shotlist entry, in list order:
    Serve it, render in the same backend, and re-screenshot the `#mc-capture-target`
    element. This is the framed output — zero image-library dependency, all
    HTML+CSS. Tune `--mc-accent`/the gradient to the brand; do not restyle per shot.
-3. Write the framed image to `docs/marketing/shot-01.png`, `shot-02.png`, …
+3. Write the framed image to `marketing/shot-01.png`, `shot-02.png`, …
    Keep each shot's caption paired with its file — the `marketing-copy` skill
    consumes those captions. Delete scratch frame files after each write.
 4. Report the written paths and which backend produced them.
@@ -92,7 +92,7 @@ A GIF is produced ONLY when the detected backend has a real recorder — today
 that is `claude-in-chrome`'s `gif_creator`:
 
 - **Backend has a recorder:** record a walkthrough of the shotlist (navigate the
-  routes in order) to `docs/marketing/demo.gif`.
+  routes in order) to `marketing/demo.gif`.
 - **Backend has none** (Playwright/Preview/Puppeteer): skip the GIF and emit a
   clear note — `"GIF unavailable on <backend> — screenshots only."` Do NOT
   assemble frames by hand, shell out to ffmpeg, or install anything. Screenshots
@@ -105,7 +105,7 @@ that is `claude-in-chrome`'s `gif_creator`:
 - A server this flow started dies at run end, by noted PID, on success and abort
   alike; verify the port is free afterwards.
 - Scratch frame-shell files are deleted after their capture.
-- A stray server, leftover scratch file, or half-written `docs/marketing/` is a
+- A stray server, leftover scratch file, or half-written `marketing/` is a
   failed run whatever images landed.
 
 ## Anti-patterns

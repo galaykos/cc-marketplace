@@ -2,7 +2,7 @@
 
 Marketing words grounded in what the product actually is. Reads the README,
 manifests, a short brief, and any capture shotlist captions, then writes
-`docs/marketing/copy.md` with slogans, feature blurbs, and a demo script.
+`marketing/copy.md` with slogans, feature blurbs, and a demo script.
 Pure text — no browser, no screenshots. Pair it with `marketing-capture` for
 the visuals.
 
@@ -17,13 +17,13 @@ the visuals.
 
 | Skill | What it does |
 |-------|--------------|
-| `marketing-copy` | Read README + manifests + brief + shotlist captions, write `docs/marketing/copy.md` (slogans, feature blurbs, demo script) |
+| `marketing-copy` | Read README + manifests + brief + shotlist captions, write `marketing/copy.md` (slogans, feature blurbs, demo script) |
 
 ## How it works
 
 1. **Grounds in the product**, never invents: README, `plugin.json` /
    `package.json` / `composer.json`, and a one-sentence user brief.
-2. **Reads the shotlist captions** in `docs/marketing/` when `marketing-capture`
+2. **Reads the shotlist captions** in `marketing/` when `marketing-capture`
    has run, so the demo script and blurbs match what the reader will see. Runs
    standalone when there are none.
 3. **Writes three sections** — slogans (one recommended), benefit-first feature

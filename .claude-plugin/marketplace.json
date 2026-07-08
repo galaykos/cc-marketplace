@@ -357,12 +357,12 @@
     {
       "name": "marketing-capture",
       "source": "./plugins/marketing-capture",
-      "description": "Capture the real running app into marketing assets: auto-detects an available browser backend (claude-in-chrome, Playwright MCP, Claude_Preview, Puppeteer), gets the app on screen, and — behind an up-front consent gate — writes framed screenshots and a native-only demo GIF to docs/marketing/. Reuses design-preview as an opportunistic live-app driver; never installs anything. Includes the capture-assets skill."
+      "description": "Capture the real running app into marketing assets: auto-detects an available browser backend (claude-in-chrome, Playwright MCP, Claude_Preview, Puppeteer), gets the app on screen, and — behind an up-front consent gate — writes framed screenshots and a native-only demo GIF to marketing/. Reuses design-preview as an opportunistic live-app driver; never installs anything. Includes the capture-assets skill."
     },
     {
       "name": "marketing-copy",
       "source": "./plugins/marketing-copy",
-      "description": "Generate marketing copy from the repo: slogans, feature blurbs, and a demo script, drawn from the README, plugin manifests, a short user brief, and — when present — the capture shotlist captions so the words match the screenshots. Pure-LLM, no browser, no capture; writes docs/marketing/copy.md. Includes the marketing-copy skill."
+      "description": "Generate marketing copy from the repo: slogans, feature blurbs, and a demo script, drawn from the README, plugin manifests, a short user brief, and — when present — the capture shotlist captions so the words match the screenshots. Pure-LLM, no browser, no capture; writes marketing/copy.md. Includes the marketing-copy skill."
     },
     {
       "name": "marketing-suite",

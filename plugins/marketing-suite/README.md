@@ -4,7 +4,7 @@ Meta-bundle: turn a working repo or app into launch assets in one install.
 
 - **[marketing-capture](../marketing-capture/README.md)** — auto-detects an
   available browser backend and captures the real running app into framed
-  screenshots + a native-only demo GIF under `docs/marketing/`.
+  screenshots + a native-only demo GIF under `marketing/`.
 - **[marketing-copy](../marketing-copy/README.md)** — slogans, feature blurbs,
   and a demo script grounded in the README, manifests, and the capture captions.
 
@@ -29,6 +29,6 @@ Removes the bundle and prunes its auto-installed members (`marketing-capture`,
 
 ## Typical flow
 
-1. `marketing-capture` → shoot the real app into `docs/marketing/`.
-2. `marketing-copy` → read those shot captions and write `docs/marketing/copy.md`.
+1. `marketing-capture` → shoot the real app into `marketing/`.
+2. `marketing-copy` → read those shot captions and write `marketing/copy.md`.
 3. Ship the framed screenshots, the GIF, and the copy together.

@@ -2,7 +2,7 @@
 
 Turn the real running app into marketing assets. Auto-detects whatever browser
 backend is available, gets the app on screen, and — behind an up-front consent
-gate — writes framed screenshots and a native-only demo GIF to `docs/marketing/`.
+gate — writes framed screenshots and a native-only demo GIF to `marketing/`.
 No installs, ever; reuses `design-preview` as an opportunistic live-app driver.
 
 ## Install
@@ -16,7 +16,7 @@ No installs, ever; reuses `design-preview` as an opportunistic live-app driver.
 
 | Skill | What it does |
 |-------|--------------|
-| `capture-assets` | Detect a backend, consent-gate, shoot a user shotlist of the real app, frame each screenshot, and record a demo GIF where the backend supports it — all into `docs/marketing/` |
+| `capture-assets` | Detect a backend, consent-gate, shoot a user shotlist of the real app, frame each screenshot, and record a demo GIF where the backend supports it — all into `marketing/` |
 
 ## How it works
 
