@@ -7,8 +7,8 @@ export type VariantState = "populated" | "empty" | "loading" | "error"
 export type VariantEntry = {
   id: string
   label: string
-  /** One-line summary of what this variant trades off. */
-  tradeoff: string
+  /** Why this variant exists: who it serves, what it trades, when it breaks. */
+  rationale: { serves: string; trades: string; breaks: string }
   Component: ComponentType<{ state: VariantState }>
 }
 

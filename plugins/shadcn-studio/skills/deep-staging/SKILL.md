@@ -75,13 +75,15 @@ the state union does NOT force a variant to handle a new state (it falls through
 silently to whatever branch catches it), so a variant that omits `loading` or
 `error` is a bug the compiler will not catch. Build every state your lane needs.
 
-## Realistic data and the tradeoff line
+## Realistic data and the rationale
 
 Populate with specific, real-shaped data ("Invoice #4821 — Northwind Traders —
 $1,240.00 — overdue 12 days"), never lorem ipsum — placeholders that read like
 production data expose layout and density problems that lorem hides. Each variant
-carries a one-line `tradeoff`; richer per-option rationale is a later concern,
-not this skill's.
+carries a three-part `rationale` — **serves** (who it is for), **trades** (what it
+gives up), **breaks** (when it fails) — one short clause each. A variant that
+cannot name a real trade or break is not actually different from its rivals: cut
+it or sharpen it.
 
 ## shadcn wiring
 

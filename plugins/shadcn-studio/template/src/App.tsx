@@ -12,13 +12,21 @@ const designConfig: StageConfig = {
     {
       id: "dense-table",
       label: "A — Dense data table",
-      tradeoff: "Maximum density and scanning; sortable columns, less breathing room.",
+      rationale: {
+        serves: "power users scanning many invoices at once",
+        trades: "breathing room and comfortable touch targets",
+        breaks: "on narrow screens or with long client names",
+      },
       Component: VariantA,
     },
     {
       id: "card-list",
       label: "B — Card / list layout",
-      tradeoff: "Calmer, touch-friendly rows; easier to read, fewer visible at once.",
+      rationale: {
+        serves: "casual users skimming a few records on any device",
+        trades: "on-screen density — fewer rows fit per viewport",
+        breaks: "when comparing dozens of records side by side",
+      },
       Component: VariantB,
     },
   ],
@@ -32,7 +40,11 @@ const datavizConfig: StageConfig = {
     {
       id: "revenue-bars",
       label: "Chart — Monthly revenue",
-      tradeoff: "Trend at a glance via bars; wired to the --chart tokens through chart.tsx.",
+      rationale: {
+        serves: "readers wanting the revenue trend at a glance",
+        trades: "exact per-month figures for overall shape",
+        breaks: "with sparse data or too many months to label",
+      },
       Component: VariantChart,
     },
   ],
@@ -46,7 +58,11 @@ const creativeConfig: StageConfig = {
     {
       id: "card-showcase",
       label: "Showcase — Card list",
-      tradeoff: "Creative lane is populated-only; no state toggle is rendered.",
+      rationale: {
+        serves: "a first-impression showcase of the populated layout",
+        trades: "state coverage — only the populated case is shown",
+        breaks: "as a real state harness; no toggle is rendered here",
+      },
       Component: VariantB,
     },
   ],

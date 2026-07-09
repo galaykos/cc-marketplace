@@ -111,7 +111,7 @@ Write the approved design to `taskmaster-docs/specs/YYYY-MM-DD-<slug>-design.md`
 problem, the chosen approach and the alternatives rejected (with reasons),
 component map, data flow, error handling, success criteria, non-goals, and —
 when the idea has a surface — a Staged decisions section (each pick: label,
-one-line rationale, tier).
+serves/trades/breaks rationale, tier).
 
 Then self-review with fresh eyes before showing it:
 

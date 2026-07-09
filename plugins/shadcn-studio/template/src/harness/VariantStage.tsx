@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -81,7 +80,22 @@ export function VariantStage({ config }: { config: StageConfig }) {
               <Card key={variant.id} className="gap-0 overflow-hidden py-0">
                 <CardHeader className="border-b bg-muted/40 py-4">
                   <CardTitle className="text-base">{variant.label}</CardTitle>
-                  <CardDescription>{variant.tradeoff}</CardDescription>
+                  {/* Three-part rationale as a fixed-row definition list, so
+                      both side-by-side cards keep identical header structure. */}
+                  <dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 text-sm">
+                    <dt className="font-medium text-foreground">Serves</dt>
+                    <dd className="text-muted-foreground">
+                      {variant.rationale.serves}
+                    </dd>
+                    <dt className="font-medium text-foreground">Trades</dt>
+                    <dd className="text-muted-foreground">
+                      {variant.rationale.trades}
+                    </dd>
+                    <dt className="font-medium text-foreground">Breaks</dt>
+                    <dd className="text-muted-foreground">
+                      {variant.rationale.breaks}
+                    </dd>
+                  </dl>
                 </CardHeader>
                 <CardContent className="p-4">
                   <Component state={state} />

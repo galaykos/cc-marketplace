@@ -68,7 +68,7 @@ Write `src/variants/VariantA.tsx…` as real shadcn JSX — content only — fol
 `ui-ux:shadcn-best-practices` (composition over props, Radix preserved), and the
 deep-staging skill for the lane (design / creative / dataviz) and which states to
 build. Fill `src/harness/stage.config.ts` with the stage lane and each variant's
-label + one-line tradeoff. Use realistic data ("Invoice #4821 — $1,240.00 —
+label + a serves/trades/breaks rationale. Use realistic data ("Invoice #4821 — $1,240.00 —
 overdue 12 days"), never lorem ipsum. `<VariantStage>` renders variants side by
 side; its state toggle follows the lane (data lanes: empty/loading/error/
 populated; creative: populated only) — do not restyle it per variant.
@@ -84,7 +84,7 @@ populated; creative: populated only) — do not restyle it per variant.
 
 ## Asking for the pick
 
-`AskUserQuestion`, one option per variant plus its tradeoff line. Record the pick
+`AskUserQuestion`, one option per variant plus its serves/trades/breaks rationale. Record the pick
 as a SELF-CONTAINED note: the label plus a short description, or copy the chosen
 variant's JSX OUT of the scratch dir BEFORE cleanup. Never store a path into the
 scratch dir — cleanup deletes it and the reference would dangle.

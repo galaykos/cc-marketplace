@@ -38,7 +38,8 @@ One entry per decision, embedded in the spec:
 - **Structural description** — what it is, in words: placement, hierarchy,
   density, what data sits where, interaction; for dataviz, the chart type and
   encoding. Precise enough to build from without the mockup.
-- **Rationale** — the one line for why it won.
+- **Rationale** — three parts: **serves** (who it is for), **trades** (what it
+  gives up), **breaks** (when it fails). One short clause each.
 
 Group entries by surface or screen when there are several, in the order the user
 meets them — a flat pile of unordered picks is hard for a card to conform to.
@@ -78,13 +79,15 @@ one or the other.
 Structure: left, a sortable table (Invoice, Client, Amount, Status); right, the
 selected invoice's line items in a Card. Empty: a centered "No invoices yet"
 prompt with a primary action. Loading: skeleton rows. Error: inline retry.
-Rationale: keeps the list scannable while showing detail without a route change.
+Serves: triaging many invoices at once. Trades: detail-pane width. Breaks: on
+narrow screens where the split collapses.
 Binding — deviation re-approved here, not in the card.
 
 ### Revenue trend  (dataviz · variant A)
 Structure: a bar chart of monthly revenue, last 12 months (x = month, y = amount,
 chronological); a stat tile above showing the period total. Empty: "No revenue in
-range". Rationale: month-over-month comparison reads faster as bars than a line.
+range". Serves: spotting seasonal dips. Trades: exact values (read the tile).
+Breaks: beyond ~24 bars the axis gets cramped.
 ```
 
 ## Approval
