@@ -82,6 +82,21 @@ export const invoices: Invoice[] = [
   },
 ]
 
+/** One month of billed revenue, for the dataviz lane. */
+export type MonthlyRevenue = {
+  month: string
+  revenue: number
+}
+
+export const monthlyRevenue: MonthlyRevenue[] = [
+  { month: "Feb", revenue: 8200 },
+  { month: "Mar", revenue: 10450 },
+  { month: "Apr", revenue: 9600 },
+  { month: "May", revenue: 12750 },
+  { month: "Jun", revenue: 15980 },
+  { month: "Jul", revenue: 18240 },
+]
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

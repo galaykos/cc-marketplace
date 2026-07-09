@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { ArrowUpDown, Inbox } from "lucide-react"
+import { ArrowUpDown, Inbox, RotateCw, TriangleAlert } from "lucide-react"
 
 import type { VariantState } from "@/harness/stage.config"
 import {
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogClose,
@@ -33,6 +34,7 @@ export default function VariantB({ state }: { state: VariantState }) {
   const [query, setQuery] = useState("")
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [selected, setSelected] = useState<Invoice | null>(null)
+  const [attempts, setAttempts] = useState(0)
 
   const base = state === "populated" ? allInvoices : []
 
@@ -47,6 +49,57 @@ export default function VariantB({ state }: { state: VariantState }) {
       sortDir === "asc" ? a.amount - b.amount : b.amount - a.amount
     )
   }, [base, query, sortDir])
+
+  if (state === "loading") {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 flex-1" />
+          <Skeleton className="h-8 w-32 shrink-0 rounded-md" />
+        </div>
+        <ul className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <li key={i}>
+              <Card className="py-0">
+                <CardContent className="flex items-center gap-4 p-4">
+                  <Skeleton className="size-2.5 shrink-0 rounded-full" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-16 rounded-md" />
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  if (state === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-16 text-center">
+        <TriangleAlert className="size-8 text-destructive" />
+        <div className="space-y-1">
+          <p className="text-sm font-medium">Couldn't load invoices</p>
+          <p className="text-sm text-muted-foreground">
+            Something went wrong while fetching this list.
+            {attempts > 0 && ` Retried ${attempts}×.`}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setAttempts((n) => n + 1)}
+        >
+          <RotateCw />
+          Try again
+        </Button>
+      </div>
+    )
+  }
 
   if (base.length === 0) {
     return (

@@ -65,11 +65,13 @@ static shell mockup instead / skip. Ask once per session.
 ## Author the variants
 
 Write `src/variants/VariantA.tsx…` as real shadcn JSX — content only — following
-`ui-ux:shadcn-best-practices` (composition over props, Radix preserved). Fill
-`src/harness/stage.config.ts` with each variant's label and a one-line tradeoff.
-Use realistic data ("Invoice #4821 — $1,240.00 — overdue 12 days"), never lorem
-ipsum. The `<VariantStage>` harness renders them side by side and carries a
-single populated↔empty toggle — do not restyle it per variant.
+`ui-ux:shadcn-best-practices` (composition over props, Radix preserved), and the
+deep-staging skill for the lane (design / creative / dataviz) and which states to
+build. Fill `src/harness/stage.config.ts` with the stage lane and each variant's
+label + one-line tradeoff. Use realistic data ("Invoice #4821 — $1,240.00 —
+overdue 12 days"), never lorem ipsum. `<VariantStage>` renders variants side by
+side; its state toggle follows the lane (data lanes: empty/loading/error/
+populated; creative: populated only) — do not restyle it per variant.
 
 ## Serve and reuse
 

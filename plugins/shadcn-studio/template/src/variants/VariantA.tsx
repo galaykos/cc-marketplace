@@ -1,5 +1,12 @@
 import { useMemo, useState } from "react"
-import { ArrowDown, ArrowUp, ChevronsUpDown, FileX2 } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  FileX2,
+  RotateCw,
+  TriangleAlert,
+} from "lucide-react"
 
 import type { VariantState } from "@/harness/stage.config"
 import {
@@ -10,6 +17,7 @@ import {
 } from "@/lib/fixtures"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -52,6 +60,7 @@ export default function VariantA({ state }: { state: VariantState }) {
   const [sortKey, setSortKey] = useState<SortKey>("amount")
   const [sortDir, setSortDir] = useState<SortDir>("desc")
   const [selected, setSelected] = useState<Invoice | null>(null)
+  const [attempts, setAttempts] = useState(0)
 
   const base = state === "populated" ? allInvoices : []
 
@@ -92,6 +101,19 @@ export default function VariantA({ state }: { state: VariantState }) {
         {label}
         <Icon className={active ? "size-3.5" : "size-3.5 text-muted-foreground"} />
       </button>
+    )
+  }
+
+  if (state === "loading") {
+    return <LoadingTable />
+  }
+
+  if (state === "error") {
+    return (
+      <ErrorState
+        attempts={attempts}
+        onRetry={() => setAttempts((n) => n + 1)}
+      />
     )
   }
 
@@ -169,6 +191,59 @@ function EmptyState() {
       <p className="text-sm text-muted-foreground">
         New invoices will appear here once they are issued.
       </p>
+    </div>
+  )
+}
+
+function LoadingTable() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-9 w-full max-w-xs" />
+      <div className="rounded-lg border">
+        <div className="flex items-center gap-4 border-b px-4 py-3">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 flex-1" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="ml-auto h-4 w-16" />
+        </div>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-4 border-b px-4 py-3 last:border-0"
+          >
+            <Skeleton className="h-4 w-14" />
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-8 w-16 rounded-md" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ErrorState({
+  attempts,
+  onRetry,
+}: {
+  attempts: number
+  onRetry: () => void
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 py-16 text-center">
+      <TriangleAlert className="size-8 text-destructive" />
+      <div className="space-y-1">
+        <p className="text-sm font-medium">Couldn't load invoices</p>
+        <p className="text-sm text-muted-foreground">
+          Something went wrong while fetching this list.
+          {attempts > 0 && ` Retried ${attempts}×.`}
+        </p>
+      </div>
+      <Button size="sm" variant="outline" onClick={onRetry}>
+        <RotateCw />
+        Try again
+      </Button>
     </div>
   )
 }
