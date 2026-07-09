@@ -23,6 +23,12 @@ meaning, never by string equality: a criterion is covered when at least one
 card's acceptance criteria would, if met, make that criterion true. You are
 reading intent, not diffing text.
 
+A second correspondence, when the spec has a `## Visual contract` section: each
+binding visual/creative entry against the card(s) that build that surface. A
+staged decision with no conforming card is a GAP; a card that alters a named
+surface against the contract is drift. Keep it distinct from the criteria check —
+a decision is not a success criterion.
+
 ## The two directions, and drift
 
 Walk the correspondence both ways — a one-directional check misses half the
@@ -71,6 +77,9 @@ headless):
   gap* (record it in the `## Coverage` section with a reason).
 - **ORPHAN or DRIFT** → *Tie the card to a criterion* (name it) / *Add the missing
   criterion to the spec* (the card was right, the spec was thin) / *Drop the card*.
+- **Staged-decision GAP or drift** (`## Visual contract`) → *Add or point a card*
+  at the surface / *Defer the surface* (move it to non-goals, re-approval) /
+  *Accept as covered elsewhere* (record it in `## Coverage`).
 
 Loop until every finding is resolved or explicitly accepted, then write the final
 `## Coverage` section — including accepted gaps and their reasons — and continue.
