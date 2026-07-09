@@ -122,7 +122,8 @@ assumption list, or the user says "enough". Then:
    when an upstream brainstorm design already recorded the approach.
 2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
    rows with sources), accepted assumptions, the chosen approach with alternatives
-   rejected and its kill-trigger, non-goals, success criteria.
+   rejected and its kill-trigger, non-goals, success criteria. Staged visual/creative
+   picks → invoke the `visual-contract` skill to bind them as `## Visual contract`.
 3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
    attack the frozen spec for holes and resolve each before cards; trivial specs skip.
 4. If the decision-records plugin is installed, offer ADR capture for the spec's
@@ -148,6 +149,5 @@ output so the user can veto any of them afterward.
 - Re-asking anything already CLEAR — the ledger exists so you never re-litigate.
 - Accepting a vague answer on a scope-critical row: respond with 2–3 concrete
   options or examples instead of repeating the question louder.
-- Interrogating trivial tasks — a typo fix does not get a questionnaire.
 - Padding rounds to look thorough. The measure of a good interrogation is how much
   code it changed or prevented, not how many questions it asked.

@@ -47,11 +47,38 @@ asking next — a batch built before the answer is a batch half-wasted. Rules:
 - Focus the sequence on purpose (what problem, for whom), constraints (stack,
   budget, deadline, compatibility), and success criteria (how we know it
   worked).
-- When a question is genuinely visual — options that look or flow differently
-  (layout, flow shape), not merely UI-flavored — switch to the visual-decisions
-  skill and its live preview URL, with context-scout's Visual surface section as
-  the prior. The skill asks fidelity consent on first use; respect a "no mockups"
-  answer for the rest of the session.
+- Visual and creative choices are staged, not settled in prose — see The staging
+  area below, which brainstorm owns for the whole session.
+
+## The staging area
+
+Options with a surface get STAGED, not described. Keyed on context-scout's
+Visual surface: `None` → skip; unknown (no scout) → a skippable offer; otherwise
+staging is mandatory, floor included.
+
+Brainstorm owns ONE session fidelity consent, asked once on the first staged
+decision via AskUserQuestion, with NO dormant/none option — the floor is
+describe-only, which still RECORDS a decision. It never delegates that choice:
+visual-decisions is a rendering backend only, its first-use gate treated as
+already answered (shell = "Full mockups", ASCII = "Quick ASCII only", never
+"No mockups"). Route fidelity by decision kind and host (consent may downgrade):
+
+| Decision | Tier |
+|----------|------|
+| Design, runnable Vite+React host | design-preview (real components) |
+| Design, greenfield/non-React, interactivity matters | shadcn-studio sandbox |
+| Design, structure/density/flow only | visual-decisions shell |
+| Design, trivial layout | ASCII wireframe |
+| Creative/concept | interactive tier only, else describe-only |
+
+Creative never routes to the shell (bans text-native options) or ASCII
+(structural); an interactive tier not installed drops to the next lower design
+fidelity (describe-only for creative) — and say which fidelity was lost.
+Sequencing holds one-question-at-a-time: the first visual/creative question
+carries the consent question, then each stages exactly ONE decision's options and
+the doc accretes only accepted picks — never a surface posing several at once.
+Creative variants are authored as N divergent directions in the main thread (not
+opinion-lens, which stays for design/architecture shapes), rendered side by side.
 
 ## Explore alternatives before committing
 
@@ -82,7 +109,9 @@ boundary problem worth fixing on the whiteboard, not in the code.
 
 Write the approved design to `taskmaster-docs/specs/YYYY-MM-DD-<slug>-design.md`: the
 problem, the chosen approach and the alternatives rejected (with reasons),
-component map, data flow, error handling, success criteria, non-goals.
+component map, data flow, error handling, success criteria, non-goals, and —
+when the idea has a surface — a Staged decisions section (each pick: label,
+serves/trades/breaks rationale, tier).
 
 Then self-review with fresh eyes before showing it:
 
@@ -92,6 +121,8 @@ Then self-review with fresh eyes before showing it:
 3. Scope — still one implementable design, or did it grow into a decomposition
    candidate during writing?
 4. Ambiguity — any sentence readable two ways? Pick one, make it explicit.
+5. Staging — for a surface idea, is every visual/creative decision staged and
+   recorded in Staged decisions? A self-review prompt, not a machine gate.
 
 Then the user gate: ask the user to review the written doc — not the
 conversation, the doc — and change it until they approve it.
@@ -109,13 +140,9 @@ design covers it" ships the design's blind spots straight into code.
 
 ## Anti-patterns
 
-- Writing code, scaffolding, or "just a quick prototype" mid-brainstorm.
-- First idea presented as the design — alternatives exist to be beaten, and
-  sometimes they win.
-- Question firehose: five questions in one message is an interrogation form,
-  not a dialogue.
-- Refining details of an idea that needed decomposition first.
-- The design doc written after implementation as documentation theater.
-- Treating your recommendation as the decision — the user picks, every time.
-- Skipping the doc for "simple" ideas — five sentences, written and approved,
-  still beats zero.
+- Code, scaffolding, or a "quick prototype" mid-brainstorm — the hard gate holds.
+- First idea shown as the design, or your recommendation treated as the decision
+  — alternatives can win, and the user picks every time.
+- A firehose — five questions in one message, or a staged surface posing several
+  decisions at once.
+- Skipping the doc for a "simple" idea, or writing it after the code.

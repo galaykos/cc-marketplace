@@ -61,8 +61,9 @@ e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
   session will trust the card verbatim.
 - Spell out data shapes and signatures crossing card boundaries; two cards that
   each "know" half an interface will disagree.
-- Cards that touch persistence must reference the spec's approved `## Data Model`
-  section (the `erd` skill's output); deviation requires model re-approval, not drift.
+- Cards that touch a binding contract section — `## Data Model` for persistence,
+  `## Visual contract` for a staged visual/creative surface — must reference it and
+  conform; deviation requires re-approval, not drift.
 - Cards implement the spec's chosen approach and respect its kill-trigger. A card
   that silently picks a different shape reopens a decision the persona round settled.
 - Name the conventions to follow ("service classes live in `app/Services`, one
