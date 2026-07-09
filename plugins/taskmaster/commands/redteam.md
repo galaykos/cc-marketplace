@@ -7,6 +7,11 @@ Run the spec-redteam skill from this plugin on $ARGUMENTS (a
 `taskmaster-docs/specs/<name>.md` path or a slug; if empty, use the most recent
 spec under `taskmaster-docs/specs/`).
 
+**Ultra flag:** if the first token of $ARGUMENTS is `ultra` (or the variant
+`ultra-task`/`ultratask`), strip it and run in Extreme Boost mode — treat the run
+as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (an N=3 blind adversary
+panel on the Workflow path, opus subagents, and the ⚡ banner).
+
 1. Resolve the target spec file.
 2. Invoke the spec-redteam skill — apply its blast-radius gate; when met, dispatch
    the blind `spec-adversary` agent on the spec path and present the holes grouped

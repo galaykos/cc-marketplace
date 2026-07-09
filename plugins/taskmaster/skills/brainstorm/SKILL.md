@@ -23,7 +23,9 @@ Same doctrine as grill: dispatch context-scout (and reuse the stack-scan
 inventory when installed) BEFORE asking anything. An idea conversation that
 ignores the existing codebase produces designs the codebase rejects on contact.
 Existing patterns, existing modules that half-do the idea, hard version
-constraints — all of it bounds the option space before the first question.
+constraints — all of it bounds the option space before the first question. Under
+`ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout `model: opus`
+with 3-lens Workflow recon and keep opinion-lens native.
 
 ## Scope check first
 

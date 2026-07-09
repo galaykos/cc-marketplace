@@ -7,6 +7,11 @@ Run the brainstorm skill from this plugin on $ARGUMENTS (if empty, ask what
 idea the user wants to explore). No implementation code, scaffolding, or file
 creation beyond the design doc at any point.
 
+**Ultra flag:** if the first token of $ARGUMENTS is `ultra` (or the variant
+`ultra-task`/`ultratask`), strip it and run in Extreme Boost mode — treat the run
+as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (opus on reachable
+subagents, bounded Workflow fan-outs, and the ⚡ banner).
+
 1. Dispatch context-scout on the idea first (reuse the stack-scan inventory
    when that plugin is installed) — bound the option space with codebase facts
    before asking anything.

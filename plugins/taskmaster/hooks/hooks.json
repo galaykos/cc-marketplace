@@ -3,7 +3,8 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh" }
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh" },
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra.sh" }
         ]
       }
     ]
