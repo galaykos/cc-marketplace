@@ -11,6 +11,12 @@ still an idea without a concrete capability list, run the brainstorm skill first
 (/taskmaster:brainstorm) — its approved design doc becomes this pipeline's input and
 pre-seeds the ledger.
 
+**Ultra flag:** if the first token of $ARGUMENTS is `ultra` (or the variant
+`ultra-task`/`ultratask`), strip it and run in Extreme Boost mode — treat the run
+as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (opus on reachable
+subagents, mandatory red-team + coverage, bounded Workflow fan-outs, the ⚡ banner,
+and the `Ultra: true` marker written into the card index).
+
 1. If the stack-scan plugin is installed (the installed-versions skill or
    /stack-scan:report is available), run its inventory first and hand the
    required-vs-installed table to context-scout as hard constraints. If it is not

@@ -7,6 +7,11 @@ Run the coverage-check skill from this plugin on $ARGUMENTS (a
 `taskmaster-docs/tasks/<slug>/` directory or a slug; if empty, use the most
 recent `taskmaster-docs/tasks/*/00-INDEX.md`).
 
+**Ultra flag:** if the first token of $ARGUMENTS is `ultra` (or the variant
+`ultra-task`/`ultratask`), strip it and run in Extreme Boost mode — treat the run
+as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (loop-until-dry coverage
+sweeps on the Workflow path, capped at 3 rounds or first dry, and the ⚡ banner).
+
 1. Resolve the target: the `00-INDEX.md` and the spec it links under
    `taskmaster-docs/specs/`.
 2. Invoke the coverage-check skill — cross-check the spec's `## Success criteria`

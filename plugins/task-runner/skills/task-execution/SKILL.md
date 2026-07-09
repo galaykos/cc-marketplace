@@ -54,6 +54,11 @@ run a conditional reviewer pass on the task's diff:
 Each reviewer fires only if its plugin is installed — skip silently when
 absent; a missing reviewer is never a failure and needs no note.
 
+**Extreme Boost:** when the run's `00-INDEX.md` carries an `Ultra: true` marker,
+dispatch the reviewer and delegated worker agents with a `model: opus` override —
+excluding `opinion-lens` — so the boost reaches execution even in a fresh session.
+The Agent tool has no effort parameter, so this escalates the model only.
+
 Blocker/major findings send the task back into the fix loop; each such round
 counts toward the SAME three-cycle ceiling as verify failures — the reviewer
 pass must not create an unbounded loop. Minor findings go to the follow-up
