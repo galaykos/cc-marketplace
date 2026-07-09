@@ -93,4 +93,15 @@ while IFS= read -r f; do
   done < <(jq -r '.. | .command? // empty' "$f" | grep '^\${CLAUDE_PLUGIN_ROOT}')
 done < <(find plugins -path '*/hooks/hooks.json')
 
+# Plugins ship ONLY functional files. Task documentation, specs, and design/task
+# history live in taskmaster-docs/ (or a repo-level location outside plugins/) —
+# never inside a plugin. Allowed .md: README/CHANGELOG/ROADMAP at a plugin root,
+# a skill's SKILL.md and its references/, commands/, and agents/.
+allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$'
+while IFS= read -r mdf; do
+  rel=${mdf#plugins/*/}
+  printf '%s\n' "$rel" | grep -qE "$allow_md" \
+    || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
+done < <(find plugins -name '*.md')
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1
