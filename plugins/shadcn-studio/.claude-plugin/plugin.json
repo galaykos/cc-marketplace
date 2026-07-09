@@ -1,0 +1,6 @@
+{
+  "name": "shadcn-studio",
+  "version": "0.1.0",
+  "description": "Greenfield interactive shadcn staging: stands up a self-contained shadcn + Vite (Tailwind v4) sandbox on its own dev server and renders agent-authored component variants side by side — real interactivity (sort/filter/dialog), not static HTML. For idea-stage / non-React work where design-preview cannot run (no host Vite+React app). Consent-gated, scratch outside the work tree, verified cleanup, static-shell fallback. Includes /shadcn-studio:stage.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+}
