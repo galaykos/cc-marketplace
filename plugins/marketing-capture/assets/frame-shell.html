@@ -1,0 +1,74 @@
+<!--
+  marketing-capture frame shell — one screenshot, framed for marketing.
+  Self-contained: no external assets, no JS, no fonts. Theme technique borrowed
+  from taskmaster visual-decisions' shell (NOT a dependency on it).
+
+  Fill three slots, then render this file in the browser backend and
+  re-screenshot the .mc-frame element to produce marketing/shot-NN.png:
+    SLOT:SHOT_SRC   → the raw screenshot as a data: URI or local path
+    SLOT:CAPTION    → the shot's caption text
+    SLOT:BG         → optional CSS background (gradient); default below if left
+  Tune --mc-accent / the .mc-bg gradient per brand. One shot per file.
+-->
+<style>
+  :root {
+    --mc-accent: #6d5efc;
+    --mc-bezel: #111319;
+    --mc-caption: #ffffff;
+    --mc-radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  .mc-bg {
+    /* SLOT:BG (default) */
+    background: radial-gradient(1200px 600px at 30% -10%, #2a2140, #0d0d12 60%);
+    padding: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    width: max-content;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .mc-frame {
+    background: var(--mc-bezel);
+    border-radius: var(--mc-radius);
+    padding: 12px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .mc-titlebar {
+    display: flex;
+    gap: 7px;
+    padding: 6px 10px 12px;
+  }
+  .mc-dot { width: 11px; height: 11px; border-radius: 50%; background: #3a3d47; }
+  .mc-dot:nth-child(1) { background: #ff5f57; }
+  .mc-dot:nth-child(2) { background: #febc2e; }
+  .mc-dot:nth-child(3) { background: #28c840; }
+  .mc-shot {
+    display: block;
+    max-width: 1000px;
+    border-radius: 8px;
+  }
+  .mc-caption {
+    color: var(--mc-caption);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    max-width: 900px;
+    text-align: center;
+    border-left: 3px solid var(--mc-accent);
+    padding-left: 14px;
+  }
+</style>
+
+<div class="mc-bg" id="mc-capture-target">
+  <div class="mc-frame">
+    <div class="mc-titlebar">
+      <span class="mc-dot"></span>
+      <span class="mc-dot"></span>
+      <span class="mc-dot"></span>
+    </div>
+    <img class="mc-shot" src="SLOT:SHOT_SRC" alt="app screenshot" />
+  </div>
+  <div class="mc-caption">SLOT:CAPTION</div>
+</div>

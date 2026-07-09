@@ -1,6 +1,6 @@
 ---
 name: visual-decisions
-description: Use during requirement clarification when a choice is visual or structural — layout variants, user flows, architecture topology, data shapes. Builds throwaway ASCII wireframes, theme-aware HTML mockups from a shipped shell (rendered in the project's own colors when detectable), or example payload tables so the user picks between concrete options instead of imagining them from prose. Asks fidelity consent (full mockups / ASCII only / none) on first use per session.
+description: Use when a choice is visual or structural — layout variants, user flows, architecture topology, data shapes — whether during requirement clarification OR in standalone creative/design work (building a mockup, designing a screen, "show me options"). Builds throwaway ASCII wireframes, theme-aware HTML mockups from a shipped shell (rendered in the project's own colors when detectable), or example payload tables so the user picks between concrete options instead of imagining them from prose. Asks fidelity consent (full mockups / ASCII only / none) on first use per session; stays dormant for non-visual tasks.
 ---
 
 ## When to show instead of tell

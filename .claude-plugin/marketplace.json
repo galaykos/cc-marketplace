@@ -5,8 +5,8 @@
     "email": "public@galayko.com"
   },
   "metadata": {
-    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.37.0"
+    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, marketing assets, and the taskmaster clarification-to-execution workflow suite.",
+    "version": "0.39.0"
   },
   "plugins": [
     {
@@ -353,6 +353,26 @@
       "name": "skill-router",
       "source": "./plugins/skill-router",
       "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session."
+    },
+    {
+      "name": "marketing-capture",
+      "source": "./plugins/marketing-capture",
+      "description": "Capture the real running app into marketing assets: auto-detects an available browser backend (claude-in-chrome, Playwright MCP, Claude_Preview, Puppeteer), gets the app on screen, and — behind an up-front consent gate — writes framed screenshots and a native-only demo GIF to marketing/. Reuses design-preview as an opportunistic live-app driver; never installs anything. Includes the capture-assets skill."
+    },
+    {
+      "name": "marketing-copy",
+      "source": "./plugins/marketing-copy",
+      "description": "Generate marketing copy from the repo: slogans, feature blurbs, and a demo script, drawn from the README, plugin manifests, a short user brief, and — when present — the capture shotlist captions so the words match the screenshots. Pure-LLM, no browser, no capture; writes marketing/copy.md. Includes the marketing-copy skill."
+    },
+    {
+      "name": "marketing-suite",
+      "source": "./plugins/marketing-suite",
+      "description": "Meta-bundle: turn a working repo/app into launch assets — marketing-capture (framed screenshots + native-only demo GIF of the real app, via an auto-detected browser backend), marketing-copy (slogans, feature blurbs, demo script), and marketing-image-ops (resize/optimize/OG-image/favicon via an adopted image MCP). Uninstall cleanly with /marketing-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "marketing-image-ops",
+      "source": "./plugins/marketing-image-ops",
+      "description": "Deterministic image work for the marketing suite: detects a generic third-party image MCP (Sharp or ImageMagick based) and delegates raster primitives (resize, crop, optimize, convert), then composes marketing presets those servers don't ship — OG images (1200x630), app-store frames, favicon sets, captioned frames. MCP-agnostic; degrades to an HTML composite for framing and skips-with-note for raster when no MCP is registered. Never installs anything. Includes the image-ops skill."
     }
   ]
 }

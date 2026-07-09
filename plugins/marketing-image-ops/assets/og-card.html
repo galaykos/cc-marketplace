@@ -1,0 +1,57 @@
+<!--
+  og-card.html — Open Graph share-card template, 1200x630.
+  Used by the image-ops `og_image` FALLBACK when no image MCP is registered:
+  fill the slots, render this file, and screenshot the .og-card element (exactly
+  1200x630). When an image MCP IS present, prefer its compositing instead.
+  Self-contained: no external assets, no JS, no fonts.
+
+  Slots:
+    SLOT:TITLE      → headline / recommended slogan
+    SLOT:SUBTITLE   → optional one-line supporting text (delete if unused)
+    SLOT:SHOT_SRC   → optional product screenshot (data URI / local path)
+    SLOT:BG         → optional CSS background; default gradient below
+  Tune --og-accent / the .og-card gradient per brand.
+-->
+<style>
+  :root { --og-accent: #6d5efc; --og-fg: #ffffff; --og-muted: #b9b6d6; }
+  * { box-sizing: border-box; margin: 0; }
+  .og-card {
+    width: 1200px;
+    height: 630px;
+    /* SLOT:BG (default) */
+    background: radial-gradient(900px 500px at 80% -20%, #2a2140, #0d0d12 65%);
+    color: var(--og-fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: center;
+    padding: 72px;
+    gap: 48px;
+    overflow: hidden;
+  }
+  .og-copy { display: flex; flex-direction: column; gap: 20px; }
+  .og-title {
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    border-left: 6px solid var(--og-accent);
+    padding-left: 24px;
+  }
+  .og-subtitle { font-size: 28px; color: var(--og-muted); padding-left: 30px; }
+  .og-shot {
+    justify-self: end;
+    max-width: 100%;
+    max-height: 420px;
+    border-radius: 12px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+</style>
+
+<div class="og-card" id="og-capture-target">
+  <div class="og-copy">
+    <div class="og-title">SLOT:TITLE</div>
+    <div class="og-subtitle">SLOT:SUBTITLE</div>
+  </div>
+  <img class="og-shot" src="SLOT:SHOT_SRC" alt="" />
+</div>

@@ -1,0 +1,11 @@
+{
+  "name": "marketing-suite",
+  "version": "0.2.0",
+  "description": "Meta-bundle: turn a working repo/app into launch assets. Bundles marketing-capture (auto-detected browser backend → framed screenshots + native-only demo GIF of the real app), marketing-copy (slogans, feature blurbs, demo script grounded in the repo), and marketing-image-ops (resize/optimize/OG-image/favicon via an adopted image MCP). Uninstall cleanly with /marketing-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "dependencies": [
+    "marketing-capture",
+    "marketing-copy",
+    "marketing-image-ops"
+  ]
+}
