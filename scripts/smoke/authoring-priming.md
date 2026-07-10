@@ -42,4 +42,4 @@ useful to confirm the resolver targets the newest installed version.
 |------|------|-------|----------|---------------|
 | 2026-07-10 | T2 | docker-best-practices (cross-plugin, dev-env) | general-purpose w/ injected Read | **YES — PASS.** Delegate cited the "Non-root USER" rule and echoed `CANARY-ZXQ7-DELEGATE-READ-PROOF`, proving it Read the resolved cross-plugin abs path (not pretraining). |
 | _pending_ | T1 | testing-best-practices | test-engineer | harness mechanics verified (inject/clean idempotent); live echo via same procedure |
-| _pending_ | T3 | livewire-best-practices | (generic card subagent) | _run card 14_ |
+| 2026-07-10 | T3 | livewire-best-practices (no-worker stack) | generic subagent w/ injected Read | **YES — PASS.** Generic delegate cited `WithPagination` + `wire:key` rules and echoed the token, proving carrier C reaches a no-worker-stack implementer. |
