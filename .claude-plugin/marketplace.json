@@ -363,6 +363,21 @@
       "name": "secret-scanning",
       "source": "./plugins/secret-scanning",
       "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape."
+    },
+    {
+      "name": "event-driven",
+      "source": "./plugins/event-driven",
+      "description": "Message-driven architecture discipline: broker/transport choice, topic and partition design, event schema versioning, delivery semantics (assume at-least-once), consumer idempotency, the outbox pattern for atomic state-change-and-publish, sagas with compensation, and dead-letter handling — a firing event-driven skill and a /event-driven:review command. Cross-broker; defers in-process framework queues to the stack plugin."
+    },
+    {
+      "name": "payments",
+      "source": "./plugins/payments",
+      "description": "Payments and billing discipline (Stripe/Paddle/Braintree): PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, and an append-only ledger with reconciliation — a firing payments skill and a /payments:review command. The failure class is double-charges and revenue leaks."
+    },
+    {
+      "name": "api-auth",
+      "source": "./plugins/api-auth",
+      "description": "API authentication and authorization authoring: token models (session, opaque, JWT), Laravel Sanctum vs Passport, OAuth2/OIDC flows with Authorization Code + PKCE, scopes and least privilege, refresh-token rotation with reuse detection, secure httpOnly-cookie storage, hashing at rest, and revocation/expiry — a firing api-auth skill and a /api-auth:review command. The day-one token-secured-API decisions and top OWASP auth failures."
     }
   ]
 }

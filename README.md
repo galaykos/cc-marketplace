@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 63 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
+2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 66 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -156,6 +156,9 @@ afterwards to sweep the orphans.
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
 | **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent | `/security:review` |
 | **[secret-scanning](plugins/secret-scanning/README.md)** | PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens) before it hits disk; on-demand repo sweep; fail-open, fixture-safe | `/secret-scanning:scan` |
+| **[event-driven](plugins/event-driven/README.md)** | Message-driven architecture: broker choice, topic/partition design, event schema versioning, at-least-once + consumer idempotency, the outbox pattern, sagas with compensation, dead-letter handling | `/event-driven:review` |
+| **[payments](plugins/payments/README.md)** | Payments/billing (Stripe/Paddle): PCI-scope minimization, integer-minor-unit money, signature-verified idempotent webhooks, subscription races, dunning/proration, ledger reconciliation | `/payments:review` |
+| **[api-auth](plugins/api-auth/README.md)** | API auth: token model choice (session/opaque/JWT), Sanctum vs Passport, OAuth2 Auth Code + PKCE, scopes, refresh-token rotation with reuse detection, httpOnly storage, hashing/expiry | `/api-auth:review` |
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
 | **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files; CI/CD + prod deploys → devops | `/dev-env:init`, `/dev-env:review` |
