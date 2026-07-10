@@ -27,10 +27,31 @@ the functional kinds above fails the build (and CI on every PR).
   reference resolution, and the doc-location rule above.
 - `scripts/check-version-bumps.sh` — a plugin whose files changed vs the base ref
   must bump its `plugin.json` version (new plugins are exempt).
+- `scripts/validate-codex.sh` — the Codex mirror is fresh (see below): regenerating
+  yields no diff, correspondence holds, no `CLAUDE_PLUGIN_ROOT`/`SessionEnd` leaks.
 
-Run both before pushing:
+Run all three before pushing:
 
 ```bash
 bash scripts/validate.sh
 bash scripts/check-version-bumps.sh master
+bash scripts/validate-codex.sh
 ```
+
+## Codex marketplace (generated — never hand-edit)
+
+This repo is ALSO an OpenAI Codex marketplace. `plugins/` is canonical; the Codex
+tree (`.agents/plugins/marketplace.json`, `codex/**`, `AGENTS.md`) is **derived
+one-way** by `scripts/gen-codex/` (a Node generator; see its `README.md`). Never edit
+those by hand — `validate-codex.sh` fails on any drift.
+
+**When you change a plugin, regenerate and commit the Codex tree in the same commit:**
+
+```bash
+node scripts/gen-codex/gen.mjs        # or: bash scripts/validate-codex.sh --regen
+git add plugins/<changed> .agents codex AGENTS.md
+```
+
+Codex plugin versions mirror the CC `plugin.json` version automatically, so the
+version bump you make for `check-version-bumps.sh` propagates. Skip the regen and CI
+(the Codex gate) goes red. The generator writes nothing under `plugins/`.
