@@ -17,8 +17,21 @@ Ultra is active for THIS run when any of these holds this turn:
 - the `hooks/ultra.sh` `UserPromptSubmit` hook matched `ultra-task`/`ultratask`
   in the prompt and injected the directive, or
 - a taskmaster command (`task`, `taskmaster`, `redteam`, `brainstorm`,
-  `coverage`) was invoked with a leading `ultra` token, or
+  `coverage`) was invoked with the explicit `ultra-task`/`ultratask` token, or
+  with a bare `ultra` as the **first token of that command's own arguments**
+  (`/taskmaster:<cmd> ultra …`), or
 - an execution run reads a `00-INDEX.md` that carries the `Ultra: true` marker.
+
+The trigger is deliberately narrow so a bare `ultra` cannot leak in from another
+command. `ultra` is a shared word — other plugins use it as their own intensity
+flag (e.g. `caveman ultra` sets the caveman verbosity level). Only two things
+count as a taskmaster trigger: the explicit `ultra-task`/`ultratask` token
+(which no other plugin claims, so it may cross a command boundary), or a bare
+`ultra` that is the FIRST token of a taskmaster command's own argument string. A
+bare `ultra` that belongs to another command — including a chained prompt where
+`caveman ultra` precedes a `/taskmaster:brainstorm <description>`, so `ultra` is
+caveman's flag and the taskmaster args begin with the task description — is NOT a
+taskmaster trigger and never boosts the run.
 
 Outside those, the directive is inert — a stray mention of the phrase in
 unrelated chat changes nothing. Ultra is single-run and stateless: there is no
