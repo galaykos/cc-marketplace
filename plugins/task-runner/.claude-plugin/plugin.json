@@ -1,6 +1,6 @@
 {
   "name": "task-runner",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Includes parallel-planning: computed subagents-vs-inline verdict with dependency levels, agent count, and speedup estimate via /task-runner:plan.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

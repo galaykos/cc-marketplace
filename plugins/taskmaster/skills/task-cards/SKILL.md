@@ -117,7 +117,7 @@ taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
 `00-INDEX.md` holds: the spec path, a table (card / title / depends-on / parallel
 group / status), and the run note — each card is executed by pasting it into a
 fresh session or `claude "$(cat 01-*.md)"`. Update the status column as cards
-land; the index is the only file that mutates during execution. Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true` line near the top of `00-INDEX.md` so a fresh-session execution run inherits the boost.
+land; the index is the only file that mutates during execution. Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true (model=<model>, effort=<effort>)` line near the top of `00-INDEX.md` — copy the `model`/`effort` the directive resolved (defaults opus/max) — so a fresh-session execution run inherits the boost at the same tier.
 
 When cards are executed by subagents, the dispatch-prompt and return-format
 contract is the orchestration plugin's delegation-contracts skill.

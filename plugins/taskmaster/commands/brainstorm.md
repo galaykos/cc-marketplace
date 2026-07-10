@@ -14,9 +14,12 @@ the first token of THIS command's own arguments — e.g. an earlier command's ow
 intensity flag in a chained message, such as a `caveman ultra` preceding this
 command — is NOT a taskmaster trigger and never boosts this run; only
 `ultra-task`/`ultratask`
-crosses a command boundary. On a match, strip the matched token and treat the run
-as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (opus on reachable
-subagents, bounded Workflow fan-outs, and the ⚡ banner).
+crosses a command boundary. The `ultra`/`ultra-task` token may carry a
+`-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
+∈ opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max,
+default max) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
+as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (the selected model on
+reachable subagents, bounded Workflow fan-outs, and the ⚡ banner).
 
 1. Dispatch context-scout on the idea first (reuse the stack-scan inventory
    when that plugin is installed) — bound the option space with codebase facts
