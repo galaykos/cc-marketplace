@@ -358,6 +358,11 @@
       "name": "skill-router",
       "source": "./plugins/skill-router",
       "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session."
+    },
+    {
+      "name": "secret-scanning",
+      "source": "./plugins/secret-scanning",
+      "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape."
     }
   ]
 }

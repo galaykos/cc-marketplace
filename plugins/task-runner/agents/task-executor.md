@@ -32,7 +32,10 @@ state your assumption before editing.
    blind fix; do not weaken a check to make it pass.
 4. Respect the scope lock absolutely: touch only files the list names (plus a fixture
    the verify command itself demands). A tempting adjacent fix is a follow-up you
-   record, not an errand you run.
+   record, not an errand you run. Before editing for a task, write its allowed files
+   to `<cwd>/.claude/task-runner/scope.json` as
+   `{"allow":["path/a","dir/b/"],"task":"<id>"}` so the scope-lock PostToolUse hook
+   flags any edit outside the set; refresh it per task and delete it when the run ends.
 5. At the end, run the project's FULL check suite (tests, lint, type-check, build) —
    local per-task passes can compose into a global failure.
 

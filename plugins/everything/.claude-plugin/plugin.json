@@ -1,8 +1,11 @@
 {
   "name": "everything",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
   "dependencies": [
     "ui-ux",
     "react",
@@ -65,6 +68,7 @@
     "automation-builder",
     "skill-router",
     "brain",
-    "shadcn-studio"
+    "shadcn-studio",
+    "secret-scanning"
   ]
 }
