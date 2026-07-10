@@ -1,6 +1,6 @@
 {
   "name": "skill-router",
-  "version": "0.1.0",
-  "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session.",
+  "version": "0.1.1",
+  "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, TS/JS, React/Vue/Inertia/Livewire, SQL, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Every relevant skill co-fires per edit (a11y alongside ui-ux); fail-open, once per skill per session.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

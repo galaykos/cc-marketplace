@@ -30,6 +30,11 @@ twice at once or be retried.
 
 5. When findings exist, offer the next step as a selectable choice
    (AskUserQuestion): "Apply the fixes now (Recommended)" / "Critical and
-   high only" / "Stop here". Never leave the user to retype findings as
-   instructions. In headless or non-interactive runs, skip the offer and
-   output the report only.
+   high only" / "Stop here". On apply, hand the finding list to the shared
+   `task-executor` (task-runner plugin) when installed — scope-locked, bounded
+   verify-fix, evidence-returning — otherwise apply inline. In headless or
+   non-interactive runs, skip the offer and output the report only.
+
+6. Reliability family: `resilience` (failure modes), `error-handling` (catch-site
+   correctness), and `concurrency` (race safety) are sibling reviews sharing this
+   apply path — run the one matching the defect class.

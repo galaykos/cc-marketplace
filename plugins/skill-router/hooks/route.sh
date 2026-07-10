@@ -60,17 +60,23 @@
     fi
   }
 
-  # ---- high-confidence pass: first surviving, not-yet-fired match nudges ----
+  # ---- high-confidence pass: EVERY surviving, not-yet-fired match nudges ----
+  # All relevant skills for THIS edit fire (e.g. a11y alongside ui-ux, and the
+  # stack skill, on a single .tsx) — no break after the first. Session dedup via
+  # `fired` still prevents re-nudging the same skill on later edits; emitted_now
+  # dedups two rules that map to one skill within this single edit.
   fired_now=""
+  emitted_now=""
   while IFS=$'\t' read -r stype pattern skill plugin conf || [ -n "$stype" ]; do
     case "$stype" in ''|'#'*) continue ;; esac
     [ "$stype" = glob ] && [ "$conf" = high ] || continue
     match_glob "$pattern" || continue
     plugin_installed "$plugin" || continue
     already_fired "$skill" && continue
+    printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
     emit_nudge "$skill" "$plugin"
-    fired_now="$skill"
-    break
+    emitted_now="${emitted_now}${skill}"$'\n'
+    fired_now="${fired_now}${skill}"$'\n'
   done < "$rules"
 
   # ---- low-confidence pass: accumulate content matches (no inline output) ----
@@ -99,8 +105,13 @@
       printf '%s' "$existing" | jq empty 2>/dev/null && json="$existing"
     fi
     if [ -n "$fired_now" ]; then
-      json=$(printf '%s' "$json" | jq --arg s "$fired_now" \
-        'if (.fired | index($s) | not) then .fired += [$s] else . end' 2>/dev/null) || exit 0
+      while IFS= read -r fskill; do
+        [ -n "$fskill" ] || continue
+        json=$(printf '%s' "$json" | jq --arg s "$fskill" \
+          'if (.fired | index($s) | not) then .fired += [$s] else . end' 2>/dev/null) || exit 0
+      done <<EOF_FIRED
+$fired_now
+EOF_FIRED
     fi
     if [ -n "$pending_adds" ]; then
       while IFS= read -r pskill; do

@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 62 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
+2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 70 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -117,7 +117,7 @@ afterwards to sweep the orphans.
 | **mysql** | MySQL 8.0+: InnoDB clustered PK, utf8mb4, strict sql_mode, online DDL, gap locks, 8.0–8.4 leverage | `/mysql:review` |
 | **mariadb** | MariaDB 10.6+: not-MySQL divergences, RETURNING, sequences, system versioning, UUID type, Galera | `/mariadb:review` |
 | **postgresql** | PostgreSQL 14+: MVCC/vacuum, timestamptz/jsonb, index arsenal, lock-aware migrations, 14–18 leverage | `/postgresql:review` |
-| **database** | Database worker: schema design, additive migrations, indexing, query optimization, connection pooling + database-engineer agent | — |
+| **database** | Database design: engine-agnostic schema, expand→contract migrations, indexing, query shape, pooling — database-design skill + database-engineer worker + a destructive-SQL PreToolUse guard | `/database:review` |
 
 ### Taskmaster workflow suite
 
@@ -155,6 +155,14 @@ afterwards to sweep the orphans.
 | **orchestration** | Subagent orchestration: delegation contracts, compressed returns, model tiering, refuter/judge panels, loop-until-dry | `/orchestration:review` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
 | **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent | `/security:review` |
+| **[secret-scanning](plugins/secret-scanning/README.md)** | PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens) before it hits disk; on-demand repo sweep; fail-open, fixture-safe | `/secret-scanning:scan` |
+| **[event-driven](plugins/event-driven/README.md)** | Message-driven architecture: broker choice, topic/partition design, event schema versioning, at-least-once + consumer idempotency, the outbox pattern, sagas with compensation, dead-letter handling | `/event-driven:review` |
+| **[payments](plugins/payments/README.md)** | Payments/billing (Stripe/Paddle): PCI-scope minimization, integer-minor-unit money, signature-verified idempotent webhooks, subscription races, dunning/proration, ledger reconciliation | `/payments:review` |
+| **[api-auth](plugins/api-auth/README.md)** | API auth: token model choice (session/opaque/JWT), Sanctum vs Passport, OAuth2 Auth Code + PKCE, scopes, refresh-token rotation with reuse detection, httpOnly storage, hashing/expiry | `/api-auth:review` |
+| **[i18n](plugins/i18n/README.md)** | Internationalization: semantic keys + catalogs, ICU plural/gender, locale-aware dates/numbers/currency via Intl, RTL logical properties, fallback chains, tooling extraction | `/i18n:review` |
+| **[graphql-grpc](plugins/graphql-grpc/README.md)** | GraphQL (N+1/DataLoader, per-field resolver authz, depth/complexity limits, cursor pagination) + gRPC (proto field-number safety, streaming, deadlines, status codes) | `/graphql-grpc:review` |
+| **[data-privacy](plugins/data-privacy/README.md)** | GDPR/CCPA: PII mapping, data-subject rights (access/erasure/portability) with reach across logs/caches/backups/processors, consent, retention/deletion, audit trails | `/data-privacy:review` |
+| **[llm-app](plugins/llm-app/README.md)** | LLM apps: eval harnesses + regression gates, RAG (chunking/embeddings/retrieval quality/grounding), prompt versioning, prompt-injection defense, token-cost control | `/llm-app:review` |
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
 | **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files; CI/CD + prod deploys → devops | `/dev-env:init`, `/dev-env:review` |
@@ -166,9 +174,9 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **web-dev** | Generalist web implementation worker: routing, REST/API integration, forms, state, SSR/CSR trade-offs, accessibility baseline + web-developer agent | — |
-| **system-design** | System-level design worker: service boundaries, data modeling, scaling, caching, sync vs async with documented trade-offs + system-architect agent; code-level structure → code-architecture | — |
-| **devops** | DevOps worker: CI/CD pipelines, Docker/K8s, deploy strategies with rollback paths, observability, secrets discipline + devops-engineer agent; local dev environments → dev-env | — |
-| **performance** | Performance worker: measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing + performance-engineer agent | — |
+| **system-design** | System-level design: boundaries on data ownership, scaling, cache placement, async failure modes, SPOFs + domain modeling (DDD) — skills + system-architect worker + system-design-reviewer; code-level structure → code-architecture | `/system-design:review` |
+| **devops** | DevOps pipeline/infra: CI/CD ordering, image hygiene, k8s limits/probes, deploy+rollback, secrets — devops-practices skill + devops-engineer worker + devops-reviewer; in-code instrumentation → observability, local dev → dev-env | `/devops:review` |
+| **performance** | Performance tuning: measure-first, N+1/index/payload/bundle/CWV hotspots, cache correctness (stampede/TTL/eviction), percentile load testing — performance-tuning skill + performance-engineer worker | `/performance:review` |
 
 ### Bundles
 

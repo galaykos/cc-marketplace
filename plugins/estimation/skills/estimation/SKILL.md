@@ -92,6 +92,23 @@ same miss twice is a finding.
 - Never revise the original estimate after the fact; the gap IS the
   signal. A corrected history calibrates nothing.
 
+## Persisting across runs
+
+A loop that lives only in one conversation calibrates nothing — the anchors
+and misses evaporate with the transcript. Persist them to a durable, append-only
+ledger so the next run inherits real local anchors instead of starting from
+optimism:
+
+- Append each sized item to `taskmaster-docs/estimation-ledger.md` (the gitignored
+  working area) as one row: date, task, class, anchor, and — when it completes —
+  actual and the miss delta. Append-only; never rewrite a past row (that is the
+  mid-task-revision anti-pattern at file scale).
+- Read the ledger's recent rows at sizing time; the most recent comparable row is
+  the best anchor because it priced in the repo's current friction.
+- Park deferred work the same way: taskmaster red-team/coverage acceptances and
+  rollout flag debt get a line in the ledger, so a follow-up is a durable entry, not
+  a hope that someone remembers.
+
 ## Feeds
 
 /task-runner:plan consumes these classes directly as weights for its

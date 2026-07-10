@@ -9,7 +9,7 @@ exactly.
 
 1. Detect and route per the skill's table. Host is already a runnable Vite+React
    app → defer to `design-preview:real-preview` (renders the project's own
-   components). Node major < 18 or absent → static-shell fallback, before any
+   components). Node below `20.19` (the Vite floor) or absent → static-shell fallback, before any
    write. Otherwise (empty/greenfield dir, or a non-React stack) → shadcn-studio.
 2. Ask the strict consent gate, naming the resolved scratch path actually taken
    (outside the work tree by default), the `npm ci` + `vite dev` commands, and

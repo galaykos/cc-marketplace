@@ -21,5 +21,6 @@ description: "Audit UI code against WCAG 2.1 AA — semantic structure, contrast
    a human can finish the audit.
 5. **When violations exist, offer the next step** as a selectable choice
    (AskUserQuestion): "Apply the fixes now (Recommended)" / "Blockers
-   only" / "Stop here" — implementation follows the ui-ux plugin's
-   conventions (its ui-ux-engineer agent territory).
+   only" / "Stop here". On apply, dispatch the `a11y-engineer` worker with the
+   violation list — it prefers the semantic fix over the ARIA patch and tags each
+   change with the WCAG criterion it satisfies. In headless runs, report only.
