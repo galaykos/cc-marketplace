@@ -14,9 +14,12 @@ the first token of THIS command's own arguments — e.g. an earlier command's ow
 intensity flag in a chained message, such as a `caveman ultra` preceding this
 command — is NOT a taskmaster trigger and never boosts this run; only
 `ultra-task`/`ultratask`
-crosses a command boundary. On a match, strip the matched token and treat the run
+crosses a command boundary. The `ultra`/`ultra-task` token may carry a
+`-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
+∈ opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max,
+default max) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (an N=3 blind adversary
-panel on the Workflow path, opus subagents, and the ⚡ banner).
+panel on the Workflow path, subagents at the selected model, and the ⚡ banner).
 
 1. Resolve the target spec file.
 2. Invoke the spec-redteam skill — apply its blast-radius gate; when met, dispatch

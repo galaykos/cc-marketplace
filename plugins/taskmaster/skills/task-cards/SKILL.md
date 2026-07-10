@@ -70,8 +70,9 @@ e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
   public method") — the fresh session has not read the scout report.
 - Skills to apply: stamp the stack/framework skills relevant to each card from
   the stack-scan inventory taken at pipeline step 1 (fall back to reading
-  manifests when stack-scan is absent). The executing session loads the named
-  skills deterministically instead of relying on description matching.
+  manifests when stack-scan is absent). delegation-contracts § Skill priming
+  resolves each named skill's installed SKILL.md and injects a Read-by-path into
+  the implementer dispatch — a delegate cannot self-load skills.
 
 ## Acceptance criteria rules
 
@@ -117,7 +118,7 @@ taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
 `00-INDEX.md` holds: the spec path, a table (card / title / depends-on / parallel
 group / status), and the run note — each card is executed by pasting it into a
 fresh session or `claude "$(cat 01-*.md)"`. Update the status column as cards
-land; the index is the only file that mutates during execution. Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true` line near the top of `00-INDEX.md` so a fresh-session execution run inherits the boost.
+land; the index is the only file that mutates during execution. Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true (model=<model>, effort=<effort>)` line near the top of `00-INDEX.md` — copy the `model`/`effort` the directive resolved (defaults opus/max) — so a fresh-session execution run inherits the boost at the same tier.
 
 When cards are executed by subagents, the dispatch-prompt and return-format
 contract is the orchestration plugin's delegation-contracts skill.

@@ -2,6 +2,7 @@
 # Validates cc-plugins-marketplace structure. Exits non-zero on first category of failure.
 set -u
 cd "$(dirname "$0")/.."
+. "$(dirname "$0")/lib/plugin-checks.sh" || { echo "FAIL: scripts/lib/plugin-checks.sh missing" >&2; exit 1; }
 fail=0
 err() { echo "FAIL: $1" >&2; fail=1; }
 
@@ -53,8 +54,7 @@ for d in plugins/*/skills/*/; do
   [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
   echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during)"
-  lines=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
-  { [ "$lines" -ge 100 ] && [ "$lines" -le 150 ]; } || err "$f: body is $lines lines, outside 100-150 budget"
+  if lines=$(pc_skill_budget "$f"); then :; else err "$f: body is ${lines##* } lines, outside 100-150 budget"; fi
 done
 
 # Commands need frontmatter with description:; agents additionally need name:
@@ -99,9 +99,47 @@ done < <(find plugins -path '*/hooks/hooks.json')
 # a skill's SKILL.md and its references/, commands/, and agents/.
 allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$'
 while IFS= read -r mdf; do
-  rel=${mdf#plugins/*/}
-  printf '%s\n' "$rel" | grep -qE "$allow_md" \
+  pc_doc_location "$mdf" "$allow_md" >/dev/null \
     || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
 done < <(find plugins -name '*.md')
+
+# The 'everything' bundle must depend on every non-suite (leaf) plugin — a leaf
+# plugin.json has no .dependencies; a bundle has them. Prevents an aggregate
+# install silently missing a plugin, and keeps the README count honest.
+EV=plugins/everything/.claude-plugin/plugin.json
+if [ -f "$EV" ]; then
+  evdeps=$(jq -r '.dependencies[]?' "$EV")
+  nonsuite=0
+  for pj in plugins/*/.claude-plugin/plugin.json; do
+    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && continue  # skip bundles
+    nonsuite=$((nonsuite + 1))
+    name=$(jq -r .name "$pj")
+    printf '%s\n' "$evdeps" | grep -qx "$name" \
+      || err "everything bundle missing dependency '$name' (must list every non-suite plugin)"
+  done
+  rc=$(grep -oE 'all [0-9]+ plugins' README.md | grep -oE '[0-9]+' | head -1)
+  { [ -z "$rc" ] || [ "$rc" = "$nonsuite" ]; } \
+    || err "README says 'all $rc plugins' but there are $nonsuite non-suite plugins"
+fi
+
+# Stack-authoring-gap guard: a worker agent declaring `bestpractices-skill: <dir[,dir]>`
+# must name skill dirs that exist, and the delegation-contracts doctrine that
+# resolves+injects them must be present.
+for f in plugins/*/agents/*.md; do
+  [ -f "$f" ] || continue
+  marker=$(awk '/^---$/{c++; next} c==1 && /^bestpractices-skill:/{sub(/^bestpractices-skill:[[:space:]]*/,""); print; exit}' "$f")
+  [ -n "$marker" ] || continue
+  IFS=',' read -ra _bp <<< "$marker"
+  for d in "${_bp[@]}"; do
+    d=$(printf '%s' "$d" | tr -d '[:space:]')
+    ls -d plugins/*/skills/"$d" >/dev/null 2>&1 \
+      || err "$f: bestpractices-skill '$d' has no matching plugins/*/skills/$d"
+  done
+done
+DC=plugins/orchestration/skills/delegation-contracts/SKILL.md
+if [ -f "$DC" ]; then
+  { grep -q 'Skill priming' "$DC" && grep -q 'find ~/.claude/plugins' "$DC"; } \
+    || err "$DC: skill-priming doctrine (resolve+inject) missing"
+fi
 
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

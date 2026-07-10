@@ -20,9 +20,10 @@ Operating procedure:
    the intent; the repo proves the runtime — never assume a driver from a bare
    `.spec` file.
 2. Read the relevant `<tool>-docs` and `<tool>-patterns` skills for the chosen
-   tool, and verify the current API against live docs or via
-   `/api-docs-first:check`. Selectors, CDP endpoints, and SDK signatures drift —
-   never code an integration from memory.
+   tool. When the dispatch injects a resolved `Read <abs-path>` for them
+   (delegation-contracts § Skill priming), use that; otherwise resolve by name.
+   Verify the current API against live docs or `/api-docs-first:check` — selectors,
+   CDP endpoints, and SDK signatures drift; never code an integration from memory.
 3. Scaffold the automation following the tool's patterns skill. Model the flow
    as the plan's discrete steps and honour the domain checklist below.
 4. Verify. Run and test via Bash where a runtime is available — install deps and

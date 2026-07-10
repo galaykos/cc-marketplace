@@ -18,10 +18,14 @@ the first token of THIS command's own arguments — e.g. an earlier command's ow
 intensity flag in a chained message, such as a `caveman ultra` preceding this
 command — is NOT a taskmaster trigger and never boosts this run; only
 `ultra-task`/`ultratask`
-crosses a command boundary. On a match, strip the matched token and treat the run
-as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (opus on reachable
-subagents, mandatory red-team + coverage, bounded Workflow fan-outs, the ⚡ banner,
-and the `Ultra: true` marker written into the card index).
+crosses a command boundary. The `ultra`/`ultra-task` token may carry a
+`-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
+∈ opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max,
+default max) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
+as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (the selected model on
+reachable subagents, mandatory red-team + coverage, bounded Workflow fan-outs, the
+⚡ banner, and the `Ultra: true (model=…, effort=…)` marker written into the card
+index).
 
 1. If the stack-scan plugin is installed (the installed-versions skill or
    /stack-scan:report is available), run its inventory first and hand the

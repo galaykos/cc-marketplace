@@ -3,5 +3,6 @@
 docs
 .junie
 taskmaster-docs
-.claude/skill-router/
-.claude/taskmaster/
+# Local Claude Code state — track only settings.json (the committed authoring-guard hook)
+.claude/*
+!.claude/settings.json

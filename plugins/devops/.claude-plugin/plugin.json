@@ -1,6 +1,6 @@
 {
   "name": "devops",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Owns CI/CD and production infrastructure; defers generating local docker-compose dev environments to the dev-env plugin.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

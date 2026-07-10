@@ -1,6 +1,6 @@
 {
   "name": "automation-builder",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Browser-automation planner and worker: a think-process skill that turns an automation goal into a tool choice (Playwright/Puppeteer vs anti-detect AdsPower/Kameleo/Camoufox) and a sequenced plan, plus a browser-automation-engineer agent that scaffolds and runs the automation. Includes /automation-builder:build and an automation-keyword reminder hook. Pairs with the playwright, puppeteer, adspower, kameleo, and camoufox plugins; defers doc verification to api-docs-first.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

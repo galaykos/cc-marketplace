@@ -54,10 +54,13 @@ run a conditional reviewer pass on the task's diff:
 Each reviewer fires only if its plugin is installed — skip silently when
 absent; a missing reviewer is never a failure and needs no note.
 
-**Extreme Boost:** when the run's `00-INDEX.md` carries an `Ultra: true` marker,
-dispatch the reviewer and delegated worker agents with a `model: opus` override —
-excluding `opinion-lens` — so the boost reaches execution even in a fresh session.
-The Agent tool has no effort parameter, so this escalates the model only.
+**Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` marker, dispatch the
+reviewer and delegated worker agents with a `model:` override — excluding
+`opinion-lens` — so the boost reaches execution even in a fresh session. Read the
+tier from the marker: `Ultra: true (model=<model>, effort=<effort>)` uses that
+`<model>`; a legacy bare `Ultra: true` means `model: opus`. The Agent tool has no
+effort parameter, so it escalates model only (marker `effort` applies only on the `Workflow` `agent()` path).
+Delegated stack implementers also get delegation-contracts § Skill priming: resolve+inject `Read <abs-path>` per the card's `Skills to apply`.
 
 Blocker/major findings send the task back into the fix loop; each such round
 counts toward the SAME three-cycle ceiling as verify failures — the reviewer
