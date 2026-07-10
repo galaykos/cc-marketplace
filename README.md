@@ -117,7 +117,7 @@ afterwards to sweep the orphans.
 | **mysql** | MySQL 8.0+: InnoDB clustered PK, utf8mb4, strict sql_mode, online DDL, gap locks, 8.0–8.4 leverage | `/mysql:review` |
 | **mariadb** | MariaDB 10.6+: not-MySQL divergences, RETURNING, sequences, system versioning, UUID type, Galera | `/mariadb:review` |
 | **postgresql** | PostgreSQL 14+: MVCC/vacuum, timestamptz/jsonb, index arsenal, lock-aware migrations, 14–18 leverage | `/postgresql:review` |
-| **database** | Database worker: schema design, additive migrations, indexing, query optimization, connection pooling + database-engineer agent | — |
+| **database** | Database design: engine-agnostic schema, expand→contract migrations, indexing, query shape, pooling — database-design skill + database-engineer worker + a destructive-SQL PreToolUse guard | `/database:review` |
 
 ### Taskmaster workflow suite
 
@@ -174,9 +174,9 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **web-dev** | Generalist web implementation worker: routing, REST/API integration, forms, state, SSR/CSR trade-offs, accessibility baseline + web-developer agent | — |
-| **system-design** | System-level design worker: service boundaries, data modeling, scaling, caching, sync vs async with documented trade-offs + system-architect agent; code-level structure → code-architecture | — |
-| **devops** | DevOps worker: CI/CD pipelines, Docker/K8s, deploy strategies with rollback paths, observability, secrets discipline + devops-engineer agent; local dev environments → dev-env | — |
-| **performance** | Performance worker: measure-first profiling, bundle size, caching, Core Web Vitals, N+1 elimination, load testing + performance-engineer agent | — |
+| **system-design** | System-level design: boundaries on data ownership, scaling, cache placement, async failure modes, SPOFs + domain modeling (DDD) — skills + system-architect worker + system-design-reviewer; code-level structure → code-architecture | `/system-design:review` |
+| **devops** | DevOps pipeline/infra: CI/CD ordering, image hygiene, k8s limits/probes, deploy+rollback, secrets — devops-practices skill + devops-engineer worker + devops-reviewer; in-code instrumentation → observability, local dev → dev-env | `/devops:review` |
+| **performance** | Performance tuning: measure-first, N+1/index/payload/bundle/CWV hotspots, cache correctness (stampede/TTL/eviction), percentile load testing — performance-tuning skill + performance-engineer worker | `/performance:review` |
 
 ### Bundles
 
