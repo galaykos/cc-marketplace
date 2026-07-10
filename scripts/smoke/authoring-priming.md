@@ -40,6 +40,6 @@ useful to confirm the resolver targets the newest installed version.
 
 | Date | Tier | Skill | Delegate | Token echoed? |
 |------|------|-------|----------|---------------|
-| _pending_ | T1 | testing-best-practices | test-engineer | _run card 08_ |
-| _pending_ | T2 | docker-best-practices | devops-engineer | _run card 12_ |
+| 2026-07-10 | T2 | docker-best-practices (cross-plugin, dev-env) | general-purpose w/ injected Read | **YES — PASS.** Delegate cited the "Non-root USER" rule and echoed `CANARY-ZXQ7-DELEGATE-READ-PROOF`, proving it Read the resolved cross-plugin abs path (not pretraining). |
+| _pending_ | T1 | testing-best-practices | test-engineer | harness mechanics verified (inject/clean idempotent); live echo via same procedure |
 | _pending_ | T3 | livewire-best-practices | (generic card subagent) | _run card 14_ |
