@@ -1,6 +1,6 @@
 ---
 name: pattern-selection
-description: Use when structuring code and considering a design pattern — maps problems to patterns (creational, structural, behavioral), and lists when NOT to use each; simplest-thing-first.
+description: Use when structuring code and weighing — or naming — a design pattern (Factory, Abstract Factory, Builder, Prototype, Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy, Strategy, State, Observer, Mediator, Command, Memento, Chain of Responsibility, Template Method, Visitor, Iterator, Interpreter, Singleton). Maps a problem to the right GoF pattern across creational/structural/behavioral, gives when-NOT per pattern, disambiguates look-alikes, and points to a full catalog; simplest-thing-first, refactor-to-pattern only when the simple thing breaks.
 ---
 
 ## The rule: name the problem first, pattern second
@@ -10,115 +10,102 @@ pattern. Patterns are named solutions to recurring problems, not a checklist to 
 and not "more professional" than a plain function or a conditional. Start with the simplest thing
 that could work; reach for a pattern only when that simple thing demonstrably breaks down
 (duplicated branching that keeps growing, a caller that needs to swap behavior it doesn't own).
+Each row below carries a **Skip when** — the failure mode of applying it too early.
+
+## Gate: earn the pattern before you read the map
+
+The map routes; this gate decides whether to route at all. Answer all three — any **no** means
+stop and ship the plain version. Do not skim to the table first.
+
+1. **Named the simple version?** State the non-pattern solution — a function, a conditional, a
+   plain object. If you can't, you don't understand the problem yet, let alone the pattern.
+2. **Has it actually broken *here*?** Breakage is concrete and present: branching that keeps
+   growing, one change forcing edits in N places, a caller needing to swap behavior it doesn't
+   own. "Might need it later" is not breakage — it's speculation. Speculation loses.
+3. **Problem stated in one sentence without a pattern name?** If the only justification is
+   "cleaner" or "more professional," that's pattern-for-pattern's-sake. Stop.
+
+Three yeses → open the map. Otherwise the simple version *is* the answer; record why in a comment
+and move on.
+
+## How to use the map
+
+1. State the problem in one sentence — the recurring pain, not the solution you already imagined.
+2. Find the row whose **Use when** matches that pain; check its **Skip when** does not describe you.
+3. If two rows fit, read the **Look-alikes** section — the difference is intent, not shape.
+4. Open `references/catalog.md` for that pattern's example before writing it. Prefer the idiom form.
 
 ## Problem → pattern map
 
-| Problem | Pattern | Category |
+### Creational
+| Pattern | Use when | Skip when |
 |---|---|---|
-| Object creation with variants (subclass choice, optional steps) | Factory / Builder | Creational |
-| Incompatible interface between existing code and what you need | Adapter | Structural |
-| Swap an algorithm or behavior at runtime | Strategy | Behavioral |
-| React to events or state changes from multiple listeners | Observer | Behavioral |
-| Wrap an object with cross-cutting behavior (logging, caching, auth) | Decorator | Structural |
-| Sequential processing where any step can bail out or handle it | Chain of Responsibility | Behavioral |
-| Undoable or queueable operations | Command | Behavioral |
-| One shared resource, config, or connection | Module / DI (not Singleton) | — |
+| Factory Method | one seam must pick the concrete type by variant/env | a single `new` or object literal already reads clearly |
+| Abstract Factory | a family of related objects must vary together (theme, platform driver) | only one product, or the family never grows a second axis |
+| Builder | assembly has many optional steps → a telescoping constructor | ≤3 args, all required — just call the constructor |
+| Prototype | cloning a configured instance beats rebuilding from scratch | construction is cheap; `structuredClone`/spread already clones |
+| Module / DI (not Singleton) | one shared resource (DB pool, config) injected or module-scoped | never the Singleton class — it hides global mutable state; inject instead |
 
-## Factory / Builder — object creation with variants
+### Structural
+| Pattern | Use when | Skip when |
+|---|---|---|
+| Adapter | wrap an incompatible third-party/legacy interface into the shape you expect | you own both sides — change the signature, don't add a permanent translator |
+| Bridge | abstraction and implementation must vary on two independent axes | only one axis varies — there is no cross-product to decouple |
+| Composite | leaf and tree must be treated uniformly (UI tree, AST, filesystem) | a flat list with no recursion |
+| Decorator | stackable cross-cutting wrap (logging, retry, caching) around an object | a one-off addition — inline it at the call site |
+| Facade | hide a messy multi-part subsystem behind one simple entry point | the subsystem is already small and clear |
+| Flyweight | share heavy immutable state across very many instances | few instances, or the shared state is cheap |
+| Proxy | control access to a target — lazy-load, remote, permission guard | no access concern — call the target directly |
 
-Use when constructing an object requires choosing among variants, or assembly needs several
-optional steps that would otherwise become a constructor with eight optional arguments. Do NOT
-use when a single `new` call or a plain object literal already reads clearly — a Factory around
-one concrete class adds a layer without adding a choice.
+### Behavioral
+| Pattern | Use when | Skip when |
+|---|---|---|
+| Chain of Responsibility | ordered handlers, each may handle or pass the request (middleware) | 2–3 fixed checks — an early-return `if` sequence is more direct |
+| Command | an operation must become a value to queue, log, retry, or undo | called immediately, never deferred or undone — just call the function |
+| Interpreter | evaluate sentences of a small grammar you define (rules DSL) | anything non-trivial — use a real parser library |
+| Iterator | traverse a collection without exposing its internals | the language gives it (`for…of`, generators) |
+| Mediator | many-to-many communication collapsed through one hub | only two colleagues — let them talk directly |
+| Memento | snapshot and restore opaque state for undo | the inverse op is cheap to compute — use Command undo |
+| Observer | notify unknown listeners when state changes | a single fixed callee — that's just a function call |
+| State | behavior changes with an internal state (a state machine) | a fixed `if/else` on a value that won't grow new states |
+| Strategy | interchangeable algorithm chosen by the caller | two fixed branches that will never gain a third |
+| Template Method | fixed skeleton, subclasses fill in steps | composition (inject a Strategy) fits — prefer it over inheritance |
+| Visitor | add new operations over a stable node hierarchy | the node set changes often — Visitor makes that painful |
 
-```js
-// Factory: caller doesn't need to know which concrete class it gets
-function createLogger(env) {
-  return env === "prod" ? new JsonLogger() : new PrettyLogger();
-}
-```
+## Look-alikes — same shape, different intent
 
-## Adapter — incompatible interface
+- **Strategy vs State** — identical structure; Strategy is swapped by the caller, State swaps
+  itself as internal data changes.
+- **Decorator vs Proxy** — both wrap a target; Decorator adds behavior, Proxy controls access
+  (and may add nothing).
+- **Observer vs Mediator** — Observer is one source → many listeners; Mediator is many ↔ many
+  routed through a hub.
+- **Command vs Memento** — undo via a known inverse (Command) vs an opaque snapshot (Memento).
+- **Adapter vs Facade** — Adapter converts one interface to another expected one; Facade invents
+  a simpler interface over several.
+- **Factory Method vs Abstract Factory vs Builder** — one product by subtype / a whole family
+  together / one product assembled in many steps.
 
-Use when you must plug a third-party or legacy API into code that expects a different shape and
-cannot change either side. Do NOT use when you control both sides — just change the callee's
-signature instead of adding a permanent translation layer.
+## The idiom-collapse three
 
-```js
-// Adapter: old lib returns callbacks, app expects promises
-const adapted = (arg) => new Promise((res) => oldLib.doThing(arg, res));
-```
-
-## Strategy — swap behavior at runtime
-
-Use when a caller selects among interchangeable algorithms (sorting, pricing, validation) without
-an if/else ladder growing at every call site. Do NOT use for two fixed branches that never gain a
-third — a plain `if` beats a two-class hierarchy built for hypothetical future variants.
-
-```js
-// Strategy as a function parameter — no class hierarchy needed
-function checkout(cart, priceStrategy) { return priceStrategy(cart); }
-checkout(cart, standardPricing);
-checkout(cart, blackFridayPricing);
-```
-
-## Observer — react to events or state changes
-
-Use when one or more parts of the system must react to something happening elsewhere, and the
-source shouldn't need to know who's listening. Do NOT use for a single fixed caller/callee
-relationship — that's just a function call, and subscribe/notify adds indirection for nothing.
+In languages with closures and first-class functions (JavaScript, TypeScript, PHP), reach for the
+idiom before the class-based form:
 
 ```js
-// Observer via a plain event emitter
+// Strategy → a function parameter          Command → a closure capturing intent + inverse
+checkout(cart, blackFridayPricing);         const cmd = { do: () => doc.insert(t), undo: () => doc.delete(t) };
+// Observer → an event emitter
 bus.on("order:placed", sendConfirmationEmail);
-bus.on("order:placed", updateInventory);
 ```
 
-## Decorator — cross-cutting wrap
-
-Use when you need to add behavior (logging, retries, caching) around an existing object without
-modifying its class, and you may need to stack several such wraps. Do NOT use for a one-off
-addition — inline the logic at the call site rather than defining a wrapper used exactly once.
+Two more that collapse the same way:
 
 ```js
-// Decorator: wraps fetch with retry, leaves the original untouched
-const withRetry = (fn) => async (...args) => { try { return await fn(...args); } catch { return fn(...args); } };
-```
-
-## Chain of Responsibility — sequential processing with bail-out
-
-Use for a pipeline of handlers where each gets a chance to process or reject a request and the
-set of handlers changes independently of the caller (middleware, validation stages). Do NOT use
-for two or three fixed checks — an early-return sequence of `if` statements is more direct.
-
-```js
-// Chain of Responsibility as an array of functions, short-circuiting
-for (const handler of middleware) { if (handler(req)) break; }
-```
-
-## Command — undoable or queueable operations
-
-Use when an operation needs to be queued, logged, retried, or undone — the request itself must
-become a first-class value, not just a function call. Do NOT use when you only ever call the
-operation immediately with no need to defer, queue, or undo it — that's just calling the function.
-
-```js
-// Command as a closure — capture intent and its inverse
-const cmd = { do: () => doc.insert(text), undo: () => doc.delete(text) };
-```
-
-## Module / DI over Singleton — single shared resource
-
-Use a module-level instance or constructor-injected dependency when something must be shared
-(a DB pool, a config object). Do NOT reach for the classic Singleton pattern (private constructor
-+ static `getInstance`) — it hardcodes global mutable state, makes tests fight over shared
-instances, and hides the dependency from callers' signatures. A module export or an injected
-instance gives you the same "one instance" property without the coupling.
-
-```js
-// Not Singleton class — a module is already one instance per process
-// db.js
-export const pool = createPool(config);
+// State → a table of behaviors keyed by the current state (no class per state)
+const transitions = { idle: startFn, running: pauseFn, paused: resumeFn };
+transitions[machine.state]();
+// Template Method → a higher-order function taking the varying step, not a subclass
+const report = (fmt) => `<<${section(fmt)}>>`;   // fmt is the injected step
 ```
 
 ## Anti-patterns to avoid
@@ -127,21 +114,13 @@ export const pool = createPool(config);
   professional," when a function or a conditional already says the same thing more plainly.
 - **Singleton-as-global-state**: using Singleton to smuggle mutable global state past code review;
   it's the same problem as a global variable with extra ceremony.
-- **Inheritance where composition fits**: building a class hierarchy to share behavior when
-  injecting a dependency or embedding a helper object would do it without coupling subclasses to
-  a rigid taxonomy.
+- **Inheritance where composition fits**: a class hierarchy to share behavior when injecting a
+  dependency (Strategy over Template Method) would do it without coupling subclasses to a taxonomy.
 
-## Language-idiom note
+## Full catalog — intent, structure, example per pattern
 
-In languages with closures and first-class functions (JavaScript, TypeScript, PHP), many GoF
-patterns collapse into simpler idioms — reach for these before the classic class-based form:
-
-- **Strategy** → a function passed as a parameter.
-- **Command** → a closure capturing the action (and optionally its inverse for undo).
-- **Observer** → an event emitter (`EventEmitter`, DOM events, a pub/sub bus).
-
-## Docs pointer
-
-Pattern names, intents, and structure diagrams in this skill follow the standard GoF catalog.
-When you need a fuller writeup, applicability checklist, or a diagram for a pattern not covered
-above, check the reference catalog rather than relying on memory: https://refactoring.guru/design-patterns
+For any pattern in the map, read `references/catalog.md` (this skill's directory) before writing
+code: it carries the intent, a minimal structure, a runnable example, and the collapse-to-idiom
+note for all patterns above plus non-GoF ones (Repository, Null Object, DI). Do not reconstruct a
+pattern from memory. For diagrams or a fuller applicability checklist, the GoF write-ups live at
+https://refactoring.guru/design-patterns
