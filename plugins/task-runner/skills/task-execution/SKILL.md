@@ -60,6 +60,7 @@ reviewer and delegated worker agents with a `model:` override — excluding
 tier from the marker: `Ultra: true (model=<model>, effort=<effort>)` uses that
 `<model>`; a legacy bare `Ultra: true` means `model: opus`. The Agent tool has no
 effort parameter, so it escalates model only (marker `effort` applies only on the `Workflow` `agent()` path).
+Delegated stack implementers also get delegation-contracts § Skill priming: resolve+inject `Read <abs-path>` per the card's `Skills to apply`.
 
 Blocker/major findings send the task back into the fix loop; each such round
 counts toward the SAME three-cycle ceiling as verify failures — the reviewer

@@ -123,4 +123,24 @@ if [ -f "$EV" ]; then
     || err "README says 'all $rc plugins' but there are $nonsuite non-suite plugins"
 fi
 
+# Stack-authoring-gap guard: a worker agent declaring `bestpractices-skill: <dir[,dir]>`
+# must name skill dirs that exist, and the delegation-contracts doctrine that
+# resolves+injects them must be present.
+for f in plugins/*/agents/*.md; do
+  [ -f "$f" ] || continue
+  marker=$(awk '/^---$/{c++; next} c==1 && /^bestpractices-skill:/{sub(/^bestpractices-skill:[[:space:]]*/,""); print; exit}' "$f")
+  [ -n "$marker" ] || continue
+  IFS=',' read -ra _bp <<< "$marker"
+  for d in "${_bp[@]}"; do
+    d=$(printf '%s' "$d" | tr -d '[:space:]')
+    ls -d plugins/*/skills/"$d" >/dev/null 2>&1 \
+      || err "$f: bestpractices-skill '$d' has no matching plugins/*/skills/$d"
+  done
+done
+DC=plugins/orchestration/skills/delegation-contracts/SKILL.md
+if [ -f "$DC" ]; then
+  { grep -q 'Skill priming' "$DC" && grep -q 'find ~/.claude/plugins' "$DC"; } \
+    || err "$DC: skill-priming doctrine (resolve+inject) missing"
+fi
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1
