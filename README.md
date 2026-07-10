@@ -82,25 +82,63 @@ afterwards to sweep the orphans.
 
 This repository is also an **OpenAI Codex** marketplace. The Claude Code plugins
 under `plugins/` stay canonical; a one-way Node generator (`scripts/gen-codex/`)
-derives a Codex tree (`.agents/`, `codex/`) that a CI gate keeps in lockstep. Install
-in two parts:
+derives a Codex tree (`.agents/`, `codex/`) that a CI gate keeps in lockstep. The
+marketplace name (the install suffix) is `cc-plugins-marketplace`; the repo shorthand
+is `galaykos/cc-marketplace`. Verified against `codex-cli 0.143.0`.
+
+### Install
+
+**1. Add the marketplace and install plugins (skills + hooks + MCP).**
 
 ```bash
-# 1. Skills + hooks — add this repo as a Codex marketplace, then browse with /plugins
+# add this repo as a Codex marketplace source (Git); or use a local path: codex plugin marketplace add .
 codex plugin marketplace add galaykos/cc-marketplace
 
-# 2. Subagents — Codex plugins cannot bundle subagents, so install them out-of-band
-git clone https://github.com/galaykos/cc-marketplace
-bash cc-marketplace/codex/install-agents.sh   # copies codex/agents/*.toml -> ~/.codex/agents
+codex plugin list                                 # see everything available
+codex plugin add code-review@cc-plugins-marketplace   # install one plugin
 ```
 
-**Fidelity, honestly.** Skills, hooks, and MCP port faithfully. Each Claude Code
-command becomes an auto-triggered Codex skill (mention it with `$`) rather than a
-typed slash verb. Subagents install out-of-band as above. `SessionEnd` hooks, bundle
-dependency fan-out, and interactive command menus have no Codex equivalent and are
-dropped. Per-plugin detail lives in each generated `.codex-plugin/plugin.json`
-`fidelity` block, in the generated catalog, and — for contributors — in
-[`AGENTS.md`](AGENTS.md).
+Or run `/plugins` inside Codex for the interactive browser (install per-project or
+global). Installed skills are then available by mention with `$`; installed hooks fire
+on their Codex events.
+
+**2. Install the subagents (out-of-band).** Codex plugins cannot bundle subagents, so
+they ship as `codex/agents/*.toml` and install with the generated script:
+
+```bash
+git clone https://github.com/galaykos/cc-marketplace
+bash cc-marketplace/codex/install-agents.sh       # copies codex/agents/*.toml -> ~/.codex/agents
+```
+
+### Update
+
+```bash
+codex plugin marketplace upgrade                  # refresh the marketplace snapshot from Git
+codex plugin add code-review@cc-plugins-marketplace   # re-add to pull the refreshed version
+
+cd cc-marketplace && git pull                      # then refresh subagents:
+bash codex/install-agents.sh --force               # --force overwrites changed agent files
+```
+
+Plugin versions mirror the Claude Code side, so a version bump upstream shows up here
+after `marketplace upgrade`.
+
+### Uninstall
+
+```bash
+codex plugin remove code-review@cc-plugins-marketplace   # remove one plugin
+codex plugin marketplace remove cc-plugins-marketplace   # remove the marketplace source
+rm ~/.codex/agents/*.toml                                 # remove the subagents (plain files)
+```
+
+### Fidelity, honestly
+
+Skills, hooks, and MCP port faithfully. Each Claude Code command becomes an
+auto-triggered Codex skill (mention it with `$`) rather than a typed slash verb.
+Subagents install out-of-band as above. `SessionEnd` hooks, bundle dependency fan-out,
+and interactive command menus have no Codex equivalent and are dropped. Per-plugin
+detail lives in each generated `.codex-plugin/plugin.json` `fidelity` block, in the
+generated catalog, and — for contributors — in [`AGENTS.md`](AGENTS.md).
 
 ## Plugins
 
