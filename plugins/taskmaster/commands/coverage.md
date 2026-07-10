@@ -7,8 +7,14 @@ Run the coverage-check skill from this plugin on $ARGUMENTS (a
 `taskmaster-docs/tasks/<slug>/` directory or a slug; if empty, use the most
 recent `taskmaster-docs/tasks/*/00-INDEX.md`).
 
-**Ultra flag:** if the first token of $ARGUMENTS is `ultra` (or the variant
-`ultra-task`/`ultratask`), strip it and run in Extreme Boost mode — treat the run
+**Ultra flag:** run in Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
+bare `ultra` token (this command invoked as `/taskmaster:<cmd> ultra …`) or
+contains the explicit `ultra-task`/`ultratask` token. A bare `ultra` that is not
+the first token of THIS command's own arguments — e.g. an earlier command's own
+intensity flag in a chained message, such as a `caveman ultra` preceding this
+command — is NOT a taskmaster trigger and never boosts this run; only
+`ultra-task`/`ultratask`
+crosses a command boundary. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (loop-until-dry coverage
 sweeps on the Workflow path, capped at 3 rounds or first dry, and the ⚡ banner).
 
