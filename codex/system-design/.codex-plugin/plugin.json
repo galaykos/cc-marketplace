@@ -1,0 +1,29 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "System-level design worker agent: service boundaries, data modeling, scaling paths, caching layers, sync vs async decisions — documents trade-offs while implementing. Complements code-architecture (code-level structure) without overlapping it.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "system-architect",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "System Design",
+    "longDescription": "System-level design worker agent: service boundaries, data modeling, scaling paths, caching layers, sync vs async decisions — documents trade-offs while implementing. Complements code-architecture (code-level structure) without overlapping it. Includes a system-architect agent.\n\nCodex fidelity: 0 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "System-level design worker agent: service boundaries, data modeling, scaling paths, caching layers, sync vs async decisions — documents trade-offs while implementing. Complements code-architecture (code-level structure) without overlapping it."
+  },
+  "name": "system-design",
+  "schema_build": "2026-07-10",
+  "version": "0.2.0"
+}

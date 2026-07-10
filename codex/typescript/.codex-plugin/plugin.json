@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-typescript-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /typescript:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "typescript-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Typescript",
+    "longDescription": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review."
+  },
+  "name": "typescript",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

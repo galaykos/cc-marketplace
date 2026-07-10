@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Vite best practices: VITE_-prefix env security, dep pre-bundling, code splitting and manualChunks, base for sub-path deploys, dev server.proxy, define stringify pitfalls, import.meta.glob, asset handling, build.target alignment, SSR, library mode, plugin order, HMR guards, version-aware against the locked vite version and vite.config. Includes /vite:review.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-vite-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /vite:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "vite-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Vite",
+    "longDescription": "Vite best practices: VITE_-prefix env security, dep pre-bundling, code splitting and manualChunks, base for sub-path deploys, dev server.proxy, define stringify pitfalls, import.meta.glob, asset handling, build.target alignment, SSR, library mode, plugin order, HMR guards, version-aware against the locked vite version and vite.config. Includes /vite:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Vite best practices: VITE_-prefix env security, dep pre-bundling, code splitting and manualChunks, base for sub-path deploys, dev server.proxy, define stringify pitfalls, import.meta.glob, asset handling, build.target alignment, SSR, library mode, plugin order, HMR guards, version-aware against the locked vite version and vite.config. Includes /vite:review."
+  },
+  "name": "vite",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.1"
+}

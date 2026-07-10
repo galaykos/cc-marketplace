@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Vanilla JavaScript best practices: version-aware ES feature floors from engines/browserslist/lockfile, strict equality and coercion traps, ESM vs CommonJS interop, async correctness and the event loop, this-binding and closures, immutability, error handling, boundary validation, number precision and BigInt, security at boundaries. Includes /javascript:review.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-javascript-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /javascript:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "javascript-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Javascript",
+    "longDescription": "Vanilla JavaScript best practices: version-aware ES feature floors from engines/browserslist/lockfile, strict equality and coercion traps, ESM vs CommonJS interop, async correctness and the event loop, this-binding and closures, immutability, error handling, boundary validation, number precision and BigInt, security at boundaries. Includes /javascript:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Vanilla JavaScript best practices: version-aware ES feature floors from engines/browserslist/lockfile, strict equality and coercion traps, ESM vs CommonJS interop, async correctness and the event loop, this-binding and closures, immutability, error handling, boundary validation, number precision and BigInt, security at boundaries. Includes /javascript:review."
+  },
+  "name": "javascript",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.1"
+}

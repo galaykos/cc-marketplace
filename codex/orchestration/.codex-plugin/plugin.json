@@ -1,0 +1,64 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry, completeness critic). Includes /orchestration:review.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "delegation-contracts",
+        "kind": "skill",
+        "reasons": [
+          "scans ~/.claude/plugins (no Codex equivalent path)"
+        ]
+      },
+      {
+        "id": "ultra-assess",
+        "kind": "skill",
+        "reasons": [
+          "invokes CC-only orchestration primitives (Workflow/agent())"
+        ]
+      },
+      {
+        "id": "cmd-orchestration-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /orchestration:review verb"
+        ]
+      },
+      {
+        "id": "hooks",
+        "kind": "hooks",
+        "reasons": [
+          "invokes CC-only orchestration primitives (Workflow/agent())"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "verification-panels",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Orchestration",
+    "longDescription": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry, completeness critic). Includes /orchestration:review.\n\nCodex fidelity: 2 faithful, 4 degraded, 0 dropped surface(s).",
+    "shortDescription": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry, completeness critic). Includes /orchestration:review."
+  },
+  "name": "orchestration",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.0"
+}

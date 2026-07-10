@@ -1,0 +1,131 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round, decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/).",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "ultra",
+        "kind": "skill",
+        "reasons": [
+          "invokes CC-only orchestration primitives (Workflow/agent())"
+        ]
+      },
+      {
+        "id": "cmd-taskmaster-brainstorm",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /taskmaster:brainstorm verb"
+        ]
+      },
+      {
+        "id": "cmd-taskmaster-coverage",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /taskmaster:coverage verb"
+        ]
+      },
+      {
+        "id": "cmd-taskmaster-redteam",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /taskmaster:redteam verb"
+        ]
+      },
+      {
+        "id": "cmd-taskmaster-task",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /taskmaster:task verb"
+        ]
+      },
+      {
+        "id": "cmd-taskmaster-taskmaster",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /taskmaster:taskmaster verb"
+        ]
+      },
+      {
+        "id": "context-scout",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      },
+      {
+        "id": "spec-adversary",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      },
+      {
+        "id": "hooks",
+        "kind": "hooks",
+        "reasons": [
+          "invokes CC-only orchestration primitives (Workflow/agent())"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "brainstorm",
+        "kind": "skill"
+      },
+      {
+        "id": "coverage-check",
+        "kind": "skill"
+      },
+      {
+        "id": "erd",
+        "kind": "skill"
+      },
+      {
+        "id": "experience-walkthrough",
+        "kind": "skill"
+      },
+      {
+        "id": "grill",
+        "kind": "skill"
+      },
+      {
+        "id": "spec-redteam",
+        "kind": "skill"
+      },
+      {
+        "id": "task-cards",
+        "kind": "skill"
+      },
+      {
+        "id": "visual-contract",
+        "kind": "skill"
+      },
+      {
+        "id": "visual-decisions",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Taskmaster",
+    "longDescription": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved design docs, batched clarifying questions against an ambiguity ledger, consent-gated theme-aware shell mockups (full / ASCII-only / none, asked once per session) rendered in the project’s own colors when detectable, with compare modes, tradeoff callouts, and motion passes, on a single always-live auto-reload preview URL for visual decisions, interactive clickable walkthrough demos for whole experiences (multi-screen flows, states, failure exits), then a spec and milestone-grouped single-prompt task cards. Includes /taskmaster:task, /taskmaster:brainstorm, /taskmaster:coverage, /taskmaster:redteam, context-scout and spec-adversary agents, and a thin-feature-prompt reminder hook. Pairs with stack-scan, task-runner, and code-architecture for the full workflow (see README).\n\nCodex fidelity: 10 faithful, 9 degraded, 0 dropped surface(s).",
+    "shortDescription": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round, decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/)."
+  },
+  "name": "taskmaster",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.23.0"
+}

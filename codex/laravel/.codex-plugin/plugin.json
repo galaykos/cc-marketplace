@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12), and mass-assignment security.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-laravel-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /laravel:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "laravel-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Laravel",
+    "longDescription": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12), and mass-assignment security. Includes /laravel:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12), and mass-assignment security."
+  },
+  "name": "laravel",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.1"
+}

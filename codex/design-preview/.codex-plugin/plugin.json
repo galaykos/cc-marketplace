@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Real-component visual decisions for Vite + React projects: renders 2-3 candidate variants with the project's OWN components on its own dev server via a scratch HTML entry (zero edits to existing files), behind a strict consent gate with guaranteed cleanup. Escalation tier above static shell mockups — falls back to them when Vite is absent. Includes /design-preview:preview.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-design-preview-preview",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /design-preview:preview verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "real-preview",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Design Preview",
+    "longDescription": "Real-component visual decisions for Vite + React projects: renders 2-3 candidate variants with the project's OWN components on its own dev server via a scratch HTML entry (zero edits to existing files), behind a strict consent gate with guaranteed cleanup. Escalation tier above static shell mockups — falls back to them when Vite is absent. Includes /design-preview:preview.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Real-component visual decisions for Vite + React projects: renders 2-3 candidate variants with the project's OWN components on its own dev server via a scratch HTML entry (zero edits to existing files), behind a strict consent gate with guaranteed cleanup. Escalation tier above static shell mockups — falls back to them when Vite is absent. Includes /design-preview:preview."
+  },
+  "name": "design-preview",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

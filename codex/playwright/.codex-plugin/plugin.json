@@ -1,0 +1,47 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Playwright automation navigator: resolves the current API from live docs (playwright.dev), link map per area (locators, auto-waiting, network interception, storageState auth, test runner, trace viewer, connectOverCDP), robust-automation patterns, and driving an anti-detect browser (AdsPower/Kameleo) over CDP. Includes /playwright:check and a Playwright-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-playwright-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /playwright:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "playwright-docs",
+        "kind": "skill"
+      },
+      {
+        "id": "playwright-patterns",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Playwright",
+    "longDescription": "Playwright automation navigator: current API from live docs (playwright.dev), link map (locators, auto-waiting, network interception, storageState auth, test runner, trace, connectOverCDP), robust-automation patterns, and driving an anti-detect browser (AdsPower/Kameleo) over CDP. Includes /playwright:check. Defers general third-party doc verification to api-docs-first.\n\nCodex fidelity: 3 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Playwright automation navigator: resolves the current API from live docs (playwright.dev), link map per area (locators, auto-waiting, network interception, storageState auth, test runner, trace viewer, connectOverCDP), robust-automation patterns, and driving an anti-detect browser (AdsPower/Kameleo) over CDP. Includes /playwright:check and a Playwright-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
+  },
+  "name": "playwright",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

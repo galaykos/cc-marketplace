@@ -17,3 +17,17 @@ jobs:
       - name: Check plugin version bumps
         if: github.event_name == 'pull_request'
         run: bash scripts/check-version-bumps.sh "${{ github.event.pull_request.base.sha }}"
+      - name: Set up Node (for the Codex generator)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: scripts/gen-codex/.nvmrc
+          cache: npm
+          cache-dependency-path: scripts/gen-codex/package-lock.json
+      - name: Install generator deps
+        run: npm ci
+        working-directory: scripts/gen-codex
+      - name: Test the Codex generator
+        run: npm test
+        working-directory: scripts/gen-codex
+      - name: Validate Codex marketplace (parity + freshness)
+        run: bash scripts/validate-codex.sh

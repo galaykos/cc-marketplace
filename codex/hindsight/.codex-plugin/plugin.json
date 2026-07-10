@@ -1,0 +1,53 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Cross-session self-improvement loop: mines session transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on approval.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "harvest",
+        "kind": "skill",
+        "reasons": [
+          "reads ~/.claude/projects transcripts (absent on Codex)"
+        ]
+      },
+      {
+        "id": "cmd-hindsight-harvest",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /hindsight:harvest verb"
+        ]
+      },
+      {
+        "id": "transcript-miner",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [
+      {
+        "id": "hook:SessionEnd",
+        "reason": "no Codex peer for this hook event"
+      },
+      {
+        "id": "hindsight",
+        "reason": "all hook events unsupported on Codex (SessionEnd)"
+      }
+    ],
+    "faithful": [],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Hindsight",
+    "longDescription": "Cross-session self-improvement loop: a SessionEnd hook records per-session friction stats (turns, errors, best-effort friction events) to a project-local ledger; /hindsight:harvest ranks high-friction sessions, deep-mines transcripts via a transcript-miner agent with a ≥2-session recurrence gate, and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on explicit approval. Includes /hindsight:harvest and a transcript-miner agent.\n\nCodex fidelity: 0 faithful, 3 degraded, 2 dropped surface(s).",
+    "shortDescription": "Cross-session self-improvement loop: mines session transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on approval."
+  },
+  "name": "hindsight",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

@@ -1,0 +1,91 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-code-architecture-plan",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /code-architecture:plan verb"
+        ]
+      },
+      {
+        "id": "cmd-code-architecture-solid",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /code-architecture:solid verb"
+        ]
+      },
+      {
+        "id": "cmd-code-architecture-verify",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /code-architecture:verify verb"
+        ]
+      },
+      {
+        "id": "cmd-code-architecture-yagni",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /code-architecture:yagni verb"
+        ]
+      },
+      {
+        "id": "architecture-reviewer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "low-cognitive-load",
+        "kind": "skill"
+      },
+      {
+        "id": "plan-before-code",
+        "kind": "skill"
+      },
+      {
+        "id": "simplicity-principles",
+        "kind": "skill"
+      },
+      {
+        "id": "solid-principles",
+        "kind": "skill"
+      },
+      {
+        "id": "surgical-coding",
+        "kind": "skill"
+      },
+      {
+        "id": "task-orchestration",
+        "kind": "skill"
+      },
+      {
+        "id": "work-verification",
+        "kind": "skill"
+      },
+      {
+        "id": "yagni-check",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Code Architecture",
+    "longDescription": "Engineering process: plan-before-code with current-vs-target architecture diagrams on a live preview URL for structural changes, YAGNI checks, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles, SOLID principles applied with judgment, and always-on surgical-coding discipline (surface assumptions, every changed line traces to the request, orphan rule, verifiable success criteria — after Karpathy's LLM-coding guidelines). Includes /code-architecture:plan|verify|yagni|solid and an architecture-reviewer agent. Owns code-level structure; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin.\n\nCodex fidelity: 8 faithful, 5 degraded, 0 dropped surface(s).",
+    "shortDescription": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin."
+  },
+  "name": "code-architecture",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.6.1"
+}

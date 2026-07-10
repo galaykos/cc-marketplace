@@ -1,0 +1,29 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Performance worker agent: measure-first profiling, bundle-size reduction, caching strategy, Core Web Vitals, N+1 elimination, load-test setup — optimizes only what a measurement proves slow.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "performance-engineer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Performance",
+    "longDescription": "Performance worker agent: measure-first profiling, bundle-size reduction, caching strategy, Core Web Vitals, N+1 elimination, load-test setup — optimizes only what a measurement proves slow. Includes a performance-engineer agent.\n\nCodex fidelity: 0 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Performance worker agent: measure-first profiling, bundle-size reduction, caching strategy, Core Web Vitals, N+1 elimination, load-test setup — optimizes only what a measurement proves slow."
+  },
+  "name": "performance",
+  "schema_build": "2026-07-10",
+  "version": "0.1.0"
+}

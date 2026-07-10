@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-a11y-audit",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /a11y:audit verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "a11y-audit",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "A11y",
+    "longDescription": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Dedicated accessibility audit: WCAG 2.1 AA checklist for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix. Includes /a11y:audit."
+  },
+  "name": "a11y",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

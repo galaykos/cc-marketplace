@@ -1,0 +1,31 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Owns CI/CD and production infrastructure; defers generating local docker-compose dev environments to the dev-env plugin.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "devops-engineer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [],
+    "requiredCoInstalls": [
+      "docker-best-practices"
+    ]
+  },
+  "interface": {
+    "displayName": "Devops",
+    "longDescription": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Includes a devops-engineer agent. Owns CI/CD and production infrastructure; defers generating local docker-compose dev environments to the dev-env plugin.\n\nCodex fidelity: 0 faithful, 1 degraded, 0 dropped surface(s); requires co-install of: docker-best-practices.",
+    "shortDescription": "DevOps worker agent: CI/CD pipeline design, Dockerfile and compose authoring, Kubernetes manifests, deploy strategies (blue-green, canary, rolling), observability wiring, secrets handling — implements pipeline and infra config end to end. Owns CI/CD and production infrastructure; defers generating local docker-compose dev environments to the dev-env plugin."
+  },
+  "name": "devops",
+  "schema_build": "2026-07-10",
+  "version": "0.2.0"
+}

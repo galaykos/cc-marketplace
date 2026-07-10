@@ -1,0 +1,42 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review and a security-engineer worker agent.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-security-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /security:review verb"
+        ]
+      },
+      {
+        "id": "security-engineer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "security-review",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Security",
+    "longDescription": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review and a security-engineer worker agent.\n\nCodex fidelity: 1 faithful, 2 degraded, 0 dropped surface(s).",
+    "shortDescription": "Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF, authorization vs authentication, mass assignment, file uploads, secrets handling, and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Includes /security:review and a security-engineer worker agent."
+  },
+  "name": "security",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.0"
+}

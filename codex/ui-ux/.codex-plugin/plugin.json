@@ -1,0 +1,88 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour preview and ui-ux-reviewer + ui-ux-engineer agents.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-ui-ux-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /ui-ux:review verb"
+        ]
+      },
+      {
+        "id": "cmd-ui-ux-theme",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /ui-ux:theme verb"
+        ]
+      },
+      {
+        "id": "ui-ux-engineer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      },
+      {
+        "id": "ui-ux-reviewer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "aceternity-best-practices",
+        "kind": "skill"
+      },
+      {
+        "id": "bootstrap-best-practices",
+        "kind": "skill"
+      },
+      {
+        "id": "css-grid-best-practices",
+        "kind": "skill"
+      },
+      {
+        "id": "css3-best-practices",
+        "kind": "skill"
+      },
+      {
+        "id": "flexbox-best-practices",
+        "kind": "skill"
+      },
+      {
+        "id": "reui-best-practices",
+        "kind": "skill"
+      },
+      {
+        "id": "shadcn-best-practices",
+        "kind": "skill"
+      },
+      {
+        "id": "shadcn-theming",
+        "kind": "skill"
+      },
+      {
+        "id": "tailwind-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Ui Ux",
+    "longDescription": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour-preview URL. Includes /ui-ux:review, /ui-ux:theme, and ui-ux-reviewer + ui-ux-engineer agents.\n\nCodex fidelity: 9 faithful, 4 degraded, 0 dropped surface(s).",
+    "shortDescription": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus shadcn theme creation with a live colour preview and ui-ux-reviewer + ui-ux-engineer agents."
+  },
+  "name": "ui-ux",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.6.0"
+}

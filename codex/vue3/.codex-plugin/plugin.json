@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-vue3-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /vue3:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "vue3-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Vue3",
+    "longDescription": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia. Includes /vue3:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia."
+  },
+  "name": "vue3",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

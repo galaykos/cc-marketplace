@@ -1,0 +1,50 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Browser-automation planner and worker: a think-process skill that turns an automation goal into a tool choice (Playwright/Puppeteer vs anti-detect AdsPower/Kameleo/Camoufox) and a sequenced plan, plus a browser-automation-engineer agent that scaffolds and runs the automation. Includes /automation-builder:build and an automation-keyword reminder hook. Pairs with the playwright, puppeteer, adspower, kameleo, and camoufox plugins; defers doc verification to api-docs-first.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-automation-builder-build",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /automation-builder:build verb"
+        ]
+      },
+      {
+        "id": "browser-automation-engineer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "automation-planning",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Automation Builder",
+    "longDescription": "Browser-automation planner and worker: a think-process skill that turns an automation goal into a tool choice (Playwright/Puppeteer vs anti-detect AdsPower/Kameleo/Camoufox) and a sequenced plan, plus a browser-automation-engineer agent that scaffolds and runs the automation. Includes /automation-builder:build. Pairs with the playwright, puppeteer, adspower, kameleo, and camoufox plugins; defers doc verification to api-docs-first.\n\nCodex fidelity: 2 faithful, 2 degraded, 0 dropped surface(s).",
+    "shortDescription": "Browser-automation planner and worker: a think-process skill that turns an automation goal into a tool choice (Playwright/Puppeteer vs anti-detect AdsPower/Kameleo/Camoufox) and a sequenced plan, plus a browser-automation-engineer agent that scaffolds and runs the automation. Includes /automation-builder:build and an automation-keyword reminder hook. Pairs with the playwright, puppeteer, adspower, kameleo, and camoufox plugins; defers doc verification to api-docs-first."
+  },
+  "name": "automation-builder",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

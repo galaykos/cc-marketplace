@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-inertia-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /inertia:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "inertia-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Inertia",
+    "longDescription": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review."
+  },
+  "name": "inertia",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.0"
+}

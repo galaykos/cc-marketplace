@@ -1,0 +1,43 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing. For consuming third-party APIs; defers designing your own REST APIs to api-design and Meta/Facebook platform specifics to meta-api.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-api-docs-first-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /api-docs-first:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "api-docs-first",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Api Docs First",
+    "longDescription": "Verify current API docs before writing integration code; asks for a URL or file when docs are not visible. Includes /api-docs-first:check and a UserPromptSubmit reminder hook. For consuming third-party APIs; defers designing your own REST APIs to api-design and Meta/Facebook platform specifics to meta-api.\n\nCodex fidelity: 2 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing. For consuming third-party APIs; defers designing your own REST APIs to api-design and Meta/Facebook platform specifics to meta-api."
+  },
+  "name": "api-docs-first",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.1"
+}

@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources. Includes /api-design:review. For designing your own APIs; defers consuming third-party API docs to api-docs-first and Meta/Facebook platform specifics to meta-api.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-api-design-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /api-design:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "api-design",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Api Design",
+    "longDescription": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, and a live contract-preview artifact with real example payloads for new endpoints. Includes /api-design:review. For designing your own APIs; defers consuming third-party API docs to api-docs-first and Meta/Facebook platform specifics to meta-api.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources. Includes /api-design:review. For designing your own APIs; defers consuming third-party API docs to api-docs-first and Meta/Facebook platform specifics to meta-api."
+  },
+  "name": "api-design",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.2"
+}

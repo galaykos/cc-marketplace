@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). Includes /build-vs-buy:check.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-build-vs-buy-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /build-vs-buy:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "build-vs-buy",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Build Vs Buy",
+    "longDescription": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). Includes /build-vs-buy:check.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). Includes /build-vs-buy:check."
+  },
+  "name": "build-vs-buy",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "${PLUGIN_ROOT}/hooks/inject.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

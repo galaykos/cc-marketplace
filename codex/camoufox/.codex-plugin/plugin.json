@@ -1,0 +1,47 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Camoufox navigator: current Python usage from live docs (camoufox.com), launch options (humanize, geoip, os, proxy, block_images, config), the Playwright-Firefox integration it exposes, and fingerprint injection. Includes /camoufox:check and a Camoufox-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-camoufox-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /camoufox:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "camoufox-docs",
+        "kind": "skill"
+      },
+      {
+        "id": "camoufox-patterns",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Camoufox",
+    "longDescription": "Camoufox navigator: current Python usage from live docs (camoufox.com), launch options (humanize, geoip, os, proxy, block_images, config), the Playwright-Firefox integration it exposes, and fingerprint injection. Includes /camoufox:check. Defers general third-party doc verification to api-docs-first.\n\nCodex fidelity: 3 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Camoufox navigator: current Python usage from live docs (camoufox.com), launch options (humanize, geoip, os, proxy, block_images, config), the Playwright-Firefox integration it exposes, and fingerprint injection. Includes /camoufox:check and a Camoufox-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
+  },
+  "name": "camoufox",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

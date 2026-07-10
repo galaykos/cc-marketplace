@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "MariaDB 10.6+ best practices: not-MySQL divergences, RETURNING, sequences, system-versioned tables, UUID type, uca1400 collations, JSON-as-text reality, Galera awareness.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-mariadb-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /mariadb:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "mariadb-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Mariadb",
+    "longDescription": "MariaDB 10.6+ best practices: not-MySQL divergences, RETURNING, sequences, system-versioned tables, native UUID type, uca1400 collations, Galera awareness. Includes /mariadb:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "MariaDB 10.6+ best practices: not-MySQL divergences, RETURNING, sequences, system-versioned tables, UUID type, uca1400 collations, JSON-as-text reality, Galera awareness."
+  },
+  "name": "mariadb",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

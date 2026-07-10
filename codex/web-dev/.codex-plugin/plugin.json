@@ -1,0 +1,36 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Generalist web development worker agent: routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, baseline accessibility — implements, not just reviews. Stack-agnostic; defers to the per-framework review plugins.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "web-developer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [],
+    "requiredCoInstalls": [
+      "javascript-best-practices",
+      "laravel-best-practices",
+      "react-best-practices",
+      "typescript-best-practices",
+      "vue2-best-practices",
+      "vue3-best-practices"
+    ]
+  },
+  "interface": {
+    "displayName": "Web Dev",
+    "longDescription": "Generalist web development worker agent: routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, baseline accessibility — implements, not just reviews. Stack-agnostic; defers to the per-framework review plugins. Includes a web-developer agent.\n\nCodex fidelity: 0 faithful, 1 degraded, 0 dropped surface(s); requires co-install of: javascript-best-practices, laravel-best-practices, react-best-practices, typescript-best-practices, vue2-best-practices, vue3-best-practices.",
+    "shortDescription": "Generalist web development worker agent: routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, baseline accessibility — implements, not just reviews. Stack-agnostic; defers to the per-framework review plugins."
+  },
+  "name": "web-dev",
+  "schema_build": "2026-07-10",
+  "version": "0.2.0"
+}

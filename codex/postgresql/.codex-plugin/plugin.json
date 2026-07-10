@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "PostgreSQL 14+ best practices: MVCC and vacuum reality, rich types (timestamptz, jsonb, uuid), index arsenal (partial, expression, GIN, BRIN, CONCURRENTLY), lock-aware migrations, ON CONFLICT/RETURNING, version leverage through 17/18.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-postgresql-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /postgresql:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "postgresql-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Postgresql",
+    "longDescription": "PostgreSQL 14+ best practices: MVCC/vacuum reality, timestamptz/jsonb/uuid types, partial/expression/GIN/BRIN indexes, lock-aware migrations, ON CONFLICT/RETURNING, version leverage through 17/18. Includes /postgresql:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "PostgreSQL 14+ best practices: MVCC and vacuum reality, rich types (timestamptz, jsonb, uuid), index arsenal (partial, expression, GIN, BRIN, CONCURRENTLY), lock-aware migrations, ON CONFLICT/RETURNING, version leverage through 17/18."
+  },
+  "name": "postgresql",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

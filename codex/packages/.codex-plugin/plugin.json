@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, and patch/minor/major upgrade lanes. Managing deps already in the project — whether to add one is build-vs-buy's job.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-packages-audit",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /packages:audit verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "package-hygiene",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Packages",
+    "longDescription": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, upgrade lanes. Includes /packages:audit\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, and patch/minor/major upgrade lanes. Managing deps already in the project — whether to add one is build-vs-buy's job."
+  },
+  "name": "packages",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

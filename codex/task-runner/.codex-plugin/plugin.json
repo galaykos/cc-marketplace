@@ -1,0 +1,49 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Includes parallel-planning: computed subagents-vs-inline verdict with dependency levels, agent count, and speedup estimate via /task-runner:plan.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "task-execution",
+        "kind": "skill",
+        "reasons": [
+          "invokes CC-only orchestration primitives (Workflow/agent())"
+        ]
+      },
+      {
+        "id": "cmd-task-runner-plan",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /task-runner:plan verb"
+        ]
+      },
+      {
+        "id": "cmd-task-runner-run",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /task-runner:run verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "parallel-planning",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Task Runner",
+    "longDescription": "Disciplined task execution: one task at a time, scope locked, bounded verify-fix inner loop (max three cycles, then park with evidence), no unbounded outer loop, full-suite completion gate; status lives in the task index, not HTML dashboards. Includes /task-runner:run and /task-runner:plan (computed subagents-vs-inline verdict: dependency levels, agent count, speedup estimate).\n\nCodex fidelity: 1 faithful, 3 degraded, 0 dropped surface(s).",
+    "shortDescription": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Includes parallel-planning: computed subagents-vs-inline verdict with dependency levels, agent count, and speedup estimate via /task-runner:plan."
+  },
+  "name": "task-runner",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.8.0"
+}

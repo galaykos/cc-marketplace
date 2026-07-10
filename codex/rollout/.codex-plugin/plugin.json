@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-rollout-plan",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /rollout:plan verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "rollout-planning",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Rollout",
+    "longDescription": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan."
+  },
+  "name": "rollout",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

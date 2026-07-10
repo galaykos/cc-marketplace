@@ -1,0 +1,47 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Puppeteer automation navigator: current API from live docs (pptr.dev), link map (page API, waitForSelector, request interception, puppeteer.connect over CDP, puppeteer-extra stealth), robust-automation patterns, and attaching to an anti-detect browser (AdsPower/Kameleo) via browserWSEndpoint. Includes /puppeteer:check and a Puppeteer-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-puppeteer-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /puppeteer:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "puppeteer-docs",
+        "kind": "skill"
+      },
+      {
+        "id": "puppeteer-patterns",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Puppeteer",
+    "longDescription": "Puppeteer automation navigator: current API from live docs (pptr.dev), waits, request interception, puppeteer-extra stealth, and attaching to an anti-detect browser via browserWSEndpoint. Includes /puppeteer:check. Defers general third-party doc verification to api-docs-first.\n\nCodex fidelity: 3 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Puppeteer automation navigator: current API from live docs (pptr.dev), link map (page API, waitForSelector, request interception, puppeteer.connect over CDP, puppeteer-extra stealth), robust-automation patterns, and attaching to an anti-detect browser (AdsPower/Kameleo) via browserWSEndpoint. Includes /puppeteer:check and a Puppeteer-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
+  },
+  "name": "puppeteer",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

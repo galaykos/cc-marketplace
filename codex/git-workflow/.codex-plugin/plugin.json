@@ -1,0 +1,43 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Git workflow discipline: isolated worktrees for feature work, a structured finish protocol for development branches (verify, present options, merge/PR/park, clean up), and review-exchange rigor — what to include when requesting review, and technical verification before implementing received feedback. Includes /git-workflow:finish.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-git-workflow-finish",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /git-workflow:finish verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "branch-completion",
+        "kind": "skill"
+      },
+      {
+        "id": "review-exchange",
+        "kind": "skill"
+      },
+      {
+        "id": "worktree-isolation",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Git Workflow",
+    "longDescription": "Git workflow discipline: isolated worktrees for feature work, a structured finish protocol for development branches (verify, present options, merge/PR/park, clean up), and review-exchange rigor — what to include when requesting review, and technical verification before implementing received feedback. Includes /git-workflow:finish.\n\nCodex fidelity: 3 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Git workflow discipline: isolated worktrees for feature work, a structured finish protocol for development branches (verify, present options, merge/PR/park, clean up), and review-exchange rigor — what to include when requesting review, and technical verification before implementing received feedback. Includes /git-workflow:finish."
+  },
+  "name": "git-workflow",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.1"
+}

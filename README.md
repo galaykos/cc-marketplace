@@ -78,6 +78,30 @@ Note: uninstalling from the /plugin menu inside Claude Code does NOT prune —
 dependencies stay installed. Run `claude plugin prune` from a terminal
 afterwards to sweep the orphans.
 
+## Using these plugins from Codex
+
+This repository is also an **OpenAI Codex** marketplace. The Claude Code plugins
+under `plugins/` stay canonical; a one-way Node generator (`scripts/gen-codex/`)
+derives a Codex tree (`.agents/`, `codex/`) that a CI gate keeps in lockstep. Install
+in two parts:
+
+```bash
+# 1. Skills + hooks — add this repo as a Codex marketplace, then browse with /plugins
+codex plugin marketplace add galaykos/cc-marketplace
+
+# 2. Subagents — Codex plugins cannot bundle subagents, so install them out-of-band
+git clone https://github.com/galaykos/cc-marketplace
+bash cc-marketplace/codex/install-agents.sh   # copies codex/agents/*.toml -> ~/.codex/agents
+```
+
+**Fidelity, honestly.** Skills, hooks, and MCP port faithfully. Each Claude Code
+command becomes an auto-triggered Codex skill (mention it with `$`) rather than a
+typed slash verb. Subagents install out-of-band as above. `SessionEnd` hooks, bundle
+dependency fan-out, and interactive command menus have no Codex equivalent and are
+dropped. Per-plugin detail lives in each generated `.codex-plugin/plugin.json`
+`fidelity` block, in the generated catalog, and — for contributors — in
+[`AGENTS.md`](AGENTS.md).
+
 ## Plugins
 
 ### Frameworks & stacks

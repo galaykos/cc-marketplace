@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "PHP best practices: strict types, === discipline, PSR conventions, version-aware 8.1-8.5 leverage map pinned to the composer.json floor, exceptions, DateTimeImmutable, boundary security, static analysis.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-php-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /php:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "php-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Php",
+    "longDescription": "PHP best practices: strict types, === discipline, PSR-4/PSR-12 conventions, version-aware advice pinned to the composer.json floor with a per-version leverage map (8.1-8.5), exceptions, DateTimeImmutable, boundary security, value objects, static analysis. Includes /php:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "PHP best practices: strict types, === discipline, PSR conventions, version-aware 8.1-8.5 leverage map pinned to the composer.json floor, exceptions, DateTimeImmutable, boundary security, static analysis."
+  },
+  "name": "php",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

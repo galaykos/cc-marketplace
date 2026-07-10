@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-docs-upkeep-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /docs-upkeep:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "docs-upkeep",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Docs Upkeep",
+    "longDescription": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check."
+  },
+  "name": "docs-upkeep",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

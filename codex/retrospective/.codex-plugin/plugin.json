@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Post-milestone learning loop: five-minute retro after a task run or feature lands — surprises become CLAUDE.md candidates, repetition becomes skill suggestions, friction becomes process tweaks. Closes the amnesia gap where every run starts smart and ends forgotten. Includes /retrospective:run.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-retrospective-run",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /retrospective:run verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "retrospective",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Retrospective",
+    "longDescription": "Post-milestone learning loop: five-minute retro after a task run or feature lands — surprises become CLAUDE.md candidates, repetition becomes skill suggestions, friction becomes process tweaks. Closes the amnesia gap where every run starts smart and ends forgotten. Includes /retrospective:run.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Post-milestone learning loop: five-minute retro after a task run or feature lands — surprises become CLAUDE.md candidates, repetition becomes skill suggestions, friction becomes process tweaks. Closes the amnesia gap where every run starts smart and ends forgotten. Includes /retrospective:run."
+  },
+  "name": "retrospective",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

@@ -1,0 +1,39 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Greenfield interactive shadcn staging: stands up a self-contained shadcn + Vite (Tailwind v4) sandbox on its own dev server and renders agent-authored component variants side by side — real interactivity (sort/filter/dialog), not static HTML. For idea-stage / non-React work where design-preview cannot run (no host Vite+React app). Consent-gated, scratch outside the work tree, verified cleanup, static-shell fallback. Includes /shadcn-studio:stage.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-shadcn-studio-stage",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /shadcn-studio:stage verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "deep-staging",
+        "kind": "skill"
+      },
+      {
+        "id": "studio",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Shadcn Studio",
+    "longDescription": "Greenfield interactive shadcn staging: stands up a self-contained shadcn + Vite (Tailwind v4) sandbox on its own dev server and renders agent-authored component variants side by side with real interactivity (sort/filter/dialog), not static HTML — for idea-stage or non-React work where design-preview cannot run. Consent-gated, scratch outside the work tree, verified cleanup, static-shell fallback. Includes /shadcn-studio:stage.\n\nCodex fidelity: 2 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Greenfield interactive shadcn staging: stands up a self-contained shadcn + Vite (Tailwind v4) sandbox on its own dev server and renders agent-authored component variants side by side — real interactivity (sort/filter/dialog), not static HTML. For idea-stage / non-React work where design-preview cannot run (no host Vite+React app). Consent-gated, scratch outside the work tree, verified cleanup, static-shell fallback. Includes /shadcn-studio:stage."
+  },
+  "name": "shadcn-studio",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.0"
+}

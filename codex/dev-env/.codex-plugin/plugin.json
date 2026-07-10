@@ -1,0 +1,46 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan. Owns local development environments; defers CI/CD pipelines and production deploys to the devops plugin.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-dev-env-init",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /dev-env:init verb"
+        ]
+      },
+      {
+        "id": "cmd-dev-env-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /dev-env:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "compose-init",
+        "kind": "skill"
+      },
+      {
+        "id": "docker-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Dev Env",
+    "longDescription": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Proposes the topology as a diagram before writing YAML. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan. Owns local development environments; defers CI/CD pipelines and production deploys to the devops plugin.\n\nCodex fidelity: 2 faithful, 2 degraded, 0 dropped surface(s).",
+    "shortDescription": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan. Owns local development environments; defers CI/CD pipelines and production deploys to the devops plugin."
+  },
+  "name": "dev-env",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.2"
+}

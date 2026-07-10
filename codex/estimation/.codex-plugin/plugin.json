@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking that feeds retrospectives. Includes /estimation:size.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-estimation-size",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /estimation:size verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "estimation",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Estimation",
+    "longDescription": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking that feeds retrospectives. Includes /estimation:size.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking that feeds retrospectives. Includes /estimation:size."
+  },
+  "name": "estimation",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

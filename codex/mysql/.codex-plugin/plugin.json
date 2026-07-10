@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL, gap locks, version leverage 8.0 through 8.4 LTS, EXPLAIN ANALYZE.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-mysql-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /mysql:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "mysql-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Mysql",
+    "longDescription": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL and metadata locks, gap locking, JSON limits, 8.0-8.4 LTS version leverage. Includes /mysql:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL, gap locks, version leverage 8.0 through 8.4 LTS, EXPLAIN ANALYZE."
+  },
+  "name": "mysql",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

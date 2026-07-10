@@ -1,0 +1,65 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged opinion round where four parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-approaches-compare",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /approaches:compare verb"
+        ]
+      },
+      {
+        "id": "cmd-approaches-opinions",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /approaches:opinions verb"
+        ]
+      },
+      {
+        "id": "opinion-lens",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "approach-deliberation",
+        "kind": "skill"
+      },
+      {
+        "id": "opinion-round",
+        "kind": "skill"
+      },
+      {
+        "id": "strategy-catalog",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Approaches",
+    "longDescription": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged opinion round where three parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions.\n\nCodex fidelity: 4 faithful, 3 degraded, 0 dropped surface(s).",
+    "shortDescription": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged opinion round where four parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions."
+  },
+  "name": "approaches",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.0"
+}

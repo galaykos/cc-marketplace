@@ -1,0 +1,32 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install — stack-matched tier and always-useful tier — then install the picked ones after confirmation. Includes /plugin-scout:suggest.",
+  "fidelity": {
+    "degraded": [],
+    "dropped": [
+      {
+        "id": "plugin-scout:suggest",
+        "reason": "CC-runtime command (claude plugin / uninstall) — no Codex meaning"
+      }
+    ],
+    "faithful": [
+      {
+        "id": "plugin-scout",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Plugin Scout",
+    "longDescription": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install — stack-matched tier and always-useful tier — then install the picked ones after confirmation. Includes /plugin-scout:suggest.\n\nCodex fidelity: 1 faithful, 0 degraded, 1 dropped surface(s).",
+    "shortDescription": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install — stack-matched tier and always-useful tier — then install the picked ones after confirmation. Includes /plugin-scout:suggest."
+  },
+  "name": "plugin-scout",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

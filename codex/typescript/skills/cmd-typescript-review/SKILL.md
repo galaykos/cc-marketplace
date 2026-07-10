@@ -1,0 +1,16 @@
+---
+name: cmd-typescript-review
+description: "Use when the user asks to review TypeScript code against typescript-best-practices."
+---
+
+_This skill wraps the `/typescript:review` command; pass the command's input as the skill's argument (`$ARGUMENTS`)._
+
+
+Review the code in $ARGUMENTS (or the current diff if no argument) against the
+typescript-best-practices skill from this plugin. Invoke the skill first. Before reporting, read the project manifests (package.json, its lockfile, and tsconfig.json including the `extends` chain) and pin every finding to the installed typescript version from the lockfile — do not flag patterns the installed version already solves, and do not suggest syntax or compiler options above it. When uncertain about a compiler option or language behavior, verify against the official docs for the pinned version — https://www.typescriptlang.org/docs/ — instead of answering from memory. Report findings as
+`path:line — problem — fix`, ordered by severity. Skip formatting nits unless
+they change behavior.
+
+When findings exist, offer the next step as a selectable choice (AskUserQuestion):
+"Apply the fixes now (Recommended)" / "Skip — report only". Print bare
+instructions only in headless runs.

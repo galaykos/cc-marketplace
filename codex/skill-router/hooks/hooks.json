@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "${PLUGIN_ROOT}/hooks/route.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write|apply_patch"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "${PLUGIN_ROOT}/hooks/prime.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

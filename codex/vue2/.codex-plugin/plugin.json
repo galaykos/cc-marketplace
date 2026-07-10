@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Vue 2.7 best practices: Composition API backport, reactivity caveats, migration readiness.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-vue2-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /vue2:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "vue2-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Vue2",
+    "longDescription": "Vue 2.7 best practices: Composition API backport, defineProperty reactivity caveats, Vue 3 migration readiness. Includes /vue2:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Vue 2.7 best practices: Composition API backport, reactivity caveats, migration readiness."
+  },
+  "name": "vue2",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

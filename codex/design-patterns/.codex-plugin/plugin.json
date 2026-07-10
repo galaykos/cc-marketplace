@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Design pattern selection: which pattern fits where, and when NOT to use one.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-design-patterns-suggest",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /design-patterns:suggest verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "pattern-selection",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Design Patterns",
+    "longDescription": "Design pattern selection: which pattern fits where, and when NOT to use one. Includes /design-patterns:suggest.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Design pattern selection: which pattern fits where, and when NOT to use one."
+  },
+  "name": "design-patterns",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "${PLUGIN_ROOT}/hooks/remind.sh",
+            "type": "command"
+          },
+          {
+            "command": "${PLUGIN_ROOT}/hooks/ultra.sh",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

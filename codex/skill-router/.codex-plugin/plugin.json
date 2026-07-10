@@ -1,0 +1,36 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session.",
+  "fidelity": {
+    "degraded": [],
+    "dropped": [
+      {
+        "id": "hook:SessionEnd",
+        "reason": "no Codex peer for this hook event"
+      }
+    ],
+    "faithful": [
+      {
+        "events": [
+          "SessionStart",
+          "PostToolUse"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Skill Router",
+    "longDescription": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session.\n\nCodex fidelity: 1 faithful, 0 degraded, 1 dropped surface(s).",
+    "shortDescription": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Fail-open, once per signal per session."
+  },
+  "name": "skill-router",
+  "schema_build": "2026-07-10",
+  "version": "0.1.0"
+}

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en" data-vd-theme="baseline">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — pick a variant</title>
+<style>
+/* ---- Theme tokens -------------------------------------------------- */
+/* Baseline: cool neutral + blue accent. Tokens style chrome and accents
+   ONLY; content text and surfaces use the fixed neutrals below so a
+   broken project palette can never make the page unreadable. */
+:root {
+  --vd-primary: #2563eb;
+  --vd-surface: #fafafa;
+  --vd-text: #18181b;
+  --vd-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --vd-radius: 8px;
+  --vd-space: 8px;
+  /* fixed neutrals — never overridden by project tokens */
+  --vd-ink: #18181b;
+  --vd-ink-soft: #52525b;
+  --vd-paper: #ffffff;
+  --vd-line: #e4e4e7;
+  --vd-shadow: 0 1px 3px rgba(0, 0, 0, .07), 0 4px 14px rgba(0, 0, 0, .05);
+}
+html[data-vd-theme="project"] {
+  /* SLOT: theme-project */
+}
+
+/* ---- Base ----------------------------------------------------------- */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--vd-font);
+  color: var(--vd-ink);
+  background: var(--vd-surface);
+}
+
+/* ---- Sticky decision header ----------------------------------------- */
+#vd-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--vd-paper);
+  border-bottom: 2px solid var(--vd-primary);
+  box-shadow: var(--vd-shadow);
+  padding: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--vd-space) * 2);
+}
+#vd-header .vd-q {
+  flex: 1 1 320px;
+  min-width: 240px;
+}
+#vd-header .vd-q h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+#vd-header .vd-q .vd-meta {
+  margin-top: 2px;
+  font-size: .78rem;
+  color: var(--vd-ink-soft);
+}
+#vd-header .vd-meta .vd-axis { color: var(--vd-primary); font-weight: 600; }
+.vd-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--vd-space);
+  flex-wrap: wrap;
+}
+.vd-jump {
+  display: inline-flex;
+  gap: 4px;
+}
+.vd-jump a {
+  display: inline-block;
+  min-width: 1.9em;
+  text-align: center;
+  padding: 4px 6px;
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  color: var(--vd-primary);
+  font-weight: 600;
+  font-size: .85rem;
+  text-decoration: none;
+}
+.vd-jump a:hover { border-color: var(--vd-primary); }
+.vd-seg {
+  display: inline-flex;
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  overflow: hidden;
+}
+.vd-seg button {
+  border: 0;
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.vd-seg button + button { border-left: 1px solid var(--vd-line); }
+.vd-seg button[aria-pressed="true"] {
+  background: var(--vd-primary);
+  color: #fff;
+}
+#vd-theme-toggle {
+  border: 1px solid var(--vd-line);
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  padding: 5px 10px;
+  border-radius: var(--vd-radius);
+  cursor: pointer;
+}
+#vd-theme-toggle:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+.vd-note {
+  font-size: .78rem;
+  color: var(--vd-ink-soft);
+  font-style: italic;
+}
+
+/* ---- Variant frames -------------------------------------------------- */
+#vd-frames {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: calc(var(--vd-space) * 3);
+  padding: calc(var(--vd-space) * 3);
+  align-items: start;
+}
+.vd-frame {
+  background: var(--vd-paper);
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  box-shadow: var(--vd-shadow);
+  overflow: hidden;
+}
+.vd-frame > h2 {
+  margin: 0;
+  padding: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 2);
+  font-size: .95rem;
+  background: var(--vd-surface);
+  border-bottom: 1px solid var(--vd-line);
+}
+.vd-frame > h2 .vd-badge {
+  display: inline-block;
+  min-width: 1.6em;
+  text-align: center;
+  margin-right: 8px;
+  padding: 2px 6px;
+  border-radius: var(--vd-radius);
+  background: var(--vd-primary);
+  color: #fff;
+  font-size: .8rem;
+}
+.vd-frame .vd-caption {
+  margin: 0;
+  padding: var(--vd-space) calc(var(--vd-space) * 2);
+  font-size: .82rem;
+  color: var(--vd-ink-soft);
+  border-bottom: 1px solid var(--vd-line);
+}
+.vd-frame .vd-content {
+  padding: calc(var(--vd-space) * 2);
+  min-height: 120px;
+}
+.vd-frame:focus-within, .vd-frame.vd-focus { outline: 2px solid var(--vd-primary); }
+
+/* ---- Callouts and tradeoffs ------------------------------------------ */
+.vd-callout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  margin: 0 3px;
+  border-radius: 50%;
+  background: var(--vd-primary);
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: default;
+  vertical-align: middle;
+}
+.vd-tradeoffs {
+  margin: 0;
+  padding: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 2)
+           calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 4.5);
+  border-top: 1px solid var(--vd-line);
+  background: var(--vd-surface);
+  font-size: .84rem;
+}
+.vd-tradeoffs li { margin: 4px 0; }
+.vd-tradeoffs li::marker { color: var(--vd-primary); font-weight: 700; }
+.vd-hl { outline: 2px solid var(--vd-primary); outline-offset: 2px; border-radius: 4px; }
+li.vd-hl { outline-offset: 0; }
+
+/* ---- Content primitives ------------------------------------------------
+   Building blocks for variant content. Variants use these classes instead of
+   inline styles — polish stays in the shell, density comes from real markup. */
+.vd-app {
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  overflow-x: auto;
+  overflow-y: hidden;
+  font-size: .8rem;
+}
+.vd-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--vd-space);
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  background: var(--vd-ink);
+  color: #fff;
+}
+.vd-nav .vd-brand { font-weight: 700; margin-right: auto; }
+.vd-nav a { color: rgba(255, 255, 255, .75); text-decoration: none; }
+.vd-nav a[aria-current] { color: #fff; font-weight: 600; }
+.vd-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--vd-space);
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  border-bottom: 1px solid var(--vd-line);
+  background: var(--vd-surface);
+  flex-wrap: wrap;
+}
+.vd-input {
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  padding: 4px 8px;
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  min-width: 120px;
+}
+.vd-btn {
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  padding: 4px 10px;
+  background: var(--vd-paper);
+  font-weight: 600;
+  color: var(--vd-ink);
+}
+.vd-btn.vd-primary { background: var(--vd-primary); border-color: var(--vd-primary); color: #fff; }
+.vd-table { width: 100%; border-collapse: collapse; }
+.vd-table th {
+  text-align: left;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--vd-ink-soft);
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--vd-line);
+  background: var(--vd-surface);
+}
+.vd-table td { padding: 6px 10px; border-bottom: 1px solid var(--vd-line); }
+.vd-table tr:hover td { background: var(--vd-surface); }
+.vd-num { text-align: right; font-variant-numeric: tabular-nums; }
+.vd-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 600;
+  border: 1px solid var(--vd-line);
+  color: var(--vd-ink-soft);
+}
+.vd-chip.vd-ok { background: #dcfce7; border-color: #86efac; color: #166534; }
+.vd-chip.vd-warn { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+.vd-chip.vd-err { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.vd-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--vd-space);
+  padding: calc(var(--vd-space) * 1.5);
+}
+.vd-card {
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  background: var(--vd-paper);
+  box-shadow: var(--vd-shadow);
+}
+.vd-card h4 { margin: 0 0 4px; font-size: .82rem; }
+.vd-card .vd-meta { color: var(--vd-ink-soft); font-size: .72rem; }
+.vd-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.vd-split > * { min-width: 0; }
+.vd-list { border-right: 1px solid var(--vd-line); }
+.vd-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vd-space);
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--vd-line);
+}
+.vd-row[aria-current] { background: var(--vd-surface); box-shadow: inset 3px 0 0 var(--vd-primary); }
+.vd-detail { padding: calc(var(--vd-space) * 1.5); }
+.vd-kpis { display: flex; gap: var(--vd-space); padding: var(--vd-space) calc(var(--vd-space) * 1.5); flex-wrap: wrap; }
+.vd-kpi {
+  flex: 1 1 90px;
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  padding: var(--vd-space);
+  background: var(--vd-paper);
+}
+.vd-kpi b { display: block; font-size: 1.05rem; }
+.vd-kpi span { font-size: .7rem; color: var(--vd-ink-soft); }
+.vd-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  color: var(--vd-ink-soft);
+  font-size: .74rem;
+}
+.vd-empty {
+  padding: calc(var(--vd-space) * 4);
+  text-align: center;
+  color: var(--vd-ink-soft);
+  border: 1px dashed var(--vd-line);
+  border-radius: var(--vd-radius);
+  margin: calc(var(--vd-space) * 1.5);
+}
+.vd-card, .vd-row, .vd-kpi { transition: box-shadow .12s, transform .12s; }
+.vd-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, .12); transform: translateY(-1px); }
+.vd-row:hover { background: var(--vd-surface); }
+.vd-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--vd-line);
+  padding: 0 calc(var(--vd-space) * 1.5);
+}
+.vd-tab {
+  padding: 7px 12px;
+  font-weight: 600;
+  color: var(--vd-ink-soft);
+  border-bottom: 2px solid transparent;
+}
+.vd-tab[aria-current] { color: var(--vd-primary); border-bottom-color: var(--vd-primary); }
+.vd-crumbs { padding: var(--vd-space) calc(var(--vd-space) * 1.5); font-size: .74rem; color: var(--vd-ink-soft); }
+.vd-crumbs b { color: var(--vd-ink); }
+.vd-form { display: grid; gap: calc(var(--vd-space) * 1.5); padding: calc(var(--vd-space) * 1.5); max-width: 420px; }
+.vd-field { display: grid; gap: 4px; }
+.vd-field label { font-size: .74rem; font-weight: 600; }
+.vd-field .vd-input { min-width: 0; }
+.vd-field small { color: var(--vd-ink-soft); }
+.vd-check { display: flex; gap: 6px; align-items: center; font-size: .78rem; }
+.vd-check::before {
+  content: "";
+  width: 13px; height: 13px;
+  border: 1px solid var(--vd-line);
+  border-radius: 3px;
+  background: var(--vd-paper);
+}
+.vd-check.vd-on::before { background: var(--vd-primary); border-color: var(--vd-primary); }
+.vd-switch {
+  display: inline-block;
+  width: 28px; height: 16px;
+  border-radius: 999px;
+  background: var(--vd-line);
+  position: relative;
+  vertical-align: middle;
+}
+.vd-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--vd-paper);
+}
+.vd-switch.vd-on { background: var(--vd-primary); }
+.vd-switch.vd-on::after { left: 14px; }
+.vd-alert {
+  margin: var(--vd-space) calc(var(--vd-space) * 1.5);
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  border: 1px solid var(--vd-line);
+  border-left: 3px solid var(--vd-primary);
+  border-radius: var(--vd-radius);
+  background: var(--vd-surface);
+  font-size: .78rem;
+}
+.vd-alert.vd-warn { border-left-color: #eab308; }
+.vd-alert.vd-err { border-left-color: #dc2626; }
+.vd-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--vd-primary);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.vd-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--vd-line);
+  overflow: hidden;
+}
+.vd-progress i { display: block; height: 100%; background: var(--vd-primary); }
+.vd-layout { display: grid; grid-template-columns: minmax(120px, 1fr) 4fr; }
+.vd-layout > * { min-width: 0; }
+.vd-sidenav { border-right: 1px solid var(--vd-line); background: var(--vd-surface); padding: var(--vd-space) 0; }
+.vd-sidenav a { display: block; padding: 6px 12px; color: var(--vd-ink-soft); text-decoration: none; font-size: .78rem; }
+.vd-sidenav a[aria-current] { color: var(--vd-primary); font-weight: 700; background: var(--vd-paper); box-shadow: inset 2px 0 0 var(--vd-primary); }
+.vd-scrim {
+  position: relative;
+  background: var(--vd-surface);
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+}
+.vd-scrim::before { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .35); }
+.vd-dialog {
+  position: relative;
+  background: var(--vd-paper);
+  border-radius: var(--vd-radius);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+  padding: calc(var(--vd-space) * 2);
+  max-width: 300px;
+}
+.vd-dialog h4 { margin: 0 0 6px; }
+
+/* ---- Motion kit --------------------------------------------------------
+   For motion-decision passes: variants identical in structure, differing on
+   ONE motion axis. Elements with .vd-anim + one vd-m-* class play on load;
+   frames containing them get an auto-injected Replay button. */
+@keyframes vd-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vd-slide-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-slide-down { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-slide-left { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-slide-right { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-scale { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+.vd-anim { animation-duration: .2s; animation-fill-mode: both; animation-timing-function: ease-out; }
+.vd-anim.vd-m-fade { animation-name: vd-fade; }
+.vd-anim.vd-m-slide-up { animation-name: vd-slide-up; }
+.vd-anim.vd-m-slide-down { animation-name: vd-slide-down; }
+.vd-anim.vd-m-slide-left { animation-name: vd-slide-left; }
+.vd-anim.vd-m-slide-right { animation-name: vd-slide-right; }
+.vd-anim.vd-m-scale { animation-name: vd-scale; }
+.vd-anim.vd-m-spring { animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); } /* modifier: overshoot feel for any vd-m-* enter */
+.vd-anim.vd-m-fast { animation-duration: .12s; }
+.vd-anim.vd-m-slow { animation-duration: .35s; }
+.vd-m-hover-lift { transition: transform .15s, box-shadow .15s; }
+.vd-m-hover-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, .14); }
+.vd-m-hover-glow { transition: box-shadow .15s, border-color .15s; }
+.vd-m-hover-glow:hover { border-color: var(--vd-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary) 25%, transparent); }
+.vd-m-press { transition: transform .08s; }
+.vd-m-press:active { transform: scale(.97); }
+.vd-replay {
+  border: 1px solid var(--vd-line);
+  background: var(--vd-paper);
+  color: var(--vd-primary);
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--vd-radius);
+  cursor: pointer;
+  float: right;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vd-anim, .vd-m-hover-lift, .vd-m-hover-glow, .vd-m-press { animation: none; transition: none; }
+}
+
+/* ---- Compare modes ---------------------------------------------------- */
+body[data-vd-mode="stack"] #vd-frames { grid-template-columns: 1fr; max-width: 860px; margin: 0 auto; }
+body[data-vd-mode="flip"] #vd-frames { grid-template-columns: 1fr; max-width: 860px; margin: 0 auto; }
+body[data-vd-mode="flip"] .vd-frame { display: none; }
+body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
+</style>
+<style id="vd-custom">
+/* SLOT: custom-css — shared classes when no primitive fits; never style one
+   variant differently from its rivals. */
+</style>
+</head>
+<body data-vd-mode="side">
+
+<header id="vd-header">
+  <div class="vd-q">
+    <h1><!-- SLOT: question --></h1>
+    <div class="vd-meta">
+      axis <span class="vd-axis"><!-- SLOT: axis --></span>
+      · <span class="vd-pass"><!-- SLOT: pass --></span>
+      · <span class="vd-note"><!-- SLOT: theme-note --></span>
+    </div>
+  </div>
+  <div class="vd-controls">
+    <nav class="vd-jump" aria-label="Jump to variant">
+      <a href="#vd-a">A</a><a href="#vd-b">B</a><a href="#vd-c">C</a>
+    </nav>
+    <div class="vd-seg" role="group" aria-label="Compare mode">
+      <button type="button" data-vd-set-mode="side" aria-pressed="true">Side-by-side</button>
+      <button type="button" data-vd-set-mode="stack" aria-pressed="false">Stacked</button>
+      <button type="button" data-vd-set-mode="flip" aria-pressed="false">Flip</button>
+    </div>
+    <button type="button" id="vd-theme-toggle" hidden>Theme</button>
+  </div>
+</header>
+
+<main id="vd-frames">
+  <section class="vd-frame" id="vd-a" data-vd-active tabindex="-1">
+    <h2><span class="vd-badge">A</span><!-- SLOT: variant-A-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-A-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-A-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-A --></ul>
+  </section>
+
+  <section class="vd-frame" id="vd-b" tabindex="-1">
+    <h2><span class="vd-badge">B</span><!-- SLOT: variant-B-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-B-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-B-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-B --></ul>
+  </section>
+
+  <!-- FRAME-C-START -->
+  <section class="vd-frame" id="vd-c" tabindex="-1">
+    <h2><span class="vd-badge">C</span><!-- SLOT: variant-C-label --></h2>
+    <p class="vd-caption"><!-- SLOT: variant-C-caption --></p>
+    <div class="vd-content"><!-- SLOT: variant-C-content --></div>
+    <ul class="vd-tradeoffs"><!-- SLOT: tradeoffs-C --></ul>
+  </section>
+  <!-- FRAME-C-END -->
+</main>
+
+<script>
+(() => {
+  const frames = Array.from(document.querySelectorAll('.vd-frame'));
+
+  // Compare modes
+  const segButtons = Array.from(document.querySelectorAll('[data-vd-set-mode]'));
+  function setMode(mode) {
+    document.body.dataset.vdMode = mode;
+    segButtons.forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.vdSetMode === mode)));
+  }
+  segButtons.forEach(b =>
+    b.addEventListener('click', () => setMode(b.dataset.vdSetMode)));
+
+  // Focus variant N: scroll in side/stack, show in flip
+  function focusVariant(i) {
+    const frame = frames[i];
+    if (!frame) return;
+    if (document.body.dataset.vdMode === 'flip') {
+      frames.forEach(f => delete f.dataset.vdActive);
+      frame.dataset.vdActive = '';
+    } else {
+      frame.scrollIntoView({ block: 'start' });
+      frames.forEach(f => f.classList.remove('vd-focus'));
+      frame.classList.add('vd-focus');
+      setTimeout(() => frame.classList.remove('vd-focus'), 900);
+    }
+  }
+  document.addEventListener('keydown', e => {
+    if (e.target instanceof Element && e.target.closest('input, textarea, select')) return;
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= frames.length) focusVariant(n - 1);
+  });
+  document.querySelectorAll('.vd-jump a').forEach((a, i) =>
+    a.addEventListener('click', e => {
+      if (document.body.dataset.vdMode === 'flip') {
+        e.preventDefault();
+        focusVariant(i);
+      }
+    }));
+
+  // Callout pairing: highlight badge + matching tradeoff bullet per frame
+  function pairOf(el) {
+    const frame = el.closest('.vd-frame');
+    if (!frame || !el.dataset.n) return [];
+    const sel = '[data-n="' + el.dataset.n + '"]';
+    return Array.from(frame.querySelectorAll('.vd-callout' + sel + ', li' + sel));
+  }
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('.vd-callout, .vd-tradeoffs li');
+    if (el) pairOf(el).forEach(m => m.classList.add('vd-hl'));
+  });
+  document.addEventListener('mouseout', e => {
+    const el = e.target.closest('.vd-callout, .vd-tradeoffs li');
+    if (el) pairOf(el).forEach(m => m.classList.remove('vd-hl'));
+  });
+
+  // Motion replay: frames containing .vd-anim get a Replay button that
+  // re-triggers their animations via class toggle
+  frames.forEach(frame => {
+    if (!frame.querySelector('.vd-anim')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'vd-replay';
+    btn.textContent = 'Replay';
+    btn.addEventListener('click', () => {
+      frame.querySelectorAll('.vd-anim').forEach(el => {
+        el.classList.remove('vd-anim');
+        void el.offsetWidth;
+        el.classList.add('vd-anim');
+      });
+    });
+    frame.querySelector('h2').appendChild(btn);
+  });
+
+  // Theme toggle (un-hidden by the skill when project tokens are injected)
+  const toggle = document.getElementById('vd-theme-toggle');
+  function labelToggle() {
+    const cur = document.documentElement.dataset.vdTheme;
+    toggle.textContent = cur === 'project' ? 'Theme, project' : 'Theme, baseline';
+  }
+  toggle.addEventListener('click', () => {
+    const root = document.documentElement;
+    root.dataset.vdTheme = root.dataset.vdTheme === 'project' ? 'baseline' : 'project';
+    labelToggle();
+  });
+  labelToggle();
+})();
+</script>
+
+<script>
+(() => {
+  let last = null;
+  setInterval(async () => {
+    try {
+      const body = await (await fetch(location.href, { cache: 'no-store' })).text();
+      if (last !== null && body !== last) location.reload();
+      last = body;
+    } catch { /* server gone: stop reloading, page stays usable */ }
+  }, 1000);
+})();
+</script>
+
+</body>
+</html>

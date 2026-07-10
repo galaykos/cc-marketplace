@@ -1,0 +1,47 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "AdsPower Local API navigator: current endpoints from live docs, the profile lifecycle (list/create profile, start/stop browser, obtain the CDP/WebSocket endpoint), rate limits and status codes, and handing the started browser to Playwright or Puppeteer. Includes /adspower:check and an AdsPower-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-adspower-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /adspower:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "adspower-docs",
+        "kind": "skill"
+      },
+      {
+        "id": "adspower-patterns",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Adspower",
+    "longDescription": "AdsPower Local API navigator: profile lifecycle (list/create profile, start/stop browser, obtain the CDP/WebSocket endpoint), rate limits and status codes, and handing the started browser to Playwright or Puppeteer. Includes /adspower:check. Defers general third-party doc verification to api-docs-first.\n\nCodex fidelity: 3 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "AdsPower Local API navigator: current endpoints from live docs, the profile lifecycle (list/create profile, start/stop browser, obtain the CDP/WebSocket endpoint), rate limits and status codes, and handing the started browser to Playwright or Puppeteer. Includes /adspower:check and an AdsPower-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
+  },
+  "name": "adspower",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

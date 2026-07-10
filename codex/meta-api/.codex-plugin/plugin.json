@@ -1,0 +1,43 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook. Meta platform only; defers general third-party doc verification to api-docs-first and designing your own APIs to api-design.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-meta-api-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /meta-api:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "meta-api",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Meta Api",
+    "longDescription": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook. Meta platform only; defers general third-party doc verification to api-docs-first and designing your own APIs to api-design.\n\nCodex fidelity: 2 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook. Meta platform only; defers general third-party doc verification to api-docs-first and designing your own APIs to api-design."
+  },
+  "name": "meta-api",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.1"
+}

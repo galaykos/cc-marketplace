@@ -1,0 +1,1329 @@
+{
+  "interface": {
+    "displayName": "CC Plugins (Codex)"
+  },
+  "name": "cc-plugins-marketplace",
+  "plugins": [
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "A11y"
+      },
+      "name": "a11y",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/a11y",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 3,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Adspower"
+      },
+      "name": "adspower",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/adspower",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Api Design"
+      },
+      "name": "api-design",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/api-design",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 2,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Api Docs First"
+      },
+      "name": "api-docs-first",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/api-docs-first",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 3,
+        "dropped": 0,
+        "faithful": 4,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Approaches"
+      },
+      "name": "approaches",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/approaches",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 2,
+        "dropped": 0,
+        "faithful": 2,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Automation Builder"
+      },
+      "name": "automation-builder",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/automation-builder",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 2,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Brain"
+      },
+      "name": "brain",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/brain",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Build Vs Buy"
+      },
+      "name": "build-vs-buy",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/build-vs-buy",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 3,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Camoufox"
+      },
+      "name": "camoufox",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/camoufox",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 4,
+        "dropped": 0,
+        "faithful": 6,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Claude Authoring"
+      },
+      "name": "claude-authoring",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/claude-authoring",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 5,
+        "dropped": 0,
+        "faithful": 8,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Code Architecture"
+      },
+      "name": "code-architecture",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/code-architecture",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 2,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Code Review"
+      },
+      "name": "code-review",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/code-review",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Concurrency"
+      },
+      "name": "concurrency",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/concurrency",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 0,
+        "requiredCoInstalls": [
+          "mariadb-best-practices",
+          "mysql-best-practices",
+          "postgresql-best-practices",
+          "sql-best-practices"
+        ]
+      },
+      "installs": "subagent-only",
+      "interface": {
+        "displayName": "Database"
+      },
+      "name": "database",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/database",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Debugging"
+      },
+      "name": "debugging",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/debugging",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Decision Records"
+      },
+      "name": "decision-records",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/decision-records",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Design Patterns"
+      },
+      "name": "design-patterns",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/design-patterns",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Design Preview"
+      },
+      "name": "design-preview",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/design-preview",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 2,
+        "dropped": 0,
+        "faithful": 2,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Dev Env"
+      },
+      "name": "dev-env",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/dev-env",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 0,
+        "requiredCoInstalls": [
+          "docker-best-practices"
+        ]
+      },
+      "installs": "subagent-only",
+      "interface": {
+        "displayName": "Devops"
+      },
+      "name": "devops",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/devops",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Docs Upkeep"
+      },
+      "name": "docs-upkeep",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/docs-upkeep",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Error Handling"
+      },
+      "name": "error-handling",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/error-handling",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Estimation"
+      },
+      "name": "estimation",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/estimation",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 3,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Git Workflow"
+      },
+      "name": "git-workflow",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/git-workflow",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 3,
+        "dropped": 2,
+        "faithful": 0,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Hindsight"
+      },
+      "name": "hindsight",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/hindsight",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Inertia"
+      },
+      "name": "inertia",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/inertia",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Javascript"
+      },
+      "name": "javascript",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/javascript",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 3,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Kameleo"
+      },
+      "name": "kameleo",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/kameleo",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Laravel"
+      },
+      "name": "laravel",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/laravel",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Livewire"
+      },
+      "name": "livewire",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/livewire",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Mariadb"
+      },
+      "name": "mariadb",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/mariadb",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 2,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Meta Api"
+      },
+      "name": "meta-api",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/meta-api",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Mysql"
+      },
+      "name": "mysql",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/mysql",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Observability"
+      },
+      "name": "observability",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/observability",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 4,
+        "dropped": 0,
+        "faithful": 2,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Orchestration"
+      },
+      "name": "orchestration",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/orchestration",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Packages"
+      },
+      "name": "packages",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/packages",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 0,
+        "requiredCoInstalls": []
+      },
+      "installs": "subagent-only",
+      "interface": {
+        "displayName": "Performance"
+      },
+      "name": "performance",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/performance",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Php"
+      },
+      "name": "php",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/php",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 3,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Playwright"
+      },
+      "name": "playwright",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/playwright",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 0,
+        "dropped": 1,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Plugin Scout"
+      },
+      "name": "plugin-scout",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/plugin-scout",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Postgresql"
+      },
+      "name": "postgresql",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/postgresql",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 3,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Puppeteer"
+      },
+      "name": "puppeteer",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/puppeteer",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "React"
+      },
+      "name": "react",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/react",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "React Native"
+      },
+      "name": "react-native",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/react-native",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Resilience"
+      },
+      "name": "resilience",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/resilience",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Retrospective"
+      },
+      "name": "retrospective",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/retrospective",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Rollout"
+      },
+      "name": "rollout",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/rollout",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 2,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Security"
+      },
+      "name": "security",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/security",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 2,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Shadcn Studio"
+      },
+      "name": "shadcn-studio",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/shadcn-studio",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 0,
+        "dropped": 1,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Skill Router"
+      },
+      "name": "skill-router",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/skill-router",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Sql"
+      },
+      "name": "sql",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/sql",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Stack Scan"
+      },
+      "name": "stack-scan",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/stack-scan",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 0,
+        "requiredCoInstalls": []
+      },
+      "installs": "subagent-only",
+      "interface": {
+        "displayName": "System Design"
+      },
+      "name": "system-design",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/system-design",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 3,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Task Runner"
+      },
+      "name": "task-runner",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/task-runner",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 9,
+        "dropped": 0,
+        "faithful": 10,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Taskmaster"
+      },
+      "name": "taskmaster",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/taskmaster",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 2,
+        "dropped": 0,
+        "faithful": 2,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Testing"
+      },
+      "name": "testing",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/testing",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Typescript"
+      },
+      "name": "typescript",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/typescript",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 4,
+        "dropped": 0,
+        "faithful": 9,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Ui Ux"
+      },
+      "name": "ui-ux",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/ui-ux",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Vite"
+      },
+      "name": "vite",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/vite",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Vue2"
+      },
+      "name": "vue2",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/vue2",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 1,
+        "requiredCoInstalls": []
+      },
+      "interface": {
+        "displayName": "Vue3"
+      },
+      "name": "vue3",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/vue3",
+        "source": "local"
+      }
+    },
+    {
+      "category": "Development",
+      "fidelitySummary": {
+        "degraded": 1,
+        "dropped": 0,
+        "faithful": 0,
+        "requiredCoInstalls": [
+          "javascript-best-practices",
+          "laravel-best-practices",
+          "react-best-practices",
+          "typescript-best-practices",
+          "vue2-best-practices",
+          "vue3-best-practices"
+        ]
+      },
+      "installs": "subagent-only",
+      "interface": {
+        "displayName": "Web Dev"
+      },
+      "name": "web-dev",
+      "policy": {
+        "authentication": "ON_INSTALL",
+        "installation": "AVAILABLE"
+      },
+      "source": {
+        "path": "./codex/web-dev",
+        "source": "local"
+      }
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-resilience-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /resilience:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "resilience-design",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Resilience",
+    "longDescription": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review."
+  },
+  "name": "resilience",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Inventory the project's actual stack: manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints, docker images. Reports required vs installed versions and flags drift, missing locks, and EOL majors.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-stack-scan-report",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /stack-scan:report verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "installed-versions",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Stack Scan",
+    "longDescription": "Inventory the actual stack from composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI images; required-vs-installed table with drift, missing-lock, and EOL flags. Includes /stack-scan:report.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Inventory the project's actual stack: manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints, docker images. Reports required vs installed versions and flags drift, missing locks, and EOL majors."
+  },
+  "name": "stack-scan",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.2.0"
+}

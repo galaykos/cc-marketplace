@@ -1,0 +1,34 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Database worker agent: schema design, additive migrations, indexing strategy, query optimization, connection pooling — implements database changes engine-agnostically and defers dialect review to the sql/mysql/mariadb/postgresql plugins.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "database-engineer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [],
+    "requiredCoInstalls": [
+      "mariadb-best-practices",
+      "mysql-best-practices",
+      "postgresql-best-practices",
+      "sql-best-practices"
+    ]
+  },
+  "interface": {
+    "displayName": "Database",
+    "longDescription": "Database worker agent: schema design, additive migrations, indexing strategy, query optimization, connection pooling — implements database changes engine-agnostically and defers dialect review to the sql/mysql/mariadb/postgresql plugins. Includes a database-engineer agent.\n\nCodex fidelity: 0 faithful, 1 degraded, 0 dropped surface(s); requires co-install of: mariadb-best-practices, mysql-best-practices, postgresql-best-practices, sql-best-practices.",
+    "shortDescription": "Database worker agent: schema design, additive migrations, indexing strategy, query optimization, connection pooling — implements database changes engine-agnostically and defers dialect review to the sql/mysql/mariadb/postgresql plugins."
+  },
+  "name": "database",
+  "schema_build": "2026-07-10",
+  "version": "0.2.0"
+}

@@ -1,0 +1,46 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review and a test-engineer worker agent.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-testing-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /testing:review verb"
+        ]
+      },
+      {
+        "id": "test-engineer",
+        "kind": "subagent",
+        "reasons": [
+          "out-of-band: install via install-agents.sh (Codex plugins cannot bundle subagents); model omitted (inherits session model)"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "tdd",
+        "kind": "skill"
+      },
+      {
+        "id": "testing-best-practices",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Testing",
+    "longDescription": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review and a test-engineer worker agent.\n\nCodex fidelity: 2 faithful, 2 degraded, 0 dropped surface(s).",
+    "shortDescription": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review and a test-engineer worker agent."
+  },
+  "name": "testing",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.4.0"
+}

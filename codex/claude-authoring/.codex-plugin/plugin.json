@@ -1,0 +1,76 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, a project-skill-suggester that proactively offers one when a task's cards share uncovered repository-specific knowledge, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-claude-authoring-new-agent",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /claude-authoring:new-agent verb"
+        ]
+      },
+      {
+        "id": "cmd-claude-authoring-new-hook",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /claude-authoring:new-hook verb"
+        ]
+      },
+      {
+        "id": "cmd-claude-authoring-new-plugin",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /claude-authoring:new-plugin verb"
+        ]
+      },
+      {
+        "id": "cmd-claude-authoring-new-skill",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /claude-authoring:new-skill verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "authoring-agents",
+        "kind": "skill"
+      },
+      {
+        "id": "authoring-hooks",
+        "kind": "skill"
+      },
+      {
+        "id": "authoring-plugins",
+        "kind": "skill"
+      },
+      {
+        "id": "authoring-skills",
+        "kind": "skill"
+      },
+      {
+        "id": "project-skill-suggester",
+        "kind": "skill"
+      },
+      {
+        "id": "routine-detector",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Claude Authoring",
+    "longDescription": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, a project-skill-suggester that proactively offers one when a task's cards share uncovered repository-specific knowledge, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands.\n\nCodex fidelity: 6 faithful, 4 degraded, 0 dropped surface(s).",
+    "shortDescription": "Authoring guides for Claude Code artifacts — skills, agents, hooks, plugins — plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, a project-skill-suggester that proactively offers one when a task's cards share uncovered repository-specific knowledge, and /claude-authoring:new-skill|new-agent|new-hook|new-plugin scaffold commands."
+  },
+  "name": "claude-authoring",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.3.0"
+}

@@ -1,0 +1,28 @@
+---
+name: cmd-api-design-review
+description: "Use when the user asks to review API routes, controllers, or OpenAPI specs against api-design."
+---
+
+_This skill wraps the `/api-design:review` command; pass the command's input as the skill's argument (`$ARGUMENTS`)._
+
+
+Review the API surface in $ARGUMENTS (or the current diff if no argument) against the
+api-design skill from this plugin. Invoke the skill first. Look at route files,
+controllers, FormRequests, API Resources, and OpenAPI/JSON Schema specs — judge the
+contract the consumer sees (paths, methods, status codes, error shape, pagination,
+filtering, versioning, idempotency), not internal code style. When uncertain about
+semantics, verify against the RFCs (9110 for methods/status codes, 9457 for problem
+details) instead of answering from memory. Report findings as
+`path:line — problem — fix`, ordered by severity. Skip naming nits unless they leak
+into the public contract.
+
+When $ARGUMENTS describes endpoints that do not exist yet (a design task rather than
+a review), switch to the skill's contract-preview protocol: render the proposed
+contract as the live HTML artifact with real example payloads and get it approved
+before any implementation.
+
+End with an offer, not a bare report: after review findings, ask via
+AskUserQuestion "Apply these fixes now (Recommended)" / "Skip — findings
+only"; after an approved contract preview, ask "Start implementing this
+contract now (Recommended)" / "Stop here — spec only". Headless: findings
+or approved contract only.

@@ -1,0 +1,35 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Language-agnostic error-handling discipline: crash on programmer errors, handle operational errors where you can act, typed errors over message-string matching, cause chains preserved across boundaries, one report per failure — no swallowed exceptions, no catch-log-continue towers. Includes /error-handling:review.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-error-handling-review",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /error-handling:review verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "error-handling-design",
+        "kind": "skill"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "interface": {
+    "displayName": "Error Handling",
+    "longDescription": "Language-agnostic error-handling discipline: crash on programmer errors, handle operational errors where you can act, typed errors over message-string matching, cause chains preserved across boundaries, one report per failure — no swallowed exceptions, no catch-log-continue towers. Includes /error-handling:review.\n\nCodex fidelity: 1 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Language-agnostic error-handling discipline: crash on programmer errors, handle operational errors where you can act, typed errors over message-string matching, cause chains preserved across boundaries, one report per failure — no swallowed exceptions, no catch-log-continue towers. Includes /error-handling:review."
+  },
+  "name": "error-handling",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}

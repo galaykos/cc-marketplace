@@ -1,0 +1,47 @@
+{
+  "author": {
+    "email": "public@galayko.com",
+    "name": "Ivan-WG"
+  },
+  "description": "Kameleo Local API navigator: current endpoints and SDK usage from live docs, the fingerprint → profile → start flow, connecting Playwright/Puppeteer to a started profile over CDP, and profile/fingerprint configuration. Includes /kameleo:check and a Kameleo-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
+  "fidelity": {
+    "degraded": [
+      {
+        "id": "cmd-kameleo-check",
+        "kind": "command-as-skill",
+        "reasons": [
+          "auto-trigger/$-mention, not a typed /kameleo:check verb"
+        ]
+      }
+    ],
+    "dropped": [],
+    "faithful": [
+      {
+        "id": "kameleo-docs",
+        "kind": "skill"
+      },
+      {
+        "id": "kameleo-patterns",
+        "kind": "skill"
+      },
+      {
+        "events": [
+          "UserPromptSubmit"
+        ],
+        "id": "hooks",
+        "kind": "hooks"
+      }
+    ],
+    "requiredCoInstalls": []
+  },
+  "hooks": "hooks",
+  "interface": {
+    "displayName": "Kameleo",
+    "longDescription": "Kameleo Local API navigator: current endpoints and SDK usage from live docs, the fingerprint → profile → start flow, connecting Playwright/Puppeteer to a started profile over CDP, and fingerprint configuration. Includes /kameleo:check. Defers general third-party doc verification to api-docs-first.\n\nCodex fidelity: 3 faithful, 1 degraded, 0 dropped surface(s).",
+    "shortDescription": "Kameleo Local API navigator: current endpoints and SDK usage from live docs, the fingerprint → profile → start flow, connecting Playwright/Puppeteer to a started profile over CDP, and profile/fingerprint configuration. Includes /kameleo:check and a Kameleo-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
+  },
+  "name": "kameleo",
+  "schema_build": "2026-07-10",
+  "skills": "skills",
+  "version": "0.1.0"
+}
