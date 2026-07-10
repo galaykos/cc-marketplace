@@ -378,6 +378,26 @@
       "name": "api-auth",
       "source": "./plugins/api-auth",
       "description": "API authentication and authorization authoring: token models (session, opaque, JWT), Laravel Sanctum vs Passport, OAuth2/OIDC flows with Authorization Code + PKCE, scopes and least privilege, refresh-token rotation with reuse detection, secure httpOnly-cookie storage, hashing at rest, and revocation/expiry — a firing api-auth skill and a /api-auth:review command. The day-one token-secured-API decisions and top OWASP auth failures."
+    },
+    {
+      "name": "i18n",
+      "source": "./plugins/i18n",
+      "description": "Internationalization and localization: semantic translation keys and catalog hygiene, ICU MessageFormat pluralization and gender, locale-aware dates/numbers/currency via Intl, RTL layout with logical properties, fallback chains, and tooling-driven extraction — a firing i18n skill and a /i18n:review command. For products shipping outside one language; skips a genuinely single-locale app."
+    },
+    {
+      "name": "graphql-grpc",
+      "source": "./plugins/graphql-grpc",
+      "description": "GraphQL and gRPC API discipline: GraphQL schema design, the N+1/DataLoader problem, per-field resolver authorization, query depth/complexity limits, cursor pagination and error shaping; gRPC protobuf evolution (field-number safety), streaming, deadlines, and canonical status codes — a firing graphql-grpc skill and a /graphql-grpc:review command. Distinct paradigms from REST; defers REST to api-design."
+    },
+    {
+      "name": "data-privacy",
+      "source": "./plugins/data-privacy",
+      "description": "Regulatory data-handling (GDPR/CCPA): PII classification and data mapping, data-subject rights (access, erasure, portability) with reach across logs/caches/backups/processors, consent and lawful basis, retention and deletion policies, minimization, pseudonymization, and audit trails — a firing data-privacy skill and a /data-privacy:review command. The compliance layer above code-level security review."
+    },
+    {
+      "name": "llm-app",
+      "source": "./plugins/llm-app",
+      "description": "LLM application engineering: eval harnesses and regression gates (evaluate, don't eyeball), RAG pipelines (chunking, embeddings, retrieval quality + re-ranking, grounding and citation), prompt versioning, prompt-injection defense, token-cost control, and context management — a firing llm-app skill and a /llm-app:review command. Defers provider API specifics to the claude-api skill."
     }
   ]
 }

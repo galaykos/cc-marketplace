@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 66 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
+2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 70 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -159,6 +159,10 @@ afterwards to sweep the orphans.
 | **[event-driven](plugins/event-driven/README.md)** | Message-driven architecture: broker choice, topic/partition design, event schema versioning, at-least-once + consumer idempotency, the outbox pattern, sagas with compensation, dead-letter handling | `/event-driven:review` |
 | **[payments](plugins/payments/README.md)** | Payments/billing (Stripe/Paddle): PCI-scope minimization, integer-minor-unit money, signature-verified idempotent webhooks, subscription races, dunning/proration, ledger reconciliation | `/payments:review` |
 | **[api-auth](plugins/api-auth/README.md)** | API auth: token model choice (session/opaque/JWT), Sanctum vs Passport, OAuth2 Auth Code + PKCE, scopes, refresh-token rotation with reuse detection, httpOnly storage, hashing/expiry | `/api-auth:review` |
+| **[i18n](plugins/i18n/README.md)** | Internationalization: semantic keys + catalogs, ICU plural/gender, locale-aware dates/numbers/currency via Intl, RTL logical properties, fallback chains, tooling extraction | `/i18n:review` |
+| **[graphql-grpc](plugins/graphql-grpc/README.md)** | GraphQL (N+1/DataLoader, per-field resolver authz, depth/complexity limits, cursor pagination) + gRPC (proto field-number safety, streaming, deadlines, status codes) | `/graphql-grpc:review` |
+| **[data-privacy](plugins/data-privacy/README.md)** | GDPR/CCPA: PII mapping, data-subject rights (access/erasure/portability) with reach across logs/caches/backups/processors, consent, retention/deletion, audit trails | `/data-privacy:review` |
+| **[llm-app](plugins/llm-app/README.md)** | LLM apps: eval harnesses + regression gates, RAG (chunking/embeddings/retrieval quality/grounding), prompt versioning, prompt-injection defense, token-cost control | `/llm-app:review` |
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
 | **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files; CI/CD + prod deploys → devops | `/dev-env:init`, `/dev-env:review` |
