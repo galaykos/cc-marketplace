@@ -104,4 +104,23 @@ while IFS= read -r mdf; do
     || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
 done < <(find plugins -name '*.md')
 
+# The 'everything' bundle must depend on every non-suite (leaf) plugin — a leaf
+# plugin.json has no .dependencies; a bundle has them. Prevents an aggregate
+# install silently missing a plugin, and keeps the README count honest.
+EV=plugins/everything/.claude-plugin/plugin.json
+if [ -f "$EV" ]; then
+  evdeps=$(jq -r '.dependencies[]?' "$EV")
+  nonsuite=0
+  for pj in plugins/*/.claude-plugin/plugin.json; do
+    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && continue  # skip bundles
+    nonsuite=$((nonsuite + 1))
+    name=$(jq -r .name "$pj")
+    printf '%s\n' "$evdeps" | grep -qx "$name" \
+      || err "everything bundle missing dependency '$name' (must list every non-suite plugin)"
+  done
+  rc=$(grep -oE 'all [0-9]+ plugins' README.md | grep -oE '[0-9]+' | head -1)
+  { [ -z "$rc" ] || [ "$rc" = "$nonsuite" ]; } \
+    || err "README says 'all $rc plugins' but there are $nonsuite non-suite plugins"
+fi
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1
