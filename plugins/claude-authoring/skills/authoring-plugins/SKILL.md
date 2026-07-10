@@ -59,6 +59,25 @@ validation immediately, and a "register it later" plan leaves the tree
 broken for everyone in between. Creation and registration are one
 atomic step.
 
+## Bundle membership (the rider validation cannot catch)
+
+A new plugin — and a new **agent** inside an existing plugin — is not done when its
+files pass validation. Bundles advertise a set; adding to the set without updating
+the bundle makes the bundle lie, and no gate flags it:
+
+- **`everything`** depends on every non-suite (leaf) plugin. A new leaf plugin must
+  be added to its `dependencies`, or the aggregate install silently omits it. (The
+  validator's everything-count check catches a missing plugin only via the README
+  count — keep both in step.)
+- **`*-suite` bundles** (`quality-suite`, `frontend-suite`, `php-suite`, `db-suite`,
+  `process-suite`, `taskmaster-suite`) depend on a themed subset and drive an
+  uninstall prune list. A new plugin or agent in a suite's domain joins that suite's
+  `dependencies` AND its prune list — a suite that claims "all worker agents" must
+  actually contain them.
+
+Do this in the same change as the addition. "Register the bundle later" is the same
+broken-tree trap as skipping marketplace registration.
+
 ## Composition: pick the smallest artifact
 
 Each artifact kind answers a different question — choose by trigger,
