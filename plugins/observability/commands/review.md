@@ -32,6 +32,7 @@ Review the target for observability gaps in what the application code emits.
 
 5. When findings exist, offer the next step as a selectable choice
    (AskUserQuestion): "Apply the fixes now (Recommended)" / "Critical and
-   high only" / "Stop here". Never leave the user to retype findings as
-   instructions. In headless or non-interactive runs, report only — apply
-   nothing.
+   high only" / "Stop here". On apply, dispatch the `observability-engineer` worker
+   with the finding list — it instruments the code; infra-layer wiring stays with
+   devops. Never leave the user to retype findings as instructions. In headless or
+   non-interactive runs, report only — apply nothing.

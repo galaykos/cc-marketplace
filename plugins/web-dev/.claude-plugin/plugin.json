@@ -1,6 +1,6 @@
 {
   "name": "web-dev",
-  "version": "0.2.0",
-  "description": "Generalist web development worker agent: routing, REST/API integration, forms and validation, state management, SSR/CSR trade-offs, baseline accessibility — implements, not just reviews. Stack-agnostic; defers to the per-framework review plugins.",
+  "version": "0.3.0",
+  "description": "Generalist web development pair: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR) and a frontend-reviewer that audits React/Vue/Inertia/Livewire/TS + react-native/vite against the matching per-framework skill. Stack-agnostic; defers stack idioms to the per-framework plugins.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }
