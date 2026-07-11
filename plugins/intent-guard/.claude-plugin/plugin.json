@@ -1,6 +1,6 @@
 {
   "name": "intent-guard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Continuous mid-run intent-vs-action attestation: a cooperative drift-guard that ledgers each Edit/Write/Bash/Agent action, has the model attest every action against the declared task, and holds turn completion with a Stop gate until unattested actions and drift are reckoned — filling the mid-run slot between coverage-check (entry) and work-verification (exit). A UserPromptSubmit hook captures intent, a PostToolUse hook records the action ledger, a Stop hook gates on unattested work, and the intent-attestation skill carries the per-action attestation contract. Includes /intent-guard:intent and /intent-guard:status. Not tamper-proof and not a security boundary — it raises the visibility and cost of casual drift for a cooperating agent, not an adversary with shell access.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }
