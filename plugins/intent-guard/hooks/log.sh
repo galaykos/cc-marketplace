@@ -27,6 +27,18 @@
       ;;
     Bash)
       cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
+      # Peel a leading transparent command wrapper (e.g. a sandbox shim like `rtk`) so the
+      # read-only skip-list matches the real command whether or not the wrapper is present —
+      # the recorded command can arrive as `rtk git …` in one environment and `git …` in
+      # another. Fail-safe: a wrapper carrying its own options just leaves the command logged
+      # (over-log, never under-log). Add wrapper names to the case to cover other environments.
+      cmd=${cmd#"${cmd%%[![:space:]]*}"}                       # ltrim
+      case "${cmd%%[[:space:]]*}" in
+        rtk|*/rtk)
+          cmd=${cmd#*[[:space:]]}                              # drop the wrapper token
+          cmd=${cmd#"${cmd%%[![:space:]]*}"}                   # ltrim the remainder
+          ;;
+      esac
       first=${cmd%%[[:space:]]*}; first=${first##*/}
       case "$first" in
         ls|cat|grep|rg|find|pwd|echo|which|head|tail|wc) exit 0 ;;
