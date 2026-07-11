@@ -15,19 +15,24 @@
   ledger="$dir/ledger.jsonl"
   attest="$dir/attest.json"
 
-  # Disabled-visible: state exists but is corrupt — say so, never fail silently.
-  if [ -f "$intent" ] && ! jq empty "$intent" 2>/dev/null; then
-    printf 'intent-guard: DISABLED (intent.json unreadable) — attestation is OFF until it is fixed or removed.\n'
-    exit 0
-  fi
-
-  # Rotate on session change: a new session_id resets ledger + attest and drops the stale intent.
-  if [ -f "$intent" ] && [ -n "$sid" ]; then
-    prev=$(jq -r '.session_id // empty' "$intent" 2>/dev/null)
+  # Rotate on session change — independent of whether an intent was ever seeded. A prior
+  # session that starts with a slash command seeds no intent yet still logs actions; gating
+  # rotation on intent.json let that stale ledger bleed into the next session. A dedicated
+  # session marker makes rotation fire on any session change, so each session starts clean.
+  sidmark="$dir/session"
+  if [ -n "$sid" ]; then
+    prev=$(cat "$sidmark" 2>/dev/null)
     if [ -n "$prev" ] && [ "$prev" != "$sid" ]; then
       : > "$ledger" 2>/dev/null
       rm -f "$attest" "$intent" 2>/dev/null
     fi
+    printf '%s' "$sid" > "$sidmark" 2>/dev/null
+  fi
+
+  # Disabled-visible: state exists but is corrupt — say so, never fail silently.
+  if [ -f "$intent" ] && ! jq empty "$intent" 2>/dev/null; then
+    printf 'intent-guard: DISABLED (intent.json unreadable) — attestation is OFF until it is fixed or removed.\n'
+    exit 0
   fi
 
   # Seed a provisional intent from a free-text first prompt; leave slash-command (carded) starts
