@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 70 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
+2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 71 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -126,6 +126,7 @@ afterwards to sweep the orphans.
 | **[taskmaster](plugins/taskmaster/README.md)** | Idea-to-execution clarification: brainstorming fuzzy ideas into designs, ambiguity ledger, batched questions, theme-aware shell mockups (project colors when detectable, compare modes, tradeoff callouts, motion passes) + interactive experience walkthroughs on one always-live preview URL, milestone-grouped single-prompt task cards + context-scout agent, spec-time ERDs (mermaid + SVG preview), spec↔card coverage gate, adversarial spec red-team | `/taskmaster:task` (or `/taskmaster`), `/taskmaster:brainstorm`, `/taskmaster:coverage`, `/taskmaster:redteam` |
 | **[design-preview](plugins/design-preview/README.md)** | Real-component visual decisions for Vite + React: candidate variants rendered with the project's own components on its dev server via a scratch HTML entry (zero edits to existing files), strict consent + verified cleanup; falls back to taskmaster's shell mockups | `/design-preview:preview` |
 | **[task-runner](plugins/task-runner/README.md)** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate + parallel-planning (computed subagents-vs-inline verdict, agent count, speedup estimate) | `/task-runner:run`, `/task-runner:plan` |
+| **[intent-guard](plugins/intent-guard/README.md)** | Mid-run intent-vs-action attestation: a cooperative drift-guard that ledgers each Edit/Write/Bash/Agent action, has the model attest it against the declared task, and holds turn completion (Stop gate) until unattested actions and drift are reckoned — the mid-run tier between coverage-check (entry) and work-verification (exit); not tamper-proof | `/intent-guard:intent`, `/intent-guard:status` |
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
 | **[plugin-scout](plugins/plugin-scout/README.md)** | Scans project manifests and suggests marketplace plugins in two tiers (stack-matched with evidence, always-useful), marks installed ones, installs picked ones after confirm | `/plugin-scout:suggest` |
 | **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |

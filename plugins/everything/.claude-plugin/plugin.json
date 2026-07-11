@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -76,6 +76,7 @@
     "i18n",
     "graphql-grpc",
     "data-privacy",
-    "llm-app"
+    "llm-app",
+    "intent-guard"
   ]
 }
