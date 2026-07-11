@@ -1,0 +1,9 @@
+{
+  "name": "ultra-deep-research",
+  "version": "0.1.0",
+  "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Writes the report inline and to research/<topic>-<date>.md.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
+}
