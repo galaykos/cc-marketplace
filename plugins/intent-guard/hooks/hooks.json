@@ -11,14 +11,14 @@
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Agent",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/log.sh" }
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/note.sh" }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh" }
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/summary.sh" }
         ]
       }
     ]
