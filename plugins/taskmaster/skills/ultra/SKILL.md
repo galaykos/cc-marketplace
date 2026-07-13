@@ -49,7 +49,7 @@ your response, before anything else:
 ```
 
 Substitute `<model>`/`<effort>` with the tier the trigger selected (see Variants;
-defaults opus/max). The banner is main-thread output, never hook output — so it
+defaults opus/xhigh). The banner is main-thread output, never hook output — so it
 renders regardless of hook ordering. Print it once per run, not once per phase.
 
 ## The escalation contract (`ULTRA-TASK ACTIVE`)
@@ -59,7 +59,7 @@ This is the verbatim block the hook and command flags inject. Honor every line:
 ```
 ULTRA-TASK ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this taskmaster run.
 - Reachable reasoning subagents dispatched model:<model> (default opus). On the Workflow
-  agent() path also effort:<effort> (default max). Inline Agent dispatch escalates model only (no effort param).
+  agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
 - grill: extra clarifying-question rounds; no early ledger exit on first CLEAR sweep.
 - spec-redteam: run ALWAYS; N=3 blind adversary panel when Workflow is available.
 - coverage-check: run ALWAYS before handoff; loop-until-dry, cap 3 rounds or first dry.
@@ -79,12 +79,12 @@ The trigger token carries an optional suffix that picks the tier:
 ultra-task[-<model>][-<effort>]      free-text prompt (hooks/ultra.sh)
 ultra[-<model>][-<effort>]           leading flag of a taskmaster command's args
 model  = opus | sonnet | haiku | fable      default opus
-effort = low | medium | high | xhigh | max  default max
+effort = low | medium | high | xhigh | max  default xhigh
 ```
 
-`ultra-task`→opus/max (classic); `ultra-task-sonnet`→sonnet/max;
-`ultra-task-sonnet-xhigh`→sonnet/xhigh; a lone suffix resolves by set membership
-(`ultra-task-xhigh`→opus/xhigh); unknown suffixes keep the defaults. The hook
+`ultra-task`→opus/xhigh (classic); `ultra-task-sonnet`→sonnet/xhigh;
+`ultra-task-sonnet-max`→sonnet/max; a lone suffix resolves by set membership
+(`ultra-task-max`→opus/max); unknown suffixes keep the defaults. The hook
 injects the resolved `(model=…, effort=…)` into the directive; the rules below read it.
 
 ## Model and effort rules
