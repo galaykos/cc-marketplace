@@ -187,4 +187,19 @@ if [ -f "$CREW" ]; then
   done
 fi
 
+# Chassis generated-header gate: every chassis-shaped file — commands/review.md,
+# commands/uninstall.md, hooks/remind.sh — must EITHER carry the generate.sh header
+# OR have its plugin's .chassis.json declare an optout entry (object OR array form).
+# Neither header nor an optout manifest (or no manifest at all) means the deterministic
+# stamper never ran or was bypassed — drift the regenerate-and-diff gate must catch.
+for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/hooks/remind.sh; do
+  [ -f "$f" ] || continue
+  grep -q 'generated from templates/' "$f" && continue
+  man="$(dirname "$(dirname "$f")")/.chassis.json"
+  if [ -f "$man" ] && jq -e '([.]|flatten)|any(.chassis=="optout")' "$man" >/dev/null 2>&1; then
+    continue
+  fi
+  err "$f: chassis-shaped file has no generated header and no optout in .chassis.json (run scripts/generate.sh --write)"
+done
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

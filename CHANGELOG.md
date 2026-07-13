@@ -4,6 +4,63 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.44.0] - 2026-07-13
+
+Fable review engine + deterministic chassis generators. Per-plugin `.chassis.json`
+manifests + `templates/` + `scripts/generate.sh` stamp full standalone copies of the
+templated review/uninstall/reminder cohort, and a CI regenerate-and-diff `--check` gate
+makes chassis drift impossible — a hand-edit of any generated file now fails CI.
+
+### Added
+
+- **chassis system**: `scripts/generate.sh` (bash+jq template stamper) + `templates/`
+  (review-command, suite-uninstall, reminder-hook, worker-agent) + per-plugin
+  `.chassis.json` manifests. `--write` stamps and patch-bumps each changed plugin once;
+  `--check` byte-diffs regenerated output against the tree and exits non-zero on any
+  drift (content or hook mode bit), and validates that every stamped dispatch chain
+  resolves to a real worker agent. Wired into CI as an **enforcing** gate (was
+  report-only) alongside new `scripts/smoke/template-engine-tests.sh`,
+  `chassis-template-tests.sh`, and `hook-guard-tests.sh`. `scripts/validate.sh` gains a
+  generated-header gate: every chassis-shaped file (`commands/review.md`,
+  `commands/uninstall.md`, `hooks/remind.sh`) must carry the stamp or declare an
+  `optout` manifest entry.
+
+### Changed
+
+- **30 stamped review commands** now carry the unified Fable payload — four blocks: a
+  **triage** gate (trivial/single-file/mechanical → one-line verdict; risky → deep
+  pass), **evidence tiers** (`CONFIRMED`/`PLAUSIBLE`, format `locator — severity —
+  [tier] problem — fix`, severity-sorted), a **coverage closer** (`Checked: … / Not
+  checked: … (why)`) with one adversarial **self-refute** pass per critical finding,
+  and an **apply-lane** offering **Apply all / Apply critical+high only / Report only**
+  that dispatches the finding list down a static stamped chain
+  (`<worker> → task-runner:task-executor if installed → inline`). Headless runs report
+  only and print the apply command. postgresql/sql/mysql/mariadb keep their
+  engine-version preambles; sql keeps its engine-handoff extra apply option; dev-env
+  keeps its audit-only safety option.
+- **api-docs-first**: reminder regex narrowed to
+  `\b(sdk|endpoint|integrat\w*|webhook|oauth|graphql)\b` — the bare `api` and `restful`
+  triggers are dropped, eliminating false reminders on unrelated prompts.
+- **approaches**, **build-vs-buy**: keyword-reminder hook renamed `nudge.sh` →
+  `remind.sh` and normalized to the shared reminder-hook shape (shebang line 1,
+  generated header line 2, slash+empty+jq fail-open guards, one keyword-matched
+  message). compaction-advisor's turn-counter `nudge.sh` is a different shape and stays
+  untouched.
+- **11 reminder hooks** (adspower, api-docs-first, automation-builder, camoufox,
+  kameleo, meta-api, playwright, puppeteer, taskmaster, approaches, build-vs-buy) are
+  stamped from one template with messages normalized to the template shape; taskmaster
+  keeps its thin-prompt guard via `extraGuard`.
+- **8 suite uninstalls** stamped identical modulo the bundle parameter; the
+  taskmaster-suite divergence is gone.
+- **observability** (observability-engineer), **a11y** (a11y-engineer): the two worker
+  agents are regenerated with skill-pointer bodies (the restated checklist replaced by
+  a pointer to the best-practice skill) plus a three-strikes kill-trigger; exact
+  name/filename/tools/model/bestpractices-skill preserved so the routing/crew sync gates
+  stay green.
+- **laravel** 0.3.2: backend-engineer's "route their fixes to" claim corrected — the
+  php and laravel review commands route fixes to backend-engineer; sql routes to
+  database-engineer.
+
 ## [0.36.0] - 2026-07-07
 
 ### Changed

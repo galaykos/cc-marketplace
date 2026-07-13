@@ -17,8 +17,7 @@ jobs:
       - name: Check plugin version bumps
         if: github.event_name == 'pull_request'
         run: bash scripts/check-version-bumps.sh "${{ github.event.pull_request.base.sha }}"
-      - name: Chassis regenerate-and-diff (report-only)
-        continue-on-error: true
+      - name: Chassis regenerate-and-diff (enforcing)
         run: bash scripts/generate.sh --check
       - name: Template engine smoke tests
         run: bash scripts/smoke/template-engine-tests.sh
