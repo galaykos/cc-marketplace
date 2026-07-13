@@ -32,7 +32,7 @@
   turns=$((turns + 1))
 
   if [ $((turns - last)) -ge "$interval" ]; then
-    printf '⚠ compaction-advisor: ~%s turns in this session — if an early chunk is no longer relevant to your current task, /compact will tighten the model'\''s context.\n' "$turns"
+    printf '⚠ compaction-advisor: ~%s turns in this session — if early context is now stale, a guided /compact sharpens output: e.g. /compact keep the current task, key decisions, and file paths; drop resolved tangents.\n' "$turns"
     last=$turns
   fi
 

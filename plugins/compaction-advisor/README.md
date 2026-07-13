@@ -15,8 +15,12 @@ the model to weigh whether the early context is still relevant.
 - A `SessionStart` hook (`reset.sh`) zeroes the counter when the session starts from a
   compaction or a context clear (`source=compact` / `source=clear`), so you are never
   nagged right after compacting.
-- Relevance is left to the model: the nudge says *"if an early chunk is no longer relevant
-  to your current task, `/compact` will tighten the model's context."*
+- Relevance is left to the model, and the nudge suggests a **guided** compaction, not a bare
+  one — a manual `/compact <instructions>` is the only lever that actually shapes what the
+  summary keeps (a `PreCompact` hook cannot steer compaction, verified against the Claude
+  Code hook docs). The nudge says: *"if early context is now stale, a guided `/compact`
+  sharpens output: e.g. `/compact keep the current task, key decisions, and file paths; drop
+  resolved tangents`."*
 
 ## State
 
