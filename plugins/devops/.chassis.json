@@ -1,0 +1,13 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "devops-practices",
+  "tag": "devops",
+  "worker": null,
+  "applyExtra": [],
+  "divergence": {
+    "preamble": "Before reporting, validate mechanically against the artifact where a tool exists — `docker compose config`, `kubectl apply --dry-run=client`, `hadolint`, `actionlint` — and cite the output; a finding is verified only when a check backs it. You audit configuration, you do not run deploys."
+  },
+  "description": "Review CI/CD pipelines, Kubernetes manifests, and deploy/secret config against devops-practices",
+  "argumentHint": "[path-or-diff]"
+}

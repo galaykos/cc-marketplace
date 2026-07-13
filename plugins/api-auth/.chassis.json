@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "api-auth",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review API authentication/authorization for token model, storage, OAuth flow, rotation, and scope gaps against api-auth",
+  "argumentHint": "[path-or-diff]"
+}

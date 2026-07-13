@@ -1,0 +1,13 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "database-design",
+  "tag": "database",
+  "worker": null,
+  "applyExtra": [],
+  "divergence": {
+    "preamble": "Detect the engine and version first — from configs, DSNs, compose files, or dependency manifests — never assume a dialect. You audit the design, not run DDL."
+  },
+  "description": "Review schema, migrations, indexes, and pooling against database-design (engine-agnostic)",
+  "argumentHint": "[path-migration-or-schema]"
+}

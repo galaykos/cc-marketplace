@@ -1,6 +1,9 @@
 {
   "name": "payments",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Payments and billing discipline (Stripe/Paddle/Braintree): PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, and an append-only ledger with reconciliation — a firing payments skill and a /payments:review command. The failure class is double-charges and revenue leaks.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

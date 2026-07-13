@@ -1,6 +1,9 @@
 {
   "name": "i18n",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Internationalization and localization: semantic translation keys and catalog hygiene, ICU MessageFormat pluralization and gender, locale-aware dates/numbers/currency via Intl, RTL layout with logical properties, fallback chains, and tooling-driven extraction — a firing i18n skill and a /i18n:review command. For products shipping outside one language; skips a genuinely single-locale app.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

@@ -1,6 +1,9 @@
 {
   "name": "devops",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "DevOps pipeline and infrastructure: CI/CD ordering, container/image hygiene, Kubernetes resource limits and probes, deploy strategy with rollback, and secrets handling — a firing devops-practices skill, a /devops:review command, and a devops-engineer worker + devops-reviewer pair. Owns infra-layer observability wiring (defers in-code instrumentation to observability); defers local docker-compose dev environments to dev-env.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

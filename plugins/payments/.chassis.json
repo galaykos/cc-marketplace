@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "payments",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review a payments/billing integration for PCI scope, webhook idempotency, money handling, and subscription-race gaps against payments",
+  "argumentHint": "[path-or-diff]"
+}

@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "error-handling-design",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Audit error handling — empty or over-broad catches, swallowed exceptions, message-string branching, missing cause chains, internals leaking to users — one line per finding.",
+  "argumentHint": "[path-diff-or-design-doc]"
+}

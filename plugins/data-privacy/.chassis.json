@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "data-privacy",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review code or a design for GDPR/CCPA data-handling gaps — PII mapping, erasure reach, consent, retention — against data-privacy",
+  "argumentHint": "[path-or-design-doc]"
+}

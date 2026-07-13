@@ -2,31 +2,42 @@
 description: Review an LLM/RAG feature for eval coverage, retrieval quality, prompt-injection, grounding, and cost against llm-app
 argument-hint: [path-or-diff]
 ---
+<!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
-Review the target LLM application code — its failure surface is distinct from ordinary
-app logic.
+Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
-1. Determine scope from $ARGUMENTS — prompt templates, RAG pipeline (chunking,
-   embedding, retrieval), agent/tool loops, or a diff. If empty, locate the LLM
-   integration in the repo (prompt strings, vector-store calls, model SDK usage) and
-   review it.
+1. Determine scope from $ARGUMENTS — a file, directory, diff/branch reference, or
+   design document. If empty, default to recent changes (`git diff` against the merge
+   base, falling back to the latest commits).
 
-2. Invoke the `llm-app` skill from this plugin and apply its checklist: an eval set gates
-   prompt/model changes with automated scoring; RAG has a retrieval metric separate from
-   generation; answers are grounded in and cite retrieved context; prompts are versioned
-   artifacts not scattered literals; user/retrieved text is treated as untrusted (explicit
-   instruction/data boundary, least-privilege tools, no secrets in context); and cost is
-   controlled (`max_tokens` capped, context trimmed, caching, right-sized model).
+2. Run a triage pass before the deep read. A trivial, single-file, or purely mechanical
+   change earns a one-line verdict — state it and stop. Treat the change as risky and
+   take the deep pass when it touches auth, data, migrations, or concurrency, OR spans
+   more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
+   changed).
 
-3. Output findings one line each:
-   path:line — severity — problem — fix
-   Order by severity. No eval/regression gate, user input concatenated into the system
-   prompt, and an uncited RAG answer are the critical classes.
+3. Invoke the `llm-app` skill from this plugin and apply its checklist across the
+   scope — cite the skill's rubric, do not restate it here.
 
-4. Defer, do not duplicate: provider API specifics (model IDs, params, pricing) → the
-   claude-api skill (verify live docs); API-key handling → `/secret-scanning:scan`;
-   serving/scaling infra → `/devops:review`.
+4. Report findings one line each, sorted by severity (critical, high, medium, low):
+   `locator — severity — [CONFIRMED|PLAUSIBLE] problem — fix` — the
+   locator is `path:line`, or the section/heading for a design-doc review. Mark a
+   finding `CONFIRMED` only with a traced call path, an executed check, or a
+   reproduction; absent the ability to execute, findings stay `PLAUSIBLE` — that is
+   acceptable, not a failure. No finding without evidence and a concrete fix; no praise,
+   no padding.
 
-5. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
-   "Apply the fixes now (Recommended)" / "Report only". On apply, hand the finding list
-   to the shared `task-executor`. In headless or non-interactive runs, report only.
+5. Close with a coverage inventory and a self-refute pass. State `Checked: …` and
+   `Not checked: … (why)` so it is explicit what was covered, what was clean, and what
+   was skipped — not only what broke. Then run one adversarial self-refute pass over
+   every critical finding; if a finding does not survive it, drop or downgrade it with a
+   note.
+
+6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
+   Apply all / Apply critical+high only / Report only. On an apply
+   pick, dispatch the finding list down the static chain task-executor → task-runner:task-executor if installed → inline — never leave
+   the user to retype findings as instructions. In a headless or non-interactive run,
+   report only and print the apply command instead of dispatching.
+
+You may close by recommending an ultra-assess re-run when the change was large or
+high-risk — recommend it only, never self-execute it.

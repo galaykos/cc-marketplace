@@ -1,0 +1,4 @@
+{
+  "chassis": "optout",
+  "reason": "Bespoke multi-stack-detection review (shadcn/ReUI/Aceternity/Tailwind/Bootstrap/etc.) invoking several matching best-practice skills at once; not single-skill stack-review shaped."
+}

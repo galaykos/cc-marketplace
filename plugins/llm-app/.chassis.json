@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "llm-app",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review an LLM/RAG feature for eval coverage, retrieval quality, prompt-injection, grounding, and cost against llm-app",
+  "argumentHint": "[path-or-diff]"
+}

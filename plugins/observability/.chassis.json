@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "observability-design",
+  "tag": "observability",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Audit code for observability gaps — unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks — one line per finding.",
+  "argumentHint": "[path-diff-or-design-doc]"
+}

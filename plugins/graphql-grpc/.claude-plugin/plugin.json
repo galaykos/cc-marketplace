@@ -1,6 +1,9 @@
 {
   "name": "graphql-grpc",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GraphQL and gRPC API discipline: GraphQL schema design, the N+1/DataLoader problem, per-field resolver authorization, query depth/complexity limits, cursor pagination and error shaping; gRPC protobuf evolution (field-number safety), streaming, deadlines, and canonical status codes — a firing graphql-grpc skill and a /graphql-grpc:review command. Distinct paradigms from REST; defers REST to api-design.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

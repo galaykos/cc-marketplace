@@ -1,0 +1,4 @@
+{
+  "chassis": "optout",
+  "reason": "Bespoke system-level topology/RFC review — audits architecture shape and service boundaries, not one stack's code against a single skill; doesn't fit the stack-review chassis."
+}

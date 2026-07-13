@@ -1,6 +1,9 @@
 {
   "name": "llm-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LLM application engineering: eval harnesses and regression gates (evaluate, don't eyeball), RAG pipelines (chunking, embeddings, retrieval quality + re-ranking, grounding and citation), prompt versioning, prompt-injection defense, token-cost control, and context management — a firing llm-app skill and a /llm-app:review command. Defers provider API specifics to the claude-api skill.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

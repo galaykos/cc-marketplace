@@ -1,0 +1,4 @@
+{
+  "chassis": "optout",
+  "reason": "Report-only auditor of planned fan-out/subagent prompts/delegation-contracts — not a code review; no findings apply-lane, no worker dispatch, doesn't fit the stack-review chassis."
+}

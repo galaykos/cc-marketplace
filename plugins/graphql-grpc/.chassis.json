@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "graphql-grpc",
+  "tag": "api",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review a GraphQL or gRPC API for N+1, resolver authz, query limits, proto compatibility, and deadlines against graphql-grpc",
+  "argumentHint": "[path-schema-proto-or-diff]"
+}

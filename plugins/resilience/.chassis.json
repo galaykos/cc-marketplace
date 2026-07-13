@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "resilience-design",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review code or a design for failure-mode gaps — missing timeouts, unsafe retries, absent degradation paths — one line per finding.",
+  "argumentHint": "[path-diff-or-design-doc]"
+}

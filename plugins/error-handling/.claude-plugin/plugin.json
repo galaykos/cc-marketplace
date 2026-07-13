@@ -1,6 +1,9 @@
 {
   "name": "error-handling",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Language-agnostic error-handling discipline: crash on programmer errors, handle operational errors where you can act, typed errors over message-string matching, cause chains preserved across boundaries, one report per failure — no swallowed exceptions, no catch-log-continue towers. Includes /error-handling:review.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

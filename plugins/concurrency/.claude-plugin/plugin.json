@@ -1,6 +1,9 @@
 {
   "name": "concurrency",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Application-level concurrency safety: check-then-act races, optimistic vs pessimistic locking, idempotency keys for retried operations, queue-consumer dedup under at-least-once delivery, distributed locks with TTL and fencing, async parallel-write pitfalls — safe when two copies run at once. Includes /concurrency:review.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }
