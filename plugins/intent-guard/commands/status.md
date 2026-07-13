@@ -1,5 +1,5 @@
 ---
-description: Show intent-guard state — declared intent, action ledger, attested vs unattested, open drift.
+description: Show intent-guard state — declared intent, criteria, this-turn touched targets, session base, and the last done-review verdict.
 ---
 
 Report the current intent-guard state for this session.
@@ -8,10 +8,11 @@ Report the current intent-guard state for this session.
    engaged this session and stop.
 2. Read `intent.json` → print the declared intent **X**, its `source`, its `criteria`, and any
    `history` (prior redirects via `/intent-guard:intent`).
-3. Read `ledger.jsonl` → count action rows and number them **1..N by file order** (an action's seq
-   is its ordinal; rows carry no seq field). List each seq with its `tool` and `target`.
-4. Read `attest.json` → for each action seq, show `verdict` + `criterion` if a matching attestation
-   entry has both non-empty, else mark it **UNATTESTED**. Separately list open drift (entries with
-   `verdict:"drift"` and `accepted` not true).
-5. End with a one-line summary: `N actions · A attested · U unattested · D open drift` — this is
-   exactly what the Stop gate blocks on when `U > 0` or `D > 0`.
+3. Read `base` → print the session-base commit sha (the point the done-review diffs against). If
+   the file is absent, note the repo is non-git and the review falls back to the touched list.
+4. Read `turn.log` → list the targets this turn has touched so far (one per line). If it is empty,
+   say nothing has been touched this turn.
+5. Report the **last done-review verdict** if you ran one this session — clean, or the open
+   `DRIFT` / `CORNER-CUT` findings and how each was resolved. There is no review ledger to read;
+   the verdict lives in the review you surfaced, not a file.
+6. End with a one-line summary: `intent «X» · N target(s) this turn · base <sha> · <verdict>`.

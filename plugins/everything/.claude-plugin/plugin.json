@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -78,6 +78,7 @@
     "data-privacy",
     "llm-app",
     "intent-guard",
-    "ultra-deep-research"
+    "ultra-deep-research",
+    "reuse-guard"
   ]
 }

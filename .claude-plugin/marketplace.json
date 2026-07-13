@@ -408,6 +408,11 @@
       "name": "ultra-deep-research",
       "source": "./plugins/ultra-deep-research",
       "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Writes the report inline and to research/<topic>-<date>.md."
+    },
+    {
+      "name": "reuse-guard",
+      "source": "./plugins/reuse-guard",
+      "description": "Warn-only reuse-hygiene guard so a cooperating agent does not build on dead code. Two-tier by design. Tier 1 — language-agnostic ambient reuse-a-corpse: a PostToolUse hook greps incoming edits for references to symbols in a session-cached deprecated-symbol set (union of @deprecated / #[deprecated] / [Obsolete] / DEPRECATED-style markers) and warns once on a hit, silent otherwise. Tier 2 — on-demand /reuse-guard:check [symbol|path]: per-language dead-code tool shellout plus export-aware orphan / reachability detection and a full deprecated-reference report. Not tamper-proof and not a security boundary — a heuristic string match, warn-only, and defeatable by anyone with shell access; it raises the visibility of casual reuse-of-dead-code, not an adversary. Precision lives in the Tier-2 command, not the ambient hook."
     }
   ]
 }
