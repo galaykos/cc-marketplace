@@ -1,6 +1,9 @@
 {
   "name": "vite",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Vite best practices: VITE_-prefix env security, dep pre-bundling, code splitting and manualChunks, base for sub-path deploys, dev server.proxy, define stringify pitfalls, import.meta.glob, asset handling, build.target alignment, SSR, library mode, plugin order, HMR guards, version-aware against the locked vite version and vite.config. Includes /vite:review.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

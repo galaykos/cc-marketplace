@@ -1,0 +1,14 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "inertia-best-practices",
+  "docsUrl": "https://inertiajs.com",
+  "tag": "frontend",
+  "worker": null,
+  "applyExtra": [],
+  "divergence": {
+    "preamble": "Pin every finding to the installed `inertiajs/inertia-laravel` and `@inertiajs/*` versions — do not suggest v2 APIs (deferred props, polling, prefetching, merge props) on a v1 install. Match the idiom to the installed adapter (`@inertiajs/vue3`, `@inertiajs/react`, or `@inertiajs/svelte`) — never Vue examples for a React codebase or vice versa."
+  },
+  "description": "Review Inertia.js code against inertia-best-practices",
+  "argumentHint": "[files-or-diff]"
+}

@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "typescript-best-practices",
+  "docsUrl": "https://www.typescriptlang.org/docs/",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review TypeScript code against typescript-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

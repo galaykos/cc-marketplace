@@ -5,7 +5,9 @@ argument-hint: {{argumentHint}}
 <!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
-
+{{#if divergencePreamble}}
+{{divergencePreamble}}
+{{/if}}
 {{> triage}}
 
 3. Invoke the `{{skill}}` skill from this plugin and apply its checklist across the

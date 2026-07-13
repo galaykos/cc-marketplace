@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "laravel-best-practices",
+  "docsUrl": "https://laravel.com/docs",
+  "tag": "backend",
+  "worker": null,
+  "description": "Review laravel code against laravel-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

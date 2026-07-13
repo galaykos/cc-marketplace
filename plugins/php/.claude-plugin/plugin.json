@@ -1,6 +1,9 @@
 {
   "name": "php",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "PHP best practices: strict types, === discipline, PSR conventions, version-aware 8.1-8.5 leverage map pinned to the composer.json floor, exceptions, DateTimeImmutable, boundary security, static analysis.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

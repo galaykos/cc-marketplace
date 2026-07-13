@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "javascript-best-practices",
+  "docsUrl": "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review JavaScript code against javascript-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

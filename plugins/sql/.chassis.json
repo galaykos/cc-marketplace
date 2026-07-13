@@ -1,0 +1,18 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "sql-best-practices",
+  "tag": "database",
+  "worker": null,
+  "applyExtra": [
+    {
+      "label": "Run the engine-specific review now",
+      "description": "The engine is identifiable and its dialect plugin (mysql/mariadb/postgresql) is installed — hand off to the engine-specific review for dialect findings."
+    }
+  ],
+  "divergence": {
+    "preamble": "Keep findings engine-agnostic; defer engine-specific rules to the mysql/mariadb/postgresql plugins when the engine is identifiable."
+  },
+  "description": "Review sql code against sql-best-practices",
+  "argumentHint": "[files-or-diff]"
+}

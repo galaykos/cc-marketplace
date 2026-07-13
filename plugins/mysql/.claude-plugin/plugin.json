@@ -1,6 +1,9 @@
 {
   "name": "mysql",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL, gap locks, version leverage 8.0 through 8.4 LTS, EXPLAIN ANALYZE.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

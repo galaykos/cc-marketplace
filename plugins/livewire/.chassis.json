@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "livewire-best-practices",
+  "docsUrl": "https://livewire.laravel.com",
+  "tag": "backend",
+  "worker": null,
+  "description": "Review livewire code against livewire-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

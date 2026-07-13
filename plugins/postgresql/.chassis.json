@@ -1,0 +1,13 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "postgresql-best-practices",
+  "tag": "database",
+  "worker": null,
+  "applyExtra": [],
+  "divergence": {
+    "preamble": "Before reporting, determine the engine and version actually in use — `SELECT version()` output when a connection exists, docker-compose/CI image tags, or migration tool config — and pin every finding to it: nothing the version already solves, nothing above it. When uncertain about an API or behavior, verify against the official docs for the pinned version — https://www.postgresql.org/docs (pick the installed major version) — instead of answering from memory."
+  },
+  "description": "Review postgresql code against postgresql-best-practices",
+  "argumentHint": "[files-or-diff]"
+}

@@ -129,7 +129,7 @@ render_stack_review() { # obj plugin-dir
   aeb="$(printf '%s' "$obj" | jq -r 'if ((.applyExtra // [])|length)>0 then ([.applyExtra[] | " / " + .label]|add) else "" end')"
   dfile="$WORK/m.json"; rfile="$WORK/r.out"
   printf '%s' "$obj" | jq --arg wc "$workerChain" --arg aeb "$aeb" \
-    '. + {lang:(.variant=="lang"), concern:(.variant=="concern"), workerChain:$wc, applyExtraBlock:$aeb}' > "$dfile"
+    '. + {lang:(.variant=="lang"), concern:(.variant=="concern"), workerChain:$wc, applyExtraBlock:$aeb, divergencePreamble:((.divergence // {}).preamble // "")}' > "$dfile"
   ensure_engine
   render_template "$TEMPLATES/review-command.md.tmpl" "$dfile" > "$rfile" || die "render failed: $rel review.md"
   emit "$rfile" "$pdir/commands/review.md" 0 "$pdir"

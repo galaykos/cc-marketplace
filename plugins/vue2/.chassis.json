@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "vue2-best-practices",
+  "docsUrl": "https://v2.vuejs.org",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review vue2 code against vue2-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

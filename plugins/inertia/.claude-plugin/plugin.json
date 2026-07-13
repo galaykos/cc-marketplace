@@ -1,6 +1,9 @@
 {
   "name": "inertia",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }
