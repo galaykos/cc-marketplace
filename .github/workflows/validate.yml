@@ -17,3 +17,12 @@ jobs:
       - name: Check plugin version bumps
         if: github.event_name == 'pull_request'
         run: bash scripts/check-version-bumps.sh "${{ github.event.pull_request.base.sha }}"
+      - name: Chassis regenerate-and-diff (report-only)
+        continue-on-error: true
+        run: bash scripts/generate.sh --check
+      - name: Template engine smoke tests
+        run: bash scripts/smoke/template-engine-tests.sh
+      - name: Chassis template smoke tests
+        run: bash scripts/smoke/chassis-template-tests.sh
+      - name: Reminder-hook guard smoke tests
+        run: bash scripts/smoke/hook-guard-tests.sh

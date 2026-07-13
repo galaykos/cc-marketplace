@@ -1,0 +1,15 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "lang": true,
+  "concern": false,
+  "skill": "laravel-best-practices",
+  "docsUrl": "https://laravel.com/docs",
+  "tag": "backend",
+  "worker": null,
+  "description": "Review laravel code against laravel-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": [],
+  "applyExtraBlock": "",
+  "workerChain": "backend-engineer → task-runner:task-executor if installed → inline"
+}

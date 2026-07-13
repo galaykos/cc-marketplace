@@ -1,0 +1,7 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "\\b(adspower|local\\.adspower|50325|anti-?detect|browser profile)\\b",
+  "message": "adspower: this prompt touches the AdsPower Local API — its port and endpoint paths change across versions; resolve the current endpoints from live docs before writing automation code",
+  "command": "/adspower:check",
+  "extraGuard": null
+}
