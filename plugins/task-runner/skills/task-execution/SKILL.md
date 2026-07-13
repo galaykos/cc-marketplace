@@ -51,8 +51,8 @@ run a conditional reviewer pass on the task's diff:
 - **security review** (security plugin): only on tasks touching auth, input
   validation, or dependencies.
 
-Each reviewer fires only if its plugin is installed — skip silently when
-absent; a missing reviewer is never a failure and needs no note.
+Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
+Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting (not replacing) the four above; dedup so none runs twice.
 
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` marker, dispatch the
 reviewer and delegated worker agents with a `model:` override — excluding
