@@ -5,8 +5,8 @@
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   case "$prompt" in "/"*) exit 0 ;; esac # slash commands own their flag path
   if printf '%s' "$prompt" | grep -qiE '\bultra-?assess(ment)?\b'; then
-    # Defaults match ultra-task: opus + effort max.
-    model=opus; effort=max
+    # Defaults match ultra-task: opus model + effort xhigh. max is opt-in via a suffix.
+    model=opus; effort=xhigh
     # Optional suffix: ultra-assess-<model>[-<effort>] or ultra-assess-<effort>.
     lc=$(printf '%s' "$prompt" | tr '[:upper:]' '[:lower:]')
     if [[ "$lc" =~ ultra-?assess(ment)?-(opus|sonnet|haiku|fable)(-(low|medium|high|xhigh|max))?([^a-z0-9-]|$) ]]; then

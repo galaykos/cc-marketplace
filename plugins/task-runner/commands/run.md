@@ -1,12 +1,20 @@
 ---
 description: Execute a task list with scope lock, bounded verify-fix loops, and a full-suite completion gate
-argument-hint: [tasks-dir-index-or-list]
+argument-hint: [tasks-dir-index-or-list] [--tracks[=N]]
 ---
 
 Invoke the task-execution skill from this plugin and run the task list in
 $ARGUMENTS — a taskmaster `00-INDEX.md` path, a tasks directory, a plan's task
 sequence, or an inline list. If no argument, look for the most recent
 `taskmaster-docs/tasks/*/00-INDEX.md`; if none exists, ask for the list.
+
+**`--tracks[=N]`** — if `$ARGUMENTS` includes `--tracks`, run via the
+`track-orchestration` skill from this plugin instead of the serial path below:
+independent milestones run as concurrent git-worktree tracks. `N` is clamped to
+`[1,6]`; `--tracks=1` warns and runs serial; `--tracks=0`, negative, or non-integer is a
+usage error (do not run); bare `--tracks` uses the default cap `min(eligible, 4)`. With
+no `--tracks` — or when the index lacks per-milestone `Files:` sets or has 0–1 eligible
+milestone — run the serial `task-execution` path below (backward compatible).
 
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
    groups, verify command per task) before executing.

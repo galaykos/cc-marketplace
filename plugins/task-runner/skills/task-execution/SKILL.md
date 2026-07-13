@@ -51,8 +51,8 @@ run a conditional reviewer pass on the task's diff:
 - **security review** (security plugin): only on tasks touching auth, input
   validation, or dependencies.
 
-Each reviewer fires only if its plugin is installed — skip silently when
-absent; a missing reviewer is never a failure and needs no note.
+Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
+Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting (not replacing) the four above; dedup so none runs twice.
 
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` marker, dispatch the
 reviewer and delegated worker agents with a `model:` override — excluding
@@ -98,10 +98,9 @@ show every status flip; a generated run-board page duplicates both and goes
 stale the moment a regeneration is forgotten. Do not create status
 dashboards, run boards, or progress pages — the index is the single view.
 
-HTML artifacts (or a localhost preview) are reserved for content that earns
-the medium: UI mockups the user must pick between, interactive walkthroughs,
-demos that prove a behavior, brainstorm canvases. If the artifact is a table
-a markdown message can carry, it is a message, not a file.
+HTML artifacts (or a localhost preview) are reserved for content that earns the medium
+— UI mockups, walkthroughs, demos, brainstorm canvases. A table a markdown message can
+carry is a message, not a file.
 
 ## Drift tripwires
 
@@ -118,15 +117,15 @@ Stop and re-read the current task the moment any of these appears:
 
 ## Delegating parallel groups
 
-When a parallel group goes to subagents, each subagent receives its task verbatim
-plus the scope-lock rules — and the runner re-runs every task's verify command
-itself when the subagent returns. A subagent reporting "done, tests pass" is a
-claim; the runner's own execution of the verify command is the evidence. One
-failed re-verification sends the task back with the failing output; a second
-failure reclaims it for inline execution. Never mark a delegated task done on
-the subagent's word alone.
-Prompt and return contracts for the delegated groups live in the orchestration
-plugin's delegation-contracts skill.
+Only the main `/task-runner:run` orchestrator routes and delegates; a delegated worker
+is a leaf that executes and never re-routes. Per card the runner follows
+`references/routing.md`: read the card's `Agent:` tag → resolve to the first reachable
+specialist (else `task-executor`) → arm a per-card scope file → Read and paste the
+delegation-contracts discipline preamble verbatim into the dispatch → dispatch → on
+return run the diff-vs-declared-files scope check, then re-run the task's verify
+command itself. A subagent's "done, tests pass" is a claim; the runner's own verify is
+the evidence. One failed re-verification sends the task back; a second reclaims it for
+inline execution. Never mark a delegated task done on the subagent's word alone.
 
 ## Evidence format
 

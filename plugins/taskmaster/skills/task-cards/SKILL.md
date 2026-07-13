@@ -39,6 +39,8 @@ inline the discussion's conclusion instead.
 
 **Skills to apply:** <stack skills for this card from the stack-scan inventory,
 e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
+
+**Agent:** <capability tag per `references/agent-tags.md` — always emit; `generic` when files span >1 domain or no tag matches>
 ```
 
 ## Sizing rules
@@ -102,8 +104,8 @@ milestones — each one independently shippable and verifiable:
   integration bugs surface.
 - Order milestones by risk and value, not by architectural layer: "walking
   skeleton first" beats "all migrations, then all endpoints, then all UI".
-- Parallel groups stay within a milestone; cards from different milestones
-  never interleave.
+- Parallel groups stay within a milestone; different-milestone cards never interleave (serial mode).
+- Each milestone's index entry carries a normalized `Files:` set (see `references/milestone-file-sets.md`) for `--tracks`.
 
 ## Output layout
 
@@ -115,8 +117,8 @@ taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
   ...
 ```
 
-`00-INDEX.md` holds: the spec path, a table (card / title / depends-on / parallel
-group / status), and the run note — each card is executed by pasting it into a
+`00-INDEX.md` holds: the spec path, a table (card / title / depends-on / agent /
+parallel group / status), and the run note — each card is executed by pasting it into a
 fresh session or `claude "$(cat 01-*.md)"`. Update the status column as cards
 land; the index is the only file that mutates during execution. Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true (model=<model>, effort=<effort>)` line near the top of `00-INDEX.md` — copy the `model`/`effort` the directive resolved (defaults opus/max) — so a fresh-session execution run inherits the boost at the same tier.
 

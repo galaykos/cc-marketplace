@@ -133,20 +133,20 @@ single source of truth. Miss-floor: a card touching stack files but naming no sk
 gets `Read any *-best-practices skill matching the touched files`; `/<stack>:review`
 is the backstop.
 
+## Portable discipline preamble
+
+Execution discipline (halt / exact-verify / scope / defer / full-suite / evidence) is a
+property of the dispatch, not the worker — a delegated specialist has no `Skill` tool
+and cannot load an execution skill. Canonical text: `references/discipline-preamble.md`;
+the orchestrator Reads it and pastes it **verbatim** into every dispatch, and it
+**overrides the worker's own default procedure**.
+
 ## Anti-patterns
 
-- **Context-dependent prompts.** "Fix the thing we discussed"
-  dispatched to an agent that was not in the discussion — guaranteed
-  garbage back.
-- **Prose-essay returns.** Three paragraphs of narrative where five
-  `file:line` lines would do; the orchestrator pays for every token.
-- **Evidence-free "done".** A completion claim with no command output
-  is a stopped agent, not a finished task.
-- **Uniform model for every stage.** Paying judge-tier prices for a
-  rename sweep, or trusting scout-tier effort with the final review.
-- **Blind fan-out.** Dispatching N workers on a work-list nobody
-  verified — collisions and gaps, discovered at merge time.
-- **Two writers, one file.** The last write wins silently; the first
-  writer's work vanishes without an error.
-- **Re-doing delegated work yourself.** Dispatching a search and then
-  running the same search inline — pay once, not twice.
+- **Context-dependent prompts.** "Fix the thing we discussed" to an agent that was not in it — garbage back.
+- **Prose-essay returns.** Paragraphs where five `file:line` lines would do; you pay per token.
+- **Evidence-free "done".** A completion claim with no command output is a stopped agent, not a finished task.
+- **Uniform model for every stage.** Judge-tier prices for a rename sweep, or scout-tier effort on the final review.
+- **Blind fan-out.** N workers on a work-list nobody verified — collisions and gaps, found at merge.
+- **Two writers, one file.** The last write wins silently; the first writer's work vanishes without an error.
+- **Re-doing delegated work yourself.** Dispatching a search then running it inline — pay once, not twice.

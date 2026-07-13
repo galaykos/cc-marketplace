@@ -39,7 +39,7 @@ of your response, before anything else:
 ```
 
 Substitute `<model>`/`<effort>` with the tier the trigger selected (see Variants;
-defaults opus/max). Print it once per run, not once per phase.
+defaults opus/xhigh). Print it once per run, not once per phase.
 
 ## Variants — model & effort suffix
 
@@ -48,12 +48,12 @@ The trigger token carries an optional suffix that picks the tier:
 ```
 ultra-assess[-<model>][-<effort>]
 model  = opus | sonnet | haiku | fable      default opus
-effort = low | medium | high | xhigh | max  default max
+effort = low | medium | high | xhigh | max  default xhigh
 ```
 
-`ultra-assess`→opus/max; `ultra-assess-sonnet`→sonnet/max;
-`ultra-assess-sonnet-xhigh`→sonnet/xhigh; a lone suffix resolves by set membership
-(`ultra-assess-xhigh`→opus/xhigh); unknown suffixes keep the defaults. The hook
+`ultra-assess`→opus/xhigh; `ultra-assess-sonnet`→sonnet/xhigh;
+`ultra-assess-sonnet-max`→sonnet/max; a lone suffix resolves by set membership
+(`ultra-assess-max`→opus/max); unknown suffixes keep the defaults. The hook
 injects the resolved `(model=…, effort=…)`; every rule below reads those values.
 This mirrors `ultra-task`'s grammar exactly.
 
@@ -64,7 +64,7 @@ This is the verbatim block the hook injects. Honor every line:
 ```
 ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this assessment run.
 - Reachable reasoning subagents dispatched model:<model> (default opus). On the Workflow
-  agent() path also effort:<effort> (default max). Inline Agent dispatch escalates model only.
+  agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
 - Fan out readers over the assessment units (files, plugins, modules, endpoints),
   one lens each, per delegation-contracts; each returns a compressed structured record.
 - Synthesize the records into findings plus a ranked backlog.

@@ -142,4 +142,31 @@ if [ -f "$DC" ]; then
     || err "$DC: skill-priming doctrine (resolve+inject) missing"
 fi
 
+# Agent-routing: the tag vocabulary (task-cards), the implement-side map keys
+# (routing.md), and the verify-side map keys (reviewer-routing.md) must stay in sync,
+# and every reviewer-map RHS reference must resolve — drift/typos break routing silently.
+VOCAB=plugins/taskmaster/skills/task-cards/references/agent-tags.md
+MAP=plugins/task-runner/skills/task-execution/references/routing.md
+RMAP=plugins/task-runner/skills/task-execution/references/reviewer-routing.md
+if [ -f "$VOCAB" ] && [ -f "$MAP" ]; then
+  v=$(awk '/^## Closed vocabulary/{w=1;next} w&&/^```/{if(o)exit;o=1;next} w&&o{print}' "$VOCAB" | tr -s ' \t' '\n' | grep -v '^$' | sort -u)
+  m=$(awk '/^## Resolution map/{w=1;next} w&&/^```/{if(o)exit;o=1;next} w&&o&&/→/{print $1}' "$MAP" | sort -u)
+  if [ "$v" != "$m" ]; then
+    err "agent-tag vocab (task-cards) != resolution-map keys (routing.md); differ on [$(comm -3 <(printf '%s\n' "$v") <(printf '%s\n' "$m") | tr -d '\t' | tr '\n' ' ')]"
+  fi
+  if [ -f "$RMAP" ]; then
+    r=$(awk '/^## Resolution map/{w=1;next} w&&/^```/{if(o)exit;o=1;next} w&&o&&/->/{print $1}' "$RMAP" | sort -u)
+    if [ "$v" != "$r" ]; then
+      err "agent-tag vocab (task-cards) != reviewer-routing map keys; differ on [$(comm -3 <(printf '%s\n' "$v") <(printf '%s\n' "$r") | tr -d '\t' | tr '\n' ' ')]"
+    fi
+    for ref in $(awk '/^## Resolution map/{w=1;next} w&&/^```/{if(o)exit;o=1;next} w&&o' "$RMAP" | grep -oE '[a-z0-9-]+:[a-z0-9-]+' | sort -u); do
+      pl=${ref%%:*}; nm=${ref#*:}
+      [ -f "plugins/$pl/agents/$nm.md" ] || [ -f "plugins/$pl/skills/$nm/SKILL.md" ] \
+        || err "reviewer-routing.md references '$ref' which resolves to no agent or skill"
+    done
+  fi
+elif [ -f "$VOCAB" ] || [ -f "$MAP" ]; then
+  err "agent-routing: one of agent-tags.md / routing.md exists without the other"
+fi
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1
