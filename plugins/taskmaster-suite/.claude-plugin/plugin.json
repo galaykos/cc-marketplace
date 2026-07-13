@@ -1,6 +1,6 @@
 {
   "name": "taskmaster-suite",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, UI/UX, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
   "dependencies": [
@@ -28,7 +28,6 @@
     "claude-authoring",
     "code-review",
     "approaches",
-    "decision-records",
     "retrospective",
     "build-vs-buy",
     "rollout",
