@@ -1,6 +1,9 @@
 {
   "name": "api-docs-first",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing. For consuming third-party APIs; defers designing your own REST APIs to api-design and Meta/Facebook platform specifics to meta-api.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

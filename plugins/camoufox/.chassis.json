@@ -1,0 +1,7 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "\\b(camoufox|humanize|geoip|anti-?detect|fingerprint)\\b",
+  "message": "camoufox: this prompt touches Camoufox anti-detect automation — Camoufox is young and its Python launch options change, so pin current usage and launch options from live docs before writing automation code",
+  "command": "/camoufox:check",
+  "extraGuard": null
+}

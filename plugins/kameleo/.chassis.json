@@ -1,0 +1,7 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "\\b(kameleo|kameleo-local-api|localhost:5050|anti-?detect|fingerprint profile)\\b",
+  "message": "kameleo: this prompt touches the Kameleo Local API — endpoints and SDK usage change between releases, so resolve current endpoints/SDK and the fingerprint → profile → start → connect flow from live docs before writing automation code",
+  "command": "/kameleo:check",
+  "extraGuard": null
+}

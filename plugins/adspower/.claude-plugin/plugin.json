@@ -1,6 +1,9 @@
 {
   "name": "adspower",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AdsPower Local API navigator: current endpoints from live docs, the profile lifecycle (list/create profile, start/stop browser, obtain the CDP/WebSocket endpoint), rate limits and status codes, and handing the started browser to Playwright or Puppeteer. Includes /adspower:check and an AdsPower-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

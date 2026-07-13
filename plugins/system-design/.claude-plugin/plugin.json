@@ -1,6 +1,9 @@
 {
   "name": "system-design",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "System-level design: service boundaries on data ownership, scaling paths, cache placement, sync vs async integration and its failure modes, single points of failure, plus domain modeling (bounded contexts, aggregates, ubiquitous language) — firing system-design and domain-modeling skills, a /system-design:review command, and a system-architect worker + system-design-reviewer pair. Complements code-architecture (code-level structure) without overlapping it.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  }
 }

@@ -1,0 +1,7 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "\\b(puppeteer|pptr|browserwsendpoint|puppeteer-extra|setrequestinterception)\\b",
+  "message": "puppeteer: this prompt touches Puppeteer automation — the API moves fast and is coupled to a bundled Chrome build, so pin current API and doc-backed patterns from live docs (pptr.dev) before writing automation code",
+  "command": "/puppeteer:check",
+  "extraGuard": null
+}

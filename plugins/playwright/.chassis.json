@@ -1,0 +1,7 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "\\b(playwright|page\\.locator|getbyrole|connectovercdp|browsercontext)\\b",
+  "message": "playwright: pin current API patterns before writing this automation",
+  "command": "/playwright:check",
+  "extraGuard": null
+}

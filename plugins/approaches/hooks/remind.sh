@@ -6,8 +6,8 @@ command -v jq >/dev/null 2>&1 || exit 0
   input=$(cat)
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   case "$prompt" in "" | "/"*) exit 0 ;; esac # empty, or slash commands manage their own flow
-  if printf '%s' "$prompt" | grep -qiE '\b(sdk|endpoint|integrat\w*|webhook|oauth|graphql)\b'; then
-    printf '%s (%s).\n' 'api-docs-first: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file' '/api-docs-first:check'
+  if printf '%s' "$prompt" | grep -qiE '\b(refactor|re-?write|restructure|re-?architect|migrate|redesign|rework|overhaul|moderni[sz]e|consolidate|decouple)\b'; then
+    printf '%s (%s).\n' 'approaches: task-shaped prompt — consider a blind opinion round (Standards Purist / Quality-over-Speed / Pragmatist-Minimalist / Skeptic-Investigator) before picking an approach' '/approaches:opinions'
   fi
 } 2>/dev/null
 exit 0
