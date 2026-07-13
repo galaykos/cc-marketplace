@@ -169,4 +169,22 @@ elif [ -f "$VOCAB" ] || [ -f "$MAP" ]; then
   err "agent-routing: one of agent-tags.md / routing.md exists without the other"
 fi
 
+# Crew reference check: crew.md (the --crew contract) must exist, be linked from the
+# task-execution SKILL, and every plugin:name it names must resolve — a dangling ref or a
+# lost link breaks the crew wiring silently. Mirrors the reviewer-routing RHS check; the
+# `-d plugins/$pl` guard skips line-number tokens (crew.md:44) and prose (model:opus).
+CREW=plugins/task-runner/skills/task-execution/references/crew.md
+CREW_SKILL=plugins/task-runner/skills/task-execution/SKILL.md
+if [ -f "$CREW" ]; then
+  grep -q 'crew\.md' "$CREW_SKILL" \
+    || err "crew.md exists but is not linked from task-execution SKILL.md"
+  for ref in $(grep -oE '[a-z0-9-]+:[a-z0-9-]+' "$CREW" | sort -u); do
+    pl=${ref%%:*}; nm=${ref#*:}
+    [ -d "plugins/$pl" ] || continue
+    [ -f "plugins/$pl/agents/$nm.md" ] || [ -f "plugins/$pl/skills/$nm/SKILL.md" ] \
+      || [ -f "plugins/$pl/commands/$nm.md" ] \
+      || err "crew.md references '$ref' which resolves to no agent, skill, or command"
+  done
+fi
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

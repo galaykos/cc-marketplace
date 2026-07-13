@@ -1,6 +1,6 @@
 ---
 description: Execute a task list with scope lock, bounded verify-fix loops, and a full-suite completion gate
-argument-hint: [tasks-dir-index-or-list] [--tracks[=N]]
+argument-hint: [tasks-dir-index-or-list] [--tracks[=N]] [--crew]
 ---
 
 Invoke the task-execution skill from this plugin and run the task list in
@@ -16,12 +16,23 @@ usage error (do not run); bare `--tracks` uses the default cap `min(eligible, 4)
 no `--tracks` — or when the index lacks per-milestone `Files:` sets or has 0–1 eligible
 milestone — run the serial `task-execution` path below (backward compatible).
 
+**`--crew`** — a bare boolean opt-in (default off; `--crew=<value>` is a usage error). When
+present, after each **directly-dispatched** card's build verify passes, run the per-card
+crew per `skills/task-execution/references/crew.md`: the read-only reviewers concurrently
+(a `Bash`-holding reviewer and the `security-review` skill run serially), then a sequential
+**test-files-only** `test-engineer` authoring pass (scope-locked by the diff-vs-declared
+check), then an unconditional card-verify re-run and a fresh bounded fix loop. Combos:
+`--crew`; `--tracks[=N] --crew`; `--tracks=1 --crew` — crew applies only to serial cards /
+non-eligible milestones, **never** inside a track leaf or any delegated parallel-group leaf.
+`--crew` is the **sole** trigger: no hook, no `Ultra: true` marker, and no
+`ultra-task`/`ultra-assess` run engages crew; without `--crew` the run is exactly as today.
+
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
    groups, verify command per task) before executing.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional
-   on the review plugins installed).
+   on the review plugins installed), plus the full crew pass when `--crew` is set.
 3. Update status in the index only; collect scope-lock follow-ups as a backlog
    list, never as in-run detours. No status HTML — the index and the
    conversation are the run's views (per the task-execution skill).
