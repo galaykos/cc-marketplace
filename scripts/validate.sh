@@ -142,4 +142,18 @@ if [ -f "$DC" ]; then
     || err "$DC: skill-priming doctrine (resolve+inject) missing"
 fi
 
+# Agent-routing: the tag vocabulary (task-cards) and resolution-map keys
+# (task-execution) must stay in sync — drift breaks routing silently.
+VOCAB=plugins/taskmaster/skills/task-cards/references/agent-tags.md
+MAP=plugins/task-runner/skills/task-execution/references/routing.md
+if [ -f "$VOCAB" ] && [ -f "$MAP" ]; then
+  v=$(awk '/^## Closed vocabulary/{w=1;next} w&&/^```/{if(o)exit;o=1;next} w&&o{print}' "$VOCAB" | tr -s ' \t' '\n' | grep -v '^$' | sort -u)
+  m=$(awk '/^## Resolution map/{w=1;next} w&&/^```/{if(o)exit;o=1;next} w&&o&&/→/{print $1}' "$MAP" | sort -u)
+  if [ "$v" != "$m" ]; then
+    err "agent-tag vocab (task-cards) != resolution-map keys (task-execution); differ on [$(comm -3 <(printf '%s\n' "$v") <(printf '%s\n' "$m") | tr -d '\t' | tr '\n' ' ')]"
+  fi
+elif [ -f "$VOCAB" ] || [ -f "$MAP" ]; then
+  err "agent-routing: one of agent-tags.md / routing.md exists without the other"
+fi
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1
