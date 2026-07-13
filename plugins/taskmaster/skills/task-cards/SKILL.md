@@ -104,8 +104,8 @@ milestones — each one independently shippable and verifiable:
   integration bugs surface.
 - Order milestones by risk and value, not by architectural layer: "walking
   skeleton first" beats "all migrations, then all endpoints, then all UI".
-- Parallel groups stay within a milestone; cards from different milestones
-  never interleave.
+- Parallel groups stay within a milestone; different-milestone cards never interleave (serial mode).
+- Each milestone's index entry carries a normalized `Files:` set (see `references/milestone-file-sets.md`) for `--tracks`.
 
 ## Output layout
 

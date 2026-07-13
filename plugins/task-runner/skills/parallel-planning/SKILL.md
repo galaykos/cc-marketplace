@@ -105,6 +105,17 @@ The plan is priced once, then reality edits it:
 - Trust-the-claim: skipping runner re-verification to make the speedup
   number look better; re-verify cost is part of the honest estimate.
 
+## Milestone tracks (--tracks)
+
+Beyond the per-level card groups above, check for **milestone-level** concurrency. Read
+each milestone's normalized `Files:` set from the 00-INDEX (see task-cards'
+`references/milestone-file-sets.md`). When **two or more milestones** are
+dependency-independent and file-disjoint and touch no shared/registry file, print a
+one-line suggestion: *"≥2 independent milestones — consider `/task-runner:run --tracks`
+to run them concurrently in worktrees."* Suggestion only; never auto-engage. This is
+coarser than the per-card levels above — the unit is a whole milestone, matching the
+`track-orchestration` skill's eligibility rule.
+
 ## Boundaries
 
 - Decomposing work INTO tasks is code-architecture's task-orchestration
