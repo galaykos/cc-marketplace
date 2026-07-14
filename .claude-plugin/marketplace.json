@@ -42,7 +42,7 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel + SQL idioms) the php/laravel/sql review commands route their fixes to."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel) the php/laravel review commands route their fixes to."
     },
     {
       "name": "livewire",
@@ -212,7 +212,7 @@
     {
       "name": "decision-records",
       "source": "./plugins/decision-records",
-      "description": "Architecture Decision Records: persist every significant technical choice — approach picks, schema shapes, dependency adoptions — to taskmaster-docs/adr/ with context, rejected options, consequences, and a revisit-when trigger. Status lifecycle proposed/accepted/superseded. Includes /decision-records:new."
+      "description": "Architecture Decision Records: persist every significant technical choice — approach picks, schema shapes, dependency adoptions — to docs/adr/ with context, rejected options, consequences, and a revisit-when trigger. Status lifecycle proposed/accepted/superseded. Includes /decision-records:new."
     },
     {
       "name": "retrospective",
@@ -402,7 +402,7 @@
     {
       "name": "intent-guard",
       "source": "./plugins/intent-guard",
-      "description": "Continuous mid-run intent-vs-action attestation: a cooperative drift-guard that ledgers each Edit/Write/Bash/Agent action, has the model attest every action against the declared task, and holds turn completion with a Stop gate until unattested actions and drift are reckoned — filling the mid-run slot between coverage-check (entry) and work-verification (exit). A UserPromptSubmit hook captures intent, a PostToolUse hook records the action ledger, a Stop hook gates on unattested work, and the intent-attestation skill carries the per-action attestation contract. Includes /intent-guard:intent and /intent-guard:status. Not tamper-proof and not a security boundary — it raises the visibility and cost of casual drift for a cooperating agent, not an adversary with shell access."
+      "description": "Lean, warn-only drift and corner-cutting guard for a coding agent. Anchors one declared intent X (with criteria) per session, injects a single continuous UserPromptSubmit reminder to review your diff before you call work done, and drives a drift-review diff-review-at-done against the session-base commit — an independent reviewer subagent when running top-level, honest self-review inside a subagent. No completion-blocking hook and no per-action ceremony; every output is advisory. Fills the mid-run intent-vs-action seam between coverage-check (entry) and work-verification (exit). Three warn-only hooks (UserPromptSubmit capture, PostToolUse note, Stop summary) plus the drift-review skill. Includes /intent-guard:intent and /intent-guard:status. Not tamper-proof and not a security boundary — cooperative and defeatable by an agent with shell access; it raises the visibility cost of casual drift, not an adversary."
     },
     {
       "name": "ultra-deep-research",
@@ -417,7 +417,7 @@
     {
       "name": "compaction-advisor",
       "source": "./plugins/compaction-advisor",
-      "description": "Advice-only nudge to run /compact when a session grows long. A UserPromptSubmit hook counts user turns per session and prints one line on a repeating 50-turn interval suggesting /compact if an early chunk is no longer relevant to the current task — the model judges relevance from the nudge text. Resets on SessionStart source=compact|clear so it never nags right after a compaction or context clear. Single self-healing state file per working tree, warn-only and fail-open: any error exits 0, a corrupt or foreign-session file re-seeds rather than going silent. No token API, no byte thresholds, never runs /compact itself."
+      "description": "Advice-only nudge to run /compact when a session grows long. A UserPromptSubmit hook counts user turns per session and, on a repeating 50-turn interval, prints one line suggesting /compact if an early chunk is no longer relevant to the current task — the model judges relevance from the nudge text. Resets on SessionStart source=compact|clear so it never nags right after a compaction or a context clear. Single self-healing state file per working tree, warn-only and fail-open: any error exits 0 silently, a corrupt or foreign-session state file re-seeds rather than going silent. No token API, no byte-size thresholds, and it never runs /compact itself — the user decides."
     }
   ]
 }

@@ -53,11 +53,7 @@
   }
 
   emit_nudge() { # $1 skill, $2 owning_plugin
-    if [ "$1" = "ui-ux-stack" ]; then
-      printf '[skill-router] This edit touches %s — load the ui-ux best-practice skill for this stack (shadcn/tailwind/bootstrap/css3/…) and review your change against it before continuing.\n' "$base"
-    else
-      printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.\n' "$base" "$1" "$2"
-    fi
+    printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.\n' "$base" "$1" "$2"
   }
 
   # ---- high-confidence pass: EVERY surviving, not-yet-fired match nudges ----

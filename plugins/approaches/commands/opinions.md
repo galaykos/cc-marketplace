@@ -16,8 +16,7 @@ task description first). Do not write implementation code.
    each (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist,
    Skeptic-Investigator). Each dispatch carries the task description, the repo
    path, and its own persona brief ONLY — never sibling takes, never a
-   main-thread draft plan. Spread the dispatches across different models where
-   the host allows. If subagents are unavailable, skip the round entirely — no
+   main-thread draft plan. If subagents are unavailable, skip the round entirely — no
    inline role-play.
 5. Synthesize inline: build the convergence table from the four takes, then
    ONE pick with its kill-trigger — the concrete discovery mid-implementation

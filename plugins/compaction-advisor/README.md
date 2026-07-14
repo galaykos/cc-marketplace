@@ -9,7 +9,7 @@ the model to weigh whether the early context is still relevant.
 
 ## How it works
 
-- A `UserPromptSubmit` hook (`nudge.sh`) counts your turns in the session. On a repeating
+- A `UserPromptSubmit` hook (`remind.sh`) counts your turns in the session. On a repeating
   **50-turn interval** (turn 50, 100, 150, …) it prints one line suggesting `/compact`.
   That is the only output; the rest of the time it is silent.
 - A `SessionStart` hook (`reset.sh`) zeroes the counter when the session starts from a

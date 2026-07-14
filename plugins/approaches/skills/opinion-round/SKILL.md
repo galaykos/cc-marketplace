@@ -66,8 +66,8 @@ renaming per task: each round covers the same four blind spots.
 
 Spawn the `opinion-lens` agent four times in parallel — one persona
 brief per dispatch, all four in a single message so they run
-concurrently, across different models where the host allows so no
-single-model prior survives the blind. Each dispatch carries EXACTLY
+concurrently and blind to one another, so no shared prior survives
+the blind. Each dispatch carries EXACTLY
 three things:
 
 1. The task description, verbatim from the user.

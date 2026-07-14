@@ -34,9 +34,9 @@
   [ -f "$cwd/composer.json" ] && add package-hygiene packages
   [ -f "$cwd/package.json" ]  && add package-hygiene packages
   if has '*.sql' || has_dir migrations; then add sql-best-practices sql; fi
-  if has '*.tsx' || has '*.jsx'; then add ui-ux-stack ui-ux; add a11y-audit a11y; fi
+  if has '*.tsx' || has '*.jsx'; then add a11y-audit a11y; fi
   if [ -f "$cwd/package.json" ] && grep -qE '"(react|vue|@?tailwind)' "$cwd/package.json" 2>/dev/null; then
-    add ui-ux-stack ui-ux
+    add tailwind-best-practices ui-ux
   fi
   if has 'Dockerfile*' || has 'docker-compose*.yml' || has 'compose*.yml'; then add docker-best-practices dev-env; fi
   if has_dir tests || has '*.test.*' || has '*.spec.*'; then add testing-best-practices testing; fi

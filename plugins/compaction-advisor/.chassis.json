@@ -1,0 +1,4 @@
+{
+  "chassis": "optout",
+  "reason": "Stateful turn-counter (persisted state file, live $turns interpolation, companion SessionStart reset.sh) — the reminder-hook template cannot express it; hand-authored per wave-1 H-compaction."
+}
