@@ -13,8 +13,9 @@ from this plugin and follow it exactly.
 2. If $ARGUMENTS is empty, ask for direction in one round: brand color or hue
    family, light/dark priority, and any reference the user wants to echo.
 3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),
-   write `docs/mockups/theme.html`, reuse-or-start the shared preview server
-   (port 8123), and give the user the stable URL — candidates as columns,
+   write `taskmaster-docs/mockups/theme.html`, reuse-or-start the shared preview
+   server (port `${PREVIEW_PORT:-8123}`), and give the user the stable URL —
+   candidates as columns,
    light and dark side by side.
 4. Iterate per the skill's protocol: one axis per round, picks via
    AskUserQuestion, regenerate in place so the open tab reloads itself.

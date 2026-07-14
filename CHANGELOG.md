@@ -4,6 +4,72 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.45.0] - 2026-07-14
+
+Marketplace hardening wave 2. Description/dependency/version rot is now CI-impossible,
+the opt-out review payload reaches 6 more reviews, the navigator family is stamped as
+the 5th chassis, a machine-readable keywords taxonomy covers all 82 plugins, and the
+preview surface is unified behind one wired port convention.
+
+### Added
+
+- **governance gates** (hard-fail unless noted): description-parity (every plugin's
+  marketplace.json `.description` == its plugin.json), rules.tsv skill-token
+  resolution, all-bundle dependency resolution across the 8 bundles, strict
+  semver-increase on version bumps, CHANGELOG-parity (CHANGELOG top entry ==
+  marketplace `metadata.version`), README-presence (warn-only), and a new
+  `scripts/smoke/hook-syntax-tests.sh` (`bash -n` over `plugins/*/hooks/*.sh`,
+  `scripts/*.sh`, `scripts/smoke/*.sh`, `scripts/lib/*.sh`). CHANGELOG 0.37.0–0.43.0
+  skeletons backfilled; a manual `git tag v<version> && git push --tags` release step
+  documented; `canary.sh`/`guard-tests.sh` disposition recorded.
+- **navigator chassis** (5th chassis): `templates/navigator-check.md.tmpl` plus
+  `docs-unreachable` and `proceed-closer` blocks, a `render_navigator()` arm in
+  `scripts/generate.sh`, and a `navigator.json` smoke case. The 5 navigator plugins
+  (adspower, camoufox, kameleo, playwright, puppeteer) now stamp `commands/check.md`
+  from their `.chassis.json`; the header gate covers `commands/check.md` and the
+  hand-authored check.md owners carry optout coverage.
+- **keywords[] taxonomy**: a controlled vocab in `scripts/taxonomy.txt`, a validated
+  `keywords` array on all 82 plugin.json (hard gate: present, non-empty, ⊆ vocab), and
+  a generated plugin-scout catalog (`references/catalog.md`) replacing the
+  hand-maintained universal-set enumeration.
+- **shadcn-studio Node floor**: `engines: {"node": ">=20.19"}` in the template's
+  `package.json` — the real Vite 8 floor, now mechanically verifiable.
+
+### Changed
+
+- **6 opt-out reviews** (code-review, performance, api-design, ui-ux, security,
+  system-design) adopt the triage gate + coverage closer in each command's native
+  vocab, with apply-lane options reworded per command; orchestration stays a permanent
+  opt-out. Paired reviewer agents untouched.
+- **preview unification**: every shared static-mockup server command is wired to
+  `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups` with a
+  normalized php/npx fallback chain; shadcn-studio's Vite port becomes
+  `Number(process.env.PREVIEW_PORT) || 8124`; all four `:8123` mockup producers plus
+  their consumers move to `taskmaster-docs/mockups/`; the design-preview README carries
+  the full consumer registry. shadcn-studio's Node-floor prose corrected from 18 to
+  20.19.
+- **navigator regeneration** normalizes the docs-unreachable wording and proceed verb;
+  the `anti-?detect` alternation is dropped from the 3 product navigators' reminder
+  regexes (automation-builder keeps the generic term) and their `remind.sh` hooks are
+  regenerated.
+- **scope-lock** (`scope.sh`) now emits loud stderr warnings — still exit 0 — on
+  missing `jq` and malformed `scope.json`; all other exit-0 paths stay silent.
+
+### Fixed
+
+- **skill-router phantom skill**: the non-existent `ui-ux-stack` target removed from
+  rules.tsv / prime.sh / route.sh, locked by the resolution gate.
+- **discovery & prose drift**: intent-guard and compaction-advisor marketplace
+  descriptions reconciled to their plugin.json; laravel drops the stale "sql" claim
+  from both surfaces; opinion-lens prose aligned to its sonnet pin; ui-ux-engineer's
+  visual-verification claim reworded to code inspection.
+- **ADR path retarget**: all eight `taskmaster-docs/adr` references across
+  decision-records retargeted to `docs/adr`.
+- **hooks & guards**: compaction-advisor `nudge.sh` renamed to `remind.sh` (bespoke
+  turn-counter, optout-marked); reuse-guard `scan.sh` early-exits on files > 200 KB;
+  the database guard gains lock-hazard detection for non-`CONCURRENTLY` index creation
+  and rewrite-ALTERs.
+
 ## [0.44.0] - 2026-07-13
 
 Fable review engine + deterministic chassis generators. Per-plugin `.chassis.json`

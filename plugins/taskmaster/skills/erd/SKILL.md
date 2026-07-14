@@ -53,12 +53,15 @@ The visual-decisions skill owns the session's fidelity consent question
 ## Preview rendering
 
 Full-mockups tier: hand-built inline SVG in crow's-foot notation, written to
-the shared preview server's reserved `diagram.html` slot in `docs/mockups/`.
+the shared preview server's reserved `diagram.html` slot in `taskmaster-docs/mockups/`.
 Server mechanics are visual-decisions' own, reused as-is:
 
-- Server not running? Start `python3 -m http.server 8123 -d docs/mockups` in
-  the background and note the PID. Port busy? `lsof -ti :8123` — reuse a prior
-  mockup server, else bump the port.
+- Server not running? Start
+  `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups` in
+  the background and note the PID (normalized fallback chain: no python3 →
+  `php -S 0.0.0.0:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
+  `npx serve taskmaster-docs/mockups`). Port busy?
+  `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump the port.
 - Write every pass to `diagram.html` — the user's open tab sees each revision
   in place. The slot is per-purpose: never overwrite `current.html` or the
   other reserved files.

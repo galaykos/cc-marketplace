@@ -53,7 +53,7 @@ Label A/B/C at equal detail, one-line tradeoff caption each, pick asked right be
 ## HTML mockups from the shell
 
 Never hand-write mockup HTML. Copy `assets/shell.html` (relative to this skill's
-directory) to `docs/mockups/YYYY-MM-DD-<topic>.html` and fill its slots:
+directory) to `taskmaster-docs/mockups/YYYY-MM-DD-<topic>.html` and fill its slots:
 
 - Header: `SLOT: question`, `SLOT: axis`, `SLOT: pass` (e.g. "pass 1 of 2").
 - Per variant: `SLOT: variant-A-label`, `-caption`, `-content`, and numbered
@@ -109,17 +109,17 @@ screens. A clickable prototype, zero JavaScript, works over `file://`.
 
 Always serve — every decision lands in the same tab. One server, one canonical file:
 
-1. On the first visual decision, start `python3 -m http.server 8123 -d docs/mockups`
-   in the background, note the PID (`php -S` for PHP projects). Port busy?
-   `lsof -ti :8123` — reuse a prior mockup server, else bump.
+1. On the first visual decision, start `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups`
+   in the background, note the PID (normalized fallback chain: no python3 → `php -S 0.0.0.0:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` → `npx serve taskmaster-docs/mockups`).
+   Port busy? `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump.
 2. Write each pass to a dated file (ledger trail), copy to `current.html` — the
-   user's tab at `http://localhost:8123/current.html` sees every pass in place.
+   user's tab at `http://localhost:${PREVIEW_PORT:-8123}/current.html` sees every pass in place.
 3. Auto-reload needs no setup: the shell embeds a body-compare polling snippet
    (server gone → the page stays usable; any static server works).
 
 Other flows share this server via per-purpose files: `theme.html` (ui-ux),
 `walkthrough.html`, `diagram.html`, `api.html` — kill it only at pipeline end.
-Stale recovery: `lsof -ti :8123 | xargs kill`. `file://` is the no-runtime fallback.
+Stale recovery: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
 
 ## Data-shape decisions
 

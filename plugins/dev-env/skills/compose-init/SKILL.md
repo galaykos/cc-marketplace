@@ -56,7 +56,7 @@ A service table reads as a list; topology mistakes hide in lists. Alongside
 the service-plan table, render the proposed stack as a diagram — inline SVG in
 one self-contained HTML (boxes per service with pinned image tag and source
 citation; arrows for connections with ports; volume cylinders on stateful
-services) — served on the live preview pattern (port 8123, `diagram.html`,
+services) — served on the live preview pattern (port `${PREVIEW_PORT:-8123}`, `diagram.html`,
 auto-reload — see taskmaster's visual-decisions skill) or opened via `file://`. "Why is there a
 minio box?" asked at the picture costs nothing; asked after generation it
 costs a regeneration round. ASCII boxes in chat are an acceptable fallback

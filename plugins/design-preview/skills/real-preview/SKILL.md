@@ -43,7 +43,7 @@ This flow writes into the user's source tree. Before ANY write, ask via
 
 Options: proceed / use static shell mockup instead / skip. This gate is separate
 from any mockup fidelity consent already given — that consent covered throwaway
-files in `docs/mockups/`, not the source tree. Ask once per session.
+files in `taskmaster-docs/mockups/`, not the source tree. Ask once per session.
 
 ## The scratch surface — zero edits to existing files
 

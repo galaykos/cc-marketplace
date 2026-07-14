@@ -18,9 +18,10 @@ itself is a requirement. A single widget or page stays in visual-decisions.
 
 ## The demo artifact
 
-One self-contained HTML file — `docs/mockups/YYYY-MM-DD-<slug>-walkthrough.html`,
-copied to `walkthrough.html` on the same session preview server (port 8123, see
-visual-decisions; own file so it never clobbers the mockup tab):
+One self-contained HTML file — `taskmaster-docs/mockups/YYYY-MM-DD-<slug>-walkthrough.html`,
+copied to `walkthrough.html` on the same session preview server (port
+`${PREVIEW_PORT:-8123}`, see visual-decisions; own file so it never clobbers the
+mockup tab):
 
 - Every screen is a `<section>`; navigation is anchor links + CSS `:target` —
   the zero-JS baseline that works over `file://`.

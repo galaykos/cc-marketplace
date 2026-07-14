@@ -46,3 +46,24 @@ decision hinges on the real design system; everything cheaper stays below.
   plugin's fallback.
 - **stack-scan** — detection reuses its required-vs-installed inventory.
 - **ui-ux** — shadcn best-practices and theming for the components being shown.
+
+## Preview-port registry
+
+Every static-mockup surface across the marketplace shares ONE session preview
+server, addressed by the `PREVIEW_PORT` convention — the port token is
+`${PREVIEW_PORT:-8123}` (env override, default `8123`). Artifacts land in
+`taskmaster-docs/mockups/` under per-purpose file slots so producers never clobber
+each other's tab. shadcn-studio is the exception: it runs its OWN Vite dev server
+on a dedicated port (`Number(process.env.PREVIEW_PORT) || 8124`), never the shared
+static one.
+
+| Port | Slot | Plugin — surface |
+|------|------|------------------|
+| `${PREVIEW_PORT:-8123}` | `current.html` | taskmaster — `visual-decisions` |
+| `${PREVIEW_PORT:-8123}` | `diagram.html` | taskmaster — `erd` |
+| `${PREVIEW_PORT:-8123}` | `walkthrough.html` | taskmaster — `experience-walkthrough` |
+| `${PREVIEW_PORT:-8123}` | `theme.html` | ui-ux — `README`, `commands/theme.md`, `shadcn-theming` |
+| `${PREVIEW_PORT:-8123}` | `diagram.html` | code-architecture — `plan-before-code` |
+| `${PREVIEW_PORT:-8123}` | `api.html` | api-design — `api-design` |
+| `${PREVIEW_PORT:-8123}` | `diagram.html` | dev-env — `compose-init` |
+| `Number(process.env.PREVIEW_PORT) || 8124` | own harness | shadcn-studio — dedicated Vite dev server |
