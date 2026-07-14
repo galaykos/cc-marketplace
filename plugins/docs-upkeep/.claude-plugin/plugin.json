@@ -1,6 +1,6 @@
 {
   "name": "docs-upkeep",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check.",
   "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
 }

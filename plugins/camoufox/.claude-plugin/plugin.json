@@ -1,6 +1,6 @@
 {
   "name": "camoufox",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Camoufox navigator: current Python usage from live docs (camoufox.com), launch options (humanize, geoip, os, proxy, block_images, config), the Playwright-Firefox integration it exposes, and fingerprint injection. Includes /camoufox:check and a Camoufox-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
   "author": {
     "name": "Ivan-WG",

@@ -115,8 +115,26 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook-extraguard.json" 
   expect_has "$HE" "build|create|add" "hook(extraGuard): regex substituted"
 fi
 
+# ---- navigator check ---------------------------------------------------------
+N="$WORK/navigator-check.md"
+if render "$TPL/navigator-check.md.tmpl" "$SAMPLES/navigator.json" "$N"; then
+  [[ "$(line1 "$N")" == "---" ]] && pass "navigator: line 1 is ---" || fail "navigator: line 1 is ---" "got [$(line1 "$N")]"
+  expect_has "$N" "<!-- generated from templates/navigator-check.md.tmpl" "navigator: generated header after fence"
+  expect_has "$N" "Invoke the \`sample-docs\` skill from this plugin for \$ARGUMENTS" "navigator: skill + goalDescriptor stamped mid-sentence"
+  expect_has "$N" "must come from pages fetched now, not memory" "navigator: goalDescriptor staleness rationale carried"
+  expect_has "$N" "1. Fetch https://example.com/docs" "navigator: reportBody step 1 verbatim"
+  expect_has "$N" "3. Report, in order:" "navigator: reportBody step 3 verbatim"
+  expect_has "$N" "If any needed page is unreachable" "navigator: docs-unreachable block inlined"
+  expect_has "$N" "do not substitute memory for the missing page" "navigator: docs-unreachable full wording"
+  expect_has "$N" "When endpoints, flow, and the sample handoff are all resolved" "navigator: proceedGate scalar substituted inside block"
+  expect_has "$N" "Proceed with the task using these doc-backed sample endpoints and options now" "navigator: canonical verb + closerObject scalar substituted inside block"
+  expect_has "$N" "Headless: report only." "navigator: headless clause present"
+  expect_absent "$N" "{{proceedGate}}" "navigator: proceedGate token consumed (block var substituted after inlining)"
+  expect_absent "$N" "{{closerObject}}" "navigator: closerObject token consumed (block var substituted after inlining)"
+fi
+
 # ---- global invariant: no unrendered {{token}} in any output ------------------
-for f in "$L" "$C" "$W" "$U" "$H" "$HE"; do
+for f in "$L" "$C" "$W" "$U" "$H" "$HE" "$N"; do
   [[ -f "$f" ]] || continue
   if grep -q '{{' "$f"; then fail "no unrendered token in $(basename "$f")" "$(grep -n '{{' "$f")"; else pass "no unrendered token in $(basename "$f")"; fi
 done

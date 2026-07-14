@@ -2,8 +2,9 @@
 description: Resolve the current AdsPower Local API endpoints and lifecycle for an automation task
 argument-hint: [automation-goal]
 ---
+<!-- generated from templates/navigator-check.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
-Invoke the adspower-docs skill from this plugin for $ARGUMENTS (an automation
+Invoke the `adspower-docs` skill from this plugin for $ARGUMENTS (an automation
 goal — if empty, ask what is being built). Everything reported must come from
 docs fetched now, not memory: the Local API port and endpoint paths change
 across AdsPower versions.
@@ -26,10 +27,10 @@ across AdsPower versions.
      /playwright:check for the driver side)
    - Constraints: the ~1 request/second rate limit, local-only (no cloud
      auth), and the always-stop-what-you-start rule
-4. If the docs page is unreachable, name it, say what could not be verified,
+
+4. If any needed page is unreachable, name it, say what could not be verified,
    and ask for a docs excerpt — do not substitute memory for the missing page.
 
-5. When endpoints, lifecycle, and handoff all resolved, ask via
-   AskUserQuestion: "Proceed with the automation using these doc-backed
-   endpoints now (Recommended)" / "Stop here — report only".
-   Headless: report only.
+5. When endpoints, lifecycle, and handoff are all resolved, ask via AskUserQuestion:
+   "Proceed with the task using these doc-backed endpoints now
+   (Recommended)" / "Stop here — report only". Headless: report only.

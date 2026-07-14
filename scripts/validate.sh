@@ -193,7 +193,7 @@ fi
 # OR have its plugin's .chassis.json declare an optout entry (object OR array form).
 # Neither header nor an optout manifest (or no manifest at all) means the deterministic
 # stamper never ran or was bypassed — drift the regenerate-and-diff gate must catch.
-for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/hooks/remind.sh; do
+for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/commands/check.md plugins/*/hooks/remind.sh; do
   [ -f "$f" ] || continue
   grep -q 'generated from templates/' "$f" && continue
   man="$(dirname "$(dirname "$f")")/.chassis.json"

@@ -1,7 +1,13 @@
-{
-  "chassis": "reminder-hook",
-  "regex": "\\b(facebook|instagram|whatsapp|messenger|graph api|marketing api|meta (api|app|login|pixel|ads?))\\b",
-  "message": "meta-api: this prompt touches a Meta platform — API versions and permissions change quarterly, so pin the current version and required permissions before writing integration code",
-  "command": "/meta-api:check",
-  "extraGuard": null
-}
+[
+  {
+    "chassis": "reminder-hook",
+    "regex": "\\b(facebook|instagram|whatsapp|messenger|graph api|marketing api|meta (api|app|login|pixel|ads?))\\b",
+    "message": "meta-api: this prompt touches a Meta platform — API versions and permissions change quarterly, so pin the current version and required permissions before writing integration code",
+    "command": "/meta-api:check",
+    "extraGuard": null
+  },
+  {
+    "chassis": "optout",
+    "reason": "single-skill navigator variant — check.md hand-authored"
+  }
+]

@@ -2,8 +2,9 @@
 description: Resolve the current Playwright API and doc-backed patterns for an automation task
 argument-hint: [automation-goal-or-api]
 ---
+<!-- generated from templates/navigator-check.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
-Invoke the playwright-docs skill from this plugin for $ARGUMENTS (an automation
+Invoke the `playwright-docs` skill from this plugin for $ARGUMENTS (an automation
 goal, an API name, or a page interaction — if empty, ask what is being
 automated). Everything reported must come from pages fetched now, not memory.
 
@@ -24,9 +25,10 @@ automated). Everything reported must come from pages fetched now, not memory.
      `/adspower:check` or `/kameleo:check`)
    - Constraints that shape the code: Chromium-only CDP, one context per
      isolated session, no fixed sleeps, web-first assertions
+
 4. If any needed page is unreachable, name it, say what could not be verified,
    and ask for a docs excerpt — do not substitute memory for the missing page.
 
-5. When the version, API, and patterns all resolved, ask via AskUserQuestion:
-   "Proceed with the automation using these doc-backed APIs and patterns now
+5. When the version, API, and patterns are all resolved, ask via AskUserQuestion:
+   "Proceed with the task using these doc-backed APIs and patterns now
    (Recommended)" / "Stop here — report only". Headless: report only.

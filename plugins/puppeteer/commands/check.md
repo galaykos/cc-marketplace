@@ -2,8 +2,9 @@
 description: Resolve the current Puppeteer API and doc-backed patterns for an automation task
 argument-hint: [automation-goal-or-api]
 ---
+<!-- generated from templates/navigator-check.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
-Invoke the puppeteer-docs skill from this plugin for $ARGUMENTS (an automation
+Invoke the `puppeteer-docs` skill from this plugin for $ARGUMENTS (an automation
 goal, a Page method, or an area like request interception — if empty, ask what
 is being automated). Everything reported must come from pages fetched now, not
 memory: Puppeteer versions move fast and couple to a bundled Chrome build.
@@ -23,10 +24,10 @@ memory: Puppeteer versions move fast and couple to a bundled Chrome build.
      pointer to /adspower:check or /kameleo:check to obtain the endpoint
    - Constraints that shape the code: await discipline, interception stall
      behaviour, cleanup (close pages/browser)
+
 4. If any needed page is unreachable, name it, say what could not be verified,
    and ask for a docs excerpt — do not substitute memory for the missing page.
 
-5. When the API version, patterns, and constraints all resolve, ask via
-   AskUserQuestion: "Proceed with the task using these doc-backed API and
-   patterns now (Recommended)" / "Stop here — report only".
-   Headless: report only.
+5. When the API version, patterns, and constraints are all resolved, ask via AskUserQuestion:
+   "Proceed with the task using these doc-backed API and patterns now
+   (Recommended)" / "Stop here — report only". Headless: report only.
