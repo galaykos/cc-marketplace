@@ -27,7 +27,13 @@ implementing it.
    REST contract detail → `/api-design:review`; cache mechanics and load numbers →
    `/performance:review`; event delivery machinery → the event-driven plugin.
 
-5. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
+5. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
+   `Not checked: … (why)` so it is explicit what was covered, what was clean, and what
+   was skipped — not only what broke. Then run one adversarial self-refute pass over
+   every `critical` finding; if a finding does not survive it, drop or downgrade it
+   with a note.
+
+6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    "Have the system-architect implement the fixes now (Recommended)" / "Report only".
    On implement, dispatch the `system-architect` worker with the finding list. In
    headless or non-interactive runs, report only.
