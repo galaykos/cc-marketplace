@@ -1,6 +1,6 @@
 ---
 name: plugin-scout
-description: Use when setting up Claude Code plugins for a project, when the user asks "which plugins should I install" or "what plugins fit this repo", when starting work in a repo without marketplace plugins, or right after cloning an unfamiliar codebase — scans manifests (composer.json, package.json, tsconfig.json, .env, Dockerfiles) for stack signals, suggests cc-plugins-marketplace plugins in two tiers (stack-matched and always-useful), and installs the picked ones after confirmation.
+description: Use when setting up Claude Code plugins for a project, when the user asks "which plugins should I install" or "what plugins fit this repo", when starting work in a repo without marketplace plugins, or right after cloning an unfamiliar codebase — scans manifests (composer.json, package.json, tsconfig.json, .env, Dockerfiles) for stack signals, suggests cc-plugins-marketplace plugins in two tiers (stack-matched and always-useful), and installs the picked ones after confirmation. Supports `--yes` (auto-install tier-1 signal-backed picks, skipping the picker) and `--persist` (write the installed set into the project's settings.json).
 ---
 
 ## Purpose
@@ -40,7 +40,7 @@ signal table below. Rules:
 
 ## Stack signals (tier 1)
 
-Thirteen plugins, each earned by one signal:
+Eighteen plugins, each earned by one signal:
 
 | Signal (evidence file) | Plugin |
 |---|---|
@@ -52,7 +52,12 @@ Thirteen plugins, each earned by one signal:
 | package.json dep react-native | react-native |
 | package.json dep vue ^2 | vue2 |
 | package.json dep vue ^3 | vue3 |
+| package.json dep next | nextjs |
+| package.json dep nuxt | nuxt |
 | package.json dep typescript OR tsconfig.json exists | typescript |
+| package.json exists AND no typescript dep (devDependencies counts) AND no tsconfig.json | javascript |
+| package.json dep express OR fastify OR @nestjs/core | node-backend |
+| package.json dep vite (devDependencies counts) | vite |
 | .env DB_CONNECTION=mysql OR mysql docker image | mysql |
 | mariadb docker image or DSN | mariadb |
 | pgsql/postgres DSN or docker image | postgresql |
@@ -62,6 +67,9 @@ When the vue major is ambiguous (constraint spans majors, or lock and manifest
 disagree), ask via AskUserQuestion: "Vue 3 (Recommended)" / "Vue 2" — never
 guess. Headless: suggest neither vue plugin; add a report line naming the
 ambiguous constraint instead.
+
+`sql` has no tier-1 signal and stays in the universal set — it is a
+cross-engine floor referenced by the per-dialect skills, not a stack pick.
 
 ## Universal set (tier 2)
 
@@ -86,7 +94,7 @@ Print one table:
 - Evidence cites file and dependency (e.g. `composer.json: laravel/framework
   ^11`); tier-2 rows just say "universal".
 - Installed column: ✓ when `claude plugin list` shows it, — otherwise.
-- Exclude plugin-scout itself and the bundles everything and taskmaster-suite
+- Exclude plugin-scout itself and every bundle (everything and all `*-suite`)
   from the table.
 - When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite
   installs the universal set as one bundle, if picking individually feels slow.
@@ -95,11 +103,13 @@ Print one table:
 
 ## Install
 
-1. Ask via AskUserQuestion with multiSelect over the not-yet-installed
-   suggestions, tier-1 picks listed first and pre-described with their
-   evidence: "Install selected (Recommended)" framing, plus a "Skip — report
-   only" option. Headless: print the exact install commands for every
-   not-installed suggestion instead of running anything, then stop.
+1. Without `--yes`: ask via AskUserQuestion with multiSelect over the
+   not-yet-installed suggestions, tier-1 picks listed first and
+   pre-described with their evidence: "Install selected (Recommended)"
+   framing, plus a "Skip — report only" option. Headless: print the exact
+   install commands for every not-installed suggestion instead of running
+   anything, then stop.
+   With `--yes`: skip this picker — see Flags below for the auto-select set.
 2. For each pick, run via Bash:
 
    ```bash
@@ -111,6 +121,26 @@ Print one table:
    does not abort the remaining picks.
 4. Finish with a one-line summary: installed n, failed m, skipped k (already
    installed).
+5. If `--persist` was passed, write the plugins actually installed this run
+   into the project's settings — see Flags below.
+
+## Flags
+
+- `--yes` — auto-installs tier-1 signal-backed, not-yet-installed picks
+  instead of showing the picker; the full report table still prints first.
+  Tier-2 picks are never auto-installed. Zero tier-1 picks: report only, no
+  picker, with a hint to rerun without `--yes` to pick tier-2. The
+  marketplace-add preflight prompt is unchanged by `--yes` — still asked
+  interactively, and in headless mode with the marketplace absent, stop and
+  print the add instructions rather than installing anything. Ambiguous Vue
+  major installs neither vue plugin, same as without the flag. Full rules,
+  the headless-marketplace-absent wording, and the hooks-may-activate-later
+  note: `references/flags.md`.
+- `--persist` — after Install, writes the set actually installed this run
+  (picker picks, or the `--yes` tier-1 auto-set) into the project's
+  `.claude/settings.json` (`enabledPlugins` + `extraKnownMarketplaces`);
+  never the full detected set. Combinable with `--yes`. Full merge/create/
+  abort rules and the required commit-trust notice: `references/flags.md`.
 
 ## Boundaries
 

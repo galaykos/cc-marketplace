@@ -6,7 +6,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 
 Three lanes in — when unsure, take the first:
 
-1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
+1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
 2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`, `automations-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 77 plugins) exists for zero-setup convenience at ~14k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
@@ -45,7 +45,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
 | `everything` | 77 | ~14k tokens |
-| `taskmaster-suite` | 38 | ~9.3k tokens |
+| `taskmaster-suite` | 37 | ~8.5k tokens |
 | `process-suite` | 14 | ~2.8k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
 | `frontend-suite` | 15 | ~2.6k tokens |
@@ -58,8 +58,8 @@ plugin adds to each session's context window (chars/4 estimate).
 
 ```bash
 # Full taskmaster workflow + every stack-agnostic plugin (task pipeline,
-# engineering discipline, worker agents; includes ui-ux's per-stack UI
-# skills). No language/framework/dialect plugins.
+# engineering discipline, worker agents). No language/framework/dialect
+# plugins.
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
@@ -149,7 +149,7 @@ afterwards to sweep the orphans.
 | **[task-runner](plugins/task-runner/README.md)** | Disciplined execution: one task at a time, scope lock, bounded verify-fix loop (3 cycles max), full-suite completion gate + parallel-planning (computed subagents-vs-inline verdict, agent count, speedup estimate) | `/task-runner:run`, `/task-runner:plan` |
 | **[intent-guard](plugins/intent-guard/README.md)** | Mid-run intent-vs-action attestation: a cooperative drift-guard that ledgers each Edit/Write/Bash/Agent action, has the model attest it against the declared task, and holds turn completion (Stop gate) until unattested actions and drift are reckoned — the mid-run tier between coverage-check (entry) and work-verification (exit); not tamper-proof | `/intent-guard:intent`, `/intent-guard:status` |
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
-| **[plugin-scout](plugins/plugin-scout/README.md)** | Scans project manifests and suggests marketplace plugins in two tiers (stack-matched with evidence, always-useful), marks installed ones, installs picked ones after confirm | `/plugin-scout:suggest` |
+| **[plugin-scout](plugins/plugin-scout/README.md)** | Scans project manifests and suggests marketplace plugins in two tiers (stack-matched with evidence, always-useful), marks installed ones, installs picked ones after confirm — `--yes` auto-installs the stack-matched tier, `--persist` writes the set into project settings | `/plugin-scout:suggest` |
 | **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
 | **decision-records** | ADRs: persist approach/schema/dependency decisions to docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
 | **retrospective** | Post-milestone learning loop: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks | `/retrospective:run` |
@@ -205,7 +205,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
-| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, worker agents; includes ui-ux's per-stack UI skills) — no language/framework/dialect plugins | `/taskmaster-suite:uninstall` |
+| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, worker agents) — no language/framework/dialect plugins | `/taskmaster-suite:uninstall` |
 | **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, web worker, a11y | `/frontend-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |

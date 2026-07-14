@@ -1,0 +1,45 @@
+<!--
+  Starter: Ops dashboard — KPI strip + recent-activity table.
+  Suits axis passes like kpi-emphasis-vs-table-emphasis or comfortable-vs-dense
+  rows. The toolbar is persistent chrome (no data-state) and stays visible
+  across states. Copy the whole fragment into a frame's `.vd-content` — see
+  ../shell-authoring.md.
+-->
+<div class="vd-toolbar">
+  <span class="vd-chip">Jul 8 – Jul 14, 2026</span>
+  <input class="vd-input" placeholder="Filter transactions" />
+  <button type="button" class="vd-btn">Refresh</button>
+</div>
+
+<div data-state="populated">
+  <div class="vd-kpis">
+    <div class="vd-kpi"><b>$84,320</b><span>revenue, 7d</span></div>
+    <div class="vd-kpi"><b>1,932</b><span>active accounts</span></div>
+    <div class="vd-kpi"><b>2.1%</b><span>churn, 30d</span></div>
+  </div>
+  <table class="vd-table">
+    <thead>
+      <tr><th>Invoice</th><th>Customer</th><th class="vd-num">Amount</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>INV-4821</td><td>Northwind Traders</td><td class="vd-num">$1,240.00</td><td><span class="vd-chip vd-ok">Paid</span></td></tr>
+      <tr><td>INV-4822</td><td>Fenwick &amp; Co</td><td class="vd-num">$680.50</td><td><span class="vd-chip vd-warn">Overdue 12 days</span></td></tr>
+      <tr><td>INV-4823</td><td>Meridian Logistics</td><td class="vd-num">$3,412.00</td><td><span class="vd-chip vd-ok">Paid</span></td></tr>
+    </tbody>
+  </table>
+  <div class="vd-pager"><span>Showing 3 of 148</span><span>Page 1 of 50</span></div>
+</div>
+
+<div data-state="empty">
+  <div class="vd-empty">
+    No data source connected yet.
+    <div><button type="button" class="vd-btn vd-primary">Connect a data source</button></div>
+  </div>
+</div>
+
+<div data-state="error">
+  <div class="vd-alert vd-err">
+    Couldn't load dashboard data — the analytics service timed out.
+    <div><button type="button" class="vd-btn">Retry</button></div>
+  </div>
+</div>

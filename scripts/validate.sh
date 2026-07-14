@@ -339,4 +339,10 @@ done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
+# ---- Context-budget gate (report-only, D3/A5) ------------------------------
+# Per-bundle session-start description-token surface vs committed baseline.
+# Always exits 0 — growth prints WARN lines only, never fails the build; the
+# overall validate exit code below is governed solely by $fail, untouched here.
+bash scripts/context-budget.sh || true
+
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

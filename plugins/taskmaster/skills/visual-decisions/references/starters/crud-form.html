@@ -1,0 +1,43 @@
+<!--
+  Starter: CRUD record — customer list + edit form, split layout.
+  Suits axis passes like list-detail-vs-modal-edit or field density. The
+  toolbar is persistent chrome (no data-state) and stays visible across
+  states. Copy the whole fragment into a frame's `.vd-content` — see
+  ../shell-authoring.md.
+-->
+<div class="vd-toolbar">
+  <input class="vd-input" placeholder="Search customers" />
+  <button type="button" class="vd-btn vd-primary">Add customer</button>
+</div>
+
+<div data-state="populated">
+  <div class="vd-split">
+    <div class="vd-list">
+      <div class="vd-row" aria-current="true"><span>Priya Raman</span><span class="vd-chip vd-ok">Active</span></div>
+      <div class="vd-row"><span>Diego Alvarez</span><span class="vd-chip vd-ok">Active</span></div>
+      <div class="vd-row"><span>Ada Okafor</span><span class="vd-chip vd-warn">Trial</span></div>
+    </div>
+    <div class="vd-detail">
+      <form class="vd-form">
+        <div class="vd-field"><label>Name</label><input class="vd-input" value="Priya Raman" /></div>
+        <div class="vd-field"><label>Email</label><input class="vd-input" value="priya@northwindtraders.com" /></div>
+        <div class="vd-field"><label>Plan</label><input class="vd-input" value="Growth" /><small>Renews Aug 3, 2026</small></div>
+        <div>
+          <button type="button" class="vd-btn vd-primary">Save changes</button>
+          <button type="button" class="vd-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div data-state="empty">
+  <div class="vd-empty">
+    No customers yet.
+    <div><button type="button" class="vd-btn vd-primary">Add your first customer</button></div>
+  </div>
+</div>
+
+<div data-state="loading">
+  <div class="vd-empty">Loading customer record…</div>
+</div>

@@ -10,6 +10,11 @@ installed plugins are marked and skipped. Picked suggestions are installed via
 Doctrine: suggestions cite evidence — every stack-matched row names the manifest
 line that earned it, and nothing installs without your pick.
 
+Flags: `--yes` auto-installs tier-1 signal-backed, not-yet-installed picks
+(skips the picker; tier-2 never auto-installs); `--persist` writes the
+installed set into the project's `.claude/settings.json`. Combinable. Full
+semantics: `skills/plugin-scout/references/flags.md`.
+
 ## Install
 
 ```bash
@@ -21,7 +26,7 @@ line that earned it, and nothing installs without your pick.
 
 | Command | What it does |
 |---------|--------------|
-| `/plugin-scout:suggest` | Detect the stack, print the two-tier suggestion table (plugin, tier, evidence, installed), then offer to install the plugins you pick |
+| `/plugin-scout:suggest [--yes] [--persist]` | Detect the stack, print the two-tier suggestion table (plugin, tier, evidence, installed), then offer to install the plugins you pick — or auto-install tier-1 picks (`--yes`) and/or persist the installed set to project settings (`--persist`) |
 
 ## Example
 

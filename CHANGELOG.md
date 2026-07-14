@@ -4,6 +4,81 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.49.1] - 2026-07-14
+
+### Changed
+
+- Preview-server doc sweep: ui-ux 0.7.5 (shadcn-theming now documents the
+  serve.py-first chain with localhost-bound static fallbacks) and
+  design-preview 0.1.2 (port registry names serve.py as the preferred first
+  rung). taskmaster 0.24.1 clarifies dated-ledger-file → `current.html` copy in
+  shell-authoring. plugin-scout 0.2.1 aligns the report-exclusion wording with
+  the tier-2 rule (all bundles, not just two). `context-budget.sh` WARNs now go
+  to stderr and the single-line description assumption is documented.
+
+## [0.49.0] - 2026-07-14
+
+### Added
+
+- **taskmaster 0.24.0 — live mockups**: the shared static preview gains a real
+  push lane — new `visual-decisions/assets/serve.py` (stdlib, threaded static
+  server + SSE `/events`, localhost-only by default with `--lan` opt-in) sits
+  first in the launch chain; the shell auto-reloads over SSE and degrades to
+  the existing polling on any plain static server. Shell v2: per-variant state
+  toggles (`data-state="populated|empty|loading|error"`, only provided states
+  shown, v1 mockups render unchanged), per-frame focus/zoom, side-by-side
+  compare unchanged (max 3 variants).
+- **Example machinery**: 5 curated starter patterns (landing, dashboard,
+  crud-form, onboarding-flow, settings — multi-state, realistic data,
+  token-driven) under `visual-decisions/references/starters/`; a
+  `shell-authoring.md` reference (variant markup, state matrix, realistic-data
+  discipline); accepted picks are saved to a per-repo gallery
+  (`taskmaster-docs/mockups/gallery/` + INDEX.md). Brainstorm gains an opt-in,
+  post-divergence offer of up to 2 matching starters/gallery entries as
+  reference material (anti-anchoring contract preserved).
+- Fallback server rungs now bind localhost explicitly (`--bind 127.0.0.1` /
+  `php -S 127.0.0.1:`) in visual-decisions and erd docs.
+
+## [0.48.0] - 2026-07-14
+
+### Changed
+
+- **taskmaster-suite 0.10.0**: drops `ui-ux` (38→37 dependencies, ~9.3k→~8.5k
+  always-on tokens) per the 2026-07-14 suite cost review — the bundle is now
+  genuinely stack-agnostic and its "No framework- or dialect-specific plugins"
+  claim holds. UI-tagged task cards fall back to the generic executor; the
+  ui-ux reviewer pass is skipped unless ui-ux is installed (it remains a leaf
+  plugin and a member of `everything` and `frontend-suite`).
+  **Migration note**: existing taskmaster-suite installs keep ui-ux on disk —
+  removing it from the dependency list does not uninstall it, and a later
+  `--prune` will not remove it either; uninstall manually if unwanted.
+- frontend-suite 0.4.3: README catches up with membership — `nextjs`/`nuxt`
+  in the opening line and bullet list, stale "Vue 2/3" wording removed.
+- process-suite 0.2.2 / quality-suite 0.2.2: descriptions now name their
+  member plugins `intent-guard` / `secret-scanning`.
+
+### Added
+
+- **plugin-scout 0.2.0**: five new tier-1 detection signals (`nextjs`, `nuxt`,
+  `node-backend` via express/fastify/@nestjs/core, `vite`, `javascript`) —
+  these stop being suggested as "universal" in every project. Two new flags on
+  `/plugin-scout:suggest`: `--yes` auto-installs tier-1 signal-backed picks
+  only (install picker skipped; marketplace-add trust prompt preserved;
+  ambiguous signals install nothing; tier-2 never auto-installs; note:
+  auto-installed plugins may ship hooks). `--persist` writes the set installed
+  this run into the project's committed `.claude/settings.json`
+  (`enabledPlugins` + `extraKnownMarketplaces`, jq-merged, create-if-missing,
+  abort on invalid JSON) and prints a notice that committing it auto-installs
+  for anyone who clones and accepts the trust prompt. Full semantics:
+  `plugins/plugin-scout/skills/plugin-scout/references/flags.md`.
+- **Report-only context-budget gate**: `scripts/context-budget.sh` prints each
+  bundle's always-on description-token surface (chars/4) versus the committed
+  `scripts/context-budget-baseline.json` at the end of every `validate.sh`
+  run, WARNing on growth without ever failing the build
+  (`--update-baseline` refreshes). Baseline seeded from this release's
+  post-change state, so this wave's own growth is recorded here rather than
+  as WARNs.
+
 ## [0.47.1] - 2026-07-14
 
 ### Changed

@@ -57,9 +57,10 @@ the shared preview server's reserved `diagram.html` slot in `taskmaster-docs/moc
 Server mechanics are visual-decisions' own, reused as-is:
 
 - Server not running? Start
-  `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups` in
-  the background and note the PID (normalized fallback chain: no python3 →
-  `php -S 0.0.0.0:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
+  `../visual-decisions/assets/serve.py --port "${PREVIEW_PORT:-8123}"` in the
+  background and note the PID (normalized fallback chain: serve.py →
+  `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups` →
+  no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
   `npx serve taskmaster-docs/mockups`). Port busy?
   `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump the port.
 - Write every pass to `diagram.html` — the user's open tab sees each revision

@@ -57,6 +57,12 @@ each other's tab. shadcn-studio is the exception: it runs its OWN Vite dev serve
 on a dedicated port (`Number(process.env.PREVIEW_PORT) || 8124`), never the shared
 static one.
 
+The preferred first rung for the shared server is the taskmaster plugin's
+visual-decisions `assets/serve.py` (threaded static + SSE push-reload on
+`/events`, localhost-only by default); plain static rungs
+(`python3 -m http.server --bind 127.0.0.1`, `php -S 127.0.0.1:`, `npx serve`)
+work identically except consumers fall back to polling reload.
+
 | Port | Slot | Plugin — surface |
 |------|------|------------------|
 | `${PREVIEW_PORT:-8123}` | `current.html` | taskmaster — `visual-decisions` |

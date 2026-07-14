@@ -1,0 +1,36 @@
+<!--
+  Starter: Onboarding wizard — step crumbs + invite-your-team step.
+  Suits axis passes like linear-steps-vs-checklist or one-field-per-screen
+  density. The crumb trail is persistent chrome (no data-state) and stays
+  visible across states. Copy the whole fragment into a frame's
+  `.vd-content` — see ../shell-authoring.md.
+-->
+<div class="vd-crumbs">Step 2 of 4 — <b>Invite your team</b></div>
+
+<div data-state="populated">
+  <div class="vd-form">
+    <div class="vd-field"><label>Teammate email</label><input class="vd-input" value="diego@meridianlogistics.com" /></div>
+    <div><button type="button" class="vd-btn vd-primary">Send invite</button></div>
+  </div>
+  <table class="vd-table">
+    <thead><tr><th>Invited</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Ada Okafor — ada@meridianlogistics.com</td><td><span class="vd-chip vd-warn">Pending</span></td></tr>
+      <tr><td>Elena Petrova — elena@meridianlogistics.com</td><td><span class="vd-chip vd-ok">Joined</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div data-state="empty">
+  <div class="vd-empty">
+    No teammates invited yet.
+    <div><button type="button" class="vd-btn vd-primary">Invite your first teammate</button></div>
+  </div>
+</div>
+
+<div data-state="error">
+  <div class="vd-alert vd-err">
+    Couldn't send the invite to diego@meridianlogistics.com — check the address and retry.
+    <div><button type="button" class="vd-btn">Retry</button></div>
+  </div>
+</div>
