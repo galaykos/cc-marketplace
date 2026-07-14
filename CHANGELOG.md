@@ -4,6 +4,22 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.47.1] - 2026-07-14
+
+### Changed
+
+- Install guidance reworked from a suite cost review: root README bundle lane
+  now leads with per-use-case category suites, adds a per-bundle always-on
+  context cost table (chars/4 estimates), positions `everything` as a
+  zero-setup convenience (~14k tokens of always-on context per session), adds
+  the previously missing `automations-suite` to the bundle lists, and states
+  the recommended default (process-suite globally, category suites
+  per-project, `/plugin-scout:suggest` when unsure). taskmaster-suite's "no
+  framework/dialect plugins" claim qualified (it bundles ui-ux's per-stack UI
+  skills).
+- `everything` 0.17.4: README plugin count fixed (74 → 77 with stale-resistant
+  phrasing); themed list gains the missing `nextjs`, `nuxt`, `node-backend`.
+
 ## [0.47.0] - 2026-07-14
 
 ### Added

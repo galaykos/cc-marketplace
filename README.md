@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation.
-2. **Bundle:** install `taskmaster-suite` (full taskmaster workflow + every stack-agnostic plugin, no framework/dialect plugins), `everything` (all 77 plugins), or a category bundle — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`, `automations-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 77 plugins) exists for zero-setup convenience at ~14k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -42,12 +42,29 @@ For example:
 
 Meta-plugins that pull in a whole set via dependencies — one install, no picking:
 
+| Bundle | Plugins | Always-on context (approx.) |
+|--------|---------|-----------------------------|
+| `everything` | 77 | ~14k tokens |
+| `taskmaster-suite` | 38 | ~9.3k tokens |
+| `process-suite` | 14 | ~2.8k tokens |
+| `quality-suite` | 14 | ~2.6k tokens |
+| `frontend-suite` | 15 | ~2.6k tokens |
+| `php-suite` | 6 | ~0.7k tokens |
+| `automations-suite` | 6 | ~0.6k tokens |
+| `db-suite` | 5 | ~0.5k tokens |
+
+Always-on context = the skill/command/agent descriptions every installed
+plugin adds to each session's context window (chars/4 estimate).
+
 ```bash
 # Full taskmaster workflow + every stack-agnostic plugin (task pipeline,
-# engineering discipline, UI/UX, worker agents). No framework/dialect plugins.
+# engineering discipline, worker agents; includes ui-ux's per-stack UI
+# skills). No language/framework/dialect plugins.
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
-# Everything in the marketplace — every plugin, all stacks.
+# Everything in the marketplace — every plugin, all stacks. Convenience
+# install: ~14k tokens of always-on context per session; prefer a category
+# suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
 # Or one category at a time:
@@ -56,7 +73,11 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
 /plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, estimation, orchestration, task-runner…
+/plugin install automations-suite@cc-plugins-marketplace # playwright, puppeteer, adspower, kameleo, camoufox
 ```
+
+Recommended default: install `process-suite` globally, add the matching
+category suite per project, and run `/plugin-scout:suggest` when unsure.
 
 Dependencies are resolved and installed automatically; add any framework
 plugin (react, laravel, postgresql, …) individually on top as your stack
@@ -184,7 +205,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
-| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, UI/UX, worker agents) — no framework/dialect plugins | `/taskmaster-suite:uninstall` |
+| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, worker agents; includes ui-ux's per-stack UI skills) — no language/framework/dialect plugins | `/taskmaster-suite:uninstall` |
 | **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, web worker, a11y | `/frontend-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
