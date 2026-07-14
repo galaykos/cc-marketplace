@@ -81,6 +81,10 @@ carries the consent question, then each stages exactly ONE decision's options an
 the doc accretes only accepted picks — never a surface posing several at once.
 Creative variants are authored as N divergent directions in the main thread (not
 opinion-lens, which stays for design/architecture shapes), rendered side by side.
+Once a decision's own option set exists (never earlier) and consent allows mockups,
+ask ONE opt-in question: up to 2 matching starters plus gallery/INDEX.md matches when
+present, shown beside the decision's own options as reference, never the option set,
+one per surface. Fold picks into current.html per visual-decisions' references/shell-authoring.md.
 
 ## Explore alternatives before committing
 

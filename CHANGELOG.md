@@ -4,6 +4,29 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.49.0] - 2026-07-14
+
+### Added
+
+- **taskmaster 0.24.0 — live mockups**: the shared static preview gains a real
+  push lane — new `visual-decisions/assets/serve.py` (stdlib, threaded static
+  server + SSE `/events`, localhost-only by default with `--lan` opt-in) sits
+  first in the launch chain; the shell auto-reloads over SSE and degrades to
+  the existing polling on any plain static server. Shell v2: per-variant state
+  toggles (`data-state="populated|empty|loading|error"`, only provided states
+  shown, v1 mockups render unchanged), per-frame focus/zoom, side-by-side
+  compare unchanged (max 3 variants).
+- **Example machinery**: 5 curated starter patterns (landing, dashboard,
+  crud-form, onboarding-flow, settings — multi-state, realistic data,
+  token-driven) under `visual-decisions/references/starters/`; a
+  `shell-authoring.md` reference (variant markup, state matrix, realistic-data
+  discipline); accepted picks are saved to a per-repo gallery
+  (`taskmaster-docs/mockups/gallery/` + INDEX.md). Brainstorm gains an opt-in,
+  post-divergence offer of up to 2 matching starters/gallery entries as
+  reference material (anti-anchoring contract preserved).
+- Fallback server rungs now bind localhost explicitly (`--bind 127.0.0.1` /
+  `php -S 127.0.0.1:`) in visual-decisions and erd docs.
+
 ## [0.48.0] - 2026-07-14
 
 ### Changed

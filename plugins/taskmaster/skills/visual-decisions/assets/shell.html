@@ -171,6 +171,36 @@ body {
 }
 .vd-frame:focus-within, .vd-frame.vd-focus { outline: 2px solid var(--vd-primary); }
 
+/* ---- Per-variant state toggles ---------------------------------------
+   Injected only for frames whose .vd-content holds data-state children;
+   a frame without them is untouched (v1 compat). */
+.vd-state-bar {
+  margin: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 2) 0;
+}
+.vd-state-bar button { font-size: .74rem; padding: 3px 9px; }
+
+/* ---- Focus/zoom mode ---------------------------------------------------
+   Per-frame control that expands one variant to full width; side-by-side
+   compare is unaffected until a frame is zoomed. */
+.vd-zoom-btn {
+  border: 1px solid var(--vd-line);
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  margin-left: 6px;
+  border-radius: var(--vd-radius);
+  cursor: pointer;
+  float: right;
+}
+.vd-zoom-btn:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+.vd-zoom-btn[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: #fff; }
+#vd-frames.vd-zoom-active { grid-template-columns: 1fr; }
+#vd-frames.vd-zoom-active .vd-frame { display: none; }
+#vd-frames.vd-zoom-active .vd-frame.vd-zoomed { display: block; }
+
 /* ---- Callouts and tradeoffs ------------------------------------------ */
 .vd-callout {
   display: inline-flex;
@@ -535,6 +565,81 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
 (() => {
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
 
+  // Per-variant state toggles: a frame's .vd-content may hold sibling
+  // blocks tagged data-state="populated|empty|loading|error". Render a
+  // toggle bar listing ONLY the states that frame provides and show one
+  // at a time; a frame with no data-state children is left exactly as-is.
+  const STATE_ORDER = ['populated', 'empty', 'loading', 'error'];
+  frames.forEach(frame => {
+    const content = frame.querySelector('.vd-content');
+    if (!content) return;
+    const blocks = Array.from(content.children).filter(el => el.dataset.state);
+    if (blocks.length === 0) return;
+
+    const present = [];
+    blocks.forEach(el => {
+      if (!present.includes(el.dataset.state)) present.push(el.dataset.state);
+    });
+    const ordered = STATE_ORDER.filter(s => present.includes(s))
+      .concat(present.filter(s => !STATE_ORDER.includes(s)));
+
+    const bar = document.createElement('div');
+    bar.className = 'vd-seg vd-state-bar';
+    bar.setAttribute('role', 'group');
+    bar.setAttribute('aria-label', 'State');
+    function show(state) {
+      blocks.forEach(el => {
+        el.style.display = el.dataset.state === state ? '' : 'none';
+      });
+      Array.from(bar.querySelectorAll('button')).forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.vdState === state)));
+    }
+    ordered.forEach(state => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.vdState = state;
+      b.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      b.addEventListener('click', () => show(state));
+      bar.appendChild(b);
+    });
+    content.before(bar);
+    show(ordered.includes('populated') ? 'populated' : ordered[0]);
+  });
+
+  // Focus/zoom mode: a per-frame control that expands one variant to full
+  // width, click again (or Esc) to return to the compare view. Side-by-side
+  // stays the default; there is no tab bar.
+  function toggleZoom(frame) {
+    const zoomed = frame.classList.contains('vd-zoomed');
+    frames.forEach(f => {
+      f.classList.remove('vd-zoomed');
+      const b = f.querySelector('.vd-zoom-btn');
+      if (b) { b.textContent = 'Focus'; b.setAttribute('aria-pressed', 'false'); }
+    });
+    if (zoomed) {
+      document.getElementById('vd-frames').classList.remove('vd-zoom-active');
+      return;
+    }
+    frame.classList.add('vd-zoomed');
+    document.getElementById('vd-frames').classList.add('vd-zoom-active');
+    const b = frame.querySelector('.vd-zoom-btn');
+    if (b) { b.textContent = 'Back'; b.setAttribute('aria-pressed', 'true'); }
+  }
+  frames.forEach(frame => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'vd-zoom-btn';
+    btn.textContent = 'Focus';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.addEventListener('click', () => toggleZoom(frame));
+    frame.querySelector('h2').appendChild(btn);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const zoomed = frames.find(f => f.classList.contains('vd-zoomed'));
+    if (zoomed) toggleZoom(zoomed);
+  });
+
   // Compare modes
   const segButtons = Array.from(document.querySelectorAll('[data-vd-set-mode]'));
   function setMode(mode) {
@@ -624,13 +729,55 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
 <script>
 (() => {
   let last = null;
-  setInterval(async () => {
+  let pollTimer = null;
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(async () => {
+      try {
+        const body = await (await fetch(location.href, { cache: 'no-store' })).text();
+        if (last !== null && body !== last) location.reload();
+        last = body;
+      } catch { /* server gone: stop reloading, page stays usable */ }
+    }, 1000);
+  }
+  function stopPolling() {
+    if (!pollTimer) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  // Baseline: body-diff polling. Always running unless a live SSE
+  // connection suspends it below.
+  startPolling();
+
+  // Enhancement: subscribe to /events (serve.py). A plain static server
+  // (no /events) or file:// simply errors out and polling keeps going —
+  // no behavior change from v1. On a live connection, reload only when
+  // the event's data path names this same page's own file.
+  if (typeof EventSource === 'function') {
+    let es;
     try {
-      const body = await (await fetch(location.href, { cache: 'no-store' })).text();
-      if (last !== null && body !== last) location.reload();
-      last = body;
-    } catch { /* server gone: stop reloading, page stays usable */ }
-  }, 1000);
+      es = new EventSource('/events');
+    } catch {
+      es = null;
+    }
+    if (es) {
+      es.addEventListener('open', () => stopPolling());
+      const onChange = e => {
+        const own = decodeURIComponent(location.pathname).split('/').pop() || 'index.html';
+        const changed = String(e.data || '').trim().split('/').pop();
+        if (changed && changed === own) location.reload();
+      };
+      // serve.py names its events "change"; a bare "data:" stream fires "message".
+      es.addEventListener('change', onChange);
+      es.addEventListener('message', onChange);
+      es.addEventListener('error', () => {
+        es.close();
+        startPolling();
+      });
+    }
+  }
 })();
 </script>
 

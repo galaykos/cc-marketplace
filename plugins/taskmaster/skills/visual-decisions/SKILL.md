@@ -53,33 +53,16 @@ Label A/B/C at equal detail, one-line tradeoff caption each, pick asked right be
 ## HTML mockups from the shell
 
 Never hand-write mockup HTML. Copy `assets/shell.html` (relative to this skill's
-directory) to `taskmaster-docs/mockups/YYYY-MM-DD-<topic>.html` and fill its slots:
+directory) to `taskmaster-docs/mockups/YYYY-MM-DD-<topic>.html` and fill its
+SLOTs. Frame/slot markup, per-variant `data-state` blocks, the max-3-variants
+rule, the realistic-data discipline, curated starter patterns
+(`references/starters/`), and motion-pass conventions all live in
+`references/shell-authoring.md` — read it before authoring the first pass.
 
-- Header: `SLOT: question`, `SLOT: axis`, `SLOT: pass` (e.g. "pass 1 of 2").
-- Per variant: `SLOT: variant-A-label`, `-caption`, `-content`, and numbered
-  tradeoff bullets (`<li data-n="1">`) in `SLOT: tradeoffs-A`; same for B/C.
-- Place `<span class="vd-callout" data-n="1">1</span>` badges in variant content
-  where each numbered bullet applies — hover highlights the pair.
-- Two variants only? Delete the `FRAME-C-START…FRAME-C-END` block.
-- Build variant content from the shell's primitives (`vd-app`, `vd-nav`,
-  `vd-sidenav`, `vd-tabs`, `vd-toolbar`, `vd-table`, `vd-cards`, `vd-split`,
-  `vd-kpi`, `vd-form`, `vd-chip`, `vd-alert`, `vd-dialog`…) — real density, no inline styles.
-- No primitive fits? Add shared classes to the `SLOT: custom-css` block — never
-  style one variant differently from its rivals.
-- Motion passes: variants identical in structure, differing on ONE motion axis
-  via the shell's `vd-anim` + `vd-m-*` classes (fade/slide/scale/spring,
-  `-fast`/`-slow`, hover/press feedback); a Replay button appears per frame;
-  `prefers-reduced-motion` renders static. Decorative animation elsewhere: banned.
-
-The shell carries the polish — header, frames, panels, compare modes, auto-reload.
-Do not restyle it. Discipline unchanged:
-
-- At most 3 variants, differing on ONE axis at a time — two axes are two
-  decisions, two mockup passes.
-- Equal fidelity per variant; realistic placeholder data ("Invoice #4821 —
-  $1,240.00 — overdue 12 days", never lorem ipsum).
-- Shell missing or unreadable (broken plugin cache): build a minimal self-contained
-  mockup by hand the old way and tell the user the shell was unavailable.
+The shell carries the polish — header, frames, panels, compare modes,
+auto-reload, state toggles. Do not restyle it; shell missing or unreadable
+(broken plugin cache) is the one case for a hand-built minimal mockup — tell
+the user the shell was unavailable.
 
 ## Theme tokens: mockups in the project's own look
 
@@ -109,12 +92,16 @@ screens. A clickable prototype, zero JavaScript, works over `file://`.
 
 Always serve — every decision lands in the same tab. One server, one canonical file:
 
-1. On the first visual decision, start `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups`
-   in the background, note the PID (normalized fallback chain: no python3 → `php -S 0.0.0.0:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` → `npx serve taskmaster-docs/mockups`).
+1. On the first visual decision, start `assets/serve.py --port "${PREVIEW_PORT:-8123}"`
+   (relative to this skill's directory) in the background, note the PID
+   (normalized fallback chain: serve.py → `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups` →
+   no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` → `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} taskmaster-docs/mockups`).
    Port busy? `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump.
 2. Write each pass to a dated file (ledger trail), copy to `current.html` — the
    user's tab at `http://localhost:${PREVIEW_PORT:-8123}/current.html` sees every pass in place.
-3. Auto-reload: the shell embeds a body-compare polling snippet (server gone → page stays usable).
+3. Auto-reload: SSE push exists only on the serve.py rung; any lower rung
+   (`http.server`, `php -S`, `npx serve`) still serves fine — the shell falls
+   back to body-compare polling there (server gone → page stays usable either way).
 
 Other flows share this server via per-purpose files (`theme.html`, `walkthrough.html`,
 `diagram.html`, `api.html`) — kill only at pipeline end; stale: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
@@ -137,6 +124,11 @@ Show 2–3 shapes carrying the SAME real scenario, edge case included — which 
   at most two passes; decision aid, not design sprint.
 - Record the pick as a CLEAR ledger row (source: the mockup file path); quote it
   in the spec.
+- On an ACCEPTED pick (not ASCII-only, not abandoned), save the winning
+  variant to `taskmaster-docs/mockups/gallery/YYYY-MM-DD-<slug>.html`
+  (collision appends `-2`, `-3` — never overwrite) and append one line —
+  date, slug, decision, source spec — to `gallery/INDEX.md`, creating it if
+  missing. Format details: `references/shell-authoring.md`.
 
 ## Anti-patterns
 

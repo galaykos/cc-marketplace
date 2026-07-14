@@ -1,0 +1,35 @@
+<!--
+  Starter: Org settings — tabbed sections (profile / notifications /
+  integrations). Suits axis passes like tabs-vs-single-scroll or field
+  density. The tab strip is persistent chrome (no data-state) and stays
+  visible across states. Copy the whole fragment into a frame's
+  `.vd-content` — see ../shell-authoring.md.
+-->
+<div class="vd-tabs">
+  <a class="vd-tab" href="#" aria-current="page">Profile</a>
+  <a class="vd-tab" href="#">Notifications</a>
+  <a class="vd-tab" href="#">Integrations</a>
+</div>
+
+<div data-state="populated">
+  <div class="vd-form">
+    <div class="vd-field"><label>Organization name</label><input class="vd-input" value="Meridian Logistics" /></div>
+    <div class="vd-field"><label>Billing email</label><input class="vd-input" value="billing@meridianlogistics.com" /></div>
+    <div class="vd-field"><label>Time zone</label><input class="vd-input" value="America/Denver" /></div>
+    <div><button type="button" class="vd-btn vd-primary">Save settings</button></div>
+  </div>
+</div>
+
+<div data-state="empty">
+  <div class="vd-empty">
+    No integrations connected yet.
+    <div><button type="button" class="vd-btn vd-primary">Connect an integration</button></div>
+  </div>
+</div>
+
+<div data-state="error">
+  <div class="vd-alert vd-err">
+    Couldn't save settings — the request timed out.
+    <div><button type="button" class="vd-btn">Retry</button></div>
+  </div>
+</div>
