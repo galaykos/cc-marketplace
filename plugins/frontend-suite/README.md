@@ -23,10 +23,11 @@ auto-installed.
   plus `/react:review`
 - **react-native** — list performance, navigation, platform-specific code,
   animations, plus `/react-native:review`
-- **vue2** — Vue 2.7 Composition API backport, reactivity caveats, migration
-  readiness, plus `/vue2:review`
 - **vue3** — script setup, composables, ref/reactive pitfalls, Pinia, plus
   `/vue3:review`
+
+Note: **vue2** (Vue 2 is EOL) is no longer bundled — install it standalone for
+legacy-app maintenance: `/plugin install vue2@cc-plugins-marketplace`.
 - **javascript** — version-aware ES feature floors, coercion traps, ESM/CJS
   interop, async correctness, plus `/javascript:review`
 - **typescript** — strict mode as the floor, narrowing over assertions,

@@ -22,6 +22,13 @@ version in their `plugin.json`.
 
 - validate.sh README-presence gate flipped from warn-only to hard-fail: a
   plugin without a README.md now fails CI.
+- vue2 marked EOL in both description surfaces (legacy-maintenance only) and
+  dropped from frontend-suite's bundle (vue3 stays; vue2 remains installable
+  standalone). plugin-scout catalog regenerated.
+- CHANGELOG 0.44.0 entry now credits the two plugins that landed in its window
+  (reuse-guard, compaction-advisor); compaction-advisor reset.sh comment updated
+  to the remind.sh name; visual-decisions SKILL compressed to 146/150 lines for
+  headroom.
 
 ## [0.45.0] - 2026-07-14
 
@@ -109,6 +116,13 @@ makes chassis drift impossible — a hand-edit of any generated file now fails C
   generated-header gate: every chassis-shaped file (`commands/review.md`,
   `commands/uninstall.md`, `hooks/remind.sh`) must carry the stamp or declare an
   `optout` manifest entry.
+
+- **reuse-guard plugin** (new, landed in the 0.44.0 window, `cdc371f`): warn-only
+  two-tier reuse-hygiene guard — a PostToolUse hook flags edits that build on
+  deprecated/dead symbols.
+- **compaction-advisor plugin** (new, landed in the 0.44.0 window, `b82efeb`):
+  advice-only /compact nudge — a UserPromptSubmit turn-counter prints one line
+  every 50 turns; never runs /compact itself.
 
 ### Changed
 

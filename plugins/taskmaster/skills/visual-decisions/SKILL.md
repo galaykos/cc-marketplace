@@ -114,12 +114,10 @@ Always serve — every decision lands in the same tab. One server, one canonical
    Port busy? `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump.
 2. Write each pass to a dated file (ledger trail), copy to `current.html` — the
    user's tab at `http://localhost:${PREVIEW_PORT:-8123}/current.html` sees every pass in place.
-3. Auto-reload needs no setup: the shell embeds a body-compare polling snippet
-   (server gone → the page stays usable; any static server works).
+3. Auto-reload: the shell embeds a body-compare polling snippet (server gone → page stays usable).
 
-Other flows share this server via per-purpose files: `theme.html` (ui-ux),
-`walkthrough.html`, `diagram.html`, `api.html` — kill it only at pipeline end.
-Stale recovery: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
+Other flows share this server via per-purpose files (`theme.html`, `walkthrough.html`,
+`diagram.html`, `api.html`) — kill only at pipeline end; stale: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
 
 ## Data-shape decisions
 
@@ -145,10 +143,8 @@ Show 2–3 shapes carrying the SAME real scenario, edge case included — which 
 - Styling inside a variant slot — polish lives in the shell, never in variant
   content; a hand-decorated favorite next to plain rivals is a sales pitch.
 - More than 3 variants — choice overload produces "whichever", not a decision.
-- Variants differing on several axes — the pick cannot be attributed, so nothing
-  actually got decided.
+- Variants differing on several axes — the pick can't be attributed; nothing got decided.
 - Building real components "since we're at it" — implementation starts after the cards.
-- External assets or frameworks — a networked mockup opens slower than the decision
-  it serves.
+- External assets or frameworks — a networked mockup opens slower than the decision it serves.
 - Reusing mockup HTML or the shell as the implementation start — implement from
   the spec; mockups carry none of the codebase's conventions.

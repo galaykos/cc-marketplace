@@ -1,7 +1,7 @@
 {
   "name": "vue2",
   "version": "0.2.1",
-  "description": "Vue 2.7 best practices: Composition API backport, reactivity caveats, migration readiness.",
+  "description": "Vue 2.7 best practices: Composition API backport, reactivity caveats, migration readiness. Vue 2 is EOL (Dec 2023) — for maintaining legacy apps only; new work should use vue3.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

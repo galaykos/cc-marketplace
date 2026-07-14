@@ -27,7 +27,7 @@
     {
       "name": "vue2",
       "source": "./plugins/vue2",
-      "description": "Vue 2.7 best practices: Composition API backport, reactivity caveats, migration readiness."
+      "description": "Vue 2.7 best practices: Composition API backport, reactivity caveats, migration readiness. Vue 2 is EOL (Dec 2023) — for maintaining legacy apps only; new work should use vue3."
     },
     {
       "name": "vue3",
@@ -317,7 +317,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 2/3, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "php-suite",
