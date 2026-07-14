@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "nuxt-best-practices",
+  "docsUrl": "https://nuxt.com",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review nuxt code against nuxt-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

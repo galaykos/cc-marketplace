@@ -19,7 +19,19 @@ injects its Read path, Read it first and work from it — do not restate or seco
 its rubric here. Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
 
-## Kill-trigger (three strikes)
+{{#if operatingProcedure}}## Operating procedure
+
+{{operatingProcedure}}
+
+{{/if}}{{#if domainChecklist}}## Domain checklist
+
+{{domainChecklist}}
+
+{{/if}}{{#if deferRule}}## Defer rule
+
+{{deferRule}}
+
+{{/if}}## Kill-trigger (three strikes)
 
 Run the exact verify command for each change. If the same change fails its verify three
 times, STOP — do not attempt a fourth blind fix, and never weaken or skip the check to

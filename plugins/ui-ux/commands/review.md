@@ -1,5 +1,5 @@
 ---
-description: Review UI code against the relevant stack's best-practice skill (shadcn, ReUI, Aceternity, Tailwind, CSS3, Bootstrap, Grid, Flexbox)
+description: Review UI code against the relevant stack's best-practice skill (shadcn, ReUI, Aceternity, Tailwind, CSS3, Bootstrap, Grid, Flexbox, Motion)
 argument-hint: [files-or-diff]
 ---
 
@@ -14,14 +14,20 @@ ui-ux plugin skills. Steps:
 2. Detect which stacks the code uses (shadcn/ui, ReUI, Aceternity UI, Tailwind, plain CSS3,
    Bootstrap, Grid, Flexbox). Registry-sourced components are detected by their files under
    `components/ui/*` and imports of `motion`/`framer-motion`, not by a package.json entry.
+   Animation/motion work is detected by any of: `framer-motion`/`motion`/`gsap` imports,
+   `@keyframes` blocks, `transition-*`/`animate-*` utility classes or `transition:`/
+   `animation:` CSS declarations, `animation-timeline`, `@starting-style`, or
+   `document.startViewTransition` — any hit selects the motion-best-practices skill in
+   addition to the stack skill(s).
 3. Invoke the matching *-best-practices skill(s) from this plugin.
 4. Read package.json and its lockfile to pin framework/library versions; findings must
    respect the installed versions — nothing already solved, nothing above them.
 5. When uncertain, verify against the official docs for the installed version instead
    of memory: MDN (https://developer.mozilla.org) for CSS3/Grid/Flexbox,
    https://tailwindcss.com/docs, https://ui.shadcn.com/docs, https://reui.io/docs,
-   https://ui.aceternity.com/components, https://getbootstrap.com/docs. ReUI and Aceternity
-   have no npm version to pin — their current docs page is the only source of truth.
+   https://ui.aceternity.com/components, https://getbootstrap.com/docs,
+   https://motion.dev/docs and https://gsap.com/docs for animation libraries. ReUI and
+   Aceternity have no npm version to pin — their current docs page is the only source of truth.
 6. Report findings as `path:line — problem — fix`, ordered by severity.
 7. Do not report formatting nits unless they change rendering behavior.
 8. Close with a coverage inventory and a self-refute pass: state `Checked: …` and

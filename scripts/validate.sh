@@ -208,6 +208,22 @@ for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/
   err "$f: chassis-shaped file has no generated header and no optout in .chassis.json (run scripts/generate.sh --write)"
 done
 
+# Chassis agent-file header gate: every plugins/*/.chassis.json worker-agent object
+# that declares an agentFile must have that EXACT file carry the generated header —
+# keyed on the declared path only, never a plugins/*/agents/*.md glob, so hand-shaped
+# reviewer agents next to migrated engineers (web-dev, ui-ux, devops) are untouched.
+for man in plugins/*/.chassis.json; do
+  [ -f "$man" ] || continue
+  pdir="$(dirname "$man")"
+  while IFS= read -r af; do
+    [ -n "$af" ] || continue
+    target="$pdir/$af"
+    [ -f "$target" ] || continue
+    grep -q 'generated from templates/worker-agent.md.tmpl' "$target" \
+      || err "$target: declared agentFile has no generated header (run scripts/generate.sh --write)"
+  done < <(jq -r '([.] | flatten) | .[] | select(.chassis=="worker-agent" and has("agentFile")) | .agentFile' "$man" 2>/dev/null)
+done
+
 # ---- W2-M2 governance gates ------------------------------------------------
 
 # Description-parity gate (hard): a plugin's marketplace.json .description must be

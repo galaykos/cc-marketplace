@@ -9,7 +9,7 @@ description: Use when writing or reviewing Vite config or a Vite-built app — V
   is what actually builds the app — a `^5.0` constraint permits 5.0 through 5.x; only
   the lock says which minor is present and which defaults ship.
 - The Node floor matters and CI must meet it: Vite 5 needs Node 18+; Vite 6
-  supports 18 / 20 / 22; Vite 7 dropped 18 and requires 20.19+ or 22.12+. Green
+  supports 18 / 20 / 22; Vite 7 and 8 drop 18 and require 20.19+ or 22.12+. Green
   locally on Node 22 and red in CI on Node 18 is a floor mismatch, not a bug.
 - Read `vite.config.{js,ts}` (and the mode-specific `.env` files it loads) before
   advising — half of this skill is config, and advice the config enforces is noise.
@@ -19,8 +19,7 @@ description: Use when writing or reviewing Vite config or a Vite-built app — V
 
 ## Per-version leverage (advise at or below the floor)
 
-Advising above the locked version is a finding. Keep these conservative; confirm
-boundaries against the docs.
+Advising above the locked version is a finding; confirm boundaries against the docs.
 
 - **Vite 5** — Rollup 4 under the hood; `build.target` defaults to a modern-JS
   baseline (`'modules'`); the CJS Node API is deprecated, so `require('vite')` from a
@@ -31,9 +30,12 @@ boundaries against the docs.
   internally — check the docs before relying on the old set.
 - **Vite 7** — requires Node 20.19+ / 22.12+; default `build.target` becomes
   `'baseline-widely-available'` (a higher floor than 5/6's `'modules'`), so a bundle
-  fine on 6 may need an explicit lower `target` for old browsers; Rolldown is opt-in
-  via `rolldown-vite`, not the default yet. Unsure which minor flipped a default?
-  State the capability and pin the check to https://vite.dev/.
+  fine on 6 may need an explicit lower `target` for old browsers; on 7 Rolldown is
+  still opt-in via `rolldown-vite`.
+- **Vite 8** (2026-03) — Rolldown replaces Rollup + esbuild as the single bundler
+  (Oxc transforms, Lightning CSS minify); `build.rollupOptions` is deprecated and
+  auto-converted (renamed `build.rolldownOptions`); ESM-only package; Node floor
+  unchanged from 7.
 
 ## Env security — client bundles are public
 
@@ -50,10 +52,10 @@ boundaries against the docs.
 
 ## Dep pre-bundling / optimizeDeps
 
-- On first dev start Vite pre-bundles deps with esbuild into ESM and caches them in
-  `node_modules/.vite` — why the first cold start is slow and later ones fast. A dep
-  found mid-session forces a re-bundle and full reload; that flash is the cost of a
-  late-discovered import, not a bug.
+- On first dev start Vite pre-bundles deps into ESM (esbuild through 7, Rolldown on
+  8) and caches them in `node_modules/.vite` — why the first cold start is slow and
+  later ones fast. A dep found mid-session forces a re-bundle and full reload; that
+  flash is the cost of a late-discovered import, not a bug.
 - `optimizeDeps.include` forces a linked / deep-imported / dynamically-imported dep
   into pre-bundling when the crawl misses it; `exclude` keeps an already-ESM dep out.
   `--force` (or deleting `.vite`) rebuilds the cache after a dependency change.
@@ -64,10 +66,10 @@ boundaries against the docs.
 
 - Dynamic `import()` at route boundaries is the primary split — each route becomes
   its own chunk loaded on navigation, so the initial payload stays small.
-- Shape vendor chunks with `build.rollupOptions.output.manualChunks` — one giant
-  vendor chunk means any dep change busts the whole cache; the function form groups
-  by package. Do not over-split: hundreds of tiny chunks cost request overhead.
-  Split by change-frequency, not by file count.
+- Shape vendor chunks with `build.rollupOptions.output.manualChunks` (Vite 8:
+  `rolldownOptions`; `manualChunks` deprecated for Rolldown `codeSplitting`) — one
+  giant vendor chunk means any dep change busts the whole cache; the function form
+  groups by package. Do not over-split: split by change-frequency, not file count.
 - `import.meta.glob('./routes/*.ts')` bulk-imports matches as lazy dynamic imports
   (a map of path → loader), each its own chunk; `{ eager: true }` inlines them into
   the main bundle when you need every module up front (accepting the bundle cost).
@@ -103,7 +105,7 @@ boundaries against the docs.
 
 ## build.target and browserslist
 
-- `build.target` sets the syntax floor esbuild transpiles down to — it must match
+- `build.target` sets the syntax floor the bundler (esbuild ≤7, Oxc on 8) transpiles down to — match
   the browsers you support. Vite does not read `.browserslistrc`; if the project
   uses browserslist elsewhere, keep `build.target` aligned by hand or the two
   disagree about what ships.
@@ -118,7 +120,7 @@ boundaries against the docs.
 ## Library mode
 
 - `build.lib` (entry + formats + name) builds a distributable, not an app. List
-  every peer/runtime dependency in `rollupOptions.external` so they are NOT bundled —
+  every peer/runtime dependency in `rollupOptions.external` (Vite 8: `rolldownOptions`) so they are NOT bundled —
   bundling React into a component library ships two copies and breaks hooks;
   externalize and let the consumer provide them.
 

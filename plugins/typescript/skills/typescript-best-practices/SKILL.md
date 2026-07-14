@@ -13,8 +13,13 @@ Version facts come from the lockfile, never from memory:
 - Feature floors that gate this skill's advice: `satisfies` 4.9; `const` type
   parameters, `verbatimModuleSyntax`, `moduleResolution: "bundler"` 5.0; `using`
   declarations 5.2; `NoInfer` 5.4; inferred type predicates on `.filter` 5.5;
-  `--erasableSyntaxOnly` 5.8. Recommend nothing above the lock; flag no
-  workaround the locked version has not yet killed.
+  `--erasableSyntaxOnly` 5.8; `import defer` and `--module node20` 5.9.
+  Recommend nothing above the lock; flag no workaround the locked version has
+  not yet killed.
+- 6.0 (2026-03) is the bridge release — the last JS-based compiler; defaults
+  tighten (`strict` on, floating `target`), `baseUrl` and `target: es5` are
+  deprecated, `--outFile` removed. 7.0 (2026-07) is the native Go port — ~10x
+  faster, type behavior identical to 6.0 — so the floors above still gate advice.
 - Read `tsconfig.json` (and its `extends` chain) before advising — half of this
   skill is compiler flags, and advice the config already enforces is noise.
 - The build tool matters: Vite/esbuild/swc strip types without checking, so
@@ -105,9 +110,9 @@ vars, form input, `JSON.parse`, localStorage, queue messages.
 
 - String literal unions (`type Status = 'active' | 'archived'`) or a `const`
   object cover the use cases. `enum` emits runtime code, so it breaks under
-  type-stripping runtimes (Node `--experimental-strip-types`) and is rejected by
-  `--erasableSyntaxOnly` (5.8); `const enum` is worse — it cannot survive
-  isolated per-file compilation.
+  type-stripping runtimes (Node 22.18+/24 run `.ts` directly by stripping types,
+  stable and flag-free) and is rejected by `--erasableSyntaxOnly` (5.8);
+  `const enum` is worse — it cannot survive isolated per-file compilation.
 - Need runtime values plus a type? `const Status = { Active: 'active' } as
   const; type Status = (typeof Status)[keyof typeof Status]`.
 

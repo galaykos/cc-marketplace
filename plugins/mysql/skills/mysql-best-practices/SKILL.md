@@ -1,6 +1,6 @@
 ---
 name: mysql-best-practices
-description: Use when writing or reviewing MySQL 8.0+ schemas, queries, or migrations — InnoDB clustered-PK design, utf8mb4 and collations, strict sql_mode, online DDL and metadata locks, gap locking, JSON usage limits, version leverage 8.0 to 8.4 LTS. Generic SQL rules live in the sql plugin; MariaDB is NOT MySQL — see the mariadb plugin.
+description: Use when writing or reviewing MySQL 8.0+ schemas, queries, or migrations — InnoDB clustered-PK design, utf8mb4 and collations, strict sql_mode, online DDL and metadata locks, gap locking, JSON usage limits, version leverage 8.0 through 8.4 and 9.7 LTS. Generic SQL rules live in the sql plugin; MariaDB is NOT MySQL — see the mariadb plugin.
 ---
 
 ## Know the version first
@@ -8,10 +8,12 @@ description: Use when writing or reviewing MySQL 8.0+ schemas, queries, or migra
 `SELECT VERSION();` when a connection exists; otherwise docker-compose/CI image
 tags, or the managed-service tier in infra config. Confirm it is MySQL and not
 MariaDB — same wire protocol, diverged engines; MySQL 8.x advice misapplies.
-Pin advice to the version: 8.0 is the floor here; 8.4 is the LTS line with
-changed defaults (`mysql_native_password` disabled — plan auth plugin migration);
-5.7-era advice (query cache tuning, utf8 tricks) is dead — the query cache was
-removed in 8.0.
+Pin advice to the version: 8.0 is the advice floor here but hit end of life in
+April 2026 — treat any 8.0 deployment as upgrade-pending; 8.4 and 9.7 are the
+LTS lines (`mysql_native_password` off by default in 8.4, removed in 9.0 — plan
+auth plugin migration); 9.x releases between LTSes are short-lived innovation
+releases. 5.7-era advice (query cache tuning, utf8 tricks) is dead — the query
+cache was removed in 8.0.
 
 ## InnoDB and primary key design
 
@@ -48,8 +50,12 @@ removed in 8.0.
   `ALTER TABLE ... ALGORITHM=INSTANT` for adding columns; multi-valued indexes
   over JSON arrays; `SELECT ... FOR UPDATE SKIP LOCKED` for job queues.
 - **8.4 LTS** — deprecations land: `mysql_native_password` off by default,
-  replication terminology and defaults updated. Target 8.4 for new deployments;
-  audit auth plugins and replication options when upgrading.
+  replication terminology and defaults updated; audit auth plugins and
+  replication options when upgrading.
+- **9.x innovation → 9.7 LTS** — `VECTOR` type (9.0); `mysql_native_password`
+  removed outright (9.0); JavaScript stored programs reach Community Edition
+  (9.7). Target an LTS — 8.4 or 9.7 — for new deployments, never an innovation
+  release.
 
 ## Locking realities
 

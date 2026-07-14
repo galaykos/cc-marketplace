@@ -1,6 +1,6 @@
 ---
 name: mariadb-best-practices
-description: Use when writing or reviewing MariaDB 10.6+ schemas, queries, or migrations — MariaDB-vs-MySQL divergences, RETURNING clauses, sequences, system-versioned tables, native UUID type, uca1400 collations, JSON-as-LONGTEXT reality, Galera multi-master awareness. Generic SQL rules live in the sql plugin; MySQL-specific rules in the mysql plugin.
+description: Use when writing or reviewing MariaDB 10.6+ schemas, queries, or migrations — MariaDB-vs-MySQL divergences, RETURNING clauses, sequences, system-versioned tables, native UUID type, vector search, uca1400 collations, JSON-as-LONGTEXT reality, Galera multi-master awareness. Generic SQL rules live in the sql plugin; MySQL-specific rules in the mysql plugin.
 ---
 
 ## MariaDB is not MySQL
@@ -28,21 +28,29 @@ Pin advice to the installed version; the useful floors:
   audit/history for free — query the past with `FOR SYSTEM_TIME AS OF`.
 - **10.5** — `INSERT ... RETURNING` and `DELETE ... RETURNING`: fetch generated
   ids or removed rows in one round trip instead of insert-then-select.
-- **10.6 (LTS baseline)** — `JSON_TABLE`; ignored indexes (test removal safely).
+- **10.6** — `JSON_TABLE`; ignored indexes (test removal safely). EOL July
+  2026 — treat remaining 10.6 deployments as upgrade-pending.
 - **10.7** — native `UUID` type: stores compactly, sorts sanely — use it instead
   of `CHAR(36)`; `INET4`/`INET6` types for addresses.
 - **10.8** — descending index support: `ORDER BY a ASC, b DESC` can finally be
   served by one index; before that, mixed-direction sorts filesort.
 - **10.10+ / 11.x** — uca1400 collations as the modern default; 11.x continues
   optimizer changes — re-verify hot plans after major upgrades.
-- **10.11 and 11.4** — the LTS anchors; pick an LTS floor for new deployments
-  and feature-gate against it, not against whatever the newest release added.
+- **11.7** — `UUID_v4()`/`UUID_v7()` functions; UUID_v7 gives time-ordered,
+  index-friendly values for the native UUID column type.
+- **11.8 LTS** — vector search GA: `VECTOR(N)` columns, `VECTOR INDEX` (HNSW),
+  and the `VEC_DISTANCE` family for similarity queries.
+- **LTS anchors** — 10.11, 11.4, 11.8, and 12.3 are the supported LTS lines
+  (yearly LTS cadence; from 12.x on, each series' x.3 release is the LTS and
+  the quarterly releases around it are short-lived rolling ones). Pick an LTS
+  floor for new deployments and feature-gate against it, not against whatever
+  the newest rolling release added.
 
 ## InnoDB fundamentals still apply
 
 - Clustered PK: rows stored in PK order, secondary indexes carry the PK — keep
-  PKs short and insert-ordered. With 10.7+, the native UUID type plus UUIDv7-style
-  generation (or sequences) avoids the random-PK page-split tax.
+  PKs short and insert-ordered. The native UUID type (10.7+) filled with
+  `UUID_v7()` (11.7+) — or sequences — avoids the random-PK page-split tax.
 - Index every FK; join columns must match type AND collation — mixing an old
   `utf8mb4_general_ci` table with a new uca1400 one silently kills join indexes.
 - `ALTER TABLE` supports instant/inplace algorithms for many operations — state

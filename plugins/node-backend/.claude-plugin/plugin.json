@@ -1,0 +1,13 @@
+{
+  "name": "node-backend",
+  "version": "0.1.1",
+  "description": "Server-side Node.js best practices for Express 5, NestJS 11, and Fastify 5: middleware vs DI vs plugin-encapsulation architecture, async error propagation, validation at the boundary (zod, class-validator, JSON Schema), streaming and backpressure, graceful shutdown, config/env discipline, per-framework footguns.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "backend",
+    "review"
+  ]
+}

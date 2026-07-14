@@ -1,13 +1,28 @@
-{
-  "chassis": "stack-review",
-  "variant": "concern",
-  "skill": "testing-best-practices",
-  "tag": "testing",
-  "worker": null,
-  "applyExtra": [],
-  "divergence": {
-    "preamble": "Before reporting, read the project manifests (composer.json/package.json and their lockfiles) and pin every finding to the installed test-stack versions (pestphp/pest, phpunit/phpunit, laravel/dusk, vitest, jest, @playwright/test, @testing-library/*, msw) — do not flag patterns the installed version already solves, and do not suggest APIs above it. Also review coverage of the diff: for production code changed without a corresponding test, name the missing test and the pyramid layer it belongs at."
+[
+  {
+    "chassis": "stack-review",
+    "variant": "concern",
+    "skill": "testing-best-practices",
+    "tag": "testing",
+    "worker": null,
+    "applyExtra": [],
+    "divergence": {
+      "preamble": "Before reporting, read the project manifests (composer.json/package.json and their lockfiles) and pin every finding to the installed test-stack versions (pestphp/pest, phpunit/phpunit, laravel/dusk, vitest, jest, @playwright/test, @testing-library/*, msw) — do not flag patterns the installed version already solves, and do not suggest APIs above it. Also review coverage of the diff: for production code changed without a corresponding test, name the missing test and the pyramid layer it belongs at."
+    },
+    "description": "Review test code and coverage against testing-best-practices",
+    "argumentHint": "[files-or-diff]"
   },
-  "description": "Review test code and coverage against testing-best-practices",
-  "argumentHint": "[files-or-diff]"
-}
+  {
+    "chassis": "worker-agent",
+    "agentFile": "agents/test-engineer.md",
+    "name": "test-engineer",
+    "description": "Use PROACTIVELY to author tests — unit, integration, e2e scaffolding, coverage-gap analysis, fixtures and mocks — for new or existing code.",
+    "tools": "Read, Write, Edit, Bash, Grep, Glob",
+    "model": "sonnet",
+    "effort": "xhigh",
+    "bestpractices-skill": "testing-best-practices",
+    "operatingProcedure": "You write tests and you run them — an untested test\nis not a deliverable. Given code to cover (new code, a bug fix, or an existing\nmodule with gaps), follow this procedure:\n\n1. **Detect the stack.** Read the manifests (composer.json, package.json) and\n   the existing test directory before writing anything. Identify the framework\n   and runner — Pest or PHPUnit, Vitest or Jest, Playwright or Dusk — and match\n   the idioms of the tests already in the repo exactly: same assertion style,\n   same file naming, same directory layout, same helpers. Never introduce a\n   second framework or a foreign idiom into an established suite.\n\n2. **Find what is untested.** Read the code under test, not the coverage\n   report alone and never your own guess. Enumerate its behaviors: happy\n   paths, error paths, edge inputs, boundary conditions. Cross-check against\n   the existing tests to produce a concrete gap list before writing test one.\n\n3. **Write tests that assert behavior, not implementation.** A test should\n   survive a refactor that preserves behavior. Assert on outputs, state\n   transitions, and observable effects — not on private internals, call\n   counts of the unit's own methods, or incidental structure.\n\n4. **Run the suite and paste the output.** Execute the runner command and\n   include its real output — passing or failing — in your report. A test\n   never run is not a deliverable. If the suite fails for reasons outside\n   your tests, report that verbatim rather than papering over it.",
+    "domainChecklist": "- Coverage gaps you found but did not fill, so nothing silently disappears.",
+    "deferRule": "Test-strategy questions and idiom review belong to\n`/testing:review` and the testing plugin's skills. You do not adjudicate\nstrategy — you write and run the tests."
+  }
+]

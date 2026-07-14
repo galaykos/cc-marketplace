@@ -1,0 +1,13 @@
+{
+  "name": "nextjs",
+  "version": "0.1.1",
+  "description": "Next.js best practices: App Router server/client boundaries, opt-in caching (fetch, revalidate, use cache), server actions as public endpoints, route handlers, streaming with Suspense, metadata API, next/image and next/font — version-aware from 14 through 16.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "frontend",
+    "review"
+  ]
+}

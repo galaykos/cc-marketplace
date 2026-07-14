@@ -9,8 +9,8 @@ This is VANILLA JavaScript, not TypeScript — no compiler catches the mistakes 
 
 - `package.json` `engines.node` is the runtime floor for server code — advise
   nothing above it, flag nothing it solves. Absent it, `.nvmrc`/`.tool-versions`
-  is the next signal; the lockfile records what actually resolved (a `^18`
-  constraint says nothing about whether a Node 20 API is present).
+  is the next signal; the lockfile records what actually resolved (a `^20`
+  constraint says nothing about whether a Node 22 API is present).
 - `browserslist` (package.json or `.browserslistrc`) is a SEPARATE floor for
   browser code — its oldest target, not Node, gates what syntax survives without
   transpilation. Node runtime and browser targets are different floors; advise
@@ -27,13 +27,15 @@ finding, using the feature below the floor is a bug:
 
 - **ES2020** — optional chaining `a?.b`, nullish `??`, `import.meta`, `BigInt`,
   `Promise.allSettled`, `globalThis` — replaces `a && a.b` ladders and `0`/`''`-swallowing `||`-defaults.
-- **ES2021** — `String.prototype.replaceAll`, logical-assignment `??=`/`||=`/`&&=`,
-  numeric separators (`1_000_000`), `Promise.any`.
+- **ES2021** — `replaceAll`, logical assignment `??=`/`||=`/`&&=`, numeric separators, `Promise.any`.
 - **ES2022** — top-level `await`, `.at(-1)`, `Object.hasOwn` (over
   `hasOwnProperty.call`), Error `cause`, class fields and true private `#members`.
-- **ES2023** — immutable-copy `toSorted`/`toReversed`/`toSpliced`/`with` (never
-  mutate in place again), `findLast`/`findLastIndex`.
-- **ES2024** — `Object.groupBy`, `Promise.withResolvers`, `Array.fromAsync`.
+- **ES2023** — immutable-copy `toSorted`/`toReversed`/`toSpliced`/`with`, `findLast`/`findLastIndex`.
+- **ES2024** — `Object.groupBy`/`Map.groupBy`, `Promise.withResolvers`, the regex `/v` flag.
+- **ES2025** — iterator helpers (lazy `.map`/`.filter`/`.take` on iterators), Set
+  methods (`union`/`intersection`), `RegExp.escape`, `Promise.try`, JSON modules, `Float16Array`.
+- **ES2026** — `Array.fromAsync` (async-iterable → array), `Error.isError`,
+  `Math.sumPrecise`, `Uint8Array` base64/hex codecs.
 - `structuredClone(value)` (Node 17+, modern browsers) is the deep-clone answer,
   replacing `JSON.parse(JSON.stringify(...))` which drops `Date`/`Map`/`undefined`.
 
@@ -146,8 +148,7 @@ const results = await Promise.all(ids.map(fetchOne));   // good — concurrent
 ## Verify Against Current Docs
 
 Language features land at different Node and browser versions, and APIs like
-`structuredClone`, `Object.groupBy`, `Array.fromAsync`, and the ES2023 immutable
-array methods are version-sensitive. Before relying on memory, check
-https://developer.mozilla.org/en-US/docs/Web/JavaScript (and https://nodejs.org/docs
-for runtime APIs), tying every version-sensitive call to the actual
-`engines`/`browserslist` floor and the lockfile.
+`structuredClone`, iterator helpers, and `Array.fromAsync` are version-sensitive.
+Before relying on memory, check https://developer.mozilla.org/en-US/docs/Web/JavaScript
+(and https://nodejs.org/docs for runtime APIs), tying every version-sensitive call
+to the actual `engines`/`browserslist` floor and the lockfile.

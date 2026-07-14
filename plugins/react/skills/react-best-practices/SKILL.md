@@ -59,7 +59,9 @@ object/array/function literals passed as props defeat it unless memoized upstrea
 
 They're noise around cheap calculations or fast components — the bookkeeping cost is paid every
 render, but the payoff only exists if profiling shows a re-render was actually slow. Add
-memoization after measuring, not by default.
+memoization after measuring, not by default. With React Compiler enabled (stable 1.0 since
+Oct 2025, works with React 17+), components and hooks are auto-memoized: write plain code, keep
+manual memo only as an escape hatch, and don't mass-delete existing memoization without testing.
 
 ```jsx
 // Noise: trivial computation, memo overhead exceeds the work saved
