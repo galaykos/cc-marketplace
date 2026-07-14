@@ -94,7 +94,7 @@ Print one table:
 - Evidence cites file and dependency (e.g. `composer.json: laravel/framework
   ^11`); tier-2 rows just say "universal".
 - Installed column: ✓ when `claude plugin list` shows it, — otherwise.
-- Exclude plugin-scout itself and the bundles everything and taskmaster-suite
+- Exclude plugin-scout itself and every bundle (everything and all `*-suite`)
   from the table.
 - When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite
   installs the universal set as one bundle, if picking individually feels slow.

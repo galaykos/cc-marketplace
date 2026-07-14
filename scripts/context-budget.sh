@@ -21,6 +21,8 @@ plugin_desc_bytes() {
     [ -f "$f" ] || continue
     desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
       | sed -n 's/^description:[[:space:]]*//p')
+    # single-line description: values only — validate.sh's frontmatter gates keep
+    # descriptions on one line; a YAML block scalar would undercount here
     bytes=$(printf '%s' "$desc" | wc -c | tr -d ' ')
     total=$((total + bytes))
   done
@@ -72,8 +74,8 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   [ -n "$nb_tmp" ] && new_baseline="$nb_tmp"
 done
 
-[ "$no_baseline" -eq 1 ] && echo "WARN: no baseline"
-[ -n "$warn_lines" ] && printf '%s' "$warn_lines"
+[ "$no_baseline" -eq 1 ] && echo "WARN: no baseline" >&2
+[ -n "$warn_lines" ] && printf '%s' "$warn_lines" >&2
 
 if [ "$update" -eq 1 ]; then
   printf '%s\n' "$new_baseline" | jq '.' > "$BASELINE" 2>/dev/null

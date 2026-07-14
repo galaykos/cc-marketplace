@@ -1,7 +1,9 @@
 # Authoring a shell mockup
 
 How to fill `assets/shell.html` once it is copied to
-`taskmaster-docs/mockups/YYYY-MM-DD-<topic>.html`. Read by
+`taskmaster-docs/mockups/YYYY-MM-DD-<topic>.html` (the dated ledger file —
+each authored pass is then copied over `current.html`, the single file the
+user's preview tab watches; see the SKILL's Preview section). Read by
 `visual-decisions/SKILL.md` before the first authored pass; the shell itself
 carries all the polish (header, frames, compare modes, auto-reload) — never
 restyle it, only fill its slots and content.

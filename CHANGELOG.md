@@ -4,6 +4,18 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.49.1] - 2026-07-14
+
+### Changed
+
+- Preview-server doc sweep: ui-ux 0.7.5 (shadcn-theming now documents the
+  serve.py-first chain with localhost-bound static fallbacks) and
+  design-preview 0.1.2 (port registry names serve.py as the preferred first
+  rung). taskmaster 0.24.1 clarifies dated-ledger-file → `current.html` copy in
+  shell-authoring. plugin-scout 0.2.1 aligns the report-exclusion wording with
+  the tier-2 rule (all bundles, not just two). `context-budget.sh` WARNs now go
+  to stderr and the single-line description assumption is documented.
+
 ## [0.49.0] - 2026-07-14
 
 ### Added

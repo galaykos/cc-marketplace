@@ -72,12 +72,14 @@ as variable names:
    alert, badges, a chart-color strip — light and dark rendered SIDE BY SIDE
    (two panels, `.dark` on one).
 2. Serve it on the shared preview server: reuse a live `${PREVIEW_PORT:-8123}`
-   server (`lsof -ti :${PREVIEW_PORT:-8123}`), else start
-   `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups` in
-   the background (normalized fallback chain: no python3 →
-   `php -S 0.0.0.0:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
-   `npx serve taskmaster-docs/mockups`) — the stable URL is
-   `http://localhost:${PREVIEW_PORT:-8123}/theme.html`.
+   server (`lsof -ti :${PREVIEW_PORT:-8123}`) — when the taskmaster plugin is
+   installed, its visual-decisions `assets/serve.py` is the preferred first
+   start (adds SSE push-reload; static rungs below degrade to polling). Else
+   start `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups`
+   in the background (no python3 →
+   `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
+   `npx serve -l tcp://127.0.0.1:${PREVIEW_PORT:-8123} taskmaster-docs/mockups`) —
+   the stable URL is `http://localhost:${PREVIEW_PORT:-8123}/theme.html`.
 3. Embed the body-compare auto-reload snippet from the taskmaster plugin's
    visual-decisions skill (poll → fetch → reload on change); with it, every
    regeneration appears in the open tab — the URL never changes.
