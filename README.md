@@ -45,7 +45,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
 | `everything` | 77 | ~14k tokens |
-| `taskmaster-suite` | 38 | ~9.3k tokens |
+| `taskmaster-suite` | 37 | ~8.5k tokens |
 | `process-suite` | 14 | ~2.8k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
 | `frontend-suite` | 15 | ~2.6k tokens |
@@ -58,8 +58,8 @@ plugin adds to each session's context window (chars/4 estimate).
 
 ```bash
 # Full taskmaster workflow + every stack-agnostic plugin (task pipeline,
-# engineering discipline, worker agents; includes ui-ux's per-stack UI
-# skills). No language/framework/dialect plugins.
+# engineering discipline, worker agents). No language/framework/dialect
+# plugins.
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
@@ -205,7 +205,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
-| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, worker agents; includes ui-ux's per-stack UI skills) — no language/framework/dialect plugins | `/taskmaster-suite:uninstall` |
+| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, worker agents) — no language/framework/dialect plugins | `/taskmaster-suite:uninstall` |
 | **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, web worker, a11y | `/frontend-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |

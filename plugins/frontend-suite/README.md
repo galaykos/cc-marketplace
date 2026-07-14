@@ -1,7 +1,7 @@
 # frontend-suite
 
 Meta-bundle: the frontend category in one install — UI/UX stacks, React,
-React Native, Vue 2/3, JavaScript, TypeScript, Vite, Inertia, Livewire, the
+React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Inertia, Livewire, the
 generalist web worker, real-component visual decisions, greenfield shadcn
 staging, and accessibility auditing. Uninstalls cleanly:
 `/frontend-suite:uninstall` removes the bundle and prunes the plugins it
@@ -46,6 +46,11 @@ legacy-app maintenance: `/plugin install vue2@cc-plugins-marketplace`.
   interactive component variants, via `/shadcn-studio:stage`
 - **a11y** — WCAG 2.1 AA audit with a concrete fix per violation, via
   `/a11y:audit`
+- **nextjs** — App Router server/client boundaries, opt-in caching, server
+  actions, route handlers, streaming, metadata API, plus `/nextjs:review`
+- **nuxt** — Nitro server routes, hybrid rendering route rules,
+  useFetch/useAsyncData, SSR-safe state, auto-imports discipline, plus
+  `/nuxt:review`
 
 | Command | What it does |
 |---------|--------------|

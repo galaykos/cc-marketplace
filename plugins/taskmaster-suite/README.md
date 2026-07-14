@@ -2,7 +2,7 @@
 
 Meta-bundle: the full clarification-to-execution workflow plus every
 stack-agnostic capability — taskmaster planning, task-runner execution,
-engineering discipline, UI/UX, and the worker agents. No framework- or
+engineering discipline, and the worker agents. No framework- or
 dialect-specific plugins. Uninstalls cleanly: `/taskmaster-suite:uninstall`
 removes the bundle and prunes the plugins it auto-installed.
 
@@ -30,7 +30,6 @@ removes the bundle and prunes the plugins it auto-installed.
 - **api-docs-first** — checks current API docs back the integration code
 - **sql** — engine-agnostic SQL discipline and review
 - **dev-env** — docker-compose generation and Docker best-practice audits
-- **ui-ux** — component build, review, and theming across CSS/component stacks
 - **web-dev** — generalist web-developer worker and frontend-reviewer agents
 - **system-design** — system design and domain-modeling review
 - **devops** — CI/CD, Kubernetes, and deploy/secret config review
@@ -61,5 +60,5 @@ removes the bundle and prunes the plugins it auto-installed.
 ## Pairs well with
 
 - **php-suite** — PHP/Laravel/Livewire/Inertia stack specifics the bundle leaves out
-- **frontend-suite** — React/Vue/TS framework specifics on top of the agnostic UI layer
+- **frontend-suite** — React/Vue/TS framework specifics and ui-ux's per-stack UI skills, both left out of this bundle
 - **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

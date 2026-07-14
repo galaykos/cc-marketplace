@@ -4,6 +4,46 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.48.0] - 2026-07-14
+
+### Changed
+
+- **taskmaster-suite 0.10.0**: drops `ui-ux` (38→37 dependencies, ~9.3k→~8.5k
+  always-on tokens) per the 2026-07-14 suite cost review — the bundle is now
+  genuinely stack-agnostic and its "No framework- or dialect-specific plugins"
+  claim holds. UI-tagged task cards fall back to the generic executor; the
+  ui-ux reviewer pass is skipped unless ui-ux is installed (it remains a leaf
+  plugin and a member of `everything` and `frontend-suite`).
+  **Migration note**: existing taskmaster-suite installs keep ui-ux on disk —
+  removing it from the dependency list does not uninstall it, and a later
+  `--prune` will not remove it either; uninstall manually if unwanted.
+- frontend-suite 0.4.3: README catches up with membership — `nextjs`/`nuxt`
+  in the opening line and bullet list, stale "Vue 2/3" wording removed.
+- process-suite 0.2.2 / quality-suite 0.2.2: descriptions now name their
+  member plugins `intent-guard` / `secret-scanning`.
+
+### Added
+
+- **plugin-scout 0.2.0**: five new tier-1 detection signals (`nextjs`, `nuxt`,
+  `node-backend` via express/fastify/@nestjs/core, `vite`, `javascript`) —
+  these stop being suggested as "universal" in every project. Two new flags on
+  `/plugin-scout:suggest`: `--yes` auto-installs tier-1 signal-backed picks
+  only (install picker skipped; marketplace-add trust prompt preserved;
+  ambiguous signals install nothing; tier-2 never auto-installs; note:
+  auto-installed plugins may ship hooks). `--persist` writes the set installed
+  this run into the project's committed `.claude/settings.json`
+  (`enabledPlugins` + `extraKnownMarketplaces`, jq-merged, create-if-missing,
+  abort on invalid JSON) and prints a notice that committing it auto-installs
+  for anyone who clones and accepts the trust prompt. Full semantics:
+  `plugins/plugin-scout/skills/plugin-scout/references/flags.md`.
+- **Report-only context-budget gate**: `scripts/context-budget.sh` prints each
+  bundle's always-on description-token surface (chars/4) versus the committed
+  `scripts/context-budget-baseline.json` at the end of every `validate.sh`
+  run, WARNing on growth without ever failing the build
+  (`--update-baseline` refreshes). Baseline seeded from this release's
+  post-change state, so this wave's own growth is recorded here rather than
+  as WARNs.
+
 ## [0.47.1] - 2026-07-14
 
 ### Changed

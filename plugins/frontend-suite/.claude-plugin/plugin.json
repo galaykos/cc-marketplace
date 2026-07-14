@@ -1,6 +1,6 @@
 {
   "name": "frontend-suite",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
