@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "vue3-best-practices",
+  "docsUrl": "https://vuejs.org",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review vue3 code against vue3-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

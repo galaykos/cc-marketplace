@@ -1,6 +1,14 @@
 {
   "name": "data-privacy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Regulatory data-handling (GDPR/CCPA): PII classification and data mapping, data-subject rights (access, erasure, portability) with reach across logs/caches/backups/processors, consent and lawful basis, retention and deletion policies, minimization, pseudonymization, and audit trails — a firing data-privacy skill and a /data-privacy:review command. The compliance layer above code-level security review.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "security",
+    "governance",
+    "review"
+  ]
 }

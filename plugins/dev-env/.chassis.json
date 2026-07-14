@@ -1,0 +1,18 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "docker-best-practices",
+  "tag": "devops",
+  "worker": null,
+  "applyExtra": [
+    {
+      "label": "Skip — audit only, no writes",
+      "description": "Preserves dev-env's original safety guarantee: never write Dockerfile/compose changes unprompted — only ever apply exactly the diffs already shown."
+    }
+  ],
+  "divergence": {
+    "preamble": "Before reporting, read the project manifests (composer.json, package.json, .env.example) and pin findings to the actual stack — flag image tags that contradict the manifests' version floors, `ext-*` requires missing from the extension install lines, and services with no evidence in the code (cross-check against the compose-init skill's service derivation table). Verify EOL claims against endoflife.date rather than memory."
+  },
+  "description": "Audit existing Dockerfile and docker-compose files against docker-best-practices",
+  "argumentHint": "[files-or-path]"
+}

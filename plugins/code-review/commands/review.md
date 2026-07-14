@@ -10,6 +10,12 @@ Review the code change in $ARGUMENTS. Resolve scope in this order:
    (`git diff $(git merge-base HEAD origin/HEAD 2>/dev/null || echo HEAD~1)`).
 4. Nothing to review — say so and stop.
 
+Triage before the deep read: a trivial, single-file, or purely mechanical change
+earns a one-line verdict — state it and stop. Take the full pass below when the change
+touches correctness-sensitive code (auth, data, migrations, concurrency), OR spans
+more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
+changed).
+
 Then:
 
 1. Read every changed hunk plus enough surrounding code to judge behavior —
@@ -31,8 +37,15 @@ Output rules:
   /code-architecture:yagni or the architecture-reviewer agent; security-deep
   issues → /security:review; stack-idiom detail → the matching per-framework
   review command when that plugin is installed.
-- Close with a one-line verdict: merge-ready, merge-after-blockers, or rework.
 
-After the verdict, if blocker or major findings exist, ask via
-AskUserQuestion: "Fix the blockers now (Recommended)" / "Skip — review
-only". Headless: verdict only.
+Before the verdict, state the coverage: `Checked: …` and `Not checked: … (why)` so it
+is explicit what was covered, what was clean, and what was skipped — not only what
+broke. Then run one adversarial self-refute pass over every `blocker` finding; if a
+finding does not survive it, drop or downgrade it with a note.
+
+Close with a one-line verdict: merge-ready, merge-after-blockers, or rework.
+
+After the verdict, if findings exist, offer the next step as a selectable choice
+(AskUserQuestion): "Fix all findings" / "Fix blockers only" / "Report only". On an
+apply pick, apply the chosen findings rather than making the user retype them.
+Headless: verdict only.

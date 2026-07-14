@@ -4,16 +4,22 @@
 # in $cwd/.claude/task-runner/scope.json, this warns (non-blocking) if an Edit/Write
 # landed OUTSIDE that set — the "touch only files the task lists" discipline made
 # mechanical. No scope file → no-op (the discipline is opt-in per run). Fail-open.
+#
+# fd 3 = the caller's real stderr, saved before the block so the two fail-open
+# warnings below (D7: missing jq / malformed scope.json) reach stderr — the block's
+# `2>/dev/null` is there only to silence incidental jq/grep noise and would eat a
+# plain `>&2` warning.
+exec 3>&2
 {
   input=$(cat)
-  command -v jq >/dev/null 2>&1 || exit 0
+  command -v jq >/dev/null 2>&1 || { echo "task-runner scope-lock: jq not found — scope not enforced this call" >&3; exit 0; }
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -n "$file" ] || exit 0
 
   scope="$cwd/.claude/task-runner/scope.json"
   [ -r "$scope" ] || exit 0
-  jq empty "$scope" 2>/dev/null || exit 0
+  jq empty "$scope" 2>/dev/null || { echo "task-runner scope-lock: scope.json is malformed — scope not enforced this call" >&3; exit 0; }
 
   # Normalize the edited path to repo-relative for comparison.
   rel="$file"; case "$file" in "$cwd"/*) rel="${file#"$cwd"/}" ;; esac

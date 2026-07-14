@@ -4,6 +4,214 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.46.0] - 2026-07-14
+
+### Added
+
+- README.md for all 31 plugins that shipped without one (a11y, api-docs-first,
+  approaches, automations-suite, build-vs-buy, claude-authoring, code-review,
+  concurrency, database, db-suite, decision-records, design-patterns, devops,
+  docs-upkeep, error-handling, estimation, everything, frontend-suite,
+  observability, orchestration, packages, performance, php-suite, process-suite,
+  quality-suite, resilience, retrospective, rollout, system-design,
+  taskmaster-suite, web-dev) — every command/skill/agent/hook claim grounded in
+  the plugin's actual files; bundle READMEs list their dependencies and
+  uninstall command.
+
+### Changed
+
+- validate.sh README-presence gate flipped from warn-only to hard-fail: a
+  plugin without a README.md now fails CI.
+- vue2 marked EOL in both description surfaces (legacy-maintenance only) and
+  dropped from frontend-suite's bundle (vue3 stays; vue2 remains installable
+  standalone). plugin-scout catalog regenerated.
+- CHANGELOG 0.44.0 entry now credits the two plugins that landed in its window
+  (reuse-guard, compaction-advisor); compaction-advisor reset.sh comment updated
+  to the remind.sh name; visual-decisions SKILL compressed to 146/150 lines for
+  headroom.
+
+## [0.45.0] - 2026-07-14
+
+Marketplace hardening wave 2. Description/dependency/version rot is now CI-impossible,
+the opt-out review payload reaches 6 more reviews, the navigator family is stamped as
+the 5th chassis, a machine-readable keywords taxonomy covers all 82 plugins, and the
+preview surface is unified behind one wired port convention.
+
+### Added
+
+- **governance gates** (hard-fail unless noted): description-parity (every plugin's
+  marketplace.json `.description` == its plugin.json), rules.tsv skill-token
+  resolution, all-bundle dependency resolution across the 8 bundles, strict
+  semver-increase on version bumps, CHANGELOG-parity (CHANGELOG top entry ==
+  marketplace `metadata.version`), README-presence (warn-only), and a new
+  `scripts/smoke/hook-syntax-tests.sh` (`bash -n` over `plugins/*/hooks/*.sh`,
+  `scripts/*.sh`, `scripts/smoke/*.sh`, `scripts/lib/*.sh`). CHANGELOG 0.37.0–0.43.0
+  skeletons backfilled; a manual `git tag v<version> && git push --tags` release step
+  documented; `canary.sh`/`guard-tests.sh` disposition recorded.
+- **navigator chassis** (5th chassis): `templates/navigator-check.md.tmpl` plus
+  `docs-unreachable` and `proceed-closer` blocks, a `render_navigator()` arm in
+  `scripts/generate.sh`, and a `navigator.json` smoke case. The 5 navigator plugins
+  (adspower, camoufox, kameleo, playwright, puppeteer) now stamp `commands/check.md`
+  from their `.chassis.json`; the header gate covers `commands/check.md` and the
+  hand-authored check.md owners carry optout coverage.
+- **keywords[] taxonomy**: a controlled vocab in `scripts/taxonomy.txt`, a validated
+  `keywords` array on all 82 plugin.json (hard gate: present, non-empty, ⊆ vocab), and
+  a generated plugin-scout catalog (`references/catalog.md`) replacing the
+  hand-maintained universal-set enumeration.
+- **shadcn-studio Node floor**: `engines: {"node": ">=20.19"}` in the template's
+  `package.json` — the real Vite 8 floor, now mechanically verifiable.
+
+### Changed
+
+- **6 opt-out reviews** (code-review, performance, api-design, ui-ux, security,
+  system-design) adopt the triage gate + coverage closer in each command's native
+  vocab, with apply-lane options reworded per command; orchestration stays a permanent
+  opt-out. Paired reviewer agents untouched.
+- **preview unification**: every shared static-mockup server command is wired to
+  `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups` with a
+  normalized php/npx fallback chain; shadcn-studio's Vite port becomes
+  `Number(process.env.PREVIEW_PORT) || 8124`; all four `:8123` mockup producers plus
+  their consumers move to `taskmaster-docs/mockups/`; the design-preview README carries
+  the full consumer registry. shadcn-studio's Node-floor prose corrected from 18 to
+  20.19.
+- **navigator regeneration** normalizes the docs-unreachable wording and proceed verb;
+  the `anti-?detect` alternation is dropped from the 3 product navigators' reminder
+  regexes (automation-builder keeps the generic term) and their `remind.sh` hooks are
+  regenerated.
+- **scope-lock** (`scope.sh`) now emits loud stderr warnings — still exit 0 — on
+  missing `jq` and malformed `scope.json`; all other exit-0 paths stay silent.
+
+### Fixed
+
+- **skill-router phantom skill**: the non-existent `ui-ux-stack` target removed from
+  rules.tsv / prime.sh / route.sh, locked by the resolution gate.
+- **discovery & prose drift**: intent-guard and compaction-advisor marketplace
+  descriptions reconciled to their plugin.json; laravel drops the stale "sql" claim
+  from both surfaces; opinion-lens prose aligned to its sonnet pin; ui-ux-engineer's
+  visual-verification claim reworded to code inspection.
+- **ADR path retarget**: all eight `taskmaster-docs/adr` references across
+  decision-records retargeted to `docs/adr`.
+- **hooks & guards**: compaction-advisor `nudge.sh` renamed to `remind.sh` (bespoke
+  turn-counter, optout-marked); reuse-guard `scan.sh` early-exits on files > 200 KB;
+  the database guard gains lock-hazard detection for non-`CONCURRENTLY` index creation
+  and rewrite-ALTERs.
+
+## [0.44.0] - 2026-07-13
+
+Fable review engine + deterministic chassis generators. Per-plugin `.chassis.json`
+manifests + `templates/` + `scripts/generate.sh` stamp full standalone copies of the
+templated review/uninstall/reminder cohort, and a CI regenerate-and-diff `--check` gate
+makes chassis drift impossible — a hand-edit of any generated file now fails CI.
+
+### Added
+
+- **chassis system**: `scripts/generate.sh` (bash+jq template stamper) + `templates/`
+  (review-command, suite-uninstall, reminder-hook, worker-agent) + per-plugin
+  `.chassis.json` manifests. `--write` stamps and patch-bumps each changed plugin once;
+  `--check` byte-diffs regenerated output against the tree and exits non-zero on any
+  drift (content or hook mode bit), and validates that every stamped dispatch chain
+  resolves to a real worker agent. Wired into CI as an **enforcing** gate (was
+  report-only) alongside new `scripts/smoke/template-engine-tests.sh`,
+  `chassis-template-tests.sh`, and `hook-guard-tests.sh`. `scripts/validate.sh` gains a
+  generated-header gate: every chassis-shaped file (`commands/review.md`,
+  `commands/uninstall.md`, `hooks/remind.sh`) must carry the stamp or declare an
+  `optout` manifest entry.
+
+- **reuse-guard plugin** (new, landed in the 0.44.0 window, `cdc371f`): warn-only
+  two-tier reuse-hygiene guard — a PostToolUse hook flags edits that build on
+  deprecated/dead symbols.
+- **compaction-advisor plugin** (new, landed in the 0.44.0 window, `b82efeb`):
+  advice-only /compact nudge — a UserPromptSubmit turn-counter prints one line
+  every 50 turns; never runs /compact itself.
+
+### Changed
+
+- **30 stamped review commands** now carry the unified Fable payload — four blocks: a
+  **triage** gate (trivial/single-file/mechanical → one-line verdict; risky → deep
+  pass), **evidence tiers** (`CONFIRMED`/`PLAUSIBLE`, format `locator — severity —
+  [tier] problem — fix`, severity-sorted), a **coverage closer** (`Checked: … / Not
+  checked: … (why)`) with one adversarial **self-refute** pass per critical finding,
+  and an **apply-lane** offering **Apply all / Apply critical+high only / Report only**
+  that dispatches the finding list down a static stamped chain
+  (`<worker> → task-runner:task-executor if installed → inline`). Headless runs report
+  only and print the apply command. postgresql/sql/mysql/mariadb keep their
+  engine-version preambles; sql keeps its engine-handoff extra apply option; dev-env
+  keeps its audit-only safety option.
+- **api-docs-first**: reminder regex narrowed to
+  `\b(sdk|endpoint|integrat\w*|webhook|oauth|graphql)\b` — the bare `api` and `restful`
+  triggers are dropped, eliminating false reminders on unrelated prompts.
+- **approaches**, **build-vs-buy**: keyword-reminder hook renamed `nudge.sh` →
+  `remind.sh` and normalized to the shared reminder-hook shape (shebang line 1,
+  generated header line 2, slash+empty+jq fail-open guards, one keyword-matched
+  message). compaction-advisor's turn-counter `nudge.sh` is a different shape and stays
+  untouched.
+- **11 reminder hooks** (adspower, api-docs-first, automation-builder, camoufox,
+  kameleo, meta-api, playwright, puppeteer, taskmaster, approaches, build-vs-buy) are
+  stamped from one template with messages normalized to the template shape; taskmaster
+  keeps its thin-prompt guard via `extraGuard`.
+- **8 suite uninstalls** stamped identical modulo the bundle parameter; the
+  taskmaster-suite divergence is gone.
+- **observability** (observability-engineer), **a11y** (a11y-engineer): the two worker
+  agents are regenerated with skill-pointer bodies (the restated checklist replaced by
+  a pointer to the best-practice skill) plus a three-strikes kill-trigger; exact
+  name/filename/tools/model/bestpractices-skill preserved so the routing/crew sync gates
+  stay green.
+- **laravel** 0.3.2: backend-engineer's "route their fixes to" claim corrected — the
+  php and laravel review commands route fixes to backend-engineer; sql routes to
+  database-engineer.
+
+## [0.43.0] - 2026-07-11
+
+### Added
+
+- **ultra-deep-research**: new deep-research harness plugin; **intent-guard**:
+  mid-run intent-vs-action attestation plugin; Phase 6 enforcement hooks
+  (secret-scanning, destructive-SQL guard, scope-lock, build-vs-buy); Phase 7
+  domain plugins (event-driven, payments, api-auth, data-privacy) with a
+  threat-modeling skill. (Backfilled skeleton — see git log around this bump.)
+
+## [0.42.0] - 2026-07-09
+
+### Changed
+
+- Richer serves/trades/breaks option rationale in the visual-decisions passes
+  (Piece 5/5). (Backfilled skeleton.)
+
+## [0.41.0] - 2026-07-09
+
+### Changed
+
+- **taskmaster**: the durable visual contract is carried into the spec and cards
+  (Piece 4/5). (Backfilled skeleton.)
+
+## [0.40.0] - 2026-07-09
+
+### Changed
+
+- **shadcn-studio**: staging lanes, depth matrix, and dataviz (Piece 3/5).
+  (Backfilled skeleton.)
+
+## [0.39.0] - 2026-07-09
+
+### Changed
+
+- **taskmaster**: always-on staging area in brainstorm (Piece 2/5). (Backfilled
+  skeleton.)
+
+## [0.38.0] - 2026-07-09
+
+### Added
+
+- **shadcn-studio**: new greenfield interactive shadcn staging plugin
+  (Piece 1/5). (Backfilled skeleton.)
+
+## [0.37.0] - 2026-07-07
+
+### Added
+
+- **brain**: new codebase-map plugin (Phase 1a tracer). (Backfilled
+  skeleton.)
+
 ## [0.36.0] - 2026-07-07
 
 ### Changed

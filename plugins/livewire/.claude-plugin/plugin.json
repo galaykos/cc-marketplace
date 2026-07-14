@@ -1,6 +1,14 @@
 {
   "name": "livewire",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Livewire 3 best practices: component conventions, wire:model modifiers, performance, Alpine interop.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "frontend",
+    "backend",
+    "review"
+  ]
 }

@@ -1,6 +1,13 @@
 {
   "name": "puppeteer",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Puppeteer automation navigator: current API from live docs (pptr.dev), link map (page API, waitForSelector, request interception, puppeteer.connect over CDP, puppeteer-extra stealth), robust-automation patterns, and attaching to an anti-detect browser (AdsPower/Kameleo) via browserWSEndpoint. Includes /puppeteer:check and a Puppeteer-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "navigator",
+    "automation"
+  ]
 }

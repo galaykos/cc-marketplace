@@ -76,7 +76,8 @@ populated; creative: populated only) — do not restyle it per variant.
 ## Serve and reuse
 
 - Hand over `http://127.0.0.1:<resolved-port>/` — studio's OWN harness only. Do
-  not serve, unify, or retire another skill's artifacts or the `:8123` server.
+  not serve, unify, or retire another skill's artifacts or the shared
+  `:${PREVIEW_PORT:-8123}` preview server.
 - Reuse on later stages: probe `GET /__studio` for the marker `shadcn-studio`
   before reusing a port — a bare PID from `lsof` cannot tell studio's server
   from the user's own app on that port.
@@ -113,7 +114,8 @@ undecided because the interactive path was unavailable.
 
 - Writing into the host source tree — the sandbox is self-contained or it does
   not happen.
-- Killing or reusing the `:8123` server, or any server this flow did not start.
+- Killing or reusing the shared `:${PREVIEW_PORT:-8123}` preview server, or any
+  server this flow did not start.
 - Reusing a port by PID without the `/__studio` marker probe.
 - Recording a pick as a path into the to-be-deleted scratch dir.
 - Standing up the dev server for a choice ASCII or the static shell can carry.

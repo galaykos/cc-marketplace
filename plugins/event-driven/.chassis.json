@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "event-driven",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review message-driven code or design for delivery-semantics, idempotency, outbox, saga, and DLQ gaps against event-driven",
+  "argumentHint": "[path-diff-or-design-doc]"
+}

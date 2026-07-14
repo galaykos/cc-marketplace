@@ -1,0 +1,22 @@
+[
+  {
+    "chassis": "stack-review",
+    "variant": "concern",
+    "skill": "observability-design",
+    "tag": "observability",
+    "worker": null,
+    "applyExtra": [],
+    "description": "Audit code for observability gaps — unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks — one line per finding.",
+    "argumentHint": "[path-diff-or-design-doc]"
+  },
+  {
+    "chassis": "worker-agent",
+    "agentFile": "agents/observability-engineer.md",
+    "name": "observability-engineer",
+    "description": "Use PROACTIVELY when adding instrumentation to application code — structured logs, correlation/request IDs, RED/USE metrics, trace spans, health signals — the worker /observability:review routes its fix list to. Returns a diff; defers infra-layer wiring to devops.",
+    "tools": "Read, Write, Edit, Bash, Grep, Glob",
+    "model": "sonnet",
+    "effort": "xhigh",
+    "bestpractices-skill": "observability-design"
+  }
+]

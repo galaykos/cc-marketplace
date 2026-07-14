@@ -1,0 +1,13 @@
+[
+  {
+    "chassis": "reminder-hook",
+    "regex": "\\b(sdk|endpoint|integrat\\w*|webhook|oauth|graphql)\\b",
+    "message": "api-docs-first: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file",
+    "command": "/api-docs-first:check",
+    "extraGuard": null
+  },
+  {
+    "chassis": "optout",
+    "reason": "bespoke check command, not a live-docs navigator"
+  }
+]

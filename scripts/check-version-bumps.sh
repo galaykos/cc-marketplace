@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Fail if a plugin's files changed vs a base ref but its plugin.json version did
-# NOT bump. Complements scripts/validate.sh (which is static/structural and does
-# not look at history). Runs in CI on pull requests; also runnable locally before
+# NOT strictly INCREASE (sort -V) — rejects both a missing bump (version equal to
+# base) and a downgrade (version below base). Complements scripts/validate.sh
+# (which is static/structural and does not look at history). Runs in CI on pull
+# requests; also runnable locally before
 # pushing:  bash scripts/check-version-bumps.sh [base-ref]   (default: origin/master)
 #
 # New plugins (no manifest at base) are exempt — a first release needs no bump.
@@ -34,9 +36,17 @@ for dir in $changed; do
   # New plugin (no manifest at base) → first release, exempt.
   [ -z "$base_pj" ] && continue
   base_ver=$(printf '%s' "$base_pj" | jq -r '.version // empty' 2>/dev/null)
-  if [ -n "$cur" ] && [ "$cur" = "$base_ver" ]; then
-    echo "FAIL: plugin '$name' changed but version not bumped (still $cur) — bump $pj" >&2
-    fail=1
+  if [ -n "$cur" ]; then
+    # Strict increase: base_ver must sort-V strictly below cur. Equality (no bump)
+    # and downgrades both fail. New plugins (no base manifest) exited above.
+    smallest=$(printf '%s\n%s\n' "$base_ver" "$cur" | sort -V | head -1)
+    if [ "$cur" = "$base_ver" ]; then
+      echo "FAIL: plugin '$name' changed but version not bumped (still $cur) — bump $pj" >&2
+      fail=1
+    elif [ "$smallest" != "$base_ver" ]; then
+      echo "FAIL: plugin '$name' version went backwards ($base_ver -> $cur) — must increase" >&2
+      fail=1
+    fi
   fi
 done
 

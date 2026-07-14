@@ -1,7 +1,7 @@
 #!/bin/bash
 # SessionStart: when the session starts from a compaction or a context clear, zero this
 # session's turn counter so the advisor never nudges immediately after /compact. Other
-# sources (startup, resume) are left alone — nudge.sh's session-id rotation handles a
+# sources (startup, resume) are left alone — remind.sh's session-id rotation handles a
 # resumed session that mints a new id. Fail-open: any error exits 0.
 {
   input=$(cat)

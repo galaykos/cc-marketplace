@@ -1,9 +1,15 @@
 {
   "name": "ui-ux",
-  "version": "0.7.0",
+  "version": "0.7.2",
   "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), shadcn theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
-  }
+  },
+  "keywords": [
+    "ui-ux",
+    "frontend",
+    "review",
+    "worker"
+  ]
 }

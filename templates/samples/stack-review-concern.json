@@ -1,0 +1,14 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "lang": false,
+  "concern": true,
+  "skill": "observability-design",
+  "tag": "observability",
+  "worker": null,
+  "description": "Audit code for observability gaps — unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks — one line per finding.",
+  "argumentHint": "[path-diff-or-design-doc]",
+  "applyExtra": [],
+  "applyExtraBlock": "",
+  "workerChain": "observability-engineer → task-runner:task-executor if installed → inline"
+}

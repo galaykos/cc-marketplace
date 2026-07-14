@@ -1,0 +1,7 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "\\b(refactor|re-?write|restructure|re-?architect|migrate|redesign|rework|overhaul|moderni[sz]e|consolidate|decouple)\\b",
+  "message": "approaches: task-shaped prompt — consider a blind opinion round (Standards Purist / Quality-over-Speed / Pragmatist-Minimalist / Skeptic-Investigator) before picking an approach",
+  "command": "/approaches:opinions",
+  "extraGuard": null
+}

@@ -1,6 +1,13 @@
 {
   "name": "vue3",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "frontend",
+    "review"
+  ]
 }

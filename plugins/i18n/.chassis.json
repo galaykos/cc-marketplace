@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "i18n",
+  "tag": "frontend",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Review code for internationalization gaps — hardcoded strings, bad plurals, locale formatting, RTL — against i18n",
+  "argumentHint": "[path-or-diff]"
+}

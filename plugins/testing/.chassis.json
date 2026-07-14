@@ -1,0 +1,13 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "testing-best-practices",
+  "tag": "testing",
+  "worker": null,
+  "applyExtra": [],
+  "divergence": {
+    "preamble": "Before reporting, read the project manifests (composer.json/package.json and their lockfiles) and pin every finding to the installed test-stack versions (pestphp/pest, phpunit/phpunit, laravel/dusk, vitest, jest, @playwright/test, @testing-library/*, msw) — do not flag patterns the installed version already solves, and do not suggest APIs above it. Also review coverage of the diff: for production code changed without a corresponding test, name the missing test and the pyramid layer it belongs at."
+  },
+  "description": "Review test code and coverage against testing-best-practices",
+  "argumentHint": "[files-or-diff]"
+}

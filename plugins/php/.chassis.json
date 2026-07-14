@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "php-best-practices",
+  "docsUrl": "https://www.php.net/manual",
+  "tag": "backend",
+  "worker": null,
+  "description": "Review php code against php-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

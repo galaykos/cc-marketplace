@@ -1,9 +1,14 @@
 {
   "name": "api-design",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources. Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). For designing your own APIs; defers consuming third-party API docs to api-docs-first and Meta/Facebook platform specifics to meta-api.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
-  }
+  },
+  "keywords": [
+    "api",
+    "backend",
+    "review"
+  ]
 }

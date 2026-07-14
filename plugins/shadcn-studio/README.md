@@ -23,7 +23,7 @@ because there is no host Vite+React app to borrow.
 
 1. **Detection, never assumption.** A runnable Vite+React host routes to
    `design-preview:real-preview` (the project's own components). Node older than
-   18, or absent, falls back to the static shell. Otherwise — greenfield or a
+   20.19, or absent, falls back to the static shell. Otherwise — greenfield or a
    non-React stack — shadcn-studio runs.
 2. **Ships source, not binaries.** The `template/` is a pinned shadcn + Vite +
    Tailwind-v4 app as source plus a lockfile; `node_modules` is never committed,

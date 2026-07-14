@@ -87,7 +87,7 @@ exists today vs what you found in the code. Render both as one artifact:
 - The current panel must come from the codebase, not intention — a mismatch
   between the drawn current state and the actual code is a plan bug caught
   free of charge.
-- Serve it on the live preview URL pattern (port 8123, `diagram.html`,
+- Serve it on the live preview URL pattern (port `${PREVIEW_PORT:-8123}`, `diagram.html`,
   auto-reload — see the taskmaster plugin's visual-decisions skill when
   installed; plain `file://` open works too). Get a yes on the target picture
   BEFORE writing the task sequence — redrawing an arrow is cheaper than

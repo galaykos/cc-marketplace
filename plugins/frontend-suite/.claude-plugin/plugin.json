@@ -1,13 +1,15 @@
 {
   "name": "frontend-suite",
-  "version": "0.4.0",
-  "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 2/3, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" },
+  "version": "0.4.1",
+  "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
   "dependencies": [
     "ui-ux",
     "react",
     "react-native",
-    "vue2",
     "vue3",
     "javascript",
     "typescript",
@@ -18,5 +20,9 @@
     "design-preview",
     "shadcn-studio",
     "a11y"
+  ],
+  "keywords": [
+    "suite",
+    "frontend"
   ]
 }

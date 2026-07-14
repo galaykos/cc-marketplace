@@ -130,7 +130,7 @@ afterwards to sweep the orphans.
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
 | **[plugin-scout](plugins/plugin-scout/README.md)** | Scans project manifests and suggests marketplace plugins in two tiers (stack-matched with evidence, always-useful), marks installed ones, installs picked ones after confirm | `/plugin-scout:suggest` |
 | **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
-| **decision-records** | ADRs: persist approach/schema/dependency decisions to taskmaster-docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
+| **decision-records** | ADRs: persist approach/schema/dependency decisions to docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
 | **retrospective** | Post-milestone learning loop: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks | `/retrospective:run` |
 | **[hindsight](plugins/hindsight/README.md)** | Cross-session self-improvement loop: SessionEnd hook logs friction stats to a local ledger; harvest mines high-friction transcripts → CLAUDE.md rule candidates, skill/plugin ideas, failed-approach warnings — apply on approval + transcript-miner agent | `/hindsight:harvest` |
 | **[skill-router](plugins/skill-router/README.md)** | File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo skill index, low-confidence content signals surface in a SessionEnd digest; fail-open, once per signal per session | — |
@@ -233,3 +233,15 @@ To add a new plugin:
 4. Run `bash scripts/validate.sh` to verify the structure
 
 CI runs `bash scripts/validate.sh` on every push and pull request (`.github/workflows/validate.yml`). Each plugin is versioned independently in its own `plugin.json`; the marketplace version lives in `.claude-plugin/marketplace.json` and is tracked in [CHANGELOG.md](CHANGELOG.md). All plugins are owned by Ivan-WG <public@galayko.com> and released under the [MIT License](LICENSE).
+
+## Releasing
+
+The marketplace as a whole is versioned by `metadata.version` in `.claude-plugin/marketplace.json` and documented in [CHANGELOG.md](CHANGELOG.md). Two CI gates keep this honest: `scripts/check-version-bumps.sh` requires every changed plugin's `plugin.json` version to strictly increase, and `scripts/validate.sh` requires the top `## [X.Y.Z]` entry in the changelog to match `metadata.version`.
+
+Tagging is a **manual** step (there is no CI auto-tag). After a pull request that bumps `metadata.version` is merged to `master`, tag the release from an up-to-date `master`:
+
+```bash
+git checkout master && git pull
+git tag v<version>        # match metadata.version, e.g. git tag v0.45.0
+git push --tags
+```

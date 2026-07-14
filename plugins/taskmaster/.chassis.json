@@ -1,0 +1,7 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "\\b(build|create|add|implement|develop|rewrite|refactor)\\b",
+  "message": "taskmaster: feature-shaped prompt with thin detail — pin down scope, edge cases, and success criteria before code",
+  "command": "/taskmaster:task",
+  "extraGuard": "[ \"${#prompt}\" -lt 200 ]"
+}

@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "vite-best-practices",
+  "docsUrl": "https://vite.dev/",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review Vite config or a Vite-built app against vite-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

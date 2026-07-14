@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "concurrency-safety",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Audit code for concurrency hazards — check-then-act races, missing idempotency on retried paths, unguarded parallel writes, locks without TTL or fencing — one line per finding.",
+  "argumentHint": "[path-diff-or-design-doc]"
+}

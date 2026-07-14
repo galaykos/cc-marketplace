@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "react-native-best-practices",
+  "docsUrl": "https://reactnative.dev/docs",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review react-native code against react-native-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

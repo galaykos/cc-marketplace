@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "react-best-practices",
+  "docsUrl": "https://react.dev",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review react code against react-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

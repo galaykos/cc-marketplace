@@ -1,6 +1,14 @@
 {
   "name": "build-vs-buy",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). A UserPromptSubmit hook nudges the check when a prompt proposes building a commonly-solved capability. Includes /build-vs-buy:check.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "planning",
+    "process",
+    "hooks"
+  ]
 }

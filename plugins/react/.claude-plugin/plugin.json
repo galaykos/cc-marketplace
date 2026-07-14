@@ -1,6 +1,13 @@
 {
   "name": "react",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "React best practices: hooks rules, render/memo performance, state management, component patterns — plus a react-server-state skill for server-cache libraries (TanStack Query/SWR/RTK Query), cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState and avoiding refetch storms.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "frontend",
+    "review"
+  ]
 }

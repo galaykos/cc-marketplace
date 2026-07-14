@@ -1,0 +1,24 @@
+---
+description: {{description}}
+argument-hint: {{argumentHint}}
+---
+<!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
+
+Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
+{{#if divergencePreamble}}
+{{divergencePreamble}}
+{{/if}}
+{{> triage}}
+
+3. Invoke the `{{skill}}` skill from this plugin and apply its checklist across the
+   scope — cite the skill's rubric, do not restate it here.{{#if lang}} Before reporting,
+   read the project manifests (dependency files and their lockfiles) and pin every
+   finding to the installed version — do not flag what that version already solves, nor
+   propose an API above it. When unsure of an API or behavior, verify against the
+   official docs for the pinned version ({{docsUrl}}) rather than answering from memory.{{/if}}
+
+{{> tiers}}
+
+{{> closer}}
+
+{{> apply-lane}}

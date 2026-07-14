@@ -17,8 +17,10 @@ spacing, color, placement — you do not just review it. Given a UI task:
    components only when nothing in the project fits.
 3. Implement mobile-first: base styles for the smallest viewport, then layer
    breakpoints upward.
-4. Verify at three viewport widths — mobile ~375px, tablet ~768px,
-   desktop ~1280px — and report what was checked at each.
+4. Reason about the layout at three viewport widths — mobile ~375px, tablet
+   ~768px, desktop ~1280px — by inspecting the breakpoints and container queries
+   in the code, and report how each width resolves. This is code inspection, not
+   visual rendering.
 
 When the dispatch injects a `Read` path for a styling skill
 (`tailwind`/`shadcn`/`bootstrap`-best-practices), Read it first for stack-specific

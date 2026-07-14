@@ -1,6 +1,6 @@
 ---
 name: decision-records
-description: Use when a significant technical decision lands — an approach pick, schema or API shape, dependency adoption, pattern choice — to persist it as an Architecture Decision Record in taskmaster-docs/adr/ before the reasoning evaporates from the conversation.
+description: Use when a significant technical decision lands — an approach pick, schema or API shape, dependency adoption, pattern choice — to persist it as an Architecture Decision Record in docs/adr/ before the reasoning evaporates from the conversation.
 ---
 
 Decisions made in conversation die with the transcript. Six months later the
@@ -50,7 +50,7 @@ decisions that matter.
 
 ## Rules
 
-- Location `taskmaster-docs/adr/`, filename `NNN-kebab-slug.md`, NNN sequential from 001.
+- Location `docs/adr/`, filename `NNN-kebab-slug.md`, NNN sequential from 001.
 - One decision per record. A record needing "and" in its title is two records.
 - Losers get honest one-liners. "Rejected because inferior" preserves nothing;
   "rejected because it doubles deploy complexity for 5% gain" prevents the
@@ -75,7 +75,7 @@ decisions that matter.
 
 ## Reading discipline
 
-Before proposing a decision in an area, check `taskmaster-docs/adr/` for standing
+Before proposing a decision in an area, check `docs/adr/` for standing
 records:
 
 - An accepted ADR answers the question → follow it, do not re-litigate.

@@ -28,7 +28,7 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
-    port: 8124,
+    port: Number(process.env.PREVIEW_PORT) || 8124,
     strictPort: false,
   },
 })

@@ -1,0 +1,10 @@
+{
+  "chassis": "worker-agent",
+  "agentFile": "agents/a11y-engineer.md",
+  "name": "a11y-engineer",
+  "description": "Use PROACTIVELY when applying accessibility fixes to markup or components — semantic structure, ARIA, keyboard and focus order, form labels, contrast — the worker /a11y:audit routes its fix list to. Returns a diff, each change tagged with the WCAG criterion it satisfies.",
+  "tools": "Read, Write, Edit, Bash, Grep, Glob",
+  "model": "sonnet",
+  "effort": "xhigh",
+  "bestpractices-skill": "a11y-audit"
+}

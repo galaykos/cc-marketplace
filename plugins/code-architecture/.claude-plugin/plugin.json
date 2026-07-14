@@ -1,9 +1,13 @@
 {
   "name": "code-architecture",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
-  }
+  },
+  "keywords": [
+    "process",
+    "quality"
+  ]
 }

@@ -62,6 +62,10 @@
         # extracts the nearby symbol, so no fragile dynamic-regex escaping in awk).
         marks=$(grep -nE "$MARKER_RE" "$file" 2>/dev/null | cut -d: -f1 | tr '\n' ' ')
         [ -n "$marks" ] || continue
+        # A13a perf: skip files > 200 KB before the awk scanner (awk buffers the whole
+        # file into memory via L[NR]=$0). `continue` (not exit) so one large file cannot
+        # abort the rest of the cache build in this piped `while read` subshell.
+        [ "$(wc -c < "$file" 2>/dev/null || echo 0)" -gt 200000 ] && continue
         awk -v FILE="$file" -v MARKS="$marks" '
           # keyword-led definition anchored near line start (so prose keywords mid-comment
           # do not masquerade as a symbol). Returns the declared name or "".

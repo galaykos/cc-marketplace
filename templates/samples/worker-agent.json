@@ -1,0 +1,10 @@
+{
+  "chassis": "worker-agent",
+  "agentFile": "agents/observability-engineer.md",
+  "name": "observability-engineer",
+  "description": "Use PROACTIVELY when applying observability fixes to application code — structured logging, correlation IDs, metrics, spans, log hygiene — the worker /observability:review routes its fix list to. Returns a diff.",
+  "tools": "Read, Write, Edit, Bash, Grep, Glob",
+  "model": "sonnet",
+  "effort": "xhigh",
+  "bestpractices-skill": "observability-design"
+}

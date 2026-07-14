@@ -1,6 +1,13 @@
 {
   "name": "event-driven",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Message-driven architecture discipline: broker/transport choice, topic and partition design, event schema versioning, delivery semantics (assume at-least-once), consumer idempotency, the outbox pattern for atomic state-change-and-publish, sagas with compensation, and dead-letter handling — a firing event-driven skill and a /event-driven:review command. Cross-broker; defers in-process framework queues to the stack plugin.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "backend",
+    "review"
+  ]
 }

@@ -1,6 +1,13 @@
 {
   "name": "postgresql",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "PostgreSQL 14+ best practices: MVCC and vacuum reality, rich types (timestamptz, jsonb, uuid), index arsenal (partial, expression, GIN, BRIN, CONCURRENTLY), lock-aware migrations, ON CONFLICT/RETURNING, version leverage through 17/18.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "database",
+    "review"
+  ]
 }

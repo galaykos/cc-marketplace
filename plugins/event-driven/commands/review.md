@@ -2,31 +2,42 @@
 description: Review message-driven code or design for delivery-semantics, idempotency, outbox, saga, and DLQ gaps against event-driven
 argument-hint: [path-diff-or-design-doc]
 ---
+<!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
-Review the target's event-driven design — you audit the messaging architecture, not
-implement it.
+Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
-1. Determine scope from $ARGUMENTS — a design/RFC, producer/consumer code, broker
-   config, or a diff. If empty, locate producers, consumers, and queue/topic config in
-   the repo and review those.
+1. Determine scope from $ARGUMENTS — a file, directory, diff/branch reference, or
+   design document. If empty, default to recent changes (`git diff` against the merge
+   base, falling back to the latest commits).
 
-2. Invoke the `event-driven` skill from this plugin and apply its checklist: delivery
-   semantics named (assume at-least-once), consumer idempotency (dedup key + idempotent
-   effect, recorded atomically with the work), the outbox pattern wherever a state
-   change must publish an event (no dual write), topic/partition design (partition key
-   = ordering scope), event schema versioning (additive, forward/backward compatible),
-   sagas with compensating actions for every fallible step, and DLQ + retry with a
-   monitored depth.
+2. Run a triage pass before the deep read. A trivial, single-file, or purely mechanical
+   change earns a one-line verdict — state it and stop. Treat the change as risky and
+   take the deep pass when it touches auth, data, migrations, or concurrency, OR spans
+   more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
+   changed).
 
-3. Output findings one line each:
-   path-or-section:line — severity — problem — fix
-   Order by severity. A non-idempotent consumer on an at-least-once queue, or a dual
-   write with no outbox, is always critical (silent data corruption).
+3. Invoke the `event-driven` skill from this plugin and apply its checklist across the
+   scope — cite the skill's rubric, do not restate it here.
 
-4. Defer, do not duplicate: in-process framework-queue usage → the stack plugin;
-   service-boundary ownership → `/system-design:review`; single-consumer races →
-   `/concurrency:review`.
+4. Report findings one line each, sorted by severity (critical, high, medium, low):
+   `locator — severity — [CONFIRMED|PLAUSIBLE] problem — fix` — the
+   locator is `path:line`, or the section/heading for a design-doc review. Mark a
+   finding `CONFIRMED` only with a traced call path, an executed check, or a
+   reproduction; absent the ability to execute, findings stay `PLAUSIBLE` — that is
+   acceptable, not a failure. No finding without evidence and a concrete fix; no praise,
+   no padding.
 
-5. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
-   "Apply the fixes now (Recommended)" / "Report only". On apply, hand the finding
-   list to the shared `task-executor`. In headless or non-interactive runs, report only.
+5. Close with a coverage inventory and a self-refute pass. State `Checked: …` and
+   `Not checked: … (why)` so it is explicit what was covered, what was clean, and what
+   was skipped — not only what broke. Then run one adversarial self-refute pass over
+   every critical finding; if a finding does not survive it, drop or downgrade it with a
+   note.
+
+6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
+   Apply all / Apply critical+high only / Report only. On an apply
+   pick, dispatch the finding list down the static chain task-executor → task-runner:task-executor if installed → inline — never leave
+   the user to retype findings as instructions. In a headless or non-interactive run,
+   report only and print the apply command instead of dispatching.
+
+You may close by recommending an ultra-assess re-run when the change was large or
+high-risk — recommend it only, never self-execute it.

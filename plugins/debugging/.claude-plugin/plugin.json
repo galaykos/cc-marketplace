@@ -1,6 +1,13 @@
 {
   "name": "debugging",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Systematic debugging: root cause before any fix — reproduce first, read the actual error, isolate with hypothesis tests and bisection, one change at a time, verify against the original symptom; escalation rule after three failed fixes. Ships a delegatable debugger agent for handing off the long reproduce-bisect investigation. Includes /debugging:debug.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "process",
+    "quality"
+  ]
 }

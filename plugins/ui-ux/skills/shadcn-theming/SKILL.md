@@ -66,20 +66,24 @@ that silently does nothing.
 The decision aid the whole skill exists for — colours are judged rendered, not
 as variable names:
 
-1. Write ONE self-contained `docs/mockups/theme.html`: the candidate token blocks
+1. Write ONE self-contained `taskmaster-docs/mockups/theme.html`: the candidate token blocks
    inline, a swatch grid naming every token, and real component mockups built
    from the tokens — all button variants, a card with form inputs, a destructive
    alert, badges, a chart-color strip — light and dark rendered SIDE BY SIDE
    (two panels, `.dark` on one).
-2. Serve it on the shared preview server: reuse a live port-8123 server
-   (`lsof -ti :8123`), else start `python3 -m http.server 8123 -d docs/mockups`
-   in the background — the stable URL is `http://localhost:8123/theme.html`.
+2. Serve it on the shared preview server: reuse a live `${PREVIEW_PORT:-8123}`
+   server (`lsof -ti :${PREVIEW_PORT:-8123}`), else start
+   `python3 -m http.server "${PREVIEW_PORT:-8123}" -d taskmaster-docs/mockups` in
+   the background (normalized fallback chain: no python3 →
+   `php -S 0.0.0.0:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
+   `npx serve taskmaster-docs/mockups`) — the stable URL is
+   `http://localhost:${PREVIEW_PORT:-8123}/theme.html`.
 3. Embed the body-compare auto-reload snippet from the taskmaster plugin's
    visual-decisions skill (poll → fetch → reload on change); with it, every
    regeneration appears in the open tab — the URL never changes.
 4. Iterate by rewriting the token blocks in place. When the theme is accepted,
    kill the server only if this flow started it — mockups, walkthroughs, and
-   diagrams share it. Stale recovery: `lsof -ti :8123 | xargs kill`.
+   diagrams share it. Stale recovery: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`.
 
 ## Iteration protocol
 

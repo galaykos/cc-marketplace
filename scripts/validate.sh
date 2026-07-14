@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 . "$(dirname "$0")/lib/plugin-checks.sh" || { echo "FAIL: scripts/lib/plugin-checks.sh missing" >&2; exit 1; }
 fail=0
 err() { echo "FAIL: $1" >&2; fail=1; }
+warn() { echo "WARN: $1" >&2; }
 
 command -v jq >/dev/null 2>&1 || { echo "FAIL: jq is required" >&2; exit 1; }
 
@@ -78,8 +79,13 @@ done
 known=$(jq -r '.plugins[].name' "$MP")
 while IFS=: read -r file ref; do
   pname="${ref#/}"; pname="${pname%%:*}"
-  echo "$known" | grep -qx "$pname" \
-    || err "$file: reference '$ref' names unknown plugin '$pname'"
+  if ! echo "$known" | grep -qx "$pname"; then
+    err "$file: reference '$ref' names unknown plugin '$pname'"
+  else
+    cname="${ref##*:}"
+    [ -f "plugins/$pname/commands/$cname.md" ] \
+      || err "$file: reference '$ref' names no plugins/$pname/commands/$cname.md"
+  fi
 done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/README.md plugins/*/commands plugins/*/skills plugins/*/agents 2>/dev/null \
          | grep -v 'https\?:' | sort -u)
 
@@ -186,5 +192,135 @@ if [ -f "$CREW" ]; then
       || err "crew.md references '$ref' which resolves to no agent, skill, or command"
   done
 fi
+
+# Chassis generated-header gate: every chassis-shaped file — commands/review.md,
+# commands/uninstall.md, hooks/remind.sh — must EITHER carry the generate.sh header
+# OR have its plugin's .chassis.json declare an optout entry (object OR array form).
+# Neither header nor an optout manifest (or no manifest at all) means the deterministic
+# stamper never ran or was bypassed — drift the regenerate-and-diff gate must catch.
+for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/commands/check.md plugins/*/hooks/remind.sh; do
+  [ -f "$f" ] || continue
+  grep -q 'generated from templates/' "$f" && continue
+  man="$(dirname "$(dirname "$f")")/.chassis.json"
+  if [ -f "$man" ] && jq -e '([.]|flatten)|any(.chassis=="optout")' "$man" >/dev/null 2>&1; then
+    continue
+  fi
+  err "$f: chassis-shaped file has no generated header and no optout in .chassis.json (run scripts/generate.sh --write)"
+done
+
+# ---- W2-M2 governance gates ------------------------------------------------
+
+# Description-parity gate (hard): a plugin's marketplace.json .description must be
+# byte-identical to its plugin.json .description — a discovery listing that lies
+# about what a plugin does is a silent rot the chassis system cannot catch.
+while IFS=$'\t' read -r name source; do
+  dir="${source#./}"
+  pj="$dir/.claude-plugin/plugin.json"
+  [ -f "$pj" ] || continue
+  mdesc=$(jq -r --arg n "$name" '.plugins[] | select(.name==$n) | .description // ""' "$MP")
+  pdesc=$(jq -r '.description // ""' "$pj")
+  if [ -z "$mdesc" ] || [ -z "$pdesc" ]; then
+    err "plugin '$name': empty .description (marketplace and plugin.json must both carry one)"
+  elif [ "$mdesc" != "$pdesc" ]; then
+    err "plugin '$name': marketplace.json .description != plugin.json .description"
+  fi
+done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
+
+# rules.tsv resolution gate (hard): every skill token the skill-router references —
+# rules.tsv column 3, prime.sh `add <skill> <plugin>` lines, and any literal skill
+# name in route.sh — must resolve to a real plugins/*/skills/<skill>/SKILL.md.
+# route.sh sources its skills from rules.tsv at runtime and carries no literals
+# post-W2-M1; the grep catches any that get re-introduced. Locks A1's phantom fix.
+SR=plugins/skill-router
+if [ -d "$SR" ]; then
+  while IFS= read -r sk; do
+    [ -n "$sk" ] || continue
+    ls plugins/*/skills/"$sk"/SKILL.md >/dev/null 2>&1 \
+      || err "skill-router references skill '$sk' with no matching plugins/*/skills/$sk/SKILL.md"
+  done < <(
+    {
+      awk -F'\t' '$1=="glob"||$1=="content"{print $3}' "$SR/rules.tsv" 2>/dev/null
+      grep -oE '\badd [a-z][a-z0-9-]+ ' "$SR/hooks/prime.sh" 2>/dev/null | awk '{print $2}'
+      : # route.sh literals are checked separately below (a known-skill literal would
+        # pass this resolution loop by definition — it needs its own err)
+    } | sort -u
+  )
+  # route.sh must stay rules-driven: any literal known-skill name in it is an err
+  route_lits=$(grep -v '^[[:space:]]*#' "$SR/hooks/route.sh" 2>/dev/null | grep -oE '[a-z][a-z0-9-]{3,}' | sort -u \
+    | grep -xF -f <(for skd in plugins/*/skills/*/; do basename "$skd"; done | sort -u) || true)
+  [ -z "$route_lits" ] \
+    || err "skill-router route.sh carries literal skill name(s): $(echo $route_lits) — must stay rules.tsv-driven"
+fi
+
+# All-bundle dependency gate (hard): generalizes the everything-only completeness
+# check above — every plugin.json that declares .dependencies (the 8 bundles) must
+# list only real marketplace plugin names, so no bundle silently ships a dangling
+# or misspelled dependency.
+mp_names=$(jq -r '.plugins[].name' "$MP")
+for pj in plugins/*/.claude-plugin/plugin.json; do
+  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
+  bname=$(jq -r .name "$pj")
+  while IFS= read -r dep; do
+    [ -n "$dep" ] || continue
+    printf '%s\n' "$mp_names" | grep -qx "$dep" \
+      || err "bundle '$bname': dependency '$dep' is not a marketplace plugin name"
+  done < <(jq -r '.dependencies[]?' "$pj")
+done
+
+# CHANGELOG-parity gate (hard): the first `## [X.Y.Z]` heading in CHANGELOG.md must
+# equal the marketplace metadata.version — a released version with no matching
+# changelog top entry (or vice versa) is undocumented drift.
+if [ -f CHANGELOG.md ]; then
+  cl_ver=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+  mp_ver=$(jq -r '.metadata.version // empty' "$MP")
+  [ "$cl_ver" = "$mp_ver" ] \
+    || err "CHANGELOG.md top version '$cl_ver' != marketplace metadata.version '$mp_ver'"
+fi
+
+# ---- W2-M5 keywords[] taxonomy gate --------------------------------------------
+
+# keywords gate (hard): scripts/taxonomy.txt is the controlled discovery vocabulary.
+# Every plugin.json must carry a non-empty keywords[] whose every element is a
+# taxonomy term. A missing/empty keywords[] or an off-vocab term fails the build —
+# the generated plugin-scout catalog and keyword-driven discovery rely on it.
+# Orphan taxonomy terms (declared but used by no plugin) are WARN only.
+TAX=scripts/taxonomy.txt
+if [ ! -f "$TAX" ]; then
+  err "$TAX missing (keywords taxonomy is the controlled vocabulary)"
+else
+  for d in plugins/*/; do
+    pj="${d}.claude-plugin/plugin.json"
+    [ -f "$pj" ] || continue
+    kname=$(basename "$d")
+    if ! jq -e '(.keywords // null) | (type=="array" and length>0)' "$pj" >/dev/null 2>&1; then
+      err "plugin '$kname': keywords[] missing or empty in plugin.json"
+      continue
+    fi
+    while IFS= read -r kw; do
+      [ -n "$kw" ] || continue
+      grep -qxF "$kw" "$TAX" \
+        || err "plugin '$kname': keyword '$kw' not in $TAX vocabulary"
+    done < <(jq -r '.keywords[]' "$pj")
+  done
+  # orphan check (WARN only): every taxonomy term used by >=1 plugin.
+  all_kw=$(jq -r '.keywords[]?' plugins/*/.claude-plugin/plugin.json 2>/dev/null | sort -u)
+  while IFS= read -r term; do
+    [ -n "$term" ] || continue
+    printf '%s\n' "$all_kw" | grep -qxF "$term" \
+      || warn "taxonomy term '$term' in $TAX is used by no plugin (orphan)"
+  done < "$TAX"
+fi
+
+# README-presence (HARD): every plugin ships a README.md. Backfilled 2026-07-14
+# (was warn-only while 31/82 were missing one).
+missing_readme=""
+rm_count=0
+for d in plugins/*/; do
+  [ -f "${d}README.md" ] && continue
+  missing_readme="${missing_readme} $(basename "$d")"
+  rm_count=$((rm_count + 1))
+done
+[ "$rm_count" -eq 0 ] \
+  || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

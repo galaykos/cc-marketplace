@@ -65,12 +65,14 @@ ambiguous constraint instead.
 
 ## Universal set (tier 2)
 
-Suggest these 30 regardless of stack: a11y, api-design, api-docs-first,
-approaches, build-vs-buy, claude-authoring, code-architecture, code-review,
-database, debugging, decision-records, design-patterns, dev-env, devops,
-docs-upkeep, estimation, git-workflow, performance, resilience, retrospective,
-rollout, security, sql, stack-scan, system-design, task-runner, taskmaster,
-testing, ui-ux, web-dev.
+Read `references/catalog.md` (generated — one `name — [keywords] —
+description` row per marketplace plugin). The tier-2 universal set is **every
+catalog plugin except** the tier-1 detection plugins in the table above (they
+earn a row only when their signal fires), the bundles (`everything` and any
+`*-suite`), and `plugin-scout` itself. Suggest that remainder regardless of
+stack with "universal" as the evidence; read each row's keywords and
+description to phrase the suggestion. Do not hard-code a plugin list here — the
+catalog is the source of truth and stays in sync as plugins change.
 
 ## Report
 

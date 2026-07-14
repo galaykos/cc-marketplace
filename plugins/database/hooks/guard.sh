@@ -29,9 +29,26 @@
       hit="an unqualified DELETE/UPDATE (no WHERE)"
     fi
   fi
-  [ -n "$hit" ] || exit 0
+  # Lock-hazard detection (same warn/ask lane): schema changes that take a long-held
+  # lock on a large table. Only checked if no destructive hit already fired (data loss wins).
+  lockhit=""
+  if [ -z "$hit" ]; then
+    # CREATE [UNIQUE] INDEX without CONCURRENTLY: a CREATE INDEX line carrying no CONCURRENTLY.
+    if printf '%s' "$text" | grep -iE '\bcreate[[:space:]]+(unique[[:space:]]+)?index\b' \
+         | grep -qivE '\bconcurrently\b'; then
+      lockhit="a CREATE INDEX without CONCURRENTLY (PostgreSQL; other engines lock regardless)"
+    fi
+    # Table-rewriting ALTERs: a column TYPE change or adding a NOT NULL constraint.
+    [ -z "$lockhit" ] && printf '%s' "$text" | grep -qiE '\balter[[:space:]]+table\b[^;]*\balter\b[^;]*\btype\b|\balter[[:space:]]+table\b[^;]*\bset[[:space:]]+not[[:space:]]+null\b' && lockhit="a table-rewriting ALTER (column TYPE change or SET NOT NULL)"
+  fi
 
-  reason="destructive-SQL guard: this change introduces ${hit}. Confirm a backup or a tested rollback path exists before applying it, and that the statement is scoped as intended (an unqualified DELETE/UPDATE rewrites every row). Proceed only if that is verified."
+  [ -n "$hit" ] || [ -n "$lockhit" ] || exit 0
+
+  if [ -n "$hit" ]; then
+    reason="destructive-SQL guard: this change introduces ${hit}. Confirm a backup or a tested rollback path exists before applying it, and that the statement is scoped as intended (an unqualified DELETE/UPDATE rewrites every row). Proceed only if that is verified."
+  else
+    reason="destructive-SQL guard: this change introduces ${lockhit}. On a large table this holds a lock that blocks concurrent reads/writes for the whole operation; prefer the non-blocking path (CREATE INDEX CONCURRENTLY; for a type change or NOT NULL, backfill then validate in a separate step, or add-column-and-copy). Proceed only if the table is small or a maintenance window is planned."
+  fi
   [ -n "$file" ] && reason="$reason (file: $file)"
 
   jq -cn --arg r "$reason" \

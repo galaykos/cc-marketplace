@@ -2,8 +2,9 @@
 description: Resolve the current Camoufox Python usage and launch options for an automation task
 argument-hint: [automation-goal]
 ---
+<!-- generated from templates/navigator-check.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
-Invoke the camoufox-docs skill from this plugin for $ARGUMENTS (an automation
+Invoke the `camoufox-docs` skill from this plugin for $ARGUMENTS (an automation
 goal — if empty, ask what is being built). Everything reported must come from
 pages fetched now, not memory: Camoufox is young and its launch options change.
 
@@ -22,10 +23,10 @@ pages fetched now, not memory: Camoufox is young and its launch options change.
      page/locator APIs apply unchanged (cross-reference `/playwright:check`)
    - Constraints that shape the code: Firefox-only (no Chromium/CDP), let
      Camoufox generate a consistent fingerprint rather than hand-setting values
+
 4. If any needed page is unreachable, name it, say what could not be verified,
    and ask for a docs excerpt — do not substitute memory for the missing page.
 
-5. When usage, launch options, and constraints all resolved, ask via
-   AskUserQuestion: "Proceed with the task using these doc-backed usage and
-   options now (Recommended)" / "Stop here — report only".
-   Headless: report only.
+5. When usage, launch options, and constraints are all resolved, ask via AskUserQuestion:
+   "Proceed with the task using these doc-backed usage and options now
+   (Recommended)" / "Stop here — report only". Headless: report only.

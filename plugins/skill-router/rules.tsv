@@ -1,12 +1,10 @@
 # signal_type	pattern	skill	owning_plugin	confidence
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
-glob	*.tsx	ui-ux-stack	ui-ux	high
-glob	*.jsx	ui-ux-stack	ui-ux	high
-glob	**/components/**	ui-ux-stack	ui-ux	high
+glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	*.tsx	a11y-audit	a11y	high
-glob	*.css	ui-ux-stack	ui-ux	high
-glob	*.scss	ui-ux-stack	ui-ux	high
+glob	*.css	css3-best-practices	ui-ux	high
+glob	*.scss	css3-best-practices	ui-ux	high
 glob	*.tsx	react-best-practices	react	high
 glob	*.jsx	react-best-practices	react	high
 glob	*.tsx	react-native-best-practices	react-native	high

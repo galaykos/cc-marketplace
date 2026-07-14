@@ -1,0 +1,4 @@
+{
+  "chassis": "optout",
+  "reason": "Bespoke scope-resolution cascade (path/PR/branch → staged → working-tree diff) distinct from the fable triage/tiers/closer payload; general-purpose reviewer, not a single-skill stack-review chassis."
+}

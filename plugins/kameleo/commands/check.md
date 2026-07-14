@@ -2,8 +2,9 @@
 description: Resolve the current Kameleo Local API/SDK usage for an automation task
 argument-hint: [automation-goal]
 ---
+<!-- generated from templates/navigator-check.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
-Invoke the kameleo-docs skill from this plugin for $ARGUMENTS (an automation
+Invoke the `kameleo-docs` skill from this plugin for $ARGUMENTS (an automation
 goal — if empty, ask what is being built). The Local API and its SDKs change
 between Kameleo releases, so everything reported must come from docs fetched
 now, not memory.
@@ -26,10 +27,10 @@ now, not memory.
      `/playwright:check` or `/puppeteer:check`.
    - Session hygiene: the Kameleo app must be running to serve the Local API;
      stop/clean up profiles when done.
+
 4. If any needed page is unreachable, name it, say what could not be verified,
    and ask for a docs excerpt — do not substitute memory for the missing page.
 
-5. When endpoints/SDK, flow, and handoff are all resolved, ask via
-   AskUserQuestion: "Proceed with the task using these doc-backed endpoints now
-   (Recommended)" / "Stop here — report only".
-   Headless: report only.
+5. When endpoints/SDK, flow, and handoff are all resolved, ask via AskUserQuestion:
+   "Proceed with the task using these doc-backed endpoints now
+   (Recommended)" / "Stop here — report only". Headless: report only.

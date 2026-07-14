@@ -1,0 +1,19 @@
+[
+  {
+    "chassis": "reminder-hook",
+    "regex": "\\b(playwright|page\\.locator|getbyrole|connectovercdp|browsercontext)\\b",
+    "message": "playwright: pin current API patterns before writing this automation",
+    "command": "/playwright:check",
+    "extraGuard": null
+  },
+  {
+    "chassis": "navigator",
+    "skill": "playwright-docs",
+    "description": "Resolve the current Playwright API and doc-backed patterns for an automation task",
+    "argumentHint": "[automation-goal-or-api]",
+    "goalDescriptor": " for $ARGUMENTS (an automation\ngoal, an API name, or a page interaction — if empty, ask what is being\nautomated). Everything reported must come from pages fetched now, not memory.",
+    "reportBody": "1. Fetch https://playwright.dev/docs and state the current stable version.\n   Grep the codebase for the installed pin (`@playwright/test`, `playwright` in\n   package.json / lockfiles) and flag drift from the current stable line.\n2. Map $ARGUMENTS to a doc area via the skill's link map (locators,\n   auto-waiting, network, auth/storageState, test runner, trace viewer,\n   connectOverCDP, browser contexts) and fetch the relevant reference pages.\n3. Report, in order:\n   - Current version to target, and the exact API surface involved (method\n     names verified against the fetched reference, not recalled)\n   - The doc-backed patterns from the playwright-patterns skill that apply —\n     selector strategy, auto-wait discipline, network control, auth reuse,\n     parallelism, tracing\n   - When the goal is an anti-detect browser, the `connectOverCDP(endpointURL)`\n     shape and where the CDP endpoint comes from (defer endpoint discovery to\n     `/adspower:check` or `/kameleo:check`)\n   - Constraints that shape the code: Chromium-only CDP, one context per\n     isolated session, no fixed sleeps, web-first assertions",
+    "proceedGate": "the version, API, and patterns",
+    "closerObject": "APIs and patterns"
+  }
+]

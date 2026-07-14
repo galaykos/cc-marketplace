@@ -1,0 +1,10 @@
+{
+  "chassis": "navigator",
+  "skill": "sample-docs",
+  "description": "Resolve the current Sample API and doc-backed patterns for a task",
+  "argumentHint": "[task-goal-or-api]",
+  "goalDescriptor": " for $ARGUMENTS (a goal, an API name, or a page interaction — if empty, ask what is being built). The Sample API drifts often, so everything reported must come from pages fetched now, not memory.",
+  "reportBody": "1. Fetch https://example.com/docs and state the current stable version.\n2. Map $ARGUMENTS to a doc area via the skill's link map and fetch the relevant reference pages.\n3. Report, in order:\n   - Current version to target, and the exact API surface involved\n   - The doc-backed patterns from the skill that apply\n   - Constraints that shape the code",
+  "proceedGate": "endpoints, flow, and the sample handoff",
+  "closerObject": "sample endpoints and options"
+}
