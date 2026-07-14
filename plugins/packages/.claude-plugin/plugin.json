@@ -1,6 +1,13 @@
 {
   "name": "packages",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, and patch/minor/major upgrade lanes. Managing deps already in the project — whether to add one is build-vs-buy's job.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling",
+    "process"
+  ]
 }

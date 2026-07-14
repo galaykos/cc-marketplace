@@ -1,6 +1,13 @@
 {
   "name": "rollout",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "planning",
+    "process"
+  ]
 }

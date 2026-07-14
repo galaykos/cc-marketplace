@@ -5,5 +5,11 @@
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
-  }
+  },
+  "keywords": [
+    "devops",
+    "pipeline",
+    "review",
+    "worker"
+  ]
 }

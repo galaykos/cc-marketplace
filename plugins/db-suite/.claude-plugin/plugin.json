@@ -12,5 +12,9 @@
     "mariadb",
     "postgresql",
     "database"
+  ],
+  "keywords": [
+    "suite",
+    "database"
   ]
 }

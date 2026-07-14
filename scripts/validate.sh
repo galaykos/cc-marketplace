@@ -263,6 +263,40 @@ if [ -f CHANGELOG.md ]; then
     || err "CHANGELOG.md top version '$cl_ver' != marketplace metadata.version '$mp_ver'"
 fi
 
+# ---- W2-M5 keywords[] taxonomy gate --------------------------------------------
+
+# keywords gate (hard): scripts/taxonomy.txt is the controlled discovery vocabulary.
+# Every plugin.json must carry a non-empty keywords[] whose every element is a
+# taxonomy term. A missing/empty keywords[] or an off-vocab term fails the build —
+# the generated plugin-scout catalog and keyword-driven discovery rely on it.
+# Orphan taxonomy terms (declared but used by no plugin) are WARN only.
+TAX=scripts/taxonomy.txt
+if [ ! -f "$TAX" ]; then
+  err "$TAX missing (keywords taxonomy is the controlled vocabulary)"
+else
+  for d in plugins/*/; do
+    pj="${d}.claude-plugin/plugin.json"
+    [ -f "$pj" ] || continue
+    kname=$(basename "$d")
+    if ! jq -e '(.keywords // null) | (type=="array" and length>0)' "$pj" >/dev/null 2>&1; then
+      err "plugin '$kname': keywords[] missing or empty in plugin.json"
+      continue
+    fi
+    while IFS= read -r kw; do
+      [ -n "$kw" ] || continue
+      grep -qxF "$kw" "$TAX" \
+        || err "plugin '$kname': keyword '$kw' not in $TAX vocabulary"
+    done < <(jq -r '.keywords[]' "$pj")
+  done
+  # orphan check (WARN only): every taxonomy term used by >=1 plugin.
+  all_kw=$(jq -r '.keywords[]?' plugins/*/.claude-plugin/plugin.json 2>/dev/null | sort -u)
+  while IFS= read -r term; do
+    [ -n "$term" ] || continue
+    printf '%s\n' "$all_kw" | grep -qxF "$term" \
+      || warn "taxonomy term '$term' in $TAX is used by no plugin (orphan)"
+  done < "$TAX"
+fi
+
 # README-presence (WARN only): list + count plugins missing a README.md. No
 # exit-code effect — 31/82 are missing one today. FLIP TO HARD (err) after the
 # README backfill lands.

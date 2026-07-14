@@ -1,6 +1,14 @@
 {
   "name": "intent-guard",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Lean, warn-only drift and corner-cutting guard for a coding agent. Anchors one declared intent X (with criteria) per session, injects a single continuous UserPromptSubmit reminder to review your diff before you call work done, and drives a drift-review diff-review-at-done against the session-base commit — an independent reviewer subagent when running top-level, honest self-review inside a subagent. No completion-blocking hook and no per-action ceremony; every output is advisory. Fills the mid-run intent-vs-action seam between coverage-check (entry) and work-verification (exit). Three warn-only hooks (UserPromptSubmit capture, PostToolUse note, Stop summary) plus the drift-review skill. Includes /intent-guard:intent and /intent-guard:status. Not tamper-proof and not a security boundary — cooperative and defeatable by an agent with shell access; it raises the visibility cost of casual drift, not an adversary.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "governance",
+    "hooks",
+    "review"
+  ]
 }

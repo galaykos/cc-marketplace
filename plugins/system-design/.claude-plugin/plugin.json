@@ -5,5 +5,10 @@
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
-  }
+  },
+  "keywords": [
+    "process",
+    "review",
+    "worker"
+  ]
 }

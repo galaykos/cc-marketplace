@@ -21,5 +21,9 @@
     "design-preview",
     "shadcn-studio",
     "a11y"
+  ],
+  "keywords": [
+    "suite",
+    "frontend"
   ]
 }

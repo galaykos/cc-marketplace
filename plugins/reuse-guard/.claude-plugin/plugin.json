@@ -2,5 +2,12 @@
   "name": "reuse-guard",
   "version": "0.1.1",
   "description": "Warn-only reuse-hygiene guard so a cooperating agent does not build on dead code. Two-tier by design. Tier 1 — language-agnostic ambient reuse-a-corpse: a PostToolUse hook greps incoming edits for references to symbols in a session-cached deprecated-symbol set (union of @deprecated / #[deprecated] / [Obsolete] / DEPRECATED-style markers) and warns once on a hit, silent otherwise. Tier 2 — on-demand /reuse-guard:check [symbol|path]: per-language dead-code tool shellout plus export-aware orphan / reachability detection and a full deprecated-reference report. Not tamper-proof and not a security boundary — a heuristic string match, warn-only, and defeatable by anyone with shell access; it raises the visibility of casual reuse-of-dead-code, not an adversary. Precision lives in the Tier-2 command, not the ambient hook.",
-  "author": { "name": "Ivan-WG", "email": "public@galayko.com" }
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "governance",
+    "hooks"
+  ]
 }

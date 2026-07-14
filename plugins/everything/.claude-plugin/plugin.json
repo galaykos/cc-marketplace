@@ -81,5 +81,8 @@
     "ultra-deep-research",
     "reuse-guard",
     "compaction-advisor"
+  ],
+  "keywords": [
+    "suite"
   ]
 }
