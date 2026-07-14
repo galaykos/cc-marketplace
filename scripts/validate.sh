@@ -297,9 +297,8 @@ else
   done < "$TAX"
 fi
 
-# README-presence (WARN only): list + count plugins missing a README.md. No
-# exit-code effect — 31/82 are missing one today. FLIP TO HARD (err) after the
-# README backfill lands.
+# README-presence (HARD): every plugin ships a README.md. Backfilled 2026-07-14
+# (was warn-only while 31/82 were missing one).
 missing_readme=""
 rm_count=0
 for d in plugins/*/; do
@@ -308,6 +307,6 @@ for d in plugins/*/; do
   rm_count=$((rm_count + 1))
 done
 [ "$rm_count" -eq 0 ] \
-  || warn "$rm_count plugin(s) missing README.md:${missing_readme} (warn-only; flip to hard after backfill)"
+  || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

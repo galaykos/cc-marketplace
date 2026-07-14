@@ -4,6 +4,25 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.46.0] - 2026-07-14
+
+### Added
+
+- README.md for all 31 plugins that shipped without one (a11y, api-docs-first,
+  approaches, automations-suite, build-vs-buy, claude-authoring, code-review,
+  concurrency, database, db-suite, decision-records, design-patterns, devops,
+  docs-upkeep, error-handling, estimation, everything, frontend-suite,
+  observability, orchestration, packages, performance, php-suite, process-suite,
+  quality-suite, resilience, retrospective, rollout, system-design,
+  taskmaster-suite, web-dev) — every command/skill/agent/hook claim grounded in
+  the plugin's actual files; bundle READMEs list their dependencies and
+  uninstall command.
+
+### Changed
+
+- validate.sh README-presence gate flipped from warn-only to hard-fail: a
+  plugin without a README.md now fails CI.
+
 ## [0.45.0] - 2026-07-14
 
 Marketplace hardening wave 2. Description/dependency/version rot is now CI-impossible,
