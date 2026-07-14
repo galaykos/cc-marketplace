@@ -79,8 +79,13 @@ done
 known=$(jq -r '.plugins[].name' "$MP")
 while IFS=: read -r file ref; do
   pname="${ref#/}"; pname="${pname%%:*}"
-  echo "$known" | grep -qx "$pname" \
-    || err "$file: reference '$ref' names unknown plugin '$pname'"
+  if ! echo "$known" | grep -qx "$pname"; then
+    err "$file: reference '$ref' names unknown plugin '$pname'"
+  else
+    cname="${ref##*:}"
+    [ -f "plugins/$pname/commands/$cname.md" ] \
+      || err "$file: reference '$ref' names no plugins/$pname/commands/$cname.md"
+  fi
 done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/README.md plugins/*/commands plugins/*/skills plugins/*/agents 2>/dev/null \
          | grep -v 'https\?:' | sort -u)
 
@@ -214,8 +219,11 @@ while IFS=$'\t' read -r name source; do
   [ -f "$pj" ] || continue
   mdesc=$(jq -r --arg n "$name" '.plugins[] | select(.name==$n) | .description // ""' "$MP")
   pdesc=$(jq -r '.description // ""' "$pj")
-  [ "$mdesc" = "$pdesc" ] \
-    || err "plugin '$name': marketplace.json .description != plugin.json .description"
+  if [ -z "$mdesc" ] || [ -z "$pdesc" ]; then
+    err "plugin '$name': empty .description (marketplace and plugin.json must both carry one)"
+  elif [ "$mdesc" != "$pdesc" ]; then
+    err "plugin '$name': marketplace.json .description != plugin.json .description"
+  fi
 done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
 
 # rules.tsv resolution gate (hard): every skill token the skill-router references —
@@ -233,9 +241,15 @@ if [ -d "$SR" ]; then
     {
       awk -F'\t' '$1=="glob"||$1=="content"{print $3}' "$SR/rules.tsv" 2>/dev/null
       grep -oE '\badd [a-z][a-z0-9-]+ ' "$SR/hooks/prime.sh" 2>/dev/null | awk '{print $2}'
-      grep -oE '[a-z][a-z0-9]*-(best-practices|audit|review|design|safety|hygiene)' "$SR/hooks/route.sh" 2>/dev/null
+      : # route.sh literals are checked separately below (a known-skill literal would
+        # pass this resolution loop by definition — it needs its own err)
     } | sort -u
   )
+  # route.sh must stay rules-driven: any literal known-skill name in it is an err
+  route_lits=$(grep -v '^[[:space:]]*#' "$SR/hooks/route.sh" 2>/dev/null | grep -oE '[a-z][a-z0-9-]{3,}' | sort -u \
+    | grep -xF -f <(for skd in plugins/*/skills/*/; do basename "$skd"; done | sort -u) || true)
+  [ -z "$route_lits" ] \
+    || err "skill-router route.sh carries literal skill name(s): $(echo $route_lits) — must stay rules.tsv-driven"
 fi
 
 # All-bundle dependency gate (hard): generalizes the everything-only completeness

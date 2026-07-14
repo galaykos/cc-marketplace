@@ -30,9 +30,9 @@ decision-records plugin.
 /rollout:plan            # asks what is shipping, what data it touches, who sees it
 ```
 
-The `rollout-planning` skill also fires on its own before shipping any
-user-facing or data-touching change, so the rollback path is planned while it
-is still cheap.
+The `rollout-planning` skill also surfaces proactively (via its description
+triggers) before shipping user-facing or data-touching changes, so the
+rollback path is planned while it is still cheap.
 
 ## Pairs well with
 
