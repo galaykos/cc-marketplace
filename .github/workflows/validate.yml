@@ -25,3 +25,12 @@ jobs:
         run: bash scripts/smoke/chassis-template-tests.sh
       - name: Reminder-hook guard smoke tests
         run: bash scripts/smoke/hook-guard-tests.sh
+      - name: Authoring-guard smoke tests
+        run: bash scripts/smoke/guard-tests.sh
+      - name: Hook syntax smoke tests
+        run: bash scripts/smoke/hook-syntax-tests.sh
+      # scripts/smoke/canary.sh is intentionally NOT a CI step: its own header
+      # declares it "NOT a CI gate (needs a live model)". It reads
+      # $HOME/.claude/plugins/cache (absent in CI), needs a delegated model round
+      # to echo its proof token, and exits 1 with no args. It stays a local
+      # authoring harness, run by hand.

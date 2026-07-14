@@ -61,6 +61,58 @@ makes chassis drift impossible — a hand-edit of any generated file now fails C
   php and laravel review commands route fixes to backend-engineer; sql routes to
   database-engineer.
 
+## [0.43.0] - 2026-07-11
+
+### Added
+
+- **ultra-deep-research**: new deep-research harness plugin; **intent-guard**:
+  mid-run intent-vs-action attestation plugin; Phase 6 enforcement hooks
+  (secret-scanning, destructive-SQL guard, scope-lock, build-vs-buy); Phase 7
+  domain plugins (event-driven, payments, api-auth, data-privacy) with a
+  threat-modeling skill. (Backfilled skeleton — see git log around this bump.)
+
+## [0.42.0] - 2026-07-09
+
+### Changed
+
+- Richer serves/trades/breaks option rationale in the visual-decisions passes
+  (Piece 5/5). (Backfilled skeleton.)
+
+## [0.41.0] - 2026-07-09
+
+### Changed
+
+- **taskmaster**: the durable visual contract is carried into the spec and cards
+  (Piece 4/5). (Backfilled skeleton.)
+
+## [0.40.0] - 2026-07-09
+
+### Changed
+
+- **shadcn-studio**: staging lanes, depth matrix, and dataviz (Piece 3/5).
+  (Backfilled skeleton.)
+
+## [0.39.0] - 2026-07-09
+
+### Changed
+
+- **taskmaster**: always-on staging area in brainstorm (Piece 2/5). (Backfilled
+  skeleton.)
+
+## [0.38.0] - 2026-07-09
+
+### Added
+
+- **shadcn-studio**: new greenfield interactive shadcn staging plugin
+  (Piece 1/5). (Backfilled skeleton.)
+
+## [0.37.0] - 2026-07-07
+
+### Added
+
+- **brain**: new codebase-map plugin (Phase 1a tracer). (Backfilled
+  skeleton.)
+
 ## [0.36.0] - 2026-07-07
 
 ### Changed

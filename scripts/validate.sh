@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 . "$(dirname "$0")/lib/plugin-checks.sh" || { echo "FAIL: scripts/lib/plugin-checks.sh missing" >&2; exit 1; }
 fail=0
 err() { echo "FAIL: $1" >&2; fail=1; }
+warn() { echo "WARN: $1" >&2; }
 
 command -v jq >/dev/null 2>&1 || { echo "FAIL: jq is required" >&2; exit 1; }
 
@@ -201,5 +202,78 @@ for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/
   fi
   err "$f: chassis-shaped file has no generated header and no optout in .chassis.json (run scripts/generate.sh --write)"
 done
+
+# ---- W2-M2 governance gates ------------------------------------------------
+
+# Description-parity gate (hard): a plugin's marketplace.json .description must be
+# byte-identical to its plugin.json .description — a discovery listing that lies
+# about what a plugin does is a silent rot the chassis system cannot catch.
+while IFS=$'\t' read -r name source; do
+  dir="${source#./}"
+  pj="$dir/.claude-plugin/plugin.json"
+  [ -f "$pj" ] || continue
+  mdesc=$(jq -r --arg n "$name" '.plugins[] | select(.name==$n) | .description // ""' "$MP")
+  pdesc=$(jq -r '.description // ""' "$pj")
+  [ "$mdesc" = "$pdesc" ] \
+    || err "plugin '$name': marketplace.json .description != plugin.json .description"
+done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
+
+# rules.tsv resolution gate (hard): every skill token the skill-router references —
+# rules.tsv column 3, prime.sh `add <skill> <plugin>` lines, and any literal skill
+# name in route.sh — must resolve to a real plugins/*/skills/<skill>/SKILL.md.
+# route.sh sources its skills from rules.tsv at runtime and carries no literals
+# post-W2-M1; the grep catches any that get re-introduced. Locks A1's phantom fix.
+SR=plugins/skill-router
+if [ -d "$SR" ]; then
+  while IFS= read -r sk; do
+    [ -n "$sk" ] || continue
+    ls plugins/*/skills/"$sk"/SKILL.md >/dev/null 2>&1 \
+      || err "skill-router references skill '$sk' with no matching plugins/*/skills/$sk/SKILL.md"
+  done < <(
+    {
+      awk -F'\t' '$1=="glob"||$1=="content"{print $3}' "$SR/rules.tsv" 2>/dev/null
+      grep -oE '\badd [a-z][a-z0-9-]+ ' "$SR/hooks/prime.sh" 2>/dev/null | awk '{print $2}'
+      grep -oE '[a-z][a-z0-9]*-(best-practices|audit|review|design|safety|hygiene)' "$SR/hooks/route.sh" 2>/dev/null
+    } | sort -u
+  )
+fi
+
+# All-bundle dependency gate (hard): generalizes the everything-only completeness
+# check above — every plugin.json that declares .dependencies (the 8 bundles) must
+# list only real marketplace plugin names, so no bundle silently ships a dangling
+# or misspelled dependency.
+mp_names=$(jq -r '.plugins[].name' "$MP")
+for pj in plugins/*/.claude-plugin/plugin.json; do
+  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
+  bname=$(jq -r .name "$pj")
+  while IFS= read -r dep; do
+    [ -n "$dep" ] || continue
+    printf '%s\n' "$mp_names" | grep -qx "$dep" \
+      || err "bundle '$bname': dependency '$dep' is not a marketplace plugin name"
+  done < <(jq -r '.dependencies[]?' "$pj")
+done
+
+# CHANGELOG-parity gate (hard): the first `## [X.Y.Z]` heading in CHANGELOG.md must
+# equal the marketplace metadata.version — a released version with no matching
+# changelog top entry (or vice versa) is undocumented drift.
+if [ -f CHANGELOG.md ]; then
+  cl_ver=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+  mp_ver=$(jq -r '.metadata.version // empty' "$MP")
+  [ "$cl_ver" = "$mp_ver" ] \
+    || err "CHANGELOG.md top version '$cl_ver' != marketplace metadata.version '$mp_ver'"
+fi
+
+# README-presence (WARN only): list + count plugins missing a README.md. No
+# exit-code effect — 31/82 are missing one today. FLIP TO HARD (err) after the
+# README backfill lands.
+missing_readme=""
+rm_count=0
+for d in plugins/*/; do
+  [ -f "${d}README.md" ] && continue
+  missing_readme="${missing_readme} $(basename "$d")"
+  rm_count=$((rm_count + 1))
+done
+[ "$rm_count" -eq 0 ] \
+  || warn "$rm_count plugin(s) missing README.md:${missing_readme} (warn-only; flip to hard after backfill)"
 
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

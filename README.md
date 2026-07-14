@@ -233,3 +233,15 @@ To add a new plugin:
 4. Run `bash scripts/validate.sh` to verify the structure
 
 CI runs `bash scripts/validate.sh` on every push and pull request (`.github/workflows/validate.yml`). Each plugin is versioned independently in its own `plugin.json`; the marketplace version lives in `.claude-plugin/marketplace.json` and is tracked in [CHANGELOG.md](CHANGELOG.md). All plugins are owned by Ivan-WG <public@galayko.com> and released under the [MIT License](LICENSE).
+
+## Releasing
+
+The marketplace as a whole is versioned by `metadata.version` in `.claude-plugin/marketplace.json` and documented in [CHANGELOG.md](CHANGELOG.md). Two CI gates keep this honest: `scripts/check-version-bumps.sh` requires every changed plugin's `plugin.json` version to strictly increase, and `scripts/validate.sh` requires the top `## [X.Y.Z]` entry in the changelog to match `metadata.version`.
+
+Tagging is a **manual** step (there is no CI auto-tag). After a pull request that bumps `metadata.version` is merged to `master`, tag the release from an up-to-date `master`:
+
+```bash
+git checkout master && git pull
+git tag v<version>        # match metadata.version, e.g. git tag v0.45.0
+git push --tags
+```
