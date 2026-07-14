@@ -4,6 +4,36 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.47.0] - 2026-07-14
+
+### Added
+
+- New stack plugins: `nextjs` (App Router/RSC/caching, version-aware 14-16),
+  `nuxt` (Nuxt 4.x idioms, Nitro, data fetching), `node-backend` (Express 5 /
+  NestJS 11 / Fastify 5, one skill, worker override to web-dev). All three in
+  `everything`; nextjs+nuxt join `frontend-suite`.
+- `ui-ux` gains `motion-best-practices` (Motion, GSAP, CSS/scroll-driven
+  animations, View Transitions, hard prefers-reduced-motion rule) wired into
+  `/ui-ux:review` detection and both ui-ux agents.
+- Worker-agent chassis: optional operatingProcedure/domainChecklist/deferRule
+  slots; 8 hand-written engineer agents migrated onto the template (web-dev,
+  laravel, database, security, testing, devops, performance, ui-ux) with
+  domain content preserved; validate.sh now gates declared agentFile headers.
+- Reviewer skill-wiring: frontend-reviewer and ui-ux-reviewer declare
+  `bestpractices-skill` lists with the worker priming contract.
+
+### Changed
+
+- Content refresh across 16 stack skills verified against July-2026 stables:
+  MySQL 9.7 LTS / 8.0 EOL, MariaDB 11.8 LTS / 12.x rolling, Laravel 13,
+  Livewire 4, Inertia v3, React Compiler 1.0, RN New-Arch-only since 0.82,
+  ES2025/ES2026 corrections, TS 5.9-7.0 timeline, Vite 8 Rolldown default,
+  Node 22/24 baselines; vue2 EOL badge confirmed untouched.
+- ui-ux-engineer viewport claim reworded to markup-level responsive checks
+  (W2 finding 15).
+- Marketplace descriptions refreshed in parity: laravel (10/11/12/13),
+  livewire (3/4), inertia (v1/v2/v3), mysql (8.4 + 9.7 LTS).
+
 ## [0.46.0] - 2026-07-14
 
 ### Added

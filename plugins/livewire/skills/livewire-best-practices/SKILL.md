@@ -1,12 +1,12 @@
 ---
 name: livewire-best-practices
-description: Use when writing or reviewing Livewire 3 code — component granularity, wire:model live/blur/debounce modifiers, computed properties, locked properties, pagination, Alpine interop.
+description: Use when writing or reviewing Livewire 3 or 4 code — component granularity, wire:model live/blur/debounce modifiers, computed properties, locked properties, pagination, Alpine interop.
 ---
 
 ## `wire:model` is deferred by default — opt into `.live` deliberately
 
-Livewire 3 inverted Livewire 2's default: `wire:model` now batches input into the next network
-request (form submit, button click) instead of firing one on every keystroke. Add
+Livewire 3 inverted Livewire 2's default (and v4 keeps it): `wire:model` batches input into the
+next network request (form submit, button click) instead of firing one on every keystroke. Add
 `wire:model.live` only when you actually need server state on every keystroke (live search,
 character counters). Prefer `.live.debounce.500ms` over bare `.live` for anything typed — every
 live update is a full roundtrip plus a re-render. Use `.blur` when the update should happen on
@@ -138,7 +138,7 @@ sources of truth drift out of sync.
 
 - Adding `wire:model.live` everywhere out of Livewire 2 habit, turning every keystroke into a
   network request.
-- Using `emit()`/`emitTo()` (Livewire 2 API) instead of `$dispatch()`/`#[On]` (Livewire 3).
+- Using `emit()`/`emitTo()` (Livewire 2 API) instead of `$dispatch()`/`#[On]` (Livewire 3+).
 - Calling a plain method instead of `#[Computed]` for values reused across a template.
 - Leaving IDs or ownership-relevant properties unlocked and mutable from the client.
 - Missing `wire:key` in `@foreach` loops rendering components or `wire:model`-bound rows.
@@ -148,7 +148,7 @@ sources of truth drift out of sync.
 
 ## Verify Against Current Docs
 
-Livewire's modifier defaults, attribute API, and Alpine integration have changed materially
-between major versions (v2 → v3 flipped `wire:model`'s default and renamed `emit()` to
-`$dispatch()`). Before relying on memory for version-sensitive APIs, check the current docs:
+Livewire's defaults and APIs changed materially across majors: v2 → v3 flipped `wire:model`'s
+default and renamed `emit()` to `$dispatch()`; v4 (current since January 2026) keeps both but
+adds single-file components, islands, and `Route::livewire()` routing. Check the current docs:
 https://livewire.laravel.com

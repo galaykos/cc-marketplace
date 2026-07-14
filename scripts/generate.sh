@@ -5,7 +5,10 @@
 # of them) and renders it through templates/ via the card-01 template engine
 # (scripts/lib/template-engine.sh, overridable with TEMPLATE_ENGINE). Var derivation:
 # booleans lang/concern come from the manifest `variant` string, applyExtraBlock from
-# the `applyExtra` array, worker-agent vars are the six frontmatter fields verbatim.
+# the `applyExtra` array, worker-agent vars are the six frontmatter fields verbatim
+# plus three optional domain-content slots — operatingProcedure, domainChecklist,
+# deferRule (each a markdown string or an array of lines, joined with "\n"; absent
+# fields default to "" so the template's {{#if}} guards render nothing).
 #
 # Routing (D6, build-time): for stack-review manifests the capability `tag` resolves to
 # a worker through decision-maker's map at
@@ -153,7 +156,18 @@ render_worker_agent() { # obj plugin-dir
   local obj="$1" pdir="$2" agentFile dfile="$WORK/m.json" rfile="$WORK/r.out"
   agentFile="$(printf '%s' "$obj" | jq -r '.agentFile')"
   [ -n "$agentFile" ] && [ "$agentFile" != null ] || die "worker-agent in ${2#$ROOT/} missing agentFile"
-  printf '%s' "$obj" > "$dfile"; ensure_engine
+  # Optional domain-content slots (operatingProcedure, domainChecklist, deferRule):
+  # each may be a markdown string or an array of lines (joined with "\n"); absent ->
+  # "" so the template's {{#if}} guards render nothing and existing agents (which
+  # carry none of these fields) re-render byte-identical.
+  printf '%s' "$obj" | jq \
+    'reduce (["operatingProcedure","domainChecklist","deferRule"][]) as $k
+       (.;
+        (.[$k] // null) as $orig
+        | . + {($k): (if $orig == null then ""
+                      elif ($orig | type) == "array" then ($orig | join("\n"))
+                      else $orig end)})' > "$dfile"
+  ensure_engine
   render_template "$TEMPLATES/worker-agent.md.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} $agentFile"
   emit "$rfile" "$pdir/$agentFile" 0 "$pdir"
 }

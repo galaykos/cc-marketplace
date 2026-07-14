@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.46.0"
+    "version": "0.47.0"
   },
   "plugins": [
     {
@@ -35,6 +35,16 @@
       "description": "Vue 3 best practices: script setup, composables, ref/reactive pitfalls, Pinia."
     },
     {
+      "name": "nextjs",
+      "source": "./plugins/nextjs",
+      "description": "Next.js best practices: App Router server/client boundaries, opt-in caching (fetch, revalidate, use cache), server actions as public endpoints, route handlers, streaming with Suspense, metadata API, next/image and next/font — version-aware from 14 through 16."
+    },
+    {
+      "name": "nuxt",
+      "source": "./plugins/nuxt",
+      "description": "Nuxt best practices: Nitro server routes, hybrid rendering route rules, useFetch/useAsyncData payload dedup, useState SSR-safe state, auto-imports discipline, runtimeConfig env overrides, SEO meta."
+    },
+    {
       "name": "php",
       "source": "./plugins/php",
       "description": "PHP best practices: strict types, === discipline, PSR conventions, version-aware 8.1-8.5 leverage map pinned to the composer.json floor, exceptions, DateTimeImmutable, boundary security, static analysis."
@@ -42,12 +52,12 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel) the php/laravel review commands route their fixes to."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12/13), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel) the php/laravel review commands route their fixes to."
     },
     {
       "name": "livewire",
       "source": "./plugins/livewire",
-      "description": "Livewire 3 best practices: component conventions, wire:model modifiers, performance, Alpine interop."
+      "description": "Livewire 3/4 best practices: component conventions, wire:model modifiers, performance, Alpine interop."
     },
     {
       "name": "sql",
@@ -57,7 +67,7 @@
     {
       "name": "mysql",
       "source": "./plugins/mysql",
-      "description": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL, gap locks, version leverage 8.0 through 8.4 LTS, EXPLAIN ANALYZE."
+      "description": "MySQL 8.0+ best practices: InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL, gap locks, version leverage 8.0 through 8.4 and 9.7 LTS, EXPLAIN ANALYZE."
     },
     {
       "name": "mariadb",
@@ -150,6 +160,11 @@
       "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review."
     },
     {
+      "name": "node-backend",
+      "source": "./plugins/node-backend",
+      "description": "Server-side Node.js best practices for Express 5, NestJS 11, and Fastify 5: middleware vs DI vs plugin-encapsulation architecture, async error propagation, validation at the boundary (zod, class-validator, JSON Schema), streaming and backpressure, graceful shutdown, config/env discipline, per-framework footguns."
+    },
+    {
       "name": "vite",
       "source": "./plugins/vite",
       "description": "Vite best practices: VITE_-prefix env security, dep pre-bundling, code splitting and manualChunks, base for sub-path deploys, dev server.proxy, define stringify pitfalls, import.meta.glob, asset handling, build.target alignment, SSR, library mode, plugin order, HMR guards, version-aware against the locked vite version and vite.config. Includes /vite:review."
@@ -157,7 +172,7 @@
     {
       "name": "inertia",
       "source": "./plugins/inertia",
-      "description": "Inertia.js best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review."
+      "description": "Inertia.js v1/v2/v3 best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1 vs v2 and adapter awareness. Includes /inertia:review."
     },
     {
       "name": "api-design",
@@ -317,7 +332,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "php-suite",

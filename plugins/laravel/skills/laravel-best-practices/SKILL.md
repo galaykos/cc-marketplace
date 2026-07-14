@@ -8,7 +8,7 @@ description: Use when writing or reviewing Laravel code — Eloquent N+1 prevent
 Version facts come from the manifests, never from assumption:
 
 - `composer.json` `require.laravel/framework` is the advice floor — recommend nothing above it. `composer.lock` says what is ACTUALLY installed (`^11.0` says nothing about whether 11.20's fix is present — the lock does).
-- The floor implies a PHP floor: Laravel 10 needs PHP 8.1+, 11 and 12 need 8.2+. Cross-check `require.php`; a mixed repo's `package.json` governs the JS side only — never infer framework capabilities from it.
+- The floor implies a PHP floor: Laravel 10 needs PHP 8.1+, 11 and 12 need 8.2+, 13 needs 8.3+. Cross-check `require.php`; a mixed repo's `package.json` governs the JS side only — never infer framework capabilities from it.
 
 ## Per-version leverage (advise at or below the floor)
 
@@ -16,6 +16,7 @@ Recommend the newer idiom only when the floor is at or above the release that sh
 
 - **Laravel 11** — the slimmed skeleton: `bootstrap/app.php` is the single config surface for routing, middleware, and exceptions, so there is no `Http/Kernel.php` or console kernel and the old middleware files are gone (customize via `->withMiddleware`). Model casts as a `casts()` METHOD, not the `$casts` property, so casts take arguments. Per-second rate limiting (`Limit::perSecond(...)`). Health-check routing (`health: '/up'`). The `once()` helper memoizes a callback for the current request.
 - **Laravel 12** — a maintenance release: upstream dependency updates and new React/Vue/Svelte/Livewire starter kits, with deliberately minimal breaking changes (most apps upgrade without code changes). Do not attribute new idioms to 12 by default — if a capability's introducing version is uncertain, describe it without pinning a version.
+- **Laravel 13** (current, March 2026; requires PHP 8.3+) — first-party AI SDK, JSON:API resources, attribute-first controllers and jobs (`#[Middleware]`, `#[Authorize]`, `#[Tries]`, `#[Backoff]`, `#[Timeout]`), `Queue::route()` for central queue/connection routing, `Cache::touch()` TTL extension, and vector-similarity query clauses. Like 12, breaking changes are minimal — most apps upgrade without code changes.
 
 ## N+1 prevention — eager load, don't lazy load in loops
 
@@ -141,8 +142,7 @@ public function down(): void { Schema::table('users', fn ($t) => $t->dropColumn(
 ## Common mistakes
 
 - Looping over a relationship without eager loading, or eager loading a relation never used.
-- Validating in the controller instead of a `FormRequest`, scattering rules across actions.
-- Fat controllers reaching into multiple models/services directly instead of delegating.
+- Validating in the controller instead of a `FormRequest`, and fat controllers reaching into multiple models/services directly instead of delegating.
 - Relying on `@can` in Blade as the only authorization check, leaving the route open.
 - Mass assignment via an unguarded model fed `$request->all()`; use a real `$fillable` plus `$request->validated()`.
 - Returning a full Eloquent model to the client instead of an API Resource, leaking internal attributes.

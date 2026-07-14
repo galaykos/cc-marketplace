@@ -1,6 +1,6 @@
 {
   "name": "typescript",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review.",
   "author": {
     "name": "Ivan-WG",

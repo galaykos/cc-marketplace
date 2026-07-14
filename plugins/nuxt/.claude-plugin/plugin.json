@@ -1,0 +1,13 @@
+{
+  "name": "nuxt",
+  "version": "0.1.1",
+  "description": "Nuxt best practices: Nitro server routes, hybrid rendering route rules, useFetch/useAsyncData payload dedup, useState SSR-safe state, auto-imports discipline, runtimeConfig env overrides, SEO meta.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "frontend",
+    "review"
+  ]
+}

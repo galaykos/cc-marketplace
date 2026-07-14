@@ -1,0 +1,14 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "node-backend-best-practices",
+  "docsUrl": "https://nodejs.org/api/",
+  "tag": "backend",
+  "worker": "web-dev:web-developer",
+  "description": "Review server-side Node.js code against node-backend-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": [],
+  "divergence": {
+    "preamble": "Identify the framework first from package.json (express / @nestjs/* / fastify) and review against that framework's idioms and official docs (expressjs.com, docs.nestjs.com, fastify.dev); language-level JS/TS findings defer to the javascript and typescript plugins."
+  }
+}

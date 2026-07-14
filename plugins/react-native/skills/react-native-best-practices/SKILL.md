@@ -72,7 +72,7 @@ build time, so a shape mismatch is a runtime error on only one platform, not a t
 ## Animated/Reanimated: useNativeDriver's limited scope
 
 `useNativeDriver: true` runs an animation on the native UI thread instead of JS, so it stays smooth
-even when JS is busy — true on the New Architecture too (default since RN 0.76: JSI replaces the
+even when JS is busy — true on the New Architecture too (the only option since RN 0.82: JSI replaces the
 async bridge, but JS-thread congestion still janks). It only supports non-layout properties:
 `transform` (translate/scale/rotate) and `opacity`, not `width`, `height`, `top`, `left`, `flex`,
 or margin/padding, since those require re-running layout. Requesting it for a layout property
@@ -103,15 +103,15 @@ layout. Set `resizeMode` deliberately instead of relying on the default.
 
 React Native's built-in `Image` has limited disk-cache control. For screens with many remote
 images, use `expo-image` so images cache to disk instead of refetching; `react-native-fast-image`
-offers the same idea but its maintenance has slowed, so prefer `expo-image` for new code.
+offers the same idea but is no longer actively maintained, so prefer `expo-image` for new code.
 
 ## Minimize JS-to-native crossings
 
 Every JS-to-native call has overhead. Batch state updates instead of issuing one per frame, and let
 native handle continuous, high-frequency values (scroll position, gesture deltas) instead of
 routing them through JS state. "Bridge" here means the Old Architecture/interop layer; on the New
-Architecture (default since RN 0.76) it's the synchronous JSI, not the async bridge — but per-frame
-JS work still congests the JS thread and still janks, so the advice holds either way.
+Architecture (default since 0.76, the only option since 0.82) it's the synchronous JSI, not the
+async bridge — but per-frame JS work still congests the JS thread and still janks either way.
 
 ```jsx
 // Bad: a JS state update — and a JS/native crossing — on every scroll frame

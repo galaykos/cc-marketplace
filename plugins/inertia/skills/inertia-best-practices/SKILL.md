@@ -1,6 +1,6 @@
 ---
 name: inertia-best-practices
-description: Use when writing or reviewing Inertia.js code in a Laravel app with the Vue, React, or Svelte adapter — prop hygiene and page contracts, partial reloads, lazy vs deferred props, useForm flow, shared data via HandleInertiaRequests, Link navigation, flash/redirect patterns, SSR, code splitting, with v1 vs v2 and adapter-specific advice pinned to the installed packages.
+description: Use when writing or reviewing Inertia.js code in a Laravel app with the Vue, React, or Svelte adapter — prop hygiene and page contracts, partial reloads, lazy vs deferred props, useForm flow, shared data via HandleInertiaRequests, Link navigation, flash/redirect patterns, SSR, code splitting, with v1/v2/v3 and adapter-specific advice pinned to the installed packages.
 ---
 
 ## Know the version before advising
@@ -8,13 +8,13 @@ description: Use when writing or reviewing Inertia.js code in a Laravel app with
 Inertia is two packages that must agree — check both before recommending anything:
 
 - `composer.lock` → `inertiajs/inertia-laravel` major governs server APIs: `Inertia::defer`,
-  `Inertia::merge`, `Inertia::optional` are v2-only; v1 has `Inertia::lazy`.
+  `Inertia::merge`, `Inertia::optional` need v2+ (v3 keeps them); v1 has `Inertia::lazy`.
 - `package.json`/lockfile → the adapter (`@inertiajs/vue3`, `@inertiajs/react`, or
   `@inertiajs/svelte`) governs client APIs — `<Deferred>`, `<WhenVisible>`, `usePoll`, link
-  prefetching, merge props are v2-only — and pins which idiom advice must use: the core API
+  prefetching, merge props need v2+ — and pins which idiom advice must use: the core API
   (useForm, Link, router, usePage) is the same across adapters, the framework glue is not.
-- Never suggest v2 APIs on a v1 install; flag v1 workarounds (manual polling, hand-rolled
-  prefetch) only when an installed v2 can replace them.
+- Never suggest APIs above the installed major; flag older workarounds (manual polling,
+  hand-rolled prefetch, axios interceptor plumbing) only when an installed major replaces them.
 
 ## Props are the page's contract
 
@@ -62,6 +62,14 @@ return Inertia::render('Dashboard', [
 - **Merge props**: `Inertia::merge(fn () => $page->items)` appends on reload instead of
   replacing — the infinite-scroll primitive; reset with `router.reload({ reset: ['items'] })`.
 - **Naming**: v2 renames `lazy()` to `Inertia::optional()` — same semantics, update on upgrade.
+
+## v3 leverage (only when installed)
+
+v3 (stable March 2026; floors: PHP 8.2+, Laravel 11+, React 19 / Svelte 5 adapters) keeps the
+whole v2 server API. The `@inertiajs/vite` plugin replaces the `createInertiaApp` resolve/setup
+boilerplate and wires SSR automatically — even in dev, no separate Node process. Axios is gone
+(built-in XHR client — migrate interceptors or add the axios adapter); packages are ESM-only.
+`useHttp` is `useForm`-style state for non-visit requests; `optimistic()` reverts on failure.
 
 ## Forms: useForm is the default
 
@@ -113,13 +121,16 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
 
 ## Code splitting and SSR
 
-- `resolvePageComponent(name, import.meta.glob('./Pages/**/*.vue'))` — `*.tsx`/`*.jsx` on the
-  React adapter, `*.svelte` on Svelte — with the default lazy glob yields one chunk per page. `{ eager: true }` bundles every page into the entry — only defensible
-  when measured on a small app; on anything sizable it is pure first-load bloat.
+- v1/v2: `resolvePageComponent(name, import.meta.glob('./Pages/**/*.vue'))` — `*.tsx`/`*.jsx` on
+  the React adapter, `*.svelte` on Svelte — with the default lazy glob yields one chunk per
+  page. `{ eager: true }` bundles every page into the entry — only defensible when measured on
+  a small app; on anything sizable it is pure first-load bloat. On v3 the Vite plugin owns page
+  resolution and code splitting — delete the manual glob.
 - SSR pays off on SEO- and share-facing pages (marketing, listings, profiles); a login-walled
-  dashboard can skip the extra Node process entirely. If enabled: build the `ssr.js` target, run
-  the SSR server in deploy, and keep `window`/`document` out of setup/render — gate browser APIs
-  behind `onMounted` (Vue) or `useEffect` (React), which never run during the server render.
+  dashboard can skip the extra Node process entirely. If enabled: on v1/v2 build the `ssr.js`
+  target and run the SSR server in deploy (v3's Vite plugin wires this); everywhere, keep
+  `window`/`document` out of setup/render — gate browser APIs behind `onMounted` (Vue) or
+  `useEffect` (React), which never run during the server render.
 
 ## Anti-patterns
 
@@ -138,5 +149,6 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
 ## Verify against current docs
 
 v1 → v2 renamed and added APIs (`lazy` → `optional`, deferred props, `usePoll`, prefetching,
-merge props). Pin advice to the installed versions from the lockfiles and check
+merge props); v2 → v3 removed axios, went ESM-only, and moved entry/SSR wiring into the
+`@inertiajs/vite` plugin. Pin advice to the installed versions from the lockfiles and check
 https://inertiajs.com before asserting anything version-sensitive.

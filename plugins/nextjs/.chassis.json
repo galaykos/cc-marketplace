@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "nextjs-best-practices",
+  "docsUrl": "https://nextjs.org/docs",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review nextjs code against nextjs-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}
