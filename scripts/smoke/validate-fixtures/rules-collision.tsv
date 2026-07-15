@@ -1,0 +1,12 @@
+# signal_type	pattern	skill	owning_plugin	confidence	stack_marker
+# co-fire-ok: *.tsx a11y-audit react-best-practices
+glob	*.bad	alpha-skill	alpha	high
+glob	*.bad	beta-skill	beta	high
+glob	*.vue	vue3-best-practices	vue3	high	package.json~"vue"[[:space:]]*:[[:space:]]*"[~^>=v ]*3[."]
+glob	*.vue	vue2-best-practices	vue2	high	package.json~"vue"[[:space:]]*:[[:space:]]*"[~^>=v ]*2[."]
+glob	*.tsx	a11y-audit	a11y	high
+glob	*.tsx	react-best-practices	react	high	-
+glob	*.low	gamma-skill	gamma	low
+glob	*.low	delta-skill	delta	low
+content	foo	epsilon-skill	epsilon	high
+content	foo	zeta-skill	zeta	high

@@ -52,6 +52,25 @@
     esac
   }
 
+  marker_ok() { # $1 stack_marker — 0 = fire, 1 = suppress. Fail-open: absent
+    # manifest, missing `~`, empty regex, or a grep error (exit >= 2) all fire;
+    # only a clean no-match (exit 1) suppresses. `!` inverts the 0/1 verdict only.
+    local m="$1" neg=0 manifest regex mcontent rc
+    [ -z "$m" ] || [ "$m" = "-" ] && return 0
+    case "$m" in '!'*) neg=1; m="${m#!}" ;; esac
+    manifest="${m%%~*}"
+    regex="${m#*~}"
+    [ "$manifest" = "$m" ] && return 0
+    [ -n "$manifest" ] && [ -n "$regex" ] || return 0
+    [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || return 0
+    mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || return 0
+    printf '%s' "$mcontent" | grep -qE "$regex" 2>/dev/null
+    rc=$?
+    [ "$rc" -ge 2 ] && return 0
+    if [ "$neg" -eq 1 ]; then rc=$((1 - rc)); fi
+    return "$rc"
+  }
+
   emit_nudge() { # $1 skill, $2 owning_plugin
     printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.\n' "$base" "$1" "$2"
   }
@@ -63,11 +82,12 @@
   # dedups two rules that map to one skill within this single edit.
   fired_now=""
   emitted_now=""
-  while IFS=$'\t' read -r stype pattern skill plugin conf || [ -n "$stype" ]; do
+  while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
     case "$stype" in ''|'#'*) continue ;; esac
     [ "$stype" = glob ] && [ "$conf" = high ] || continue
     match_glob "$pattern" || continue
     plugin_installed "$plugin" || continue
+    marker_ok "$marker" || continue
     already_fired "$skill" && continue
     printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
     emit_nudge "$skill" "$plugin"
@@ -82,10 +102,11 @@
   [ -r "$target" ] && content=$(head -c 65536 "$target" 2>/dev/null)
   pending_adds=""
   if [ -n "$content" ]; then
-    while IFS=$'\t' read -r stype pattern skill plugin conf || [ -n "$stype" ]; do
+    while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
       case "$stype" in ''|'#'*) continue ;; esac
       [ "$stype" = content ] || continue
       plugin_installed "$plugin" || continue
+      marker_ok "$marker" || continue
       if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then
         pending_adds="${pending_adds}${skill}"$'\n'
       fi

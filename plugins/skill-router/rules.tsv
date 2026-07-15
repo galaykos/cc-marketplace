@@ -1,25 +1,28 @@
-# signal_type	pattern	skill	owning_plugin	confidence
+# signal_type	pattern	skill	owning_plugin	confidence	stack_marker
+# co-fire-ok: *.tsx a11y-audit react-best-practices
+# co-fire-ok: *.tsx a11y-audit react-native-best-practices
+# co-fire-ok: *.blade.php livewire-best-practices laravel-best-practices
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	*.tsx	a11y-audit	a11y	high
 glob	*.css	css3-best-practices	ui-ux	high
 glob	*.scss	css3-best-practices	ui-ux	high
-glob	*.tsx	react-best-practices	react	high
-glob	*.jsx	react-best-practices	react	high
-glob	*.tsx	react-native-best-practices	react-native	high
+glob	*.tsx	react-best-practices	react	high	!package.json~"react-native"
+glob	*.jsx	react-best-practices	react	high	!package.json~"react-native"
+glob	*.tsx	react-native-best-practices	react-native	high	package.json~"react-native"
 glob	*.ts	typescript-best-practices	typescript	high
 glob	*.js	javascript-best-practices	javascript	high
 glob	*.mjs	javascript-best-practices	javascript	high
 glob	*.cjs	javascript-best-practices	javascript	high
-glob	*.vue	vue3-best-practices	vue3	high
-glob	*.vue	vue2-best-practices	vue2	high
+glob	*.vue	vue3-best-practices	vue3	high	package.json~"vue"[[:space:]]*:[[:space:]]*"[~^>=v ]*3[."]
+glob	*.vue	vue2-best-practices	vue2	high	package.json~"vue"[[:space:]]*:[[:space:]]*"[~^>=v ]*2[."]
 glob	**/Livewire/**	livewire-best-practices	livewire	high
-glob	*.blade.php	livewire-best-practices	livewire	high
+glob	*.blade.php	livewire-best-practices	livewire	high	composer.json~livewire/livewire
 glob	**/resources/js/Pages/**	inertia-best-practices	inertia	high
 glob	*.blade.php	laravel-best-practices	laravel	high
-glob	*.php	laravel-best-practices	laravel	high
-glob	*.php	php-best-practices	php	high
+glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework
+glob	*.php	php-best-practices	php	high	!composer.json~laravel/framework
 glob	**/routes/api.php	api-design	api-design	high
 glob	openapi*.yml	api-design	api-design	high
 glob	openapi*.yaml	api-design	api-design	high
@@ -31,6 +34,12 @@ glob	docker-compose*.yml	docker-best-practices	dev-env	high
 glob	compose*.yml	docker-best-practices	dev-env	high
 glob	package.json	package-hygiene	packages	high
 glob	composer.json	package-hygiene	packages	high
+glob	next.config.*	nextjs-best-practices	nextjs	high
+glob	nuxt.config.*	nuxt-best-practices	nuxt	high
+glob	vite.config.*	vite-best-practices	vite	high
+glob	*.graphql	graphql-grpc	graphql-grpc	high
+glob	*.proto	graphql-grpc	graphql-grpc	high
+glob	**/workflows/**	devops-practices	devops	high
 content	\b(async|await|Promise\.all|mutex|goroutine|\.lock\(|queue)\b	concurrency-safety	concurrency	low
 content	\b(catch|throw|rescue)\b	error-handling-design	error-handling	low
 content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
