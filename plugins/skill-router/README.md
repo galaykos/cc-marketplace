@@ -34,6 +34,20 @@ content       \b(password|jwt)\b      security-review       security        low
 - `confidence`: `high` fires inline once per session; `low` is deferred to the SessionEnd digest.
 - A rule only fires if its `owning_plugin` is installed.
 
+### Stack markers (optional 6th column)
+
+When two stacks claim the same file pattern (vue2 vs vue3 on `*.vue`, php vs laravel on `*.php`), an optional `stack_marker` column discriminates by sniffing a manifest at the repo root:
+
+```
+glob   *.vue   vue3-best-practices   vue3   high   package.json~"vue"[[:space:]]*:[[:space:]]*"[~^>=v ]*3[."]
+glob   *.php   php-best-practices    php    high   !composer.json~laravel/framework
+```
+
+- Format: `<manifest>~<ERE>`, split on the **first** `~` — the manifest name cannot contain `~`, but the regex may. Prefix `!` negates the match verdict. `-` or empty means no marker.
+- Fallback chain: `||`-separated alternatives (`a~re||b~re`) are tried in order and the **first decisive alternative wins** — its match verdict is final. Alternatives whose manifest is absent/unreadable (or that are malformed) are skipped; no decisive alternative at all fires. Put the authoritative source first: the vue rows check the installed `node_modules/vue/package.json` version before the declared `package.json` range, so `workspace:*`/`latest`/loose ranges resolve to the actually-installed major once dependencies are installed. A literal `||` inside a regex is unsupported (single `|` alternation is fine).
+- Fail-open semantics: the manifest is read from the session cwd, regular files only, capped at 64 KiB. Manifest absent/unreadable → the rule **fires** (undetectable stack keeps today's behavior). `grep -E` exit 0 → satisfied; exit 1 → suppressed; exit ≥ 2 (malformed regex) → fires. `!` inverts only the 0/1 verdict.
+- Complementary same-pattern pairs that should co-fire (e.g. a11y alongside react on `*.tsx`) are declared with a pairwise comment directive so the marketplace's overlap gate allows them: `# co-fire-ok: <pattern> <skillA> <skillB>`.
+
 ## State
 
 A per-session dedup file lives at `<repo>/.claude/skill-router/fired-<session_id>.json` (gitignored) and is removed at session end.

@@ -4,6 +4,42 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.50.0] - 2026-07-15
+
+### Added
+
+- **skill-router** 0.2.0: optional `stack_marker` 6th column in `rules.tsv` —
+  `<manifest>~<ERE>` (`!` negates, `-`/empty none) sniffed from the session cwd so
+  stack-exclusive pairs stop co-firing on one edit: vue2/vue3 on `*.vue`,
+  php/laravel on `*.php`, react/react-native on `*.tsx`/`*.jsx`, livewire gated to
+  `composer.json` containing `livewire/livewire`. Fail-open preserved: absent or
+  unreadable manifest, malformed marker, or a bad regex (grep exit ≥ 2) fires the
+  rule; reads are regular-file-only and capped at 64 KiB. Complementary
+  same-pattern pairs (a11y alongside react on `*.tsx`, livewire alongside laravel
+  on `*.blade.php`) declared via pairwise `# co-fire-ok:` directives. New coverage
+  rows: `next.config.*`→nextjs, `nuxt.config.*`→nuxt, `vite.config.*`→vite,
+  `*.graphql`/`*.proto`→graphql-grpc, `**/workflows/**`→devops-practices.
+- **Overlap gate**: `pc_rules_overlap` in `scripts/lib/plugin-checks.sh`, wired
+  into `scripts/validate.sh` — two high-confidence glob rows sharing a pattern
+  must be marker-discriminated or `# co-fire-ok:`-allowlisted; markers route.sh
+  would ignore don't count as discriminators. Fixture
+  `scripts/smoke/validate-fixtures/rules-collision.tsv` +
+  `scripts/smoke/rules-overlap-tests.sh` prove the gate fails on an unresolved
+  collision.
+- **Marker fallback chains**: `||`-separated marker alternatives, tried in
+  order — the first decisive alternative wins; absent/unreadable manifests and
+  malformed alternatives are skipped, and no decisive alternative fires. The
+  vue rows check the installed `node_modules/vue/package.json` version first
+  (authoritative), then the declared `package.json` range, so
+  `workspace:*`/`latest` and loose ranges (`>=2.0.0` installed as 3.x) resolve
+  to the actually-installed major. CRLF-terminated rules.tsv rows are
+  tolerated (trailing `\r` stripped from the last field) in both route.sh and
+  the overlap gate.
+- **Route-marker smoke tests**: `scripts/smoke/route-marker-tests.sh` (20
+  asserts: match/suppress/absent-manifest/negation/malformed-regex/5-column
+  compatibility/fail-open), both new suites added to CI in
+  `.github/workflows/validate.yml`.
+
 ## [0.49.1] - 2026-07-14
 
 ### Changed

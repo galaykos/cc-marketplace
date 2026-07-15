@@ -266,6 +266,19 @@ if [ -d "$SR" ]; then
     | grep -xF -f <(for skd in plugins/*/skills/*/; do basename "$skd"; done | sort -u) || true)
   [ -z "$route_lits" ] \
     || err "skill-router route.sh carries literal skill name(s): $(echo $route_lits) — must stay rules.tsv-driven"
+
+  # rules.tsv overlap gate (hard): two high-confidence glob rows sharing one
+  # pattern must be stack_marker-discriminated or declared complementary via a
+  # pairwise "# co-fire-ok:" directive — stack-exclusive pairs (vue2/vue3,
+  # php/laravel) must never co-fire on a detectable stack.
+  overlaps=$(pc_rules_overlap "$SR/rules.tsv") || true
+  if [ -n "$overlaps" ]; then
+    while IFS= read -r ol; do
+      err "rules.tsv unresolved co-fire ($ol) — add distinct stack_markers or a '# co-fire-ok:' directive"
+    done <<EOF_OVERLAPS
+$overlaps
+EOF_OVERLAPS
+  fi
 fi
 
 # All-bundle dependency gate (hard): generalizes the everything-only completeness

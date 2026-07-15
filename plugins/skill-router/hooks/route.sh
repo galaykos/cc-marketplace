@@ -52,6 +52,36 @@
     esac
   }
 
+  marker_ok() { # $1 stack_marker — 0 = fire, 1 = suppress. `||`-separated
+    # alternatives, each `[!]<manifest>~<ERE>`, tried in order: the FIRST
+    # decisive alternative wins — its grep verdict (exit 0 fire / exit 1
+    # suppress, after `!` inversion) is final, so an authoritative source
+    # (installed node_modules version) listed first overrides a looser declared
+    # range behind it. Indecisive alternatives — absent/unreadable manifest,
+    # missing `~`, empty side, grep exit >= 2 — are skipped. No decisive
+    # alternative at all fires: an undetectable stack keeps today's behavior.
+    local list="$1" alt m neg manifest regex mcontent rc
+    [ -z "$list" ] || [ "$list" = "-" ] && return 0
+    while [ -n "$list" ]; do
+      alt="${list%%||*}"
+      if [ "$alt" = "$list" ]; then list=""; else list="${list#*||}"; fi
+      m="$alt"; neg=0
+      case "$m" in '!'*) neg=1; m="${m#!}" ;; esac
+      manifest="${m%%~*}"
+      regex="${m#*~}"
+      [ "$manifest" = "$m" ] && continue
+      [ -n "$manifest" ] && [ -n "$regex" ] || continue
+      [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || continue
+      mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || continue
+      printf '%s' "$mcontent" | grep -qE "$regex" 2>/dev/null
+      rc=$?
+      [ "$rc" -ge 2 ] && continue
+      [ "$neg" -eq 1 ] && rc=$((1 - rc))
+      return "$rc"
+    done
+    return 0
+  }
+
   emit_nudge() { # $1 skill, $2 owning_plugin
     printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.\n' "$base" "$1" "$2"
   }
@@ -63,11 +93,13 @@
   # dedups two rules that map to one skill within this single edit.
   fired_now=""
   emitted_now=""
-  while IFS=$'\t' read -r stype pattern skill plugin conf || [ -n "$stype" ]; do
+  while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
     case "$stype" in ''|'#'*) continue ;; esac
+    conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
     [ "$stype" = glob ] && [ "$conf" = high ] || continue
     match_glob "$pattern" || continue
     plugin_installed "$plugin" || continue
+    marker_ok "$marker" || continue
     already_fired "$skill" && continue
     printf '%s\n' "$emitted_now" | grep -qxF "$skill" && continue
     emit_nudge "$skill" "$plugin"
@@ -82,10 +114,12 @@
   [ -r "$target" ] && content=$(head -c 65536 "$target" 2>/dev/null)
   pending_adds=""
   if [ -n "$content" ]; then
-    while IFS=$'\t' read -r stype pattern skill plugin conf || [ -n "$stype" ]; do
+    while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
       case "$stype" in ''|'#'*) continue ;; esac
+      conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
       [ "$stype" = content ] || continue
       plugin_installed "$plugin" || continue
+      marker_ok "$marker" || continue
       if printf '%s' "$content" | grep -qE "$pattern" 2>/dev/null; then
         pending_adds="${pending_adds}${skill}"$'\n'
       fi
