@@ -22,6 +22,13 @@ printf 'glob\t*.php\tphp-canary\tphp\thigh\t!composer.json~laravel/framework\n' 
 printf 'glob\t*.php\tbadre-canary\tmisc\thigh\tpackage.json~([bad\n' >> "$PR/rules.tsv"
 printf 'glob\t*.md\tghost-canary\tmisc\thigh\tnosuchfile.json~anything\n' >> "$PR/rules.tsv"
 printf 'glob\t*.css\tplain-canary\tmisc\thigh\n' >> "$PR/rules.tsv"
+# ||-chain rows: installed node_modules version first (authoritative), then
+# the declared package.json range — first decisive alternative wins
+printf 'glob\t*.svelte\tchain3-canary\tmisc\thigh\tnode_modules/svelte/package.json~"version"[[:space:]]*:[[:space:]]*"3[."]||package.json~"svelte"[[:space:]]*:[[:space:]]*"[~^>=v ]*3[."]\n' >> "$PR/rules.tsv"
+printf 'glob\t*.svelte\tchain2-canary\tmisc\thigh\tnode_modules/svelte/package.json~"version"[[:space:]]*:[[:space:]]*"2[."]||package.json~"svelte"[[:space:]]*:[[:space:]]*"[~^>=v ]*2[."]\n' >> "$PR/rules.tsv"
+# CRLF-terminated rows: markered and markerless, both must behave as LF rows
+printf 'glob\t*.rs\tcrlf-canary\tmisc\thigh\tpackage.json~"crlfdep"\r\n' >> "$PR/rules.tsv"
+printf 'glob\t*.go\tcrlfplain-canary\tmisc\thigh\r\n' >> "$PR/rules.tsv"
 
 mkdir -p "$TMP/vue3cwd" "$TMP/vue2cwd" "$TMP/emptycwd" "$TMP/laravelcwd"
 echo '{"dependencies":{"vue":"^3.2.4"}}'   > "$TMP/vue3cwd/package.json"
@@ -65,6 +72,41 @@ expect "markered row with absent manifest fires (6-field read guard)" "$out" 'gh
 
 out=$(route "$TMP/emptycwd" a.css)
 expect "markerless 5-column row fires unchanged" "$out" 'plain-canary' ''
+
+# ||-chain: workspace:* declared version is indecisive for the semver alt; the
+# installed node_modules version must decide the pair
+mkdir -p "$TMP/wscwd/node_modules/svelte"
+echo '{"dependencies":{"svelte":"workspace:*"}}' > "$TMP/wscwd/package.json"
+echo '{"name":"svelte","version":"3.59.2"}' > "$TMP/wscwd/node_modules/svelte/package.json"
+out=$(route "$TMP/wscwd" App.svelte)
+expect "chain: installed version fires the right major" "$out" 'chain3-canary' ''
+expect "chain: installed version suppresses the wrong major" "$out" '' 'chain2-canary'
+
+# ||-chain: declared range and installed major disagree (">=2.0.0" installed
+# as 3.x) — the node_modules alternative is first, so it is decisive and the
+# looser declared range never co-fires the wrong major
+mkdir -p "$TMP/rangecwd/node_modules/svelte"
+echo '{"dependencies":{"svelte":">=2.0.0"}}' > "$TMP/rangecwd/package.json"
+echo '{"name":"svelte","version":"3.59.2"}' > "$TMP/rangecwd/node_modules/svelte/package.json"
+out=$(route "$TMP/rangecwd" App.svelte)
+expect "chain: installed major beats looser declared range" "$out" 'chain3-canary' ''
+expect "chain: loose range does not co-fire the wrong major" "$out" '' 'chain2-canary'
+
+# ||-chain: workspace:* with no node_modules — the declared-range alt cleanly
+# fails and nothing else is decisive: both suppress (documented limitation,
+# asserted so a behavior change is deliberate)
+mkdir -p "$TMP/wsbare"
+echo '{"dependencies":{"svelte":"workspace:*"}}' > "$TMP/wsbare/package.json"
+out=$(route "$TMP/wsbare" App.svelte)
+expect "chain: undetectable major suppresses v3 (documented)" "$out" '' 'chain3-canary'
+expect "chain: undetectable major suppresses v2 (documented)" "$out" '' 'chain2-canary'
+
+mkdir -p "$TMP/crlfcwd"
+echo '{"dependencies":{"crlfdep":"1.0.0"}}' > "$TMP/crlfcwd/package.json"
+out=$(route "$TMP/crlfcwd" main.rs)
+expect "CRLF markered row fires on match" "$out" 'crlf-canary' ''
+out=$(route "$TMP/emptycwd" main.go)
+expect "CRLF markerless row fires (conf survives \\r strip)" "$out" 'crlfplain-canary' ''
 
 out=$(echo '{}' | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE") && e=$? || e=$?
 if [ "$e" -eq 0 ] && [ -z "$out" ]; then echo "PASS: empty tool_input exits 0 silently"; else echo "FAIL: fail-open on '{}' (exit=$e out=$out)"; rc=1; fi

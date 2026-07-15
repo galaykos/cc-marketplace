@@ -52,23 +52,34 @@
     esac
   }
 
-  marker_ok() { # $1 stack_marker — 0 = fire, 1 = suppress. Fail-open: absent
-    # manifest, missing `~`, empty regex, or a grep error (exit >= 2) all fire;
-    # only a clean no-match (exit 1) suppresses. `!` inverts the 0/1 verdict only.
-    local m="$1" neg=0 manifest regex mcontent rc
-    [ -z "$m" ] || [ "$m" = "-" ] && return 0
-    case "$m" in '!'*) neg=1; m="${m#!}" ;; esac
-    manifest="${m%%~*}"
-    regex="${m#*~}"
-    [ "$manifest" = "$m" ] && return 0
-    [ -n "$manifest" ] && [ -n "$regex" ] || return 0
-    [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || return 0
-    mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || return 0
-    printf '%s' "$mcontent" | grep -qE "$regex" 2>/dev/null
-    rc=$?
-    [ "$rc" -ge 2 ] && return 0
-    if [ "$neg" -eq 1 ]; then rc=$((1 - rc)); fi
-    return "$rc"
+  marker_ok() { # $1 stack_marker — 0 = fire, 1 = suppress. `||`-separated
+    # alternatives, each `[!]<manifest>~<ERE>`, tried in order: the FIRST
+    # decisive alternative wins — its grep verdict (exit 0 fire / exit 1
+    # suppress, after `!` inversion) is final, so an authoritative source
+    # (installed node_modules version) listed first overrides a looser declared
+    # range behind it. Indecisive alternatives — absent/unreadable manifest,
+    # missing `~`, empty side, grep exit >= 2 — are skipped. No decisive
+    # alternative at all fires: an undetectable stack keeps today's behavior.
+    local list="$1" alt m neg manifest regex mcontent rc
+    [ -z "$list" ] || [ "$list" = "-" ] && return 0
+    while [ -n "$list" ]; do
+      alt="${list%%||*}"
+      if [ "$alt" = "$list" ]; then list=""; else list="${list#*||}"; fi
+      m="$alt"; neg=0
+      case "$m" in '!'*) neg=1; m="${m#!}" ;; esac
+      manifest="${m%%~*}"
+      regex="${m#*~}"
+      [ "$manifest" = "$m" ] && continue
+      [ -n "$manifest" ] && [ -n "$regex" ] || continue
+      [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || continue
+      mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || continue
+      printf '%s' "$mcontent" | grep -qE "$regex" 2>/dev/null
+      rc=$?
+      [ "$rc" -ge 2 ] && continue
+      [ "$neg" -eq 1 ] && rc=$((1 - rc))
+      return "$rc"
+    done
+    return 0
   }
 
   emit_nudge() { # $1 skill, $2 owning_plugin
@@ -84,6 +95,7 @@
   emitted_now=""
   while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
     case "$stype" in ''|'#'*) continue ;; esac
+    conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
     [ "$stype" = glob ] && [ "$conf" = high ] || continue
     match_glob "$pattern" || continue
     plugin_installed "$plugin" || continue
@@ -104,6 +116,7 @@
   if [ -n "$content" ]; then
     while IFS=$'\t' read -r stype pattern skill plugin conf marker || [ -n "$stype" ]; do
       case "$stype" in ''|'#'*) continue ;; esac
+      conf="${conf%$'\r'}"; marker="${marker%$'\r'}"
       [ "$stype" = content ] || continue
       plugin_installed "$plugin" || continue
       marker_ok "$marker" || continue

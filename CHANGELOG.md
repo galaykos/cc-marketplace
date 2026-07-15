@@ -26,7 +26,16 @@ version in their `plugin.json`.
   `scripts/smoke/validate-fixtures/rules-collision.tsv` +
   `scripts/smoke/rules-overlap-tests.sh` prove the gate fails on an unresolved
   collision.
-- **Route-marker smoke tests**: `scripts/smoke/route-marker-tests.sh` (12
+- **Marker fallback chains**: `||`-separated marker alternatives, tried in
+  order — the first decisive alternative wins; absent/unreadable manifests and
+  malformed alternatives are skipped, and no decisive alternative fires. The
+  vue rows check the installed `node_modules/vue/package.json` version first
+  (authoritative), then the declared `package.json` range, so
+  `workspace:*`/`latest` and loose ranges (`>=2.0.0` installed as 3.x) resolve
+  to the actually-installed major. CRLF-terminated rules.tsv rows are
+  tolerated (trailing `\r` stripped from the last field) in both route.sh and
+  the overlap gate.
+- **Route-marker smoke tests**: `scripts/smoke/route-marker-tests.sh` (20
   asserts: match/suppress/absent-manifest/negation/malformed-regex/5-column
   compatibility/fail-open), both new suites added to CI in
   `.github/workflows/validate.yml`.

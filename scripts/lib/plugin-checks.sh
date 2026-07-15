@@ -43,6 +43,7 @@ pc_rules_overlap() {
   local f="$1"
   [ -f "$f" ] || return 0
   awk -F'\t' '
+    { sub(/\r$/, "") }
     /^# co-fire-ok:/ {
       line = $0
       sub(/^# co-fire-ok:[[:space:]]*/, "", line)
