@@ -1,0 +1,28 @@
+# Valid scenario: the sidebar open -> close flow. Every step is read-only
+# (open a drawer, hover, close it again), so no allowMutations flag is needed.
+id: sidebar-toggle
+url: http://localhost:3000/
+engine: deterministic
+threshold: 0.01
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+  - { name: mobile, width: 390, height: 844 }
+mask:
+  - "[data-testid=clock]"
+steps:
+  - goto: /
+    match: { source: baseline, ref: baselines/sidebar-closed.png }
+  - click: "[data-testid=sidebar-toggle]"
+    expect:
+      dom:
+        - { selector: "nav.sidebar", state: visible }
+      console: clean
+      layout: no-overflow
+    match: { source: baseline, ref: baselines/sidebar-open.png }
+  - hover: "nav.sidebar a.settings"
+  - click: "[data-testid=sidebar-toggle]"
+    label: close the drawer
+    expect:
+      dom:
+        - { selector: "nav.sidebar", state: hidden }
+    match: { source: baseline, ref: baselines/sidebar-closed.png }

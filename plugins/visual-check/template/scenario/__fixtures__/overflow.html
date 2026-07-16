@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- Category 3 fixture (card 07): a page with horizontal overflow. A fixed 3000px
+     element forces the document wider than any normal viewport, so the layout
+     heuristic must flag horizontal overflow. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      body { font: 16px/1.4 system-ui, sans-serif; color: #111; background: #fff; }
+      header { padding: 16px; }
+      .runaway { width: 3000px; height: 60px; background: #d33; color: #fff; padding: 16px; }
+    </style>
+  </head>
+  <body>
+    <header><h1>Report</h1><p>A stray fixed-width block breaks the layout.</p></header>
+    <div class="runaway">This 3000px block overflows the viewport horizontally.</div>
+    <main style="padding:16px"><p>Body content below the fold.</p></main>
+  </body>
+</html>

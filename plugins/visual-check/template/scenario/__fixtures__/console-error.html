@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- Category 2 fixture (card 07): a page that logs a console.error during load.
+     Looks fine, but the `console` assert category must catch the error. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Console error fixture</title>
+    <style>
+      body { font: 16px/1.4 system-ui, sans-serif; color: #111; background: #fff; padding: 24px; }
+    </style>
+  </head>
+  <body>
+    <h1>Dashboard</h1>
+    <p>Looks fine, but a widget failed to initialise.</p>
+    <script>
+      // Deterministic breakage: a console error the `console` category must flag.
+      console.error('widget "revenue-chart" failed to initialise: data source undefined');
+    </script>
+  </body>
+</html>

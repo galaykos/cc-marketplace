@@ -1,0 +1,21 @@
+{
+  "name": "visual-check-harness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic Playwright visual-diff harness for the visual-check plugin: goto, wait-for-stable, capture per viewport, pixel-diff against a reference, emit verdict.json with a 0/1/2 exit contract.",
+  "type": "commonjs",
+  "bin": {
+    "visual-check": "bin/visual-check.mjs"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "visual-check": "node bin/visual-check.mjs",
+    "install-browsers": "playwright install chromium"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

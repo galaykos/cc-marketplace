@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- Local runnable target for the sidebar open->close scenario (card 06 verify).
+     Provides [data-testid=sidebar-toggle], nav.sidebar (hidden until opened),
+     a.settings inside it, and [data-testid=clock] (a mask target). No network,
+     no animation — deterministic for screenshot capture. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sidebar fixture</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      body { font: 16px/1.4 -apple-system, system-ui, sans-serif; color: #111; background: #fff; }
+      header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #ddd; }
+      button { padding: 6px 12px; border: 1px solid #888; border-radius: 4px; background: #f4f4f4; cursor: pointer; }
+      nav.sidebar { display: none; width: 220px; padding: 16px; border-right: 1px solid #ddd; background: #fafafa; }
+      nav.sidebar.open { display: block; }
+      nav.sidebar a { display: block; padding: 6px 0; color: #0645ad; text-decoration: none; }
+      main { padding: 16px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <button data-testid="sidebar-toggle">Menu</button>
+      <span data-testid="clock">--:--:--</span>
+    </header>
+    <nav class="sidebar" aria-label="Primary">
+      <a href="#home">Home</a>
+      <a class="settings" href="#settings">Settings</a>
+    </nav>
+    <main><h1>Sidebar demo</h1><p>Static content behind the drawer.</p></main>
+    <script>
+      const btn = document.querySelector('[data-testid=sidebar-toggle]');
+      const nav = document.querySelector('nav.sidebar');
+      btn.addEventListener('click', () => nav.classList.toggle('open'));
+    </script>
+  </body>
+</html>

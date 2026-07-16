@@ -1,0 +1,12 @@
+# Category 3 fixture (card 07). Run against overflow.html (pass --url).
+# Expected: status fail (exit 1) with a layout reason (horizontal overflow).
+# Only the `layout` category is requested → dom/console/network stay [].
+id: overflow
+url: http://localhost:3000/
+engine: deterministic
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+steps:
+  - goto: /
+    expect:
+      layout: no-overflow

@@ -1,0 +1,18 @@
+# Category 1 fixture (card 07) — the DOM-pass case. Run against sidebar.html
+# (pass --url). The toggle reveals nav.sidebar, so dom/console/layout all hold;
+# no `match` step, so no baseline is needed.
+# Expected: status pass (exit 0). network stays [] (unrequested); dom/console/layout
+# requested-and-clean.
+id: sidebar-dom
+url: http://localhost:3000/
+engine: deterministic
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+steps:
+  - goto: /
+  - click: "[data-testid=sidebar-toggle]"
+    expect:
+      dom:
+        - { selector: "nav.sidebar", state: visible }
+      console: clean
+      layout: no-overflow

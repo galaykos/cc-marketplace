@@ -433,6 +433,11 @@
       "name": "compaction-advisor",
       "source": "./plugins/compaction-advisor",
       "description": "Advice-only nudge to run /compact when a session grows long. A UserPromptSubmit hook counts user turns per session and, on a repeating 50-turn interval, prints one line suggesting /compact if an early chunk is no longer relevant to the current task — the model judges relevance from the nudge text. Resets on SessionStart source=compact|clear so it never nags right after a compaction or a context clear. Single self-healing state file per working tree, warn-only and fail-open: any error exits 0 silently, a corrupt or foreign-session state file re-seeds rather than going silent. No token API, no byte-size thresholds, and it never runs /compact itself — the user decides."
+    },
+    {
+      "name": "visual-check",
+      "source": "./plugins/visual-check",
+      "description": "Visual QA verification for web UIs: drives a real browser to capture rendered screenshots and diff them against an approved baseline to catch layout shifts, broken styles, and render regressions that DOM assertions miss, reusing the playwright navigator to drive the browser and design-preview for real-component rendering rather than reimplementing either."
     }
   ]
 }

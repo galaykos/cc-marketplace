@@ -1,0 +1,13 @@
+# Category 4 fixture (card 07) — the transient case. Run against net-server.mjs
+# /flaky/ (pass --url http://127.0.0.1:<port>/flaky/). The embedded asset 503s
+# ONCE then recovers on retry → transient, NOT a hard fail.
+# Expected: status pass (exit 0); asserts.network stays [] (no hard finding).
+id: network-transient
+url: http://localhost:3000/flaky/
+engine: deterministic
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+steps:
+  - goto: /
+    expect:
+      network: no-failures

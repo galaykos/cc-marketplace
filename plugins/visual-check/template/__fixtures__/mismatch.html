@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>visual-check fixture — mismatch</title>
+<style>
+  /* Same layout footprint as hello.html but different pixels (red vs blue, different
+     text) so a hello render diffed against this reference exceeds maxDiffPixelRatio. */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #7a0b0b;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    width: 240px;
+    height: 120px;
+    background: #d61414;
+    border: 4px solid #ffff00;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <main class="card" role="main">GOODBYE</main>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Invalid scenario: a form-submitting `type` step is marked `mutates: true`
+# (state-changing) but the scenario never sets `allowMutations: true`.
+# The read-only-default gate must refuse it.
+id: unflagged-mutation
+url: http://localhost:3000/account
+steps:
+  - goto: /account
+  - type: "input#email"
+    mutates: true
+    match: { source: baseline, ref: baselines/account.png }

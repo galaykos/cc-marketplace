@@ -1,0 +1,20 @@
+{
+  "name": "visual-check",
+  "version": "0.1.0",
+  "description": "Visual QA verification for web UIs: drives a real browser to capture rendered screenshots and diff them against an approved baseline to catch layout shifts, broken styles, and render regressions that DOM assertions miss, reusing the playwright navigator to drive the browser and design-preview for real-component rendering rather than reimplementing either.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "testing",
+    "ui-ux",
+    "frontend",
+    "automation",
+    "quality"
+  ],
+  "dependencies": [
+    "playwright",
+    "design-preview"
+  ]
+}

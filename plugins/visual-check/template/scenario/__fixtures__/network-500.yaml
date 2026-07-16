@@ -1,0 +1,13 @@
+# Category 4 fixture (card 07). Run against net-server.mjs /500/ (pass --url
+# http://127.0.0.1:<port>/500/). The embedded asset always 500s and stays 500
+# on retry → a real network failure.
+# Expected: status fail (exit 1) with a network reason.
+id: network-500
+url: http://localhost:3000/500/
+engine: deterministic
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+steps:
+  - goto: /
+    expect:
+      network: no-failures

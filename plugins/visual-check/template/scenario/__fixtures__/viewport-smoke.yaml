@@ -1,0 +1,9 @@
+# Minimal passing scenario used by bin/__fixtures__/run-cli-fixtures.mjs to prove the
+# --viewport filter narrows the resolved viewports on the SCENARIO path. No `match`
+# checkpoint, so it needs no baseline and passes on any reachable page (driven with --url).
+id: hello
+url: about:blank
+engine: deterministic
+steps:
+  - goto: /
+  - wait:

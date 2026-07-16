@@ -1,0 +1,12 @@
+# Timeout scenario: after loading a real page, wait on an element that never
+# appears. The wait is an ACTION step, so hitting the per-step timeout is an
+# `error` (the run cannot reach a stable state) → exit 2, NOT a `fail`.
+# Run against a reachable target with --url; keep --step-timeout small.
+id: timeout-demo
+url: about:blank
+engine: deterministic
+viewports:
+  - { name: desktop, width: 800, height: 600 }
+steps:
+  - goto: /
+  - wait: "#never-appears"

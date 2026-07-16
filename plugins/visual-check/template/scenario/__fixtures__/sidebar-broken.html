@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- Category 1 fixture (card 07): a sidebar whose toggle is wired to the WRONG
+     class, so clicking never reveals nav.sidebar. The DOM/functional assert must
+     fail with a reason after the toggle — the interaction did not work. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; margin: 0; }
+      body { font: 16px/1.4 system-ui, sans-serif; color: #111; background: #fff; }
+      header { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #ddd; }
+      button { padding: 6px 12px; border: 1px solid #888; border-radius: 4px; background: #f4f4f4; }
+      nav.sidebar { display: none; width: 220px; padding: 16px; background: #fafafa; }
+      nav.sidebar.open { display: block; }
+    </style>
+  </head>
+  <body>
+    <header><button data-testid="sidebar-toggle">Menu</button></header>
+    <nav class="sidebar" aria-label="Primary"><a href="#home">Home</a></nav>
+    <main style="padding:16px"><h1>Broken sidebar</h1></main>
+    <script>
+      const btn = document.querySelector('[data-testid=sidebar-toggle]');
+      const nav = document.querySelector('nav.sidebar');
+      // BUG: toggles a class the CSS never targets, so the drawer stays hidden.
+      btn.addEventListener('click', () => nav.classList.toggle('is-active'));
+    </script>
+  </body>
+</html>

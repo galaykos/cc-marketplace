@@ -1,0 +1,11 @@
+node_modules/
+test-results/
+playwright-report/
+# .visual-check/ is default-deny for EPHEMERAL artifacts (per-run results and the
+# generated scenario specs/configs compile.ts writes), but the committed golden
+# baselines and the consumer config are explicitly un-ignored so they CAN be tracked
+# (spec A4 / card 10). Note: `.visual-check/*` (not `.visual-check/`) is required so git
+# still descends into the dir and the negations for its children take effect.
+.visual-check/*
+!.visual-check/baselines
+!.visual-check/config.json

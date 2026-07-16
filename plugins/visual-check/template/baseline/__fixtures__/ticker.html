@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Ticker fixture</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { font-family: Arial, Helvetica, sans-serif; background: #ffffff; color: #111; }
+      header { background: #1a3a6b; color: #fff; padding: 24px; font-size: 22px; font-weight: 700; }
+      main { padding: 32px; }
+      .card { border: 2px solid #1a3a6b; border-radius: 8px; padding: 20px; max-width: 520px; }
+      .card h2 { font-size: 18px; margin-bottom: 12px; }
+      .card p { font-size: 14px; line-height: 1.5; color: #333; }
+      /* The dynamic region: its TEXT changes on every load, so an un-masked diff must
+         fail, while a masked diff must pass (the region is painted out identically). */
+      #ticker {
+        margin-top: 24px;
+        background: #f2c14e;
+        color: #000;
+        padding: 16px;
+        font-size: 20px;
+        font-weight: 700;
+        border-radius: 6px;
+        width: 520px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>Acme Dashboard</header>
+    <main>
+      <div class="card">
+        <h2>Account overview</h2>
+        <p>This block is static across loads and is what the baseline should lock down.</p>
+      </div>
+      <div id="ticker" data-testid="ticker">loading…</div>
+    </main>
+    <script>
+      // Changes every load — stands in for a live/dynamic (or PII-bearing) region.
+      var v = Math.floor(Math.random() * 1e9).toString().padStart(9, '0');
+      document.getElementById('ticker').textContent = 'LIVE ' + v + ' @ ' + Date.now();
+    </script>
+  </body>
+</html>

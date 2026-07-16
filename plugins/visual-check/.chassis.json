@@ -1,0 +1,4 @@
+{
+  "chassis": "optout",
+  "reason": "commands/check.md is a bespoke visual-QA orchestration command (consent gate, engine detection, deterministic-harness wiring) — not chassis stack-review/check shaped, so it carries no generated header."
+}

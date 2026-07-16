@@ -1,0 +1,15 @@
+# Category 1 fixture (card 07) — the DOM-fail case. Run against sidebar-broken.html
+# (pass --url). The toggle never reveals nav.sidebar, so the post-toggle DOM assert
+# fails.
+# Expected: status fail (exit 1) with a dom reason ("nav.sidebar expected visible").
+id: sidebar-broken
+url: http://localhost:3000/
+engine: deterministic
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+steps:
+  - goto: /
+  - click: "[data-testid=sidebar-toggle]"
+    expect:
+      dom:
+        - { selector: "nav.sidebar", state: visible }

@@ -1,0 +1,8 @@
+# Invalid scenario: `scroll` is not in the frozen step vocabulary
+# (goto, click, type, hover, wait, expect, match). Must be rejected.
+id: bad-verb
+url: http://localhost:3000/
+steps:
+  - goto: /
+  - scroll: "footer"
+    match: { source: baseline, ref: baselines/footer.png }

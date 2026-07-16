@@ -1,0 +1,12 @@
+# Category 2 fixture (card 07). Run against console-error.html (pass --url).
+# Expected: status fail (exit 1) with a console reason. Only the `console`
+# category is requested, so dom/layout/network stay [].
+id: console-error
+url: http://localhost:3000/
+engine: deterministic
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+steps:
+  - goto: /
+    expect:
+      console: clean

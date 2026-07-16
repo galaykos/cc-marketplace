@@ -1,0 +1,7 @@
+{
+  "name": "bare-fixture",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p ."
+  }
+}
