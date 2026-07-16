@@ -6,24 +6,24 @@
   `.vd-content` — see ../shell-authoring.md.
 -->
 <div class="vd-tabs">
-  <a class="vd-tab" href="#" aria-current="page">Profile</a>
-  <a class="vd-tab" href="#">Notifications</a>
+  <a class="vd-tab" href="#">Profile</a>
+  <a class="vd-tab" href="#" aria-current="page">Notifications</a>
   <a class="vd-tab" href="#">Integrations</a>
 </div>
 
 <div data-state="populated">
   <div class="vd-form">
-    <div class="vd-field"><label>Organization name</label><input class="vd-input" value="Meridian Logistics" /></div>
-    <div class="vd-field"><label>Billing email</label><input class="vd-input" value="billing@meridianlogistics.com" /></div>
-    <div class="vd-field"><label>Time zone</label><input class="vd-input" value="America/Denver" /></div>
-    <div><button type="button" class="vd-btn vd-primary">Save settings</button></div>
+    <div class="vd-row"><span>Product updates</span><span class="vd-switch vd-on" aria-label="Product updates"></span></div>
+    <div class="vd-row"><span>Security alerts</span><span class="vd-switch vd-on" aria-label="Security alerts"></span></div>
+    <div class="vd-row"><span>Weekly digest</span><span class="vd-switch" aria-label="Weekly digest"></span></div>
+    <div><button type="button" class="vd-btn vd-primary">Save preferences</button></div>
   </div>
 </div>
 
 <div data-state="empty">
   <div class="vd-empty">
-    No integrations connected yet.
-    <div><button type="button" class="vd-btn vd-primary">Connect an integration</button></div>
+    No notification channels configured yet.
+    <div><button type="button" class="vd-btn vd-primary">Add a channel</button></div>
   </div>
 </div>
 

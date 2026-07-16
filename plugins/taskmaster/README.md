@@ -62,6 +62,36 @@ Without arguments it asks for a description first. The pipeline then:
 A reminder hook also nudges you toward `/taskmaster` when it detects a short,
 feature-shaped prompt (build/add/implement…) with thin detail.
 
+## Ultra-goal — hands-off mode
+
+Prefix any taskmaster command with a bare `goal` (as its first argument) or drop an
+`ultra-goal`/`ultragoal` token anywhere in the prompt to run the pipeline
+**hands-off**. An optional `-<model>[-<effort>]` suffix picks the tier (defaults
+opus/xhigh); `ultra-goal` implies the full `ultra-task` boost, and when an explicit
+`ultra-task` token is also present its tier wins. The `ultra-goal` skill owns the
+full contract.
+
+Under goal the pipeline **auto-takes every recommendation** instead of asking:
+AskUserQuestion gates resolve to the "(Recommended)" option, unmarked forks (variant
+picks, erd/hole resolutions) resolve by deriving a recommendation first, binding
+contracts self-approve, visual decisions auto-answer "Full mockups" and keep the
+gallery as evidence, and the "Start execution now?" handoff auto-selects "Run now" —
+running through to a green full suite.
+
+Every auto-take is auditable through three sinks:
+
+- **Goal ledger** — `.claude/taskmaster/goal-ledger-<slug>.md`, appended live per
+  decision (options, pick, rationale, source)
+- **Spec appendix** — a `## Auto-decisions` summary inside the frozen spec
+- **Index marker** — `Goal: true (model=…, effort=…)` in `00-INDEX.md`, carrying
+  hands-off into execution
+
+Safety floor: goal mode **never** runs a branch merge/PR (the git surface stays
+manual), never suppresses halt-with-evidence, the full-suite completion gate, or a
+mis-specified-task halt, and never auto-accepts a security/auth/data-loss red-team
+hole as known risk (it amends the spec or halts). Hands-off execution requires
+task-runner ≥ 0.11.0; older runners fall back to interactive.
+
 ## Conversation example
 
 A good starting prompt is one paragraph: the goal, hard constraints, and pointers
@@ -121,7 +151,10 @@ for the full workflow suite.
 - **Skills**: brainstorm (fuzzy idea → approved design doc, upstream of
   everything), grill (interrogation + ambiguity ledger + big-task slicing),
   visual-decisions (theme-aware shell mockups — `assets/shell.html` — with
-  compare modes, callouts, and motion passes on a live preview URL), experience-walkthrough
+  compare modes, callouts, and motion passes on a live preview URL; variety across
+  theme/density/type axes and dark/viewport/RTL/print modes, a
+  chart/media/type/prose/marketing/code/stepper/icon primitive library, 8 starter
+  layouts, and dedicated preview pages), experience-walkthrough
   (interactive clickable demo of the whole assembled flow), task-cards
   (spec → milestone-grouped single-prompt cards)
 - **Agent**: context-scout — read-only codebase reconnaissance before questioning

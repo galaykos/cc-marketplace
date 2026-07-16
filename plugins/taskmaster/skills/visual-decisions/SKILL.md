@@ -31,11 +31,13 @@ genuinely visual choice exists and a build is imminent, never at task intake.
 1. **ASCII wireframe in chat** — seconds. For structure: placement, column counts.
 2. **Shell-based HTML mockup** — minutes, on the preview URL; when spacing,
    hierarchy, density, or motion drives the choice and boxes cannot carry it.
-3. **Inline SVG inside a variant slot** — for flows and topology diagrams.
+3. **Inline SVG inside a variant slot** — for flows and topology diagrams; complex topology may compile author-time mermaid→inline-SVG when a local mermaid CLI is available, the shipped mockup holding zero runtime includes — otherwise stay on hand SVG/ASCII.
 
-Real-component fidelity beyond the shell: the design-preview plugin, when installed.
-Entity/relation modeling: the `erd` skill. No prototype rung — mockups die at the
-pick; validating the ASSEMBLED experience afterwards is the experience-walkthrough skill.
+Real-component fidelity beyond the shell: design-preview (existing Vite+React) or
+shadcn-studio (greenfield/non-React), when installed. Colour/theme IS the decision →
+/ui-ux:theme when installed; non-shadcn greenfield tops out at shell fidelity. Entity/
+relation modeling: the `erd` skill. No prototype rung — mockups die at the pick;
+validating the ASSEMBLED experience afterwards is the experience-walkthrough skill.
 
 ## ASCII wireframes
 
@@ -49,6 +51,8 @@ pick; validating the ASSEMBLED experience afterwards is the experience-walkthrou
 ```
 
 Label A/B/C at equal detail, one-line tradeoff caption each, pick asked right below.
+Full vocabulary — panes, branch/loop arrows, selection/state markers, numbered
+callouts, worked A/B examples: `references/ascii-patterns.md`.
 
 ## HTML mockups from the shell
 
@@ -75,7 +79,10 @@ block as the `--vd-*` variables; un-hide `#vd-theme-toggle` and set
 - No scout report? One glob for `globals.css`/`components.json`/Tailwind config,
   read only on hit. Miss or confidence `none`: keep baseline and hidden toggle,
   put "baseline theme" in `SLOT: theme-note` — never pass baseline off as the app's.
-- Theme never differs between variants — equal application is non-negotiable.
+- The project theme (`html[data-vd-theme]`) never differs between variants —
+  equal application is non-negotiable; the sanctioned per-frame theme-axis
+  token presets on `.vd-content` are the one exception (see
+  `references/shell-authoring.md`).
 
 ## Flows and topology as SVG
 
@@ -116,24 +123,28 @@ Show 2–3 shapes carrying the SAME real scenario, edge case included — which 
   "total_cents": 124000 }  "total": { "cents": 124000 } }
 ```
 
+Chat table like this for trivial 2-field shapes; anything larger goes to
+side-by-side `.vd-code` frames in `api.html` (differing keys in `<mark>`) — see Data-shape passes in `references/shell-authoring.md`.
+
 ## Asking for the pick
 
 - Ask via `AskUserQuestion`: one option per variant letter plus its tradeoff line;
   include "mix of the above" only when a mix is actually mergeable.
 - On a mix answer ("A's layout with C's nav"): ONE merged variant, one re-ask —
   at most two passes; decision aid, not design sprint.
-- Record the pick as a CLEAR ledger row (source: the mockup file path); quote it
-  in the spec.
+- Record the pick as a CLEAR ledger row (source: the mockup file path); quote it in the spec.
 - On an ACCEPTED pick (not ASCII-only, not abandoned), save the winning
   variant to `taskmaster-docs/mockups/gallery/YYYY-MM-DD-<slug>.html`
   (collision appends `-2`, `-3` — never overwrite) and append one line —
   date, slug, decision, source spec — to `gallery/INDEX.md`, creating it if
   missing. Format details: `references/shell-authoring.md`.
+- Gallery re-offer (opt-in): once THIS decision's fresh variants exist, offer at most ONE matching gallery entry as labeled reference, never a rival, never the option set.
 
 ## Anti-patterns
 
 - Styling inside a variant slot — polish lives in the shell, never in variant
-  content; a hand-decorated favorite next to plain rivals is a sales pitch.
+  content, EXCEPT the sanctioned theme-axis token presets on `.vd-content`
+  (see Theme-axis passes); a hand-decorated favorite is a sales pitch.
 - More than 3 variants — choice overload produces "whichever", not a decision.
 - Variants differing on several axes — the pick can't be attributed; nothing got decided.
 - Building real components "since we're at it" — implementation starts after the cards.

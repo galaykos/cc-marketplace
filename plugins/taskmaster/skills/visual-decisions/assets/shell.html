@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-vd-theme="baseline">
+<html lang="en" dir="ltr" data-vd-dir="ltr" data-vd-theme="baseline" data-vd-scheme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mockup — pick a variant</title>
+<title><!-- SLOT: title --></title>
+<!-- fill SLOT: title with the decision question; gallery saves use the slug -->
+
 <style>
 /* ---- Theme tokens -------------------------------------------------- */
 /* Baseline: cool neutral + blue accent. Tokens style chrome and accents
@@ -12,20 +14,89 @@
 :root {
   --vd-primary: #2563eb;
   --vd-surface: #fafafa;
-  --vd-text: #18181b;
   --vd-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Monospace stack for code/payload blocks. SEPARATE from --vd-font so a
+     theme-axis type-family preset on .vd-content restyles prose but never a
+     payload (a JSON shape reads as code regardless of the page's type pick). */
+  --vd-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --vd-radius: 8px;
   --vd-space: 8px;
-  /* fixed neutrals — never overridden by project tokens */
+  /* per-scheme fixed neutrals — still never project-overridable */
   --vd-ink: #18181b;
   --vd-ink-soft: #52525b;
   --vd-paper: #ffffff;
   --vd-line: #e4e4e7;
+  --vd-on-primary: #ffffff;      /* ink that sits ON a --vd-primary fill */
+  --vd-nav-bg: #18181b;          /* app top-nav stays a dark bar in BOTH schemes */
+  --vd-nav-ink: #ffffff;
+  --vd-nav-ink-soft: rgba(255, 255, 255, .75);
+  /* per-scheme shadows; MAY be overridden per `.vd-content` in a theme-axis
+     pass, never per-frame in any other pass */
   --vd-shadow: 0 1px 3px rgba(0, 0, 0, .07), 0 4px 14px rgba(0, 0, 0, .05);
+  --vd-shadow-md: 0 4px 16px rgba(0, 0, 0, .12);   /* card / element hover-lift */
+  --vd-shadow-lg: 0 10px 40px rgba(0, 0, 0, .25);  /* dialog pop */
+}
+/* ---- Dark scheme (driven ONLY by the explicit Scheme toggle) -------------
+   A second COMPLETE per-scheme neutral set: the toggle flips the whole page
+   uniformly across every frame. Deliberately NOT wired to the OS colour-scheme
+   media query — the preview stays explicit so screenshot comparisons are
+   deterministic.
+   Split around the project slot so the cascade honours both contracts:
+   the brighter-primary DEFAULT and its paired on-primary ink sit BEFORE the
+   slot, so an injected project brand primary AND a re-paired on-primary can
+   both still win together (project accents apply in BOTH schemes — a project
+   pass sets both in the same rule, never a mismatched pair split across the
+   slot boundary); the neutral set sits AFTER the slot, so dark
+   paper/ink/line/surface always win and the page flips fully with no
+   leftover light patches. */
+html[data-vd-scheme="dark"] {
+  --vd-primary: #60a5fa;         /* brighter blue reads on dark surfaces (default) */
+  --vd-on-primary: #10131a;      /* dark ink reads on the bright dark primary (default) */
 }
 html[data-vd-theme="project"] {
   /* SLOT: theme-project */
 }
+html[data-vd-scheme="dark"] {
+  --vd-surface: #26262b;
+  --vd-ink: #f4f4f5;
+  --vd-ink-soft: #a1a1aa;
+  --vd-paper: #1b1b1f;
+  --vd-line: #3a3a42;
+  --vd-nav-bg: #2c2c33;          /* elevated dark bar, distinct from dark paper */
+  --vd-nav-ink: #f4f4f5;
+  --vd-nav-ink-soft: rgba(244, 244, 245, .68);
+  /* Pure-black shadows are invisible on dark paper, so elevation is carried
+     by a faint light rim (inset 1px) layered under the same dark shadow —
+     not a brightness/blur change, just a visible edge. */
+  --vd-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 1px 3px rgba(0, 0, 0, .5), 0 4px 14px rgba(0, 0, 0, .4);
+  --vd-shadow-md: 0 0 0 1px rgba(255, 255, 255, .06), 0 4px 16px rgba(0, 0, 0, .55);
+  --vd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, .08), 0 10px 40px rgba(0, 0, 0, .6);
+}
+/* Chips & alerts keep their semantic hue but flip to a dark fill with light
+   ink so they stay legible on dark paper (still not neutral tokens). */
+html[data-vd-scheme="dark"] .vd-chip.vd-ok { background-color: #0f2e1c; border-color: #1f6b3f; color: #86efac; }
+html[data-vd-scheme="dark"] .vd-chip.vd-warn { background-color: #2e2410; border-color: #7a5c14; color: #fde047; }
+html[data-vd-scheme="dark"] .vd-chip.vd-err { background-color: #3a1518; border-color: #8f2d2d; color: #fca5a5; }
+/* background-color LONGHAND (not the `background` shorthand): the Diffs toggle
+   paints its tint via `background-image`, so a shorthand here would reset that
+   image and kill the diff tint on a tagged chip. Matches the ok/warn/err rows
+   above. */
+html[data-vd-scheme="dark"] .vd-chip.vd-info { background-color: #10243f; border-color: #2b5a94; color: #93c5fd; }
+html[data-vd-scheme="dark"] .vd-chip.vd-neutral { background-color: #2a2a30; border-color: #52525b; color: #d4d4d8; }
+/* Diffs-tint in dark is a subtle gain on top of these dark fills; the diff
+   OUTLINE (see Diff highlight below) stays the primary cue in every scheme. */
+/* Dialog paper ~= dark page paper, and the pure-black shadow/scrim are both
+   near-invisible on dark, so without a border the dialog melts into the
+   page — an explicit line is the separation cue here, not shadow alone. */
+html[data-vd-scheme="dark"] .vd-dialog { border: 1px solid var(--vd-line); }
+/* Off-thumb uses --vd-paper, which in dark is DARKER than its --vd-line
+   track — an inverted, barely-visible affordance. Use a light knob instead. */
+html[data-vd-scheme="dark"] .vd-switch::after { background: var(--vd-ink-soft); }
+/* One custom property (--vd-alert-accent) now drives BOTH the inline-start
+   border AND the per-severity glyph prefix (see .vd-alert below), so the two
+   redundancy channels can never drift to different hues across schemes. */
+html[data-vd-scheme="dark"] .vd-alert.vd-warn { --vd-alert-accent: #facc15; }
+html[data-vd-scheme="dark"] .vd-alert.vd-err { --vd-alert-accent: #f87171; }
 
 /* ---- Base ----------------------------------------------------------- */
 * { box-sizing: border-box; }
@@ -103,12 +174,12 @@ body {
   padding: 5px 10px;
   cursor: pointer;
 }
-.vd-seg button + button { border-left: 1px solid var(--vd-line); }
+.vd-seg button + button { border-inline-start: 1px solid var(--vd-line); }
 .vd-seg button[aria-pressed="true"] {
   background: var(--vd-primary);
-  color: #fff;
+  color: var(--vd-on-primary);
 }
-#vd-theme-toggle {
+#vd-theme-toggle, #vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle {
   border: 1px solid var(--vd-line);
   background: var(--vd-paper);
   color: var(--vd-ink-soft);
@@ -118,7 +189,8 @@ body {
   border-radius: var(--vd-radius);
   cursor: pointer;
 }
-#vd-theme-toggle:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+#vd-theme-toggle:hover, #vd-diff-toggle:hover, #vd-scheme-toggle:hover, #vd-dir-toggle:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+#vd-diff-toggle[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
 .vd-note {
   font-size: .78rem;
   color: var(--vd-ink-soft);
@@ -151,11 +223,11 @@ body {
   display: inline-block;
   min-width: 1.6em;
   text-align: center;
-  margin-right: 8px;
+  margin-inline-end: 8px;
   padding: 2px 6px;
   border-radius: var(--vd-radius);
   background: var(--vd-primary);
-  color: #fff;
+  color: var(--vd-on-primary);
   font-size: .8rem;
 }
 .vd-frame .vd-caption {
@@ -167,7 +239,12 @@ body {
 }
 .vd-frame .vd-content {
   padding: calc(var(--vd-space) * 2);
+  font-family: var(--vd-font);
   min-height: 120px;
+  /* Cap height so dense/realistic data in one frame cannot outgrow its
+     siblings; overflow scrolls inside the frame, keeping tops aligned. */
+  max-height: 560px;
+  overflow: auto;
 }
 .vd-frame:focus-within, .vd-frame.vd-focus { outline: 2px solid var(--vd-primary); }
 
@@ -190,18 +267,37 @@ body {
   font-size: .72rem;
   font-weight: 600;
   padding: 2px 8px;
-  margin-left: 6px;
+  margin-inline-start: 6px;
   border-radius: var(--vd-radius);
   cursor: pointer;
+  /* `float` has no widely-shipped logical value we rely on for the preview
+     browser, so the physical `right` stays (keeping LTR byte-identical) and
+     a single [dir="rtl"] override flips it — see the Direction axis note. */
   float: right;
 }
+[dir="rtl"] .vd-zoom-btn { float: left; }
 .vd-zoom-btn:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
-.vd-zoom-btn[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: #fff; }
+.vd-zoom-btn[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
 #vd-frames.vd-zoom-active { grid-template-columns: 1fr; }
 #vd-frames.vd-zoom-active .vd-frame { display: none; }
 #vd-frames.vd-zoom-active .vd-frame.vd-zoomed { display: block; }
+/* Zoom exists to give one variant room; the side-by-side height cap would
+   defeat that, so lift it while a frame is zoomed. */
+#vd-frames.vd-zoom-active .vd-frame.vd-zoomed .vd-content { max-height: none; }
+/* A viewport-width preset (below) would otherwise keep a zoomed frame
+   pinned to the device width — defeating the point of zooming for room.
+   The #vd-frames ID gives this selector higher specificity than any
+   preset rule below (side mode's own :not(.vd-zoom-active) escape plus
+   this direct override for stack/flip's .vd-frame width), so Focus always
+   expands to the full available column regardless of the active preset. */
+#vd-frames.vd-zoom-active .vd-frame.vd-zoomed { width: auto; max-width: none; }
 
 /* ---- Callouts and tradeoffs ------------------------------------------ */
+/* A callout is a real <button> so it joins the tab order and assistive tech
+   announces it as an actionable control (paired to its tradeoff bullet via
+   aria-describedby, wired in JS). The UA button box is reset back to the exact
+   circular badge the old <span> painted, so an authored mockup that still ships
+   a <span class="vd-callout"> renders byte-identically. */
 .vd-callout {
   display: inline-flex;
   align-items: center;
@@ -209,18 +305,27 @@ body {
   width: 1.5em;
   height: 1.5em;
   margin: 0 3px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: var(--vd-primary);
-  color: #fff;
+  color: var(--vd-on-primary);
+  font-family: inherit;
   font-size: .72rem;
   font-weight: 700;
-  cursor: default;
+  line-height: 1;
+  cursor: pointer;
   vertical-align: middle;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .vd-tradeoffs {
   margin: 0;
-  padding: calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 2)
-           calc(var(--vd-space) * 1.5) calc(var(--vd-space) * 4.5);
+  /* The wider inline-START inset (4.5 vs 2) makes room for the list marker,
+     which sits on the inline-start edge — logical so the indent follows the
+     markers to the right under RTL instead of stranding them. */
+  padding-block: calc(var(--vd-space) * 1.5);
+  padding-inline: calc(var(--vd-space) * 4.5) calc(var(--vd-space) * 2);
   border-top: 1px solid var(--vd-line);
   background: var(--vd-surface);
   font-size: .84rem;
@@ -229,6 +334,35 @@ body {
 .vd-tradeoffs li::marker { color: var(--vd-primary); font-weight: 700; }
 .vd-hl { outline: 2px solid var(--vd-primary); outline-offset: 2px; border-radius: 4px; }
 li.vd-hl { outline-offset: 0; }
+
+/* ---- Keyboard focus rings ---------------------------------------------
+   The header/frame controls signal pointer intent with :hover, which never
+   fires for a keyboard user, so every interactive control gets an explicit
+   :focus-visible ring in the brand accent (a diff-tagged element keeps its own
+   thicker, ink-colored ring — see Diff highlight). The callout ring matches its
+   .vd-hl pair-highlight exactly, so keyboard focus and the JS-applied highlight
+   coincide instead of drawing a double ring. */
+.vd-jump a:focus-visible,
+.vd-zoom-btn:focus-visible,
+.vd-replay:focus-visible,
+.vd-callout:focus-visible {
+  outline: 2px solid var(--vd-primary);
+  outline-offset: 2px;
+}
+/* Seg buttons sit inside .vd-seg { overflow: hidden }, which would clip an
+   OUTWARD ring; draw theirs inward so a focused middle button of the group
+   shows a full, unclipped indicator (same reasoning as the Diff outline). */
+.vd-seg button:focus-visible {
+  outline: 2px solid var(--vd-primary);
+  outline-offset: -2px;
+}
+/* The pressed segment's own fill IS --vd-primary, so the ring above would sit
+   primary-on-primary — a 1:1 contrast ring invisible in both schemes (WCAG
+   2.4.7/1.4.11). Swap to --vd-on-primary, the ink already chosen to read on
+   that fill, so the ring stays visible without touching the unselected ring. */
+.vd-seg button[aria-pressed="true"]:focus-visible {
+  outline-color: var(--vd-on-primary);
+}
 
 /* ---- Content primitives ------------------------------------------------
    Building blocks for variant content. Variants use these classes instead of
@@ -245,12 +379,12 @@ li.vd-hl { outline-offset: 0; }
   align-items: center;
   gap: var(--vd-space);
   padding: var(--vd-space) calc(var(--vd-space) * 1.5);
-  background: var(--vd-ink);
-  color: #fff;
+  background: var(--vd-nav-bg);
+  color: var(--vd-nav-ink);
 }
-.vd-nav .vd-brand { font-weight: 700; margin-right: auto; }
-.vd-nav a { color: rgba(255, 255, 255, .75); text-decoration: none; }
-.vd-nav a[aria-current] { color: #fff; font-weight: 600; }
+.vd-nav .vd-brand { font-weight: 700; margin-inline-end: auto; }
+.vd-nav a { color: var(--vd-nav-ink-soft); text-decoration: none; }
+.vd-nav a[aria-current] { color: var(--vd-nav-ink); font-weight: 600; }
 .vd-toolbar {
   display: flex;
   align-items: center;
@@ -276,10 +410,27 @@ li.vd-hl { outline-offset: 0; }
   font-weight: 600;
   color: var(--vd-ink);
 }
-.vd-btn.vd-primary { background: var(--vd-primary); border-color: var(--vd-primary); color: #fff; }
+.vd-btn.vd-primary { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
+/* Inline icon glyph — renders one <symbol> from the sprite block (right after
+   <body>) via `<svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-NAME"/></svg>`. Sized to 1em
+   so a glyph tracks the surrounding text size, and painted by stroke:currentColor
+   with no fill, so it inherits the frame's ink in EVERY scheme and theme with no
+   per-scheme icon rule and no on-primary pairing to keep in sync — the same
+   currentColor trick the alert severity glyph leans on. */
+.vd-i {
+  width: 1em;
+  height: 1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -.125em; /* optical baseline nudge so a glyph sits with text */
+  flex: none; /* a flex row (nav rail, button) never squeezes a glyph off-square */
+}
 .vd-table { width: 100%; border-collapse: collapse; }
 .vd-table th {
-  text-align: left;
+  text-align: start;
   font-size: .72rem;
   text-transform: uppercase;
   letter-spacing: .04em;
@@ -290,6 +441,9 @@ li.vd-hl { outline-offset: 0; }
 }
 .vd-table td { padding: 6px 10px; border-bottom: 1px solid var(--vd-line); }
 .vd-table tr:hover td { background: var(--vd-surface); }
+/* Numerals right-align universally (tabular/financial convention), so this
+   stays a PHYSICAL `right` in BOTH directions — deliberately NOT logical
+   `text-align: end`, which would left-align the figures under RTL. */
 .vd-num { text-align: right; font-variant-numeric: tabular-nums; }
 .vd-chip {
   display: inline-block;
@@ -303,6 +457,56 @@ li.vd-hl { outline-offset: 0; }
 .vd-chip.vd-ok { background: #dcfce7; border-color: #86efac; color: #166534; }
 .vd-chip.vd-warn { background: #fef9c3; border-color: #fde047; color: #854d0e; }
 .vd-chip.vd-err { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+/* Completes the status vocabulary: an informational (blue) and a neutral
+   (muted grey) chip. NOTE the five chip hues are close once desaturated —
+   ok/warn/err/info read as similar mid-greys — so the chip's TEXT label is
+   the real cross-grayscale/colour-blind cue, never the fill alone (see
+   shell-authoring "never rely on chip hue alone"). */
+.vd-chip.vd-info { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+.vd-chip.vd-neutral { background: #f4f4f5; border-color: #d4d4d8; color: #3f3f46; }
+/* ---- Code / payload block ----------------------------------------------
+   For data-shape passes: a monospace <pre> that renders a candidate JSON/table
+   payload at realistic key lengths. Reads --vd-mono (a token SEPARATE from the
+   theme-axis --vd-font, so a type-family preset on .vd-content never restyles a
+   payload). A long line scrolls HORIZONTALLY inside the block, so dense data
+   can't push the page wider than its frame. Source code / JSON reads
+   left-to-right by nature, so direction is PINNED ltr — the block must not
+   mirror under the RTL preview axis (the same "physical by design" call as
+   .vd-num's right-aligned figures). */
+.vd-code {
+  margin: 0;
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  background: var(--vd-surface);
+  color: var(--vd-ink);
+  font-family: var(--vd-mono);
+  font-size: .78rem;
+  line-height: 1.55;
+  tab-size: 2;
+  white-space: pre;
+  overflow-x: auto;
+  direction: ltr;
+}
+/* Optional key-name emphasis inside a payload — the primary accent reads on
+   both schemes; use it to make a shape's keys scan, leave shared keys plain. */
+.vd-code .vd-k { color: var(--vd-primary); }
+/* <mark> flags the keys that DIFFER on the shape axis so the eye lands on the
+   delta, not on re-reading identical scaffolding. The UA default (yellow fill /
+   black ink) clashes on the dark surface and fights the code ink, so tint with
+   the primary accent mixed over --vd-paper and keep the code's own --vd-ink:
+   an OPAQUE, token-driven highlight that flips with the scheme and stays
+   legible in BOTH. Static by intent (no motion — decorative animation is
+   banned, matching the Diff highlight). */
+.vd-code mark {
+  border-radius: 3px;
+  padding: 0 3px;
+  background: color-mix(in srgb, var(--vd-primary) 28%, var(--vd-paper));
+  color: var(--vd-ink);
+}
+/* A key that is both differing (<mark>) and emphasized (.vd-k) must keep the
+   legible mark ink, not the low-contrast primary-on-primary-tint. */
+.vd-code mark .vd-k, .vd-code mark.vd-k { color: var(--vd-ink); }
 .vd-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -316,11 +520,14 @@ li.vd-hl { outline-offset: 0; }
   background: var(--vd-paper);
   box-shadow: var(--vd-shadow);
 }
-.vd-card h4 { margin: 0 0 4px; font-size: .82rem; }
+/* Heading discipline: the frame owns the h2, so a card title is an h3 (content
+   starts at h3 — see shell-authoring "Semantics"). The h4 selector stays matched
+   so an older mockup whose card title is still an <h4> keeps the same styling. */
+.vd-card h3, .vd-card h4 { margin: 0 0 4px; font-size: .82rem; }
 .vd-card .vd-meta { color: var(--vd-ink-soft); font-size: .72rem; }
 .vd-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 .vd-split > * { min-width: 0; }
-.vd-list { border-right: 1px solid var(--vd-line); }
+.vd-list { border-inline-end: 1px solid var(--vd-line); }
 .vd-row {
   display: flex;
   justify-content: space-between;
@@ -329,6 +536,9 @@ li.vd-hl { outline-offset: 0; }
   border-bottom: 1px solid var(--vd-line);
 }
 .vd-row[aria-current] { background: var(--vd-surface); box-shadow: inset 3px 0 0 var(--vd-primary); }
+/* box-shadow takes no logical value, so the inline-start accent bar is flipped
+   by hand under RTL (positive x = start edge in LTR, negative = start in RTL). */
+[dir="rtl"] .vd-row[aria-current] { box-shadow: inset -3px 0 0 var(--vd-primary); }
 .vd-detail { padding: calc(var(--vd-space) * 1.5); }
 .vd-kpis { display: flex; gap: var(--vd-space); padding: var(--vd-space) calc(var(--vd-space) * 1.5); flex-wrap: wrap; }
 .vd-kpi {
@@ -357,7 +567,7 @@ li.vd-hl { outline-offset: 0; }
   margin: calc(var(--vd-space) * 1.5);
 }
 .vd-card, .vd-row, .vd-kpi { transition: box-shadow .12s, transform .12s; }
-.vd-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, .12); transform: translateY(-1px); }
+.vd-card:hover { box-shadow: var(--vd-shadow-md); transform: translateY(-1px); }
 .vd-row:hover { background: var(--vd-surface); }
 .vd-tabs {
   display: flex;
@@ -399,24 +609,157 @@ li.vd-hl { outline-offset: 0; }
 .vd-switch::after {
   content: "";
   position: absolute;
-  top: 2px; left: 2px;
+  top: 2px; inset-inline-start: 2px;
   width: 12px; height: 12px;
   border-radius: 50%;
   background: var(--vd-paper);
 }
 .vd-switch.vd-on { background: var(--vd-primary); }
-.vd-switch.vd-on::after { left: 14px; }
+.vd-switch.vd-on::after { inset-inline-start: 14px; }
 .vd-alert {
   margin: var(--vd-space) calc(var(--vd-space) * 1.5);
   padding: var(--vd-space) calc(var(--vd-space) * 1.5);
   border: 1px solid var(--vd-line);
-  border-left: 3px solid var(--vd-primary);
+  --vd-alert-accent: var(--vd-primary);
+  border-inline-start: 3px solid var(--vd-alert-accent);
   border-radius: var(--vd-radius);
   background: var(--vd-surface);
   font-size: .78rem;
 }
-.vd-alert.vd-warn { border-left-color: #eab308; }
-.vd-alert.vd-err { border-left-color: #dc2626; }
+/* Non-colour redundancy channel: alerts otherwise differ ONLY by inline-start
+   border hue, which vanishes in grayscale / for colour-blind readers. A
+   per-severity glyph prefix (info "i" / warn "!" / error "×") carries the
+   meaning by SHAPE, so severity survives desaturation. The glyph colour tracks
+   --vd-alert-accent so it always matches its border, in every scheme and in
+   print. `margin-inline-end` keeps the prefix on the reading-start side under
+   RTL. */
+.vd-alert::before {
+  content: "i";
+  font-weight: 700;
+  margin-inline-end: .5em;
+  color: var(--vd-alert-accent);
+}
+.vd-alert.vd-warn { --vd-alert-accent: #eab308; }
+.vd-alert.vd-warn::before { content: "!"; }
+.vd-alert.vd-err { --vd-alert-accent: #dc2626; }
+.vd-alert.vd-err::before { content: "\00D7"; }
+/* ---- Stepper (onboarding / multi-step flow) -----------------------------
+   Static states only — `done` / `current` / `todo` set in the markup, no JS.
+   The three states survive grayscale by more than hue: `done` swaps its number
+   for a check glyph, `current` is a solid ring + primary number, `todo` a thin
+   outline + muted number. The connector rail is drawn with LOGICAL insets
+   (inset-inline-start/-end), so the whole stepper mirrors under the RTL preview
+   axis with no physical left/right anywhere. */
+.vd-stepper {
+  display: flex;
+  align-items: flex-start;
+  padding: var(--vd-space) 0;
+}
+.vd-step {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+  text-align: center;
+  font-size: .72rem;
+  color: var(--vd-ink-soft);
+}
+/* Connector to the PREVIOUS step: spans from that step's centre
+   (inset-inline-start:-50%) to this one's centre (inset-inline-end:50%). Both
+   insets are logical, so the rail flips wholesale under RTL. Sits behind the
+   number circles (z-index 0 vs 1). */
+.vd-step:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-start: -50%;
+  inset-inline-end: 50%;
+  block-size: 2px;
+  background: var(--vd-line);
+  z-index: 0;
+}
+.vd-step.done::before,
+.vd-step.current::before { background: var(--vd-primary); }
+.vd-step-num {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--vd-line);
+  background: var(--vd-paper);
+  color: var(--vd-ink-soft);
+  font-size: .72rem;
+  font-weight: 700;
+}
+/* done: solid fill + a check glyph (the authored number is hidden via
+   font-size:0, the check is the non-colour "completed" cue). */
+.vd-step.done .vd-step-num {
+  background: var(--vd-primary);
+  border-color: var(--vd-primary);
+  color: var(--vd-on-primary);
+  font-size: 0;
+}
+.vd-step.done .vd-step-num::after { content: "\2713"; font-size: .8rem; }
+/* current: hollow with a heavy primary ring + primary number (distinct from a
+   filled done circle AND from a thin-outlined todo circle in grayscale). */
+.vd-step.current .vd-step-num {
+  border: 2px solid var(--vd-primary);
+  color: var(--vd-primary);
+}
+.vd-step.current .vd-step-label { color: var(--vd-ink); font-weight: 600; }
+/* todo keeps the base .vd-step-num look (paper fill, thin line, muted ink). */
+.vd-step-label { display: block; }
+/* ---- Accordion (expandable surface) -------------------------------------
+   Static open/closed via an `open` class on .vd-acc-item — a mockup primitive,
+   no JS/interactivity. The disclosure chevron is a vertical caret (▼ closed /
+   ▲ open); a vertical caret reads identically in LTR and RTL, so it is built
+   with PHYSICAL borders on purpose (the same "physical by design" call as
+   .vd-num's right-aligned figures — logical borders under a fixed rotate would
+   mis-mirror the arrowhead in RTL). What IS direction-aware is its PLACEMENT:
+   flex `justify-content: space-between` parks the caret on the inline-end edge
+   in both directions. */
+.vd-accordion {
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  overflow: hidden;
+}
+.vd-acc-item + .vd-acc-item { border-block-start: 1px solid var(--vd-line); }
+.vd-acc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vd-space);
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  background: var(--vd-surface);
+  color: var(--vd-ink);
+  font-size: .82rem;
+  font-weight: 600;
+}
+.vd-acc-head::after {
+  content: "";
+  flex: none;
+  width: 7px; height: 7px;
+  border-right: 2px solid var(--vd-ink-soft);
+  border-bottom: 2px solid var(--vd-ink-soft);
+  transform: translateY(-2px) rotate(45deg);   /* closed: caret points down */
+}
+.vd-acc-item.open .vd-acc-head::after {
+  transform: translateY(2px) rotate(-135deg);  /* open: caret points up */
+}
+.vd-acc-body {
+  display: none;
+  padding: var(--vd-space) calc(var(--vd-space) * 1.5);
+  border-block-start: 1px solid var(--vd-line);
+  font-size: .78rem;
+  color: var(--vd-ink-soft);
+}
+.vd-acc-item.open .vd-acc-body { display: block; }
 .vd-avatar {
   display: inline-flex;
   align-items: center;
@@ -424,7 +767,7 @@ li.vd-hl { outline-offset: 0; }
   width: 22px; height: 22px;
   border-radius: 50%;
   background: var(--vd-primary);
-  color: #fff;
+  color: var(--vd-on-primary);
   font-size: .68rem;
   font-weight: 700;
   vertical-align: middle;
@@ -438,9 +781,12 @@ li.vd-hl { outline-offset: 0; }
 .vd-progress i { display: block; height: 100%; background: var(--vd-primary); }
 .vd-layout { display: grid; grid-template-columns: minmax(120px, 1fr) 4fr; }
 .vd-layout > * { min-width: 0; }
-.vd-sidenav { border-right: 1px solid var(--vd-line); background: var(--vd-surface); padding: var(--vd-space) 0; }
+.vd-sidenav { border-inline-end: 1px solid var(--vd-line); background: var(--vd-surface); padding: var(--vd-space) 0; }
 .vd-sidenav a { display: block; padding: 6px 12px; color: var(--vd-ink-soft); text-decoration: none; font-size: .78rem; }
 .vd-sidenav a[aria-current] { color: var(--vd-primary); font-weight: 700; background: var(--vd-paper); box-shadow: inset 2px 0 0 var(--vd-primary); }
+/* Same inline-start accent bar as .vd-row; box-shadow has no logical form, so
+   flip its x-offset sign by hand under RTL. */
+[dir="rtl"] .vd-sidenav a[aria-current] { box-shadow: inset -2px 0 0 var(--vd-primary); }
 .vd-scrim {
   position: relative;
   background: var(--vd-surface);
@@ -453,11 +799,242 @@ li.vd-hl { outline-offset: 0; }
   position: relative;
   background: var(--vd-paper);
   border-radius: var(--vd-radius);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+  box-shadow: var(--vd-shadow-lg);
   padding: calc(var(--vd-space) * 2);
   max-width: 300px;
 }
-.vd-dialog h4 { margin: 0 0 6px; }
+/* Dialog title is an h3 too (content starts at h3); h4 kept matched for older mockups. */
+.vd-dialog h3, .vd-dialog h4 { margin: 0 0 6px; }
+
+/* ---- Type ramp ----------------------------------------------------------
+   Editorial/marketing hierarchy for landing-copy and content passes. These
+   are CLASS-scoped (never bare h1/h2 selectors) so they never leak onto a
+   frame's own h2 label or onto data-content headings; the sizes ARE the
+   hierarchy, so an author picks a ramp class and never hand-sets a font size.
+   Each reads --vd-font, so a theme-axis type preset on .vd-content propagates
+   into them like every other primitive. */
+.vd-display { font-family: var(--vd-font); margin: 0; font-size: 2rem; font-weight: 700; line-height: 1.15; }
+.vd-t1 { font-family: var(--vd-font); margin: 0; font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
+.vd-t2 { font-family: var(--vd-font); margin: 0; font-size: 1.2rem; font-weight: 600; line-height: 1.3; }
+.vd-tagline { font-family: var(--vd-font); margin: 0; font-size: 1rem; line-height: 1.5; color: var(--vd-ink-soft); }
+.vd-small { font-family: var(--vd-font); margin: 0; font-size: .78rem; line-height: 1.4; color: var(--vd-ink-soft); }
+
+/* ---- Prose: an honest reading block -------------------------------------
+   A measured article column for landing copy / editorial content. The measure
+   is capped at 65ch (a readable line length); element rules are SCOPED inside
+   .vd-prose so they never leak onto bare h3/p/ul/blockquote in data content.
+   Heading discipline: the frame owns the h2 label, so prose content starts at
+   h3. Reads --vd-font so a theme-axis type preset on .vd-content flows in. */
+.vd-prose { max-width: 65ch; font-family: var(--vd-font); line-height: 1.65; color: var(--vd-ink); }
+.vd-prose > :first-child { margin-top: 0; }
+.vd-prose h3 { margin: 1.4em 0 .4em; font-size: 1.1rem; font-weight: 700; line-height: 1.3; }
+.vd-prose p { margin: 0 0 1em; }
+.vd-prose ul { margin: 0 0 1em; padding-inline-start: 1.4em; }
+.vd-prose li { margin: .3em 0; }
+/* Accent bar rides the inline-start edge via a LOGICAL border so it flips with
+   the text under RTL; the gap uses logical padding for the same reason. */
+.vd-prose blockquote {
+  margin: 1em 0;
+  padding-block: .2em;
+  padding-inline-start: 1em;
+  border-inline-start: 3px solid var(--vd-primary);
+  color: var(--vd-ink-soft);
+  font-style: italic;
+}
+/* Lede: an article's opening paragraph — a touch larger and softened to set
+   the intro apart from the body without borrowing a heading. */
+.vd-prose .vd-lede { margin: 0 0 1em; font-size: 1.1rem; line-height: 1.55; color: var(--vd-ink-soft); }
+
+/* ---- Chart & media placeholders ----------------------------------------
+   CSS-only, token-driven stand-ins so a dashboard or gallery pass can carry
+   chart-shaped and image-shaped weight WITHOUT real data or assets. Bar
+   heights and the donut sweep are DATA, so they are expressed through utility
+   classes (.vd-h10…​.vd-h100 / .vd-p10…​.vd-p90) — never an inline style. These
+   read as placeholders for placement/size/type decisions, not as data viz:
+   the numbers are shape, not truth. Colored only by --vd-primary/--vd-line/
+   --vd-paper, so both schemes stay legible. */
+.vd-bars {
+  display: flex;           /* flex row order mirrors under [dir="rtl"] — fine for
+                              shape-only bars; the trend is shape, not data */
+  align-items: flex-end;   /* bars grow up from a shared baseline, not stretch */
+  gap: 6px;
+  height: 120px;
+  padding: var(--vd-space);
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  background: var(--vd-paper);
+}
+.vd-bars i {
+  flex: 1 1 0;
+  min-width: 6px;
+  background: var(--vd-primary);
+  border-radius: 3px 3px 0 0;
+}
+/* Compact inline strip — sits in a KPI, cell, or heading to read as a trend. */
+.vd-spark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 76px;
+  height: 22px;
+  vertical-align: middle;
+}
+.vd-spark i {
+  flex: 1 1 0;
+  min-width: 2px;
+  background: var(--vd-primary);
+  border-radius: 1px;
+}
+/* Per-bar heights: percentages resolve against the definite height of
+   .vd-bars / .vd-spark. Step 10 keeps authoring to a class, never a style. */
+.vd-h10 { height: 10%; }
+.vd-h20 { height: 20%; }
+.vd-h30 { height: 30%; }
+.vd-h40 { height: 40%; }
+.vd-h50 { height: 50%; }
+.vd-h60 { height: 60%; }
+.vd-h70 { height: 70%; }
+.vd-h80 { height: 80%; }
+.vd-h90 { height: 90%; }
+.vd-h100 { height: 100%; }
+/* Donut: a conic ring with a punched-out center hole. --vd-donut-p (set by a
+   .vd-p* class) is the filled sweep; conic rotation is direction-neutral, so
+   no RTL flip is needed. The radial layer on top paints the hole with --vd-paper
+   so it flips with the scheme; the ring below is --vd-primary over --vd-line. */
+.vd-donut {
+  --vd-donut-p: 50%;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background:
+    radial-gradient(var(--vd-paper) 54%, transparent 55%),
+    conic-gradient(var(--vd-primary) var(--vd-donut-p), var(--vd-line) 0);
+}
+.vd-p10 { --vd-donut-p: 10%; }
+.vd-p20 { --vd-donut-p: 20%; }
+.vd-p30 { --vd-donut-p: 30%; }
+.vd-p40 { --vd-donut-p: 40%; }
+.vd-p50 { --vd-donut-p: 50%; }
+.vd-p60 { --vd-donut-p: 60%; }
+.vd-p70 { --vd-donut-p: 70%; }
+.vd-p80 { --vd-donut-p: 80%; }
+.vd-p90 { --vd-donut-p: 90%; }
+/* Media / thumb: a token-tinted two-stop gradient box that sizes to its
+   container; the aspect-ratio modifiers give it an image-shaped footprint.
+   The fill is a background-IMAGE (a tint of --vd-primary over --vd-paper) so it
+   never wipes an element's own color and reads in both schemes. */
+.vd-media,
+.vd-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;  /* default so an un-modified box still holds image space */
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  background-image: linear-gradient(135deg,
+    color-mix(in srgb, var(--vd-primary) 20%, var(--vd-paper)),
+    color-mix(in srgb, var(--vd-primary) 6%, var(--vd-paper)));
+}
+.vd-r-16x9 { aspect-ratio: 16 / 9; }
+.vd-r-4x3 { aspect-ratio: 4 / 3; }
+.vd-r-1x1 { aspect-ratio: 1 / 1; }
+
+/* ---- Marketing cluster -------------------------------------------------
+   Landing/pricing structures — the highest-stakes visual picks. All four add
+   STRUCTURE only: headlines come from the type ramp (.vd-display/.vd-t1/.vd-t2,
+   lead-in via .vd-tagline), hero imagery from the .vd-media placeholder, so no
+   size or color is ever hand-set here. Token-only (both schemes stay legible)
+   and logical throughout (they mirror under RTL with no per-frame flip). The two
+   filled bits — the featured-tier flag and the feature icon — opt into print via
+   the @media print color-adjust list; hero and tier CTAs reuse .vd-btn/.vd-primary,
+   already covered there. Named clear of the numeric utility namespaces
+   (the vd-h10..vd-h100 bar heights and vd-p10..vd-p90 donut fills). */
+.vd-hero {
+  display: grid;
+  gap: calc(var(--vd-space) * 3);
+  padding: calc(var(--vd-space) * 4) calc(var(--vd-space) * 3);
+  justify-items: center;
+  text-align: center;               /* logical: centers under either direction */
+}
+.vd-hero-copy {
+  display: grid;
+  gap: calc(var(--vd-space) * 1.5);
+  justify-items: inherit;           /* follows the hero's center/start alignment */
+  max-width: 60ch;
+}
+.vd-hero-cta { display: flex; flex-wrap: wrap; gap: var(--vd-space); justify-content: center; }
+/* Split: copy beside a .vd-media slot; auto-fit folds back to one column at
+   phone width. text/justify use logical values so the whole block mirrors. */
+.vd-hero-split {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: center;
+  justify-items: start;
+  text-align: start;
+}
+.vd-hero-split .vd-hero-cta { justify-content: flex-start; } /* main-start tracks inline dir */
+
+/* Tiers: pricing columns. .vd-featured is distinct via TOKENS ONLY — a
+   --vd-primary border plus a lifted shadow, no fill. The flag is the one filled
+   bit (see print list). Tier name = a ramp class (.vd-t2); CTA = .vd-btn. */
+.vd-tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: calc(var(--vd-space) * 2);
+  padding: calc(var(--vd-space) * 2);
+  align-items: start;
+}
+.vd-tier {
+  display: grid;
+  gap: calc(var(--vd-space) * 1.5);
+  padding: calc(var(--vd-space) * 2);
+  border: 1px solid var(--vd-line);
+  border-radius: var(--vd-radius);
+  background: var(--vd-paper);
+  box-shadow: var(--vd-shadow);
+}
+.vd-tier.vd-featured { border: 2px solid var(--vd-primary); box-shadow: var(--vd-shadow-md); }
+.vd-tier-flag {
+  justify-self: start;              /* rides the inline-start edge; flips under RTL */
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--vd-primary);
+  color: var(--vd-on-primary);
+  font-size: .7rem;
+  font-weight: 700;
+}
+.vd-tier-price { display: flex; align-items: baseline; gap: 4px; }
+.vd-tier-price b { font-size: 1.6rem; font-weight: 700; }
+.vd-tier-price span { color: var(--vd-ink-soft); font-size: .78rem; }
+.vd-tier-features { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: .82rem; }
+.vd-tier-features li { display: flex; gap: 8px; align-items: baseline; } /* row mirrors under RTL */
+.vd-tier-features li::before { content: "\2713"; color: var(--vd-primary); font-weight: 700; }
+
+/* Features: an icon/title/text grid, ~2–4 across (auto-fit). Title = a ramp
+   class (.vd-t2); the icon is a filled token square (see print list). */
+.vd-features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: calc(var(--vd-space) * 2);
+  padding: calc(var(--vd-space) * 2);
+}
+.vd-feature { display: grid; gap: 6px; align-content: start; }
+.vd-feature-icon { width: 34px; height: 34px; border-radius: var(--vd-radius); background: var(--vd-primary); }
+.vd-feature p { margin: 0; color: var(--vd-ink-soft); font-size: .82rem; line-height: 1.5; }
+
+/* Footer: a multi-column link footer on --vd-surface, ink-soft. Column titles
+   are chrome (scoped bare, like .vd-card h4), not editorial ramp headings. */
+.vd-footer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: calc(var(--vd-space) * 2);
+  padding: calc(var(--vd-space) * 3) calc(var(--vd-space) * 2);
+  border-top: 1px solid var(--vd-line);
+  background: var(--vd-surface);
+  color: var(--vd-ink-soft);
+  font-size: .8rem;
+}
+.vd-footer h4 { margin: 0 0 8px; color: var(--vd-ink); font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; }
+.vd-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.vd-footer a { color: var(--vd-ink-soft); text-decoration: none; }
+.vd-footer a:hover { color: var(--vd-primary); }
 
 /* ---- Motion kit --------------------------------------------------------
    For motion-decision passes: variants identical in structure, differing on
@@ -468,6 +1045,13 @@ li.vd-hl { outline-offset: 0; }
 @keyframes vd-slide-down { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
 @keyframes vd-slide-left { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 @keyframes vd-slide-right { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+/* Direction-aware slide: vd-m-slide-start enters from the inline-END edge and
+   travels toward inline-start; vd-m-slide-end is its mirror. These base
+   keyframes are LTR; the [dir="rtl"] rules below swap each class to the
+   opposite keyframe so the SAME class enters from the correct side either way.
+   The physical vd-m-slide-left/right stay LTR-oriented on purpose. */
+@keyframes vd-slide-start { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes vd-slide-end { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
 @keyframes vd-scale { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 .vd-anim { animation-duration: .2s; animation-fill-mode: both; animation-timing-function: ease-out; }
 .vd-anim.vd-m-fade { animation-name: vd-fade; }
@@ -475,12 +1059,16 @@ li.vd-hl { outline-offset: 0; }
 .vd-anim.vd-m-slide-down { animation-name: vd-slide-down; }
 .vd-anim.vd-m-slide-left { animation-name: vd-slide-left; }
 .vd-anim.vd-m-slide-right { animation-name: vd-slide-right; }
+.vd-anim.vd-m-slide-start { animation-name: vd-slide-start; }
+.vd-anim.vd-m-slide-end { animation-name: vd-slide-end; }
+[dir="rtl"] .vd-anim.vd-m-slide-start { animation-name: vd-slide-end; }
+[dir="rtl"] .vd-anim.vd-m-slide-end { animation-name: vd-slide-start; }
 .vd-anim.vd-m-scale { animation-name: vd-scale; }
 .vd-anim.vd-m-spring { animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); } /* modifier: overshoot feel for any vd-m-* enter */
 .vd-anim.vd-m-fast { animation-duration: .12s; }
 .vd-anim.vd-m-slow { animation-duration: .35s; }
 .vd-m-hover-lift { transition: transform .15s, box-shadow .15s; }
-.vd-m-hover-lift:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, .14); }
+.vd-m-hover-lift:hover { transform: translateY(-2px); box-shadow: var(--vd-shadow-md); }
 .vd-m-hover-glow { transition: box-shadow .15s, border-color .15s; }
 .vd-m-hover-glow:hover { border-color: var(--vd-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--vd-primary) 25%, transparent); }
 .vd-m-press { transition: transform .08s; }
@@ -495,10 +1083,15 @@ li.vd-hl { outline-offset: 0; }
   padding: 2px 8px;
   border-radius: var(--vd-radius);
   cursor: pointer;
-  float: right;
+  float: right; /* physical + [dir="rtl"] flip below, same as .vd-zoom-btn */
 }
+[dir="rtl"] .vd-replay { float: left; }
 @media (prefers-reduced-motion: reduce) {
-  .vd-anim, .vd-m-hover-lift, .vd-m-hover-glow, .vd-m-press { animation: none; transition: none; }
+  /* Also nulls the .vd-card/.vd-row/.vd-kpi hover-lift transitions (declared in
+     "Content primitives"), so NO transition or animation runs anywhere in the
+     shell under reduced motion — not just the motion-kit classes. */
+  .vd-anim, .vd-m-hover-lift, .vd-m-hover-glow, .vd-m-press,
+  .vd-card, .vd-row, .vd-kpi { animation: none; transition: none; }
 }
 
 /* ---- Compare modes ---------------------------------------------------- */
@@ -506,13 +1099,333 @@ body[data-vd-mode="stack"] #vd-frames { grid-template-columns: 1fr; max-width: 8
 body[data-vd-mode="flip"] #vd-frames { grid-template-columns: 1fr; max-width: 860px; margin: 0 auto; }
 body[data-vd-mode="flip"] .vd-frame { display: none; }
 body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
+
+/* ---- Viewport width presets ------------------------------------------
+   A header control writes data-vd-vw on the body so layout picks (sidebar
+   vs bottom-nav, table vs cards) get judged at the device width they'll
+   actually run at, not desktop-only. `full` (default) keeps the current
+   fluid behavior — no rule matches it.
+   Side mode: size the grid TRACKS to the preset, not the frame — a
+   frame's own width/max-width still resolves against whatever the
+   auto-fit minmax(280px,1fr) track happens to be, which at an ordinary
+   viewport (e.g. 3 frames at 1280px land near 395px/track) stays WIDER
+   than 375px but NARROWER than 768px, silently clamping the tablet
+   preset. Fixed-width auto-fit tracks make each column exactly the
+   device width; centered when 3 don't fill a row, wrapping to the next
+   row when they don't fit — the honest rendering of "N phones/tablets
+   side by side" at real widths, not a bug. `:not(.vd-zoom-active)` lets
+   the pre-existing zoom-active single-column override win once a frame
+   is zoomed (see Focus/zoom mode above). */
+body[data-vd-vw="phone"][data-vd-mode="side"] #vd-frames:not(.vd-zoom-active) { grid-template-columns: repeat(auto-fit, 375px); justify-content: center; }
+body[data-vd-vw="tablet"][data-vd-mode="side"] #vd-frames:not(.vd-zoom-active) { grid-template-columns: repeat(auto-fit, 768px); justify-content: center; }
+/* Stack/flip: already a single 1fr column inside a centered max-width
+   container, so size the frame itself to the preset directly (a zoomed
+   frame is excused from this above). */
+body[data-vd-vw="phone"][data-vd-mode="stack"] .vd-frame,
+body[data-vd-vw="phone"][data-vd-mode="flip"] .vd-frame { width: 375px; max-width: 100%; margin-inline: auto; }
+body[data-vd-vw="tablet"][data-vd-mode="stack"] .vd-frame,
+body[data-vd-vw="tablet"][data-vd-mode="flip"] .vd-frame { width: 768px; max-width: 100%; margin-inline: auto; }
+
+/* ---- Diff highlight ---------------------------------------------------
+   Authors tag ONLY the elements that differ on the axis under test with
+   data-vd-diff; the header's Diffs toggle adds body.vd-diffs-on to outline
+   them in every frame at once. STATIC by intent — a 2px accent outline
+   plus a faint tint, no animation or transition (decorative motion is
+   banned; motion is only ever the thing being decided).
+   outline-offset is NEGATIVE (inward): a positive offset gets silently
+   clipped at a frame's edge by .vd-content's overflow:auto/.vd-frame's
+   overflow:hidden, so an outward ring would vanish exactly where authors
+   are most likely to tag something (near a scroll boundary).
+   The tint is a background-IMAGE (flat two-stop gradient), never the
+   `background` shorthand — the shorthand resets background-color too,
+   erasing a tagged element's own color (a status chip, a primary button)
+   while Diffs is on. Layering an image instead leaves that color-defining
+   longhand untouched underneath, so the element still reads as itself. */
+body.vd-diffs-on [data-vd-diff] {
+  outline: 2px solid var(--vd-primary);
+  outline-offset: -2px;
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--vd-primary) 8%, transparent),
+    color-mix(in srgb, var(--vd-primary) 8%, transparent));
+}
+/* Keyboard focus must stay distinguishable from the diff outline — a
+   focused, tagged element gets its own thicker, differently-colored ring
+   instead of inheriting (and being indistinguishable from) the diff one. */
+body.vd-diffs-on [data-vd-diff]:focus-visible {
+  outline: 3px solid var(--vd-ink);
+  outline-offset: 3px;
+}
+
+/* ---- Print: clean frame-per-page one-pager --------------------------
+   A decision has to leave the terminal for offline sign-off, so print
+   strips every interactive affordance and lays the frames out as a
+   document: controls gone, each frame (with its tradeoffs) on its own
+   page, nothing clipped by the on-screen height cap, and always rendered
+   in the LIGHT token set so a dark-mode preview never prints dark paper.
+   Overrides win by re-matching each screen rule at equal specificity and
+   later source order (or by out-weighting it with the #vd-frames id), so
+   no !important is needed. */
+@media print {
+  /* --vd-line (#e4e4e7) is near-invisible on paper once shadows are off;
+     darken it for print. `:root` matches the original rule's 0-1-0
+     specificity so later source order wins for the default light scheme;
+     the dark-scheme reset below carries the same value for the was-dark
+     case. */
+  :root {
+    --vd-line: #9ca3af;
+  }
+
+  /* Force the light NEUTRAL set: re-declare every dark neutral back to its
+     light equivalent. Token consumers (paper/ink/surface/nav/shadows) flip
+     automatically; the chip/dialog/switch/alert rules use literal colors or
+     point at now-reset tokens, so they are restored too. Deliberately does
+     NOT re-declare --vd-primary/--vd-on-primary: those two are set once
+     BEFORE the project slot (the default dark accent) and re-set BY the
+     project slot when a project brand color is active, and this print
+     block is later in source order than the slot at the same 0-1-1
+     specificity — re-declaring them here would win and clobber a project's
+     brand accent back to baseline blue on every dark+project print.
+     Leaving them alone lets whichever accent is actually active, default
+     or project, flow through unchanged. */
+  html[data-vd-scheme="dark"] {
+    --vd-surface: #fafafa;
+    --vd-ink: #18181b;
+    --vd-ink-soft: #52525b;
+    --vd-paper: #ffffff;
+    --vd-line: #9ca3af;
+    --vd-nav-bg: #18181b;
+    --vd-nav-ink: #ffffff;
+    --vd-nav-ink-soft: rgba(255, 255, 255, .75);
+    --vd-shadow: none;
+    --vd-shadow-md: none;
+    --vd-shadow-lg: none;
+  }
+  html[data-vd-scheme="dark"] .vd-chip.vd-ok { background-color: #dcfce7; border-color: #86efac; color: #166534; }
+  html[data-vd-scheme="dark"] .vd-chip.vd-warn { background-color: #fef9c3; border-color: #fde047; color: #854d0e; }
+  html[data-vd-scheme="dark"] .vd-chip.vd-err { background-color: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+  html[data-vd-scheme="dark"] .vd-chip.vd-info { background-color: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+  html[data-vd-scheme="dark"] .vd-chip.vd-neutral { background-color: #f4f4f5; border-color: #d4d4d8; color: #3f3f46; }
+  html[data-vd-scheme="dark"] .vd-dialog { border: 0; }
+  html[data-vd-scheme="dark"] .vd-switch::after { background: var(--vd-paper); }
+  /* --vd-alert-accent reset to the LIGHT severity hues; it drives both the
+     border and the glyph prefix, so both revert together for a was-dark print.
+     The base (info) accent is --vd-primary, which the print block deliberately
+     leaves un-reset, so pin it to the light primary here too — otherwise the
+     small "i" glyph prints as pale #60a5fa on white (~2.8:1, illegible). */
+  html[data-vd-scheme="dark"] .vd-alert { --vd-alert-accent: #2563eb; }
+  html[data-vd-scheme="dark"] .vd-alert.vd-warn { --vd-alert-accent: #eab308; }
+  html[data-vd-scheme="dark"] .vd-alert.vd-err { --vd-alert-accent: #dc2626; }
+
+  /* Browsers drop backgrounds under print by default unless an element
+     opts in — without this, a callout number prints white-on-white
+     (illegible, and its numbered tradeoff reads orphaned), and the same
+     goes for the frame-label badge, chips, the nav bar, primary buttons,
+     the avatar, the progress fill, the switch track/thumb, the chart/media
+     placeholders — the bar and spark fills, the donut ring, and the media/thumb
+     gradient boxes — and the marketing cluster's filled bits (the featured-tier
+     flag and the feature icon), the stepper's filled number circles and its
+     progress connector rail, the accordion header's surface fill, plus the
+     data-shape code block's surface and its <mark> key highlights, all vanish
+     on paper without this opt-in. (print-color-adjust is inherited, so `.vd-step`
+     carries it to the number circle AND the ::before connector.) */
+  .vd-callout,
+  .vd-frame > h2 .vd-badge,
+  .vd-chip,
+  .vd-nav,
+  .vd-btn.vd-primary,
+  .vd-avatar,
+  .vd-progress,
+  .vd-progress i,
+  .vd-switch,
+  .vd-switch.vd-on,
+  .vd-bars i,
+  .vd-spark i,
+  .vd-donut,
+  .vd-media,
+  .vd-thumb,
+  .vd-tier-flag,
+  .vd-feature-icon,
+  .vd-step,
+  .vd-acc-head,
+  .vd-code,
+  .vd-code mark {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Drop every interactive affordance: the header controls (segmented
+     mode/width groups + Diffs/Theme/Scheme toggles + the injected global
+     state bar, which lives inside .vd-controls), the per-frame Focus and
+     Replay buttons, and the per-frame state toggle bars. Whatever state is
+     currently selected on screen is what prints. `.vd-state-global` is
+     belt-and-suspenders here: the injected global bar is always appended
+     inside `.vd-controls` (see the `gbar`/`controls.insertBefore` wiring),
+     so the rule above already covers it — kept explicit in case that
+     nesting ever changes. */
+  #vd-header .vd-controls,
+  .vd-zoom-btn,
+  .vd-replay,
+  .vd-state-bar,
+  .vd-state-global {
+    display: none;
+  }
+
+  /* Header keeps the question/axis text, but repeats as running context on
+     every printed page instead of scrolling off with page 1 — `fixed`
+     boxes repeat per page under CSS Paged Media, unlike `sticky` (which
+     only sticks within a single page). `body`'s padding-top clears it: a
+     generous fixed estimate (no JS measurement in this shell's print
+     path), sized for the one-to-two-line question plus its axis/pass meta
+     row that remains once `.vd-controls` is hidden. The alternative —
+     duplicating question/axis per frame via CSS `content: attr(...)` —
+     was skipped because that text lives in SLOT-filled text nodes, not
+     attributes, so it would need new authoring plumbing (a second place to
+     fill) for no gain over a native repeating fixed box. */
+  #vd-header {
+    position: fixed;
+    top: 0;
+    inset-inline: 0;
+    box-shadow: none;
+  }
+  body {
+    padding-top: 110px;
+  }
+
+  /* Neutralize compare-mode + width-preset container sizing: print lays
+     the frames out as one plain full-width document column. */
+  #vd-frames,
+  body[data-vd-mode="stack"] #vd-frames,
+  body[data-vd-mode="flip"] #vd-frames {
+    display: block;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Show every frame regardless of the flip/zoom state left on screen —
+     print is the full record, not the one variant that happened to be
+     focused (each hide rule is re-matched at its own specificity). */
+  #vd-frames.vd-zoom-active .vd-frame,
+  body[data-vd-mode="flip"] .vd-frame {
+    display: block;
+  }
+
+  /* Full width regardless of data-vd-vw (the #vd-frames id out-weighs every
+     preset's attribute chain), one frame per page with its tradeoffs kept
+     together; the last frame drops the trailing break so there is no blank
+     final page. */
+  #vd-frames .vd-frame {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    box-shadow: none;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: page;
+    page-break-after: always;
+  }
+  #vd-frames .vd-frame:last-of-type {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  /* Belt-and-suspenders: a frame taller than one page can still be forced
+     to split despite break-inside: avoid above, so pin the tradeoffs block
+     itself too — it must not separate from the frame it explains. */
+  .vd-tradeoffs {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Lift the on-screen height cap so dense content prints in full instead
+     of being clipped by the frame's scroll region. */
+  .vd-frame .vd-content {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* A code block scrolls horizontally on screen; paper has no scrollbar, so
+     let its overflow show and wrap long lines rather than clipping the payload
+     off the page edge. Matches .vd-code's 0-1-0 specificity at later source
+     order, so no !important is needed. */
+  .vd-code {
+    overflow-x: visible;
+    white-space: pre-wrap;
+  }
+
+  /* Neutralize motion: a mockup left mid-animation, or paused on an
+     enter-state keyframe, must not print half-transitioned. The compound
+     selectors match the same 0-2-0 specificity as each vd-m-* modifier
+     rule above (.vd-anim.vd-m-fade sets animation-name, .vd-anim.vd-m-fast
+     sets animation-duration, etc.) — a plain `.vd-anim` selector alone is
+     only 0-1-0 and would lose those ties regardless of source order, so it
+     would not actually reset an in-flight animation. Placed last in this
+     block so every one of these ties resolves to source order — no
+     !important needed. */
+  .vd-anim,
+  .vd-anim.vd-m-fade,
+  .vd-anim.vd-m-slide-up,
+  .vd-anim.vd-m-slide-down,
+  .vd-anim.vd-m-slide-left,
+  .vd-anim.vd-m-slide-right,
+  .vd-anim.vd-m-slide-start,
+  .vd-anim.vd-m-slide-end,
+  .vd-anim.vd-m-scale,
+  .vd-anim.vd-m-spring,
+  .vd-anim.vd-m-fast,
+  .vd-anim.vd-m-slow,
+  /* The [dir="rtl"] slide aliases carry 0-3-0 specificity (they re-point
+     animation-name), so they out-weigh the 0-2-0 resets above; re-match them
+     here at equal 0-3-0 and later source order to actually null the name. */
+  [dir="rtl"] .vd-anim.vd-m-slide-start,
+  [dir="rtl"] .vd-anim.vd-m-slide-end {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* One `@page` box per sheet with real margins. Deliberately OUTSIDE
+   `@media print`: `@page` is a top-level Paged-Media at-rule, not a
+   conditional-group rule, so nesting it inside `@media` is invalid and
+   browsers drop it. */
+@page {
+  margin: 14mm;
+}
 </style>
 <style id="vd-custom">
 /* SLOT: custom-css — shared classes when no primitive fits; never style one
-   variant differently from its rivals. */
+   variant differently from its rivals, EXCEPT the sanctioned theme-axis token
+   presets on `.vd-content` (see Theme-axis passes). */
 </style>
 </head>
-<body data-vd-mode="side">
+<body data-vd-mode="side" data-vd-vw="full">
+
+<!-- Inline icon sprite — 12 hand-authored 24x24 stroke glyphs, fully
+     self-contained: no href/src/xmlns to any URL, so there is nothing to fetch
+     and no network dependency (HTML parses inline SVG in its own namespace, so
+     the xmlns that would carry a URL is deliberately omitted). One <symbol> per
+     glyph; author one with `<svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-NAME"/></svg>`.
+     .vd-i (see stylesheet) sizes each to 1em and paints it with
+     stroke:currentColor, so a glyph inherits the frame's text size AND its
+     scheme/theme ink automatically — both schemes for free, no per-scheme icon
+     rule. Even-application rule (see shell-authoring.md): icons go on ALL frames
+     or none — an icon-led favorite beside text-only rivals is a sales pitch;
+     presence may differ between frames only when iconography IS the axis. -->
+<svg style="display:none" aria-hidden="true" focusable="false">
+  <symbol id="vd-i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="vd-i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.3-4.3"/></symbol>
+  <symbol id="vd-i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="vd-i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+  <symbol id="vd-i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="vd-i-bell" viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="vd-i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5a7 7 0 0 1 14 0"/></symbol>
+  <symbol id="vd-i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="vd-i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></symbol>
+  <symbol id="vd-i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.2 6.4 6.8.2-5.4 4.1 2 6.5L12 16.3l-5.6 3.4 2-6.5-5.4-4.1 6.8-.2z"/></symbol>
+  <symbol id="vd-i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="16" cy="12" r="2.2"/><circle cx="11" cy="17" r="2.2"/></symbol>
+  <symbol id="vd-i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></symbol>
+</svg>
 
 <header id="vd-header">
   <div class="vd-q">
@@ -532,7 +1445,15 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
       <button type="button" data-vd-set-mode="stack" aria-pressed="false">Stacked</button>
       <button type="button" data-vd-set-mode="flip" aria-pressed="false">Flip</button>
     </div>
+    <div class="vd-seg" role="group" aria-label="Viewport width">
+      <button type="button" data-vd-set-vw="phone" aria-pressed="false">Phone 375</button>
+      <button type="button" data-vd-set-vw="tablet" aria-pressed="false">Tablet 768</button>
+      <button type="button" data-vd-set-vw="full" aria-pressed="true">Full</button>
+    </div>
+    <button type="button" id="vd-diff-toggle" aria-pressed="false" hidden>Diffs</button>
     <button type="button" id="vd-theme-toggle" hidden>Theme</button>
+    <button type="button" id="vd-scheme-toggle">Scheme, light</button>
+    <button type="button" id="vd-dir-toggle">Direction, LTR</button>
   </div>
 </header>
 
@@ -565,11 +1486,21 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
 (() => {
   const frames = Array.from(document.querySelectorAll('.vd-frame'));
 
-  // Per-variant state toggles: a frame's .vd-content may hold sibling
-  // blocks tagged data-state="populated|empty|loading|error". Render a
-  // toggle bar listing ONLY the states that frame provides and show one
-  // at a time; a frame with no data-state children is left exactly as-is.
+  // Data-state toggles: a frame's .vd-content may hold sibling blocks
+  // tagged data-state="populated|empty|loading|error". Each stateful frame
+  // keeps its own toggle bar as a secondary override; a GLOBAL segmented
+  // control (built below) drives every stateful frame together. A frame
+  // with no data-state children is left exactly as-is (v1 compat).
   const STATE_ORDER = ['populated', 'empty', 'loading', 'error'];
+  function orderStates(present) {
+    return STATE_ORDER.filter(s => present.includes(s))
+      .concat(present.filter(s => !STATE_ORDER.includes(s)));
+  }
+  const stateCtrls = []; // { states, show } per stateful frame — drives the global control
+  // A direct per-frame click diverges that frame from the global pick, so the
+  // global bar's aria-pressed must stop claiming a state it no longer drives
+  // everywhere. Reassigned once the global bar exists (no-op until then).
+  let clearGlobalPressed = () => {};
   frames.forEach(frame => {
     const content = frame.querySelector('.vd-content');
     if (!content) return;
@@ -580,8 +1511,7 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
     blocks.forEach(el => {
       if (!present.includes(el.dataset.state)) present.push(el.dataset.state);
     });
-    const ordered = STATE_ORDER.filter(s => present.includes(s))
-      .concat(present.filter(s => !STATE_ORDER.includes(s)));
+    const ordered = orderStates(present);
 
     const bar = document.createElement('div');
     bar.className = 'vd-seg vd-state-bar';
@@ -599,12 +1529,52 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
       b.type = 'button';
       b.dataset.vdState = state;
       b.textContent = state.charAt(0).toUpperCase() + state.slice(1);
-      b.addEventListener('click', () => show(state));
+      b.addEventListener('click', () => { show(state); clearGlobalPressed(); });
       bar.appendChild(b);
     });
     content.before(bar);
     show(ordered.includes('populated') ? 'populated' : ordered[0]);
+    stateCtrls.push({ states: ordered, show: show });
   });
+
+  // Global state control: injected into the header only when at least one
+  // frame is stateful. Its buttons are the UNION of every frame's states.
+  // Picking state S drives each frame to S when it has it, else to that
+  // frame's FIRST state — the frame's own bar (whose aria-pressed tracks
+  // what it actually displays) then reveals the fallback instead of
+  // implying S is shown everywhere, keeping variants on one axis at a time.
+  if (stateCtrls.length > 0) {
+    const union = [];
+    stateCtrls.forEach(c => c.states.forEach(s => {
+      if (!union.includes(s)) union.push(s);
+    }));
+    const gStates = orderStates(union);
+
+    const gbar = document.createElement('div');
+    gbar.className = 'vd-seg vd-state-global';
+    gbar.setAttribute('role', 'group');
+    gbar.setAttribute('aria-label', 'State (all variants)');
+    function showAll(state) {
+      stateCtrls.forEach(c => c.show(c.states.includes(state) ? state : c.states[0]));
+      Array.from(gbar.querySelectorAll('button')).forEach(b =>
+        b.setAttribute('aria-pressed', String(b.dataset.vdState === state)));
+    }
+    gStates.forEach(state => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.vdState = state;
+      b.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      b.addEventListener('click', () => showAll(state));
+      gbar.appendChild(b);
+    });
+    clearGlobalPressed = () => {
+      Array.from(gbar.querySelectorAll('button')).forEach(b =>
+        b.setAttribute('aria-pressed', 'false'));
+    };
+    const controls = document.querySelector('#vd-header .vd-controls');
+    controls.insertBefore(gbar, document.getElementById('vd-theme-toggle'));
+    showAll(gStates.includes('populated') ? 'populated' : gStates[0]);
+  }
 
   // Focus/zoom mode: a per-frame control that expands one variant to full
   // width, click again (or Esc) to return to the compare view. Side-by-side
@@ -650,6 +1620,31 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
   segButtons.forEach(b =>
     b.addEventListener('click', () => setMode(b.dataset.vdSetMode)));
 
+  // Viewport width presets: a segmented control writes data-vd-vw on the
+  // body; CSS caps each frame (side) or the frames column (stack/flip) to
+  // the simulated device width. Mirrors the compare-mode control above.
+  const vwButtons = Array.from(document.querySelectorAll('[data-vd-set-vw]'));
+  function setVw(vw) {
+    document.body.dataset.vdVw = vw;
+    vwButtons.forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.vdSetVw === vw)));
+  }
+  vwButtons.forEach(b =>
+    b.addEventListener('click', () => setVw(b.dataset.vdSetVw)));
+
+  // Diff highlight: authors tag the elements that differ on the axis under
+  // test with data-vd-diff; this toggle outlines them (static, no motion —
+  // decorative animation is banned) in every frame at once. The button is
+  // shown only when the document actually carries tagged elements.
+  const diffToggle = document.getElementById('vd-diff-toggle');
+  if (document.querySelector('[data-vd-diff]')) {
+    diffToggle.hidden = false;
+    diffToggle.addEventListener('click', () => {
+      const on = document.body.classList.toggle('vd-diffs-on');
+      diffToggle.setAttribute('aria-pressed', String(on));
+    });
+  }
+
   // Focus variant N: scroll in side/stack, show in flip
   function focusVariant(i) {
     const frame = frames[i];
@@ -677,20 +1672,79 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
       }
     }));
 
-  // Callout pairing: highlight badge + matching tradeoff bullet per frame
+  // Callout pairing: highlight badge + matching tradeoff bullet per frame.
+  // Each tradeoff <li> gets a deterministic id (frame id + "-t" + its data-n)
+  // and every matching callout points at it with aria-describedby, so a screen
+  // reader reads the bullet text when the callout button is focused. The
+  // highlight fires on hover AND on keyboard focus (focusin/focusout bubble;
+  // focus/blur do not), and a click/Enter toggles the same .vd-hl class — so a
+  // keyboard user and a pointer user without hover (touch) both reach the pair.
   function pairOf(el) {
     const frame = el.closest('.vd-frame');
     if (!frame || !el.dataset.n) return [];
     const sel = '[data-n="' + el.dataset.n + '"]';
     return Array.from(frame.querySelectorAll('.vd-callout' + sel + ', li' + sel));
   }
+  frames.forEach(frame => {
+    if (!frame.id) return;
+    frame.querySelectorAll('.vd-tradeoffs li[data-n]').forEach(li => {
+      if (!li.id) li.id = frame.id + '-t' + li.dataset.n;
+    });
+    frame.querySelectorAll('.vd-callout[data-n]').forEach(callout => {
+      const li = frame.querySelector('.vd-tradeoffs li[data-n="' + callout.dataset.n + '"]');
+      if (li && li.id && !callout.hasAttribute('aria-describedby')) {
+        callout.setAttribute('aria-describedby', li.id);
+      }
+    });
+  });
+  function pairTarget(node) {
+    return node instanceof Element ? node.closest('.vd-callout, .vd-tradeoffs li') : null;
+  }
   document.addEventListener('mouseover', e => {
-    const el = e.target.closest('.vd-callout, .vd-tradeoffs li');
+    const el = pairTarget(e.target);
     if (el) pairOf(el).forEach(m => m.classList.add('vd-hl'));
   });
   document.addEventListener('mouseout', e => {
-    const el = e.target.closest('.vd-callout, .vd-tradeoffs li');
+    const el = pairTarget(e.target);
     if (el) pairOf(el).forEach(m => m.classList.remove('vd-hl'));
+  });
+  document.addEventListener('focusin', e => {
+    const el = pairTarget(e.target);
+    if (el) pairOf(el).forEach(m => m.classList.add('vd-hl'));
+  });
+  document.addEventListener('focusout', e => {
+    const el = pairTarget(e.target);
+    if (el) pairOf(el).forEach(m => m.classList.remove('vd-hl'));
+  });
+  document.addEventListener('click', e => {
+    const el = e.target instanceof Element ? e.target.closest('.vd-callout') : null;
+    if (!el) return;
+    const pair = pairOf(el);
+    const on = pair.some(m => m.classList.contains('vd-hl'));
+    pair.forEach(m => m.classList.toggle('vd-hl', !on));
+  });
+
+  // Content-primitive semantics: the pure-CSS check/switch/progress primitives
+  // carry no native role, so assistive tech would announce them as plain text
+  // and a mockup would model an inaccessible control. Inject the matching role
+  // — plus aria-checked mirrored from the author's .vd-on visual state — so the
+  // mockup models the accessible control the real feature needs. Static and
+  // additive: no interactivity, no visual change. A progressbar's aria-valuenow
+  // is the author's to set (it is data — see shell-authoring "Semantics").
+  document.querySelectorAll('.vd-check').forEach(el => {
+    if (!el.hasAttribute('role')) el.setAttribute('role', 'checkbox');
+    if (!el.hasAttribute('aria-checked')) {
+      el.setAttribute('aria-checked', String(el.classList.contains('vd-on')));
+    }
+  });
+  document.querySelectorAll('.vd-switch').forEach(el => {
+    if (!el.hasAttribute('role')) el.setAttribute('role', 'switch');
+    if (!el.hasAttribute('aria-checked')) {
+      el.setAttribute('aria-checked', String(el.classList.contains('vd-on')));
+    }
+  });
+  document.querySelectorAll('.vd-progress').forEach(el => {
+    if (!el.hasAttribute('role')) el.setAttribute('role', 'progressbar');
   });
 
   // Motion replay: frames containing .vd-anim get a Replay button that
@@ -723,6 +1777,39 @@ body[data-vd-mode="flip"] .vd-frame[data-vd-active] { display: block; }
     labelToggle();
   });
   labelToggle();
+
+  // Scheme toggle: preview every frame on the dark neutral set. Explicit
+  // control only — no OS colour-scheme auto-switch, so screenshot and
+  // side-by-side comparisons stay deterministic regardless of the OS setting.
+  const schemeToggle = document.getElementById('vd-scheme-toggle');
+  function labelScheme() {
+    const cur = document.documentElement.dataset.vdScheme;
+    schemeToggle.textContent = cur === 'dark' ? 'Scheme, dark' : 'Scheme, light';
+  }
+  schemeToggle.addEventListener('click', () => {
+    const root = document.documentElement;
+    root.dataset.vdScheme = root.dataset.vdScheme === 'dark' ? 'light' : 'dark';
+    labelScheme();
+  });
+  labelScheme();
+
+  // Direction toggle: preview every frame in RTL. Mirrors the scheme toggle —
+  // explicit control only, no auto-detection — and writes BOTH the real `dir`
+  // attribute (what the [dir="rtl"] rules and text flow key off) and a
+  // data-vd-dir mirror on <html> so state reads the same way as the others.
+  const dirToggle = document.getElementById('vd-dir-toggle');
+  function labelDir() {
+    const cur = document.documentElement.dataset.vdDir;
+    dirToggle.textContent = cur === 'rtl' ? 'Direction, RTL' : 'Direction, LTR';
+  }
+  dirToggle.addEventListener('click', () => {
+    const root = document.documentElement;
+    const next = root.dataset.vdDir === 'rtl' ? 'ltr' : 'rtl';
+    root.dataset.vdDir = next;
+    root.setAttribute('dir', next);
+    labelDir();
+  });
+  labelDir();
 })();
 </script>
 

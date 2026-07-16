@@ -5,10 +5,9 @@ description: Use when executing a list of defined tasks (taskmaster task cards, 
 
 ## The contract
 
-One task in progress at any moment. The current task's definition — its files, its
-change, its acceptance criteria, its verify command — is the whole world until it
-passes or is formally parked. Starting task N+1 while task N is unverified is the
-root of "90% done" projects where nothing actually works.
+One task in progress at any moment. Its definition — the files, the change, the acceptance
+criteria, the verify command — is the whole world until it passes or is formally parked.
+Starting task N+1 while task N is unverified is the root of "90% done" projects that don't work.
 
 ## Scope lock
 
@@ -18,9 +17,8 @@ root of "90% done" projects where nothing actually works.
 - "While I'm here" is banned. Adjacent dead code, tempting refactors, unrelated
   bugs — record, do not touch. The diff for a task should read as exactly that
   task and nothing else.
-- If the task turns out to be mis-specified (wrong file, impossible criterion),
-  do not silently reinterpret it — halt the task, state the mismatch, fix the
-  task definition first, then execute the corrected task.
+- If the task is mis-specified (wrong file, impossible criterion), do not silently
+  reinterpret it — halt, state the mismatch, fix the definition, then execute the corrected task.
 
 ## The inner loop (bounded, Ralph-style)
 
@@ -54,32 +52,37 @@ run a conditional reviewer pass on the task's diff:
 Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
 Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting (not replacing) the four above (dedup so none runs twice); the opt-in `--crew` flag additionally runs the concurrent read-only reviewers + a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
-**Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` marker, dispatch the
-reviewer and delegated worker agents with a `model:` override — excluding
-`opinion-lens` — so the boost reaches execution even in a fresh session. Read the
-tier from the marker: `Ultra: true (model=<model>, effort=<effort>)` uses that
-`<model>`; a legacy bare `Ultra: true` means `model: opus`. The Agent tool has no
-effort parameter, so it escalates model only (marker `effort` applies only on the `Workflow` `agent()` path).
-Delegated stack implementers also get delegation-contracts § Skill priming: resolve+inject `Read <abs-path>` per the card's `Skills to apply`.
+**Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker,
+dispatch the reviewer and delegated worker agents with a `model:` override — excluding
+`opinion-lens` — so the boost reaches execution even in a fresh session. Read BOTH
+markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
+escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
+trailing `(model=<model>, effort=<effort>)` sets `<model>`; an unknown/malformed
+parenthetical is treated as bare — falling to ITS OWN marker's legacy default: legacy
+bare `Ultra: true` → `model: opus, effort: max`; legacy bare `Goal: true` → `model: opus,
+effort: xhigh`. The Agent tool has no effort parameter, so it escalates model only
+(marker `effort` applies only on the `Workflow` `agent()` path). Delegated stack
+implementers also get delegation-contracts § Skill priming: resolve+inject `Read
+<abs-path>` per the card's `Skills to apply`. **Under `Goal:`** (hands-off): auto-take
+pipeline gates — the run-plan preview is DISPLAYED, then execution proceeds without
+waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on
+forward progress (a task moved parked→done), else surface the parked list and stop.
+Halt-with-evidence, mis-specified-task halts, and the full-suite completion gate are
+UNCHANGED and NEVER suppressed under Goal.
 
-Blocker/major findings send the task back into the fix loop; each such round
-counts toward the SAME three-cycle ceiling as verify failures — the reviewer
-pass must not create an unbounded loop. Minor findings go to the follow-up
-backlog, not the current diff. After a reviewer-driven fix, re-run the verify
-command before re-review.
+Blocker/major findings send the task back into the fix loop; each such round counts
+toward the SAME three-cycle ceiling as verify failures — the reviewer pass must not
+create an unbounded loop. Minor findings go to the follow-up backlog, not the current
+diff. After a reviewer-driven fix, re-run the verify command before re-review.
 
 ## No unbounded outer loop
 
-The bounded inner loop above is the good part of the Ralph pattern. The infinite
-outer loop ("keep going until everything works, forever") is not adopted:
-unbounded self-looping amplifies drift — each blind retry compounds the previous
-misunderstanding, and token burn scales with confusion, not progress. Instead:
-
-- The outer loop is the task list itself: finite, ordered, visible.
-- Each pass through the list is deliberate; a task that halts stays halted until
-  its definition is fixed — it is not silently retried on the next pass.
-- When every task is done or explicitly parked, the run ENDS with a report. No
-  self-restart.
+The bounded inner loop is the good part of the Ralph pattern; the infinite outer loop
+("keep going until everything works, forever") is not adopted — unbounded self-looping
+amplifies drift, and token burn scales with confusion, not progress. The outer loop is
+the task list itself: finite, ordered, visible. A halted task stays halted until its
+definition is fixed — never silently retried on the next pass. When every task is done
+or explicitly parked, the run ENDS with a report, no self-restart.
 
 ## Sequencing and status
 
@@ -93,14 +96,12 @@ misunderstanding, and token burn scales with confusion, not progress. Instead:
 
 ## No status theater
 
-Status needs no HTML. The index table plus the running conversation already
-show every status flip; a generated run-board page duplicates both and goes
-stale the moment a regeneration is forgotten. Do not create status
-dashboards, run boards, or progress pages — the index is the single view.
-
-HTML artifacts (or a localhost preview) are reserved for content that earns the medium
-— UI mockups, walkthroughs, demos, brainstorm canvases. A table a markdown message can
-carry is a message, not a file.
+Status needs no HTML. The index table plus the running conversation already show every
+status flip; a generated run-board page duplicates both and goes stale the moment a
+regeneration is forgotten. Do not create status dashboards, run boards, or progress
+pages — the index is the single view. HTML artifacts (or a localhost preview) are
+reserved for content that earns the medium — UI mockups, walkthroughs, demos, brainstorm
+canvases; a table a markdown message can carry is a message, not a file.
 
 ## Drift tripwires
 
@@ -129,22 +130,20 @@ inline execution. Never mark a delegated task done on the subagent's word alone.
 
 ## Evidence format
 
-Evidence recorded per task is boringly literal: the exact command as run, its
-exit code, and the last relevant lines of output (the failing assertion, the
-"N passed" summary — not the whole log). Manual checks that cannot be commands
-("dialog renders centered") are recorded as manual, with what was observed.
-"Verified ✓" with nothing attached is not evidence and does not close a task.
+Evidence recorded per task is boringly literal: the exact command as run, its exit
+code, and the last relevant lines of output (the failing assertion, the "N passed"
+summary — not the whole log). Manual checks ("dialog renders centered") are recorded
+as manual, with what was observed; "Verified ✓" alone is not evidence and closes nothing.
 
 ## Completion protocol
 
 The run is complete only when:
 
 1. Every task is done or parked-with-reason — none silently skipped.
-2. The project's FULL check suite (tests, lint, type-check, build — whatever the
-   repo defines) passes at the end, not just each task's local verify: local
-   passes can compose into a global failure. If the docs-upkeep plugin is
-   installed, run its drift check as part of the full-suite gate — documentation
-   made stale by the run blocks completion the same way a failing test does.
+2. The project's FULL check suite (tests, lint, type-check, build — whatever the repo
+   defines) passes at the end, not just each task's local verify — local passes can
+   compose into a global failure. If docs-upkeep is installed, its drift check joins the
+   full-suite gate: documentation made stale by the run blocks completion like a failing test.
 3. The final report is a table: task / status / verify command / evidence line,
    plus the parked list with reasons and the follow-up backlog collected by the
    scope lock.

@@ -38,6 +38,10 @@ One entry per decision, embedded in the spec:
 - **Structural description** — what it is, in words: placement, hierarchy,
   density, what data sits where, interaction; for dataviz, the chart type and
   encoding. Precise enough to build from without the mockup.
+- **Motion** — only when motion WAS the decided axis: entrance direction, duration
+  tier (fast/base/slow), easing family, hover/press feedback.
+- **Theme** — only when theme WAS the decided axis: the token bundle (radius, space,
+  shadow, font), so a decided look survives to the card.
 - **Rationale** — three parts: **serves** (who it is for), **trades** (what it
   gives up), **breaks** (when it fails). One short clause each.
 
@@ -50,8 +54,11 @@ The sandbox is deleted at the pick and no JSX survives, so the structural
 description is written from the recorded pick plus the spec's own data shapes —
 never copied from a live artifact. Describe structure, not pixels: "a two-column
 master/detail — left a sortable table of invoices, right the selected invoice's
-line items; empty state a centered prompt" — and never colour or theme, which are
-held constant and are not what was decided.
+line items; empty state a centered prompt" — and never theme or motion
+UNLESS one WAS the decided axis: held constant and unrecorded when a fixed backdrop,
+but the single axis that WAS decided is captured in its Motion/Theme field above.
+(Colour is never a field here even when decided — it binds via `/ui-ux:theme`'s own
+artifact; the Theme field records only the token bundle: radius/space/shadow/font.)
 
 ## Binding contract
 
@@ -102,8 +109,8 @@ it here, never mid-card and never as a silent implementation choice.
 - Firing on a spec with no staged decision — an empty contract is nag, not rigor.
 - Binding only the brainstorm design doc and dropping grill-native picks (or the
   reverse) — both entry paths produce decisions that must be bound.
-- Describing colour or theme — the contract is structure and placement; the theme
-  is a constant backdrop, never the thing decided.
+- Describing colour, theme, or motion that was NOT the decided axis — those stay a
+  constant backdrop; only the axis that WAS decided earns a Motion/Theme entry.
 - Storing a dead mockup path or a localhost URL as the payload — the sandbox is
   gone by spec time; the words are the contract.
 - Letting an entry blur into `## Data Model`'s job — persistent shape is erd's,

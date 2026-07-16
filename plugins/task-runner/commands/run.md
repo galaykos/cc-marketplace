@@ -46,3 +46,12 @@ non-eligible milestones, **never** inside a track leaf or any delegated parallel
    /git-workflow:finish would. If tasks were parked, offer instead: "Retry
    parked tasks now" / "Stop here" — one offer, not both. Headless: print
    the exact next command.
+
+**Goal marker** (`Goal: true` in `00-INDEX.md`, requires task-runner ≥0.11.0) — hands-off
+execution per the task-execution skill. The step-1 run plan is displayed, then execution
+proceeds without waiting. The step-5 green branch-finish gate is
+EXEMPT from take-Recommended — under Goal it ALWAYS resolves to "Stop here" regardless of
+which option is labeled Recommended (never auto-run branch merge/PR). The parked "Retry
+parked tasks now" offer is bounded to one auto-retry on forward progress (a task moved
+parked→done), else auto-take "Stop here" and surface the parked list. Halts-with-evidence,
+mis-specified-task halts, and the full-suite completion gate are never suppressed.

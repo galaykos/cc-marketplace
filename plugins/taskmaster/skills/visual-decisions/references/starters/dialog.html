@@ -1,0 +1,62 @@
+<!--
+  Starter: Modal edit — dialog over a dimmed list backdrop.
+  Suits axis passes like list-detail-vs-modal-edit or inline-vs-dialog editing.
+  The member-list toolbar is persistent chrome (no data-state) and stays visible
+  across states; the vd-scrim dims the backdrop list so the vd-dialog reads as a
+  modal floating above it. States: populated (dialog open) + error (save failure
+  with retry). Copy the whole fragment into a frame's `.vd-content` — see
+  ../shell-authoring.md.
+-->
+<div class="vd-toolbar">
+  <input class="vd-input" placeholder="Search members" />
+  <button type="button" class="vd-btn vd-primary">Invite member</button>
+</div>
+
+<div data-state="populated">
+  <div class="vd-scrim">
+    <div class="vd-list">
+      <div class="vd-row" aria-current="true"><span>Priya Raman</span><span class="vd-chip vd-ok">Growth</span></div>
+      <div class="vd-row"><span>Diego Alvarez</span><span class="vd-chip vd-ok">Growth</span></div>
+      <div class="vd-row"><span>Ada Okafor</span><span class="vd-chip vd-warn">Trial</span></div>
+      <div class="vd-row"><span>Ravi Mehta</span><span class="vd-chip vd-neutral">Invited</span></div>
+    </div>
+    <div class="vd-dialog" role="dialog" aria-modal="true" aria-label="Edit member">
+      <h3>Edit member</h3>
+      <form class="vd-form">
+        <div class="vd-field"><label>Name</label><input class="vd-input" value="Priya Raman" /></div>
+        <div class="vd-field"><label>Email</label><input class="vd-input" value="priya@northwindtraders.com" /></div>
+        <div class="vd-field"><label>Plan</label><input class="vd-input" value="Growth" /><small>Renews Aug 3, 2026</small></div>
+        <div>
+          <button type="button" class="vd-btn vd-primary">Save changes</button>
+          <button type="button" class="vd-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div data-state="error">
+  <div class="vd-scrim">
+    <div class="vd-list">
+      <div class="vd-row" aria-current="true"><span>Priya Raman</span><span class="vd-chip vd-ok">Growth</span></div>
+      <div class="vd-row"><span>Diego Alvarez</span><span class="vd-chip vd-ok">Growth</span></div>
+      <div class="vd-row"><span>Ada Okafor</span><span class="vd-chip vd-warn">Trial</span></div>
+      <div class="vd-row"><span>Ravi Mehta</span><span class="vd-chip vd-neutral">Invited</span></div>
+    </div>
+    <div class="vd-dialog" role="dialog" aria-modal="true" aria-label="Edit member">
+      <h3>Edit member</h3>
+      <div class="vd-alert vd-err">
+        Couldn't save changes — the server rejected the update.
+        <div><button type="button" class="vd-btn vd-primary">Retry</button></div>
+      </div>
+      <form class="vd-form">
+        <div class="vd-field"><label>Name</label><input class="vd-input" value="Priya Raman" /></div>
+        <div class="vd-field"><label>Email</label><input class="vd-input" value="priya@northwindtraders.com" /></div>
+        <div class="vd-field"><label>Plan</label><input class="vd-input" value="Growth" /><small>Renews Aug 3, 2026</small></div>
+        <div>
+          <button type="button" class="vd-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

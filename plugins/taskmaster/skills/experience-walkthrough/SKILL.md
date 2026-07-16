@@ -31,6 +31,11 @@ mockup tab):
   anything, you are building the feature early — stop.
 - Same hygiene as all mockups: inline CSS, system fonts, zero external
   requests, realistic data ("3 invoices, one overdue"), no lorem ipsum.
+- Reuse the mockups' visual system, do not re-derive it: copy the shell's
+  primitive CSS block (theme tokens + the `vd-*` primitives) into the walkthrough
+  file — strip the compare-mode chrome and its JS, keep the `:target`
+  screen-swapping — so assembled screens render visually continuous with the
+  mockups whose picks they validate, never hand-written CSS in a rival look.
 - Fidelity stays mockup-grade. The walkthrough validates FLOW; polishing pixels
   here is procrastination with a preview URL.
 
@@ -62,6 +67,9 @@ The demo is complete when it can answer "what happens next" from anywhere:
    re-walk only the changed stretch.
 5. Budget: two full passes. A third pass means an upstream decision is
    unsettled — go back to the grill rounds instead of iterating the demo.
+
+Under `ULTRA-GOAL ACTIVE` the walkthrough is self-driven: the model walks the task
+script itself and folds every discovered gap into the ledger as an ASSUMED row.
 
 ## The narrow-viewport pass
 
