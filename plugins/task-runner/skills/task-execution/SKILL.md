@@ -142,10 +142,10 @@ as manual, with what was observed; "Verified ✓" alone is not evidence and clos
 The run is complete only when:
 
 1. Every task is done or parked-with-reason — none silently skipped.
-2. The project's FULL check suite (tests, lint, type-check, build — whatever the repo
-   defines) passes at the end, not just each task's local verify — local passes can
-   compose into a global failure. If docs-upkeep is installed, its drift check joins the
-   full-suite gate: documentation made stale by the run blocks completion like a failing test.
+2. The project's FULL check suite passes at the end (local passes can compose into a global
+   failure) AND the **behavioral-gate** actually runs the produced code (see its skill:
+   `scripts/behavioral-gate.sh --changed <run's files>`) — the repo suite may be a static
+   linter that never executes new code. docs-upkeep's drift check, if installed, joins this gate.
 3. The final report is a table: task / status / verify command / evidence line,
    plus the parked list with reasons and the follow-up backlog collected by the
    scope lock.

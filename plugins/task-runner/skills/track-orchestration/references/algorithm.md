@@ -81,7 +81,10 @@ The prompt to each track-worker contains, in order:
 
 1. After the wave loop, run every remaining **serial** milestone inline in the main tree,
    in dependency order (normal per-card execution, Part A routing available here).
-2. Run **one** full project check suite on the merged run branch.
+2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
+   (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed <all merged tracks' files>`,
+   see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
+   Under an `Ultra:`/`Goal:` marker, the code-redteam pass also runs here (per its skill).
 3. **Green** → delete merged track branches, `git worktree remove` their (clean)
    worktrees, drop the lock, hand off to `git-workflow:finish` on the run branch.
 4. **Red** (semantic breakage can survive a clean merge — per-track green was verified
