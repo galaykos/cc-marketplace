@@ -127,11 +127,11 @@ tier; reaching them would require editing those plugins, which is out of scope.
 The spec and card phases run in the main thread, but execution happens later —
 often in a fresh session with no memory of this run. To survive that handoff,
 `task-cards` writes an `Ultra: true (model=<model>, effort=<effort>)` marker into
-the generated `00-INDEX.md`. The `task-runner` task-execution skill reads it and
-dispatches the worker agents it spawns with `model: <model>` (excluding
-`opinion-lens`); a legacy bare `Ultra: true` with no parenthetical means opus. The
-marker is a durable property of the generated artifact, not session state — so
-ultra reaches execution even across a session boundary.
+the generated `00-INDEX.md`. task-execution reads it, dispatches workers with
+`model: <model>` (excluding `opinion-lens`; legacy bare `Ultra: true` means opus), AND
+runs the **code-redteam** pass over the produced diff at milestone boundaries + completion.
+The marker — not this contract's text — is the durable trigger, so tier and code red-team
+reach execution across a session boundary.
 
 ## Graceful degradation
 

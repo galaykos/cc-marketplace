@@ -57,8 +57,10 @@ ULTRA-GOAL ACTIVE (model=<model>, effort=<effort>) — hands-off Extreme Boost f
   into 00-INDEX.md so execution inherits hands-off.
 - Run THROUGH execution: auto-answer "Run now", execute cards, stop after the green full suite —
   never auto-run branch merge/PR.
-- NEVER suppress: halt-with-evidence, the full-suite completion gate, mis-specified-task halts,
-  security-hole flagging. These surface; they are not consent prompts.
+- NEVER suppress: halt-with-evidence, the full-suite completion gate, the **behavioral-gate**
+  (produced code is run, not just linted) + negative-control, mis-specified-task halts,
+  security-hole flagging. These surface; they are not consent prompts. Confirmed **code-redteam**
+  findings feed the bounded auto-retry like reviewer findings; on exhaustion, park.
 - EXEMPT from take-Recommended: the green branch-finish handoff gate ALWAYS resolves to "Stop
   here" under goal, regardless of which option is labeled Recommended. Post-run "Retry parked":
   at most ONE auto-retry, and only if the prior run made forward progress (a task moved

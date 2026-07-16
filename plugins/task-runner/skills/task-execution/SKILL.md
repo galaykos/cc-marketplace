@@ -59,13 +59,13 @@ dispatch the reviewer and delegated worker agents with a `model:` override — e
 `opinion-lens` — so the boost reaches execution even in a fresh session. Read BOTH
 markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
 escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
-trailing `(model=<model>, effort=<effort>)` sets `<model>`; an unknown/malformed
-parenthetical is treated as bare — falling to ITS OWN marker's legacy default: legacy
-bare `Ultra: true` → `model: opus, effort: max`; legacy bare `Goal: true` → `model: opus,
-effort: xhigh`. The Agent tool has no effort parameter, so it escalates model only
-(marker `effort` applies only on the `Workflow` `agent()` path). Delegated stack
-implementers also get delegation-contracts § Skill priming: resolve+inject `Read
-<abs-path>` per the card's `Skills to apply`. **Under `Goal:`** (hands-off): auto-take
+trailing `(model=…, effort=…)` sets the tier; a malformed one falls to the marker's
+legacy default (`Ultra:`→opus/max, `Goal:`→opus/xhigh). The Agent tool escalates model
+only (marker `effort` applies on the `Workflow` path). Delegated stack implementers also
+get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to
+apply`). Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced
+diff — at each milestone boundary and once before the completion gate — routing confirmed
+findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take
 pipeline gates — the run-plan preview is DISPLAYED, then execution proceeds without
 waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on
 forward progress (a task moved parked→done), else surface the parked list and stop.
