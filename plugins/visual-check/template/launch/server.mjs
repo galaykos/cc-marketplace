@@ -11,7 +11,7 @@
 // The command to spawn is injectable so the lifecycle can be exercised with a
 // dependency-free Vite-shaped stand-in when a real `vite` binary is unavailable.
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as http from 'node:http';
@@ -21,8 +21,11 @@ import * as path from 'node:path';
 
 const DEFAULT_BOOT_TIMEOUT_MS = 30_000;
 const STOP_GRACE_MS = 4_000;
-// A Vite (or Vite-shaped) ready line: "➜  Local:   http://localhost:5173/".
-const READY_LINE = /(Local:\s*)(https?:\/\/\S+)|ready in\s|localhost:\d+/i;
+const MAX_OUTPUT_CHARS = 64_000; // cap the boot-log buffer so a chatty child can't grow it unbounded
+// A Vite (or Vite-shaped) ready line: "➜  Local:   http://localhost:5173/". Anchored to the
+// REAL ready banner ("Local: <url>" or "ready in …"); a bare "localhost:<port>" in some other
+// line (an error, a hint) must NOT be mistaken for readiness.
+const READY_LINE = /Local:\s*https?:\/\/\S+|ready in\s/i;
 
 /** Resolve to a free ephemeral port the OS hands out (run-unique by construction). */
 export function allocatePort() {
@@ -68,12 +71,15 @@ function lockDir(projectDir) {
   return path.join(projectDir, '.visual-check', 'launch');
 }
 
-function writeLock(projectDir, info) {
+/** Write (or, when `file` is supplied, REWRITE in place) the launch lock. Rewriting the
+ * same path lets us record the child at SPAWN time and then flip it to ready without
+ * leaking a second lock. */
+function writeLock(projectDir, info, file) {
   const dir = lockDir(projectDir);
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `${process.pid}-${randomUUID()}.lock`);
-  fs.writeFileSync(file, JSON.stringify({ ...info, at: Date.now() }) + '\n');
-  return file;
+  const target = file ?? path.join(dir, `${process.pid}-${randomUUID()}.lock`);
+  fs.writeFileSync(target, JSON.stringify({ ...info, at: Date.now() }) + '\n');
+  return target;
 }
 
 function removeLock(file) {
@@ -83,6 +89,21 @@ function removeLock(file) {
   } catch {
     /* best-effort */
   }
+}
+
+/** Kill a detached child and its whole tree. POSIX: a negative pid signals the process
+ * group. Windows has no POSIX groups, so reap the tree with `taskkill /T`. */
+function killTree(pid, signal) {
+  if (pid == null) return;
+  if (process.platform === 'win32') {
+    try {
+      spawnSync('taskkill', ['/pid', String(pid), '/T', '/F']);
+    } catch {
+      /* best-effort */
+    }
+    return;
+  }
+  process.kill(-pid, signal); // whole group via the leader's negated pid
 }
 
 /** True while the process (group leader) is still alive. */
@@ -126,21 +147,39 @@ export function startDevServer(o) {
     let out = '';
     let settled = false;
     let stopped = false;
-    let lockFile = null;
     let probeTimer = null;
     let bootTimer = null;
 
+    // Write the lock at SPAWN time (not only on ready): if the parent is killed DURING
+    // boot, the detached child (npm + vite) would otherwise be orphaned with NO lock and
+    // be un-reapable for the whole boot window. A detached child leads its own group, so
+    // pgid === child.pid. Updated to `ready:true` on settle, removed on stop/failure.
+    let lockFile = child.pid
+      ? writeLock(projectDir, { pid: child.pid, pgid: child.pid, port, url, ready: false })
+      : null;
+
     const capture = (buf) => {
       out += buf.toString();
+      if (out.length > MAX_OUTPUT_CHARS) out = out.slice(-MAX_OUTPUT_CHARS);
       if (!settled && READY_LINE.test(out)) succeed();
     };
     child.stdout.on('data', capture);
     child.stderr.on('data', capture);
 
+    // After settle we stop buffering the boot log, but keep the pipes DRAINING (resume)
+    // so a chatty long-running child never blocks on a full stdout pipe.
+    const detachStreams = () => {
+      child.stdout?.removeListener('data', capture);
+      child.stderr?.removeListener('data', capture);
+      child.stdout?.resume();
+      child.stderr?.resume();
+    };
+
     const cleanupWaiters = () => {
       if (probeTimer) clearInterval(probeTimer);
       if (bootTimer) clearTimeout(bootTimer);
       probeTimer = bootTimer = null;
+      detachStreams();
     };
 
     const stopSync = () => {
@@ -148,7 +187,7 @@ export function startDevServer(o) {
       stopped = true;
       cleanupWaiters();
       try {
-        process.kill(-child.pid, 'SIGKILL'); // whole group
+        killTree(child.pid, 'SIGKILL'); // whole group / tree
       } catch {
         try {
           child.kill('SIGKILL');
@@ -165,14 +204,14 @@ export function startDevServer(o) {
       cleanupWaiters();
       const pid = child.pid;
       try {
-        process.kill(-pid, 'SIGTERM'); // ask the group to leave
+        killTree(pid, 'SIGTERM'); // ask the group/tree to leave
       } catch {
         /* already gone */
       }
       const gone = await waitForExit(child, pid, STOP_GRACE_MS);
       if (!gone) {
         try {
-          process.kill(-pid, 'SIGKILL');
+          killTree(pid, 'SIGKILL');
         } catch {
           /* raced */
         }
@@ -196,7 +235,9 @@ export function startDevServer(o) {
       if (settled) return;
       settled = true;
       cleanupWaiters();
-      lockFile = writeLock(projectDir, { pid: child.pid, port, url });
+      // Flip the spawn-time lock to ready (same file — no second lock leaks).
+      lockFile = writeLock(projectDir, { pid: child.pid, pgid: child.pid, port, url, ready: true }, lockFile);
+      child.unref(); // the ready background server must not keep this run's event loop alive
       resolve(handle());
     }
 
@@ -204,6 +245,7 @@ export function startDevServer(o) {
       if (settled) return;
       settled = true;
       cleanupWaiters();
+      removeLock(lockFile); // never spawned / died immediately → no reap-able child
       reject(new Error(`could not spawn dev server (${command.join(' ')}): ${err.message}`));
     });
 
@@ -211,6 +253,7 @@ export function startDevServer(o) {
       if (settled) return;
       settled = true;
       cleanupWaiters();
+      removeLock(lockFile); // exited before ready → the lock points at nothing
       reject(new Error(`dev server exited before ready (code=${code} signal=${signal})\n${out.slice(-400)}`));
     });
 

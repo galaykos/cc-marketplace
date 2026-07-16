@@ -122,7 +122,7 @@ function compileSteps(scenario: Scenario): CompiledStep[] {
     verb: s.verb,
     target: s.target,
     action: s.action,
-    value: s.label ?? '', // deep `type` text semantics deferred; label doubles as text
+    value: s.text ?? '', // `type` input text — from the dedicated `text` field, never `label`
     dom: domAsserts(s),
     match: s.match !== null,
     console: requests(s, 'console'),
@@ -220,16 +220,35 @@ test('scenario ' + ROUTE, async ({ page }, testInfo) => {
 
     // --- assert phase: the four "not broken" categories. Only requested ones run;
     // unrequested stay []. A category with findings makes the step fail; a network
-    // INFRA failure (server died) is error, not fail.
+    // INFRA failure (server died) is error, not fail. The whole phase is wrapped: a
+    // THROWN helper (a real Playwright error) marks THIS step error and still lets the
+    // loop reach the per-viewport sidecar write below — otherwise the throw would abort
+    // the test and every step, including already-passed ones, would read "not reached".
     const asserts = { dom: [], console: [], layout: [], network: [] };
     const infra = [];
-    if (step.dom.length) asserts.dom = await checkDom(page, expect, step.dom, STEP_TIMEOUT);
-    if (step.console) asserts.console = consoleCap.drain();
-    if (step.layout) asserts.layout = await checkLayout(page, step.dom[0] ? step.dom[0].selector : null);
-    if (step.network) {
-      const nr = await checkNetwork(page, netCap.drain());
-      asserts.network = nr.findings;
-      for (const m of nr.infra) infra.push(m);
+    try {
+      if (step.dom.length) asserts.dom = await checkDom(page, expect, step.dom, STEP_TIMEOUT);
+      if (step.console) asserts.console = consoleCap.drain();
+      if (step.layout) {
+        // Derive the layout region only from a dom assert that expects the element
+        // PRESENT. A step asserting it hidden/absent must not drive a bogus
+        // "region not found" / zero-size layout finding.
+        const region = step.dom.find((d) => d.state !== 'hidden' && d.state !== 'absent' && d.state !== 'detached');
+        asserts.layout = await checkLayout(page, region ? region.selector : null);
+      }
+      if (step.network) {
+        // Non-goto actions (click/type/hover) drain immediately, so a request the
+        // action provoked may not have emitted yet — settle the network first so its
+        // failure is attributed to THIS step (goto already settled in the action phase).
+        if (step.verb !== 'goto') await waitForStable(page);
+        const nr = await checkNetwork(page, netCap.drain());
+        asserts.network = nr.findings;
+        for (const m of nr.infra) infra.push(m);
+      }
+    } catch (err) {
+      results.push({ ...base, status: 'error', asserts, reasons: [vp + ': assert phase threw → ' + firstLine(err && err.message)] });
+      halted = true;
+      continue;
     }
 
     if (infra.length) {
@@ -448,7 +467,9 @@ export function runScenario(o: RunOptions): RunResult {
   fs.mkdirSync(stepsDir, { recursive: true });
   fs.mkdirSync(baselineDir, { recursive: true });
 
-  const baseUrl = o.urlOverride ? normalizeUrl(o.urlOverride) : scenario.url;
+  // Normalize BOTH sources the same way — a relative `scenario.url` must become a
+  // real (file://) URL just like a --url override does, not be handed to Playwright raw.
+  const baseUrl = normalizeUrl(o.urlOverride ?? scenario.url);
   const stepTimeoutMs = o.stepTimeoutMs ?? DEFAULT_STEP_TIMEOUT_MS;
   const scenarioTimeoutMs = o.scenarioTimeoutMs ?? DEFAULT_SCENARIO_TIMEOUT_MS;
   // Already resolved through the chain (CLI override was threaded into parseScenario).
@@ -508,12 +529,22 @@ export function runScenario(o: RunOptions): RunResult {
 /** Adapter for `bin/visual-check.mjs --scenario <file>`. Returns the process exit code. */
 export function runScenarioCli(args: Record<string, unknown>): number {
   const thresholdArg = args.threshold ?? args['max-diff-ratio'];
+  // Validate the CLI override up front (parseScenario only checks the scenario file's
+  // own threshold, not this override). Reject NaN / out-of-range before we spawn
+  // Playwright, so a typo fails fast with a clear message instead of a bad comparator.
+  let thresholdOverride: number | undefined;
+  if (thresholdArg !== undefined) {
+    thresholdOverride = Number(thresholdArg);
+    if (!Number.isFinite(thresholdOverride) || thresholdOverride < 0 || thresholdOverride > 1) {
+      throw new Error(`--threshold must be a number in [0, 1]; got '${String(thresholdArg)}'`);
+    }
+  }
   const { verdict } = runScenario({
     scenarioFile: String(args.scenarioFile),
     urlOverride: args.url ? String(args.url) : undefined,
     stepTimeoutMs: args['step-timeout'] ? Number(args['step-timeout']) : undefined,
     update: !!args.update,
-    thresholdOverride: thresholdArg !== undefined ? Number(thresholdArg) : undefined,
+    thresholdOverride,
     viewportFilter: args.viewport !== undefined ? String(args.viewport) : undefined,
   });
   process.stderr.write(`visual-check: ${verdict.status} (exit ${verdict.exitCode}) → ${verdict.runDir}\n`);

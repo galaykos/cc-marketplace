@@ -57,7 +57,15 @@ function parseArgs(argv) {
       if (eq >= 0) {
         out[key.slice(0, eq)] = key.slice(eq + 1);
       } else {
-        out[key] = argv[++i];
+        // A value flag must be followed by a value, not another flag or end-of-args —
+        // otherwise `--against --update` would silently swallow `--update` as the value.
+        const next = argv[i + 1];
+        if (next === undefined || next.startsWith('--')) {
+          process.stderr.write(`visual-check: error (exit 2) → missing value for --${key}\n`);
+          process.exit(2);
+        }
+        out[key] = next;
+        i++;
       }
     } else {
       out._.push(a);
@@ -255,9 +263,41 @@ async function main() {
   if (args.scenario) {
     const scenarioPath = path.resolve(process.cwd(), args.scenario);
     if (fs.existsSync(scenarioPath) && fs.statSync(scenarioPath).isFile()) {
+      // URL/egress guard for scenario runs (spec D17). The single-page path guards its
+      // target below, but a scenario file dispatches + process.exit()s BEFORE reaching it —
+      // so an explicit `--url` here must clear the SAME classification (guards/url.ts) or a
+      // scenario would silently drive a production / internal / cloud-metadata host. Use the
+      // identical normalizeUrl as the single-page path. A no-`--url` scenario launches a
+      // localhost dev server (safe) and needs no check.
+      if (args.url) {
+        const target = normalizeUrl(args.url);
+        const guardMod = await import(pathToFileURL(path.join(templateDir, 'guards', 'url.ts')).href);
+        const egress = guardMod.evaluateEgressGuard({ urls: [{ role: 'target', url: target }], ack: !!args.ackEgress });
+        for (const w of egress.warnings) process.stderr.write(w + '\n');
+        if (!egress.ok) {
+          process.stderr.write(`visual-check: error (exit 2) → ${egress.reason}\n`);
+          process.exit(2);
+        }
+      }
       const mod = await import(pathToFileURL(path.join(templateDir, 'scenario', 'compile.ts')).href);
       const code = mod.runScenarioCli({ ...args, scenarioFile: scenarioPath });
       process.exit(typeof code === 'number' ? code : 2);
+    }
+  }
+
+  // Validate the CLI diff threshold (--threshold / --max-diff-ratio) once, for the
+  // baseline + single-page paths below: it must be a number in [0, 1]. An unvalidated NaN
+  // would make EVERY diff fail; a >1 value would silently no-op the diff. Reject a malformed
+  // value as a usage error (exit 2) rather than letting it corrupt the verdict. (The
+  // scenario/compile.ts path exits above and validates its own threshold layer.)
+  const rawThreshold = args.threshold ?? args['max-diff-ratio'];
+  if (rawThreshold !== undefined && rawThreshold !== null && String(rawThreshold) !== '') {
+    const n = Number(rawThreshold);
+    if (Number.isNaN(n) || n < 0 || n > 1) {
+      process.stderr.write(
+        `visual-check: error (exit 2) → --threshold must be a number in [0, 1] (got '${rawThreshold}')\n`,
+      );
+      process.exit(2);
     }
   }
 

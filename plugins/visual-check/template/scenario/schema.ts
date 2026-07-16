@@ -11,7 +11,9 @@ export const CHECKPOINT_VERBS = ['expect', 'match'] as const;
 export const VERBS = [...ACTION_VERBS, ...CHECKPOINT_VERBS] as const;
 export type Verb = (typeof VERBS)[number];
 // Author-declared per-step metadata (not verbs, but allowed keys on a step map).
-const META_KEYS = ['mutates', 'label'] as const;
+// `text` is the dedicated input string for `type` steps (kept separate from the
+// human-readable `label` so a description never gets typed into a field).
+const META_KEYS = ['mutates', 'label', 'text'] as const;
 
 export type Engine = 'deterministic' | 'agent' | 'auto';
 
@@ -26,6 +28,7 @@ export type Step = {
   match: Record<string, YamlValue> | null;
   mutates: boolean;
   label: string | null;
+  text: string | null; // dedicated `type` input text (never overloaded onto label)
   keys: Record<string, string>; // viewport name -> `<route>__<stepIndex>__<viewport>`
 };
 
@@ -68,8 +71,11 @@ export function resolveSettings(
   config: SettingsOverride = {},
   cli: SettingsOverride = {},
 ): Settings {
-  const pick = <K extends keyof Settings>(key: K): Settings[K] =>
-    (cli[key] ?? scenario[key] ?? config[key] ?? DEFAULT_SETTINGS[key]) as Settings[K];
+  const pick = <K extends keyof Settings>(key: K): Settings[K] => {
+    const v = (cli[key] ?? scenario[key] ?? config[key] ?? DEFAULT_SETTINGS[key]) as Settings[K];
+    // Copy arrays so callers never share (and mutate) DEFAULT_SETTINGS' own lists.
+    return (Array.isArray(v) ? v.slice() : v) as Settings[K];
+  };
   return { threshold: pick('threshold'), viewports: pick('viewports'), mask: pick('mask') };
 }
 
@@ -94,16 +100,37 @@ function requireString(obj: Record<string, YamlValue>, key: string): string {
   return v;
 }
 
+// Both the scenario `id` and every viewport `name` become path segments in the
+// capture key `<route>__<stepIndex>__<viewport>`, which is used verbatim as a
+// screenshot filename / baseline key. Restrict them to a filename-safe alphabet
+// and forbid `..` so an author-supplied value cannot path-traverse the baseline
+// dir (schema-level sanitization; baseline/store.ts adds a defense-in-depth assert).
+const SAFE_KEY_PART = /^[A-Za-z0-9._-]+$/;
+function assertSafeKeyPart(value: string, label: string): void {
+  if (!SAFE_KEY_PART.test(value) || value.includes('..')) {
+    throw new ScenarioError(
+      `${label} '${value}' must match ${SAFE_KEY_PART} and contain no '..' `
+      + '(it is used verbatim as a screenshot filename / baseline key)',
+    );
+  }
+}
+
 function parseViewports(raw: YamlValue): Viewport[] | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (!Array.isArray(raw) || raw.length === 0) {
     throw new ScenarioError("'viewports' must be a non-empty list");
   }
+  const seen = new Set<string>();
   return raw.map((v, i) => {
     if (!isObject(v) || typeof v.width !== 'number' || typeof v.height !== 'number') {
       throw new ScenarioError(`viewport ${i} must have numeric 'width' and 'height'`);
     }
     const name = typeof v.name === 'string' && v.name.trim() !== '' ? v.name : `${v.width}x${v.height}`;
+    assertSafeKeyPart(name, `viewport ${i} name`);
+    if (seen.has(name)) {
+      throw new ScenarioError(`duplicate viewport name '${name}' — viewport names must be unique`);
+    }
+    seen.add(name);
     return { name, width: v.width, height: v.height };
   });
 }
@@ -132,13 +159,33 @@ function parseStep(raw: YamlValue, index: number): Step {
 
   const targetRaw = raw[verb];
   const target = typeof targetRaw === 'string' || typeof targetRaw === 'number' ? String(targetRaw) : null;
+  // click/type/hover cannot run without a selector. A non-string target (most often
+  // an unquoted attribute selector like `click: [data-testid=x]` that the YAML reader
+  // saw as a flow sequence) would otherwise reach `page.click(null)` and throw
+  // opaquely at runtime — reject it here with an actionable message instead.
+  if ((['click', 'type', 'hover'] as readonly string[]).includes(verb) && target === null) {
+    const got = Array.isArray(targetRaw) ? 'a list' : targetRaw === null || targetRaw === undefined ? 'nothing' : `a ${typeof targetRaw}`;
+    throw new ScenarioError(
+      `step ${index}: '${verb}' needs a selector string but got ${got} — `
+      + 'quote attribute selectors, e.g. click: "[data-testid=x]"',
+    );
+  }
   const expect = isObject(raw.expect) ? raw.expect : null;
   const match = isObject(raw.match) ? raw.match : null;
+  // `mutates` gates every destructive step. Only a real boolean may relax it; a
+  // non-canonical token (`mutates: "yes"`, `mutates: maybe`) must NOT silently read
+  // as false (fail-open) — reject it so the gate can never be bypassed by accident.
+  if (raw.mutates !== undefined && typeof raw.mutates !== 'boolean') {
+    throw new ScenarioError(
+      `step ${index}: 'mutates' must be a boolean (true/false); got '${String(raw.mutates)}'`,
+    );
+  }
   const mutates = raw.mutates === true;
   const label = typeof raw.label === 'string' ? raw.label : null;
+  const text = typeof raw.text === 'string' ? raw.text : null;
   const action = target !== null ? `${verb} ${target}` : verb;
 
-  return { stepIndex: index, verb, action, target, expect, match, mutates, label, keys: {} };
+  return { stepIndex: index, verb, action, target, expect, match, mutates, label, text, keys: {} };
 }
 
 /**
@@ -157,6 +204,7 @@ export function parseScenario(
   }
 
   const id = requireString(doc, 'id');
+  assertSafeKeyPart(id, "scenario 'id'");
   const url = requireString(doc, 'url');
 
   const engineRaw = doc.engine ?? 'auto';

@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseScenario } from './schema.ts';
-import { compileSpec, compileConfig, assembleVerdict, type StepResult } from './compile.ts';
+import { compileSpec, compileConfig, assembleVerdict, runScenarioCli, type StepResult } from './compile.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string): string => fs.readFileSync(path.join(here, '__fixtures__', name), 'utf8');
@@ -108,4 +108,36 @@ test('a missing sidecar (scenario-level timeout / crash) is error, not a silent 
   assert.equal(v.exitCode, 2);
   assert.equal(v.steps.length, 2, 'all steps still enumerated');
   assert.equal(v.steps[0].pass, false);
+});
+
+// --- #8: a bad --threshold is refused before Playwright is ever spawned ------
+test('runScenarioCli rejects a NaN or out-of-[0,1] --threshold up front', () => {
+  assert.throws(() => runScenarioCli({ threshold: 'abc' }), /--threshold must be a number in \[0, 1\]/);
+  assert.throws(() => runScenarioCli({ threshold: '5' }), /--threshold must be a number in \[0, 1\]/);
+  assert.throws(() => runScenarioCli({ threshold: '-0.1' }), /--threshold must be a number in \[0, 1\]/);
+});
+
+// --- Generated-spec structure: static proof of the runtime-behavior fixes ----
+// These assert the compiled Playwright source is wired correctly. The RUNTIME
+// behaviour (a real Playwright throw, network drain timing, layout measurement)
+// needs a browser to prove end-to-end and is flagged for the central browser run.
+test('[browser-flagged] the assert phase is wrapped so a thrown helper still writes the sidecar (#10)', () => {
+  const scn = parseScenario(fixture('sidebar.valid.yaml'));
+  const src = compileSpec(scn, { baseUrl: 'file:///tmp/sidebar.html', stepTimeoutMs: 10000, stepsDir: '/tmp/steps' });
+  assert.match(src, /assert phase threw/, 'assert phase has a catch that records a per-step error');
+  // The catch continues the loop, so the per-viewport sidecar write is still reached.
+  assert.match(src, /fs\.writeFileSync\(path\.join\(STEPS_DIR/);
+});
+
+test('[browser-flagged] non-goto steps settle the network before draining it (#11)', () => {
+  const scn = parseScenario(fixture('sidebar.valid.yaml'));
+  const src = compileSpec(scn, { baseUrl: 'file:///tmp/sidebar.html', stepTimeoutMs: 10000, stepsDir: '/tmp/steps' });
+  assert.match(src, /step\.verb !== 'goto'\) await waitForStable\(page\);\s*\n\s*const nr = await checkNetwork/);
+});
+
+test('[browser-flagged] layout region is derived from a present dom assert, never a hidden one (#12)', () => {
+  const scn = parseScenario(fixture('sidebar.valid.yaml'));
+  const src = compileSpec(scn, { baseUrl: 'file:///tmp/sidebar.html', stepTimeoutMs: 10000, stepsDir: '/tmp/steps' });
+  assert.ok(!src.includes('checkLayout(page, step.dom[0] ? step.dom[0].selector : null)'), 'no longer keys layout off dom[0] blindly');
+  assert.match(src, /step\.dom\.find\(\(d\) => d\.state !== 'hidden'/);
 });

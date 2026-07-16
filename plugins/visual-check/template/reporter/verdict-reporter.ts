@@ -133,8 +133,37 @@ class VerdictReporter implements Reporter {
       });
     });
 
-    const status: Verdict['status'] = sawError ? 'error' : sawFail ? 'fail' : 'pass';
-    const exitCode: Verdict['exitCode'] = sawError ? 2 : sawFail ? 1 : 0;
+    // Zero-records / suite-status guard: a run that executed NO tests (spec-load or
+    // syntax error, an all-filtered selection, a worker crash) leaves records:[] with
+    // sawError/sawFail both false — which would otherwise emit a SILENT status:'pass'
+    // exitCode:0 that the runner trusts. Likewise, a suite whose overall status is not
+    // 'passed' while no per-test failure was recorded is an infra failure, not a pass.
+    // Both cases resolve to status:'error' exitCode:2 so a false green is impossible.
+    let status: Verdict['status'];
+    let exitCode: Verdict['exitCode'];
+    if (this.records.length === 0) {
+      status = 'error';
+      exitCode = 2;
+      reasons.push(
+        `no tests executed (suite status '${_full.status}') — spec-load/syntax error, ` +
+          'all-filtered selection, or worker crash; refusing to report a silent pass',
+      );
+    } else if (sawError) {
+      status = 'error';
+      exitCode = 2;
+    } else if (sawFail) {
+      status = 'fail';
+      exitCode = 1;
+    } else if (_full.status !== 'passed') {
+      status = 'error';
+      exitCode = 2;
+      reasons.push(
+        `suite status '${_full.status}' with no per-test failure recorded — treating as an infra error, not a pass`,
+      );
+    } else {
+      status = 'pass';
+      exitCode = 0;
+    }
 
     let displayRunDir = runDir;
     const rel = path.relative(cwd, runDir);

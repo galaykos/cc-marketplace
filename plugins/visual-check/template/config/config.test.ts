@@ -69,7 +69,16 @@ test('loadConfig rejects a malformed config (out-of-range threshold, bad viewpor
 test('cliOverride parses --threshold (and its --max-diff-ratio alias)', () => {
   assert.deepEqual(cliOverride({ threshold: '0.2' }), { threshold: 0.2 });
   assert.deepEqual(cliOverride({ 'max-diff-ratio': '0.3' }), { threshold: 0.3 });
+  assert.deepEqual(cliOverride({ threshold: '0' }), { threshold: 0 });
+  assert.deepEqual(cliOverride({ threshold: '1' }), { threshold: 1 });
   assert.deepEqual(cliOverride({}), {});
+});
+
+test('cliOverride REJECTS a NaN or out-of-[0,1] CLI threshold (no silent drop/no-op)', () => {
+  assert.throws(() => cliOverride({ threshold: 'abc' }), ConfigError, 'NaN threshold');
+  assert.throws(() => cliOverride({ threshold: '2' }), ConfigError, '>1 threshold');
+  assert.throws(() => cliOverride({ threshold: '-0.1' }), ConfigError, '<0 threshold');
+  assert.throws(() => cliOverride({ 'max-diff-ratio': 'NaN' }), ConfigError, 'NaN via alias');
 });
 
 // --- the precedence chain (threshold / viewports / mask) -----------------------

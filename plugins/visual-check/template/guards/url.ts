@@ -11,6 +11,11 @@
 // visual-check.mjs` wires it into the deterministic drive path. The AGENT engine's
 // egress (it sends screenshots to a model) is a SEPARATE concern honored elsewhere:
 // `config.allowLlmEngine: false` forbids that path (agents/visual-check-engineer.md).
+//
+// NOTE: classification is PARSE-TIME only — it buckets the literal host string, it does
+// NOT resolve DNS. A name that parses as "production" but resolves to a private/metadata
+// IP (or a DNS-rebind that flips after this check) is out of scope here; the guard is a
+// guardrail against obvious footguns, not a full SSRF egress firewall.
 
 export type UrlCategory = 'local' | 'internal' | 'metadata' | 'production';
 
@@ -45,12 +50,33 @@ const METADATA_IPS = new Set(['169.254.169.254', '100.100.100.200']);
 const METADATA_HOSTS = new Set(['metadata.google.internal', 'metadata']);
 const METADATA_IPV6 = new Set(['fd00:ec2::254']);
 
+// Extract the embedded IPv4 of an IPv4-mapped IPv6 literal (`::ffff:a.b.c.d`, which
+// Node's URL normalizes to the hex form `::ffff:HHHH:HHHH`). Returns the dotted-quad so
+// a mapped loopback/private/metadata address reclassifies to its real v4 bucket rather
+// than being mistaken for an opaque (production) IPv6 host. Non-mapped input → null.
+function mappedV4(h: string): string | null {
+  const m = /^::ffff:(.+)$/i.exec(h);
+  if (!m) return null;
+  const rest = m[1];
+  if (rest.includes('.')) return IPV4.test(rest) ? rest : null;
+  const parts = rest.split(':');
+  if (parts.length !== 2 || !/^[0-9a-f]{1,4}$/i.test(parts[0]) || !/^[0-9a-f]{1,4}$/i.test(parts[1])) {
+    return null;
+  }
+  const hi = parseInt(parts[0], 16);
+  const lo = parseInt(parts[1], 16);
+  return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+}
+
 function classifyHttpHost(host: string): { category: UrlCategory; note: string } {
   // `URL.hostname` returns IPv6 literals bracketed (`[::1]`); strip for matching.
-  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
+  const stripped = host.toLowerCase().replace(/^\[|\]$/g, '');
+  // Reclassify an IPv4-mapped IPv6 literal by its embedded v4 (loopback/private/metadata).
+  const h = mappedV4(stripped) ?? stripped;
 
-  // Loopback / dev hostnames — freely drivable.
-  if (h === 'localhost' || h.endsWith('.localhost')) return { category: 'local', note: 'loopback hostname' };
+  // Loopback / dev hostnames — freely drivable. Only the BARE `localhost` is trusted;
+  // a `*.localhost` label is attacker-influenceable DNS, so it is NOT auto-trusted.
+  if (h === 'localhost') return { category: 'local', note: 'loopback hostname' };
   if (h === '::1' || h === '0:0:0:0:0:0:0:1') return { category: 'local', note: 'IPv6 loopback' };
 
   // Cloud metadata (checked before the generic link-local / private buckets).
@@ -62,7 +88,10 @@ function classifyHttpHost(host: string): { category: UrlCategory; note: string }
   if (m) {
     const [a, b] = [Number(m[1]), Number(m[2])];
     if (a === 127) return { category: 'local', note: 'IPv4 loopback (127.0.0.0/8)' };
-    if (a === 0) return { category: 'local', note: 'unspecified/bind-all address' };
+    // Only the exact unspecified address 0.0.0.0 is bind-all; the rest of 0.0.0.0/8 is not.
+    if (a === 0 && b === 0 && Number(m[3]) === 0 && Number(m[4]) === 0) {
+      return { category: 'local', note: 'unspecified/bind-all address' };
+    }
     if (a === 10) return { category: 'internal', note: 'private network (10.0.0.0/8)' };
     if (a === 172 && b >= 16 && b <= 31) return { category: 'internal', note: 'private network (172.16.0.0/12)' };
     if (a === 192 && b === 168) return { category: 'internal', note: 'private network (192.168.0.0/16)' };
@@ -104,7 +133,8 @@ function warningFor(c: UrlClassification): string {
   if (c.category === 'metadata') {
     return (
       `visual-check: ${where} is a CLOUD METADATA endpoint — ${c.note}. Driving a browser at a ` +
-      `metadata service can exfiltrate instance credentials (SSRF). Refuse unless you are certain.`
+      `metadata service can exfiltrate instance credentials (SSRF). This is HARD-BLOCKED and ` +
+      `CANNOT be overridden with ${EGRESS_ACK_FLAG}.`
     );
   }
   if (c.category === 'internal') {
@@ -117,14 +147,29 @@ function warningFor(c: UrlClassification): string {
 }
 
 /** Evaluate the egress guard over every URL. All-local → `ok:true`, no warnings.
- * Any non-local host → surface a per-URL warning; `ok:false` (refuse, caller exits 2)
- * unless `ack` is set, in which case the run proceeds with the warnings still shown. */
+ * A cloud-METADATA host is HARD-BLOCKED: it can never be acknowledged (`--ack-egress`
+ * does not apply), since driving a browser at an IMDS endpoint can exfiltrate cloud
+ * credentials (SSRF). Any other non-local host (production/internal) → refuse (caller
+ * exits 2) unless `ack` is set, in which case the run proceeds with warnings still shown. */
 export function evaluateEgressGuard(input: EgressInput): EgressResult {
   const classifications = input.urls.map((u) => classifyUrl(u.url, u.role));
   const nonLocal = classifications.filter((c) => !c.local);
   if (nonLocal.length === 0) return { ok: true, warnings: [], classifications };
 
   const warnings = nonLocal.map(warningFor);
+
+  // Cloud-metadata is NEVER ackable — hard-block regardless of `--ack-egress`.
+  const metadata = nonLocal.filter((c) => c.category === 'metadata');
+  if (metadata.length > 0) {
+    const list = metadata.map((c) => `${c.role}=${c.url}`).join(', ');
+    return {
+      ok: false,
+      warnings,
+      reason: `cloud-metadata target(s) are HARD-BLOCKED (${list}); ${EGRESS_ACK_FLAG} cannot acknowledge a metadata endpoint (SSRF risk).`,
+      classifications,
+    };
+  }
+
   if (input.ack) return { ok: true, warnings, classifications };
 
   const list = nonLocal.map((c) => `${c.role}=${c.url}`).join(', ');

@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { checkDom, type ExpectFn } from './dom.ts';
 import { captureConsole, type ConsoleEmitter } from './console.ts';
 import { evaluateLayout } from './layout.ts';
-import { evaluateNetwork, isInfraError, type NetFailure } from './network.ts';
+import { captureNetwork, evaluateNetwork, isInfraError, type NetFailure, type NetworkEmitter } from './network.ts';
 
 // --- DOM ---------------------------------------------------------------------
 
@@ -47,6 +47,38 @@ test('dom: a failed visible assertion is reported with selector + state', async 
   assert.match(findings[0], /#sidebar expected visible →/);
 });
 
+test('dom: an unknown state is a hard finding, never coerced to visible', async () => {
+  const findings = await checkDom(
+    fakePage() as never,
+    // Every real matcher would PASS here — proving the unknown state is caught
+    // up front, not silently run through toBeVisible.
+    fakeExpect(new Set(['#btn'])),
+    [{ selector: '#btn', state: 'enabled' }],
+    100,
+  );
+  assert.equal(findings.length, 1);
+  assert.match(findings[0], /#btn unknown dom state 'enabled'/);
+});
+
+test('dom: the text check is skipped for absent/hidden states', async () => {
+  // toContainText would REJECT if called; asserting no finding proves it is not
+  // invoked for `absent` (a text match on a 0-count locator makes no sense).
+  const textThrows = ((_loc: { sel: string }) => ({
+    toBeVisible: () => Promise.resolve(),
+    toBeHidden: () => Promise.resolve(),
+    toBeAttached: () => Promise.resolve(),
+    toHaveCount: () => Promise.resolve(),
+    toContainText: () => Promise.reject(new Error('toContainText must not run for absent')),
+  })) as unknown as ExpectFn;
+  const findings = await checkDom(
+    fakePage() as never,
+    textThrows,
+    [{ selector: '#gone', state: 'absent', text: 'anything' }],
+    100,
+  );
+  assert.deepEqual(findings, []);
+});
+
 // --- Console -----------------------------------------------------------------
 
 type Handlers = { console?: (m: { type(): string; text(): string }) => void; pageerror?: (e: { message?: string }) => void };
@@ -76,7 +108,7 @@ test('console: captures console.error + pageerror; drain windows are per-step', 
 // --- Layout ------------------------------------------------------------------
 
 const cleanSnap = {
-  scrollWidth: 1280, clientWidth: 1280, bodyText: 'content', imageCount: 0,
+  scrollWidth: 1280, innerWidth: 1280, bodyText: 'content', imageCount: 0, mediaCount: 0,
   regionSelector: null, region: null,
 };
 
@@ -86,9 +118,23 @@ test('layout: horizontal overflow is flagged', () => {
   assert.match(f[0], /horizontal overflow/);
 });
 
-test('layout: blank render (no text, no images) is flagged', () => {
+test('layout: overflow uses innerWidth (scrollbar-inclusive), not clientWidth', () => {
+  // Scrollbar page: a 100vw child makes scrollWidth == innerWidth. Comparing
+  // against innerWidth must NOT flag the ~15px scrollbar as phantom overflow.
+  assert.deepEqual(evaluateLayout({ ...cleanSnap, scrollWidth: 1280, innerWidth: 1280 }), []);
+  // Genuine overflow past the full viewport width is still flagged.
+  const over = evaluateLayout({ ...cleanSnap, scrollWidth: 1400, innerWidth: 1280 });
+  assert.equal(over.length, 1);
+  assert.match(over[0], /horizontal overflow: content 1400px wider than viewport 1280px/);
+});
+
+test('layout: empty DOM (no text, images, or canvas/svg/video) is flagged', () => {
   const f = evaluateLayout({ ...cleanSnap, bodyText: '   ' });
-  assert.deepEqual(f, ['blank render: body has no visible text or images']);
+  assert.deepEqual(f, ['empty DOM: no text, no images, no canvas/svg/video']);
+});
+
+test('layout: an empty text tree that paints via canvas/svg/video is NOT flagged', () => {
+  assert.deepEqual(evaluateLayout({ ...cleanSnap, bodyText: '', imageCount: 0, mediaCount: 1 }), []);
 });
 
 test('layout: zero-size and overlap on the asserted region are flagged', () => {
@@ -152,4 +198,58 @@ test('network: isInfraError recognises connection-level codes only', () => {
   assert.equal(isInfraError('connect ECONNREFUSED'), true);
   assert.equal(isInfraError('HTTP 500'), false);
   assert.equal(isInfraError('net::ERR_FILE_NOT_FOUND'), false);
+});
+
+test('network: a retry that times out/aborts is a hard finding, not infra', async () => {
+  const fails: NetFailure[] = [{ url: 'http://h/asset.js', status: 504, detail: 'HTTP 504' }];
+  const r = await evaluateNetwork(fails, async () => { throw new Error('net::ERR_TIMED_OUT'); });
+  assert.deepEqual(r.infra, []);
+  assert.equal(r.findings.length, 1);
+  assert.match(r.findings[0], /network failure: http:\/\/h\/asset.js \(retry failed: net::ERR_TIMED_OUT\)/);
+});
+
+test('network: a retry throwing a connection-level error is still infra', async () => {
+  const fails: NetFailure[] = [{ url: 'http://h/asset.js', status: 500, detail: 'HTTP 500' }];
+  const r = await evaluateNetwork(fails, async () => { throw new Error('net::ERR_CONNECTION_REFUSED'); });
+  assert.deepEqual(r.findings, []);
+  assert.equal(r.infra.length, 1);
+  assert.match(r.infra[0], /died on retry/);
+});
+
+test('network: a null retry outcome is inconclusive infra, not a persistent fail', async () => {
+  const fails: NetFailure[] = [{ url: 'http://h/asset.js', status: 500, detail: 'HTTP 500' }];
+  const r = await evaluateNetwork(fails, async () => null);
+  assert.deepEqual(r.findings, []);
+  assert.equal(r.infra.length, 1);
+  assert.match(r.infra[0], /retry inconclusive/);
+});
+
+// captured-network fake with on/off, to prove ERR_ABORTED is dropped and dispose detaches.
+type NetHandlers = {
+  response?: (r: { url(): string; status(): number }) => void;
+  requestfailed?: (r: { url(): string; failure(): { errorText?: string } | null }) => void;
+};
+function fakeNetEmitter(h: NetHandlers): { emitter: NetworkEmitter; offs: string[] } {
+  const offs: string[] = [];
+  const emitter = {
+    on: (event: string, handler: (arg: never) => void) => {
+      if (event === 'response') h.response = handler as never;
+      if (event === 'requestfailed') h.requestfailed = handler as never;
+    },
+    off: (event: string) => { offs.push(event); },
+  } as unknown as NetworkEmitter;
+  return { emitter, offs };
+}
+
+test('network: capture drops net::ERR_ABORTED and dispose() detaches listeners', () => {
+  const h: NetHandlers = {};
+  const { emitter, offs } = fakeNetEmitter(h);
+  const cap = captureNetwork(emitter);
+  h.requestfailed!({ url: () => 'http://h/x.js', failure: () => ({ errorText: 'net::ERR_ABORTED' }) });
+  assert.deepEqual(cap.all(), [], 'an intentionally aborted request must not be captured');
+  h.requestfailed!({ url: () => 'http://h/y.js', failure: () => ({ errorText: 'net::ERR_TIMED_OUT' }) });
+  h.response!({ url: () => 'http://h/z.js', status: () => 500 });
+  assert.equal(cap.all().length, 2);
+  cap.dispose();
+  assert.deepEqual([...offs].sort(), ['requestfailed', 'response']);
 });

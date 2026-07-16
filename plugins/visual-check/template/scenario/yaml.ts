@@ -110,14 +110,25 @@ function unquote(s: string): string {
   return s;
 }
 
+// Canonical YAML 1.1 boolean tokens (case-insensitive). Normalizing these to real
+// booleans is a safety requirement, not a nicety: a schema gate that keys off
+// `mutates === true` would read `mutates: yes`/`True`/`on` as a *string* and fail
+// OPEN, letting a destructive step run unguarded.
+const TRUE_TOKENS = new Set(['true', 'yes', 'on']);
+const FALSE_TOKENS = new Set(['false', 'no', 'off']);
+
 function parseScalar(raw: string): YamlValue {
   const s = raw.trim();
   if (s === '') return null;
-  if (s[0] === '{') return parseFlowMap(s);
-  if (s[0] === '[') return parseFlowSeq(s);
+  // Only treat a leading `{`/`[` as a flow collection when it also closes on the
+  // same line — this reader supports single-line flow only. An unclosed `[…` stays a
+  // plain string rather than silently becoming a truncated sequence.
+  if (s[0] === '{' && s[s.length - 1] === '}') return parseFlowMap(s);
+  if (s[0] === '[' && s[s.length - 1] === ']') return parseFlowSeq(s);
   if ((s[0] === '"' && s.endsWith('"')) || (s[0] === "'" && s.endsWith("'"))) return unquote(s);
-  if (s === 'true') return true;
-  if (s === 'false') return false;
+  const lower = s.toLowerCase();
+  if (TRUE_TOKENS.has(lower)) return true;
+  if (FALSE_TOKENS.has(lower)) return false;
   if (s === 'null' || s === '~') return null;
   if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
   return s;

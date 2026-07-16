@@ -22,12 +22,15 @@ type NetResponse = { url(): string; status(): number };
 export type NetworkEmitter = {
   on(event: 'response', handler: (resp: NetResponse) => void): void;
   on(event: 'requestfailed', handler: (req: NetRequest) => void): void;
+  off?(event: 'response' | 'requestfailed', handler: (arg: never) => void): void;
 };
 
 export type NetworkCapture = {
   /** Failures captured since the previous `drain()` (per-step attribution). */
   drain: () => NetFailure[];
   all: () => NetFailure[];
+  /** Detach the response/requestfailed listeners — stops the capture leaking. */
+  dispose: () => void;
 };
 
 /** True when an error text signals the origin is unreachable — infra, not a UI fault. */
@@ -42,14 +45,20 @@ export function captureNetwork(page: Page | NetworkEmitter): NetworkCapture {
   const failures: NetFailure[] = [];
   let cursor = 0;
   const emitter = page as NetworkEmitter;
-  emitter.on('response', (resp) => {
+  const onResponse = (resp: NetResponse) => {
     const status = resp.status();
     if (status >= 400) failures.push({ url: resp.url(), status, detail: `HTTP ${status}` });
-  });
-  emitter.on('requestfailed', (req) => {
+  };
+  const onFailed = (req: NetRequest) => {
     const f = req.failure();
-    failures.push({ url: req.url(), status: null, detail: (f && f.errorText) || 'request failed' });
-  });
+    const detail = (f && f.errorText) || 'request failed';
+    // net::ERR_ABORTED is an intentional cancellation (navigation, aborted fetch),
+    // not a real failure — drop it so it never becomes a finding.
+    if (/ERR_ABORTED/i.test(detail)) return;
+    failures.push({ url: req.url(), status: null, detail });
+  };
+  emitter.on('response', onResponse);
+  emitter.on('requestfailed', onFailed);
   return {
     drain: () => {
       const out = failures.slice(cursor);
@@ -57,14 +66,19 @@ export function captureNetwork(page: Page | NetworkEmitter): NetworkCapture {
       return out;
     },
     all: () => failures.slice(),
+    dispose: () => {
+      emitter.off?.('response', onResponse as never);
+      emitter.off?.('requestfailed', onFailed as never);
+    },
   };
 }
 
 /**
  * Classify captured failures, retrying each once. Deduped by URL. An initial
- * connection-level error, or a retry that throws / cannot connect, is INFRA
- * (server down). A retry that comes back ok is TRANSIENT. Anything still failing
- * is a hard FINDING. Pure aside from the injected `retry`.
+ * connection-level error — or a retry that throws one — is INFRA (server down).
+ * A retry that throws anything else (timeout/abort) or comes back still 4xx/5xx
+ * is a hard FINDING. A null retry outcome is inconclusive → INFRA, never a fail.
+ * A retry that comes back ok is TRANSIENT. Pure aside from the injected `retry`.
  */
 export async function evaluateNetwork(failures: NetFailure[], retry: RetryFn): Promise<NetResult> {
   const out: NetResult = { findings: [], infra: [], transient: [] };
@@ -82,14 +96,24 @@ export async function evaluateNetwork(failures: NetFailure[], retry: RetryFn): P
     try {
       outcome = await retry(f.url);
     } catch (err) {
-      out.infra.push(`network infra: ${f.url} died on retry (${firstLine(err)})`);
+      const detail = firstLine(err);
+      // Only a connection-level throw means the origin died (infra). A retry that
+      // times out or is aborted is the asset STILL failing — a hard fail.
+      if (isInfraError(detail)) {
+        out.infra.push(`network infra: ${f.url} died on retry (${detail})`);
+      } else {
+        out.findings.push(`network failure: ${f.url} (retry failed: ${detail})`);
+      }
       continue;
     }
 
-    if (outcome && outcome.ok) {
+    if (outcome == null) {
+      // Retry produced no verdict — inconclusive, not a persistent fail.
+      out.infra.push(`network infra: ${f.url} retry inconclusive (no response)`);
+    } else if (outcome.ok) {
       out.transient.push(`transient: ${f.url} recovered on retry (was ${f.detail})`);
     } else {
-      const stillDetail = outcome && outcome.status != null ? `HTTP ${outcome.status}` : f.detail;
+      const stillDetail = outcome.status != null ? `HTTP ${outcome.status}` : f.detail;
       out.findings.push(`network failure: ${f.url} (${stillDetail})`);
     }
   }

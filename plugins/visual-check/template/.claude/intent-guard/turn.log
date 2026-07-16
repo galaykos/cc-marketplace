@@ -1,0 +1,26 @@
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/visual-check/template
+echo "=== npm ci ==="; npm ci >/tmp/vc_npm.log 2>&1; echo "npm exit=$?"; tail -2 /tmp/vc_npm.log
+echo "=== chromium present? ==="; rtk playwright install chromium >/tmp/vc_pw.log 2>&1; echo "pw-install exit=$?"; tail 
+echo "=== ALL unit tests (every *.test.ts) ==="
+find . -name '*.test.ts' -not -path '*/node_modules/*' | sort > /tmp/vc_tests.txt
+cat /tmp/vc_tests.txt
+node --test $(cat /tmp/vc_tests.txt | tr '\n' ' ') >/tmp/vc_units.log 2>&1; echo "units exit=$?"
+grep -E "^# (tests|pass|fail)" /tmp/vc_units.log
+echo "=== failures if any ==="; grep -A3 "not ok" /tmp/vc_units.log | head -40 || echo "no failures"
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/visual-check/template
+grep -E "^# (tests|pass|fail)" /tmp/vc_units.log
+echo "=== playwright self-test ==="; rtk playwright test >/tmp/vc_pwtest.log 2>&1; echo "pw-test exit=$?"; rtk grep -E "
+echo ""
+echo "=== driver: baseline fixtures (#2/#4/#5 masking+guards) ==="; node baseline/__fixtures__/run-baseline-fixtures.mjs
+echo "=== driver: CLI fixtures (#1 egress/#8 threshold/--baseline/--viewport) ==="; node bin/__fixtures__/run-cli-fixtur
+echo "=== driver: guard fixtures (#7 metadata) ==="; node guards/__fixtures__/run-guard-fixtures.mjs >/tmp/vc_d3.log 2>&
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/visual-check/template
+run(){ node bin/visual-check.mjs --scenario "$1" --url "$2" >/tmp/vc_s.log 2>&1; echo "$3 → exit=$? (expect $4)"; rtk gr
+echo "=== sidebar happy path (compile↔dom/layout/network integration) ==="
+run scenario/__fixtures__/sidebar.valid.yaml scenario/__fixtures__/sidebar.html "sidebar" "pass/exit0"
+echo "=== console-error (asserts #console) ==="
+run scenario/__fixtures__/console-error.yaml scenario/__fixtures__/console-error.html "console-error" "fail/exit1"
+echo "=== overflow (asserts #13/#14 layout — must NOT false-positive on scrollbar) ==="
+run scenario/__fixtures__/overflow.yaml scenario/__fixtures__/overflow.html "overflow" "fail/exit1"
+echo "=== timeout (compile #10/#11 + timeout→error) ==="
+run scenario/__fixtures__/timeout.yaml scenario/__fixtures__/sidebar.html "timeout" "error/exit2"

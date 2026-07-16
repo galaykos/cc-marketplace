@@ -20,15 +20,20 @@ const realGit: GitRunner = (args, cwd) => {
   return { status: r.status, stdout: r.stdout ?? '' };
 };
 
-/** Porcelain working-tree status for `baseDir`. A non-repo (or absent git) yields
- * `available:false` — the dirty guard then cannot fire and only guard 2 applies. */
+/** Porcelain working-tree status for `baseDir`. A genuine non-repo (or absent git)
+ * — `rev-parse` itself fails — yields `available:false`; the dirty guard then cannot
+ * fire and only guard 2 applies. But once we have CONFIRMED this IS a work tree, a
+ * failing `git status --porcelain` (index lock, perms, corrupt repo) must FAIL CLOSED:
+ * we cannot prove the tree is clean, so we treat it as dirty/unknown (`available:true,
+ * clean:false`) and force `--ack-dirty`. Reporting `available:false` here would let the
+ * dirty guard be skipped and `--update` proceed on an unverified tree — a fail-OPEN. */
 export function gitStatus(baseDir: string, run: GitRunner = realGit): GitStatus {
   const inside = run(['rev-parse', '--is-inside-work-tree'], baseDir);
   if (inside.status !== 0 || inside.stdout.trim() !== 'true') {
     return { available: false, clean: true, dirty: [] };
   }
   const st = run(['status', '--porcelain'], baseDir);
-  if (st.status !== 0) return { available: false, clean: true, dirty: [] };
+  if (st.status !== 0) return { available: true, clean: false, dirty: ['<status unavailable>'] };
   const dirty = st.stdout.split('\n').map((l) => l.trimEnd()).filter((l) => l.length > 0);
   return { available: true, clean: dirty.length === 0, dirty };
 }

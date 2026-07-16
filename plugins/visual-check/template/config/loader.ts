@@ -40,10 +40,10 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-function parseThreshold(raw: unknown): number | undefined {
+function parseThreshold(raw: unknown, label = "config 'threshold'"): number | undefined {
   if (raw === undefined) return undefined;
   if (typeof raw !== 'number' || Number.isNaN(raw) || raw < 0 || raw > 1) {
-    throw new ConfigError("config 'threshold' must be a number in [0, 1]");
+    throw new ConfigError(`${label} must be a number in [0, 1]`);
   }
   return raw;
 }
@@ -119,8 +119,10 @@ export function cliOverride(args: Record<string, unknown>): SettingsOverride {
   const o: SettingsOverride = {};
   const t = args.threshold ?? args['max-diff-ratio'];
   if (t !== undefined && t !== null && String(t) !== '') {
-    const n = Number(t);
-    if (!Number.isNaN(n)) o.threshold = n;
+    // Reuse the config-layer [0, 1] rule so a malformed CLI threshold is REJECTED (a
+    // silently-dropped NaN would let every diff fail; a >1 value would no-op the diff).
+    const n = parseThreshold(Number(t), '--threshold');
+    if (n !== undefined) o.threshold = n;
   }
   return o;
 }

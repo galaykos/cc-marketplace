@@ -9,9 +9,10 @@ import type { Page } from '@playwright/test';
 export type LayoutRegion = { found: boolean; width: number; height: number; covered: boolean };
 export type LayoutSnapshot = {
   scrollWidth: number;
-  clientWidth: number;
+  innerWidth: number;
   bodyText: string;
   imageCount: number;
+  mediaCount: number;
   regionSelector: string | null;
   region: LayoutRegion | null;
 };
@@ -21,8 +22,11 @@ export function evaluateLayout(s: LayoutSnapshot): string[] {
   const findings: string[] = [];
 
   // Horizontal overflow: content wider than the viewport (1px slack for rounding).
-  if (s.scrollWidth > s.clientWidth + 1) {
-    findings.push(`horizontal overflow: content ${s.scrollWidth}px wider than viewport ${s.clientWidth}px`);
+  // Compare against window.innerWidth, which INCLUDES the vertical scrollbar —
+  // documentElement.clientWidth excludes it, so a full-width (100vw) element would
+  // read as ~15px of phantom overflow on any page that has a scrollbar.
+  if (s.scrollWidth > s.innerWidth + 1) {
+    findings.push(`horizontal overflow: content ${s.scrollWidth}px wider than viewport ${s.innerWidth}px`);
   }
 
   if (s.region) {
@@ -39,9 +43,13 @@ export function evaluateLayout(s: LayoutSnapshot): string[] {
     }
   }
 
-  // Blank/white render: nothing painted (no visible text, no images).
-  if (s.bodyText.trim() === '' && s.imageCount === 0) {
-    findings.push('blank render: body has no visible text or images');
+  // Empty DOM: no rendered content in the DOM tree — no text, no <img>, and no
+  // canvas/svg/video. This is NOT a pixel-level "blank render" check: an app that
+  // paints via canvas/svg/video/background-image can have an empty text tree yet a
+  // full screen, and a white-screen-full-of-text has text. The claim is scoped to
+  // exactly what the DOM snapshot proves, so it can't false-positive those apps.
+  if (s.bodyText.trim() === '' && s.imageCount === 0 && s.mediaCount === 0) {
+    findings.push('empty DOM: no text, no images, no canvas/svg/video');
   }
 
   return findings;
@@ -73,9 +81,10 @@ export async function checkLayout(page: Page, regionSelector?: string | null): P
     }
     return {
       scrollWidth: de.scrollWidth,
-      clientWidth: de.clientWidth,
+      innerWidth: window.innerWidth,
       bodyText: body ? body.innerText : '',
       imageCount: document.images.length,
+      mediaCount: document.querySelectorAll('canvas, svg, video').length,
       regionSelector: sel,
       region,
     };

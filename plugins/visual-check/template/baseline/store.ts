@@ -17,9 +17,43 @@ export function baselineDir(baseDir: string): string {
   return path.join(baseDir, BASELINE_SUBDIR);
 }
 
-/** On-disk baseline path for a canonical key string (`<route>__<stepIndex>__<viewport>`). */
+/** Thrown when a baseline key would escape the store (path traversal). */
+export class BaselineKeyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BaselineKeyError';
+  }
+}
+
+/** Defense-in-depth against a poisoned key (the scenario schema already sanitizes ids,
+ * this is the SECOND layer): a canonical key is a single flat filename fragment — reject
+ * anything carrying a path separator, a `..` traversal, an empty string, or a NUL before
+ * it is ever joined onto the store dir. */
+function assertSafeKey(key: string): void {
+  if (
+    key === '' ||
+    key.includes('/') ||
+    key.includes('\\') ||
+    key.includes('..') ||
+    key.includes('\0') ||
+    key.includes(path.sep)
+  ) {
+    throw new BaselineKeyError(`unsafe baseline key '${key}' (path separators / traversal not allowed)`);
+  }
+}
+
+/** On-disk baseline path for a canonical key string (`<route>__<stepIndex>__<viewport>`).
+ * Rejects any key that would resolve outside `.visual-check/baselines` (belt: string
+ * check on the key; suspenders: the resolved path must stay under the store root). */
 export function baselinePathForKey(baseDir: string, key: string): string {
-  return path.join(baselineDir(baseDir), `${key}.png`);
+  assertSafeKey(key);
+  const dir = baselineDir(baseDir);
+  const full = path.join(dir, `${key}.png`);
+  const root = path.resolve(dir) + path.sep;
+  if (!(path.resolve(full) + path.sep).startsWith(root)) {
+    throw new BaselineKeyError(`baseline key '${key}' escapes the store at ${dir}`);
+  }
+  return full;
 }
 
 /** On-disk baseline path from the (route, stepIndex, viewport) triple. */
