@@ -1,0 +1,49 @@
+<!--
+  Starter: Admin table — bulk-select rows with a selection-aware action bar.
+  Suits axis passes like bulk-actions-vs-row-actions or checkbox-column-vs-swipe.
+  The filter toolbar is persistent chrome (no data-state) and stays visible across
+  states; the selection bar and its count live inside `populated` because they only
+  exist when rows are selected (2 of 5 checked → "2 selected"). States:
+  populated / empty / loading. Copy the whole fragment into a frame's
+  `.vd-content` — see ../shell-authoring.md.
+-->
+<div class="vd-toolbar">
+  <input class="vd-input" placeholder="Filter invoices" />
+  <button type="button" class="vd-btn vd-primary">New invoice</button>
+</div>
+
+<div data-state="populated">
+  <div class="vd-toolbar">
+    <span><b>2 selected</b></span>
+    <button type="button" class="vd-btn">Archive</button>
+    <button type="button" class="vd-btn">Export</button>
+    <button type="button" class="vd-btn">Delete</button>
+  </div>
+  <table class="vd-table">
+    <thead>
+      <tr>
+        <th><span class="vd-check" aria-checked="mixed" aria-label="Select all"></span></th>
+        <th>Invoice</th><th>Customer</th><th class="vd-num">Amount</th><th>Due</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="vd-check vd-on" aria-label="Select INV-4821"></span></td><td>INV-4821</td><td>Northwind Traders</td><td class="vd-num">$1,240.00</td><td>Jul 22, 2026</td><td><span class="vd-chip vd-ok">Paid</span></td></tr>
+      <tr><td><span class="vd-check vd-on" aria-label="Select INV-4822"></span></td><td>INV-4822</td><td>Fenwick &amp; Co</td><td class="vd-num">$680.50</td><td>Jul 3, 2026</td><td><span class="vd-chip vd-warn">Overdue 12 days</span></td></tr>
+      <tr><td><span class="vd-check" aria-label="Select INV-4823"></span></td><td>INV-4823</td><td>Meridian Logistics</td><td class="vd-num">$3,412.00</td><td>Jul 28, 2026</td><td><span class="vd-chip vd-ok">Paid</span></td></tr>
+      <tr><td><span class="vd-check" aria-label="Select INV-4824"></span></td><td>INV-4824</td><td>Aster Foods</td><td class="vd-num">$912.75</td><td>Aug 4, 2026</td><td><span class="vd-chip vd-neutral">Draft</span></td></tr>
+      <tr><td><span class="vd-check" aria-label="Select INV-4825"></span></td><td>INV-4825</td><td>Cobalt Interactive</td><td class="vd-num">$5,180.00</td><td>Aug 9, 2026</td><td><span class="vd-chip vd-info">Sent</span></td></tr>
+    </tbody>
+  </table>
+  <div class="vd-pager"><span>Showing 5 of 63</span><span>Page 1 of 13</span></div>
+</div>
+
+<div data-state="empty">
+  <div class="vd-empty">
+    No invoices match this filter.
+    <div><button type="button" class="vd-btn vd-primary">Clear filter</button></div>
+  </div>
+</div>
+
+<div data-state="loading">
+  <div class="vd-empty">Loading invoices…</div>
+</div>

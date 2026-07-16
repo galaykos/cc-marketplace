@@ -15,3 +15,8 @@ the most recent `taskmaster-docs/tasks/*/00-INDEX.md`).
    (AskUserQuestion): "Run now with this plan (Recommended)" / "Stop here".
    On "Run now", proceed exactly as `/task-runner:run <list>` would, using
    the computed mode per level. Print the bare command only when headless.
+
+**Goal marker** — when the list's `00-INDEX.md` carries `Goal: true` (hands-off,
+requires task-runner ≥0.11.0), the step-4 AskUserQuestion is auto-taken to the computed
+verdict ("Run now with this plan"): proceed exactly as `/task-runner:run <list>` would,
+no prompt. Halts and the completion gate still surface.

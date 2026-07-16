@@ -21,11 +21,29 @@ command — is NOT a taskmaster trigger and never boosts this run; only
 crosses a command boundary. The `ultra`/`ultra-task` token may carry a
 `-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
 ∈ opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max,
-default max) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
+default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (the selected model on
 reachable subagents, mandatory red-team + coverage, bounded Workflow fan-outs, the
 ⚡ banner, and the `Ultra: true (model=…, effort=…)` marker written into the card
 index).
+
+**Goal flag:** run in hands-off Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
+bare `goal` token (this command invoked as `/taskmaster:<cmd> goal …`) or contains
+the explicit `ultra-goal`/`ultragoal` token. A bare `goal` that is not the first
+token of THIS command's own arguments — e.g. an earlier command's flag in a chained
+message — is NOT a taskmaster trigger and never activates this run; only
+`ultra-goal`/`ultragoal` crosses a command boundary. The token may carry a
+`-<model>[-<effort>]` suffix — e.g. `ultra-goal-sonnet-xhigh`, `goal-opus` (model ∈
+opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max, default
+xhigh) — resolved per the taskmaster `ultra-goal` skill
+(`skills/ultra-goal/SKILL.md`), the canonical owner of this mode. Ultra-goal implies
+the full ULTRA-TASK boost: when an `ultra-task` token is also present its tier wins;
+ultra-goal's suffix applies only when no ultra-task token is present. On a match,
+strip the token and run as `ULTRA-GOAL ACTIVE` per that skill — auto-take every
+pipeline recommendation (deriving one first when none is labeled Recommended); the
+handoff step auto-selects "Run now" and runs through execution to a green suite;
+branch-finish/merge/PR stay manual — stamping a `Goal: true (model=…, effort=…)`
+marker into the card index and logging every auto-take to the goal ledger.
 
 1. If the stack-scan plugin is installed (the installed-versions skill or
    /stack-scan:report is available), run its inventory first and hand the

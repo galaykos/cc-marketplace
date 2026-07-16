@@ -17,9 +17,25 @@ command — is NOT a taskmaster trigger and never boosts this run; only
 crosses a command boundary. The `ultra`/`ultra-task` token may carry a
 `-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
 ∈ opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max,
-default max) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
+default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (loop-until-dry coverage
 sweeps on the Workflow path, capped at 3 rounds or first dry, and the ⚡ banner).
+
+**Goal flag:** run in hands-off Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
+bare `goal` token (this command invoked as `/taskmaster:<cmd> goal …`) or contains
+the explicit `ultra-goal`/`ultragoal` token. A bare `goal` that is not the first
+token of THIS command's own arguments — e.g. an earlier command's flag in a chained
+message — is NOT a taskmaster trigger and never activates this run; only
+`ultra-goal`/`ultragoal` crosses a command boundary. The token may carry a
+`-<model>[-<effort>]` suffix — e.g. `ultra-goal-sonnet-xhigh`, `goal-opus` (model ∈
+opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max, default
+xhigh) — resolved per the taskmaster `ultra-goal` skill
+(`skills/ultra-goal/SKILL.md`), the canonical owner of this mode. Ultra-goal implies
+the full ULTRA-TASK boost: when an `ultra-task` token is also present its tier wins;
+ultra-goal's suffix applies only when no ultra-task token is present. On a match,
+strip the token and run as `ULTRA-GOAL ACTIVE` per that skill — standalone under
+goal, auto-resolve every GAP/ORPHAN/DRIFT WITHIN this command (derive-then-take),
+writing no execution marker; only task-cards stamps the `Goal: true` marker.
 
 1. Resolve the target: the `00-INDEX.md` and the spec it links under
    `taskmaster-docs/specs/`.
