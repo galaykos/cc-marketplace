@@ -17,10 +17,12 @@
 # is mutated.
 #
 # Exit codes:
-#   0  discriminating  - assertion-red on the mutated copy, green on the unmutated
+#   0  discriminating  - a non-build/collection RED on the mutated copy, green on
+#                        the unmutated copy (assertion, TAP not-ok, diff, ...)
 #   2  vacuous         - Verify is GREEN in BOTH the mutated and unmutated states
 #   3  usage
-#   4  invalid-control - the red was a build/collection/import error, not an assert
+#   4  invalid-control - the red was POSITIVELY a build/collection/import error,
+#                        not a behavioral failure
 #   5  isolation / mutation / baseline failure (halt)
 set -euo pipefail
 
@@ -31,25 +33,43 @@ halt()  { printf '%s: %s\n' "$PROG" "$1" >&2; exit 5; }
 
 # classify_red: read a run's combined stdout+stderr on stdin; print one of
 #   collection | build | assertion | unknown
-# Precedence: collection/import first (a collection error can also print a
-# SyntaxError line), then build/compile, then assertion. Signatures verified
-# against real output of `node --test` and `pytest`; go/jest signatures included.
+# Precedence is ASSERTION-MARKER-FIRST so a genuine assertion failure whose
+# *message* merely contains a build/collection word (e.g. a test asserting on
+# the string "SyntaxError") is NOT swallowed by the build/collection substring
+# match:
+#   1. HARD assertion markers that never appear in a pure build/collection run
+#      (AssertionError, ERR_ASSERTION, go `--- FAIL:`, pytest `^E +assert`, TAP
+#      `not ok`, jest expect()/Expected:/Received:) -> assertion.
+#   2. else collection/import substrings -> collection.
+#   3. else build/compile/syntax substrings -> build.
+#   4. else generic per-test fail glyphs (✖ / ✗) that runners such as
+#      `node --test` ALSO print for build failures -> only here, with no
+#      build/collection signature present, do they mean assertion.
+#   5. else unknown (still a valid discriminating red - see the caller).
+# Signatures verified against real output of `node --test` and `pytest`.
 classify_red() {
   local blob; blob=$(cat)
-  # collection / import errors (pytest ERROR collecting, python ImportError,
-  # node MODULE_NOT_FOUND / Cannot find module, go missing package)
+  # 1) HARD assertion markers FIRST: these strings never appear in a pure
+  #    build/collection error, so matching them here cannot misfile a build red.
+  if printf '%s\n' "$blob" | grep -Eq \
+     'AssertionError|ERR_ASSERTION|--- FAIL:|^E +assert|not ok |assert(ion)?[[:space:]]+(failed|error)|FAILED .*assert|expect\(|Expected:.*Received:'; then
+    printf 'assertion\n'; return 0
+  fi
+  # 2) collection / import errors (pytest ERROR collecting, python ImportError,
+  #    node MODULE_NOT_FOUND / Cannot find module, go missing package)
   if printf '%s\n' "$blob" | grep -Eq \
      'ERROR collecting|errors? during collection|INTERNALERROR|ModuleNotFoundError|ImportError|Cannot find module|ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|cannot find package'; then
     printf 'collection\n'; return 0
   fi
-  # build / compile / syntax errors
+  # 3) build / compile / syntax errors
   if printf '%s\n' "$blob" | grep -Eq \
      'SyntaxError|IndentationError|TabError|\[build failed\]|# command-line-arguments|error TS[0-9]'; then
     printf 'build\n'; return 0
   fi
-  # assertion failures (the ONLY valid control)
-  if printf '%s\n' "$blob" | grep -Eq \
-     'AssertionError|ERR_ASSERTION|^E +assert|assert(ion)?[[:space:]]+(failed|error)|--- FAIL:|FAILED .*assert|expect\(|Expected:.*Received:'; then
+  # 4) generic per-test fail glyphs, meaningful ONLY once build/collection are
+  #    ruled out (node --test prints ✖ for build failures too, so this must come
+  #    after the build/collection checks, never before them).
+  if printf '%s\n' "$blob" | grep -Eq '✖|✗'; then
     printf 'assertion\n'; return 0
   fi
   printf 'unknown\n'; return 0
@@ -150,20 +170,25 @@ fi
 
 klass=$(printf '%s' "$out_red" | classify_red)
 case "$klass" in
+  build|collection)
+    # exit 4 is reserved STRICTLY for a red POSITIVELY identified as a
+    # build/collection/import error - the check never reached its behavior.
+    log "invalid-control: the mutated red was a $klass error, not a behavioral failure - it does not prove the check discriminates on behavior"
+    log "--- mutated-run output (tail) ---"
+    printf '%s\n' "$out_red" | tail -20 >&2
+    echo "invalid-control"
+    exit 4 ;;
   assertion)
     log "discriminating: mutated copy RED by assertion failure (rc=$rc_red); unmutated copy GREEN"
     echo "discriminating"
     exit 0 ;;
-  build|collection)
-    log "invalid-control: the mutated red was a $klass error, not an assertion failure - it does not prove the check discriminates on behavior"
-    log "--- mutated-run output (tail) ---"
-    printf '%s\n' "$out_red" | tail -20 >&2
-    echo "invalid-control"
-    exit 4 ;;
   *)
-    log "invalid-control: the mutated red could not be classified as an assertion failure"
-    log "--- mutated-run output (tail) ---"
-    printf '%s\n' "$out_red" | tail -20 >&2
-    echo "invalid-control"
-    exit 4 ;;
+    # unknown red: a discriminating failure whose runner signature is outside the
+    # allowlist (TAP `not ok`, a plain `exit 1` with a diff, a bespoke shell
+    # assert). It is NOT a build/collection error, so the Verify DID discriminate
+    # (mutated RED, unmutated GREEN). Treat it as a valid assertion-style red
+    # rather than parking a working control. (Fix 2)
+    log "discriminating: mutated copy RED (rc=$rc_red) by a non-build/collection failure; unmutated copy GREEN"
+    echo "discriminating"
+    exit 0 ;;
 esac

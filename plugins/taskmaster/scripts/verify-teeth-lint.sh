@@ -12,7 +12,8 @@
 # Blocked weak forms (each -> exit 2, `verify-teeth: <reason>` on stderr, the
 # reason names the matched pattern):
 #   existence-only  : `test -f`, `test -e`, or `ls ` as the whole check
-#   always-true     : `|| true` or `; true` anywhere (neuters the exit status)
+#   always-true     : `|| true`, `; true`, or `|| :` anywhere, incl. when
+#                     followed by `;`/`)`/`"` (neuters the exit status)
 #   require-only    : `node -e "require(...)"`  with no assertion following
 #   import-only     : `python -c "import ..."`  with no assertion following
 #   compile-only    : `tsc --noEmit`, `-fsyntax-only`, or `go build` as the whole check
@@ -83,9 +84,13 @@ has() { printf '%s' "$line" | grep -Eiq -- "$1"; }
 assert_re='assert|expect|throw|===|!==|\.to[a-z]+|console\.assert|process\.exit|exit\([1-9]|==[[:space:]]*[0-9]|!=[[:space:]]|-eq[[:space:]]|[[:space:]]status[[:space:]]'
 strong_guard='&&|\|[[:space:]]*grep|\|[[:space:]]*wc|assert|expect'
 
-# 1) always-true — an unconditional pass neuters whatever precedes it.
-if has '(\|\|[[:space:]]*true|;[[:space:]]*true)([[:space:]]|$)'; then
-  weak "always-true: '|| true' / '; true' neuters the exit status"
+# 1) always-true — an unconditional pass neuters whatever precedes it. The
+#    trailing boundary is ANY non-word char (or end), so a following `;`, `)`,
+#    or closing quote cannot smuggle it past the lint
+#    (`cmd || true;`, `(cmd || true)`, `bash -c "npm test || true"`). Both the
+#    `true` command and the `:` no-op builtin count as an always-true tail.
+if has '(\|\|[[:space:]]*(true|:)|;[[:space:]]*(true|:))([^[:alnum:]_]|$)'; then
+  weak "always-true: '|| true' / '; true' / '|| :' neuters the exit status"
 fi
 
 # 2) existence-only — proves a path exists, as the whole check.

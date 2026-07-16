@@ -44,6 +44,13 @@ run_case "strong: jest -t + asserts"      0 ""                --line 'jest -t "r
 # --- Additional coverage for every weak form and a strong runner line ---
 run_case "strong: pytest -k + asserts"    0 ""                --line 'pytest -k reject_malicious_host asserts 422'
 run_case "always-true: || true"           2 "always-true"     --line 'curl -s localhost:3000/health || true'
+# --- Fix 3: always-true tails that evaded the old '([[:space:]]|$)' boundary ---
+run_case "always-true: || true; (semicolon)" 2 "always-true"  --line 'npm test || true;'
+run_case "always-true: cmd || true) (paren)" 2 "always-true"  --line 'cmd || true)'
+run_case "always-true: (cmd || true) full"   2 "always-true"  --line '(cmd || true)'
+run_case "always-true: || : (no-op builtin)" 2 "always-true"  --line 'cmd || :'
+run_case "always-true: bash -c quoted || true" 2 "always-true" --line 'bash -c "npm test || true"'
+run_case "strong: colon in url not always-true" 0 ""          --line 'curl -s http://localhost:3000/api | grep -q ready'
 run_case "compile-only: tsc --noEmit"     2 "compile-only"    --line 'tsc --noEmit'
 run_case "import-only: python -c import"   2 "import-only"     --line 'python -c "import app"'
 run_case "existence-only: ls whole check" 2 "existence-only"  --line 'ls dist/'

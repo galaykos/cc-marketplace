@@ -109,6 +109,46 @@ JS
 case_run "auto: chosen edit disables feature -> assertion red" "$A" 0 \
   --verify 'node --test flag.test.js' --target impl.js --auto
 
+# ===================== regression: classifier precedence (Fix 1 + Fix 2) =====================
+
+# --- Fix 1: an ASSERTION whose failure message merely CONTAINS "SyntaxError"
+#     must classify as assertion (exit 0), NOT be swallowed as a build red (exit 4). ---
+F1="$WS/assert_mentions_build"; mkdir -p "$F1"
+cat > "$F1/impl.js" <<'JS'
+function errorLabel() { return 'SyntaxError'; }
+module.exports = { errorLabel };
+JS
+cat > "$F1/label.test.js" <<'JS'
+const test = require('node:test');
+const assert = require('node:assert');
+const { errorLabel } = require('./impl.js');
+test('errorLabel is SyntaxError', () => {
+  assert.strictEqual(errorLabel(), 'SyntaxError');
+});
+JS
+case_run "Fix1: assertion message mentions SyntaxError -> exit 0 (not 4)" "$F1" 0 \
+  --verify 'node --test label.test.js' --target impl.js --mutate 's/SyntaxError/OTHERWORD/'
+
+# --- Fix 2: a discriminating red whose runner emits TAP `not ok` (outside the
+#     build/collection allowlist) is a VALID control (exit 0), not parked (exit 4). ---
+F2="$WS/tap_red"; mkdir -p "$F2"
+cat > "$F2/impl.sh" <<'SH'
+answer() { echo 42; }
+SH
+case_run "Fix2: TAP not-ok discriminating red -> exit 0 (not 4)" "$F2" 0 \
+  --verify 'source ./impl.sh; if [ "$(answer)" = 42 ]; then echo "ok 1 - answer"; else echo "not ok 1 - answer $(answer)"; exit 1; fi' \
+  --target impl.sh --mutate 's/echo 42/echo 7/'
+
+# --- Fix 2: a plain `exit 1` with a diff and no recognized marker (-> unknown)
+#     is still a valid discriminating red (exit 0), not parked (exit 4). ---
+F3="$WS/plain_red"; mkdir -p "$F3"
+cat > "$F3/impl.sh" <<'SH'
+greet() { echo hello; }
+SH
+case_run "Fix2: plain exit-1 diff (unknown) discriminating red -> exit 0 (not 4)" "$F3" 0 \
+  --verify 'source ./impl.sh; got=$(greet); [ "$got" = hello ] || { printf "want hello got %s\n" "$got"; exit 1; }' \
+  --target impl.sh --mutate 's/echo hello/echo goodbye/'
+
 # ===================== halt / usage guards =====================
 
 # --- no-op mutation is not a control -> exit 5 ---
@@ -213,6 +253,26 @@ case_classify "jest assertion" assertion \
     expect(received).toBe(expected)
     Expected: 5
     Received: -1'
+
+# --- Fix 1: an assertion whose message merely CONTAINS "SyntaxError" must
+#     classify as assertion, not build (the build substring must not win). ---
+case_classify "assertion message mentions SyntaxError -> assertion" assertion \
+'✖ errorLabel is SyntaxError
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  '"'"'OTHERWORD'"'"' !== '"'"'SyntaxError'"'"''
+
+# --- Fix 1: TAP `not ok` is a hard assertion marker. ---
+case_classify "TAP not-ok -> assertion" assertion \
+'TAP version 13
+1..1
+not ok 1 - answer should be 42
+  ---
+  operator: equal'
+
+# --- Fix 1: a bare per-test fail glyph, no build/collection signature -> assertion. ---
+case_classify "bare fail glyph -> assertion" assertion \
+'✗ widget renders the header
+    rendered output differs from the golden file'
 
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
