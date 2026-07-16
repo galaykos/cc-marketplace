@@ -176,7 +176,23 @@ verdict_js() {
   run_capture node --test
   log "node --test: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "node --test: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
-  # Node 24 counts each discovered file as a test; a genuine empty run reports 'tests 0'.
+  # 'tests N' alone is not trustworthy: some node versions count an empty file or a
+  # skip-only suite as 'tests 1'. Cross-check the executed counts (pass+fail+todo)
+  # from node's summary — zero executed assertions => empty, whatever 'tests N' says.
+  local n_pass n_fail n_todo n_exec
+  n_pass=$(printf '%s\n' "$CAP" | grep -oE 'pass[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | tail -1) || true
+  n_fail=$(printf '%s\n' "$CAP" | grep -oE 'fail[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | tail -1) || true
+  n_todo=$(printf '%s\n' "$CAP" | grep -oE 'todo[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | tail -1) || true
+  if [ -n "$n_pass" ] || [ -n "$n_fail" ] || [ -n "$n_todo" ]; then
+    n_exec=$(( ${n_pass:-0} + ${n_fail:-0} + ${n_todo:-0} ))
+    if [ "$n_exec" -eq 0 ]; then
+      log "node --test: pass+fail+todo=0 — suite executed nothing (empty) despite any 'tests N'"
+      printf 'empty-suite\n'; return
+    fi
+    log "node --test: pass+fail+todo=$n_exec (>0) — coverage present"
+    printf 'covered\n'; return
+  fi
+  # Fallback when node emitted no count summary at all: the 'tests N' heuristic.
   if printf '%s\n' "$CAP" | grep -Eq 'tests[[:space:]]+0([^0-9]|$)'; then printf 'empty-suite\n'; return; fi
   if printf '%s\n' "$CAP" | grep -Eq 'tests[[:space:]]+[1-9][0-9]*'; then printf 'covered\n'; return; fi
   log "node --test: no parseable 'tests N' summary (exit=$RUN_RC) — cannot confirm (fail-closed)"
@@ -185,15 +201,24 @@ verdict_js() {
 
 verdict_pkg() {
   local script="$1"
+  # --passWithNoTests disables the very empty-suite signal this gate relies on:
+  # jest then prints a GREEN "Test Suites: 1 passed" line while running zero tests.
+  # A suite whose runner is invoked with it cannot be verified — fail closed.
   case "$script" in
-    *--passWithNoTests*) log "WARNING: test script carries --passWithNoTests; empty suites are masked green" ;;
+    *--passWithNoTests*)
+      log "package.json test: script uses --passWithNoTests — that flag masks empty suites (fail-closed)"
+      log "VERDICT: unverifiable-suite"
+      printf 'unverifiable-suite\n'; return ;;
   esac
   log "package.json test script: [$script] — running via 'sh -c' (timeout ${TIMEOUT_SECS}s)"
   run_capture sh -c "$script"
   log "package.json test: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "package.json test: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
+  # The jest "passed count" is anchored to jest's own '^Tests:' summary line, so a
+  # "Test Suites: 1 passed" line (printed even for an empty --passWithNoTests run)
+  # can NEVER satisfy coverage. Mocha's "N passing" and node/TAP "tests N" remain.
   if printf '%s\n' "$CAP" | grep -Eiq \
-      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|Tests:[[:space:]].*[1-9].*(passed|total)|[1-9][0-9]*[[:space:]]+passed'; then
+      'tests[[:space:]]+[1-9]|[1-9][0-9]*[[:space:]]+passing|^Tests:.*[1-9][0-9]*[[:space:]]+(passed|failed)'; then
     printf 'covered\n'; return
   fi
   if printf '%s\n' "$CAP" | grep -Eiq 'No tests found|tests[[:space:]]+0([^0-9]|$)|0[[:space:]]+total|0[[:space:]]+passing'; then
@@ -214,8 +239,17 @@ verdict_go() {
   run_capture go test ./...
   log "go test: exit=$RUN_RC"
   if [ "$RUN_RC" = 124 ]; then log "go test: TIMED OUT"; printf 'unverifiable-suite\n'; return; fi
-  if printf '%s\n' "$CAP" | grep -Eq 'no test files'; then printf 'empty-suite\n'; return; fi
+  # A build/setup failure runs ZERO tests yet prints 'FAIL pkg [build failed]';
+  # route it to unverifiable-suite BEFORE the covered check so it never reads green.
+  if printf '%s\n' "$CAP" | grep -Eq '\[(build|setup) failed\]'; then
+    log "go test: package failed to build/setup — no tests executed (fail-closed)"
+    printf 'unverifiable-suite\n'; return
+  fi
+  # COVERED is checked BEFORE empty: in a multi-package module one package can have
+  # passing tests ('ok') while another has none ('[no test files]'). Any real result
+  # line proves tests ran, so empty is declared ONLY when no result line exists.
   if printf '%s\n' "$CAP" | grep -Eq '^(ok|PASS|FAIL|---)'; then printf 'covered\n'; return; fi
+  if printf '%s\n' "$CAP" | grep -Eq 'no test files'; then printf 'empty-suite\n'; return; fi
   log "go test: no parseable result — fail-closed"; printf 'unverifiable-suite\n'
 }
 
@@ -268,9 +302,22 @@ smoke_entrypoints() {
     run_capture "$ep" --help
     log "entrypoint[$ep]: smoke exit=$RUN_RC"
     if [ "$RUN_RC" != 0 ]; then
-      log "entrypoint[$ep]: crashed/errored on invoke (exit $RUN_RC)"
-      log "VERDICT: entrypoint-error ($ep)"
-      exit 2
+      # A hard crash — killed by signal (>=128), not-executable (126), not-found
+      # (127) or timeout (124) — is a genuine entrypoint-error. But a conventional
+      # --help/usage handler may print usage and exit with a SMALL non-zero code;
+      # that is not a crash. Distinguish by whether usage/help text was printed.
+      if [ "$RUN_RC" -eq 124 ] || [ "$RUN_RC" -eq 126 ] || [ "$RUN_RC" -eq 127 ] || [ "$RUN_RC" -ge 128 ]; then
+        log "entrypoint[$ep]: hard crash on invoke (exit $RUN_RC: signal/not-exec/not-found/timeout)"
+        log "VERDICT: entrypoint-error ($ep)"
+        exit 2
+      fi
+      if printf '%s\n' "$CAP" | grep -Eiq 'usage|help|option|--[a-z]'; then
+        log "entrypoint[$ep]: exit $RUN_RC but printed usage/help — conventional usage exit, not a crash"
+      else
+        log "entrypoint[$ep]: errored on invoke (exit $RUN_RC) with no usage output — treating as crash"
+        log "VERDICT: entrypoint-error ($ep)"
+        exit 2
+      fi
     fi
   done
 
@@ -286,6 +333,9 @@ smoke_entrypoints() {
       *) usage "--differential must be 'flag::observable-with::observable-without' (got: $spec)" ;;
     esac
     flag="${spec%%::*}"; rest="${spec#*::}"; with="${rest%%::*}"; without="${rest#*::}"
+    # An empty with/without marker makes 'grep -qF -- ""' match every line, so an
+    # unwired flag would spuriously read as observable — reject it as a usage error.
+    [ -n "$with" ] && [ -n "$without" ] || usage "--differential with/without markers must be non-empty (got: $spec)"
     for ep2 in "${SHELL_EPS[@]}"; do
       run_capture "$ep2" "$flag"; out_with="$CAP"
       run_capture "$ep2";         out_without="$CAP"

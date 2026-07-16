@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # Dogfood smoke test — the ultimate proof for the behavioral-verification gates.
 #
-# Reproduces the three deterministic defect classes that motivated the work and
-# asserts the SHIPPED gate scripts flip each one RED:
-#   1. empty-suite     — a suite that collects zero tests
-#   2. dead-flag       — a documented, parsed-but-unwired flag (identical output)
-#   3. fail-open-guard — a guard whose verify only exercises the allow path
+# Reproduces the deterministic defect classes that motivated the work and asserts the
+# SHIPPED gate scripts flip each one RED:
+#   1. empty-suite       — a suite that collects zero tests
+#   2. dead-flag         — a documented, parsed-but-unwired flag (identical output)
+#   3. fail-open-guard   — a guard whose verify only exercises the allow path
+#   4. passWithNoTests   — jest masks a zero-test suite green via --passWithNoTests
 #
 # It CALLS THE SHIPPED SCRIPTS BY REPO-RELATIVE PATH and never reimplements gate
 # logic. Each fixture is copied into a fresh temp dir before the gate runs there, so
 # the live repo tree is never mutated — asserted via `git status --porcelain` before
-# and after. The script exits 0 ONLY if all three gates correctly went RED.
+# and after. The script exits 0 ONLY if every gate correctly went RED.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -70,6 +71,15 @@ ec=0
     --target guard.sh --auto ) >/dev/null 2>"$WORK/3.err" || ec=$?
 assert_red fail-open-guard negative-control.sh vacuous "$ec" "$WORK/3.err"
 
+# --- class 4: jest empty suite masked by --passWithNoTests ------------------
+# A jest run with --passWithNoTests over a zero-test suite prints a GREEN
+# "Test Suites: 1 passed" line while "Tests: 0 total" shows nothing ran, and exits 0.
+# This is the mechanism most likely to mask green; the shipped gate must flip it RED.
+d="$(stage jest-passwithnotests)"
+ec=0
+( cd "$d" && bash "$GATE" --changed app.js ) >/dev/null 2>"$WORK/4.err" || ec=$?
+assert_red passWithNoTests behavioral-gate.sh unverifiable-suite "$ec" "$WORK/4.err"
+
 # --- repo-tree invariant ----------------------------------------------------
 GIT_AFTER="$(git -C "$ROOT" status --porcelain 2>/dev/null || true)"
 if [ "$GIT_BEFORE" = "$GIT_AFTER" ]; then
@@ -80,7 +90,7 @@ else
 fi
 
 if [ "$rc" -eq 0 ]; then
-  echo "All three behavioral-verification defect classes caught (shipped gates flipped RED)."
+  echo "All behavioral-verification defect classes caught (shipped gates flipped RED)."
 else
   echo "One or more defect classes were NOT caught — see FAIL lines above."
 fi

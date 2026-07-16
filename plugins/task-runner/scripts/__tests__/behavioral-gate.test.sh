@@ -49,6 +49,19 @@ fi
 export PATH="$PYBIN:$PATH"
 printf 'pytest mode: %s\n' "$PYTEST_MODE"
 
+# ---- go: a deterministic `go` stub so verdict_go's multi-package and build-failed
+# branches are reproducible with no real toolchain. Invoked as `go test ./...`, it
+# prints the fixture's ./.gostub.out and exits ./.gostub.rc (both in the gate's CWD).
+GOBIN="$WS/gobin"; mkdir -p "$GOBIN"
+cat > "$GOBIN/go" <<'STUB'
+#!/usr/bin/env bash
+[ -f ./.gostub.out ] && cat ./.gostub.out
+if [ -f ./.gostub.rc ]; then exit "$(cat ./.gostub.rc)"; fi
+exit 0
+STUB
+chmod +x "$GOBIN/go"
+export PATH="$GOBIN:$PATH"
+
 # ---- case harness: exit code + optional stderr label + live-tree-untouched ----
 # usage: case_run <desc> <workdir> <expected_rc> [--label <substr>] -- <gate args...>
 case_run() {
@@ -231,6 +244,105 @@ Runs the demo with $ARGUMENTS.
 MD
 case_run ".md command entrypoint -> not-shell-smokable report, exit(0)" "$E9" 0 --label 'not-shell-smokable' -- \
   --changed impl.js --entrypoint ./command.md
+
+# ---- gate-correctness regression cases (each proves a specific false-verdict bug
+# ---- is now caught; each fails against the OLD logic, i.e. is non-vacuous) --------
+
+# ---- G1. jest --passWithNoTests false-PASS: the flag disables the empty signal;
+# jest prints "Test Suites: 1 passed" + "Tests: 0 total" and exits 0. The gate must
+# refuse it (unverifiable-suite), NOT read the suite-count line as covered. (fix a)
+GJ1="$WS/pkg-passwithnotests"; mkdir -p "$GJ1"
+cat > "$GJ1/impl.js" <<'JS'
+module.exports = () => 42;
+JS
+cat > "$GJ1/jest-stub.sh" <<'STUB'
+#!/usr/bin/env bash
+# emulate `jest --passWithNoTests` on a zero-test suite: green suite line, 0 tests.
+echo "Test Suites: 1 passed, 1 total"
+echo "Tests:       0 total"
+echo "Snapshots:   0 total"
+exit 0
+STUB
+cat > "$GJ1/package.json" <<'JSON'
+{ "name": "fx", "version": "1.0.0", "scripts": { "test": "sh ./jest-stub.sh --passWithNoTests" } }
+JSON
+case_run "jest --passWithNoTests (empty masked green) -> unverifiable-suite(2)" "$GJ1" 2 --label 'unverifiable-suite' -- --changed impl.js
+
+# ---- G2. jest empty false-PASS via output anchoring (NO --passWithNoTests flag in
+# the script, so this exercises the '^Tests:' anchor independently): a run printing
+# "Test Suites: 1 passed" + "Tests: 0 total" must NOT be covered. (fix b)
+GJ2="$WS/pkg-suiteline-green"; mkdir -p "$GJ2"
+cat > "$GJ2/impl.js" <<'JS'
+module.exports = () => 42;
+JS
+cat > "$GJ2/package.json" <<'JSON'
+{ "name": "fx", "version": "1.0.0",
+  "scripts": { "test": "printf 'Test Suites: 1 passed, 1 total\\nTests:       0 total\\n'" } }
+JSON
+case_run "jest 'Test Suites: 1 passed' + 'Tests: 0 total' -> NOT covered (2)" "$GJ2" 2 -- --changed impl.js
+
+# ---- G3. go multi-package: pkg1 has passing tests ('ok'), pkg2 has none
+# ('[no test files]'). Empty must NOT win over a real result line -> covered. (fix 2)
+GG1="$WS/go-multipkg"; mkdir -p "$GG1"
+printf 'package p\n'                > "$GG1/impl.go"
+printf 'package p\n'                > "$GG1/impl_test.go"
+printf 'ok  \texample/pkg1\t0.012s\n?   \texample/pkg2\t[no test files]\n' > "$GG1/.gostub.out"
+printf '0\n'                        > "$GG1/.gostub.rc"
+case_run "go multi-package (ok + no test files) -> covered(0)" "$GG1" 0 --label 'covered' -- --changed impl.go
+
+# ---- G4. go build failure: 'FAIL pkg [build failed]' means ZERO tests ran; it must
+# route to unverifiable-suite, never be read as covered by the '^FAIL' match. (fix 3)
+GG2="$WS/go-buildfail"; mkdir -p "$GG2"
+printf 'package p\n'                > "$GG2/impl.go"
+printf 'package p\n'                > "$GG2/impl_test.go"
+printf '# example/pkg\n./impl.go:3:2: syntax error\nFAIL\texample/pkg [build failed]\n' > "$GG2/.gostub.out"
+printf '1\n'                        > "$GG2/.gostub.rc"
+case_run "go '[build failed]' (zero tests ran) -> unverifiable-suite(2)" "$GG2" 2 --label 'unverifiable-suite' -- --changed impl.go
+
+# ---- G5. node skip-only suite: node reports 'tests 1' but 'pass 0/fail 0/todo 0'.
+# Relying on 'tests N' alone reads covered; cross-checking executed counts (=0) must
+# classify it empty-suite. (fix 4)
+GN1="$WS/node-skiponly"; mkdir -p "$GN1"
+cat > "$GN1/impl.js" <<'JS'
+module.exports = () => 1;
+JS
+cat > "$GN1/skip.test.js" <<'JS'
+const { test } = require('node:test');
+// the ONLY test is skipped: node prints `tests 1` but `pass 0` -> zero executed.
+test('not yet', { skip: true }, () => {});
+JS
+case_run "node skip-only suite (tests 1 / pass 0) -> empty-suite(2)" "$GN1" 2 --label 'empty-suite' -- --changed impl.js
+
+# ---- G6. entrypoint prints usage and exits NON-ZERO on --help (a common CLI
+# convention). That is not a crash: it must NOT be flagged entrypoint-error. (fix 5)
+GE1="$WS/ep-usage-nonzero"; mk_covered "$GE1"
+cat > "$GE1/helpexit-bin" <<'BIN'
+#!/usr/bin/env bash
+seen=0
+for a in "$@"; do
+  case "$a" in
+    --help) echo "usage: helpexit-bin [--flag]"; exit 2 ;;  # prints usage, exits NON-ZERO
+    --flag) seen=1 ;;
+  esac
+done
+if [ "$seen" = 1 ]; then echo "mode=flagged"; else echo "mode=default"; fi
+exit 0
+BIN
+chmod +x "$GE1/helpexit-bin"
+case_run "entrypoint usage+non-zero on --help -> NOT entrypoint-error, covered(0)" "$GE1" 0 --label 'covered' -- \
+  --changed impl.js --entrypoint ./helpexit-bin --differential '--flag::mode=flagged::mode=default'
+
+# ---- G7. differential with an EMPTY with-marker: 'grep -qF -- ""' would match
+# everything and spuriously read as dead-affordance; it must be a usage error. (fix guard)
+GE2="$WS/ep-empty-marker"; mk_covered "$GE2"
+cat > "$GE2/okbin" <<'BIN'
+#!/usr/bin/env bash
+case "${1:-}" in --help) echo "usage: okbin"; exit 0 ;; esac
+echo "out"
+BIN
+chmod +x "$GE2/okbin"
+case_run "differential empty with-marker -> usage error(3)" "$GE2" 3 --label 'usage error' -- \
+  --changed impl.js --entrypoint ./okbin --differential '--flag::::mode=default'
 
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"

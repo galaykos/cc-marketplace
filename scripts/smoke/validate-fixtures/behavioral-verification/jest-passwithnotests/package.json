@@ -1,0 +1,5 @@
+{
+  "name": "jest-passwithnotests-fixture",
+  "version": "1.0.0",
+  "scripts": { "test": "sh ./jest-stub.sh --passWithNoTests" }
+}
