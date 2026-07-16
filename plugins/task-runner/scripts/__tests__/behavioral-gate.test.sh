@@ -163,6 +163,75 @@ cat > "$F5/package.json" <<'JSON'
 JSON
 case_run "runner w/ no empty-signal (unparseable count) -> fail-closed(2)" "$F5" 2 --label 'unverifiable-suite' -- --changed impl.js
 
+# ---- card 07: entrypoint smoke + differential dead-flag -----------------------
+# Each fixture pairs a covered JS suite (so the gate reaches the entrypoint seam)
+# with a temp-dir entrypoint. The gate EXECUTES shell entrypoints, so every bin is
+# non-destructive (echo-only) and lives under $WS (never the live repo); case_run
+# still snapshots git status before/after and asserts byte-identical.
+mk_covered() {
+  local d="$1"; mkdir -p "$d"
+  cat > "$d/impl.js" <<'JS'
+module.exports = function () { return 1; };
+JS
+  cat > "$d/smoke.test.js" <<'JS'
+const test = require('node:test');
+const assert = require('node:assert');
+test('smoke', () => { assert.strictEqual(1, 1); });
+JS
+}
+
+# ---- 6. dead-flag entrypoint: --flag parsed but unwired (identical output) -> dead-affordance(2)
+E6="$WS/ep-dead"; mk_covered "$E6"
+cat > "$E6/dead-bin" <<'BIN'
+#!/usr/bin/env bash
+# parses --flag but NEVER wires it: output is identical WITH or WITHOUT the flag
+for a in "$@"; do case "$a" in --flag) : ;; esac; done
+echo "mode=default"
+echo "result=constant"
+exit 0
+BIN
+chmod +x "$E6/dead-bin"
+case_run "dead-flag entrypoint (parsed, unwired) -> dead-affordance(2)" "$E6" 2 --label 'dead-affordance' -- \
+  --changed impl.js --entrypoint ./dead-bin --differential '--flag::mode=flagged::mode=default'
+
+# ---- 7. wired-flag entrypoint: --flag changes output as declared -> covered(0)
+E7="$WS/ep-wired"; mk_covered "$E7"
+cat > "$E7/wired-bin" <<'BIN'
+#!/usr/bin/env bash
+seen=0
+for a in "$@"; do
+  case "$a" in
+    --flag) seen=1 ;;
+    --help) echo "usage: wired-bin [--flag]"; exit 0 ;;
+  esac
+done
+if [ "$seen" = 1 ]; then echo "mode=flagged"; else echo "mode=default"; fi
+exit 0
+BIN
+chmod +x "$E7/wired-bin"
+case_run "wired-flag entrypoint (observable differs) -> covered(0)" "$E7" 0 --label 'covered' -- \
+  --changed impl.js --entrypoint ./wired-bin --differential '--flag::mode=flagged::mode=default'
+
+# ---- 8. crash-on-invoke entrypoint -> entrypoint-error(2)
+E8="$WS/ep-crash"; mk_covered "$E8"
+cat > "$E8/crash-bin" <<'BIN'
+#!/usr/bin/env bash
+echo "boom: cannot initialize" >&2
+exit 1
+BIN
+chmod +x "$E8/crash-bin"
+case_run "crash-on-invoke entrypoint -> entrypoint-error(2)" "$E8" 2 --label 'entrypoint-error' -- \
+  --changed impl.js --entrypoint ./crash-bin
+
+# ---- 9. .md command entrypoint (prompt doc) -> not-shell-smokable report, exit(0)
+E9="$WS/ep-md"; mk_covered "$E9"
+cat > "$E9/command.md" <<'MD'
+# /demo:command
+Runs the demo with $ARGUMENTS.
+MD
+case_run ".md command entrypoint -> not-shell-smokable report, exit(0)" "$E9" 0 --label 'not-shell-smokable' -- \
+  --changed impl.js --entrypoint ./command.md
+
 # ---- tally ----
 printf '\nbehavioral-gate.test: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

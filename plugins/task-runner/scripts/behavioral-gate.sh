@@ -16,6 +16,7 @@
 # Exit contract:
 #   0  covered  OR honest  no-executable-surface
 #   2  fail:     empty-suite | no-behavioral-coverage | unverifiable-suite (fail-closed)
+#              | entrypoint-error (crash-on-invoke) | dead-affordance (flag is a no-op)
 #   3  usage
 #
 # SAFETY: this gate RUNS code (the artifact's own tests). It runs each runner in the
@@ -55,7 +56,11 @@ run_with_timeout() {
 }
 
 # ---- arg parse: --changed accepts a space/newline list OR repeated flag -----
+# --entrypoint <bin> and --differential 'flag::with::without' are BOTH repeatable
+# (card 07: shell-entrypoint smoke + differential dead-flag detection).
 CHANGED=()
+ENTRYPOINTS=()
+DIFFERENTIALS=()
 add_changed() {
   local raw="$1" tok _o="$IFS"
   set -f; IFS=$' \t\n'
@@ -64,9 +69,13 @@ add_changed() {
 }
 while [ $# -gt 0 ]; do
   case "$1" in
-    --changed)   shift; [ $# -gt 0 ] || usage "--changed requires a value"; add_changed "$1"; shift ;;
-    --changed=*) add_changed "${1#--changed=}"; shift ;;
-    -h|--help)   printf 'usage: %s --changed <file-or-list> [--changed <more>]\n' "$PROG" >&2; exit 3 ;;
+    --changed)        shift; [ $# -gt 0 ] || usage "--changed requires a value"; add_changed "$1"; shift ;;
+    --changed=*)      add_changed "${1#--changed=}"; shift ;;
+    --entrypoint)     shift; [ $# -gt 0 ] || usage "--entrypoint requires a value"; ENTRYPOINTS+=("$1"); shift ;;
+    --entrypoint=*)   ENTRYPOINTS+=("${1#--entrypoint=}"); shift ;;
+    --differential)   shift; [ $# -gt 0 ] || usage "--differential requires a value"; DIFFERENTIALS+=("$1"); shift ;;
+    --differential=*) DIFFERENTIALS+=("${1#--differential=}"); shift ;;
+    -h|--help)   printf 'usage: %s --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\'']\n' "$PROG" >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
@@ -221,12 +230,85 @@ for r in "${runners[@]}"; do
   if [ "$v" = covered ]; then log "runner[$r]: covered"; else log "runner[$r]: FAIL ($v)"; fi
 done
 
-# --- entrypoint smoke extension point (card 07) -----------------------------
-# Own-tests + zero-check above establish that a runnable behavioral suite EXISTS and
-# is NON-EMPTY. Card 07 hooks in HERE: after that guarantee, build/run the produced
-# entrypoint (CLI / handler / server) against a smoke input and assert it boots —
-# catching artifacts whose unit suite is green but whose wired entrypoint never runs.
-# Intentionally NOT implemented in this card; this is the documented hand-off seam.
+# --- entrypoint smoke + differential dead-flag (card 07) --------------------
+# Own-tests + zero-check above establish that a runnable behavioral suite EXISTS
+# and is NON-EMPTY. Card 07 hooks in HERE: for each declared shell entrypoint,
+#  (a) SMOKE it in a non-destructive form (--help) and assert it boots — a
+#      crash-on-invoke is exit 2 entrypoint-error.
+#  (b) DIFFERENTIAL: for each --differential 'flag::with::without', run the
+#      entrypoint WITH the flag and WITHOUT it and assert the observable output
+#      differs AS DECLARED (with-marker only-with, without-marker only-without).
+#      A flag whose presence changes nothing is exit 2 dead-affordance. This is a
+#      DIFFERENTIAL check, not "assert not error" — a silent no-op flag boots fine.
+#  (c) A .md entrypoint is a command/skill prompt doc, NOT a shell binary: it is
+#      reported (not-shell-smokable -> routed to B2/review) and NEVER executed,
+#      NEVER silently passed, NEVER failed.
+# Reuses the card-06 isolation/timeout helpers (run_capture / run_with_timeout).
+SHELL_EPS=()
+smoke_entrypoints() {
+  # nothing to smoke; a --differential with no shell entrypoint to run against is usage
+  if [ "${#ENTRYPOINTS[@]}" -eq 0 ]; then
+    [ "${#DIFFERENTIALS[@]}" -eq 0 ] || usage "--differential requires a shell --entrypoint to run against"
+    return 0
+  fi
+
+  local ep
+  for ep in "${ENTRYPOINTS[@]}"; do
+    case "$ep" in
+      *.md)
+        # (c) markdown prompt doc — do NOT execute; report + route (not a silent pass)
+        log "entrypoint[$ep]: markdown prompt doc, not a shell binary — out of shell smoke"
+        printf 'not-shell-smokable: %s -> routed to B2/review\n' "$ep" >&2
+        continue
+        ;;
+    esac
+    SHELL_EPS+=("$ep")
+    # (a) SMOKE: non-destructive probe under hard timeout; assert it boots (non-error)
+    log "entrypoint[$ep]: smoke probe '--help' (timeout ${TIMEOUT_SECS}s)"
+    run_capture "$ep" --help
+    log "entrypoint[$ep]: smoke exit=$RUN_RC"
+    if [ "$RUN_RC" != 0 ]; then
+      log "entrypoint[$ep]: crashed/errored on invoke (exit $RUN_RC)"
+      log "VERDICT: entrypoint-error ($ep)"
+      exit 2
+    fi
+  done
+
+  [ "${#DIFFERENTIALS[@]}" -gt 0 ] || return 0
+  if [ "${#SHELL_EPS[@]}" -eq 0 ]; then
+    usage "--differential given but no shell (non-.md) --entrypoint to run against"
+  fi
+
+  local spec flag rest with without ep2 out_with out_without ok
+  for spec in "${DIFFERENTIALS[@]}"; do
+    case "$spec" in
+      *"::"*"::"*) : ;;
+      *) usage "--differential must be 'flag::observable-with::observable-without' (got: $spec)" ;;
+    esac
+    flag="${spec%%::*}"; rest="${spec#*::}"; with="${rest%%::*}"; without="${rest#*::}"
+    for ep2 in "${SHELL_EPS[@]}"; do
+      run_capture "$ep2" "$flag"; out_with="$CAP"
+      run_capture "$ep2";         out_without="$CAP"
+      ok=1
+      # with-marker must appear WITH the flag and NOT without it; without-marker vice-versa
+      if ! printf '%s\n' "$out_with"    | grep -qF -- "$with";    then ok=0; fi
+      if   printf '%s\n' "$out_without" | grep -qF -- "$with";    then ok=0; fi
+      if ! printf '%s\n' "$out_without" | grep -qF -- "$without"; then ok=0; fi
+      if   printf '%s\n' "$out_with"    | grep -qF -- "$without"; then ok=0; fi
+      if [ "$out_with" = "$out_without" ]; then
+        log "entrypoint[$ep2]: '$flag' produced IDENTICAL output with/without — no observable effect"
+        ok=0
+      fi
+      if [ "$ok" != 1 ]; then
+        log "entrypoint[$ep2]: differential FAILED for '$flag' (declared with='$with' without='$without')"
+        log "VERDICT: dead-affordance ($ep2 $flag)"
+        exit 2
+      fi
+      log "entrypoint[$ep2]: differential OK for '$flag' (observable differs as declared)"
+    done
+  done
+}
+smoke_entrypoints
 # ----------------------------------------------------------------------------
 
 FINAL=""
