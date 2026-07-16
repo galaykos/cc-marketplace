@@ -81,8 +81,8 @@ e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
 - Criteria describe observable behavior, never the change itself. "Deleting a
   project soft-deletes its tasks" — not "code for soft-delete is added".
 - Each criterion is binary: passes or fails, no "works well".
-- The Verify line is an exact command plus expected output shape. If no such
-  command can exist, the card is not yet a task — sharpen it.
+- The Verify line is an exact command with **teeth**: a named assertion that fails if the
+  feature is absent — verify-teeth blocks compile/existence/require-only, `|| true`, bare "suite passes".
 
 ## Ordering and parallelism
 
@@ -129,14 +129,13 @@ contract is the orchestration plugin's delegation-contracts skill.
 
 Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 
-1. **Verify coverage.** Invoke the coverage-check skill on the spec + card set: it
-   cross-checks the spec's success criteria against the cards in both directions
-   and blocks on any unresolved gap, orphan, or drift, writing a `## Coverage`
-   matrix into `00-INDEX.md`.
-2. **Suggest a project skill.** If the claude-authoring plugin is installed, invoke
-   its project-skill-suggester skill on the finished card set — when three or more
-   cards lean on the same not-yet-captured repository-specific knowledge, it offers
-   to scaffold a project skill or agent. Skip silently when absent; it never blocks.
+1. **Verify coverage.** Invoke coverage-check: it cross-checks success criteria ↔ cards
+   both ways, blocks on any gap/orphan/drift, and writes `## Coverage` into `00-INDEX.md`.
+2. **Lint verify teeth.** Invoke verify-teeth: it runs `verify-teeth-lint.sh --card <file>`
+   per card and blocks a weak Verify line until it names a specific assertion.
+3. **Suggest a project skill.** If claude-authoring is installed, its project-skill-suggester
+   scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);
+   skip silently when absent, never blocks.
 
 ## Anti-patterns
 
