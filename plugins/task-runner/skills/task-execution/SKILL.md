@@ -26,7 +26,9 @@ Per task, loop — but with a hard ceiling:
 
 1. Implement the change the task describes.
 2. Run the task's verify command — the EXACT command, not a cheaper stand-in.
-3. Pass → done: record evidence (command + tail of output) and flip status.
+3. Pass → run the negative-control gate before flipping (`references/negative-control.md`):
+   `discriminating` → record evidence + flip; `vacuous`/`invalid-control` → back into this
+   loop (verify has no teeth); `isolation-halt` → halt. Manual/visual lines skip with a note.
 4. Fail → diagnose from the actual output, fix, go to 2.
 5. **Three failed fix cycles → halt the task.** Report what was tried, the exact
    failing output, and the current hypothesis. A fourth blind attempt is where
