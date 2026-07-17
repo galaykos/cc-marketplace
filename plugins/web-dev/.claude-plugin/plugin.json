@@ -1,6 +1,6 @@
 {
   "name": "web-dev",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Generalist web development pair: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR) and a frontend-reviewer that audits React/Vue/Inertia/Livewire/TS + react-native/vite against the matching per-framework skill. Stack-agnostic; defers stack idioms to the per-framework plugins.",
   "author": {
     "name": "Ivan-WG",

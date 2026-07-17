@@ -21,7 +21,7 @@ independently verifiable.
 
 ## Call-site discipline
 
-Before changing a shared symbol's signature or behavior, grep its call sites; update or explicitly flag every caller your change breaks — a caller you didn't look for is a bug you shipped.
+Before changing a shared symbol's signature or behavior, grep its call sites. Update every broken caller inside your allowed scope; a breaking caller OUTSIDE your allowed files is blast radius — flag it with evidence in your return, never edit it. Either way, a caller you didn't look for is a bug you shipped.
 
 ## Operating procedure
 

@@ -1,6 +1,6 @@
 {
   "name": "security",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS a design-phase threat-modeling skill (STRIDE, trust boundaries, abuse cases, dispositions). Includes /security:review and a security-engineer worker agent.",
   "author": {
     "name": "Ivan-WG",
