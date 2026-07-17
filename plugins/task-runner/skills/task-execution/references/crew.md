@@ -55,7 +55,8 @@ procedure — arm scope, inject the discipline preamble, dispatch):
 
 ### Hardened scope check on return
 
-Enforce with the existing diff-vs-declared-files check (`routing.md:44-48`), hardened for
+Enforce with the existing diff-vs-declared-files check (routing.md step 6, the
+diff-vs-declared check), hardened for
 the fact that authored tests are **new, untracked** files:
 
 - Enumerate `test-engineer`'s touched paths **including untracked additions**
@@ -112,7 +113,8 @@ only when **all** hold, else it is skipped silently (logged, never a failure):
 ## Leaf exclusion
 
 Crew runs **only for cards the main orchestrator dispatches directly**. A card delegated as
-a parallel-group leaf (`SKILL.md:86-87`) or a track leaf gets neither crew nor
+a parallel-group leaf (the "Delegating parallel groups" section of the task-execution
+SKILL) or a track leaf gets neither crew nor
 reviewers — a leaf cannot dispatch sub-workers.
 
 ## Ultra

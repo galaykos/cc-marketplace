@@ -94,7 +94,12 @@ Now the line names the assertion that fails if the guard is absent. Re-run: exit
 - **Manual / visual verify lines** ("dialog renders centered") — a card whose verification is
   a human observation has no command for the linter to grade; the script reports it and the
   line is allowed, but such cards must still be genuinely non-automatable, not an escape
-  hatch for skippable executable checks.
+  hatch for skippable executable checks. Name the **automatable-looking-manual-line** finding
+  when a line tagged manual/visual nonetheless carries a shell command, an exit-code
+  assertion, or a greppable expectation — it is contradicting its own tag. Hand it back to
+  the author to either automate the check or state why the automatable-looking token is
+  incidental. This is author-judgment guidance, not a syntactic block the script performs
+  (see "What it is NOT"); the runtime counterpart is negative-control's manual-skip residual.
 - **Multi-command verify** (`cmd-a && cmd-b`) — the whole line is linted; a weak segment
   anywhere (e.g. a trailing `|| true`) blocks it.
 - **A card with no Verify line at all** — exit 3; that is a malformed card, not a teeth pass.

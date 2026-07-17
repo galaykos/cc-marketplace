@@ -47,11 +47,17 @@ non-eligible milestones, **never** inside a track leaf or any delegated parallel
      disposable checkout/temp so it never mutates the live tree. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves
      it ran. A green suite alone does NOT close the run.
-   On BOTH green, record the pass to `.claude/task-runner/gate-pass.json`
-   (`{"head":"<git rev-parse HEAD>"}`) and remove `active-run.json`, then print the
+   On BOTH green, record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON
+   object — `{"head":"<git rev-parse HEAD>"}` for a plain run; for a taskmaster-index
+   run the SAME single object also carries
+   `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
+   the index bookkeeping (JSON integers, all three counts together — never a second
+   write that would clobber `head`) — and remove `active-run.json`, then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, and the follow-up backlog. If either gate is RED the run is not
-   complete — do not print a done report.
+   complete — do not print a done report. A run may not report complete while any card
+   is neither done nor parked; the completion gate checks the recorded card counts for
+   index runs.
 
 5. Handoff — on a green completion report, if the git-workflow plugin is
    installed, ask via AskUserQuestion: "Finish the branch now (Recommended)"

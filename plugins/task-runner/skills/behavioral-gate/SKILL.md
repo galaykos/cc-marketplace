@@ -117,6 +117,12 @@ forged. What the hook closes is the honest-but-forgetful skip; deliberate evasio
 requires actively omitting the register or faking the record, not merely forgetting to run
 the gate.
 
+Two further residuals it does **not** close: a non-index run (a todo or plan list) records
+no card counts in `gate-pass.json`, so the card-completeness check never fires for it — only
+taskmaster-index runs are backstopped against a silently-skipped card. And the per-card
+negative-control (layer 2 above) is instruction-only: no hook enforces that each card's
+control run actually happened.
+
 ## Anti-patterns
 
 - Reimplementing runner detection or empty-detection in prose — the script + `runners.md`
