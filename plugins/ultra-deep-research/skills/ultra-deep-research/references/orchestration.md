@@ -53,17 +53,20 @@ pipeline(
 )
 
 // reduceRefutePanel — three VERDICT objects in, one outcome out; every split is defined.
-// Votes are the verifier's structured returns, so tally on v.VERDICT — and a 'confirmed'
-// vote whose FETCH carries no verbatim-quote+timestamp evidence is discounted: the
-// reducer is the enforcement point for the verifier's confirmed-gate.
+// Votes are the verifier's structured returns, so tally on v.VERDICT. The reducer is the
+// enforcement point for BOTH halves of the verifier's confirmed-gate: a 'confirmed' vote
+// counts only with FETCH evidence (verbatim quote + retrieval timestamp) AND a named
+// CORROBORATION source. 'contested' is reserved for actual disagreement — weak or
+// unreadable evidence lands 'unconfirmed', never as a fabricated contradiction.
 function reduceRefutePanel(votes) {
   const n = t => votes.filter(v => v.VERDICT === t).length
-  const evidencedConfirms = votes.filter(v =>
-    v.VERDICT === 'confirmed' && v.FETCH && v.FETCH.includes('retrieved')).length
-  if (n('refuted') >= 2)                                   return 'refuted'      // majority-refute kills the claim
-  if (evidencedConfirms >= 2 && n('refuted') === 0)        return 'confirmed'    // ≥2 evidence-backed confirms, 0 refuted
-  if (n('unverifiable-this-session') === votes.length)     return 'unconfirmed'  // nobody could read the source — not a disagreement
-  return 'contested'                                                             // any other split
+  const evidenced = votes.filter(v => v.VERDICT === 'confirmed'
+    && v.FETCH && v.FETCH.includes('retrieved')
+    && v.CORROBORATION && !/^none/i.test(v.CORROBORATION)).length
+  if (n('refuted') >= 2)                       return 'refuted'      // majority-refute kills the claim
+  if (evidenced >= 2 && n('refuted') === 0)    return 'confirmed'    // ≥2 fully-evidenced confirms, 0 refuted
+  if (n('refuted') > 0 || n('contested') > 0)  return 'contested'    // a real disagreement signal exists
+  return 'unconfirmed'                                               // weak / unverifiable — not a contradiction
 }
 ```
 
@@ -71,9 +74,10 @@ Then loop-until-dry: a completeness-critic `agent` inspects the merged ledger fo
 facets / unconfirmed claims / stale dates and returns the next round's facets. Repeat
 until two consecutive rounds add nothing, or `budget.remaining()` is low. The refute
 stage above already fans each load-bearing claim to a 3-vote panel and folds the votes
-through `reduceRefutePanel`: majority-refute kills the claim, a clean evidence-backed
-confirm-majority with zero refutes confirms it, an all-unverifiable panel lands as
-`unconfirmed` (unreadable is not disagreement), and every other split lands as contested.
+through `reduceRefutePanel`: majority-refute kills the claim; a confirm-majority counts
+only votes carrying BOTH fetch evidence and a named corroboration source; splits with a
+genuine disagreement signal land contested; weak or unreadable-evidence splits (including
+an all-unverifiable panel) land `unconfirmed` — unreadable is not disagreement.
 
 Barrier only where a stage genuinely needs *all* prior results — deduping the ledger
 before the final synthesis, or early-exit when a round finds zero claims. Everything
