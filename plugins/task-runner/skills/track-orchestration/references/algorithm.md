@@ -58,8 +58,12 @@ The prompt to each track-worker contains, in order:
    command to this worktree with `git -C <abs>` or absolute paths. Do NOT touch any path
    outside it. Do NOT write `00-INDEX.md` (you do not have it)."*
 3. The milestone's card **text** inline, in dependency order.
-4. *"Run these cards INLINE yourself — do not route to specialist agents (you are a leaf
-   and cannot). Apply each card's `Skills to apply` as guidance only."*
+4. For every skill named in the cards' `Skills to apply`, the orchestrator resolves its
+   installed `SKILL.md` and injects a `Read <abs-path>` line HERE (delegation-contracts
+   § Skill priming) — the leaf cannot self-load skills, so priming it at dispatch is the
+   ONLY way a framework card in a track reaches its worker with the skill loaded. Then:
+   *"Run these cards INLINE yourself — do not route to specialist agents (you are a leaf
+   and cannot); Read every primed SKILL.md above before implementing its card."*
 5. Under ultra: *"Dispatched at model=<model>"* (and effort=<effort> only because this is
    a Workflow `agent()` dispatch).
 6. *"When done: `git -C <abs> add -A && git -C <abs> commit -m '<milestone> (track)'`,

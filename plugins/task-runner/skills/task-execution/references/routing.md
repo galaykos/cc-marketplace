@@ -36,10 +36,15 @@ and picks the first present in its available-agent-types list.
 3. **Arm scope.** Record the card's declared allowed-files to a per-card artifact,
    e.g. `<cwd>/.claude/task-runner/scope-<cardId>.json` (the runner's own — NOT the
    legacy fixed `scope.json`, which stays the inline path's soft tripwire).
-4. **Inject discipline.** Read
+4. **Inject discipline + prime stack skills.** Read
    `orchestration/skills/delegation-contracts/references/discipline-preamble.md` and
    paste its text **verbatim** into the dispatch prompt, together with the card and its
-   allowed-files. The preamble overrides the worker's own default procedure.
+   allowed-files. The preamble overrides the worker's own default procedure. THEN, for
+   every skill named in the card's `Skills to apply`, resolve its installed `SKILL.md`
+   and inject a `Read <abs-path>` line into the same prompt (delegation-contracts
+   § Skill priming) — a delegate cannot self-load skills. Do this **unconditionally, not
+   only under ultra**: a framework card must reach its worker with the framework skill
+   primed, or the code is written framework-blind and only caught (if at all) at review.
 5. **Dispatch** the resolved worker with that prompt.
 6. **Enforce + verify on return.** Run a **diff-vs-declared-files check** (git diff of
    the paths the worker touched vs the declared allowed-files); reclaim/reject a card
