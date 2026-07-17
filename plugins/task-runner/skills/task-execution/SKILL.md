@@ -26,7 +26,9 @@ Per task, loop — but with a hard ceiling:
 
 1. Implement the change the task describes.
 2. Run the task's verify command — the EXACT command, not a cheaper stand-in.
-3. Pass → done: record evidence (command + tail of output) and flip status.
+3. Pass → run the negative-control gate before flipping (`references/negative-control.md`):
+   `discriminating` → record evidence + flip; `vacuous`/`invalid-control` → back into this
+   loop (verify has no teeth); `isolation-halt` → halt. Manual/visual lines skip with a note.
 4. Fail → diagnose from the actual output, fix, go to 2.
 5. **Three failed fix cycles → halt the task.** Report what was tried, the exact
    failing output, and the current hypothesis. A fourth blind attempt is where
@@ -38,8 +40,8 @@ to pass, no `|| true`. The check is the task; gaming it is failing it silently.
 
 ## Reviewer pass (per task)
 
-After the task's verify command passes — and before its status flips to done —
-run a conditional reviewer pass on the task's diff:
+After the task's verify command passes — and before its status flips to done — run a
+conditional reviewer pass on the diff of a **directly-dispatched** card (a parallel-group/track leaf gets none — see `references/reviewer-routing.md`):
 
 - **code-reviewer** (code-review plugin): every task's diff, no condition.
 - **ui-ux-reviewer** (ui-ux plugin): only when the diff touches UI files —
@@ -50,20 +52,20 @@ run a conditional reviewer pass on the task's diff:
   validation, or dependencies.
 
 Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
-Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting (not replacing) the four above (dedup so none runs twice); the opt-in `--crew` flag additionally runs the concurrent read-only reviewers + a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
+Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs the concurrent read-only reviewers + a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker,
 dispatch the reviewer and delegated worker agents with a `model:` override — excluding
 `opinion-lens` — so the boost reaches execution even in a fresh session. Read BOTH
 markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
 escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
-trailing `(model=<model>, effort=<effort>)` sets `<model>`; an unknown/malformed
-parenthetical is treated as bare — falling to ITS OWN marker's legacy default: legacy
-bare `Ultra: true` → `model: opus, effort: max`; legacy bare `Goal: true` → `model: opus,
-effort: xhigh`. The Agent tool has no effort parameter, so it escalates model only
-(marker `effort` applies only on the `Workflow` `agent()` path). Delegated stack
-implementers also get delegation-contracts § Skill priming: resolve+inject `Read
-<abs-path>` per the card's `Skills to apply`. **Under `Goal:`** (hands-off): auto-take
+trailing `(model=…, effort=…)` sets the tier; a malformed one falls to the marker's
+legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). The Agent tool escalates model
+only (marker `effort` applies on the `Workflow` path). Delegated stack implementers also
+get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to
+apply`). Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced
+diff — at each serial milestone boundary and once before completion (in `--tracks`: once on the merged branch) — routing confirmed
+findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take
 pipeline gates — the run-plan preview is DISPLAYED, then execution proceeds without
 waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on
 forward progress (a task moved parked→done), else surface the parked list and stop.
@@ -71,7 +73,7 @@ Halt-with-evidence, mis-specified-task halts, and the full-suite completion gate
 UNCHANGED and NEVER suppressed under Goal.
 
 Blocker/major findings send the task back into the fix loop; each such round counts
-toward the SAME three-cycle ceiling as verify failures — the reviewer pass must not
+toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop uses its own fresh budget) — the reviewer pass must not
 create an unbounded loop. Minor findings go to the follow-up backlog, not the current
 diff. After a reviewer-driven fix, re-run the verify command before re-review.
 
@@ -140,10 +142,10 @@ as manual, with what was observed; "Verified ✓" alone is not evidence and clos
 The run is complete only when:
 
 1. Every task is done or parked-with-reason — none silently skipped.
-2. The project's FULL check suite (tests, lint, type-check, build — whatever the repo
-   defines) passes at the end, not just each task's local verify — local passes can
-   compose into a global failure. If docs-upkeep is installed, its drift check joins the
-   full-suite gate: documentation made stale by the run blocks completion like a failing test.
+2. The project's FULL check suite passes at the end (local passes can compose into a global
+   failure) AND the **behavioral-gate** actually runs the produced code (see its skill:
+   `scripts/behavioral-gate.sh --changed <run's files>`) — the repo suite may be a static
+   linter that never executes new code. docs-upkeep's drift check, if installed, joins this gate.
 3. The final report is a table: task / status / verify command / evidence line,
    plus the parked list with reasons and the follow-up backlog collected by the
    scope lock.

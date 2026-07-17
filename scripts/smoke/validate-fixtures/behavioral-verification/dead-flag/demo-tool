@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# DEFECT: dead-affordance. This tool DOCUMENTS and PARSES a --verbose flag, but the
+# flag is unwired: it sets a variable that nothing downstream ever reads, so the
+# output is byte-identical with and without it. The behavioral gate's differential
+# check must catch that the flag has no observable effect.
+set -euo pipefail
+verbose=0
+for arg in "$@"; do
+  case "$arg" in
+    --help) echo "usage: demo-tool [--verbose]"; exit 0 ;;
+    --verbose) verbose=1 ;;   # parsed but NEVER consumed — the dead affordance
+  esac
+done
+echo "result: done"
+exit 0

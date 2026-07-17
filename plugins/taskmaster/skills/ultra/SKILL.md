@@ -20,7 +20,7 @@ Ultra is active for THIS run when any of these holds this turn:
   `coverage`) was invoked with the explicit `ultra-task`/`ultratask` token, or
   with a bare `ultra` as the **first token of that command's own arguments**
   (`/taskmaster:<cmd> ultra …`), or
-- an execution run reads a `00-INDEX.md` that carries the `Ultra: true` marker.
+- an execution run reads a `00-INDEX.md` that carries the `Ultra: true` marker (a lone `Goal: true` marker also escalates workers — goal implies the boost).
 
 The trigger is deliberately narrow so a bare `ultra` cannot leak in from another
 command. `ultra` is a shared word — other plugins use it as their own intensity
@@ -50,7 +50,7 @@ your response, before anything else:
 
 Substitute `<model>`/`<effort>` with the tier the trigger selected (see Variants;
 defaults opus/xhigh). The banner is main-thread output, never hook output — so it
-renders regardless of hook ordering. Print it once per run, not once per phase.
+renders regardless of hook ordering. Print it once per run, not once per phase; if `ultra-goal` is also active it owns one merged banner (see the ultra-goal skill).
 
 ## The escalation contract (`ULTRA-TASK ACTIVE`)
 
@@ -127,11 +127,11 @@ tier; reaching them would require editing those plugins, which is out of scope.
 The spec and card phases run in the main thread, but execution happens later —
 often in a fresh session with no memory of this run. To survive that handoff,
 `task-cards` writes an `Ultra: true (model=<model>, effort=<effort>)` marker into
-the generated `00-INDEX.md`. The `task-runner` task-execution skill reads it and
-dispatches the worker agents it spawns with `model: <model>` (excluding
-`opinion-lens`); a legacy bare `Ultra: true` with no parenthetical means opus. The
-marker is a durable property of the generated artifact, not session state — so
-ultra reaches execution even across a session boundary.
+the generated `00-INDEX.md`. task-execution reads it, dispatches workers with
+`model: <model>` (excluding `opinion-lens`; legacy bare `Ultra: true` means opus), AND
+runs the **code-redteam** pass over the produced diff at milestone boundaries + completion.
+The marker — not this contract's text — is the durable trigger, so tier and code red-team
+reach execution across a session boundary.
 
 ## Graceful degradation
 

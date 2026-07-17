@@ -37,8 +37,8 @@ inline the discussion's conclusion instead.
 
 **Depends on:** 02, 03 — or "none".
 
-**Skills to apply:** <stack skills for this card from the stack-scan inventory,
-e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
+**Skills to apply:** <stack skills for this card; the executing session MUST Read each
+named SKILL.md before implementing — e.g. laravel-best-practices; or "none detected">
 
 **Agent:** <capability tag per `references/agent-tags.md` — always emit; `generic` when files span >1 domain or no tag matches>
 ```
@@ -81,8 +81,8 @@ e.g. laravel-best-practices, postgresql-best-practices — or "none detected">
 - Criteria describe observable behavior, never the change itself. "Deleting a
   project soft-deletes its tasks" — not "code for soft-delete is added".
 - Each criterion is binary: passes or fails, no "works well".
-- The Verify line is an exact command plus expected output shape. If no such
-  command can exist, the card is not yet a task — sharpen it.
+- The Verify line is an exact command with **teeth**: a named assertion that fails if the
+  feature is absent — verify-teeth blocks compile/existence/require-only, `|| true`, bare "suite passes".
 
 ## Ordering and parallelism
 
@@ -120,7 +120,7 @@ taskmaster-docs/tasks/YYYY-MM-DD-<slug>/
 `00-INDEX.md` holds: the spec path, a table (card / title / depends-on / agent /
 parallel group / status), and the run note — each card is executed by pasting it into a
 fresh session or `claude "$(cat 01-*.md)"`. Update the status column as cards
-land; the index is the only file that mutates during execution. Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true (model=<model>, effort=<effort>)` line near the top of `00-INDEX.md` — copy the `model`/`effort` the directive resolved (defaults opus/max) — so a fresh-session execution run inherits the boost at the same tier. Under `ULTRA-GOAL ACTIVE` (see the `ultra-goal` skill), ALSO write an exact `Goal: true (model=<model>, effort=<effort>) — requires task-runner ≥0.11.0; older runners fall back to interactive execution` line with the resolved tier (ultra-task tier when both tokens are present); when only goal is active, write BOTH lines — the `Ultra:` line carries the resolved tier because goal implies the boost.
+land; the index is the only file that mutates during execution. Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true (model=<model>, effort=<effort>)` line near the top of `00-INDEX.md` — copy the `model`/`effort` the directive resolved (defaults opus/xhigh) — so a fresh-session execution run inherits the boost at the same tier. Under `ULTRA-GOAL ACTIVE` (see the `ultra-goal` skill), ALSO write an exact `Goal: true (model=<model>, effort=<effort>) — requires task-runner ≥0.11.0; older runners fall back to interactive execution` line with the resolved tier (ultra-task tier when both tokens are present); when only goal is active, write BOTH lines — the `Ultra:` line carries the resolved tier because goal implies the boost.
 
 When cards are executed by subagents, the dispatch-prompt and return-format
 contract is the orchestration plugin's delegation-contracts skill.
@@ -129,14 +129,13 @@ contract is the orchestration plugin's delegation-contracts skill.
 
 Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 
-1. **Verify coverage.** Invoke the coverage-check skill on the spec + card set: it
-   cross-checks the spec's success criteria against the cards in both directions
-   and blocks on any unresolved gap, orphan, or drift, writing a `## Coverage`
-   matrix into `00-INDEX.md`.
-2. **Suggest a project skill.** If the claude-authoring plugin is installed, invoke
-   its project-skill-suggester skill on the finished card set — when three or more
-   cards lean on the same not-yet-captured repository-specific knowledge, it offers
-   to scaffold a project skill or agent. Skip silently when absent; it never blocks.
+1. **Verify coverage.** Invoke coverage-check: it cross-checks success criteria ↔ cards
+   both ways, blocks on any gap/orphan/drift, and writes `## Coverage` into `00-INDEX.md`.
+2. **Lint each card.** Per card run `verify-teeth-lint.sh --card <file>` (blocks a weak
+   Verify line) and `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
+3. **Suggest a project skill.** If claude-authoring is installed, its project-skill-suggester
+   scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);
+   skip silently when absent, never blocks.
 
 ## Anti-patterns
 

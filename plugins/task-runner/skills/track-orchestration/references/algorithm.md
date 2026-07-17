@@ -58,8 +58,12 @@ The prompt to each track-worker contains, in order:
    command to this worktree with `git -C <abs>` or absolute paths. Do NOT touch any path
    outside it. Do NOT write `00-INDEX.md` (you do not have it)."*
 3. The milestone's card **text** inline, in dependency order.
-4. *"Run these cards INLINE yourself — do not route to specialist agents (you are a leaf
-   and cannot). Apply each card's `Skills to apply` as guidance only."*
+4. For every skill named in the cards' `Skills to apply`, the orchestrator resolves its
+   installed `SKILL.md` and injects a `Read <abs-path>` line HERE (delegation-contracts
+   § Skill priming) — the leaf cannot self-load skills, so priming it at dispatch is the
+   ONLY way a framework card in a track reaches its worker with the skill loaded. Then:
+   *"Run these cards INLINE yourself — do not route to specialist agents (you are a leaf
+   and cannot); Read every primed SKILL.md above before implementing its card."*
 5. Under ultra: *"Dispatched at model=<model>"* (and effort=<effort> only because this is
    a Workflow `agent()` dispatch).
 6. *"When done: `git -C <abs> add -A && git -C <abs> commit -m '<milestone> (track)'`,
@@ -80,8 +84,11 @@ The prompt to each track-worker contains, in order:
 ## 3. Serial milestones + final gate
 
 1. After the wave loop, run every remaining **serial** milestone inline in the main tree,
-   in dependency order (normal per-card execution, Part A routing available here).
-2. Run **one** full project check suite on the merged run branch.
+   in dependency order (normal per-card execution, the per-card dispatch/routing procedure is available here).
+2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
+   (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed <all merged tracks' files>`,
+   see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
+   Under an `Ultra:`/`Goal:` marker, the code-redteam pass also runs here (per its skill).
 3. **Green** → delete merged track branches, `git worktree remove` their (clean)
    worktrees, drop the lock, hand off to `git-workflow:finish` on the run branch.
 4. **Red** (semantic breakage can survive a clean merge — per-track green was verified
