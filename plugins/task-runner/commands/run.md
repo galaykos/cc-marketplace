@@ -28,7 +28,10 @@ non-eligible milestones, **never** inside a track leaf or any delegated parallel
 `ultra-task`/`ultra-assess` run engages crew; without `--crew` the run is exactly as today.
 
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
-   groups, verify command per task) before executing.
+   groups, verify command per task) before executing. Register the run for the
+   completion-gate Stop hook: write `.claude/task-runner/active-run.json`
+   (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>"}`) so the
+   hook can enforce that a behavioral-gate pass is recorded before the run stops clean.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional
@@ -36,9 +39,19 @@ non-eligible milestones, **never** inside a track leaf or any delegated parallel
 3. Update status in the index only; collect scope-lock follow-ups as a backlog
    list, never as in-run detours. No status HTML — the index and the
    conversation are the run's views (per the task-execution skill).
-4. Finish with the full project check suite and the completion report table
-   (task / status / verify command / evidence), parked tasks with reasons, and
-   the follow-up backlog.
+4. Finish with BOTH completion gates, never one alone:
+   - the full project check suite (catches lint/type/build regressions), AND
+   - the **behavioral-gate** on the run's changed files —
+     `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed "<the run's touched
+     files>" [--entrypoint <bin>] [--differential 'flag::with::without']`, run from a
+     disposable checkout/temp so it never mutates the live tree. The repo suite may be a
+     static linter that never executes the new code; the behavioral-gate is what proves
+     it ran. A green suite alone does NOT close the run.
+   On BOTH green, record the pass to `.claude/task-runner/gate-pass.json`
+   (`{"head":"<git rev-parse HEAD>"}`) and remove `active-run.json`, then print the
+   completion report table (task / status / verify command / evidence), parked tasks
+   with reasons, and the follow-up backlog. If either gate is RED the run is not
+   complete — do not print a done report.
 
 5. Handoff — on a green completion report, if the git-workflow plugin is
    installed, ask via AskUserQuestion: "Finish the branch now (Recommended)"
@@ -54,4 +67,4 @@ EXEMPT from take-Recommended — under Goal it ALWAYS resolves to "Stop here" re
 which option is labeled Recommended (never auto-run branch merge/PR). The parked "Retry
 parked tasks now" offer is bounded to one auto-retry on forward progress (a task moved
 parked→done), else auto-take "Stop here" and surface the parked list. Halts-with-evidence,
-mis-specified-task halts, and the full-suite completion gate are never suppressed.
+mis-specified-task halts, and the full-suite + behavioral-gate completion gate are never suppressed.

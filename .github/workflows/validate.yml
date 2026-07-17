@@ -35,6 +35,8 @@ jobs:
         run: bash scripts/smoke/route-marker-tests.sh
       - name: Behavioral-verification smoke tests
         run: bash scripts/smoke/behavioral-verification-tests.sh
+      - name: Completion-gate hook smoke tests
+        run: bash scripts/smoke/completion-gate-hook-tests.sh
       # scripts/smoke/canary.sh is intentionally NOT a CI step: its own header
       # declares it "NOT a CI gate (needs a live model)". It reads
       # $HOME/.claude/plugins/cache (absent in CI), needs a delegated model round

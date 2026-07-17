@@ -95,13 +95,23 @@ A behavioral-gate failure **parks-and-stops** — it is never auto-taken. A hand
 not close on a green that the gate contradicts; the failing label + artifact path is
 surfaced for the operator.
 
-## Enforcement honesty (residual risk)
+## Enforcement — the Stop hook, and the honest residual
 
-The script is deterministic and CI-tested, but the *invocation* at run completion is still
-driven by this skill's prose — a run could in principle fail to call it, the same class of
-skip that motivated the whole gate. Wire the call into the completion protocol explicitly,
-and prefer a Stop-hook invocation where the host supports it. This skill does not claim the
-call is unskippable; it claims that *when run*, the gate has teeth.
+The completion protocol runs this gate and, on a pass, records it to
+`.claude/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). The task-runner **Stop
+hook** (`hooks/completion-gate.sh`) reads that record: for a run that registered itself
+(`.claude/task-runner/active-run.json`, written at run start per `run.md` step 1), it
+refuses a clean stop unless a gate pass is recorded for the current HEAD — a reminder by
+default, a hard block under `TASK_RUNNER_STOP_GATE=block`. So a registered run can no longer
+stop "done" on a green repo suite that never ran the produced code.
+
+The residual is named, not hidden: the hook is a *records* check — cheap, fires on every
+yield, and never executes the produced tests (the completion protocol does that in
+isolation). It is keyed off the run registering itself, so a run that never writes
+`active-run.json` is not enforced (fail-open), and a recorded pass could in principle be
+forged. What the hook closes is the honest-but-forgetful skip; deliberate evasion now
+requires actively omitting the register or faking the record, not merely forgetting to run
+the gate.
 
 ## Anti-patterns
 
