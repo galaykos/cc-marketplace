@@ -31,7 +31,7 @@ ask for a docs excerpt — never fill the gap from memory.
 Start from the area page, not search — fetch and follow from these roots; if a
 path 404s (docs get reshuffled), recover from https://playwright.dev/docs/intro:
 
-| Task smells like | Start here (under /docs/) |
+| Task smells like | Start here (under /docs/ unless noted) |
 |---|---|
 | First install, project setup | intro, writing-tests |
 | Finding elements | locators (reference: api/class-locator) |
@@ -44,6 +44,7 @@ path 404s (docs get reshuffled), recover from https://playwright.dev/docs/intro:
 | Debug a run after the fact | trace-viewer-intro |
 | Attach to an existing browser | api/class-browsertype (`connectOverCDP`) |
 | Isolation boundary per session | browser-contexts |
+| Authenticate a live MCP session | playwright-mcp README (github.com/microsoft/playwright-mcp — outside /docs/) |
 
 ## Conventions the docs enforce
 

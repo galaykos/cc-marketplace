@@ -20,6 +20,13 @@ browser (AdsPower / Kameleo) over CDP.
 |---------|--------------|
 | `/playwright:check [automation-goal-or-api]` | Resolve the current stable version, the exact API surface (verified against the live reference), and the doc-backed patterns that apply — selectors, auto-waiting, network control, `storageState` auth, parallelism, tracing, and `connectOverCDP` |
 
+## Authenticated sessions
+
+The skills cover authenticating live Playwright MCP QA/E2E
+sessions: pre-authenticated storage state by default (captured once by a human,
+loaded via the MCP server's flags), or user-in-the-loop login as the fallback —
+credentials are never typed by the model and never enter the transcript.
+
 ## Example — automate an AdsPower profile
 
 ```bash

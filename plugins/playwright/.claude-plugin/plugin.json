@@ -1,6 +1,6 @@
 {
   "name": "playwright",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Playwright automation navigator: resolves the current API from live docs (playwright.dev), link map per area (locators, auto-waiting, network interception, storageState auth, test runner, trace viewer, connectOverCDP), robust-automation patterns, and driving an anti-detect browser (AdsPower/Kameleo) over CDP. Includes /playwright:check and a Playwright-keyword reminder hook. Defers general third-party doc verification to api-docs-first.",
   "author": {
     "name": "Ivan-WG",
