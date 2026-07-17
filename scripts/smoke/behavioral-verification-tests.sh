@@ -21,8 +21,15 @@ FIX="$ROOT/scripts/smoke/validate-fixtures/behavioral-verification"
 
 command -v node >/dev/null 2>&1 || { echo "SKIP: node not available (behavioral fixtures need node --test)"; exit 0; }
 
+# Content checksum of the SOURCE fixture dir (names + sizes + CRC of every file),
+# more precise than repo git-status: it detects an in-place fixture mutation even if
+# the file were somehow gitignored/untracked. Gates run only in temp copies of these,
+# so this must be byte-identical before/after.
+fix_checksum() { find "$FIX" -type f -exec cksum {} + 2>/dev/null | LC_ALL=C sort | cksum; }
+
 rc=0
 GIT_BEFORE="$(git -C "$ROOT" status --porcelain 2>/dev/null || true)"
+FIX_BEFORE="$(fix_checksum)"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -86,6 +93,15 @@ if [ "$GIT_BEFORE" = "$GIT_AFTER" ]; then
   echo "PASS[git-status]: repo tree unchanged before/after"
 else
   echo "FAIL[git-status]: repo tree changed during run"
+  rc=1
+fi
+
+# --- fixture-dir content invariant (precise; catches in-place fixture mutation) --
+FIX_AFTER="$(fix_checksum)"
+if [ "$FIX_BEFORE" = "$FIX_AFTER" ]; then
+  echo "PASS[fixture-checksum]: source fixture dir content-identical before/after"
+else
+  echo "FAIL[fixture-checksum]: source fixture dir mutated during run"
   rc=1
 fi
 

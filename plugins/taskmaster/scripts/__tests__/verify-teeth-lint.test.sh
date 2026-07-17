@@ -54,6 +54,15 @@ run_case "strong: colon in url not always-true" 0 ""          --line 'curl -s ht
 run_case "compile-only: tsc --noEmit"     2 "compile-only"    --line 'tsc --noEmit'
 run_case "import-only: python -c import"   2 "import-only"     --line 'python -c "import app"'
 run_case "existence-only: ls whole check" 2 "existence-only"  --line 'ls dist/'
+# --- Fix 1: existence-only via `test -d` and the `[ -f ]` bracket form ---
+run_case "existence-only: test -d dir"    2 "existence-only"  --line 'test -d dist'
+run_case "existence-only: [ -f ] bracket" 2 "existence-only"  --line '[ -f out.js ]'
+run_case "existence-only: [ -d ] bracket" 2 "existence-only"  --line '[ -d dist ]'
+run_case "strong: [ -f ] && grep guarded" 0 ""                --line '[ -f out.js ] && grep -q ready out.js'
+# --- Fix 2: `.toString`/ordinary methods must NOT count as an assertion, so a bare
+#     require(...).toString() is still require-only; real jest matchers still count. ---
+run_case "require-only: require().toString()" 2 "require-only" --line 'node -e "require(\"./x\").toString()"'
+run_case "strong: require().toBeTruthy() matcher" 0 ""        --line 'node -e "require(\"./x\").val.toBeTruthy()"'
 run_case "usage: no args"                 3 "usage"
 
 # --- --card extraction: weak and strong Verify lines from a markdown card ---

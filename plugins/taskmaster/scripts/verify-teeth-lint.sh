@@ -11,7 +11,7 @@
 #
 # Blocked weak forms (each -> exit 2, `verify-teeth: <reason>` on stderr, the
 # reason names the matched pattern):
-#   existence-only  : `test -f`, `test -e`, or `ls ` as the whole check
+#   existence-only  : `test -f/-e/-d`, `[ -f ... ]`, or `ls ` as the whole check
 #   always-true     : `|| true`, `; true`, or `|| :` anywhere, incl. when
 #                     followed by `;`/`)`/`"` (neuters the exit status)
 #   require-only    : `node -e "require(...)"`  with no assertion following
@@ -81,7 +81,10 @@ line=$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
 # has <extended-regex> : case-insensitive substring/regex test against $line.
 has() { printf '%s' "$line" | grep -Eiq -- "$1"; }
 
-assert_re='assert|expect|throw|===|!==|\.to[a-z]+|console\.assert|process\.exit|exit\([1-9]|==[[:space:]]*[0-9]|!=[[:space:]]|-eq[[:space:]]|[[:space:]]status[[:space:]]'
+# NOTE: the jest-matcher alternative is a CLOSED prefix list, not `\.to[a-z]+` — the
+# old wildcard also matched ordinary methods (`.toString`, `.toLowerCase`, `.toFixed`,
+# `.toJSON`), letting a bare `require(...).toString()` masquerade as an assertion.
+assert_re='assert|expect|throw|===|!==|\.to(Be|Equal|Contain|Match|Throw|Have|Strict|Return|Close|Greater|Less|Instance|Satisfy)|console\.assert|process\.exit|exit\([1-9]|==[[:space:]]*[0-9]|!=[[:space:]]|-eq[[:space:]]|[[:space:]]status[[:space:]]'
 strong_guard='&&|\|[[:space:]]*grep|\|[[:space:]]*wc|assert|expect'
 
 # 1) always-true — an unconditional pass neuters whatever precedes it. The
@@ -93,10 +96,12 @@ if has '(\|\|[[:space:]]*(true|:)|;[[:space:]]*(true|:))([^[:alnum:]_]|$)'; then
   weak "always-true: '|| true' / '; true' / '|| :' neuters the exit status"
 fi
 
-# 2) existence-only — proves a path exists, as the whole check.
-if has '^[[:space:]]*(test[[:space:]]+-[fe][[:space:]]|ls([[:space:]]|$))' \
+# 2) existence-only — proves a path exists, as the whole check. Covers the
+#    `test -f/-e/-d` command form AND the `[ -f ... ]` bracket form (both are just
+#    a stat, never a behavior check) unless combined with a real assertion (&&/grep).
+if has '^[[:space:]]*(test[[:space:]]+-[fed][[:space:]]|\[[[:space:]]+-[fed][[:space:]]|ls([[:space:]]|$))' \
    && ! has "$strong_guard"; then
-  weak "existence-only: test -f/-e/ls proves a path exists, not that behavior works"
+  weak "existence-only: test -f/-e/-d, [ -f ], or ls proves a path exists, not that behavior works"
 fi
 
 # 3) compile-only — compiles/type-checks, as the whole check.

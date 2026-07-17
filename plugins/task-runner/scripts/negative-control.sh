@@ -7,14 +7,16 @@
 # valid control (the check never reached an assertion) and is rejected.
 #
 # Usage:
-#   negative-control.sh --verify "<cmd>" --target <impl-file> [--mutate <sed-expr> | --auto]
+#   negative-control.sh --verify "<cmd>" --target <impl-file> [--root <dir>] [--mutate <sed-expr> | --auto]
 #   negative-control.sh --classify-stdin      # (internal) classify a red blob on stdin
 #
-# Isolation: the caller's working directory (CWD) is copied to a fresh mktemp -d
-# (minus .git); the target's tests come along, only <impl-file> is mutated. Every
-# run happens in the copy; the temp is discarded; the live tree is untouched. For
-# a test-adding card the new test is already present in the copy - only the impl
-# is mutated.
+# Isolation: the copy ROOT (CWD by default, or --root <dir> to narrow the copied
+# subtree — cheaper when CWD carries a heavy node_modules/.venv the target doesn't
+# need) is copied to a fresh mktemp -d (minus .git); the target's tests come along,
+# only <impl-file> (resolved UNDER the root, and where the Verify command runs) is
+# mutated. Every run happens in the copy; the temp is discarded; the live tree is
+# untouched. For a test-adding card the new test is already present in the copy -
+# only the impl is mutated.
 #
 # Exit codes:
 #   0  discriminating  - a non-build/collection RED on the mutated copy, green on
@@ -78,11 +80,12 @@ classify_red() {
 if [ "${1:-}" = "--classify-stdin" ]; then classify_red; exit 0; fi
 
 # ---- arg parse ----
-VERIFY=""; TARGET=""; MUTATE=""; HAVE_MUTATE=0; AUTO=0
+VERIFY=""; TARGET=""; MUTATE=""; HAVE_MUTATE=0; AUTO=0; ROOT="."
 while [ $# -gt 0 ]; do
   case "$1" in
     --verify) [ $# -ge 2 ] || usage "--verify needs an argument"; VERIFY="$2"; shift 2 ;;
     --target) [ $# -ge 2 ] || usage "--target needs an argument"; TARGET="$2"; shift 2 ;;
+    --root)   [ $# -ge 2 ] || usage "--root needs an argument"; ROOT="$2"; shift 2 ;;
     --mutate) [ $# -ge 2 ] || usage "--mutate needs an argument"; MUTATE="$2"; HAVE_MUTATE=1; shift 2 ;;
     --auto)   AUTO=1; shift ;;
     -h|--help) grep -E '^#' "$0" | sed 's/^#!.*//; s/^# \{0,1\}//'; exit 0 ;;
@@ -93,9 +96,12 @@ done
 [ -n "$TARGET" ] || usage "need --target <impl-file>"
 if [ "$HAVE_MUTATE" = 1 ] && [ "$AUTO" = 1 ]; then usage "--mutate and --auto are mutually exclusive"; fi
 if [ "$HAVE_MUTATE" = 0 ] && [ "$AUTO" = 0 ]; then AUTO=1; fi
-[ -f "$TARGET" ] || usage "target file not found (relative to CWD): $TARGET"
+[ -d "$ROOT" ] || usage "--root dir not found: $ROOT"
 
-SRC=$(pwd -P)
+# SRC is the subtree that gets copied+isolated; --target is resolved under it. With
+# the default --root '.', SRC is CWD and behavior is byte-identical to the old form.
+SRC=$(cd "$ROOT" && pwd -P) || halt "cannot resolve --root: $ROOT"
+[ -f "$SRC/$TARGET" ] || usage "target file not found under root ($ROOT): $TARGET"
 
 # ---- isolate: copy the working tree (minus .git) into two fresh temp copies ----
 TMP=$(mktemp -d 2>/dev/null) || halt "mktemp -d failed"

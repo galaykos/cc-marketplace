@@ -58,7 +58,15 @@ case_classify() {
   fi
 }
 
-# ===================== node fixtures (always available) =====================
+# node-`--test`-requiring live fixtures are gated: on a host without node they SKIP
+# (not hard-fail), mirroring the dogfood harness. The classifier-signature stubs and
+# the pure-bash regression cases below need no runtime and always run.
+HAVE_NODE=0; command -v node >/dev/null 2>&1 && HAVE_NODE=1
+maybe_node() { # gate a case whose --verify invokes `node --test`
+  if [ "$HAVE_NODE" = 1 ]; then case_run "$@"; else printf 'SKIP: %s (node unavailable)\n' "$1"; fi
+}
+
+# ===================== node fixtures (gated on node) =====================
 
 # --- vacuous: the test never checks the feature, so the mutation is undetected ---
 V="$WS/vacuous"; mkdir -p "$V"
@@ -72,7 +80,7 @@ const assert = require('node:assert');
 require('./impl.js');            // feature loads but is never asserted against
 test('smoke', () => { assert.ok(true); });
 JS
-case_run "vacuous: mutation undetected -> green in both states" "$V" 2 \
+maybe_node "vacuous: mutation undetected -> green in both states" "$V" 2 \
   --verify 'node --test smoke.test.js' --target impl.js --mutate 's/return 42/return 0/'
 
 # --- discriminating: a real assertion that the mutation breaks ---
@@ -87,11 +95,11 @@ const assert = require('node:assert');
 const { add } = require('./impl.js');
 test('add', () => { assert.strictEqual(add(2, 3), 5); });
 JS
-case_run "discriminating: assertion-red on mutated, green on unmutated" "$D" 0 \
+maybe_node "discriminating: assertion-red on mutated, green on unmutated" "$D" 0 \
   --verify 'node --test add.test.js' --target impl.js --mutate 's/a + b/a - b/'
 
 # --- invalid-control: mutation breaks syntax -> build red (not an assertion) ---
-case_run "invalid-control: mutation -> SyntaxError build red" "$D" 4 \
+maybe_node "invalid-control: mutation -> SyntaxError build red" "$D" 4 \
   --verify 'node --test add.test.js' --target impl.js --mutate 's/return a + b;/return a + b);/'
 
 # --- discriminating via --auto: auto picks a feature-disabling edit ---
@@ -106,8 +114,25 @@ const assert = require('node:assert');
 const { flag } = require('./impl.js');
 test('flag', () => { assert.strictEqual(flag(), true); });
 JS
-case_run "auto: chosen edit disables feature -> assertion red" "$A" 0 \
+maybe_node "auto: chosen edit disables feature -> assertion red" "$A" 0 \
   --verify 'node --test flag.test.js' --target impl.js --auto
+
+# --- Fix 3: --root narrows the copied subtree; the control still discriminates.
+#     wd carries a sibling file OUTSIDE the root that the target never needs. ---
+R="$WS/rooted"; mkdir -p "$R/sub"
+cat > "$R/sub/impl.js" <<'JS'
+function add(a, b) { return a + b; }
+module.exports = { add };
+JS
+cat > "$R/sub/add.test.js" <<'JS'
+const test = require('node:test');
+const assert = require('node:assert');
+const { add } = require('./impl.js');
+test('add', () => { assert.strictEqual(add(2, 3), 5); });
+JS
+printf 'heavy sibling the target does not need\n' > "$R/ignore-me.txt"
+maybe_node "root: --root narrows copy to subdir, control discriminates" "$R" 0 \
+  --root sub --verify 'node --test add.test.js' --target impl.js --mutate 's/a + b/a - b/'
 
 # ===================== regression: classifier precedence (Fix 1 + Fix 2) =====================
 
@@ -126,7 +151,7 @@ test('errorLabel is SyntaxError', () => {
   assert.strictEqual(errorLabel(), 'SyntaxError');
 });
 JS
-case_run "Fix1: assertion message mentions SyntaxError -> exit 0 (not 4)" "$F1" 0 \
+maybe_node "Fix1: assertion message mentions SyntaxError -> exit 0 (not 4)" "$F1" 0 \
   --verify 'node --test label.test.js' --target impl.js --mutate 's/SyntaxError/OTHERWORD/'
 
 # --- Fix 2: a discriminating red whose runner emits TAP `not ok` (outside the
@@ -152,7 +177,7 @@ case_run "Fix2: plain exit-1 diff (unknown) discriminating red -> exit 0 (not 4)
 # ===================== halt / usage guards =====================
 
 # --- no-op mutation is not a control -> exit 5 ---
-case_run "no-op mutation (sed matches nothing) -> halt 5" "$D" 5 \
+maybe_node "no-op mutation (sed matches nothing) -> halt 5" "$D" 5 \
   --verify 'node --test add.test.js' --target impl.js --mutate 's/__ABSENT_TOKEN__/x/'
 
 # --- baseline that is not green on the unmutated copy -> exit 5 ---
@@ -167,7 +192,7 @@ const assert = require('node:assert');
 const { add } = require('./impl.js');
 test('bad', () => { assert.strictEqual(add(1, 1), 999); }); // fails even unmutated
 JS
-case_run "baseline not green on unmutated copy -> halt 5" "$B" 5 \
+maybe_node "baseline not green on unmutated copy -> halt 5" "$B" 5 \
   --verify 'node --test bad.test.js' --target impl.js --mutate 's/a + b/a - b/'
 
 # --- usage: required flag missing -> exit 3 ---

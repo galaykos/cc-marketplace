@@ -19,11 +19,13 @@
 #              | entrypoint-error (crash-on-invoke) | dead-affordance (flag is a no-op)
 #   3  usage
 #
-# SAFETY: this gate RUNS code (the artifact's own tests). It runs each runner in the
-# current working directory and writes NOTHING into that tree (runner output is
-# captured to a mktemp file OUTSIDE it). Invoke it from a disposable checkout / temp
-# fixture so a misbehaving suite cannot mutate a live repo — the test harness does
-# exactly that and asserts `git status --porcelain` is byte-identical before/after.
+# SAFETY: this gate RUNS code (the artifact's own tests) IN the current working
+# directory — a misbehaving suite CAN write into cwd (runner cache dirs, coverage
+# files, test-created artifacts). The gate does NOT sandbox those writes; only its
+# own capture of runner output goes to a mktemp file OUTSIDE the tree. Tree isolation
+# is the CALLER's responsibility: invoke from a disposable checkout / temp fixture.
+# The dogfood harness does exactly that and asserts `git status --porcelain` (and a
+# fixture-dir checksum) is byte-identical before/after.
 
 set -euo pipefail
 
@@ -132,15 +134,22 @@ pkg_test_script() {
   fi
 }
 
-# ---- run a runner, capture combined output + exit code (no tree writes) -----
+# ---- run a runner, capture combined output + exit code ----------------------
+# All captures land in one script-scoped temp DIR removed by an EXIT/INT/TERM trap,
+# so a signal between mktemp and the read can never leak a temp (mirrors
+# negative-control.sh's isolation). run_capture is ALSO called inside the
+# `$(verdict_*)` command-substitution subshells below: those inherit WORKTMP but do
+# NOT fire the parent's EXIT trap, so the dir survives until the parent cleans it —
+# and the trap's `rm -rf` returns 0, so it never clobbers the script's exit code.
 CAP=""; RUN_RC=0
+WORKTMP=$(mktemp -d) || { log "cannot create temp workspace (mktemp -d failed)"; exit 3; }
+trap 'rm -rf "$WORKTMP"' EXIT INT TERM
 run_capture() {
-  local tmp; tmp=$(mktemp)
   set +e
-  run_with_timeout "$TIMEOUT_SECS" "$@" >"$tmp" 2>&1
+  run_with_timeout "$TIMEOUT_SECS" "$@" >"$WORKTMP/cap" 2>&1
   RUN_RC=$?
   set -e
-  CAP=$(cat "$tmp"); rm -f "$tmp"
+  CAP=$(cat "$WORKTMP/cap")
 }
 
 # ---- (b)+(c) per-runner verdict: covered | empty-suite | no-behavioral-coverage | unverifiable-suite
