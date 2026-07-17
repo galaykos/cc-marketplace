@@ -60,7 +60,7 @@ dispatch the reviewer and delegated worker agents with a `model:` override — e
 markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
 escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
 trailing `(model=…, effort=…)` sets the tier; a malformed one falls to the marker's
-legacy default (`Ultra:`→opus/max, `Goal:`→opus/xhigh). The Agent tool escalates model
+legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). The Agent tool escalates model
 only (marker `effort` applies on the `Workflow` path). Delegated stack implementers also
 get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to
 apply`). Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced

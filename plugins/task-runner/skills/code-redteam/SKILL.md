@@ -99,12 +99,12 @@ three lenses in sequence, records evidence-backed defects, and dedups them via
 `--dedup`. Less parallelism, same deliverable — a code red-team always runs, the run just
 degrades to a single reader. A skipped red-team is a silent regression, never an option.
 
-## Scope of THIS card — wiring is card 11
+## When it fires
 
-This card ships the skill and its deterministic harness only. The trigger wiring — the
-INDEX marker that fires code-redteam at the end of a boosted run, and the phase boundaries
-that hand it the base ref — is a SEPARATE later card (card 11). Do not add trigger hooks,
-INDEX markers, or boundary edits here; this skill is inert until card 11 wires it.
+This pass is wired and active: task-execution runs it over the produced diff at each
+milestone boundary and once before the completion gate whenever `00-INDEX.md` carries an
+`Ultra:`/`Goal:` marker; track-orchestration runs it once on the merged branch. On a
+non-boosted run it is a deliberate no-op — there is no marker, so no code red-team fires.
 
 ## Anti-patterns
 
