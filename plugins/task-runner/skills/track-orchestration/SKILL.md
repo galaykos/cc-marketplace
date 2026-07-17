@@ -46,6 +46,11 @@ Each track-worker is a leaf subagent. Its dispatch prompt carries:
 - the instruction to run its cards **inline** — no per-card specialist routing (a leaf
   cannot spawn sub-workers or see the agent registry; per-card routing is a serial-mode
   feature only), and **never** to write `00-INDEX.md`,
+- the instruction that each card runs the **per-card negative-control** before it is
+  reported done — `task-execution`'s inner-loop step 3 gate (`task-execution/references/
+  negative-control.md`, same script and standard exemptions). The merged-branch final gate
+  (below) is a run-level backstop, not a per-card teeth check, so the control must run
+  inside each track,
 - under ultra, the `model` (always) and `effort` (Workflow path only) from the index
   `Ultra:` marker.
 

@@ -87,10 +87,10 @@ Every auto-take is auditable through three sinks:
   hands-off into execution
 
 Safety floor: goal mode **never** runs a branch merge/PR (the git surface stays
-manual), never suppresses halt-with-evidence, the full-suite completion gate, or a
-mis-specified-task halt, and never auto-accepts a security/auth/data-loss red-team
-hole as known risk (it amends the spec or halts). Hands-off execution requires
-task-runner ≥ 0.11.0; older runners fall back to interactive.
+manual), never suppresses the never-suppress set defined in the `ultra-goal` contract
+block, and never auto-accepts a security/auth/data-loss red-team hole as known risk (it
+amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
+runners fall back to interactive.
 
 ## Conversation example
 

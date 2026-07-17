@@ -50,7 +50,33 @@ and picks the first present in its available-agent-types list.
    the paths the worker touched vs the declared allowed-files); reclaim/reject a card
    that touched out-of-set files. Then re-run the card's exact verify command yourself
    (§ Delegating parallel groups) — this holds whether or not a PostToolUse hook fired
-   inside the subagent.
+   inside the subagent. On a green re-verify, run the **negative-control** before the
+   card closes — the same gate the inline inner loop runs (`references/negative-control.md`,
+   `task-execution/SKILL.md` inner-loop step 3): `negative-control.sh --verify "<the card's
+   exact verify>" --target <impl-file> --auto`, with `--target` set to the CARD's declared
+   primary implementation file — an authoring property the worker cannot arrange around; a
+   multi-file return still runs the control against that declared file (the copy carries
+   the other files along). Only a card that declares no single implementation file falls to
+   the unresolvable-target exemption (negative-control.md exemption 2).
+   `discriminating` closes the card; `vacuous`/`invalid-control` counts as a failed
+   re-verification under the two-strike rule (§ Delegating parallel groups): one
+   re-dispatch, then reclaim the card for inline execution where the inner-loop 3-cycle
+   ceiling applies; `isolation-halt` halts. The standard exemptions apply (manual/visual
+   lines → the recorded why-non-automatable note; an unresolvable `--target` → record
+   control-not-applicable (`references/negative-control.md`) — never a silent pass.
+   This runs on every delegated return, so a delegated/parallel-group card gets the teeth
+   check the inline path already had.
+
+## Blast-radius detection — breakage in unlisted files halts, not follow-up
+
+The scope lock's follow-up-and-continue rule (`task-execution/SKILL.md` § Scope lock) is for
+*improving* an unlisted file. Evidence that the current change *breaks* an unlisted file is a
+different signal — mis-scoped card / blast radius — and must halt-with-evidence or flag the
+orchestrator, never become a silent follow-up. Three detection points:
+
+1. Any compile/type/test error naming an unlisted file.
+2. A call-site grep of a symbol being changed reveals callers in unlisted files.
+3. A completion full-suite failure attributable to the card → reopen the card, don't hot-patch.
 
 ## Notes
 

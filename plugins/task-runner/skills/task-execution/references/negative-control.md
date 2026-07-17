@@ -34,11 +34,24 @@ NOT open a new loop. On the third failed cycle, halt the card as usual.
 ## Exemptions
 
 - **Manual / visual verify lines** ("dialog renders centered") have no executable command to
-  run red-then-green — skip the control with an explicit note in the evidence line; do not
-  silently pass, and do not fabricate a control.
+  run red-then-green — skip the control, but the skip note MUST state WHY the line is
+  **non-automatable** (what makes it a genuine human observation, not a dodged executable
+  check), and that justification MUST be written into the run's status log so the skip is
+  auditable. A manual/visual skip with no recorded why-non-automatable justification is not a
+  valid skip: do not silently pass, and do not fabricate a control.
 - **`--target` cannot be resolved** (the card names no single implementation file) — skip
   with a note and rely on the behavioral-gate + reviewer pass; record that the control was
   not applicable.
+
+### Residual (named): the manual-skip justification is instruction-layer
+
+The why-non-automatable requirement above is enforced by instruction, not by a script —
+nothing mechanically rejects a manual/visual skip whose justification is missing or hollow.
+A verify line self-classified "manual/visual" that in fact wraps a shell command, an
+exit-code assertion, or a greppable expectation can still dodge this control; verify-teeth
+flags that shape at author time, but the runtime skip stays an honor-system gate. This is a
+known residual, recorded here so the status-log justification is the compensating audit trail
+rather than a claimed hard block.
 
 ## Under ultra-goal (hands-off)
 

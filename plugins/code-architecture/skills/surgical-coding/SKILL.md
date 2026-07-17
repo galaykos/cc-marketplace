@@ -53,6 +53,10 @@ both directions:
 - Tests are orphans too: a test asserting behavior YOUR change removed gets
   updated or deleted with the change — but never weakened to pass while still
   pretending to assert the old behavior.
+- The change direction of the same rule: before altering a shared symbol's
+  signature or behavior, find its call sites (grep, IDE find-references) and
+  update — or explicitly flag — every caller the change breaks. A caller you
+  never looked for is a runtime break you shipped, not a cleanup you deferred.
 
 ## Simplicity floor
 

@@ -42,11 +42,14 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    to *break* it: does the cited page actually say this, is it current, is the
    citation circular, is there stronger counter-evidence? Standard = one refuter;
    ultra = a panel voting, majority-refute kills the claim. Survivors are `confirmed`;
-   the rest are downgraded or dropped.
+   the rest are downgraded or dropped — an unfetchable source lands `unconfirmed`,
+   never `contested` (unreadable is not disagreement).
 5. **Ledger contradictions.** Where sources disagree, never silently average. Record
-   the disagreement, then adjudicate by provenance: prefer the primary source, the
-   higher tier, and the more recent — and if it stays unresolved, ship it as an open
-   contradiction, not a fake consensus.
+   the disagreement, then adjudicate by an ordered rule: (1) for volatile facts
+   (versions, prices, dates, live status) the more recent of two Tier-1/2 sources wins,
+   even one tier step lower; (2) otherwise the higher tier wins; (3) within the same
+   tier, primary beats secondary; (4) still tied → ship it as an open `contested`
+   contradiction, never a silent pick.
 6. **Gap check (ultra: loop-until-dry).** A completeness critic asks: which facet is
    thin, which claim is still unconfirmed, which fact is stale? Spawn another round on
    the gaps. Repeat until two consecutive rounds surface nothing new, or the budget is

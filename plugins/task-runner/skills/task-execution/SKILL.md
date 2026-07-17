@@ -12,11 +12,11 @@ Starting task N+1 while task N is unverified is the root of "90% done" projects 
 ## Scope lock
 
 - Touch only files the task lists (plus files the verify command itself demands,
-  e.g. a missing test fixture). Wanting to edit an unlisted file is a signal, not
-  an errand: stop, record it as a follow-up task in the index/backlog, continue.
+  e.g. a missing test fixture). Wanting to IMPROVE an unlisted file is a signal,
+  not an errand: record a follow-up task in the index/backlog, continue. But
+  evidence the current change BREAKS an unlisted file is a mis-scoped/blast-radius signal → halt-with-evidence or flag the orchestrator, never a silent follow-up (detection points in `references/routing.md`).
 - "While I'm here" is banned. Adjacent dead code, tempting refactors, unrelated
-  bugs — record, do not touch. The diff for a task should read as exactly that
-  task and nothing else.
+  bugs — record, do not touch. The diff should read as exactly that task, nothing else.
 - If the task is mis-specified (wrong file, impossible criterion), do not silently
   reinterpret it — halt, state the mismatch, fix the definition, then execute the corrected task.
 
@@ -28,7 +28,7 @@ Per task, loop — but with a hard ceiling:
 2. Run the task's verify command — the EXACT command, not a cheaper stand-in.
 3. Pass → run the negative-control gate before flipping (`references/negative-control.md`):
    `discriminating` → record evidence + flip; `vacuous`/`invalid-control` → back into this
-   loop (verify has no teeth); `isolation-halt` → halt. Manual/visual lines skip with a note.
+   loop (verify has no teeth); `isolation-halt` → halt. Manual/visual skips need the recorded why-non-automatable note.
 4. Fail → diagnose from the actual output, fix, go to 2.
 5. **Three failed fix cycles → halt the task.** Report what was tried, the exact
    failing output, and the current hypothesis. A fourth blind attempt is where
@@ -125,10 +125,10 @@ is a leaf that executes and never re-routes. Per card the runner follows
 `references/routing.md`: read the card's `Agent:` tag → resolve to the first reachable
 specialist (else `task-executor`) → arm a per-card scope file → Read and paste the
 delegation-contracts discipline preamble verbatim into the dispatch → dispatch → on
-return run the diff-vs-declared-files scope check, then re-run the task's verify
-command itself. A subagent's "done, tests pass" is a claim; the runner's own verify is
-the evidence. One failed re-verification sends the task back; a second reclaims it for
-inline execution. Never mark a delegated task done on the subagent's word alone.
+return run the diff-vs-declared-files scope check, re-run the task's verify command,
+then the negative-control per returned card (routing.md step 6, standard exemptions).
+A subagent's "done, tests pass" is a claim; the runner's own verify plus that teeth check
+is the evidence. One failed re-verification sends the task back; a second reclaims it inline.
 
 ## Evidence format
 

@@ -117,8 +117,7 @@ advertise, autonomy still from goal. A lone `Goal: true` marker escalates worker
   under goal, whatever is labeled Recommended.
 - Post-run "Retry parked": at most ONE auto-retry, and only if the prior run made forward progress (a task
   moved parked→done); else "Stop here" and surface the parked list.
-- NEVER suppress halt-with-evidence (3 failed fix cycles), the full-suite completion gate, or a
-  mis-specified-task halt. These SURFACE; they are not consent prompts.
+- The **never-suppress set** in the contract block above is never overridden — those halts SURFACE, not consent prompts.
 - Security/auth/data-loss red-team holes are never auto-accepted as known risk: amend the spec to fix
   them, or halt with evidence if unamendable.
 - Escape hatch: when no defensible recommendation can be derived — an irreducible conflict, a fork
@@ -131,6 +130,7 @@ Three sinks make every auto-take reviewable:
 1. **Goal ledger** `.claude/taskmaster/goal-ledger-<slug>.md`, appended live per auto-take (decision,
    options, pick, rationale, source `file:line`). Its writability is an ACTIVATION PRECONDITION:
    create/verify it before boosting; an append that ever fails → halt with evidence, never proceed unaudited.
+   At activation, grill's prompt-upgrade step (grill `references/prompt-upgrade.md`) also records its upgraded task statement here as the first ledger entry — grill itself stays goal-blind; this recording is ours.
 2. **Spec appendix** `## Auto-decisions` — a durable summary inside the frozen spec.
 3. **Index marker** `Goal: true (model=…, effort=…)` in `00-INDEX.md`, carrying hands-off into execution.
    Legacy bare `Goal: true` means opus/xhigh, autonomy on. The marker notes the version floor:

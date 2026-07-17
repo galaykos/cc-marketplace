@@ -55,7 +55,8 @@ procedure — arm scope, inject the discipline preamble, dispatch):
 
 ### Hardened scope check on return
 
-Enforce with the existing diff-vs-declared-files check (`routing.md:44-48`), hardened for
+Enforce with the existing diff-vs-declared-files check (routing.md step 6, the
+diff-vs-declared check), hardened for
 the fact that authored tests are **new, untracked** files:
 
 - Enumerate `test-engineer`'s touched paths **including untracked additions**
@@ -70,16 +71,22 @@ the fact that authored tests are **new, untracked** files:
 The crew fix loop has its **own fresh 3-cycle budget**, independent of the build-phase
 verify loop. Feeders: reviewer blocker/major findings (severity-normalized per
 `reviewer-routing.md`) + failing **authored tests only** (run by the returned test-file
-list — pre-existing suite failures never enter, since authored files are new). A runner
+list — pre-existing suite failures never enter, since authored files are new) + a
+`vacuous`/`invalid-control` **negative-control** on the post-fix diff. A runner
 source fix here (including a testability seam a parked test needs) is within the card's
 source scope and is **re-reviewed** each cycle. Per cycle: apply source fixes → re-run the
-card's verify command + the authored tests + re-review (reviewers only, live diff). The
-authored-test set is **frozen after authoring** (`test-engineer` is not re-dispatched).
+card's verify command + the authored tests + re-review (reviewers only, live diff) → on a
+green verify, run the negative-control on the post-fix diff (`references/negative-control.md`,
+same script and standard exemptions) so a fix-loop source edit cannot silently defang a
+verify that had teeth pre-crew. The authored-test set is **frozen after authoring**
+(`test-engineer` is not re-dispatched).
 
 **Precedence at exhaustion, in order:**
 
 ```
-0. card verify command RED     → HALT the card (never close red), regardless of the rest
+0. card verify command RED, or a `vacuous`/`invalid-control` negative-control on the
+                               post-fix diff → HALT the card (never close red or teeth-less),
+                               regardless of the rest; control `isolation-halt` (exit 5) halts always
 1. else live reviewer blocker/major → HALT the card (dominates tests)
 2. else unsatisfied authored test   → remove it (case-level if the file has passing
                                        siblings, else the file — an allowed orchestrator
@@ -106,7 +113,8 @@ only when **all** hold, else it is skipped silently (logged, never a failure):
 ## Leaf exclusion
 
 Crew runs **only for cards the main orchestrator dispatches directly**. A card delegated as
-a parallel-group leaf (`SKILL.md:86-87`) or a track leaf gets neither crew nor
+a parallel-group leaf (the "Delegating parallel groups" section of the task-execution
+SKILL) or a track leaf gets neither crew nor
 reviewers — a leaf cannot dispatch sub-workers.
 
 ## Ultra

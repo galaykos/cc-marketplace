@@ -147,6 +147,10 @@ printf '# readme\n' > "$D3/README.md"
 printf '{"a":1}\n'  > "$D3/data.json"
 case_run "docs-only -> no-executable-surface(0)" "$D3" 0 --label 'no-executable-surface' -- --changed 'README.md data.json'
 
+# ---- 3b. prose template (.tmpl) classifies doc, not opaque -> no-executable-surface (0) ----
+printf '# tmpl\n' > "$D3/agent.md.tmpl"
+case_run "tmpl-is-doc -> no-executable-surface(0)" "$D3" 0 --label 'no-executable-surface' -- --changed 'README.md agent.md.tmpl'
+
 # ---- 4a. js changed, NO test file -> no-behavioral-coverage (2) ----
 N4="$WS/node-nocov"; mkdir -p "$N4"
 cat > "$N4/impl.js" <<'JS'

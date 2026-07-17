@@ -41,7 +41,36 @@ head=$(git -C "$cwd" rev-parse HEAD 2>/dev/null) || { echo "[task-runner] comple
 
 gatepass="$cwd/.claude/task-runner/gate-pass.json"
 if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" = "$head" ]; then
-  exit 0                                          # gate recorded a pass for THIS commit → allow
+  # Gate pass recorded for THIS commit. For an index run, run.md also records card
+  # counts in gate-pass.json; when those numeric fields are present, refuse a clean
+  # stop while any card is neither done nor parked (cards_done + cards_parked <
+  # cards_total). ALL fields absent → legacy behavior (allow). Partially present,
+  # non-numeric, or inconsistent (done+parked > total) counts are MALFORMED — warned,
+  # never silently allowed, so a bookkeeping slip cannot disarm the gate. Same
+  # warn-by-default / block semantics as the no-pass path below.
+  verdict=$(jq -r '
+    if ((.cards_total|type)=="number" and (.cards_done|type)=="number" and (.cards_parked|type)=="number")
+    then (if (.cards_done + .cards_parked) < .cards_total then "incomplete"
+          elif (.cards_done + .cards_parked) > .cards_total then "malformed"
+          else "complete" end)
+    elif ((has("cards_total") or has("cards_done") or has("cards_parked")) | not) then "absent"
+    else "malformed" end' "$gatepass" 2>/dev/null)
+  # A run REGISTERED as an index run (active-run.json carries index_path) must record
+  # counts: counts-absent for it is a bookkeeping failure, not legacy — warn, never a
+  # silent allow (an unregistered/plain run keeps the legacy absent→allow behavior).
+  if [ "$verdict" = "absent" ] && [ "$(jq -r 'has("index_path")' "$sentinel" 2>/dev/null)" = "true" ]; then
+    verdict="malformed"
+  fi
+  if [ "$verdict" = "incomplete" ] || [ "$verdict" = "malformed" ]; then
+    slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)
+    ct=$(jq -r '.cards_total' "$gatepass" 2>/dev/null)
+    cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
+    cpark=$(jq -r '.cards_parked' "$gatepass" 2>/dev/null)
+    printf '[task-runner] completion-gate: %s recorded a gate pass but its card counts are %s: done=%s parked=%s total=%s.\n' "$slug" "$verdict" "$cdone" "$cpark" "$ct" >&2
+    printf '  A run may not report complete while any card is neither done nor parked.\n' >&2
+    [ "${TASK_RUNNER_STOP_GATE:-warn}" = "block" ] && exit 2
+  fi
+  exit 0                                          # gate pass for THIS commit (cards complete or legacy) → allow
 fi
 
 slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)

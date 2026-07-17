@@ -14,7 +14,9 @@ worker's own default procedure wherever they differ.
    skip, or swap a check to force a pass.
 4. Touch **only** the allowed-files named in this dispatch prompt. The orchestrator has
    recorded them and diff-checks the paths you touched against that set on return; an
-   out-of-set edit reclaims the card.
+   out-of-set edit reclaims the card. If your change breaks a file OUTSIDE the set,
+   that is blast radius, not an errand: report it with evidence in your return —
+   never edit the out-of-set file.
 5. Run the project's full check suite at the end, not only the per-card verify.
 6. Defer rule: a mis-specified card (wrong file, impossible criterion, a decision you
    were not given) is **reported, not reinterpreted**.

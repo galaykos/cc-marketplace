@@ -19,8 +19,12 @@ nothing; it is deliberately not the whole thing:
 
 1. **Author-time (`taskmaster:verify-teeth`).** Blocks a weak Verify *line* before code
    exists — the cheap first filter.
-2. **Per-card runtime (negative-control, in `task-execution`).** Proves each card's verify
-   goes RED against a targeted feature disable — that the check discriminates.
+2. **Per-card runtime (negative-control, in `task-execution`).** Proves each card with a
+   resolvable target and an automatable verify — on every dispatch path (inline, delegated,
+   parallel-group, and tracks, plus the crew fix-loop re-check on directly-dispatched
+   cards) — goes RED against a targeted feature disable,
+   that the check discriminates. The residual exempt classes (manual/visual verify lines, an
+   unresolvable `--target`) are skipped with a note, not proven here, and lean on this gate.
 3. **Completion runtime (this gate).** Runs the whole produced artifact once at the end —
    the suite is non-empty, the code executes, entrypoints and their flags actually do
    something.
@@ -112,6 +116,12 @@ isolation). It is keyed off the run registering itself, so a run that never writ
 forged. What the hook closes is the honest-but-forgetful skip; deliberate evasion now
 requires actively omitting the register or faking the record, not merely forgetting to run
 the gate.
+
+Two further residuals it does **not** close: a non-index run (a todo or plan list) records
+no card counts in `gate-pass.json`, so the card-completeness check never fires for it — only
+taskmaster-index runs are backstopped against a silently-skipped card. And the per-card
+negative-control (layer 2 above) is instruction-only: no hook enforces that each card's
+control run actually happened.
 
 ## Anti-patterns
 

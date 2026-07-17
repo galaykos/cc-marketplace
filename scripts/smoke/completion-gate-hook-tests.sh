@@ -72,5 +72,51 @@ check "stop_hook_active guards against loop" "TASK_RUNNER_STOP_GATE=block" "$JAC
 printf '{not valid json' > "$SENT"
 check "malformed active-run.json -> fail-open exit 0" "TASK_RUNNER_STOP_GATE=block" "$J" 0 "malformed"
 
+# 8-11) card-count completeness for index runs: a gate pass for HEAD is present, and
+# run.md also recorded {cards_total,cards_done,cards_parked}. The hook refuses a clean
+# stop while cards_done + cards_parked < cards_total; absent fields = legacy pass.
+printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"    # restore valid sentinel (case 7 left it malformed)
+
+# 8) complete counts (done+parked == total) -> allow, silent (even under block)
+printf '{"head":"%s","cards_total":3,"cards_done":2,"cards_parked":1}' "$HEAD" > "$GP"
+check "complete card counts (block) -> allow, silent" "TASK_RUNNER_STOP_GATE=block" "$J" 0 __NONE__
+
+# 9) incomplete counts (done+parked < total), default -> WARN exit 0 with reminder
+printf '{"head":"%s","cards_total":13,"cards_done":10,"cards_parked":0}' "$HEAD" > "$GP"
+check "incomplete card counts (default) -> warn exit 0" "" "$J" 0 "incomplete"
+
+# 10) incomplete counts, block mode -> BLOCK exit 2
+check "incomplete card counts (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "incomplete"
+
+# 11) card-count fields absent (legacy gate-pass) -> allow, silent (backward compatible)
+printf '{"head":"%s"}' "$HEAD" > "$GP"
+check "card-count fields absent (block) -> legacy allow, silent" "TASK_RUNNER_STOP_GATE=block" "$J" 0 __NONE__
+
+# 12) non-numeric count (a quoted "13") -> MALFORMED warn, never a silent disarm
+printf '{"head":"%s","cards_total":"13","cards_done":10,"cards_parked":0}' "$HEAD" > "$GP"
+check "string card count (default) -> malformed warn exit 0" "" "$J" 0 "malformed"
+
+# 13) partially present fields (one count missing) -> MALFORMED, blocks under block mode
+printf '{"head":"%s","cards_total":13,"cards_done":10}' "$HEAD" > "$GP"
+check "missing one count field (block) -> malformed exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "malformed"
+
+# 14) inconsistent bookkeeping (done+parked > total) -> MALFORMED warn
+printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":1}' "$HEAD" > "$GP"
+check "done+parked > total (default) -> malformed warn exit 0" "" "$J" 0 "malformed"
+
+# 15) zero-card index (total=0, nothing done) -> complete, allow silent
+printf '{"head":"%s","cards_total":0,"cards_done":0,"cards_parked":0}' "$HEAD" > "$GP"
+check "cards_total=0 (block) -> complete allow, silent" "TASK_RUNNER_STOP_GATE=block" "$J" 0 __NONE__
+
+# 16) run REGISTERED as an index run (sentinel carries index_path) but gate-pass has no
+#     counts -> malformed warn, never a silent legacy allow
+printf '{"slug":"demo-run","base":"HEAD","index_path":"taskmaster-docs/tasks/x/00-INDEX.md"}' > "$SENT"
+printf '{"head":"%s"}' "$HEAD" > "$GP"
+check "index-registered run, counts absent (default) -> malformed warn" "" "$J" 0 "malformed"
+
+# 17) same but block mode -> exit 2
+check "index-registered run, counts absent (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "malformed"
+printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"    # restore plain sentinel
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

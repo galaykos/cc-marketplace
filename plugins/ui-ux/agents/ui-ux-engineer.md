@@ -19,6 +19,10 @@ injects its Read path, Read it first and work from it — do not restate or seco
 its rubric here. Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
 
+## Call-site discipline
+
+Before changing a shared symbol's signature or behavior, grep its call sites. Update every broken caller inside your allowed scope; a breaking caller OUTSIDE your allowed files is blast radius — flag it with evidence in your return, never edit it. Either way, a caller you didn't look for is a bug you shipped.
+
 ## Operating procedure
 
 You implement interface work — layouts, breakpoints,
