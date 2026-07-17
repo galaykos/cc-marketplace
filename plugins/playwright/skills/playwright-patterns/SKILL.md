@@ -1,6 +1,6 @@
 ---
 name: playwright-patterns
-description: Use when building or reviewing a Playwright automation — robust selectors, auto-wait discipline, network control, auth reuse, parallelism, and connecting to an anti-detect browser over CDP.
+description: Use when building or reviewing a Playwright automation — robust selectors, auto-wait discipline, network control, auth reuse, parallelism, connecting to an anti-detect browser over CDP, and authenticating live Playwright MCP browser sessions (QA/E2E runs) without the model handling credentials.
 ---
 
 ## Selector strategy — resilience first
@@ -72,6 +72,29 @@ a `dependency` of the test projects, which then set `storageState` in their
 config — login runs once, all tests start authenticated. Treat the state file
 as a secret: git-ignore it and refresh it before it expires.
 
+## Auth in live MCP sessions
+
+In a live Playwright MCP session (QA/E2E runs with screenshots), the model does
+not type credentials — and raw secrets never belong in a chat transcript. Make
+login never require the model to handle the secret:
+
+1. **Pre-authenticated state (default):** a human logs in once and captures
+   state — `npx playwright codegen --save-storage=auth.json`, or a headed login
+   then `page.context().storageState({ path: 'auth.json' })` — and the MCP
+   server starts authenticated: `--storage-state=auth.json` (pair with
+   `--isolated`), or a persistent profile via `--user-data-dir`. Mid-session,
+   `browser_set_storage_state` restores a saved state file.
+2. **User-in-the-loop (fallback):** drive the headed browser to the login page
+   and hand off to the human to type credentials in the browser window; wait
+   for the post-login state, continue — then save storage state so the next
+   run uses path 1.
+
+Repeated runs use path 1; nothing set up yet, use path 2, then capture. The
+state file holds live, replayable session cookies/tokens: gitignore it, use
+test accounts only, refresh before expiry, never paste credentials into chat,
+never read or print its contents into the model's context — reference it by
+path. MCP flags move — verify the playwright-mcp README (`/playwright:check`).
+
 ## Parallelism and isolation
 
 - Tests run in worker processes; separate workers cannot share state. Turn on
@@ -126,3 +149,5 @@ const page = context.pages()[0] ?? await context.newPage();
 - Routes registered before their navigation; auth reused via `storageState`.
 - One context per session; parallel workers don't share accounts.
 - CDP attach is Chromium-only and never closes the borrowed browser.
+- Live MCP sessions authenticate via pre-auth storage state or user-in-the-loop
+  login — the model never types credentials.

@@ -4,6 +4,18 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.51.0] - 2026-07-17
+
+### Added
+
+- **playwright** 0.2.0: live-MCP-session auth guidance — new `## Auth in live
+  MCP sessions` section in playwright-patterns (pre-authenticated storage state
+  by default: `codegen --save-storage` / `storageState({path})` capture, loaded
+  via `--storage-state`+`--isolated` or `--user-data-dir`; user-in-the-loop
+  login as fallback; the state file is never read into the model's context),
+  an MCP row in the playwright-docs link map, MCP trigger phrasing in the
+  patterns description, and a README "Authenticated sessions" note.
+
 ## [0.50.0] - 2026-07-15
 
 ### Added
