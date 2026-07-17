@@ -92,7 +92,7 @@ for f in "${CHANGED[@]}"; do
     py)                        HAS_PY=1 ;;
     js|mjs|cjs|jsx|ts|tsx)     HAS_JS=1 ;;
     go)                        HAS_GO=1 ;;
-    md|json|txt|yml|yaml|sh)   HAS_DOC=1 ;;   # .sh treated as doc/non-exec surface
+    md|json|txt|yml|yaml|sh|tmpl) HAS_DOC=1 ;; # .sh + .tmpl (prose templates) treated as doc/non-exec surface
     *)                         HAS_OPAQUE=1 ;;
   esac
 done
