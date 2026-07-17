@@ -1,6 +1,6 @@
 {
   "name": "testing",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review and a test-engineer worker agent.",
   "author": {
     "name": "Ivan-WG",

@@ -1,6 +1,6 @@
 {
   "name": "laravel",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12/13), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel) the php/laravel review commands route their fixes to.",
   "author": {
     "name": "Ivan-WG",
