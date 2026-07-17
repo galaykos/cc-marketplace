@@ -108,5 +108,15 @@ check "done+parked > total (default) -> malformed warn exit 0" "" "$J" 0 "malfor
 printf '{"head":"%s","cards_total":0,"cards_done":0,"cards_parked":0}' "$HEAD" > "$GP"
 check "cards_total=0 (block) -> complete allow, silent" "TASK_RUNNER_STOP_GATE=block" "$J" 0 __NONE__
 
+# 16) run REGISTERED as an index run (sentinel carries index_path) but gate-pass has no
+#     counts -> malformed warn, never a silent legacy allow
+printf '{"slug":"demo-run","base":"HEAD","index_path":"taskmaster-docs/tasks/x/00-INDEX.md"}' > "$SENT"
+printf '{"head":"%s"}' "$HEAD" > "$GP"
+check "index-registered run, counts absent (default) -> malformed warn" "" "$J" 0 "malformed"
+
+# 17) same but block mode -> exit 2
+check "index-registered run, counts absent (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "malformed"
+printf '{"slug":"demo-run","base":"HEAD"}' > "$SENT"    # restore plain sentinel
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

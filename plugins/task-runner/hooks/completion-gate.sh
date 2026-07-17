@@ -55,6 +55,12 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
           else "complete" end)
     elif ((has("cards_total") or has("cards_done") or has("cards_parked")) | not) then "absent"
     else "malformed" end' "$gatepass" 2>/dev/null)
+  # A run REGISTERED as an index run (active-run.json carries index_path) must record
+  # counts: counts-absent for it is a bookkeeping failure, not legacy — warn, never a
+  # silent allow (an unregistered/plain run keeps the legacy absent→allow behavior).
+  if [ "$verdict" = "absent" ] && [ "$(jq -r 'has("index_path")' "$sentinel" 2>/dev/null)" = "true" ]; then
+    verdict="malformed"
+  fi
   if [ "$verdict" = "incomplete" ] || [ "$verdict" = "malformed" ]; then
     slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)
     ct=$(jq -r '.cards_total' "$gatepass" 2>/dev/null)

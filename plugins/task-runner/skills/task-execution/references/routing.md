@@ -53,8 +53,11 @@ and picks the first present in its available-agent-types list.
    inside the subagent. On a green re-verify, run the **negative-control** before the
    card closes — the same gate the inline inner loop runs (`references/negative-control.md`,
    `task-execution/SKILL.md` inner-loop step 3): `negative-control.sh --verify "<the card's
-   exact verify>" --target <impl-file> --auto`, with `--target` set to the single impl file
-   the worker returned (a multi-file return falls to the unresolvable-target exemption).
+   exact verify>" --target <impl-file> --auto`, with `--target` set to the CARD's declared
+   primary implementation file — an authoring property the worker cannot arrange around; a
+   multi-file return still runs the control against that declared file (the copy carries
+   the other files along). Only a card that declares no single implementation file falls to
+   the unresolvable-target exemption (negative-control.md exemption 2).
    `discriminating` closes the card; `vacuous`/`invalid-control` counts as a failed
    re-verification under the two-strike rule (§ Delegating parallel groups): one
    re-dispatch, then reclaim the card for inline execution where the inner-loop 3-cycle

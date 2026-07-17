@@ -67,12 +67,19 @@ The prompt to each track-worker contains, in order:
 5. Under ultra: *"Dispatched at model=<model>"* (and effort=<effort> only because this is
    a Workflow `agent()` dispatch).
 6. *"Before reporting any card done, run the per-card negative-control —
-   `negative-control.sh --verify "<the card's exact verify>" --target <impl-file> --auto`
-   (standard exemptions: manual/visual lines, unresolvable `--target` — skip with an
-   explicit note, never silently). When done: `git -C <abs> add -A && git -C <abs>
-   commit -m '<milestone> (track)'`, then return: touched files, the exact verify
-   command + its tail output, each card's negative-control result, and the commit sha.
-   If you cannot finish, return a park reason instead — do not force a pass."*
+   `<abs-negative-control.sh> --verify "<the card's exact verify>" --target
+   <card's declared impl file> --root <worktree-abs> --auto` (standard exemptions:
+   manual/visual lines → the recorded why-non-automatable note; a card that declares
+   no single implementation file → record control-not-applicable — never a silent
+   skip). When done: `git -C <abs> add -A && git -C <abs> commit -m '<milestone>
+   (track)'`, then return: touched files, the exact verify command + its tail output,
+   each card's negative-control result, and the commit sha. If you cannot finish,
+   return a park reason instead — do not force a pass."*
+   The orchestrator substitutes `<abs-negative-control.sh>` with the ABSOLUTE path to
+   `plugins/task-runner/scripts/negative-control.sh` at dispatch time (the leaf has no
+   `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree —
+   same absolute-path rule as the primed `Read <abs-path>` lines in item 4), and
+   `--root` with the worktree's absolute path.
 
 ## Merge (per track, on the orchestrator)
 

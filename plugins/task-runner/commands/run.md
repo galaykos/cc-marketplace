@@ -30,7 +30,9 @@ non-eligible milestones, **never** inside a track leaf or any delegated parallel
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
    groups, verify command per task) before executing. Register the run for the
    completion-gate Stop hook: write `.claude/task-runner/active-run.json`
-   (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>"}`) so the
+   (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>"}`; for a
+   taskmaster-index run also include `"index_path":"<00-INDEX.md>"` — the hook uses it
+   to require card counts in the gate pass) so the
    hook can enforce that a behavioral-gate pass is recorded before the run stops clean.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
@@ -52,7 +54,10 @@ non-eligible milestones, **never** inside a track leaf or any delegated parallel
    run the SAME single object also carries
    `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
    the index bookkeeping (JSON integers, all three counts together — never a second
-   write that would clobber `head`) — and remove `active-run.json`, then print the
+   write that would clobber `head`) — and only THEN, with every card done or parked
+   and the counts recorded, remove `active-run.json` (removing it earlier, or with a
+   card unaccounted for, is what the Stop hook exists to catch — the sentinel stays
+   until the counts prove completeness), then print the
    completion report table (task / status / verify command / evidence), parked tasks
    with reasons, and the follow-up backlog. If either gate is RED the run is not
    complete — do not print a done report. A run may not report complete while any card
