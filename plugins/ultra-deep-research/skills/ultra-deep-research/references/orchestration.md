@@ -62,9 +62,10 @@ function reduceRefutePanel(votes) {
   const n = t => votes.filter(v => v.VERDICT === t).length
   const evidenced = votes.filter(v => v.VERDICT === 'confirmed'
     && v.FETCH && v.FETCH.includes('retrieved')
-    && v.CORROBORATION && !/^none/i.test(v.CORROBORATION)).length
+    && v.CORROBORATION && !/^(none|n\/?a|no)\b/i.test(v.CORROBORATION)).length
   if (n('refuted') >= 2)                       return 'refuted'      // majority-refute kills the claim
-  if (evidenced >= 2 && n('refuted') === 0)    return 'confirmed'    // ≥2 fully-evidenced confirms, 0 refuted
+  if (evidenced >= 2 && n('refuted') === 0
+      && n('contested') === 0)                 return 'confirmed'    // ≥2 fully-evidenced confirms, zero dissent
   if (n('refuted') > 0 || n('contested') > 0)  return 'contested'    // a real disagreement signal exists
   return 'unconfirmed'                                               // weak / unverifiable — not a contradiction
 }
