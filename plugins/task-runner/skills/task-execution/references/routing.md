@@ -58,4 +58,4 @@ and picks the first present in its available-agent-types list.
   tag selects **aptitude, not authority**. A mis-tag routes to a competent-but-suboptimal
   worker, still scope-bounded by step 6.
 - Verify-side routing (matching domain reviewer) is out of scope here — deferred to
-  Part C; the runner's generic re-verify remains the gate.
+  the reviewer pass; the runner's generic re-verify remains the gate.

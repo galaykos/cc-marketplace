@@ -84,7 +84,7 @@ The prompt to each track-worker contains, in order:
 ## 3. Serial milestones + final gate
 
 1. After the wave loop, run every remaining **serial** milestone inline in the main tree,
-   in dependency order (normal per-card execution, Part A routing available here).
+   in dependency order (normal per-card execution, the per-card dispatch/routing procedure is available here).
 2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
    (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed <all merged tracks' files>`,
    see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.

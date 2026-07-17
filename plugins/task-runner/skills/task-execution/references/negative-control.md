@@ -1,4 +1,4 @@
-# Negative control — run-time red-before-green (B3b)
+# Negative control — run-time red-before-green
 
 The inner loop accepts a card when its verify command exits 0. But a verify that passes
 whether the code works or not proves nothing — the empty-suite-reports-PASS class of

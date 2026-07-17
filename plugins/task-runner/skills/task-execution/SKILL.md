@@ -40,8 +40,8 @@ to pass, no `|| true`. The check is the task; gaming it is failing it silently.
 
 ## Reviewer pass (per task)
 
-After the task's verify command passes — and before its status flips to done —
-run a conditional reviewer pass on the task's diff:
+After the task's verify command passes — and before its status flips to done — run a
+conditional reviewer pass on the diff of a **directly-dispatched** card (a parallel-group/track leaf gets none — see `references/reviewer-routing.md`):
 
 - **code-reviewer** (code-review plugin): every task's diff, no condition.
 - **ui-ux-reviewer** (ui-ux plugin): only when the diff touches UI files —
@@ -52,7 +52,7 @@ run a conditional reviewer pass on the task's diff:
   validation, or dependencies.
 
 Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
-Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting (not replacing) the four above (dedup so none runs twice); the opt-in `--crew` flag additionally runs the concurrent read-only reviewers + a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
+Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs the concurrent read-only reviewers + a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker,
 dispatch the reviewer and delegated worker agents with a `model:` override — excluding

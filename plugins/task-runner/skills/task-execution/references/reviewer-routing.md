@@ -87,7 +87,7 @@ are complementary.
 ## Tracks
 
 Reviewer routing applies to serial `/task-runner:run` and to the **serial non-eligible
-milestones** of a `--tracks` run. A card executed **inside a Part B leaf track gets no
+milestones** of a `--tracks` run. A card executed **inside a parallel-group/track leaf gets no
 reviewer pass** (routed or baseline) — a track-worker is a leaf and cannot dispatch
 reviewers. Accepted MVP limitation, consistent with implement-side routing being off in
 tracks.

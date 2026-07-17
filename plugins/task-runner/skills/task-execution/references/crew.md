@@ -26,7 +26,7 @@ After the card's build verify passes:
 
 ## Reviewer pass
 
-The Part C reviewer set (baseline `code-reviewer` + diff-content-gated `ui-ux` /
+The reviewer set (baseline `code-reviewer` + diff-content-gated `ui-ux` /
 `architecture` reviewers + the tag-routed reviewer) resolves and primes exactly as in
 `reviewer-routing.md` — this file does not duplicate that map. Crew changes only *how* they
 are dispatched:
@@ -41,7 +41,7 @@ are dispatched:
 
 ## Authoring — test files only
 
-If eligible, dispatch `testing:test-engineer` as a scope-locked worker (the Part A dispatch
+If eligible, dispatch `testing:test-engineer` as a scope-locked worker (the per-card dispatch
 procedure — arm scope, inject the discipline preamble, dispatch):
 
 - **Inputs:** the card diff + a **required test-output location** — the repo's detected test
@@ -53,7 +53,7 @@ procedure — arm scope, inject the discipline preamble, dispatch):
 - It runs **only the tests it authored**, non-interactively (never the whole suite), and
   **returns the list of test files it created.**
 
-### Hardened D11 check on return
+### Hardened scope check on return
 
 Enforce with the existing diff-vs-declared-files check (`routing.md:44-48`), hardened for
 the fact that authored tests are **new, untracked** files:
@@ -106,7 +106,7 @@ only when **all** hold, else it is skipped silently (logged, never a failure):
 ## Leaf exclusion
 
 Crew runs **only for cards the main orchestrator dispatches directly**. A card delegated as
-a parallel-group leaf (`SKILL.md:86-87`) or a Part B track leaf gets neither crew nor
+a parallel-group leaf (`SKILL.md:86-87`) or a track leaf gets neither crew nor
 reviewers — a leaf cannot dispatch sub-workers.
 
 ## Ultra
