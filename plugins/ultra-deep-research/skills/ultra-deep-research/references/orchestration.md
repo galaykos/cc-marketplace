@@ -47,15 +47,25 @@ pipeline(
   facets,
   facet   => agent(researcherPrompt(facet), {schema: CLAIMS, phase: 'Search'}),
   claims  => parallel(claims.loadBearing.map(c => () =>
-               agent(refutePrompt(c), {schema: VERDICT, phase: 'Refute'})
-                 .then(v => ({...c, verdict: v})))),
+               parallel([1, 2, 3].map(() => () =>                 // 3-vote refuter panel per load-bearing claim
+                 agent(refutePrompt(c), {schema: VERDICT, phase: 'Refute'})))
+                 .then(votes => ({...c, verdict: reduceRefutePanel(votes)})))),
 )
+
+// reduceRefutePanel — three verdicts in, one outcome out; every split is defined:
+function reduceRefutePanel(votes) {
+  if (count(votes, 'refuted')   >= 2)                                  return 'refuted'    // ≥2 of 3 refuted → majority-refute kills the claim
+  if (count(votes, 'confirmed') >= 2 && count(votes, 'refuted') === 0) return 'confirmed'  // ≥2 confirmed AND 0 refuted
+  return 'contested'                                                                       // any other split → contested
+}
 ```
 
 Then loop-until-dry: a completeness-critic `agent` inspects the merged ledger for thin
 facets / unconfirmed claims / stale dates and returns the next round's facets. Repeat
-until two consecutive rounds add nothing, or `budget.remaining()` is low. Scale the
-refuter panel to depth: 3 votes, majority-refute kills the claim.
+until two consecutive rounds add nothing, or `budget.remaining()` is low. The refute
+stage above already fans each load-bearing claim to a 3-vote panel and folds the votes
+through `reduceRefutePanel`: majority-refute kills the claim, a clean confirm-majority
+with zero refutes confirms it, and every other split lands as contested.
 
 Barrier only where a stage genuinely needs *all* prior results — deduping the ledger
 before the final synthesis, or early-exit when a round finds zero claims. Everything
@@ -64,6 +74,9 @@ else stays in the pipeline.
 ## Cost discipline
 
 Fan-out width tracks stakes: a quick factual scan is 3–4 shards and one refuter; a
-contested market/technical audit is 6–8 shards and a voting panel. Do not run panel
-theater on trivia, and do not single-pass a decision that matters. Say, in the report,
-how wide you actually went — silent narrow coverage reads as thoroughness it isn't.
+contested market/technical audit is 6–8 shards and the full 3-vote panel. The
+single-refuter shortcut is a quick-scan/standard-depth allowance only — an ultra-depth
+load-bearing claim always runs the 3-vote panel above, never one refuter. Do not run
+panel theater on trivia, and do not single-pass a decision that matters. Say, in the
+report, how wide you actually went — silent narrow coverage reads as thoroughness it
+isn't.

@@ -44,9 +44,11 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    ultra = a panel voting, majority-refute kills the claim. Survivors are `confirmed`;
    the rest are downgraded or dropped.
 5. **Ledger contradictions.** Where sources disagree, never silently average. Record
-   the disagreement, then adjudicate by provenance: prefer the primary source, the
-   higher tier, and the more recent — and if it stays unresolved, ship it as an open
-   contradiction, not a fake consensus.
+   the disagreement, then adjudicate by an ordered rule: (1) for volatile facts
+   (versions, prices, dates, live status) the more recent of two Tier-1/2 sources wins,
+   even one tier step lower; (2) otherwise the higher tier wins; (3) within the same
+   tier, primary beats secondary; (4) still tied → ship it as an open `contested`
+   contradiction, never a silent pick.
 6. **Gap check (ultra: loop-until-dry).** A completeness critic asks: which facet is
    thin, which claim is still unconfirmed, which fact is stale? Spawn another round on
    the gaps. Repeat until two consecutive rounds surface nothing new, or the budget is
