@@ -52,11 +52,18 @@ pipeline(
                  .then(votes => ({...c, verdict: reduceRefutePanel(votes)})))),
 )
 
-// reduceRefutePanel — three verdicts in, one outcome out; every split is defined:
+// reduceRefutePanel — three VERDICT objects in, one outcome out; every split is defined.
+// Votes are the verifier's structured returns, so tally on v.VERDICT — and a 'confirmed'
+// vote whose FETCH carries no verbatim-quote+timestamp evidence is discounted: the
+// reducer is the enforcement point for the verifier's confirmed-gate.
 function reduceRefutePanel(votes) {
-  if (count(votes, 'refuted')   >= 2)                                  return 'refuted'    // ≥2 of 3 refuted → majority-refute kills the claim
-  if (count(votes, 'confirmed') >= 2 && count(votes, 'refuted') === 0) return 'confirmed'  // ≥2 confirmed AND 0 refuted
-  return 'contested'                                                                       // any other split → contested
+  const n = t => votes.filter(v => v.VERDICT === t).length
+  const evidencedConfirms = votes.filter(v =>
+    v.VERDICT === 'confirmed' && v.FETCH && v.FETCH.includes('retrieved')).length
+  if (n('refuted') >= 2)                                   return 'refuted'      // majority-refute kills the claim
+  if (evidencedConfirms >= 2 && n('refuted') === 0)        return 'confirmed'    // ≥2 evidence-backed confirms, 0 refuted
+  if (n('unverifiable-this-session') === votes.length)     return 'unconfirmed'  // nobody could read the source — not a disagreement
+  return 'contested'                                                             // any other split
 }
 ```
 
@@ -64,8 +71,9 @@ Then loop-until-dry: a completeness-critic `agent` inspects the merged ledger fo
 facets / unconfirmed claims / stale dates and returns the next round's facets. Repeat
 until two consecutive rounds add nothing, or `budget.remaining()` is low. The refute
 stage above already fans each load-bearing claim to a 3-vote panel and folds the votes
-through `reduceRefutePanel`: majority-refute kills the claim, a clean confirm-majority
-with zero refutes confirms it, and every other split lands as contested.
+through `reduceRefutePanel`: majority-refute kills the claim, a clean evidence-backed
+confirm-majority with zero refutes confirms it, an all-unverifiable panel lands as
+`unconfirmed` (unreadable is not disagreement), and every other split lands as contested.
 
 Barrier only where a stage genuinely needs *all* prior results — deduping the ledger
 before the final synthesis, or early-exit when a round finds zero claims. Everything

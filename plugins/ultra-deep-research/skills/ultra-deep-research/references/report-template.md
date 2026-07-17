@@ -57,9 +57,12 @@ inference and speculation as such. State what could not be verified.>
 - **Low** — single/weak source, contested, or could not be independently confirmed.
 
 **Claim status** (internal ledger, not all shown): `confirmed` (≥2 independent
-Tier-1/2, survived refutation) · `unconfirmed` (single/weak) · `contested` (sources
-disagree) · `refuted` (broken by the verifier — dropped, or shown as a corrected
-misconception if the myth is itself notable).
+Tier-1/2, survived refutation) · `unconfirmed` (single/weak, or the source could not
+be fetched — a verifier `unverifiable-this-session` verdict lands here) · `contested`
+(sources genuinely disagree) · `refuted` (broken by the verifier — dropped, or shown
+as a corrected misconception if the myth is itself notable). The Contradiction ledger
+takes only real source-vs-source disagreements — an unfetchable source is never
+rendered as a disagreement row.
 
 ## Rules the writer must not break
 
