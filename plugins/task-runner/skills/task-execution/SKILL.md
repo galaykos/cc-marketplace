@@ -125,10 +125,10 @@ is a leaf that executes and never re-routes. Per card the runner follows
 `references/routing.md`: read the card's `Agent:` tag → resolve to the first reachable
 specialist (else `task-executor`) → arm a per-card scope file → Read and paste the
 delegation-contracts discipline preamble verbatim into the dispatch → dispatch → on
-return run the diff-vs-declared-files scope check, then re-run the task's verify
-command itself. A subagent's "done, tests pass" is a claim; the runner's own verify is
-the evidence. One failed re-verification sends the task back; a second reclaims it for
-inline execution. Never mark a delegated task done on the subagent's word alone.
+return run the diff-vs-declared-files scope check, re-run the task's verify command,
+then the negative-control per returned card (routing.md step 6, standard exemptions).
+A subagent's "done, tests pass" is a claim; the runner's own verify plus that teeth check
+is the evidence. One failed re-verification sends the task back; a second reclaims it inline.
 
 ## Evidence format
 

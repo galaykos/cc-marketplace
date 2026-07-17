@@ -50,7 +50,18 @@ and picks the first present in its available-agent-types list.
    the paths the worker touched vs the declared allowed-files); reclaim/reject a card
    that touched out-of-set files. Then re-run the card's exact verify command yourself
    (§ Delegating parallel groups) — this holds whether or not a PostToolUse hook fired
-   inside the subagent.
+   inside the subagent. On a green re-verify, run the **negative-control** before the
+   card closes — the same gate the inline inner loop runs (`references/negative-control.md`,
+   `task-execution/SKILL.md` inner-loop step 3): `negative-control.sh --verify "<the card's
+   exact verify>" --target <impl-file> --auto`, with `--target` set to the single impl file
+   the worker returned (a multi-file return falls to the unresolvable-target exemption).
+   `discriminating` closes the card; `vacuous`/`invalid-control` counts as a failed
+   re-verification under the two-strike rule (§ Delegating parallel groups): one
+   re-dispatch, then reclaim the card for inline execution where the inner-loop 3-cycle
+   ceiling applies; `isolation-halt` halts. The standard exemptions apply (manual/visual
+   lines; an unresolvable `--target`) — skip with an explicit note, never a silent pass.
+   This runs on every delegated return, so a delegated/parallel-group card gets the teeth
+   check the inline path already had.
 
 ## Notes
 
