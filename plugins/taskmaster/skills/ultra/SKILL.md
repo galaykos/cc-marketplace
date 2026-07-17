@@ -20,7 +20,7 @@ Ultra is active for THIS run when any of these holds this turn:
   `coverage`) was invoked with the explicit `ultra-task`/`ultratask` token, or
   with a bare `ultra` as the **first token of that command's own arguments**
   (`/taskmaster:<cmd> ultra …`), or
-- an execution run reads a `00-INDEX.md` that carries the `Ultra: true` marker.
+- an execution run reads a `00-INDEX.md` that carries the `Ultra: true` marker (a lone `Goal: true` marker also escalates workers — goal implies the boost).
 
 The trigger is deliberately narrow so a bare `ultra` cannot leak in from another
 command. `ultra` is a shared word — other plugins use it as their own intensity
@@ -50,7 +50,7 @@ your response, before anything else:
 
 Substitute `<model>`/`<effort>` with the tier the trigger selected (see Variants;
 defaults opus/xhigh). The banner is main-thread output, never hook output — so it
-renders regardless of hook ordering. Print it once per run, not once per phase.
+renders regardless of hook ordering. Print it once per run, not once per phase; if `ultra-goal` is also active it owns one merged banner (see the ultra-goal skill).
 
 ## The escalation contract (`ULTRA-TASK ACTIVE`)
 

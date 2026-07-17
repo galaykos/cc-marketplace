@@ -64,7 +64,7 @@ legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). The Agent tool esc
 only (marker `effort` applies on the `Workflow` path). Delegated stack implementers also
 get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to
 apply`). Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced
-diff — at each milestone boundary and once before the completion gate — routing confirmed
+diff — at each serial milestone boundary and once before completion (in `--tracks`: once on the merged branch) — routing confirmed
 findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take
 pipeline gates — the run-plan preview is DISPLAYED, then execution proceeds without
 waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on
@@ -73,7 +73,7 @@ Halt-with-evidence, mis-specified-task halts, and the full-suite completion gate
 UNCHANGED and NEVER suppressed under Goal.
 
 Blocker/major findings send the task back into the fix loop; each such round counts
-toward the SAME three-cycle ceiling as verify failures — the reviewer pass must not
+toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop uses its own fresh budget) — the reviewer pass must not
 create an unbounded loop. Minor findings go to the follow-up backlog, not the current
 diff. After a reviewer-driven fix, re-run the verify command before re-review.
 
