@@ -42,8 +42,8 @@ ULTRA-GOAL ACTIVE (model=$model, effort=$effort) — hands-off Extreme Boost for
 - Escape hatch (surface-and-stop, not a prompt): when no defensible recommendation can be
   derived — contradictory requirements, an option fork with no dominant choice after analysis,
   a brainstorm idea too vague to self-shape — halt with evidence instead of coin-flipping.
-- Security/auth/data-loss red-team holes are never auto-accepted as known risk: amend the spec
-  to fix them, or halt with evidence if unamendable.
+- Security/auth/data-loss AND statement-fidelity holes (the upgraded statement adds, drops, or swaps
+  capability vs the raw prompt) are never auto-accepted as known risk: amend the spec/statement, or halt with evidence if unamendable.
 - Audit precondition: create/verify the goal ledger at activation; if an append ever fails,
   halt with evidence rather than proceeding unaudited.
 - Optional side-offers (ADR capture, skill-suggester) auto-skip and log. Fan-out only when the

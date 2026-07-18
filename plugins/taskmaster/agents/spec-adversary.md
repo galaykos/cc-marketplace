@@ -27,6 +27,13 @@ is your strongest finding.
 3. **Conflicting or underspecified requirements.** Do two decisions contradict each
    other? Is a success criterion not actually verifiable (no command, no observable
    outcome)? Does an ASSUMED row hide a real fork the spec treats as settled?
+   **Statement-fidelity sub-check:** when the spec header carries the labeled
+   `**Raw prompt:**` / `**Upgraded statement:**` pair, attack the upgrade against the
+   raw ask — does the upgraded statement add a capability the raw prompt never asked
+   for, drop one it did, or swap the objective for a "better" one? A hands-off run has
+   no user to catch a wrong sharpening, so report any such drift as a hole under this
+   lens. No labeled pair in the header → note "fidelity: not applicable" and skip the
+   sub-check.
 4. **Failure & security gaps.** What happens on error, retry, timeout, or partial
    failure? What is the auth, input-validation, and exposure posture — and where do
    the requirements leave it open? Name the gap, not a fix philosophy.

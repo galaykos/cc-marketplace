@@ -88,8 +88,8 @@ Every auto-take is auditable through three sinks:
 
 Safety floor: goal mode **never** runs a branch merge/PR (the git surface stays
 manual), never suppresses the never-suppress set defined in the `ultra-goal` contract
-block, and never auto-accepts a security/auth/data-loss red-team hole as known risk (it
-amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
+block, and never auto-accepts a security/auth/data-loss or statement-fidelity red-team
+hole as known risk (it amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
 runners fall back to interactive.
 
 ## Conversation example

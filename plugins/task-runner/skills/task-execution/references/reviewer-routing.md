@@ -78,7 +78,7 @@ Runs after the card's verification passes — a command OR a recorded manual che
    **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md:66-69`);
    **medium/low** or **minor** → the backlog. The fix loop itself is unchanged: the
    runner applies fixes (or re-dispatches the builder), re-runs verify, then re-reviews.
-6. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md:57-63`).
+6. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md:61-67`).
 
 A card whose `Agent:` tag and `Skills to apply` imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they
