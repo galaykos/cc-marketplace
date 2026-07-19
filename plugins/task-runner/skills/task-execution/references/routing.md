@@ -68,6 +68,38 @@ and picks the first present in its available-agent-types list.
    This runs on every delegated return, so a delegated/parallel-group card gets the teeth
    check the inline path already had.
 
+## Batch dispatch (bundled same-worker S-cards)
+
+`parallel-planning` may return a **BATCH** verdict: a level's file-disjoint **same-worker**
+S-cards (≥3, ≤8), fired only when the batch runs concurrently with a sibling dispatch (the
+concurrency gate — `parallel-planning/references/dispatch-selection.md`). A batch is ONE
+dispatch of several cards to a single worker; it is otherwise the per-card procedure above,
+applied per member. Differences:
+
+1. **Membership is homogeneous.** Every card in a batch resolves (step 2) to the SAME
+   worker and its file-set is disjoint from every sibling in the batch. Mixed-tag S-cards
+   are never co-batched — they form their own same-worker batch or stay inline.
+2. **Arm scope per card**, not per batch: one `scope-<cardId>.json` for each member (step 3
+   unchanged), so each card keeps its own declared-files boundary.
+3. **Dispatch once**, with all member cards inline in the prompt, the discipline preamble
+   verbatim, and the instruction to run the members **sequentially**, committing **one
+   commit per card** (message `card <id>`) so the main runner can attribute per-card diffs
+   on return. A batch worker is a leaf: it never re-routes or writes `00-INDEX.md`.
+4. **Mid-batch failure is park-one-continue-rest.** A member hitting its 3-cycle halt or a
+   park is parked; the worker continues the remaining disjoint members and returns
+   **per-card statuses** (done + commit sha, or parked + reason). Members are disjoint, so
+   a parked member never blocks a sibling.
+5. **Per-card teeth on return** (step 6, run per member against that member's commit — never
+   the union): the diff-vs-declared check (that card's commit vs that card's declared
+   files, so a member writing into a sibling's file IS caught), the exact verify command,
+   and the negative-control with `--target` = that card's declared impl file. A member
+   failing re-verification twice is reclaimed for **inline** execution (the two-strike rule
+   applies per member, not to the whole batch).
+6. **Reviewer pass is kept.** A returned batch is NOT a live parallel-group/track leaf (see
+   `references/reviewer-routing.md` carve-out): the main runner runs the per-card reviewer
+   pass on each member's diff, exactly as an inline S-card would have received it. Batching
+   changes *where the code is written*, never the quality gates a card passes.
+
 ## Blast-radius detection — breakage in unlisted files halts, not follow-up
 
 The scope lock's follow-up-and-continue rule (`task-execution/SKILL.md` § Scope lock) is for

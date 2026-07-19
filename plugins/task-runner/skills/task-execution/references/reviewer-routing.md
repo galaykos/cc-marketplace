@@ -91,3 +91,12 @@ milestones** of a `--tracks` run. A card executed **inside a parallel-group/trac
 reviewer pass** (routed or baseline) — a track-worker is a leaf and cannot dispatch
 reviewers. Accepted MVP limitation, consistent with implement-side routing being off in
 tracks.
+
+## Batch carve-out
+
+A **batch** (bundled same-worker S-cards, `references/routing.md` § Batch dispatch) is
+**exempt from the leaf rule above**: unlike a live track leaf, a batch *returns* to the
+main runner, which then processes each member per-card. So the main runner runs the full
+augmented reviewer pass (baseline `code-reviewer` + diff-content gates + tag route) on
+**each batched card's diff** on return — a batched S-card receives exactly the review its
+inline counterpart would. Batching moves where the code is written, never the review it gets.
