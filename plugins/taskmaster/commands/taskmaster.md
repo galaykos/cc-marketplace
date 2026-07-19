@@ -51,7 +51,9 @@ marker into the card index and logging every auto-take to the goal ledger.
    installed, skip this — context-scout falls back to reading manifests itself.
 2. Invoke the grill skill from this plugin. Dispatch the context-scout agent on the
    task description and fold its report into the ambiguity ledger BEFORE asking the
-   user anything.
+   user anything. Then, after that fold and before the question rounds, derive the
+   upgraded task statement from the raw prompt plus the scout report per grill's
+   prompt-upgrade reference.
 3. Run batched question rounds per the grill skill until every ledger row is CLEAR
    or explicitly accepted as ASSUMED. For whole-experience tasks, slice first per
    the grill skill's big-task rule. Switch to the visual-decisions skill when a
@@ -64,9 +66,10 @@ marker into the card index and logging every auto-take to the goal ledger.
    visual decisions land: assemble the accepted picks into one clickable demo on
    the live preview URL, walk the user through it with a task script, and fold
    every discovered gap back into the ledger before freezing anything.
-5. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions with
-   sources, accepted assumptions, non-goals, success criteria — plus the
-   walkthrough file path and cross-screen contracts when step 4 ran.
+5. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: a header with the raw +
+   upgraded statement pair (under the `**Raw prompt:**` / `**Upgraded statement:**`
+   labels), goal, decisions with sources, accepted assumptions, non-goals, success
+   criteria — plus the walkthrough file path and cross-screen contracts when step 4 ran.
 6. Red-team the spec first when its blast radius warrants — run the `spec-redteam`
    skill to attack the frozen spec for holes (missing edge cases, unstated
    assumptions, conflicts, failure/security gaps) and resolve each before planning.

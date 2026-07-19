@@ -68,6 +68,14 @@ headless):
 Loop until every hole is amended, accepted, or dismissed. Then continue to
 task-cards on the hardened spec.
 
+The conflicts lens carries a **statement-fidelity sub-check** — active only when the
+spec header holds the labeled `**Raw prompt:**` / `**Upgraded statement:**` pair — that
+attacks the upgrade for scope the raw ask never carried (added, dropped, or swapped).
+Route a fidelity hole like any conflict, except under goal (hands-off) mode it is never
+auto-accepted: no user is present to ratify a wrong sharpening, so amend the spec —
+or halt with evidence if unamendable (the ultra-goal contract's never-auto-accept
+rule; dismiss remains reserved for demonstrated false positives).
+
 ## Minor holes
 
 Blocker and major holes always go through the resolution loop. Minor holes may be

@@ -16,7 +16,7 @@ what gets built — if any answer leads to the same code, delete the question.
 ## Step 0 — scout before asking
 
 Dispatch the `context-scout` agent with the raw task description before asking the
-user anything, and derive an upgraded task statement from the raw prompt per `references/prompt-upgrade.md` (mode-agnostic — sharpen the objective, name implied constraints, never reinterpret scope). Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout `model: opus` with 3-lens Workflow recon, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native. Fold its report into the ledger:
+user anything; then, once its report is folded into the ledger (below), derive an upgraded task statement from the raw prompt plus that scout report per `references/prompt-upgrade.md` (mode-agnostic — sharpen the objective, name implied constraints, never reinterpret scope). Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout `model: opus` with 3-lens Workflow recon, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native. Fold its report into the ledger:
 
 - "Already answered by code" entries become CLEAR rows with evidence. Never ask the
   user something the codebase answers — it burns trust and attention.
@@ -40,13 +40,13 @@ chosen and named, awaiting confirmation), **UNKNOWN** (blocks implementation).
 
 ## Persist and resume
 
-After reprinting the ledger each round, also write it — a `Task: <description>`
-header plus the table — to `.claude/taskmaster/ledger-<slug>.md` (gitignored;
-`<slug>` a kebab of the task description), so an interrupted interrogation is not
-lost. At grill start, if an unfinished `.claude/taskmaster/ledger-*.md` exists, show
-its task and offer Resume / Start fresh; Resume loads the table and continues from
-the first UNKNOWN row — no re-scout, no re-asking resolved rows. Delete the file
-when the spec is written.
+After reprinting the ledger each round, also write it — a header carrying the raw +
+upgraded statement pair plus the table — to `.claude/taskmaster/ledger-<slug>.md`
+(gitignored; `<slug>` a kebab of the task description), so an interrupted
+interrogation is not lost. At grill start, if an unfinished
+`.claude/taskmaster/ledger-*.md` exists, show its task and offer Resume / Start fresh;
+Resume reuses the stored statement (never re-derived), loads the table, and continues
+from the first UNKNOWN row — no re-scout, no re-asking resolved rows. Delete the file when the spec is written.
 
 ## Question dimensions
 
@@ -120,10 +120,10 @@ assumption list, or the user says "enough". Then:
    contract, then synthesize one pick + kill-trigger. Absent → propose 2–3
    approaches inline and pick. Skip for single-approach or mechanical tasks, or
    when an upstream brainstorm design already recorded the approach.
-2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: goal, decisions (from CLEAR
-   rows with sources), accepted assumptions, the chosen approach with alternatives
-   rejected and its kill-trigger, non-goals, success criteria. Staged visual/creative
-   picks → invoke the `visual-contract` skill to bind them as `## Visual contract`.
+2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: header with the raw + upgraded
+   statement pair, goal, decisions (from CLEAR rows with sources), accepted assumptions, the
+   chosen approach with alternatives rejected and its kill-trigger, non-goals, success criteria.
+   Staged visual/creative picks → invoke the `visual-contract` skill to bind them as `## Visual contract`.
 3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
    attack the frozen spec for holes and resolve each before cards; trivial specs skip.
 4. If the decision-records plugin is installed, offer ADR capture for the spec's

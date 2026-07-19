@@ -38,8 +38,9 @@ and picks the first present in its available-agent-types list.
    legacy fixed `scope.json`, which stays the inline path's soft tripwire).
 4. **Inject discipline + prime stack skills.** Read
    `orchestration/skills/delegation-contracts/references/discipline-preamble.md` and
-   paste its text **verbatim** into the dispatch prompt, together with the card and its
-   allowed-files. The preamble overrides the worker's own default procedure. THEN, for
+   paste its text **verbatim** into the dispatch prompt, together with the card, its
+   allowed-files, and the index's `## Upgraded statement` block when one is present.
+   The preamble overrides the worker's own default procedure. THEN, for
    every skill named in the card's `Skills to apply`, resolve its installed `SKILL.md`
    and inject a `Read <abs-path>` line into the same prompt (delegation-contracts
    § Skill priming) — a delegate cannot self-load skills. Do this **unconditionally, not

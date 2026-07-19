@@ -62,7 +62,7 @@ priming skill missed, or a real reviewer agent whose rubric is absent), flag
 ## The augmented pass (per card, after ANY successful verification)
 
 Runs after the card's verification passes — a command OR a recorded manual check
-(`SKILL.md:135`), so UI/visual cards without a runnable command are still reviewed.
+(`SKILL.md:139`), so UI/visual cards without a runnable command are still reviewed.
 
 1. **Existing pass:** baseline `code-reviewer` + whichever diff-content gates match the
    diff (ui-ux / architecture / security).
@@ -75,10 +75,10 @@ Runs after the card's verification passes — a command OR a recorded manual che
 4. **Fallback:** a mapped agent/skill that is absent → plain `code-reviewer`; logged in
    the run report (matching `routing.md`'s downgrade log).
 5. **Severity normalization** (routed reviewers use varying scales): **critical/high** or
-   **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md:66-69`);
+   **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md:78-80`);
    **medium/low** or **minor** → the backlog. The fix loop itself is unchanged: the
    runner applies fixes (or re-dispatches the builder), re-runs verify, then re-reviews.
-6. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md:57-63`).
+6. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md:61-67`).
 
 A card whose `Agent:` tag and `Skills to apply` imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they

@@ -48,11 +48,15 @@ conditional reviewer pass on the diff of a **directly-dispatched** card (a paral
   components, styles, templates.
 - **architecture-reviewer** (code-architecture plugin): only on structural
   tasks — new modules, boundary changes, or API changes.
-- **security review** (security plugin): only on tasks touching auth, input
-  validation, or dependencies.
+- **security review** (security plugin): only on tasks touching auth, input validation, or dependencies.
 
 Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
 Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs the concurrent read-only reviewers + a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
+
+**Upgraded statement:** when `00-INDEX.md` carries a `## Upgraded statement` blockquote
+(the `> `-prefixed section task-cards writes), read it as binding context for every task
+— it sharpens the shared goal, NEVER a license to widen, drop, or reinterpret a card;
+cards stay the sole scope authority, halt-with-evidence unchanged. Absent → as today.
 
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker,
 dispatch the reviewer and delegated worker agents with a `model:` override — excluding
@@ -72,19 +76,17 @@ forward progress (a task moved parked→done), else surface the parked list and 
 Halt-with-evidence, mis-specified-task halts, and the full-suite completion gate are
 UNCHANGED and NEVER suppressed under Goal.
 
-Blocker/major findings send the task back into the fix loop; each such round counts
-toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop uses its own fresh budget) — the reviewer pass must not
-create an unbounded loop. Minor findings go to the follow-up backlog, not the current
-diff. After a reviewer-driven fix, re-run the verify command before re-review.
+Blocker/major findings send the task back into the fix loop; each such round counts toward
+the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Minor findings go to the
+follow-up backlog, not the current diff; after a reviewer-driven fix, re-run the verify command before re-review.
 
 ## No unbounded outer loop
 
-The bounded inner loop is the good part of the Ralph pattern; the infinite outer loop
-("keep going until everything works, forever") is not adopted — unbounded self-looping
-amplifies drift, and token burn scales with confusion, not progress. The outer loop is
-the task list itself: finite, ordered, visible. A halted task stays halted until its
-definition is fixed — never silently retried on the next pass. When every task is done
-or explicitly parked, the run ENDS with a report, no self-restart.
+The bounded inner loop is the good part of the Ralph pattern; the infinite outer loop is
+not adopted — unbounded self-looping amplifies drift, and token burn scales with confusion,
+not progress. The outer loop is the task list itself: finite, ordered, visible. A halted
+task stays halted until its definition is fixed — never silently retried on the next pass.
+When every task is done or parked, the run ENDS with a report, no self-restart.
 
 ## Sequencing and status
 
@@ -98,12 +100,11 @@ or explicitly parked, the run ENDS with a report, no self-restart.
 
 ## No status theater
 
-Status needs no HTML. The index table plus the running conversation already show every
-status flip; a generated run-board page duplicates both and goes stale the moment a
-regeneration is forgotten. Do not create status dashboards, run boards, or progress
-pages — the index is the single view. HTML artifacts (or a localhost preview) are
-reserved for content that earns the medium — UI mockups, walkthroughs, demos, brainstorm
-canvases; a table a markdown message can carry is a message, not a file.
+Status needs no HTML. The index table plus the conversation already show every status
+flip; a run-board page duplicates both and goes stale once a regeneration is forgotten. Do
+not create status dashboards, run boards, or progress pages — the index is the single view.
+HTML artifacts (or a localhost preview) are reserved for content that earns the medium — UI
+mockups, walkthroughs, demos, brainstorm canvases; a table a message can carry is not a file.
 
 ## Drift tripwires
 
@@ -124,7 +125,8 @@ Only the main `/task-runner:run` orchestrator routes and delegates; a delegated 
 is a leaf that executes and never re-routes. Per card the runner follows
 `references/routing.md`: read the card's `Agent:` tag → resolve to the first reachable
 specialist (else `task-executor`) → arm a per-card scope file → Read and paste the
-delegation-contracts discipline preamble verbatim into the dispatch → dispatch → on
+delegation-contracts discipline preamble verbatim into the dispatch, plus the
+`## Upgraded statement` block when the index carries one → dispatch → on
 return run the diff-vs-declared-files scope check, re-run the task's verify command,
 then the negative-control per returned card (routing.md step 6, standard exemptions).
 A subagent's "done, tests pass" is a claim; the runner's own verify plus that teeth check
@@ -132,10 +134,9 @@ is the evidence. One failed re-verification sends the task back; a second reclai
 
 ## Evidence format
 
-Evidence recorded per task is boringly literal: the exact command as run, its exit
-code, and the last relevant lines of output (the failing assertion, the "N passed"
-summary — not the whole log). Manual checks ("dialog renders centered") are recorded
-as manual, with what was observed; "Verified ✓" alone is not evidence and closes nothing.
+Evidence recorded per task is boringly literal: the exact command as run, its exit code, and
+the last relevant lines of output (the failing assertion, the "N passed" summary — not the
+whole log). Manual checks ("dialog renders centered") are recorded as manual, with what was observed; "Verified ✓" alone is not evidence and closes nothing.
 
 ## Completion protocol
 
@@ -146,9 +147,8 @@ The run is complete only when:
    failure) AND the **behavioral-gate** actually runs the produced code (see its skill:
    `scripts/behavioral-gate.sh --changed <run's files>`) — the repo suite may be a static
    linter that never executes new code. docs-upkeep's drift check, if installed, joins this gate.
-3. The final report is a table: task / status / verify command / evidence line,
-   plus the parked list with reasons and the follow-up backlog collected by the
-   scope lock.
+3. The final report is a table: task / status / verify command / evidence line, plus the
+   parked list with reasons and the follow-up backlog collected by the scope lock.
 
 Claiming completion without the full-suite run is asserting, not verifying — the
 work-verification discipline (code-architecture plugin) applies to the whole run.

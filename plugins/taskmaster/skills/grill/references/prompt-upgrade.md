@@ -1,7 +1,8 @@
-# Prompt-upgrade — sharpen the raw prompt at activation
+# Prompt-upgrade — sharpen the raw prompt once the scout lands
 
-At grill activation, before the interrogation begins, derive an **improved task
-statement** from the user's raw prompt. A raw ask is almost always underspecified;
+At grill activation, after the context-scout report is folded into the ledger and
+before the interrogation rounds begin, derive an **improved task statement** from
+the raw prompt plus that report. A raw ask is almost always underspecified;
 upgrading it up front gives every downstream phase (grill rounds, the spec, the
 cards) the sharpest possible starting point — and it is the one improvement that
 lands even on a hands-off run where no user is present to clarify.
@@ -12,19 +13,42 @@ owned by the `ultra-goal` skill, not here.
 
 ## Procedure
 
-1. **Derive.** Read the raw prompt and write a tighter restatement that:
-   - sharpens the goal into a concrete outcome (who, what changes, where);
-   - names what a better prompt would have specified — the constraints, scope
-     boundaries, and success shape the raw ask left implicit;
-   - surfaces implied constraints already true in this repo (gates, versions,
-     conventions the change must respect).
-2. **Show it with the first ledger print.** Print the upgraded statement together
+1. **Investigate first.** The derivation waits for the context-scout report —
+   never author the statement from the raw words alone. The report, not memory,
+   is where "what currently exists" comes from.
+2. **Derive.** Read the raw prompt and the scout report, and write a tighter
+   restatement that grounds three facets:
+   - **why the task is wanted** — the concrete outcome the raw ask is after
+     (who, what changes, where);
+   - **what currently exists** — the relevant code, patterns, and hard
+     constraints (gates, versions, conventions) the scout report established;
+   - **how the current state is lacking** relative to that outcome — synthesized
+     by the deriver from the two facets above; the scout stays facts-only and
+     never opines.
+   In doing so, name what a better prompt would have specified — the constraints,
+   scope boundaries, and success shape the raw ask left implicit.
+3. **Show it with the first ledger print.** Print the upgraded statement together
    with the first ambiguity-ledger table so the user sees, from round one, the
    statement the interrogation is actually working from. In an interactive run this
    is itself a cheap confirmation prompt; a wrong sharpening gets corrected early.
-3. **Embed it in the spec header.** When the spec is written, carry the upgraded
-   statement into its header (raw prompt + upgraded statement, as a pair) so the
-   frozen spec records what was actually built toward, not just the raw words.
+4. **Embed it in the spec header.** When the spec is written, carry the pair into
+   its header under the exact labels `**Raw prompt:**` and `**Upgraded statement:**`
+   — these labels are parse anchors for downstream steps (task-cards copies the
+   statement into `00-INDEX.md` from the second label; spec red-teaming's
+   statement-fidelity sub-check compares the two) — so the frozen spec records
+   what was actually built toward, not just the raw words.
+
+## Special inputs
+
+- **Brainstorm design doc.** When grill's input is an approved brainstorm design
+  doc rather than a raw prompt, degrade to a light confirmation: restate the
+  doc's goal as the upgraded statement (same sinks, same labels). The approved
+  doc already encodes the triple; do not force a full re-derivation of an
+  already-shaped document.
+- **Resume.** A statement already recorded (in the resume ledger header or the
+  goal ledger) is REUSED on resume — never silently re-derived. If none was
+  recorded before the interruption, re-run grill Step 0; re-scout is allowed in
+  exactly this case.
 
 ## Quality bar
 
@@ -59,12 +83,13 @@ checking its call sites, or (c) answering from memory instead of fetching, exist
 one execution path but is absent, contradictory, or unenforceable on another —
 prioritizing ultra-deep-research's refutation/verification teeth. Additionally, give
 the taskmaster pipeline a prompt-upgrade step that derives exactly this kind of
-improved task statement from any raw prompt at run start. Every fix must pass
+improved task statement from any raw prompt plus the scout's findings. Every fix must pass
 validate.sh, check-version-bumps.sh, generate.sh --check, and the CI smoke suites.*
 
 Notice what the upgrade added and what it did not. It **added**: the concrete
 surface (which file kinds count as prompt-content), the precise defect shape (a
 safeguard present on one path, absent/contradictory on another), a priority order,
-and the enforcement gates every fix must clear. It did **not** invent new goals —
-"fix skip bugs", "check usage", "don't skip research", and "improve self-prompting"
-are all still exactly the user's asks, only made concrete and testable.
+and the enforcement gates every fix must clear — the kind of facts a scout report
+supplies. It did **not** invent new goals — "fix skip bugs", "check usage", "don't
+skip research", and "improve self-prompting" are all still exactly the user's asks,
+only made concrete and testable.
