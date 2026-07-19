@@ -32,15 +32,47 @@ git rev-list --left-right --count "$BASE...HEAD"        # behind / ahead
 git log --oneline "$BASE..HEAD"                         # the commits
 ```
 
-Present that evidence plus the suite result, then exactly four options —
-merge locally, push and open a PR, keep the branch open, discard the work.
-Never assume which one applies: a branch that looks obviously mergeable may be
-an experiment, and a scruffy spike may be tomorrow's release. Interactive
-sessions ask via AskUserQuestion; headless sessions report the evidence and
-the options, then stop — choosing a destination is not automatable, and
-destructive defaults are how work disappears.
+Present that evidence plus the suite result, then the destination options —
+the set depends on the base (see "The default branch is PR-only" below). For a
+feature whose base is NOT the default branch, offer all four: merge locally,
+push and open a PR, keep the branch open, discard the work. When the base IS
+the default branch, drop "merge locally" — offer only push and open a PR, keep
+the branch open, discard the work. Never assume which one applies: a branch
+that looks obviously mergeable may be an experiment, and a scruffy spike may be
+tomorrow's release. Interactive sessions ask via AskUserQuestion; headless
+sessions report the evidence and the options, then stop — choosing a
+destination is not automatable, and destructive defaults are how work
+disappears.
+
+## The default branch is PR-only
+
+The default branch is never a local-merge destination — PR is the sole route
+onto it. Resolve which branch that is before offering options:
+
+```bash
+def=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
+def=${def#origin/}                                  # e.g. origin/main -> main
+[ -z "$def" ] && for b in main master; do           # no remote / HEAD unset:
+  git show-ref --verify --quiet "refs/heads/$b" && def=$b && break
+done                                                # main/master stay protected
+```
+
+The rule binds ONLY to that branch: merging a feature into any other base
+(`develop`, a stacked parent) keeps all four options and the Merge protocol.
+Two halts, both surfacing rather than acting:
+
+- **HEAD is the default branch** with commits ahead of its upstream (work
+  committed straight onto master/main, no feature branch): do not offer it a
+  destination. Stop, show the commits, and route the user to move them onto a
+  new branch and open a PR — offer to create the branch from here.
+- **PR impossible** (base is the default branch but no remote / no `gh`): do
+  not silently local-merge onto the default as a fallback. Report that a PR
+  cannot be opened and stop; the default branch waits for a real PR.
 
 ## Merge protocol
+
+This applies ONLY when the base is not the default branch — a feature based on
+the default branch is finished via the PR protocol, never a local merge.
 
 1. Update the base first: `git fetch`, then fast-forward the local base
    branch. Merging into a stale base produces a green merge that explodes on
@@ -108,3 +140,7 @@ from inside the worktree being removed; `cd` to the main checkout root first.
 - Auto-merging in a headless run — no interlocutor, no destructive action.
 - Finishing the merge and leaving the worktree behind "for now" — that is the
   zombie this skill exists to prevent.
+- Merging a feature into the default branch locally instead of via a PR — the
+  default branch is reached only through review.
+- Committing directly on the default branch, then finishing it in place instead
+  of moving the work to a branch and opening a PR.

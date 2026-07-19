@@ -16,7 +16,7 @@ clean up), and review-exchange rigor on both sides of a code review.
 
 | Command | What it does |
 |---------|--------------|
-| `/git-workflow:finish [branch]` | Verify the full suite, show branch state evidence (diffstat, ahead/behind, commits), ask merge / PR / keep / discard, execute the choice including worktree and branch cleanup |
+| `/git-workflow:finish [branch]` | Verify the full suite, show branch state evidence (diffstat, ahead/behind, commits), ask PR / keep / discard (plus merge-locally only when the base is not the default branch — the default branch is reached via PR only), execute the choice including worktree and branch cleanup |
 
 ## Example
 
@@ -26,10 +26,12 @@ clean up), and review-exchange rigor on both sides of a code review.
 ```
 
 The finish command never assumes a destination: a red suite stops it cold, a
-green one gets state evidence and an explicit four-way choice. Merges re-run
-the full suite on the merged result before any branch or worktree is deleted;
-discards require typing the branch name back; headless runs report options and
-touch nothing.
+green one gets state evidence and an explicit choice. The default branch is
+PR-only — "merge locally" is offered only when the base is a non-default branch,
+and committing straight onto the default branch routes you to a branch + PR
+instead. Merges re-run the full suite on the merged result before any branch or
+worktree is deleted; discards require typing the branch name back; headless runs
+report options and touch nothing.
 
 ## Pairs well with
 
