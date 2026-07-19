@@ -130,7 +130,7 @@ Three sinks make every auto-take reviewable:
 1. **Goal ledger** `.claude/taskmaster/goal-ledger-<slug>.md`, appended live per auto-take (decision,
    options, pick, rationale, source `file:line`). Its writability is an ACTIVATION PRECONDITION:
    create/verify it before boosting; an append that ever fails → halt with evidence, never proceed unaudited.
-   Once grill's Step 0 completes (post-scout), its prompt-upgrade step (grill `references/prompt-upgrade.md`) records the upgraded task statement here as the first ledger entry — grill stays goal-blind; this recording is ours.
+   Once grill's Step 0 completes (post-scout), its prompt-upgrade step (grill `references/prompt-upgrade.md`) records the upgraded task statement here as its dedicated statement entry — grill stays goal-blind; this recording is ours.
 2. **Spec appendix** `## Auto-decisions` — a durable summary inside the frozen spec.
 3. **Index marker** `Goal: true (model=…, effort=…)` in `00-INDEX.md`, carrying hands-off into execution.
    Legacy bare `Goal: true` means opus/xhigh, autonomy on. The marker notes the version floor:
