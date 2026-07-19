@@ -47,15 +47,35 @@ Recommend DELEGATE when ALL hold:
 - Every parallel task passes the fresh-session test: executable from its
   own text with zero conversation context (taskmaster card standard).
 - File sets provably disjoint — no two concurrent tasks touch one file.
-- Parallel tasks are size M or better; delegating an S task spends more on
-  spawn than on work.
+- Parallel tasks are size M or better; a *lone* S task spends more on spawn
+  than on work — but a **same-worker disjoint S-cluster (≥3)** BATCHes into one
+  agent when its level has a concurrent sibling (see Batching below).
 
 Otherwise recommend INLINE. Borderline (1.2–1.5×): present both, note the
 tie, default inline — predictability beats a thin win.
 
-The recommendation is OPTIONAL by contract: present the table, then offer
-the pick as a selectable choice (delegate per plan / inline / adjust) —
-never a command the user must type, never a silently spawned fleet.
+The recommendation names each level's verdict AND a run-level `Dispatch:`
+mechanism (below); it is the Run-now default and, under a `Goal:` marker,
+auto-taken. The default path may delegate disjoint groups/batches as it does
+today, but a `workflow-tracks` pick never spawns a worktree fleet without the
+Run-now confirmation or the Goal marker. Present the table, then offer the pick
+(delegate per plan / inline / adjust).
+
+## Batching and dispatch mechanism
+
+Two extra outputs, both detailed in `references/dispatch-selection.md`:
+
+- **BATCH** a level's file-disjoint **same-worker** S-cards (≥3, ≤8 per batch)
+  into one shared agent — but ONLY when the batch runs concurrently with a
+  sibling dispatch; a *lone* batch is slower than inline (sequential-in-a-subagent
+  adds a spawn over sequential-in-main-thread). One commit per card; per-card
+  verify + negative-control + scope check on return; mid-batch park-one-continue.
+- **`Dispatch:`** ∈ {`default`, `workflow-tracks`}: `workflow-tracks` when ≥2
+  dependency-independent, file-disjoint, track-eligible milestones exist, else
+  `default` (whose per-level verdicts decide subagent use within it). The default
+  path delegates as today; `workflow-tracks` auto-engages only at the Run-now
+  confirmation / under a `Goal:` marker, and only if track preconditions hold
+  (else downgrade to `default`, noted in the run report).
 
 ## Output shape
 
@@ -65,6 +85,7 @@ never a command the user must type, never a silently spawned fleet.
     Level 3: task 13 — integration, shared files — INLINE
     Serial cost 34 units; critical path 9 units; ceiling 3.8x; adjusted ~2.9x
     Verdict: DELEGATE levels 0 and 2 — est. wall-clock ~1/3 of serial.
+    Dispatch: default (per-level verdicts above) — workflow-tracks only with ≥2 independent milestones
 
 Show the arithmetic. A verdict without the numbers is a vibe.
 
@@ -111,10 +132,11 @@ Beyond the per-level card groups above, check for **milestone-level** concurrenc
 each milestone's normalized `Files:` set from the 00-INDEX (see task-cards'
 `references/milestone-file-sets.md`). When **two or more milestones** are
 dependency-independent and file-disjoint and touch no shared/registry file, print a
-one-line suggestion: *"≥2 independent milestones — consider `/task-runner:run --tracks`
-to run them concurrently in worktrees."* Suggestion only; never auto-engage. This is
-coarser than the per-card levels above — the unit is a whole milestone, matching the
-`track-orchestration` skill's eligibility rule.
+`Dispatch: workflow-tracks` recommendation (above). It becomes the Run-now default
+(interactive) or is auto-taken under a `Goal:` marker, and engages only if track
+preconditions hold — never a worktree fleet without that confirmation/marker
+(`references/dispatch-selection.md`). This is coarser than the per-card levels above —
+the unit is a whole milestone, matching the `track-orchestration` skill's eligibility rule.
 
 ## Boundaries
 

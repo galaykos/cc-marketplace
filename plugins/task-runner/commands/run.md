@@ -27,6 +27,27 @@ non-eligible milestones, **never** inside a track leaf or any delegated parallel
 `--crew` is the **sole** trigger: no hook, no `Ultra: true` marker, and no
 `ultra-task`/`ultra-assess` run engages crew; without `--crew` the run is exactly as today.
 
+**Auto-pick (no dispatch flag)** — when `$ARGUMENTS` includes no dispatch flag (`--tracks`
+absent), consult `parallel-planning`'s `Dispatch:` recommendation
+(`skills/parallel-planning/references/dispatch-selection.md`) and honor it:
+
+- `Dispatch: default` → the serial `task-execution` path below; its per-level
+  `INLINE`/`DELEGATE`/`BATCH` verdicts decide subagent use as today (default-path
+  delegation is existing behavior, **not** a new silent fleet). A **BATCH** level
+  dispatches each same-worker disjoint S-batch as one agent per
+  `skills/task-execution/references/routing.md` § Batch dispatch — one commit per card,
+  and per-card verify + negative-control + scope check + reviewer pass on return.
+- `Dispatch: workflow-tracks` → engage the `--tracks` path, but only under the **Run-now
+  confirmation** (interactive) or a **`Goal:` marker** (hands-off), AND only if track
+  preconditions hold (non-base run branch + clean tree + per-milestone `Files:` sets). If
+  preconditions are unmet, **downgrade to the default path** and write the downgrade
+  reason **into the run report** so a hands-off downgrade stays auditable. Auto-picked
+  tracks downgrade — they never refuse; an *explicit* `--tracks` keeps
+  `track-orchestration`'s create-or-refuse contract.
+
+An **explicit** dispatch flag always overrides auto-pick. `--crew` is **orthogonal** — a
+quality flag, not a dispatch flag — and never affects the `Dispatch:` decision.
+
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
    groups, verify command per task) before executing. Register the run for the
    completion-gate Stop hook: write `.claude/task-runner/active-run.json`
