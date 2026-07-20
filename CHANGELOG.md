@@ -44,6 +44,10 @@ version in their `plugin.json`.
 
 ### Added
 
+- **brain** 0.2.3 self-healing small drift: when ≤5 files changed since the
+  map's `built:` stamp, the session-start hint instructs the model to run the
+  incremental `/brain index` immediately (auto from the user's seat); larger
+  drift stays an explicit offer. Hook remains write-nothing, fail-open.
 - **brain** 0.2.2 produce→consume→refresh loop: taskmaster's context-scout and
   orchestration's delegation-contracts now use a committed `brain/INDEX.md` as
   an orientation prior (verify-then-trust-code, never a stale map over greps);

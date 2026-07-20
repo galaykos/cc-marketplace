@@ -32,6 +32,10 @@
   # Staleness hint: the header records `built: <short-hash>`. Prefix-match it against
   # the FULL current HEAD hash — robust to git's abbreviation length changing over time
   # (a bare `--short` can widen after a fetch and cause a spurious mismatch).
+  # Small drift (≤5 changed files) self-heals: the hint instructs the MODEL to run the
+  # incremental index right away — auto from the user's seat. Larger drift stays an
+  # explicit offer (a big reindex spends real tokens; the user decides). The hook itself
+  # still writes nothing — the model performs the refresh, visibly, in the session.
   built=$(head -1 "$index" | grep -oE 'built: [0-9a-f]+' | awk '{print $2}')
   hint=""
   if [ -n "$built" ] && command -v git >/dev/null 2>&1; then
@@ -39,7 +43,14 @@
     if [ -n "$head_full" ]; then
       case "$head_full" in
         "$built"*) ;;  # current HEAD begins with the built prefix → map is fresh
-        *) hint="⚠ brain map is behind HEAD (built $built) — run /brain index to refresh." ;;
+        *)
+          drift=$(git -C "$cwd" diff --name-only "$built"..HEAD 2>/dev/null | wc -l | tr -d ' ') || drift=""
+          if [ -n "$drift" ] && [ "$drift" -ge 1 ] 2>/dev/null && [ "$drift" -le 5 ]; then
+            hint="⚠ brain map is behind HEAD (built $built, $drift files changed) — Claude: run the incremental /brain index refresh now, before other work; no need to ask."
+          else
+            hint="⚠ brain map is behind HEAD (built $built${drift:+, $drift files changed}) — offer /brain index to refresh."
+          fi
+          ;;
       esac
     fi
   fi
