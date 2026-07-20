@@ -327,7 +327,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Three.js, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "php-suite",
@@ -403,6 +403,11 @@
       "name": "compaction-advisor",
       "source": "./plugins/compaction-advisor",
       "description": "Advice-only nudge to run /compact when a session grows long. A UserPromptSubmit hook counts user turns per session and, on a repeating 50-turn interval, prints one line suggesting /compact if an early chunk is no longer relevant to the current task — the model judges relevance from the nudge text. Resets on SessionStart source=compact|clear so it never nags right after a compaction or a context clear. Single self-healing state file per working tree, warn-only and fail-open: any error exits 0 silently, a corrupt or foreign-session state file re-seeds rather than going silent. No token API, no byte-size thresholds, and it never runs /compact itself — the user decides."
+    },
+    {
+      "name": "threejs",
+      "source": "./plugins/threejs",
+      "description": "Three.js best practices: WebGPURenderer-first with automatic WebGL2 fallback (WebGPU is Baseline since Jan 2026), TSL shaders, react-three-fiber/drei integration, asset pipelines (glTF/Draco/KTX2), disposal and leak discipline, render-loop and draw-call performance, version-aware against the locked three revision. Includes /threejs:review."
     }
   ]
 }

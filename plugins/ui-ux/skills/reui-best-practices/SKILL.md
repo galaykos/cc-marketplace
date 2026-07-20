@@ -7,7 +7,8 @@ description: Use when building or reviewing ReUI (reui.io) components or blocks 
 
 ReUI (https://reui.io) is a shadcn-ecosystem library: copy-paste React
 components and larger blocks built on the same foundations as shadcn/ui —
-Radix primitives, Tailwind, CSS-variable theming, `cn()` composition. Reach
+the shadcn primitive base (Base UI default since mid-2026, Radix on legacy
+stacks), Tailwind v4, CSS-variable theming, `cn()` composition. Reach
 for it when the project already speaks shadcn and needs components or
 composed blocks beyond the shadcn base set; do NOT bolt it onto a Bootstrap
 or plain-CSS project as a shortcut — it drags the whole shadcn stack with it.
@@ -61,7 +62,9 @@ existing theme (see the shadcn-theming skill) should style them for free:
 
 ## Blocks are starting points, not pages
 
-ReUI ships composed blocks (dashboards, settings panels, forms). Discipline:
+ReUI ships composed blocks (dashboards, settings panels, forms). The free tier
+covers primitives and many examples; MOST larger blocks/templates are a paid
+tier — verify access before planning a feature around a specific block. Discipline:
 
 - A block is scaffolding: strip the parts the feature does not need at
   install time; dead sections of a pasted block are the fastest-growing dead

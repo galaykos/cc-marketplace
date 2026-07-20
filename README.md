@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 72 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 73 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,11 +44,11 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 72 | ~12.7k tokens |
+| `everything` | 73 | ~12.7k tokens |
 | `taskmaster-suite` | 37 | ~8.1k tokens |
 | `process-suite` | 13 | ~2.4k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
-| `frontend-suite` | 15 | ~2.6k tokens |
+| `frontend-suite` | 16 | ~2.7k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
@@ -117,6 +117,7 @@ afterwards to sweep the orphans.
 | **[javascript](plugins/javascript/README.md)** | Vanilla JS: version-aware ES feature floors, === and coercion traps, ESM vs CommonJS interop, async correctness + event loop, this-binding & closures/leaks, boundary validation, BigInt, prototype-pollution safety | `/javascript:review` |
 | **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
 | **[vite](plugins/vite/README.md)** | Vite: VITE_ env-leak security, dep pre-bundling, code splitting/manualChunks, base for sub-path deploys, dev server.proxy, define pitfalls, SSR, library mode, plugin order, HMR guards | `/vite:review` |
+| **[threejs](plugins/threejs/README.md)** | Three.js: WebGPURenderer-first (WebGL2 fallback), TSL shaders, react-three-fiber/drei, glTF/Draco/KTX2 pipelines, disposal/leak discipline, draw-call performance — version-aware per rXXX | `/threejs:review` |
 | **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue/React/Svelte): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 + adapter awareness | `/inertia:review` |
 | **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness; general third-party docs → api-docs-first, own APIs → api-design | `/meta-api:check` |
 

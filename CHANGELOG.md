@@ -44,6 +44,19 @@ version in their `plugin.json`.
 
 ### Added
 
+- **threejs** 0.1.x (new plugin, 72 → 73 leaves; added to frontend-suite):
+  WebGPURenderer-first Three.js practices (WebGL2 fallback, TSL shaders),
+  react-three-fiber/drei, glTF/Draco/KTX2 asset pipelines, disposal/GPU-leak
+  discipline, draw-call performance; `/threejs:review`.
+- **ui-ux** 0.7.10: 2026-currency pass over the stack skills — shadcn
+  (Base UI default base since Jul 2026, Radix/React Aria selectable; oklch +
+  `@theme` example), Tailwind (v4 CSS-first `@theme` as the primary pattern,
+  `@custom-variant` dark mode), ReUI (Base UI-first foundations, paid-tier
+  block warning), Motion (`animateView`, `motion-v` Vue, `spring()`→CSS
+  export), Bootstrap (5.3 CSS-var runtime theming + v6 `@use` note),
+  design-tokens v4 wiring — plus a GSAP depth reference
+  (motion-best-practices/references/gsap.md: timelines, ScrollTrigger,
+  SplitText 3.15).
 - **ui-ux** 0.7.9: astryx-best-practices skill — Astryx, Meta's open-source
   agent-ready React design system (@astryxdesign/core, StyleX, 150+
   components, ten themes, JSON component manifest + MCP server). Beta-aware,

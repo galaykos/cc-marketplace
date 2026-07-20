@@ -57,7 +57,8 @@ A component using `blue-500` directly has broken the tier boundary; it should us
 
 ## Wiring tokens to the stack
 
-- **Tailwind** — extend `theme` with the scales; use the utility that reads them
+- **Tailwind** — define the scales as tokens (`@theme` in CSS on v4; `theme.extend`
+  on v3); use the utility that reads them
   (`p-4`, `text-lg`, `rounded-md`), never arbitrary values (`p-[13px]`) except as a
   deliberate one-off with a comment.
 - **CSS variables** — semantic tokens as custom properties (`--background`) so runtime

@@ -6,7 +6,7 @@ description: Use when building or reviewing UI with Astryx, Meta's open-source R
 # Astryx best practices
 
 Astryx is Meta's open-source React design system (MIT, grown inside Meta across
-13,000+ apps): 150+ accessible typed components, pre-compiled CSS on StyleX, ten
+13,000+ apps): 160+ accessible typed components, pre-compiled CSS on StyleX, ten
 shipped themes, dark mode, templates, a CLI — and an explicitly **agent-ready**
 surface: a JSON manifest describing every component, its props, and behaviors,
 plus an MCP server, so coding agents consume the system the way humans do.

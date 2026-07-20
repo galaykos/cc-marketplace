@@ -1,9 +1,9 @@
 # frontend-suite
 
 Meta-bundle: the frontend category in one install — UI/UX stacks, React,
-React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Inertia, Livewire, the
-generalist web worker, real-component visual decisions, greenfield shadcn
-staging, and accessibility auditing. Uninstalls cleanly:
+React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Three.js,
+Inertia, Livewire, the generalist web worker, real-component visual decisions,
+greenfield shadcn staging, and accessibility auditing. Uninstalls cleanly:
 `/frontend-suite:uninstall` removes the bundle and prunes the plugins it
 auto-installed.
 

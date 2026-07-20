@@ -82,6 +82,13 @@ Reduced-motion fallback: wrap the tree in `<MotionConfig reducedMotion="user">` 
 animations are disabled system-wide automatically, or branch on `useReducedMotion()` for
 per-component crossfade substitutes.
 
+2026 additions (verify on motion.dev before use):
+- `animateView` (12.41+, promoted from Motion+ alpha) — view transitions driven from JS;
+  prefer it over hand-rolled `document.startViewTransition` wiring.
+- Vue is first-class via the official `motion-v` package — same API shape as `motion/react`.
+- `spring()` exports to plain CSS (motion.dev/docs/css): `transition: transform ${spring(...)}`
+  compiles to a `linear(...)` easing — spring feel with zero JS on the hot path.
+
 ## GSAP
 
 GSAP 3.13+ (April 2025, post-Webflow acquisition) is 100% free for commercial use including
@@ -90,7 +97,8 @@ all shipped in the standard `gsap` npm package. Do not avoid plugins or bundle n
 over stale licensing assumptions. Register plugins once (`gsap.registerPlugin(ScrollTrigger)`)
 and kill tweens on component unmount (`gsap.context()` / `useGSAP()`) to avoid leaks.
 
-Reduced-motion fallback: `gsap.matchMedia()` is the idiomatic gate —
+Deeper GSAP recipes (ScrollTrigger architecture, SplitText, timeline composition):
+`references/gsap.md`. Reduced-motion fallback: `gsap.matchMedia()` is the idiomatic gate —
 
 ```js
 const mm = gsap.matchMedia();
