@@ -4,7 +4,11 @@ argument-hint: [files-or-diff]
 ---
 
 Security-review the code in $ARGUMENTS (or the current diff if no argument) against
-the security-review skill from this plugin. Invoke the skill first.
+the security-review skill from this plugin. Invoke the skill first. When the change
+touches personal-data handling (PII, consent, retention, erasure, data-subject
+rights), also apply the data-privacy skill from this plugin as a review lens; when
+it touches auth mechanics (token model, OAuth2/OIDC flows, scopes, refresh
+rotation), also apply the api-auth skill from this plugin.
 
 Triage before the deep read: a trivial, single-file, or purely mechanical change with
 no security-relevant surface earns a one-line verdict — state it and stop. Take the

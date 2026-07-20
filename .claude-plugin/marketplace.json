@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.51.0"
+    "version": "0.52.0"
   },
   "plugins": [
     {
       "name": "ui-ux",
       "source": "./plugins/ui-ux",
-      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), shadcn theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents."
+      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), shadcn theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents."
     },
     {
       "name": "react",
@@ -147,7 +147,7 @@
     {
       "name": "security",
       "source": "./plugins/security",
-      "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS a design-phase threat-modeling skill (STRIDE, trust boundaries, abuse cases, dispositions). Includes /security:review and a security-engineer worker agent."
+      "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review and a security-engineer worker agent."
     },
     {
       "name": "javascript",
@@ -177,7 +177,7 @@
     {
       "name": "api-design",
       "source": "./plugins/api-design",
-      "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources. Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). For designing your own APIs; defers consuming third-party API docs to api-docs-first and Meta/Facebook platform specifics to meta-api."
+      "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces (DataLoader, resolver authz, proto field-number safety, streaming). Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). Defers third-party API docs to api-docs-first and Meta platform specifics to meta-api."
     },
     {
       "name": "dev-env",
@@ -192,7 +192,7 @@
     {
       "name": "system-design",
       "source": "./plugins/system-design",
-      "description": "System-level design: service boundaries on data ownership, scaling paths, cache placement, sync vs async integration and its failure modes, single points of failure, plus domain modeling (bounded contexts, aggregates, ubiquitous language) — firing system-design and domain-modeling skills, a /system-design:review command, and a system-architect worker + system-design-reviewer pair. Complements code-architecture (code-level structure) without overlapping it."
+      "description": "System-level design: service boundaries on data ownership, scaling paths, cache placement, sync vs async integration and its failure modes, single points of failure, plus domain modeling (bounded contexts, aggregates, ubiquitous language) and an event-driven skill (delivery semantics, outbox, sagas, DLQ) — firing system-design, domain-modeling, and event-driven skills, a /system-design:review command, and a system-architect worker + system-design-reviewer pair. Complements code-architecture (code-level structure) without overlapping it."
     },
     {
       "name": "devops",
@@ -223,11 +223,6 @@
       "name": "approaches",
       "source": "./plugins/approaches",
       "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged opinion round where four parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions."
-    },
-    {
-      "name": "decision-records",
-      "source": "./plugins/decision-records",
-      "description": "Architecture Decision Records: persist every significant technical choice — approach picks, schema shapes, dependency adoptions — to docs/adr/ with context, rejected options, consequences, and a revisit-when trigger. Status lifecycle proposed/accepted/superseded. Includes /decision-records:new."
     },
     {
       "name": "retrospective",
@@ -332,7 +327,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Three.js, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "php-suite",
@@ -352,7 +347,7 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, decision records, retrospectives, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and intent-drift guarding (intent-guard). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, retrospectives, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and intent-drift guarding (intent-guard). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "everything",
@@ -365,11 +360,6 @@
       "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
-      "name": "automations-suite",
-      "source": "./plugins/automations-suite",
-      "description": "Meta-bundle: the browser-automation category in one install — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox navigators plus the automation-builder planner and browser-automation-engineer agent. Uninstall cleanly with /automations-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
-    },
-    {
       "name": "skill-router",
       "source": "./plugins/skill-router",
       "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, TS/JS, React/Vue/Inertia/Livewire, SQL, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Every relevant skill co-fires per edit (a11y alongside ui-ux); fail-open, once per skill per session."
@@ -380,34 +370,14 @@
       "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape."
     },
     {
-      "name": "event-driven",
-      "source": "./plugins/event-driven",
-      "description": "Message-driven architecture discipline: broker/transport choice, topic and partition design, event schema versioning, delivery semantics (assume at-least-once), consumer idempotency, the outbox pattern for atomic state-change-and-publish, sagas with compensation, and dead-letter handling — a firing event-driven skill and a /event-driven:review command. Cross-broker; defers in-process framework queues to the stack plugin."
-    },
-    {
       "name": "payments",
       "source": "./plugins/payments",
       "description": "Payments and billing discipline (Stripe/Paddle/Braintree): PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, and an append-only ledger with reconciliation — a firing payments skill and a /payments:review command. The failure class is double-charges and revenue leaks."
     },
     {
-      "name": "api-auth",
-      "source": "./plugins/api-auth",
-      "description": "API authentication and authorization authoring: token models (session, opaque, JWT), Laravel Sanctum vs Passport, OAuth2/OIDC flows with Authorization Code + PKCE, scopes and least privilege, refresh-token rotation with reuse detection, secure httpOnly-cookie storage, hashing at rest, and revocation/expiry — a firing api-auth skill and a /api-auth:review command. The day-one token-secured-API decisions and top OWASP auth failures."
-    },
-    {
       "name": "i18n",
       "source": "./plugins/i18n",
       "description": "Internationalization and localization: semantic translation keys and catalog hygiene, ICU MessageFormat pluralization and gender, locale-aware dates/numbers/currency via Intl, RTL layout with logical properties, fallback chains, and tooling-driven extraction — a firing i18n skill and a /i18n:review command. For products shipping outside one language; skips a genuinely single-locale app."
-    },
-    {
-      "name": "graphql-grpc",
-      "source": "./plugins/graphql-grpc",
-      "description": "GraphQL and gRPC API discipline: GraphQL schema design, the N+1/DataLoader problem, per-field resolver authorization, query depth/complexity limits, cursor pagination and error shaping; gRPC protobuf evolution (field-number safety), streaming, deadlines, and canonical status codes — a firing graphql-grpc skill and a /graphql-grpc:review command. Distinct paradigms from REST; defers REST to api-design."
-    },
-    {
-      "name": "data-privacy",
-      "source": "./plugins/data-privacy",
-      "description": "Regulatory data-handling (GDPR/CCPA): PII classification and data mapping, data-subject rights (access, erasure, portability) with reach across logs/caches/backups/processors, consent and lawful basis, retention and deletion policies, minimization, pseudonymization, and audit trails — a firing data-privacy skill and a /data-privacy:review command. The compliance layer above code-level security review."
     },
     {
       "name": "llm-app",
@@ -433,6 +403,11 @@
       "name": "compaction-advisor",
       "source": "./plugins/compaction-advisor",
       "description": "Advice-only nudge to run /compact when a session grows long. A UserPromptSubmit hook counts user turns per session and, on a repeating 50-turn interval, prints one line suggesting /compact if an early chunk is no longer relevant to the current task — the model judges relevance from the nudge text. Resets on SessionStart source=compact|clear so it never nags right after a compaction or a context clear. Single self-healing state file per working tree, warn-only and fail-open: any error exits 0 silently, a corrupt or foreign-session state file re-seeds rather than going silent. No token API, no byte-size thresholds, and it never runs /compact itself — the user decides."
+    },
+    {
+      "name": "threejs",
+      "source": "./plugins/threejs",
+      "description": "Three.js best practices: WebGPURenderer-first with automatic WebGL2 fallback (WebGPU is Baseline since Jan 2026), TSL shaders, react-three-fiber/drei integration, asset pipelines (glTF/Draco/KTX2), disposal and leak discipline, render-loop and draw-call performance, version-aware against the locked three revision. Includes /threejs:review."
     }
   ]
 }

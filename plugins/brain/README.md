@@ -41,6 +41,19 @@ The map carries a single stamp — the short commit hash it was built against. R
 with `/brain index` whenever the code has moved on. There are no per-note or per-symbol
 stamps in this release.
 
+The produce→consume→refresh loop (wired across the marketplace): taskmaster's
+context-scout and delegation-contracts readers use the map as an **orientation
+prior** — they verify touched areas with their own greps and trust the code over a
+stale map — and git-workflow's branch-finish offers `/brain index` when the stamp is
+behind the merged result. The session-start hint only appears in repos with ≥200
+tracked files, where a map actually pays.
+
+Small drift **self-heals**: when ≤5 files changed since the `built:` stamp, the
+session-start hint instructs Claude to run the incremental `/brain index` refresh
+immediately — no keystroke needed; you see the refresh happen in-session. Larger
+drift stays an explicit offer (a big reindex spends real tokens — your call). The
+hook itself never writes anything; the model performs the refresh visibly.
+
 ## `brain/INDEX.md` is a derived artifact
 
 It is committed (so the whole team and every Claude session share it), but it is

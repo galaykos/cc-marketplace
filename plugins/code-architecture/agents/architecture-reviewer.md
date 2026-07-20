@@ -1,6 +1,6 @@
 ---
 name: architecture-reviewer
-description: Use PROACTIVELY after structural changes, new modules, or API changes. Reviews boundaries, dependencies, and cohesion; flags YAGNI violations and high-cognitive-load code.
+description: Use PROACTIVELY after structural, module, or API changes — reviews boundaries, dependencies, cohesion; flags YAGNI and cognitive overload.
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh

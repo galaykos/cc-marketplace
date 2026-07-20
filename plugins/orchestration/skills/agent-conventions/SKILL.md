@@ -1,6 +1,6 @@
 ---
 name: agent-conventions
-description: Use when naming a new subagent, deciding worker vs reviewer, giving an agent a PROACTIVELY trigger, or auditing why several agents fire on one edit — the marketplace's engineer/reviewer naming taxonomy, the one-surface trigger rule, and the shared apply-fixes contract that stops per-plugin fixer sprawl.
+description: Use when naming a new subagent, deciding worker vs reviewer, giving an agent a PROACTIVELY trigger, or auditing why several agents fire on one edit — engineer/reviewer naming taxonomy, one-surface trigger rule, shared apply-fixes contract against fixer sprawl.
 ---
 
 # Agent conventions

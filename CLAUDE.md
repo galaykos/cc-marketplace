@@ -24,13 +24,18 @@ the functional kinds above fails the build (and CI on every PR).
 ## Plugin change gates
 
 - `scripts/validate.sh` — structure, frontmatter, SKILL.md 100–150-line body budget,
-  reference resolution, and the doc-location rule above.
+  reference resolution, the description linter (max 500 chars, no "Trigger words:"
+  lists), and the doc-location rule above.
 - `scripts/check-version-bumps.sh` — a plugin whose files changed vs the base ref
   must bump its `plugin.json` version (new plugins are exempt).
+- `scripts/context-budget.sh` — BLOCKING per-leaf description-token gate vs the
+  committed baseline (own CI step); accept intentional growth with
+  `--update-baseline`, never in CI.
 
-Run both before pushing:
+Run all three before pushing:
 
 ```bash
 bash scripts/validate.sh
 bash scripts/check-version-bumps.sh master
+bash scripts/context-budget.sh
 ```

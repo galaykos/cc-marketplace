@@ -1,10 +1,11 @@
 ---
 name: retrospective
-description: Use after a milestone, task run, or feature lands — or when a session ends with lessons visibly unbanked — to run a five-minute retro that routes surprises into CLAUDE.md candidates, repetition into skill suggestions, and friction into process tweaks.
+description: Use after a milestone, task run, or feature lands in THIS session — a five-minute retro on the just-finished work: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks. Cross-session transcript mining → hindsight.
 ---
 
 The pipeline has no memory by default: every run starts smart and ends
-amnesiac. Decisions get ADRs (decision-records plugin); everything else
+amnesiac. Decisions worth keeping get a durable note (an ADR file or a
+CLAUDE.md rule); everything else
 learned — the surprise, the friction, the thing re-derived for the third
 time — evaporates. The retro is the write-back step: five minutes, three
 sinks, then stop.

@@ -93,7 +93,7 @@ not authorization.
 
 ## Defer rule
 
-- OWASP code-level review beyond auth (injection, XSS, CSRF mechanics) → `/security:review`.
+- OWASP code-level review beyond auth (injection, XSS, CSRF mechanics) → the broader security-review skill (this plugin).
 - In-app authorization gates/policies (Laravel Gate/Policy usage) → the laravel plugin.
 - Secret storage for signing keys and client secrets → `secret-scanning` / devops.
 

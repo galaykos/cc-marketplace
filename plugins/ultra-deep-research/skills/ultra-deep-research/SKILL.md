@@ -1,6 +1,6 @@
 ---
 name: ultra-deep-research
-description: Use when a question needs a deep, multi-source, fact-checked answer with the latest data — "ultra-deep-research", "deep research", "research this thoroughly", "what's the latest on", "fact-check this", "find and refute", competitive/market/technical scans, or any claim that must be corroborated and dated. Fans out parallel searches, tiers sources by provenance, extracts date-stamped claims, adversarially refutes them, surfaces contradictions, and synthesizes a cited report. Adversarial verification discipline is orchestration:verification-panels; fan-out prompt contracts are orchestration:delegation-contracts.
+description: Use when a question needs a deep, multi-source, fact-checked answer with the latest data — deep-research requests, competitive/market/technical scans, or any claim that must be corroborated and dated. Fans out parallel searches, tiers sources by provenance, extracts date-stamped claims, adversarially refutes them, synthesizes a cited report.
 ---
 
 # Ultra Deep Research

@@ -1,6 +1,6 @@
 ---
 name: design-tokens
-description: Use when building or reviewing a design system's foundations — the spacing scale, type scale, radius, elevation/shadow, and motion tokens, plus semantic color tiering — so spacing, sizing, and rhythm come from a named scale instead of magic numbers. Pure color palette generation is shadcn-theming; this is the rest of the token system.
+description: Use when building or reviewing design-system foundations — spacing/type scales, radius, elevation, motion tokens, semantic color tiering: named scales over magic numbers. Palette generation is shadcn-theming.
 ---
 
 # Design tokens
@@ -57,7 +57,8 @@ A component using `blue-500` directly has broken the tier boundary; it should us
 
 ## Wiring tokens to the stack
 
-- **Tailwind** — extend `theme` with the scales; use the utility that reads them
+- **Tailwind** — define the scales as tokens (`@theme` in CSS on v4; `theme.extend`
+  on v3); use the utility that reads them
   (`p-4`, `text-lg`, `rounded-md`), never arbitrary values (`p-[13px]`) except as a
   deliberate one-off with a comment.
 - **CSS variables** — semantic tokens as custom properties (`--background`) so runtime

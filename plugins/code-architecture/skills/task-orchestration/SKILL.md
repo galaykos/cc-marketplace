@@ -1,6 +1,6 @@
 ---
 name: task-orchestration
-description: Use when breaking work into tasks or delegating to subagents — decomposition into independently verifiable units, sequencing by dependency, parallelizing independent work.
+description: Use when breaking work into tasks or delegating to subagents — independently verifiable units, dependency sequencing, parallel independent work.
 ---
 
 ## What counts as a task

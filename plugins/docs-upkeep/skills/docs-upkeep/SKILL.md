@@ -38,8 +38,8 @@ a code change can silently invalidate:
 - **Architecture docs and ADR links** — does the change contradict a
   standing decision record? A superseded ADR needs an explicit successor:
   offer to record the successor as a selectable choice ("Record the
-  superseding ADR now (Recommended)" / "Skip" — proceeds as
-  /decision-records:new would) and link the old
+  superseding ADR now (Recommended)" / "Skip" — writes the successor file
+  into the project's ADR dir) and link the old
   one as superseded, rather than leaving both claiming to be current.
 - **Inline examples and snippets** — code blocks in any doc that claim to
   be runnable. If you cannot paste them into a shell or REPL and have

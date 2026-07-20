@@ -1,6 +1,6 @@
 ---
 name: spec-adversary
-description: Spawned by the spec-redteam skill to adversarially attack a frozen taskmaster spec for holes — missing edge cases, unstated assumptions, conflicting or underspecified requirements, failure/security gaps, and visual/experience-contract coherence — before the spec becomes task cards. Read-only; returns a structured holes list, never code, an approach, or a rewritten spec.
+description: Spawned by the spec-redteam skill to attack a frozen taskmaster spec for holes before it becomes cards — edge cases, assumptions, conflicts, failure/security gaps, visual coherence. Read-only; returns structured holes, never code or a fix.
 tools: Read, Grep, Glob
 model: opus
 effort: high

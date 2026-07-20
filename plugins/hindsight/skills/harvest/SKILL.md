@@ -1,6 +1,6 @@
 ---
 name: harvest
-description: Use when the user runs /hindsight:harvest, asks to mine session transcripts for lessons, wants cross-session friction analyzed, or asks what keeps going wrong across Claude Code sessions in this project — ranks the session ledger (falling back to raw transcripts), fans out read-only transcript-miner agents, applies a two-session recurrence gate, and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach anti-patterns that apply only on explicit approval.
+description: Use when the user runs /hindsight:harvest or asks to mine PAST session transcripts — cross-session friction, what keeps going wrong across sessions in this project. Ranks the session ledger, fans out read-only transcript-miner agents, applies a two-session recurrence gate, proposes CLAUDE.md rules and skill ideas on explicit approval. The just-finished work in THIS session → retrospective.
 ---
 
 ## Purpose

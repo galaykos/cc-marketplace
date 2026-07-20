@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Use PROACTIVELY after writing or modifying code. Reviews the change for correctness bugs, code smells, and convention drift; severity-sorted one-line findings, stack-agnostic.
+description: Use PROACTIVELY after writing or modifying code outside UI frameworks. Stack-agnostic correctness bugs, code smells, convention drift; severity-sorted one-line findings. Framework component logic → frontend-reviewer; markup/styles → ui-ux-reviewer.
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh

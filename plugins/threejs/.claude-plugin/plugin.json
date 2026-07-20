@@ -1,0 +1,13 @@
+{
+  "name": "threejs",
+  "version": "0.1.1",
+  "description": "Three.js best practices: WebGPURenderer-first with automatic WebGL2 fallback (WebGPU is Baseline since Jan 2026), TSL shaders, react-three-fiber/drei integration, asset pipelines (glTF/Draco/KTX2), disposal and leak discipline, render-loop and draw-call performance, version-aware against the locked three revision. Includes /threejs:review.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "frontend",
+    "review"
+  ]
+}

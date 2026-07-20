@@ -1,6 +1,6 @@
 ---
 name: tailwind-best-practices
-description: Use when writing or reviewing Tailwind CSS — utility ordering, extracting components vs @apply, responsive/dark variants, design tokens via config.
+description: Use when writing or reviewing Tailwind CSS — utility ordering, components vs @apply, responsive/dark variants, config tokens.
 ---
 
 ## Keep class ordering consistent
@@ -40,9 +40,13 @@ Reach for `theme.extend` (colors, spacing, fontSize) so the whole app draws from
 Arbitrary-value syntax (`w-[137px]`, `text-[#1a2b3c]`) is fine for a genuine one-off, but if the
 same arbitrary value appears more than once, it belongs in the config as a token.
 
+```css
+/* Good: v4 (CSS-first, no tailwind.config.js by default) — tokens live in @theme */
+@theme { --color-brand: #1a2b3c; --color-brand-600: #16232f; }
+```
+
 ```js
-// Good: tailwind.config.js
-theme: { extend: { colors: { brand: { DEFAULT: "#1a2b3c", 600: "#16232f" } } } }
+// v3 legacy projects only: tailwind.config.js → theme.extend.colors.brand
 ```
 
 ```html
@@ -63,8 +67,8 @@ down with `max-*` variants everywhere.
 
 ## Dark mode via the `dark:` variant, not duplicate stylesheets
 
-Use Tailwind's `dark:` variant (class or media-based, per your config) alongside the light
-styles in the same markup. Don't maintain a parallel dark-mode CSS file or duplicate component
+Use Tailwind's `dark:` variant (v4: defined via `@custom-variant dark` in CSS; v3: class or
+media-based per config) alongside the light styles in the same markup. Don't maintain a parallel dark-mode CSS file or duplicate component
 trees — that doubles the maintenance surface and will drift.
 
 ```html

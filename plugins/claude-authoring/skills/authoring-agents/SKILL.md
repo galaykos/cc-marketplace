@@ -1,6 +1,6 @@
 ---
 name: authoring-agents
-description: Use when writing or editing a subagent .md file — frontmatter fields (name, description, tools, model, effort), PROACTIVELY trigger phrasing, tool-list scoping, worker vs reviewer roles.
+description: Use when writing or editing a subagent .md — frontmatter (name, description, tools, model, effort), PROACTIVELY phrasing, tool scoping, worker vs reviewer.
 ---
 
 ## Anatomy

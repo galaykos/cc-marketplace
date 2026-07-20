@@ -1,6 +1,6 @@
 ---
 name: ultra-goal
-description: Use when a taskmaster run is EXPLICITLY triggered for hands-off Extreme Boost — the token "ultra-goal"/"ultragoal" anywhere in a taskmaster prompt (it may cross a command boundary), OR a bare `goal` that is the FIRST token of a taskmaster command's own arguments (`/taskmaster:<cmd> goal …`), OR a `Goal: true` index marker. A bare `goal`/`ultra` that belongs to ANOTHER command — e.g. `caveman ultra` preceding `/taskmaster:task …` — does NOT trigger this; do not auto-fire on it. Implies the full ultra boost, auto-takes every pipeline recommendation with zero mid-run prompts, runs through execution to a green suite, and leaves a post-hoc-vetoable audit ledger.
+description: Use when a taskmaster run is EXPLICITLY triggered for hands-off Extreme Boost — "ultra-goal"/"ultragoal" anywhere in a taskmaster prompt (may cross a command boundary), a bare `goal` as FIRST token of a taskmaster command's own args (`/taskmaster:<cmd> goal …`), or a `Goal: true` index marker; per ultra's rule, `goal`/`ultra` owned by ANOTHER command never auto-fires this. Implies full ultra boost; auto-takes every recommendation (zero prompts), runs to a green suite, vetoable ledger.
 ---
 
 # Ultra-goal — hands-off Extreme Boost for a taskmaster run

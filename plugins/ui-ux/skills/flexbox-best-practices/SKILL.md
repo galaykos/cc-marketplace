@@ -1,6 +1,6 @@
 ---
 name: flexbox-best-practices
-description: Use when building one-dimensional layouts with Flexbox — main/cross axis control, flex shorthand pitfalls, gap, wrapping, when Flexbox over Grid.
+description: Use when building 1-D Flexbox layouts — main/cross axis, flex shorthand traps, gap, wrap, Flexbox vs Grid.
 ---
 
 ## Use Flexbox for one-dimensional flow

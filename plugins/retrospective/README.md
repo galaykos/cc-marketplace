@@ -33,6 +33,5 @@ page — a retro longer than the work it reviews is theater.
 ## Pairs well with
 
 - **hindsight** — mines past session transcripts for cross-session friction; retrospective banks lessons from the session you are in
-- **decision-records** — decisions get ADRs; the retro routes everything that is not a decision
 - **claude-authoring** — scaffolds the skills the retro suggests
 - **task-runner** — the task runs whose completion is the natural retro trigger

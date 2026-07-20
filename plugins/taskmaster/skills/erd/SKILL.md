@@ -1,6 +1,6 @@
 ---
 name: erd
-description: Use during spec writing — grill or brainstorm — when the requirement ledger touches persistent data (two-plus entities, any relation change, a data model or schema shape to settle) to render the proposed model as an ERD for approval before any migration or code exists, then embed the approved mermaid erDiagram in the spec's Data Model section as a binding contract.
+description: Use during spec writing (grill or brainstorm) when the requirement ledger touches persistent data — two-plus entities, a relation change, a schema shape to settle: gets a mermaid erDiagram approved before any migration exists, then embedded in the spec's Data Model section as a binding contract.
 ---
 
 ## When the model earns a diagram

@@ -1,5 +1,5 @@
 ---
-description: Scaffold a SKILL.md with a trigger-rich description and a body inside the 100–150 line budget.
+description: Scaffold a SKILL.md — trigger-rich description, 100–150 line body.
 argument-hint: [skill-name] [purpose]
 ---
 

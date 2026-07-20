@@ -1,5 +1,5 @@
 ---
-description: Scaffold a complete plugin directory — plugin.json, chosen artifact dirs — and register it in marketplace.json when one exists.
+description: Scaffold a plugin directory and register it in marketplace.json when present.
 argument-hint: [plugin-name] [purpose]
 ---
 

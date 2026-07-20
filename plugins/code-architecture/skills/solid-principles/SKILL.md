@@ -1,6 +1,6 @@
 ---
 name: solid-principles
-description: Use when designing or reviewing classes, interfaces, inheritance hierarchies, or module boundaries — SOLID applied with judgment: single responsibility, open/closed extension, Liskov substitution, interface segregation, dependency inversion; catches coupling to concrete infrastructure, fat interfaces, and growing type-switch chains without mandating patterns.
+description: Use when designing or reviewing classes, interfaces, inheritance, or module boundaries — SOLID with judgment: SRP, open/closed, Liskov, interface segregation, dependency inversion.
 ---
 
 ## The lens, not the law

@@ -1,6 +1,6 @@
 ---
 name: plugin-scout
-description: Use when setting up Claude Code plugins for a project, when the user asks "which plugins should I install" or "what plugins fit this repo", when starting work in a repo without marketplace plugins, or right after cloning an unfamiliar codebase — scans manifests (composer.json, package.json, tsconfig.json, .env, Dockerfiles) for stack signals, suggests cc-plugins-marketplace plugins in two tiers (stack-matched and always-useful), and installs the picked ones after confirmation. Supports `--yes` (auto-install tier-1 signal-backed picks, skipping the picker) and `--persist` (write the installed set into the project's settings.json).
+description: Use when setting up Claude Code plugins for a project, when the user asks "which plugins should I install" or "what plugins fit this repo", when starting work in a repo without marketplace plugins, or right after cloning an unfamiliar codebase — scans manifests for stack signals, suggests marketplace plugins in two tiers, and installs the picked ones after confirmation; `--yes` auto-installs tier-1 picks, `--persist` writes the set to the project's settings.json.
 ---
 
 ## Purpose

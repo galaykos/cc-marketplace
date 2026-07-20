@@ -36,4 +36,3 @@ documentation that just became a lie in the same change, before it merges.
 
 - **code-review** — catch correctness bugs in the same pre-merge pass that catches doc drift
 - **git-workflow** — run a drift check before finishing and merging a branch
-- **decision-records** — creates the ADRs whose links and supersessions the drift scan checks

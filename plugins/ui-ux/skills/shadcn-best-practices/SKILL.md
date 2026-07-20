@@ -1,6 +1,6 @@
 ---
 name: shadcn-best-practices
-description: Use when building or reviewing UI with shadcn/ui components — installation via CLI, composition over configuration, theming with CSS variables, accessibility defaults.
+description: Use when building or reviewing shadcn/ui components — CLI installs, composition over config, CSS-variable theming, accessibility defaults.
 ---
 
 ## You own the code, it isn't a dependency
@@ -40,9 +40,10 @@ global stylesheet (`--background`, `--primary`, `--radius`, etc.). Change the th
 those variables in one place, not by hardcoding colors into individual component files.
 
 ```css
-/* Good: app/globals.css */
-:root { --primary: 222 47% 11%; --radius: 0.5rem; }
-.dark { --primary: 210 40% 98%; }
+/* Good: app/globals.css — Tailwind v4 default: oklch tokens mapped via @theme inline */
+:root { --primary: oklch(0.21 0.04 265); --radius: 0.5rem; }
+.dark { --primary: oklch(0.93 0.02 255); }
+/* v3-era projects use HSL triplets — match the installed stack (see shadcn-theming) */
 ```
 
 ```tsx
@@ -50,12 +51,14 @@ those variables in one place, not by hardcoding colors into individual component
 <Button className="bg-[#1a2b3c] rounded-[3px]">Save</Button>
 ```
 
-## Keep Radix accessibility props intact
+## Keep the primitive layer's accessibility intact
 
-Most interactive shadcn/ui components (Dialog, Dropdown, Select, Popover) wrap Radix primitives
-that manage focus trapping, `aria-*` attributes, and keyboard navigation for you. When you extend
-markup, preserve the underlying Radix parts (`Root`, `Trigger`, `Content`, `Portal`) and pass
-through `...props` so consumers can still set `aria-label`, `aria-describedby`, etc.
+Interactive shadcn/ui components (Dialog, Dropdown, Select, Popover) wrap a headless primitive
+base that manages focus trapping, `aria-*` attributes, and keyboard navigation. Since July 2026
+the default base is **Base UI**, with Radix and React Aria selectable at init — check which one
+the project uses before editing. Whatever the base, preserve its structural parts (`Root`,
+`Trigger`, `Content`, `Portal`) and pass through `...props` so consumers can still set
+`aria-label`, `aria-describedby`, etc.
 
 - Good: `<DialogContent aria-describedby={descId}>{children}</DialogContent>`
 - Bad: replacing `DialogContent` with a plain `<div>` because "it's simpler," losing focus trap
@@ -98,12 +101,12 @@ overwrite local customizations.
 ## Common mistakes
 
 - Wrapping components in `!important`-laden CSS instead of editing the source file.
-- Deleting Radix `Portal`/`Root` wrappers, breaking focus management and z-index stacking.
+- Deleting the primitive base's `Portal`/`Root` wrappers, breaking focus management and z-index stacking.
 - Hardcoding colors instead of referencing theme CSS variables, breaking dark mode.
 - Letting `components/ui` drift from the rest of the codebase's lint/format rules because "it's
   generated code."
 - Adding boolean-prop soup to a component instead of composing existing subparts.
-- Forgetting to run `npx shadcn add` for a new primitive and hand-rolling a Radix wrapper instead.
+- Forgetting to run `npx shadcn add` for a new primitive and hand-rolling a base-primitive wrapper instead.
 
 ## Verify Against Current Docs
 

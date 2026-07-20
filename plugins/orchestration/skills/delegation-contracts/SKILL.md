@@ -1,6 +1,6 @@
 ---
 name: delegation-contracts
-description: Use when dispatching or spawning subagents, writing an agent prompt, delegating work to a Task/Agent tool, planning a fan-out, or reading a subagent's report back — self-contained prompt contracts, compressed evidence-backed return formats, model/effort tiering per stage, scout-then-fanout, and isolation rules for parallel writers. Decomposing work into tasks is code-architecture:task-orchestration; the parallelize-or-inline verdict is task-runner:parallel-planning; the execution loop is task-runner:task-execution.
+description: Use when spawning subagents, delegating via Task/Agent, writing an agent prompt, planning a fan-out, or reading a subagent report — self-contained prompt contracts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, parallel-writer isolation; siblings: code-architecture:task-orchestration, task-runner:parallel-planning/task-execution.
 ---
 
 # Delegation Contracts
@@ -96,6 +96,8 @@ Blind fan-out fails in both directions: workers collide on files the
 orchestrator did not know overlapped, and work is missed because
 nobody was assigned the file the orchestrator did not know existed.
 The scout costs one cheap dispatch and buys a correct partition.
+
+Repos with a committed `brain/INDEX.md` map: hand readers that path as an orientation prior — they verify touched areas themselves; stale map ⇒ trust code.
 
 ## Parallel writers
 

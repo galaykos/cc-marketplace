@@ -1,6 +1,6 @@
 ---
 name: parallel-planning
-description: Use before executing any task list of three-plus tasks — or when asked "subagents or inline?" — to compute the parallelization plan: dependency levels, disjoint-file groups, recommended agent count, estimated speedup, and an inline-vs-delegate verdict the user can accept or override.
+description: Use before executing any task list of three-plus tasks — or when asked "subagents or inline?": computes dependency levels, disjoint-file groups, agent count, estimated speedup, and an inline-vs-delegate verdict the user can override.
 ---
 
 "Subagents or inline?" is a calculation, not a preference question. The task

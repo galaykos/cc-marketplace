@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Report-only per-bundle context-budget gate (D3/A5). Approximates each
-# bundle's session-start description-token surface — the sum, over every
-# member plugin's skills/*/SKILL.md, commands/*.md, agents/*.md, of the
-# frontmatter `description:` value's byte length, chars/4 — and compares it
-# against a committed baseline. Never fails the build: always exits 0.
+# Blocking per-plugin context-budget gate (D3/A5). Approximates each
+# plugin's session-start description-token surface — the sum, over its
+# skills/*/SKILL.md, commands/*.md, agents/*.md (a bundle sums its member
+# plugins instead), of the frontmatter `description:` value's byte length,
+# chars/4 — and compares it against a committed baseline. Any plugin over
+# its baseline fails the run (exit 1); --update-baseline, a missing jq,
+# and a missing baseline file stay exit 0.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -20,7 +22,7 @@ plugin_desc_bytes() {
   for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md "$pdir"/agents/*.md; do
     [ -f "$f" ] || continue
     desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
-      | sed -n 's/^description:[[:space:]]*//p')
+      | sed -n 's/^description:[[:space:]]*//p' | head -1)
     # single-line description: values only — validate.sh's frontmatter gates keep
     # descriptions on one line; a YAML block scalar would undercount here
     bytes=$(printf '%s' "$desc" | wc -c | tr -d ' ')
@@ -31,27 +33,43 @@ plugin_desc_bytes() {
 
 no_baseline=0
 [ -f "$BASELINE" ] || no_baseline=1
+# A corrupt baseline would silently exempt every plugin — fail loudly instead.
+if [ "$no_baseline" -eq 0 ] && ! jq empty "$BASELINE" 2>/dev/null; then
+  echo "FAIL: $BASELINE is not valid JSON — gate cannot run" >&2
+  exit 1
+fi
 
-printf '%-20s %8s %10s %10s\n' "bundle" "tokens" "baseline" "delta"
+printf '%-20s %8s %10s %10s\n' "plugin" "tokens" "baseline" "delta"
 
 new_baseline='{}'
 warn_lines=""
+fail=0
+leaf_tokens_total=0
 
 for pj in plugins/*/.claude-plugin/plugin.json; do
   [ -f "$pj" ] || continue
-  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
   bname=$(jq -r '.name' "$pj" 2>/dev/null)
   [ -n "$bname" ] || continue
 
-  total_bytes=0
-  while IFS= read -r member; do
-    [ -n "$member" ] || continue
-    mdir="plugins/$member"
-    [ -d "$mdir" ] || continue
-    bytes=$(plugin_desc_bytes "$mdir")
-    total_bytes=$((total_bytes + bytes))
-  done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
+  if jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1; then
+    # Bundle: sum member plugins' description bytes.
+    total_bytes=0
+    while IFS= read -r member; do
+      [ -n "$member" ] || continue
+      mdir="plugins/$member"
+      [ -d "$mdir" ] || continue
+      bytes=$(plugin_desc_bytes "$mdir")
+      total_bytes=$((total_bytes + bytes))
+    done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
+    is_leaf=0
+  else
+    # Leaf: measure the plugin's own dir.
+    total_bytes=$(plugin_desc_bytes "${pj%/.claude-plugin/plugin.json}")
+    is_leaf=1
+  fi
   tokens=$(( (total_bytes + 2) / 4 ))
+  # TOTAL sums leaves only — bundles would double-count their members.
+  [ "$is_leaf" -eq 1 ] && leaf_tokens_total=$((leaf_tokens_total + tokens))
 
   baseline_tok="-"
   delta_str="-"
@@ -62,9 +80,15 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       delta=$((tokens - b))
       delta_str="$delta"
       if [ "$delta" -gt 0 ]; then
-        warn_lines="${warn_lines}WARN: $bname +$delta tok over baseline
+        warn_lines="${warn_lines}FAIL: $bname +$delta tok over baseline (intentional? re-baseline via --update-baseline)
 "
+        fail=1
       fi
+    else
+      # No baseline entry: a new plugin must not ship unlimited surface unseen.
+      warn_lines="${warn_lines}FAIL: $bname has no baseline entry — add one via --update-baseline
+"
+      fail=1
     fi
   fi
 
@@ -74,12 +98,19 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   [ -n "$nb_tmp" ] && new_baseline="$nb_tmp"
 done
 
+echo "TOTAL: $leaf_tokens_total tokens"
+
 [ "$no_baseline" -eq 1 ] && echo "WARN: no baseline" >&2
-[ -n "$warn_lines" ] && printf '%s' "$warn_lines" >&2
 
 if [ "$update" -eq 1 ]; then
+  # Updating IS the remedy — suppress the FAIL/remedy lines on this path.
   printf '%s\n' "$new_baseline" | jq '.' > "$BASELINE" 2>/dev/null
   echo "baseline updated: $BASELINE"
+  exit 0
 fi
+[ -n "$warn_lines" ] && printf '%s' "$warn_lines" >&2
 
-exit 0
+# Baseline missing entirely: warn-only, never block.
+[ "$no_baseline" -eq 1 ] && exit 0
+
+exit $fail

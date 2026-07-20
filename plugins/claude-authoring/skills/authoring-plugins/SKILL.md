@@ -1,6 +1,6 @@
 ---
 name: authoring-plugins
-description: Use when assembling or restructuring a Claude Code plugin — directory layout, plugin.json shape, marketplace registration, versioning, README/CHANGELOG conventions, validation gates.
+description: Use when assembling or restructuring a Claude Code plugin — layout, plugin.json, marketplace registration, versioning, README/CHANGELOG, validation gates.
 ---
 
 ## Layout

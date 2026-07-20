@@ -49,8 +49,7 @@ Without arguments it asks for a description first. The pipeline then:
 5. Writes a spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md` (including the walkthrough
    path and cross-screen contracts when one was built)
 6. When code-architecture is installed, runs a plan check on the spec before
-   card-splitting; when decision-records is installed, offers ADR capture of the
-   spec's significant decisions
+   card-splitting
 7. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
    `00-INDEX.md` — each card stamped with the stack skills it needs (from the
    stack-scan inventory), sized via the estimation plugin when installed, and

@@ -31,6 +31,6 @@ not skipped.
 
 ## Pairs well with
 
-- **event-driven** — delivery semantics, outbox, and saga review for the queues these consumers sit on
+- **system-design** (event-driven skill) — delivery semantics, outbox, and saga review for the queues these consumers sit on
 - **resilience** — the timeout/retry gaps that turn one execution into two in the first place
 - **database** — schema, index, and pooling review beneath the row-level locking strategies

@@ -1,6 +1,6 @@
 ---
 name: bootstrap-best-practices
-description: Use when building or reviewing Bootstrap 5 UI — grid system, utility API, Sass customization over overrides, component accessibility.
+description: Use when building or reviewing Bootstrap 5 UI — grid, utility API, Sass customization, accessibility.
 ---
 
 ## Use the grid system instead of custom layout CSS
@@ -47,6 +47,8 @@ fork that drifts further from Bootstrap with every update.
 $primary: #1a2b3c;
 $border-radius: 0.25rem;
 @import "bootstrap/scss/bootstrap";
+// 5.3+ also exposes CSS variables (--bs-*) for runtime theming without a Sass
+// rebuild; note Dart Sass deprecates @import and Bootstrap 6 moves to @use.
 ```
 
 ```css

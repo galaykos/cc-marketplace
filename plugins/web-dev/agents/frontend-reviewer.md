@@ -1,6 +1,6 @@
 ---
 name: frontend-reviewer
-description: Use PROACTIVELY after writing or changing React/Vue/Inertia/Livewire/TypeScript component or view code — reviews against the matching per-framework best-practice skill plus general frontend correctness (state, effects, keys, data fetching), read-only, returning severity-ranked findings. The read-only counterpart to web-developer; also covers react-native and the vite build layer.
+description: Use PROACTIVELY after changing React/Vue/Inertia/Livewire/TypeScript component or view LOGIC — framework correctness (state, effects, keys, data fetching) against the matching best-practice skill; also react-native and vite. Read-only counterpart to web-developer. Styles-only diffs → ui-ux-reviewer.
 tools: Read, Grep, Glob
 model: sonnet
 effort: xhigh

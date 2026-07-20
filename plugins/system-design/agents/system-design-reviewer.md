@@ -1,6 +1,6 @@
 ---
 name: system-design-reviewer
-description: Use PROACTIVELY after a system design, RFC, or service topology is drafted or changed — reviews boundaries, data ownership, scaling, caching placement, async failure modes, and domain-model integrity read-only, returning severity-ranked findings. The read-only counterpart to system-architect.
+description: Use PROACTIVELY after a system design, RFC, or service topology is drafted or changed — read-only review of boundaries, data ownership, scaling, caching placement, async failure modes, domain-model integrity; severity-ranked findings.
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh

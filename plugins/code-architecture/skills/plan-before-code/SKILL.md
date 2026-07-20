@@ -1,6 +1,6 @@
 ---
 name: plan-before-code
-description: Use before writing any non-trivial code — decide which files change, what each new unit owns, interfaces between units, and where code should live, before writing it.
+description: Use before writing any non-trivial code, AFTER the approach shape is settled — which files change, what each new unit owns, the interfaces, where code lives.
 ---
 
 ## The procedure: file map, then interfaces, then code

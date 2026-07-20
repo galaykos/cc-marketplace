@@ -1,6 +1,6 @@
 ---
 name: css-grid-best-practices
-description: Use when building two-dimensional layouts with CSS Grid — template areas, auto-fit/auto-fill, minmax, subgrid, when Grid over Flexbox.
+description: Use when building 2-D CSS Grid layouts — template areas, auto-fit/fill, minmax, subgrid, Grid vs Flexbox.
 ---
 
 ## Reach for Grid when the layout is genuinely two-dimensional

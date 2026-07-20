@@ -52,6 +52,14 @@ For a gap-tag `code-reviewer` dispatch, also inject:
 > "For this dispatch you ARE the domain reviewer — apply the primed rubric; do not defer
 > framework detail to a per-stack review."
 
+**Compressed-return contract** — every reviewer dispatch prompt ALSO demands a compressed
+return (delegation-contracts § Compressed returns), injected verbatim:
+
+> "Return AT MOST 10 findings, most severe first, ONE line each:
+> `file:line — severity(blocker|major|minor) — problem — fix`. No prose introductions, no
+> summary of the summary; findings past the cap collapse into one final `+N more (minor)`
+> line. Your final message is data for the orchestrator, not prose for a human."
+
 **Bound:** inject the card's `Skills to apply` (deduped) + at most one agnostic domain
 skill from the map. The sentinel `none detected` (or an absent `Skills to apply` line)
 resolves to **zero** priming skills — no log. A named skill that is absent is omitted and
@@ -74,11 +82,18 @@ Runs after the card's verification passes — a command OR a recorded manual che
      security gate (the tag route subsumes it).
 4. **Fallback:** a mapped agent/skill that is absent → plain `code-reviewer`; logged in
    the run report (matching `routing.md`'s downgrade log).
-5. **Severity normalization** (routed reviewers use varying scales): **critical/high** or
-   **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md:78-80`);
+5. **Concurrent dispatch — BASELINE, not `--crew`-gated:** the deduped read-only reviewer
+   set is dispatched as **one concurrent batch** over the card diff (reads parallelize
+   freely). Any reviewer that holds the `Bash` tool (e.g. `devops:devops-reviewer`, tools
+   `Read, Grep, Bash`) is **excluded from the batch and run serially** — a Bash reviewer
+   can write build artifacts into the shared tree, so it must not run concurrently with
+   anything. The `security:security-review` **skill** (no agent) runs inline in the
+   orchestrator after the batch joins.
+6. **Severity normalization** (routed reviewers use varying scales): **critical/high** or
+   **blocker/major** → re-enter the existing **3-cycle fix loop** (`SKILL.md:82-84`);
    **medium/low** or **minor** → the backlog. The fix loop itself is unchanged: the
    runner applies fixes (or re-dispatches the builder), re-runs verify, then re-reviews.
-6. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md:61-67`).
+7. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md:64-70`).
 
 A card whose `Agent:` tag and `Skills to apply` imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they

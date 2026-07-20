@@ -1,6 +1,6 @@
 ---
-description: Review API authentication/authorization for token model, storage, OAuth flow, rotation, and scope gaps against api-auth
-argument-hint: [path-or-diff]
+description: Review Three.js scene, renderer, or R3F code against threejs-best-practices
+argument-hint: [files-or-diff]
 ---
 <!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -16,12 +16,15 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
    more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
    changed).
 
-3. Invoke the `api-auth` skill from this plugin and apply its checklist across the
-   scope — cite the skill's rubric, do not restate it here.
+3. Invoke the `threejs-best-practices` skill from this plugin and apply its checklist across the
+   scope — cite the skill's rubric, do not restate it here. Before reporting,
+   read the project manifests (dependency files and their lockfiles) and pin every
+   finding to the installed version — do not flag what that version already solves, nor
+   propose an API above it. When unsure of an API or behavior, verify against the
+   official docs for the pinned version (https://threejs.org/docs/) rather than answering from memory.
 
 4. Report findings one line each, sorted by severity (critical, high, medium, low):
-   `locator — severity — [CONFIRMED|PLAUSIBLE] problem — fix` — the
-   locator is `path:line`, or the section/heading for a design-doc review. Mark a
+   `locator — severity — [CONFIRMED|PLAUSIBLE] problem — fix`. Mark a
    finding `CONFIRMED` only with a traced call path, an executed check, or a
    reproduction; absent the ability to execute, findings stay `PLAUSIBLE` — that is
    acceptable, not a failure. No finding without evidence and a concrete fix; no praise,
@@ -35,7 +38,7 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
 
 6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    Apply all / Apply critical+high only / Report only. On an apply
-   pick, dispatch the finding list down the static chain task-executor → task-runner:task-executor if installed → inline — never leave
+   pick, dispatch the finding list down the static chain web-developer → task-runner:task-executor if installed → inline — never leave
    the user to retype findings as instructions. In a headless or non-interactive run,
    report only and print the apply command instead of dispatching.
 

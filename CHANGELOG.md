@@ -4,6 +4,83 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.52.0] - 2026-07-20
+
+### Removed
+
+- **automations-suite** bundle: pure meta-bundle deleted; its six member plugins
+  (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) stay
+  standalone and install individually. 7 bundles remain.
+- Four single-skill plugins folded into thematic hosts (77 → 73 leaves):
+  **data-privacy** → security, **api-auth** → security, **graphql-grpc** →
+  api-design, **event-driven** → system-design. Skills keep their names under
+  the host (`security:data-privacy`, `security:api-auth`,
+  `api-design:graphql-grpc`, `system-design:event-driven`); each host's review
+  command now applies the merged skill as a lens.
+- **decision-records** removed (73 → 72 leaves): write-only in practice — zero
+  ADRs recorded since the 0.45.0 retarget and twelve offers skipped in the
+  wave2 run. ADR capture survives as plain-file offers (project ADR dir,
+  docs/adr/ by convention) in taskmaster, approaches, build-vs-buy, rollout,
+  and docs-upkeep; process-suite is now 13 plugins.
+
+### Changed
+
+- Always-on description surface cut ~12.7% (14,548 → ~12,700 est tokens):
+  trimmed the ten heaviest plugins' description sets and brought all ten
+  >500-char descriptions under the cap; enumerations/procedures live in skill
+  bodies, trigger sentences stay.
+- Five co-fire trigger overlaps split token-neutrally: reviewer trio
+  (code-reviewer / frontend-reviewer / ui-ux-reviewer), approaches ↔
+  code-architecture planning sequence, hindsight ↔ retrospective, concurrency ↔
+  payments/event-driven idempotency, performance ↔ database ↔ sql slow-query
+  lenses.
+- **task-runner** 0.16.1 speed levers: mechanical BATCH/S-card dispatches carry
+  an explicit down-tier override (model/effort) in the dispatch call; read-only
+  reviewers run concurrently in the baseline pass (was `--crew`-only); reviewer
+  dispatches demand compressed returns (one line per finding, capped);
+  code-redteam milestone boundaries attack only the new milestone's diff.
+- **taskmaster** 0.29.2: coverage-check dispatches its matrix build to a
+  read-only subagent (fresh eyes, smaller main context); inline fallback kept.
+
+### Added
+
+- **brain** 0.2.3 self-healing small drift: when ≤5 files changed since the
+  map's `built:` stamp, the session-start hint instructs the model to run the
+  incremental `/brain index` immediately (auto from the user's seat); larger
+  drift stays an explicit offer. Hook remains write-nothing, fail-open.
+- **brain** 0.2.2 produce→consume→refresh loop: taskmaster's context-scout and
+  orchestration's delegation-contracts now use a committed `brain/INDEX.md` as
+  an orientation prior (verify-then-trust-code, never a stale map over greps);
+  git-workflow branch-finish offers `/brain index` when the map's `built:`
+  stamp is behind the merged result; the session-start "no map yet" hint is
+  size-gated to repos with ≥200 tracked files.
+- **threejs** 0.1.x (new plugin, 72 → 73 leaves; added to frontend-suite):
+  WebGPURenderer-first Three.js practices (WebGL2 fallback, TSL shaders),
+  react-three-fiber/drei, glTF/Draco/KTX2 asset pipelines, disposal/GPU-leak
+  discipline, draw-call performance; `/threejs:review`.
+- **ui-ux** 0.7.10: 2026-currency pass over the stack skills — shadcn
+  (Base UI default base since Jul 2026, Radix/React Aria selectable; oklch +
+  `@theme` example), Tailwind (v4 CSS-first `@theme` as the primary pattern,
+  `@custom-variant` dark mode), ReUI (Base UI-first foundations, paid-tier
+  block warning), Motion (`animateView`, `motion-v` Vue, `spring()`→CSS
+  export), Bootstrap (5.3 CSS-var runtime theming + v6 `@use` note),
+  design-tokens v4 wiring — plus a GSAP depth reference
+  (motion-best-practices/references/gsap.md: timelines, ScrollTrigger,
+  SplitText 3.15).
+- **ui-ux** 0.7.9: astryx-best-practices skill — Astryx, Meta's open-source
+  agent-ready React design system (@astryxdesign/core, StyleX, 150+
+  components, ten themes, JSON component manifest + MCP server). Beta-aware,
+  docs-first navigator style.
+- `scripts/remove-plugin.sh` — dry-run-by-default helper that removes or merges
+  a plugin and updates every shared touchpoint (marketplace.json, everything
+  deps, catalog regen, baseline, README counts) with a residual-reference
+  report.
+- Blocking per-leaf context-budget gate: `scripts/context-budget.sh` measures
+  all 72 leaves + 7 bundles, prints a TOTAL line, exits 1 on growth over the
+  committed baseline; enforced as a dedicated CI step.
+- Description linter in `scripts/validate.sh`: fails any description over 500
+  chars or carrying a literal "Trigger words:" list.
+
 ## [0.51.0] - 2026-07-17
 
 ### Added

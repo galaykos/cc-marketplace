@@ -1,6 +1,6 @@
 ---
 name: code-redteam
-description: Use when a boosted (ultra/goal) task run has produced code and the produced diff must be red-teamed before it is trusted — an N=3 blind refuter panel plus a completeness-critic over the SHIPPED code (not just the spec/cards), mirroring how ultra-assess red-teams its own findings. Composes orchestration:verification-panels; falls back to a single inline pass when panels are unavailable.
+description: Use when a boosted (ultra/goal) run produced code and the diff must be red-teamed before trust — N=3 blind refuter panel plus completeness-critic over the SHIPPED code, not just spec/cards. Composes orchestration:verification-panels; single inline pass when panels unavailable.
 ---
 
 # Code Red-Team
@@ -31,13 +31,19 @@ the produced code.
 The panel attacks code, not prose. Get the exact slice from the harness:
 
 ```
-plugins/task-runner/scripts/code-redteam-diff.sh --base <ref-before-the-run> [--paths <glob>...]
+plugins/task-runner/scripts/code-redteam-diff.sh --base <base-ref> [--paths <glob>...]
 ```
 
-`--base` prints `git diff <ref>..HEAD` — the code the run actually produced, and nothing
-that predates it. Scope with `--paths` when only part of the tree was in play. Feed that
-diff, verbatim, to every refuter. Never let a refuter reason about the spec instead of the
-code; the whole point is to examine the deliverable the input-side red-team skipped.
+`--base` prints `git diff <ref>..HEAD`. The base is INCREMENTAL: each milestone-boundary
+pass uses `--base <previous-boundary-ref>` — the ref recorded when the previous boundary
+pass ran (run-start for the first milestone) — so the panel attacks only the NEW
+milestone's diff instead of re-reading code an earlier boundary already cleared. Record
+`git rev-parse HEAD` at each boundary as the next pass's base. The single FINAL completion
+pass keeps the run-start ref as its base — one whole-run backstop sweep so nothing slips
+between boundaries or through a cross-milestone interaction. Scope with `--paths` when only
+part of the tree was in play. Feed that diff, verbatim, to every refuter. Never let a
+refuter reason about the spec instead of the code; the whole point is to examine the
+deliverable the input-side red-team skipped.
 
 ## The N=3 refuter panel — diverse lenses
 
@@ -101,9 +107,10 @@ degrades to a single reader. A skipped red-team is a silent regression, never an
 
 ## When it fires
 
-This pass is wired and active: task-execution runs it over the produced diff at each
-milestone boundary and once before the completion gate whenever `00-INDEX.md` carries an
-`Ultra:`/`Goal:` marker; track-orchestration runs it once on the merged branch. On a
+This pass is wired and active whenever `00-INDEX.md` carries an `Ultra:`/`Goal:` marker:
+task-execution runs it at each milestone boundary with `--base <previous-boundary-ref>`
+(only the new milestone's diff), and once before the completion gate with the run-start
+ref as the whole-run backstop; track-orchestration runs it once on the merged branch. On a
 non-boosted run it is a deliberate no-op — there is no marker, so no code red-team fires.
 
 ## Anti-patterns

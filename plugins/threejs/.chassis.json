@@ -1,0 +1,11 @@
+{
+  "chassis": "stack-review",
+  "variant": "lang",
+  "skill": "threejs-best-practices",
+  "docsUrl": "https://threejs.org/docs/",
+  "tag": "frontend",
+  "worker": null,
+  "description": "Review Three.js scene, renderer, or R3F code against threejs-best-practices",
+  "argumentHint": "[files-or-diff]",
+  "applyExtra": []
+}

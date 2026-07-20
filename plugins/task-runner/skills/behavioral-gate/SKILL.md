@@ -1,6 +1,6 @@
 ---
 name: behavioral-gate
-description: Use during run completion (and at the tracks merged-branch final gate) to actually run the produced artifact — its own test suite through a real runner, plus a smoke of each shell entrypoint — instead of only re-linting it. Fails an empty suite, a code-producing run with zero runnable check, a crashing entrypoint, and a documented-but-dead flag. The author-time sibling is taskmaster:verify-teeth; the per-card runtime sibling is the negative-control in task-execution.
+description: Use during run completion (and the tracks merged-branch final gate) — actually run the produced artifact: its test suite via a real runner plus a smoke of each shell entrypoint, not just re-linting. Fails an empty suite, a code run with zero runnable check, a crashing entrypoint, a documented-but-dead flag.
 ---
 
 # Behavioral gate

@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`, `automations-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 77 plugins) exists for zero-setup convenience at ~14k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 73 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,13 +44,12 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 77 | ~14k tokens |
-| `taskmaster-suite` | 37 | ~8.5k tokens |
-| `process-suite` | 14 | ~2.8k tokens |
+| `everything` | 73 | ~12.7k tokens |
+| `taskmaster-suite` | 37 | ~8.1k tokens |
+| `process-suite` | 13 | ~2.4k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
-| `frontend-suite` | 15 | ~2.6k tokens |
+| `frontend-suite` | 16 | ~2.7k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
-| `automations-suite` | 6 | ~0.6k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
 Always-on context = the skill/command/agent descriptions every installed
@@ -63,7 +62,7 @@ plugin adds to each session's context window (chars/4 estimate).
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
-# install: ~14k tokens of always-on context per session; prefer a category
+# install: ~12.7k tokens of always-on context per session; prefer a category
 # suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
@@ -73,7 +72,9 @@ plugin adds to each session's context window (chars/4 estimate).
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
 /plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, estimation, orchestration, task-runner…
-/plugin install automations-suite@cc-plugins-marketplace # playwright, puppeteer, adspower, kameleo, camoufox
+
+# Browser-automation plugins install individually:
+/plugin install playwright@cc-plugins-marketplace       # (same for puppeteer, adspower, kameleo, camoufox)
 ```
 
 Recommended default: install `process-suite` globally, add the matching
@@ -105,7 +106,7 @@ afterwards to sweep the orphans.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + shadcn theme builder with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
+| **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + shadcn theme builder with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
@@ -116,6 +117,7 @@ afterwards to sweep the orphans.
 | **[javascript](plugins/javascript/README.md)** | Vanilla JS: version-aware ES feature floors, === and coercion traps, ESM vs CommonJS interop, async correctness + event loop, this-binding & closures/leaks, boundary validation, BigInt, prototype-pollution safety | `/javascript:review` |
 | **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
 | **[vite](plugins/vite/README.md)** | Vite: VITE_ env-leak security, dep pre-bundling, code splitting/manualChunks, base for sub-path deploys, dev server.proxy, define pitfalls, SSR, library mode, plugin order, HMR guards | `/vite:review` |
+| **[threejs](plugins/threejs/README.md)** | Three.js: WebGPURenderer-first (WebGL2 fallback), TSL shaders, react-three-fiber/drei, glTF/Draco/KTX2 pipelines, disposal/leak discipline, draw-call performance — version-aware per rXXX | `/threejs:review` |
 | **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue/React/Svelte): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 + adapter awareness | `/inertia:review` |
 | **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness; general third-party docs → api-docs-first, own APIs → api-design | `/meta-api:check` |
 
@@ -151,7 +153,6 @@ afterwards to sweep the orphans.
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
 | **[plugin-scout](plugins/plugin-scout/README.md)** | Scans project manifests and suggests marketplace plugins in two tiers (stack-matched with evidence, always-useful), marks installed ones, installs picked ones after confirm — `--yes` auto-installs the stack-matched tier, `--persist` writes the set into project settings | `/plugin-scout:suggest` |
 | **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
-| **decision-records** | ADRs: persist approach/schema/dependency decisions to docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
 | **retrospective** | Post-milestone learning loop: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks | `/retrospective:run` |
 | **[hindsight](plugins/hindsight/README.md)** | Cross-session self-improvement loop: SessionEnd hook logs friction stats to a local ledger; harvest mines high-friction transcripts → CLAUDE.md rule candidates, skill/plugin ideas, failed-approach warnings — apply on approval + transcript-miner agent | `/hindsight:harvest` |
 | **[skill-router](plugins/skill-router/README.md)** | File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo skill index, low-confidence content signals surface in a SessionEnd digest; fail-open, once per signal per session | — |
@@ -163,7 +164,7 @@ afterwards to sweep the orphans.
 | **code-architecture** | Engineering process: plan-before-code (+ current-vs-target diagrams), YAGNI, SOLID applied with judgment, task orchestration, work verification, low-cognitive-load, KISS/DRY, always-on surgical-coding discipline (Karpathy guidelines) + architecture-reviewer agent; system-level topology → system-design | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni`, `/code-architecture:solid` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code; own APIs → api-design | `/api-docs-first:check` |
-| **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources; third-party docs → api-docs-first | `/api-design:review` |
+| **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources + graphql-grpc skill (DataLoader, resolver authz, proto safety, streaming); third-party docs → api-docs-first | `/api-design:review` |
 | **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill; stack idioms → framework review plugins | `/code-review:review` |
 | **approaches** | Approach deliberation: 2–3 structurally different candidates, trade-off table, pick + kill-trigger + strategy catalog (tracer bullet, spike, strangler fig, inversion…) + auto-nudged opinion round (blind persona subagents: Standards Purist / Quality-over-Speed / Skeptic-Investigator → one-round pick) | `/approaches:compare`, `/approaches:opinions` |
 | **build-vs-buy** | Gate zero for generic capability: library/stdlib search, health table, take/wrap/write verdict, never-hand-roll list | `/build-vs-buy:check` |
@@ -176,14 +177,10 @@ afterwards to sweep the orphans.
 | **concurrency** | Check-then-act races, optimistic vs pessimistic locking, idempotency keys, queue-consumer dedup under at-least-once, distributed locks with TTL + fencing, async parallel-write pitfalls | `/concurrency:review` |
 | **orchestration** | Subagent orchestration: delegation contracts, compressed returns, model tiering, refuter/judge panels, loop-until-dry | `/orchestration:review` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
-| **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent | `/security:review` |
+| **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent + data-privacy (GDPR/CCPA) and api-auth (token/OAuth model) skills | `/security:review` |
 | **[secret-scanning](plugins/secret-scanning/README.md)** | PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens) before it hits disk; on-demand repo sweep; fail-open, fixture-safe | `/secret-scanning:scan` |
-| **[event-driven](plugins/event-driven/README.md)** | Message-driven architecture: broker choice, topic/partition design, event schema versioning, at-least-once + consumer idempotency, the outbox pattern, sagas with compensation, dead-letter handling | `/event-driven:review` |
 | **[payments](plugins/payments/README.md)** | Payments/billing (Stripe/Paddle): PCI-scope minimization, integer-minor-unit money, signature-verified idempotent webhooks, subscription races, dunning/proration, ledger reconciliation | `/payments:review` |
-| **[api-auth](plugins/api-auth/README.md)** | API auth: token model choice (session/opaque/JWT), Sanctum vs Passport, OAuth2 Auth Code + PKCE, scopes, refresh-token rotation with reuse detection, httpOnly storage, hashing/expiry | `/api-auth:review` |
 | **[i18n](plugins/i18n/README.md)** | Internationalization: semantic keys + catalogs, ICU plural/gender, locale-aware dates/numbers/currency via Intl, RTL logical properties, fallback chains, tooling extraction | `/i18n:review` |
-| **[graphql-grpc](plugins/graphql-grpc/README.md)** | GraphQL (N+1/DataLoader, per-field resolver authz, depth/complexity limits, cursor pagination) + gRPC (proto field-number safety, streaming, deadlines, status codes) | `/graphql-grpc:review` |
-| **[data-privacy](plugins/data-privacy/README.md)** | GDPR/CCPA: PII mapping, data-subject rights (access/erasure/portability) with reach across logs/caches/backups/processors, consent, retention/deletion, audit trails | `/data-privacy:review` |
 | **[llm-app](plugins/llm-app/README.md)** | LLM apps: eval harnesses + regression gates, RAG (chunking/embeddings/retrieval quality/grounding), prompt versioning, prompt-injection defense, token-cost control | `/llm-app:review` |
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
@@ -196,7 +193,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **web-dev** | Generalist web implementation worker: routing, REST/API integration, forms, state, SSR/CSR trade-offs, accessibility baseline + web-developer agent | — |
-| **system-design** | System-level design: boundaries on data ownership, scaling, cache placement, async failure modes, SPOFs + domain modeling (DDD) — skills + system-architect worker + system-design-reviewer; code-level structure → code-architecture | `/system-design:review` |
+| **system-design** | System-level design: boundaries on data ownership, scaling, cache placement, async failure modes, SPOFs + domain modeling (DDD) + event-driven skill (brokers, outbox, sagas, DLQ) — skills + system-architect worker + system-design-reviewer; code-level structure → code-architecture | `/system-design:review` |
 | **devops** | DevOps pipeline/infra: CI/CD ordering, image hygiene, k8s limits/probes, deploy+rollback, secrets — devops-practices skill + devops-engineer worker + devops-reviewer; in-code instrumentation → observability, local dev → dev-env | `/devops:review` |
 | **performance** | Performance tuning: measure-first, N+1/index/payload/bundle/CWV hotspots, cache correctness (stampede/TTL/eviction), percentile load testing — performance-tuning skill + performance-engineer worker | `/performance:review` |
 
@@ -211,7 +208,6 @@ afterwards to sweep the orphans.
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, ADRs, retrospectives, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
-| **automations-suite** | Meta-bundle: browser-automation category — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox, automation-builder | `/automations-suite:uninstall` |
 
 ## Usage
 
@@ -230,7 +226,7 @@ Plugins with their own README carry detailed usage and examples — see the link
 | **task-runner** | Executes the cards one at a time with scope lock, bounded verify-fix loops, and a full-suite completion gate |
 | **code-architecture** | Supplies the process gates used throughout: plan-before-code, YAGNI checks, and the work-verification discipline task-runner applies to the whole run |
 
-Beyond the core four, the pipeline auto-wires more companions **when they are installed** (all of them ship in the `taskmaster-suite` bundle): **approaches** (blind opinion-round personas at the approach-decision step), **claude-authoring** (the project-skill-suggester offer after card-split), **decision-records** (ADR capture), and **estimation** (S/M/L/XL card sizing). It also runs internal stages that need no companion: a resumable grill ledger, a convergence cap on interrogation, an adversarial spec red-team before cards, and a spec↔card coverage gate after them.
+Beyond the core four, the pipeline auto-wires more companions **when they are installed** (all of them ship in the `taskmaster-suite` bundle): **approaches** (blind opinion-round personas at the approach-decision step), **claude-authoring** (the project-skill-suggester offer after card-split), and **estimation** (S/M/L/XL card sizing). It also runs internal stages that need no companion: a resumable grill ledger, a convergence cap on interrogation, an adversarial spec red-team before cards, and a spec↔card coverage gate after them.
 
 The full loop for a feature:
 

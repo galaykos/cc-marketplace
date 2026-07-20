@@ -2,7 +2,12 @@
 
 Security review for web apps: OWASP-aligned checks for injection, XSS, CSRF,
 authorization vs authentication, mass assignment, file uploads, secrets handling,
-and dependency audit — mapped to PHP/Laravel and JS/Vue specifics.
+and dependency audit — mapped to PHP/Laravel and JS/Vue specifics. Also ships the
+threat-modeling skill (design-phase STRIDE, trust boundaries, abuse cases), the
+data-privacy skill (GDPR/CCPA regulatory layer: PII mapping, data-subject rights,
+consent, retention/deletion) and the api-auth skill (token model choice, OAuth2 +
+PKCE, scopes, refresh-token rotation) — the latter two applied as review lenses
+when the diff touches their surface.
 
 ## Install
 

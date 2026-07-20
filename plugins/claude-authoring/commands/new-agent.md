@@ -1,5 +1,5 @@
 ---
-description: Scaffold a subagent .md with name/description/tools/model/effort frontmatter and a role-procedure-checklist body.
+description: Scaffold a subagent .md — name/description/tools/model/effort frontmatter, role-procedure-checklist body.
 argument-hint: [agent-name] [purpose]
 ---
 

@@ -14,6 +14,8 @@ jobs:
           fetch-depth: 0
       - name: Validate marketplace structure
         run: bash scripts/validate.sh
+      - name: Context-budget gate
+        run: bash scripts/context-budget.sh
       - name: Check plugin version bumps
         if: github.event_name == 'pull_request'
         run: bash scripts/check-version-bumps.sh "${{ github.event.pull_request.base.sha }}"

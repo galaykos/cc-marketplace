@@ -89,8 +89,8 @@ dispute can be reconstructed. "The webhook must have fired" is not an audit trai
 
 ## Defer rule
 
-- Webhook *delivery* semantics as general messaging (idempotency, DLQ) → `event-driven`;
-  this skill owns the payments-specific handling.
+- Webhook *delivery* semantics as general messaging (idempotency, DLQ) →
+  `system-design:event-driven`; this skill owns the payments-specific handling.
 - The general secret handling for API keys → `secret-scanning` / `security`.
 - Concurrency mechanics of the activation race → `/concurrency:review`.
 

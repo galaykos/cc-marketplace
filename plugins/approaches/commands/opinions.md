@@ -1,5 +1,5 @@
 ---
-description: Run an opinion-round on a task — four parallel blind opinion-lens personas argue the approach, synthesized inline to one pick + kill-trigger — before any implementation.
+description: Run an opinion-round — four parallel blind opinion-lens personas argue the approach, synthesized to one pick + kill-trigger — before implementation.
 ---
 
 Run the opinion-round skill on $ARGUMENTS (if empty, ask for a one-paragraph
@@ -24,5 +24,5 @@ task description first). Do not write implementation code.
 6. On a structural split (takes disagree on the file-level shape of the plan),
    do not pick silently — present the competing plans via AskUserQuestion and
    let the user choose.
-7. If the decision-records plugin is installed, offer capturing the pick as an
-   ADR via /decision-records:new; when it is not installed, skip silently.
+7. For a significant pick, offer capturing it as an ADR file in the project's
+   ADR dir (docs/adr/ by convention); on "skip", move on silently.

@@ -1,6 +1,6 @@
 ---
 name: aceternity-best-practices
-description: Use when building or reviewing UI with Aceternity UI (ui.aceternity.com) — motion-heavy marketing and landing-page components: where they belong (and don't), motion/framer-motion dependency management, performance budgets, reduced-motion accessibility, theming alignment, and latest-docs verification before asserting any component API.
+description: Use when building or reviewing Aceternity UI (ui.aceternity.com) motion-heavy marketing/landing components — placement limits, framer-motion deps, perf budgets, reduced-motion, theming, docs-check before API claims.
 ---
 
 ## What Aceternity is — and where it belongs

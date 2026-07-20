@@ -1,6 +1,6 @@
 ---
 name: css3-best-practices
-description: Use when writing or reviewing plain CSS3 — custom properties, cascade layers, logical properties, container queries, specificity management.
+description: Use when writing or reviewing CSS3 — custom properties, cascade layers, logical properties, container queries, specificity.
 ---
 
 ## Theme with custom properties, not repeated literals

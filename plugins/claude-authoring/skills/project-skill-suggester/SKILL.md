@@ -1,6 +1,6 @@
 ---
 name: project-skill-suggester
-description: Use after a task is split into cards — when three or more cards share the same not-yet-captured repository-specific knowledge (a house convention, an internal API or helper, one subsystem's rules) — to propose capturing it as a project skill or agent, deferring the artifact choice to routine-detector and the scaffolding to the new-skill / new-agent commands.
+description: Use after a task is split into cards, when three-plus cards share the same uncaptured repo-specific knowledge (house convention, internal API/helper, subsystem rules) — propose capturing it as a project skill or agent; shape via routine-detector.
 ---
 
 ## What this skill does

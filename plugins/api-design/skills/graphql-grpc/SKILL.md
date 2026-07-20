@@ -86,9 +86,9 @@ gRPC:
 
 ## Defer rule
 
-- REST contract design (paths, verbs, status codes, RFC 9457 problems) → `api-design`.
+- REST contract design (paths, verbs, status codes, RFC 9457 problems) → the `api-design` skill (this plugin).
 - The datastore query the resolver runs (indexing, statement shape) → `database-design`.
-- Token/scope auth mechanics behind the resolver check → `api-auth`.
+- Token/scope auth mechanics behind the resolver check → `security:api-auth`.
 
 ## Anti-patterns
 

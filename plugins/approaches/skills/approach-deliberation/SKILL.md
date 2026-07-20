@@ -1,6 +1,6 @@
 ---
 name: approach-deliberation
-description: Use before starting any non-trivial implementation — multi-file changes, new capabilities, anything with two-plus viable shapes — to generate 2-3 structurally different approaches, compare trade-offs honestly, and commit with a stated kill-trigger instead of anchoring on the first plausible idea.
+description: Use before starting any non-trivial implementation, FIRST — multi-file changes, new capabilities, two-plus viable shapes — generate 2-3 structurally different approaches, compare trade-offs, commit with a kill-trigger. Picks the SHAPE; file-level planning → code-architecture:plan-before-code.
 ---
 
 The failure mode this kills: first-idea anchoring. The first plausible approach

@@ -1,7 +1,7 @@
 # Per-card crew (`--crew`, main-runner only)
 
 The `--crew` flag adds a per-card verify **crew** after a card's build verify passes:
-the read-only reviewers run concurrently, then a sequential test-only authoring pass, then
+the read-only reviewers run concurrently (the baseline dispatch), then a sequential test-only authoring pass, then
 an unconditional verify re-run and a fresh bounded fix loop. Everything runs in the **same
 working tree on the same branch** — no worktrees, no snapshots, no classifier, no revert.
 Only the main `/task-runner:run` orchestrator runs a crew; a delegated leaf never can.
@@ -27,17 +27,14 @@ After the card's build verify passes:
 ## Reviewer pass
 
 The reviewer set (baseline `code-reviewer` + diff-content-gated `ui-ux` /
-`architecture` reviewers + the tag-routed reviewer) resolves and primes exactly as in
-`reviewer-routing.md` — this file does not duplicate that map. Crew changes only *how* they
-are dispatched:
-
-- **Read-only reviewers run in one concurrent batch** over the live card diff.
-- **Any reviewer that holds the `Bash` tool** (e.g. `devops:devops-reviewer`, tools
-  `Read, Grep, Bash`) is **excluded from the concurrent batch and run serially** — a Bash
-  reviewer can write build artifacts into the shared tree, so it must not run concurrently
-  with anything.
-- The `security:security-review` **skill** (no agent) runs **inline** in the orchestrator
-  after the batch joins.
+`architecture` reviewers + the tag-routed reviewer) resolves, primes, AND dispatches
+exactly as the BASELINE pass does (`reviewer-routing.md` § Concurrent dispatch) — this file
+does not duplicate that map. Concurrency is baseline behavior, NOT crew's: every run already
+dispatches the read-only reviewers as one concurrent batch over the live card diff, keeps
+any `Bash`-holding reviewer (e.g. `devops:devops-reviewer`) out of the batch and serial, and
+runs the `security:security-review` **skill** (no agent) inline after the batch joins. Crew
+adds no dispatch mechanics of its own — it runs that same baseline pass as step 1 of the
+crew sequence.
 
 ## Authoring — test files only
 

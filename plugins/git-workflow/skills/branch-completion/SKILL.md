@@ -1,6 +1,6 @@
 ---
 name: branch-completion
-description: Use when implementation on a development branch is finished and the work needs a destination — full-suite verification gate first, then present merge / PR / keep / discard as explicit options backed by state evidence (diffstat, ahead/behind counts, test output), execute the chosen protocol end to end, and leave no zombie branches or worktrees behind.
+description: Use when implementation on a development branch is finished and the work needs a destination — full-suite verification gate, then merge / PR / keep / discard offered as explicit choices backed by state evidence, executed end to end, leaving no zombie branches or worktrees.
 ---
 
 ## Done code is not a done branch
@@ -110,6 +110,13 @@ commit list, the worktree path — and require the user to type the branch name
 back as confirmation. A "yes" is not enough; typed-name confirmation is what
 separates a deliberate discard from an autocomplete accident. Only then:
 remove the worktree, `git branch -D <branch>`, and report what was destroyed.
+
+## Refresh the project map
+
+If the repo carries a committed `brain/INDEX.md` (brain plugin) whose `built:` stamp
+is behind the merged result, offer `/brain index` (incremental) alongside the
+destination step — a branch finish is exactly when the map went stale. Never run it
+unasked; it edits committed files.
 
 ## No zombies
 

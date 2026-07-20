@@ -1,6 +1,6 @@
 ---
 name: authoring-hooks
-description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, PreToolUse, PostToolUse, Stop), matchers, ${CLAUDE_PLUGIN_ROOT} paths, executable-script rules, and when NOT to use a hook.
+description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, Pre/PostToolUse, Stop), matchers, ${CLAUDE_PLUGIN_ROOT}, when NOT to hook.
 ---
 
 ## Anatomy

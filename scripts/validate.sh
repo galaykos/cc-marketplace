@@ -75,6 +75,24 @@ for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
   esac
 done
 
+# Description linter (hard): a frontmatter description over 500 chars bloats the
+# always-on context surface every session pays for; a literal "Trigger words:"
+# list restates in-sentence terms. Both fail the build — trim, don't grandfather.
+for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
+  [ -f "$f" ] || continue
+  # Block-scalar (>/|) descriptions would evade both this cap and the token
+  # accounting (each reads the first line only) — reject the form outright.
+  awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" \
+    | grep -qE '^description:[[:space:]]*[>|]' \
+    && err "$f: description uses a YAML block scalar — keep it a single line"
+  dsc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" | sed -n 's/^description:[[:space:]]*//p' | head -1)
+  [ -n "$dsc" ] || continue
+  dlen=$(printf '%s' "$dsc" | wc -c | tr -d ' ')
+  [ "$dlen" -le 500 ] || err "$f: description $dlen chars (max 500)"
+  printf '%s' "$dsc" | grep -qE 'Trigger( words)?:' \
+    && err "$f: description carries a 'Trigger words:' list — fold terms into the trigger sentence"
+done
+
 # Every /plugin:command reference in docs must resolve to a listed plugin
 known=$(jq -r '.plugins[].name' "$MP")
 while IFS=: read -r file ref; do
@@ -352,10 +370,11 @@ done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
-# ---- Context-budget gate (report-only, D3/A5) ------------------------------
-# Per-bundle session-start description-token surface vs committed baseline.
-# Always exits 0 — growth prints WARN lines only, never fails the build; the
-# overall validate exit code below is governed solely by $fail, untouched here.
+# ---- Context-budget report ---------------------------------------------------
+# Per-plugin session-start description-token surface vs committed baseline.
+# The BLOCKING gate runs as its own CI step (Context-budget gate in
+# validate.yml); here it is informational only — `|| true` keeps this script's
+# exit governed solely by $fail.
 bash scripts/context-budget.sh || true
 
 [ "$fail" -eq 0 ] && echo "OK: marketplace valid" || exit 1

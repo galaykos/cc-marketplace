@@ -1,6 +1,6 @@
 ---
 name: task-cards
-description: Use after requirements are clarified into a spec — splits the work into single-prompt task cards, each small enough for one sitting and self-contained enough to execute in a fresh session with zero conversation context. Produces an ordered, dependency-aware index with parallel groups.
+description: Use after requirements are clarified into a spec — splits the work into single-prompt task cards, one-sitting sized, self-contained for a fresh session with zero context, in an ordered dependency-aware index with parallel groups.
 ---
 
 ## What a card is

@@ -1,6 +1,6 @@
 ---
 name: low-cognitive-load
-description: Use when writing or reviewing code for readability — small focused units, few live variables, shallow nesting, names that carry meaning, no clever tricks.
+description: Use when writing or reviewing for readability — small focused units, few live variables, shallow nesting, meaningful names, no cleverness.
 ---
 
 ## The goal: minimize what a reader has to hold in their head
