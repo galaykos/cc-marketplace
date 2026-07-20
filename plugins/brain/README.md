@@ -41,6 +41,13 @@ The map carries a single stamp — the short commit hash it was built against. R
 with `/brain index` whenever the code has moved on. There are no per-note or per-symbol
 stamps in this release.
 
+The produce→consume→refresh loop (wired across the marketplace): taskmaster's
+context-scout and delegation-contracts readers use the map as an **orientation
+prior** — they verify touched areas with their own greps and trust the code over a
+stale map — and git-workflow's branch-finish offers `/brain index` when the stamp is
+behind the merged result. The session-start hint only appears in repos with ≥200
+tracked files, where a map actually pays.
+
 ## `brain/INDEX.md` is a derived artifact
 
 It is committed (so the whole team and every Claude session share it), but it is

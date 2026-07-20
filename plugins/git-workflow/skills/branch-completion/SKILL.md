@@ -111,6 +111,13 @@ back as confirmation. A "yes" is not enough; typed-name confirmation is what
 separates a deliberate discard from an autocomplete accident. Only then:
 remove the worktree, `git branch -D <branch>`, and report what was destroyed.
 
+## Refresh the project map
+
+If the repo carries a committed `brain/INDEX.md` (brain plugin) whose `built:` stamp
+is behind the merged result, offer `/brain index` (incremental) alongside the
+destination step — a branch finish is exactly when the map went stale. Never run it
+unasked; it edits committed files.
+
 ## No zombies
 
 Cleanup has a fixed order because git enforces one: a branch checked out in

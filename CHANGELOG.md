@@ -44,6 +44,12 @@ version in their `plugin.json`.
 
 ### Added
 
+- **brain** 0.2.2 produce→consume→refresh loop: taskmaster's context-scout and
+  orchestration's delegation-contracts now use a committed `brain/INDEX.md` as
+  an orientation prior (verify-then-trust-code, never a stale map over greps);
+  git-workflow branch-finish offers `/brain index` when the map's `built:`
+  stamp is behind the merged result; the session-start "no map yet" hint is
+  size-gated to repos with ≥200 tracked files.
 - **threejs** 0.1.x (new plugin, 72 → 73 leaves; added to frontend-suite):
   WebGPURenderer-first Three.js practices (WebGL2 fallback, TSL shaders),
   react-three-fiber/drei, glTF/Draco/KTX2 asset pipelines, disposal/GPU-leak

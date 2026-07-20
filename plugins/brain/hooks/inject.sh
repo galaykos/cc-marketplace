@@ -18,6 +18,13 @@
   # inside the fenced block. The nudge stops for good the moment a map exists. Still a pure
   # read — no state written.
   if [ ! -f "$index" ] || [ ! -s "$index" ]; then
+    # Size-gate the nudge: a map only pays in repos with real surface area. Small
+    # repos (<200 tracked source-ish files) never see the hint. Fast index read,
+    # fail-open like everything else here.
+    if command -v git >/dev/null 2>&1; then
+      nfiles=$(git -C "$cwd" ls-files 2>/dev/null | wc -l | tr -d ' ') || nfiles=0
+      [ "${nfiles:-0}" -ge 200 ] || exit 0
+    fi
     printf '%s\n' "ℹ brain: no map for this project yet — run /brain index to create one."
     exit 0
   fi
