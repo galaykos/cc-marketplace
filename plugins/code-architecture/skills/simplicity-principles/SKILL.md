@@ -1,6 +1,6 @@
 ---
 name: simplicity-principles
-description: Use when writing or reviewing any code — KISS and DRY applied with judgment: simplest thing that works, duplication removed only after the rule of three, DRY of knowledge not of incidental text.
+description: Use when writing or reviewing code — KISS and DRY with judgment: simplest thing that works, duplication removed at the rule of three, DRY of knowledge not text.
 ---
 
 ## KISS: simplest design that meets today's requirement

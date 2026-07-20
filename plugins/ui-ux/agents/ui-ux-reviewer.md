@@ -1,6 +1,6 @@
 ---
 name: ui-ux-reviewer
-description: Use PROACTIVELY after writing or modifying UI components/styles. Reviews markup and styles against shadcn/Tailwind/CSS3/Bootstrap/Grid/Flexbox best practices and accessibility basics.
+description: Use PROACTIVELY after modifying markup or styles ONLY — shadcn/Tailwind/CSS3/Bootstrap/Grid/Flexbox best practices and accessibility basics. Component logic → frontend-reviewer.
 tools: Read, Grep, Glob
 model: sonnet
 effort: xhigh

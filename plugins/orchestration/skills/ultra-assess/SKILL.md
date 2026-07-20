@@ -1,6 +1,6 @@
 ---
 name: ultra-assess
-description: Use when an assessment/audit run is triggered with "ultra-assess"/"ultraassess"/"ultra-assessment" in a prompt — the Extreme Boost contract for assessment-shaped work (inventory, audit, gap-analysis, survey, review-at-scale): escalates reachable subagents to a selected model (opus by default), fans out readers, then mandatory red-team + completeness-critic over the findings, prints the activation banner, and returns findings/backlog rather than task cards.
+description: Use when an assessment run is triggered with "ultra-assess"/"ultraassess"/"ultra-assessment" in a prompt — the Extreme Boost contract for assessment-shaped work (inventory, audit, gap-analysis, survey, review-at-scale): escalated subagent models, reader fan-out, mandatory red-team + completeness-critic, activation banner; returns findings/backlog, not task cards.
 ---
 
 # Ultra-assess — Extreme Boost for an assessment run

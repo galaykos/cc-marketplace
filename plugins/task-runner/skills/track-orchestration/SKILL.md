@@ -1,6 +1,6 @@
 ---
 name: track-orchestration
-description: Use when /task-runner:run is invoked with --tracks[=N] to execute a taskmaster card set's independent milestones as concurrent subagent "tracks" — each milestone in its own git worktree+branch, dispatched in strict dependency waves via Workflow, committed then merged by a single sole-writer orchestrator with a preserve-for-bisect final gate. Not for serial runs (that is task-execution). Trigger words: tracks, concurrent milestones, parallel milestones, --tracks, milestone teams, run milestones in parallel.
+description: Use when /task-runner:run is invoked with --tracks[=N] — runs a card set's independent milestones as concurrent subagent "tracks": one git worktree+branch per milestone, strict dependency waves via Workflow, merged by a sole-writer orchestrator with a preserve-for-bisect final gate. Not for serial runs (task-execution).
 ---
 
 ## What this is

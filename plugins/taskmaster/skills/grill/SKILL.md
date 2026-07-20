@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Use when a task request is vague, large, or open to more than one interpretation — before any plan, spec, or code. Runs batched clarifying-question rounds against an ambiguity ledger until every requirement is CLEAR or explicitly ASSUMED, grounding questions in codebase facts from the context-scout agent.
+description: Use when a task request is vague, large, or open to multiple interpretations — before any plan, spec, or code: batched clarifying-question rounds against an ambiguity ledger until every requirement is CLEAR or explicitly ASSUMED, grounded in context-scout's codebase facts.
 ---
 
 ## The core rule

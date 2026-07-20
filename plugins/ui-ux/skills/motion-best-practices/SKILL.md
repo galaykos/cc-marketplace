@@ -1,6 +1,6 @@
 ---
 name: motion-best-practices
-description: Use when writing or reviewing UI animation and motion — CSS transitions/@keyframes, @starting-style entry effects, scroll-driven animations, the View Transitions API, Motion (ex-Framer Motion), GSAP, microinteractions, easing/duration, prefers-reduced-motion accessibility, compositor-only performance.
+description: Use when writing or reviewing UI animation — transitions/@keyframes, @starting-style, scroll-driven animations, View Transitions, Motion (ex-Framer), GSAP, microinteractions, easing, prefers-reduced-motion.
 ---
 
 ## `prefers-reduced-motion` is a hard rule, not a nice-to-have

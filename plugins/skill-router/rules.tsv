@@ -37,8 +37,8 @@ glob	composer.json	package-hygiene	packages	high
 glob	next.config.*	nextjs-best-practices	nextjs	high
 glob	nuxt.config.*	nuxt-best-practices	nuxt	high
 glob	vite.config.*	vite-best-practices	vite	high
-glob	*.graphql	graphql-grpc	graphql-grpc	high
-glob	*.proto	graphql-grpc	graphql-grpc	high
+glob	*.graphql	graphql-grpc	api-design	high
+glob	*.proto	graphql-grpc	api-design	high
 glob	**/workflows/**	devops-practices	devops	high
 content	\b(async|await|Promise\.all|mutex|goroutine|\.lock\(|queue)\b	concurrency-safety	concurrency	low
 content	\b(catch|throw|rescue)\b	error-handling-design	error-handling	low

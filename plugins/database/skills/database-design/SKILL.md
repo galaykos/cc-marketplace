@@ -1,6 +1,6 @@
 ---
 name: database-design
-description: Use when designing or reviewing relational schema, migrations, indexes, query shape, connection pooling, or transaction boundaries — engine-agnostic database discipline. Dialect-specific statement audits belong to the sql/mysql/mariadb/postgresql review skills; this is the cross-engine design floor.
+description: Use when designing or reviewing relational schema, migration/index design, query shape, connection pooling, or transaction boundaries — the cross-engine DESIGN floor. Dialect statement audits → sql/mysql/mariadb/postgresql; proving a query slow → performance.
 ---
 
 # Database design

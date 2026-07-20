@@ -1,5 +1,5 @@
 ---
-description: Dry-run parallelization plan for a task list — dependency levels, parallel groups, recommended subagent count, estimated speedup, inline-vs-delegate verdict. No execution.
+description: Dry-run parallelization plan — dependency levels, parallel groups, subagent count, speedup estimate, inline-vs-delegate verdict. No execution.
 ---
 
 Run the parallel-planning skill from this plugin on $ARGUMENTS (a taskmaster

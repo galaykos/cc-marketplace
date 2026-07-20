@@ -1,6 +1,6 @@
 ---
 name: ultra
-description: Use when a taskmaster run is EXPLICITLY triggered for Extreme Boost — the token "ultra-task"/"ultratask" anywhere in a taskmaster prompt (it may cross a command boundary), OR a bare `ultra` that is the FIRST token of a taskmaster command's own arguments (`/taskmaster:<cmd> ultra …`). A bare `ultra` that belongs to ANOTHER command — e.g. `caveman ultra` preceding `/taskmaster:task …`, where `ultra` is caveman's intensity flag, not the first token of taskmaster's own args — does NOT trigger this; do not auto-fire on it. The contract: escalates reachable subagents to a selected model (opus by default), makes red-team and coverage mandatory, runs bounded Workflow fan-outs, prints the activation banner, and carries the boost into execution through a card-index marker.
+description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task"/"ultratask" anywhere in a taskmaster prompt (may cross a command boundary), or a bare `ultra` as FIRST token of a taskmaster command's own args (`/taskmaster:<cmd> ultra …`). A bare `ultra` owned by ANOTHER command — e.g. `caveman ultra` before `/taskmaster:task …`, where `ultra` is caveman's flag, not taskmaster's first arg — does NOT trigger; never auto-fire. Escalates subagents; mandates red-team+coverage.
 ---
 
 # Ultra — Extreme Boost for a taskmaster run

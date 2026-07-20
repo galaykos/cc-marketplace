@@ -1,6 +1,6 @@
 ---
 name: authoring-skills
-description: Use when writing or editing a SKILL.md — trigger-rich descriptions, tight line budgets, one-capability-per-skill scoping, and the frontmatter rules validators enforce.
+description: Use when writing or editing a SKILL.md — trigger-rich descriptions, line budgets, one-capability scoping, validator frontmatter rules.
 ---
 
 ## Anatomy

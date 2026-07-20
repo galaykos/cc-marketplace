@@ -1,6 +1,6 @@
 ---
 name: task-executor
-description: Use PROACTIVELY when a review's fix-list or a defined task/card list needs to be APPLIED — the single delegatable sink for "apply the fixes now"; executes scope-locked with a bounded verify-fix loop and returns evidence, never widening scope.
+description: Use PROACTIVELY when a review's fix-list or a defined task/card list needs APPLYING — the single delegatable sink for "apply the fixes now"; scope-locked, bounded verify-fix loop, returns evidence.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 effort: xhigh
@@ -19,6 +19,12 @@ tool and cannot load one, so nothing else governs you. This card is the dispatch
 
 Residual: the ~40 chassis-generated `/…:review` commands dispatch you WITHOUT a preamble,
 so on that path the inline restatement below is the sole operative discipline.
+
+The `model: sonnet` / `effort: xhigh` frontmatter above is a DEFAULT tier, not an
+unconditional floor: the dispatch call may override it downward — Agent tool `model: haiku`,
+or `opts.effort: 'low'` on the Workflow path — for mechanical batches (bundled S-cards,
+scaffolds, renames) per delegation-contracts § Model and effort tiering. Verify and judge
+dispatches keep the full tier.
 
 ## What you receive
 

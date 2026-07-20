@@ -1,6 +1,6 @@
 ---
 name: shadcn-best-practices
-description: Use when building or reviewing UI with shadcn/ui components — installation via CLI, composition over configuration, theming with CSS variables, accessibility defaults.
+description: Use when building or reviewing shadcn/ui components — CLI installs, composition over config, CSS-variable theming, accessibility defaults.
 ---
 
 ## You own the code, it isn't a dependency

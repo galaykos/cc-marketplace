@@ -1,6 +1,6 @@
 ---
 name: verify-teeth
-description: Use after coverage-check in the task-cards tail to lint every card's Verify line for teeth — a named assertion that would fail if the feature were absent. Blocks known-weak forms (compile-only, existence-only, require/import-only, `|| true`, a bare "suite passes") so a card cannot close green on a vacuous check. The runtime siblings are the behavioral-gate (empty-suite) and negative-control (red-before-green) in task-runner.
+description: Use after coverage-check in the task-cards tail — lints every card's Verify line for a named assertion that would fail were the feature absent, blocking weak forms (compile-only, existence-only, import-only, `|| true`, bare "suite passes") so no card closes green on a vacuous check.
 ---
 
 # Verify teeth

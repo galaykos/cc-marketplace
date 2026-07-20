@@ -1,6 +1,6 @@
 ---
 name: shadcn-theming
-description: Use when creating or restyling a shadcn/ui theme — design the CSS-variable token set (light + dark), verify contrast, preview colours and components on one always-live localhost URL, iterate one axis at a time, then apply to globals.css without clobbering.
+description: Use when creating or restyling a shadcn/ui theme — CSS-variable tokens, light + dark, contrast checks, live preview on one localhost URL, one axis at a time, apply to globals.css without clobbering.
 ---
 
 ## A theme is a token set, not sprinkled colors

@@ -1,6 +1,6 @@
 ---
 name: system-design
-description: Use when shaping system-level structure — service boundaries, data ownership, scaling path, caching layers, sync vs async integration, single points of failure — before or while structural implementation happens. For code-level module structure use code-architecture; for the domain model itself use domain-modeling.
+description: Use when shaping system-level structure, before or during implementation — service boundaries, data ownership, scaling, caching, sync vs async integration, single points of failure. Code modules are code-architecture; the domain model is domain-modeling.
 ---
 
 # System design
@@ -72,7 +72,8 @@ territory; the *placement* decision — which layer owns which data's cache — 
 - **Every async hop names its failure modes**: lost messages, duplicates, ordering,
   poison messages, and back-pressure. An event-driven design that has not answered
   "what happens on redelivery" is a data-corruption bug on a timer. (The delivery-
-  semantics detail — outbox, sagas, DLQ, idempotency — is the event-driven plugin's.)
+  semantics detail — outbox, sagas, DLQ, idempotency — is the event-driven skill's,
+  in this plugin.)
 
 ## Single points of failure
 

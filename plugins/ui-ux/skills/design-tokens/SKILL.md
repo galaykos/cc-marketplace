@@ -1,6 +1,6 @@
 ---
 name: design-tokens
-description: Use when building or reviewing a design system's foundations — the spacing scale, type scale, radius, elevation/shadow, and motion tokens, plus semantic color tiering — so spacing, sizing, and rhythm come from a named scale instead of magic numbers. Pure color palette generation is shadcn-theming; this is the rest of the token system.
+description: Use when building or reviewing design-system foundations — spacing/type scales, radius, elevation, motion tokens, semantic color tiering: named scales over magic numbers. Palette generation is shadcn-theming.
 ---
 
 # Design tokens

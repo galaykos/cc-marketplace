@@ -1,6 +1,6 @@
 ---
 name: coverage-check
-description: Use after task-cards splits a spec into cards — to verify, in both directions, that every spec success criterion is covered by at least one card and that no card proves something the spec never asked for, blocking the execution handoff until each gap, orphan, and drift is resolved or explicitly accepted.
+description: Use after task-cards splits a spec into cards — verifies every spec success criterion is covered by a card and no card proves what the spec never asked, blocking execution handoff until each gap, orphan, and drift is resolved or accepted.
 ---
 
 ## Where this sits
@@ -8,11 +8,12 @@ description: Use after task-cards splits a spec into cards — to verify, in bot
 This runs at the tail of task-cards: once `00-INDEX.md` and the card files are
 written, and before the execution handoff. It is an independent verifier of
 task-cards' own output — fresh eyes on the split, not the author re-reading its
-own work. It checks documents against documents; it is not code verification.
-work-verification and task-runner check delivered code against criteria later —
-this checks that the criteria are all represented in the cards first, so the
-run does not begin already missing a requirement or carrying scope nobody asked
-for.
+own work, which is why the matrix build is dispatched to a subagent rather than
+done by the thread that just wrote the cards. It checks documents against
+documents; it is not code verification. work-verification and task-runner check
+delivered code against criteria later — this checks that the criteria are all
+represented in the cards first, so the run does not begin already missing a
+requirement or carrying scope nobody asked for.
 
 ## What it checks
 
@@ -47,8 +48,9 @@ failures:
 
 ## The coverage matrix
 
-Present the result, and persist it into `00-INDEX.md` as a `## Coverage` section
-so it travels with the run. A markdown table, then the exceptions:
+The result is presented in the main thread and persisted into `00-INDEX.md` as a
+`## Coverage` section so it travels with the run. A markdown table, then the
+exceptions:
 
 ```
 ## Coverage
@@ -64,6 +66,25 @@ Accepted gaps: none.
 ```
 
 No HTML, no separate file — the index is the single run view.
+
+## Build the matrix — dispatch
+
+Dispatch ONE read-only subagent (Read/Grep/Glob) to build the matrix. Give it
+exactly two inputs — the spec file path and the cards directory — plus the
+matching rules above and the `## Coverage` format above as its output contract.
+Do not pass it the conversation, the ledger, or your own summary of either
+document: a brief pre-digested by the cards' author re-imports the blind spots
+this gate exists to escape. The subagent reads the spec's `## Success criteria`
+(and `## Visual contract` when present) and every card's
+`**Acceptance criteria:**`, walks both directions, and returns ONLY the
+compressed `## Coverage` block in that exact format — no file dumps. The main
+thread gets the matrix without re-ingesting the spec and cards; every finding
+is then resolved here, in the main thread, through the gate below.
+
+**Headless fallback.** When subagent dispatch is unavailable, build the matrix
+inline: read the spec and every card yourself and apply the same rules and
+format. The gate blocks identically — only the fresh-eyes property degrades,
+so read both documents cold, end to end, before matching.
 
 ## The resolution gate
 
@@ -113,3 +134,7 @@ proceed.
   criteria; do not demand cards for them.
 - **Re-litigating an accepted gap.** Once recorded in `## Coverage` with a reason,
   it is settled for the run.
+- **Summarizing the documents for the subagent.** Pass paths, not digests — the
+  author's summary carries the author's blind spots into the check.
+- **Letting the subagent resolve findings.** It returns the matrix, nothing more;
+  every gap, orphan, and drift decision belongs to the main thread's gate.

@@ -1,6 +1,6 @@
 {
   "name": "database",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Database design and implementation: engine-agnostic schema, migration (expand→contract), indexing, query-shape, and connection-pool discipline — a firing database-design skill, a /database:review command, a database-engineer worker, and a PreToolUse guard that asks for confirmation before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands. Defers dialect statement audits to the sql/mysql/mariadb/postgresql plugins.",
   "author": {
     "name": "Ivan-WG",

@@ -3,7 +3,9 @@
 System-level design: service boundaries drawn on data ownership, scaling paths,
 cache placement, sync vs async integration and its failure modes, single points
 of failure, plus domain modeling (bounded contexts, aggregates, ubiquitous
-language). Ships the `system-design` and `domain-modeling` skills, a review
+language) and message-driven architecture via the `event-driven` skill (delivery
+semantics, outbox, sagas, DLQ). Ships the `system-design`, `domain-modeling`,
+and `event-driven` skills, a review
 command, and a `system-architect` worker + `system-design-reviewer` read-only
 pair. Complements code-architecture (code-level structure) without overlapping
 it.
@@ -37,5 +39,4 @@ placement, async failure modes, and domain-model integrity.
 
 - **code-architecture** — the code-level structure layer this plugin explicitly stops short of
 - **database** — engine-agnostic schema and migration review for the data each service owns
-- **event-driven** — delivery semantics, idempotency, and saga review for the async integrations
 - **resilience** — failure-mode gaps (timeouts, retries, degradation) in the resulting topology

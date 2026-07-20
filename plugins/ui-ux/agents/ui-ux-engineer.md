@@ -1,6 +1,6 @@
 ---
 name: ui-ux-engineer
-description: Use PROACTIVELY to implement UI work — layouts, responsive breakpoints, spacing systems, color systems, element placement and hierarchy. Worker counterpart to ui-ux-reviewer.
+description: Use PROACTIVELY to implement UI work — layouts, breakpoints, spacing, color, placement, hierarchy. Worker twin of ui-ux-reviewer.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 effort: xhigh

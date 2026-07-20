@@ -1,6 +1,6 @@
 ---
 name: surgical-coding
-description: Use when writing, editing, or refactoring any code — the always-on discipline for everyday changes outside a planned pipeline: surface assumptions before coding, present competing interpretations instead of silently picking one, keep every changed line traceable to the request, clean up your own orphans but not pre-existing mess, and turn vague asks into verifiable success criteria.
+description: Use when writing, editing, or refactoring code — the always-on discipline outside a planned pipeline: surface assumptions, competing interpretations over silent picks, changed lines traceable to the request, vague asks made verifiable.
 ---
 
 ## Where this fits

@@ -1,6 +1,6 @@
 ---
 name: verifier
-description: Use PROACTIVELY in an ultra-deep-research run to adversarially refute a single load-bearing claim before it is trusted — re-open the cited source to confirm it actually says this, check the date, hunt independent corroboration and counter-evidence, and expose circular citations. Returns a verdict (confirmed/refuted/contested/unverifiable-this-session) with evidence. Default to skepticism; its job is to break claims, not bless them.
+description: Use PROACTIVELY in an ultra-deep-research run to adversarially refute one load-bearing claim before it is trusted — re-opens the cited source, checks the date, hunts corroboration and counter-evidence, exposes circular citations; verdict confirmed/refuted/contested/unverifiable with evidence. Breaks claims, never blesses them.
 tools: WebSearch, WebFetch, Read
 model: sonnet
 effort: high

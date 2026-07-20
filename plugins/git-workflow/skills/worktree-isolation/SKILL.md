@@ -1,6 +1,6 @@
 ---
 name: worktree-isolation
-description: Use when feature work needs isolation from the current workspace — one worktree per feature branch, placed outside the working tree or in a proven-ignored directory, dependencies installed and the baseline suite run BEFORE any change so failures are attributable, and a lifecycle that ends at removal. Also says when a worktree is not worth the setup.
+description: Use when feature work needs isolation from the current workspace — one worktree per branch, outside the tree or in a proven-ignored directory, deps installed and baseline suite run BEFORE any change, lifecycle ending at removal; also when a worktree is not worth the setup.
 ---
 
 ## One branch, one directory

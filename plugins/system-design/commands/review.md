@@ -10,8 +10,9 @@ implementing it.
    manifests, or a diff. If empty, map the current system from the repo (compose/k8s
    specs, entrypoints, connection strings) and review that.
 
-2. Invoke the `system-design` skill from this plugin, and `domain-modeling` when the
-   target defines a domain model. Apply their checklists: service boundaries drawn on
+2. Invoke the `system-design` skill from this plugin, `domain-modeling` when the
+   target defines a domain model, and `event-driven` when the target has
+   async/messaging hops (brokers, queues, outbox, sagas, DLQ). Apply their checklists: service boundaries drawn on
    data ownership (not org chart), single-writer per datum, scaling path with a named
    bottleneck, cache placement with an invalidation/staleness answer, every async hop
    with its failure modes (loss, duplicates, ordering, poison), named SPOFs, and —
@@ -25,7 +26,7 @@ implementing it.
 
 4. Defer, do not duplicate: code-level module structure → `/code-architecture:plan`;
    REST contract detail → `/api-design:review`; cache mechanics and load numbers →
-   `/performance:review`; event delivery machinery → the event-driven plugin.
+   `/performance:review`.
 
 5. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit what was covered, what was clean, and what

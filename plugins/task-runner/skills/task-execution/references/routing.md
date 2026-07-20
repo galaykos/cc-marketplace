@@ -81,10 +81,17 @@ applied per member. Differences:
    are never co-batched — they form their own same-worker batch or stay inline.
 2. **Arm scope per card**, not per batch: one `scope-<cardId>.json` for each member (step 3
    unchanged), so each card keeps its own declared-files boundary.
-3. **Dispatch once**, with all member cards inline in the prompt, the discipline preamble
-   verbatim, and the instruction to run the members **sequentially**, committing **one
-   commit per card** (message `card <id>`) so the main runner can attribute per-card diffs
-   on return. A batch worker is a leaf: it never re-routes or writes `00-INDEX.md`.
+3. **Dispatch once — down-tiered.** All member cards inline in the prompt, the discipline
+   preamble verbatim, and the instruction to run the members **sequentially**, committing
+   **one commit per card** (message `card <id>`) so the main runner can attribute per-card
+   diffs on return. Because a batch is mechanical work (bundled S-cards, scaffolds, renames),
+   the orchestrator passes an **explicit tier override IN THE DISPATCH CALL**: the Agent tool
+   `model:` param (`haiku` for pure-mechanical sweeps, `sonnet` otherwise) and/or
+   `opts.effort: 'low'` on the `Workflow` path — delegation-contracts § Model and effort
+   tiering (mechanical stages get low effort and cheaper models; tiering is per-stage, not
+   per-run). The worker's pinned frontmatter tier is a default the call may override downward,
+   never a floor; verify and judge dispatches are never down-tiered. A batch worker is a
+   leaf: it never re-routes or writes `00-INDEX.md`.
 4. **Mid-batch failure is park-one-continue-rest.** A member hitting its 3-cycle halt or a
    park is parked; the worker continues the remaining disjoint members and returns
    **per-card statuses** (done + commit sha, or parked + reason). Members are disjoint, so

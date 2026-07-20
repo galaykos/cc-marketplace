@@ -3,7 +3,9 @@ description: Review API routes, controllers, or OpenAPI specs against api-design
 argument-hint: [files-or-diff]
 ---
 
-Invoke the api-design skill from this plugin first, then decide the branch.
+Invoke the api-design skill from this plugin first, then decide the branch. When the
+surface is GraphQL or gRPC (schemas, resolvers, .graphql/.proto files), apply the
+graphql-grpc skill from this plugin as the review rubric instead of the REST rules.
 
 Branch decision (do this first): when $ARGUMENTS describes endpoints that do not exist
 yet (a design task rather than a review), switch to the skill's contract-preview

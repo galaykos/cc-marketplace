@@ -1,6 +1,6 @@
 ---
 name: bootstrap-best-practices
-description: Use when building or reviewing Bootstrap 5 UI — grid system, utility API, Sass customization over overrides, component accessibility.
+description: Use when building or reviewing Bootstrap 5 UI — grid, utility API, Sass customization, accessibility.
 ---
 
 ## Use the grid system instead of custom layout CSS

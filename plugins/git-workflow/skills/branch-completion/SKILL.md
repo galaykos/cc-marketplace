@@ -1,6 +1,6 @@
 ---
 name: branch-completion
-description: Use when implementation on a development branch is finished and the work needs a destination — full-suite verification gate first, then present merge / PR / keep / discard as explicit options backed by state evidence (diffstat, ahead/behind counts, test output), execute the chosen protocol end to end, and leave no zombie branches or worktrees behind.
+description: Use when implementation on a development branch is finished and the work needs a destination — full-suite verification gate, then merge / PR / keep / discard offered as explicit choices backed by state evidence, executed end to end, leaving no zombie branches or worktrees.
 ---
 
 ## Done code is not a done branch

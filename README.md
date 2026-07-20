@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`, `automations-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 77 plugins) exists for zero-setup convenience at ~14k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 73 plugins) exists for zero-setup convenience at ~14k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,13 +44,12 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 77 | ~14k tokens |
+| `everything` | 73 | ~14k tokens |
 | `taskmaster-suite` | 37 | ~8.5k tokens |
 | `process-suite` | 14 | ~2.8k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
 | `frontend-suite` | 15 | ~2.6k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
-| `automations-suite` | 6 | ~0.6k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
 Always-on context = the skill/command/agent descriptions every installed
@@ -73,7 +72,9 @@ plugin adds to each session's context window (chars/4 estimate).
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
 /plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, estimation, orchestration, task-runner…
-/plugin install automations-suite@cc-plugins-marketplace # playwright, puppeteer, adspower, kameleo, camoufox
+
+# Browser-automation plugins install individually:
+/plugin install playwright@cc-plugins-marketplace       # (same for puppeteer, adspower, kameleo, camoufox)
 ```
 
 Recommended default: install `process-suite` globally, add the matching
@@ -163,7 +164,7 @@ afterwards to sweep the orphans.
 | **code-architecture** | Engineering process: plan-before-code (+ current-vs-target diagrams), YAGNI, SOLID applied with judgment, task orchestration, work verification, low-cognitive-load, KISS/DRY, always-on surgical-coding discipline (Karpathy guidelines) + architecture-reviewer agent; system-level topology → system-design | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni`, `/code-architecture:solid` |
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code; own APIs → api-design | `/api-docs-first:check` |
-| **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources; third-party docs → api-docs-first | `/api-design:review` |
+| **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources + graphql-grpc skill (DataLoader, resolver authz, proto safety, streaming); third-party docs → api-docs-first | `/api-design:review` |
 | **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill; stack idioms → framework review plugins | `/code-review:review` |
 | **approaches** | Approach deliberation: 2–3 structurally different candidates, trade-off table, pick + kill-trigger + strategy catalog (tracer bullet, spike, strangler fig, inversion…) + auto-nudged opinion round (blind persona subagents: Standards Purist / Quality-over-Speed / Skeptic-Investigator → one-round pick) | `/approaches:compare`, `/approaches:opinions` |
 | **build-vs-buy** | Gate zero for generic capability: library/stdlib search, health table, take/wrap/write verdict, never-hand-roll list | `/build-vs-buy:check` |
@@ -176,14 +177,10 @@ afterwards to sweep the orphans.
 | **concurrency** | Check-then-act races, optimistic vs pessimistic locking, idempotency keys, queue-consumer dedup under at-least-once, distributed locks with TTL + fencing, async parallel-write pitfalls | `/concurrency:review` |
 | **orchestration** | Subagent orchestration: delegation contracts, compressed returns, model tiering, refuter/judge panels, loop-until-dry | `/orchestration:review` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
-| **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent | `/security:review` |
+| **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent + data-privacy (GDPR/CCPA) and api-auth (token/OAuth model) skills | `/security:review` |
 | **[secret-scanning](plugins/secret-scanning/README.md)** | PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens) before it hits disk; on-demand repo sweep; fail-open, fixture-safe | `/secret-scanning:scan` |
-| **[event-driven](plugins/event-driven/README.md)** | Message-driven architecture: broker choice, topic/partition design, event schema versioning, at-least-once + consumer idempotency, the outbox pattern, sagas with compensation, dead-letter handling | `/event-driven:review` |
 | **[payments](plugins/payments/README.md)** | Payments/billing (Stripe/Paddle): PCI-scope minimization, integer-minor-unit money, signature-verified idempotent webhooks, subscription races, dunning/proration, ledger reconciliation | `/payments:review` |
-| **[api-auth](plugins/api-auth/README.md)** | API auth: token model choice (session/opaque/JWT), Sanctum vs Passport, OAuth2 Auth Code + PKCE, scopes, refresh-token rotation with reuse detection, httpOnly storage, hashing/expiry | `/api-auth:review` |
 | **[i18n](plugins/i18n/README.md)** | Internationalization: semantic keys + catalogs, ICU plural/gender, locale-aware dates/numbers/currency via Intl, RTL logical properties, fallback chains, tooling extraction | `/i18n:review` |
-| **[graphql-grpc](plugins/graphql-grpc/README.md)** | GraphQL (N+1/DataLoader, per-field resolver authz, depth/complexity limits, cursor pagination) + gRPC (proto field-number safety, streaming, deadlines, status codes) | `/graphql-grpc:review` |
-| **[data-privacy](plugins/data-privacy/README.md)** | GDPR/CCPA: PII mapping, data-subject rights (access/erasure/portability) with reach across logs/caches/backups/processors, consent, retention/deletion, audit trails | `/data-privacy:review` |
 | **[llm-app](plugins/llm-app/README.md)** | LLM apps: eval harnesses + regression gates, RAG (chunking/embeddings/retrieval quality/grounding), prompt versioning, prompt-injection defense, token-cost control | `/llm-app:review` |
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
@@ -196,7 +193,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **web-dev** | Generalist web implementation worker: routing, REST/API integration, forms, state, SSR/CSR trade-offs, accessibility baseline + web-developer agent | — |
-| **system-design** | System-level design: boundaries on data ownership, scaling, cache placement, async failure modes, SPOFs + domain modeling (DDD) — skills + system-architect worker + system-design-reviewer; code-level structure → code-architecture | `/system-design:review` |
+| **system-design** | System-level design: boundaries on data ownership, scaling, cache placement, async failure modes, SPOFs + domain modeling (DDD) + event-driven skill (brokers, outbox, sagas, DLQ) — skills + system-architect worker + system-design-reviewer; code-level structure → code-architecture | `/system-design:review` |
 | **devops** | DevOps pipeline/infra: CI/CD ordering, image hygiene, k8s limits/probes, deploy+rollback, secrets — devops-practices skill + devops-engineer worker + devops-reviewer; in-code instrumentation → observability, local dev → dev-env | `/devops:review` |
 | **performance** | Performance tuning: measure-first, N+1/index/payload/bundle/CWV hotspots, cache correctness (stampede/TTL/eviction), percentile load testing — performance-tuning skill + performance-engineer worker | `/performance:review` |
 
@@ -211,7 +208,6 @@ afterwards to sweep the orphans.
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, ADRs, retrospectives, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
-| **automations-suite** | Meta-bundle: browser-automation category — Playwright, Puppeteer, AdsPower, Kameleo, Camoufox, automation-builder | `/automations-suite:uninstall` |
 
 ## Usage
 

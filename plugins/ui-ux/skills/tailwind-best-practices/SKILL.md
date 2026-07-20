@@ -1,6 +1,6 @@
 ---
 name: tailwind-best-practices
-description: Use when writing or reviewing Tailwind CSS — utility ordering, extracting components vs @apply, responsive/dark variants, design tokens via config.
+description: Use when writing or reviewing Tailwind CSS — utility ordering, components vs @apply, responsive/dark variants, config tokens.
 ---
 
 ## Keep class ordering consistent

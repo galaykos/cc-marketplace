@@ -1,6 +1,6 @@
 ---
 name: pattern-selection
-description: Use when structuring code and weighing — or naming — a design pattern (Factory, Abstract Factory, Builder, Prototype, Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy, Strategy, State, Observer, Mediator, Command, Memento, Chain of Responsibility, Template Method, Visitor, Iterator, Interpreter, Singleton). Maps a problem to the right GoF pattern across creational/structural/behavioral, gives when-NOT per pattern, disambiguates look-alikes, and points to a full catalog; simplest-thing-first, refactor-to-pattern only when the simple thing breaks.
+description: Use when structuring code and weighing — or naming — a design pattern (Factory, Strategy, Observer, Decorator, and the rest of the GoF catalog). Maps a problem to the right creational/structural/behavioral pattern, gives when-NOT per pattern, disambiguates look-alikes, points to the full catalog; simplest-thing-first, refactor-to-pattern only when the simple thing breaks.
 ---
 
 ## The rule: name the problem first, pattern second

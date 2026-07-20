@@ -1,6 +1,6 @@
 ---
 name: experience-walkthrough
-description: Use when a clarified task spans a whole experience — multiple screens, states, or a cross-screen flow (a full landing experience, an onboarding funnel, a feature with several views) — after per-screen visual decisions are made. Assembles the accepted picks into one interactive, clickable demo artifact on the live preview URL, walks the user through it end-to-end, and feeds discovered gaps back into the ambiguity ledger before the spec freezes.
+description: Use when a clarified task spans a whole experience — multiple screens, states, or a cross-screen flow — after per-screen visual decisions: assembles the picks into one clickable demo on the live preview URL, walks it end-to-end, feeds gaps into the ambiguity ledger before the spec freezes.
 ---
 
 ## A different job than visual-decisions

@@ -1,6 +1,6 @@
 ---
 name: authoring-commands
-description: Use when writing or reviewing a Claude Code slash command (.md under commands/) — frontmatter shape, thin-entry-point discipline over a skill, $ARGUMENTS handling, headless-safe AskUserQuestion offers, and the house pattern this marketplace's commands follow.
+description: Use when writing or reviewing a slash command (.md under commands/) — frontmatter, thin entry point over a skill, $ARGUMENTS, AskUserQuestion offers, house pattern.
 ---
 
 # Authoring commands

@@ -1,6 +1,6 @@
 ---
 name: yagni-check
-description: Use when designing or reviewing code for speculative generality — flags abstractions, config options, and flexibility nobody asked for.
+description: Use when designing or reviewing for speculative generality — flags abstractions, config options, flexibility nobody asked for.
 ---
 
 ## The core question

@@ -34,5 +34,5 @@ sorted by severity with a concrete fix per line.
 
 - **error-handling** — what the code does once a failure surfaces: catches, cause chains, user-facing errors
 - **concurrency** — races, idempotency on retried paths, and lock hazards around the same call sites
-- **event-driven** — delivery semantics, outbox, and DLQ review for message-driven designs
+- **system-design** (event-driven skill) — delivery semantics, outbox, and DLQ review for message-driven designs
 - **observability** — the logs and correlation IDs you need when a degradation path actually fires

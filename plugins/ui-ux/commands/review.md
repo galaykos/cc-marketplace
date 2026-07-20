@@ -1,5 +1,5 @@
 ---
-description: Review UI code against the relevant stack's best-practice skill (shadcn, ReUI, Aceternity, Tailwind, CSS3, Bootstrap, Grid, Flexbox, Motion)
+description: Review UI code against the matching stack's best-practice skill
 argument-hint: [files-or-diff]
 ---
 

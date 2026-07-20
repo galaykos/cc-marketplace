@@ -1,6 +1,6 @@
 ---
 name: verification-panels
-description: Use when deciding whether an agent's findings can be trusted, verifying subagent output, planning a review fan-out, judging between competing generated solutions, or when a discovery task might be stopping too early — cost-gated adversarial refuter voting, judge panels over independent attempts, loop-until-dry discovery, and completeness-critic passes. How to write the dispatch prompts themselves is delegation-contracts.
+description: Use when deciding whether agent findings can be trusted, verifying subagent output, planning a review fan-out, judging competing solutions, or when discovery may stop too early — cost-gated refuter voting, judge panels over independent attempts, loop-until-dry discovery, completeness-critic passes.
 ---
 
 # Verification Panels

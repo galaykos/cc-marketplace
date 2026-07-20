@@ -1,6 +1,6 @@
 ---
 name: review-exchange
-description: Use when requesting a code review or acting on one received — requesting: self-review the diff first, then hand the reviewer what the change does, what you are unsure about, and how it was verified, in a diff small enough to actually read; receiving: treat every comment as a claim to verify against the code before implementing, push back with evidence where it fails, and re-run the full suite after applying.
+description: Use when requesting a code review or acting on one received — evidence discipline on both sides: self-review plus a context-rich, readable-size request; comment-as-claim verification, evidence-backed pushback, full-suite re-run when receiving.
 ---
 
 ## Review is an exchange of claims

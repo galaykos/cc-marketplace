@@ -1,6 +1,6 @@
 ---
 name: task-execution
-description: Use when executing a list of defined tasks (taskmaster task cards, a plan's task sequence, a todo list) — one task at a time, scope locked to the current task, a bounded implement-verify-fix inner loop per task, explicit status tracking, and a halt-with-evidence protocol instead of drifting or looping forever.
+description: Use when executing a list of defined tasks (taskmaster cards, a plan's sequence, a todo list) — one task at a time, scope locked, bounded implement-verify-fix loop per task, status tracking, halt-with-evidence instead of drifting.
 ---
 
 ## The contract
@@ -11,10 +11,10 @@ Starting task N+1 while task N is unverified is the root of "90% done" projects 
 
 ## Scope lock
 
-- Touch only files the task lists (plus files the verify command itself demands,
-  e.g. a missing test fixture). Wanting to IMPROVE an unlisted file is a signal,
-  not an errand: record a follow-up task in the index/backlog, continue. But
-  evidence the current change BREAKS an unlisted file is a mis-scoped/blast-radius signal → halt-with-evidence or flag the orchestrator, never a silent follow-up (detection points in `references/routing.md`).
+- Touch only files the task lists (plus files the verify command itself demands, e.g. a
+  missing test fixture). Wanting to IMPROVE an unlisted file is a signal, not an errand:
+  record a follow-up task in the index/backlog, continue. But evidence the current change
+  BREAKS an unlisted file is a mis-scoped/blast-radius signal → halt-with-evidence or flag the orchestrator, never a silent follow-up (detection points in `references/routing.md`).
 - "While I'm here" is banned. Adjacent dead code, tempting refactors, unrelated
   bugs — record, do not touch. The diff should read as exactly that task, nothing else.
 - If the task is mis-specified (wrong file, impossible criterion), do not silently
@@ -44,14 +44,17 @@ After the task's verify command passes — and before its status flips to done �
 conditional reviewer pass on the diff of a **directly-dispatched** card (a parallel-group/track leaf gets none — see `references/reviewer-routing.md`):
 
 - **code-reviewer** (code-review plugin): every task's diff, no condition.
-- **ui-ux-reviewer** (ui-ux plugin): only when the diff touches UI files —
-  components, styles, templates.
+- **ui-ux-reviewer** (ui-ux plugin): only when the diff touches UI files — components, styles, templates.
 - **architecture-reviewer** (code-architecture plugin): only on structural
   tasks — new modules, boundary changes, or API changes.
 - **security review** (security plugin): only on tasks touching auth, input validation, or dependencies.
 
 Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
-Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs the concurrent read-only reviewers + a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
+**Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch
+over the card diff; a `Bash`-holding reviewer is excluded from the batch and run serially; the
+inline security-review skill runs after the batch joins (`references/reviewer-routing.md`
+§ Concurrent dispatch — baseline behavior, not `--crew`-gated).
+Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
 **Upgraded statement:** when `00-INDEX.md` carries a `## Upgraded statement` blockquote
 (the `> `-prefixed section task-cards writes), read it as binding context for every task
@@ -82,11 +85,11 @@ follow-up backlog, not the current diff; after a reviewer-driven fix, re-run the
 
 ## No unbounded outer loop
 
-The bounded inner loop is the good part of the Ralph pattern; the infinite outer loop is
-not adopted — unbounded self-looping amplifies drift, and token burn scales with confusion,
-not progress. The outer loop is the task list itself: finite, ordered, visible. A halted
-task stays halted until its definition is fixed — never silently retried on the next pass.
-When every task is done or parked, the run ENDS with a report, no self-restart.
+The bounded inner loop is the good part of the Ralph pattern; the infinite outer loop is not
+adopted — unbounded self-looping amplifies drift, and token burn scales with confusion, not
+progress. The outer loop is the task list itself: finite, ordered, visible. A halted task
+stays halted until its definition is fixed — never silently retried. When every task is done
+or parked, the run ENDS with a report, no self-restart.
 
 ## Sequencing and status
 
@@ -100,11 +103,10 @@ When every task is done or parked, the run ENDS with a report, no self-restart.
 
 ## No status theater
 
-Status needs no HTML. The index table plus the conversation already show every status
-flip; a run-board page duplicates both and goes stale once a regeneration is forgotten. Do
-not create status dashboards, run boards, or progress pages — the index is the single view.
-HTML artifacts (or a localhost preview) are reserved for content that earns the medium — UI
-mockups, walkthroughs, demos, brainstorm canvases; a table a message can carry is not a file.
+No status dashboards, run boards, or progress pages — the index table plus the conversation
+already show every flip, and a run-board page goes stale; the index is the single view. HTML
+artifacts (or a localhost preview) are reserved for content that earns the medium — UI
+mockups, walkthroughs, demos; a table a message can carry is not a file.
 
 ## Drift tripwires
 
@@ -112,12 +114,10 @@ Stop and re-read the current task the moment any of these appears:
 
 - An edit touching a file the task does not list.
 - Rewriting the goal in softer words than the acceptance criteria use.
-- Running a different verify command than the task specifies "because it is
-  faster" or "basically equivalent".
-- Working on something because it is interesting rather than because it is the
-  current task.
+- Running a different verify command than specified — "faster" or "basically equivalent".
+- Working on something because it is interesting rather than because it is the current task.
 - More than ~30 minutes (or one context-refill) inside one fix cycle without new
-  information — that is attempt-churn, count it as a failed cycle.
+  information — attempt-churn; count it as a failed cycle.
 
 ## Delegating parallel groups
 
@@ -126,9 +126,9 @@ is a leaf that executes and never re-routes. Per card the runner follows
 `references/routing.md`: read the card's `Agent:` tag → resolve to the first reachable
 specialist (else `task-executor`) → arm a per-card scope file → Read and paste the
 delegation-contracts discipline preamble verbatim into the dispatch, plus the
-`## Upgraded statement` block when the index carries one → dispatch → on
-return run the diff-vs-declared-files scope check, re-run the task's verify command,
-then the negative-control per returned card (routing.md step 6, standard exemptions).
+`## Upgraded statement` block when the index carries one → dispatch → on return run the
+diff-vs-declared-files scope check, re-run the task's verify command, then the
+negative-control per returned card (routing.md step 6, standard exemptions).
 A subagent's "done, tests pass" is a claim; the runner's own verify plus that teeth check
 is the evidence. One failed re-verification sends the task back; a second reclaims it inline.
 

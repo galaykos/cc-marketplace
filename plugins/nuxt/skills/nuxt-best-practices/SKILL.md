@@ -1,6 +1,6 @@
 ---
 name: nuxt-best-practices
-description: Use when writing or reviewing Nuxt code — Nitro server routes and event-handler validation, hybrid rendering via routeRules (prerender, swr, isr, ssr: false), useFetch vs useAsyncData vs bare $fetch double-fetching, payload keys and dedup, Nuxt 4 shallow data refs, useState vs module-scope ref cross-request pollution, auto-imports discipline, runtimeConfig NUXT_ env overrides, useSeoMeta/useHead, all pinned to the nuxt version in the lockfile. Vue component rules live in the vue3 plugin; raw Vite config in the vite plugin.
+description: Use when writing or reviewing Nuxt code — Nitro server routes and event-handler validation, hybrid rendering via routeRules, useFetch vs useAsyncData vs bare $fetch double-fetching, payload keys and dedup, Nuxt 4 shallow data refs, useState cross-request pollution, auto-imports discipline, runtimeConfig NUXT_ env overrides, useSeoMeta/useHead — pinned to the lockfile's nuxt version. Vue component rules live in vue3; raw Vite config in vite.
 ---
 
 ## Know the version before advising

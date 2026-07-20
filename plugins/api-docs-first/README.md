@@ -39,5 +39,5 @@ belong to meta-api.
 
 - **api-design** — designing your own REST APIs, the flip side of consuming others'
 - **meta-api** — Meta/Facebook Graph API specifics this plugin defers to
-- **api-auth** — reviewing the auth model of the API you are integrating
+- **security** (api-auth skill) — reviewing the auth model of the API you are integrating
 - **stack-scan** — inventories the installed versions this plugin verifies docs against

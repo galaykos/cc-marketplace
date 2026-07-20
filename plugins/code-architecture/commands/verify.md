@@ -1,5 +1,5 @@
 ---
-description: Verify completed work against its success criteria with evidence
+description: Verify completed work against success criteria with evidence
 argument-hint: [task-or-change]
 ---
 

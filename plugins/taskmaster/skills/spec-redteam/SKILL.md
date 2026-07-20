@@ -1,6 +1,6 @@
 ---
 name: spec-redteam
-description: Use after grill writes a spec and before task-cards — when the spec's blast radius warrants it — to dispatch a blind adversary that attacks the frozen spec for holes (missing edge cases, unstated assumptions, conflicting or underspecified requirements, failure and security gaps, and visual/experience-contract coherence) and resolve each before the spec becomes cards.
+description: Use after grill writes a spec and before task-cards, when blast radius warrants — dispatches a blind adversary against the frozen spec (edge cases, unstated assumptions, conflicts, underspecified requirements, failure/security gaps, visual coherence) and resolves each before cards.
 ---
 
 ## Where this sits

@@ -1,5 +1,5 @@
 ---
-description: Build or restyle a UI component/layout with the ui-ux-engineer, applying the stack's best-practice and token skills
+description: Build or restyle a UI component/layout via ui-ux-engineer, using stack best-practice and token skills
 argument-hint: [what-to-build]
 ---
 

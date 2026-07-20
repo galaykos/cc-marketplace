@@ -1,6 +1,6 @@
 ---
 name: routine-detector
-description: Use when a task smells repetitive — 'again', 'same as last time', 'like before', 'one more of', the third similar request in a project, or any multi-step chore that will clearly recur — to propose capturing the routine as a project skill, command, or agent so the next repetition is cheaper and more consistent.
+description: Use when a task smells repetitive — 'again', 'same as last time', 'like before', 'one more of', a third similar request, a clearly recurring chore: propose capturing it as a project skill, command, or agent.
 ---
 
 ## What this skill does

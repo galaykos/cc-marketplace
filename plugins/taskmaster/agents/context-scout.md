@@ -1,6 +1,6 @@
 ---
 name: context-scout
-description: Use PROACTIVELY at the start of any taskmaster interrogation, before asking the user anything. Scans the codebase for facts relevant to a task description so clarifying questions are grounded in reality instead of generic. Returns touched files, existing patterns, hard constraints, what the code already answers, the visual surface, and the questions only the user can answer.
+description: Use PROACTIVELY at the start of any taskmaster interrogation, before asking the user anything — scans the codebase for task-relevant facts (touched files, patterns, constraints, what code already answers) so clarifying questions are grounded, plus the questions only the user can answer.
 tools: Read, Grep, Glob
 model: sonnet
 effort: high

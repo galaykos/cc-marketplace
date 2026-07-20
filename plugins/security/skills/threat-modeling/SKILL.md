@@ -89,8 +89,8 @@ with dispositions, not a document.
 
 - Finding these flaws in code that already exists → `security-review` (this plugin's
   code-level audit). Threat modeling is the design-phase sibling.
-- Regulatory data-handling obligations (retention, erasure) → `data-privacy`.
-- Auth mechanism specifics (token types, OAuth flows) → `api-auth`.
+- Regulatory data-handling obligations (retention, erasure) → the `data-privacy` skill (this plugin).
+- Auth mechanism specifics (token types, OAuth flows) → the `api-auth` skill (this plugin).
 
 ## Anti-patterns
 

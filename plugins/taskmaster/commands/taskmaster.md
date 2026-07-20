@@ -1,5 +1,5 @@
 ---
-description: Shorthand for /taskmaster:task — grill a task until zero ambiguity, then emit a spec and single-prompt task cards
+description: Shorthand for /taskmaster:task — grill to zero ambiguity, then emit a spec and single-prompt task cards
 argument-hint: [task-description]
 ---
 

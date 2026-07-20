@@ -1,6 +1,6 @@
 {
   "name": "sql",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Engine-agnostic SQL best practices: sargable predicates, join correctness, indexing logic, NULL three-valued logic, transactions, constraints, keyset pagination, safe migrations, parameterization.",
   "author": {
     "name": "Ivan-WG",

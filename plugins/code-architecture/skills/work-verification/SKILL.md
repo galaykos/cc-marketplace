@@ -1,6 +1,6 @@
 ---
 name: work-verification
-description: Use before claiming any work is done — define success criteria up front, run the verification commands, show evidence, never assert without output.
+description: Use before claiming work done — success criteria up front, run the verification, show evidence, never assert without output.
 ---
 
 ## Define success criteria before starting work

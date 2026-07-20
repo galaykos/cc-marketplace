@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.17.4",
+  "version": "0.17.5",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -70,12 +70,8 @@
     "brain",
     "shadcn-studio",
     "secret-scanning",
-    "event-driven",
     "payments",
-    "api-auth",
     "i18n",
-    "graphql-grpc",
-    "data-privacy",
     "llm-app",
     "intent-guard",
     "ultra-deep-research",

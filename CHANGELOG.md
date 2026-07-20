@@ -4,6 +4,51 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.52.0] - 2026-07-20
+
+### Removed
+
+- **automations-suite** bundle: pure meta-bundle deleted; its six member plugins
+  (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) stay
+  standalone and install individually. 7 bundles remain.
+- Four single-skill plugins folded into thematic hosts (77 → 73 leaves):
+  **data-privacy** → security, **api-auth** → security, **graphql-grpc** →
+  api-design, **event-driven** → system-design. Skills keep their names under
+  the host (`security:data-privacy`, `security:api-auth`,
+  `api-design:graphql-grpc`, `system-design:event-driven`); each host's review
+  command now applies the merged skill as a lens.
+
+### Changed
+
+- Always-on description surface cut ~12.7% (14,548 → ~12,700 est tokens):
+  trimmed the ten heaviest plugins' description sets plus five >500-char
+  outliers; enumerations/procedures live in skill bodies, trigger sentences
+  stay.
+- Five co-fire trigger overlaps split token-neutrally: reviewer trio
+  (code-reviewer / frontend-reviewer / ui-ux-reviewer), approaches ↔
+  code-architecture planning sequence, hindsight ↔ retrospective, concurrency ↔
+  payments/event-driven idempotency, performance ↔ database ↔ sql slow-query
+  lenses.
+- **task-runner** 0.16.1 speed levers: mechanical BATCH/S-card dispatches carry
+  an explicit down-tier override (model/effort) in the dispatch call; read-only
+  reviewers run concurrently in the baseline pass (was `--crew`-only); reviewer
+  dispatches demand compressed returns (one line per finding, capped);
+  code-redteam milestone boundaries attack only the new milestone's diff.
+- **taskmaster** 0.29.2: coverage-check dispatches its matrix build to a
+  read-only subagent (fresh eyes, smaller main context); inline fallback kept.
+
+### Added
+
+- `scripts/remove-plugin.sh` — dry-run-by-default helper that removes or merges
+  a plugin and updates every shared touchpoint (marketplace.json, everything
+  deps, catalog regen, baseline, README counts) with a residual-reference
+  report.
+- Blocking per-leaf context-budget gate: `scripts/context-budget.sh` measures
+  all 73 leaves + 7 bundles, prints a TOTAL line, exits 1 on growth over the
+  committed baseline; enforced as a dedicated CI step.
+- Description linter in `scripts/validate.sh`: fails any description over 500
+  chars or carrying a literal "Trigger words:" list.
+
 ## [0.51.0] - 2026-07-17
 
 ### Added

@@ -1,5 +1,5 @@
 ---
-description: Red-team a frozen taskmaster spec — dispatch a blind adversary to attack it for missing edge cases, unstated assumptions, conflicting requirements, and failure/security gaps, then resolve each before cards
+description: Red-team a frozen taskmaster spec — a blind adversary hunts edge cases, assumptions, conflicts, failure/security gaps; resolve each before cards
 argument-hint: [spec-path-or-slug]
 ---
 

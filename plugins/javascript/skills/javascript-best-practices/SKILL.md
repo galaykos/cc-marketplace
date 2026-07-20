@@ -1,6 +1,6 @@
 ---
 name: javascript-best-practices
-description: Use when writing or reviewing plain (non-TypeScript) JavaScript — strict equality and coercion traps, const/let over var, ESM vs CommonJS interop, async correctness and the event loop, this-binding and arrow functions, closures and memory leaks, immutability and shared references, error handling with cause chains, boundary validation of JSON/fetch data, number precision and BigInt, prototype-pollution and eval security, all pinned to the Node/ES floor from engines/browserslist/lockfile. Framework-specific rules (React/Vue) and the type layer live in their own plugins.
+description: Use when writing or reviewing plain (non-TypeScript) JavaScript — strict equality and coercion traps, const/let over var, ESM/CommonJS interop, async correctness, this-binding and arrows, closures and leaks, immutability and shared references, error cause chains, boundary validation of JSON/fetch data, number precision/BigInt, prototype-pollution and eval security — pinned to the Node/ES floor from engines/browserslist/lockfile. Framework rules and types live in their own plugins.
 ---
 
 This is VANILLA JavaScript, not TypeScript — no compiler catches the mistakes below, so the discipline lives in the code and the review. Version facts come from the manifests, never from memory.

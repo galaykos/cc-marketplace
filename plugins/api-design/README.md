@@ -2,7 +2,10 @@
 
 REST API design: resource naming, status-code discipline, pagination/filtering/
 sorting conventions, versioning strategy, RFC 9457 error format, idempotency,
-Laravel API Resources.
+Laravel API Resources. Also ships the graphql-grpc skill — GraphQL (N+1/DataLoader,
+per-field resolver authz, depth/complexity limits, cursor pagination) and gRPC
+(proto field-number safety, streaming, deadlines, status codes) — applied when the
+API surface is non-REST.
 
 Designing your own API. For *consuming* third-party APIs, see the sibling
 `api-docs-first` plugin.

@@ -1,6 +1,6 @@
 ---
 name: opinion-round
-description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — a fixed quartet of opinion personas (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue the approach as four parallel BLIND subagents, each seeing only its own brief, and the main thread synthesizes the takes into one pick with a kill-trigger in a single round, proceeding automatically unless the takes split on the structural shape of the plan.
+description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — four BLIND parallel opinion personas argue the approach, synthesized to one pick + kill-trigger in one round, auto-proceeding unless takes split on structural shape.
 ---
 
 The failure mode this kills: correlated opinions on rework-shaped tasks.

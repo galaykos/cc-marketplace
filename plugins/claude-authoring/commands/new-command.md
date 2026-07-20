@@ -1,5 +1,5 @@
 ---
-description: Scaffold a slash-command .md with description/argument-hint frontmatter and a numbered $ARGUMENTS-driven body.
+description: Scaffold a slash-command .md — description/argument-hint frontmatter, numbered $ARGUMENTS-driven body.
 argument-hint: [command-name] [what-it-does]
 ---
 

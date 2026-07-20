@@ -1,5 +1,5 @@
 ---
-description: Audit a planned fan-out or drafted subagent prompts against delegation-contracts and verification-panels — contract gaps, missing verify stages, tier mismatches; report-only
+description: Audit a planned fan-out or drafted subagent prompts — contract gaps, missing verify stages, tier mismatches; report-only
 argument-hint: [plan-or-prompts]
 ---
 

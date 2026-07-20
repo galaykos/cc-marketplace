@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Use when modeling a business domain — bounded contexts, ubiquitous language, entities vs value objects, aggregates and their roots, domain events, and context mapping between contexts. The tactical/strategic DDD toolkit; reach for it when the domain is complex enough to earn it, not for CRUD.
+description: Use when modeling a business domain — bounded contexts, ubiquitous language, entities vs value objects, aggregates and roots, domain events, context mapping. The DDD toolkit for domains that earn it, not CRUD.
 ---
 
 # Domain modeling
@@ -97,7 +97,7 @@ Contexts must talk; the map names *how*:
   → `system-design`.
 - Persisting aggregates (schema, migrations, transaction mechanics) →
   `database-engineer` and the SQL plugins.
-- The event delivery machinery (broker, outbox, saga, DLQ) → the event-driven plugin.
+- The event delivery machinery (broker, outbox, saga, DLQ) → the event-driven skill (this plugin).
 
 ## Anti-patterns
 

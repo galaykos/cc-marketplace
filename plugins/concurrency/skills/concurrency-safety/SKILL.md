@@ -1,6 +1,6 @@
 ---
 name: concurrency-safety
-description: Use when code has concurrent writers or retried operations — race conditions, check-then-act sequences, idempotency for payments and webhooks, queue consumers under at-least-once delivery, optimistic vs pessimistic locking, distributed locks, parallel writes from async code — to make two executions of the same lines safe against each other.
+description: Use when code has concurrent writers or retried operations — race conditions, check-then-act, optimistic vs pessimistic locking, distributed locks, retry idempotency — the locking/CAS mechanics that make two executions of the same lines safe. Money semantics → payments; broker delivery, outbox, DLQ → system-design:event-driven.
 ---
 
 ## Core rule

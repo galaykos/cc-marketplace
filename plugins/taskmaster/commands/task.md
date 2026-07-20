@@ -1,5 +1,5 @@
 ---
-description: Grill a task until zero ambiguity, decide visual choices with mockups, then emit a spec and single-prompt task cards
+description: Grill a task to zero ambiguity, decide visuals with mockups, then emit a spec and single-prompt task cards
 argument-hint: [task-description]
 ---
 
