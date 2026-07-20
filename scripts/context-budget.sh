@@ -80,10 +80,15 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       delta=$((tokens - b))
       delta_str="$delta"
       if [ "$delta" -gt 0 ]; then
-        warn_lines="${warn_lines}FAIL: $bname +$delta tok over baseline
+        warn_lines="${warn_lines}FAIL: $bname +$delta tok over baseline (intentional? re-baseline via --update-baseline)
 "
         fail=1
       fi
+    else
+      # No baseline entry: a new plugin must not ship unlimited surface unseen.
+      warn_lines="${warn_lines}FAIL: $bname has no baseline entry — add one via --update-baseline
+"
+      fail=1
     fi
   fi
 
@@ -96,13 +101,14 @@ done
 echo "TOTAL: $leaf_tokens_total tokens"
 
 [ "$no_baseline" -eq 1 ] && echo "WARN: no baseline" >&2
-[ -n "$warn_lines" ] && printf '%s' "$warn_lines" >&2
 
 if [ "$update" -eq 1 ]; then
+  # Updating IS the remedy — suppress the FAIL/remedy lines on this path.
   printf '%s\n' "$new_baseline" | jq '.' > "$BASELINE" 2>/dev/null
   echo "baseline updated: $BASELINE"
   exit 0
 fi
+[ -n "$warn_lines" ] && printf '%s' "$warn_lines" >&2
 
 # Baseline missing entirely: warn-only, never block.
 [ "$no_baseline" -eq 1 ] && exit 0

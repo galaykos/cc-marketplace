@@ -12,4 +12,5 @@ ask which capability is about to be implemented).
    coverage of the need (%), integration cost vs write-and-maintain cost.
 4. Verdict: take / wrap / write — with the one-paragraph reason.
 5. Significant verdict → offer as a selectable choice: "Persist as ADR now
-   (Recommended)" / "Skip" — on yes, proceed as /decision-records:new would.
+   (Recommended)" / "Skip" — on yes, write the ADR file to the project's ADR
+   dir (docs/adr/ by convention).

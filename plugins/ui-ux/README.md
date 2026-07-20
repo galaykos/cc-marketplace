@@ -1,8 +1,9 @@
 # ui-ux
 
 UI/UX best practices with per-stack skills — shadcn/ui, ReUI, Aceternity UI,
-Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus a shadcn theme builder
-with a live colour-preview URL and a ui-ux-reviewer agent.
+Astryx (Meta's agent-ready design system), Tailwind, CSS3, Bootstrap, CSS
+Grid, Flexbox — plus a shadcn theme builder with a live colour-preview URL
+and a ui-ux-reviewer agent.
 
 Registry libraries (shadcn, [ReUI](https://reui.io/docs),
 [Aceternity](https://ui.aceternity.com/components)) get docs-first treatment:

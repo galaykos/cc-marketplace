@@ -126,9 +126,7 @@ assumption list, or the user says "enough". Then:
    Staged visual/creative picks → invoke the `visual-contract` skill to bind them as `## Visual contract`.
 3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
    attack the frozen spec for holes and resolve each before cards; trivial specs skip.
-4. If the decision-records plugin is installed, offer ADR capture for the spec's
-   significant decisions; skip silently when absent.
-5. Invoke the `task-cards` skill from this plugin to split the spec into
+4. Invoke the `task-cards` skill from this plugin to split the spec into
    single-prompt task cards.
 
 Do not skip the written spec even when the ledger is short — the spec is what makes

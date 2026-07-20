@@ -30,8 +30,8 @@ building a commonly-solved capability.
   prints a one-line reminder to weigh take/wrap/write first. Fail-open: it
   never blocks the prompt and stays silent on slash commands.
 
-A significant verdict can optionally be persisted as an ADR via the
-decision-records plugin, offered as a choice at the end of the check.
+A significant verdict can optionally be persisted as an ADR file in the
+project's ADR dir, offered as a choice at the end of the check.
 
 ## Example
 
@@ -44,5 +44,4 @@ decision-records plugin, offered as a choice at the end of the check.
 
 - **approaches** — deliberate the shortlisted options once "take library X" is on the table
 - **packages** — audit the dependency you just adopted for vulnerabilities and staleness
-- **decision-records** — persist a significant take/wrap/write verdict as an ADR
 - **stack-scan** — inventory what's actually installed before searching the registry

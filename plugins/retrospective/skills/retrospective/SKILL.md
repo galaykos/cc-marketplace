@@ -4,7 +4,8 @@ description: Use after a milestone, task run, or feature lands in THIS session �
 ---
 
 The pipeline has no memory by default: every run starts smart and ends
-amnesiac. Decisions get ADRs (decision-records plugin); everything else
+amnesiac. Decisions worth keeping get a durable note (an ADR file or a
+CLAUDE.md rule); everything else
 learned — the surprise, the friction, the thing re-derived for the third
 time — evaporates. The retro is the write-back step: five minutes, three
 sinks, then stop.

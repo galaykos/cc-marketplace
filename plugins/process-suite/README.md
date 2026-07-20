@@ -1,7 +1,7 @@
 # process-suite
 
 Meta-bundle: the engineering-process category in one install — git workflow,
-approach deliberation, decision records, retrospectives, hindsight mining,
+approach deliberation, retrospectives, hindsight mining,
 build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent
 orchestration, task execution, stack scanning, plugin scouting, and intent
 drift guarding. Uninstalls cleanly: `/process-suite:uninstall` removes the
@@ -20,8 +20,6 @@ bundle and prunes the plugins it auto-installed.
   (verify, merge/PR/park, clean up), plus `/git-workflow:finish`
 - **approaches** — 2-3 structurally different approaches with a kill-trigger
   before implementing, plus `/approaches:compare` and `/approaches:opinions`
-- **decision-records** — Architecture Decision Records for significant
-  technical choices, plus `/decision-records:new`
 - **retrospective** — five-minute post-milestone retro routed into CLAUDE.md,
   skill ideas, and process tweaks, plus `/retrospective:run`
 - **hindsight** — mines session transcripts for cross-session friction,

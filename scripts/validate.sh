@@ -80,6 +80,11 @@ done
 # list restates in-sentence terms. Both fail the build — trim, don't grandfather.
 for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
+  # Block-scalar (>/|) descriptions would evade both this cap and the token
+  # accounting (each reads the first line only) — reject the form outright.
+  awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" \
+    | grep -qE '^description:[[:space:]]*[>|]' \
+    && err "$f: description uses a YAML block scalar — keep it a single line"
   dsc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" | sed -n 's/^description:[[:space:]]*//p' | head -1)
   [ -n "$dsc" ] || continue
   dlen=$(printf '%s' "$dsc" | wc -c | tr -d ' ')

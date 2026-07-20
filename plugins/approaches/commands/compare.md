@@ -18,6 +18,6 @@ description first). Do not write implementation code.
    mid-implementation that would flip this choice.
 5. Hand off via selectable offer (AskUserQuestion), not typed commands:
    "Persist as ADR + continue to file-level plan (Recommended)" /
-   "Plan only" / "Stop here". ADR = decision-records plugin; plan =
+   "Plan only" / "Stop here". ADR = a file in the project's ADR dir; plan =
    plan-before-code (code-architecture). If the comparison exposed
    product-shape uncertainty, offer /taskmaster:brainstorm instead.

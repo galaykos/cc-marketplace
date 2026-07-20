@@ -36,6 +36,5 @@ silent on slash commands.
 
 ## Pairs well with
 
-- **decision-records** — both commands offer to persist the pick as an ADR
 - **code-architecture** — hands the chosen approach to a file-level plan before coding
 - **taskmaster** — deliberation steps aside when the grill/brainstorm pipeline already owns the task

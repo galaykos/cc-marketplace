@@ -42,7 +42,7 @@ never triggers this gate — nobody ships your domain rules as a package.
    - Wrap: use it behind a thin project-owned interface — when coverage is
      partial, the dependency is a swap risk, or its API leaks awkwardly.
    - Write: build it — only when the loop below says so.
-5. Significant verdict → persist as an ADR (decision-records plugin); the
+5. Significant verdict → persist as an ADR file in the project's ADR dir; the
    candidate table pastes straight into "options considered".
 
 ## When WRITE legitimately wins

@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 73 plugins) exists for zero-setup convenience at ~14k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 72 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,9 +44,9 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 73 | ~14k tokens |
-| `taskmaster-suite` | 37 | ~8.5k tokens |
-| `process-suite` | 14 | ~2.8k tokens |
+| `everything` | 72 | ~12.7k tokens |
+| `taskmaster-suite` | 37 | ~8.1k tokens |
+| `process-suite` | 13 | ~2.4k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
 | `frontend-suite` | 15 | ~2.6k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
@@ -62,7 +62,7 @@ plugin adds to each session's context window (chars/4 estimate).
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
-# install: ~14k tokens of always-on context per session; prefer a category
+# install: ~12.7k tokens of always-on context per session; prefer a category
 # suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
@@ -106,7 +106,7 @@ afterwards to sweep the orphans.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + shadcn theme builder with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
+| **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + shadcn theme builder with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
@@ -152,7 +152,6 @@ afterwards to sweep the orphans.
 | **[stack-scan](plugins/stack-scan/README.md)** | Required-vs-installed inventory from composer/npm/yarn/pnpm/bun manifests, lockfiles, runtime pins, docker/CI images | `/stack-scan:report` |
 | **[plugin-scout](plugins/plugin-scout/README.md)** | Scans project manifests and suggests marketplace plugins in two tiers (stack-matched with evidence, always-useful), marks installed ones, installs picked ones after confirm — `--yes` auto-installs the stack-matched tier, `--persist` writes the set into project settings | `/plugin-scout:suggest` |
 | **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
-| **decision-records** | ADRs: persist approach/schema/dependency decisions to docs/adr/ — context, rejected options, consequences, revisit-when trigger | `/decision-records:new` |
 | **retrospective** | Post-milestone learning loop: surprises → CLAUDE.md candidates, repetition → skill suggestions, friction → process tweaks | `/retrospective:run` |
 | **[hindsight](plugins/hindsight/README.md)** | Cross-session self-improvement loop: SessionEnd hook logs friction stats to a local ledger; harvest mines high-friction transcripts → CLAUDE.md rule candidates, skill/plugin ideas, failed-approach warnings — apply on approval + transcript-miner agent | `/hindsight:harvest` |
 | **[skill-router](plugins/skill-router/README.md)** | File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo skill index, low-confidence content signals surface in a SessionEnd digest; fail-open, once per signal per session | — |
@@ -226,7 +225,7 @@ Plugins with their own README carry detailed usage and examples — see the link
 | **task-runner** | Executes the cards one at a time with scope lock, bounded verify-fix loops, and a full-suite completion gate |
 | **code-architecture** | Supplies the process gates used throughout: plan-before-code, YAGNI checks, and the work-verification discipline task-runner applies to the whole run |
 
-Beyond the core four, the pipeline auto-wires more companions **when they are installed** (all of them ship in the `taskmaster-suite` bundle): **approaches** (blind opinion-round personas at the approach-decision step), **claude-authoring** (the project-skill-suggester offer after card-split), **decision-records** (ADR capture), and **estimation** (S/M/L/XL card sizing). It also runs internal stages that need no companion: a resumable grill ledger, a convergence cap on interrogation, an adversarial spec red-team before cards, and a spec↔card coverage gate after them.
+Beyond the core four, the pipeline auto-wires more companions **when they are installed** (all of them ship in the `taskmaster-suite` bundle): **approaches** (blind opinion-round personas at the approach-decision step), **claude-authoring** (the project-skill-suggester offer after card-split), and **estimation** (S/M/L/XL card sizing). It also runs internal stages that need no companion: a resumable grill ledger, a convergence cap on interrogation, an adversarial spec red-team before cards, and a spec↔card coverage gate after them.
 
 The full loop for a feature:
 

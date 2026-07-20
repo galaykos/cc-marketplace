@@ -20,8 +20,8 @@ exposure (internal → percentage → full), migration sequencing
 The plan is output as a table with one row per stage (stage / exposure / gate
 metric / rollback trigger), followed by the rollback path — flag off, deploy
 revert, or data restore — and whether it has been exercised. If the plan
-involved significant choices, it offers to record them as an ADR via the
-decision-records plugin.
+involved significant choices, it offers to record them as an ADR file in
+the project's ADR dir.
 
 ## Example
 
@@ -36,7 +36,6 @@ rollback path is planned while it is still cheap.
 
 ## Pairs well with
 
-- **decision-records** — record significant rollout choices (dual-write vs dual-read, flag granularity) as ADRs
 - **resilience** — failure-mode review of the code the rollout will expose
 - **devops** — CI/CD pipeline and deploy config review for the ship itself
 - **database** — schema and migration review behind expand-migrate-contract sequencing

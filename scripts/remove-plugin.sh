@@ -92,13 +92,15 @@ if [ -f "$BASELINE" ] && jq -e --arg n "$name" 'has($n)' "$BASELINE" >/dev/null;
   fi
 fi
 
-# 6. README table rows naming the plugin as first cell (backtick or bold forms)
+# 6. README table rows naming the plugin as first cell (backtick, bold, or
+# linked-bold **[name](path)** forms)
+row_re="^\| *(\`$name\`|\*\*$name\*\*|\*\*\[$name\]\([^)]*\)\*\*) *\|"
 for rd in README.md plugins/everything/README.md; do
   [ -f "$rd" ] || continue
-  if grep -qE "^\| *(\`$name\`|\*\*$name\*\*) *\|" "$rd"; then
+  if grep -qE "$row_re" "$rd"; then
     say "$rd: remove table row for '$name'"
     if [ "$apply" -eq 1 ]; then
-      tmp=$(mktemp); grep -vE "^\| *(\`$name\`|\*\*$name\*\*) *\|" "$rd" > "$tmp"; mv "$tmp" "$rd"
+      tmp=$(mktemp); grep -vE "$row_re" "$rd" > "$tmp"; mv "$tmp" "$rd"
     fi
   fi
 done
@@ -131,11 +133,20 @@ if [ "$is_bundle" -eq 0 ]; then
     jq -e --arg n "$name" '.dependencies | index($n)' "$pj" >/dev/null 2>&1 \
       && echo "WARN: bundle '$bn' lists '$name' — update its deps + README suite-table count manually"
   done
+  if grep -qE '\([0-9]+ today\)' plugins/everything/README.md 2>/dev/null; then
+    say "plugins/everything/README.md: set '(N today)' count to $leaves"
+    if [ "$apply" -eq 1 ]; then
+      tmp=$(mktemp); sed -E "s/\([0-9]+ today\)/($leaves today)/" plugins/everything/README.md > "$tmp"; mv "$tmp" plugins/everything/README.md
+    fi
+  fi
 fi
 
 # Residual report: source references that still name the plugin
 echo "-- residual references (word-match, excluding .git/CHANGELOG/taskmaster-docs) --"
-res=$(grep -rInw "$name" --exclude-dir=.git --exclude-dir=taskmaster-docs --exclude-dir=.claude --exclude-dir="$name" --exclude=CHANGELOG.md . 2>/dev/null || true)
+# Filter the plugin's own dir by full path, not --exclude-dir basename — after
+# --merge-into, the moved skill dir plugins/<host>/skills/<name>/ must still be
+# scanned or real residuals inside the merged skill body stay hidden.
+res=$(grep -rInw "$name" --exclude-dir=.git --exclude-dir=taskmaster-docs --exclude-dir=.claude --exclude=CHANGELOG.md . 2>/dev/null | grep -v "^\./plugins/$name/" || true)
 if [ -z "$res" ]; then
   echo "none"
 else

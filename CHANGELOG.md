@@ -17,13 +17,18 @@ version in their `plugin.json`.
   the host (`security:data-privacy`, `security:api-auth`,
   `api-design:graphql-grpc`, `system-design:event-driven`); each host's review
   command now applies the merged skill as a lens.
+- **decision-records** removed (73 → 72 leaves): write-only in practice — zero
+  ADRs recorded since the 0.45.0 retarget and twelve offers skipped in the
+  wave2 run. ADR capture survives as plain-file offers (project ADR dir,
+  docs/adr/ by convention) in taskmaster, approaches, build-vs-buy, rollout,
+  and docs-upkeep; process-suite is now 13 plugins.
 
 ### Changed
 
 - Always-on description surface cut ~12.7% (14,548 → ~12,700 est tokens):
-  trimmed the ten heaviest plugins' description sets plus five >500-char
-  outliers; enumerations/procedures live in skill bodies, trigger sentences
-  stay.
+  trimmed the ten heaviest plugins' description sets and brought all ten
+  >500-char descriptions under the cap; enumerations/procedures live in skill
+  bodies, trigger sentences stay.
 - Five co-fire trigger overlaps split token-neutrally: reviewer trio
   (code-reviewer / frontend-reviewer / ui-ux-reviewer), approaches ↔
   code-architecture planning sequence, hindsight ↔ retrospective, concurrency ↔
@@ -39,12 +44,16 @@ version in their `plugin.json`.
 
 ### Added
 
+- **ui-ux** 0.7.9: astryx-best-practices skill — Astryx, Meta's open-source
+  agent-ready React design system (@astryxdesign/core, StyleX, 150+
+  components, ten themes, JSON component manifest + MCP server). Beta-aware,
+  docs-first navigator style.
 - `scripts/remove-plugin.sh` — dry-run-by-default helper that removes or merges
   a plugin and updates every shared touchpoint (marketplace.json, everything
   deps, catalog regen, baseline, README counts) with a residual-reference
   report.
 - Blocking per-leaf context-budget gate: `scripts/context-budget.sh` measures
-  all 73 leaves + 7 bundles, prints a TOTAL line, exits 1 on growth over the
+  all 72 leaves + 7 bundles, prints a TOTAL line, exits 1 on growth over the
   committed baseline; enforced as a dedicated CI step.
 - Description linter in `scripts/validate.sh`: fails any description over 500
   chars or carrying a literal "Trigger words:" list.

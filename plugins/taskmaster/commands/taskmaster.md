@@ -76,9 +76,7 @@ marker into the card index and logging every auto-take to the goal ledger.
    Then, if the code-architecture plugin is installed (the plan-before-code skill
    is available), run a plan check on the spec before splitting cards — file-level
    change plan, unit ownership, interfaces — and fold any corrections back into
-   the spec. If the decision-records plugin is installed, offer capturing the
-   spec's significant decisions as ADRs (`/decision-records:new`). Skip either
-   when its plugin is not installed.
+   the spec. Skip it when the plugin is not installed.
 7. Invoke the task-cards skill to split the spec into single-prompt task cards
    under `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
    milestones when the run is large — cards sized per the estimation plugin's
