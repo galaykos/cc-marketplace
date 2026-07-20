@@ -357,7 +357,7 @@
     {
       "name": "taskmaster-suite",
       "source": "./plugins/taskmaster-suite",
-      "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the stack-agnostic review/process toolkit, and the pipeline's visual path (ui-ux, design-preview). Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "skill-router",
