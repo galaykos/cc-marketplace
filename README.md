@@ -48,7 +48,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | `taskmaster-suite` | 38 | ~8.8k tokens |
 | `process-suite` | 13 | ~2.4k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
-| `frontend-suite` | 16 | ~2.7k tokens |
+| `frontend-suite` | 16 | ~2.4k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
@@ -113,7 +113,7 @@ afterwards to sweep the orphans.
 | **vue3** | Vue 3: script setup, composables, ref/reactive, Pinia | `/vue3:review` |
 | **php** | PHP: strict types, === discipline, PSR conventions, version-aware 8.1–8.5 leverage map, exceptions, boundary security | `/php:review` |
 | **laravel** | Laravel: Eloquent N+1, form requests, service layer, queues, policies | `/laravel:review` |
-| **livewire** | Livewire 3: components, wire:model, performance, Alpine interop | `/livewire:review` |
+| **livewire** | Livewire 3/4: components, wire:model, performance, Alpine interop | `/livewire:review` |
 | **[javascript](plugins/javascript/README.md)** | Vanilla JS: version-aware ES feature floors, === and coercion traps, ESM vs CommonJS interop, async correctness + event loop, this-binding & closures/leaks, boundary validation, BigInt, prototype-pollution safety | `/javascript:review` |
 | **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
 | **[vite](plugins/vite/README.md)** | Vite: VITE_ env-leak security, dep pre-bundling, code splitting/manualChunks, base for sub-path deploys, dev server.proxy, define pitfalls, SSR, library mode, plugin order, HMR guards | `/vite:review` |
@@ -137,7 +137,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **sql** | SQL (engine-agnostic): sargable predicates, joins, index logic, NULL traps, transactions, keyset pagination, migrations | `/sql:review` |
-| **mysql** | MySQL 8.0+: InnoDB clustered PK, utf8mb4, strict sql_mode, online DDL, gap locks, 8.0–8.4 leverage | `/mysql:review` |
+| **mysql** | MySQL 8.0+: InnoDB clustered PK, utf8mb4, strict sql_mode, online DDL, gap locks, 8.0–8.4 + 9.7 LTS leverage | `/mysql:review` |
 | **mariadb** | MariaDB 10.6+: not-MySQL divergences, RETURNING, sequences, system versioning, UUID type, Galera | `/mariadb:review` |
 | **postgresql** | PostgreSQL 14+: MVCC/vacuum, timestamptz/jsonb, index arsenal, lock-aware migrations, 14–18 leverage | `/postgresql:review` |
 | **database** | Database design: engine-agnostic schema, expand→contract migrations, indexing, query shape, pooling — database-design skill + database-engineer worker + a destructive-SQL PreToolUse guard | `/database:review` |
