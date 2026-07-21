@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><!-- SLOT: title --></title>
 <!-- fill SLOT: title with the decision question; gallery saves use the slug -->
+<!-- SLOT: favicon — one emoji, inline SVG data URI, no file fetched. A whole
+     pipeline puts several previews in several tabs on the same origin, so they
+     all wear the same icon unless each says otherwise; swap the glyph per
+     purpose (see Favicons in references/shell-authoring.md). Keep it to ONE
+     plain codepoint: a '#' would terminate the data URI and a variation
+     selector renders as a stray box in some tab strips. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖼</text></svg>">
 
 <style>
 /* ---- Theme tokens -------------------------------------------------- */
@@ -179,7 +186,8 @@ body {
   background: var(--vd-primary);
   color: var(--vd-on-primary);
 }
-#vd-theme-toggle, #vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle {
+#vd-theme-toggle, #vd-diff-toggle, #vd-scheme-toggle, #vd-dir-toggle,
+#vd-ver-select, #vd-ver-restore {
   border: 1px solid var(--vd-line);
   background: var(--vd-paper);
   color: var(--vd-ink-soft);
@@ -189,7 +197,13 @@ body {
   border-radius: var(--vd-radius);
   cursor: pointer;
 }
-#vd-theme-toggle:hover, #vd-diff-toggle:hover, #vd-scheme-toggle:hover, #vd-dir-toggle:hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+#vd-theme-toggle:hover, #vd-diff-toggle:hover, #vd-scheme-toggle:hover, #vd-dir-toggle:hover,
+#vd-ver-select:hover, #vd-ver-restore:not(:disabled):hover { border-color: var(--vd-primary); color: var(--vd-primary); }
+/* Restore stays visible-but-inert while "Current (live)" is selected: hiding
+   it would reflow the header on every pick, and a disabled control still says
+   the action exists once a past pass is chosen. */
+#vd-ver-restore:disabled { opacity: .45; cursor: default; }
+#vd-ver-select { max-width: 15rem; }
 #vd-diff-toggle[aria-pressed="true"] { background: var(--vd-primary); border-color: var(--vd-primary); color: var(--vd-on-primary); }
 .vd-note {
   font-size: .78rem;
@@ -1454,6 +1468,12 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
     <button type="button" id="vd-theme-toggle" hidden>Theme</button>
     <button type="button" id="vd-scheme-toggle">Scheme, light</button>
     <button type="button" id="vd-dir-toggle">Direction, LTR</button>
+    <!-- Version picker: populated from serve.py's /_versions.json, so it stays
+         hidden on a static rung or over file:// where that route 404s. -->
+    <span id="vd-versions" hidden>
+      <select id="vd-ver-select" aria-label="Ledger version"></select>
+      <button type="button" id="vd-ver-restore" disabled>Restore</button>
+    </span>
   </div>
 </header>
 
@@ -1631,6 +1651,65 @@ body.vd-diffs-on [data-vd-diff]:focus-visible {
   }
   vwButtons.forEach(b =>
     b.addEventListener('click', () => setVw(b.dataset.vdSetVw)));
+
+  // Version picker: serve.py already keeps every dated pass on disk, so offer
+  // them as a dropdown instead of making the user read the landing map and
+  // retype a filename. Pure enhancement — on a static rung or over file://
+  // /_versions.json 404s or throws, and the control simply stays hidden.
+  // Picking a past pass NAVIGATES (read-only); Restore is the one write, and
+  // it copies server-side, so the reload arrives down the normal SSE lane.
+  (function () {
+    const wrap = document.getElementById('vd-versions');
+    const select = document.getElementById('vd-ver-select');
+    const restoreBtn = document.getElementById('vd-ver-restore');
+    const own = decodeURIComponent((location.pathname.split('/').pop() || ''));
+    function addOption(value, label) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;      // textContent, never innerHTML: a ledger
+      select.appendChild(opt);      // filename is untrusted input here
+      return opt;
+    }
+    fetch('/_versions.json', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('no ledger lane'))))
+      .then(data => {
+        const versions = data.versions || [];
+        if (!versions.length) return;   // nothing to pick between yet
+        addOption('', 'Current (live)');
+        versions.forEach(v => {
+          const when = new Date(v.mtime * 1000).toLocaleString();
+          const opt = addOption(v.name, v.name + ' — ' + when);
+          if (v.name === own) opt.selected = true;
+        });
+        restoreBtn.disabled = !select.value;
+        wrap.hidden = false;
+      })
+      .catch(() => { /* no ledger lane: the picker never appears */ });
+
+    select.addEventListener('change', () => {
+      restoreBtn.disabled = !select.value;
+      const target = select.value || 'current.html';
+      if (target !== own) location.assign('/' + encodeURIComponent(target));
+    });
+
+    restoreBtn.addEventListener('click', () => {
+      const name = select.value;
+      if (!name) return;
+      restoreBtn.disabled = true;
+      fetch('/_restore', {
+        method: 'POST',
+        // The header is the CSRF gate on the server side, not decoration.
+        headers: { 'Content-Type': 'application/json', 'X-Preview-Restore': '1' },
+        body: JSON.stringify({ name: name })
+      })
+        .then(r => (r.ok ? r.json() : Promise.reject(new Error('restore failed'))))
+        .then(() => location.assign('/current.html'))
+        .catch(() => {
+          restoreBtn.disabled = false;
+          restoreBtn.textContent = 'Restore failed';
+        });
+    });
+  })();
 
   // Diff highlight: authors tag the elements that differ on the axis under
   // test with data-vd-diff; this toggle outlines them (static, no motion —

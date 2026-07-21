@@ -25,6 +25,8 @@ mockup tab):
 
 - Every screen is a `<section>`; navigation is anchor links + CSS `:target` —
   the zero-JS baseline that works over `file://`.
+- A 🚶 favicon as an inline SVG data URI (nothing fetched) keeps this tab
+  distinguishable from the mockup, theme, and diagram tabs on the same origin.
 - Unlike visual-decisions mockups, MINIMAL vanilla JS is allowed here, capped
   at state visibility: toggling a screen's empty/loading/error/success variants,
   a fake submit that advances the flow, tab switches. If the JS computes

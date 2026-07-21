@@ -1,0 +1,101 @@
+<!-- preview-toolbar.html — the viewport-width axis for NON-shell preview pages.
+     shell.html carries this control already (see its "Viewport width presets"
+     block); this is the same axis packaged for hand-built pages on the shared
+     preview server: diagram.html, walkthrough.html, api.html.
+
+     NOT theme.html — that page is produced by copying ui-ux's
+     shadcn-theming/assets/theme-shell.html, which already inlines this axis.
+     Pasting this file there too would yield two stacked sticky bars and a
+     duplicate id="vd-vp-bar".
+
+     SYNC OBLIGATION: that theme-shell.html holds a byte-level inlined copy of
+     the style + markup + script below. Change the axis here and you must
+     change it there — nothing in validate.sh catches the drift.
+
+     Contract, three lines:
+       1. Paste this whole file directly after <body> — style, markup, script,
+          nothing external, nothing fetched.
+       2. Put data-vd-vp on each panel that should be sized to the device width
+          (a theme candidate column, a screen frame, a diagram canvas).
+       3. Give those panels' container `display:flex; flex-wrap:wrap` (or a grid
+          with auto-fit tracks) so panels that no longer fit one row wrap
+          instead of squeezing. Wrapping IS the honest render of "two phones
+          side by side" on a narrow window, not a bug to hide.
+
+     `Full` is the default and declares no width at all — the page keeps its own
+     fluid layout untouched, so a page that never picks a preset behaves exactly
+     as it did before the toolbar was added. -->
+<style>
+  #vd-vp-bar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; gap: .35rem; align-items: center;
+    padding: .45rem .7rem; margin: 0 0 1rem;
+    font: 500 12px/1 system-ui, -apple-system, sans-serif;
+    background: #fff; color: #1a1a1a; border-bottom: 1px solid #e3e3e3;
+  }
+  #vd-vp-bar .vd-vp-label {
+    text-transform: uppercase; letter-spacing: .06em;
+    font-size: 10px; color: #666; margin-inline-end: .25rem;
+  }
+  #vd-vp-bar button {
+    font: inherit; cursor: pointer;
+    padding: .3rem .55rem; border-radius: .3rem;
+    background: transparent; color: inherit; border: 1px solid #d0d0d0;
+  }
+  #vd-vp-bar button:hover { border-color: #0b57d0; color: #0b57d0; }
+  #vd-vp-bar button[aria-pressed="true"] {
+    background: #0b57d0; border-color: #0b57d0; color: #fff;
+  }
+  /* The toolbar's own chrome never reads the previewed page's tokens — a theme
+     candidate must not be able to restyle the control judging it. Its dark
+     rendering follows the OS only. */
+  @media (prefers-color-scheme: dark) {
+    #vd-vp-bar { background: #17181a; color: #ececec; border-bottom-color: #2c2e31; }
+    #vd-vp-bar .vd-vp-label { color: #9a9a9a; }
+    #vd-vp-bar button { border-color: #3a3c40; }
+    #vd-vp-bar button:hover { border-color: #7cacf8; color: #7cacf8; }
+    #vd-vp-bar button[aria-pressed="true"] {
+      background: #7cacf8; border-color: #7cacf8; color: #101112;
+    }
+  }
+
+  /* Width presets. `max-width:100%` keeps a preset from forcing a horizontal
+     scrollbar on a window narrower than the preset itself: the panel renders
+     as wide as it honestly can and the label still says which device is being
+     asked for. No rule matches data-vd-vw="full" — that is the point.
+     `box-sizing` is set here rather than assumed: a panel with padding under
+     the default content-box renders WIDER than the device it claims (375 +
+     padding + border), which is exactly the lie the preset exists to prevent.
+     Host pages that already set border-box globally are unaffected. */
+  body[data-vd-vw="phone"]  [data-vd-vp],
+  body[data-vd-vw="tablet"] [data-vd-vp] { box-sizing: border-box; max-width: 100%; }
+  body[data-vd-vw="phone"]  [data-vd-vp] { width: 375px; }
+  body[data-vd-vw="tablet"] [data-vd-vp] { width: 768px; }
+</style>
+
+<nav id="vd-vp-bar" role="group" aria-label="Viewport width">
+  <span class="vd-vp-label">Width</span>
+  <button type="button" data-vd-set-vw="phone" aria-pressed="false">Phone 375</button>
+  <button type="button" data-vd-set-vw="tablet" aria-pressed="false">Tablet 768</button>
+  <button type="button" data-vd-set-vw="full" aria-pressed="true">Full</button>
+</nav>
+
+<script>
+  (function () {
+    // Same contract as shell.html's control: the active preset is a single
+    // data-vd-vw on <body>, so all styling stays in CSS and this script only
+    // ever writes one attribute plus the pressed state of three buttons.
+    var buttons = Array.prototype.slice.call(
+      document.querySelectorAll('[data-vd-set-vw]'));
+    function setVw(vw) {
+      document.body.dataset.vdVw = vw;
+      buttons.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.vdSetVw === vw));
+      });
+    }
+    if (!document.body.dataset.vdVw) document.body.dataset.vdVw = 'full';
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { setVw(b.dataset.vdSetVw); });
+    });
+  })();
+</script>

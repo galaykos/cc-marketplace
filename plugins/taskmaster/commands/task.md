@@ -60,7 +60,11 @@ marker into the card index and logging every auto-take to the goal ledger.
    choice is between options that look or flow differently (layout, flow,
    architecture shape, data shape) — the skill asks fidelity consent (full mockups
    / ASCII only / none) on first use per session, with context-scout's Visual
-   surface section as the prior.
+   surface section as the prior. When colour or theme is itself the decision,
+   switch to `/ui-ux:theme` instead. Every visual option renders on the local
+   preview server at `${PREVIEW_PORT:-8123}` — never publish one as a remote
+   artifact, which bypasses the consent gate, the ledger, and the viewport and
+   push-reload controls those previews carry.
 4. For multi-screen or whole-experience tasks (three-plus screens, or a flow whose
    sequence is itself a requirement), invoke the experience-walkthrough skill once
    visual decisions land: assemble the accepted picks into one clickable demo on

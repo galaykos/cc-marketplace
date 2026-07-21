@@ -109,6 +109,7 @@ Always serve — every decision lands in the same tab. One server, one canonical
 3. Auto-reload: SSE push exists only on the serve.py rung; any lower rung
    (`http.server`, `php -S`, `npx serve`) still serves fine — the shell falls
    back to body-compare polling there (server gone → page stays usable either way).
+4. History is free: the header's version picker lists the dated passes and Restore rolls one back over `current.html` (serve.py rung only). Set `SLOT: favicon` per purpose so the tabs stay distinguishable.
 
 Other flows share this server via per-purpose files (`theme.html`, `walkthrough.html`,
 `diagram.html`, `api.html`) — kill only at pipeline end; stale: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
@@ -148,6 +149,6 @@ side-by-side `.vd-code` frames in `api.html` (differing keys in `<mark>`) — se
 - More than 3 variants — choice overload produces "whichever", not a decision.
 - Variants differing on several axes — the pick can't be attributed; nothing got decided.
 - Building real components "since we're at it" — implementation starts after the cards.
-- External assets or frameworks — a networked mockup opens slower than the decision it serves.
+- External assets, frameworks, or publishing the page as a remote artifact — the local preview URL is the only rung.
 - Reusing mockup HTML or the shell as the implementation start — implement from
   the spec; mockups carry none of the codebase's conventions.
