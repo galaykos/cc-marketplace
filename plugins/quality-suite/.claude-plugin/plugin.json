@@ -1,6 +1,6 @@
 {
   "name": "quality-suite",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Meta-bundle: the code-quality category in one install — review, architecture principles, design patterns, testing, security, accessibility, debugging, performance, resilience, dependency hygiene, observability, error handling, concurrency safety, and secret-leak prevention (secret-scanning). Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",

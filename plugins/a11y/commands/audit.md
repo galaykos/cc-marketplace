@@ -1,5 +1,5 @@
 ---
-description: "Audit UI code against WCAG 2.1 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix."
+description: "Audit UI code against WCAG 2.2 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix."
 ---
 
 # Accessibility Audit

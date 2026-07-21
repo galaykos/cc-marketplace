@@ -65,7 +65,9 @@ fix is an opinion; do not report opinions.
 
 - Dead code. Cue: unreferenced symbols, branches no input reaches, flags
   always false. Risk: readers maintain fiction. Fix: delete; version control
-  remembers.
+  remembers. Deleting is the dedicated review/cleanup context's call — when
+  merely passing through on another task, surgical-coding (code-architecture)
+  applies instead: mention it, don't delete.
 - Duplicated knowledge. Cue: the same rule or constant encoded in two-plus
   places — not the same characters, the same decision. Risk: they diverge.
   Fix: extract once — but only after the rule of three; see below.

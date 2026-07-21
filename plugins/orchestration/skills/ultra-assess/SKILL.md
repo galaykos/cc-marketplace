@@ -84,7 +84,9 @@ The recipe composes two orchestration skills already in this plugin — read the
 - **delegation-contracts** — how to write each reader's dispatch prompt
   (self-contained, compressed evidence-backed return) and tier it by model/effort.
 - **verification-panels** — the refuter-voting red-team, the completeness critic,
-  and loop-until-dry discovery.
+  and loop-until-dry discovery. The contract's "red-team ALWAYS" deliberately
+  overrides that skill's one-reviewer default and cost gate — an ultra-assess
+  run is explicit opt-in escalation, so the gate is pre-paid.
 
 Phases, each bounded (mirroring the three-cycle ceiling used elsewhere so no
 unbounded loop opens):
@@ -111,7 +113,9 @@ Ultra-assess never hard-fails. If the `Workflow` tool is unavailable — headles
 cron, or the opt-in gate cannot be satisfied — every fan-out phase falls back to a
 single inline agent at the selected model: one inline scout+reader pass, one inline
 red-team, one inline completeness sweep. The run completes with less parallelism,
-never an error.
+never an error. The inline red-team carries the correlated-opinion caveat
+opinion-round (approaches) names — one model re-examining itself — so mark the
+output as degraded-inline mode wherever this fallback ran.
 
 ## What ultra-assess does NOT do
 

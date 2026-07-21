@@ -30,5 +30,5 @@ suggested when your release actually ships them.
 ## Pairs well with
 
 - **php** — the underlying PHP layer these framework rules sit on
-- **livewire** — full-stack component review for Livewire 3 in the same app
+- **livewire** — full-stack component review for Livewire 3/4 in the same app
 - **inertia** — backend side of Inertia pages that laravel:review pairs with

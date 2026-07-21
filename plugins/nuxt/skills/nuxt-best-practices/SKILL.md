@@ -8,7 +8,7 @@ description: Use when writing or reviewing Nuxt code — Nitro server routes and
 - The locked `nuxt` entry (package-lock.json / yarn.lock / pnpm-lock.yaml / bun.lock)
   decides every default below — a `^3.17` constraint can resolve anywhere in 3.x; only
   the lock says whether the project runs Nuxt 3 or Nuxt 4 semantics.
-- Nuxt 3 reaches end-of-life 2026-07-31; treat a Nuxt 3 lockfile as a migration flag —
+- Nuxt 3 EOL: 2026-07-31; treat a Nuxt 3 lockfile as a migration flag —
   note it once, then advise within 3.x, never above it.
 - Read `nuxt.config.ts` first: `compatibilityVersion`, `future`/`experimental` flags,
   and `routeRules` change which defaults apply regardless of the version number.

@@ -1,9 +1,9 @@
 ---
 name: a11y-audit
-description: "Use when writing or reviewing UI markup, styles, or interactions — a WCAG 2.1 AA checklist covering semantics, contrast, keyboard access, focus, forms, media, and the ARIA rules that prevent well-meant attributes from making things worse."
+description: "Use when writing or reviewing UI markup, styles, or interactions — a WCAG 2.2 AA checklist covering semantics, contrast, keyboard access, focus, forms, media, and the ARIA rules that prevent well-meant attributes from making things worse."
 ---
 
-# Accessibility Audit (WCAG 2.1 AA)
+# Accessibility Audit (WCAG 2.2 AA)
 
 ## Core rule
 
@@ -60,6 +60,10 @@ alone.
 - On modal open, focus enters the dialog; on close, it returns to the
   element that triggered it.
 - Provide a skip link so keyboard users can bypass repeated navigation.
+- Focused element stays visible: sticky headers, toolbars, and other
+  overlays must not fully cover it (SC 2.4.11 Focus Not Obscured); an
+  indicator must exist and be visible (SC 2.4.7). A prominent indicator
+  (Focus Appearance, SC 2.4.13) is AAA — recommend, never flag at AA.
 
 ## Contrast (AA)
 
@@ -81,6 +85,10 @@ alone.
   only by an asterisk in the visual label.
 - No placeholder-as-label. Placeholders vanish on input and usually fail
   contrast; they supplement a label, never replace it.
+- Redundant entry: never force re-typing of information already given
+  in the same flow — auto-populate it or offer it back (SC 3.3.7).
+- Accessible authentication: login must not hinge on a cognitive test —
+  allow paste and password managers, no transcription puzzles (SC 3.3.8).
 
 ## Media and images
 
@@ -94,9 +102,18 @@ alone.
 
 ## Touch and pointer
 
-- Touch targets at least 44px in both dimensions, padding included.
-- Every gesture (swipe, drag, pinch) has a single-pointer alternative —
+- Target size: 24×24 CSS px is the 2.2 AA floor (SC 2.5.8) — a
+  minimum, not the goal. Keep 44px in both dimensions, padding
+  included, as the recommended target; the floor does not replace it.
+- Dragging movements: every drag — reorder, slider, drawing — has a
+  single-pointer alternative that works without dragging (SC 2.5.7).
+- Every gesture (swipe, pinch) has a single-pointer alternative —
   visible controls that do the same thing.
+
+## Consistent help
+
+- Help mechanisms — contact link, chat, FAQ — sit in the same relative
+  place on every page that offers them (SC 3.2.6).
 
 ## Worked micro-example
 

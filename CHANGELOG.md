@@ -4,6 +4,48 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.53.0] - 2026-07-21
+
+Maintenance pass: 2026 currency, taskmaster-suite composition, principle-skill
+reconciliation. All version substitutions live-verified against official
+release/EOL pages (evidence in the PR description).
+
+- **taskmaster-suite 0.11.0** — adds `ui-ux` (38 deps). This deliberately
+  reverses [0.48.0]'s drop of ui-ux: without it, the pipeline's closed
+  agent-tag set silently degrades visual cards to the generic
+  executor/reviewer, which proved worse than the stack-agnostic purity the
+  drop bought. design-preview was evaluated and rejected (red-team finding:
+  it is a Vite+React-only optional escalation with the same "when installed"
+  wiring as the excluded shadcn-studio). The description and README stop
+  claiming "every stack-agnostic capability" and "No framework- or
+  dialect-specific plugins"; a "What's excluded, and why" section now states
+  the inclusion test.
+- **a11y 0.3.0** — audits target WCAG 2.2 AA (the W3C Recommendation since
+  Oct 2023): the 2.2 criteria join the checklist, 24×24px stated as the AA
+  floor alongside the 44px recommendation, Focus Appearance correctly
+  labeled AAA (recommend, never flag at AA). Echoes updated in
+  taskmaster-suite / frontend-suite / quality-suite READMEs and the
+  regenerated plugin-scout catalog.
+- **Currency sweep** — dev-env example tags to php:8.5-fpm / node:24.13-alpine /
+  postgres:18.4 / redis:8.8-alpine / mysql:9.7 (now truly exact-minor);
+  meta-api Graph examples v23.0 → v25.0; mysql README aligned to the
+  9.7 LTS (2026-04) reality, ending its contradiction with the skill;
+  nuxt EOL phrasing date-anchored ("Nuxt 3 EOL: 2026-07-31"); "Livewire 3"
+  headlines → "Livewire 3/4" across five READMEs; stack-scan and taskmaster
+  fictional examples moved to the PHP 8.5 / Laravel 13 / Node 24 era.
+  node-backend's currency block verified correct and left unchanged; vue3
+  left at 3.5 (3.6/Vapor still rc as of 2026-07-21).
+- **Principle reconciliation** — extraction threshold: rule of three is
+  canonical, with a shared "knowledge, not text" second-caller exception
+  mirrored in simplicity-principles and surgical-coding; dead-code advice
+  context-split (dedicated cleanup deletes — code-smells; passing through
+  mentions without deleting — surgical-coding) with mutual cross-references,
+  including reuse-hygiene's missing surgical-coding seam; low-cognitive-load
+  and yagni-check reconcile their options-object stances; opinion-round's
+  synthesis now honors surgical-coding's scope lock; ultra-assess names its
+  "red-team ALWAYS" as a deliberate override of verification-panels' cost
+  gate and flags its inline fallback as degraded mode.
+
 ## [0.52.0] - 2026-07-20
 
 ### Removed

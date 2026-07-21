@@ -1,6 +1,6 @@
 # a11y
 
-Dedicated accessibility: a WCAG 2.1 AA audit for markup, contrast, keyboard
+Dedicated accessibility: a WCAG 2.2 AA audit for markup, contrast, keyboard
 navigation, focus management, forms, media, and ARIA — one line per violation
 with the concrete fix — plus an `a11y-engineer` worker that applies the fix
 list, preferring native semantics over ARIA patches and tagging each change
@@ -17,7 +17,7 @@ with the WCAG criterion it satisfies.
 
 | Command | What it does |
 |---------|--------------|
-| `/a11y:audit [files-or-diff]` | Audit UI code against WCAG 2.1 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix |
+| `/a11y:audit [files-or-diff]` | Audit UI code against WCAG 2.2 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix |
 
 The report sorts blockers (keyboard traps, missing labels, contrast failures)
 before minors, ends with a manual-test list of what static review cannot

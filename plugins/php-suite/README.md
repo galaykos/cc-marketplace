@@ -18,7 +18,7 @@ Installing the bundle pulls in every plugin below as a dependency.
 
 - **php** — PHP best practices (strict types, PSR conventions, version-aware 8.1-8.5 leverage) with `/php:review`
 - **laravel** — Laravel framework review (Eloquent N+1 prevention, form requests, thin controllers, migrations) with `/laravel:review`
-- **livewire** — Livewire 3 component conventions, wire:model modifiers, performance, and Alpine interop with `/livewire:review`
+- **livewire** — Livewire 3/4 component conventions, wire:model modifiers, performance, and Alpine interop with `/livewire:review`
 - **inertia** — Inertia.js partial reloads, deferred props, useForm flow, and SSR across the Laravel adapters with `/inertia:review`
 - **vite** — Vite env security, code splitting, and build-config review pinned to the locked vite version with `/vite:review`
 - **web-dev** — generalist web-developer worker plus a frontend-reviewer agent that defers stack idioms to the per-framework plugins

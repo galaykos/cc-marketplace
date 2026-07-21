@@ -100,7 +100,10 @@ Before extracting a shared abstraction, ask in order:
    shared function needs flags, an options object, or an `if (case)` branch per caller to
    handle the "reuse," it's not actually simpler — it's the duplication relocated and disguised.
 4. **Is there a real second caller today**, or are you building the abstraction for a
-   hypothetical one? If hypothetical, that's YAGNI's territory — stop.
+   hypothetical one? If hypothetical, that's YAGNI's territory — stop. And even a real
+   second caller is the exception, not the rule: the default remains the third occurrence
+   (item 1); the second may earn the abstraction only when the duplication is knowledge,
+   not text — the same rule, provably changing in lockstep — never mere textual similarity.
 
 Before adding cleverness in the name of fewer lines or a "smarter" approach, ask: would a
 mid-level engineer unfamiliar with this trick understand it on first read, at normal reading

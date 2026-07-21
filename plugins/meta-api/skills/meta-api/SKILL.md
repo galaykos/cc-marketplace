@@ -16,7 +16,7 @@ never fill the gap from memory.
 
 - Fetch https://developers.facebook.com/docs/graph-api/changelog — the top
   entry is the latest version; the table shows each version's expiry.
-- Version rides the URL path: `/v23.0/{node}`. Unversioned calls pin to the
+- Version rides the URL path: `/v25.0/{node}`. Unversioned calls pin to the
   app's default (its creation-era version) — that is a trap, not a feature:
   always write the version explicitly.
 - The Marketing API versions separately (own changelog under
@@ -46,7 +46,7 @@ if a path 404s (Meta reshuffles docs), recover from https://developers.facebook.
 
 ## Graph conventions
 
-- Everything is nodes, edges, fields: `GET /v23.0/{page-id}/posts?fields=id,message,created_time`.
+- Everything is nodes, edges, fields: `GET /v25.0/{page-id}/posts?fields=id,message,created_time`.
   Always pass `fields=` — the no-fields default is sparse AND unstable across
   versions; explicit selection is both the contract and the performance fix.
 - Pagination is cursors: follow `paging.next` or pass `after=` — never offset

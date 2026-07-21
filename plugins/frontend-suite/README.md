@@ -36,7 +36,7 @@ legacy-app maintenance: `/plugin install vue2@cc-plugins-marketplace`.
   proxy, plus `/vite:review`
 - **inertia** — partial reloads, deferred props, useForm flow, SSR across
   adapters, plus `/inertia:review`
-- **livewire** — Livewire 3 conventions, wire:model modifiers, Alpine
+- **livewire** — Livewire 3/4 conventions, wire:model modifiers, Alpine
   interop, plus `/livewire:review`
 - **web-dev** — the generalist web-developer worker and frontend-reviewer
   agents (no commands)
@@ -44,7 +44,7 @@ legacy-app maintenance: `/plugin install vue2@cc-plugins-marketplace`.
   components on its own dev server, via `/design-preview:preview`
 - **shadcn-studio** — self-contained shadcn + Vite sandbox for staging
   interactive component variants, via `/shadcn-studio:stage`
-- **a11y** — WCAG 2.1 AA audit with a concrete fix per violation, via
+- **a11y** — WCAG 2.2 AA audit with a concrete fix per violation, via
   `/a11y:audit`
 - **nextjs** — App Router server/client boundaries, opt-in caching, server
   actions, route handlers, streaming, metadata API, plus `/nextjs:review`

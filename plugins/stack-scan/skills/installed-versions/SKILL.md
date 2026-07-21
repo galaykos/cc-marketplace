@@ -23,7 +23,7 @@ Scan in this order; missing files are findings, not dead ends:
 - **Runtime pins**: `.nvmrc`, `.node-version`, `.tool-versions` (asdf/mise),
   `volta` field, `.python-version` — these say what the team INTENDS to run.
 - **Containers/CI**: `Dockerfile` FROM tags, `docker-compose.yml` service images
-  (databases live here: `mysql:8.4`, `mariadb:11.4`, `postgres:17`), CI workflow
+  (databases live here: `mysql:9.7`, `mariadb:11.4`, `postgres:18`), CI workflow
   `setup-*` versions — production truth often lives in these, not local binaries.
 - **Env hints**: `.env`/`.env.example` DSNs name engines when compose does not.
 
@@ -68,9 +68,9 @@ One table, one row per layer, nothing speculative:
 ```
 | Layer     | Tool/Package        | Required (source)      | Installed (source)     |
 |-----------|---------------------|------------------------|------------------------|
-| Runtime   | php                 | ^8.3 (composer.json)   | 8.3.14 (php -v)        |
-| Runtime   | node                | >=20 (engines)         | 22.11.0 (.nvmrc)       |
-| Framework | laravel/framework   | ^11.0 (composer.json)  | 11.34.2 (composer.lock)|
+| Runtime   | php                 | ^8.5 (composer.json)   | 8.5.8 (php -v)         |
+| Runtime   | node                | >=20 (engines)         | 24.13.0 (.nvmrc)       |
+| Framework | laravel/framework   | ^13.0 (composer.json)  | 13.20.0 (composer.lock)|
 | DB        | mariadb             | —                      | 11.4 (docker-compose)  |
 | PkgMgr    | pnpm                | 9.x (packageManager)   | pnpm-lock.yaml present |
 ```
@@ -89,7 +89,7 @@ input for other work — advice pinning, upgrade planning — not an essay.
   and local are building different realities.
 - **EOL majors**: runtime or framework past end-of-life (verify current EOL
   status against endoflife.date rather than memory when it matters).
-- **Docker vs local divergence**: compose says `postgres:17`, local psql is 14 —
+- **Docker vs local divergence**: compose says `postgres:18`, local psql is 14 —
   name which one production follows.
 
 ## Feeding the other plugins

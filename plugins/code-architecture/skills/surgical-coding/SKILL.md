@@ -50,6 +50,9 @@ both directions:
 - Dead code that was ALREADY dead before your change is not yours to delete,
   however tempting — mention it and move on. Deleting it hides your actual
   change inside noise and turns a two-line review into an archaeology dig.
+  This mention-don't-delete rule is the PASSING-THROUGH context; in a
+  dedicated cleanup, deletion is exactly right — the code-smells skill
+  (code-review plugin) covers that context.
 - Tests are orphans too: a test asserting behavior YOUR change removed gets
   updated or deleted with the change — but never weakened to pass while still
   pretending to assert the old behavior.
@@ -65,8 +68,9 @@ Minimum code that solves the stated problem:
 - Nothing speculative: no config knobs, extension points, or "flexibility"
   the request didn't ask for — the yagni-check skill carries the full
   checklist; this is its inline reflex.
-- No abstractions for single-use code; the second caller earns the
-  abstraction, not the imagined one.
+- No abstractions for single-use code; the default is the third occurrence,
+  and a real second caller earns the abstraction only when the duplication
+  is knowledge, not text (see simplicity-principles).
 - No error handling for states that cannot occur — handling impossible
   errors is how 50-line functions become 200.
 - The gut check: would a senior engineer reading this diff call it

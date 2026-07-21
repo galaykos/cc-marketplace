@@ -1,7 +1,7 @@
 {
   "name": "taskmaster-suite",
-  "version": "0.10.0",
-  "description": "Meta-bundle: the full clarification-to-execution workflow plus every stack-agnostic capability — taskmaster, task-runner, stack-scan, code-architecture, general engineering discipline, and all worker agents. No framework- or dialect-specific plugins. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "version": "0.11.0",
+  "description": "Meta-bundle: the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the stack-agnostic review/process toolkit, and the ui-ux agents the pipeline's visual cards route to. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -23,6 +23,7 @@
     "sql",
     "dev-env",
     "web-dev",
+    "ui-ux",
     "system-design",
     "devops",
     "database",

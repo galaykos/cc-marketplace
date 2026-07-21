@@ -1,10 +1,11 @@
 # taskmaster-suite
 
-Meta-bundle: the full clarification-to-execution workflow plus every
-stack-agnostic capability — taskmaster planning, task-runner execution,
-engineering discipline, and the worker agents. No framework- or
-dialect-specific plugins. Uninstalls cleanly: `/taskmaster-suite:uninstall`
-removes the bundle and prunes the plugins it auto-installed.
+Meta-bundle: the full clarification-to-execution workflow plus its wired
+companions — taskmaster planning, task-runner execution, engineering
+discipline, the stack-agnostic review/process toolkit, and the ui-ux agents
+the pipeline's visual cards route to. Uninstalls cleanly:
+`/taskmaster-suite:uninstall` removes the bundle and prunes the plugins it
+auto-installed.
 
 ## Install
 
@@ -31,6 +32,7 @@ removes the bundle and prunes the plugins it auto-installed.
 - **sql** — engine-agnostic SQL discipline and review
 - **dev-env** — docker-compose generation and Docker best-practice audits
 - **web-dev** — generalist web-developer worker and frontend-reviewer agents
+- **ui-ux** — ui-ux engineer + reviewer agents and `/ui-ux:theme` that the pipeline's visual cards route to
 - **system-design** — system design and domain-modeling review
 - **devops** — CI/CD, Kubernetes, and deploy/secret config review
 - **database** — engine-agnostic schema, migration, and indexing review
@@ -44,7 +46,7 @@ removes the bundle and prunes the plugins it auto-installed.
 - **resilience** — failure-mode gap review: timeouts, retries, degradation
 - **docs-upkeep** — documentation drift scan with exact fixes
 - **estimation** — S/M/L/XL sizing with split recommendations
-- **a11y** — WCAG 2.1 AA audits of UI code
+- **a11y** — WCAG 2.2 AA audits of UI code
 - **packages** — dependency vulnerability and outdated-package audit
 - **orchestration** — delegation contracts and verification panels for fan-outs
 - **error-handling** — swallowed-exception and catch-block audits
@@ -53,6 +55,24 @@ removes the bundle and prunes the plugins it auto-installed.
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
 - **brain** — committed codebase map injected at session start
 
+## What's excluded, and why
+
+Inclusion test: a plugin joins this bundle when the pipeline hard-wires it into
+the default flow — ui-ux is in for exactly that reason (the closed agent-tag
+set routes visual cards to its engineer/reviewer agents, and specs bind
+`/ui-ux:theme`); without it those cards degrade to generic routing. Notable
+exclusions: **design-preview** and **shadcn-studio** — the two optional
+full-fidelity escalations above taskmaster's built-in mockup preview; both are
+"when installed" upgrades, stack-specific (design-preview: existing Vite+React
+projects, renders real components via the project's own dev server;
+shadcn-studio: greenfield/non-React, stands up its own dev server);
+**laravel** and the other stack plugins — stack-specific;
+**intent-guard**, **secret-scanning**, **reuse-guard**, **compaction-advisor** —
+hook-heavy and behavior-changing, install them deliberately;
+**ultra-deep-research** — heavy research harness, opt-in.
+
+## Uninstall
+
 | Command | What it does |
 |---------|--------------|
 | `/taskmaster-suite:uninstall` | Uninstall the bundle AND prune every plugin it auto-installed — one step, no orphans; manually installed plugins are never touched |
@@ -60,5 +80,5 @@ removes the bundle and prunes the plugins it auto-installed.
 ## Pairs well with
 
 - **php-suite** — PHP/Laravel/Livewire/Inertia stack specifics the bundle leaves out
-- **frontend-suite** — React/Vue/TS framework specifics and ui-ux's per-stack UI skills, both left out of this bundle
+- **frontend-suite** — React/Vue/TS framework specifics plus the design-preview/shadcn-studio fidelity escalations, all left out of this bundle
 - **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

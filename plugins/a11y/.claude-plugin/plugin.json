@@ -1,7 +1,7 @@
 {
   "name": "a11y",
-  "version": "0.2.3",
-  "description": "Dedicated accessibility: WCAG 2.1 AA audit for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix — plus an a11y-engineer worker that applies the fix list, preferring native semantics over ARIA patches and tagging each change with its WCAG criterion. Includes /a11y:audit.",
+  "version": "0.3.0",
+  "description": "Dedicated accessibility: WCAG 2.2 AA audit for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix — plus an a11y-engineer worker that applies the fix list, preferring native semantics over ARIA patches and tagging each change with its WCAG criterion. Includes /a11y:audit.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
