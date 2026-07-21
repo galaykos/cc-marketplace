@@ -45,7 +45,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
 | `everything` | 73 | ~12.7k tokens |
-| `taskmaster-suite` | 37 | ~8.1k tokens |
+| `taskmaster-suite` | 38 | ~8.8k tokens |
 | `process-suite` | 13 | ~2.4k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
 | `frontend-suite` | 16 | ~2.7k tokens |
@@ -56,9 +56,9 @@ Always-on context = the skill/command/agent descriptions every installed
 plugin adds to each session's context window (chars/4 estimate).
 
 ```bash
-# Full taskmaster workflow + every stack-agnostic plugin (task pipeline,
-# engineering discipline, worker agents). No language/framework/dialect
-# plugins.
+# Full taskmaster workflow + its wired companions (task pipeline,
+# engineering discipline, worker agents, the ui-ux visual agents the
+# pipeline routes to).
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
@@ -185,7 +185,7 @@ afterwards to sweep the orphans.
 | **[debugging](plugins/debugging/README.md)** | Systematic debugging: root cause before any fix, reproduce → hypothesis → smallest experiment, bisection, three-failed-fixes stop rule | `/debugging:debug` |
 | **[git-workflow](plugins/git-workflow/README.md)** | Worktree isolation, branch finish protocol (verify → merge/PR/keep/discard → cleanup), review-exchange rigor both directions | `/git-workflow:finish` |
 | **[dev-env](plugins/dev-env/README.md)** | Scan dependencies → generate docker-compose.yml + Dockerfile matched to the stack; audit existing docker files; CI/CD + prod deploys → devops | `/dev-env:init`, `/dev-env:review` |
-| **a11y** | WCAG 2.1 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
+| **a11y** | WCAG 2.2 AA audit: semantics, ARIA rules, keyboard, focus, contrast, forms, media — violation + fix per line | `/a11y:audit` |
 | **claude-authoring** | Authoring guides for skills/agents/hooks/plugins + routine-detector (capture repetitive work as a project skill) + project-skill-suggester (proactively offer one when a task's cards share uncovered repo knowledge) | `/claude-authoring:new-skill`, `/claude-authoring:new-agent`, `/claude-authoring:new-hook`, `/claude-authoring:new-plugin` |
 
 ### Worker agents
@@ -202,7 +202,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
-| **taskmaster-suite** | Meta-bundle: taskmaster workflow + all stack-agnostic plugins (tasks, engineering discipline, worker agents) — no language/framework/dialect plugins | `/taskmaster-suite:uninstall` |
+| **taskmaster-suite** | Meta-bundle: taskmaster workflow + its wired companions (tasks, engineering discipline, worker agents, ui-ux visual routing) | `/taskmaster-suite:uninstall` |
 | **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, web worker, a11y | `/frontend-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
@@ -226,7 +226,7 @@ Plugins with their own README carry detailed usage and examples — see the link
 | **task-runner** | Executes the cards one at a time with scope lock, bounded verify-fix loops, and a full-suite completion gate |
 | **code-architecture** | Supplies the process gates used throughout: plan-before-code, YAGNI checks, and the work-verification discipline task-runner applies to the whole run |
 
-Beyond the core four, the pipeline auto-wires more companions **when they are installed** (all of them ship in the `taskmaster-suite` bundle): **approaches** (blind opinion-round personas at the approach-decision step), **claude-authoring** (the project-skill-suggester offer after card-split), and **estimation** (S/M/L/XL card sizing). It also runs internal stages that need no companion: a resumable grill ledger, a convergence cap on interrogation, an adversarial spec red-team before cards, and a spec↔card coverage gate after them.
+Beyond the core four, the pipeline auto-wires more companions **when they are installed** (all of them ship in the `taskmaster-suite` bundle): **approaches** (blind opinion-round personas at the approach-decision step), **claude-authoring** (the project-skill-suggester offer after card-split), **estimation** (S/M/L/XL card sizing), and **ui-ux** (the engineer/reviewer agents visual cards route to, plus `/ui-ux:theme`). It also runs internal stages that need no companion: a resumable grill ledger, a convergence cap on interrogation, an adversarial spec red-team before cards, and a spec↔card coverage gate after them.
 
 The full loop for a feature:
 
@@ -238,7 +238,7 @@ The full loop for a feature:
 
 Each plugin degrades gracefully when a companion is missing — taskmaster scans manifests itself without stack-scan, and task-runner accepts any task list, not just taskmaster cards. Installed together, version facts flow into clarifying questions, cards flow into disciplined execution, and verification gates close the loop.
 
-If you work on a specific stack, add its review plugin on top (e.g. `laravel` + `mysql` for a Laravel app, `react` + `ui-ux` for a React frontend) — stack-scan's inventory feeds those review commands too.
+If you work on a specific stack, add its review plugin on top (e.g. `laravel` + `mysql` for a Laravel app, `react` + `vite` for a React frontend) — stack-scan's inventory feeds those review commands too.
 
 ## Contributing
 
