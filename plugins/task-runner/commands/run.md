@@ -49,12 +49,20 @@ An **explicit** dispatch flag always overrides auto-pick. `--crew` is **orthogon
 quality flag, not a dispatch flag — and never affects the `Dispatch:` decision.
 
 1. Load the tasks and their order/dependencies; show the run plan (order, parallel
-   groups, verify command per task) before executing. Register the run for the
+   groups, verify command per task) before executing. **The plan is DISPLAYED, not an
+   approval gate** — continue into the first task in the SAME turn that shows it, with
+   the tool call in the same message. Inside a live run a turn ends through a TOOL, never
+   through prose: need a decision → ask it with `AskUserQuestion` (which is not a stop);
+   blocked → park the task with a reason. Prose that announces the next task and then
+   ends the turn ("starting card 01 now") binds nothing — the run reads live, is dead,
+   and the user waits on a turn that already ended. Register the run for the
    completion-gate Stop hook: write `.claude/task-runner/active-run.json`
-   (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>"}`; for a
-   taskmaster-index run also include `"index_path":"<00-INDEX.md>"` — the hook uses it
-   to require card counts in the gate pass) so the
-   hook can enforce that a behavioral-gate pass is recorded before the run stops clean.
+   (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>",`
+   `"branch":"<git rev-parse --abbrev-ref HEAD>"}`; for a taskmaster-index run also
+   include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
+   the gate pass) so the hook can enforce that a behavioral-gate pass is recorded before
+   the run stops clean. `branch` scopes enforcement to the run's own branch, so a
+   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional
