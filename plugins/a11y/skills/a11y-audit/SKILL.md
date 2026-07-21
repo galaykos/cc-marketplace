@@ -61,9 +61,9 @@ alone.
   element that triggered it.
 - Provide a skip link so keyboard users can bypass repeated navigation.
 - Focused element stays visible: sticky headers, toolbars, and other
-  overlays must not fully cover it (SC 2.4.11 Focus Not Obscured) — and
-  the focus indicator itself must be prominent enough to spot at a
-  glance (focus appearance).
+  overlays must not fully cover it (SC 2.4.11 Focus Not Obscured); an
+  indicator must exist and be visible (SC 2.4.7). A prominent indicator
+  (Focus Appearance, SC 2.4.13) is AAA — recommend, never flag at AA.
 
 ## Contrast (AA)
 

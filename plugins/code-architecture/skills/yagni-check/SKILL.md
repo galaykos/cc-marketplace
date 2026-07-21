@@ -18,7 +18,9 @@ does — will likely need a different shape than the one you guessed.
 
 - **Unused parameters "for later."** A function grows a `options` argument, a `strategy`
   callback, or an extra field that nothing currently passes a non-default value for. It exists
-  because someone imagined a future caller.
+  because someone imagined a future caller. This red flag targets speculative fields only — a
+  named-options object whose every field has a concrete consumer today is the boolean-param
+  fix low-cognitive-load recommends, not a violation.
 - **Single-implementation interfaces/abstract classes.** An `interface PaymentProvider` with
   exactly one class implementing it, introduced "in case we add another provider." An interface
   with one implementation isn't abstraction, it's indirection with no payoff yet.

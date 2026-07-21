@@ -68,7 +68,9 @@ renderList(items, { expanded: true });
 ```
 
 If the function starts accumulating multiple boolean flags, that's a stronger signal it's
-secretly several functions glued together — split it before adding a third flag.
+secretly several functions glued together — split it before adding a third flag. The
+named-options object is the boolean-param fix only when every field has a concrete consumer
+today; yagni-check's options-object red flag targets speculative fields, not this.
 
 ## Names carry meaning — no mental mapping
 

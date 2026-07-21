@@ -102,6 +102,10 @@ the whole dead-code story. Defer the neighbors to their owners:
 - **Dependency-level deprecation** — a whole package deprecated, abandoned, or
   yanked upstream — belongs to `packages` package-hygiene. reuse-guard reasons
   about symbols inside the repo, not the health of third-party dependencies.
+- **Pre-existing dead code passed mid-task** — a corpse you notice while editing
+  for an unrelated reason — belongs to `code-architecture` surgical-coding:
+  mention it, never delete it in an unrelated diff. The orphan rule above covers
+  only orphans *your* change creates.
 
 ## Honest limits
 

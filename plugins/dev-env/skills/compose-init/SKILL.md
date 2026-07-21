@@ -64,8 +64,8 @@ for 3 services or fewer.
 
 ## Image pinning
 
-Exact minor tags, always: `php:8.5-fpm`, `mysql:9.7`, `postgres:18`,
-`redis:8.8-alpine`, `node:24-alpine`. Never `latest`, never a bare major —
+Exact minor tags, always: `php:8.5-fpm`, `mysql:9.7`, `postgres:18.4`,
+`redis:8.8-alpine`, `node:24.13-alpine`. Never `latest`, never a bare major —
 both change under you on the next pull. When CI or a production Dockerfile
 reveals the version actually deployed, match it exactly: local/prod version
 skew is the bug class this skill exists to kill.

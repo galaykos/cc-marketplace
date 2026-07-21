@@ -24,8 +24,8 @@ strict `sql_mode`, online DDL and metadata locks, gap locking, JSON limits, and
 /mysql:review         # reviews the current diff
 ```
 
-Advice is version-aware: 8.0 is the floor; 8.4 and 9.7 (LTS since 2026-04) are the LTS lines with changed
-defaults (e.g. `mysql_native_password` disabled) — features are suggested at or
+Advice is version-aware: 8.0 is the floor; 8.4 (LTS 2024-04) and 9.7 (LTS 2026-04) are the LTS lines with changed
+defaults (`mysql_native_password` off by default in 8.4, removed in 9.x) — features are suggested at or
 below the resolved version, and MariaDB is flagged as not-MySQL.
 
 ## Pairs well with

@@ -99,16 +99,16 @@ its delegation-contracts skill; otherwise the contract above suffices.
    |---------|----------|----------|---------|
 
    Verdict is one of: aligned / detail divergence / structural divergence.
-2. Synthesize ONE pick: a short paragraph naming what was taken from
-   whom and what was given up — the same output shape
-   approach-deliberation produces, so downstream handling is identical.
+2. Synthesize ONE pick — what was taken from whom, what was given up;
+   approach-deliberation's output shape, so downstream handling is
+   identical. With surgical-coding (code-architecture) installed the pick
+   honors its scope lock — debt arguments never widen the change.
 3. State the kill-trigger: the concrete mid-implementation discovery
    that would flip the pick. A pick without a kill-trigger is a hope.
 
-One round is a hard cap. No re-dispatch, no tie-breaker agents, no
-second pass for personas to rebut the synthesis. If reality contradicts
-the pick mid-build, that is the kill-trigger firing — handle it as
-approach-deliberation prescribes, not by re-running the round.
+One round is a hard cap — no re-dispatch, no tie-breaker agents, no
+rebuttal pass. If reality contradicts the pick mid-build, that is the
+kill-trigger firing; handle it as approach-deliberation prescribes.
 
 If subagents are unavailable, skip the round entirely. There is no
 inline fallback: role-playing the quartet in the main thread reintroduces
