@@ -283,6 +283,49 @@ the width they'll actually run at, not desktop-only. Nothing to author:
 the control sizes whatever content the frames already hold, so build
 variants at real density and flip presets to check them.
 
+Hand-built pages on the shared preview server (`diagram.html`,
+`walkthrough.html`, `api.html`) are not shell instances and so do not inherit
+this control. (`theme.html` is NOT one of them — it comes from ui-ux's
+`shadcn-theming/assets/theme-shell.html`, which inlines the axis already;
+pasting it there too gives two sticky bars and a duplicate `vd-vp-bar` id.)
+They get the same axis by pasting `assets/preview-toolbar.html`
+after `<body>` and tagging each panel that should take the device width with
+`data-vd-vp` — same `data-vd-vw` body attribute, same three presets, no
+external asset. It sizes tagged panels ONLY; the host page keeps its own
+layout, and `Full` declares no width at all, so a page that never picks a
+preset renders exactly as it did before the paste. The panels' container needs
+`flex-wrap: wrap` (or auto-fit grid tracks) or a preset too wide for the window
+squeezes the row instead of wrapping it.
+
+## Favicons
+
+Every preview shares one origin, so a pipeline that opened the decision page,
+the theme page and the ERD leaves three tabs wearing the same icon. The shell
+ships a `SLOT: favicon` — one emoji drawn into an inline SVG data URI, nothing
+fetched. Swap the glyph per purpose so the tab strip stays readable:
+`current.html` 🖼 (the shell default), `theme.html` 🎨, `diagram.html` 🗂,
+`walkthrough.html` 🚶, `api.html` 🧾. Two constraints, both from the data URI:
+exactly one plain codepoint (a `#` ends the URI early, and a variation selector
+renders as a stray box in some tab strips).
+
+## Version picker
+
+`serve.py` exposes the dated passes it already has on disk at
+`GET /_versions.json`, and the shell header turns that into a picker plus a
+`Restore` button. Picking a past pass navigates to it read-only; `Restore`
+copies it over `current.html` server-side, and the reload reaches the open tab
+down the ordinary SSE lane — no separate refresh path. Reserved per-purpose
+files (`theme.html`, `walkthrough.html`, `diagram.html`, `api.html`) are live
+destinations, not history, so they are excluded from the list and rejected by
+restore; the ledger is passes of `current.html` only.
+
+Nothing to author — the control appears when the ledger has at least two
+entries and stays hidden on the static rungs and over `file://`, where the
+route does not exist. Restore is the server's ONLY write, so it is gated on a
+local `Origin`/`Host`, a `X-Preview-Restore` header no cross-origin form can
+set (another localhost PORT would otherwise pass the host check), a bounded
+body, and a name that must be a bare basename resolving inside the docroot.
+
 ## Direction
 
 Direction (LTR/RTL) is a preview axis, like width and scheme: the header's

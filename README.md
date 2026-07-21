@@ -106,7 +106,7 @@ afterwards to sweep the orphans.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + shadcn theme builder with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
+| **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + theme builder (shadcn/ReUI/Aceternity, Tailwind, Bootstrap) with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |

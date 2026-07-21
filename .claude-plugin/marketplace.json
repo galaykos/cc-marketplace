@@ -12,7 +12,7 @@
     {
       "name": "ui-ux",
       "source": "./plugins/ui-ux",
-      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), shadcn theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents."
+      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), theme creation for shadcn/ReUI/Aceternity, Tailwind, or Bootstrap with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents."
     },
     {
       "name": "react",

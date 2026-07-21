@@ -15,8 +15,10 @@ Stdlib only. Usage:
 import argparse
 import functools
 import http.server
+import json
 import os
 import queue
+import shutil
 import sys
 import threading
 from pathlib import Path
@@ -25,6 +27,19 @@ MAX_SSE_CLIENTS = 8
 POLL_INTERVAL_SECONDS = 0.75
 KEEPALIVE_SECONDS = 15
 LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
+# Reserved per-purpose destinations other flows write to (see the landing map).
+PER_PURPOSE_FILES = ("theme.html", "walkthrough.html", "diagram.html", "api.html")
+# The ledger is the dated-pass history ONLY. A per-purpose file is a live
+# destination, not a past pass of current.html, so offering it as a restorable
+# version would let one click overwrite the decision page with the theme page.
+LEDGER_EXCLUDED = {"current.html", "index.html"} | set(PER_PURPOSE_FILES)
+# Restore is the one state-changing route, so it demands a header no
+# cross-origin <form> can set. That forces a CORS preflight, which this server
+# never answers, so a page on another localhost PORT cannot drive it — the
+# Host/Origin check alone would let it through, since every port shares the
+# hostname `localhost`.
+RESTORE_HEADER = "X-Preview-Restore"
+MAX_RESTORE_BODY = 4096
 
 
 def hostname_from_netloc(netloc):
@@ -142,7 +157,19 @@ def build_handler(state):
                 self.serve_gallery()
                 return
             # --- end ADDITIVE ---------------------------------------------------
+            # Ledger lane: the dated passes already on disk, as data, so an open
+            # preview can offer them as versions instead of making the user read
+            # the landing map and retype a filename.
+            if path == "/_versions.json":
+                self.serve_versions()
+                return
             super().do_GET()
+
+        def do_POST(self):
+            if self.path.split("?", 1)[0] == "/_restore":
+                self.handle_restore()
+                return
+            self.send_error(404, "Not Found")
 
         def handle_sse(self):
             if not self.is_local_request():
@@ -203,6 +230,93 @@ def build_handler(state):
             self.end_headers()
             self.wfile.write(payload)
 
+        def _send_json(self, obj, status=200):
+            payload = json.dumps(obj).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def _ledger_entry(self, name):
+            """(name, mtime) for a top-level ledger .html, or None if excluded."""
+            low = name.lower()
+            if "/" in name or not low.endswith(".html") or low in LEDGER_EXCLUDED:
+                return None
+            try:
+                return (name, (state.docroot / name).stat().st_mtime)
+            except OSError:
+                return None
+
+        def serve_versions(self):
+            """JSON list of the dated ledger passes, newest first.
+
+            Feeds the shell's version picker. Read-only and local-guarded like
+            every other synthesized route.
+            """
+            if not self.is_local_request():
+                self.send_error(403, "Forbidden (non-local Origin/Host)")
+                return
+            entries = []
+            for rel, _stat in scan_mtimes(state.docroot):
+                entry = self._ledger_entry(rel)
+                if entry is not None:
+                    entries.append(entry)
+            entries.sort(key=lambda item: item[1], reverse=True)
+            self._send_json({
+                "current": "current.html",
+                "versions": [{"name": n, "mtime": m} for n, m in entries],
+            })
+
+        def handle_restore(self):
+            """Copy a chosen ledger pass over current.html (rollback).
+
+            The ONLY route that writes. Four independent gates, because a
+            localhost port is not a trust boundary: local Origin/Host, the
+            preflight-forcing custom header, a bounded body, and a name that
+            must be a bare basename resolving to an existing top-level ledger
+            file inside the docroot. The destination is hardcoded — a request
+            never names what it overwrites.
+            """
+            if not self.is_local_request():
+                self.send_error(403, "Forbidden (non-local Origin/Host)")
+                return
+            if not self.headers.get(RESTORE_HEADER):
+                self.send_error(403, "Forbidden (missing %s)" % RESTORE_HEADER)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = -1
+            if length < 0 or length > MAX_RESTORE_BODY:
+                self.send_error(413, "Body too large")
+                return
+            try:
+                body = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+                name = body["name"]
+            except (ValueError, KeyError, UnicodeDecodeError):
+                self._send_json({"ok": False, "error": "bad request body"}, 400)
+                return
+            # Reject anything that is not a plain basename BEFORE touching the
+            # filesystem: Path('a/../b').name would quietly launder a traversal.
+            if (not isinstance(name, str) or not name or name != Path(name).name
+                    or name in (".", "..") or self._ledger_entry(name) is None):
+                self._send_json({"ok": False, "error": "not a ledger file"}, 400)
+                return
+            source = (state.docroot / name).resolve()
+            if source.parent != state.docroot or not source.is_file():
+                self._send_json({"ok": False, "error": "not a ledger file"}, 400)
+                return
+            try:
+                shutil.copyfile(source, state.docroot / "current.html")
+            except OSError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, 500)
+                return
+            # No explicit broadcast: the watcher sees current.html's new mtime
+            # and pushes the reload down the same lane every other edit uses.
+            self._send_json({"ok": True, "restored": name})
+
         def serve_landing(self):
             """Synthesized session-map landing for '/' (no user index.html present).
 
@@ -227,8 +341,7 @@ def build_handler(state):
                     gallery_count += 1
 
             present = {name for name, _ in top_html}
-            per_purpose_order = ["theme.html", "walkthrough.html", "diagram.html", "api.html"]
-            per_purpose = [n for n in per_purpose_order if n in present]
+            per_purpose = [n for n in PER_PURPOSE_FILES if n in present]
             special = {"current.html"} | set(per_purpose)
             ledger = sorted(
                 ((n, m) for n, m in top_html if n not in special),

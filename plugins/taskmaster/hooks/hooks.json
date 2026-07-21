@@ -8,6 +8,14 @@
           { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra-goal.sh" }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Artifact",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh" }
+        ]
+      }
     ]
   }
 }

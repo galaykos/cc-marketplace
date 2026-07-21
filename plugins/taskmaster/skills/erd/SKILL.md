@@ -63,13 +63,18 @@ Server mechanics are visual-decisions' own, reused as-is:
   no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
   `npx serve taskmaster-docs/mockups`). Port busy?
   `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump the port.
-- Write every pass to `diagram.html` — the user's open tab sees each revision
-  in place. The slot is per-purpose: never overwrite `current.html` or the
-  other reserved files.
+- Write every pass to `diagram.html`, with a 🗂 favicon as an inline SVG data
+  URI so it is findable among the sibling preview tabs — the user's open tab
+  sees each revision in place. The slot is per-purpose: never overwrite
+  `current.html` or the other reserved files.
 
-Hand-built means hand-built: no mermaid.js, no external assets, no fetched
-fonts or scripts, nothing animated. A rect-and-text SVG renders in any tab
-and needs no network.
+The SVG may be produced two ways, and the ban is on the RUNTIME include, never
+on the tool: compile the approved mermaid `erDiagram` with a local mermaid CLI
+(`mmdc -i model.mmd -o model.svg`) and inline the result when that CLI exists —
+same author-time rung visual-decisions already sanctions for topology — else
+hand-build it. Either way the shipped page holds a rect-and-text SVG and zero
+script: no mermaid.js, no external assets, no fetched fonts, nothing animated.
+It renders in any tab, needs no network, and never re-parses at view time.
 
 Quick-ASCII tier: box-drawing entities with relation arrows, straight in chat:
 
@@ -137,8 +142,8 @@ silent schema drift.
 
 - Every-column entity dumps — a 30-attribute box buries the keys that decide
   the shape; the diagram is structure, not a data dictionary.
-- mermaid.js (or any external asset) in the preview — mermaid is the spec
-  format, hand-built SVG is the preview format; never confuse the two.
+- mermaid.js (or any external asset) loaded BY the preview — mermaid is the
+  spec format and a fine author-time compiler; a runtime include is neither.
 - Re-asking fidelity consent when visual-decisions already asked this session.
 - One mega-diagram past ~10 entities instead of per-subdomain splits.
 - Generating DDL or migrations "since the model is approved" — implementation

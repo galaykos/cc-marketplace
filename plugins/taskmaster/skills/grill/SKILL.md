@@ -80,7 +80,9 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
   text-native tradeoffs, even on UI tasks. Use context-scout's Visual surface
   section as the prior. The skill asks its own fidelity consent on first use —
   never build a mockup before that gate; on a "no mockups" answer, present the
-  choice as plain multiple-choice instead.
+  choice as plain multiple-choice instead. Colour/theme IS the decision →
+  `/ui-ux:theme`. Either way the options render on the local preview server —
+  never stand one up with the built-in Artifact tool, which skips both skills.
 - Data models — switch to the `erd` skill when the ledger touches persistent data (two-plus
   entities, any relation change); the approved model lands in the spec's Data Model section.
 - "You decide" / "whatever you think": convert the row to ASSUMED with your named
