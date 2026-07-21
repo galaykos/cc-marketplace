@@ -32,5 +32,5 @@ enums and readonly properties on 8.1+, `readonly` classes and DNF types on 8.2+,
 ## Pairs well with
 
 - **laravel** — framework rules for Laravel apps built on this PHP layer
-- **livewire** — component-side review for Livewire 3 on the same PHP base
+- **livewire** — component-side review for Livewire 3/4 on the same PHP base
 - **packages** — audits the composer dependencies this advice pins against

@@ -32,7 +32,7 @@ pinning from each other.
 
 ## Base image choice
 
-Exact minor tags: `php:8.3-fpm`, `node:22-alpine`, `postgres:17`. `latest`
+Exact minor tags: `php:8.5-fpm`, `node:24-alpine`, `postgres:18`. `latest`
 and bare majors make builds nondeterministic. Slim/alpine trade-offs are
 real, not aesthetic: alpine is musl, not glibc — native Node modules may need
 recompiling or fail silently, PHP extension builds need `apk` package name

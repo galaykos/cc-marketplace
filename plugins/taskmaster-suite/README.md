@@ -2,8 +2,8 @@
 
 Meta-bundle: the full clarification-to-execution workflow plus its wired
 companions — taskmaster planning, task-runner execution, engineering
-discipline, the stack-agnostic review/process toolkit, and the pipeline's
-visual path (ui-ux, design-preview). Uninstalls cleanly:
+discipline, the stack-agnostic review/process toolkit, and the ui-ux agents
+the pipeline's visual cards route to. Uninstalls cleanly:
 `/taskmaster-suite:uninstall` removes the bundle and prunes the plugins it
 auto-installed.
 
@@ -33,7 +33,6 @@ auto-installed.
 - **dev-env** — docker-compose generation and Docker best-practice audits
 - **web-dev** — generalist web-developer worker and frontend-reviewer agents
 - **ui-ux** — ui-ux engineer + reviewer agents and `/ui-ux:theme` that the pipeline's visual cards route to
-- **design-preview** — serves visual-decision mockups on a live preview port for full-fidelity picks
 - **system-design** — system design and domain-modeling review
 - **devops** — CI/CD, Kubernetes, and deploy/secret config review
 - **database** — engine-agnostic schema, migration, and indexing review
@@ -59,11 +58,15 @@ auto-installed.
 ## What's excluded, and why
 
 Inclusion test: a plugin joins this bundle when the pipeline hard-wires it into
-the default flow — ui-ux (the closed agent-tag set and `/ui-ux:theme`) and
-design-preview (visual-decisions' in-repo mockup preview) are in for exactly
-that reason. Notable exclusions: **shadcn-studio** — pipeline-referenced but a standalone
-opt-in staging sandbox that stands up its own dev server (the greenfield /
-non-React path); **laravel** and the other stack plugins — stack-specific;
+the default flow — ui-ux is in for exactly that reason (the closed agent-tag
+set routes visual cards to its engineer/reviewer agents, and specs bind
+`/ui-ux:theme`); without it those cards degrade to generic routing. Notable
+exclusions: **design-preview** and **shadcn-studio** — the two optional
+full-fidelity escalations above taskmaster's built-in mockup preview; both are
+"when installed" upgrades, stack-specific (design-preview: existing Vite+React
+projects, renders real components via the project's own dev server;
+shadcn-studio: greenfield/non-React, stands up its own dev server);
+**laravel** and the other stack plugins — stack-specific;
 **intent-guard**, **secret-scanning**, **reuse-guard**, **compaction-advisor** —
 hook-heavy and behavior-changing, install them deliberately;
 **ultra-deep-research** — heavy research harness, opt-in.
@@ -77,5 +80,5 @@ hook-heavy and behavior-changing, install them deliberately;
 ## Pairs well with
 
 - **php-suite** — PHP/Laravel/Livewire/Inertia stack specifics the bundle leaves out
-- **frontend-suite** — React/Vue/TS framework specifics left out of this bundle
+- **frontend-suite** — React/Vue/TS framework specifics plus the design-preview/shadcn-studio fidelity escalations, all left out of this bundle
 - **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

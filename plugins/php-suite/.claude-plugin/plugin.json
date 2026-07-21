@@ -1,6 +1,6 @@
 {
   "name": "php-suite",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Meta-bundle: the PHP category in one install — PHP and Laravel best practices, Livewire, Inertia, Vite (Laravel's default asset bundler), and the generalist web worker. Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",

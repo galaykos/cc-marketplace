@@ -277,7 +277,7 @@
     {
       "name": "a11y",
       "source": "./plugins/a11y",
-      "description": "Dedicated accessibility: WCAG 2.1 AA audit for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix — plus an a11y-engineer worker that applies the fix list, preferring native semantics over ARIA patches and tagging each change with its WCAG criterion. Includes /a11y:audit."
+      "description": "Dedicated accessibility: WCAG 2.2 AA audit for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix — plus an a11y-engineer worker that applies the fix list, preferring native semantics over ARIA patches and tagging each change with its WCAG criterion. Includes /a11y:audit."
     },
     {
       "name": "observability",
@@ -357,7 +357,7 @@
     {
       "name": "taskmaster-suite",
       "source": "./plugins/taskmaster-suite",
-      "description": "Meta-bundle: the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the stack-agnostic review/process toolkit, and the pipeline's visual path (ui-ux, design-preview). Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the stack-agnostic review/process toolkit, and the ui-ux agents the pipeline's visual cards route to. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "skill-router",

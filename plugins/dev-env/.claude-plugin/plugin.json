@@ -1,6 +1,6 @@
 {
   "name": "dev-env",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan. Owns local development environments; defers CI/CD pipelines and production deploys to the devops plugin.",
   "author": {
     "name": "Ivan-WG",

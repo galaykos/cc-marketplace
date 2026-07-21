@@ -9,7 +9,7 @@ Every service, image tag, and extension in the generated files traces to a
 file in the repo. The doctrine is inherited from stack-scan: lock beats
 manifest, runtime beats lock — a compose file written from memory is fiction
 with YAML syntax. Cite the source for every choice in the proposal
-(`php:8.3-fpm — config.platform.php`), and anything unverifiable gets an
+(`php:8.5-fpm — config.platform.php`), and anything unverifiable gets an
 explicit `ASSUMED` marker in the output plus one line saying why.
 
 When the stack-scan plugin is installed, run its installed-versions inventory
@@ -64,8 +64,8 @@ for 3 services or fewer.
 
 ## Image pinning
 
-Exact minor tags, always: `php:8.3-fpm`, `mysql:8.4`, `postgres:17`,
-`redis:7.4-alpine`, `node:22-alpine`. Never `latest`, never a bare major —
+Exact minor tags, always: `php:8.5-fpm`, `mysql:9.7`, `postgres:18`,
+`redis:8.8-alpine`, `node:24-alpine`. Never `latest`, never a bare major —
 both change under you on the next pull. When CI or a production Dockerfile
 reveals the version actually deployed, match it exactly: local/prod version
 skew is the bug class this skill exists to kill.

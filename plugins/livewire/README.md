@@ -1,6 +1,6 @@
 # livewire
 
-Livewire 3 best practices: deferred `wire:model` and `.live`/`.blur`/`.debounce`
+Livewire 3/4 best practices: deferred `wire:model` and `.live`/`.blur`/`.debounce`
 modifiers, `#[Computed]` and `#[Locked]` properties, component granularity and
 `wire:key` in loops, `WithPagination`, events vs props, and Alpine interop via
 `$wire`.

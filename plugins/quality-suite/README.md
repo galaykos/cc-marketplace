@@ -21,7 +21,7 @@ auto-installed.
 - **design-patterns** — GoF pattern selection (or rejection) for a described problem, plus `/design-patterns:suggest`
 - **testing** — test pyramid, mocking boundaries, flaky-test causes, TDD workflow, plus `/testing:review`
 - **security** — OWASP-aligned code review and design-phase threat modeling, plus `/security:review`
-- **a11y** — WCAG 2.1 AA audit, one line per violation with the concrete fix, plus `/a11y:audit`
+- **a11y** — WCAG 2.2 AA audit, one line per violation with the concrete fix, plus `/a11y:audit`
 - **debugging** — systematic root cause with evidence before any fix, plus `/debugging:debug`
 - **performance** — measure-first hotspot and cache-correctness review, plus `/performance:review`
 - **resilience** — timeouts, safe retries, and degradation paths at integration points, plus `/resilience:review`

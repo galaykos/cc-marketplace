@@ -104,7 +104,7 @@ You:     /taskmaster Add CSV export to the orders page. Users should be able
 
 Claude:  Scanned the codebase first (context-scout): orders page at
          resources/js/Pages/Orders/Index.vue, an existing queued + chunked XLSX
-         export in app/Exports/InvoiceExport.php, Laravel 11.34 and
+         export in app/Exports/InvoiceExport.php, Laravel 13.20 and
          maatwebsite/excel 3.1 installed (composer.lock).
 
          Round 1 — 4 questions:
