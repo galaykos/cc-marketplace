@@ -36,6 +36,23 @@ Status lives in the task index and the conversation — no HTML dashboards.
 HTML/preview artifacts are reserved for content that needs them: mockups,
 interactive walkthroughs, demos.
 
+## The run cannot end by narration
+
+A run registers itself at start, and a Stop hook refuses to let it end while the
+work is unfinished — no recorded behavioral-gate pass for the current HEAD, or
+cards neither done nor parked. Ending a turn with "starting card 01 now" and no
+tool call is blocked and fed back, so an announced next step actually happens
+instead of leaving a dead turn the user waits on. An intentional pause is a tool,
+not prose: a question via `AskUserQuestion`, or a parked card with a reason.
+
+The block is bounded twice over: it fires only on the branch the run registered
+itself on, and at most once per commit — so a genuine stop costs one extra turn,
+each new commit re-arms the gate for the next card, and a sentinel left behind by
+an abandoned run cannot nag every stop in the repo. That sentinel is
+`.claude/task-runner/active-run.json`; deleting it retires a run that will never
+finish. Set `TASK_RUNNER_STOP_GATE=warn` to downgrade the block to a printed
+reminder everywhere.
+
 ## Pairs well with
 
 - **taskmaster** — produces the task cards this plugin executes

@@ -51,8 +51,14 @@ Recommend DELEGATE when ALL hold:
   than on work — but a **same-worker disjoint S-cluster (≥3)** BATCHes into one
   agent when its level has a concurrent sibling (see Batching below).
 
-Otherwise recommend INLINE. Borderline (1.2–1.5×): present both, note the
-tie, default inline — predictability beats a thin win.
+Otherwise recommend INLINE. Borderline (1.2–1.5×): present both, note the tie, default
+inline — predictability beats a thin win.
+
+INLINE is a claim, not a fallback. On a level holding ≥2 tasks with disjoint file sets,
+INLINE must NAME the coupling forcing it — the shared file, the predicate two cards would
+each implement, the registry every variant edits, or a lone batch with no concurrent
+sibling. No nameable reason → DELEGATE (or BATCH) per the rules above. "Simpler serial"
+is not one; nor is a blanket INLINE across a long run's every level — the shape this catches.
 
 The recommendation names each level's verdict AND a run-level `Dispatch:`
 mechanism (below); it is the Run-now default and, under a `Goal:` marker,
