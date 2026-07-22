@@ -67,7 +67,7 @@ dispatch the reviewer and delegated worker agents with a `model:` override — e
 markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
 escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
 trailing `(model=…, effort=…)` sets the tier — `model=auto` resolves HERE, to the executing session's model or opus, whichever is higher (haiku<sonnet<opus<fable); a malformed one falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at
-run start, boosted or not: `⚡ Ultra run — workers model=auto→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>)`. The Agent tool escalates model
+run start, boosted or not: `⚡ Ultra run — workers model=auto→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` = `$CLAUDE_EFFORT` when the harness exposes it — `echo ${CLAUDE_EFFORT:-inherit}` — else the literal `inherit`). The Agent tool escalates model
 only (marker `effort` applies on the `Workflow` path). Delegated stack implementers also
 get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to
 apply`). Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced

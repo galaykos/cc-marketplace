@@ -14,7 +14,7 @@ ui-ux plugin skills. Steps:
 2. Detect which stacks the code uses (shadcn/ui, ReUI, Aceternity UI, Tailwind, plain CSS3,
    Bootstrap, Grid, Flexbox). Registry-sourced components are detected by their files under
    `components/ui/*` and imports of `motion`/`framer-motion`, not by a package.json entry.
-   Animation/motion work is detected by any of: `framer-motion`/`motion`/`gsap` imports,
+   Animation/motion work is detected by any of: `framer-motion`/`motion`/`gsap`/`animejs` imports,
    `@keyframes` blocks, `transition-*`/`animate-*` utility classes or `transition:`/
    `animation:` CSS declarations, `animation-timeline`, `@starting-style`, or
    `document.startViewTransition` — any hit selects the motion-best-practices skill in
@@ -26,7 +26,8 @@ ui-ux plugin skills. Steps:
    of memory: MDN (https://developer.mozilla.org) for CSS3/Grid/Flexbox,
    https://tailwindcss.com/docs, https://ui.shadcn.com/docs, https://reui.io/docs,
    https://ui.aceternity.com/components, https://getbootstrap.com/docs,
-   https://motion.dev/docs and https://gsap.com/docs for animation libraries. ReUI and
+   https://motion.dev/docs, https://gsap.com/docs, and https://animejs.com/documentation/
+   for animation libraries. ReUI and
    Aceternity have no npm version to pin — their current docs page is the only source of truth.
 6. Report findings as `path:line — problem — fix`, ordered by severity.
 7. Do not report formatting nits unless they change rendering behavior.

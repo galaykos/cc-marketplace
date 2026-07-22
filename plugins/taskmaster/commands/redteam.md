@@ -10,7 +10,7 @@ spec under `taskmaster-docs/specs/`).
 **Run-status line (always):** print ONE status line as the first visible output of
 every run, boosted or not — a boosted run prints the ⚡ banner (owned by the
 ultra/ultra-goal skill; the banner IS its status line); a standard run prints
-`▷ taskmaster standard run — subagents inherit the session model (<model>) · boost: off`.
+`▷ taskmaster standard run — subagents inherit the session model (<model>) · effort: <effort> · boost: off` — substitute `<model>` with the session model and `<effort>` with `$CLAUDE_EFFORT` (resolve via `echo ${CLAUDE_EFFORT:-inherit}`); when the harness does not expose it, that prints the literal `inherit`.
 
 
 **Ultra flag:** run in Extreme Boost mode ONLY when $ARGUMENTS *begins* with a

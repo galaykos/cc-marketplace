@@ -1,6 +1,6 @@
 ---
 name: motion-best-practices
-description: Use when writing or reviewing UI animation — transitions/@keyframes, @starting-style, scroll-driven animations, View Transitions, Motion (ex-Framer), GSAP, microinteractions, easing, prefers-reduced-motion.
+description: Use when writing or reviewing UI animation — transitions/@keyframes, @starting-style, scroll-driven animations, View Transitions, Motion (ex-Framer), GSAP, anime.js (animejs), microinteractions, easing, prefers-reduced-motion.
 ---
 
 ## `prefers-reduced-motion` is a hard rule, not a nice-to-have
@@ -13,10 +13,8 @@ feedback: an opacity crossfade is usually a safe substitute for a slide or zoom.
 ```css
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
   }
 }
 ```
@@ -65,9 +63,7 @@ Reduced-motion fallback:
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
-    animation: none !important;
-  }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
 ```
 
@@ -82,12 +78,9 @@ Reduced-motion fallback: wrap the tree in `<MotionConfig reducedMotion="user">` 
 animations are disabled system-wide automatically, or branch on `useReducedMotion()` for
 per-component crossfade substitutes.
 
-2026 additions (verify on motion.dev before use):
-- `animateView` (12.41+, promoted from Motion+ alpha) — view transitions driven from JS;
-  prefer it over hand-rolled `document.startViewTransition` wiring.
-- Vue is first-class via the official `motion-v` package — same API shape as `motion/react`.
-- `spring()` exports to plain CSS (motion.dev/docs/css): `transition: transform ${spring(...)}`
-  compiles to a `linear(...)` easing — spring feel with zero JS on the hot path.
+2026 additions (verify on motion.dev before use): `animateView` (12.41+) for JS-driven
+view transitions — prefer it over hand-rolled `startViewTransition` wiring; official
+`motion-v` for Vue; `spring()` compiles to CSS `linear(...)` easing — spring feel, zero JS.
 
 ## GSAP
 
@@ -102,13 +95,28 @@ Deeper GSAP recipes (ScrollTrigger architecture, SplitText, timeline composition
 
 ```js
 const mm = gsap.matchMedia();
-mm.add("(prefers-reduced-motion: no-preference)", () => {
-  gsap.from(".card", { y: 40, opacity: 0, stagger: 0.1 });
-});
-mm.add("(prefers-reduced-motion: reduce)", () => {
-  gsap.set(".card", { opacity: 1 }); // final state, no movement
-});
+mm.add("(prefers-reduced-motion: no-preference)", () => gsap.from(".card", { y: 40, opacity: 0, stagger: 0.1 }));
+mm.add("(prefers-reduced-motion: reduce)", () => gsap.set(".card", { opacity: 1 })); // final state
 ```
+
+## anime.js
+
+anime.js v4 (npm `animejs`, ESM-only) is the lightweight dependency-free option for
+imperative tweens and timelines. v4 rewrote the API: `animate(target, params)` replaces
+v3's `anime({ targets })`, `easing` became `ease`, timelines come from `createTimeline()`,
+staggering from `stagger()`, scroll-linked play from `autoplay: onScroll(...)`. Deeper
+recipes (timelines, scope/cleanup, WAAPI variant, SVG): `references/animejs.md`.
+Reduced-motion fallback: `createScope` with a `prefers-reduced-motion` media query,
+branching to `utils.set(target, finalState)` when it matches.
+
+## Choosing a library
+
+- CSS first: transitions, `@keyframes`, and scroll-driven animations cover most UI motion with zero JS.
+- Motion — declarative React/Vue component animation: gestures, layout and exit transitions.
+- GSAP — complex imperative timelines, ScrollTrigger scenes, SplitText typography.
+- anime.js — lightweight dependency-free imperative tweens/timelines, vanilla-first codebases.
+- Three.js (separate `threejs` plugin) — WebGL/3D scenes, not DOM animation.
+- One writer per property per element: never point two libraries at the same `transform`.
 
 ## Animate on the compositor
 
@@ -132,7 +140,8 @@ mm.add("(prefers-reduced-motion: reduce)", () => {
 - JS scroll listeners recalculating styles per scroll event where `animation-timeline`
   or an `IntersectionObserver` toggle would do.
 - Assuming GSAP plugins still require a paid Club license (free since 3.13).
-- Importing `framer-motion` in new code instead of `motion` / `motion/react`.
+- Importing `framer-motion` in new code instead of `motion` / `motion/react`; calling
+  anime.js v4 with v3's `anime({ targets })` style or `easing:` param.
 - Treating View Transitions as required: no feature detection, broken flow when
   `startViewTransition` is missing.
 - Infinite or autoplaying decorative loops with no pause affordance.
@@ -141,5 +150,5 @@ mm.add("(prefers-reduced-motion: reduce)", () => {
 
 Browser support moves fast here — Firefox's scroll-driven-animations flag and cross-document
 View Transitions status were the open gaps as of mid-2026. Check https://caniuse.com and MDN
-before asserting support, https://motion.dev/docs for Motion, and https://gsap.com/docs for
-GSAP APIs and plugin names.
+before asserting support, https://motion.dev/docs for Motion, https://gsap.com/docs for
+GSAP APIs and plugin names, and https://animejs.com/documentation/ for anime.js v4.
