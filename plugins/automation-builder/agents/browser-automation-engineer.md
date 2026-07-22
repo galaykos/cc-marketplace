@@ -38,8 +38,8 @@ Domain checklist — apply to every automation:
   a re-run does not double-submit or double-scrape.
 - Sessions: persist auth (storage state, cookies, profile) so runs do not
   re-login every time; state where the session lives.
-- Cleanup: always stop browsers and close/release profiles, even on failure —
-  leaked instances exhaust the profile pool and leave headless Chrome running.
+- Cleanup: always close pages, contexts, and browsers, even on failure —
+  leaked instances leave headless browsers running and exhaust runner memory.
 - Proxy: route through the planned proxy when the target blocks datacenter IPs.
 
 Defer rule: tool doc navigation belongs to the `<tool>-docs` skills and planning
