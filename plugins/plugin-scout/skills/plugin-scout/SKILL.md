@@ -61,7 +61,6 @@ Eighteen plugins, each earned by one signal:
 | .env DB_CONNECTION=mysql OR mysql docker image | mysql |
 | mariadb docker image or DSN | mariadb |
 | pgsql/postgres DSN or docker image | postgresql |
-| facebook/graph SDK deps (composer or npm) | meta-api |
 
 When the vue major is ambiguous (constraint spans majors, or lock and manifest
 disagree), ask via AskUserQuestion: "Vue 3 (Recommended)" / "Vue 2" — never

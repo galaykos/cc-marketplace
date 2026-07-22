@@ -2,8 +2,7 @@
 
 Verify current API docs before writing integration code; ask for a URL or file
 when docs are missing. For consuming third-party APIs — designing your own REST
-APIs is the api-design plugin's domain, and Meta/Facebook platform specifics
-belong to meta-api.
+APIs is the api-design plugin's domain.
 
 ## Install
 
@@ -38,6 +37,5 @@ belong to meta-api.
 ## Pairs well with
 
 - **api-design** — designing your own REST APIs, the flip side of consuming others'
-- **meta-api** — Meta/Facebook Graph API specifics this plugin defers to
 - **security** (api-auth skill) — reviewing the auth model of the API you are integrating
 - **stack-scan** — inventories the installed versions this plugin verifies docs against

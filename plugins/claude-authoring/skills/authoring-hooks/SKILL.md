@@ -58,8 +58,8 @@ way: each event maps to groups, each group to a "hooks" array.
 
 ## A real example
 
-All three hook-bearing plugins in this repo — taskmaster, meta-api,
-api-docs-first — share this exact hooks.json shape:
+The hook-bearing plugins in this repo — taskmaster and api-docs-first
+among them — share this exact hooks.json shape:
 
     {
       "hooks": {
