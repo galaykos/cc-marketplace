@@ -1,0 +1,13 @@
+{
+  "name": "fresh-take",
+  "version": "0.1.0",
+  "description": "Independent stronger-model second opinion at key moments — stuck debugging or an imminent irreversible action. /fresh-take:consult composes a facts-only brief (no leaning) and dispatches a blind opus consultant with read-only repo access; it returns a Take, Risks, and one Alternative. A UserPromptSubmit reminder hook nudges the command on key-moment phrases. Advice only — it never blocks, gates, or edits anything.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "quality",
+    "tooling"
+  ]
+}

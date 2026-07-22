@@ -408,6 +408,11 @@
       "name": "threejs",
       "source": "./plugins/threejs",
       "description": "Three.js best practices: WebGPURenderer-first with automatic WebGL2 fallback (WebGPU is Baseline since Jan 2026), TSL shaders, react-three-fiber/drei integration, asset pipelines (glTF/Draco/KTX2), disposal and leak discipline, render-loop and draw-call performance, version-aware against the locked three revision. Includes /threejs:review."
+    },
+    {
+      "name": "fresh-take",
+      "source": "./plugins/fresh-take",
+      "description": "Independent stronger-model second opinion at key moments — stuck debugging or an imminent irreversible action. /fresh-take:consult composes a facts-only brief (no leaning) and dispatches a blind opus consultant with read-only repo access; it returns a Take, Risks, and one Alternative. A UserPromptSubmit reminder hook nudges the command on key-moment phrases. Advice only — it never blocks, gates, or edits anything."
     }
   ]
 }
