@@ -66,7 +66,8 @@ feature-shaped prompt (build/add/implement…) with thin detail.
 Prefix any taskmaster command with a bare `goal` (as its first argument) or drop an
 `ultra-goal`/`ultragoal` token anywhere in the prompt to run the pipeline
 **hands-off**. An optional `-<model>[-<effort>]` suffix picks the tier (defaults
-opus/xhigh); `ultra-goal` implies the full `ultra-task` boost, and when an explicit
+auto/xhigh — the session model or opus, whichever is higher; an explicit model
+pins); `ultra-goal` implies the full `ultra-task` boost, and when an explicit
 `ultra-task` token is also present its tier wins. The `ultra-goal` skill owns the
 full contract.
 

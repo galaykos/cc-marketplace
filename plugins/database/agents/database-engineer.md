@@ -2,7 +2,7 @@
 name: database-engineer
 description: Use PROACTIVELY for schema design, migrations, indexing, query optimization, or connection-pooling work in any relational database.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: database-design,sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices
 ---

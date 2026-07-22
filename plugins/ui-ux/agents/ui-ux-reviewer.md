@@ -2,7 +2,7 @@
 name: ui-ux-reviewer
 description: Use PROACTIVELY after modifying markup or styles ONLY — shadcn/Tailwind/CSS3/Bootstrap/Grid/Flexbox best practices and accessibility basics. Component logic → frontend-reviewer.
 tools: Read, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: tailwind-best-practices,shadcn-best-practices,bootstrap-best-practices,motion-best-practices
 ---

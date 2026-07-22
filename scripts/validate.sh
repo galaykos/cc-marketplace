@@ -68,7 +68,7 @@ for f in plugins/*/commands/*.md plugins/*/agents/*.md; do
   case "$f" in
     */agents/*)
       echo "$fm" | grep -q '^name:' || err "$f: frontmatter missing name:"
-      echo "$fm" | grep -q '^model:' || err "$f: frontmatter missing model: (agents default to sonnet)"
+      echo "$fm" | grep -q '^model:' || err "$f: frontmatter missing model: (pin a tier or use 'inherit')"
       echo "$fm" | grep -q '^effort:' || err "$f: frontmatter missing effort: (agents default to xhigh)"
       echo "$fm" | grep -q '^description:.*\(PROACTIVELY\|Spawned by\)' || err "$f: agent description needs PROACTIVELY or a sub-dispatch marker (Spawned by)"
       ;;

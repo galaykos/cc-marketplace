@@ -2,7 +2,7 @@
 name: performance-engineer
 description: Use PROACTIVELY when something is measurably slow or heavy — profiling, bundle size, caching, Core Web Vitals, N+1 queries, load testing.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: performance-tuning
 ---

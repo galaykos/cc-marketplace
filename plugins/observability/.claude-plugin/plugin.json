@@ -1,6 +1,6 @@
 {
   "name": "observability",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Application observability with judgment: structured JSON logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace-context propagation, symptom-based alerting, honest health checks — plus an observability-engineer worker that adds the instrumentation (deferring infra-layer wiring to devops). Includes /observability:review.",
   "author": {
     "name": "Ivan-WG",

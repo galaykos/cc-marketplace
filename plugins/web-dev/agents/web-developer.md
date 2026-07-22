@@ -2,7 +2,7 @@
 name: web-developer
 description: Use PROACTIVELY for general web implementation work — routing, REST/API integration, forms and validation, state management, SSR/CSR decisions — when no single framework plugin owns the task.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: react-best-practices,vue2-best-practices,vue3-best-practices,javascript-best-practices,typescript-best-practices,laravel-best-practices,nextjs-best-practices,nuxt-best-practices,node-backend-best-practices
 ---

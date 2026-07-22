@@ -2,7 +2,7 @@
 name: frontend-reviewer
 description: Use PROACTIVELY after changing React/Vue/Inertia/Livewire/TypeScript component or view LOGIC — framework correctness (state, effects, keys, data fetching) against the matching best-practice skill; also react-native and vite. Read-only counterpart to web-developer. Styles-only diffs → ui-ux-reviewer.
 tools: Read, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: react-best-practices,react-native-best-practices,vue2-best-practices,vue3-best-practices,javascript-best-practices,typescript-best-practices,vite-best-practices,nextjs-best-practices,nuxt-best-practices
 ---

@@ -2,7 +2,7 @@
 name: ui-ux-engineer
 description: Use PROACTIVELY to implement UI work — layouts, breakpoints, spacing, color, placement, hierarchy. Worker twin of ui-ux-reviewer.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: tailwind-best-practices,shadcn-best-practices,bootstrap-best-practices,motion-best-practices
 ---
