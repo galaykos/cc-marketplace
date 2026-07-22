@@ -7,8 +7,8 @@ current session (pptr.dev), never from memory.
 
 Covers the Page API, robust waits (`waitForSelector` / `waitForFunction` /
 Locators), request interception and resource blocking, `puppeteer-extra` stealth
-for fingerprint hardening, and attaching to an anti-detect browser (AdsPower,
-Kameleo) over CDP via `puppeteer.connect({ browserWSEndpoint })`.
+for fingerprint hardening, and attaching to a running Chrome over CDP via
+`puppeteer.connect({ browserWSEndpoint })`.
 
 ## Install
 
@@ -26,30 +26,24 @@ Kameleo) over CDP via `puppeteer.connect({ browserWSEndpoint })`.
 ## Example
 
 ```bash
-/puppeteer:check log into a dashboard through my AdsPower profile and scrape the table
+/puppeteer:check log into the staging dashboard and scrape the reports table
 ```
 
-Reports something like: the current Puppeteer major to install, connecting with
-`puppeteer.connect({ browserWSEndpoint, defaultViewport: null })` where the
-endpoint comes from AdsPower's `browser/start` response (`ws.puppeteer`),
+Reports something like: the current Puppeteer major to install,
 `waitForSelector` for the login form, request interception to block images and
-analytics for speed, `puppeteer-extra-plugin-stealth` for fingerprint hardening,
-`$$eval` to extract the table, and `disconnect()` (not `close()`) so the managed
-session survives.
+analytics for speed, `puppeteer-extra-plugin-stealth` for fingerprint
+hardening, `$$eval` to extract the table, and a `try/finally` cleanup that
+closes what the run opened.
 
-### Worked example — connect to AdsPower with stealth
+### Worked example — stealth on a launched browser
 
 ```js
 const { addExtra } = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-const puppeteer = addExtra(require('puppeteer-core'));
+const puppeteer = addExtra(require('puppeteer'));
 puppeteer.use(StealthPlugin());
 
-// wsEndpoint comes from AdsPower browser/start -> data.ws.puppeteer
-const browser = await puppeteer.connect({
-  browserWSEndpoint: wsEndpoint,
-  defaultViewport: null,          // keep the profile's real window size
-});
+const browser = await puppeteer.launch();
 const page = await browser.newPage();
 
 await page.setRequestInterception(true);
@@ -62,7 +56,7 @@ await page.goto('https://dashboard.example.com', { waitUntil: 'networkidle2' });
 await page.waitForSelector('#username', { visible: true });
 // ... drive the page ...
 
-await browser.disconnect();       // NOT close() — AdsPower owns the lifecycle
+await browser.close();            // close what you launched
 ```
 
 ## What the skills enforce
@@ -74,8 +68,8 @@ await browser.disconnect();       // NOT close() — AdsPower owns the lifecycle
 - Robust waits over sleeps; navigation waits armed via `Promise.all`
 - Request interception that resolves every branch; resource blocking for speed
 - `puppeteer-extra` + stealth as a headless-tell reducer, not invisibility
-- Anti-detect composition: `connect({ browserWSEndpoint })`, `defaultViewport:
-  null`, and `disconnect()` (never `close()`) for a managed session
+- Connect discipline: `connect({ browserWSEndpoint })`, `defaultViewport:
+  null`, and `disconnect()` (never `close()`) for a browser you attached to
 
 A reminder hook nudges toward `/puppeteer:check` when a prompt mentions
 Puppeteer, pptr, browserWSEndpoint, puppeteer-extra, or setRequestInterception.
@@ -84,9 +78,6 @@ Puppeteer, pptr, browserWSEndpoint, puppeteer-extra, or setRequestInterception.
 
 - **playwright** — the sibling automation navigator; same discipline, different
   driver
-- **adspower** / **kameleo** — obtain the `browserWSEndpoint` / CDP port this
-  plugin connects to
-- **camoufox** — a fingerprint-hardened Firefox alternative for anti-detect work
 - **automation-builder** — assembles multi-step automation flows on top of these
   patterns
 - **api-docs-first** — the generic docs-before-code discipline; puppeteer is its

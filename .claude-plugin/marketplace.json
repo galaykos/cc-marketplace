@@ -302,7 +302,7 @@
     {
       "name": "puppeteer",
       "source": "./plugins/puppeteer",
-      "description": "Puppeteer automation navigator: current API from live docs (pptr.dev), link map (page API, waitForSelector, request interception, puppeteer.connect over CDP, puppeteer-extra stealth), robust-automation patterns, and attaching to an anti-detect browser (AdsPower/Kameleo) via browserWSEndpoint. Includes /puppeteer:check and a Puppeteer-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
+      "description": "Puppeteer automation navigator: current API from live docs (pptr.dev), link map (page API, waitForSelector, request interception, puppeteer.connect over CDP, puppeteer-extra stealth), and robust-automation patterns. Includes /puppeteer:check and a Puppeteer-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
     },
     {
       "name": "adspower",

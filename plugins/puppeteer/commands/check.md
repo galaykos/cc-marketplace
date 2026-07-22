@@ -19,9 +19,7 @@ memory: Puppeteer versions move fast and couple to a bundled Chrome build.
    - Current Puppeteer major to install, and the exact API surface involved
    - The **robust-wait** approach for the goal (explicit waits, never fixed
      sleeps) and whether request interception or resource blocking applies
-   - If detection matters: the puppeteer-extra + stealth composition, and — for
-     anti-detect browsers — `puppeteer.connect({ browserWSEndpoint })` with a
-     pointer to /adspower:check or /kameleo:check to obtain the endpoint
+   - If detection matters: the puppeteer-extra + stealth composition
    - Constraints that shape the code: await discipline, interception stall
      behaviour, cleanup (close pages/browser)
 

@@ -102,9 +102,9 @@ path 404s (the site reshuffles), recover from https://pptr.dev/api:
   (`null` to inherit the real window size), `protocol` (`cdp` vs
   `webDriverBiDi`), `headers`, and `targetFilter`. Fetch
   /api/puppeteer.connectoptions for the current full list — do not assume.
-- This is the seam anti-detect browsers plug into: they expose a CDP endpoint
-  and you attach to it. The patterns skill owns that composition; obtaining the
-  endpoint is /adspower:check or /kameleo:check territory.
+- The patterns skill owns the attach composition — inheriting the real window
+  size, `disconnect()` versus `close()`, and interception on an attached
+  browser; this skill owns resolving the current `ConnectOptions` surface.
 
 ## Anti-patterns
 
