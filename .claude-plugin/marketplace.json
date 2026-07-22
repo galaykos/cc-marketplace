@@ -297,7 +297,7 @@
     {
       "name": "playwright",
       "source": "./plugins/playwright",
-      "description": "Playwright automation navigator: resolves the current API from live docs (playwright.dev), link map per area (locators, auto-waiting, network interception, storageState auth, test runner, trace viewer, connectOverCDP), robust-automation patterns, and driving an anti-detect browser (AdsPower/Kameleo) over CDP. Includes /playwright:check and a Playwright-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
+      "description": "Playwright automation navigator: resolves the current API from live docs (playwright.dev), link map per area (locators, auto-waiting, network interception, storageState auth, test runner, trace viewer, connectOverCDP), and robust-automation patterns. Includes /playwright:check and a Playwright-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
     },
     {
       "name": "puppeteer",

@@ -72,8 +72,10 @@ path 404s (docs get reshuffled), recover from https://playwright.dev/docs/intro:
 - **CDP attach is Chromium-only.** `browserType.connectOverCDP(endpointURL)`
   attaches to an already-running Chromium over the DevTools Protocol; it is
   explicitly unsupported for WebKit/Firefox. The endpoint is an HTTP or ws URL
-  such as `http://localhost:9222/`. This is the seam for anti-detect browsers —
-  see the playwright-patterns skill for the composition.
+  such as `http://localhost:9222/` from a Chromium started with
+  `--remote-debugging-port`, or exposed by whatever tool manages the running
+  instance. On an attached browser, prefer the existing context
+  (`browser.contexts()[0]`) over creating a fresh one — see playwright-patterns.
 
 ## Reading a reference page
 
@@ -87,15 +89,6 @@ path 404s (docs get reshuffled), recover from https://playwright.dev/docs/intro:
   `page.$` are "discouraged" (still work, actively steered away from), while a
   handful of older APIs are hard-deprecated. Read the callout at the top of the
   page before recommending a call.
-
-## When the task is anti-detect automation
-
-Playwright does not launch the fingerprinted browser — an anti-detect tool
-(AdsPower, Kameleo) does, then exposes a CDP endpoint. Playwright's job is only
-to attach via `connectOverCDP` and drive it with the same locators and
-auto-waiting as any other target. Getting the endpoint (start-profile call,
-`ws.puppeteer` / `debug_port`) is that tool's concern — reference
-`/adspower:check` and `/kameleo:check`. This skill owns the Playwright side.
 
 ## Anti-patterns (closer)
 
