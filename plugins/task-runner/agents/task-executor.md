@@ -2,7 +2,7 @@
 name: task-executor
 description: Use PROACTIVELY when a review's fix-list or a defined task/card list needs APPLYING — the single delegatable sink for "apply the fixes now"; scope-locked, bounded verify-fix loop, returns evidence.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 ---
 

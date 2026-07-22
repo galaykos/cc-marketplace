@@ -2,7 +2,7 @@
 name: browser-automation-engineer
 description: Use PROACTIVELY to build browser automations and scrapers — scaffolds and runs Playwright/Puppeteer/AdsPower/Kameleo/Camoufox automations from a plan, verifying against current docs.
 tools: Read, Grep, Glob, Write, Edit, Bash
-model: sonnet
+model: inherit
 effort: xhigh
 ---
 

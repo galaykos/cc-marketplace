@@ -2,7 +2,7 @@
 name: test-engineer
 description: Use PROACTIVELY to author tests — unit, integration, e2e scaffolding, coverage-gap analysis, fixtures and mocks — for new or existing code.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: testing-best-practices
 ---

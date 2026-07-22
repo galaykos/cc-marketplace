@@ -2,7 +2,7 @@
 name: security-engineer
 description: Use PROACTIVELY to implement defensive security fixes — auth flows, OWASP remediations, security headers and CSP, input validation, dependency-audit remediation.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: security-review
 ---

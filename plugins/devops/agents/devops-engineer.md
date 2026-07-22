@@ -2,7 +2,7 @@
 name: devops-engineer
 description: Use PROACTIVELY for CI/CD pipelines, container builds, Kubernetes manifests, deployment strategy, observability, or secrets-handling work. Generating local docker-compose dev environments belongs to the dev-env plugin.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: docker-best-practices
 ---

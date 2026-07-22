@@ -15,7 +15,7 @@
     "name": "observability-engineer",
     "description": "Use PROACTIVELY when adding instrumentation to application code — structured logs, correlation/request IDs, RED/USE metrics, trace spans, health signals — the worker /observability:review routes its fix list to. Returns a diff; defers infra-layer wiring to devops.",
     "tools": "Read, Write, Edit, Bash, Grep, Glob",
-    "model": "sonnet",
+    "model": "inherit",
     "effort": "xhigh",
     "bestpractices-skill": "observability-design"
   }

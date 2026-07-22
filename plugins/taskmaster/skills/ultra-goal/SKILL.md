@@ -15,7 +15,7 @@ semantics, and audit rules — central ownership is the default: no other pipeli
 Active for THIS run when any of these holds this turn:
 
 - the `hooks/ultra-goal.sh` `UserPromptSubmit` hook matched `\bultra-?goal\b` (optional model/effort
-  suffix, defaults opus/xhigh) and injected the directive, or
+  suffix, defaults auto/xhigh) and injected the directive, or
 - a taskmaster command (`task`, `taskmaster`, `redteam`, `brainstorm`, `coverage`) ran with a leading
   `goal` token as the FIRST token of its own args, or with the boundary-crossing `ultra-goal` token, or
 - an execution run reads a `00-INDEX.md` carrying the `Goal: true` marker.
@@ -83,12 +83,12 @@ An optional suffix picks the tier, mirroring `ultra-task`:
 ```
 ultra-goal[-<model>][-<effort>]      free-text prompt (hooks/ultra-goal.sh)
 goal / ultra-goal                    leading flag of a taskmaster command's args
-model  = opus | sonnet | haiku | fable      default opus
-effort = low | medium | high | xhigh | max  default xhigh
+model  = auto | opus | sonnet | haiku | fable   default auto
+effort = low | medium | high | xhigh | max      default xhigh
 ```
 
-`ultra-goal`→opus/xhigh; `ultra-goal-sonnet-max`→sonnet/max; a lone suffix resolves by set membership
-(`ultra-goal-max`→opus/max); unknown suffixes keep defaults. The hook injects `(model=…, effort=…)`.
+`ultra-goal`→auto/xhigh (`auto` = session model or opus, whichever is higher — per ultra's grammar; an
+explicit model pins); `ultra-goal-sonnet-max`→sonnet/max; a lone suffix resolves by set membership (`ultra-goal-max`→auto/max); unknown suffixes keep defaults. The hook injects `(model=…, effort=…)`.
 
 ## Implies full ultra — tier precedence
 
@@ -132,7 +132,7 @@ Three sinks make every auto-take reviewable:
    create/verify it before boosting; an append that ever fails → halt with evidence, never proceed unaudited.
    Once grill's Step 0 completes (post-scout), its prompt-upgrade step (grill `references/prompt-upgrade.md`) records the upgraded task statement here as its dedicated statement entry — grill stays goal-blind; this recording is ours.
 2. **Spec appendix** `## Auto-decisions` — a durable summary inside the frozen spec.
-3. **Index marker** `Goal: true (model=…, effort=…)` in `00-INDEX.md`, carrying hands-off into execution.
+3. **Index marker** `Goal: true (model=…, effort=…)` in `00-INDEX.md`, carrying hands-off into execution (`auto` written verbatim — the runner re-resolves it against its own session, never below opus).
    Legacy bare `Goal: true` means opus/xhigh, autonomy on. The marker notes the version floor:
    hands-off execution requires task-runner ≥0.11.0; older runners fall back to interactive.
 

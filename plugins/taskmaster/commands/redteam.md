@@ -7,6 +7,12 @@ Run the spec-redteam skill from this plugin on $ARGUMENTS (a
 `taskmaster-docs/specs/<name>.md` path or a slug; if empty, use the most recent
 spec under `taskmaster-docs/specs/`).
 
+**Run-status line (always):** print ONE status line as the first visible output of
+every run, boosted or not — a boosted run prints the ⚡ banner (owned by the
+ultra/ultra-goal skill; the banner IS its status line); a standard run prints
+`▷ taskmaster standard run — subagents inherit the session model (<model>) · boost: off`.
+
+
 **Ultra flag:** run in Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
 bare `ultra` token (this command invoked as `/taskmaster:<cmd> ultra …`) or
 contains the explicit `ultra-task`/`ultratask` token. A bare `ultra` that is not
@@ -16,7 +22,7 @@ command — is NOT a taskmaster trigger and never boosts this run; only
 `ultra-task`/`ultratask`
 crosses a command boundary. The `ultra`/`ultra-task` token may carry a
 `-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
-∈ opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max,
+∈ auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max,
 default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (an N=3 blind adversary
 panel on the Workflow path, subagents at the selected model, and the ⚡ banner).
@@ -28,7 +34,7 @@ token of THIS command's own arguments — e.g. an earlier command's flag in a ch
 message — is NOT a taskmaster trigger and never activates this run; only
 `ultra-goal`/`ultragoal` crosses a command boundary. The token may carry a
 `-<model>[-<effort>]` suffix — e.g. `ultra-goal-sonnet-xhigh`, `goal-opus` (model ∈
-opus|sonnet|haiku|fable, default opus; effort ∈ low|medium|high|xhigh|max, default
+auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max, default
 xhigh) — resolved per the taskmaster `ultra-goal` skill
 (`skills/ultra-goal/SKILL.md`), the canonical owner of this mode. Ultra-goal implies
 the full ULTRA-TASK boost: when an `ultra-task` token is also present its tier wins;
