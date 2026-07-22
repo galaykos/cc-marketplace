@@ -6,7 +6,7 @@ description: Use when building or reviewing UI with Astryx, Meta's open-source R
 # Astryx best practices
 
 Astryx is Meta's open-source React design system (MIT, grown inside Meta across
-13,000+ apps): 160+ accessible typed components, pre-compiled CSS on StyleX, ten
+13,000+ apps): 130+ accessible typed components, pre-compiled CSS on StyleX, ten
 shipped themes, dark mode, templates, a CLI — and an explicitly **agent-ready**
 surface: a JSON manifest describing every component, its props, and behaviors,
 plus an MCP server, so coding agents consume the system the way humans do.
@@ -14,7 +14,10 @@ plus an MCP server, so coding agents consume the system the way humans do.
 ## Beta discipline: docs first, always
 
 Astryx is in **beta** (0.x): APIs, props, and package layout can change between
-minor releases. Before writing any Astryx code:
+minor releases. For structure questions — package layout, install/import
+shape, the component category map, where typed truth lives — read
+`references/astryx.md` first; no fetch needed. Props are never answered from
+the digest. Before writing any Astryx code:
 
 1. Resolve the installed version from `package.json` / the lockfile
    (`@astryxdesign/core`).
@@ -39,7 +42,7 @@ minor releases. Before writing any Astryx code:
 
 - Browse by category — Action, Chat, Container, Content, Data Input,
   Feedback & Status, Layout, Navigation, Overlay, Table & List, Utility — and
-  pick the closest existing component before composing a custom one. 150+
+  pick the closest existing component before composing a custom one. 130+
   components exist; hand-rolling a dialog or menu next to the shipped one is
   the classic failure.
 - Use the Playground's copy-ready examples for the exact variant/state needed;

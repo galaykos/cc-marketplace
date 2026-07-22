@@ -1,5 +1,7 @@
 # anime.js depth — v4 recipes the SKILL body has no room for
 
+> Last verified: 2026-07-22 — https://animejs.com/documentation/ — npm:animejs@4
+
 Read on demand from motion-best-practices. Everything here assumes anime.js v4
 (npm `animejs`, ESM-only, tree-shakable). v4 was a full API rewrite — verify
 current names at https://animejs.com/documentation/ before use.
@@ -16,8 +18,10 @@ current names at https://animejs.com/documentation/ before use.
   `onUpdate` / `onBegin`.
 - Per-property parameters: `x: { to: 100, duration: 800, ease: 'out(3)' }`;
   keyframes are arrays of those objects.
-- Springs: `ease: createSpring({ stiffness, damping })` — physics-based easing
-  per property, no plugin.
+- Springs: `import { spring } from 'animejs'`, then
+  `ease: spring({ bounce: .5, duration: 350 })` (perceived params) or physics
+  params `{ mass, stiffness, damping, velocity }` — per property, no plugin;
+  the spring's settling time overrides the tween's `duration`.
 
 ## Timelines and stagger
 
@@ -32,8 +36,8 @@ current names at https://animejs.com/documentation/ before use.
 ## Scroll and scope
 
 - Scroll-linked play: `animate(target, { ..., autoplay: onScroll({ sync: true }) })` —
-  `sync: true` scrubs progress to scroll position; enter/leave thresholds take
-  `'bottom top'`-style edge pairs.
+  `sync: true` scrubs progress to scroll position; `enter`/`leave` thresholds
+  take `'bottom top'`-style edge pairs (container edge first, target second).
 - `createScope({ root })` sandboxes selectors; in React, create the scope in an
   effect and `return () => scope.revert()` — `revert()` is the leak-free
   cleanup, the same job as GSAP's context.
@@ -64,5 +68,5 @@ Never ship an anime.js animation without this branch (or an equivalent
   thread; prefer it for simple tweens under main-thread load.
 - `utils.remove(target)` stops running animations on a target;
   `engine.fps` / `engine.precision` tune the global loop.
-- SVG helpers ship in the core package, no plugin registration:
-  `svg.createDrawable()` (line drawing), `svg.morphTo()`, `svg.createMotionPath()`.
+- SVG helpers ship in the core package (`import { svg } from 'animejs'`), no plugin
+  registration: `svg.createDrawable()` (line drawing), `svg.morphTo()`, `svg.createMotionPath()`.

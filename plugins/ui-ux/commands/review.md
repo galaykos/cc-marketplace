@@ -22,12 +22,16 @@ ui-ux plugin skills. Steps:
 3. Invoke the matching *-best-practices skill(s) from this plugin.
 4. Read package.json and its lockfile to pin framework/library versions; findings must
    respect the installed versions — nothing already solved, nothing above them.
-5. When uncertain, verify against the official docs for the installed version instead
-   of memory: MDN (https://developer.mozilla.org) for CSS3/Grid/Flexbox,
+5. When uncertain, read the local digests first — `skills/motion-best-practices/references/motion.md`
+   (plus sibling `animejs.md` and `gsap.md`), `skills/reui-best-practices/references/reui.md`,
+   `skills/aceternity-best-practices/references/aceternity.md`, and
+   `skills/astryx-best-practices/references/astryx.md` — then verify version-sensitive
+   literals (component/method names, props, options, versions) against the official docs
+   for the installed version: MDN (https://developer.mozilla.org) for CSS3/Grid/Flexbox,
    https://tailwindcss.com/docs, https://ui.shadcn.com/docs, https://reui.io/docs,
    https://ui.aceternity.com/components, https://getbootstrap.com/docs,
    https://motion.dev/docs, https://gsap.com/docs, and https://animejs.com/documentation/
-   for animation libraries. ReUI and
+   for animation libraries, and https://astryx.atmeta.com/components for Astryx. ReUI and
    Aceternity have no npm version to pin — their current docs page is the only source of truth.
 6. Report findings as `path:line — problem — fix`, ordered by severity.
 7. Do not report formatting nits unless they change rendering behavior.

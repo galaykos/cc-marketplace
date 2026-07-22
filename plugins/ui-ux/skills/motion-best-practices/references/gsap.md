@@ -1,8 +1,11 @@
 # GSAP depth — recipes the SKILL body has no room for
 
+> Last verified: 2026-07-22 — https://gsap.com/docs — npm:gsap@3
+
 Read on demand from motion-best-practices. Everything here assumes GSAP 3.13+
-(all plugins free, single `gsap` npm package). Verify current APIs at
-gsap.com/docs — 3.15 rewrote SplitText (~50% smaller) with changed option names.
+(all plugins free on npm since 3.13, single `gsap` package, React hook in
+`@gsap/react`; current line 3.15). Verify current APIs at gsap.com/docs —
+v3.13.0 rewrote SplitText (half the size, 14 new features).
 
 ## Timeline architecture
 
@@ -31,18 +34,18 @@ gsap.com/docs — 3.15 rewrote SplitText (~50% smaller) with changed option name
 - Kill triggers on unmount: `useGSAP()` (React) or `gsap.context()` scoping
   handles this; a manually-created trigger needs `st.kill()`.
 
-## SplitText (3.15 rewrite)
+## SplitText (v3.13 rewrite)
 
 - Split only what you animate (`type: "lines"` beats `"lines,words,chars"` for
   a line reveal — chars multiply DOM nodes fast).
 - Revert when done: `split.revert()` restores original markup — critical for
-  screen readers and for re-splitting after a resize; the 3.15 `autoSplit`
-  option re-splits on font load/resize for you.
-- Mask reveals: 3.15's `mask: "lines"` wraps each line in an overflow clip —
-  no hand-built wrapper divs.
-- Accessibility: SplitText sets `aria-label` on the container and hides split
-  nodes from the tree by default in 3.15 — do not disable that without a
-  replacement.
+  screen readers and for re-splitting after a resize; the `autoSplit` option
+  (3.13+) re-splits for you when text reflows after fonts finish loading.
+- Mask reveals: `mask: "lines"` (3.13+, also `"words"`/`"chars"`) wraps each
+  line in an extra clipping element — no hand-built wrapper divs.
+- Accessibility: SplitText sets `aria-label` on the container and
+  `aria-hidden` on split nodes by default (3.13+) — do not disable that
+  without a replacement.
 
 ## React integration
 
