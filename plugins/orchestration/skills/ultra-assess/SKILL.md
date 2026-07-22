@@ -38,8 +38,9 @@ of your response, before anything else:
 \033[2m   <model> subagents · fan-out → red-team → completeness-critic · effort=<effort> (Workflow)\033[0m
 ```
 
-Substitute `<model>`/`<effort>` with the tier the trigger selected (see Variants;
-defaults opus/xhigh). Print it once per run, not once per phase.
+Substitute `<model>`/`<effort>` with the RESOLVED tier (see Variants; defaults
+auto/xhigh — print auto's resolution, e.g. `fable`, never the word `auto`). Print it
+once per run, not once per phase.
 
 ## Variants — model & effort suffix
 
@@ -47,15 +48,16 @@ The trigger token carries an optional suffix that picks the tier:
 
 ```
 ultra-assess[-<model>][-<effort>]
-model  = opus | sonnet | haiku | fable      default opus
-effort = low | medium | high | xhigh | max  default xhigh
+model  = auto | opus | sonnet | haiku | fable   default auto
+effort = low | medium | high | xhigh | max      default xhigh
 ```
 
-`ultra-assess`→opus/xhigh; `ultra-assess-sonnet`→sonnet/xhigh;
-`ultra-assess-sonnet-max`→sonnet/max; a lone suffix resolves by set membership
-(`ultra-assess-max`→opus/max); unknown suffixes keep the defaults. The hook
-injects the resolved `(model=…, effort=…)`; every rule below reads those values.
-This mirrors `ultra-task`'s grammar exactly.
+`auto` (the default) resolves at dispatch time to the session model or opus, whichever
+is higher on the ladder haiku<sonnet<opus<fable — escalate, never downgrade; an explicit
+model suffix pins absolutely. `ultra-assess`→auto/xhigh; `ultra-assess-sonnet`→sonnet/xhigh;
+a lone suffix resolves by set membership (`ultra-assess-max`→auto/max); unknown suffixes
+keep the defaults. The hook injects the resolved `(model=…, effort=…)`; every rule below
+reads those values. This mirrors `ultra-task`'s grammar exactly.
 
 ## The escalation contract (`ULTRA-ASSESS ACTIVE`)
 
@@ -63,7 +65,7 @@ This is the verbatim block the hook injects. Honor every line:
 
 ```
 ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this assessment run.
-- Reachable reasoning subagents dispatched model:<model> (default opus). On the Workflow
+- Reachable reasoning subagents dispatched model:<model> (default auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable — escalate, never downgrade). On the Workflow
   agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
 - Fan out readers over the assessment units (files, plugins, modules, endpoints),
   one lens each, per delegation-contracts; each returns a compressed structured record.

@@ -5,11 +5,12 @@
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
   case "$prompt" in "/"*) exit 0 ;; esac # slash commands own their flag path
   if printf '%s' "$prompt" | grep -qiE '\bultra-?goal\b'; then
-    # Defaults: opus model + effort xhigh. max is opt-in via a suffix, e.g. ultra-goal-max.
-    model=opus; effort=xhigh
+    # Defaults: auto model (session model or opus, whichever is higher) + effort xhigh.
+    # An explicit model suffix pins absolutely; max is opt-in, e.g. ultra-goal-max.
+    model=auto; effort=xhigh
     # Optional suffix: ultra-goal-<model>[-<effort>] or ultra-goal-<effort>.
     lc=$(printf '%s' "$prompt" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lc" =~ ultra-?goal-(opus|sonnet|haiku|fable)(-(low|medium|high|xhigh|max))?([^a-z0-9-]|$) ]]; then
+    if [[ "$lc" =~ ultra-?goal-(auto|opus|sonnet|haiku|fable)(-(low|medium|high|xhigh|max))?([^a-z0-9-]|$) ]]; then
       model="${BASH_REMATCH[1]}"
       [ -n "${BASH_REMATCH[3]}" ] && effort="${BASH_REMATCH[3]}"
     elif [[ "$lc" =~ ultra-?goal-(low|medium|high|xhigh|max)([^a-z0-9-]|$) ]]; then
@@ -17,7 +18,9 @@
     fi
     cat <<EOF
 ULTRA-GOAL ACTIVE (model=$model, effort=$effort) — hands-off Extreme Boost for this taskmaster run. Canonical owner: the taskmaster 'ultra-goal' skill (skills/ultra-goal/SKILL.md).
-- Implies the full ULTRA-TASK escalation contract (skills/ultra/SKILL.md): $model subagents,
+- Implies the full ULTRA-TASK escalation contract (skills/ultra/SKILL.md): $model subagents
+  (model=auto resolves at dispatch to the session model or opus, whichever is higher on
+  haiku<sonnet<opus<fable — escalate, never downgrade),
   mandatory red-team + coverage, bounded Workflow fan-outs, ⚡ banner. If an explicit ultra-task
   token is also present, ITS tier wins (precedence: ultra-task > ultra-goal suffix).
 - Auto-take every pipeline recommendation instead of asking: AskUserQuestion gates resolve to the

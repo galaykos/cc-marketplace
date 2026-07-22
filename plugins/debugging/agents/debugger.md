@@ -2,7 +2,7 @@
 name: debugger
 description: Use PROACTIVELY when handed a bug, failing test, or unexpected behavior to investigate — reproduces deterministically, reads the first error, runs one-hypothesis-one-experiment cycles, bisects when hypotheses run out, and returns the root cause with evidence plus the minimal fix. Distinct from the shared executor: it produces the diagnosis, not just applies a decided fix list.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 ---
 

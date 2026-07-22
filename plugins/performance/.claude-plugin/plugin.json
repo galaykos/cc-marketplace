@@ -1,6 +1,6 @@
 {
   "name": "performance",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Performance tuning: measure-first profiling, N+1/index/payload/bundle/Core Web Vitals hotspots, cache correctness (stampede, TTL, eviction, staleness), and percentile load testing — a firing performance-tuning skill, a /performance:review command, and a worker agent that optimizes only what a measurement proves slow.",
   "author": {
     "name": "Ivan-WG",

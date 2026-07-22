@@ -2,7 +2,7 @@
 name: backend-engineer
 description: Use PROACTIVELY when implementing or fixing PHP/Laravel backend code with a data dimension — controllers, Eloquent models, form requests, jobs, migrations, queries, services — the shared backend worker the php/laravel review commands route their fixes to. Returns a diff with verification evidence.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: inherit
 effort: xhigh
 bestpractices-skill: laravel-best-practices,php-best-practices,sql-best-practices
 ---

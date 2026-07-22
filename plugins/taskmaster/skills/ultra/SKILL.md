@@ -48,9 +48,9 @@ your response, before anything else:
 \033[2m   <model> subagents · always red-team + coverage · bounded fan-out · effort=<effort> (Workflow)\033[0m
 ```
 
-Substitute `<model>`/`<effort>` with the tier the trigger selected (see Variants;
-defaults opus/xhigh). The banner is main-thread output, never hook output — so it
-renders regardless of hook ordering. Print it once per run, not once per phase; if `ultra-goal` is also active it owns one merged banner (see the ultra-goal skill).
+Substitute `<model>`/`<effort>` with the RESOLVED tier (see Variants; defaults
+auto/xhigh — print auto's resolution, e.g. `fable`, never the word `auto`). The banner
+is main-thread output, never hook output. Print it once per run, not once per phase; if `ultra-goal` is also active it owns one merged banner (see the ultra-goal skill).
 
 ## The escalation contract (`ULTRA-TASK ACTIVE`)
 
@@ -58,7 +58,7 @@ This is the verbatim block the hook and command flags inject. Honor every line:
 
 ```
 ULTRA-TASK ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this taskmaster run.
-- Reachable reasoning subagents dispatched model:<model> (default opus). On the Workflow
+- Reachable reasoning subagents dispatched model:<model> (default auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable — escalate, never downgrade). On the Workflow
   agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
 - grill: extra clarifying-question rounds; no early ledger exit on first CLEAR sweep.
 - spec-redteam: run ALWAYS; N=3 blind adversary panel when Workflow is available.
@@ -66,7 +66,7 @@ ULTRA-TASK ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this ta
 - recon: 3 parallel lenses (by-file, by-pattern, by-constraint) via Workflow at the
   selected model/effort, else a single inline scout at the selected model.
 - card-verify: 1 fan-out pass per card when Workflow is available.
-- task-cards: write `Ultra: true` into the generated 00-INDEX.md.
+- task-cards: write `Ultra: true (model=<model>, effort=<effort>)` verbatim into 00-INDEX.md.
 - Exclude opinion-lens from model escalation.
 - Fan-out only when the Workflow tool is present; else run the inline fallback.
 ```
@@ -78,19 +78,19 @@ The trigger token carries an optional suffix that picks the tier:
 ```
 ultra-task[-<model>][-<effort>]      free-text prompt (hooks/ultra.sh)
 ultra[-<model>][-<effort>]           leading flag of a taskmaster command's args
-model  = opus | sonnet | haiku | fable      default opus
-effort = low | medium | high | xhigh | max  default xhigh
+model  = auto | opus | sonnet | haiku | fable   default auto
+effort = low | medium | high | xhigh | max      default xhigh
 ```
 
-`ultra-task`→opus/xhigh (classic); `ultra-task-sonnet`→sonnet/xhigh;
-`ultra-task-sonnet-max`→sonnet/max; a lone suffix resolves by set membership
-(`ultra-task-max`→opus/max); unknown suffixes keep the defaults. The hook
-injects the resolved `(model=…, effort=…)` into the directive; the rules below read it.
+`auto` (the default) resolves at dispatch time to the session model or opus, whichever
+is higher on the ladder haiku<sonnet<opus<fable — escalate, never downgrade; an explicit
+model suffix pins absolutely. `ultra-task`→auto/xhigh; `ultra-task-sonnet`→sonnet/xhigh; a lone
+suffix resolves by set membership (`ultra-task-max`→auto/max); unknown suffixes keep the defaults. The hook injects `(model=…, effort=…)` into the directive; the rules below read it.
 
 ## Model and effort rules
 
-- The `model: <model>` override lands on both inline `Agent` dispatch and
-  `Workflow` `agent()` calls.
+- The RESOLVED `model:` override lands on both inline `Agent` dispatch and `Workflow`
+  `agent()` calls — pass the resolution (e.g. `fable`), never the literal `auto`.
 - `effort: <effort>` is settable ONLY on the `Workflow` `agent()` path — the plain
   Agent tool has no `effort` parameter, so inline dispatch escalates the model
   only and leaves effort at the agent's frontmatter default.
@@ -116,8 +116,8 @@ Fan-outs run through the `Workflow` tool only when present. Each has a hard boun
 ## Exclusions
 
 `opinion-lens` is a breadth agent (four parallel persona takes, low effort by
-design); escalating it to opus multiplies cost for little depth. It is never
-given an opus override. Agents that live in plugins ultra does not edit —
+design); escalating its model multiplies cost for little depth. It is never
+given a model override. Agents that live in plugins ultra does not edit —
 `system-architect` (system-design) and the plan-before-code architecture agents
 (code-architecture) — are outside the reachable set and stay at their native
 tier; reaching them would require editing those plugins, which is out of scope.
@@ -127,11 +127,11 @@ tier; reaching them would require editing those plugins, which is out of scope.
 The spec and card phases run in the main thread, but execution happens later —
 often in a fresh session with no memory of this run. To survive that handoff,
 `task-cards` writes an `Ultra: true (model=<model>, effort=<effort>)` marker into
-the generated `00-INDEX.md`. task-execution reads it, dispatches workers with
-`model: <model>` (excluding `opinion-lens`; legacy bare `Ultra: true` means opus), AND
-runs the **code-redteam** pass over the produced diff at milestone boundaries + completion.
-The marker — not this contract's text — is the durable trigger, so tier and code red-team
-reach execution across a session boundary.
+the generated `00-INDEX.md`, tier VERBATIM — `auto` stays `auto`, so task-execution
+re-resolves it against the EXECUTING session's model (never below opus; an older runner
+parses `auto` as malformed and falls back to the opus/xhigh legacy default — the floor
+holds). It dispatches workers at that tier (excluding `opinion-lens`), AND runs the
+**code-redteam** pass at milestone boundaries + completion; the marker is the durable trigger.
 
 ## Graceful degradation
 
