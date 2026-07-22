@@ -40,7 +40,7 @@ signal table below. Rules:
 
 ## Stack signals (tier 1)
 
-Eighteen plugins, each earned by one signal:
+Seventeen plugins, each earned by one signal:
 
 | Signal (evidence file) | Plugin |
 |---|---|
