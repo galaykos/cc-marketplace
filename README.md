@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 73 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 74 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,7 +44,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 73 | ~12.7k tokens |
+| `everything` | 74 | ~12.7k tokens |
 | `taskmaster-suite` | 38 | ~8.8k tokens |
 | `process-suite` | 13 | ~2.4k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
