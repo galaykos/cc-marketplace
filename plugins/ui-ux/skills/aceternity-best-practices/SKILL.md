@@ -15,6 +15,11 @@ norm: shadcn/ReUI for the app, Aceternity for the pitch.
 
 ## Latest docs before any assertion
 
+Library shape — what Aceternity is, where it belongs, install discipline, the
+component category inventory — is answered locally by
+`references/aceternity.md`; read that first, no network needed. Everything
+per-component stays live:
+
 Copy-paste libraries have no package version to read — the component page IS
 the version. Before asserting a component's name, props, dependencies, or
 install command, fetch its page under https://ui.aceternity.com/components.

@@ -15,6 +15,11 @@ or plain-CSS project as a shortcut — it drags the whole shadcn stack with it.
 
 ## Latest docs before any assertion
 
+Registry MECHANICS — what ReUI is, the install flow, `components.json`
+expectations, top-level catalog groups, pairing guidance — are digested in
+`references/reui.md`; read that first and skip the network for those
+questions.
+
 The registry churns: components get added, renamed, and their props change
 without a package version to pin (there is no `reui` npm dependency to read).
 Before asserting a component's name, props, or install command, fetch its page
@@ -77,11 +82,12 @@ tier — verify access before planning a feature around a specific block. Discip
 
 ## Shared foundations must stay aligned
 
-ReUI components ride the same Radix and Tailwind the shadcn base uses. When
-both registries feed one repo, keep the foundations single-versioned: one
-Radix package set, one `cn()` util, one `tailwind-merge` — a second copy of
-any of them (because an install pulled its own) is a finding. Check the
-lockfile after every registry add; the CLI is happy to duplicate.
+ReUI components ride the same primitive layer (Base UI or Radix) and Tailwind
+the shadcn base uses. When both registries feed one repo, keep the foundations
+single-versioned: one primitive package set, one `cn()` util, one
+`tailwind-merge` — a second copy of any of them (because an install pulled its
+own) is a finding. Check the lockfile after every registry add; the CLI is
+happy to duplicate.
 
 ## Don't run two primitive sets
 
@@ -96,9 +102,9 @@ composed patterns), not for re-solving solved primitives.
 - Data-heavy components (tables, grids, long lists): check what the installed
   code actually does with 10k rows before shipping — copy-paste components
   demo with 20 rows; virtualization is your problem, not the registry's.
-- Radix underneath means keyboard/ARIA behavior comes mostly free — but only
-  for the parts left intact; stripping a Radix wrapper while carving a block
-  removes the a11y with it.
+- The primitive layer (Base UI or Radix) underneath means keyboard/ARIA
+  behavior comes mostly free — but only for the parts left intact; stripping a
+  primitive wrapper while carving a block removes the a11y with it.
 - Respect `prefers-reduced-motion` for any animated variant; the CSS is one
   media query and its absence is a review finding.
 

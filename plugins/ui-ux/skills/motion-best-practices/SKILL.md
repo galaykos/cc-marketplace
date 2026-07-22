@@ -79,8 +79,8 @@ animations are disabled system-wide automatically, or branch on `useReducedMotio
 per-component crossfade substitutes.
 
 2026 additions (verify on motion.dev before use): `animateView` (12.41+) for JS-driven
-view transitions — prefer it over hand-rolled `startViewTransition` wiring; official
-`motion-v` for Vue; `spring()` compiles to CSS `linear(...)` easing — spring feel, zero JS.
+view transitions — prefer over hand-rolled `startViewTransition`; official `motion-v` for
+Vue; `spring()` → CSS `linear(...)` easing. Deeper recipes: `references/motion.md`.
 
 ## GSAP
 
@@ -148,7 +148,7 @@ branching to `utils.set(target, finalState)` when it matches.
 
 ## Verify Against Current Docs
 
-Browser support moves fast here — Firefox's scroll-driven-animations flag and cross-document
-View Transitions status were the open gaps as of mid-2026. Check https://caniuse.com and MDN
-before asserting support, https://motion.dev/docs for Motion, https://gsap.com/docs for
-GSAP APIs and plugin names, and https://animejs.com/documentation/ for anime.js v4.
+Digest-first: Read `references/motion.md`, `references/animejs.md`, and `references/gsap.md`
+before fetching — most API questions are answered there. Live fetch stays REQUIRED before
+asserting version-sensitive literals (method names, options, version numbers): motion.dev/docs,
+animejs.com/documentation, gsap.com/docs. Browser support is live-only: https://caniuse.com + MDN.
