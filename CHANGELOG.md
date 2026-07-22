@@ -4,6 +4,22 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.54.0] - 2026-07-22
+
+Removes the anti-detect browser plugins and the Meta platform navigator.
+
+- **Removed: adspower, camoufox, kameleo, meta-api** — deleted from the
+  marketplace and the `everything` bundle (74 → 70 plugins).
+- **automation-builder 0.3.0** — now a Playwright/Puppeteer-only planner;
+  anti-detect decision branch, trigger keywords, and cross-references removed.
+- **playwright 0.2.1, puppeteer 0.1.3** — anti-detect browser sections and
+  `/adspower:check`/`/kameleo:check` routing removed; `connectOverCDP` /
+  `puppeteer.connect` stay documented as generic attach-to-running-Chrome
+  patterns.
+- **plugin-scout 0.2.6, api-docs-first 0.2.4, api-design 0.4.3,
+  claude-authoring 0.4.4, everything 0.17.7** — catalog rows, meta-api
+  deferrals, routing-table row, and stale references cleaned up.
+
 ## [0.53.0] - 2026-07-21
 
 Maintenance pass: 2026 currency, taskmaster-suite composition, principle-skill

@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, adspower, kameleo, camoufox, automation-builder) install individually. `everything` (all 74 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 70 plugins) exists for zero-setup convenience at ~12.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -74,7 +74,7 @@ plugin adds to each session's context window (chars/4 estimate).
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, estimation, orchestration, task-runner…
 
 # Browser-automation plugins install individually:
-/plugin install playwright@cc-plugins-marketplace       # (same for puppeteer, adspower, kameleo, camoufox)
+/plugin install playwright@cc-plugins-marketplace       # (same for puppeteer)
 ```
 
 Recommended default: install `process-suite` globally, add the matching
@@ -119,17 +119,13 @@ afterwards to sweep the orphans.
 | **[vite](plugins/vite/README.md)** | Vite: VITE_ env-leak security, dep pre-bundling, code splitting/manualChunks, base for sub-path deploys, dev server.proxy, define pitfalls, SSR, library mode, plugin order, HMR guards | `/vite:review` |
 | **[threejs](plugins/threejs/README.md)** | Three.js: WebGPURenderer-first (WebGL2 fallback), TSL shaders, react-three-fiber/drei, glTF/Draco/KTX2 pipelines, disposal/leak discipline, draw-call performance — version-aware per rXXX | `/threejs:review` |
 | **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue/React/Svelte): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 + adapter awareness | `/inertia:review` |
-| **[meta-api](plugins/meta-api/README.md)** | Meta/Facebook platform navigator: current Graph API version, doc link map per product, conventions, required permissions + App Review awareness; general third-party docs → api-docs-first, own APIs → api-design | `/meta-api:check` |
 
 ### Automation & browser
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **[playwright](plugins/playwright/README.md)** | Playwright navigator: current API from live docs, locators/auto-wait/network/storageState/trace, robust patterns, connectOverCDP to an anti-detect browser | `/playwright:check` |
+| **[playwright](plugins/playwright/README.md)** | Playwright navigator: current API from live docs, locators/auto-wait/network/storageState/trace, robust patterns, connectOverCDP to attach to a running Chromium | `/playwright:check` |
 | **[puppeteer](plugins/puppeteer/README.md)** | Puppeteer navigator: current API, waits, request interception, puppeteer-extra stealth, connect via browserWSEndpoint | `/puppeteer:check` |
-| **[adspower](plugins/adspower/README.md)** | AdsPower Local API: profile lifecycle, start/stop browser, CDP/WebSocket handoff to a driver, rate limits | `/adspower:check` |
-| **[kameleo](plugins/kameleo/README.md)** | Kameleo Local API/SDK: fingerprint → profile → start, connect a driver over CDP, fingerprint config | `/kameleo:check` |
-| **[camoufox](plugins/camoufox/README.md)** | Camoufox (anti-detect Firefox, Python): launch options (humanize, geoip, proxy, config), Playwright-Firefox integration | `/camoufox:check` |
 | **[automation-builder](plugins/automation-builder/README.md)** | Automation planner + worker: tool-choice think-process, sequenced plan, browser-automation-engineer agent that scaffolds and runs | `/automation-builder:build` |
 
 ### Databases & SQL

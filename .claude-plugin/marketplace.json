@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.53.0"
+    "version": "0.54.0"
   },
   "plugins": [
     {
@@ -93,11 +93,6 @@
       "name": "api-docs-first",
       "source": "./plugins/api-docs-first",
       "description": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing. For consuming third-party APIs; defers designing your own REST APIs to api-design."
-    },
-    {
-      "name": "meta-api",
-      "source": "./plugins/meta-api",
-      "description": "Meta (Facebook) developer platform navigator: always-current Graph API version from the changelog, predefined doc links per product (Graph, Pages, Instagram, WhatsApp, Messenger, Marketing), platform conventions — tokens, fields, pagination, errors, webhooks — and required-permissions answers with App Review awareness. Includes /meta-api:check and a Meta-keyword reminder hook. Meta platform only; defers general third-party doc verification to api-docs-first and designing your own APIs to api-design."
     },
     {
       "name": "taskmaster",
@@ -303,21 +298,6 @@
       "name": "puppeteer",
       "source": "./plugins/puppeteer",
       "description": "Puppeteer automation navigator: current API from live docs (pptr.dev), link map (page API, waitForSelector, request interception, puppeteer.connect over CDP, puppeteer-extra stealth), and robust-automation patterns. Includes /puppeteer:check and a Puppeteer-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
-    },
-    {
-      "name": "adspower",
-      "source": "./plugins/adspower",
-      "description": "AdsPower Local API navigator: current endpoints from live docs, the profile lifecycle (list/create profile, start/stop browser, obtain the CDP/WebSocket endpoint), rate limits and status codes, and handing the started browser to Playwright or Puppeteer. Includes /adspower:check and an AdsPower-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
-    },
-    {
-      "name": "kameleo",
-      "source": "./plugins/kameleo",
-      "description": "Kameleo Local API navigator: current endpoints and SDK usage from live docs, the fingerprint → profile → start flow, connecting Playwright/Puppeteer to a started profile over CDP, and profile/fingerprint configuration. Includes /kameleo:check and a Kameleo-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
-    },
-    {
-      "name": "camoufox",
-      "source": "./plugins/camoufox",
-      "description": "Camoufox navigator: current Python usage from live docs (camoufox.com), launch options (humanize, geoip, os, proxy, block_images, config), the Playwright-Firefox integration it exposes, and fingerprint injection. Includes /camoufox:check and a Camoufox-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
     },
     {
       "name": "automation-builder",
