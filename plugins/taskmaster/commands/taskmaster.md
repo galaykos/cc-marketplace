@@ -14,7 +14,7 @@ pre-seeds the ledger.
 **Run-status line (always):** print ONE status line as the first visible output of
 every run, boosted or not — a boosted run prints the ⚡ banner (owned by the
 ultra/ultra-goal skill; the banner IS its status line); a standard run prints
-`▷ taskmaster standard run — subagents inherit the session model (<model>) · boost: off`.
+`▷ taskmaster standard run — subagents inherit the session model (<model>) · effort: inherit · boost: off`.
 
 
 **Ultra flag:** run in Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
