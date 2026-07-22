@@ -44,7 +44,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 74 | ~12.7k tokens |
+| `everything` | 70 | ~12.6k tokens |
 | `taskmaster-suite` | 38 | ~8.8k tokens |
 | `process-suite` | 13 | ~2.4k tokens |
 | `quality-suite` | 14 | ~2.6k tokens |
@@ -62,7 +62,7 @@ plugin adds to each session's context window (chars/4 estimate).
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
-# install: ~12.7k tokens of always-on context per session; prefer a category
+# install: ~12.6k tokens of always-on context per session; prefer a category
 # suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
