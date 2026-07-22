@@ -40,7 +40,7 @@ the weights to `/task-runner:plan`.
   weights for its critical-path and speedup math
 - **taskmaster** — L and XL items route to a card split via the taskmaster
   pipeline instead of being estimated whole
-- **retrospective** — a two-class miss offers `/retrospective:run` so the
-  cause gets banked as calibration data
+- **hindsight** — misses that repeat across sessions surface as friction
+  findings via `/hindsight:harvest`
 - **approaches** — spikes and design-uncertainty go through
   `/approaches:compare` before a class is assigned

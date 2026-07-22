@@ -127,9 +127,8 @@ what deserves to be documented in the first place.
 
 When the same kind of drift keeps recurring (every release the changelog
 is reconstructed, every rename misses the README), that is a process
-finding — offer a retro ("Run the retrospective now (Recommended)" / "Skip",
-proceeding as /retrospective:run would) so the team fixes the workflow,
-not just the instance.
+finding — name the missing gate so the workflow gets fixed, not just the
+instance.
 
 ## Anti-patterns
 

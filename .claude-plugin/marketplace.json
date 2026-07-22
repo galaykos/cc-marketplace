@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.54.0"
+    "version": "0.55.0"
   },
   "plugins": [
     {
@@ -220,11 +220,6 @@
       "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged opinion round where four parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions."
     },
     {
-      "name": "retrospective",
-      "source": "./plugins/retrospective",
-      "description": "Post-milestone learning loop: five-minute retro after a task run or feature lands — surprises become CLAUDE.md candidates, repetition becomes skill suggestions, friction becomes process tweaks. Closes the amnesia gap where every run starts smart and ends forgotten. Includes /retrospective:run."
-    },
-    {
       "name": "hindsight",
       "source": "./plugins/hindsight",
       "description": "Cross-session self-improvement loop: mines session transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on approval."
@@ -327,7 +322,7 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, retrospectives, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and intent-drift guarding (intent-guard). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and intent-drift guarding (intent-guard). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "everything",

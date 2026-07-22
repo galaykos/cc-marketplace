@@ -4,6 +4,29 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.55.0] - 2026-07-22
+
+Removes the retrospective plugin and every orphaned ADR-file offer.
+
+- **Removed: retrospective** — deleted from the marketplace, the `everything`
+  bundle (70 → 69 plugins), `process-suite` (13 → 12), and `taskmaster-suite`
+  (38 → 37). Its three sinks are covered with harder evidence by **hindsight**,
+  which mines actual session transcripts across sessions instead of asking the
+  model to self-report on the run it just finished.
+- **Dropped every offer to write an ADR file**, orphaned since decision-records
+  left in [0.52.0]: approaches 0.3.6 (`/approaches:opinions` step 7,
+  `/approaches:compare` handoff option, opinion-round companion bullet),
+  rollout 0.1.3 (`/rollout:plan` step 4 and the skill's handoff line),
+  build-vs-buy 0.2.3 (step 5 now records the verdict inline), docs-upkeep 0.1.3
+  (superseding-ADR write-offer becomes a report-only drift finding). Read-only
+  checks against decision docs a project already keeps are untouched.
+- **taskmaster 0.31.3, claude-authoring 0.4.5** — stale references to the dead
+  ADR side-offer removed from the ultra-goal contract (skill + hook banner) and
+  the authoring-skills handoff example.
+- **estimation 0.2.2, hindsight 0.1.3, plugin-scout 0.2.7, everything 0.17.8,
+  process-suite 0.2.4, taskmaster-suite 0.11.1** — retro handoffs re-routed or
+  dropped, catalog row regenerated, bundle deps and README counts synced.
+
 ## [0.54.0] - 2026-07-22
 
 Removes the anti-detect browser plugins and the Meta platform navigator.

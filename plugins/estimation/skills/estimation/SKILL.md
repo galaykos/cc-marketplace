@@ -86,9 +86,8 @@ The pattern of misses is the calibration data — one miss is noise, the
 same miss twice is a finding.
 
 - A miss of two or more classes (S that became L, M that became XL) is a
-  retro finding: offer a retro ("Run the retrospective now (Recommended)" / "Skip",
-  proceeding as /retrospective:run would) so the cause gets banked
-  instead of re-discovered.
+  calibration finding: name the cause in the completion note so it is
+  banked instead of re-discovered.
 - Never revise the original estimate after the fact; the gap IS the
   signal. A corrected history calibrates nothing.
 
