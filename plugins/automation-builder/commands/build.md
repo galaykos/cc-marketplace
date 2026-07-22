@@ -8,7 +8,7 @@ empty, ask what should be automated and against which target).
 
 1. Invoke the `automation-planning` skill from this plugin for $ARGUMENTS: state
    the goal, target, and auth needs, then walk the tool decision tree.
-2. Pick the tool (Playwright / Puppeteer / AdsPower / Kameleo / Camoufox) and
+2. Pick the tool (Playwright / Puppeteer) and
    present the sequenced plan — flow modelled as discrete steps with explicit
    wait conditions, error/retry and idempotency, extraction and storage,
    session persistence, concurrency/proxy strategy, and cleanup. Name the
