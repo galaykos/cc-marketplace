@@ -49,7 +49,7 @@ ULTRA-GOAL ACTIVE (model=$model, effort=$effort) — hands-off Extreme Boost for
   capability vs the raw prompt) are never auto-accepted as known risk: amend the spec/statement, or halt with evidence if unamendable.
 - Audit precondition: create/verify the goal ledger at activation; if an append ever fails,
   halt with evidence rather than proceeding unaudited.
-- Optional side-offers (ADR capture, skill-suggester) auto-skip and log. Fan-out only when the
+- Optional side-offers (skill-suggester) auto-skip and log. Fan-out only when the
   Workflow tool is present; else inline fallback.
 EOF
   fi

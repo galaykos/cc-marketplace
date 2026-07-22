@@ -72,7 +72,7 @@ ULTRA-GOAL ACTIVE (model=<model>, effort=<effort>) — hands-off Extreme Boost f
   capability vs the raw prompt) are never auto-accepted as known risk: amend the spec/statement, or halt with evidence if unamendable.
 - Audit precondition: create/verify the goal ledger at activation; if an append ever fails,
   halt with evidence rather than proceeding unaudited.
-- Optional side-offers (ADR capture, skill-suggester) auto-skip and log. Fan-out only when the
+- Optional side-offers (skill-suggester) auto-skip and log. Fan-out only when the
   Workflow tool is present; else inline fallback.
 ```
 
@@ -105,7 +105,7 @@ advertise, autonomy still from goal. A lone `Goal: true` marker escalates worker
 - Binding contracts (erd `## Data Model`, `## Visual contract`, brainstorm design doc) self-approve, logged.
 - Visual decisions: consent auto-answers "Full mockups"; build variants, the model derives a pick and takes
   it, keep files + gallery saves as the audit artifact. experience-walkthrough: self-drive, folding gaps as ASSUMED.
-- Side-offers (ADR capture, project-skill-suggester) auto-skip and log; resume-or-fresh answers Resume.
+- Side-offers (project-skill-suggester) auto-skip and log; resume-or-fresh answers Resume.
 - Standalone `redteam`/`coverage` under goal auto-resolve WITHIN that command only, writing no execution
   marker — only task-cards stamps the marker.
 

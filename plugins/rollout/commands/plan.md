@@ -12,8 +12,3 @@ argument-hint: [feature-description]
 3. Output the plan as a table with one row per stage: stage / exposure / gate
    metric / rollback trigger. Below the table, state the rollback path (flag off,
    deploy revert, or data restore) and whether it has been exercised.
-4. If the plan involved significant choices (dual-write vs dual-read, flag
-   granularity, staged vs big-bang for a low-risk change), offer as a
-   selectable choice (AskUserQuestion): "Record as ADR now (Recommended)" /
-   "Skip" — on yes, write the decision as an ADR file in the project's ADR
-   dir (docs/adr/ by convention). State the choice inline when headless.

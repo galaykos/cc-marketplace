@@ -42,8 +42,9 @@ never triggers this gate — nobody ships your domain rules as a package.
    - Wrap: use it behind a thin project-owned interface — when coverage is
      partial, the dependency is a swap risk, or its API leaks awkwardly.
    - Write: build it — only when the loop below says so.
-5. Significant verdict → persist as an ADR file in the project's ADR dir; the
-   candidate table pastes straight into "options considered".
+5. Significant verdict → state it inline with the candidate table as the
+   "options considered" record; persist only where the project already keeps
+   decision docs.
 
 ## When WRITE legitimately wins
 
@@ -104,7 +105,7 @@ Capability: "export report data as CSV" in a Laravel app.
 
 Verdict: take league/csv — CSV escaping is on the never-hand-roll list
 (standard-format parsing/writing), and the stdlib route re-implements the
-15% where the bugs live. Recorded as ADR "options considered" verbatim.
+15% where the bugs live. Table stands as the "options considered" record.
 
 ## Anti-patterns
 

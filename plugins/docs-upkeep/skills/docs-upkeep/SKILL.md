@@ -35,12 +35,10 @@ a code change can silently invalidate:
   as written. A docstring showing the old parameter order is a live bug.
 - **Configuration docs** — new or removed env vars, changed defaults,
   renamed config keys, and the sample config files that mirror them.
-- **Architecture docs and ADR links** — does the change contradict a
-  standing decision record? A superseded ADR needs an explicit successor:
-  offer to record the successor as a selectable choice ("Record the
-  superseding ADR now (Recommended)" / "Skip" — writes the successor file
-  into the project's ADR dir) and link the old
-  one as superseded, rather than leaving both claiming to be current.
+- **Architecture docs and decision records** — does the change contradict a
+  standing decision doc the project already keeps? Report it as drift naming
+  both the doc and the contradicting change, rather than leaving both
+  claiming to be current. Never create a decision doc a project does not use.
 - **Inline examples and snippets** — code blocks in any doc that claim to
   be runnable. If you cannot paste them into a shell or REPL and have
   them work, they have drifted.

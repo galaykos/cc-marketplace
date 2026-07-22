@@ -11,6 +11,3 @@ ask which capability is about to be implemented).
 3. Produce the candidate table: health (maintenance, adoption), license fit,
    coverage of the need (%), integration cost vs write-and-maintain cost.
 4. Verdict: take / wrap / write — with the one-paragraph reason.
-5. Significant verdict → offer as a selectable choice: "Persist as ADR now
-   (Recommended)" / "Skip" — on yes, write the ADR file to the project's ADR
-   dir (docs/adr/ by convention).
