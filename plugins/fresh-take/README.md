@@ -12,9 +12,8 @@ second opinion you can pull into a session exactly when it matters.
 
 ## The two triggers
 
-- **Explicit:** the consult command (`fresh-take:consult [topic]`) — composes a
-  facts-only consult brief and dispatches the `consultant` agent (opus,
-  read-only repo access).
+- **Explicit:** `/fresh-take:consult [topic]` — composes a facts-only consult
+  brief and dispatches the `consultant` agent (opus, read-only repo access).
 - **Passive:** a one-line `UserPromptSubmit` nudge when a prompt contains
   key-moment phrases ("still failing", "force push", …). The nudge only
   suggests the command; it may repeat on later matching prompts.
