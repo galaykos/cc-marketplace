@@ -1,11 +1,11 @@
 ---
 name: puppeteer-patterns
-description: Use when building or reviewing a Puppeteer automation — robust waits, request interception, stealth, resource blocking, and connecting to an anti-detect browser via browserWSEndpoint.
+description: Use when building or reviewing a Puppeteer automation — robust waits, request interception, stealth, resource blocking, and connecting to a running Chrome via browserWSEndpoint.
 ---
 
 ## Scope
 
-Reusable Puppeteer automation patterns and the anti-detect composition. Verify
+Reusable Puppeteer automation patterns. Verify
 every API name against live docs first (puppeteer-docs skill / `/puppeteer:check`)
 — the version couples to a bundled Chrome build and method names shift between
 majors. The code shapes below are illustrative; confirm signatures for the major
@@ -51,7 +51,7 @@ page.on('request', req => {
 ```
 
 - Blocking images/fonts/media/analytics is the cheapest speed win for scraping
-  and for cutting anti-detect noise — fewer third-party beacons fire.
+  — fewer bytes and fewer third-party beacons fire.
 - Mock a response with `req.respond({ status, contentType, body })` to stub an
   API without touching the network.
 - Multiple handlers: switch to Cooperative Intercept Mode — pass a numeric
@@ -76,8 +76,8 @@ const browser = await puppeteer.launch({ headless: true });
 - To patch a non-default package (e.g. `puppeteer-core`) use `addExtra`:
   `const puppeteer = addExtra(require('puppeteer-core')); puppeteer.use(StealthPlugin())`.
 - Stealth reduces trivial headless tells; it is not invisibility. Serious
-  anti-bot defences still profile behaviour and TLS — pair with realistic pacing
-  and, when it matters, a real anti-detect browser (below).
+  anti-bot defences still profile behaviour and TLS — pair with realistic
+  pacing and rate limits.
 - Individual evasions can be toggled via the plugin's `enabledEvasions` option
   when one interferes with the target site.
 
@@ -91,29 +91,23 @@ const browser = await puppeteer.launch({ headless: true });
 - Always clean up: `await page.close()` per job and `await browser.close()` at
   the end — and only `close()` a browser you `launch()`ed. See cleanup below.
 
-## Anti-detect composition — connect over CDP
+## Attaching to a running Chrome — connect over CDP
 
-The point of an anti-detect browser (AdsPower, Kameleo) is a managed, fingerprint
--consistent Chrome you drive remotely. Puppeteer attaches to it over CDP instead
-of launching its own:
+When the automation drives an already-running Chrome (a debugging session, or a
+browser some other tool manages), Puppeteer attaches to it over CDP instead of
+launching its own:
 
 ```js
 const browser = await puppeteer.connect({
-  browserWSEndpoint: wsEndpoint,   // from the anti-detect browser
-  defaultViewport: null,           // inherit the profile's real window size
+  browserWSEndpoint: wsEndpoint,   // the running browser's DevTools ws:// URL
+  defaultViewport: null,           // inherit the real window size
 });
 ```
 
-- **AdsPower:** start the profile via its local API (`/api/v1/browser/start`);
-  the response carries the Puppeteer WS endpoint (under `ws.puppeteer`). Use that
-  string as `browserWSEndpoint`. Obtaining it is `/adspower:check` territory.
-- **Kameleo:** start a profile, then connect to its CDP port; build the
-  `browserWSEndpoint` from that port. Obtaining it is `/kameleo:check` territory.
-- Set `defaultViewport: null` so Puppeteer does not resize the managed window and
-  break the fingerprint the anti-detect profile carefully presents.
-- Do NOT `browser.close()` a connected anti-detect browser — that kills the
-  managed session. Call `browser.disconnect()` to detach and let the anti-detect
-  tool own the lifecycle.
+- Set `defaultViewport: null` so Puppeteer does not resize the managed window.
+- Do NOT `browser.close()` a browser you only connected to — that kills the
+  session for whoever owns it. Call `browser.disconnect()` to detach and leave
+  the lifecycle to the owner.
 
 ## Cleanup and error handling
 
@@ -129,8 +123,7 @@ const browser = await puppeteer.connect({
 
 - Fixed sleeps in place of `waitForSelector` / `waitForFunction` / a Locator.
 - Enabling interception without continuing/aborting/responding every request.
-- `browser.close()` on a connected anti-detect browser (use `disconnect()`).
-- Resizing a managed anti-detect window (omit `defaultViewport: null`) and
-  wrecking the fingerprint.
+- `browser.close()` on a browser you only connected to (use `disconnect()`).
+- Resizing a managed window by omitting `defaultViewport: null` on connect.
 - Treating stealth as a guarantee rather than a headless-tell reducer.
 - Unbounded page pools that exhaust memory; leaked browsers on error paths.

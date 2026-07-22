@@ -20,9 +20,6 @@ automated). Everything reported must come from pages fetched now, not memory.
    - The doc-backed patterns from the playwright-patterns skill that apply —
      selector strategy, auto-wait discipline, network control, auth reuse,
      parallelism, tracing
-   - When the goal is an anti-detect browser, the `connectOverCDP(endpointURL)`
-     shape and where the CDP endpoint comes from (defer endpoint discovery to
-     `/adspower:check` or `/kameleo:check`)
    - Constraints that shape the code: Chromium-only CDP, one context per
      isolated session, no fixed sleeps, web-first assertions
 

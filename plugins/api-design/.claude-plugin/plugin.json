@@ -1,7 +1,7 @@
 {
   "name": "api-design",
-  "version": "0.4.2",
-  "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces (DataLoader, resolver authz, proto field-number safety, streaming). Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). Defers third-party API docs to api-docs-first and Meta platform specifics to meta-api.",
+  "version": "0.4.3",
+  "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces (DataLoader, resolver authz, proto field-number safety, streaming). Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). Defers third-party API docs to api-docs-first.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

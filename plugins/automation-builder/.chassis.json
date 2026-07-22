@@ -1,6 +1,6 @@
 {
   "chassis": "reminder-hook",
-  "regex": "\\b(automation|automate|scrape|scraping|headless|web ?bot|fingerprint|anti-?detect|playwright|puppeteer)\\b",
+  "regex": "\\b(automation|automate|scrape|scraping|headless|web ?bot|playwright|puppeteer)\\b",
   "message": "automation-builder: pick the tool and plan the flow before coding this automation",
   "command": "/automation-builder:build",
   "extraGuard": null

@@ -1,6 +1,6 @@
 ---
 name: playwright-patterns
-description: Use when building or reviewing a Playwright automation — robust selectors, auto-wait discipline, network control, auth reuse, parallelism, connecting to an anti-detect browser over CDP, and authenticating live Playwright MCP browser sessions (QA/E2E runs) without the model handling credentials.
+description: Use when building or reviewing a Playwright automation — robust selectors, auto-wait discipline, network control, auth reuse, parallelism, and authenticating live Playwright MCP browser sessions (QA/E2E runs) without the model handling credentials.
 ---
 
 ## Selector strategy — resilience first
@@ -106,11 +106,11 @@ path. MCP flags move — verify the playwright-mcp README (`/playwright:check`).
   across unrelated flows. Key per-worker fixtures off `testInfo.workerIndex` so
   parallel workers don't collide on the same test account or data row.
 
-## Anti-detect composition — connect over CDP
+## Attaching to an existing browser — connect over CDP
 
-When the target is a fingerprinted profile from AdsPower or Kameleo, Playwright
-does NOT launch it. The anti-detect tool launches the browser and exposes a CDP
-endpoint; Playwright attaches:
+When the automation must drive an already-running Chromium (started with
+`--remote-debugging-port` or managed by another tool), Playwright attaches
+instead of launching:
 
 ```js
 const browser = await chromium.connectOverCDP(endpointURL);
@@ -119,14 +119,10 @@ const page = context.pages()[0] ?? await context.newPage();
 ```
 
 - `connectOverCDP` is **Chromium-only** — WebKit/Firefox are unsupported.
-- The endpoint is the tool's, not yours: AdsPower's `browser/start` returns
-  `ws.puppeteer` / `debug_port`; Kameleo's started profile exposes a debug port.
-  Getting it is out of scope here — call `/adspower:check` or `/kameleo:check`.
 - On an attached browser, prefer the EXISTING context (`browser.contexts()[0]`)
-  so you drive the fingerprinted profile, not a fresh detectable one.
-- Do NOT `browser.close()` a profile you attached to — you'd kill the anti-detect
-  session. Close only pages/contexts you created; let the tool own the browser
-  lifecycle.
+  so you drive the session that is already live, not a fresh one.
+- Do NOT `browser.close()` a browser you attached to — close only
+  pages/contexts you created; the owner of the browser manages its lifecycle.
 
 ## Data extraction, errors, cleanup
 
