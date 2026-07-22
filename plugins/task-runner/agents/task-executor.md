@@ -20,7 +20,7 @@ tool and cannot load one, so nothing else governs you. This card is the dispatch
 Residual: the ~40 chassis-generated `/…:review` commands dispatch you WITHOUT a preamble,
 so on that path the inline restatement below is the sole operative discipline.
 
-The `model: sonnet` / `effort: xhigh` frontmatter above is a DEFAULT tier, not an
+The `model: inherit` / `effort: xhigh` frontmatter above is a DEFAULT tier, not an
 unconditional floor: the dispatch call may override it downward — Agent tool `model: haiku`,
 or `opts.effort: 'low'` on the Workflow path — for mechanical batches (bundled S-cards,
 scaffolds, renames) per delegation-contracts § Model and effort tiering. Verify and judge

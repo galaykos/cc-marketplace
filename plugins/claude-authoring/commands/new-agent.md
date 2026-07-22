@@ -26,7 +26,7 @@ Scaffold a new subagent from $ARGUMENTS. Steps:
    name: <name>
    description: Use PROACTIVELY when <dispatch situation> — <what it returns>.
    tools: <list chosen in step 2>
-   model: sonnet
+   model: inherit
    effort: xhigh
    ---
    You are a <role in one sentence — what you are, what you are not>.

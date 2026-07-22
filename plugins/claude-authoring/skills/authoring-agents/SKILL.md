@@ -16,7 +16,7 @@ agent's entire system prompt:
     name: <agent-name>
     description: Use PROACTIVELY when <situation> — <what it returns>.
     tools: Read, Grep, Glob
-    model: sonnet
+    model: inherit
     effort: xhigh
     ---
     You are a <role> …
@@ -26,7 +26,7 @@ missing one of the four required keys:
 
 - `name:` — the agent's identifier.
 - `description:` — the dispatch trigger (see below).
-- `model:` — required here even though agents default to sonnet.
+- `model:` — required here; workers default to `inherit` (the session model), pins are deliberate.
 - `effort:` — required here even though agents default to xhigh.
 
 `tools:` is optional — but omitting it grants ALL tools. Always list tools
@@ -40,8 +40,8 @@ Match `model:` to the cost of a wrong answer, not to prestige:
 - `opus` — judgment-heavy and wrong-answer-expensive: review verdicts
   (architecture, code), system-design trade-offs, adversarial
   verification, security exploitability calls.
-- `sonnet` — checklist-driven review and implementation; the default
-  worker tier.
+- `sonnet` — a deliberate pin for cheap checklist/breadth work (workers
+  default to `inherit`, not a sonnet pin).
 - `haiku` — mechanical locate/grep/report with no judgment in the output.
 
 `effort:` is orthogonal and tunes reasoning depth on the same model:
