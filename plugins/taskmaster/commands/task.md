@@ -88,6 +88,14 @@ marker into the card index and logging every auto-take to the goal ledger.
 8. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
    the card list in execution order with parallel groups (and milestones) marked.
 9. Handoff — do not just print a command and stop:
+   - **Skip the ask when execution is already authorized.** If the user settled it
+     earlier this session — an answer that chose the pipeline's weight, an explicit
+     "just do it", a prior "Run now" — the decision is granted; invoke task-execution
+     directly and report the result. Re-asking a settled decision stalls the turn.
+   - **Never substitute prose for the ask.** Ending a turn with "next: run the cards,
+     or I edit the file now" is not a handoff — those two labels are the same work, so
+     the choice is false, and a plain-text offer yields a dead turn with nothing started.
+     Either the ask below runs as an AskUserQuestion, or execution begins.
    - If the task-runner plugin is installed, ask via AskUserQuestion: "Cards are
      ready. Start execution now?" with options "Run now (Recommended)" and "Stop
      here — I'll run it later". On "Run now", immediately invoke the

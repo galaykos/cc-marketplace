@@ -44,6 +44,35 @@ Tests: 3 passed, 3 total
 If you haven't run the command yet, the correct claim is "not yet verified," not an optimistic
 guess dressed up as a result.
 
+## A zero result is not evidence until the check can find something
+
+A search, scan, or lint reporting zero hits has two explanations — the thing is absent, or
+the check itself is broken — and the output looks identical either way. Reading the zero as
+proof of absence picks one of the two for no reason.
+
+Before a zero counts as evidence, run the *same* check against a known-positive: a git ref
+where the thing demonstrably exists (`git archive master -- <path> | ...`), a deliberately
+re-introduced instance, or a fixture line. It must report at least one hit there. Zero on the
+known-positive means the check is broken, not the code clean — fix the check, re-validate,
+and only then trust the real run. This is red-before-green applied to searches; for a task's
+test command, task-runner's `negative-control.sh` gate is the counterpart.
+
+Checks fail silently in ways that read exactly like success:
+
+- `grep -rn "\$emit" src/` finds every call on one machine and nothing on the next: the shell
+  hands the engine `$emit`, and engines disagree about a `$` in mid-pattern — BSD grep reads it
+  as a literal and matches, a drop-in such as ugrep reads it as an end-of-line
+  anchor and can never match. `grep -F` removes the ambiguity. Verify which binary `grep`
+  actually resolves to before believing either answer.
+- A non-greedy regex over a nested block terminates at the first inner delimiter, so only the
+  first of N occurrences is ever examined.
+- A wrong `--include` glob, a path aimed at built output instead of source, or a
+  case-sensitive pattern against mixed-case code.
+
+Apply this to zeros that carry weight: one used to claim "absent", "clean", or "fixed", and
+above all one from a check you wrote yourself for this task. An exploratory grep whose output
+you are about to read anyway needs no ceremony.
+
 ## Exact-command + expected-output discipline
 
 When reporting verification, state three things together, every time:
@@ -90,6 +119,8 @@ new empty-notes-array case. Ran `npm run lint`: `0 problems`. Both criteria from
 - [ ] The output was compared line-by-line against the criterion, including warnings or partial
       failures that a quick skim might miss.
 - [ ] Any failing or skipped check is named explicitly, not omitted from the report.
+- [ ] Any zero-result check used as evidence of absence was first shown to report at least one
+      hit against a known-positive.
 - [ ] If verification wasn't possible (e.g., no test harness exists), that limitation is stated
       plainly instead of substituting an assertion for evidence.
 
