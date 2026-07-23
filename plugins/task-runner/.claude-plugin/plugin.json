@@ -1,6 +1,6 @@
 {
   "name": "task-runner",
-  "version": "0.18.6",
+  "version": "0.18.7",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — and a PostToolUse scope-lock tripwire that flags edits outside the current task's declared files. Includes parallel-planning: computed subagents-vs-inline verdict with dependency levels, agent count, and speedup estimate via /task-runner:plan.",
   "author": {
     "name": "Ivan-WG",

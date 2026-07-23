@@ -45,7 +45,7 @@ your response, before anything else:
 
 ```
 \033[1;93m⚡ EXTREME BOOST — ultra-task active\033[0m
-\033[2m   <model> subagents · always red-team + coverage · bounded fan-out · effort=<effort> (Workflow)\033[0m
+\033[2m   <model> reasoning subagents · always red-team + coverage · bounded fan-out · effort=<effort> (Workflow)\033[0m
 ```
 
 Substitute `<model>`/`<effort>` with the RESOLVED tier (see Variants; defaults
@@ -102,7 +102,7 @@ suffix resolves by set membership (`ultra-task-max`→auto/max); unknown suffixe
 ## Bounded fan-out recipes
 
 Fan-outs run through the `Workflow` tool only when present. Each has a hard bound
-— mirroring the execution plugin's three-cycle ceiling — so no unbounded loop:
+— a three-cycle-style ceiling, also gated by `budget.remaining()` on the Workflow path:
 
 - **Recon** — up to 3 parallel scouts, one lens each (by-file, by-pattern,
   by-constraint), NATIVE tier (mechanical), merged and deduped. Size to blast

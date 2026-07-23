@@ -25,7 +25,7 @@ crosses a command boundary. The `ultra`/`ultra-task` token may carry a
 ∈ auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max,
 default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (the selected model on
-reachable subagents, bounded Workflow fan-outs, and the ⚡ banner).
+reachable reasoning subagents, bounded Workflow fan-outs, and the ⚡ banner).
 
 **Goal flag:** run in hands-off Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
 bare `goal` token (this command invoked as `/taskmaster:<cmd> goal …`) or contains

@@ -35,7 +35,7 @@ of your response, before anything else:
 
 ```
 \033[1;93m⚡ EXTREME BOOST — ultra-assess active\033[0m
-\033[2m   <model> subagents · fan-out → red-team → completeness-critic · effort=<effort> (Workflow)\033[0m
+\033[2m   <model> reasoning subagents · fan-out → red-team → completeness-critic · effort=<effort> (Workflow)\033[0m
 ```
 
 Substitute `<model>`/`<effort>` with the RESOLVED tier (see Variants; defaults
@@ -96,8 +96,8 @@ The recipe composes two orchestration skills already in this plugin — read the
   overrides that skill's one-reviewer default and cost gate — an ultra-assess
   run is explicit opt-in escalation, so the gate is pre-paid.
 
-Phases, each bounded (mirroring the three-cycle ceiling used elsewhere so no
-unbounded loop opens):
+Phases, each bounded (mirroring the three-cycle ceiling used elsewhere, and — on the
+Workflow path — additionally gated by `budget.remaining()`, so no unbounded loop opens):
 
 1. **Scout** — enumerate the assessment units (the fan-out work-list). Inline, cheap.
 2. **Fan out readers** — one agent per unit, tiered by its lens's work (mechanical

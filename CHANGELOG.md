@@ -4,6 +4,47 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.66.0] - 2026-07-23
+
+Backlog close: B3 and every N-item that was a real defect. Truthfulness, drift, and the
+one latent template gap.
+
+- **taskmaster 0.31.8** —
+  - **N5** (five known-false tiering claims): the boost lands on reachable *reasoning*
+    subagents, not all of them — breadth/mechanical stay native. Added the missing
+    "reasoning" qualifier to the `ultra`/`ultra-goal` banners and the `task`/`taskmaster`/
+    `brainstorm` command directives. `hooks/ultra.sh` already said "REASONING subagents …
+    recon scouts and opinion-lens stay NATIVE" — verified correct, left untouched; that
+    reconciles the backlog's "five" against its six-site list.
+  - **B3** (coverage-check misclassified): `dispatch-tiers.md` listed "coverage-check
+    sweep" as a boosted Reasoning dispatch, but the skill dispatches only a read-only
+    matrix build (mechanical) and keeps the gap-judgment in the main thread. Split the
+    ladder entry — matrix build → Mechanical/native, gap-judgment → Reasoning — so the
+    table stops implying a boosted dispatch that does not exist.
+  - **N4** (residual tier prose): `dispatch-tiers.md` kept its own copy of the exemption
+    roster. Replaced with a pointer to `role-floors.md` as the source of truth.
+  - **N1** (fan-out never consulted the budget): the recipe counts bound wall-clock, not
+    tokens. Added a `budget.remaining()` gate to the fan-out sizing doctrine — D2's cost
+    concern answered at the unit that has a real handle (`Workflow`'s
+    `budget.total`/`spent()`/`remaining()`), not a total-agent cap.
+- **orchestration 0.6.5** — N5 banner + README "reasoning subagents"; N1 `budget.remaining()`
+  gate added to the ultra-assess phases (skill-side prose; the verbatim `ULTRA-ASSESS
+  ACTIVE` contract the hook mirrors was left byte-identical).
+- **task-runner 0.18.7** — N4: `reviewer-routing.md` dropped its "(today: …)" reviewer
+  enumeration for a pointer to the registry. N8 (found this run): the same file's three
+  `SKILL.md:NN-NN` line citations — the same brittle class as N3, one already ~2 lines
+  stale — became section descriptors (`SKILL.md` § Extreme Boost, the fix-loop rule, the
+  manual-check rule). No `.md/.sh/.json:NN` line citation remains anywhere in `plugins/`.
+- **claude-authoring 0.4.8** — N3: `authoring-hooks`/`authoring-plugins` cited
+  `scripts/validate.sh:NN-MM` line ranges, all five stale (some by ~40 lines). Replaced
+  every citation with a stable check-name descriptor ("the hooks.json check", "the
+  marketplace-entry check", …) so the class cannot rot again.
+- **chassis template (N2)** — `templates/worker-agent.md.tmpl` gained an optional
+  `{{#if floor}}floor: {{floor}}{{/if}}` slot and `generate.sh` defaults `floor` to "".
+  A future chassis agent that pins a non-`inherit` model can now emit its own `floor: none`
+  exemption instead of being unsatisfiable against the role-floor gate. Latent today (all
+  worker-agents ship `inherit`); every existing agent re-renders byte-identical.
+
 ## [0.65.0] - 2026-07-23
 
 Backlog C1 closed, and the fan-out width it exposed.

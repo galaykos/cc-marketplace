@@ -29,7 +29,7 @@ crosses a command boundary. The `ultra`/`ultra-task` token may carry a
 ∈ auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max,
 default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (the selected model on
-reachable subagents, mandatory red-team + coverage, bounded Workflow fan-outs, the
+reachable reasoning subagents, mandatory red-team + coverage, bounded Workflow fan-outs, the
 ⚡ banner, and the `Ultra: true (model=…, effort=…)` marker written into the card
 index).
 
