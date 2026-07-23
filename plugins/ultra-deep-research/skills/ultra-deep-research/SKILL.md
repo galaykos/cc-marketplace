@@ -52,8 +52,10 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    contradiction, never a silent pick.
 6. **Gap check (ultra: loop-until-dry).** A completeness critic asks: which facet is
    thin, which claim is still unconfirmed, which fact is stale? Spawn another round on
-   the gaps. Repeat until two consecutive rounds surface nothing new, or the budget is
-   spent — then say what was left uncovered rather than implying full coverage.
+   the gaps. Repeat until two consecutive rounds surface nothing new, **capped at 3
+   rounds**, or the budget is spent — then say what was left uncovered rather than
+   implying full coverage. The cap is the enforceable ceiling; two-dry is the quality
+   exit and the budget check is advisory, so a run that keeps finding gaps still ends.
 7. **Synthesize.** Write the report per `references/report-template.md`: direct answer
    first, per-section confidence, inline `[n]` citations, contradiction ledger, tiered
    source list, and open questions. Print it inline **and** write it to

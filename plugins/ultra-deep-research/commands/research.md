@@ -21,7 +21,7 @@ follow its loop; the recipes live in that skill's `references/`.
 4. **Corroborate & refute.** Confirm a load-bearing claim only on ≥2 independent
    Tier-1/2 sources; route each to the `verifier` to be broken. Ledger every
    contradiction; adjudicate by provenance and recency, or ship it as open.
-5. **Gap check.** For ultra, loop until two rounds add nothing new or the budget is
+5. **Gap check.** For ultra, loop until two rounds add nothing new, capped at 3 rounds, or the budget is
    spent; for standard, run one explicit gap pass. Name what stayed uncovered.
 6. **Synthesize** using `references/report-template.md`: answer first, per-section
    confidence, inline `[n]` citations, contradiction ledger, tiered sources, open

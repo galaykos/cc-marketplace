@@ -4,6 +4,28 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.64.0] - 2026-07-23
+
+The last uncapped discovery loop, and a correction to a claim shipped in 0.63.0.
+
+- **ultra-deep-research 0.2.3** — its loop-until-dry re-derived `verification-panels`' pattern
+  without citing it, so it did not inherit the 3-round cap added in 0.63.0. It is now capped
+  in all **three** places the exit condition is stated (`SKILL.md`, `references/orchestration.md`,
+  `commands/research.md`) — the spec named only two, and capping two of three is exactly the
+  drift being fixed. The cap is stated as the enforceable ceiling; two-dry stays the quality
+  exit and the budget check stays advisory.
+- **orchestration 0.6.3** — `role-floors.md` carried a false citation introduced in 0.63.0: it
+  claimed `claude-authoring` documented `verifier`'s sonnet pin as deliberate, but 0.63.0's own
+  `authoring-agents` rewrite removed that text, leaving the citation circular and dead. The
+  underlying rationale was also wrong — **`--ultra` selects the Workflow engine and raises the
+  vote count; it changes no agent's model**, so `verifier` runs `sonnet` on both paths with no
+  escalation lever. Both `role-floors.md` and the agent's own `floor-reason:` now say the
+  question is **open**, not settled.
+
+`verifier`'s tier is deliberately NOT changed here. The earlier decision to leave it exempt
+rested on the falsified rationale above, so re-deciding it silently would be worse than
+leaving it open. It stays exempt with an honest reason and is surfaced for a decision.
+
 ## [0.63.0] - 2026-07-23
 
 Role-floor registry gate — `role-floors.md` was prose, so nothing checked its rows against

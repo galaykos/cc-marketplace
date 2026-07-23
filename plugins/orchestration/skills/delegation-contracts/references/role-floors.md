@@ -79,10 +79,13 @@ equalling frontmatter values buys compatibility with an older runner, nothing mo
   *correct* running below the session model — see `taskmaster/skills/ultra/references/dispatch-tiers.md`
   § Role → tier ladder. Flooring them would be the "uniform model for every stage"
   anti-pattern this skill names.
-- **`ultra-deep-research:verifier`.** Pins `sonnet`, and `claude-authoring/skills/authoring-agents/SKILL.md`
-  documents that pin as deliberate because its `--ultra` path owns its own tiering. It also
-  fans three votes per load-bearing claim, so flooring it multiplies the widest fan-out in
-  the marketplace. A real question with a real cost profile — deferred to its own spec.
+- **`ultra-deep-research:verifier`.** Pins `sonnet`. **This one is genuinely open, not
+  settled.** An earlier note here claimed its `--ultra` path "owns its own tiering" — that
+  was wrong: `--ultra` selects the Workflow engine and raises the vote COUNT, and changes no
+  agent's model, so `verifier` runs `sonnet` on both paths with no escalation lever. It is a
+  Reasoning-class refuter by the ladder, which argues for a floor; against it, the Workflow
+  path fans three votes per load-bearing claim, the widest fan-out in the marketplace. Left
+  exempt pending a decision on the merits — see backlog C1.
 
 ## Residual — main-thread PROACTIVE dispatch is not covered
 

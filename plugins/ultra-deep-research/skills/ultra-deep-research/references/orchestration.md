@@ -73,7 +73,8 @@ function reduceRefutePanel(votes) {
 
 Then loop-until-dry: a completeness-critic `agent` inspects the merged ledger for thin
 facets / unconfirmed claims / stale dates and returns the next round's facets. Repeat
-until two consecutive rounds add nothing, or `budget.remaining()` is low. The refute
+until two consecutive rounds add nothing, **capped at 3 rounds**, or `budget.remaining()`
+is low — the cap is the enforceable ceiling, the other two are quality/advisory. The refute
 stage above already fans each load-bearing claim to a 3-vote panel and folds the votes
 through `reduceRefutePanel`: majority-refute kills the claim; a confirm-majority counts
 only votes carrying BOTH fetch evidence and a named corroboration source; splits with a

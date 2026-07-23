@@ -5,7 +5,7 @@ tools: WebSearch, WebFetch, Read
 model: sonnet
 effort: high
 floor: none
-floor-reason: deliberate - a Reasoning-class refuter whose --ultra path owns its own tiering, and it fans 3 votes per load-bearing claim; revisiting this is its own spec
+floor-reason: OPEN, not settled - a Reasoning-class refuter that would normally take a floor row; exempt pending a decision on the merits (backlog C1). --ultra raises vote count, not model, so there is no escalation lever here
 ---
 
 You are an adversarial verifier. You are handed one claim and its cited support. Your
