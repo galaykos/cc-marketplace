@@ -94,6 +94,12 @@ Runs after the card's verification passes — a command OR a recorded manual che
    **medium/low** or **minor** → the backlog. The fix loop itself is unchanged: the
    runner applies fixes (or re-dispatches the builder), re-runs verify, then re-reviews.
 7. **Ultra:** routed reviewers inherit the `Ultra:` marker model override (`SKILL.md:64-70`).
+8. **Role-tier floor — unboosted too:** a routed reviewer with a row in delegation-contracts
+   `references/role-floors.md` (today: `code-reviewer`, `architecture-reviewer`,
+   `system-design-reviewer`) dispatches at `max(marker tier if present ELSE the session
+   model, its floor)`. Item 7 covers the boosted half; this covers the case with no marker,
+   where a pinned reviewer would otherwise run BELOW a stronger session. Reviewers with no
+   row are unfloored and unchanged. Registry unresolved → omit `model:` and log it.
 
 A card whose `Agent:` tag and `Skills to apply` imply different stacks is **not** a
 conflict — inject both the tag's agnostic domain skill and the card's stack skills; they

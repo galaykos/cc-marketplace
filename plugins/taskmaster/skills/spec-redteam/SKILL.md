@@ -1,6 +1,6 @@
 ---
 name: spec-redteam
-description: Use after grill writes a spec and before task-cards, when blast radius warrants — dispatches a blind adversary against the frozen spec (edge cases, unstated assumptions, conflicts, underspecified requirements, failure/security gaps, visual coherence) and resolves each before cards.
+description: Use after grill writes a spec and before task-cards, when blast radius warrants — dispatches blind adversaries against the frozen spec (edge cases, unstated assumptions, conflicts, underspecified requirements, failure/security gaps, visual coherence) and resolves each before cards.
 ---
 
 ## Where this sits
@@ -46,6 +46,36 @@ When the gate is met, dispatch the `spec-adversary` agent with **only the spec f
 path**. Do not pass it the grill conversation, the design doc, or your own summary —
 its value is that it reads the requirements cold and finds what the dialogue missed.
 Passing it the conversation re-imports the blind spots you are trying to escape.
+
+**Role-tier floor — boosted or not.** `spec-adversary` carries a row in
+`orchestration:delegation-contracts` `references/role-floors.md`, so dispatch it at
+`max(marker tier if present ELSE the session model, opus)`. Never omit `model:` in a
+session above opus: an adversary weaker than the model that wrote the spec is a weak
+gate on exactly the specs that most need one. Registry unresolved → omit `model:` and
+note `role-floors.md unresolved — floors not applied`.
+
+## The panel — ultra only
+
+Under `ULTRA-TASK ACTIVE` and when the `Workflow` tool is present, this is a **blind
+panel**, not a single adversary — the width `ultra/SKILL.md` and `/taskmaster:redteam`
+already promise. Unboosted runs keep the single adversary above; nothing here changes a
+standard run.
+
+Size N by the gate conditions already computed above — `dispatch-tiers.md` § Fan-out
+sizing owns panel N, but keys off *files the change touches*, which does not exist yet at
+spec-freeze. The four gate bullets are the radius proxy at this step. Apply in order,
+first match wins:
+
+1. The **security/auth/data/external-surface** bullet fires, **or two or more** bullets
+   fire → **3 adversaries**.
+2. Exactly one non-security bullet fires → **2 adversaries**.
+3. Zero bullets fire but ultra forces the run (`run ALWAYS`) → **2 adversaries**.
+4. No `Workflow` tool → **1** inline adversary. Today's path, unchanged.
+
+Count the four bullets as four; the security bullet is ONE disjunction counted once, not
+once per surface named in it. Every panel member is blind and independent — each gets only
+the spec path, never another member's findings — then dedupe holes across the panel before
+presenting. These counts are ceilings, not quotas.
 
 The agent returns a structured holes list grouped by lens, each hole tagged
 `blocker | major | minor` with a section, the hole, and a suggested fix.

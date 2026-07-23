@@ -20,7 +20,7 @@ Read `orchestration:verification-panels` and reuse it wholesale:
 
 - **Refuter voting** — N independent skeptics, each told to REFUTE, diverse lenses.
 - **Completeness-critic** — a closing pass asking only "what defect was never looked for?"
-- **Loop-until-dry** — repeat rounds until two consecutive rounds surface nothing new.
+- **Loop-until-dry** — repeat rounds until two consecutive rounds surface nothing new, capped at 3 rounds whichever comes first (the cap is owned by that skill, not re-derived here).
 
 Do NOT re-derive the voting, independence, or dedup discipline here. If you find yourself
 writing panel logic, stop — it already exists in that skill and this one only wires it to

@@ -38,3 +38,9 @@ implementing it.
    "Have the system-architect implement the fixes now (Recommended)" / "Report only".
    On implement, dispatch the `system-architect` worker with the finding list. In
    headless or non-interactive runs, report only.
+
+   **Role-tier floor.** `system-architect` and `system-design-reviewer` both carry a row in
+   `orchestration:delegation-contracts` `references/role-floors.md`, so dispatch them at
+   `max(session model, opus)` — never omit `model:` in a session above opus, or the architect
+   runs weaker than the session that asked for it. If that registry cannot be resolved, omit
+   `model:` and note `role-floors.md unresolved — floors not applied` in the run output.

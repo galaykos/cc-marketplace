@@ -93,6 +93,15 @@ applied per member. Differences:
    received anyway). Batching therefore never changes WHICH model writes the code — only how
    many cards one dispatch carries.
 
+   **"No override" means the worker is UNFLOORED — not that dispatch never passes `model:`.**
+   Every worker in the resolution map ships `model: inherit` and has no row in
+   delegation-contracts `references/role-floors.md`, so there is no floor to apply and the
+   param is omitted. Read the parenthetical above as the proof: a marker tier already lands
+   here. An agent that DOES carry a role-floor row is dispatched at
+   `max(marker tier if present ELSE the session model, its floor)` — which only ever RAISES,
+   so `dispatch-tiers.md`'s "never downgrades an agent below its frontmatter" invariant is
+   untouched.
+
    Earlier revisions down-tiered a batch to `haiku`/`sonnet` + `effort: low`, citing
    delegation-contracts § Model and effort tiering. That rule is sound where it was written
    — its examples are rename sweeps, format checks, and inventory scans, work where *the

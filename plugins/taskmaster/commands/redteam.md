@@ -24,8 +24,9 @@ crosses a command boundary. The `ultra`/`ultra-task` token may carry a
 `-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
 ∈ auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max,
 default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
-as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (an N=3 blind adversary
-panel on the Workflow path, subagents at the selected model, and the ⚡ banner).
+as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (up to an N=3 blind adversary
+panel on the Workflow path — a ceiling, sized by the spec-redteam skill's own blast-radius
+gate, 2 at small radius — subagents at the selected model, and the ⚡ banner).
 
 **Goal flag:** run in hands-off Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
 bare `goal` token (this command invoked as `/taskmaster:<cmd> goal …`) or contains

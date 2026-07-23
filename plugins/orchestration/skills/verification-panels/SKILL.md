@@ -76,6 +76,11 @@ live. Loop instead:
 2. Dedup the round against everything SEEN so far — every finding from
    every prior round, including the ones a judge or refuter rejected.
 3. If two consecutive rounds produce nothing new, the well is dry; stop.
+   Stop at **3 rounds** regardless — a capped-at-3-rounds ceiling, whichever comes
+   first. Two-dry is the quality exit; the cap is the bound that keeps a diff which
+   keeps surfacing findings from looping forever. Consumers that already state a cap
+   (`taskmaster:ultra`, `orchestration:ultra-assess`) match this; consumers that
+   re-derive their own loop do not inherit it.
 
 The dedup rule is load-bearing. Dedup against confirmed findings only,
 and every judge-rejected finding is "new" again next round: finders keep

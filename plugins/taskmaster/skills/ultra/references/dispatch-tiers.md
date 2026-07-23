@@ -25,6 +25,15 @@ Mechanical/breadth roles are handled exactly the way `opinion-lens` already was
 Lever 1 just widens that existing treatment from one agent to a class. It never
 *downgrades* an agent below its frontmatter; it only declines to *raise* it.
 
+The converse also holds, and it applies **unboosted** as well: for a Reasoning-class
+agent a `model:` pin is a **floor**, not a ceiling — dispatch it at
+`max(marker tier if present ELSE the session model, its floor)` so a pinned judge is
+never weaker than the session that wrote the code. The registry of which agents carry a
+floor, and the full rule, live in `orchestration:delegation-contracts`
+`references/role-floors.md`. The boost's "declines to raise" behavior above is unchanged;
+breadth/mechanical pins (`opinion-lens`, `indexer`, `transcript-miner`, `researcher`)
+carry no floor by design.
+
 Do not edit any agent's `model:`/`effort:` frontmatter to achieve this — the tier
 is a dispatch-time override on the reasoning roles only; frontmatter ships as-is.
 

@@ -4,6 +4,46 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.61.0] - 2026-07-23
+
+Role-tier floors and red-team panel parity — four shipped behaviors that contradicted
+written contracts.
+
+A `model:` pin in agent frontmatter was a **ceiling as well as a floor**. `ultra`'s boost
+already computed `max(marker tier, frontmatter tier)`, but the unboosted path applied no
+override at all, so frontmatter was final: in a session above opus, five Reasoning-class
+judges ran a tier *below* the code they were judging. The fix is one idea — when no marker
+is present, the session model takes the marker's place in that same `max()`.
+
+- **orchestration 0.6.2** — new `delegation-contracts/references/role-floors.md`: the
+  registry of agents whose pin is a floor (`code-reviewer`, `architecture-reviewer`,
+  `system-design-reviewer`, `system-architect`, `spec-adversary`), the two-class resolution
+  rule, the cross-plugin probe order, and the residual it does **not** cover (main-thread
+  PROACTIVE auto-dispatch, which no skill mediates). Breadth/mechanical pins
+  (`opinion-lens`, `indexer`, `transcript-miner`, `researcher`) carry no floor by design.
+  `verification-panels`' loop-until-dry gains a **3-round cap** alongside its two-dry exit —
+  the owner was the only uncapped one, while every consumer that stated a bound stated both.
+  `/orchestration:review` gains item 8, a **fan-out width check**: the command built to audit
+  fan-outs previously had no item asking how many agents a stage spawns.
+- **task-runner 0.18.5** — `task-execution` applies the floor at the site that actually sets
+  `model:`, boosted or not; `reviewer-routing` gains the unboosted half of its Ultra item;
+  `routing.md`'s "no tier override" is reconciled as *the worker is unfloored*, not *dispatch
+  never passes `model:`*. `code-redteam` picks up the panel round cap from its owner.
+- **taskmaster 0.31.6** — `spec-redteam` gains the ultra-gated blind **panel** its callers
+  already promised (it shipped a single adversary while three lines advertised N=3), sized
+  2–3 by its own existing blast-radius gate, with the inline single-adversary fallback
+  unchanged; `spec-adversary` dispatch now carries the floor. The three N=3 lines in `ultra`
+  and `/taskmaster:redteam` now read as ceilings, matching `ultra`'s own
+  "counts are CEILINGS" rule. `dispatch-tiers.md` states the floor as the converse of its
+  "never downgrades below frontmatter" invariant.
+- **system-design 0.3.3** — `/system-design:review` floors `system-architect` and
+  `system-design-reviewer` at `max(session model, opus)` on its standalone dispatch path.
+
+Deferred to their own specs: the anti-drift `validate.sh` gate + smoke fixture + CI step;
+banner truthfulness across six status lines; `ultra-deep-research`'s independently-derived
+uncapped loop; and `ultra-deep-research:verifier`'s sonnet pin (documented as deliberate,
+and it fans three votes per load-bearing claim).
+
 ## [0.60.0] - 2026-07-23
 
 Model/effort tier uniformity — propagate the role-based dispatch tiering from `bf9bb3a`
