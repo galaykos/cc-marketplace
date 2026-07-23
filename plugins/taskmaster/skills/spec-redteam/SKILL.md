@@ -29,7 +29,7 @@ Several passes cluster around spec-freeze; keep them distinct:
 
 ## The blast-radius gate
 
-A red-team is not free — run it only when the spec warrants it. Run when ANY holds:
+A red-team is not free — run it only when the spec warrants it, **except under a boost, where it runs unconditionally** (see the Otherwise clause). Run when ANY holds:
 
 - the spec has **three or more success criteria**, or
 - it **touches more than one module or directory**, or
@@ -39,6 +39,10 @@ A red-team is not free — run it only when the spec warrants it. Run when ANY h
 Otherwise the spec is trivial for this purpose — note "spec trivial for red-team —
 skipped" in one line and let the handoff proceed. Matches grill's own scale-to-
 blast-radius doctrine; a one-file, two-criterion spec does not earn a subagent.
+
+**Exception — a boosted run never skips.** Under `ULTRA-TASK ACTIVE` **or** `ULTRA-GOAL ACTIVE` the red-team runs regardless of the bullets (`ultra/SKILL.md` "run ALWAYS";
+`ultra-goal/SKILL.md` "ALWAYS runs under goal"). Both directives count — goal injects `ULTRA-GOAL ACTIVE`, not the ultra-task string, and goal is hands-off, so no user is
+present to catch a wrong skip. Zero bullets under a boost still runs; § The panel sizes N.
 
 ## Dispatch the adversary — blind
 
@@ -66,11 +70,13 @@ sizing owns panel N, but keys off *files the change touches*, which does not exi
 spec-freeze. The four gate bullets are the radius proxy at this step. Apply in order,
 first match wins:
 
-1. The **security/auth/data/external-surface** bullet fires, **or two or more** bullets
+1. **No `Workflow` tool → 1 inline adversary.** Tested FIRST so it wins over every branch
+   below — including a zero-bullet boosted run, which would otherwise fall into a
+   Workflow-gated section that does not apply to it. Today's path, unchanged.
+2. The **security/auth/data/external-surface** bullet fires, **or two or more** bullets
    fire → **3 adversaries**.
-2. Exactly one non-security bullet fires → **2 adversaries**.
-3. Zero bullets fire but ultra forces the run (`run ALWAYS`) → **2 adversaries**.
-4. No `Workflow` tool → **1** inline adversary. Today's path, unchanged.
+3. Exactly one non-security bullet fires → **2 adversaries**.
+4. Zero bullets fire but a boost forces the run (§ the gate's Exception) → **2 adversaries**.
 
 Count the four bullets as four; the security bullet is ONE disjunction counted once, not
 once per surface named in it. Every panel member is blind and independent — each gets only
@@ -135,8 +141,7 @@ figure. Then cards.
 
 ## Anti-patterns
 
-- **Running on a trivial spec.** The gate exists so the red-team fires where it pays
-  off, not on every two-line change.
+- **Running on a trivial spec — unboosted.** The gate exists so the red-team fires where it pays off, not on every two-line change; under a boost it runs regardless (§ the gate's Exception).
 - **Passing the grill conversation to the agent.** Blindness is the mechanism; feed
   it only the spec path.
 - **Treating a dismiss as a failure.** The adversary produces judgment; a wrong hole

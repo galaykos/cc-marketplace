@@ -4,6 +4,33 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.62.0] - 2026-07-23
+
+Tiering docs truth — shipped text that stated the wrong thing about which model a subagent
+runs at. No dispatch behavior changes in this release.
+
+- **task-runner 0.18.6** — `agents/task-executor.md` no longer advertises a downward tier
+  override. `afe358f` removed the batch down-tier from `routing.md` but left the worker
+  agent's own file asserting the dispatcher "may override it downward — Agent tool
+  `model: haiku`, or `opts.effort: 'low'` — for mechanical batches". A live contradiction in
+  shipped text, in the file that agent reads about itself, missed by the red-teams on both
+  commits that produced it. `README.md` gains a "Which model runs your cards" section — it
+  previously carried zero tier prose.
+- **taskmaster 0.31.7** — the standard-run status line is now true in all four session tiers.
+  It claimed subagents inherit the session model; a floored judge is raised above it and a
+  breadth pin can sit either side of it. The replacement states the **rule** rather than an
+  outcome, because the floor has a documented degraded path (registry unresolved) where it is
+  not applied — and the line prints before that probe. `spec-redteam`'s blast-radius gate no
+  longer contradicts the run-ALWAYS contract: it names both `ULTRA-TASK ACTIVE` and
+  `ULTRA-GOAL ACTIVE` (goal injects the latter, and goal is hands-off, so no user is present
+  to catch a wrong skip), and the no-Workflow branch is now evaluated first so a zero-bullet
+  boosted run gets one inline adversary instead of falling into a Workflow-gated section.
+
+Deferred, deliberately: the `dispatch-tiers.md` coverage-check ladder row was pulled from this
+wave. That row is the only place assigning a tier to coverage-check's matrix subagent, so
+relabelling it would change dispatch behavior rather than wording. It moves with `card-verify`,
+which carries the identical defect in the same table cell.
+
 ## [0.61.0] - 2026-07-23
 
 Role-tier floors and red-team panel parity — four shipped behaviors that contradicted

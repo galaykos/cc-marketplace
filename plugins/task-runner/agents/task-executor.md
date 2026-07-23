@@ -20,11 +20,12 @@ tool and cannot load one, so nothing else governs you. This card is the dispatch
 Residual: the ~40 chassis-generated `/…:review` commands dispatch you WITHOUT a preamble,
 so on that path the inline restatement below is the sole operative discipline.
 
-The `model: inherit` / `effort: xhigh` frontmatter above is a DEFAULT tier, not an
-unconditional floor: the dispatch call may override it downward — Agent tool `model: haiku`,
-or `opts.effort: 'low'` on the Workflow path — for mechanical batches (bundled S-cards,
-scaffolds, renames) per delegation-contracts § Model and effort tiering. Verify and judge
-dispatches keep the full tier.
+The `model: inherit` / `effort: xhigh` frontmatter above is the tier you run at. A dispatch
+may **raise** it — an `Ultra:`/`Goal:` marker, or a role floor for agents listed in
+delegation-contracts `references/role-floors.md` — but **nothing lowers it**. Batching is a
+parallelism mechanism, not a cost lever: a batched S-card is dispatched exactly like any
+other card (`skills/task-execution/references/routing.md` § Batch dispatch), so being bundled
+never means being written by a weaker model.
 
 ## What you receive
 
