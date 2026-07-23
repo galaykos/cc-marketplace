@@ -4,6 +4,26 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.65.0] - 2026-07-23
+
+Backlog C1 closed, and the fan-out width it exposed.
+
+- **orchestration 0.6.4** — `ultra-deep-research:verifier` joins the role-floor registry at
+  `sonnet`. C1 is decided, not deferred: it is one agent per claim told to break it under
+  ordered provenance rules — the same shape as `spec-adversary`, so Reasoning class, so a
+  row. The floor is the agent's own pin reinterpreted, not a raise; `max(session, sonnet)`
+  only stops it capping there. Two worked cases added covering a sub-`opus` floor.
+  `researcher` stays unfloored and now says why in the registry: a breadth shard, N in
+  parallel, one facet each, extraction against a verbatim-quote gate. Producer and auditor
+  land in different classes because the work differs.
+- **ultra-deep-research 0.2.4** — `verifier` drops `floor: none` and its OPEN reason string.
+  Separately, the refute stage is now **capped at 24 verifier dispatches per round**
+  (claims × votes). Facets were bounded 4–8 and rounds at 3, but the load-bearing claim
+  count `C` was bounded nowhere, leaving `3 × C` open — the same one-axis-capped defect
+  0.64.0 fixed for the loop. Overflow claims rank by answer-dependence, carry as
+  `unconfirmed`, and the deferred count gets a slot in the report template. Stated in all
+  four places the refute stage is sized.
+
 ## [0.64.0] - 2026-07-23
 
 The last uncapped discovery loop, and a correction to a claim shipped in 0.63.0.

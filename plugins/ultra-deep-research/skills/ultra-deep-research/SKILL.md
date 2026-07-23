@@ -43,7 +43,9 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    citation circular, is there stronger counter-evidence? Standard = one refuter;
    ultra = a panel voting, majority-refute kills the claim. Survivors are `confirmed`;
    the rest are downgraded or dropped — an unfetchable source lands `unconfirmed`,
-   never `contested` (unreadable is not disagreement).
+   never `contested` (unreadable is not disagreement). **Capped at 24 verifier
+   dispatches per round** (claims × votes): rank by how much the answer leans on each,
+   verify down to the cap, carry the rest `unconfirmed`, and name the deferred count.
 5. **Ledger contradictions.** Where sources disagree, never silently average. Record
    the disagreement, then adjudicate by an ordered rule: (1) for volatile facts
    (versions, prices, dates, live status) the more recent of two Tier-1/2 sources wins,

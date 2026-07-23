@@ -20,7 +20,12 @@ code-architecture:architecture-reviewer   opus
 system-design:system-design-reviewer      opus
 system-design:system-architect            opus
 taskmaster:spec-adversary                 opus
+ultra-deep-research:verifier              sonnet
 ```
+
+A floor is the agent's own pin, reinterpreted — not a raise. `verifier` floors at `sonnet`
+because the defect was the *ceiling*, never the level: it kept an adversarial refuter at
+sonnet while the claims it audits were produced under a stronger session.
 
 An agent with no row here is **unfloored** — that is the correct default, not an oversight.
 
@@ -29,7 +34,7 @@ An agent with no row here is **unfloored** — that is the correct default, not 
 A single formula cannot serve both classes; trying to write one is how an earlier draft
 silently turned `ultra-task-haiku` into a no-op.
 
-    FLOORED (the five above):
+    FLOORED (the six above):
         model: = max( marker tier if a marker is present else session model,
                       role floor )
         ladder: haiku < sonnet < opus < fable
@@ -53,6 +58,11 @@ Worked cases:
 | `ultra-task-haiku`, `code-reviewer` | `max(haiku, opus)` = opus | unchanged |
 | `ultra-task-haiku`, an `inherit` worker | haiku | unchanged — the explicit-pin lever survives |
 | a batch worker under any marker | the marker tier | unchanged — it is unfloored |
+| unboosted, opus session, `verifier` | `max(opus, sonnet)` = opus | **fixed** — was sonnet |
+| unboosted, haiku session, `verifier` | `max(haiku, sonnet)` = sonnet | unchanged |
+
+A floor below `opus` is not a weaker floor — it is the same rule at the agent's own level.
+`sonnet` is where `verifier` already sat; the row only stops it capping there.
 
 Effort is **not** floored: the Agent tool has no `effort` parameter, so frontmatter `effort:`
 stands. Effort remains a `Workflow`-path concern.
@@ -79,13 +89,13 @@ equalling frontmatter values buys compatibility with an older runner, nothing mo
   *correct* running below the session model — see `taskmaster/skills/ultra/references/dispatch-tiers.md`
   § Role → tier ladder. Flooring them would be the "uniform model for every stage"
   anti-pattern this skill names.
-- **`ultra-deep-research:verifier`.** Pins `sonnet`. **This one is genuinely open, not
-  settled.** An earlier note here claimed its `--ultra` path "owns its own tiering" — that
-  was wrong: `--ultra` selects the Workflow engine and raises the vote COUNT, and changes no
-  agent's model, so `verifier` runs `sonnet` on both paths with no escalation lever. It is a
-  Reasoning-class refuter by the ladder, which argues for a floor; against it, the Workflow
-  path fans three votes per load-bearing claim, the widest fan-out in the marketplace. Left
-  exempt pending a decision on the merits — see backlog C1.
+
+`ultra-deep-research` splits across both classes deliberately, and the split is the ladder,
+not an oversight: `researcher` is a breadth shard — N in parallel, one facet each, fetch and
+extract against a verbatim-quote gate, merged after — so it stays native. `verifier` is one
+agent per claim told to *break* it under ordered provenance rules, the same shape as
+`spec-adversary`, so it takes a row. Producer and auditor land in different classes because
+the work differs, not because one was missed.
 
 ## Residual — main-thread PROACTIVE dispatch is not covered
 

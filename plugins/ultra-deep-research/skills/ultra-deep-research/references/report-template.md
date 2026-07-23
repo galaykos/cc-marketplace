@@ -32,7 +32,8 @@ inference and speculation as such. State what could not be verified.>
 
 ## Confidence & coverage
 - Overall confidence: High | Medium | Low — <why>.
-- Coverage: <facets covered; what was left thin or out of scope>.
+- Coverage: <facets covered; what was left thin or out of scope; how many load-bearing
+  claims went unverified because the 24-dispatch/round refute cap was reached, or "none">.
 - Recency: <newest and oldest load-bearing source dates; any staleness risk>.
 
 ## Open questions
