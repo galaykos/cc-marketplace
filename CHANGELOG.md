@@ -4,6 +4,30 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.59.0] - 2026-07-23
+
+Conflict-audit follow-ups — three more co-installed-plugin fixes.
+
+- **brain 0.2.4** — `hooks/inject.sh` no longer issues its "run `/brain index` now,
+  before other work; no need to ask" imperative while a task-runner run is active
+  (`.claude/task-runner/scope.json` present). During a run, HEAD advances per card, so
+  the imperative fired routinely and the map write it demanded was then flagged as
+  out-of-scope by task-runner's scope-lock hook — two hooks issuing opposite orders on
+  the same edit. It now falls back to the passive "offer `/brain index`" wording during
+  a run.
+- **task-runner 0.18.3** — `track-orchestration`'s `algorithm.md` now proves
+  `.claude/worktrees/` is git-ignored (appending to `.gitignore` and committing when it
+  is not) BEFORE the first `git worktree add`, and promotes the pre-edit baseline from
+  "optionally" to mandatory — both required by the `git-workflow:worktree-isolation`
+  skill it cites but previously contradicted (in-tree worktrees flooding `git status`;
+  a pre-existing red test misattributed to a track).
+- **shadcn-studio 0.3.3, design-preview 0.1.3** — the studio harness's Vite server now
+  binds `SHADCN_STUDIO_PORT` (default 8124) instead of the shared `PREVIEW_PORT`. Under a
+  `PREVIEW_PORT=<n>` override (meant to relocate the shared mockup server) the studio bound
+  the same port, and taskmaster/ui-ux shared-server reuse/kill logic could then serve or
+  kill the wrong server. The port registry (design-preview README) and studio's own README
+  are synced to the dedicated variable.
+
 ## [0.58.0] - 2026-07-23
 
 Conflict-audit medium fixes — dead-end handoffs, gitignore-wholesale breakage,

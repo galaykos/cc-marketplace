@@ -33,8 +33,13 @@ Repeat until no eligible milestone remains:
 
 1. **Select** the launchable eligible milestones (all their dependency milestones have
    merged), up to `cap`, whose file-sets are also disjoint from each other.
-2. **Create** each track's worktree + branch and its worktree-local dir:
+2. **Create** each track's worktree + branch and its worktree-local dir. Per
+   `git-workflow:worktree-isolation`, PROVE `.claude/worktrees/` is ignored before the
+   first `git worktree add` — never place a worktree bare in a tracked path:
    ```
+   git check-ignore -q .claude/worktrees \
+     || { printf '\n.claude/worktrees/\n' >> .gitignore && git add .gitignore \
+          && git commit -q -m 'chore: ignore task-runner track worktrees'; }
    git branch <run-branch>-track-<slug> <run-branch>
    git worktree add .claude/worktrees/<run-branch>-track-<slug> <run-branch>-track-<slug>
    mkdir -p <wt>/.claude/task-runner
@@ -127,7 +132,9 @@ cross-checked against `git worktree list`. Parked/dirty worktrees are retained (
 
 This marketplace repo has no dependency install. A consumer repo with dependencies must,
 per `git-workflow:worktree-isolation`, install deps (`npm ci` / `composer install`) and
-copy untracked env/fixtures into each fresh worktree, and optionally run a baseline,
-BEFORE the track-worker's first edit — otherwise its verify fails in a bare worktree.
+copy untracked env/fixtures into each fresh worktree, and run a baseline check and record
+its result, BEFORE the track-worker's first edit — the baseline is mandatory (the cited
+skill requires it), so a pre-existing red test is attributed to the repo, not misblamed
+on the track. Otherwise its verify fails in a bare worktree.
 The "~200–500ms + disk per worktree" cost is for no-install repos; with installs the
 per-worktree setup dominates and may erase the parallelism win for small milestones.

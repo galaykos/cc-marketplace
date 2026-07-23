@@ -30,9 +30,10 @@ because there is no host Vite+React app to borrow.
    only materialized by one isolated `npm ci` into a scratch dir.
 3. **Scratch outside the work tree.** The sandbox lives in the session scratchpad
    by default, so it can never dirty git; an in-repo path uses `.git/info/exclude`.
-4. **Its own server.** Vite serves the harness on a dedicated port (`8124`,
-   auto-bumping), bound to `127.0.0.1`, identified by a `/__studio` marker route.
-   It never touches another skill's server or files.
+4. **Its own server.** Vite serves the harness on a dedicated port (`8124` by
+   default, override with `SHADCN_STUDIO_PORT` — deliberately NOT the shared
+   `PREVIEW_PORT`, auto-bumping), bound to `127.0.0.1`, identified by a `/__studio`
+   marker route. It never touches another skill's server or files.
 5. **Guaranteed, verified cleanup.** Kill the server it started, delete the
    scratch dir, verify by search; a delete failure retries then reports.
 

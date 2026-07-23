@@ -45,7 +45,12 @@
         "$built"*) ;;  # current HEAD begins with the built prefix → map is fresh
         *)
           drift=$(git -C "$cwd" diff --name-only "$built"..HEAD 2>/dev/null | wc -l | tr -d ' ') || drift=""
-          if [ -n "$drift" ] && [ "$drift" -ge 1 ] 2>/dev/null && [ "$drift" -le 5 ]; then
+          # An active task-runner run advances HEAD per card; its scope-lock hook would
+          # flag a brain/*.md write as out-of-scope and order it reverted. During a run,
+          # demote the "refresh now" imperative to the passive offer so the two hooks
+          # never issue opposite instructions on the same edit.
+          if [ -n "$drift" ] && [ "$drift" -ge 1 ] 2>/dev/null && [ "$drift" -le 5 ] \
+             && [ ! -f "$cwd/.claude/task-runner/scope.json" ]; then
             hint="⚠ brain map is behind HEAD (built $built, $drift files changed) — Claude: run the incremental /brain index refresh now, before other work; no need to ask."
           else
             hint="⚠ brain map is behind HEAD (built $built${drift:+, $drift files changed}) — offer /brain index to refresh."

@@ -28,7 +28,11 @@ export default defineConfig({
   },
   server: {
     host: '127.0.0.1',
-    port: Number(process.env.PREVIEW_PORT) || 8124,
+    // Own variable, NOT the shared PREVIEW_PORT — otherwise a `PREVIEW_PORT=<n>`
+    // override (meant to relocate the shared mockup server) would make this harness
+    // bind the same port, and the shared-server reuse/kill logic in taskmaster/ui-ux
+    // would then target this Vite dev server by mistake.
+    port: Number(process.env.SHADCN_STUDIO_PORT) || 8124,
     strictPort: false,
   },
 })
