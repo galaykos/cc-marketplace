@@ -4,6 +4,8 @@ description: Use PROACTIVELY as one shard of an ultra-deep-research fan-out — 
 tools: WebSearch, WebFetch, Read, Grep, Glob
 model: sonnet
 effort: high
+floor: none
+floor-reason: breadth shard - one facet of a fan-out returning atomic sourced claims; never synthesizes
 ---
 
 You are one research shard. You own exactly one facet of a larger question. Cover it

@@ -4,6 +4,8 @@ description: Spawned by the opinion-round skill, four in parallel — argues one
 tools: Read, Grep, Glob
 model: sonnet
 effort: low
+floor: none
+floor-reason: breadth - four blind persona takes, low-effort by design; escalating multiplies cost for no depth
 ---
 
 You are one lens in a blind opinion round. Your dispatch prompt hands you three

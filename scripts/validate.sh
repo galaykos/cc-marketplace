@@ -370,6 +370,104 @@ done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
+# ---- Role-floor registry gate ------------------------------------------------
+# role-floors.md rows must agree with agent frontmatter, and every agent pinning a
+# real tier must be CLASSIFIED: either a registry row (floored) or `floor: none`
+# plus a `floor-reason:` (deliberately unfloored). The nine FAIL strings below are
+# frozen — scripts/smoke/validate-fixtures/role-floors-check.sh asserts each one.
+# House rules obeyed on purpose: err() only (never exit; $fail governs :380+),
+# `done < <(...)` not `| while read` (a subshell would discard fail=1), grep -qxF
+# not `case` (a key containing * would glob-match in pattern position), and bash
+# 3.2 / BSD-safe constructs only.
+RF=plugins/orchestration/skills/delegation-contracts/references/role-floors.md
+rf_rows=""; rf_keys=""; rf_ok=1; rf_exempt=""
+if [ -f "$RF" ]; then
+  rf_rows=$(awk '/^```/{f=!f; next} f' "$RF" | grep -v '^[[:space:]]*$' || true)
+fi
+if [ -z "$rf_rows" ]; then
+  err "role-floors registry: $RF missing, empty, or has no parseable rows"
+  rf_ok=0
+fi
+if [ "$rf_ok" -eq 1 ]; then
+  rf_seen=""; rf_dup=""
+  while IFS= read -r row; do
+    [ -n "$row" ] || continue
+    nf=$(printf '%s\n' "$row" | awk '{print NF}')
+    key=$(printf '%s\n' "$row" | awk '{print $1}')
+    tier=$(printf '%s\n' "$row" | awk '{print $2}')
+    if printf '%s\n' "$rf_seen" | grep -qxF "$key"; then
+      printf '%s\n' "$rf_dup" | grep -qxF "$key" \
+        || { err "role-floors registry: $key appears more than once"; rf_dup="$rf_dup
+$key"; }
+    else
+      rf_seen="$rf_seen
+$key"
+    fi
+    if [ "$nf" -ne 2 ] || ! printf '%s' "$key" | grep -qE '^[a-z0-9-]+:[a-z0-9-]+$'; then
+      err "role-floors registry: $key tier '$tier' is not one of haiku|sonnet|opus|fable"
+      continue
+    fi
+    case "$tier" in
+      haiku|sonnet|opus|fable) ;;
+      *) err "role-floors registry: $key tier '$tier' is not one of haiku|sonnet|opus|fable"
+         continue ;;
+    esac
+    rf_pl="${key%%:*}"; rf_nm="${key##*:}"; rf_ap="plugins/$rf_pl/agents/$rf_nm.md"
+    if [ ! -f "$rf_ap" ]; then
+      err "role-floors registry: $key resolves to no agent file ($rf_ap)"
+      continue
+    fi
+    rf_fm=$(awk '/^---$/{c++; next} c==1' "$rf_ap" \
+            | sed -n 's/^model:[[:space:]]*//p' | head -1 \
+            | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+    [ "$tier" = "$rf_fm" ] \
+      || err "role-floors registry: $key tier '$tier' != $rf_ap frontmatter model '$rf_fm'"
+    rf_keys="$rf_keys
+$key"
+  done < <(printf '%s\n' "$rf_rows")
+fi
+while IFS= read -r af; do
+  [ -f "$af" ] || continue
+  rf_fmb=$(awk '/^---$/{c++; next} c==1' "$af")
+  rf_m=$(printf '%s\n' "$rf_fmb" | sed -n 's/^model:[[:space:]]*//p' | head -1 \
+         | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+  [ -n "$rf_m" ] || continue          # a missing model: is validate.sh's own check, above
+  [ "$rf_m" = "inherit" ] && continue # inherit is never floored and never needs a row
+  rf_key="$(printf '%s' "$af" | cut -d/ -f2):$(basename "$af" .md)"
+  rf_fl=$(printf '%s\n' "$rf_fmb" | sed -n 's/^floor:[[:space:]]*//p' | head -1 \
+          | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+  rf_fr=$(printf '%s\n' "$rf_fmb" | sed -n 's/^floor-reason:[[:space:]]*//p' | head -1 \
+          | sed -e 's/\r$//' -e 's/[[:space:]]*$//')
+  rf_has=0
+  printf '%s\n' "$rf_keys" | grep -qxF "$rf_key" && rf_has=1
+  if [ "$rf_has" -eq 1 ] && [ "$rf_fl" = "none" ]; then
+    err "$af: has a role-floors row AND 'floor: none' - a row means floored"
+    continue
+  fi
+  if [ "$rf_fl" = "none" ]; then
+    if [ -z "$(printf '%s' "$rf_fr" | tr -d '[:space:]')" ]; then
+      err "$af: 'floor: none' requires a non-empty floor-reason:"
+    else
+      rf_exempt="$rf_exempt
+  $af: $rf_fr"
+    fi
+    continue
+  fi
+  case "$rf_m" in
+    haiku|sonnet|opus|fable) ;;
+    *) err "$af: frontmatter model '$rf_m' is not inherit or one of haiku|sonnet|opus|fable"
+       continue ;;
+  esac
+  [ "$rf_has" -eq 1 ] \
+    || err "$af: pins model '$rf_m' but has neither a role-floors row nor 'floor: none'"
+done < <(find plugins -path '*/agents/*.md' -type f | sort)
+printf '== role-floor exemptions ==\n'
+if [ -n "$(printf '%s' "$rf_exempt" | tr -d '[:space:]')" ]; then
+  printf '%s\n' "$rf_exempt" | grep -v '^[[:space:]]*$'
+else
+  printf '  (none)\n'
+fi
+
 # ---- Context-budget report ---------------------------------------------------
 # Per-plugin session-start description-token surface vs committed baseline.
 # The BLOCKING gate runs as its own CI step (Context-budget gate in

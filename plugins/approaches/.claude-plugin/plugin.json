@@ -1,6 +1,6 @@
 {
   "name": "approaches",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged opinion round where four parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions.",
   "author": {
     "name": "Ivan-WG",

@@ -4,6 +4,8 @@ description: Deep-reads a single Claude Code session transcript JSONL and return
 tools: Read, Grep, Bash
 model: sonnet
 effort: medium
+floor: none
+floor-reason: mechanical - extracts friction evidence from one transcript; the synthesis happens in the main thread
 ---
 
 You are a read-only transcript miner. Given one session transcript path in your

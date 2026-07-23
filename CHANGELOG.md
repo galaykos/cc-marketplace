@@ -4,6 +4,41 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.63.0] - 2026-07-23
+
+Role-floor registry gate — `role-floors.md` was prose, so nothing checked its rows against
+agent frontmatter and nothing caught a new agent shipped with a `model:` pin that no one
+classified. That staleness is the shape of every defect this series has fixed.
+
+`scripts/validate.sh` gains a blocking gate with **nine frozen FAIL strings**, and
+`scripts/smoke/validate-fixtures/role-floors-check.sh` proves each one fires across four
+planted-violation runs, wired as a CI step. The gate asserts both directions: a registry row
+must match its agent's frontmatter and resolve to a real file, and every agent pinning a real
+tier must be **classified** — either a row (floored) or `floor: none` + a non-empty
+`floor-reason:` (deliberately unfloored). A row *and* `floor: none` together is an error,
+since nine consumer sites read "has a row" as "is floored".
+
+**Exemptions live in agent frontmatter, not the registry.** An earlier design put them in
+`role-floors.md`; a red-team found that this would make all nine of those consumer sites floor
+the five breadth agents — the exact defect the registry exists to prevent. So the registry
+stays floors-only and byte-unchanged, and **no consumer file changed**.
+
+- **approaches 0.3.8 · brain 0.2.5 · hindsight 0.1.6 · ultra-deep-research 0.2.2** — the five
+  breadth/mechanical sonnet pins (`opinion-lens`, `indexer`, `transcript-miner`, `researcher`,
+  `verifier`) declare `floor: none` with a stated reason. No `model:` or `effort:` value
+  changed. Exemptions print on every validate run (`== role-floor exemptions ==`), so one
+  nobody sees is not one nobody revisits.
+- **claude-authoring 0.4.7** — `authoring-agents` documents the classification contract where
+  an author will hit it, and replaces its enumeration of the current roster with the *rule* for
+  picking a tier. The enumeration was a third copy of the assignment; the registry is the
+  roster now.
+
+Gate implementation notes, because each was a near-miss: check 6 skips `model: inherit` (an
+earlier draft would have failed all 18 inherit agents — the whole repo red); membership uses
+`grep -qxF`, not `case`, where a key containing `*` would glob-match in pattern position; the
+loops use `done < <(…)` because `err()`'s `fail=1` dies in a pipeline subshell, which would
+print FAILs while exiting 0.
+
 ## [0.62.0] - 2026-07-23
 
 Tiering docs truth — shipped text that stated the wrong thing about which model a subagent

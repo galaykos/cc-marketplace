@@ -41,6 +41,8 @@ jobs:
         run: bash scripts/smoke/completion-gate-hook-tests.sh
       - name: validate.sh parity harness (FAIL paths still fire)
         run: bash scripts/smoke/validate-fixtures/parity-check.sh
+      - name: role-floor gate harness (all nine FAIL strings fire)
+        run: bash scripts/smoke/validate-fixtures/role-floors-check.sh
       - name: doc staleness (warn-only)
         continue-on-error: true
         run: bash scripts/check-doc-staleness.sh

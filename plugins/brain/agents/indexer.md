@@ -3,6 +3,8 @@ name: indexer
 description: Spawned by /brain index to scan the codebase and (re)build the project brain map — a terse per-area table of contents in brain/INDEX.md plus per-area detail in brain/<area>.md. Incremental by default; never modifies anything outside brain/.
 model: sonnet
 effort: high
+floor: none
+floor-reason: mechanical - incremental codebase scan into a table of contents; location work, not judgment
 ---
 
 # Indexer
