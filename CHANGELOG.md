@@ -4,6 +4,32 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.56.0] - 2026-07-23
+
+Role-based dispatch tiering for the Extreme Boost modes — stop flat-escalating
+every subagent to the top model.
+
+- **taskmaster 0.31.4** — the `ultra` skill and `hooks/ultra.sh` now tier by role
+  instead of per-run: the boost (`model:<model>` + `effort:<effort>`) lands on the
+  REASONING roles (red-team, coverage, card-verify, synthesis), while mechanical
+  and breadth roles (recon `context-scout` lenses, `opinion-lens`) stay NATIVE — the
+  same no-override treatment `opinion-lens` already had, widened to a class. Fan-out
+  counts (recon 3, red-team N=3, coverage cap 3) become CEILINGS sized to blast
+  radius, not quotas to always fill. New `skills/ultra/references/dispatch-tiers.md`
+  carries the role ladder and the small/medium/large sizing table. This aligns ultra
+  with `orchestration:delegation-contracts`' existing rule — tiering is per-stage,
+  not per-run; its first anti-pattern is "uniform model for every stage."
+- **orchestration 0.6.1** — the `ultra-assess` twin gets the same treatment: readers
+  are tiered by their lens's work (enumerate/locate = native, analytical/judgment =
+  boosted) rather than a flat "selected model/effort"; the red-team panel is a ceiling
+  sized to blast radius (2 voters small, N=3 default), not a per-finding ×3 quota.
+- Mandatory red-team and coverage still ALWAYS run — sizing tunes their N, never drops
+  a phase. `ultra-goal` inherits the change (it implies the full ultra boost).
+- Both boost skills' loop-until-dry stop rule now matches `verification-panels`' canonical
+  "two consecutive dry rounds" (still capped at 3), instead of stopping at the first dry
+  round — a max-thoroughness mode must not terminate discovery one round earlier than the
+  standard mechanism it cites. (Conflict audit finding, orchestration+taskmaster.)
+
 ## [0.55.0] - 2026-07-22
 
 Removes the retrospective plugin and every orphaned ADR-file offer.
