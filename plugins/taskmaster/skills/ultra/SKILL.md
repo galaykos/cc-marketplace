@@ -44,6 +44,9 @@ markdown — no ANSI escapes:
     ⚡ EXTREME BOOST — ultra-goal active · hands-off · audit ledger · auto/xhigh
 
 Both tokens present → print ONE goal banner (goal implies the boost), never two.
+Execution is a separate command with its own one-line worker-tier status
+(task-execution) — across a single hands-off journey the operator sees at most
+one boost banner per phase, never two goal banners in one response.
 
 ## Fixed tier — one rule, stated once
 

@@ -1,6 +1,9 @@
 # signal_type	pattern	skill	owning_plugin	confidence	stack_marker
 # co-fire-ok: *.tsx a11y-audit react-best-practices
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
+# co-fire-ok: *.tsx a11y-audit typescript-best-practices
+# co-fire-ok: *.tsx react-best-practices typescript-best-practices
+# co-fire-ok: *.tsx react-native-best-practices typescript-best-practices
 # co-fire-ok: *.blade.php livewire-best-practices laravel-best-practices
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
@@ -12,6 +15,7 @@ glob	*.tsx	react-best-practices	react	high	!package.json~"react-native"
 glob	*.jsx	react-best-practices	react	high	!package.json~"react-native"
 glob	*.tsx	react-native-best-practices	react-native	high	package.json~"react-native"
 glob	*.ts	typescript-best-practices	typescript	high
+glob	*.tsx	typescript-best-practices	typescript	high
 glob	*.js	javascript-best-practices	javascript	high
 glob	*.mjs	javascript-best-practices	javascript	high
 glob	*.cjs	javascript-best-practices	javascript	high

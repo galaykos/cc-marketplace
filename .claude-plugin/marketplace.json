@@ -302,7 +302,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Three.js, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), and accessibility auditing. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, JavaScript, TypeScript, Vite, Three.js, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), accessibility auditing, and file-aware skill auto-routing (skill-router). Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "php-suite",
@@ -317,12 +317,12 @@
     {
       "name": "quality-suite",
       "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality category in one install — review, architecture principles, design patterns, testing, security, accessibility, debugging, performance, resilience, dependency hygiene, observability, error handling, concurrency safety, and secret-leak prevention (secret-scanning). Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the code-quality category in one install — review, architecture principles, design patterns, testing, security, accessibility, debugging, performance, resilience, dependency hygiene, observability, error handling, concurrency safety, secret-leak prevention (secret-scanning), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and intent-drift guarding (intent-guard). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, intent-drift guarding (intent-guard), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "everything",

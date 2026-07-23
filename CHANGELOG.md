@@ -53,6 +53,32 @@ honestly labeled, and the boost layer lost its speculative surface.
 - CLAUDE.md pre-push list gains `generate.sh --check` (CI ran it; the documented
   local flow did not).
 
+### Fixed (journey-simulation follow-up, same release)
+
+Three simulated user journeys (small fix / medium feature / large hands-off run)
+were dry-run traced against this release; their findings:
+
+- `task.md`/`taskmaster.md` step 5 synced to grill's Stopping section — the
+  embedded `## Ambiguity ledger (final)`, the spec-ledger-lint invocation, and
+  the approach decision were missing from the command entry points (regression
+  in this release's own seam); grill declared the owning authority.
+- `behavioral-gate` skill had the Stop-hook polarity backwards ("reminder by
+  default") — corrected to match the hook: hard block by default,
+  `TASK_RUNNER_STOP_GATE=warn` opts out.
+- skill-router is now a dependency of frontend-suite (0.5.0), quality-suite
+  (0.3.0), and process-suite (0.3.0) — suite users previously got none of the
+  edit-time skill routing.
+- skill-router rules.tsv routes `*.tsx` to typescript-best-practices (the `*.ts`
+  glob never matched `.tsx`, so the most on-point rubric for React+TS files
+  never fired).
+- `a11y:audit` and `frontend-reviewer` gained a triviality triage short-circuit
+  (tiny logic-only diffs get a one-line verdict, not a full rubric walk).
+- `scope.sh` documents its inline-only coverage (delegated cards use per-card
+  scope files enforced by the return check, not this hook); routing.md points
+  tier-marker parsing at its real home; taskmaster.md step 3 regained the
+  visual-safety guidance task.md carried; the ultra banner section states the
+  one-banner-per-phase rule.
+
 ## [0.67.0] - 2026-07-23
 
 The Artifact preview-guard now confirms before a remote publish, and the twins are

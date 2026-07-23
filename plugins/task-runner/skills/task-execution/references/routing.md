@@ -4,7 +4,9 @@ Only the main `/task-runner:run` orchestrator routes: it can spawn subagents and
 see the available-agent-types list in its own context. A resolved worker is a **leaf**
 that executes and never re-routes. Keep the tag keys below in sync with the vocabulary
 in `taskmaster/skills/task-cards/references/agent-tags.md` — `scripts/validate.sh`
-fails on drift.
+fails on drift. (The `Ultra:`/`Goal:` tier-marker PARSING lives in
+`task-execution/SKILL.md` § markers — this file only consumes the already-resolved
+tier for the role-floor `max()`.)
 
 ## Resolution map (ordered preference — first reachable wins, else `task-executor`)
 

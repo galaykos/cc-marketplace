@@ -59,10 +59,18 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    visual decisions land: assemble the accepted picks into one clickable demo on
    the live preview URL, walk the user through it with a task script, and fold
    every discovered gap back into the ledger before freezing anything.
-5. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: a header with the raw +
-   upgraded statement pair (under the `**Raw prompt:**` / `**Upgraded statement:**`
-   labels), goal, decisions with sources, accepted assumptions, non-goals, success
-   criteria — plus the walkthrough file path and cross-screen contracts when step 4 ran.
+5. Write the spec per the grill skill's Stopping section — grill OWNS the
+   spec-write sequence (approach decision → spec → lint); this step summarizes it,
+   never run a stage twice. Decide the approach first when structurally different
+   implementations exist (opinion-round per grill Stopping §1; skip for mechanical
+   tasks). Then write `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: a header with
+   the raw + upgraded statement pair (under the `**Raw prompt:**` /
+   `**Upgraded statement:**` labels), goal, decisions with sources, accepted
+   assumptions, the approach with rejected alternatives and kill-trigger,
+   non-goals, success criteria, and the converged ledger embedded as
+   `## Ambiguity ledger (final)`; run `scripts/spec-ledger-lint.sh --spec <file>`
+   until exit 0 (task-cards re-runs it later as the final gate) — plus the
+   walkthrough file path and cross-screen contracts when step 4 ran.
 6. Red-team the spec first when its blast radius warrants — run the `spec-redteam`
    skill to attack the frozen spec for holes (missing edge cases, unstated
    assumptions, conflicts, failure/security gaps) and resolve each before planning.

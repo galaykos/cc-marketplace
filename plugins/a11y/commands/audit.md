@@ -4,6 +4,12 @@ description: "Audit UI code against WCAG 2.2 AA — semantic structure, contrast
 
 # Accessibility Audit
 
+0. **Triviality triage.** A tiny, logic-only diff (< ~20 lines, single file, no
+   markup/ARIA/focus/contrast surface touched) gets a one-line verdict — "no
+   accessibility surface in this change" — not a full WCAG pass. Run the full
+   audit only when markup, styles, focus order, or interactive semantics changed,
+   or the user asked for a full audit explicitly.
+
 1. **Determine scope** from `$ARGUMENTS`: a component, a page, or a diff.
    With no arguments, default to recent UI changes (`git diff` against the
    default branch, filtered to markup, style, and component files).

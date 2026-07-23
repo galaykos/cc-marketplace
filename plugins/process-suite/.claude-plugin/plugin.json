@@ -1,7 +1,7 @@
 {
   "name": "process-suite",
-  "version": "0.2.4",
-  "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and intent-drift guarding (intent-guard). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "version": "0.3.0",
+  "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, intent-drift guarding (intent-guard), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -18,7 +18,8 @@
     "task-runner",
     "stack-scan",
     "plugin-scout",
-    "intent-guard"
+    "intent-guard",
+    "skill-router"
   ],
   "keywords": [
     "suite",

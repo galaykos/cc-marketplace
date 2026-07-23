@@ -46,9 +46,9 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 |--------|---------|-----------------------------|
 | `everything` | 69 | ~12.3k tokens |
 | `taskmaster-suite` | 37 | ~8.6k tokens |
-| `process-suite` | 12 | ~2.3k tokens |
-| `quality-suite` | 14 | ~2.6k tokens |
-| `frontend-suite` | 16 | ~2.4k tokens |
+| `process-suite` | 13 | ~2.3k tokens |
+| `quality-suite` | 15 | ~2.6k tokens |
+| `frontend-suite` | 17 | ~2.4k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
