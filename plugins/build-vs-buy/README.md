@@ -30,8 +30,9 @@ building a commonly-solved capability.
   prints a one-line reminder to weigh take/wrap/write first. Fail-open: it
   never blocks the prompt and stays silent on slash commands.
 
-A significant verdict can optionally be persisted as an ADR file in the
-project's ADR dir, offered as a choice at the end of the check.
+A significant verdict is stated inline with its candidate table as the
+"options considered" record — no file is written unless the project already
+keeps decision docs.
 
 ## Example
 

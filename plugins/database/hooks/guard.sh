@@ -19,6 +19,16 @@
   [ -n "$text" ] || exit 0
   file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 
+  # Documentation surfaces execute nothing — a taskmaster card, README, or spec that
+  # QUOTES a migration is prose, not SQL about to run. Gating them would storm a
+  # permission prompt per card and, under a headless / ultra-goal run with no one to
+  # answer "ask", stall the whole hands-off pipeline. Exempt only unambiguous doc
+  # surfaces; .sql, code files, and migration paths still gate.
+  flc=$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')
+  case "$flc" in
+    *.md|*.mdx|*.markdown|*.txt|*.rst|*/taskmaster-docs/*) exit 0 ;;
+  esac
+
   hit=""
   [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\bdrop[[:space:]]+(table|database|schema)\b' && hit="DROP TABLE/DATABASE/SCHEMA"
   [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+(table[[:space:]]+)?[^;]' && hit="TRUNCATE"

@@ -131,9 +131,6 @@ proceeding; the interrupt exists for forked roads, not for taste.
 
 ## Companions
 
-- Significant pick → offer recording it as an ADR file in the project's
-  ADR dir, once, after the verdict block. Declined → move on silently;
-  never push the offer twice.
 - The user explicitly ran `/approaches:compare` → defer entirely to
   approach-deliberation. That skill owns the full candidate-slate
   treatment; running both on one task is a double deliberation.

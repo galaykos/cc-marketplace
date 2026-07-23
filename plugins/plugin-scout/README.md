@@ -43,5 +43,6 @@ already installed.
 
 - **stack-scan** — when installed, its required-vs-installed inventory becomes
   the detection input instead of a fresh manifest scan
-- **taskmaster-suite** — bundle alternative: installs the whole universal tier
-  in one step instead of picking plugins individually
+- **taskmaster-suite** — bundle alternative: installs most of the universal tier
+  in one step (see its README for deliberate exclusions such as secret-scanning
+  and intent-guard) instead of picking plugins individually

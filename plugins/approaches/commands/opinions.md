@@ -24,5 +24,3 @@ task description first). Do not write implementation code.
 6. On a structural split (takes disagree on the file-level shape of the plan),
    do not pick silently — present the competing plans via AskUserQuestion and
    let the user choose.
-7. For a significant pick, offer capturing it as an ADR file in the project's
-   ADR dir (docs/adr/ by convention); on "skip", move on silently.

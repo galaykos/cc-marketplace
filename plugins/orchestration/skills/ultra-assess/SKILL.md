@@ -69,13 +69,19 @@ ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this 
   agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
 - Fan out readers over the assessment units (files, plugins, modules, endpoints),
   one lens each, per delegation-contracts; each returns a compressed structured record.
+  TIER each lens by its work (delegation-contracts rule): an enumerate/locate lens is
+  mechanical → native tier; an analytical/judgment lens (does this reproduce? real?)
+  is reasoning → model:<model>. Do not flat-escalate every reader.
 - Synthesize the records into findings plus a ranked backlog.
-- Red-team ALWAYS: an N=3 blind panel attacks the synthesis for unsupported claims
-  and missed gaps (verification-panels refuter voting). Dedupe holes.
-- Completeness-critic ALWAYS: loop-until-dry — repeat until a round surfaces no new
-  gap, capped at 3 rounds or the first dry round.
+- Red-team ALWAYS (reasoning, boosted): a blind panel attacks the synthesis for
+  unsupported claims and missed gaps (verification-panels refuter voting), dedupe holes.
+  Panel size is a CEILING sized to blast radius — 2 voters small, N=3 default/large — not
+  a per-finding ×3 quota.
+- Completeness-critic ALWAYS: loop-until-dry — repeat until TWO consecutive rounds
+  surface no new gap (matching verification-panels' dry rule), capped at 3 rounds.
 - Output findings/backlog. Do NOT write task cards or an execution marker.
-- Exclude opinion-lens from model escalation.
+- Tier by role, not per-run: readers per their lens (above), opinion-lens native; the
+  boost is for the red-team + critic. Fan-out counts are ceilings sized to blast radius.
 - Fan-out only when the Workflow tool is present; else run the inline fallback.
 ```
 
@@ -94,13 +100,15 @@ Phases, each bounded (mirroring the three-cycle ceiling used elsewhere so no
 unbounded loop opens):
 
 1. **Scout** — enumerate the assessment units (the fan-out work-list). Inline, cheap.
-2. **Fan out readers** — one agent per unit at the selected model/effort, each
-   returning a structured record. Filter failures.
+2. **Fan out readers** — one agent per unit, tiered by its lens's work (mechanical
+   enumerate = native; analytical judgment = boost), each returning a structured
+   record. Filter failures. Reader count sized to blast radius, not padded.
 3. **Synthesize** — merge records into findings + ranked backlog (barrier: needs all
    records to dedupe and rank).
-4. **Red-team** — N=3 blind panel over the synthesis; drop unsupported findings.
+4. **Red-team** — blind panel over the synthesis (2 voters small / N=3 default),
+   drop unsupported findings. The panel is the boosted stage; do not ×3 every finding.
 5. **Completeness-critic** — loop-until-dry: ask "what unit / claim / angle was
-   missed?" until a round is dry or the 3-round cap hits.
+   missed?" until two consecutive rounds are dry or the 3-round cap hits.
 
 ## Output shape
 

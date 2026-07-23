@@ -35,12 +35,10 @@ a code change can silently invalidate:
   as written. A docstring showing the old parameter order is a live bug.
 - **Configuration docs** — new or removed env vars, changed defaults,
   renamed config keys, and the sample config files that mirror them.
-- **Architecture docs and ADR links** — does the change contradict a
-  standing decision record? A superseded ADR needs an explicit successor:
-  offer to record the successor as a selectable choice ("Record the
-  superseding ADR now (Recommended)" / "Skip" — writes the successor file
-  into the project's ADR dir) and link the old
-  one as superseded, rather than leaving both claiming to be current.
+- **Architecture docs and decision records** — does the change contradict a
+  standing decision doc the project already keeps? Report it as drift naming
+  both the doc and the contradicting change, rather than leaving both
+  claiming to be current. Never create a decision doc a project does not use.
 - **Inline examples and snippets** — code blocks in any doc that claim to
   be runnable. If you cannot paste them into a shell or REPL and have
   them work, they have drifted.
@@ -129,9 +127,8 @@ what deserves to be documented in the first place.
 
 When the same kind of drift keeps recurring (every release the changelog
 is reconstructed, every rename misses the README), that is a process
-finding — offer a retro ("Run the retrospective now (Recommended)" / "Skip",
-proceeding as /retrospective:run would) so the team fixes the workflow,
-not just the instance.
+finding — name the missing gate so the workflow gets fixed, not just the
+instance.
 
 ## Anti-patterns
 

@@ -72,4 +72,4 @@ work identically except consumers fall back to polling reload.
 | `${PREVIEW_PORT:-8123}` | `diagram.html` | code-architecture — `plan-before-code` |
 | `${PREVIEW_PORT:-8123}` | `api.html` | api-design — `api-design` |
 | `${PREVIEW_PORT:-8123}` | `diagram.html` | dev-env — `compose-init` |
-| `Number(process.env.PREVIEW_PORT) || 8124` | own harness | shadcn-studio — dedicated Vite dev server |
+| `Number(process.env.SHADCN_STUDIO_PORT) || 8124` | own harness | shadcn-studio — dedicated Vite dev server (own var, not PREVIEW_PORT) |

@@ -62,12 +62,14 @@ ULTRA-TASK ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this ta
   agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
 - grill: extra clarifying-question rounds; no early ledger exit on first CLEAR sweep.
 - spec-redteam: run ALWAYS; N=3 blind adversary panel when Workflow is available.
-- coverage-check: run ALWAYS before handoff; loop-until-dry, cap 3 rounds or first dry.
-- recon: 3 parallel lenses (by-file, by-pattern, by-constraint) via Workflow at the
-  selected model/effort, else a single inline scout at the selected model.
+- coverage-check: run ALWAYS before handoff; loop-until-dry, cap 3 rounds or two dry rounds.
+- recon: up to 3 parallel lenses (by-file, by-pattern, by-constraint) via Workflow, else
+  a single inline scout — scouts run NATIVE (mechanical role, no boost override).
 - card-verify: 1 fan-out pass per card when Workflow is available.
 - task-cards: write `Ultra: true (model=<model>, effort=<effort>)` verbatim into 00-INDEX.md.
-- Exclude opinion-lens from model escalation.
+- Tier by role, not per-run: the boost lands on REASONING roles (red-team, coverage,
+  card-verify, synthesis); mechanical/breadth roles (recon scouts, opinion-lens) stay
+  native. Fan-out counts are CEILINGS sized to blast radius. See references/dispatch-tiers.md.
 - Fan-out only when the Workflow tool is present; else run the inline fallback.
 ```
 
@@ -102,25 +104,24 @@ suffix resolves by set membership (`ultra-task-max`→auto/max); unknown suffixe
 Fan-outs run through the `Workflow` tool only when present. Each has a hard bound
 — mirroring the execution plugin's three-cycle ceiling — so no unbounded loop:
 
-- **Recon** — 3 parallel scouts, one lens each (by-file, by-pattern,
-  by-constraint), at the selected model/effort, merged and deduped. Fallback: one
-  inline `context-scout` at the selected model.
+- **Recon** — up to 3 parallel scouts, one lens each (by-file, by-pattern,
+  by-constraint), NATIVE tier (mechanical), merged and deduped. Size to blast
+  radius. Fallback: one inline `context-scout`.
 - **Red-team** — N=3 blind adversary panel on the frozen spec; dedupe holes across
   the three. Fallback: one inline `spec-adversary` (already opus).
-- **Coverage** — loop-until-dry: repeat the coverage sweep until a round finds no
-  new gap/orphan/drift, capped at 3 rounds or the first dry round, whichever
-  comes first. Fallback: one inline coverage pass.
+- **Coverage** — loop-until-dry: repeat the coverage sweep until TWO consecutive
+  rounds find no new gap/orphan/drift (matching verification-panels — the tail is
+  where the worst gaps hide), capped at 3 rounds. Fallback: one inline coverage pass.
 - **Card verification** — one verification pass per card, checking each card
   against the spec criteria it claims. Fallback: inline spot-check.
 
 ## Exclusions
 
-`opinion-lens` is a breadth agent (four parallel persona takes, low effort by
-design); escalating its model multiplies cost for little depth. It is never
-given a model override. Agents that live in plugins ultra does not edit —
-`system-architect` (system-design) and the plan-before-code architecture agents
-(code-architecture) — are outside the reachable set and stay at their native
-tier; reaching them would require editing those plugins, which is out of scope.
+Mechanical and breadth roles never get the boost — see the role ladder in
+`references/dispatch-tiers.md` (`opinion-lens`, recon scouts). Agents in plugins
+ultra does not edit — `system-architect` (system-design), the plan-before-code
+architecture agents — are outside the reachable set and keep their native tier;
+reaching them would mean editing those plugins, out of scope.
 
 ## Carrying the boost into execution
 
@@ -149,6 +150,5 @@ real boost over a normal run.
   user and no plugin can override it.
 - It does not persist across runs, write a session-state file, or expose an
   "off" command; re-type the phrase to boost the next run.
-- It does not boost mechanical or breadth agents, or agents dispatched by
-  unedited plugins.
-- It does not animate the terminal; the single colored banner is the whole cue.
+- It does not boost mechanical/breadth roles or agents in unedited plugins, and
+  does not animate the terminal — the single colored banner is the whole cue.

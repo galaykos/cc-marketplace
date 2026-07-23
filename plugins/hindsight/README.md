@@ -48,12 +48,14 @@ ended session:
 error/rejection markers — it undercounts rather than crashes, and low-signal
 sessions simply rank low at harvest time.
 
-**Gitignore the ledger.** It is machine-local state (absolute transcript paths,
-per-machine session history) and must not be committed. Add to your project's
-`.gitignore`:
+**Gitignore only the machine-local state.** The ledger (absolute transcript paths,
+per-machine session history) and per-run reports must not be committed — but the
+curated `anti-patterns.md` is team-shared (a committed CLAUDE.md pointer references
+it), so ignore the transient paths only, never `.claude/hindsight/` wholesale:
 
 ```gitignore
-.claude/hindsight/
+.claude/hindsight/ledger.jsonl
+.claude/hindsight/reports/
 ```
 
 ## Contents

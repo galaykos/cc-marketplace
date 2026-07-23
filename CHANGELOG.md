@@ -4,6 +4,121 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.59.0] - 2026-07-23
+
+Conflict-audit follow-ups — three more co-installed-plugin fixes.
+
+- **brain 0.2.4** — `hooks/inject.sh` no longer issues its "run `/brain index` now,
+  before other work; no need to ask" imperative while a task-runner run is active
+  (`.claude/task-runner/scope.json` present). During a run, HEAD advances per card, so
+  the imperative fired routinely and the map write it demanded was then flagged as
+  out-of-scope by task-runner's scope-lock hook — two hooks issuing opposite orders on
+  the same edit. It now falls back to the passive "offer `/brain index`" wording during
+  a run.
+- **task-runner 0.18.3** — `track-orchestration`'s `algorithm.md` now proves
+  `.claude/worktrees/` is git-ignored (appending to `.gitignore` and committing when it
+  is not) BEFORE the first `git worktree add`, and promotes the pre-edit baseline from
+  "optionally" to mandatory — both required by the `git-workflow:worktree-isolation`
+  skill it cites but previously contradicted (in-tree worktrees flooding `git status`;
+  a pre-existing red test misattributed to a track).
+- **shadcn-studio 0.3.3, design-preview 0.1.3** — the studio harness's Vite server now
+  binds `SHADCN_STUDIO_PORT` (default 8124) instead of the shared `PREVIEW_PORT`. Under a
+  `PREVIEW_PORT=<n>` override (meant to relocate the shared mockup server) the studio bound
+  the same port, and taskmaster/ui-ux shared-server reuse/kill logic could then serve or
+  kill the wrong server. The port registry (design-preview README) and studio's own README
+  are synced to the dedicated variable.
+
+## [0.58.0] - 2026-07-23
+
+Conflict-audit medium fixes — dead-end handoffs, gitignore-wholesale breakage,
+and a misleading bundle-equivalence hint.
+
+- **Unguarded cross-plugin handoffs** — three more "Recommended" picks that dead-end
+  on a command the shipping bundle doesn't install, now gated with inline fallbacks:
+  api-design 0.4.4 (`scaffold` dispatches `backend-engineer` down the chain
+  laravel→task-runner→inline instead of a bare missing agent), approaches 0.3.7
+  (`compare` guards the code-architecture plan continuation and the /taskmaster:brainstorm
+  offer, inline plan otherwise), ui-ux 0.10.1 (`build` routes to shadcn-studio/design-preview
+  when installed, else taskmaster's visual-decisions mockup path, else ASCII inline).
+- **Gitignore-wholesale breakage** — compaction-advisor 0.1.3 and hindsight 0.1.5 no
+  longer tell users to ignore `.claude/` (or `.claude/hindsight/`) wholesale. compaction-advisor
+  narrows to `.claude/compaction-advisor/` and warns that plugin-scout's `--persist` writes a
+  team-shared `.claude/settings.json` there; hindsight narrows to the transient ledger + reports
+  and keeps `anti-patterns.md` tracked so its committed CLAUDE.md pointer resolves for teammates
+  (the harvest skill now states that requirement).
+- **plugin-scout 0.2.8** — the "taskmaster-suite installs the universal set" hint (SKILL + README)
+  now says "MOST of the universal set (see its README for deliberate exclusions — secret-scanning,
+  intent-guard, reuse-guard)", instead of claiming a whole tier the suite covers only ~71% of,
+  which had users believing write-blocking security hooks were active when none installed.
+
+## [0.57.0] - 2026-07-23
+
+Conflict-audit HIGH fixes — two co-installed-plugin defects that could break a run.
+
+- **database 0.3.12** — the destructive-SQL `PreToolUse` guard (`hooks/guard.sh`) now
+  exempts documentation surfaces (`*.md`, `*.mdx`, `*.markdown`, `*.txt`, `*.rst`, and
+  anything under `taskmaster-docs/`). A taskmaster card that merely QUOTES a migration
+  executes nothing, but the guard was raising a `permissionDecision:"ask"` on every such
+  Write — a prompt storm during card generation, and under a headless / `ultra-goal`
+  hands-off run with no one to answer, a stalled pipeline. Real `.sql`, code, and
+  migration-path writes still gate exactly as before.
+- **hindsight 0.1.4, rollout 0.1.4, estimation 0.2.3** — three "Recommended" handoffs
+  dead-ended on an uninstalled command in the `process-suite` bundle (which ships these
+  plugins without their targets): hindsight → `/claude-authoring:new-skill`, rollout →
+  `/security:review`, estimation → `/taskmaster:task`. Each offer is now gated on the
+  target being installed, with an explicit inline fallback (scaffold brief / auth-money-PII
+  checklist / inline card-split) so the path never dead-ends. Same fix shape flagged for
+  approaches:compare and api-design:scaffold — those remain in the backlog.
+
+## [0.56.0] - 2026-07-23
+
+Role-based dispatch tiering for the Extreme Boost modes — stop flat-escalating
+every subagent to the top model.
+
+- **taskmaster 0.31.4** — the `ultra` skill and `hooks/ultra.sh` now tier by role
+  instead of per-run: the boost (`model:<model>` + `effort:<effort>`) lands on the
+  REASONING roles (red-team, coverage, card-verify, synthesis), while mechanical
+  and breadth roles (recon `context-scout` lenses, `opinion-lens`) stay NATIVE — the
+  same no-override treatment `opinion-lens` already had, widened to a class. Fan-out
+  counts (recon 3, red-team N=3, coverage cap 3) become CEILINGS sized to blast
+  radius, not quotas to always fill. New `skills/ultra/references/dispatch-tiers.md`
+  carries the role ladder and the small/medium/large sizing table. This aligns ultra
+  with `orchestration:delegation-contracts`' existing rule — tiering is per-stage,
+  not per-run; its first anti-pattern is "uniform model for every stage."
+- **orchestration 0.6.1** — the `ultra-assess` twin gets the same treatment: readers
+  are tiered by their lens's work (enumerate/locate = native, analytical/judgment =
+  boosted) rather than a flat "selected model/effort"; the red-team panel is a ceiling
+  sized to blast radius (2 voters small, N=3 default), not a per-finding ×3 quota.
+- Mandatory red-team and coverage still ALWAYS run — sizing tunes their N, never drops
+  a phase. `ultra-goal` inherits the change (it implies the full ultra boost).
+- Both boost skills' loop-until-dry stop rule now matches `verification-panels`' canonical
+  "two consecutive dry rounds" (still capped at 3), instead of stopping at the first dry
+  round — a max-thoroughness mode must not terminate discovery one round earlier than the
+  standard mechanism it cites. (Conflict audit finding, orchestration+taskmaster.)
+
+## [0.55.0] - 2026-07-22
+
+Removes the retrospective plugin and every orphaned ADR-file offer.
+
+- **Removed: retrospective** — deleted from the marketplace, the `everything`
+  bundle (70 → 69 plugins), `process-suite` (13 → 12), and `taskmaster-suite`
+  (38 → 37). Its three sinks are covered with harder evidence by **hindsight**,
+  which mines actual session transcripts across sessions instead of asking the
+  model to self-report on the run it just finished.
+- **Dropped every offer to write an ADR file**, orphaned since decision-records
+  left in [0.52.0]: approaches 0.3.6 (`/approaches:opinions` step 7,
+  `/approaches:compare` handoff option, opinion-round companion bullet),
+  rollout 0.1.3 (`/rollout:plan` step 4 and the skill's handoff line),
+  build-vs-buy 0.2.3 (step 5 now records the verdict inline), docs-upkeep 0.1.3
+  (superseding-ADR write-offer becomes a report-only drift finding). Read-only
+  checks against decision docs a project already keeps are untouched.
+- **taskmaster 0.31.3, claude-authoring 0.4.5** — stale references to the dead
+  ADR side-offer removed from the ultra-goal contract (skill + hook banner) and
+  the authoring-skills handoff example.
+- **estimation 0.2.2, hindsight 0.1.3, plugin-scout 0.2.7, everything 0.17.8,
+  process-suite 0.2.4, taskmaster-suite 0.11.1** — retro handoffs re-routed or
+  dropped, catalog row regenerated, bundle deps and README counts synced.
+
 ## [0.54.0] - 2026-07-22
 
 Removes the anti-detect browser plugins and the Meta platform navigator.

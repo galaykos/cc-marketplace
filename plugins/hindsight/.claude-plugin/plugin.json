@@ -1,6 +1,6 @@
 {
   "name": "hindsight",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "Cross-session self-improvement loop: mines session transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on approval.",
   "author": {
     "name": "Ivan-WG",

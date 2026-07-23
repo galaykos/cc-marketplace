@@ -95,7 +95,7 @@ Style:
 ## Handoff offers, not homework
 
 When a skill or command finishes and a logical next step exists as another
-command (persist the ADR, run the cards, apply the fixes):
+command (run the cards, apply the fixes, review the diff):
 
 - OFFER it as a selectable choice (AskUserQuestion): "Run X now
   (Recommended)" / "Skip — I'll run it later". The user picks; nobody types.

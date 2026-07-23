@@ -19,9 +19,7 @@ exposure (internal → percentage → full), migration sequencing
 
 The plan is output as a table with one row per stage (stage / exposure / gate
 metric / rollback trigger), followed by the rollback path — flag off, deploy
-revert, or data restore — and whether it has been exercised. If the plan
-involved significant choices, it offers to record them as an ADR file in
-the project's ADR dir.
+revert, or data restore — and whether it has been exercised.
 
 ## Example
 

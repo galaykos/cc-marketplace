@@ -95,8 +95,10 @@ Print one table:
 - Installed column: ✓ when `claude plugin list` shows it, — otherwise.
 - Exclude plugin-scout itself and every bundle (everything and all `*-suite`)
   from the table.
-- When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite
-  installs the universal set as one bundle, if picking individually feels slow.
+- When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite installs
+  MOST of the universal set as one bundle (see its README for deliberate
+  exclusions — e.g. secret-scanning, intent-guard, reuse-guard), if picking
+  individually feels slow.
 - Zero stack signals → print the tier-2-only report with the note "no stack
   signals found".
 

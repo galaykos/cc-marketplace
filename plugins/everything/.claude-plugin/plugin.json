@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.17.7",
+  "version": "0.17.8",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -56,7 +56,6 @@
     "react",
     "react-native",
     "resilience",
-    "retrospective",
     "reuse-guard",
     "rollout",
     "secret-scanning",

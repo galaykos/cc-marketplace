@@ -28,8 +28,10 @@ A single file per working tree at `.claude/compaction-advisor/state`, holding
 `<session_id> <turns> <last_nudged_at>`. It is self-healing: a missing, corrupt, or
 different-session file simply re-seeds the count — the advisor never gets stuck silent.
 
-Add `.claude/` to your project's `.gitignore` (it holds transient per-session state, not
-source).
+Add `.claude/compaction-advisor/` to your project's `.gitignore` (this plugin's
+transient per-session state, not source). Do **not** ignore `.claude/` wholesale —
+other plugins keep team-shared files there, e.g. plugin-scout's `--persist` writes
+`.claude/settings.json`, which a wholesale ignore would silently drop from commits.
 
 ## Guarantees and limits
 

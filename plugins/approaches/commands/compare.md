@@ -17,7 +17,7 @@ description first). Do not write implementation code.
 4. Pick one. One paragraph why. State the kill-trigger: the concrete discovery
    mid-implementation that would flip this choice.
 5. Hand off via selectable offer (AskUserQuestion), not typed commands:
-   "Persist as ADR + continue to file-level plan (Recommended)" /
-   "Plan only" / "Stop here". ADR = a file in the project's ADR dir; plan =
-   plan-before-code (code-architecture). If the comparison exposed
-   product-shape uncertainty, offer /taskmaster:brainstorm instead.
+   "Continue to the file-level plan (Recommended)" / "Stop here". Plan =
+   plan-before-code (code-architecture) when that plugin is installed, else
+   outline the file-level plan inline. If the comparison exposed product-shape
+   uncertainty, offer /taskmaster:brainstorm only when taskmaster is installed.

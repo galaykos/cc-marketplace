@@ -1,6 +1,6 @@
 ---
 name: harvest
-description: Use when the user runs /hindsight:harvest or asks to mine PAST session transcripts — cross-session friction, what keeps going wrong across sessions in this project. Ranks the session ledger, fans out read-only transcript-miner agents, applies a two-session recurrence gate, proposes CLAUDE.md rules and skill ideas on explicit approval. The just-finished work in THIS session → retrospective.
+description: Use when the user runs /hindsight:harvest or asks to mine PAST session transcripts — cross-session friction, what keeps going wrong across sessions in this project. Ranks the session ledger, fans out read-only transcript-miner agents, applies a two-session recurrence gate, proposes CLAUDE.md rules and skill ideas on explicit approval.
 ---
 
 ## Purpose
@@ -84,10 +84,13 @@ category, each proposal a separate option and every question carrying a
 
 - Rules → append the picked lines to the project's CLAUDE.md.
 - Ideas → hand each pick to `/claude-authoring:new-skill` or
-  `/claude-authoring:new-plugin` (whichever fits the idea's size).
-- Warnings → write picks to `.claude/hindsight/anti-patterns.md` and
-  propose exactly ONE pointer line for CLAUDE.md referencing that file
-  — the pointer is itself an option, never auto-added.
+  `/claude-authoring:new-plugin` (whichever fits the idea's size) when
+  claude-authoring is installed; else write the idea as a one-paragraph
+  scaffold brief in the harvest output for manual capture.
+- Warnings → write picks to `.claude/hindsight/anti-patterns.md` (which must be
+  tracked, not gitignored, so the committed pointer resolves for teammates) and
+  propose exactly ONE pointer line for CLAUDE.md referencing that file — the
+  pointer is itself an option, never auto-added.
 
 Nothing is written without an explicit pick; declining every option is
 a valid outcome and still counts as a completed harvest.

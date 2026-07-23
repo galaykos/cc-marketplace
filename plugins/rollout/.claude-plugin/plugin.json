@@ -1,6 +1,6 @@
 {
   "name": "rollout",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan.",
   "author": {
     "name": "Ivan-WG",

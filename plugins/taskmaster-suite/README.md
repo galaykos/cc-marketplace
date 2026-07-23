@@ -40,7 +40,6 @@ auto-installed.
 - **claude-authoring** — scaffolds new skills, commands, agents, hooks, plugins
 - **code-review** — severity-sorted correctness and smell review of diffs
 - **approaches** — compares structurally different approaches before implementation
-- **retrospective** — five-minute retro routed into CLAUDE.md, skills, process
 - **build-vs-buy** — existing-solution check before implementing a capability
 - **rollout** — flag strategy, exposure stages, and rollback path before shipping
 - **resilience** — failure-mode gap review: timeouts, retries, degradation
