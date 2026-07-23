@@ -24,10 +24,16 @@ to the ~12 call sites it never reached.
   only because a run is boosted was the one phase the boost never reached. Tier provenance
   is now explicit (the caller passes the already-resolved values; `model:`+`effort:` on the
   Workflow panel, `model:` only on the inline fallback, which has no effort knob). Batch
-  dispatch had two contradictory tier orders and no precedence rule; the marker now sets a
-  FLOOR (`auto` resolved before the `max()`, effort excluded), plus a sensitive-domain
-  carve-out where no down-tier override is applied for `security`/`database`/`performance`/
-  `api` batches — batches are formed by card SIZE, not by a mechanicalness test. The
+  dispatch no longer carries a tier override at all: it previously forced `haiku`/`sonnet` +
+  `effort: low` on every run, boosted or not, so a batch was written by a weaker model than
+  the session had chosen. The cited rule (delegation-contracts § Model and effort tiering) is
+  sound for rename sweeps and format checks, where the prompt fully defines the task — but
+  batches are selected by card SIZE and file-disjointness, never by a mechanicalness test, so
+  three S-sized `security` cards satisfied every batching condition and none of the rule's.
+  The `effort` half was inert on the default path regardless — the plain Agent tool has no
+  `effort` parameter. Batching is now purely a parallelism mechanism; it never changes which
+  model writes the code, and `dispatch-tiers.md`'s "never downgrades an agent below its
+  frontmatter" invariant holds with no exception anywhere in the system. The
   `--tracks` path stated its tier as prose inside the worker's prompt, which sets nothing;
   it is now an `agent()` parameter, reads BOTH markers (a `Goal:`-only index previously lost
   the tier entirely), and prints a run-start banner after the index is read. The banner no

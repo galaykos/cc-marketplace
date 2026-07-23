@@ -63,7 +63,7 @@ cards stay the sole scope authority, halt-with-evidence unchanged. Absent → as
 
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker,
 dispatch the reviewer, delegated worker, and **code-redteam** panel agents with the resolved `model:` override — excluding
-`opinion-lens` — so the boost reaches execution even in a fresh session; code-redteam never reads the index itself, so pass it the resolved `(model, effort)`, and batch dispatches take the floor rule in `references/routing.md` § Batch dispatch. Read BOTH
+`opinion-lens` — so the boost reaches execution even in a fresh session; code-redteam never reads the index itself, so pass it the resolved `(model, effort)`. A batch carries no tier override of its own — it dispatches like any other card (`references/routing.md` § Batch dispatch). Read BOTH
 markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
 escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
 trailing `(model=…, effort=…)` sets the tier — `model=auto` resolves HERE, to the executing session's model or opus, whichever is higher (haiku<sonnet<opus<fable); a malformed one falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at

@@ -81,38 +81,36 @@ applied per member. Differences:
    are never co-batched — they form their own same-worker batch or stay inline.
 2. **Arm scope per card**, not per batch: one `scope-<cardId>.json` for each member (step 3
    unchanged), so each card keeps its own declared-files boundary.
-3. **Dispatch once — down-tiered.** All member cards inline in the prompt, the discipline
-   preamble verbatim, and the instruction to run the members **sequentially**, committing
-   **one commit per card** (message `card <id>`) so the main runner can attribute per-card
-   diffs on return. Batching bundles S-cards that are *usually* mechanical (scaffolds,
-   renames) — note batches are formed by card SIZE and file-disjointness, never by a
-   mechanicalness test, which is why the carve-out below exists. For an ordinary batch the
-   orchestrator passes an **explicit tier override IN THE DISPATCH CALL**: the Agent tool
-   `model:` param (`haiku` for pure-mechanical sweeps, `sonnet` otherwise) and/or
-   `opts.effort: 'low'` on the `Workflow` path — delegation-contracts § Model and effort
-   tiering (mechanical stages get low effort and cheaper models; tiering is per-stage, not
-   per-run). Verify and judge dispatches are never down-tiered. A batch worker is a
-   leaf: it never re-routes or writes `00-INDEX.md`.
+3. **Dispatch once — at the worker's own tier.** All member cards inline in the prompt, the
+   discipline preamble verbatim, and the instruction to run the members **sequentially**,
+   committing **one commit per card** (message `card <id>`) so the main runner can attribute
+   per-card diffs on return. A batch worker is a leaf: it never re-routes or writes
+   `00-INDEX.md`.
 
-   **Precedence — the marker sets a FLOOR.** Under an `Ultra:`/`Goal:` marker a batch is
-   also a delegated worker, so both rules fire on one call. They resolve as
-   `max(marker model, batch model)` on `haiku<sonnet<opus<fable`. Resolve the marker's
-   `auto` FIRST — per task-execution/SKILL.md's resolution rule — and feed only the
-   resolved value into the `max()`; the literal `auto` has no position on the ladder.
-   **Effort is excluded from the floor**: batch effort stays `low` whatever the marker
-   says, because mechanical work does not buy depth and no effort ordering is defined
-   anywhere. Unboosted, there is no marker tier and behavior is unchanged. This scopes
-   dispatch-tiers.md's "never downgrades below frontmatter" invariant to the ultra boost
-   lever: the batch down-tier is a stated, bounded exception to it, not a contradiction.
+   **No tier override — batching is a parallelism mechanism, not a cost lever.** Dispatch a
+   batch exactly like any other delegated card: no `model:` param, no `opts.effort`, so the
+   worker runs at its shipped frontmatter tier (and, under a marker, the boost it would have
+   received anyway). Batching therefore never changes WHICH model writes the code — only how
+   many cards one dispatch carries.
 
-   **Sensitive-domain carve-out — no down-tier override is applied.** When a batch contains
-   any card tagged `security`, `database`, `performance`, or `api`, **omit the
-   `model:`/`effort:` params entirely** — the worker runs at its own frontmatter tier, with
-   the floor above still governing. Say it as "no override is applied", never as
-   "keeps the worker's tier":
-   all four of those tags route to agents shipping `model: inherit`, so the latter phrasing
-   would assert no floor at all. This carve-out is NOT marker-gated — a cheap-tier
-   `security` batch is a hazard on unboosted runs too, so it fires on every run.
+   Earlier revisions down-tiered a batch to `haiku`/`sonnet` + `effort: low`, citing
+   delegation-contracts § Model and effort tiering. That rule is sound where it was written
+   — its examples are rename sweeps, format checks, and inventory scans, work where *the
+   prompt fully defines the task* and deliberation buys nothing. It does not transfer here:
+   **batches are selected by card SIZE and file-disjointness, never by a mechanicalness
+   test** (`parallel-planning/references/dispatch-selection.md` § S-card batching). Three
+   S-sized `security` cards satisfy every batching condition and none of delegation-contracts'.
+   A card states what to change and how to verify it; the implementation is still judgment,
+   which is why cards exist rather than scripts. Down-tiering on size alone silently gave a
+   weaker model than the session had chosen, so the override is gone rather than bounded —
+   which is also why `dispatch-tiers.md`'s "never downgrades an agent below its frontmatter"
+   invariant now holds with no exception anywhere in the system.
+
+   A genuine cost lever for mechanical work is still possible later, but it must gate on an
+   actual mechanicalness signal (a `generic` tag plus a rename/scaffold/sweep `Change` line),
+   not on card size — and note the `effort` half only ever worked on the `Workflow` path: the
+   plain Agent tool has no `effort` parameter (`ultra/SKILL.md` § Model and effort rules), so
+   on the default dispatch path it was inert.
 4. **Mid-batch failure is park-one-continue-rest.** A member hitting its 3-cycle halt or a
    park is parked; the worker continues the remaining disjoint members and returns
    **per-card statuses** (done + commit sha, or parked + reason). Members are disjoint, so
