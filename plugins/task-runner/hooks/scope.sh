@@ -5,6 +5,12 @@
 # landed OUTSIDE that set — the "touch only files the task lists" discipline made
 # mechanical. No scope file → no-op (the discipline is opt-in per run). Fail-open.
 #
+# COVERAGE LIMIT (honest scope): this hook reads only the INLINE path's scope.json.
+# Delegated workers get per-card scope-<cardId>.json files (routing.md) which this
+# hook does NOT read — their scope is enforced by the prose diff-vs-declared check
+# on return, not mechanically here. A subagent's edits also fire in ITS session,
+# not this one. Inline-only tripwire by design.
+#
 # fd 3 = the caller's real stderr, saved before the block so the two fail-open
 # warnings below (D7: missing jq / malformed scope.json) reach stderr — the block's
 # `2>/dev/null` is there only to silence incidental jq/grep noise and would eat a

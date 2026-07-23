@@ -29,9 +29,8 @@ attempts, and **agent-conventions** when naming a new agent or arbitrating
 which reviewer fires on an edit. A fourth, **ultra-assess**, is armed by a
 UserPromptSubmit hook: writing "ultra-assess" in a prompt injects the Extreme
 Boost directive for assessment-shaped runs — inventory, audit, gap-analysis —
-escalating reasoning subagents to auto/xhigh by default — the session model or opus,
-whichever is higher (overridable via an
-`ultra-assess-<model>[-<effort>]` suffix) and mandating red-team plus
+escalating reasoning subagents to a fixed auto/xhigh tier (the session model or
+opus, whichever is higher; no suffix grammar) and mandating red-team plus
 completeness-critic passes over the findings. Output is a findings backlog,
 never task cards.
 

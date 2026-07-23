@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Blocking per-plugin context-budget gate (D3/A5). Approximates each
-# plugin's session-start description-token surface — the sum, over its
+# plugin's session-start token surface — the sum, over its
 # skills/*/SKILL.md, commands/*.md, agents/*.md (a bundle sums its member
 # plugins instead), of the frontmatter `description:` value's byte length,
-# chars/4 — and compares it against a committed baseline. Any plugin over
-# its baseline fails the run (exit 1); --update-baseline, a missing jq,
-# and a missing baseline file stay exit 0.
+# PLUS the stdout of its SessionStart hooks (run sandboxed against an empty
+# project — a deterministic, repo-neutral lower bound; real hook output can
+# grow with the user's project). chars/4 — compared against a committed
+# baseline. Any plugin over its baseline fails the run (exit 1);
+# --update-baseline, a missing jq, and a missing baseline file stay exit 0.
+# NOT metered (dynamic, per-prompt): UserPromptSubmit/PostToolUse/etc. hook
+# output — those plugins are listed informationally at the end of the run.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -31,6 +35,30 @@ plugin_desc_bytes() {
   printf '%s' "$total"
 }
 
+# Stdout bytes a plugin's SessionStart hooks inject each session, measured by
+# executing them in a throwaway sandbox (empty CLAUDE_PROJECT_DIR/HOME, minimal
+# SessionStart JSON on stdin, fail-open per hook). Deterministic lower bound.
+HOOK_SANDBOX=$(mktemp -d)
+trap 'rm -rf "$HOOK_SANDBOX"' EXIT
+TIMEOUT_CMD=""
+command -v timeout >/dev/null 2>&1 && TIMEOUT_CMD="timeout 10"
+
+plugin_sessionstart_bytes() {
+  local pdir="$1" total=0 cmd resolved out bytes
+  local hj="$pdir/hooks/hooks.json"
+  [ -f "$hj" ] || { printf '0'; return; }
+  while IFS= read -r cmd; do
+    [ -n "$cmd" ] || continue
+    resolved=${cmd//'${CLAUDE_PLUGIN_ROOT}'/$pdir}
+    out=$(printf '{"hook_event_name":"SessionStart","source":"startup","cwd":"%s"}' "$HOOK_SANDBOX" \
+      | CLAUDE_PLUGIN_ROOT="$pdir" CLAUDE_PROJECT_DIR="$HOOK_SANDBOX" HOME="$HOOK_SANDBOX" \
+        $TIMEOUT_CMD bash -c "$resolved" 2>/dev/null) || true
+    bytes=$(printf '%s' "$out" | wc -c | tr -d ' ')
+    total=$((total + bytes))
+  done < <(jq -r '.hooks.SessionStart[]?.hooks[]?.command // empty' "$hj" 2>/dev/null)
+  printf '%s' "$total"
+}
+
 no_baseline=0
 [ -f "$BASELINE" ] || no_baseline=1
 # A corrupt baseline would silently exempt every plugin — fail loudly instead.
@@ -52,19 +80,20 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   [ -n "$bname" ] || continue
 
   if jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1; then
-    # Bundle: sum member plugins' description bytes.
+    # Bundle: sum member plugins' description + SessionStart-hook bytes.
     total_bytes=0
     while IFS= read -r member; do
       [ -n "$member" ] || continue
       mdir="plugins/$member"
       [ -d "$mdir" ] || continue
-      bytes=$(plugin_desc_bytes "$mdir")
+      bytes=$(( $(plugin_desc_bytes "$mdir") + $(plugin_sessionstart_bytes "$mdir") ))
       total_bytes=$((total_bytes + bytes))
     done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
     is_leaf=0
   else
-    # Leaf: measure the plugin's own dir.
-    total_bytes=$(plugin_desc_bytes "${pj%/.claude-plugin/plugin.json}")
+    # Leaf: measure the plugin's own dir (descriptions + SessionStart stdout).
+    pdir="${pj%/.claude-plugin/plugin.json}"
+    total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") ))
     is_leaf=1
   fi
   tokens=$(( (total_bytes + 2) / 4 ))
@@ -99,6 +128,14 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
 done
 
 echo "TOTAL: $leaf_tokens_total tokens"
+
+# Honesty note: per-prompt/per-tool hook output is dynamic and NOT metered.
+unmetered=$(for h in plugins/*/hooks/hooks.json; do
+  [ -f "$h" ] || continue
+  jq -e '.hooks | keys - ["SessionStart"] | length > 0' "$h" >/dev/null 2>&1 \
+    && basename "$(dirname "$(dirname "$h")")"
+done | sort | tr '\n' ' ')
+[ -n "$unmetered" ] && echo "note: per-prompt/per-tool hook output not metered: $unmetered"
 
 [ "$no_baseline" -eq 1 ] && echo "WARN: no baseline" >&2
 

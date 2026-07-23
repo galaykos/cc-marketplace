@@ -28,9 +28,9 @@ From the task list (taskmaster cards, a plan's steps, a todo list):
    Shared-file tasks stay serial within the level (or get the shared edit
    extracted into its own task — the better fix).
 3. Critical path = the dependency chain with the largest summed size weight
-   (S=1, M=3, L=8). Serial cost = sum of all weights.
-4. Theoretical speedup = serial cost / critical-path cost. This is the
-   ceiling; overhead lowers it.
+   (S=1, M=3, L=8 — fixed heuristic weights, not measured durations).
+4. Theoretical speedup = serial cost / critical-path cost — the ceiling;
+   overhead lowers it. Uncalibrated: ranks plans, does not predict wall-clock.
 5. Overhead per delegated task: agent spawn + context load (~1–2 min
    equivalent), PLUS the runner re-verifying every returned task itself
    (never trust "done" — task-execution skill rule), PLUS card-writing tax
@@ -89,11 +89,11 @@ Two extra outputs, both detailed in `references/dispatch-selection.md`:
     Level 1: task 09 — serial — INLINE
     Level 2: tasks 10-12 — disjoint — DELEGATE, 3 agents
     Level 3: task 13 — integration, shared files — INLINE
-    Serial cost 34 units; critical path 9 units; ceiling 3.8x; adjusted ~2.9x
+    Serial cost 34 units; critical path 9 units; ceiling 3.8x; adjusted ~2.9x (heuristic, unmeasured)
     Verdict: DELEGATE levels 0 and 2 — est. wall-clock ~1/3 of serial.
     Dispatch: default (per-level verdicts above) — workflow-tracks only with ≥2 independent milestones
 
-Show the arithmetic. A verdict without the numbers is a vibe.
+Show the arithmetic — a verdict without numbers is a vibe — and label every `x` figure `(heuristic, unmeasured)`.
 
 ## Worked example (real run)
 

@@ -122,14 +122,15 @@ assumption list, or the user says "enough". Then:
    contract, then synthesize one pick + kill-trigger. Absent → propose 2–3
    approaches inline and pick. Skip for single-approach or mechanical tasks, or
    when an upstream brainstorm design already recorded the approach.
-2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: header with the raw + upgraded
-   statement pair, goal, decisions (from CLEAR rows with sources), accepted assumptions, the
-   chosen approach with alternatives rejected and its kill-trigger, non-goals, success criteria.
-   Staged visual/creative picks → invoke the `visual-contract` skill to bind them as `## Visual contract`.
+2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
+   goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected
+   alternatives and kill-trigger, non-goals, success criteria, and the converged ledger embedded
+   as `## Ambiguity ledger (final)`; run `scripts/spec-ledger-lint.sh --spec <file>` (blocks
+   UNKNOWN/missing/empty ledger) until exit 0. Staged visual/creative picks → invoke the
+   `visual-contract` skill to bind them as `## Visual contract`.
 3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
    attack the frozen spec for holes and resolve each before cards; trivial specs skip.
-4. Invoke the `task-cards` skill from this plugin to split the spec into
-   single-prompt task cards.
+4. Invoke the `task-cards` skill from this plugin to split the spec into single-prompt task cards.
 
 Do not skip the written spec even when the ledger is short — the spec is what makes
 each task card self-contained later.

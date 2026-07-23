@@ -105,8 +105,9 @@ The completion protocol runs this gate and, on a pass, records it to
 `.claude/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). The task-runner **Stop
 hook** (`hooks/completion-gate.sh`) reads that record: for a run that registered itself
 (`.claude/task-runner/active-run.json`, written at run start per `run.md` step 1), it
-refuses a clean stop unless a gate pass is recorded for the current HEAD — a reminder by
-default, a hard block under `TASK_RUNNER_STOP_GATE=block`. So a registered run can no longer
+refuses a clean stop unless a gate pass is recorded for the current HEAD — a hard block
+by default (`${TASK_RUNNER_STOP_GATE:-block}`), downgradable to a warning only by
+explicitly setting `TASK_RUNNER_STOP_GATE=warn`. So a registered run can no longer
 stop "done" on a green repo suite that never ran the produced code.
 
 The residual is named, not hidden: the hook is a *records* check — cheap, fires on every
@@ -117,11 +118,15 @@ forged. What the hook closes is the honest-but-forgetful skip; deliberate evasio
 requires actively omitting the register or faking the record, not merely forgetting to run
 the gate.
 
-Two further residuals it does **not** close: a non-index run (a todo or plan list) records
+Two further residuals, one now narrowed: a non-index run (a todo or plan list) records
 no card counts in `gate-pass.json`, so the card-completeness check never fires for it — only
-taskmaster-index runs are backstopped against a silently-skipped card. And the per-card
-negative-control (layer 2 above) is instruction-only: no hook enforces that each card's
-control run actually happened.
+taskmaster-index runs are backstopped against a silently-skipped card. The per-card
+negative-control (layer 2 above) is COUNTED at the Stop hook when the run records into
+`.claude/task-runner/nc/` (`negative-control.sh --record-dir` writes `nc-pass-*`
+mechanically; documented skips write `nc-skip-*`): fewer records than done cards refuses
+the clean stop. Remaining honest gap: a run that never creates `nc/` keeps the legacy
+allow, and a skip record's reason is model-authored — forgetting now blocks; only
+deliberate forgery defeats it.
 
 ## Anti-patterns
 

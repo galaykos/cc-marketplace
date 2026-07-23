@@ -11,45 +11,28 @@ still an idea without a concrete capability list, run the brainstorm skill first
 (/taskmaster:brainstorm) — its approved design doc becomes this pipeline's input and
 pre-seeds the ledger.
 
+<!-- boost-preamble:start — byte-identical across the 5 taskmaster commands; scripts/validate.sh enforces parity and hook-token agreement -->
 **Run-status line (always):** print ONE status line as the first visible output of
-every run, boosted or not — a boosted run prints the ⚡ banner (owned by the
-ultra/ultra-goal skill; the banner IS its status line); a standard run prints
+every run — a boosted run prints the ⚡ banner (owned by the taskmaster `ultra`
+skill; the banner IS its status line); a standard run prints
 `▷ taskmaster standard run — session <model> · subagents inherit it unless their agent pins a tier · effort: <effort> · boost: off` — substitute `<model>` with the session model and `<effort>` with `$CLAUDE_EFFORT` (resolve via `echo ${CLAUDE_EFFORT:-inherit}`); when the harness does not expose it, that prints the literal `inherit`.
 
+**Boost flags:** Extreme Boost fires ONLY when $ARGUMENTS *begins* with a bare
+`ultra` (boost) or `goal` (hands-off) token, or contains the explicit
+`ultra-task`/`ultratask` or `ultra-goal`/`ultragoal` token. Only the explicit
+tokens cross a command boundary — a bare token owned by an earlier chained
+command (e.g. `caveman ultra` preceding this command) NEVER triggers this run.
+No tier suffixes: the tier is fixed at model=auto, effort=xhigh (`auto` =
+session model or opus, whichever is higher — escalate, never downgrade). On a
+match, strip the matched token and apply the taskmaster `ultra` skill
+(`skills/ultra/SKILL.md`) — `ULTRA-TASK ACTIVE`, or `ULTRA-GOAL ACTIVE` in Goal
+mode for `goal`/`ultra-goal` — ⚡ banner first, `Ultra:`/`Goal:` markers per
+that skill.
+<!-- boost-preamble:end -->
 
-**Ultra flag:** run in Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
-bare `ultra` token (this command invoked as `/taskmaster:<cmd> ultra …`) or
-contains the explicit `ultra-task`/`ultratask` token. A bare `ultra` that is not
-the first token of THIS command's own arguments — e.g. an earlier command's own
-intensity flag in a chained message, such as a `caveman ultra` preceding this
-command — is NOT a taskmaster trigger and never boosts this run; only
-`ultra-task`/`ultratask`
-crosses a command boundary. The `ultra`/`ultra-task` token may carry a
-`-<model>[-<effort>]` suffix — e.g. `ultra-sonnet-xhigh`, `ultra-task-opus` (model
-∈ auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max,
-default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
-as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (the selected model on
-reachable reasoning subagents, mandatory red-team + coverage, bounded Workflow fan-outs, the
-⚡ banner, and the `Ultra: true (model=…, effort=…)` marker written into the card
-index).
-
-**Goal flag:** run in hands-off Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
-bare `goal` token (this command invoked as `/taskmaster:<cmd> goal …`) or contains
-the explicit `ultra-goal`/`ultragoal` token. A bare `goal` that is not the first
-token of THIS command's own arguments — e.g. an earlier command's flag in a chained
-message — is NOT a taskmaster trigger and never activates this run; only
-`ultra-goal`/`ultragoal` crosses a command boundary. The token may carry a
-`-<model>[-<effort>]` suffix — e.g. `ultra-goal-sonnet-xhigh`, `goal-opus` (model ∈
-auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max, default
-xhigh) — resolved per the taskmaster `ultra-goal` skill
-(`skills/ultra-goal/SKILL.md`), the canonical owner of this mode. Ultra-goal implies
-the full ULTRA-TASK boost: when an `ultra-task` token is also present its tier wins;
-ultra-goal's suffix applies only when no ultra-task token is present. On a match,
-strip the token and run as `ULTRA-GOAL ACTIVE` per that skill — auto-take every
-pipeline recommendation (deriving one first when none is labeled Recommended); the
-handoff step auto-selects "Run now" and runs through execution to a green suite;
-branch-finish/merge/PR stay manual — stamping a `Goal: true (model=…, effort=…)`
-marker into the card index and logging every auto-take to the goal ledger.
+**Goal in this command:** auto-take every pipeline recommendation (derive one
+first when none is labeled Recommended); the handoff auto-selects "Run now" and
+runs through execution to a green suite; branch-finish/merge/PR stay manual.
 
 1. If the stack-scan plugin is installed (the installed-versions skill or
    /stack-scan:report is available), run its inventory first and hand the
@@ -66,16 +49,28 @@ marker into the card index and logging every auto-take to the goal ledger.
    choice is between options that look or flow differently (layout, flow,
    architecture shape, data shape) — the skill asks fidelity consent (full mockups
    / ASCII only / none) on first use per session, with context-scout's Visual
-   surface section as the prior.
+   surface section as the prior. When colour or theme is itself the decision,
+   switch to `/ui-ux:theme` instead. Every visual option renders on the local
+   preview server at `${PREVIEW_PORT:-8123}` — never publish one as a remote
+   artifact, which bypasses the consent gate, the ledger, and the viewport and
+   push-reload controls those previews carry.
 4. For multi-screen or whole-experience tasks (three-plus screens, or a flow whose
    sequence is itself a requirement), invoke the experience-walkthrough skill once
    visual decisions land: assemble the accepted picks into one clickable demo on
    the live preview URL, walk the user through it with a task script, and fold
    every discovered gap back into the ledger before freezing anything.
-5. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: a header with the raw +
-   upgraded statement pair (under the `**Raw prompt:**` / `**Upgraded statement:**`
-   labels), goal, decisions with sources, accepted assumptions, non-goals, success
-   criteria — plus the walkthrough file path and cross-screen contracts when step 4 ran.
+5. Write the spec per the grill skill's Stopping section — grill OWNS the
+   spec-write sequence (approach decision → spec → lint); this step summarizes it,
+   never run a stage twice. Decide the approach first when structurally different
+   implementations exist (opinion-round per grill Stopping §1; skip for mechanical
+   tasks). Then write `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: a header with
+   the raw + upgraded statement pair (under the `**Raw prompt:**` /
+   `**Upgraded statement:**` labels), goal, decisions with sources, accepted
+   assumptions, the approach with rejected alternatives and kill-trigger,
+   non-goals, success criteria, and the converged ledger embedded as
+   `## Ambiguity ledger (final)`; run `scripts/spec-ledger-lint.sh --spec <file>`
+   until exit 0 (task-cards re-runs it later as the final gate) — plus the
+   walkthrough file path and cross-screen contracts when step 4 ran.
 6. Red-team the spec first when its blast radius warrants — run the `spec-redteam`
    skill to attack the frozen spec for holes (missing edge cases, unstated
    assumptions, conflicts, failure/security gaps) and resolve each before planning.

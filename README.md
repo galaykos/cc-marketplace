@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 69 plugins) exists for zero-setup convenience at ~12.5k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 69 leaf plugins) exists for zero-setup convenience at ~12.3k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,16 +44,19 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 69 | ~12.5k tokens |
-| `taskmaster-suite` | 37 | ~8.7k tokens |
-| `process-suite` | 12 | ~2.3k tokens |
-| `quality-suite` | 14 | ~2.6k tokens |
-| `frontend-suite` | 16 | ~2.4k tokens |
+| `everything` | 69 | ~12.3k tokens |
+| `taskmaster-suite` | 37 | ~8.6k tokens |
+| `process-suite` | 13 | ~2.3k tokens |
+| `quality-suite` | 15 | ~2.6k tokens |
+| `frontend-suite` | 17 | ~2.4k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
 Always-on context = the skill/command/agent descriptions every installed
-plugin adds to each session's context window (chars/4 estimate).
+plugin adds to each session's context window, plus SessionStart hook output
+(measured against an empty project — a lower bound; chars/4 estimate).
+Per-prompt hook output (UserPromptSubmit etc.) is dynamic and not counted —
+`scripts/context-budget.sh` lists those plugins at the end of each run.
 
 ```bash
 # Full taskmaster workflow + its wired companions (task pipeline,
@@ -62,7 +65,7 @@ plugin adds to each session's context window (chars/4 estimate).
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
-# install: ~12.5k tokens of always-on context per session; prefer a category
+# install: ~12.3k tokens of always-on context per session; prefer a category
 # suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
@@ -111,11 +114,14 @@ afterwards to sweep the orphans.
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
 | **vue3** | Vue 3: script setup, composables, ref/reactive, Pinia | `/vue3:review` |
+| **[nextjs](plugins/nextjs/README.md)** | Next.js: App Router server/client boundaries, opt-in caching, server actions as public endpoints, route handlers, streaming with Suspense, next/image & next/font — version-aware 14–16 | `/nextjs:review` |
+| **[nuxt](plugins/nuxt/README.md)** | Nuxt: Nitro server routes, hybrid rendering route rules, useFetch/useAsyncData payload dedup, SSR-safe useState, auto-imports discipline, runtimeConfig, SEO meta | `/nuxt:review` |
 | **php** | PHP: strict types, === discipline, PSR conventions, version-aware 8.1–8.5 leverage map, exceptions, boundary security | `/php:review` |
 | **laravel** | Laravel: Eloquent N+1, form requests, service layer, queues, policies | `/laravel:review` |
 | **livewire** | Livewire 3/4: components, wire:model, performance, Alpine interop | `/livewire:review` |
 | **[javascript](plugins/javascript/README.md)** | Vanilla JS: version-aware ES feature floors, === and coercion traps, ESM vs CommonJS interop, async correctness + event loop, this-binding & closures/leaks, boundary validation, BigInt, prototype-pollution safety | `/javascript:review` |
 | **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
+| **[node-backend](plugins/node-backend/README.md)** | Server-side Node.js (Express 5, NestJS 11, Fastify 5): middleware vs DI vs plugin-encapsulation architecture, async error propagation, boundary validation (zod, class-validator), streaming/backpressure, graceful shutdown | `/node-backend:review` |
 | **[vite](plugins/vite/README.md)** | Vite: VITE_ env-leak security, dep pre-bundling, code splitting/manualChunks, base for sub-path deploys, dev server.proxy, define pitfalls, SSR, library mode, plugin order, HMR guards | `/vite:review` |
 | **[threejs](plugins/threejs/README.md)** | Three.js: WebGPURenderer-first (WebGL2 fallback), TSL shaders, react-three-fiber/drei, glTF/Draco/KTX2 pipelines, disposal/leak discipline, draw-call performance — version-aware per rXXX | `/threejs:review` |
 | **[inertia](plugins/inertia/README.md)** | Inertia.js (Laravel + Vue/React/Svelte): prop hygiene, partial reloads, deferred props, useForm, shared data, SSR, v1/v2 + adapter awareness | `/inertia:review` |
@@ -151,6 +157,11 @@ afterwards to sweep the orphans.
 | **estimation** | S/M/L/XL sizing with anchors, uncertainty multipliers, split triggers, estimate-vs-actual loop; weights feed /task-runner:plan | `/estimation:size` |
 | **[hindsight](plugins/hindsight/README.md)** | Cross-session self-improvement loop: SessionEnd hook logs friction stats to a local ledger; harvest mines high-friction transcripts → CLAUDE.md rule candidates, skill/plugin ideas, failed-approach warnings — apply on approval + transcript-miner agent | `/hindsight:harvest` |
 | **[skill-router](plugins/skill-router/README.md)** | File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill when you edit a matching file (SQL, components, tests, Dockerfiles), a SessionStart hook primes a repo skill index, low-confidence content signals surface in a SessionEnd digest; fail-open, once per signal per session | — |
+| **[brain](plugins/brain/README.md)** | Committed Obsidian-style codebase map: brain/INDEX.md indexes areas, key files, entrypoints; a SessionStart hook injects the compact map (with staleness hint) so fresh sessions start oriented + indexer agent | `/brain:brain` |
+| **[compaction-advisor](plugins/compaction-advisor/README.md)** | Advice-only /compact nudge: a UserPromptSubmit hook counts user turns and, on a repeating 50-turn interval, prints one line suggesting /compact when an early chunk is no longer relevant | — |
+| **[fresh-take](plugins/fresh-take/README.md)** | Independent stronger-model second opinion at key moments (stuck debugging, imminent irreversible action): facts-only brief, blind read-only consultant returns Take, Risks, one Alternative — advice only | `/fresh-take:consult` |
+| **[shadcn-studio](plugins/shadcn-studio/README.md)** | Greenfield interactive shadcn staging: self-contained shadcn + Vite (Tailwind v4) sandbox on its own dev server renders agent-authored component variants side by side — real interactivity, not static HTML | `/shadcn-studio:stage` |
+| **[ultra-deep-research](plugins/ultra-deep-research/README.md)** | Deep-research harness: parallel search fan-out, provenance-tiered sources, date-stamped claims, adversarial refutation before synthesis, cited report with contradiction ledger + researcher/verifier agents | `/ultra-deep-research:research` |
 
 ### Engineering discipline
 
@@ -160,7 +171,7 @@ afterwards to sweep the orphans.
 | **design-patterns** | Design patterns: selection, fitting, anti-patterns | `/design-patterns:suggest` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code; own APIs → api-design | `/api-docs-first:check` |
 | **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources + graphql-grpc skill (DataLoader, resolver authz, proto safety, streaming); third-party docs → api-docs-first | `/api-design:review` |
-| **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill; stack idioms → framework review plugins | `/code-review:review` |
+| **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass | `/code-review:review` |
 | **approaches** | Approach deliberation: 2–3 structurally different candidates, trade-off table, pick + kill-trigger + strategy catalog (tracer bullet, spike, strangler fig, inversion…) + auto-nudged opinion round (blind persona subagents: Standards Purist / Quality-over-Speed / Skeptic-Investigator → one-round pick) | `/approaches:compare`, `/approaches:opinions` |
 | **build-vs-buy** | Gate zero for generic capability: library/stdlib search, health table, take/wrap/write verdict, never-hand-roll list | `/build-vs-buy:check` |
 | **rollout** | Per-feature rollout: flags with removal dates, compat windows, expand-migrate-contract, staged exposure with gate metrics, rollback path before ship | `/rollout:plan` |
@@ -174,6 +185,7 @@ afterwards to sweep the orphans.
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
 | **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent + data-privacy (GDPR/CCPA) and api-auth (token/OAuth model) skills | `/security:review` |
 | **[secret-scanning](plugins/secret-scanning/README.md)** | PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens) before it hits disk; on-demand repo sweep; fail-open, fixture-safe | `/secret-scanning:scan` |
+| **[reuse-guard](plugins/reuse-guard/README.md)** | Warn-only reuse hygiene so an agent does not build on dead code: PostToolUse hook flags edits referencing session-cached deprecated symbols; on-demand Tier-2 dead-code/orphan/reachability check | `/reuse-guard:check` |
 | **[payments](plugins/payments/README.md)** | Payments/billing (Stripe/Paddle): PCI-scope minimization, integer-minor-unit money, signature-verified idempotent webhooks, subscription races, dunning/proration, ledger reconciliation | `/payments:review` |
 | **[i18n](plugins/i18n/README.md)** | Internationalization: semantic keys + catalogs, ICU plural/gender, locale-aware dates/numbers/currency via Intl, RTL logical properties, fallback chains, tooling extraction | `/i18n:review` |
 | **[llm-app](plugins/llm-app/README.md)** | LLM apps: eval harnesses + regression gates, RAG (chunking/embeddings/retrieval quality/grounding), prompt versioning, prompt-injection defense, token-cost control | `/llm-app:review` |

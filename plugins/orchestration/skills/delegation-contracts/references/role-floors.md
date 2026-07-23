@@ -32,7 +32,7 @@ An agent with no row here is **unfloored** — that is the correct default, not 
 ## The rule — two classes, one rule each
 
 A single formula cannot serve both classes; trying to write one is how an earlier draft
-silently turned `ultra-task-haiku` into a no-op.
+silently turned an explicit low-tier marker (`Ultra: true (model=haiku)`) into a no-op.
 
     FLOORED (the six above):
         model: = max( marker tier if a marker is present else session model,
@@ -42,8 +42,9 @@ silently turned `ultra-task-haiku` into a no-op.
     UNFLOORED (every other agent): UNCHANGED from today.
         marker tier if a marker is present; otherwise omit `model:` entirely.
 
-`auto` is not an explicit tier — it resolves per `taskmaster/skills/ultra/SKILL.md` § Variants
-first (session model or opus, whichever is higher), and only the resolution enters the max.
+`auto` is not an explicit tier — it resolves per `taskmaster/skills/ultra/SKILL.md`
+§ Fixed tier first (session model or opus, whichever is higher), and only the
+resolution enters the max.
 
 **For a floored agent under a marker this is exactly `ultra/SKILL.md`'s existing
 `max(marker tier, frontmatter tier)`.** The only new behavior is that the *session model*
@@ -55,8 +56,8 @@ Worked cases:
 |---|---|---|
 | unboosted, fable session, `code-reviewer` | `max(fable, opus)` = fable | **fixed** — was opus |
 | unboosted, sonnet session, `code-reviewer` | `max(sonnet, opus)` = opus | unchanged |
-| `ultra-task-haiku`, `code-reviewer` | `max(haiku, opus)` = opus | unchanged |
-| `ultra-task-haiku`, an `inherit` worker | haiku | unchanged — the explicit-pin lever survives |
+| legacy `Ultra: true (model=haiku)` marker, `code-reviewer` | `max(haiku, opus)` = opus | unchanged |
+| legacy `Ultra: true (model=haiku)` marker, an `inherit` worker | haiku | unchanged — the explicit-marker lever survives |
 | a batch worker under any marker | the marker tier | unchanged — it is unfloored |
 | unboosted, opus session, `verifier` | `max(opus, sonnet)` = opus | **fixed** — was sonnet |
 | unboosted, haiku session, `verifier` | `max(haiku, sonnet)` = sonnet | unchanged |

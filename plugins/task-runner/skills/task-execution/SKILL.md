@@ -26,9 +26,11 @@ Per task, loop — but with a hard ceiling:
 
 1. Implement the change the task describes.
 2. Run the task's verify command — the EXACT command, not a cheaper stand-in.
-3. Pass → run the negative-control gate before flipping (`references/negative-control.md`):
-   `discriminating` → record evidence + flip; `vacuous`/`invalid-control` → back into this
-   loop (verify has no teeth); `isolation-halt` → halt. Manual/visual skips need the recorded why-non-automatable note.
+3. Pass → run the negative-control gate before flipping (`references/negative-control.md`)
+   with `--record-dir .claude/task-runner/nc --card <cardId>` — the pass record lands
+   mechanically, and the completion gate refuses a clean stop when done cards outnumber
+   nc records: `discriminating` → flip; `vacuous`/`invalid-control` → back into this
+   loop (no teeth); `isolation-halt` → halt. Manual/visual: `--skip "<reason>"`, same flags.
 4. Fail → diagnose from the actual output, fix, go to 2.
 5. **Three failed fix cycles → halt the task.** Report what was tried, the exact
    failing output, and the current hypothesis. A fourth blind attempt is where
@@ -97,10 +99,8 @@ or parked, the run ENDS with a report, no self-restart.
 - Execute in index order, respecting `Depends on`; parallel groups (and disjoint
   same-worker S-card batches) may be delegated ONLY if file sets are disjoint — else serial.
 - Status lives in one place (the task index / todo list, e.g. taskmaster's
-  `00-INDEX.md`): pending → in_progress (exactly one) → done | parked(reason).
-  Task definitions themselves stay immutable during the run.
-- A parked task never blocks unrelated tasks; dependency-blocked tasks are marked
-  blocked-by, not attempted anyway.
+  `00-INDEX.md`): pending → in_progress (exactly one) → done | parked(reason). Task definitions stay immutable during the run.
+- A parked task never blocks unrelated tasks; dependency-blocked tasks are marked blocked-by, not attempted anyway.
 
 ## No status theater
 

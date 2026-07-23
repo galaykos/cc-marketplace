@@ -39,6 +39,11 @@ jobs:
         run: bash scripts/smoke/behavioral-verification-tests.sh
       - name: Completion-gate hook smoke tests
         run: bash scripts/smoke/completion-gate-hook-tests.sh
+      - name: Taskmaster author-time lint tests (verify-teeth, skills-stamp, spec-ledger)
+        run: |
+          for t in plugins/taskmaster/scripts/__tests__/*.test.sh; do
+            echo "== $t"; bash "$t"
+          done
       - name: validate.sh parity harness (FAIL paths still fire)
         run: bash scripts/smoke/validate-fixtures/parity-check.sh
       - name: role-floor gate harness (all nine FAIL strings fire)

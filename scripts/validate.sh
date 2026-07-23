@@ -300,7 +300,7 @@ EOF_OVERLAPS
 fi
 
 # All-bundle dependency gate (hard): generalizes the everything-only completeness
-# check above — every plugin.json that declares .dependencies (the 8 bundles) must
+# check above — every plugin.json that declares .dependencies (the bundles) must
 # list only real marketplace plugin names, so no bundle silently ships a dangling
 # or misspelled dependency.
 mp_names=$(jq -r '.plugins[].name' "$MP")
@@ -358,8 +358,7 @@ else
   done < "$TAX"
 fi
 
-# README-presence (HARD): every plugin ships a README.md. Backfilled 2026-07-14
-# (was warn-only while 31/82 were missing one).
+# README-presence (HARD): every plugin ships a README.md. Backfilled 2026-07-14.
 missing_readme=""
 rm_count=0
 for d in plugins/*/; do
@@ -369,6 +368,50 @@ for d in plugins/*/; do
 done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
+
+# README-listing (HARD): every plugin must also be LISTED in the top-level
+# README.md plugin tables — a bolded `**name**` or `**[name](...)` row. Presence
+# of a per-plugin README is not discoverability; 9 plugins shipped invisible to
+# the catalog before this gate (2026-07-23).
+for d in plugins/*/; do
+  lname=$(basename "$d")
+  grep -qF "**${lname}**" README.md || grep -qF "**[${lname}](" README.md \
+    || err "plugin '$lname' not listed in any top-level README.md plugin table"
+done
+
+# Boost-preamble parity (HARD): the five taskmaster commands carry one
+# byte-identical boost preamble between the `boost-preamble:start/end` markers,
+# and every trigger token the ultra hook greps for is named inside that block —
+# the trigger logic exists twice (bash regex in hooks/ultra.sh + command prose)
+# and this gate keeps the two implementations from diverging silently.
+TM_CMDS=plugins/taskmaster/commands
+pre_ref=""
+pre_ref_file=""
+for c in task taskmaster brainstorm coverage redteam; do
+  f="$TM_CMDS/$c.md"
+  [ -f "$f" ] || { err "boost-preamble: missing command file $f"; continue; }
+  blk=$(awk '/boost-preamble:start/{grab=1} grab{print} /boost-preamble:end/{exit}' "$f")
+  if [ -z "$blk" ]; then
+    err "boost-preamble: $f carries no boost-preamble marker block"
+    continue
+  fi
+  h=$(printf '%s' "$blk" | cksum)
+  if [ -z "$pre_ref" ]; then
+    pre_ref="$h"; pre_ref_file="$f"
+  elif [ "$h" != "$pre_ref" ]; then
+    err "boost-preamble: $f block differs from $pre_ref_file — the five commands must be byte-identical between markers"
+  fi
+done
+ULTRA_HOOK=plugins/taskmaster/hooks/ultra.sh
+if [ -f "$ULTRA_HOOK" ] && [ -f "$TM_CMDS/task.md" ]; then
+  canon_blk=$(awk '/boost-preamble:start/{grab=1} grab{print} /boost-preamble:end/{exit}' "$TM_CMDS/task.md")
+  while IFS= read -r tok; do
+    [ -n "$tok" ] || continue
+    plain=${tok//\?/}           # ultra-?task -> ultra-task
+    printf '%s' "$canon_blk" | grep -qF "$plain" \
+      || err "boost-preamble: hook token '$plain' (from $ULTRA_HOOK) not named in the command preamble block"
+  done < <(grep -oE 'ultra-\?[a-z]+' "$ULTRA_HOOK" | sort -u)
+fi
 
 # ---- Role-floor registry gate ------------------------------------------------
 # role-floors.md rows must agree with agent frontmatter, and every agent pinning a

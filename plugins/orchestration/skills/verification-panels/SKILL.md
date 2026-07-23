@@ -48,6 +48,18 @@ Two design rules carry the whole mechanism:
   two sees refuter one's "confirmed", you have one opinion echoed N
   times, and the vote measures anchoring, not truth.
 
+## A panel verdict is a claim about process
+
+"Panel", "refuter vote", and "verified" may be reported ONLY when N separate
+agents actually ran — dispatches countable in the transcript (Workflow
+`agent()` calls or Agent-tool spawns). No dispatch mechanism available, or
+the budget refused? Then run one inline pass and report it as exactly that:
+**"inline heuristic pass — single model, uncorroborated"** — never as a
+panel, a vote, or a verified finding. A reader must be able to tell from the
+report alone whether independence existed. Naming the degraded mode is not
+optional politeness; an unlabeled fallback converts the panel's entire value
+into theater.
+
 ## Judge panels
 
 Refuters test a claim that already exists. When the solution space is
@@ -116,3 +128,6 @@ prompt, and it means the question was framed to invite approval.
   round and the discovery loop never converges — dedup against SEEN.
 - **Critic as rubber stamp.** A completeness pass that returns "all
   good" without naming a single unchecked angle checked nothing.
+- **Imagined panel.** Reporting a "panel" or "N refuters" when no
+  separate agents ran — a single-model pass wearing a panel's name.
+  Label it "inline heuristic pass — single model, uncorroborated".

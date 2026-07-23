@@ -4,6 +4,104 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.68.0] - 2026-07-23
+
+Enforcement-parity and subtraction release, driven by a fresh whole-marketplace
+review: prose that wore a mechanism's name is now either mechanically enforced or
+honestly labeled, and the boost layer lost its speculative surface.
+
+### Added
+
+- `spec-ledger-lint.sh` (+ tests): grill's core rule — no spec while the ambiguity
+  ledger holds an UNKNOWN row — is now a bash gate. Grill embeds the converged
+  ledger into the spec as `## Ambiguity ledger (final)`; task-cards lints it
+  before splitting.
+- validate.sh README-listing gate: every plugin must be listed in the top-level
+  README plugin tables (9 plugins had shipped invisible to the catalog).
+- validate.sh boost-preamble parity gate: the five taskmaster commands carry one
+  byte-identical boost preamble, and every trigger token the ultra hook greps for
+  must be named in it — the twice-implemented trigger logic can no longer diverge
+  silently.
+- CI now runs the taskmaster author-time lint tests (verify-teeth, skills-stamp,
+  spec-ledger) — they existed but were executed nowhere.
+- context-budget.sh now also meters SessionStart hook stdout (sandboxed,
+  empty-project lower bound) and lists per-prompt hook plugins as not metered.
+
+### Changed
+
+- **Boost layer collapsed** (taskmaster 0.32.0): the `ultra-goal` skill and hook
+  merged into the single `ultra` skill/hook (Goal mode section); the
+  `-<model>[-<effort>]` suffix grammar is removed — bare `ultra-task`/`ultra-goal`
+  tokens only, fixed tier `model=auto, effort=xhigh`. Markers, task-runner
+  contract, and mode names are unchanged; legacy suffixed tokens still trigger at
+  the fixed tier. The ANSI banner is now plain text. ultra-assess (orchestration
+  0.7.0) drops its mirrored suffix grammar the same way.
+- The five taskmaster command preambles are single-sourced between
+  `boost-preamble` markers with per-command Goal clauses (≈1.3k chars saved per
+  command file).
+- Panel honesty (orchestration 0.7.0, task-runner 0.19.0): "panel", "refuters",
+  and "verified" may only be claimed when separate agents actually ran; every
+  inline fallback is reported as "inline heuristic pass — single model,
+  uncorroborated" (verification-panels doctrine + code-redteam + ultra-assess +
+  ultra degradation sections, and both boost hooks).
+- parallel-planning speedup output is labeled "(heuristic, unmeasured)" — invented
+  weights rank plans, they do not predict wall-clock.
+- README: 9 missing plugins added to the tables (nextjs, nuxt, node-backend,
+  brain, compaction-advisor, fresh-take, reuse-guard, shadcn-studio,
+  ultra-deep-research); bundle token numbers refreshed (everything ~12.3k,
+  taskmaster-suite ~8.6k); always-on definition now names the hook-output bounds.
+- CLAUDE.md pre-push list gains `generate.sh --check` (CI ran it; the documented
+  local flow did not).
+
+### Fixed (journey-simulation follow-up, same release)
+
+Three simulated user journeys (small fix / medium feature / large hands-off run)
+were dry-run traced against this release; their findings:
+
+- `task.md`/`taskmaster.md` step 5 synced to grill's Stopping section — the
+  embedded `## Ambiguity ledger (final)`, the spec-ledger-lint invocation, and
+  the approach decision were missing from the command entry points (regression
+  in this release's own seam); grill declared the owning authority.
+- `behavioral-gate` skill had the Stop-hook polarity backwards ("reminder by
+  default") — corrected to match the hook: hard block by default,
+  `TASK_RUNNER_STOP_GATE=warn` opts out.
+- skill-router is now a dependency of frontend-suite (0.5.0), quality-suite
+  (0.3.0), and process-suite (0.3.0) — suite users previously got none of the
+  edit-time skill routing.
+- skill-router rules.tsv routes `*.tsx` to typescript-best-practices (the `*.ts`
+  glob never matched `.tsx`, so the most on-point rubric for React+TS files
+  never fired).
+- `a11y:audit` and `frontend-reviewer` gained a triviality triage short-circuit
+  (tiny logic-only diffs get a one-line verdict, not a full rubric walk).
+- `scope.sh` documents its inline-only coverage (delegated cards use per-card
+  scope files enforced by the return check, not this hook); routing.md points
+  tier-marker parsing at its real home; taskmaster.md step 3 regained the
+  visual-safety guidance task.md carried; the ultra banner section states the
+  one-banner-per-phase rule.
+
+### Added (remaining-pool follow-up, same release)
+
+- **Review fan-in arbiter** (code-review 0.3.0): `/code-review:review` is now the
+  routing fan-in for the overlapping review surfaces — it detects the stacks in
+  the changed files and loads every installed matching best-practice skill in ONE
+  pass, naming uninstalled ones, instead of sending the user to pick among six
+  commands.
+- **`goal-ledger-check.sh`** (+ tests): goal mode's audit precondition is bash —
+  `--init` creates and append-probes the ledger at activation; task-cards must
+  pass the check (entries present) before stamping `Goal: true`.
+- **Per-card negative-control records**: `negative-control.sh --record-dir --card`
+  writes `nc-pass-<card>.json` mechanically on a discriminating control (and
+  `--skip "<reason>"` records documented non-runs); the completion-gate Stop hook
+  now refuses a clean stop when done cards outnumber nc records (opt-in by
+  presence of the `nc/` dir; legacy runs unaffected). The "per-card control
+  unenforced" residual narrows to deliberate forgery.
+- **Stamp reachability probe** (warn-only): `skills-stamp-lint.sh` warns when a
+  stamped skill's plugin is not installed in the plugin cache; routing.md
+  requires the runner to surface `degraded: card runs framework-blind` instead
+  of proceeding silently.
+- Swept the last name-style `ultra-goal` skill references (task-cards,
+  prompt-upgrade) to the merged `ultra` skill's Goal mode.
+
 ## [0.67.0] - 2026-07-23
 
 The Artifact preview-guard now confirms before a remote publish, and the twins are

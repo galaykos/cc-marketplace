@@ -58,4 +58,21 @@ if printf '%s' "$files" | grep -Eiq -- "$fw_re"; then
       fail "framework-card-no-skill: card touches framework source but names no skill (stamp: \"$val\") — name the relevant best-practice skill (e.g. laravel-best-practices)" ;;
   esac
 fi
+
+# Reachability probe (WARN-only, never blocks): a stamp proves a skill is NAMED,
+# not that its plugin is installed — a named-but-absent skill executes the card
+# framework-blind while the lint reads green. When CLAUDE_PLUGIN_ROOT is set
+# (running from an installed plugin cache), probe the sibling plugin dirs for
+# each stamped skill's SKILL.md and warn on stderr when none carries it. Exit
+# stays 0: cross-marketplace and project-local skills are legitimate.
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}/.." ]; then
+  for tok in $(printf '%s' "$val" | tr ',' ' '); do
+    case "$tok" in *[!a-z0-9-]*|"") continue ;; esac
+    found=0
+    for sk in "${CLAUDE_PLUGIN_ROOT}"/../*/skills/"$tok"/SKILL.md; do
+      [ -f "$sk" ] && { found=1; break; }
+    done
+    [ "$found" = 1 ] || printf '%s: warn unreachable-skill: "%s" is stamped but no installed sibling plugin ships skills/%s/SKILL.md — the card will run framework-blind unless that plugin is installed\n' "$PROG" "$tok" "$tok" >&2
+  done
+fi
 exit 0

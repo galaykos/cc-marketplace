@@ -52,5 +52,40 @@ run_case "card: missing stamp line -> block"            2 "missing-stamp"       
 # --- usage ---
 run_case "usage: no args" 3 "usage"
 
+# --- reachability probe (WARN-only, CLAUDE_PLUGIN_ROOT-gated) ---
+cache=$(mktemp -d); trap 'rm -f "$tmp_fw" "$tmp_ok" "$tmp_nostamp"; rm -rf "$cache"' EXIT
+mkdir -p "$cache/taskmaster" "$cache/laravel/skills/laravel-best-practices"
+printf -- '---\nname: laravel-best-practices\n---\n' > "$cache/laravel/skills/laravel-best-practices/SKILL.md"
+
+# reachable skill: no warning, exit 0
+set +e
+out=$(CLAUDE_PLUGIN_ROOT="$cache/taskmaster" "$lint" --line 'laravel-best-practices' --files 'app/Models/User.php' 2>&1); rc=$?
+set -e
+if [ "$rc" = 0 ] && ! printf '%s' "$out" | grep -q unreachable-skill; then
+  printf 'PASS: reachable skill emits no warning (rc=%s)\n' "$rc"; pass=$((pass+1))
+else
+  printf 'FAIL: reachable skill emits no warning (rc=%s out=<%s>)\n' "$rc" "$out"; fail=$((fail+1))
+fi
+
+# unreachable skill: warning on stderr, exit STILL 0 (warn-only)
+set +e
+out=$(CLAUDE_PLUGIN_ROOT="$cache/taskmaster" "$lint" --line 'vue3-best-practices' --files 'resources/js/App.vue' 2>&1); rc=$?
+set -e
+if [ "$rc" = 0 ] && printf '%s' "$out" | grep -q 'unreachable-skill: "vue3-best-practices"'; then
+  printf 'PASS: unreachable skill warns but exits 0 (rc=%s)\n' "$rc"; pass=$((pass+1))
+else
+  printf 'FAIL: unreachable skill warns but exits 0 (rc=%s out=<%s>)\n' "$rc" "$out"; fail=$((fail+1))
+fi
+
+# no CLAUDE_PLUGIN_ROOT: probe silently skipped
+set +e
+out=$(env -u CLAUDE_PLUGIN_ROOT "$lint" --line 'vue3-best-practices' --files 'resources/js/App.vue' 2>&1); rc=$?
+set -e
+if [ "$rc" = 0 ] && ! printf '%s' "$out" | grep -q unreachable-skill; then
+  printf 'PASS: probe skipped without CLAUDE_PLUGIN_ROOT (rc=%s)\n' "$rc"; pass=$((pass+1))
+else
+  printf 'FAIL: probe skipped without CLAUDE_PLUGIN_ROOT (rc=%s out=<%s>)\n' "$rc" "$out"; fail=$((fail+1))
+fi
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -32,10 +32,16 @@ the functional kinds above fails the build (and CI on every PR).
   committed baseline (own CI step); accept intentional growth with
   `--update-baseline`, never in CI.
 
-Run all three before pushing:
+- `scripts/generate.sh --check` — BLOCKING chassis-drift gate (own CI step): every
+  chassis-generated file (review commands, worker agents, suite uninstalls,
+  reminder hooks) must byte-match its template output; regenerate with
+  `--write` after editing templates or `.chassis.json`.
+
+Run all four before pushing:
 
 ```bash
 bash scripts/validate.sh
 bash scripts/check-version-bumps.sh master
 bash scripts/context-budget.sh
+bash scripts/generate.sh --check
 ```

@@ -65,11 +65,9 @@ feature-shaped prompt (build/add/implement…) with thin detail.
 
 Prefix any taskmaster command with a bare `goal` (as its first argument) or drop an
 `ultra-goal`/`ultragoal` token anywhere in the prompt to run the pipeline
-**hands-off**. An optional `-<model>[-<effort>]` suffix picks the tier (defaults
-auto/xhigh — the session model or opus, whichever is higher; an explicit model
-pins); `ultra-goal` implies the full `ultra-task` boost, and when an explicit
-`ultra-task` token is also present its tier wins. The `ultra-goal` skill owns the
-full contract.
+**hands-off**. The tier is fixed at auto/xhigh (the session model or opus,
+whichever is higher — there is no per-token tier suffix); `ultra-goal` implies the
+full `ultra-task` boost. The `ultra` skill (Goal mode) owns the full contract.
 
 Under goal the pipeline **auto-takes every recommendation** instead of asking:
 AskUserQuestion gates resolve to the "(Recommended)" option, unmarked forks (variant
@@ -87,8 +85,8 @@ Every auto-take is auditable through three sinks:
   hands-off into execution
 
 Safety floor: goal mode **never** runs a branch merge/PR (the git surface stays
-manual), never suppresses the never-suppress set defined in the `ultra-goal` contract
-block, and never auto-accepts a security/auth/data-loss or statement-fidelity red-team
+manual), never suppresses the never-suppress set defined in the `ultra` skill's Goal
+contract, and never auto-accepts a security/auth/data-loss or statement-fidelity red-team
 hole as known risk (it amends the spec or halts). Hands-off execution requires task-runner ≥ 0.11.0; older
 runners fall back to interactive.
 
