@@ -79,6 +79,29 @@ were dry-run traced against this release; their findings:
   visual-safety guidance task.md carried; the ultra banner section states the
   one-banner-per-phase rule.
 
+### Added (remaining-pool follow-up, same release)
+
+- **Review fan-in arbiter** (code-review 0.3.0): `/code-review:review` is now the
+  routing fan-in for the overlapping review surfaces — it detects the stacks in
+  the changed files and loads every installed matching best-practice skill in ONE
+  pass, naming uninstalled ones, instead of sending the user to pick among six
+  commands.
+- **`goal-ledger-check.sh`** (+ tests): goal mode's audit precondition is bash —
+  `--init` creates and append-probes the ledger at activation; task-cards must
+  pass the check (entries present) before stamping `Goal: true`.
+- **Per-card negative-control records**: `negative-control.sh --record-dir --card`
+  writes `nc-pass-<card>.json` mechanically on a discriminating control (and
+  `--skip "<reason>"` records documented non-runs); the completion-gate Stop hook
+  now refuses a clean stop when done cards outnumber nc records (opt-in by
+  presence of the `nc/` dir; legacy runs unaffected). The "per-card control
+  unenforced" residual narrows to deliberate forgery.
+- **Stamp reachability probe** (warn-only): `skills-stamp-lint.sh` warns when a
+  stamped skill's plugin is not installed in the plugin cache; routing.md
+  requires the runner to surface `degraded: card runs framework-blind` instead
+  of proceeding silently.
+- Swept the last name-style `ultra-goal` skill references (task-cards,
+  prompt-upgrade) to the merged `ultra` skill's Goal mode.
+
 ## [0.67.0] - 2026-07-23
 
 The Artifact preview-guard now confirms before a remote publish, and the twins are

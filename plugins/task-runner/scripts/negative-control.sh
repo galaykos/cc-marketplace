@@ -8,6 +8,8 @@
 #
 # Usage:
 #   negative-control.sh --verify "<cmd>" --target <impl-file> [--root <dir>] [--mutate <sed-expr> | --auto]
+#                       [--record-dir <dir> --card <id>]   # write nc-pass-<id>.json on exit 0
+#   negative-control.sh --skip "<reason>" --record-dir <dir> --card <id>   # record a documented non-run
 #   negative-control.sh --classify-stdin      # (internal) classify a red blob on stdin
 #
 # Isolation: the copy ROOT (CWD by default, or --root <dir> to narrow the copied
@@ -81,6 +83,7 @@ if [ "${1:-}" = "--classify-stdin" ]; then classify_red; exit 0; fi
 
 # ---- arg parse ----
 VERIFY=""; TARGET=""; MUTATE=""; HAVE_MUTATE=0; AUTO=0; ROOT="."
+RECORD_DIR=""; CARD=""; SKIP_REASON=""; HAVE_SKIP=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --verify) [ $# -ge 2 ] || usage "--verify needs an argument"; VERIFY="$2"; shift 2 ;;
@@ -88,10 +91,36 @@ while [ $# -gt 0 ]; do
     --root)   [ $# -ge 2 ] || usage "--root needs an argument"; ROOT="$2"; shift 2 ;;
     --mutate) [ $# -ge 2 ] || usage "--mutate needs an argument"; MUTATE="$2"; HAVE_MUTATE=1; shift 2 ;;
     --auto)   AUTO=1; shift ;;
+    --record-dir) [ $# -ge 2 ] || usage "--record-dir needs an argument"; RECORD_DIR="$2"; shift 2 ;;
+    --card)   [ $# -ge 2 ] || usage "--card needs an argument"; CARD="$2"; shift 2 ;;
+    --skip)   [ $# -ge 2 ] || usage "--skip needs a reason argument"; SKIP_REASON="$2"; HAVE_SKIP=1; shift 2 ;;
     -h|--help) grep -E '^#' "$0" | sed 's/^#!.*//; s/^# \{0,1\}//'; exit 0 ;;
     *) usage "unknown argument: $1" ;;
   esac
 done
+
+# Per-card record support: when --record-dir + --card are given, a PASS (exit 0)
+# writes nc-pass-<card>.json mechanically — a record authored by this tool, not
+# the model. --skip records a documented non-run (manual/visual card) as
+# nc-skip-<card>.json; the reason is model-authored, but at least it is an
+# auditable artifact the completion gate can count. Card ids are path-safe only.
+if [ -n "$CARD" ]; then
+  case "$CARD" in *[!a-zA-Z0-9._-]*) usage "--card carries path characters: $CARD" ;; esac
+fi
+record_write() { # $1 = pass|skip, $2 = json body
+  [ -n "$RECORD_DIR" ] && [ -n "$CARD" ] || return 0
+  mkdir -p "$RECORD_DIR" 2>/dev/null || { printf '%s: warn: cannot create --record-dir %s\n' "$PROG" "$RECORD_DIR" >&2; return 0; }
+  printf '%s\n' "$2" > "$RECORD_DIR/nc-$1-$CARD.json" 2>/dev/null \
+    || printf '%s: warn: could not write nc-%s record for card %s\n' "$PROG" "$1" "$CARD" >&2
+}
+if [ "$HAVE_SKIP" = 1 ]; then
+  [ -n "$RECORD_DIR" ] && [ -n "$CARD" ] || usage "--skip needs --record-dir and --card"
+  esc_reason=$(printf '%s' "$SKIP_REASON" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  record_write skip "{\"card\":\"$CARD\",\"skipped\":true,\"reason\":\"$esc_reason\"}"
+  echo "skip-recorded"
+  exit 0
+fi
+
 [ -n "$VERIFY" ] || usage "need --verify \"<cmd>\""
 [ -n "$TARGET" ] || usage "need --target <impl-file>"
 if [ "$HAVE_MUTATE" = 1 ] && [ "$AUTO" = 1 ]; then usage "--mutate and --auto are mutually exclusive"; fi
@@ -186,6 +215,8 @@ case "$klass" in
     exit 4 ;;
   assertion)
     log "discriminating: mutated copy RED by assertion failure (rc=$rc_red); unmutated copy GREEN"
+    esc_v=$(printf '%s' "$VERIFY" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    record_write pass "{\"card\":\"$CARD\",\"target\":\"$TARGET\",\"verify\":\"$esc_v\"}"
     echo "discriminating"
     exit 0 ;;
   *)
@@ -195,6 +226,8 @@ case "$klass" in
     # (mutated RED, unmutated GREEN). Treat it as a valid assertion-style red
     # rather than parking a working control. (Fix 2)
     log "discriminating: mutated copy RED (rc=$rc_red) by a non-build/collection failure; unmutated copy GREEN"
+    esc_v=$(printf '%s' "$VERIFY" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    record_write pass "{\"card\":\"$CARD\",\"target\":\"$TARGET\",\"verify\":\"$esc_v\"}"
     echo "discriminating"
     exit 0 ;;
 esac

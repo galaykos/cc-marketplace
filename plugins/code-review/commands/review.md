@@ -1,5 +1,5 @@
 ---
-description: Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings.
+description: Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass.
 ---
 
 Review the code change in $ARGUMENTS. Resolve scope in this order:
@@ -15,6 +15,16 @@ earns a one-line verdict — state it and stop. Take the full pass below when th
 touches correctness-sensitive code (auth, data, migrations, concurrency), OR spans
 more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
 changed).
+
+Stack fan-in — one pass, no duplicate reviews: from the changed files' types and
+manifests, list every matching best-practice skill (`.ts`/`.tsx` → typescript, plus
+react or vue per the manifest; markup/utility classes touched → the matching ui-ux
+stack skill + a11y-audit; `.php`/`.blade.php` → php, plus laravel/livewire per
+composer.json; `.vue` → vue2/vue3 per the manifest; `.sql`/migrations → sql + the
+engine skill). Load each skill whose plugin IS installed and apply it inside the
+single pass below — never tell the user to run the per-stack review commands
+separately; this command is the fan-in for the overlapping review surfaces. Name
+relevant-but-uninstalled plugins in one closing line instead.
 
 Then:
 
@@ -35,8 +45,9 @@ Output rules:
 - No praise, no restating the diff, no findings on unchanged lines.
 - Defer instead of duplicating: structural/YAGNI concerns → recommend
   /code-architecture:yagni or the architecture-reviewer agent; security-deep
-  issues → /security:review; stack-idiom detail → the matching per-framework
-  review command when that plugin is installed.
+  issues → /security:review; stack-idiom detail → already covered inline by the
+  stack fan-in when the plugin is installed — when absent, name the plugin in
+  the closing line rather than guessing its idioms.
 
 Before the verdict, state the coverage: `Checked: …` and `Not checked: … (why)` so it
 is explicit what was covered, what was clean, and what was skipped — not only what

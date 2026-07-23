@@ -118,11 +118,15 @@ forged. What the hook closes is the honest-but-forgetful skip; deliberate evasio
 requires actively omitting the register or faking the record, not merely forgetting to run
 the gate.
 
-Two further residuals it does **not** close: a non-index run (a todo or plan list) records
+Two further residuals, one now narrowed: a non-index run (a todo or plan list) records
 no card counts in `gate-pass.json`, so the card-completeness check never fires for it — only
-taskmaster-index runs are backstopped against a silently-skipped card. And the per-card
-negative-control (layer 2 above) is instruction-only: no hook enforces that each card's
-control run actually happened.
+taskmaster-index runs are backstopped against a silently-skipped card. The per-card
+negative-control (layer 2 above) is COUNTED at the Stop hook when the run records into
+`.claude/task-runner/nc/` (`negative-control.sh --record-dir` writes `nc-pass-*`
+mechanically; documented skips write `nc-skip-*`): fewer records than done cards refuses
+the clean stop. Remaining honest gap: a run that never creates `nc/` keeps the legacy
+allow, and a skip record's reason is model-authored — forgetting now blocks; only
+deliberate forgery defeats it.
 
 ## Anti-patterns
 

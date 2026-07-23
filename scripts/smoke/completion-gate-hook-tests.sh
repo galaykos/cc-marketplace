@@ -185,5 +185,45 @@ else
 fi
 check "block still fires after a warn-mode stop" "" "$J" 2 "completion-gate"
 
+# ---- per-card negative-control coverage (opt-in by nc/ dir presence) ----
+NC="$ROOT/plugins/task-runner/scripts/negative-control.sh"
+NCDIR="$REPO/.claude/task-runner/nc"
+printf '{"slug":"t","branch":"%s","index_path":"x/00-INDEX.md"}' "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" > "$SENT"
+printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$HEAD" > "$GP"
+
+# no nc/ dir at all -> legacy allow (run did not opt into the convention)
+rm -rf "$NCDIR"
+check "complete counts, no nc dir -> legacy allow" "" "$J" 0 __NONE__
+
+# nc/ dir with fewer records than cards_done -> block (a done card had no control)
+mkdir -p "$NCDIR"
+printf '{"card":"01"}' > "$NCDIR/nc-pass-01.json"
+check "nc records 1 < done 3 -> block" "" "$J" 2 "negative-control records"
+check "nc records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "negative-control records"
+
+# records covering done count (mix of mechanical pass + documented skip) -> allow
+out=$("$NC" --skip "visual-only card" --record-dir "$NCDIR" --card 02 2>&1)
+printf '%s' "$out" | grep -q skip-recorded \
+  && { echo "PASS: --skip writes a skip record"; pass=$((pass+1)); } \
+  || { echo "FAIL: --skip writes a skip record (out=<$out>)"; fail=$((fail+1)); }
+[ -f "$NCDIR/nc-skip-02.json" ] \
+  && { echo "PASS: nc-skip-02.json exists with reason"; pass=$((pass+1)); } \
+  || { echo "FAIL: nc-skip-02.json missing"; fail=$((fail+1)); }
+printf '{"card":"03"}' > "$NCDIR/nc-pass-03.json"
+check "nc records 3 == done 3 -> allow" "" "$J" 0 __NONE__
+
+# mechanical pass-record path: a discriminating control writes nc-pass-<card>.json itself
+FIX="$WS/ncfix"; mkdir -p "$FIX"
+printf 'echo OK\n' > "$FIX/impl.sh"
+( cd "$FIX" && bash "$NC" --verify 'bash impl.sh | grep -q OK' --target impl.sh \
+    --mutate 's/OK/NO/' --record-dir "$NCDIR" --card 04 >/dev/null 2>&1 )
+rc=$?
+if [ "$rc" = 0 ] && [ -f "$NCDIR/nc-pass-04.json" ] \
+   && jq -e '.card=="04"' "$NCDIR/nc-pass-04.json" >/dev/null 2>&1; then
+  echo "PASS: discriminating control writes nc-pass record mechanically"; pass=$((pass+1))
+else
+  echo "FAIL: discriminating control writes nc-pass record (rc=$rc)"; fail=$((fail+1))
+fi
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -115,6 +115,26 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
     printf '  A run may not report complete while any card is neither done nor parked.\n' >&2
     gate_exit
   fi
+  # PER-CARD NEGATIVE-CONTROL COVERAGE (opt-in by presence): when the run recorded
+  # per-card NC results in .claude/task-runner/nc/ (negative-control.sh --record-dir
+  # writes nc-pass-* mechanically on a discriminating control; documented skips are
+  # nc-skip-*), a "complete" run must have one record per DONE card. Fewer records
+  # than cards_done → some card was flipped done with no control and no documented
+  # skip → refuse the clean stop. No nc/ dir at all → the run predates or did not
+  # opt into the convention; legacy allow (same incremental posture as the branch
+  # guard). This shrinks the named "per-card control unenforced" residual: forgetting
+  # the control now blocks; only a hand-forged record defeats it.
+  ncdir="$cwd/.claude/task-runner/nc"
+  if [ "$verdict" = "complete" ] && [ -d "$ncdir" ]; then
+    cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
+    nc_count=$(find "$ncdir" -maxdepth 1 \( -name 'nc-pass-*.json' -o -name 'nc-skip-*.json' \) 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$nc_count" -lt "$cdone" ] 2>/dev/null; then
+      slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)
+      printf '[task-runner] completion-gate: %s reports %s done cards but only %s per-card negative-control records in .claude/task-runner/nc/.\n' "$slug" "$cdone" "$nc_count" >&2
+      printf '  Every done card needs an nc-pass record (negative-control.sh --record-dir --card) or a documented nc-skip. Run the missing controls, then stop.\n' >&2
+      gate_exit
+    fi
+  fi
   exit 0                                          # gate pass for THIS commit (cards complete or legacy) → allow
 fi
 

@@ -9,7 +9,7 @@ lands even on a hands-off run where no user is present to clarify.
 
 This step is **mode-agnostic**: it runs the same in an interactive run and a
 hands-off one. It records nothing mode-specific — the goal-mode ledger recording is
-owned by the `ultra-goal` skill, not here.
+owned by the `ultra` skill's Goal mode, not here.
 
 ## Procedure
 

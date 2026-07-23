@@ -48,6 +48,10 @@ and picks the first present in its available-agent-types list.
    § Skill priming) — a delegate cannot self-load skills. Do this **unconditionally, not
    only under ultra**: a framework card must reach its worker with the framework skill
    primed, or the code is written framework-blind and only caught (if at all) at review.
+   When a stamped skill's `SKILL.md` cannot be resolved (plugin not installed), NEVER
+   proceed silently: print one line in the run output — `degraded: card <id> runs
+   framework-blind ("<skill>" not installed; install <plugin> to fix)` — and continue.
+   The user must see the degradation, not discover it at review.
 5. **Dispatch** the resolved worker with that prompt.
 6. **Enforce + verify on return.** Run a **diff-vs-declared-files check** (git diff of
    the paths the worker touched vs the declared allowed-files); reclaim/reject a card
@@ -56,7 +60,9 @@ and picks the first present in its available-agent-types list.
    inside the subagent. On a green re-verify, run the **negative-control** before the
    card closes — the same gate the inline inner loop runs (`references/negative-control.md`,
    `task-execution/SKILL.md` inner-loop step 3): `negative-control.sh --verify "<the card's
-   exact verify>" --target <impl-file> --auto`, with `--target` set to the CARD's declared
+   exact verify>" --target <impl-file> --auto --record-dir .claude/task-runner/nc --card <cardId>`
+   (a discriminating pass writes `nc-pass-<cardId>.json` mechanically; the completion
+   gate counts these against `cards_done`), with `--target` set to the CARD's declared
    primary implementation file — an authoring property the worker cannot arrange around; a
    multi-file return still runs the control against that declared file (the copy carries
    the other files along). Only a card that declares no single implementation file falls to

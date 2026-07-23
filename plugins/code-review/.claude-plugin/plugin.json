@@ -1,7 +1,7 @@
 {
   "name": "code-review",
-  "version": "0.2.3",
-  "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings. Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, and a code-smells skill.",
+  "version": "0.3.0",
+  "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings. Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, and a code-smells skill. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
