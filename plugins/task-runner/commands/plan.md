@@ -8,7 +8,8 @@ the most recent `taskmaster-docs/tasks/*/00-INDEX.md`).
 
 1. Build the dependency graph and per-task file sets from the list.
 2. Compute levels, parallel groups, critical path, and the speedup estimate
-   per the skill's model — show the arithmetic, not just the verdict.
+   per the skill's model — show the arithmetic, not just the verdict, and
+   label every speedup figure `(heuristic, unmeasured)`.
 3. Output the run-plan table (level / tasks / mode / agents / est. wall-clock)
    and the one-line verdict with its reason, plus the run-level **`Dispatch:`**
    recommendation (`{default, workflow-tracks}` — see

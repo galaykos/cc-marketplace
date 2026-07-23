@@ -113,8 +113,11 @@ If `orchestration:verification-panels` or the `Workflow` fan-out tool is unavail
 (headless, cron, or the opt-in gate is unmet), do NOT skip the red-team. Run one inline
 single-agent code-redteam pass over the same diff from the harness: one agent walks the
 three lenses in sequence, records evidence-backed defects, and dedups them via
-`--dedup`. Less parallelism, same deliverable — a code red-team always runs, the run just
-degrades to a single reader. A skipped red-team is a silent regression, never an option.
+`--dedup`. A code red-team always runs — but the degraded pass is NOT the panel and must
+not be reported as one: no "refuters", no "panel", no "verified". Its report header says
+**"inline heuristic pass — single model, uncorroborated"** (the independence that makes
+refutation mean something did not exist). A skipped red-team is a silent regression,
+never an option; an unlabeled degraded one is a false claim, equally never an option.
 
 ## When it fires
 

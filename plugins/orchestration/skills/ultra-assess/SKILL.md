@@ -38,26 +38,17 @@ of your response, before anything else:
 \033[2m   <model> reasoning subagents · fan-out → red-team → completeness-critic · effort=<effort> (Workflow)\033[0m
 ```
 
-Substitute `<model>`/`<effort>` with the RESOLVED tier (see Variants; defaults
-auto/xhigh — print auto's resolution, e.g. `fable`, never the word `auto`). Print it
-once per run, not once per phase.
+Substitute `<model>`/`<effort>` with the RESOLVED tier (print auto's resolution,
+e.g. `fable`, never the word `auto`). Print it once per run, not once per phase.
 
-## Variants — model & effort suffix
+## Fixed tier
 
-The trigger token carries an optional suffix that picks the tier:
-
-```
-ultra-assess[-<model>][-<effort>]
-model  = auto | opus | sonnet | haiku | fable   default auto
-effort = low | medium | high | xhigh | max      default xhigh
-```
-
-`auto` (the default) resolves at dispatch time to the session model or opus, whichever
-is higher on the ladder haiku<sonnet<opus<fable — escalate, never downgrade; an explicit
-model suffix pins absolutely. `ultra-assess`→auto/xhigh; `ultra-assess-sonnet`→sonnet/xhigh;
-a lone suffix resolves by set membership (`ultra-assess-max`→auto/max); unknown suffixes
-keep the defaults. The hook injects the resolved `(model=…, effort=…)`; every rule below
-reads those values. This mirrors `ultra-task`'s grammar exactly.
+`model=auto, effort=xhigh`, always — the bare `ultra-assess` token carries no
+tier suffix (the old `-<model>[-<effort>]` grammar is REMOVED, mirroring
+`ultra-task`). `auto` resolves at dispatch time to the session model or opus,
+whichever is higher on the ladder haiku<sonnet<opus<fable — escalate, never
+downgrade. The hook injects `(model=auto, effort=xhigh)`; every rule below
+reads those values.
 
 ## The escalation contract (`ULTRA-ASSESS ACTIVE`)
 
@@ -123,9 +114,12 @@ Ultra-assess never hard-fails. If the `Workflow` tool is unavailable — headles
 cron, or the opt-in gate cannot be satisfied — every fan-out phase falls back to a
 single inline agent at the selected model: one inline scout+reader pass, one inline
 red-team, one inline completeness sweep. The run completes with less parallelism,
-never an error. The inline red-team carries the correlated-opinion caveat
-opinion-round (approaches) names — one model re-examining itself — so mark the
-output as degraded-inline mode wherever this fallback ran.
+never an error. But the fallback surrenders independence — one model re-examining
+itself (the correlated-opinion caveat opinion-round names) — so the words "panel",
+"refuters", and "verified" are off-limits for it: every section the fallback produced
+is headed **"inline heuristic pass — single model, uncorroborated"**, and the run
+summary states which phases ran degraded. Verdict language must let the reader
+distinguish a real fan-out from an inline walk without trusting tone.
 
 ## What ultra-assess does NOT do
 

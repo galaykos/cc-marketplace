@@ -4,6 +4,55 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.68.0] - 2026-07-23
+
+Enforcement-parity and subtraction release, driven by a fresh whole-marketplace
+review: prose that wore a mechanism's name is now either mechanically enforced or
+honestly labeled, and the boost layer lost its speculative surface.
+
+### Added
+
+- `spec-ledger-lint.sh` (+ tests): grill's core rule — no spec while the ambiguity
+  ledger holds an UNKNOWN row — is now a bash gate. Grill embeds the converged
+  ledger into the spec as `## Ambiguity ledger (final)`; task-cards lints it
+  before splitting.
+- validate.sh README-listing gate: every plugin must be listed in the top-level
+  README plugin tables (9 plugins had shipped invisible to the catalog).
+- validate.sh boost-preamble parity gate: the five taskmaster commands carry one
+  byte-identical boost preamble, and every trigger token the ultra hook greps for
+  must be named in it — the twice-implemented trigger logic can no longer diverge
+  silently.
+- CI now runs the taskmaster author-time lint tests (verify-teeth, skills-stamp,
+  spec-ledger) — they existed but were executed nowhere.
+- context-budget.sh now also meters SessionStart hook stdout (sandboxed,
+  empty-project lower bound) and lists per-prompt hook plugins as not metered.
+
+### Changed
+
+- **Boost layer collapsed** (taskmaster 0.32.0): the `ultra-goal` skill and hook
+  merged into the single `ultra` skill/hook (Goal mode section); the
+  `-<model>[-<effort>]` suffix grammar is removed — bare `ultra-task`/`ultra-goal`
+  tokens only, fixed tier `model=auto, effort=xhigh`. Markers, task-runner
+  contract, and mode names are unchanged; legacy suffixed tokens still trigger at
+  the fixed tier. The ANSI banner is now plain text. ultra-assess (orchestration
+  0.7.0) drops its mirrored suffix grammar the same way.
+- The five taskmaster command preambles are single-sourced between
+  `boost-preamble` markers with per-command Goal clauses (≈1.3k chars saved per
+  command file).
+- Panel honesty (orchestration 0.7.0, task-runner 0.19.0): "panel", "refuters",
+  and "verified" may only be claimed when separate agents actually ran; every
+  inline fallback is reported as "inline heuristic pass — single model,
+  uncorroborated" (verification-panels doctrine + code-redteam + ultra-assess +
+  ultra degradation sections, and both boost hooks).
+- parallel-planning speedup output is labeled "(heuristic, unmeasured)" — invented
+  weights rank plans, they do not predict wall-clock.
+- README: 9 missing plugins added to the tables (nextjs, nuxt, node-backend,
+  brain, compaction-advisor, fresh-take, reuse-guard, shadcn-studio,
+  ultra-deep-research); bundle token numbers refreshed (everything ~12.3k,
+  taskmaster-suite ~8.6k); always-on definition now names the hook-output bounds.
+- CLAUDE.md pre-push list gains `generate.sh --check` (CI ran it; the documented
+  local flow did not).
+
 ## [0.67.0] - 2026-07-23
 
 The Artifact preview-guard now confirms before a remote publish, and the twins are

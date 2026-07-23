@@ -133,6 +133,7 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
    both ways, blocks on any gap/orphan/drift, and writes `## Coverage` into `00-INDEX.md`.
 2. **Lint each card.** Per card run `verify-teeth-lint.sh --card <file>` (blocks a weak
    Verify line) and `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
+   Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
 3. **Suggest a project skill.** If claude-authoring is installed, its project-skill-suggester
    scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);
    skip silently when absent, never blocks.
