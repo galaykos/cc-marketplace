@@ -1,6 +1,6 @@
 ---
 name: consult
-description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — composes a facts-only consult brief and dispatches a blind opus consultant for an independent take, risks, and one alternative. Advice only — never blocks.
+description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — composes a facts-only consult brief and dispatches a blind stronger-model consultant for an independent take, risks, and one alternative. Advice only — never blocks.
 ---
 
 ## What this is
@@ -60,9 +60,12 @@ The house cost rule applies (orchestration verification-panels: the default for
 any output is ONE reviewer); a user who wants adversarial voting composes
 verification-panels deliberately, paying that cost on purpose.
 
-The consultant is pinned `model: opus` / `effort: high` in its own
-frontmatter — do not override it downward at dispatch to save tokens; a cheap
-fresh take is the session's own take with extra steps.
+The consultant ships `model: inherit` / `effort: high`, and the caller RESOLVES its tier
+at dispatch: **the session model or opus, whichever is higher on
+`haiku<sonnet<opus<fable` — escalate, never downgrade.** A static pin cannot deliver the
+"stronger model" promise: from a fable session opus is strictly weaker. The floor is
+relative to the session, so never dispatch it BELOW the session model to save tokens — a
+cheap fresh take is the session's own take with extra steps.
 
 ## Presenting the return
 

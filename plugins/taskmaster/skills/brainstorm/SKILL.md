@@ -24,8 +24,8 @@ inventory when installed) BEFORE asking anything. An idea conversation that
 ignores the existing codebase produces designs the codebase rejects on contact.
 Existing patterns, existing modules that half-do the idea, hard version
 constraints — all of it bounds the option space before the first question. Under
-`ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout `model: opus`
-with 3-lens Workflow recon and keep opinion-lens native.
+`ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE (mechanical —
+no override), lenses sized per that skill's `references/dispatch-tiers.md`; opinion-lens native.
 
 ## Scope check first
 

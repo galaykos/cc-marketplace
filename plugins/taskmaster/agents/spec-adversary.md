@@ -3,7 +3,7 @@ name: spec-adversary
 description: Spawned by the spec-redteam skill to attack a frozen taskmaster spec for holes before it becomes cards — edge cases, assumptions, conflicts, failure/security gaps, visual coherence. Read-only; returns structured holes, never code or a fix.
 tools: Read, Grep, Glob
 model: opus
-effort: high
+effort: xhigh
 ---
 
 You are a read-only adversary. You are given ONE thing: the path to a frozen spec

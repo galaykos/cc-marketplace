@@ -92,12 +92,12 @@ suffix resolves by set membership (`ultra-task-max`→auto/max); unknown suffixe
 ## Model and effort rules
 
 - The RESOLVED `model:` override lands on both inline `Agent` dispatch and `Workflow`
-  `agent()` calls — pass the resolution (e.g. `fable`), never the literal `auto`.
-- `effort: <effort>` is settable ONLY on the `Workflow` `agent()` path — the plain
-  Agent tool has no `effort` parameter, so inline dispatch escalates the model
-  only and leaves effort at the agent's frontmatter default.
-- Never edit an agent's `model:`/`effort:` frontmatter to achieve this. The boost
-  is a dispatch-time override; the frontmatter stays as shipped.
+  `agent()` calls — pass the resolution (e.g. `fable`), never the literal `auto`. It is a
+  FLOOR, not a replacement: `max(marker tier, frontmatter tier)` on haiku<sonnet<opus<fable,
+  so an explicit low pin declines to RAISE an agent but never lowers it below its shipped tier.
+- `effort: <effort>` is settable ONLY on the `Workflow` `agent()` path — the plain Agent
+  tool has no `effort` parameter, so inline dispatch escalates model only.
+- Never edit frontmatter to achieve this — the boost is a dispatch-time override.
 
 ## Bounded fan-out recipes
 
@@ -118,10 +118,10 @@ Fan-outs run through the `Workflow` tool only when present. Each has a hard boun
 ## Exclusions
 
 Mechanical and breadth roles never get the boost — see the role ladder in
-`references/dispatch-tiers.md` (`opinion-lens`, recon scouts). Agents in plugins
-ultra does not edit — `system-architect` (system-design), the plan-before-code
-architecture agents — are outside the reachable set and keep their native tier;
-reaching them would mean editing those plugins, out of scope.
+`references/dispatch-tiers.md` (`opinion-lens`, recon scouts). Outside the reachable set:
+`system-design/agents/system-architect.md` and
+`code-architecture/agents/architecture-reviewer.md` — ultra's spec and card phases never
+dispatch them; execution boosts architecture-reviewer separately via task-execution.
 
 ## Carrying the boost into execution
 
@@ -150,5 +150,5 @@ real boost over a normal run.
   user and no plugin can override it.
 - It does not persist across runs, write a session-state file, or expose an
   "off" command; re-type the phrase to boost the next run.
-- It does not boost mechanical/breadth roles or agents in unedited plugins, and
+- It does not boost mechanical/breadth roles or agents its phases never dispatch, and
   does not animate the terminal — the single colored banner is the whole cue.

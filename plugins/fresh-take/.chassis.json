@@ -1,7 +1,7 @@
 {
   "chassis": "reminder-hook",
   "regex": "(still failing|same error|didn.?t work|tried everything|third time|drop table|force.push|rm -rf|reset --hard|migrate:fresh|delete all)",
-  "message": "ℹ fresh-take: sounds like a key moment — a fresh opus take is one command away",
+  "message": "ℹ fresh-take: sounds like a key moment — a fresh stronger-model take is one command away",
   "command": "/fresh-take:consult",
   "extraGuard": null
 }

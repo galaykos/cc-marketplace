@@ -48,7 +48,18 @@ deliverable the input-side red-team skipped.
 ## The N=3 refuter panel — diverse lenses
 
 Spawn exactly three blind refuters over the diff, independent (no refuter sees another's
-verdict), each handed the same diff but a DIFFERENT attack lens:
+verdict), each handed the same diff but a DIFFERENT attack lens.
+
+**Tier — the caller supplies it.** This skill never reads `00-INDEX.md`; the caller
+(`task-execution`, or `track-orchestration` on the tracks path) passes the **already
+resolved** `(model, effort)` in, so `auto` is resolved before it reaches here per
+`task-execution/SKILL.md`'s resolution rule. Dispatch the refuters **and** the
+completeness-critic with those values as `agent()` parameters: `model:` and `effort:` on
+the `Workflow` panel path, `model:` **only** on the inline fallback below — the plain Agent
+tool has **no effort knob** (`ultra/references/dispatch-tiers.md`). Absent a supplied tier,
+run native rather than guessing.
+
+The lenses:
 
 1. **Correctness** — does this code do what the card claimed? Hunt off-by-one, wrong
    branch, unhandled return, broken invariant, silent data loss.

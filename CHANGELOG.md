@@ -4,6 +4,48 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.60.0] - 2026-07-23
+
+Model/effort tier uniformity — propagate the role-based dispatch tiering from `bf9bb3a`
+to the ~12 call sites it never reached.
+
+- **taskmaster 0.31.5** — `grill` and `brainstorm` no longer dispatch `context-scout` at a
+  hardcoded `model: opus`; it is a Mechanical role and now runs NATIVE with no override,
+  and the fixed "3-lens" recon count is replaced by a pointer to the blast-radius ceilings
+  table. `spec-adversary` raised to `effort: xhigh` — it is the named Reasoning-class
+  exemplar, and on the inline fallback path (the only form `spec-redteam` documents) the
+  boost could not raise effort at all, so a boosted red-team ran at exactly the unboosted
+  tier. `ultra`'s Exclusions section no longer justifies the unreachable set with the false
+  claim that reaching it "would mean editing those plugins" — the boost is a dispatch-time
+  parameter — and the set is now enumerated by agent file path. The resolved tier is stated
+  as a FLOOR, `max(marker tier, frontmatter tier)`, so an explicit low pin can decline to
+  raise an agent but never lowers it below its shipped tier.
+- **task-runner 0.18.4** — `code-redteam` carried no tier anywhere: the phase that exists
+  only because a run is boosted was the one phase the boost never reached. Tier provenance
+  is now explicit (the caller passes the already-resolved values; `model:`+`effort:` on the
+  Workflow panel, `model:` only on the inline fallback, which has no effort knob). Batch
+  dispatch had two contradictory tier orders and no precedence rule; the marker now sets a
+  FLOOR (`auto` resolved before the `max()`, effort excluded), plus a sensitive-domain
+  carve-out where no down-tier override is applied for `security`/`database`/`performance`/
+  `api` batches — batches are formed by card SIZE, not by a mechanicalness test. The
+  `--tracks` path stated its tier as prose inside the worker's prompt, which sets nothing;
+  it is now an `agent()` parameter, reads BOTH markers (a `Goal:`-only index previously lost
+  the tier entirely), and prints a run-start banner after the index is read. The banner no
+  longer hardcodes `model=auto→`, which misreported an explicit down-pin as an escalation.
+- **claude-authoring 0.4.6** — the marketplace's only tier registry was wrong three ways and
+  so certified the mismatches instead of catching them: it claimed `spec-adversary` pinned
+  opus/xhigh (it shipped opus/high), asserted "every other agent ships `model: inherit`"
+  while `consultant` shipped `model: opus`, and swept `verifier` — a Reasoning-class refuter
+  — into the sonnet breadth bucket. Now matches the shipped frontmatter of all twelve agents
+  it names.
+- **fresh-take 0.1.2** — `consultant` promised an "independent stronger-model second opinion"
+  while hardcoding `model: opus` across nine surfaces: stronger only from haiku or sonnet,
+  the session's own model from opus, and strictly weaker from fable. Now ships
+  `model: inherit`, with the caller applying an active upward override at the dispatch site
+  (`commands/consult.md` step 3) — the session model or opus, whichever is higher.
+- **plugin-scout 0.2.9** — `references/catalog.md` regenerated for fresh-take's description.
+  `generate.sh` renders this file but deliberately does not self-bump plugin-scout.
+
 ## [0.59.0] - 2026-07-23
 
 Conflict-audit follow-ups — three more co-installed-plugin fixes.

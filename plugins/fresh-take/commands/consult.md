@@ -1,5 +1,5 @@
 ---
-description: Get an independent stronger-model second opinion at a key moment — composes a facts-only brief (no leaning) and dispatches the blind opus consultant; prints its Take, Risks, and one Alternative. Advice only.
+description: Get an independent stronger-model second opinion at a key moment — composes a facts-only brief (no leaning) and dispatches the blind stronger-model consultant; prints its Take, Risks, and one Alternative. Advice only.
 argument-hint: [topic — what to get a fresh take on]
 ---
 
@@ -26,8 +26,10 @@ write implementation code as part of this command.
    in; the conclusions you drew from them stay out.
 
 3. **Dispatch** the `consultant` agent from this plugin with the brief as its
-   prompt. One consultant, one dispatch — no panel, no retry for a better
-   answer, no downward model override.
+   prompt, passing `model:` = the session model or opus, whichever is HIGHER on
+   `haiku<sonnet<opus<fable` — an active upward override, never merely the absence
+   of a downward one. One consultant, one dispatch — no panel, no retry for a
+   better answer, and never a tier below the session model.
 
 4. **Relay verbatim.** Print the consultant's `Take`, `Risks`, and
    `Alternative` sections exactly as returned — no paraphrase, no merging into

@@ -57,8 +57,11 @@ agent's typical difficulty and let the caller escalate the hard cases.
 Assignments in this marketplace: architecture-reviewer, code-reviewer,
 spec-adversary, system-architect, and system-design-reviewer pin opus/xhigh;
 breadth/mechanical fan-out agents pin sonnet (opinion-lens, brain's indexer,
-transcript-miner, the ultra-deep-research shards); every other agent ships
-`model: inherit` and runs at the session model (context-scout at effort high).
+transcript-miner, ultra-deep-research's `researcher`). `verifier` is a
+Reasoning-class refuter that deliberately pins sonnet because its `--ultra` path
+owns its own tiering. Every other agent — including fresh-take's `consultant`,
+whose caller escalates it at dispatch — ships `model: inherit` and runs at the
+session model (context-scout at effort high).
 
 ## Description as dispatch trigger
 
