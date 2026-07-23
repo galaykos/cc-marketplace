@@ -4,6 +4,27 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.67.0] - 2026-07-23
+
+The Artifact preview-guard now confirms before a remote publish, and the twins are
+guarded against drift. Prompted by an overstep: a for-the-user brief was published to a
+remote host unbidden, and the guard's WEAK tier only printed an ignorable note.
+
+- **taskmaster 0.31.9 · ui-ux 0.10.2** — `preview-guard.sh` (the twin PreToolUse hook on
+  the Artifact tool): the WEAK tier (any non-mockup `.html`) escalates from an advisory
+  `additionalContext` note to `permissionDecision: "ask"`. The message is localhost-first —
+  render on the `${PREVIEW_PORT:-8123}` preview server (or a local file), never a remote
+  host; publish remotely only if someone who cannot reach the machine must open it. STRONG
+  (mockup) keeps its ask; NONE (non-`.html`) stays silent. Decision is `ask`, not `deny`,
+  because the guard ships to every installer — a hard block would break legitimate remote
+  sharing; the human decides per publish.
+- **preview-guard twin-parity guard** — the two copies carry a "change one, change both"
+  contract that nothing enforced, and already differed by their (necessary) self-pointer
+  line. New `scripts/smoke/preview-guard-tests.sh` asserts the twins are identical save
+  that one `# TWIN:` line, and drives each guard through all three tiers with exact
+  decision + message. Wired as a CI step. Negative controls: diverging one twin's logic or
+  breaking the WEAK message both turn the smoke red.
+
 ## [0.66.0] - 2026-07-23
 
 Backlog close: B3 and every N-item that was a real defect. Truthfulness, drift, and the
