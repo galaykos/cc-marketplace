@@ -29,6 +29,13 @@ missing one of the four required keys:
 - `model:` — required here; workers default to `inherit` (the session model), pins are deliberate.
 - `effort:` — required here even though agents default to xhigh.
 
+**A pinned agent needs a fifth thing: a classification.** If `model:` is anything other than
+`inherit`, the validator requires either a row in `orchestration:delegation-contracts`
+`references/role-floors.md` (the pin is a FLOOR — dispatch at `max(session, pin)`, never
+below) **or** `floor: none` plus a non-empty `floor-reason:` in the frontmatter (the pin is
+deliberate and must NOT track the session). A row and `floor: none` together is an error —
+a row means floored. Exemptions are printed on every validate run, so they stay visible.
+
 `tools:` is optional — but omitting it grants ALL tools. Always list tools
 explicitly; an unscoped agent is a standing permission grant nobody
 reviewed.
@@ -54,11 +61,19 @@ Frontmatter is the static default; the dispatcher can override per
 invocation (the Agent tool's model parameter). Set frontmatter for the
 agent's typical difficulty and let the caller escalate the hard cases.
 
-Assignments in this marketplace: architecture-reviewer, code-reviewer,
-spec-adversary, system-architect, and system-design-reviewer pin opus/xhigh;
-breadth/mechanical fan-out agents pin sonnet (opinion-lens, brain's indexer,
-transcript-miner, the ultra-deep-research shards); every other agent ships
-`model: inherit` and runs at the session model (context-scout at effort high).
+**Picking a tier.** Default to `inherit` — it tracks the session and needs no
+classification. Pin a tier only for one of two reasons, and they are not the same
+reason. A **Reasoning** role whose depth IS the deliverable (review, adversarial
+check, acceptance judgment) pins the tier it must never drop below and takes a
+`role-floors.md` row, so a stronger session raises it and a weaker one cannot lower
+it. A **breadth or mechanical** role (persona lens, scout, index builder, fan-out
+shard) pins the mid tier its work actually needs and takes `floor: none` with a
+reason — escalating it multiplies cost for no depth. The current roster of both
+lives in `role-floors.md` and its exemption rows; do not restate it here.
+
+Effort is separate and is never floored: `context-scout` ships `inherit` at
+`effort: high`, and fresh-take's `consultant` ships `inherit` because its caller
+escalates it at dispatch — neither is a registry candidate.
 
 ## Description as dispatch trigger
 

@@ -22,6 +22,11 @@ Check each prompt/stage for:
    results (dedup/merge/early-exit); otherwise pipeline.
 6. Model/effort tier fits the stage (mechanical = low, verify/judge = high).
 7. Parallel writers have disjoint file sets or isolation.
+8. Fan-out WIDTH — how many agents each stage spawns, and whether N is sized to
+   blast radius rather than filled to a quota. Flag: a flat per-item ×N panel, a
+   fan-out with no stated ceiling, and a loop with no round cap. Sizing authority
+   is `taskmaster/skills/ultra/references/dispatch-tiers.md` § Fan-out sizing
+   (panels: 2 small / 3 medium / 3 large) — those counts are ceilings, not quotas.
 
 Report one line per gap: `stage/prompt — gap — fix`, ordered by impact (accuracy
 risks before efficiency nits). Say "no gaps" when clean.

@@ -43,7 +43,9 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    citation circular, is there stronger counter-evidence? Standard = one refuter;
    ultra = a panel voting, majority-refute kills the claim. Survivors are `confirmed`;
    the rest are downgraded or dropped — an unfetchable source lands `unconfirmed`,
-   never `contested` (unreadable is not disagreement).
+   never `contested` (unreadable is not disagreement). **Capped at 24 verifier
+   dispatches per round** (claims × votes): rank by how much the answer leans on each,
+   verify down to the cap, carry the rest `unconfirmed`, and name the deferred count.
 5. **Ledger contradictions.** Where sources disagree, never silently average. Record
    the disagreement, then adjudicate by an ordered rule: (1) for volatile facts
    (versions, prices, dates, live status) the more recent of two Tier-1/2 sources wins,
@@ -52,8 +54,10 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    contradiction, never a silent pick.
 6. **Gap check (ultra: loop-until-dry).** A completeness critic asks: which facet is
    thin, which claim is still unconfirmed, which fact is stale? Spawn another round on
-   the gaps. Repeat until two consecutive rounds surface nothing new, or the budget is
-   spent — then say what was left uncovered rather than implying full coverage.
+   the gaps. Repeat until two consecutive rounds surface nothing new, **capped at 3
+   rounds**, or the budget is spent — then say what was left uncovered rather than
+   implying full coverage. The cap is the enforceable ceiling; two-dry is the quality
+   exit and the budget check is advisory, so a run that keeps finding gaps still ends.
 7. **Synthesize.** Write the report per `references/report-template.md`: direct answer
    first, per-section confidence, inline `[n]` citations, contradiction ledger, tiered
    source list, and open questions. Print it inline **and** write it to

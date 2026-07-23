@@ -78,8 +78,8 @@ Not every stage deserves the same brain:
 - **Verify and judge stages** — reviews, adversarial checks,
   acceptance judgments — get high effort. This is where cutting
   corners is expensive: a lazy judge approves broken work.
-- **When unsure, inherit.** The session default exists for a reason;
-  guessing a tier is worse than not setting one.
+- **When unsure, inherit.** The session default exists for a reason; guessing a tier is worse than not setting one.
+- **A pin on a Reasoning-class agent is a floor, not a ceiling** — dispatch it at `max(session model, its pin)`, never below the session; registry and rule in `references/role-floors.md`.
 
 Tiering is per-stage, not per-run: one pipeline can dispatch a cheap
 scout, mid-tier workers, and an expensive judge.

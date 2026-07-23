@@ -4,6 +4,260 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.67.0] - 2026-07-23
+
+The Artifact preview-guard now confirms before a remote publish, and the twins are
+guarded against drift. Prompted by an overstep: a for-the-user brief was published to a
+remote host unbidden, and the guard's WEAK tier only printed an ignorable note.
+
+- **taskmaster 0.31.9 · ui-ux 0.10.2** — `preview-guard.sh` (the twin PreToolUse hook on
+  the Artifact tool): the WEAK tier (any non-mockup `.html`) escalates from an advisory
+  `additionalContext` note to `permissionDecision: "ask"`. The message is localhost-first —
+  render on the `${PREVIEW_PORT:-8123}` preview server (or a local file), never a remote
+  host; publish remotely only if someone who cannot reach the machine must open it. STRONG
+  (mockup) keeps its ask; NONE (non-`.html`) stays silent. Decision is `ask`, not `deny`,
+  because the guard ships to every installer — a hard block would break legitimate remote
+  sharing; the human decides per publish.
+- **preview-guard twin-parity guard** — the two copies carry a "change one, change both"
+  contract that nothing enforced, and already differed by their (necessary) self-pointer
+  line. New `scripts/smoke/preview-guard-tests.sh` asserts the twins are identical save
+  that one `# TWIN:` line, and drives each guard through all three tiers with exact
+  decision + message. Wired as a CI step. Negative controls: diverging one twin's logic or
+  breaking the WEAK message both turn the smoke red.
+
+## [0.66.0] - 2026-07-23
+
+Backlog close: B3 and every N-item that was a real defect. Truthfulness, drift, and the
+one latent template gap.
+
+- **taskmaster 0.31.8** —
+  - **N5** (five known-false tiering claims): the boost lands on reachable *reasoning*
+    subagents, not all of them — breadth/mechanical stay native. Added the missing
+    "reasoning" qualifier to the `ultra`/`ultra-goal` banners and the `task`/`taskmaster`/
+    `brainstorm` command directives. `hooks/ultra.sh` already said "REASONING subagents …
+    recon scouts and opinion-lens stay NATIVE" — verified correct, left untouched; that
+    reconciles the backlog's "five" against its six-site list.
+  - **B3** (coverage-check misclassified): `dispatch-tiers.md` listed "coverage-check
+    sweep" as a boosted Reasoning dispatch, but the skill dispatches only a read-only
+    matrix build (mechanical) and keeps the gap-judgment in the main thread. Split the
+    ladder entry — matrix build → Mechanical/native, gap-judgment → Reasoning — so the
+    table stops implying a boosted dispatch that does not exist.
+  - **N4** (residual tier prose): `dispatch-tiers.md` kept its own copy of the exemption
+    roster. Replaced with a pointer to `role-floors.md` as the source of truth.
+  - **N1** (fan-out never consulted the budget): the recipe counts bound wall-clock, not
+    tokens. Added a `budget.remaining()` gate to the fan-out sizing doctrine — D2's cost
+    concern answered at the unit that has a real handle (`Workflow`'s
+    `budget.total`/`spent()`/`remaining()`), not a total-agent cap.
+- **orchestration 0.6.5** — N5 banner + README "reasoning subagents"; N1 `budget.remaining()`
+  gate added to the ultra-assess phases (skill-side prose; the verbatim `ULTRA-ASSESS
+  ACTIVE` contract the hook mirrors was left byte-identical).
+- **task-runner 0.18.7** — N4: `reviewer-routing.md` dropped its "(today: …)" reviewer
+  enumeration for a pointer to the registry. N8 (found this run): the same file's three
+  `SKILL.md:NN-NN` line citations — the same brittle class as N3, one already ~2 lines
+  stale — became section descriptors (`SKILL.md` § Extreme Boost, the fix-loop rule, the
+  manual-check rule). No `.md/.sh/.json:NN` line citation remains anywhere in `plugins/`.
+- **claude-authoring 0.4.8** — N3: `authoring-hooks`/`authoring-plugins` cited
+  `scripts/validate.sh:NN-MM` line ranges, all five stale (some by ~40 lines). Replaced
+  every citation with a stable check-name descriptor ("the hooks.json check", "the
+  marketplace-entry check", …) so the class cannot rot again.
+- **chassis template (N2)** — `templates/worker-agent.md.tmpl` gained an optional
+  `{{#if floor}}floor: {{floor}}{{/if}}` slot and `generate.sh` defaults `floor` to "".
+  A future chassis agent that pins a non-`inherit` model can now emit its own `floor: none`
+  exemption instead of being unsatisfiable against the role-floor gate. Latent today (all
+  worker-agents ship `inherit`); every existing agent re-renders byte-identical.
+
+## [0.65.0] - 2026-07-23
+
+Backlog C1 closed, and the fan-out width it exposed.
+
+- **orchestration 0.6.4** — `ultra-deep-research:verifier` joins the role-floor registry at
+  `sonnet`. C1 is decided, not deferred: it is one agent per claim told to break it under
+  ordered provenance rules — the same shape as `spec-adversary`, so Reasoning class, so a
+  row. The floor is the agent's own pin reinterpreted, not a raise; `max(session, sonnet)`
+  only stops it capping there. Two worked cases added covering a sub-`opus` floor.
+  `researcher` stays unfloored and now says why in the registry: a breadth shard, N in
+  parallel, one facet each, extraction against a verbatim-quote gate. Producer and auditor
+  land in different classes because the work differs.
+- **ultra-deep-research 0.2.4** — `verifier` drops `floor: none` and its OPEN reason string.
+  Separately, the refute stage is now **capped at 24 verifier dispatches per round**
+  (claims × votes). Facets were bounded 4–8 and rounds at 3, but the load-bearing claim
+  count `C` was bounded nowhere, leaving `3 × C` open — the same one-axis-capped defect
+  0.64.0 fixed for the loop. Overflow claims rank by answer-dependence, carry as
+  `unconfirmed`, and the deferred count gets a slot in the report template. Stated in all
+  four places the refute stage is sized.
+
+## [0.64.0] - 2026-07-23
+
+The last uncapped discovery loop, and a correction to a claim shipped in 0.63.0.
+
+- **ultra-deep-research 0.2.3** — its loop-until-dry re-derived `verification-panels`' pattern
+  without citing it, so it did not inherit the 3-round cap added in 0.63.0. It is now capped
+  in all **three** places the exit condition is stated (`SKILL.md`, `references/orchestration.md`,
+  `commands/research.md`) — the spec named only two, and capping two of three is exactly the
+  drift being fixed. The cap is stated as the enforceable ceiling; two-dry stays the quality
+  exit and the budget check stays advisory.
+- **orchestration 0.6.3** — `role-floors.md` carried a false citation introduced in 0.63.0: it
+  claimed `claude-authoring` documented `verifier`'s sonnet pin as deliberate, but 0.63.0's own
+  `authoring-agents` rewrite removed that text, leaving the citation circular and dead. The
+  underlying rationale was also wrong — **`--ultra` selects the Workflow engine and raises the
+  vote count; it changes no agent's model**, so `verifier` runs `sonnet` on both paths with no
+  escalation lever. Both `role-floors.md` and the agent's own `floor-reason:` now say the
+  question is **open**, not settled.
+
+`verifier`'s tier is deliberately NOT changed here. The earlier decision to leave it exempt
+rested on the falsified rationale above, so re-deciding it silently would be worse than
+leaving it open. It stays exempt with an honest reason and is surfaced for a decision.
+
+## [0.63.0] - 2026-07-23
+
+Role-floor registry gate — `role-floors.md` was prose, so nothing checked its rows against
+agent frontmatter and nothing caught a new agent shipped with a `model:` pin that no one
+classified. That staleness is the shape of every defect this series has fixed.
+
+`scripts/validate.sh` gains a blocking gate with **nine frozen FAIL strings**, and
+`scripts/smoke/validate-fixtures/role-floors-check.sh` proves each one fires across four
+planted-violation runs, wired as a CI step. The gate asserts both directions: a registry row
+must match its agent's frontmatter and resolve to a real file, and every agent pinning a real
+tier must be **classified** — either a row (floored) or `floor: none` + a non-empty
+`floor-reason:` (deliberately unfloored). A row *and* `floor: none` together is an error,
+since nine consumer sites read "has a row" as "is floored".
+
+**Exemptions live in agent frontmatter, not the registry.** An earlier design put them in
+`role-floors.md`; a red-team found that this would make all nine of those consumer sites floor
+the five breadth agents — the exact defect the registry exists to prevent. So the registry
+stays floors-only and byte-unchanged, and **no consumer file changed**.
+
+- **approaches 0.3.8 · brain 0.2.5 · hindsight 0.1.6 · ultra-deep-research 0.2.2** — the five
+  breadth/mechanical sonnet pins (`opinion-lens`, `indexer`, `transcript-miner`, `researcher`,
+  `verifier`) declare `floor: none` with a stated reason. No `model:` or `effort:` value
+  changed. Exemptions print on every validate run (`== role-floor exemptions ==`), so one
+  nobody sees is not one nobody revisits.
+- **claude-authoring 0.4.7** — `authoring-agents` documents the classification contract where
+  an author will hit it, and replaces its enumeration of the current roster with the *rule* for
+  picking a tier. The enumeration was a third copy of the assignment; the registry is the
+  roster now.
+
+Gate implementation notes, because each was a near-miss: check 6 skips `model: inherit` (an
+earlier draft would have failed all 18 inherit agents — the whole repo red); membership uses
+`grep -qxF`, not `case`, where a key containing `*` would glob-match in pattern position; the
+loops use `done < <(…)` because `err()`'s `fail=1` dies in a pipeline subshell, which would
+print FAILs while exiting 0.
+
+## [0.62.0] - 2026-07-23
+
+Tiering docs truth — shipped text that stated the wrong thing about which model a subagent
+runs at. No dispatch behavior changes in this release.
+
+- **task-runner 0.18.6** — `agents/task-executor.md` no longer advertises a downward tier
+  override. `afe358f` removed the batch down-tier from `routing.md` but left the worker
+  agent's own file asserting the dispatcher "may override it downward — Agent tool
+  `model: haiku`, or `opts.effort: 'low'` — for mechanical batches". A live contradiction in
+  shipped text, in the file that agent reads about itself, missed by the red-teams on both
+  commits that produced it. `README.md` gains a "Which model runs your cards" section — it
+  previously carried zero tier prose.
+- **taskmaster 0.31.7** — the standard-run status line is now true in all four session tiers.
+  It claimed subagents inherit the session model; a floored judge is raised above it and a
+  breadth pin can sit either side of it. The replacement states the **rule** rather than an
+  outcome, because the floor has a documented degraded path (registry unresolved) where it is
+  not applied — and the line prints before that probe. `spec-redteam`'s blast-radius gate no
+  longer contradicts the run-ALWAYS contract: it names both `ULTRA-TASK ACTIVE` and
+  `ULTRA-GOAL ACTIVE` (goal injects the latter, and goal is hands-off, so no user is present
+  to catch a wrong skip), and the no-Workflow branch is now evaluated first so a zero-bullet
+  boosted run gets one inline adversary instead of falling into a Workflow-gated section.
+
+Deferred, deliberately: the `dispatch-tiers.md` coverage-check ladder row was pulled from this
+wave. That row is the only place assigning a tier to coverage-check's matrix subagent, so
+relabelling it would change dispatch behavior rather than wording. It moves with `card-verify`,
+which carries the identical defect in the same table cell.
+
+## [0.61.0] - 2026-07-23
+
+Role-tier floors and red-team panel parity — four shipped behaviors that contradicted
+written contracts.
+
+A `model:` pin in agent frontmatter was a **ceiling as well as a floor**. `ultra`'s boost
+already computed `max(marker tier, frontmatter tier)`, but the unboosted path applied no
+override at all, so frontmatter was final: in a session above opus, five Reasoning-class
+judges ran a tier *below* the code they were judging. The fix is one idea — when no marker
+is present, the session model takes the marker's place in that same `max()`.
+
+- **orchestration 0.6.2** — new `delegation-contracts/references/role-floors.md`: the
+  registry of agents whose pin is a floor (`code-reviewer`, `architecture-reviewer`,
+  `system-design-reviewer`, `system-architect`, `spec-adversary`), the two-class resolution
+  rule, the cross-plugin probe order, and the residual it does **not** cover (main-thread
+  PROACTIVE auto-dispatch, which no skill mediates). Breadth/mechanical pins
+  (`opinion-lens`, `indexer`, `transcript-miner`, `researcher`) carry no floor by design.
+  `verification-panels`' loop-until-dry gains a **3-round cap** alongside its two-dry exit —
+  the owner was the only uncapped one, while every consumer that stated a bound stated both.
+  `/orchestration:review` gains item 8, a **fan-out width check**: the command built to audit
+  fan-outs previously had no item asking how many agents a stage spawns.
+- **task-runner 0.18.5** — `task-execution` applies the floor at the site that actually sets
+  `model:`, boosted or not; `reviewer-routing` gains the unboosted half of its Ultra item;
+  `routing.md`'s "no tier override" is reconciled as *the worker is unfloored*, not *dispatch
+  never passes `model:`*. `code-redteam` picks up the panel round cap from its owner.
+- **taskmaster 0.31.6** — `spec-redteam` gains the ultra-gated blind **panel** its callers
+  already promised (it shipped a single adversary while three lines advertised N=3), sized
+  2–3 by its own existing blast-radius gate, with the inline single-adversary fallback
+  unchanged; `spec-adversary` dispatch now carries the floor. The three N=3 lines in `ultra`
+  and `/taskmaster:redteam` now read as ceilings, matching `ultra`'s own
+  "counts are CEILINGS" rule. `dispatch-tiers.md` states the floor as the converse of its
+  "never downgrades below frontmatter" invariant.
+- **system-design 0.3.3** — `/system-design:review` floors `system-architect` and
+  `system-design-reviewer` at `max(session model, opus)` on its standalone dispatch path.
+
+Deferred to their own specs: the anti-drift `validate.sh` gate + smoke fixture + CI step;
+banner truthfulness across six status lines; `ultra-deep-research`'s independently-derived
+uncapped loop; and `ultra-deep-research:verifier`'s sonnet pin (documented as deliberate,
+and it fans three votes per load-bearing claim).
+
+## [0.60.0] - 2026-07-23
+
+Model/effort tier uniformity — propagate the role-based dispatch tiering from `bf9bb3a`
+to the ~12 call sites it never reached.
+
+- **taskmaster 0.31.5** — `grill` and `brainstorm` no longer dispatch `context-scout` at a
+  hardcoded `model: opus`; it is a Mechanical role and now runs NATIVE with no override,
+  and the fixed "3-lens" recon count is replaced by a pointer to the blast-radius ceilings
+  table. `spec-adversary` raised to `effort: xhigh` — it is the named Reasoning-class
+  exemplar, and on the inline fallback path (the only form `spec-redteam` documents) the
+  boost could not raise effort at all, so a boosted red-team ran at exactly the unboosted
+  tier. `ultra`'s Exclusions section no longer justifies the unreachable set with the false
+  claim that reaching it "would mean editing those plugins" — the boost is a dispatch-time
+  parameter — and the set is now enumerated by agent file path. The resolved tier is stated
+  as a FLOOR, `max(marker tier, frontmatter tier)`, so an explicit low pin can decline to
+  raise an agent but never lowers it below its shipped tier.
+- **task-runner 0.18.4** — `code-redteam` carried no tier anywhere: the phase that exists
+  only because a run is boosted was the one phase the boost never reached. Tier provenance
+  is now explicit (the caller passes the already-resolved values; `model:`+`effort:` on the
+  Workflow panel, `model:` only on the inline fallback, which has no effort knob). Batch
+  dispatch no longer carries a tier override at all: it previously forced `haiku`/`sonnet` +
+  `effort: low` on every run, boosted or not, so a batch was written by a weaker model than
+  the session had chosen. The cited rule (delegation-contracts § Model and effort tiering) is
+  sound for rename sweeps and format checks, where the prompt fully defines the task — but
+  batches are selected by card SIZE and file-disjointness, never by a mechanicalness test, so
+  three S-sized `security` cards satisfied every batching condition and none of the rule's.
+  The `effort` half was inert on the default path regardless — the plain Agent tool has no
+  `effort` parameter. Batching is now purely a parallelism mechanism; it never changes which
+  model writes the code, and `dispatch-tiers.md`'s "never downgrades an agent below its
+  frontmatter" invariant holds with no exception anywhere in the system. The
+  `--tracks` path stated its tier as prose inside the worker's prompt, which sets nothing;
+  it is now an `agent()` parameter, reads BOTH markers (a `Goal:`-only index previously lost
+  the tier entirely), and prints a run-start banner after the index is read. The banner no
+  longer hardcodes `model=auto→`, which misreported an explicit down-pin as an escalation.
+- **claude-authoring 0.4.6** — the marketplace's only tier registry was wrong three ways and
+  so certified the mismatches instead of catching them: it claimed `spec-adversary` pinned
+  opus/xhigh (it shipped opus/high), asserted "every other agent ships `model: inherit`"
+  while `consultant` shipped `model: opus`, and swept `verifier` — a Reasoning-class refuter
+  — into the sonnet breadth bucket. Now matches the shipped frontmatter of all twelve agents
+  it names.
+- **fresh-take 0.1.2** — `consultant` promised an "independent stronger-model second opinion"
+  while hardcoding `model: opus` across nine surfaces: stronger only from haiku or sonnet,
+  the session's own model from opus, and strictly weaker from fable. Now ships
+  `model: inherit`, with the caller applying an active upward override at the dispatch site
+  (`commands/consult.md` step 3) — the session model or opus, whichever is higher.
+- **plugin-scout 0.2.9** — `references/catalog.md` regenerated for fresh-take's description.
+  `generate.sh` renders this file but deliberately does not self-bump plugin-scout.
+
 ## [0.59.0] - 2026-07-23
 
 Conflict-audit follow-ups — three more co-installed-plugin fixes.

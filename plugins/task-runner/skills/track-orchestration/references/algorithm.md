@@ -21,6 +21,12 @@ inherited cwd.
 
 ## 1. Classify (per references/eligibility.md)
 
+0. **Announce the tier** (the index is readable from here; §0 runs before it is opened, so
+   the banner cannot live there). Read BOTH markers — `Ultra:` when present, ELSE `Goal:` —
+   resolve per task-execution/SKILL.md, then print once:
+   `⚡ Ultra run — workers model=<marker-model>→<resolved>, effort=<effort>` or
+   `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>`.
+
 Read each milestone's normalized `Files:` set. A milestone is **track-eligible** iff its
 file-set is disjoint from every other candidate's, it touches no shared/registry file,
 and its dependency milestones are not blocking. Everything else is a **serial milestone**
@@ -47,6 +53,10 @@ Repeat until no eligible milestone remains:
 3. **Dispatch** the wave as ONE `Workflow` `agent()` batch (this blocks until all
    return — that is why scheduling is wave-granular, not rolling). Each track-worker
    dispatch carries the contract in §Dispatch below. Set a per-dispatch timeout.
+   **Tier is a PARAMETER of this call, not prose in the prompt:** under a marker pass
+   `model:` (and `effort:`, valid on this `Workflow` path) as `agent()` options, using the
+   tier RESOLVED per task-execution/SKILL.md's rule — never the literal `auto`, which is
+   not a model. Prompt item 5 below is an informational echo only; it sets nothing.
 4. **Await** the whole batch. Update `00-INDEX.md` statuses (only the orchestrator writes
    it): `running(worktree)` → `merged` / `parked(reason)`.
 5. **Merge greens** (§Merge). A merge unblocks dependent milestones for the next wave.
@@ -69,8 +79,9 @@ The prompt to each track-worker contains, in order:
    ONLY way a framework card in a track reaches its worker with the skill loaded. Then:
    *"Run these cards INLINE yourself — do not route to specialist agents (you are a leaf
    and cannot); Read every primed SKILL.md above before implementing its card."*
-5. Under ultra: *"Dispatched at model=<model>"* (and effort=<effort> only because this is
-   a Workflow `agent()` dispatch).
+5. Under ultra, an INFORMATIONAL ECHO of the tier already set as an `agent()` parameter in
+   §2 step 3: *"Dispatched at model=<model>"* (and effort=<effort> only because this is
+   a Workflow `agent()` dispatch). This line documents the tier; it never sets it.
 6. *"Before reporting any card done, run the per-card negative-control —
    `<abs-negative-control.sh> --verify "<the card's exact verify>" --target
    <card's declared impl file> --root <worktree-abs> --auto` (standard exemptions:
@@ -104,7 +115,9 @@ The prompt to each track-worker contains, in order:
 2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
    (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed <all merged tracks' files>`,
    see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
-   Under an `Ultra:`/`Goal:` marker, the code-redteam pass also runs here (per its skill).
+   Under an `Ultra:`/`Goal:` marker the code-redteam pass also runs here at the resolved `model`
+   and `effort`, passed in as `agent()` parameters (per its skill) — it never reads the index
+   itself, so an unpassed tier means it silently runs native.
 3. **Green** → delete merged track branches, `git worktree remove` their (clean)
    worktrees, drop the lock, hand off to `git-workflow:finish` on the run branch.
 4. **Red** (semantic breakage can survive a clean merge — per-track green was verified

@@ -14,14 +14,15 @@
 # afterwards (one server start arms it for the life of the checkout).
 #
 #   STRONG — a per-purpose preview basename, or a path under a mockups docroot,
-#            or a mockups docroot present in this project: ask for confirmation.
-#   WEAK   — any other .html artifact: emit context, do NOT interrupt.
+#            or a mockups docroot present in this project: ask, with the mockup rule.
+#   WEAK   — any other .html artifact: ask to confirm the remote publish is
+#            intended — a note proved ignorable, and a for-you page must not slip out.
 #   NONE   — not .html (a markdown report is not a mockup): silent.
 #
 # Fails open on any error: a broken guard degrades to a no-op, never to a
 # blocked tool call.
 #
-# TWIN: plugins/ui-ux/hooks/preview-guard.sh is a byte-identical copy. ui-ux
+# TWIN: plugins/ui-ux/hooks/preview-guard.sh is an identical copy save this line. ui-ux
 # ships the theme flow but declares no taskmaster dependency, and bundles like
 # frontend-suite install it alone — without its own copy that path would have
 # no mechanical guard at all. ${CLAUDE_PLUGIN_ROOT} is per-plugin so the file
@@ -86,11 +87,14 @@ command -v jq >/dev/null 2>&1 || exit 0
     jq -cn --arg p "$port" '{
       hookSpecificOutput: {
         hookEventName: "PreToolUse",
-        additionalContext:
-          ("Note: if this HTML is a visual decision (mockup, theme, palette, flow), "
-           + "serve it from the local preview server at http://localhost:" + $p + "/ "
-           + "instead — see the visual-decisions or ui-ux:theme skill. Publishing is "
-           + "for pages someone else has to open.")
+        permissionDecision: "ask",
+        permissionDecisionReason:
+          ("Keep this on localhost, not a remote host. Render it on the preview server "
+           + "at http://localhost:" + $p + "/ (or open a local file) — that is the "
+           + "convention here: the server carries the viewport presets, the version "
+           + "picker, and push-reload a published page loses, and keeps the work off an "
+           + "external host. Publish remotely ONLY if someone who cannot reach this "
+           + "machine must open it.")
       }
     }'
   fi

@@ -10,7 +10,7 @@ creation beyond the design doc at any point.
 **Run-status line (always):** print ONE status line as the first visible output of
 every run, boosted or not — a boosted run prints the ⚡ banner (owned by the
 ultra/ultra-goal skill; the banner IS its status line); a standard run prints
-`▷ taskmaster standard run — subagents inherit the session model (<model>) · effort: <effort> · boost: off` — substitute `<model>` with the session model and `<effort>` with `$CLAUDE_EFFORT` (resolve via `echo ${CLAUDE_EFFORT:-inherit}`); when the harness does not expose it, that prints the literal `inherit`.
+`▷ taskmaster standard run — session <model> · subagents inherit it unless their agent pins a tier · effort: <effort> · boost: off` — substitute `<model>` with the session model and `<effort>` with `$CLAUDE_EFFORT` (resolve via `echo ${CLAUDE_EFFORT:-inherit}`); when the harness does not expose it, that prints the literal `inherit`.
 
 
 **Ultra flag:** run in Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
@@ -25,7 +25,7 @@ crosses a command boundary. The `ultra`/`ultra-task` token may carry a
 ∈ auto|opus|sonnet|haiku|fable, default auto (session model or opus, whichever is higher); effort ∈ low|medium|high|xhigh|max,
 default xhigh) — resolved per the `ultra` skill's Variants section. On a match, strip the matched token and treat the run
 as `ULTRA-TASK ACTIVE` per the taskmaster `ultra` skill (the selected model on
-reachable subagents, bounded Workflow fan-outs, and the ⚡ banner).
+reachable reasoning subagents, bounded Workflow fan-outs, and the ⚡ banner).
 
 **Goal flag:** run in hands-off Extreme Boost mode ONLY when $ARGUMENTS *begins* with a
 bare `goal` token (this command invoked as `/taskmaster:<cmd> goal …`) or contains

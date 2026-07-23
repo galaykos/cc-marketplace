@@ -16,7 +16,7 @@ what gets built — if any answer leads to the same code, delete the question.
 ## Step 0 — scout before asking
 
 Dispatch the `context-scout` agent with the raw task description before asking the
-user anything; then, once its report is folded into the ledger (below), derive an upgraded task statement from the raw prompt plus that scout report per `references/prompt-upgrade.md` (mode-agnostic — sharpen the objective, name implied constraints, never reinterpret scope). Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout `model: opus` with 3-lens Workflow recon, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native. Fold its report into the ledger:
+user anything; then, once its report is folded into the ledger (below), derive an upgraded task statement from the raw prompt plus that scout report per `references/prompt-upgrade.md` (mode-agnostic — sharpen the objective, name implied constraints, never reinterpret scope). Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE — a mechanical role, so no model override — with recon lenses sized to blast radius per that skill's `references/dispatch-tiers.md`, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native. Fold its report into the ledger:
 
 - "Already answered by code" entries become CLEAR rows with evidence. Never ask the
   user something the codebase answers — it burns trust and attention.

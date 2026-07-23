@@ -56,18 +56,20 @@ inline security-review skill runs after the batch joins (`references/reviewer-ro
 § Concurrent dispatch — baseline behavior, not `--crew`-gated).
 Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
+**Role-tier floor — applies boosted or NOT:** an agent with a row in delegation-contracts `references/role-floors.md` dispatches at `max(marker tier if present ELSE the session model, its floor)` — never below the session model; agents with no row are unfloored and unchanged (omit `model:`). A registry miss → omit `model:` and log `role-floors.md unresolved — floors not applied` in the run report.
+
 **Upgraded statement:** when `00-INDEX.md` carries a `## Upgraded statement` blockquote
 (the `> `-prefixed section task-cards writes), read it as binding context for every task
 — it sharpens the shared goal, NEVER a license to widen, drop, or reinterpret a card;
 cards stay the sole scope authority, halt-with-evidence unchanged. Absent → as today.
 
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker,
-dispatch the reviewer and delegated worker agents with a `model:` override — excluding
-`opinion-lens` — so the boost reaches execution even in a fresh session. Read BOTH
+dispatch the reviewer, delegated worker, and **code-redteam** panel agents with the resolved `model:` override — excluding
+`opinion-lens` — so the boost reaches execution even in a fresh session; code-redteam never reads the index itself, so pass it the resolved `(model, effort)`. A batch carries no tier override of its own — it dispatches like any other card (`references/routing.md` § Batch dispatch). Read BOTH
 markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
 escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
 trailing `(model=…, effort=…)` sets the tier — `model=auto` resolves HERE, to the executing session's model or opus, whichever is higher (haiku<sonnet<opus<fable); a malformed one falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at
-run start, boosted or not: `⚡ Ultra run — workers model=auto→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` = `$CLAUDE_EFFORT` when the harness exposes it — `echo ${CLAUDE_EFFORT:-inherit}` — else the literal `inherit`). The Agent tool escalates model
+run start, boosted or not: `⚡ Ultra run — workers model=<marker-model>→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` = `$CLAUDE_EFFORT` when the harness exposes it — `echo ${CLAUDE_EFFORT:-inherit}` — else the literal `inherit`). The Agent tool escalates model
 only (marker `effort` applies on the `Workflow` path). Delegated stack implementers also
 get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to
 apply`). Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced
@@ -87,8 +89,7 @@ follow-up backlog, not the current diff; after a reviewer-driven fix, re-run the
 
 The bounded inner loop is the good part of the Ralph pattern; the infinite outer loop is not
 adopted — unbounded self-looping amplifies drift, and token burn scales with confusion, not
-progress. The outer loop is the task list itself: finite, ordered, visible. A halted task
-stays halted until its definition is fixed — never silently retried. When every task is done
+progress. The outer loop is the task list itself: finite, ordered, visible. A halted task stays halted until its definition is fixed — never silently retried. When every task is done
 or parked, the run ENDS with a report, no self-restart.
 
 ## Sequencing and status
@@ -103,8 +104,7 @@ or parked, the run ENDS with a report, no self-restart.
 
 ## No status theater
 
-No status dashboards, run boards, or progress pages — the index table plus the conversation
-already show every flip, and a run-board page goes stale; the index is the single view. HTML
+No status dashboards, run boards, or progress pages — the index table plus the conversation already show every flip, and a run-board page goes stale; the index is the single view. HTML
 artifacts (or a localhost preview) are reserved for content that earns the medium — UI
 mockups, walkthroughs, demos; a table a message can carry is not a file.
 

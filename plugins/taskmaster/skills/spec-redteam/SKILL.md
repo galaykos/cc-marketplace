@@ -1,6 +1,6 @@
 ---
 name: spec-redteam
-description: Use after grill writes a spec and before task-cards, when blast radius warrants — dispatches a blind adversary against the frozen spec (edge cases, unstated assumptions, conflicts, underspecified requirements, failure/security gaps, visual coherence) and resolves each before cards.
+description: Use after grill writes a spec and before task-cards, when blast radius warrants — dispatches blind adversaries against the frozen spec (edge cases, unstated assumptions, conflicts, underspecified requirements, failure/security gaps, visual coherence) and resolves each before cards.
 ---
 
 ## Where this sits
@@ -29,7 +29,7 @@ Several passes cluster around spec-freeze; keep them distinct:
 
 ## The blast-radius gate
 
-A red-team is not free — run it only when the spec warrants it. Run when ANY holds:
+A red-team is not free — run it only when the spec warrants it, **except under a boost, where it runs unconditionally** (see the Otherwise clause). Run when ANY holds:
 
 - the spec has **three or more success criteria**, or
 - it **touches more than one module or directory**, or
@@ -40,12 +40,48 @@ Otherwise the spec is trivial for this purpose — note "spec trivial for red-te
 skipped" in one line and let the handoff proceed. Matches grill's own scale-to-
 blast-radius doctrine; a one-file, two-criterion spec does not earn a subagent.
 
+**Exception — a boosted run never skips.** Under `ULTRA-TASK ACTIVE` **or** `ULTRA-GOAL ACTIVE` the red-team runs regardless of the bullets (`ultra/SKILL.md` "run ALWAYS";
+`ultra-goal/SKILL.md` "ALWAYS runs under goal"). Both directives count — goal injects `ULTRA-GOAL ACTIVE`, not the ultra-task string, and goal is hands-off, so no user is
+present to catch a wrong skip. Zero bullets under a boost still runs; § The panel sizes N.
+
 ## Dispatch the adversary — blind
 
 When the gate is met, dispatch the `spec-adversary` agent with **only the spec file
 path**. Do not pass it the grill conversation, the design doc, or your own summary —
 its value is that it reads the requirements cold and finds what the dialogue missed.
 Passing it the conversation re-imports the blind spots you are trying to escape.
+
+**Role-tier floor — boosted or not.** `spec-adversary` carries a row in
+`orchestration:delegation-contracts` `references/role-floors.md`, so dispatch it at
+`max(marker tier if present ELSE the session model, opus)`. Never omit `model:` in a
+session above opus: an adversary weaker than the model that wrote the spec is a weak
+gate on exactly the specs that most need one. Registry unresolved → omit `model:` and
+note `role-floors.md unresolved — floors not applied`.
+
+## The panel — ultra only
+
+Under `ULTRA-TASK ACTIVE` and when the `Workflow` tool is present, this is a **blind
+panel**, not a single adversary — the width `ultra/SKILL.md` and `/taskmaster:redteam`
+already promise. Unboosted runs keep the single adversary above; nothing here changes a
+standard run.
+
+Size N by the gate conditions already computed above — `dispatch-tiers.md` § Fan-out
+sizing owns panel N, but keys off *files the change touches*, which does not exist yet at
+spec-freeze. The four gate bullets are the radius proxy at this step. Apply in order,
+first match wins:
+
+1. **No `Workflow` tool → 1 inline adversary.** Tested FIRST so it wins over every branch
+   below — including a zero-bullet boosted run, which would otherwise fall into a
+   Workflow-gated section that does not apply to it. Today's path, unchanged.
+2. The **security/auth/data/external-surface** bullet fires, **or two or more** bullets
+   fire → **3 adversaries**.
+3. Exactly one non-security bullet fires → **2 adversaries**.
+4. Zero bullets fire but a boost forces the run (§ the gate's Exception) → **2 adversaries**.
+
+Count the four bullets as four; the security bullet is ONE disjunction counted once, not
+once per surface named in it. Every panel member is blind and independent — each gets only
+the spec path, never another member's findings — then dedupe holes across the panel before
+presenting. These counts are ceilings, not quotas.
 
 The agent returns a structured holes list grouped by lens, each hole tagged
 `blocker | major | minor` with a section, the hole, and a suggested fix.
@@ -105,8 +141,7 @@ figure. Then cards.
 
 ## Anti-patterns
 
-- **Running on a trivial spec.** The gate exists so the red-team fires where it pays
-  off, not on every two-line change.
+- **Running on a trivial spec — unboosted.** The gate exists so the red-team fires where it pays off, not on every two-line change; under a boost it runs regardless (§ the gate's Exception).
 - **Passing the grill conversation to the agent.** Blindness is the mechanism; feed
   it only the spec path.
 - **Treating a dismiss as a failure.** The adversary produces judgment; a wrong hole

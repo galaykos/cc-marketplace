@@ -43,7 +43,7 @@ The verbatim block the hook and command flags inject (resolved `<model>`/`<effor
 
 ```
 ULTRA-GOAL ACTIVE (model=<model>, effort=<effort>) — hands-off Extreme Boost for this taskmaster run. Canonical owner: the taskmaster 'ultra-goal' skill (skills/ultra-goal/SKILL.md).
-- Implies the full ULTRA-TASK escalation contract (skills/ultra/SKILL.md): <model> subagents,
+- Implies the full ULTRA-TASK escalation contract (skills/ultra/SKILL.md): <model> reasoning subagents,
   mandatory red-team + coverage, bounded Workflow fan-outs, ⚡ banner. If an explicit ultra-task
   token is also present, ITS tier wins (precedence: ultra-task > ultra-goal suffix).
 - Auto-take every pipeline recommendation instead of asking: AskUserQuestion gates resolve to the
@@ -92,7 +92,7 @@ explicit model pins); `ultra-goal-sonnet-max`→sonnet/max; a lone suffix resolv
 
 ## Implies full ultra — tier precedence
 
-Ultra-goal implies the entire ULTRA-TASK escalation contract (`skills/ultra/SKILL.md`): model-escalated subagents,
+Ultra-goal implies the entire ULTRA-TASK escalation contract (`skills/ultra/SKILL.md`): model-escalated reasoning subagents,
 mandatory red-team + coverage, bounded Workflow fan-outs. When an explicit `ultra-task` token is ALSO present ITS
 tier wins — precedence `ultra-task` > `ultra-goal` suffix; the resolved tier is what banner and both markers
 advertise, autonomy still from goal. A lone `Goal: true` marker escalates workers too: tier from the Ultra marker else Goal.

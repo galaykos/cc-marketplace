@@ -16,14 +16,29 @@ ultra subagent to `fable` is exactly that anti-pattern. Ultra defers to it.
 
 | Role class | Phases / agents | Dispatched at | Why |
 |---|---|---|---|
-| **Reasoning** (get the boost) | red-team (`spec-adversary`), coverage-check sweep, card-verify, any synthesis / judge / refuter that rules a claim in or out | `model:<model>` + `effort:<effort>` | depth IS the deliverable — a missed hole or a false-confirm costs far more than the token premium |
-| **Mechanical** (stay native) | recon / readers (`context-scout` by-file, by-pattern, by-constraint), file locators, grep-and-list, extraction passes | the agent's own frontmatter tier — **no override** | location and gathering; the top tier buys nothing a mid model does not already do. `context-scout` ships `model: inherit`, so native = the session model, never the `fable` premium |
+| **Reasoning** (get the boost) | red-team (`spec-adversary`), coverage gap-judgment (the loop-until-dry sweep that rules a finding a gap/orphan/drift), card-verify, any synthesis / judge / refuter that rules a claim in or out | `model:<model>` + `effort:<effort>` | depth IS the deliverable — a missed hole or a false-confirm costs far more than the token premium |
+| **Mechanical** (stay native) | recon / readers (`context-scout` by-file, by-pattern, by-constraint), `coverage-check`'s read-only matrix build (Read/Grep/Glob), file locators, grep-and-list, extraction passes | the agent's own frontmatter tier — **no override** | location and gathering; the top tier buys nothing a mid model does not already do. `context-scout` ships `model: inherit`, so native = the session model, never the `fable` premium |
 | **Breadth** (stay native) | `opinion-lens` | native (`sonnet`/low) — never overridden | four persona takes, low-effort by design; escalating multiplies cost for no depth |
 
 Mechanical/breadth roles are handled exactly the way `opinion-lens` already was
 — given **no** model override, so they run at their shipped frontmatter tier.
 Lever 1 just widens that existing treatment from one agent to a class. It never
 *downgrades* an agent below its frontmatter; it only declines to *raise* it.
+
+`coverage-check` shows the split cleanly: it dispatches **only** a read-only matrix build
+(mechanical → native), and the gap-judgment it feeds runs in the **main thread** at the
+session tier. So "coverage gets the boost" lands on the loop-until-dry sweep's reasoning,
+never on the matrix builder — boosting a Read/Grep/Glob pass would buy nothing, the very
+anti-pattern this ladder exists to prevent.
+
+The converse also holds, and it applies **unboosted** as well: for a Reasoning-class
+agent a `model:` pin is a **floor**, not a ceiling — dispatch it at
+`max(marker tier if present ELSE the session model, its floor)` so a pinned judge is
+never weaker than the session that wrote the code. The registry of which agents carry a
+floor, and the full rule, live in `orchestration:delegation-contracts`
+`references/role-floors.md` — the authoritative roster of which pins floor and which are
+exempt; do not maintain a second copy of that list here. The boost's "declines to raise"
+behavior above is unchanged; breadth/mechanical pins carry no floor by design.
 
 Do not edit any agent's `model:`/`effort:` frontmatter to achieve this — the tier
 is a dispatch-time override on the reasoning roles only; frontmatter ships as-is.
@@ -50,6 +65,20 @@ paying Large prices for Small asks.
 This mirrors the three-cycle ceiling used elsewhere in the pipeline: bounded,
 never an unbounded loop, but also never the maximum fan-out on a task that a
 single scout and a two-voter panel would settle.
+
+## Fan-out cost — `budget.remaining()` gates the ceilings
+
+The counts above bound wall-clock (concurrency is capped) but not tokens. On the
+`Workflow` path the harness exposes `budget.total` / `budget.spent()` /
+`budget.remaining()` — the cost bound at the right unit, since agents are the wrong unit
+(a cheap scout and an `xhigh` judge are not one price). Treat every recipe count as a
+ceiling **and** a budget check: before opening a fan-out stage, if `budget.total` is set
+and `budget.remaining()` cannot fund it, shrink the stage toward its inline fallback
+rather than drop a mandatory phase — red-team and coverage still always run, at N=1 if
+that is all the budget funds. `budget.total == null` means no token target, so the count
+ceilings alone apply. The inline (non-`Workflow`) path exposes no budget handle; there the
+counts are the only bound. This is D2's cost concern answered at the granularity that has
+a real handle, not a total-agent cap that binds the wrong variable.
 
 ## What does NOT change
 

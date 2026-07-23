@@ -45,7 +45,7 @@ your response, before anything else:
 
 ```
 \033[1;93m⚡ EXTREME BOOST — ultra-task active\033[0m
-\033[2m   <model> subagents · always red-team + coverage · bounded fan-out · effort=<effort> (Workflow)\033[0m
+\033[2m   <model> reasoning subagents · always red-team + coverage · bounded fan-out · effort=<effort> (Workflow)\033[0m
 ```
 
 Substitute `<model>`/`<effort>` with the RESOLVED tier (see Variants; defaults
@@ -61,7 +61,7 @@ ULTRA-TASK ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this ta
 - Reachable reasoning subagents dispatched model:<model> (default auto = session model or opus, whichever is higher on haiku<sonnet<opus<fable — escalate, never downgrade). On the Workflow
   agent() path also effort:<effort> (default xhigh). Inline Agent dispatch escalates model only — the Agent tool has no effort knob, so an inline subagent keeps its own frontmatter effort.
 - grill: extra clarifying-question rounds; no early ledger exit on first CLEAR sweep.
-- spec-redteam: run ALWAYS; N=3 blind adversary panel when Workflow is available.
+- spec-redteam: run ALWAYS; up to N=3 blind adversary panel when Workflow is available (a CEILING — spec-redteam sizes N from its own gate; 2 at small radius).
 - coverage-check: run ALWAYS before handoff; loop-until-dry, cap 3 rounds or two dry rounds.
 - recon: up to 3 parallel lenses (by-file, by-pattern, by-constraint) via Workflow, else
   a single inline scout — scouts run NATIVE (mechanical role, no boost override).
@@ -92,23 +92,24 @@ suffix resolves by set membership (`ultra-task-max`→auto/max); unknown suffixe
 ## Model and effort rules
 
 - The RESOLVED `model:` override lands on both inline `Agent` dispatch and `Workflow`
-  `agent()` calls — pass the resolution (e.g. `fable`), never the literal `auto`.
-- `effort: <effort>` is settable ONLY on the `Workflow` `agent()` path — the plain
-  Agent tool has no `effort` parameter, so inline dispatch escalates the model
-  only and leaves effort at the agent's frontmatter default.
-- Never edit an agent's `model:`/`effort:` frontmatter to achieve this. The boost
-  is a dispatch-time override; the frontmatter stays as shipped.
+  `agent()` calls — pass the resolution (e.g. `fable`), never the literal `auto`. It is a
+  FLOOR, not a replacement: `max(marker tier, frontmatter tier)` on haiku<sonnet<opus<fable,
+  so an explicit low pin declines to RAISE an agent but never lowers it below its shipped tier.
+- `effort: <effort>` is settable ONLY on the `Workflow` `agent()` path — the plain Agent
+  tool has no `effort` parameter, so inline dispatch escalates model only.
+- Never edit frontmatter to achieve this — the boost is a dispatch-time override.
 
 ## Bounded fan-out recipes
 
 Fan-outs run through the `Workflow` tool only when present. Each has a hard bound
-— mirroring the execution plugin's three-cycle ceiling — so no unbounded loop:
+— a three-cycle-style ceiling, also gated by `budget.remaining()` on the Workflow path:
 
 - **Recon** — up to 3 parallel scouts, one lens each (by-file, by-pattern,
   by-constraint), NATIVE tier (mechanical), merged and deduped. Size to blast
   radius. Fallback: one inline `context-scout`.
-- **Red-team** — N=3 blind adversary panel on the frozen spec; dedupe holes across
-  the three. Fallback: one inline `spec-adversary` (already opus).
+- **Red-team** — up to N=3 blind adversaries on the frozen spec, a ceiling not a quota:
+  spec-redteam sizes N from its own gate (2 at small radius); dedupe holes across the
+  panel. Fallback: one inline `spec-adversary`.
 - **Coverage** — loop-until-dry: repeat the coverage sweep until TWO consecutive
   rounds find no new gap/orphan/drift (matching verification-panels — the tail is
   where the worst gaps hide), capped at 3 rounds. Fallback: one inline coverage pass.
@@ -118,10 +119,10 @@ Fan-outs run through the `Workflow` tool only when present. Each has a hard boun
 ## Exclusions
 
 Mechanical and breadth roles never get the boost — see the role ladder in
-`references/dispatch-tiers.md` (`opinion-lens`, recon scouts). Agents in plugins
-ultra does not edit — `system-architect` (system-design), the plan-before-code
-architecture agents — are outside the reachable set and keep their native tier;
-reaching them would mean editing those plugins, out of scope.
+`references/dispatch-tiers.md` (`opinion-lens`, recon scouts). Outside the reachable set:
+`system-design/agents/system-architect.md` and
+`code-architecture/agents/architecture-reviewer.md` — ultra's spec and card phases never
+dispatch them; execution boosts architecture-reviewer separately via task-execution.
 
 ## Carrying the boost into execution
 
@@ -139,8 +140,7 @@ holds). It dispatches workers at that tier (excluding `opinion-lens`), AND runs 
 Ultra never hard-fails a run. If the `Workflow` tool is unavailable — a headless
 or cron context, or the opt-in gate cannot be satisfied — every fan-out phase
 falls back to its inline single-agent form, still escalated on model. The run
-completes with strictly less parallelism, never with an error. If Workflow
-orchestration proves flaky or too heavy in practice, drop to pure inline
+completes with strictly less parallelism, never with an error. If Workflow orchestration proves flaky or too heavy in practice, drop to pure inline
 escalation: the model tier plus mandatory red-team and coverage still deliver a
 real boost over a normal run.
 
@@ -150,5 +150,5 @@ real boost over a normal run.
   user and no plugin can override it.
 - It does not persist across runs, write a session-state file, or expose an
   "off" command; re-type the phrase to boost the next run.
-- It does not boost mechanical/breadth roles or agents in unedited plugins, and
+- It does not boost mechanical/breadth roles or agents its phases never dispatch, and
   does not animate the terminal — the single colored banner is the whole cue.

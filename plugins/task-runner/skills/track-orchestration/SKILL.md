@@ -52,7 +52,11 @@ Each track-worker is a leaf subagent. Its dispatch prompt carries:
   (below) is a run-level backstop, not a per-card teeth check, so the control must run
   inside each track,
 - under ultra, the `model` (always) and `effort` (Workflow path only) from the index
-  `Ultra:` marker.
+  marker — read BOTH, tier from `Ultra:` when present ELSE from `Goal:` (a lone `Goal:`
+  still escalates; `ultra-goal` stamps no `Ultra:` line), resolved per
+  task-execution/SKILL.md's rule and passed as `agent()` parameters, never as prompt prose.
+  The same resolved tier is passed into the **code-redteam** pass this path fires at the
+  merge gate — that skill never reads the index, so an unpassed tier runs it native.
 
 The worker **commits** its milestone's work to its track branch and returns a compact
 evidence report: touched files, verify evidence, and the commit sha — or a park reason.

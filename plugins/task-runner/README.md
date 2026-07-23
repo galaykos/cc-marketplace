@@ -17,6 +17,22 @@ full-suite completion gate.
 |---------|--------------|
 | `/task-runner:run [tasks-dir-index-or-list]` | Execute a task list — a taskmaster `00-INDEX.md`, a plan's task sequence, or an inline list |
 
+## Which model runs your cards
+
+- **Workers inherit the session model.** Every worker agent ships `model: inherit`, so a card
+  is implemented by whatever model you are running — batching does not change that.
+- **Some agents carry a tier floor.** An agent listed in the role-floor registry is dispatched
+  at `max(marker tier if present ELSE the session model, its floor)` — so a reviewer pinned to
+  a stronger tier is never weaker than the session that wrote the code, and never caps it
+  either. Registry and full rule:
+  `plugins/orchestration/skills/delegation-contracts/references/role-floors.md`.
+- **A boost raises further.** An `Ultra: true` / `Goal: true` marker in `00-INDEX.md` carries a
+  `(model=…, effort=…)` tier into execution; workers and reviewers are dispatched at it.
+
+Not every agent tracks the session model, and that is deliberate: breadth and mechanical roles
+(persona lenses, scouts, index builders) pin a mid tier by design, which can sit above or below
+your session. The registry above says which agents floor and which do not.
+
 ## Example
 
 ```bash

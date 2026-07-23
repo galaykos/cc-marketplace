@@ -32,7 +32,7 @@ Four core keys — name, version, description, author:
 
 - name must equal the directory name under plugins/ and the marketplace
   entry name — the validator cross-checks all three
-  (scripts/validate.sh:15-23).
+  (scripts/validate.sh, the marketplace-entry check).
 - New plugins start at 0.1.0.
 - One optional key earns its place: dependencies — an array of plugin
   names (or { "name", "version" } objects) auto-installed with this
@@ -45,7 +45,7 @@ Four core keys — name, version, description, author:
 
 Every directory under plugins/ must be listed in
 .claude-plugin/marketplace.json — validators reject orphan dirs
-(scripts/validate.sh:26-30). The entry shape:
+(scripts/validate.sh, the orphan-directory check). The entry shape:
 
     {
       "name": "<name>",
@@ -117,15 +117,15 @@ Run bash scripts/validate.sh before committing. It enforces, among
 other rules:
 
 - every marketplace entry resolves to a directory with a valid
-  plugin.json whose name matches (scripts/validate.sh:15-23);
+  plugin.json whose name matches (scripts/validate.sh, the marketplace-entry check);
 - every plugins/ directory is registered — no orphans
-  (scripts/validate.sh:26-30);
+  (scripts/validate.sh, the orphan-directory check);
 - every SKILL.md has matching name, a description, and a 100–150 line
-  body (scripts/validate.sh:34-47);
+  body (scripts/validate.sh, the SKILL.md body-budget check);
 - every doc string shaped like /<plugin>:<command> names a registered
-  plugin (scripts/validate.sh:65-72);
+  plugin (scripts/validate.sh, the command-reference check);
 - every hooks.json parses and its scripts are executable
-  (scripts/validate.sh:74-82).
+  (scripts/validate.sh, the hooks.json check).
 
 Treat a red validator as a broken build, not a suggestion.
 

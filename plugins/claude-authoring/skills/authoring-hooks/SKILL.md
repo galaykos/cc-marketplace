@@ -31,7 +31,7 @@ Reference scripts through ${CLAUDE_PLUGIN_ROOT}, never absolute paths —
 the plugin installs at a path you do not control. Every referenced script
 must exist and be executable (chmod +x).
 
-This marketplace's validator (scripts/validate.sh:74-82) enforces both
+This marketplace's validator (scripts/validate.sh, the hooks.json check) enforces both
 rules mechanically: hooks.json must parse as JSON, and every
 ${CLAUDE_PLUGIN_ROOT} command it references must resolve to an
 executable file.

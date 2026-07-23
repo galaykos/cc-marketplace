@@ -46,11 +46,14 @@ refutation while another is still searching:
 pipeline(
   facets,
   facet   => agent(researcherPrompt(facet), {schema: CLAIMS, phase: 'Search'}),
-  claims  => parallel(claims.loadBearing.map(c => () =>
+  claims  => parallel(rankByDependence(claims.loadBearing).slice(0, 8).map(c => () =>
                parallel([1, 2, 3].map(() => () =>                 // 3-vote refuter panel per load-bearing claim
                  agent(refutePrompt(c), {schema: VERDICT, phase: 'Refute'})))
                  .then(votes => ({...c, verdict: reduceRefutePanel(votes)})))),
 )
+
+// slice(0, 8) x 3 votes = the 24-dispatch/round cap (see Cost discipline). Never a silent
+// truncation: log() the deferred count and carry those claims as `unconfirmed` in the report.
 
 // reduceRefutePanel — three VERDICT objects in, one outcome out; every split is defined.
 // Votes are the verifier's structured returns, so tally on v.VERDICT. The reducer is the
@@ -73,7 +76,8 @@ function reduceRefutePanel(votes) {
 
 Then loop-until-dry: a completeness-critic `agent` inspects the merged ledger for thin
 facets / unconfirmed claims / stale dates and returns the next round's facets. Repeat
-until two consecutive rounds add nothing, or `budget.remaining()` is low. The refute
+until two consecutive rounds add nothing, **capped at 3 rounds**, or `budget.remaining()`
+is low — the cap is the enforceable ceiling, the other two are quality/advisory. The refute
 stage above already fans each load-bearing claim to a 3-vote panel and folds the votes
 through `reduceRefutePanel`: majority-refute kills the claim; a confirm-majority counts
 only votes carrying BOTH fetch evidence and a named corroboration source; splits with a
@@ -93,3 +97,11 @@ load-bearing claim always runs the 3-vote panel above, never one refuter. Do not
 panel theater on trivia, and do not single-pass a decision that matters. Say, in the
 report, how wide you actually went — silent narrow coverage reads as thoroughness it
 isn't.
+
+**The refute stage is capped at 24 verifier dispatches per round** — claims × votes, so
+24 single-refuter claims at standard depth or 8 claims × 3 votes at ultra. Facets are
+bounded 4–8 and rounds at 3, but nothing bounded the load-bearing claim count, which left
+`3 × C` open on an unbounded `C`. When more claims qualify than the cap allows, rank by how
+much the report's answer leans on each, verify down the ranking until the cap is reached,
+and **name the deferred count in the report** — an unverified claim carried as `unconfirmed`
+is honest, one silently skipped is not.
