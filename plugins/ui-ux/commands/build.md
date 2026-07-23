@@ -26,5 +26,8 @@ the explicit entry point to the ui-ux-engineer worker — a build verb to comple
 
 5. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to the staging path
-   (`/shadcn-studio:stage` or `design-preview`) first so the choice is made on concrete
-   mockups. Headless: build to the most conventional interpretation and note assumptions.
+   (`/shadcn-studio:stage` or `design-preview`) when either is installed, else fall back
+   to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
+   via ASCII options inline — so the choice is made on concrete mockups without dead-ending
+   on a missing command. Headless: build to the most conventional interpretation and note
+   assumptions.

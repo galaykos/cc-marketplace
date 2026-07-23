@@ -18,5 +18,6 @@ description first). Do not write implementation code.
    mid-implementation that would flip this choice.
 5. Hand off via selectable offer (AskUserQuestion), not typed commands:
    "Continue to the file-level plan (Recommended)" / "Stop here". Plan =
-   plan-before-code (code-architecture). If the comparison exposed
-   product-shape uncertainty, offer /taskmaster:brainstorm instead.
+   plan-before-code (code-architecture) when that plugin is installed, else
+   outline the file-level plan inline. If the comparison exposed product-shape
+   uncertainty, offer /taskmaster:brainstorm only when taskmaster is installed.

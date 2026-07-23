@@ -4,6 +4,29 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.58.0] - 2026-07-23
+
+Conflict-audit medium fixes — dead-end handoffs, gitignore-wholesale breakage,
+and a misleading bundle-equivalence hint.
+
+- **Unguarded cross-plugin handoffs** — three more "Recommended" picks that dead-end
+  on a command the shipping bundle doesn't install, now gated with inline fallbacks:
+  api-design 0.4.4 (`scaffold` dispatches `backend-engineer` down the chain
+  laravel→task-runner→inline instead of a bare missing agent), approaches 0.3.7
+  (`compare` guards the code-architecture plan continuation and the /taskmaster:brainstorm
+  offer, inline plan otherwise), ui-ux 0.10.1 (`build` routes to shadcn-studio/design-preview
+  when installed, else taskmaster's visual-decisions mockup path, else ASCII inline).
+- **Gitignore-wholesale breakage** — compaction-advisor 0.1.3 and hindsight 0.1.5 no
+  longer tell users to ignore `.claude/` (or `.claude/hindsight/`) wholesale. compaction-advisor
+  narrows to `.claude/compaction-advisor/` and warns that plugin-scout's `--persist` writes a
+  team-shared `.claude/settings.json` there; hindsight narrows to the transient ledger + reports
+  and keeps `anti-patterns.md` tracked so its committed CLAUDE.md pointer resolves for teammates
+  (the harvest skill now states that requirement).
+- **plugin-scout 0.2.8** — the "taskmaster-suite installs the universal set" hint (SKILL + README)
+  now says "MOST of the universal set (see its README for deliberate exclusions — secret-scanning,
+  intent-guard, reuse-guard)", instead of claiming a whole tier the suite covers only ~71% of,
+  which had users believing write-blocking security hooks were active when none installed.
+
 ## [0.57.0] - 2026-07-23
 
 Conflict-audit HIGH fixes — two co-installed-plugin defects that could break a run.

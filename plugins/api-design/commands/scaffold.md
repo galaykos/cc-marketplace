@@ -29,5 +29,7 @@ route→request→resource mapping by hand.
    generation (an operation with no response schema).
 
 5. Offer via AskUserQuestion: "Write the scaffolding now (Recommended)" / "Show the plan
-   only". On write, dispatch the `backend-engineer` worker with the mapping as the task
-   list. Headless: output the mapping and files as a plan, write nothing.
+   only". On write, dispatch the mapping down the static chain `backend-engineer`
+   (laravel) if installed → `task-runner:task-executor` if installed → inline — never
+   dead-end on a missing agent. Headless: output the mapping and files as a plan, write
+   nothing.
