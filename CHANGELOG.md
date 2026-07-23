@@ -4,6 +4,25 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.57.0] - 2026-07-23
+
+Conflict-audit HIGH fixes — two co-installed-plugin defects that could break a run.
+
+- **database 0.3.12** — the destructive-SQL `PreToolUse` guard (`hooks/guard.sh`) now
+  exempts documentation surfaces (`*.md`, `*.mdx`, `*.markdown`, `*.txt`, `*.rst`, and
+  anything under `taskmaster-docs/`). A taskmaster card that merely QUOTES a migration
+  executes nothing, but the guard was raising a `permissionDecision:"ask"` on every such
+  Write — a prompt storm during card generation, and under a headless / `ultra-goal`
+  hands-off run with no one to answer, a stalled pipeline. Real `.sql`, code, and
+  migration-path writes still gate exactly as before.
+- **hindsight 0.1.4, rollout 0.1.4, estimation 0.2.3** — three "Recommended" handoffs
+  dead-ended on an uninstalled command in the `process-suite` bundle (which ships these
+  plugins without their targets): hindsight → `/claude-authoring:new-skill`, rollout →
+  `/security:review`, estimation → `/taskmaster:task`. Each offer is now gated on the
+  target being installed, with an explicit inline fallback (scaffold brief / auth-money-PII
+  checklist / inline card-split) so the path never dead-ends. Same fix shape flagged for
+  approaches:compare and api-design:scaffold — those remain in the backlog.
+
 ## [0.56.0] - 2026-07-23
 
 Role-based dispatch tiering for the Extreme Boost modes — stop flat-escalating

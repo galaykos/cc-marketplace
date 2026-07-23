@@ -121,8 +121,10 @@ itself against v1 on real traffic.
   rollback. At each handoff offer the next step as a selectable choice, one
   offer per moment, bare commands only when headless: step list ready —
   "Execute with the task runner now (Recommended)" / "Skip" (as
-  /task-runner:run would); auth, money, or PII touched — "Run the security
-  review before stage 1 (Recommended)" / "Skip" (as /security:review would).
+  /task-runner:run would, when task-runner is installed, else run the cards
+  inline); auth, money, or PII touched — "Run the security review before stage
+  1 (Recommended)" / "Skip" (as /security:review would when the security plugin
+  is installed; else inline a short auth/money/PII checklist).
 
 ## Anti-patterns
 

@@ -1,6 +1,6 @@
 {
   "name": "estimation",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking persisted to a durable append-only ledger (with deferred-work parking) so calibration accumulates across runs. Includes /estimation:size.",
   "author": {
     "name": "Ivan-WG",

@@ -84,7 +84,9 @@ category, each proposal a separate option and every question carrying a
 
 - Rules → append the picked lines to the project's CLAUDE.md.
 - Ideas → hand each pick to `/claude-authoring:new-skill` or
-  `/claude-authoring:new-plugin` (whichever fits the idea's size).
+  `/claude-authoring:new-plugin` (whichever fits the idea's size) when
+  claude-authoring is installed; else write the idea as a one-paragraph
+  scaffold brief in the harvest output for manual capture.
 - Warnings → write picks to `.claude/hindsight/anti-patterns.md` and
   propose exactly ONE pointer line for CLAUDE.md referencing that file
   — the pointer is itself an option, never auto-added.

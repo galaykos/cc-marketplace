@@ -24,7 +24,8 @@ Classes align with the task-runner plugin's parallel-planning weights
   verification plan. Usually a sign the task should be split into cards
   first: offer the split as a selectable choice ("Split into cards now
   (Recommended)" / "Estimate whole anyway", proceeding as /taskmaster:task
-  would) instead of estimating it whole.
+  would when taskmaster is installed, else sketching the split inline as a
+  card list) instead of estimating it whole.
 - **XL** (unsizeable) — contains at least one unknown you cannot bound.
   Not a task but a project, or a spike trigger. Never assign XL a weight;
   assign it a next action (split or spike).
