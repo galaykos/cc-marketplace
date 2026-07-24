@@ -250,9 +250,9 @@ If you work on a specific stack, add its review plugin on top (e.g. `laravel` + 
 
 ### Building a landing page or marketing site: craft-layer
 
-`/craft-layer:craft <idea>` turns a product idea into a built, animated, audited page — it detects your stack (React/Next/Vue/Nuxt/Laravel) or asks when the idea is all you gave it. Before anything visual is decided it pins an **offer contract** — one product under its real name, the audience, the ONE primary action, the exact route list, the page length, the mode, and what is not shipping — and echoes it back to you before a single file is written. If your brief admits several products or directions, it asks which one instead of building all of them.
+`/craft-layer:craft <idea>` turns a product idea into a built, animated, audited page — it detects your stack (React/Next/Vue/Nuxt/Laravel) from the project, and asks only when you gave it no idea at all. Before anything visual is decided it pins an **offer contract** — one product under its real name, the audience, the ONE primary action, the exact route list, the page length, the mode, and what is not shipping — and echoes it back to you before a single file is written. If your brief admits several products or directions, it asks which one instead of building all of them.
 
-The contract is what stops the four ways a generated page fails to sell:
+The contract is what stops the five ways a generated page fails to sell:
 
 | Failure | What the contract does |
 |---------|------------------------|
@@ -274,7 +274,7 @@ The contract is what stops the four ways a generated page fails to sell:
 
 There is no flag to memorize — saying "guided", "section by section", or "give me options" anywhere in the request pins the mode, exactly like naming the audience or the routes does.
 
-Guided mode turns the offer spine into a decision agenda and asks in three capped rounds: **Shape** (one whole-page outline pick), **Treatment** (3–4 sections batched per exchange, most consequential first), and at most one **Signature** decision for the section carrying the concept's signature interaction. Six exchanges maximum *including any iteration*, with *"decide the rest for me"* — and *"just show me one option"* — offered at every one. Your picks land in a **section ledger** (written to the run's working area, never into the site) that the build reads and the audit checks for conformance, so a decision can't be recorded and then quietly ignored. Run headless, guided auto-decides the whole agenda and marks every row so you can see what you didn't choose.
+Guided mode turns the offer spine into a decision agenda and asks in three capped rounds: **Shape** (one whole-page outline pick), **Treatment** (3–4 sections batched per exchange, most consequential first), and at most one **Signature** decision for the section carrying the concept's signature interaction. Six exchanges maximum *including any iteration*, with *"decide the rest for me"* offered at every one (and *"just show me one option"* when you want a recommendation rather than a menu). Your picks land in a **section ledger** (written to the run's working area, never into the site) that the build reads and the audit checks for conformance, so a decision can't be recorded and then quietly ignored. Run headless, guided auto-decides the whole agenda and marks every row so you can see what you didn't choose.
 
 Reach for guided when the brief is broad, when the page IS the deliverable, or when you want options rather than a result. Long pages are supported explicitly: declare `long-scroll` and the section-count anchors become a floor instead of a range, with the extra length carrying its own rules (the spine answered in the opening third, the CTA recurring on one verb, section shapes varied, wayfinding past ~8 sections, below-fold instruments lazy-mounted).
 
@@ -287,8 +287,9 @@ Reach for guided when the brief is broad, when the page IS the deliverable, or w
 The audit checks more than motion: the offer contract, content depth (including that no metric,
 customer, or **capability** claim — coverage, integrations, certifications, SLAs — was invented
 rather than slotted), anti-sameness, licence provenance, contrast, and the motion budgets. It
-reports against Lighthouse targets (Performance ≥ 90, Accessibility ≥ 95) and ends by offering to
-route the findings back for fixing, or to report only.
+ends by offering to route the findings back for fixing, or to report only. The delegated a11y and
+performance passes are static reviews rather than Lighthouse runs, so their score targets
+(Performance ≥ 90, Accessibility ≥ 95) are the bar to aim at, not a measurement.
 
 **What you need installed.** craft-layer orchestrates and writes no build logic itself, so two companions are effectively **required**: **ui-ux** (`/ui-ux:theme` generates the tokens, `/ui-ux:build` builds the components — craft-layer deliberately hand-rolls neither) and **a11y** (the audit delegates the full accessibility pass to `/a11y:audit`). Both ship in the `frontend-suite` bundle alongside craft-layer.
 

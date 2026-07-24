@@ -17,6 +17,7 @@ Resolve every row below, echo them to the user, then build:
 | --- | --- |
 | Product | ONE product, under its REAL name |
 | Audience | who is buying, in a phrase |
+| Archetype | the work-type archetype classified from `archetypes.md` — it keys the content-depth anchors the audit counts against, so it must persist with the rest |
 | Primary action | the ONE thing a visitor should do (book a demo, start a trial, contact) |
 | Routes | the exact page/route list that ships |
 | Length | `standard` or `long-scroll` — see Part 5 |
@@ -67,9 +68,13 @@ concept makes it testable: the divergence record names the central METAPHOR, so 
 own vocabulary is the thing the plain-what line may not be built from.
 
 This only works if the record still EXISTS at audit time. The creative-director agent returns it
-and writes no files, so the craft flow must persist it — alongside the pinned contract, in the
-run's working area (the taskmaster docs area when the project has one, otherwise the session
-scratch area), never in the shipped tree — and inject it into the audit. An audit with no
+and writes no files, so the craft flow must persist it — alongside the pinned contract, never in
+the shipped tree — and inject it into the audit. **Fixed names, so a later session can find them
+without being told:** in a `craft/` directory under the run's working area (the taskmaster docs
+area when the project has one, otherwise the session scratch area), as
+`craft/offer-contract.md`, `craft/divergence-record.md`, and `craft/section-ledger.md`. The audit
+globs for `**/craft/offer-contract.md` and its siblings; a persistence rule with no filename is
+the same as no persistence at all. An audit with no
 contract and no record cannot run these checks and must SAY so rather than pass silently; a
 gate that quietly no-ops is worse than an absent one.
 

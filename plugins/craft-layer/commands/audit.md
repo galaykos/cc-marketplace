@@ -53,7 +53,9 @@ taxonomy and its per-tier budgets, then:
    sameness-fingerprint default (a build matching the fingerprint with an empty record is a
    finding, unless a conventional design was explicitly requested); and **content depth**
    meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
-   template; claim/aggregate metrics ship as `{{metric:*}}` slots rendered as labeled
+   template; claim/aggregate metrics ship as `{{metric:*}}` slots and capability claims —
+   coverage, integrations, supported platforms, SLAs, compliance certifications — as
+   `{{capability:*}}` slots, both rendered as labeled
    illustrative samples — not raw `{{mustache}}`, not unmarked invented literals; offer
    numerals like price/fee/step-count are fine, ONE disclosure marker per figure plus at most
    one regional footnote, no operator-addressed headline, no empty placeholder tiles); and the

@@ -28,10 +28,12 @@ teams"). If empty, ask for a one-line product idea and the target stack
    options and then building all of them is the failure this step exists to stop, and a
    token/kit showcase is not a site route unless asked for. Carry the contract's offer
    spine (plain-language what, audience, problem, how-it-works, price, proof, objection,
-   one CTA) into step 1 so both briefs owe it. PERSIST the pinned contract and, once step 0
-   finishes, the concept's divergence record into the run's working area (the taskmaster docs
-   area when the project has one, otherwise the session scratch — never the shipped tree); the
-   audit's contract and anti-sameness gates read them and cannot run if they were only spoken.
+   one CTA) into step 1 so both briefs owe it. PERSIST the pinned contract (including the
+   archetype) and, once the concept exists, its divergence record — at the fixed paths
+   `craft/offer-contract.md` and `craft/divergence-record.md` under the run's working area
+   (the taskmaster docs area when the project has one, otherwise the session scratch; never
+   the shipped tree). The audit's contract, content-depth and anti-sameness gates glob for
+   exactly those names and cannot run if the contract was only spoken.
    THEN classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`),
    and dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
    metaphor, an editorial voice, and one signature interaction — that breaks the
@@ -44,7 +46,9 @@ teams"). If empty, ask for a one-line product idea and the target stack
    evaporates. The metaphor is a design LANGUAGE, not a rebrand — the real product name
    stays in the title, hero, and nav.
 
-1. **Research → briefs.** Run `/craft-layer:research $ARGUMENTS`, passing the step-0
+1. **Research → briefs.** Run `/craft-layer:research <the product idea from step 0, with the
+   mode/length instructions stripped out>` — never `$ARGUMENTS` verbatim, or "guided" is
+   researched as part of the product. Pass the step-0
    concept + divergence record + palette mood as inputs so `design-research` biases BOTH
    briefs toward the concept (its mining method is unchanged; the concept steers what it
    elaborates and which defaults to break). It emits a freeform theme brief and a

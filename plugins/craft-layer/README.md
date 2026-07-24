@@ -66,7 +66,8 @@ options" — not by a flag.
 Guided costs a handful of exchanges: **Shape** (one whole-page outline pick),
 **Treatment** (3–4 sections batched per exchange, most consequential first), and at most one
 **Signature** decision — under the exchange cap `section-decisions/references/decision-rounds.md`
-sets, with *"decide the rest for me"* and *"show me one option"* offered at every one. It degrades
+sets, with *"decide the rest for me"* offered at every one and *"show me one option"* available
+when you want a recommendation instead of a menu. It degrades
 cleanly: no mockup plugins installed → written multiple-choice; headless → the whole agenda is
 auto-decided, every ledger row marked `auto`, and reported.
 

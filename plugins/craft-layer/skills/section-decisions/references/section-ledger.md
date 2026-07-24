@@ -10,11 +10,12 @@ picks, this binds a page's per-section treatment.
 
 ## Where it lives
 
-The ledger is WORKING material, not a shipped file. It lives with the run's other
-working artifacts — a taskmaster docs area when the project has one, otherwise the
-session's scratch area — and never inside a plugin or a shipped `src/` tree. When
-a taskmaster spec exists, the ledger belongs in that task's directory beside the
-spec it elaborates.
+The ledger is WORKING material, not a shipped file. It lives at a FIXED path so a later
+session's audit can find it without being told: `craft/section-ledger.md` under the run's
+working area — the taskmaster docs area when the project has one (in that task's directory,
+beside the spec it elaborates), otherwise the session's scratch area — alongside
+`craft/offer-contract.md` and `craft/divergence-record.md`. Never inside a plugin or a shipped
+`src/` tree. The audit globs for `**/craft/section-ledger.md`.
 
 Never write it into the built application. A landing page that ships a table of
 the decisions behind it is the kit-page-as-route mistake in another form.

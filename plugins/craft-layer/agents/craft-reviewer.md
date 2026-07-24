@@ -75,7 +75,13 @@ and check against its numbers; do not invent or restate budget thresholds here.
     neither a numeral nor a slot, or below the slot count, is a finding. Also flag a
     **fabricated claim metric** — an aggregate/claim numeral (GMV, user/creator counts,
     ratings, durations) written as a literal where a `{{metric:*}}` slot belongs; it fails the
-    rule even though it is a numeral. Offer numerals (price, fee, step counts) are fine. Also
+    rule even though it is a numeral. Flag the same way an invented **capability claim** — a
+    fact about the real product the build cannot know: geographic/market coverage ("16 US
+    metros", "available in 30 countries"), named integrations, supported platforms, SLA or
+    uptime figures, compliance certifications (SOC 2, HIPAA, GDPR), retention windows, support
+    hours — written as a literal where a `{{capability:*}}` slot belongs. These read like offer
+    terms and are the easiest to miss; the test is whether the DESIGN could decide it or only
+    the business could. Offer numerals (price, tier limits, step counts, plan names) are fine. Also
     check each claim's **manifestation** — it must render as a labeled illustrative sample
     (plausible value + a visible sample/illustrative marker + a `data-metric`/comment source
     tag), never as raw `{{mustache}}` in the output (unfinished) and never as an unmarked
@@ -161,7 +167,8 @@ and check against its numbers; do not invent or restate budget thresholds here.
 - [ ] The concept's divergence record breaks ≥1 sameness-fingerprint default (or a
       conventional design was explicitly requested).
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
-      metrics are `{{metric:*}}` slots, rendered as labeled illustrative samples (not raw
+      metrics are `{{metric:*}}` slots and capability claims (coverage, integrations, SLAs,
+      certifications) are `{{capability:*}}` slots, rendered as labeled illustrative samples (not raw
       `{{mustache}}`, not unmarked invented literals), with ONE marker per figure plus at most
       one regional footnote, no operator-addressed headline, and no empty placeholder tiles.
 - [ ] The offer contract holds — routes match the pinned scope, ONE product under its real
