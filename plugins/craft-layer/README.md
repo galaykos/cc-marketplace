@@ -39,6 +39,15 @@ it orchestrates existing surfaces:
 - **kinetic-typography** — animated + variable-font type: split-text reveals,
   variable-font axes on scroll/hover, phrase cross-fades (references the split-text and
   gradient-clip/aria gotchas rather than re-teaching them).
+- **page-transitions** — route/page view-transitions: the decision, shared-element
+  choreography across React/Next/Nuxt/Astro, reduced-motion + unsupported-browser
+  fallback (references the View Transitions API rather than re-teaching it).
+- **webgl-effects** — postprocessing + custom shaders as an effect layer on Tier 3: the
+  GPU-cost decision, scroll/pointer shader uniforms, a pass budget, and a
+  static/reduced-motion fallback (references `threejs-best-practices` + `webgl-3d.md`).
+- **interaction-fx** — pointer micro-interactions (custom cursor, magnetic, tilt, drag):
+  the affordance-vs-decoration decision, the a11y rules, one rAF pointer loop, and
+  reduced-motion (references Framer + the one-writer gotcha).
 
 ## Commands
 
@@ -61,7 +70,8 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Design-token scales | `plugins/ui-ux/skills/design-tokens` |
 | Palette / theme generation | `plugins/ui-ux/skills/shadcn-theming` + `/ui-ux:theme` |
 | Motion library idioms (Framer, GSAP, anime.js) | `plugins/ui-ux/skills/motion-best-practices` (+ `references/animejs.md`) |
-| Three.js / R3F correctness | `plugins/threejs/skills/threejs-best-practices` |
+| View Transitions API (page-transitions references it) | `plugins/ui-ux/skills/motion-best-practices` |
+| Three.js / R3F correctness (webgl-effects references it) | `plugins/threejs/skills/threejs-best-practices` |
 | Accessibility enforcement | `/a11y:audit` |
 | Performance / Lighthouse | `/performance:review` |
 | Chart form / color | the `dataviz` skill |
