@@ -1,0 +1,14 @@
+{
+  "name": "craft-layer",
+  "version": "0.1.0",
+  "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vite, Vue, Next, Nuxt, and Laravel: a /craft-layer:craft orchestrator chains design-research, token + component build, and a tiered motion-decision system (Framer Motion, anime.js, Three.js/R3F, sprites — each with a perf budget and prefers-reduced-motion fallback), plus sprite-motion and information-design skills and a /craft-layer:audit. Reuses the ui-ux and threejs skills.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "ui-ux",
+    "frontend",
+    "review"
+  ]
+}
