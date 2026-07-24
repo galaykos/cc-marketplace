@@ -4,6 +4,32 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.75.0] - 2026-07-24
+
+craft-layer 0.7.1 — decision-guidance hardening (principles, not new capabilities), from
+reviewing smoke-test #7 (the STRIKE neon "sign-shop" build — first live exercise of the
+0.7.0 creative-direction gates, which passed anti-sameness). Two net-new build-decision rules
+the audit caught the build missing:
+
+- **WebGL failure fallback needs an error boundary.** `webgl-3d.md` already required
+  capability/Save-Data gating and claimed "a failed load leaves the fallback showing" — but
+  never said *how*: a lazy `import()` reject or a lost WebGL context throws during render, and
+  without an error boundary that throw unmounts the tree (blank page); a `Suspense`/loading
+  fallback does not catch it. Encoded in `motion-tiers/references/webgl-3d.md` (two-render
+  contract + checklist), the `craft-reviewer` WebGL + webgl-effects gates, and
+  `/craft-layer:audit`.
+- **Content-depth: offer numerals vs claim metrics.** The specificity rule accepted "a concrete
+  numeral", which let a *fabricated* aggregate (GMV, user/creator counts) pass as substance —
+  contradicting the "never fabricate" anti-pattern. Now split: offer numerals (price, fee,
+  step counts — facts the design defines) count; claim/aggregate metrics MUST ship as
+  `{{metric:*}}` slots, never invented literals, and the `≥N-distinct-slot` floor is scoped to
+  entity/claim-bearing sections so an honest offer-heavy page isn't forced to invent slots.
+  Encoded in `creative-direction/references/content-depth.md`, the `craft-reviewer`
+  content-depth gate, and `/craft-layer:audit`.
+
+Light cascade: reference + agent + command bodies only, no description or leaf changes (no
+baseline reseed, no catalog/plugin-scout churn).
+
 ## [0.74.0] - 2026-07-24
 
 craft-layer 0.7.0 — new **creative-direction** capability (net-new, from the §E brainstorm):

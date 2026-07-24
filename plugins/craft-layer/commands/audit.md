@@ -24,13 +24,16 @@ taxonomy and its per-tier budgets, then:
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **accent clears
    contrast on every surface** it lands on (large ≥3:1, body ≥4.5:1); the newer skills
    meet their done-ness (page-transition instant-nav fallback, webgl GPU/pass budget +
-   capability fallback + off-screen loop pause, interaction-fx real-cursor +
+   capability fallback + off-screen loop pause + an error boundary for chunk-load/context
+   failure, interaction-fx real-cursor +
    `pointer:coarse` disable, physics body-cap + reduced static, motion-sequencing
    studio-excluded-from-prod); the concept's **divergence record** breaks ≥1
    sameness-fingerprint default (a build matching the fingerprint with an empty record is a
    finding, unless a conventional design was explicitly requested); and **content depth**
    meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
-   template). Collect its `path:line — severity — problem — fix` lines.
+   template; claim/aggregate metrics ship as `{{metric:*}}` slots, not fabricated literals —
+   offer numerals like price/fee/step-count are fine). Collect its
+   `path:line — severity — problem — fix` lines.
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
    accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is
    already covered as a craft gate in step 2; a11y owns the comprehensive pass);

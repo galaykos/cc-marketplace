@@ -16,7 +16,11 @@ Every tier-3 surface ships two renders:
    a slow connection, and a reduced-motion user see.
 2. **The 3D upgrade** — the WebGL scene, loaded only after the fallback is on screen and
    the load is affordable. The upgrade replaces the fallback in place; a failed or
-   deferred load simply leaves the fallback showing.
+   deferred load must **leave the fallback showing — which only happens behind an error
+   boundary.** A lazy `import()` that rejects, or a lost/failed WebGL context, throws
+   *during render*; without a boundary that throw unmounts the React tree (a blank page).
+   A `Suspense` / loading fallback does NOT catch it — a loading fallback is not a failure
+   fallback. Wrap the scene in an error boundary whose fallback is the same static poster.
 
 If you cannot produce the static fallback, you are not ready to ship the 3D — the
 fallback is the source of truth for the surface, the scene is the enhancement.
@@ -69,4 +73,7 @@ static fallback; the frozen scene is only for an explicit opt-in.
 - [ ] Scene freezes to one static frame under `prefers-reduced-motion: reduce`.
 - [ ] An animated surface pauses its render loop off-screen (`frameloop→never` / unmount),
       not just disposed on unmount.
+- [ ] The scene sits behind an error boundary so a rejected chunk import or a WebGL context
+      loss falls back to the poster, not a blank/unmounted tree (a `Suspense` fallback does
+      not catch a render-time throw).
 - [ ] Renderer reused and disposed on unmount (per `threejs-best-practices`).
