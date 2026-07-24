@@ -88,6 +88,9 @@ Every surface answers both, or it does not ship:
   stack (React, Next, Vue, Nuxt, Laravel via Inertia, Laravel via Livewire).
 - `references/webgl-3d.md` — the 3D lazy-load + static-fallback rules; cites
   `plugins/threejs/skills/threejs-best-practices/SKILL.md` for R3F correctness.
+- `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
+  split text (invisible), whileInView reveals with no fallback, split-text aria,
+  one-writer-per-property, scroll-link contract.
 
 ## Anti-patterns
 
