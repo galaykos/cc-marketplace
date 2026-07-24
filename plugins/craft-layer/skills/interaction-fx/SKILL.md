@@ -8,7 +8,7 @@ description: Use when adding a pointer micro-interaction — a custom cursor, ma
 This skill decides WHETHER a pointer effect aids affordance or is decoration, and WHICH
 pattern to use — then pins the accessibility rules and the budget. It does NOT re-teach
 the animation primitives: Framer / Motion springs, gestures, and `useSpring` live in
-`plugins/ui-ux/skills/motion-best-practices/SKILL.md` (+ `references/motion.md`) — and the
+`plugins/ui-ux/skills/motion-best-practices/SKILL.md` (+ `plugins/ui-ux/skills/motion-best-practices/references/motion.md`) — and the
 one-writer-per-property trap lives in
 `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`. Reference both by path.
 
@@ -86,7 +86,7 @@ as a toy and fights the click target underneath.
 - `references/pointer-patterns.md` — custom cursor, magnetic, tilt, and drag mechanics;
   the single shared pointer loop; the `(hover: hover)` / `pointer: coarse` gate.
 - Framer/Motion springs, gestures, `useSpring`, drag:
-  `plugins/ui-ux/skills/motion-best-practices/SKILL.md` + `references/motion.md`.
+  `plugins/ui-ux/skills/motion-best-practices/SKILL.md` + `plugins/ui-ux/skills/motion-best-practices/references/motion.md`.
 - One writer per property: `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`.
 
 ## Anti-patterns

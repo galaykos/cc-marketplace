@@ -25,7 +25,10 @@ the functional kinds above fails the build (and CI on every PR).
 
 - `scripts/validate.sh` — structure, frontmatter, SKILL.md 100–150-line body budget,
   reference resolution, the description linter (max 500 chars, no "Trigger words:"
-  lists), and the doc-location rule above.
+  lists), and the doc-location rule above. It also blocks leaked internal taskmaster
+  jargon (`card NN` / `Finding #N` / `smoke-test #N` / `the backlog`) in shipped
+  plugin `.md` files (`references/` included), excluding the taskmaster + task-runner
+  plugins; mark a line legitimately quoting the vocab with `<!-- jargon-ok -->`.
 - `scripts/check-version-bumps.sh` — a plugin whose files changed vs the base ref
   must bump its `plugin.json` version (new plugins are exempt).
 - `scripts/context-budget.sh` — BLOCKING per-leaf description-token gate vs the

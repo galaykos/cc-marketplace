@@ -112,10 +112,12 @@ craft-layer **references, never re-teaches**, these existing skills:
 | One-writer-per-property (physics-motion references) | `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` |
 | RTL / BiDi base rules (rtl-bidi.md references, adds only the motion decisions + LTR-islands) | `plugins/i18n/skills/i18n/SKILL.md` |
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/a11y:audit` |
-| Performance / Lighthouse | `/performance:review` |
+| Performance / Lighthouse (optional external delegation) | `/performance:review` requires the `performance` plugin; skipped if not installed |
 | Chart form / color | the `dataviz` skill |
 
 ## Install
 
 Ships in the **frontend-suite** bundle alongside `ui-ux`, `threejs`, `design-preview`,
-and `a11y` — installing the suite gives craft-layer every surface it composes.
+and `a11y` — installing the suite bundles the a11y audit craft delegates to. Performance
+is the one optional external delegation: `/performance:review` requires the `performance`
+plugin; skipped if not installed.

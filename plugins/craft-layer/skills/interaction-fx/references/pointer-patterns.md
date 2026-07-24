@@ -2,7 +2,7 @@
 
 Read on demand from the interaction-fx SKILL. The animation primitives (Framer/Motion
 springs, `useSpring`, gestures, drag) are NOT re-taught here — they live in
-`plugins/ui-ux/skills/motion-best-practices/SKILL.md` + `references/motion.md`. This file
+`plugins/ui-ux/skills/motion-best-practices/SKILL.md` + `plugins/ui-ux/skills/motion-best-practices/references/motion.md`. This file
 is the pointer-effect mechanics + the single loop.
 
 ## One shared pointer loop
