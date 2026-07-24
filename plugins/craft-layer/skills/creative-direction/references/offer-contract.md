@@ -20,6 +20,7 @@ Resolve all five, echo them to the user, then build:
 | Primary action | the ONE thing a visitor should do (book a demo, start a trial, contact) |
 | Routes | the exact page/route list that ships |
 | Length | `standard` or `long-scroll` — see Part 5 |
+| Mode | `one-shot` or `guided` — see Part 6 |
 | Not shipping | what was considered and cut |
 
 **One product per build.** When the brief admits several products, positionings, or
@@ -132,6 +133,29 @@ own, because the failure modes of a long page are not the failure modes of a sho
 An undeclared long page is a finding the same way an undeclared second product is: not because
 long is wrong, but because nobody decided it.
 
+## Part 6 — One-shot or guided
+
+A `one-shot` run generates the whole page from the contract and the concept, and
+the user first sees it finished. That is the right mode for a small page, a
+re-run, or a headless invocation — and it is the mode in which a misread brief
+survives the entire build.
+
+A `guided` run decides the page section by section with the user before it is
+built: the spine slots become a batched decision agenda, each section is offered
+as two or three structurally different treatments, and the picks land in a ledger
+the build and the audit both read. Owned by the `section-decisions` skill and
+runnable standalone as `/craft-layer:sections`.
+
+Declare `guided` when the brief is broad or ambiguous, when the page is the whole
+deliverable rather than one screen among many, or when the user asked for options.
+Declare it in the same prompt as the rest of the contract — it is a scope
+decision, not a separate ceremony. The mode is also the honest answer to "I am not
+sure what I want yet": guided costs a handful of exchanges and removes the risk
+that forty minutes of building answers the wrong question.
+
+`guided` changes nothing else in this contract. Every rule in Parts 1–5 still
+holds; the user is choosing between options that already satisfy them.
+
 ## What the audit checks (teeth)
 
 `/craft-layer:audit` reads THIS file (injected as a Read path) and verifies:
@@ -145,6 +169,8 @@ long is wrong, but because nobody decided it.
 - the plain-what line is checked AGAINST the divergence record's metaphor vocabulary, not by
   taste — an h1 built from the metaphor and naming no capability is a finding;
 - a proof region EXISTS (slotted per Part 4) rather than being absent;
+- on a `guided` run, a section ledger exists and the built page conforms to it
+  (`section-decisions/references/section-ledger.md` owns that check);
 - the declared LENGTH matches what shipped, and on `long-scroll`: every spine slot answered
   first within roughly the opening third, the primary CTA recurring through the scroll on one
   verb, no long run of identically-shaped sections, an in-page wayfinding affordance past

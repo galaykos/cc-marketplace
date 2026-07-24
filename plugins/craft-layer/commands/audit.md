@@ -26,7 +26,8 @@ taxonomy and its per-tier budgets, then:
    `../skills/creative-direction/references/content-depth.md` (the anti-sameness registry
    and the content-depth anchors) AND
    `../skills/creative-direction/references/offer-contract.md` (the deliverable scope +
-   offer-spine slots) AND
+   offer-spine slots) AND, when the run produced a section ledger,
+   `../skills/section-decisions/references/section-ledger.md` plus the ledger itself AND
    `../skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
    schema), and have it verify: every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
@@ -61,7 +62,11 @@ taxonomy and its per-tier budgets, then:
    repeated CTA verb), a proof region PRESENT as slots rather than deleted, and the declared
    page LENGTH honored (on `long-scroll` the section range is a floor, not a finding — instead
    check spine-answered-early, recurring one-verb CTA, varied section shapes, wayfinding past
-   ~8 sections, lazy below-fold instruments). Collect its
+   ~8 sections, lazy below-fold instruments); and, when a section ledger exists, **ledger
+   conformance** — every row has its section in the build, no marketing section is
+   unaccounted for, each row's `locks` actually ships, and `source: auto` rows are reported
+   rather than flagged (no ledger → skip this gate; a one-shot build is not a finding).
+   Collect its
    `path:line — severity — problem — fix` lines.
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
    accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is

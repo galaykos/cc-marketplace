@@ -110,6 +110,14 @@ and check against its numbers; do not invent or restate budget thresholds here.
     index) past roughly eight sections, and below-fold instruments mounting lazily so the
     cumulative per-PAGE motion budget still holds (step 7). A page that ran long without the
     contract declaring it is itself a finding.
+    Finally, when the dispatch injects a SECTION LEDGER (a `guided` run), check conformance:
+    every ledger row has a matching section in the build (grep its `section` id/anchor), no
+    marketing section exists that no row accounts for, and each row's `locks` — the named
+    instrument, component, or copy slot — actually ships. One finding per mismatched row,
+    naming the slot. REPORT rather than flag the `source: auto` rows so the user sees which
+    sections they did not personally choose. No ledger injected: skip this entirely — a
+    one-shot build is not a finding. Check correspondence, never whether the chosen treatment
+    was a good idea; that call was the user's.
 12. Licence / provenance (craft gate): read the injected
     `asset-sourcing/references/licence-discipline.md`. This gate runs even on a STATIC,
     non-animated build. Grep/Glob the shipped visual + font asset FILES and the provenance
@@ -157,6 +165,8 @@ and check against its numbers; do not invent or restate budget thresholds here.
 - [ ] Declared page LENGTH matches what shipped; on `long-scroll`, the spine is answered early,
       the CTA recurs on one verb, section shapes vary, wayfinding exists past ~8 sections, and
       below-fold instruments lazy-mount.
+- [ ] When a section ledger was injected: every row has its section, no section is unledgered,
+      every `locks` ships, and `auto` rows are reported (no ledger → gate skipped).
 - [ ] Every shipped third-party/AI asset — a committed FILE or a source ref (absolute-URL,
       inline-with-marker, URL-fetched) — has a complete provenance record (manifest exists, no
       orphan, non-empty enumerated licence-class + source; an absolute-URL ref needs a record
