@@ -4,6 +4,22 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.73.0] - 2026-07-24
+
+craft-layer 0.6.0 — decision-guidance hardening (principles, not new capabilities), from
+reviewing smoke-test #6 (a WebGL/scroll landing build). Two net-new build-decision rules:
+an **off-screen WebGL render-loop pause** — an animated (time-/scroll-driven) Tier-3
+surface must stop rendering when it leaves the viewport (`frameloop→never` / unmount), not
+merely dispose on unmount; encoded once in `motion-tiers/references/webgl-3d.md` with
+pointers from motion-tiers, webgl-effects, and the audit gate (craft-reviewer + audit
+command). And a **SPA route-change scroll resync** — at the scroll-orchestration ×
+page-transitions seam, a collapsing pin-spacer desyncs native scroll from the smooth-scroll
+instance, so a route change must hard-reset native scroll AND force-resync the smooth-scroll
+instance in a rAF, then `ScrollTrigger.refresh()`; encoded once in
+`motion-tiers/references/gotchas.md` with pointers from scroll-orchestration and
+page-transitions. Guidance-only: no new skills, no description changes (context-budget
+baseline, plugin-scout catalog, and plugin-scout version all unchanged).
+
 ## [0.72.0] - 2026-07-24
 
 craft-layer 0.5.0 — decision-guidance hardening (principles, not new capabilities), driven

@@ -45,7 +45,8 @@ and check against its numbers; do not invent or restate budget thresholds here.
    - **page-transitions**: an instant-navigation fallback for unsupported browsers +
      a reduced-motion path.
    - **webgl-effects**: a GPU/pass budget + a capability/static fallback + reduced-motion
-     freeze (one static frame).
+     freeze (one static frame) + an animated loop paused off-screen (not left rendering
+     at full DPR when the surface has scrolled away).
    - **interaction-fx**: the real cursor is preserved (no keyboard-less `cursor:none`),
      effects disable on `pointer:coarse`, reduced-motion path.
    - **physics-motion**: a body-count cap + one world/loop + reduced-motion static (no sim).

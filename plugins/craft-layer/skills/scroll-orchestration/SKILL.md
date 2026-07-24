@@ -64,6 +64,12 @@ breaking anchor links and keyboard scroll.
 - Sticky-safe: Lenis transforms scroll, not layout, so `position: sticky` and
   `position: fixed` keep working. Never wrap the page in a transformed container to
   fake smoothing — that breaks `sticky` and every pinned ScrollTrigger.
+- Resync on SPA route change: a client-side navigation can desync Lenis from native
+  scroll (a collapsing pin-spacer is the usual cause), so reset BOTH in a rAF and call
+  `ScrollTrigger.refresh()`. This is the seam with `page-transitions`; the full rule is
+  the SPA-route-change gotcha in
+  `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` — apply it, do not
+  re-bake it.
 
 Setup, options, sticky-safety, and the disable path: `references/lenis-substrate.md`.
 

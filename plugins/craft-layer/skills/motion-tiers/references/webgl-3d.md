@@ -36,6 +36,13 @@ fallback is the source of truth for the surface, the scene is the enhancement.
 - **One renderer, reused.** Do not create a renderer per route or per view; browsers cap
   GPU contexts. Dispose the scene and the renderer on unmount. The how-to for renderer
   choice, `setAnimationLoop`, DPR capping, and disposal is in `threejs-best-practices`.
+- **Pause the loop off-screen.** An animated surface (time- or scroll-driven) must STOP
+  rendering when it leaves the viewport — not merely dispose on unmount. A hero left
+  running a bloom/particle loop at full DPR after it scrolls away burns GPU on pixels no
+  one sees. Toggle the loop off with the SAME viewport observer that gated the load (R3F:
+  `frameloop="never"`; imperative: stop `setAnimationLoop` / gate `invalidate`), or
+  unmount the canvas; resume when it returns. "Render-on-demand" covers a *static* scene —
+  an *animated* one needs this explicit off-screen gate.
 
 ## Static fallback rules
 
@@ -60,4 +67,6 @@ static fallback; the frozen scene is only for an explicit opt-in.
 - [ ] A static poster / `<video poster>` fallback renders first, sized to avoid CLS.
 - [ ] Upgrade triggers on viewport / interaction, gated by reduced-motion + Save-Data.
 - [ ] Scene freezes to one static frame under `prefers-reduced-motion: reduce`.
+- [ ] An animated surface pauses its render loop off-screen (`frameloop→never` / unmount),
+      not just disposed on unmount.
 - [ ] Renderer reused and disposed on unmount (per `threejs-best-practices`).

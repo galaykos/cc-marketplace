@@ -21,7 +21,8 @@ taxonomy and its per-tier budgets, then:
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **accent clears
    contrast on every surface** it lands on (large ≥3:1, body ≥4.5:1); and the newer skills
    meet their done-ness (page-transition instant-nav fallback, webgl GPU/pass budget +
-   capability fallback, interaction-fx real-cursor + `pointer:coarse` disable, physics
+   capability fallback + off-screen loop pause, interaction-fx real-cursor +
+   `pointer:coarse` disable, physics
    body-cap + reduced static, motion-sequencing studio-excluded-from-prod). Collect its
    `path:line — severity — problem — fix` lines.
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL

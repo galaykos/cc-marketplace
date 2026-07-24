@@ -87,6 +87,9 @@ in the JS bundle. Budget it like paint, not like KB.
   viewport/intent (webgl-3d.md), with the static poster shown first.
 - Low-power / `Save-Data` / no-WebGPU-and-slow-WebGL → skip the effect, keep the static
   fallback. One renderer, disposed on unmount (threejs-best-practices).
+- Pause the loop off-screen: an animated post/shader pipeline must stop rendering once the
+  surface leaves the viewport (`frameloop→never` / unmount), or it burns GPU on unseen
+  pixels — the full off-screen-pause rule is in `webgl-3d.md`.
 
 ## References
 
@@ -108,6 +111,8 @@ in the JS bundle. Budget it like paint, not like KB.
   `prefers-reduced-motion: reduce`.
 - **Effect in the entry bundle** — shipping the 3D + post layer eagerly instead of
   lazy-loading with a static poster (webgl-3d.md).
+- **Loop never paused off-screen** — an animated bloom/shader pass still rendering at full
+  DPR after the surface scrolls out of view; gate it off (webgl-3d.md).
 - **Hand-written GLSL only** — GLSL `ShaderMaterial` that never runs on the WebGPU
   renderer; author in TSL and port.
 - **Re-teaching R3F / renderer setup** here instead of referencing threejs-best-practices.
