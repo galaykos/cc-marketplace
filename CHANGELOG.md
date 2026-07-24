@@ -4,6 +4,17 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.70.0] - 2026-07-24
+
+craft-layer 0.3.0 — MED-tier award capabilities. Three new native-first skills:
+`page-transitions` (View Transitions API decision + shared-element route choreography
+across React/Next/Nuxt/Astro + fallback), `webgl-effects` (postprocessing + custom
+shaders as an effect layer on Tier 3 — GPU-cost decision, scroll/pointer uniforms,
+budget, static/reduced-motion fallback), and `interaction-fx` (pointer micro-interactions
+— custom cursor, magnetic, tilt, drag — with a11y rules and one rAF loop). Each references
+existing motion-best-practices / threejs-best-practices / motion-tiers material by path
+rather than re-teaching it. Tools + decisions, not design templates.
+
 ## [0.69.0] - 2026-07-24
 
 craft-layer 0.2.0 — award-grade capabilities. A new `scroll-orchestration` skill
