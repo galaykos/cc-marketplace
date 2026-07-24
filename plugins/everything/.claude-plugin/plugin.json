@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.17.8",
+  "version": "0.17.9",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -19,6 +19,7 @@
     "code-review",
     "compaction-advisor",
     "concurrency",
+    "craft-layer",
     "database",
     "debugging",
     "design-patterns",
