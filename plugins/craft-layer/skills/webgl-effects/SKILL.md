@@ -45,6 +45,8 @@ in the JS bundle. Budget it like paint, not like KB.
   at full DPR.
 - Setup, the composer/render-graph wiring, and the GLSL→TSL port are in
   `references/effect-pipeline.md`.
+- Bundle-critical page needing only ONE shader plane? The three.js-vs-OGL lightweight
+  lever (OGL has no postprocessing) is in `references/effect-pipeline.md`.
 
 ## Shader uniforms from scroll + pointer
 
