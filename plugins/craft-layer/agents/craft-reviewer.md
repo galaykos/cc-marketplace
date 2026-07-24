@@ -16,8 +16,10 @@ and check against its numbers; do not invent or restate budget thresholds here.
 
 ## Procedure
 
-1. Identify every animation tier in use (Framer Motion, anime.js, Three.js/R3F,
-   sprites) and, for each, the surface(s) it drives. Grep for the tier's imports
+1. Identify every animation tier AND craft skill in use — tiers (Framer Motion,
+   anime.js, Three.js/R3F, sprites, Vector) plus the sibling engines
+   (scroll-orchestration, page-transitions, interaction-fx, physics-motion,
+   motion-sequencing, webgl-effects) — and the surface(s) each drives. Grep imports
    and entry points.
 2. Reduced motion: confirm each tier honors `prefers-reduced-motion` — a media
    query, a reduced variant, or a poster/static frame. A tier with no reduced-motion
@@ -31,21 +33,45 @@ and check against its numbers; do not invent or restate budget thresholds here.
 5. Sprites/assets: confirm sprite sheets and media assets stay within the size
    budgets set by the `sprite-motion` / `motion-tiers` skills. Flag oversized or
    unoptimized assets.
+6. Accent-vs-surface contrast (craft gate — carved out of the a11y defer): confirm the
+   accent colour(s) clear contrast on EVERY surface they land on (light AND dark
+   sections, cards, gradients); a large display accent still needs ≥3:1, body-size
+   ≥4.5:1. A low-contrast accent on any surface is a finding.
+7. Cumulative motion budget: confirm the COMBINED initial motion JS is budgeted (not just
+   per-tier) and non-hero engines are lazy-loaded — one heavy engine eager, the rest on
+   viewport/interaction (`motion-tiers/references/tier-budgets.md`). Eagerly shipping two+
+   heavy engines is a finding.
+8. Newer-skill done-ness — confirm each in-use skill meets its mandate:
+   - **page-transitions**: an instant-navigation fallback for unsupported browsers +
+     a reduced-motion path.
+   - **webgl-effects**: a GPU/pass budget + a capability/static fallback + reduced-motion
+     freeze (one static frame).
+   - **interaction-fx**: the real cursor is preserved (no keyboard-less `cursor:none`),
+     effects disable on `pointer:coarse`, reduced-motion path.
+   - **physics-motion**: a body-count cap + one world/loop + reduced-motion static (no sim).
+   - **motion-sequencing**: `@theatre/studio` excluded from the production bundle +
+     reduced-motion jump-to-final.
 
 ## Checklist
 
-- [ ] Every animation tier used has a `prefers-reduced-motion` path.
+- [ ] Every animation tier/engine used has a `prefers-reduced-motion` path.
 - [ ] Every 3D/WebGL surface is lazy-loaded and has a static fallback.
 - [ ] Every tier is within its per-tier perf budget from `motion-tiers`.
+- [ ] The COMBINED initial motion JS is budgeted; non-hero engines lazy-load.
 - [ ] Every sprite/asset is within its size budget.
-- [ ] a11y and performance were deferred, not re-checked here.
+- [ ] The accent clears contrast on every surface it lands on (large ≥3:1, body ≥4.5:1).
+- [ ] page-transitions / webgl-effects / interaction-fx / physics-motion /
+      motion-sequencing each meet their done-ness mandate (step 8) when used.
+- [ ] Full a11y and performance were deferred, not re-checked here.
 
 ## Defer
 
 Do not re-implement accessibility or performance checks — they are owned elsewhere
 and duplicated rules drift:
 
-- Accessibility (labels, contrast, focus, keyboard, ARIA) → defer to `/a11y:audit`.
+- Full accessibility (labels, focus, keyboard, ARIA, comprehensive contrast) → defer to
+  `/a11y:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (step 6) IS a craft
+  gate — run it here; defer the rest of a11y.
 - Performance / Lighthouse / Core Web Vitals / load timing → defer to
   `/performance:review`.
 

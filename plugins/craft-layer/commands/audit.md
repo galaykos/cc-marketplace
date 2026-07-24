@@ -9,19 +9,26 @@ taxonomy and its per-tier budgets, then:
 
 1. Detect what the target uses: grep the scope for each animation tier's imports and
    entry points — Framer Motion / `motion`, anime.js, Three.js / R3F / `<canvas>`,
-   and sprite sheets — plus any 3D/WebGL surface. List the tier(s) and surface(s)
+   sprite sheets — AND the sibling engines (scroll-orchestration/Lenis, page-transitions/
+   View Transitions, interaction-fx, physics-motion/matter, motion-sequencing/theatre,
+   webgl-effects), plus any 3D/WebGL surface. List the tier(s), engine(s), and surface(s)
    found; if none animate, say so and stop.
 2. Run the craft-specific gates by dispatching the findings to the `craft-reviewer`
-   agent from this plugin. Inject the Read path to `../skills/motion-tiers` so it
-   checks against the authoritative budgets, and have it verify: every tier in use
-   honors `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a
-   static fallback; each tier is within its per-tier budget from `motion-tiers`; and
-   sprites/assets stay within their size budget. Collect its `path:line — severity —
-   problem — fix` lines.
-3. Delegate the checks craft-layer does not own — do not re-implement them:
-   accessibility → `/a11y:audit $ARGUMENTS`; performance / Lighthouse / Core Web
-   Vitals → `/performance:review $ARGUMENTS`. Run each against the same scope and
-   collect their verdicts.
+   agent from this plugin. Inject the Read path to `../skills/motion-tiers` so it checks
+   against the authoritative budgets, and have it verify: every tier/engine in use honors
+   `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
+   each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
+   (non-hero engines lazy-loaded); sprites/assets stay within budget; the **accent clears
+   contrast on every surface** it lands on (large ≥3:1, body ≥4.5:1); and the newer skills
+   meet their done-ness (page-transition instant-nav fallback, webgl GPU/pass budget +
+   capability fallback, interaction-fx real-cursor + `pointer:coarse` disable, physics
+   body-cap + reduced static, motion-sequencing studio-excluded-from-prod). Collect its
+   `path:line — severity — problem — fix` lines.
+3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
+   accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is
+   already covered as a craft gate in step 2; a11y owns the comprehensive pass);
+   performance / Lighthouse / Core Web Vitals → `/performance:review $ARGUMENTS`. Run each
+   against the same scope and collect their verdicts.
 4. Report one consolidated pass/fail table: the craft gates from step 2, then the
    delegated results from step 3 presented against their audited TARGETS —
    Lighthouse Performance ≥ 90 and Accessibility ≥ 95. Frame these as targets the

@@ -4,6 +4,19 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.72.0] - 2026-07-24
+
+craft-layer 0.5.0 — decision-guidance hardening (principles, not new capabilities), driven
+by reviewing the smoke-test builds. Net-new decision guidance: an **RTL/BiDi** rule (new
+`motion-tiers/references/rtl-bidi.md` — which motion effects mirror vs the LTR-islands like
+charts, numerals, and code; reuses the i18n plugin's base rules), a **cumulative
+motion-bundle** budget + lazy-load-non-hero rule in tier-budgets, the **fallback-safe
+reveal** as the default choice, an **accent-vs-surface contrast** craft gate (design-research
+decision + audit check, with full a11y still delegated), audit **done-ness gates** for the
+five newer skills (page-transitions, webgl-effects, interaction-fx, physics-motion,
+motion-sequencing), and a `/craft-layer:craft` **orchestrator** that now routes across all
+11 skills. Guidance-only: no new skills, no description changes.
+
 ## [0.71.0] - 2026-07-24
 
 craft-layer 0.4.0 — LOW-tier package capabilities. Two new skills: `physics-motion`

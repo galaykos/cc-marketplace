@@ -53,6 +53,12 @@ Every source yields two kinds of finding; capture BOTH or the brief is colour-on
 - Type — serif/sans/mono mix, display-vs-body contrast, weight range.
 - Spacing & density — airy vs compact, the base rhythm.
 - Radius & elevation — sharp vs soft, flat vs shadowed.
+- **Accent contrast (a constraint, not just a vibe)** — choose the accent so it clears
+  contrast on EVERY surface it will land on: light sections AND dark sections, cards,
+  gradients. A large display accent still needs ≥3:1 and body-size ≥4.5:1 — "big text"
+  never excuses a low-contrast accent. If no single accent clears every surface, brief a
+  surface-specific variant. Generation stays with `/ui-ux:theme`; verification is a craft
+  gate (`/craft-layer:audit`).
 
 Record direction as adjectives and references, never as hex or px — `/ui-ux:theme` and
 the token scales own the exact numbers. The extraction worksheet is in
@@ -92,7 +98,8 @@ This skill mines and briefs; it does NOT re-teach generation. Reference, never c
 | Concern | Owned by |
 | --- | --- |
 | Token scales (spacing/type/radius/elevation/motion) | `plugins/ui-ux/skills/design-tokens/SKILL.md` |
-| Palette / theme generation, contrast, dark mode | `plugins/ui-ux/skills/shadcn-theming/SKILL.md` |
+| Palette / theme generation, contrast tooling, dark mode | `plugins/ui-ux/skills/shadcn-theming/SKILL.md` |
+| Accent-vs-surface contrast VERIFICATION (every surface, large ≥3:1) | `/craft-layer:audit` (craft gate) |
 | Palette + live preview from the theme brief | `/ui-ux:theme` |
 | Component/layout build from the build task | `/ui-ux:build` |
 

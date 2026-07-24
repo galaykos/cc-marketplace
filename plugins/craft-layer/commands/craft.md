@@ -29,19 +29,33 @@ teams"). If empty, ask for a one-line product idea and the target stack
    applying `design-tokens` and, for data-dense CRM/SaaS surfaces, the
    `information-design` skill (hierarchy, density, tables/dashboards, when-to-dataviz).
 
-4. **Motion.** For each animated surface, select a tier via the `motion-tiers` skill's
-   decision — Framer Motion, anime.js, Three.js/R3F, or sprites (the `sprite-motion`
-   skill covers the last). Apply the tier's **perf budget**, its `prefers-reduced-motion`
-   fallback, and its reduced-bundle fallback. Keep any 3D lazy-loaded with a static
-   fallback per `motion-tiers/references/webgl-3d.md`. For scroll-driven pages use
-   `scroll-orchestration` (Lenis substrate + ScrollTrigger); for animated or
-   variable-font type use `kinetic-typography`; for a designer-authored `.lottie`/`.riv`
-   asset reach for the Vector tier.
+4. **Motion — route across the craft skills.** Decide what each surface needs, then reach
+   for the owning skill (each references its library by path — never re-teach):
+   - **Tier** (the base per-surface choice) via `motion-tiers`: Framer Motion, anime.js,
+     Three.js/R3F, sprites (`sprite-motion`), or the Vector tier (Lottie/Rive).
+   - **Scroll-driven** (smooth scroll, scrub, pin, parallax) → `scroll-orchestration`
+     (Lenis + ScrollTrigger).
+   - **Route / page transitions** → `page-transitions` (View Transitions + fallback).
+   - **Focal / variable-font type** → `kinetic-typography`.
+   - **Pointer micro-interactions** (custom cursor, magnetic, tilt, drag) → `interaction-fx`.
+   - **Real 2D physics** (gravity, collision, drag-inertia) → `physics-motion`.
+   - **Multi-track / editor-authored choreography** → `motion-sequencing`.
+   - **Postprocessing / custom shaders on a 3D scene** → `webgl-effects`.
+   - **Data-dense surfaces** → `information-design` (also applied in step 3).
+
+   Then fold in the cross-cutting decisions: apply each tier's `prefers-reduced-motion`
+   and reduced-bundle fallback; budget the **cumulative** motion JS (one heavy engine
+   eager, the rest lazy — `motion-tiers/references/tier-budgets.md`); on an **RTL** target
+   mirror direction-bearing motion while keeping charts/numerals/code as LTR-islands
+   (`motion-tiers/references/rtl-bidi.md`); and pick the **accent so it clears contrast on
+   every surface** it lands on (verified in step 5).
 
 5. **Audit.** Run `/craft-layer:audit` on the result to verify the craft gates
-   (reduced-motion per tier, lazy + static-fallback 3D, per-tier budgets, sprite/asset
-   budgets) and, via its delegation, accessibility and performance. Resolve any failed
-   gate before declaring the surface done.
+   (reduced-motion per tier, lazy + static-fallback 3D, per-tier + **cumulative** motion
+   budget, sprite/asset budgets, **accent-vs-surface contrast**, and the newer-skill
+   gates — page-transition fallback, WebGL GPU budget, interaction-fx cursor a11y, physics
+   body-cap, sequencing studio-excluded-from-prod) and, via its delegation, full
+   accessibility and performance. Resolve any failed gate before declaring the surface done.
 
 ## Notes
 
