@@ -36,9 +36,11 @@ it orchestrates existing surfaces:
    then fold in the cross-cutting decisions: reduced-motion + reduced-bundle fallbacks, the
    **cumulative** motion budget, **RTL** effect-mirroring vs LTR-islands, and
    **accent-vs-surface contrast**.
-7. **`/craft-layer:audit`** — verify the craft gates (offer contract, ledger conformance,
-   per-tier + cumulative budget, reduced-motion, contrast, licence + asset-fit, the
-   newer-skill gates; delegating full a11y + performance).
+7. **`/craft-layer:audit`** — verify the craft gates (offer contract, content depth, ledger
+   conformance, per-tier + cumulative budget, reduced-motion, contrast, licence + asset-fit,
+   the newer-skill gates; delegating full a11y + performance). It measures asset and chunk
+   sizes itself before dispatching, and any gate it cannot measure is reported
+   `not measured` rather than guessed — then offers to route the findings to a worker.
 
 ### One-shot or guided
 

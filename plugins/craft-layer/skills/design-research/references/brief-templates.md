@@ -67,6 +67,8 @@ Layout: <grid/columns/hero composition, max-width, density>.
 Components: <card anatomy, table/list density, form rhythm, key states>.
 Interaction: <hover/focus, disclosure, scroll/transition behaviour>.
 Motion: <what animates, entrance vs micro-interaction, energy> (per motion-tiers).
+Assets / provenance: <per asset: build-in-code | source | commission, and for anything
+  sourced, the manifest entry it must carry>.
 Responsive: <how it reflows at phone / tablet / full>.
 Patterns borrowed from: <source URLs + the one-line why from the mining worksheet>.
 ```

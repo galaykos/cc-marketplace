@@ -11,7 +11,11 @@ range is not a design.
 
 ## Per-archetype anchors
 
-| Archetype | Sections (landing) | Per-block copy | Inner / detail pages |
+Section counts and slot specificity are GATED (the audit counts them). The copy-volume columns
+are authoring guidance, deliberately ungated — word-counting is exactly what the specificity
+rule exists to stop being gameable.
+
+| Archetype | Sections (landing) | Per-block copy *(guidance)* | Inner / detail pages *(guidance)* |
 | --- | --- | --- | --- |
 | product/SaaS | 9–13 | feature blocks 40–90 words | 600–1200 words |
 | marketing/campaign | 6–10 | 30–70 words | 300–800 words |

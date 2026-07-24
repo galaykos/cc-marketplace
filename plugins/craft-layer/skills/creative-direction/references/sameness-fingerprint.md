@@ -44,9 +44,16 @@ The creative-director agent returns a **divergence record**: for each departure,
 { fingerprint axis (spine / a named vocabulary move / recent hue) · the entry it replaces ·
 the brief reason }. A concept must break **≥ 1** default (K floor = 1; more is better).
 
-The audit fails a build when BOTH hold:
-- it matches the fingerprint on all-but-one axes (spine + vocabulary), AND
-- the concept's divergence record is empty or placeholder.
+The audit fails a build when BOTH hold — stated as counts, so the check is falsifiable:
+- the build reproduces the recurring SPINE in order end-to-end, **and** ships ≥ 3 of the
+  registry's named vocabulary moves unbroken; AND
+- the divergence record is missing, empty, placeholder, or every entry it claims is
+  contradicted by what actually shipped (a record naming a broken default the build still
+  contains counts as placeholder — check each entry against the source, do not take the
+  record's word for it).
+
+A non-empty record is not automatically a pass; an unverifiable one is reported
+`not checked`, not passed.
 
 The reviewer greps and compares the record against this registry — it does not judge
 whether the result is beautiful. **Escape hatch:** an explicit user request for a

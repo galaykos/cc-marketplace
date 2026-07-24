@@ -29,8 +29,10 @@ exactly one owner, and this file is only the third:
 
 ## The payload — the token-system-direction block
 
-`design-research` derives this block into the theme brief (the token-system-direction slot
-lives in `design-research/references/brief-templates.md`; `/ui-ux:theme` then consumes the brief).
+THIS skill derives the block; `/craft-layer:research` step 2 is where it is applied, and it
+lands in the theme brief's token-system-direction slot
+(`design-research/references/brief-templates.md`), which `/ui-ux:theme` then consumes.
+`design-research` owns the brief's SHAPE, not this payload's content.
 It is three lines, one per concept facet, each mapping the facet to a token-role DIRECTION —
 adjectives and role names only, never a value:
 

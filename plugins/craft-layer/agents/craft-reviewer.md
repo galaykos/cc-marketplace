@@ -14,6 +14,19 @@ The `craft-layer:motion-tiers` skill is authoritative for tier definitions and
 their per-tier perf budgets. When a dispatch injects its Read path, Read it first
 and check against its numbers; do not invent or restate budget thresholds here.
 
+**You have Read, Grep and Glob — no Bash, no profiler, no renderer.** You therefore cannot
+measure a file's bytes, a chunk's gzipped weight, a contrast ratio, a frame cost, or what
+lands above the fold. The dispatching command measures those and injects them as facts. Rules,
+without exception:
+
+- A number was injected → cite it and judge against the budget.
+- It was injected as `not measured`, or not injected at all → report that gate
+  `not measured` and fall back to the STRUCTURAL check you can actually perform (is the heavy
+  tier lazy-loaded? is a distinct small-text accent step declared? is a poster/fallback
+  present?).
+- Never estimate a size or a ratio from source and present it as a verdict. A gate that
+  silently guesses is worse than one that says it could not run.
+
 ## Procedure
 
 1. Identify every animation tier AND craft skill in use — tiers (Framer Motion,
@@ -30,19 +43,23 @@ and check against its numbers; do not invent or restate budget thresholds here.
    **error boundary** around the scene — a `Suspense`/loading fallback does not catch a
    rejected chunk import or a thrown/lost WebGL context, so without a boundary the failure
    unmounts the tree (blank page). Missing lazy-load, static fallback, or boundary is a finding.
-4. Per-tier budgets: check each tier against its budget from the `motion-tiers`
-   skill (bundle weight, node/particle counts, frame cost). Flag overruns; cite the
-   tier and the budget you compared against.
-5. Sprites/assets: confirm sprite sheets and media assets stay within the size
-   budgets set by the `sprite-motion` / `motion-tiers` skills. Flag oversized or
-   unoptimized assets.
-6. Accent contrast (craft gate — carved out of the a11y defer): confirm the accent
-   colour(s) clear contrast on EVERY surface AND at every SIZE they land on. Surface: light
-   AND dark sections, cards, gradients. Size (the light-theme trap): a bright display accent
-   reused as small text, an icon, or a thin chart mark must resolve to the DARKER text/mark
-   accent step — small text ≥4.5:1, a non-text mark ≥3:1 vs its surface; a large display
-   accent still needs ≥3:1. A low-contrast accent on any surface, or a bright display accent
-   reused at small text/mark size on a light surface, is a finding.
+4. Per-tier budgets: with injected chunk sizes, check each tier against its budget from the
+   `motion-tiers` skill and cite both numbers. Without them, report `not measured` and check
+   what source shows instead: the tier's import shape (named/tree-shaken vs whole-library),
+   whether tier 3/4/5 is behind a dynamic import, and whether the reduced-bundle fallback
+   named in the tier table exists. Frame cost is never checkable here — defer it.
+5. Sprites/assets: with injected file sizes, check sheets and media against the
+   `sprite-motion` / `motion-tiers` budgets and cite the number. Without them, report
+   `not measured` and check format-per-kind and the presence of a poster/reduced fallback.
+   Never infer a byte size from a filename or a source reference.
+6. Accent contrast (craft gate — carved out of the a11y defer): the STRUCTURAL half is yours,
+   the arithmetic is not. Check that the token system declares a distinct darker text/mark
+   accent step alongside the display accent in each theme, that the recorded ratio is written
+   beside each pairing, and that small-text/icon/thin-mark usages reference the text step
+   rather than the display one (the light-theme trap). A single accent token doing display AND
+   small-text duty on a light surface is a finding you can see in source. Computing a ratio
+   from hex is NOT — cite an injected ratio when the dispatch measured one, otherwise report
+   the numeric check `not measured` and let `/a11y:audit` own it.
 7. Cumulative motion budget: confirm the COMBINED initial motion JS is budgeted (not just
    per-tier) and non-hero engines are lazy-loaded — one heavy engine eager, the rest on
    viewport/interaction (`motion-tiers/references/tier-budgets.md`). Eagerly shipping two+
@@ -100,8 +117,9 @@ and check against its numbers; do not invent or restate budget thresholds here.
     read the build alone (spine slots, proof presence, one product identity). Verify the
     shipped route list matches the pinned deliverable scope; that ONE product identity spans those routes; that the
     REAL product name — not a concept-invented wordmark — is in `<title>` and the hero; that
-    each marketing page answers every offer-spine slot (a plain-language what-line above the
-    fold, a named audience, the problem, a 3–5-step how-it-works, price
+    each marketing page answers every offer-spine slot (a plain-language what-line in the
+    page's FIRST section in source order — "above the fold" is a rendered property you cannot
+    see, so source position is the check, a named audience, the problem, a 3–5-step how-it-works, price
     or `{{price:*}}`, a proof region, an objection/limits block, one repeated primary-CTA
     verb); that the what-line is checked against the divergence record's METAPHOR VOCABULARY
     rather than by taste — an h1 assembled from the concept's own figure of speech that names
@@ -117,8 +135,9 @@ and check against its numbers; do not invent or restate budget thresholds here.
     offer-spine slot answered first within roughly the opening third of the page (a back-loaded
     price, audience, or what-line is a finding), the primary CTA recurring through the scroll on
     ONE verb rather than appearing only at top and bottom, no long run of consecutive sections
-    sharing a single layout shape, an in-page wayfinding affordance (anchor nav, progress, or
-    index) past roughly eight sections, and below-fold instruments mounting lazily so the
+    built from the same declared layout component or wrapper class (declared shape is what
+    source shows; rendered visual similarity is not yours to judge), an in-page wayfinding
+    affordance (anchor nav, progress, or index) past roughly eight sections, and below-fold instruments mounting lazily so the
     cumulative per-PAGE motion budget still holds (step 7). A page that ran long without the
     contract declaring it is itself a finding.
     Finally, when the dispatch injects a SECTION LEDGER (a `guided` run), check conformance:

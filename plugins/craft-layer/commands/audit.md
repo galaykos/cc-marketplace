@@ -9,7 +9,8 @@ taxonomy and its per-tier budgets, then:
 
 1. Detect what the target uses: grep the scope for each animation tier's imports and
    entry points — Framer Motion / `motion`, anime.js, Three.js / R3F / `<canvas>`,
-   sprite sheets — AND the sibling engines (scroll-orchestration/Lenis, page-transitions/
+   sprite sheets, and the Vector tier (`lottie-web`/`@lottiefiles/*`/`@dotlottie/*`,
+   `@rive-app/*`, `.lottie`/`.json` animation data, `.riv`) — AND the sibling engines (scroll-orchestration/Lenis, page-transitions/
    View Transitions, interaction-fx, physics-motion/matter, motion-sequencing/theatre,
    webgl-effects), plus any 3D/WebGL surface — AND scan for shipped visual/font ASSETS, whether
    committed FILES (icons, SVG, raster images, 3D models, Lottie/Rive, webfonts, background
@@ -19,20 +20,32 @@ taxonomy and its per-tier budgets, then:
    provenance manifest. List the tier(s), engine(s), surface(s), and assets found. If
    nothing animates BUT shipped assets are present, still run the asset/licence gates in
    step 2 — do not stop. Only when there is neither motion nor a shipped asset, say so and stop.
+   The motion/asset stop applies to the motion and asset gates ONLY — the offer-contract,
+   content-depth, and anti-sameness gates read page CONTENT and still run on a fully static
+   build, which is exactly when a marketing page is most likely to need them.
+
+   **1b. MEASURE what the reviewer cannot.** The reviewer is Read/Grep/Glob and can see no
+   file's byte size. You have Bash: before dispatching, collect the numbers its budget gates
+   need and inject them as facts — per-asset gzipped and raw sizes for every shipped
+   sprite/image/font/3D/Lottie file, and per-chunk gzipped size for the built bundle when a
+   `dist/`/`build/` output exists (a project's own build command, `wc -c`, `gzip -c | wc -c`,
+   or the bundler's report). Anything you cannot measure — no build output, no toolchain —
+   is injected as `not measured` for that item, and the reviewer reports it that way rather
+   than asserting a verdict.
 2. Run the craft-specific gates by dispatching the findings to the `craft-reviewer`
-   agent from this plugin. Inject the Read path to `../skills/motion-tiers` (authoritative
+   agent from this plugin. Inject the Read path to `${CLAUDE_PLUGIN_ROOT}/skills/motion-tiers/references/tier-budgets.md` (authoritative
    budgets) AND the Read paths to
-   `../skills/creative-direction/references/sameness-fingerprint.md` and
-   `../skills/creative-direction/references/content-depth.md` (the anti-sameness registry
+   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/sameness-fingerprint.md` and
+   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/content-depth.md` (the anti-sameness registry
    and the content-depth anchors) AND
-   `../skills/creative-direction/references/offer-contract.md` (the deliverable scope +
+   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md` (the deliverable scope +
    offer-spine slots) AND — from the run's working area — the PERSISTED contract instance and
    divergence record when they exist (without them the contract and anti-sameness gates cannot
    run and must be reported as `not checked`, never as passing) AND, when the run produced a
-   section ledger, `../skills/section-decisions/references/section-ledger.md` plus the ledger
+   section ledger, `${CLAUDE_PLUGIN_ROOT}/skills/section-decisions/references/section-ledger.md` plus the ledger
    itself AND
-   `../skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
-   schema), and have it verify: every tier/engine in use honors
+   `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
+   schema) AND the measurements from step 1b, and have it verify: every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **licence gate** —
@@ -80,11 +93,17 @@ taxonomy and its per-tier budgets, then:
    `/performance:review` requires the `performance` plugin; skipped if not installed. Run each
    against the same scope and collect their verdicts.
 4. Report one consolidated pass/fail table: the craft gates from step 2, then the
-   delegated results from step 3 presented against their audited TARGETS —
-   Lighthouse Performance ≥ 90 and Accessibility ≥ 95. Frame these as targets the
-   audit measures, not hard CI gates. Order findings by severity and name the owning
-   tool for each delegated line.
+   delegated results from step 3. Both delegates are STATIC reviews, not Lighthouse runs, so
+   present Performance ≥ 90 / Accessibility ≥ 95 as the bar their findings are read against —
+   never as a measured score, and never as a hard CI gate. A row whose delegate was skipped
+   (plugin not installed) or whose input was `not measured` says so explicitly; a gate that
+   could not run is reported `not checked`, never folded into a pass. Order findings by
+   severity and name the owning tool for each delegated line.
 5. When findings map to real files, offer the fix as a selectable choice
-   (AskUserQuestion): "Route craft findings to craft-layer now" / "Report only".
-   Headless: report only and print the exact `/a11y:audit` and `/performance:review`
-   commands to rerun.
+   (AskUserQuestion): "Fix the craft findings now" / "Report only". craft-layer ships no
+   writer — both its agents are read-only — so route the accepted fixes down a static chain:
+   `task-runner:task-executor` when the task-runner plugin is installed, else
+   `ui-ux:ui-ux-engineer` for markup/style/component work, else apply them inline. Findings
+   owned by a delegate go to that delegate's own worker (`a11y:a11y-engineer`,
+   `performance:performance-engineer`). Headless: report only and print the exact
+   `/a11y:audit` and `/performance:review` commands to rerun.

@@ -48,8 +48,9 @@ teams"). If empty, ask for a one-line product idea and the target stack
 
 1. **Research → briefs.** Run `/craft-layer:research <the product idea from step 0, with the
    mode/length instructions stripped out>` — never `$ARGUMENTS` verbatim, or "guided" is
-   researched as part of the product. Pass the step-0
-   concept + divergence record + palette mood as inputs so `design-research` biases BOTH
+   researched as part of the product. It reads the step-0 concept, divergence record and
+   contract from the persisted `craft/` files and returns the briefs WITHOUT handing off (the
+   chain owns steps 2 and 5), so `design-research` biases BOTH
    briefs toward the concept (its mining method is unchanged; the concept steers what it
    elaborates and which defaults to break). It emits a freeform theme brief and a
    component/layout build task. Detect the target stack here if not already known.
@@ -77,14 +78,25 @@ teams"). If empty, ask for a one-line product idea and the target stack
    (`skills/asset-sourcing/references/sourcing-decision.md`), and record provenance in the
    manifest (`.../references/licence-discipline.md`) — licence + source per shipped third-party
    asset. Runs BEFORE Build so the build-in-code-vs-source calls feed `/ui-ux:build`.
+   This step OWNS the manifest file: write it into the project at one of the accepted names
+   (`ASSETS` / `CREDITS` / `PROVENANCE` / `THIRD-PARTY-NOTICES`) as soon as the asset plan is
+   decided, and carry the plan into step 5 on the build task's `Assets / provenance:` line, so
+   the build sources what was decided. Skipping this because "everything is drawn in code"
+   still owes the manifest a first-party declaration — the licence gate runs on static,
+   all-in-code builds too, and an unwritten manifest is a finding nobody was assigned to
+   prevent.
 
 5. **Build.** Pass the build task — carrying the section ledger's choices when step 3 ran —
    to `/ui-ux:build` to lay out components and screens,
    applying `design-tokens` and, for data-dense CRM/SaaS surfaces, the
    `information-design` skill (hierarchy, density, tables/dashboards, when-to-dataviz).
 
-6. **Motion — route across the craft skills.** Decide what each surface needs, then reach
-   for the owning skill (each references its library by path — never re-teach):
+6. **Motion — route across the craft skills.** This step DECIDES; `/ui-ux:build` implements.
+   Work out what each surface needs, then hand the decisions back to `/ui-ux:build` as a
+   second pass on the same build task (its `Motion:` line, now resolved to a named tier per
+   surface plus the fallbacks below) — craft-layer writes no animation code itself. Reach
+   for the owning skill to make each call (each references its library by path — never
+   re-teach):
    - **Tier** (the base per-surface choice) via `motion-tiers`: Framer Motion, anime.js,
      Three.js/R3F, sprites (`sprite-motion`), or the Vector tier (Lottie/Rive).
    - **Scroll-driven** (smooth scroll, scrub, pin, parallax) → `scroll-orchestration`
