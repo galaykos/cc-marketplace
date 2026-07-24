@@ -110,7 +110,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + theme builder (shadcn/ReUI/Aceternity, Tailwind, Bootstrap) with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
-| **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM/SaaS/landing) across React/Vue/Next/Nuxt/Laravel: a `/craft-layer:craft` orchestrator, a design-research→token-brief playbook, a tiered motion-decision system (Framer / anime.js / Three.js / sprites, each with perf budget + reduced-motion), sprite & information-design skills, and a craft audit — reuses ui-ux & threejs | `/craft-layer:craft`, `/craft-layer:audit` |
+| **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM/SaaS/landing) across React/Vue/Next/Nuxt/Laravel: a `/craft-layer:craft` orchestrator, a design-research→token-brief playbook, a tiered motion-decision system (Framer / anime.js / Three.js / Vector Lottie-Rive / sprites, budgeted with reduced-motion), `scroll-orchestration` (Lenis/ScrollTrigger), `kinetic-typography`, information-design, and a craft audit — reuses ui-ux & threejs | `/craft-layer:craft`, `/craft-layer:audit` |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |

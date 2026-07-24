@@ -27,11 +27,18 @@ it orchestrates existing surfaces:
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
 - **motion-tiers** — the tier decision system: Framer Motion, anime.js, Three.js/R3F,
   and sprites — each with when-to-use, a perf budget, a `prefers-reduced-motion`
-  fallback, a reduced-bundle fallback, and a per-framework tool binding.
+  fallback, a reduced-bundle fallback, and a per-framework tool binding — including
+  **Tier 5 — Vector (Lottie / Rive)** for designer-authored vector motion.
 - **sprite-motion** — sprite / sprite-sheet authoring: sheet formats, CSS `steps()` and
   `requestAnimationFrame` loops, reduced-motion poster frames, size budgets.
 - **information-design** — hierarchy, data density, tables/dashboards, and when to reach
   for data-viz — for the data-dense CRM/SaaS targets.
+- **scroll-orchestration** — the smooth-scroll substrate (Lenis) + scroll-driven
+  animation contract; references `gsap.md` for ScrollTrigger and CSS scroll-driven as
+  the reduced-bundle path.
+- **kinetic-typography** — animated + variable-font type: split-text reveals,
+  variable-font axes on scroll/hover, phrase cross-fades (references the split-text and
+  gradient-clip/aria gotchas rather than re-teaching them).
 
 ## Commands
 

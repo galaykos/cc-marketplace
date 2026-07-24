@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.68.0"
+    "version": "0.69.0"
   },
   "plugins": [
     {
@@ -17,7 +17,7 @@
     {
       "name": "craft-layer",
       "source": "./plugins/craft-layer",
-      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vite, Vue, Next, Nuxt, and Laravel: a /craft-layer:craft orchestrator chains design-research, token + component build, and a tiered motion-decision system (Framer Motion, anime.js, Three.js/R3F, sprites — each with a perf budget and prefers-reduced-motion fallback), plus sprite-motion and information-design skills and a /craft-layer:audit. Reuses the ui-ux and threejs skills."
+      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel: /craft-layer:craft chains design-research, token + component build, and a tiered motion-decision system (Framer, anime.js, Three.js/R3F, Vector Lottie/Rive, sprites — each budgeted with reduced-motion + reduced-bundle fallbacks), plus scroll-orchestration (Lenis/ScrollTrigger), kinetic-typography, information-design, and a /craft-layer:audit. Reuses ui-ux + threejs."
     },
     {
       "name": "react",
