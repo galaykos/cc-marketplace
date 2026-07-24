@@ -52,6 +52,19 @@ and check against its numbers; do not invent or restate budget thresholds here.
    - **physics-motion**: a body-count cap + one world/loop + reduced-motion static (no sim).
    - **motion-sequencing**: `@theatre/studio` excluded from the production bundle +
      reduced-motion jump-to-final.
+9. Anti-sameness (craft gate): read the injected
+   `creative-direction/references/sameness-fingerprint.md` and the build's concept
+   **divergence record**. A build is a finding when it matches the fingerprint on
+   all-but-one axes (the recurring spine + component vocabulary) AND its divergence record
+   is empty or placeholder — grep and COMPARE the record against the registry; never judge
+   whether the result is beautiful. An explicit user request for a conventional /
+   trust-first design is a valid justification, not a finding.
+10. Content depth (craft gate): read the injected
+    `creative-direction/references/content-depth.md`. Count sections against the archetype
+    range; grep each section/block for a numeral or a `{{slot}}`; count distinct typed slots
+    per page against N. Under the section floor, a block with neither a numeral nor a slot,
+    or below the slot count, is a finding. The anchors are the citable numbers — objective,
+    not aesthetic.
 
 ## Checklist
 
@@ -63,6 +76,9 @@ and check against its numbers; do not invent or restate budget thresholds here.
 - [ ] The accent clears contrast on every surface it lands on (large ≥3:1, body ≥4.5:1).
 - [ ] page-transitions / webgl-effects / interaction-fx / physics-motion /
       motion-sequencing each meet their done-ness mandate (step 8) when used.
+- [ ] The concept's divergence record breaks ≥1 sameness-fingerprint default (or a
+      conventional design was explicitly requested).
+- [ ] Content depth meets the archetype anchors + typed-slot specificity (no filler).
 - [ ] Full a11y and performance were deferred, not re-checked here.
 
 ## Defer

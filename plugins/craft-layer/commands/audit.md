@@ -14,17 +14,23 @@ taxonomy and its per-tier budgets, then:
    webgl-effects), plus any 3D/WebGL surface. List the tier(s), engine(s), and surface(s)
    found; if none animate, say so and stop.
 2. Run the craft-specific gates by dispatching the findings to the `craft-reviewer`
-   agent from this plugin. Inject the Read path to `../skills/motion-tiers` so it checks
-   against the authoritative budgets, and have it verify: every tier/engine in use honors
+   agent from this plugin. Inject the Read path to `../skills/motion-tiers` (authoritative
+   budgets) AND the Read paths to
+   `../skills/creative-direction/references/sameness-fingerprint.md` and
+   `../skills/creative-direction/references/content-depth.md` (the anti-sameness registry
+   and the content-depth anchors), and have it verify: every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **accent clears
-   contrast on every surface** it lands on (large ≥3:1, body ≥4.5:1); and the newer skills
+   contrast on every surface** it lands on (large ≥3:1, body ≥4.5:1); the newer skills
    meet their done-ness (page-transition instant-nav fallback, webgl GPU/pass budget +
    capability fallback + off-screen loop pause, interaction-fx real-cursor +
-   `pointer:coarse` disable, physics
-   body-cap + reduced static, motion-sequencing studio-excluded-from-prod). Collect its
-   `path:line — severity — problem — fix` lines.
+   `pointer:coarse` disable, physics body-cap + reduced static, motion-sequencing
+   studio-excluded-from-prod); the concept's **divergence record** breaks ≥1
+   sameness-fingerprint default (a build matching the fingerprint with an empty record is a
+   finding, unless a conventional design was explicitly requested); and **content depth**
+   meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
+   template). Collect its `path:line — severity — problem — fix` lines.
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
    accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is
    already covered as a craft gate in step 2; a11y owns the comprehensive pass);
