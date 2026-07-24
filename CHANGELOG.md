@@ -4,6 +4,39 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.74.0] - 2026-07-24
+
+craft-layer 0.7.0 — new **creative-direction** capability (net-new, from the §E brainstorm):
+a front end that makes each build distinct and substantial instead of a recoloured default.
+Adds a `creative-direction` skill (a pure router over five references — work-type archetype
+dial-set, per-archetype content-depth anchors with a typed-slot specificity rule, the
+anti-corpus sameness-fingerprint registry, a palette-strategy direction layer, and a
+MOVES-category taxonomy with an opt-in live pass that reuses ultra-deep-research) and a
+`creative-director` agent (pinned model: opus) that generates N blind concepts — metaphor ·
+voice · one signature interaction — seeded by the anti-corpus differential, scored on
+distinctiveness × brief-fit × feasibility (with a usability floor), returning the winner plus
+a structured divergence record. Wired into `/craft-layer:craft` as step 0 (before
+design-research, which gains a concept input) and enforced by two new `/craft-layer:audit`
+gates: anti-sameness (divergence record vs the fingerprint) and content-depth (archetype
+anchors + typed slots). Mechanism + principles, never templates or an idea catalog. Heavy
+cascade: context-budget baseline reseeded, catalog regenerated, plugin-scout bumped.
+
+## [0.73.0] - 2026-07-24
+
+craft-layer 0.6.0 — decision-guidance hardening (principles, not new capabilities), from
+reviewing smoke-test #6 (a WebGL/scroll landing build). Two net-new build-decision rules:
+an **off-screen WebGL render-loop pause** — an animated (time-/scroll-driven) Tier-3
+surface must stop rendering when it leaves the viewport (`frameloop→never` / unmount), not
+merely dispose on unmount; encoded once in `motion-tiers/references/webgl-3d.md` with
+pointers from motion-tiers, webgl-effects, and the audit gate (craft-reviewer + audit
+command). And a **SPA route-change scroll resync** — at the scroll-orchestration ×
+page-transitions seam, a collapsing pin-spacer desyncs native scroll from the smooth-scroll
+instance, so a route change must hard-reset native scroll AND force-resync the smooth-scroll
+instance in a rAF, then `ScrollTrigger.refresh()`; encoded once in
+`motion-tiers/references/gotchas.md` with pointers from scroll-orchestration and
+page-transitions. Guidance-only: no new skills, no description changes (context-budget
+baseline, plugin-scout catalog, and plugin-scout version all unchanged).
+
 ## [0.72.0] - 2026-07-24
 
 craft-layer 0.5.0 — decision-guidance hardening (principles, not new capabilities), driven

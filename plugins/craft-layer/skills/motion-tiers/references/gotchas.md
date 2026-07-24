@@ -39,3 +39,15 @@ Mixing native scroll, a smooth-scroll library, and scroll-driven animation with 
 single source of truth causes drift and jitter (the animation reads one scroll position,
 the page uses another). Choose ONE contract: native scroll + CSS scroll-driven
 animations, or one smooth-scroll lib feeding one animation engine — never both at once.
+
+## SPA route change desyncs smooth scroll from native scroll
+
+On a client-side navigation, a collapsing layout — most often a pinned ScrollTrigger's
+pin-spacer disappearing when the old route unmounts — leaves the native scroll position
+and the smooth-scroll library's internal position disagreeing (native at 320px, the lib
+at 0). The next scroll jumps, or the new page lands mid-content. Fix: on every route
+change, inside a `requestAnimationFrame` AFTER the new route has laid out, hard-reset
+native scroll (`window.scrollTo(0, 0)`) AND force-resync the smooth-scroll instance
+(`lenis.scrollTo(0, { immediate: true, force: true })`), THEN call
+`ScrollTrigger.refresh()` so pins recompute against the new document height. Resetting
+only one of the two positions is the trap — they must be reset together.

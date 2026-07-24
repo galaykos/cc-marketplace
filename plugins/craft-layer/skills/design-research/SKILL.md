@@ -64,6 +64,16 @@ Record direction as adjectives and references, never as hex or px — `/ui-ux:th
 the token scales own the exact numbers. The extraction worksheet is in
 `references/mining-method.md`.
 
+## Concept input — bias the briefs toward a concept
+
+When the craft flow runs `creative-direction` first, this skill receives a CONCEPT
+(central metaphor · editorial voice · one signature interaction) + its divergence record.
+Mining is unchanged — the concept STEERS it: elaborate the metaphor and voice through the
+extracted patterns, prefer patterns that express the concept, and honour the divergence
+record (break the sameness-fingerprint defaults it names rather than reaching for them).
+Both briefs must read as ONE concept, not a generic direction with a concept bolted on.
+With no concept supplied, brief as before.
+
 ## Emit two briefs
 
 Fill the annotated templates in `references/brief-templates.md`; each names the command

@@ -56,6 +56,12 @@ the name-lifecycle helper live in `references/framework-seams.md`. The rule they
 the snapshot must be taken with the OLD DOM present and released with the NEW DOM
 committed — never call the transition around an async commit that has not landed yet.
 
+When the app also runs a smooth-scroll substrate (Lenis) with pinned ScrollTriggers, a
+route change desyncs native scroll from the smooth-scroll position (the collapsing
+pin-spacer) — reset both in a rAF and refresh triggers per the SPA-route-change gotcha in
+`plugins/craft-layer/skills/motion-tiers/references/gotchas.md`. Reference it; do not
+re-bake it here.
+
 ## Unsupported browsers — feature-detect and fall through
 
 - Feature-detect (`if (!document.startViewTransition) { navigate(); return }`) and let

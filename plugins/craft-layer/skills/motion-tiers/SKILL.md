@@ -53,7 +53,7 @@ Full decision table with budgets: `references/tier-budgets.md`.
 - **Tier 3 — Three.js / R3F** (`three`, `@react-three/fiber`): 3D hero, WebGL
   background, product viewer. Budget ≈ 150KB+ gzip — NEVER in the initial bundle;
   lazy-load on viewport / interaction; GPU cost gated by render-on-demand, DPR ≤ 2,
-  and disposal. reduced-motion: freeze the loop, render one static frame.
+  disposal, and a loop paused off-screen. reduced-motion: freeze the loop, one static frame.
   reduced-bundle: a static hero image or `<video poster>`; the 3D chunk loads only
   when visible.
 - **Tier 4 — Sprites / sprite-sheets**: looping character / mascot motion. Budget ≈

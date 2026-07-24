@@ -16,10 +16,23 @@ teams"). If empty, ask for a one-line product idea and the target stack
 
 ## Steps
 
-1. **Research → briefs.** Run `/craft-layer:research $ARGUMENTS`. It applies the
-   `design-research` skill to mine reference designs and interaction/layout **patterns**,
-   and emits two briefs: a freeform theme brief and a component/layout build task. Detect
-   the target stack here if not already known.
+0. **Creative direction — set the concept first.** Apply the `creative-direction` skill:
+   classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`),
+   then dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
+   metaphor, an editorial voice, and one signature interaction — that breaks the
+   sameness-fingerprint defaults (`.../references/sameness-fingerprint.md`) and clears the
+   usability floor. Carry the concept AND its divergence record into step 1, plus the
+   archetype's content-depth target (`.../references/content-depth.md`) and the
+   palette-strategy mood + don't-repeat-recent nudge (`.../references/palette-strategy.md`).
+   Without this, mining averages the brief into the recurring spine — this step is what
+   makes the build distinct, and the concept must actually reach the briefs (below) or it
+   evaporates.
+
+1. **Research → briefs.** Run `/craft-layer:research $ARGUMENTS`, passing the step-0
+   concept + divergence record + palette mood as inputs so `design-research` biases BOTH
+   briefs toward the concept (its mining method is unchanged; the concept steers what it
+   elaborates and which defaults to break). It emits a freeform theme brief and a
+   component/layout build task. Detect the target stack here if not already known.
 
 2. **Tokens.** Pass the theme brief to `/ui-ux:theme` to generate design tokens
    (light/dark) with a live colour preview. Do not hand-roll palettes — `/ui-ux:theme`
