@@ -86,6 +86,14 @@ Per-line / word / char reveals are a mechanics problem already solved:
   unit. Gotcha C — split spans make screen readers spell the word out; put the
   phrase on the container `aria-label` and mark the spans `aria-hidden`.
 
+## RTL / BiDi
+
+Animated type follows reading direction: on a `dir="rtl"` target, split / word reveals
+stagger right-to-left (reading order) and any entrance x-offset mirrors. But a number,
+metric, currency, or latin token embedded in a kinetic phrase is an **LTR-island**
+(`dir="ltr"`) — never reverse it, or `+212%` becomes `%212+`. The full decision + reuse of
+the i18n base rules: `plugins/craft-layer/skills/motion-tiers/references/rtl-bidi.md`.
+
 ## prefers-reduced-motion — mandatory on every pattern
 
 No pattern above ships without a reduced-motion path; this is accessibility, not

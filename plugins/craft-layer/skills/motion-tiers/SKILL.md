@@ -89,6 +89,22 @@ Every surface answers both, or it does not ship:
   progressively once the heavy chunk is affordable. Measure the fallback path too — a
   fallback that still ships the full tier bundle is not a reduced-bundle path.
 
+## Cross-cutting decisions
+
+These apply on top of the chosen tier, on every surface:
+
+- **RTL / BiDi** — on a right-to-left target, mirror direction-bearing motion (scroll,
+  marquee, entrance, parallax, horizontal-scroll), but keep charts, numerals, and code as
+  LTR-islands (`dir="ltr"`). Full decision + reuse of the i18n base rules:
+  `references/rtl-bidi.md`.
+- **Cumulative motion budget** — budget the COMBINED initial motion JS, not each tier
+  alone; baseline is Lenis + ScrollTrigger + one tier, and every extra eager engine
+  (a second tier, physics, sequencing, WebGL) justifies its weight or lazy-loads. Rule:
+  `references/tier-budgets.md`.
+- **Reveal default = fallback-safe** — a scroll/enter reveal starts VISIBLE and hides only
+  once JS confirms it can reveal (then observe); never ship a bare observer-gated
+  `opacity:0`. See `references/gotchas.md`.
+
 ## GSAP and sibling skills
 
 GSAP is not a motion tier: its element animation is one alternative inside
@@ -113,6 +129,8 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
 - `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
   split text (invisible), whileInView reveals with no fallback, split-text aria,
   one-writer-per-property, scroll-link contract.
+- `references/rtl-bidi.md` — the RTL/BiDi decision: which effects mirror vs the
+  LTR-islands (charts, numerals, code); reuses the i18n plugin's base rules by path.
 
 ## Anti-patterns
 
@@ -128,3 +146,6 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
   instead of referencing `motion-best-practices` / `threejs-best-practices` by path.
 - **GSAP as a tier** — GSAP is an alternative inside `motion-best-practices`, not one of
   these five decision tiers; its ScrollTrigger belongs to `scroll-orchestration`.
+- **Bare whileInView reveal** — `opacity:0` gated only on an observer; invisible with JS
+  off, in a prerender, or in a screenshot. Default to the fallback-safe reveal (start
+  visible, hide only once JS confirms) — see `references/gotchas.md`.

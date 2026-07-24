@@ -85,6 +85,15 @@ once-fired reveal with a safety timeout) lives in
 `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` — apply it, do not
 copy it here.
 
+## RTL / BiDi
+
+Scroll-linked motion carries reading direction: on a `dir="rtl"` target, MIRROR the
+pinned horizontal-scroll direction, the scrub progress mapping, and the parallax x-offset
+side — drive them from the resolved `direction`, never a hard-coded pixel sign. A data
+chart pinned in a scrubbed scene stays an **LTR-island** (it reads left→right regardless).
+The full decision + reuse of the i18n base rules:
+`plugins/craft-layer/skills/motion-tiers/references/rtl-bidi.md`.
+
 ## prefers-reduced-motion (mandatory)
 
 Every scroll surface answers this or it does not ship:

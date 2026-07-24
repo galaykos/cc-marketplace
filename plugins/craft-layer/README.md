@@ -17,9 +17,14 @@ it orchestrates existing surfaces:
 2. **`/ui-ux:theme`** — generate design tokens (light/dark) + live preview from the brief.
 3. **`/ui-ux:build`** — build components/layout, applying `design-tokens` and
    `information-design`.
-4. **motion-tier selection** — pick a tier per surface via `motion-tiers`, each with its
-   perf budget + `prefers-reduced-motion` + reduced-bundle fallback.
-5. **`/craft-layer:audit`** — verify the craft gates (delegating a11y + performance).
+4. **motion routing** — route each surface to its owning skill (`motion-tiers` for the
+   base tier; `scroll-orchestration`, `page-transitions`, `kinetic-typography`,
+   `interaction-fx`, `physics-motion`, `motion-sequencing`, `webgl-effects` as needed),
+   then fold in the cross-cutting decisions: reduced-motion + reduced-bundle fallbacks, the
+   **cumulative** motion budget, **RTL** effect-mirroring vs LTR-islands, and
+   **accent-vs-surface contrast**.
+5. **`/craft-layer:audit`** — verify the craft gates (per-tier + cumulative budget,
+   reduced-motion, contrast, the newer-skill gates; delegating full a11y + performance).
 
 ## Skills
 
@@ -81,7 +86,8 @@ craft-layer **references, never re-teaches**, these existing skills:
 | View Transitions API (page-transitions references it) | `plugins/ui-ux/skills/motion-best-practices` |
 | Three.js / R3F correctness (webgl-effects + motion-sequencing camera reference it) | `plugins/threejs/skills/threejs-best-practices` |
 | One-writer-per-property (physics-motion references) | `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` |
-| Accessibility enforcement | `/a11y:audit` |
+| RTL / BiDi base rules (rtl-bidi.md references, adds only the motion decisions + LTR-islands) | `plugins/i18n/skills/i18n/SKILL.md` |
+| Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/a11y:audit` |
 | Performance / Lighthouse | `/performance:review` |
 | Chart form / color | the `dataviz` skill |
 

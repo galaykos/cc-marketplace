@@ -32,6 +32,22 @@ Library idioms are NOT repeated here. This is the DECISION table only:
   the tier contract. reduced-motion is an accessibility requirement; reduced-bundle is a
   performance requirement. They are different axes and neither substitutes for the other.
 
+## The cumulative budget (combined motion JS)
+
+Per-tier KB is necessary but not sufficient — real surfaces combine tiers AND the sibling
+engines (scroll-orchestration's Lenis + ScrollTrigger, physics-motion, motion-sequencing,
+webgl-effects). Budget the COMBINED initial motion JS, not each piece alone:
+
+- **Baseline** for a motion-rich page: Lenis + ScrollTrigger + ONE tier. That is the
+  affordable default.
+- **Every additional EAGER engine** — a second tier, physics (matter.js), sequencing
+  (`@theatre/core`), WebGL (three) — must justify its weight or **lazy-load off the
+  critical path** (on viewport / interaction, as tier 3 always does).
+- If the hero does not need an engine, do not ship it eagerly for a below-the-fold
+  surface — split it out and load on approach.
+- No fixed ceiling: measure the combined initial motion JS per build against the target
+  network. The rule is "one heavy engine eager, the rest lazy" — not a magic number.
+
 ## Not a tier
 
 GSAP is deliberately absent: it is a powerful alternative for complex imperative
