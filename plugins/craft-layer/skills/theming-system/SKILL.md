@@ -41,7 +41,7 @@ Take each step in turn; each routes to the reference that owns its derivation:
    mood to their RELATIONSHIPS (chroma, contrast step, warmth). → `references/token-tiers.md`.
 2. **Derive the accent split** — on a light ground reserve a darker accent step for small
    text and marks; on a dark ground the accent is a fill with light text over it. This is
-   the single home of the Finding #5 split. → `references/accent-system.md`.
+   the single home of the display-vs-text/mark split. → `references/accent-system.md`.
 3. **Require the duality** — design BOTH modes stepped from the ramps (never `invert()` an
    auto-flip); state when both are derived and how the duality enters the direction, and
    cite `shadcn-theming` for the generation mechanics. → `references/light-dark-duality.md`.
@@ -64,7 +64,7 @@ duplicating an owner:
   ratios. A fresh session must neither strip the ratios (toothless) nor keep other numbers.
 - **Tiers name, accent-system derives.** `references/token-tiers.md` NAMES the accent roles
   (display + text/mark, as tiers with roles). `references/accent-system.md` DERIVES the
-  contrast STEPS between them (the Finding #5 split). Tiers name; accent-system derives —
+  contrast STEPS between them (the display-vs-text/mark split). Tiers name; accent-system derives —
   so the two files never duplicate or contradict the same accent.
 
 ## The kill-trigger
@@ -79,7 +79,7 @@ theme-BUILDER and its rules, never a built theme.
 
 - `references/token-tiers.md` — the token-system SHAPE: surface/ink/accent tiers as ROLES,
   and how the concept's mood maps to the tier relationships. NAMES the accent roles.
-- `references/accent-system.md` — the display-vs-text/mark accent DERIVATION (Finding #5),
+- `references/accent-system.md` — the display-vs-text/mark accent DERIVATION,
   the single owner of the darker-text-step / accent-fill split and its contrast steps.
 - `references/light-dark-duality.md` — the DUALITY requirement: both modes stepped from the
   ramps (never auto-flip), when to derive them, how it enters the direction; cites shadcn.

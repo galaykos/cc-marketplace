@@ -2,7 +2,7 @@
 
 This reference owns the DERIVATION of the accent split: how the single accent role divides
 into a display/fill accent and a distinct text/mark accent, and what contrast STEP has to
-sit between them and against each surface. It is the single home of the Finding #5 split.
+sit between them and against each surface. It is the single home of the display-vs-text/mark split.
 It emits no colour value — no hex, no functional-colour scalar, no named colour used as a
 value. Every entry below is a ROLE, a RELATIONSHIP, or a required RATIO, never a number and
 never a colour. `token-tiers.md` NAMES the two accent roles; THIS file derives the step

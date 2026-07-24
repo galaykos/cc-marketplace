@@ -52,7 +52,7 @@ then animate the axis, not a swap between static weights.
 - Scroll: bind `--wght` / `--wdth` to scroll progress — CSS scroll-driven
   `animation-timeline: scroll()`, or GSAP ScrollTrigger `scrub` (see `gsap.md`)
   — so the headline thickens or widens as it enters. Scroll ORCHESTRATION
-  itself is `motion-tiers` / card 01, not this skill.
+  itself is owned by the `scroll-orchestration` skill, not this skill.
 - Hover / focus: transition `--wght` on `:hover` and `:focus-visible` for a
   weight/width lift on interactive words; keep it short and single-axis.
 - Cost: axis changes reflow the glyph, so restrict them to the focal element and

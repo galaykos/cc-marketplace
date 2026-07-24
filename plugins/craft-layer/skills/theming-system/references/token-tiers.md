@@ -55,12 +55,11 @@ accent-system-derives seam rule):
   strength because it is not carrying small text.
 - **accent-text/mark** — the restrained role for small text on the accent and for small UI
   marks (icons, indicators, focus rings) that must satisfy the contrast rules (`≥4.5:1` for
-  small text, `≥3:1` for marks). On a light ground this is a DARKER step of the accent; on a
-  dark ground the accent becomes a fill with light text over it.
+  small text, `≥3:1` for marks).
 
-This file NAMES those two accent roles and states that the step exists. It does NOT derive
-the step, the direction, or the ratios' resolution — `accent-system.md` owns the Finding #5
-derivation. Naming here, deriving there, keeps one owner for the split.
+This file NAMES those two accent roles and states that a step between them exists. It does NOT
+derive the step, its direction, or how the ratios resolve — `accent-system.md` owns the
+display-vs-text/mark derivation. Naming here, deriving there, keeps one owner for the split.
 
 ## Mapping mood to tier relationships
 

@@ -62,7 +62,7 @@ teams"). If empty, ask for a one-line product idea and the target stack
    - **Real 2D physics** (gravity, collision, drag-inertia) → `physics-motion`.
    - **Multi-track / editor-authored choreography** → `motion-sequencing`.
    - **Postprocessing / custom shaders on a 3D scene** → `webgl-effects`.
-   - **Data-dense surfaces** → `information-design` (also applied in step 3).
+   - **Data-dense surfaces** → `information-design` (also applied in step 4).
 
    Then fold in the cross-cutting decisions: apply each tier's `prefers-reduced-motion`
    and reduced-bundle fallback; budget the **cumulative** motion JS (one heavy engine

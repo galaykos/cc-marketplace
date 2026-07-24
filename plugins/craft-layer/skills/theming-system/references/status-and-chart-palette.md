@@ -46,7 +46,7 @@ theme.
 
 Everything else about charts belongs to a neighbour, cited not restated:
 
-- `plugins/ui-ux/skills/shadcn-theming/SKILL.md` (lines 25–26) owns chart-family COHERENCE —
+- `plugins/ui-ux/skills/shadcn-theming/SKILL.md` (lines 24–25) owns chart-family COHERENCE —
   the `chart-*` token family that reads as one family across any subset. This file requires that
   family to be DERIVED from the theme; shadcn-theming owns how the family itself is made
   coherent.

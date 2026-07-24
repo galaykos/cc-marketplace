@@ -14,7 +14,7 @@ targets PRESCRIBING a colour/component as the design, never cataloguing overused
 
 Refreshed **on each craft-layer release** (a deliberate registry, not auto-derived — an
 auto-derived fingerprint rots and drifts silently). Recency window: **last 3 releases /
-last 5 palettes**. Seeded from the smoke-test evidence documented in the backlog.
+last 5 palettes**. Seeded and refreshed from evidence gathered across craft-layer releases.
 
 ### Recurring spine (overused section order)
 - hero → logo/trust marquee → stat/bento block → feature grid → "how it works" →

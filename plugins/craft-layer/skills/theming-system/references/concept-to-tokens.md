@@ -17,7 +17,7 @@ exactly one owner, and this file is only the third:
 
 1. **EXTRACT the concept** — `creative-direction` (central metaphor · editorial voice ·
    signature interaction, plus the palette DIRECTION and divergence record) and
-   `design-research` (`SKILL.md:71-79`, "Concept input", which receives that concept and
+   `design-research` (`SKILL.md:67-75`, "Concept input", which receives that concept and
    biases the briefs). They decide WHAT the concept IS. This file never restates that.
 2. **MAP mood → tier relationships** — `token-tiers.md` owns which tiers exist and how the
    concept's mood sets the RELATIONSHIPS between them (chroma / contrast-step / warmth as
@@ -29,8 +29,8 @@ exactly one owner, and this file is only the third:
 
 ## The payload — the token-system-direction block
 
-`design-research` derives this block into the theme brief (card 06 threads the slot into
-`design-research/references/brief-templates.md`; `/ui-ux:theme` then consumes the brief).
+`design-research` derives this block into the theme brief (the token-system-direction slot
+lives in `design-research/references/brief-templates.md`; `/ui-ux:theme` then consumes the brief).
 It is three lines, one per concept facet, each mapping the facet to a token-role DIRECTION —
 adjectives and role names only, never a value:
 
@@ -67,7 +67,7 @@ Rules the payload obeys:
 ## What this file does not do
 
 - It does not EXTRACT or generate the concept — `creative-direction` and `design-research`
-  (`SKILL.md:71-79`) own metaphor · voice · mood; this file only carries them forward.
+  (`SKILL.md:67-75`) own metaphor · voice · mood; this file only carries them forward.
 - It does not MAP mood to tier relationships — `token-tiers.md` owns chroma / contrast-step
   / warmth as tier RELATIONSHIPS; this file references that map, it does not restate it.
 - It does not GENERATE values — `/ui-ux:theme` resolves the direction to light/dark values;
