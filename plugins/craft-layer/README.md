@@ -48,6 +48,12 @@ it orchestrates existing surfaces:
 - **interaction-fx** — pointer micro-interactions (custom cursor, magnetic, tilt, drag):
   the affordance-vs-decoration decision, the a11y rules, one rAF pointer loop, and
   reduced-motion (references Framer + the one-writer gotcha).
+- **physics-motion** — real 2D physics (matter.js): the real-physics-vs-spring decision,
+  gravity/collision/drag-inertia, a one-world/rAF/body-cap budget, a keyboard route, and a
+  settled/static reduced-motion fallback (a motion source, not a tier).
+- **motion-sequencing** — declarative multi-track choreography (theatre.js): the
+  GSAP-timeline-vs-theatre decision, sheets driven by time or scroll, DOM + 3D-camera
+  sync, the dev-only editor→runtime workflow, and a reduced-motion jump-to-final.
 
 ## Commands
 
@@ -70,8 +76,11 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Design-token scales | `plugins/ui-ux/skills/design-tokens` |
 | Palette / theme generation | `plugins/ui-ux/skills/shadcn-theming` + `/ui-ux:theme` |
 | Motion library idioms (Framer, GSAP, anime.js) | `plugins/ui-ux/skills/motion-best-practices` (+ `references/animejs.md`) |
+| GSAP timelines (motion-sequencing references, doesn't re-teach) | `plugins/ui-ux/skills/motion-best-practices/references/gsap.md` |
+| Spring/tween alternative (physics-motion references, to decide when NOT to use physics) | `plugins/ui-ux/skills/motion-best-practices` |
 | View Transitions API (page-transitions references it) | `plugins/ui-ux/skills/motion-best-practices` |
-| Three.js / R3F correctness (webgl-effects references it) | `plugins/threejs/skills/threejs-best-practices` |
+| Three.js / R3F correctness (webgl-effects + motion-sequencing camera reference it) | `plugins/threejs/skills/threejs-best-practices` |
+| One-writer-per-property (physics-motion references) | `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` |
 | Accessibility enforcement | `/a11y:audit` |
 | Performance / Lighthouse | `/performance:review` |
 | Chart form / color | the `dataviz` skill |

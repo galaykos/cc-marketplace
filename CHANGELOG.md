@@ -4,6 +4,19 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.71.0] - 2026-07-24
+
+craft-layer 0.4.0 — LOW-tier package capabilities. Two new skills: `physics-motion`
+(matter.js 2D physics — the real-physics-vs-spring decision, gravity/collision/drag-inertia,
+a one-world/rAF/body-cap budget, a keyboard route, and a settled/static reduced-motion
+fallback; a motion source, not a tier) and `motion-sequencing` (theatre.js declarative
+multi-track choreography — the GSAP-timeline-vs-theatre decision, sheets driven by time or
+scroll, DOM + 3D-camera sync, a dev-only editor→runtime workflow, and a reduced-motion
+jump-to-final). Plus a three.js-vs-OGL lightweight-WebGL decision note folded into
+`webgl-effects`. Locomotive Scroll was rejected — it contradicts the Lenis single-scroll
+contract. Each references existing gsap / scroll-orchestration / threejs-best-practices /
+motion-best-practices material by path. Tools + decisions, not design templates.
+
 ## [0.70.0] - 2026-07-24
 
 craft-layer 0.3.0 — MED-tier award capabilities. Three new native-first skills:

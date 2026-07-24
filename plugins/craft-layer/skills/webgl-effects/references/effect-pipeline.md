@@ -48,6 +48,21 @@ Porting a raw GLSL `ShaderMaterial` so it runs on the WebGPU renderer too:
 - No WebGPU and slow WebGL, or `Save-Data` → skip the effect entirely and keep the static
   poster (webgl-3d.md). This file adds nothing to those rules; it only consumes them.
 
+## three.js vs OGL — the lightweight lever
+
+When the ENTIRE need is one shader plane or a single small effect and bundle size is
+critical (a marketing/landing page that must stay light), **OGL** (~a few KB) is a lighter
+alternative to three.js — a thin WebGL wrapper with no scene-graph overhead.
+
+- Reach for OGL when: one full-screen shader quad, a single mesh with a custom material,
+  and no need for a scene graph, loaders, or a postprocessing chain.
+- Stay on three.js when: more than one object, a scene graph, GLTF/loaders, TSL, or a
+  **postprocessing pipeline** — OGL has NO built-in postprocessing/EffectComposer, so the
+  moment you need passes (bloom, DOF, composed effects) it is three.js.
+- Either way the lazy-load + static-fallback + reduced-motion rules are unchanged
+  (`plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md`): OGL is a bundle
+  lever, not a lower bar for the fallback contract.
+
 ## Verify the effect
 
 - The pass count is ≤ the budget and expensive passes are downsampled.
