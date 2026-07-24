@@ -4,6 +4,27 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.79.0] - 2026-07-24
+
+craft-layer 0.10.0 — gate hardening from a fresh 3-reviewer pass on the merged plugin (ultra-task,
+red-teamed by 3 blind adversaries to 19 resolved holes). Two gates closed their blind spots:
+
+- **Licence gate → remote/inline/URL-fetched assets.** The provenance gate was file-anchored, so a
+  hotlinked CDN webfont, a `data:`/base64-inlined SVG or font, or a URL-fetched Lottie/Rive/glTF shipped
+  unprovenanced and green. The reviewer procedure now greps SOURCE for absolute-URL, inline (keyed by a
+  provenance marker), and URL-fetched third-party refs — each needs a manifest record unless declared
+  first-party — and the manifest's first field generalizes `path`→`ref` (file | remote URL | inline).
+  Honest limit declared: build-injected / framework-by-name / string-built refs are out of a
+  source-grep's reach.
+- **New repo gate: internal-jargon leak guard.** `validate.sh` now blocks leaked taskmaster dev-jargon
+  (dangling card/finding/smoke-test references, "the backlog") in shipped plugin files (references
+  included), excluding the taskmaster + task-runner plugins where that vocabulary is legitimate; a
+  `jargon-ok` line marker escapes a deliberate quote.
+
+Plus: the frontend-suite "every surface" claim softened (performance review marked an optional external
+delegation), physics-motion + motion-sequencing surfaced in the description, the at-cap page-transitions
+description trimmed for headroom, and one ambiguous cross-skill citation normalized.
+
 ## [0.78.0] - 2026-07-24
 
 craft-layer 0.9.0 — new **theming-system** capability (award-grade Part C; from the theming-system

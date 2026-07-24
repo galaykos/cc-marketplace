@@ -93,6 +93,27 @@ for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.
     && err "$f: description carries a 'Trigger words:' list — fold terms into the trigger sentence"
 done
 
+# Jargon-leak guard (HARD): internal taskmaster process vocabulary — "card NN",
+# "Finding #N", "smoke-test #N", "the backlog" — must not leak into shipped plugin
+# prose (today's craft-layer review scrubbed 8 such leaks no gate saw). Scans every
+# functional .md per plugin (SKILL.md, references/*.md, commands, agents) via find —
+# NOT a `**` glob (globstar is off in scripts/) — with references/ INCLUDED (the 8
+# leaks lived there). Excludes the taskmaster + task-runner plugins, where these are
+# legitimate domain vocab. The `taskmaster-docs` PATH is a legitimate working-dir ref
+# in ~6 plugins and is deliberately NOT a pattern. Patterns use a portable boundary
+# `(^|[^[:alnum:]])` (BSD grep has no \b) and the singular `card ` shape so "discards"
+# and the plural "cards 03,05" pedagogy example stay clean. A line carrying an inline
+# `<!-- jargon-ok -->` marker is skipped, for a doc legitimately quoting the vocab.
+JARGON='(^|[^[:alnum:]])(card #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
+while IFS= read -r mdf; do
+  case "$mdf" in
+    plugins/taskmaster/*|plugins/task-runner/*) continue ;;
+  esac
+  hit=$(grep -v '<!-- jargon-ok -->' "$mdf" | grep -iEo "$JARGON" | sed 's/^[^[:alnum:]]//' | sort -u | tr '\n' ',' | sed 's/,$//')
+  [ -n "$hit" ] \
+    && err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->"
+done < <(find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \))
+
 # Every /plugin:command reference in docs must resolve to a listed plugin
 known=$(jq -r '.plugins[].name' "$MP")
 while IFS=: read -r file ref; do

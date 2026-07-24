@@ -81,13 +81,21 @@ and check against its numbers; do not invent or restate budget thresholds here.
     objective, not aesthetic.
 11. Licence / provenance (craft gate): read the injected
     `asset-sourcing/references/licence-discipline.md`. This gate runs even on a STATIC,
-    non-animated build. Grep/Glob the shipped visual + font assets and the provenance
-    manifest, then verify: the manifest EXISTS; every shipped asset file has a record (no
-    orphan); every `third-party` / `AI-assisted` record carries a NON-EMPTY enumerated
-    `licence-class` + non-empty `source`. A missing manifest, an orphan asset, or an
-    empty/`unknown` value is a finding — cite the offending asset's path (or `provenance:0`).
-    The gate checks declaration completeness + schema, NOT legal truth (say so); it does not
-    verify a licence is truthful.
+    non-animated build. Grep/Glob the shipped visual + font asset FILES and the provenance
+    manifest, AND grep the SOURCE (you are Read/Grep/Glob — there is no build step) for
+    third-party refs that never become a committed file: absolute-URL refs at an `https?://`
+    host (`@font-face` `src:`, `@import`, `<link href|src>`, `url(...)`, `<use href>`, an ESM
+    import of an absolute URL), inline `data:`/base64 or over-threshold `<svg>` blobs (keyed by
+    an `id`/`data-provenance` marker as `inline:<id>`), and URL-fetched `.lottie`/`.riv`/`.glb`/
+    font. Then verify: the manifest EXISTS; every shipped asset file AND every such source ref
+    maps to a record (no orphan) — an absolute-URL ref needs a record UNLESS the manifest
+    declares it `first-party`; every `third-party` / `AI-assisted` record carries a NON-EMPTY
+    enumerated `licence-class` + non-empty `source`. A missing manifest, an orphan file OR an
+    unprovenanced ref, or an empty/`unknown` value is a finding — cite the offending asset's ref
+    (path, URL, or `inline:<id>`, or `provenance:0`). The gate checks declaration completeness +
+    schema over the LITERAL source refs, NOT legal truth (say so); it is blind to
+    bundler-injected / framework-component-by-name / string-built / css-var-indirected refs (a
+    DECLARED limit) and does not verify a licence is truthful.
 12. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
     icons/vector, AVIF/WebP for imagery, glTF+Draco for 3D) AND has a reduced-bundle fallback
     AND matches its manifest source-class. BYTES are NOT re-checked here — the sprite/asset
@@ -111,9 +119,10 @@ and check against its numbers; do not invent or restate budget thresholds here.
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
       metrics are `{{metric:*}}` slots, rendered as labeled illustrative samples (not raw
       `{{mustache}}`, not unmarked invented literals).
-- [ ] Every shipped third-party/AI asset has a complete provenance record (manifest exists,
-      no orphan, non-empty enumerated licence-class + source); the licence gate runs even on
-      a static build.
+- [ ] Every shipped third-party/AI asset — a committed FILE or a source ref (absolute-URL,
+      inline-with-marker, URL-fetched) — has a complete provenance record (manifest exists, no
+      orphan, non-empty enumerated licence-class + source; an absolute-URL ref needs a record
+      unless declared first-party); the licence gate runs even on a static build.
 - [ ] Every asset uses the right format per kind + a reduced-bundle fallback + matches its
       source-class (bytes stay with the step-5 budget, not re-counted).
 - [ ] Full a11y and performance were deferred, not re-checked here.
@@ -127,7 +136,8 @@ and duplicated rules drift:
   `/a11y:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (step 6) IS a craft
   gate — run it here; defer the rest of a11y.
 - Performance / Lighthouse / Core Web Vitals / load timing → defer to
-  `/performance:review`.
+  `/performance:review`. `/performance:review` requires the `performance` plugin; skipped if not
+  installed.
 
 If a finding is really an a11y or perf concern, name it and point to the owning
 command instead of judging it yourself.

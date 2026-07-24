@@ -11,7 +11,9 @@ your choice — a top-level `ASSETS` / `CREDITS` / `provenance` file, or a per-a
 comment — what matters is that it is grep-able and COMPLETE. It enumerates every such asset with
 four fields:
 
-- `path` — where the asset lives in the build.
+- `ref` — WHERE the asset is referenced from: a committed file path, a remote URL, or the
+  inline marker `inline:<id>` (the three ref classes are defined below). Existing committed-file
+  manifests keep a plain file path here — they stay valid unchanged.
 - `origin` — one of `first-party` · `third-party` · `AI-assisted`.
 - `licence-class` — an enumerated token (below).
 - `source` — where it came from (a category, a commission, a tool) — never left blank.
@@ -38,25 +40,60 @@ Attribution is required ONLY when the class obliges it (`CC-BY`). `source` is AL
 Read-only, the reviewer verifies STRUCTURE + COMPLETENESS, not legal truth:
 
 1. the manifest EXISTS;
-2. every shipped visual/font asset file (Grep/Glob the asset dirs) maps to a manifest record —
+2. every shipped visual/font asset — whether a committed FILE (Grep/Glob the asset dirs) or a
+   third-party REF grepped from source (the ref classes below) — maps to a manifest record —
    NO orphan asset;
 3. every `third-party` / `AI-assisted` record carries a NON-EMPTY enumerated `licence-class` and a
    NON-EMPTY `source`. An empty or `unknown` value FAILS — not just a missing record.
 
-It CANNOT confirm the declared licence is truthful — the teeth are declaration completeness +
-schema. Say so plainly; never sell the gate as legal assurance.
+### Ref classes the source-grep enumerates
+
+The gate greps SOURCE (the reviewer is Read/Grep/Glob — there is no build step) for third-party
+asset refs that never land as a committed file. Each such unprovenanced third-party ref is a
+finding:
+
+- **absolute-URL** — an asset pulled from an `https?://` host: an `@font-face` `src:`, an
+  `@import`, a `<link href|src>`, a `url(...)`, a `<use href>`, or an ESM `import` whose specifier
+  is an absolute URL. Operational rule (the reviewer is deploy-domain-blind): ANY absolute-URL
+  asset ref needs a manifest record UNLESS the manifest declares that ref `first-party` in its
+  `origin` field — a self-hosted CDN is remote-but-first-party, the carve-out. `ref` is the URL. A
+  same-origin reverse-proxied third-party asset is a stated blind spot.
+- **inline** — a `data:`/base64 asset or an inline `<svg>` blob over a rough threshold (~40 lines
+  or a few KB). It must carry a provenance marker — an `id`/`data-provenance` attribute or an
+  adjacent provenance comment — that the manifest names as `ref = inline:<id>`. An anonymous
+  sub-threshold blob is EXEMPT (presumed authored/first-party) so the orphan-scan stays decidable.
+- **URL-fetched** — a `.lottie`/`.riv`/`.glb`/font (or similar) loaded from a URL string. `ref` is
+  the URL; the same absolute-URL rule + first-party carve-out apply.
+
+It CANNOT confirm the declared licence is truthful — AND it is blind to refs that are not literal
+in source: a font/asset URL injected by a bundler or plugin, referenced through a framework
+component by NAME (a `<Font>`/`next/font` face), string-BUILT at runtime (`fetch(base + name)`), or
+reached through a CSS custom-property indirection — none of these appear as a literal ref for the
+grep to catch, so they are a DECLARED blind spot, sitting beside the "not legal truth" limit. The
+teeth are declaration completeness + schema over the LITERAL source refs. Say so plainly; never
+sell the gate as legal assurance, and never claim it closes the hotlink hole by construction.
 
 ## Absence-finding citation
 
-A missing manifest or missing record has no file:line. Cite the offending asset's own path (or
-`provenance:0` for a wholly-absent manifest) so the reviewer's
-`path:line — severity — problem — fix` output stays well-formed.
+A missing manifest or missing record has no file:line. Cite the offending asset's own ref — a file
+path, a remote URL, or `inline:<id>` (or `provenance:0` for a wholly-absent manifest) — so the
+reviewer's `path:line — severity — problem — fix` output stays well-formed.
 
 ## Fixture scenarios (how the gate is exercised)
 
-- a third-party asset with NO manifest record → EXPECT a finding;
+- a committed third-party asset FILE with NO manifest record → EXPECT a finding;
 - an all-first-party build with a COMPLETE manifest → EXPECT a pass;
-- a record with an empty / `unknown` licence value → EXPECT a finding.
+- a record with an empty / `unknown` licence value → EXPECT a finding;
+- a CDN-hotlinked webfont (`@font-face { src: url(https://fonts.example.com/x.woff2) }`) with NO
+  manifest line for that URL → EXPECT a finding (the remote absolute-URL ref is unprovenanced);
+- a compliant remote font — `ref: https://fonts.example.com/x.woff2 · origin: third-party ·
+  licence-class: permissive (SIL-OFL) · source: the foundry's webfont CDN` → EXPECT a pass (the
+  same URL declared `first-party` would also pass — the self-hosted-CDN carve-out);
+- an inline `<svg>` brand mark over the threshold with `id="brand-mark"`, recorded as
+  `ref: inline:brand-mark · origin: third-party · licence-class: commissioned · source: …` →
+  EXPECT a pass; the SAME blob with no marker and no record → EXPECT a finding;
+- a URL-fetched Lottie (`fetch('https://cdn.example.com/hero.lottie')`) with NO record for that
+  URL → EXPECT a finding.
 
 ## Anti-patterns
 

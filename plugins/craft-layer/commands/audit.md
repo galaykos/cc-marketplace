@@ -11,8 +11,11 @@ taxonomy and its per-tier budgets, then:
    entry points — Framer Motion / `motion`, anime.js, Three.js / R3F / `<canvas>`,
    sprite sheets — AND the sibling engines (scroll-orchestration/Lenis, page-transitions/
    View Transitions, interaction-fx, physics-motion/matter, motion-sequencing/theatre,
-   webgl-effects), plus any 3D/WebGL surface — AND scan for shipped visual/font ASSETS
-   (icons, SVG, raster images, 3D models, Lottie/Rive, webfonts, background video) and a
+   webgl-effects), plus any 3D/WebGL surface — AND scan for shipped visual/font ASSETS, whether
+   committed FILES (icons, SVG, raster images, 3D models, Lottie/Rive, webfonts, background
+   video) or third-party refs grepped from SOURCE — absolute-URL refs at an `https?://` host
+   (`@font-face`/`@import`/`<link>`/`url()`/`<use href>`), inline `data:`/over-threshold `<svg>`
+   blobs, and URL-fetched `.lottie`/`.riv`/`.glb`/font — and a
    provenance manifest. List the tier(s), engine(s), surface(s), and assets found. If
    nothing animates BUT shipped assets are present, still run the asset/licence gates in
    step 2 — do not stop. Only when there is neither motion nor a shipped asset, say so and stop.
@@ -27,8 +30,10 @@ taxonomy and its per-tier budgets, then:
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **licence gate** —
-   every shipped third-party/AI asset has a complete non-empty provenance record (manifest
-   exists, no orphan asset, enumerated licence-class + source), run even on a static
+   every shipped third-party/AI asset — a committed FILE or a source ref (absolute-URL, inline
+   `data:`/`<svg>`-with-marker, URL-fetched) — has a complete non-empty provenance record
+   (manifest exists, no orphan asset OR unprovenanced ref, enumerated licence-class + source; an
+   absolute-URL ref needs a record unless declared first-party), run even on a static
    asset-only build; **asset-fit** — right format per kind + a reduced-bundle fallback +
    source-class match (bytes stay with the existing sprite/asset budget, not re-counted);
    the **accent clears contrast on every surface AND size** it lands on (large ≥3:1, body ≥4.5:1; on a light
@@ -49,7 +54,8 @@ taxonomy and its per-tier budgets, then:
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
    accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is
    already covered as a craft gate in step 2; a11y owns the comprehensive pass);
-   performance / Lighthouse / Core Web Vitals → `/performance:review $ARGUMENTS`. Run each
+   performance / Lighthouse / Core Web Vitals → `/performance:review $ARGUMENTS`.
+   `/performance:review` requires the `performance` plugin; skipped if not installed. Run each
    against the same scope and collect their verdicts.
 4. Report one consolidated pass/fail table: the craft gates from step 2, then the
    delegated results from step 3 presented against their audited TARGETS —
