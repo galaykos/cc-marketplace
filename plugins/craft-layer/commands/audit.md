@@ -22,7 +22,9 @@ taxonomy and its per-tier budgets, then:
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **accent clears
-   contrast on every surface** it lands on (large ≥3:1, body ≥4.5:1); the newer skills
+   contrast on every surface AND size** it lands on (large ≥3:1, body ≥4.5:1; on a light
+   theme small text/marks use a darker accent step than the display accent — text ≥4.5:1,
+   non-text marks ≥3:1); the newer skills
    meet their done-ness (page-transition instant-nav fallback, webgl GPU/pass budget +
    capability fallback + off-screen loop pause + an error boundary for chunk-load/context
    failure, interaction-fx real-cursor +
@@ -31,8 +33,9 @@ taxonomy and its per-tier budgets, then:
    sameness-fingerprint default (a build matching the fingerprint with an empty record is a
    finding, unless a conventional design was explicitly requested); and **content depth**
    meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
-   template; claim/aggregate metrics ship as `{{metric:*}}` slots, not fabricated literals —
-   offer numerals like price/fee/step-count are fine). Collect its
+   template; claim/aggregate metrics ship as `{{metric:*}}` slots rendered as labeled
+   illustrative samples — not raw `{{mustache}}`, not unmarked invented literals; offer
+   numerals like price/fee/step-count are fine). Collect its
    `path:line — severity — problem — fix` lines.
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
    accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is

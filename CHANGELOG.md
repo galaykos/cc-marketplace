@@ -4,6 +4,31 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.76.0] - 2026-07-24
+
+craft-layer 0.7.2 — decision-guidance hardening (Part A of the award-grade pass), from
+reviewing smoke-test #8 (the Fairweather light-theme dog-shelter build — landing + analytics
+dashboard, which validated the 0.7.1 content-depth offer-vs-claim rule live). Two refinements
+to existing principles, no new capabilities:
+
+- **Accent contrast now covers SIZE, not just surface.** The rule framed contrast as surface
+  variance (a light section vs a dark one); a light-theme build exposed the *size* case — a
+  bright accent that clears ≥3:1 at display size fails ≥4.5:1 as small text and ≥3:1 as a thin
+  chart mark. Encoded (single source: `design-research`'s token-direction; referenced by
+  `palette-strategy`) that a light theme needs a **darker accent step for small text and marks,
+  distinct from the bright display/fill accent**; `craft-reviewer` step 6 + `/craft-layer:audit`
+  now verify small-text/mark accents resolve to that darker step.
+- **Content-depth claim metrics gain a manifestation rule.** The offer-vs-claim rule correctly
+  forbids fabricated claim numbers (ship `{{metric:*}}` slots) but governed source presence only
+  — so honest builds rendered raw `{{mustache}}` and looked unfinished. Added to
+  `content-depth.md` (+ reviewer step 10 + audit): a claim renders as a **labeled illustrative
+  sample** — a plausible value + a visible "sample" marker + a `data-metric`/comment source tag
+  — never raw mustache (unfinished) and never an unmarked invented literal (dishonest). Honest
+  AND finished; the audit greps the sample pattern instead of the braces.
+
+Light cascade: reference + skill-body + agent + command bodies only, no description or leaf
+changes (no baseline reseed, no catalog/plugin-scout churn).
+
 ## [0.75.0] - 2026-07-24
 
 craft-layer 0.7.1 — decision-guidance hardening (principles, not new capabilities), from
