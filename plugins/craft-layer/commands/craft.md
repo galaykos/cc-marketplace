@@ -16,9 +16,18 @@ teams"). If empty, ask for a one-line product idea and the target stack
 
 ## Steps
 
-0. **Creative direction — set the concept first.** Apply the `creative-direction` skill:
-   classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`),
-   then dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
+0. **Offer contract, then creative direction.** Apply the `creative-direction` skill.
+   FIRST pin the offer contract (`skills/creative-direction/references/offer-contract.md`):
+   one product under its real name, the audience, the ONE primary action, the exact route
+   list, the page LENGTH (`standard` or `long-scroll` — long is legitimate, undeclared length
+   is not), and what is not shipping — echoed to the user BEFORE any file is written. If the
+   brief admits several products, positionings, or directions, ASK which one; presenting
+   options and then building all of them is the failure this step exists to stop, and a
+   token/kit showcase is not a site route unless asked for. Carry the contract's offer
+   spine (plain-language what, audience, problem, how-it-works, price, proof, objection,
+   one CTA) into step 1 so both briefs owe it.
+   THEN classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`),
+   and dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
    metaphor, an editorial voice, and one signature interaction — that breaks the
    sameness-fingerprint defaults (`.../references/sameness-fingerprint.md`) and clears the
    usability floor. Carry the concept AND its divergence record into step 1, plus the
@@ -26,7 +35,8 @@ teams"). If empty, ask for a one-line product idea and the target stack
    palette-strategy mood + don't-repeat-recent nudge (`.../references/palette-strategy.md`).
    Without this, mining averages the brief into the recurring spine — this step is what
    makes the build distinct, and the concept must actually reach the briefs (below) or it
-   evaporates.
+   evaporates. The metaphor is a design LANGUAGE, not a rebrand — the real product name
+   stays in the title, hero, and nav.
 
 1. **Research → briefs.** Run `/craft-layer:research $ARGUMENTS`, passing the step-0
    concept + divergence record + palette mood as inputs so `design-research` biases BOTH

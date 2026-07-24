@@ -25,6 +25,8 @@ taxonomy and its per-tier budgets, then:
    `../skills/creative-direction/references/sameness-fingerprint.md` and
    `../skills/creative-direction/references/content-depth.md` (the anti-sameness registry
    and the content-depth anchors) AND
+   `../skills/creative-direction/references/offer-contract.md` (the deliverable scope +
+   offer-spine slots) AND
    `../skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
    schema), and have it verify: every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
@@ -49,7 +51,17 @@ taxonomy and its per-tier budgets, then:
    meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
    template; claim/aggregate metrics ship as `{{metric:*}}` slots rendered as labeled
    illustrative samples — not raw `{{mustache}}`, not unmarked invented literals; offer
-   numerals like price/fee/step-count are fine). Collect its
+   numerals like price/fee/step-count are fine, ONE disclosure marker per figure plus at most
+   one regional footnote, no operator-addressed headline, no empty placeholder tiles); and the
+   **offer contract** — the shipped
+   routes match the pinned scope, ONE product identity under its REAL name (in `<title>` +
+   hero, not a concept-invented wordmark), every offer-spine slot answered per marketing
+   page (plain-language what — checked against the divergence record's metaphor vocabulary,
+   not by taste — audience, problem, how-it-works, price, proof, objection, one
+   repeated CTA verb), a proof region PRESENT as slots rather than deleted, and the declared
+   page LENGTH honored (on `long-scroll` the section range is a floor, not a finding — instead
+   check spine-answered-early, recurring one-verb CTA, varied section shapes, wayfinding past
+   ~8 sections, lazy below-fold instruments). Collect its
    `path:line — severity — problem — fix` lines.
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
    accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is

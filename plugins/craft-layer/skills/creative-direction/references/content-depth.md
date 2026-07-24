@@ -24,6 +24,14 @@ range is not a design.
 and the specificity rule below; only the logged-in, data-dense app screens defer to
 `information-design` (which governs data density, not marketing copy depth).
 
+**On a `long-scroll` build the range is a FLOOR, not a ceiling.** When the offer contract declares
+`long-scroll` (`offer-contract.md`, Part 5), a page may run well past its archetype's section
+count and that is not a finding — the extra length carries its own rules there (spine answered
+early, CTA recurring, section shapes varied, wayfinding past ~8 sections, below-fold instruments
+lazy). The specificity rule does not relax with length: every added section still owes an offer
+numeral or a typed slot, and length reached by repeating one section shape is the anti-pattern
+`anchors as template` at scale, not depth.
+
 ## The specificity rule (typed slots)
 
 Volume without substance is still thin. Every section/feature block must carry at least ONE
@@ -69,18 +77,44 @@ finished surface. A bare `{{metric:gmv}}` visible in the rendered output, and an
 invented literal, are BOTH findings — the first unfinished, the second dishonest. (Offer
 numerals need none of this — they are the design's own terms, shown plainly.)
 
+**ONE marker per figure, at most one more per region — markers do not stack.** Honesty signals
+feel free, so they multiply. A region acquires a chip on every figure, then a banner above them,
+then an explanatory lede, then a headline that says the quiet part ("What it has done, once you
+fill this in") — and a region whose whole job is to build belief now announces four times over
+that it is unfinished. That is not more honest than one clear marker; it just reads as a
+construction site. So: one marker beside the figure (the chip — disclosure belongs next to the
+number it qualifies), OPTIONALLY one quiet footnote closing the region, nothing else. The region's
+HEADLINE and lede are buyer-facing copy addressed to the READER, never to the operator who will
+fill the slots; operator instructions live in the README.
+
+**A slot with no plausible sample value is CUT, not shipped empty.** Manifestation needs a value
+that can look finished, and some slots have none: a customer LOGO, a named company, a named
+person — every sample is an invented entity, the exact fabrication this rule exists to stop.
+Shipping the bare affordance instead (a dashed "logo slot" tile, a greyed placeholder grid) is
+the raw-`{{mustache}}` failure in different clothes; it reads unfinished to every visitor. Drop
+that sub-block and let the region stand on the slots that CAN render finished — metrics, and
+quotes attributed by ROLE and SEGMENT rather than by an invented name. A region reduced this way
+still satisfies its presence requirement; a grid of empty placeholders does not.
+
 ## What the audit checks (teeth)
 
 The craft audit (`/craft-layer:audit`) reads THIS file (injected as a Read path) and:
 
-- counts sections against the archetype's range;
+- counts sections against the archetype's range — as a floor only when the offer contract
+  declares `long-scroll`, in which case over-range is not a finding and the Part-5 long-page
+  rules apply instead;
 - greps each block for a numeral or a `{{slot}}`;
 - counts distinct typed slots per page against N (entity/claim-bearing sections);
 - flags any **claim/aggregate metric written as a literal** — GMV, user/creator counts,
   ratings, durations — that should be a `{{metric:*}}` slot;
 - checks each claim metric's **manifestation** — it must render as the labeled-illustrative
   pattern (plausible value + a visible sample/illustrative marker + a `data-metric` or comment
-  source tag), NOT as raw `{{mustache}}` in the output, NOT as an unmarked invented literal.
+  source tag), NOT as raw `{{mustache}}` in the output, NOT as an unmarked invented literal;
+- counts the DISCLOSURE markers per region — more than one marker per figure plus one regional
+  footnote is a finding (a stacked banner + chip + confessional headline/lede), as is a section
+  headline or lede addressed to the operator instead of the reader;
+- flags an **empty placeholder affordance** — a dashed/greyed tile grid standing in for logos or
+  named customers, i.e. a slot shipped with no plausible sample value; it should have been cut.
 
 A build under the section floor, a block carrying neither a numeral nor a slot, a page below
 the slot count, a fabricated claim numeral (a literal where a `{{metric:*}}` slot belongs), OR
@@ -96,6 +130,10 @@ anchor the reviewer cites — the check is objective, not an aesthetic judgment.
 - **Raw mustache shipped** — leaving `{{metric:*}}` visible in the rendered UI; render a
   labeled illustrative sample (value + "sample" marker + `data-metric` tag) so the page reads
   finished while staying honest.
+- **Disclosure stack** — chip + banner + confessional lede + a headline addressed to the
+  operator, all on one region; one marker per figure plus one footnote is the whole budget.
+- **Empty placeholder grid** — shipping a logo/named-customer slot as dashed tiles because it
+  has no plausible sample value; cut the sub-block, keep the region.
 - **Treating anchors as a template** — building exactly 11 identical sections; the range is
   a floor and a shape, not a layout.
 - **app/CRM skip** — assuming the thinness gate does not apply because it is an app; its

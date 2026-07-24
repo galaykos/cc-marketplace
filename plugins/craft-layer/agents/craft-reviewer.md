@@ -77,9 +77,40 @@ and check against its numbers; do not invent or restate budget thresholds here.
     check each claim's **manifestation** — it must render as a labeled illustrative sample
     (plausible value + a visible sample/illustrative marker + a `data-metric`/comment source
     tag), never as raw `{{mustache}}` in the output (unfinished) and never as an unmarked
-    invented literal (dishonest); both are findings. The anchors are the citable numbers —
-    objective, not aesthetic.
-11. Licence / provenance (craft gate): read the injected
+    invented literal (dishonest); both are findings. Then count the DISCLOSURE markers per
+    region: one marker per figure plus at most one regional footnote is the budget, so a chip
+    stacked with a banner, a confessional lede, and a headline addressed to the OPERATOR
+    ("…once you fill this in") is a finding — the region reads unfinished, which is what the
+    manifestation rule exists to prevent. Also flag an **empty placeholder affordance** — dashed
+    or greyed tiles standing in for logos or named customers, a slot shipped with no plausible
+    sample value; it should have been cut, with the region left standing on the slots that can
+    render finished. The anchors are the citable numbers — objective, not aesthetic.
+11. Offer contract (craft gate): read the injected
+    `creative-direction/references/offer-contract.md`. Verify the shipped route list matches
+    the pinned deliverable scope; that ONE product identity spans those routes; that the
+    REAL product name — not a concept-invented wordmark — is in `<title>` and the hero; that
+    each marketing page answers every offer-spine slot (a plain-language what-line above the
+    fold, a named audience, the problem, a 3–5-step how-it-works, price
+    or `{{price:*}}`, a proof region, an objection/limits block, one repeated primary-CTA
+    verb); that the what-line is checked against the divergence record's METAPHOR VOCABULARY
+    rather than by taste — an h1 assembled from the concept's own figure of speech that names
+    no capability ("A rank is a position, not a score.") is a finding, as is a plain h1 whose
+    first screen never states the product's name; and that a proof region EXISTS rather than
+    having been deleted to avoid
+    fabricating it (the remedy is a `{{metric:*}}`/`{{customer_name}}` slot, per step 10).
+    A second product identity, a renamed product, a kit/showcase page mounted as a product
+    route, an unanswered slot, or an absent proof region is one finding each, naming the
+    slot. Check PRESENCE, never taste.
+    Then check the declared LENGTH. On `standard`, the archetype range applies as written. On
+    `long-scroll`, over-range is NOT a finding — instead verify the long-page rules: each
+    offer-spine slot answered first within roughly the opening third of the page (a back-loaded
+    price, audience, or what-line is a finding), the primary CTA recurring through the scroll on
+    ONE verb rather than appearing only at top and bottom, no long run of consecutive sections
+    sharing a single layout shape, an in-page wayfinding affordance (anchor nav, progress, or
+    index) past roughly eight sections, and below-fold instruments mounting lazily so the
+    cumulative per-PAGE motion budget still holds (step 7). A page that ran long without the
+    contract declaring it is itself a finding.
+12. Licence / provenance (craft gate): read the injected
     `asset-sourcing/references/licence-discipline.md`. This gate runs even on a STATIC,
     non-animated build. Grep/Glob the shipped visual + font asset FILES and the provenance
     manifest, AND grep the SOURCE (you are Read/Grep/Glob — there is no build step) for
@@ -96,7 +127,7 @@ and check against its numbers; do not invent or restate budget thresholds here.
     schema over the LITERAL source refs, NOT legal truth (say so); it is blind to
     bundler-injected / framework-component-by-name / string-built / css-var-indirected refs (a
     DECLARED limit) and does not verify a licence is truthful.
-12. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
+13. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
     icons/vector, AVIF/WebP for imagery, glTF+Draco for 3D) AND has a reduced-bundle fallback
     AND matches its manifest source-class. BYTES are NOT re-checked here — the sprite/asset
     size budget (step 5) + `/performance:review` own weight; asset-fit is format + fallback +
@@ -118,7 +149,14 @@ and check against its numbers; do not invent or restate budget thresholds here.
       conventional design was explicitly requested).
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
       metrics are `{{metric:*}}` slots, rendered as labeled illustrative samples (not raw
-      `{{mustache}}`, not unmarked invented literals).
+      `{{mustache}}`, not unmarked invented literals), with ONE marker per figure plus at most
+      one regional footnote, no operator-addressed headline, and no empty placeholder tiles.
+- [ ] The offer contract holds — routes match the pinned scope, ONE product under its real
+      name, every offer-spine slot answered, the what-line clear of the concept's metaphor
+      vocabulary, a proof region present as slots not deleted.
+- [ ] Declared page LENGTH matches what shipped; on `long-scroll`, the spine is answered early,
+      the CTA recurs on one verb, section shapes vary, wayfinding exists past ~8 sections, and
+      below-fold instruments lazy-mount.
 - [ ] Every shipped third-party/AI asset — a committed FILE or a source ref (absolute-URL,
       inline-with-marker, URL-fetched) — has a complete provenance record (manifest exists, no
       orphan, non-empty enumerated licence-class + source; an absolute-URL ref needs a record

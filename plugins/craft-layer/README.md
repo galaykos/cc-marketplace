@@ -12,9 +12,10 @@ sprite guidance, information design, and a craft **audit**.
 `/craft-layer:craft <idea>` chains the whole path — it writes no framework code itself,
 it orchestrates existing surfaces:
 
-0. **creative-direction** — generate a divergent concept (central metaphor, editorial
-   voice, one signature interaction) that breaks the sameness defaults, before anything
-   visual is decided.
+0. **creative-direction** — pin the offer contract (ONE product under its real name, the
+   audience, the one primary action, the route list, the page length, the offer-spine slots
+   the page owes), then generate a divergent concept (central metaphor, editorial voice, one
+   signature interaction) that breaks the sameness defaults, before anything visual is decided.
 1. **`/craft-layer:research`** — mine reference designs + interaction/layout patterns,
    emit a theme brief and a build task, biased toward the concept.
 2. **`/ui-ux:theme`** — generate design tokens (light/dark) + live preview from the brief;
@@ -30,16 +31,16 @@ it orchestrates existing surfaces:
    then fold in the cross-cutting decisions: reduced-motion + reduced-bundle fallbacks, the
    **cumulative** motion budget, **RTL** effect-mirroring vs LTR-islands, and
    **accent-vs-surface contrast**.
-6. **`/craft-layer:audit`** — verify the craft gates (per-tier + cumulative budget,
-   reduced-motion, contrast, licence + asset-fit, the newer-skill gates; delegating full
-   a11y + performance).
+6. **`/craft-layer:audit`** — verify the craft gates (offer contract, per-tier + cumulative
+   budget, reduced-motion, contrast, licence + asset-fit, the newer-skill gates; delegating
+   full a11y + performance).
 
 ## Skills
 
 - **creative-direction** — the concept-first anti-sameness layer: generates a divergent
   concept (metaphor, editorial voice, one signature interaction), scores blind candidates,
-  and records a divergence the audit checks; owns the content-depth + sameness-fingerprint
-  gates.
+  and records a divergence the audit checks; owns the offer-contract, content-depth, and
+  sameness-fingerprint gates.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
 - **theming-system** — derive a coherent token SYSTEM from the concept: surface/ink/accent

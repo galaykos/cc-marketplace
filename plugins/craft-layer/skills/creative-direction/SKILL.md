@@ -11,6 +11,7 @@ convergent — it averages toward the category norm). It is a **pure router**: e
 subsystem's decision logic lives in a reference file; this body only routes, states the
 seam, and holds the reuse boundaries. It decides:
 
+- the **offer contract** (what the build sells) → `references/offer-contract.md`
 - the **work-type archetype** and its dials → `references/archetypes.md`
 - the **concept** (via the `creative-director` agent) → below
 - the **content-depth budget** (anti-thinness) → `references/content-depth.md`
@@ -30,6 +31,16 @@ as an INPUT into the `design-research` briefs. `design-research`'s mining method
 unchanged — it gains a concept input that biases the theme brief + build task. The
 concept never reaches the build except through those briefs, so the command MUST thread
 it; a concept generated and dropped is the failure this seam exists to prevent.
+
+## Pin the offer contract before the concept
+
+A distinctive page that never says what the product is, who buys it, what it costs, or what
+to click has failed the commission. Before the archetype, pin ONE product under its real
+name, the audience, the one primary action, the route list, the page length, and what is not
+shipping — and ASK when the brief admits several products rather than building all of them.
+The concept's metaphor is a design language, not a rebrand. A long scroll is legitimate when
+DECLARED, and then carries its own rules. Slots, scope rule, and teeth live in
+`references/offer-contract.md`; the craft audit checks it.
 
 ## Decide the archetype first
 
@@ -95,6 +106,7 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
 
 ## References
 
+- `references/offer-contract.md` — deliverable scope, product identity, the offer-spine slots.
 - `references/archetypes.md` — the work-type dial-set, classification rule, `general` fallback.
 - `references/content-depth.md` — per-archetype section/word anchors + the typed-slot rule.
 - `references/sameness-fingerprint.md` — the anti-corpus registry (spine, vocabulary, hues),
@@ -116,3 +128,5 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
   dials, and registries, never a design.
 - **Novelty for its own sake** — a concept that diverges but worsens usability; the agent's
   feasibility floor exists to reject it.
+- **Concept before contract** — generating a metaphor with no product, audience, price, or
+  CTA pinned; the build then sells nothing, however distinctive it looks.

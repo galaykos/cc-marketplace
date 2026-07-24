@@ -90,6 +90,11 @@ Rules:
 
 ## Consistency check before handing off
 
-- The theme brief's vibe and the build task's patterns describe ONE product.
+- The theme brief's vibe and the build task's patterns describe ONE product, under its
+  REAL name — not a name the concept's metaphor invented.
+- The build task names which offer-spine slots its section carries (plain-language what,
+  audience, problem, how-it-works, price, proof, objection, primary CTA), so the pinned
+  contract reaches the build instead of stopping at the concept
+  (`plugins/craft-layer/skills/creative-direction/references/offer-contract.md`).
 - Every genuinely open choice was sent to `/design-preview:preview` first, not guessed.
 - Neither brief contains hex/px/token names — only the decided direction and patterns.
