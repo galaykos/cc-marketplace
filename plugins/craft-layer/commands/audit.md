@@ -11,18 +11,29 @@ taxonomy and its per-tier budgets, then:
    entry points — Framer Motion / `motion`, anime.js, Three.js / R3F / `<canvas>`,
    sprite sheets — AND the sibling engines (scroll-orchestration/Lenis, page-transitions/
    View Transitions, interaction-fx, physics-motion/matter, motion-sequencing/theatre,
-   webgl-effects), plus any 3D/WebGL surface. List the tier(s), engine(s), and surface(s)
-   found; if none animate, say so and stop.
+   webgl-effects), plus any 3D/WebGL surface — AND scan for shipped visual/font ASSETS
+   (icons, SVG, raster images, 3D models, Lottie/Rive, webfonts, background video) and a
+   provenance manifest. List the tier(s), engine(s), surface(s), and assets found. If
+   nothing animates BUT shipped assets are present, still run the asset/licence gates in
+   step 2 — do not stop. Only when there is neither motion nor a shipped asset, say so and stop.
 2. Run the craft-specific gates by dispatching the findings to the `craft-reviewer`
    agent from this plugin. Inject the Read path to `../skills/motion-tiers` (authoritative
    budgets) AND the Read paths to
    `../skills/creative-direction/references/sameness-fingerprint.md` and
    `../skills/creative-direction/references/content-depth.md` (the anti-sameness registry
-   and the content-depth anchors), and have it verify: every tier/engine in use honors
+   and the content-depth anchors) AND
+   `../skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
+   schema), and have it verify: every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
-   (non-hero engines lazy-loaded); sprites/assets stay within budget; the **accent clears
-   contrast on every surface** it lands on (large ≥3:1, body ≥4.5:1); the newer skills
+   (non-hero engines lazy-loaded); sprites/assets stay within budget; the **licence gate** —
+   every shipped third-party/AI asset has a complete non-empty provenance record (manifest
+   exists, no orphan asset, enumerated licence-class + source), run even on a static
+   asset-only build; **asset-fit** — right format per kind + a reduced-bundle fallback +
+   source-class match (bytes stay with the existing sprite/asset budget, not re-counted);
+   the **accent clears contrast on every surface AND size** it lands on (large ≥3:1, body ≥4.5:1; on a light
+   theme small text/marks use a darker accent step than the display accent — text ≥4.5:1,
+   non-text marks ≥3:1); the newer skills
    meet their done-ness (page-transition instant-nav fallback, webgl GPU/pass budget +
    capability fallback + off-screen loop pause + an error boundary for chunk-load/context
    failure, interaction-fx real-cursor +
@@ -31,8 +42,9 @@ taxonomy and its per-tier budgets, then:
    sameness-fingerprint default (a build matching the fingerprint with an empty record is a
    finding, unless a conventional design was explicitly requested); and **content depth**
    meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
-   template; claim/aggregate metrics ship as `{{metric:*}}` slots, not fabricated literals —
-   offer numerals like price/fee/step-count are fine). Collect its
+   template; claim/aggregate metrics ship as `{{metric:*}}` slots rendered as labeled
+   illustrative samples — not raw `{{mustache}}`, not unmarked invented literals; offer
+   numerals like price/fee/step-count are fine). Collect its
    `path:line — severity — problem — fix` lines.
 3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
    accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is

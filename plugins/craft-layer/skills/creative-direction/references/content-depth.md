@@ -50,6 +50,25 @@ honest concreteness. Depth = STRUCTURE + typed slots, never invented facts: ship
 the user to fill, never fabricate a number or a customer. A page with zero numerals and zero
 slots FAILS regardless of word count.
 
+## Manifestation — a claim slot must render finished, not raw
+
+A `{{metric:*}}` slot is a SOURCE contract, not what ships to the eye. Raw `{{mustache}}` left
+in the rendered UI reads as broken — an unfinished demo, a weak award submission — and if it
+ever ships unfilled it says nothing. So a claim metric renders as a **labeled illustrative
+sample**, three parts, all required:
+
+- a **plausible sample value** ("$48M raised", "1,240 members") — so the page looks finished;
+- a **visible illustrative marker** — a "sample data" caption on the region, a chip, or a
+  footnote — so the figure is never passed off as a real, verified claim;
+- a **source tag** binding value → slot: a `data-metric="gmv"` attribute (or the
+  `{{metric:gmv}}` kept in a comment) — so the real number swaps in cleanly and the audit can
+  still find it.
+
+This keeps BOTH honesty (clearly illustrative, never a fabricated claim asserted as real) and a
+finished surface. A bare `{{metric:gmv}}` visible in the rendered output, and an unmarked
+invented literal, are BOTH findings — the first unfinished, the second dishonest. (Offer
+numerals need none of this — they are the design's own terms, shown plainly.)
+
 ## What the audit checks (teeth)
 
 The craft audit (`/craft-layer:audit`) reads THIS file (injected as a Read path) and:
@@ -58,11 +77,14 @@ The craft audit (`/craft-layer:audit`) reads THIS file (injected as a Read path)
 - greps each block for a numeral or a `{{slot}}`;
 - counts distinct typed slots per page against N (entity/claim-bearing sections);
 - flags any **claim/aggregate metric written as a literal** — GMV, user/creator counts,
-  ratings, durations — that should be a `{{metric:*}}` slot.
+  ratings, durations — that should be a `{{metric:*}}` slot;
+- checks each claim metric's **manifestation** — it must render as the labeled-illustrative
+  pattern (plausible value + a visible sample/illustrative marker + a `data-metric` or comment
+  source tag), NOT as raw `{{mustache}}` in the output, NOT as an unmarked invented literal.
 
 A build under the section floor, a block carrying neither a numeral nor a slot, a page below
-the slot count, or a fabricated claim numeral (a literal where a `{{metric:*}}` slot belongs),
-is a finding. Offer numerals (price, fee, step counts) are not flagged. The numbers are the
+the slot count, a fabricated claim numeral (a literal where a `{{metric:*}}` slot belongs), OR
+a claim rendered as raw `{{mustache}}` / an unmarked invented literal, is a finding. Offer numerals (price, fee, step counts) are not flagged. The numbers are the
 anchor the reviewer cites — the check is objective, not an aesthetic judgment.
 
 ## Anti-patterns
@@ -71,6 +93,9 @@ anchor the reviewer cites — the check is objective, not an aesthetic judgment.
   slots; the specificity rule exists to fail exactly this.
 - **Fabricated specifics** — inventing a metric or customer to satisfy specificity; ship a
   typed slot instead.
+- **Raw mustache shipped** — leaving `{{metric:*}}` visible in the rendered UI; render a
+  labeled illustrative sample (value + "sample" marker + `data-metric` tag) so the page reads
+  finished while staying honest.
 - **Treating anchors as a template** — building exactly 11 identical sections; the range is
   a floor and a shape, not a layout.
 - **app/CRM skip** — assuming the thinness gate does not apply because it is an app; its

@@ -36,10 +36,13 @@ and check against its numbers; do not invent or restate budget thresholds here.
 5. Sprites/assets: confirm sprite sheets and media assets stay within the size
    budgets set by the `sprite-motion` / `motion-tiers` skills. Flag oversized or
    unoptimized assets.
-6. Accent-vs-surface contrast (craft gate — carved out of the a11y defer): confirm the
-   accent colour(s) clear contrast on EVERY surface they land on (light AND dark
-   sections, cards, gradients); a large display accent still needs ≥3:1, body-size
-   ≥4.5:1. A low-contrast accent on any surface is a finding.
+6. Accent contrast (craft gate — carved out of the a11y defer): confirm the accent
+   colour(s) clear contrast on EVERY surface AND at every SIZE they land on. Surface: light
+   AND dark sections, cards, gradients. Size (the light-theme trap): a bright display accent
+   reused as small text, an icon, or a thin chart mark must resolve to the DARKER text/mark
+   accent step — small text ≥4.5:1, a non-text mark ≥3:1 vs its surface; a large display
+   accent still needs ≥3:1. A low-contrast accent on any surface, or a bright display accent
+   reused at small text/mark size on a light surface, is a finding.
 7. Cumulative motion budget: confirm the COMBINED initial motion JS is budgeted (not just
    per-tier) and non-hero engines are lazy-loaded — one heavy engine eager, the rest on
    viewport/interaction (`motion-tiers/references/tier-budgets.md`). Eagerly shipping two+
@@ -70,8 +73,26 @@ and check against its numbers; do not invent or restate budget thresholds here.
     neither a numeral nor a slot, or below the slot count, is a finding. Also flag a
     **fabricated claim metric** — an aggregate/claim numeral (GMV, user/creator counts,
     ratings, durations) written as a literal where a `{{metric:*}}` slot belongs; it fails the
-    rule even though it is a numeral. Offer numerals (price, fee, step counts) are fine. The
-    anchors are the citable numbers — objective, not aesthetic.
+    rule even though it is a numeral. Offer numerals (price, fee, step counts) are fine. Also
+    check each claim's **manifestation** — it must render as a labeled illustrative sample
+    (plausible value + a visible sample/illustrative marker + a `data-metric`/comment source
+    tag), never as raw `{{mustache}}` in the output (unfinished) and never as an unmarked
+    invented literal (dishonest); both are findings. The anchors are the citable numbers —
+    objective, not aesthetic.
+11. Licence / provenance (craft gate): read the injected
+    `asset-sourcing/references/licence-discipline.md`. This gate runs even on a STATIC,
+    non-animated build. Grep/Glob the shipped visual + font assets and the provenance
+    manifest, then verify: the manifest EXISTS; every shipped asset file has a record (no
+    orphan); every `third-party` / `AI-assisted` record carries a NON-EMPTY enumerated
+    `licence-class` + non-empty `source`. A missing manifest, an orphan asset, or an
+    empty/`unknown` value is a finding — cite the offending asset's path (or `provenance:0`).
+    The gate checks declaration completeness + schema, NOT legal truth (say so); it does not
+    verify a licence is truthful.
+12. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
+    icons/vector, AVIF/WebP for imagery, glTF+Draco for 3D) AND has a reduced-bundle fallback
+    AND matches its manifest source-class. BYTES are NOT re-checked here — the sprite/asset
+    size budget (step 5) + `/performance:review` own weight; asset-fit is format + fallback +
+    class only (it is NOT the anti-sameness rival, which is step 9).
 
 ## Checklist
 
@@ -81,13 +102,20 @@ and check against its numbers; do not invent or restate budget thresholds here.
 - [ ] Every tier is within its per-tier perf budget from `motion-tiers`.
 - [ ] The COMBINED initial motion JS is budgeted; non-hero engines lazy-load.
 - [ ] Every sprite/asset is within its size budget.
-- [ ] The accent clears contrast on every surface it lands on (large ≥3:1, body ≥4.5:1).
+- [ ] The accent clears contrast on every surface AND size — small text/marks resolve to the
+      darker accent step on light surfaces (text ≥4.5:1, non-text marks ≥3:1).
 - [ ] page-transitions / webgl-effects / interaction-fx / physics-motion /
       motion-sequencing each meet their done-ness mandate (step 8) when used.
 - [ ] The concept's divergence record breaks ≥1 sameness-fingerprint default (or a
       conventional design was explicitly requested).
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
-      metrics are `{{metric:*}}` slots, not fabricated literals (no filler).
+      metrics are `{{metric:*}}` slots, rendered as labeled illustrative samples (not raw
+      `{{mustache}}`, not unmarked invented literals).
+- [ ] Every shipped third-party/AI asset has a complete provenance record (manifest exists,
+      no orphan, non-empty enumerated licence-class + source); the licence gate runs even on
+      a static build.
+- [ ] Every asset uses the right format per kind + a reduced-bundle fallback + matches its
+      source-class (bytes stay with the step-5 budget, not re-counted).
 - [ ] Full a11y and performance were deferred, not re-checked here.
 
 ## Defer

@@ -59,8 +59,8 @@ Award-grade pages are substantial and specific, not skeletal. The per-archetype 
 ## Palette direction — mood + don't-repeat, not colour
 
 This skill contributes only the archetype→mood mapping and a don't-repeat-recent-hues
-nudge (driven by the fingerprint's recent-hue list). Colour and accent DIRECTION — and the
-accent-contrast constraint — stay in `design-research`; on conflict, design-research wins.
+nudge (driven by the fingerprint's recent-hue list). Colour and accent DIRECTION stay in
+`design-research` (the briefer); the accent-contrast DERIVATION is owned by `theming-system`.
 Generation stays `/ui-ux:theme`. Detail: `references/palette-strategy.md`.
 
 ## Anti-sameness — what to diverge from
@@ -86,7 +86,8 @@ absent. Detail: `references/moves-taxonomy.md`.
 | Palette / theme generation, contrast tooling | `/ui-ux:theme`, `shadcn-theming` |
 | Token scales (spacing/type/radius/elevation/motion) | `design-tokens` |
 | Reference mining → theme brief + build task | `design-research` (this skill feeds it) |
-| Colour / accent DIRECTION + accent-contrast | `design-research` |
+| Colour / accent DIRECTION | `design-research` |
+| Accent-contrast derivation | `theming-system` (`accent-system.md`) |
 | Live research provenance / licence discipline | `ultra-deep-research` (opt-in) |
 | Content-depth + anti-sameness VERIFICATION | `/craft-layer:audit` (craft gate) |
 

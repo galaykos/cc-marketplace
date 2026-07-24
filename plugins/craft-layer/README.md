@@ -12,24 +12,44 @@ sprite guidance, information design, and a craft **audit**.
 `/craft-layer:craft <idea>` chains the whole path — it writes no framework code itself,
 it orchestrates existing surfaces:
 
+0. **creative-direction** — generate a divergent concept (central metaphor, editorial
+   voice, one signature interaction) that breaks the sameness defaults, before anything
+   visual is decided.
 1. **`/craft-layer:research`** — mine reference designs + interaction/layout patterns,
-   emit a theme brief and a build task.
-2. **`/ui-ux:theme`** — generate design tokens (light/dark) + live preview from the brief.
-3. **`/ui-ux:build`** — build components/layout, applying `design-tokens` and
+   emit a theme brief and a build task, biased toward the concept.
+2. **`/ui-ux:theme`** — generate design tokens (light/dark) + live preview from the brief;
+   `theming-system` derives the coherent token-system direction the brief carries.
+3. **asset-sourcing** — decide where each visual asset comes from
+   (build-vs-source-vs-commission) and record provenance under a licence gate, before the
+   build.
+4. **`/ui-ux:build`** — build components/layout, applying `design-tokens` and
    `information-design`.
-4. **motion routing** — route each surface to its owning skill (`motion-tiers` for the
+5. **motion routing** — route each surface to its owning skill (`motion-tiers` for the
    base tier; `scroll-orchestration`, `page-transitions`, `kinetic-typography`,
    `interaction-fx`, `physics-motion`, `motion-sequencing`, `webgl-effects` as needed),
    then fold in the cross-cutting decisions: reduced-motion + reduced-bundle fallbacks, the
    **cumulative** motion budget, **RTL** effect-mirroring vs LTR-islands, and
    **accent-vs-surface contrast**.
-5. **`/craft-layer:audit`** — verify the craft gates (per-tier + cumulative budget,
-   reduced-motion, contrast, the newer-skill gates; delegating full a11y + performance).
+6. **`/craft-layer:audit`** — verify the craft gates (per-tier + cumulative budget,
+   reduced-motion, contrast, licence + asset-fit, the newer-skill gates; delegating full
+   a11y + performance).
 
 ## Skills
 
+- **creative-direction** — the concept-first anti-sameness layer: generates a divergent
+  concept (metaphor, editorial voice, one signature interaction), scores blind candidates,
+  and records a divergence the audit checks; owns the content-depth + sameness-fingerprint
+  gates.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
+- **theming-system** — derive a coherent token SYSTEM from the concept: surface/ink/accent
+  tiers as roles, the display-vs-text/mark accent split, a reserved status palette, a chart
+  palette tied to the theme, and a light/dark duality stepped from ramps. Emits roles +
+  contrast rules and defers value generation to `/ui-ux:theme` + `design-tokens` +
+  `shadcn-theming`; ships no colour or token value.
+- **asset-sourcing** — build-vs-source-vs-commission for icons, SVG/vector, 3D models,
+  animated overlays, and illustration/imagery: a categorical source taxonomy plus a hard,
+  audited licence/provenance gate; reuses `sprite-motion` + the Vector tier.
 - **motion-tiers** — the tier decision system: Framer Motion, anime.js, Three.js/R3F,
   and sprites — each with when-to-use, a perf budget, a `prefers-reduced-motion`
   fallback, a reduced-bundle fallback, and a per-framework tool binding — including
@@ -66,11 +86,15 @@ it orchestrates existing surfaces:
 - **`/craft-layer:research`** — run the design-research playbook standalone.
 - **`/craft-layer:audit`** — audit a project against the craft gates.
 
-## Agent
+## Agents
 
+- **creative-director** — read-only agent that generates and scores divergent creative
+  concepts (metaphor, editorial voice, signature interaction) and returns the winner plus a
+  divergence record the craft audit checks.
 - **craft-reviewer** — read-only reviewer for the craft gates (reduced-motion per tier,
-  lazy + static-fallback 3D, per-tier budgets, sprite/asset budgets). Delegates a11y →
-  `/a11y:audit` and performance → `/performance:review`.
+  lazy + static-fallback 3D, per-tier budgets, sprite/asset budgets, licence + asset-fit,
+  accent-vs-surface contrast). Delegates a11y → `/a11y:audit` and performance →
+  `/performance:review`.
 
 ## Reuse map
 
@@ -79,7 +103,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Concern | Owned by |
 | --- | --- |
 | Design-token scales | `plugins/ui-ux/skills/design-tokens` |
-| Palette / theme generation | `plugins/ui-ux/skills/shadcn-theming` + `/ui-ux:theme` |
+| Palette / theme value generation (craft-layer's own `theming-system` derives the token-system DIRECTION; these own the VALUES) | `plugins/ui-ux/skills/shadcn-theming` + `/ui-ux:theme` |
 | Motion library idioms (Framer, GSAP, anime.js) | `plugins/ui-ux/skills/motion-best-practices` (+ `references/animejs.md`) |
 | GSAP timelines (motion-sequencing references, doesn't re-teach) | `plugins/ui-ux/skills/motion-best-practices/references/gsap.md` |
 | Spring/tween alternative (physics-motion references, to decide when NOT to use physics) | `plugins/ui-ux/skills/motion-best-practices` |

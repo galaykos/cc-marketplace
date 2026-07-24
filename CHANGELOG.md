@@ -4,6 +4,64 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.78.0] - 2026-07-24
+
+craft-layer 0.9.0 — new **theming-system** capability (award-grade Part C; from the theming-system
+brainstorm + spec, red-teamed to 11 resolved holes). A derivation-router skill that owns what was a
+thin adjective string: turning a concept into a **coherent token SYSTEM** by construction — surface/ink/
+accent tiers as roles, the **display-vs-text/mark accent split** (Finding #5) as its single owner, a
+reserved status palette, a chart palette tied to the theme, and a **light/dark duality** stepped from
+ramps (not auto-flipped). It emits ROLES + contrast rules and defers value generation to `/ui-ux:theme`,
+`design-tokens`, `shadcn-theming`, and `dataviz`. Consolidates accent-contrast ownership out of
+design-research + creative-direction + palette-strategy (four restatement sites reduced to pointers),
+and threads a token-system-direction slot into the theme brief so the derivation reaches
+`/ui-ux:theme`. Mechanism only — ships no colour, hex, or token value. No new audit gate: the existing
+accent-contrast gate + the dataviz validator verify what the skill now makes correct by construction.
+
+## [0.77.0] - 2026-07-24
+
+craft-layer 0.8.0 — new **asset-sourcing** capability (award-grade Part B; from the asset-sourcing
+brainstorm + spec, red-teamed to 25 resolved holes). A decision-router skill that owns what nothing
+in the plugin owned: where award-grade visual assets come from. It decides
+**build-vs-source-vs-commission** for icons, SVG/vector, 3D models, animated-overlay content, and
+illustration/imagery across six axes (budget · licence · format · perf · fidelity · uniqueness) with
+a **categorical** source taxonomy (build-in-code · open-source-lib · asset-marketplace · commission ·
+AI-assisted) — never a vendor catalog, never shipped assets. Adds a **hard, audited licence gate**: a
+required provenance manifest (`path` · `origin` · enumerated `licence-class` · `source`) that a
+read-only reviewer checks for existence + completeness + schema (not legal truth), running even on a
+static asset-only build. Six references (sourcing-decision, licence-discipline, iconography, vector-3d,
+illustration-imagery, animated-modals), each citing sprite-motion / Vector-tier / threejs / Tier-3 /
+design-tokens / kinetic-typography by path, not re-teaching them. Wired into `/craft-layer:craft` as a
+new step-3 asset-plan (before Build) and `/craft-layer:audit` as licence + asset-fit gates; the
+"uniqueness" axis feeds the existing anti-sameness gate via two new fingerprint entries (default stock
+imagery / default icon set). Heavy cascade: context-budget baseline reseeded, catalog regenerated,
+plugin-scout bumped.
+
+## [0.76.0] - 2026-07-24
+
+craft-layer 0.7.2 — decision-guidance hardening (Part A of the award-grade pass), from
+reviewing smoke-test #8 (the Fairweather light-theme dog-shelter build — landing + analytics
+dashboard, which validated the 0.7.1 content-depth offer-vs-claim rule live). Two refinements
+to existing principles, no new capabilities:
+
+- **Accent contrast now covers SIZE, not just surface.** The rule framed contrast as surface
+  variance (a light section vs a dark one); a light-theme build exposed the *size* case — a
+  bright accent that clears ≥3:1 at display size fails ≥4.5:1 as small text and ≥3:1 as a thin
+  chart mark. Encoded (single source: `design-research`'s token-direction; referenced by
+  `palette-strategy`) that a light theme needs a **darker accent step for small text and marks,
+  distinct from the bright display/fill accent**; `craft-reviewer` step 6 + `/craft-layer:audit`
+  now verify small-text/mark accents resolve to that darker step.
+- **Content-depth claim metrics gain a manifestation rule.** The offer-vs-claim rule correctly
+  forbids fabricated claim numbers (ship `{{metric:*}}` slots) but governed source presence only
+  — so honest builds rendered raw `{{mustache}}` and looked unfinished. Added to
+  `content-depth.md` (+ reviewer step 10 + audit): a claim renders as a **labeled illustrative
+  sample** — a plausible value + a visible "sample" marker + a `data-metric`/comment source tag
+  — never raw mustache (unfinished) and never an unmarked invented literal (dishonest). Honest
+  AND finished; the audit greps the sample pattern instead of the braces.
+
+Light cascade: reference + skill-body + agent + command bodies only, no description or leaf
+changes (no baseline reseed, no catalog/plugin-scout churn).
+
 ## [0.75.0] - 2026-07-24
 
 craft-layer 0.7.1 — decision-guidance hardening (principles, not new capabilities), from
