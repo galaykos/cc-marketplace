@@ -11,7 +11,7 @@ order.
 
 ## Part 1 — Deliverable scope (pin before writing a file)
 
-Resolve all five, echo them to the user, then build:
+Resolve every row below, echo them to the user, then build:
 
 | Field | Must resolve to |
 | --- | --- |
@@ -64,8 +64,17 @@ uninformative while being dense.
 
 **Checking "plain-language" mechanically.** Whether a sentence is plain reads like taste, but the
 concept makes it testable: the divergence record names the central METAPHOR, so that metaphor's
-own vocabulary is the thing the plain-what line may not be built from. Take the metaphor's terms
-(and their obvious cognates), then check the h1 and the sentence under it:
+own vocabulary is the thing the plain-what line may not be built from.
+
+This only works if the record still EXISTS at audit time. The creative-director agent returns it
+and writes no files, so the craft flow must persist it — alongside the pinned contract, in the
+run's working area (the taskmaster docs area when the project has one, otherwise the session
+scratch area), never in the shipped tree — and inject it into the audit. An audit with no
+contract and no record cannot run these checks and must SAY so rather than pass silently; a
+gate that quietly no-ops is worse than an absent one.
+
+With the record in hand, take the metaphor's terms (and their obvious cognates), then check the
+h1 and the sentence under it:
 
 - the h1 is built from metaphor vocabulary and names no product capability → finding
   ("A rank is a position, not a score." under a navigation metaphor: an aphorism, not a what);
@@ -135,6 +144,11 @@ long is wrong, but because nobody decided it.
 
 ## Part 6 — One-shot or guided
 
+**`one-shot` is the default** when the user names no mode. `guided` is entered by saying so —
+"guided", "section by section", "give me options", "ask me as you go" anywhere in the request,
+or by running `/craft-layer:sections`. There is no flag to memorize; the mode is pinned in the
+contract like every other row, and echoed back with it.
+
 A `one-shot` run generates the whole page from the contract and the concept, and
 the user first sees it finished. That is the right mode for a small page, a
 re-run, or a headless invocation — and it is the mode in which a misread brief
@@ -169,8 +183,8 @@ holds; the user is choosing between options that already satisfy them.
 - the plain-what line is checked AGAINST the divergence record's metaphor vocabulary, not by
   taste — an h1 built from the metaphor and naming no capability is a finding;
 - a proof region EXISTS (slotted per Part 4) rather than being absent;
-- on a `guided` run, a section ledger exists and the built page conforms to it
-  (`section-decisions/references/section-ledger.md` owns that check);
+- ledger conformance is NOT checked here — `section-decisions/references/section-ledger.md`
+  owns it, and skips entirely when no ledger exists (a one-shot build is not a finding);
 - the declared LENGTH matches what shipped, and on `long-scroll`: every spine slot answered
   first within roughly the opening third, the primary CTA recurring through the scroll on one
   verb, no long run of identically-shaped sections, an in-page wayfinding affordance past

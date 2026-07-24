@@ -20,13 +20,18 @@ teams"). If empty, ask for a one-line product idea and the target stack
    FIRST pin the offer contract (`skills/creative-direction/references/offer-contract.md`):
    one product under its real name, the audience, the ONE primary action, the exact route
    list, the page LENGTH (`standard` or `long-scroll` — long is legitimate, undeclared length
-   is not), the MODE (`one-shot`, or `guided` to decide the page section by section with the
-   user at step 3), and what is not shipping — echoed to the user BEFORE any file is written. If the
+   is not), the MODE — `one-shot` by default, `guided` when `$ARGUMENTS` asks for it in ANY
+   words ("guided", "section by section", "give me options", "ask me as you go"); that phrase
+   is SCOPE, so strip it from the product idea before passing the idea to step 1 — and what is
+   not shipping. Echo the whole contract to the user BEFORE any file is written. If the
    brief admits several products, positionings, or directions, ASK which one; presenting
    options and then building all of them is the failure this step exists to stop, and a
    token/kit showcase is not a site route unless asked for. Carry the contract's offer
    spine (plain-language what, audience, problem, how-it-works, price, proof, objection,
-   one CTA) into step 1 so both briefs owe it.
+   one CTA) into step 1 so both briefs owe it. PERSIST the pinned contract and, once step 0
+   finishes, the concept's divergence record into the run's working area (the taskmaster docs
+   area when the project has one, otherwise the session scratch — never the shipped tree); the
+   audit's contract and anti-sameness gates read them and cannot run if they were only spoken.
    THEN classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`),
    and dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
    metaphor, an editorial voice, and one signature interaction — that breaks the
@@ -53,11 +58,14 @@ teams"). If empty, ask for a one-line product idea and the target stack
 3. **Section decisions — only when the contract declares `guided`.** Apply the
    `section-decisions` skill (or run `/craft-layer:sections` standalone): derive the agenda
    from the contract's spine slots, run the batched rounds (Shape → Treatment → Signature,
-   six exchanges maximum, "decide the rest for me" always offered), stage options through
+   under the exchange cap `decision-rounds.md` sets, "decide the rest for me" always
+   offered), stage options through
    `taskmaster:visual-decisions` / `/design-preview:preview` / `/shadcn-studio:stage` when
    installed, and write the section ledger. Fold each row's choice + locks into the build
-   task so the picks reach step 5. `one-shot` (or headless): skip the exchanges, and let the
-   concept and archetype defaults decide — this step is the checkpoint, not a requirement.
+   task so the picks reach step 5. Two skips, and they differ: `one-shot` skips this step
+   entirely and lets the concept and archetype defaults decide, writing no ledger; a `guided`
+   run with no interactive user (headless) still runs the agenda, auto-decides every item, and
+   writes the ledger with every row `source: auto` so the choices stay reviewable.
 
 4. **Asset plan — decide where the visual assets come from.** Apply the `asset-sourcing`
    skill: classify the assets the concept needs (icons, SVG/vector, 3D, illustration/imagery,

@@ -50,6 +50,23 @@ ship as a `{{metric:*}}` slot, **never as an invented literal.** A fabricated cl
 does not satisfy the rule — it fails it exactly like generic prose, the numeral only hides the
 fabrication. Ship `{{metric:gmv}}`, not `$48M`; `{{metric:active_users}}`, not `12,400`.
 
+**Capability claims are the third category, and the one that slips through.** Between the offer
+numerals the design legitimately decides and the aggregate metrics it obviously cannot, sits a
+class of facts about what the REAL product does: coverage ("16 US metros at launch", "available
+in 30 countries"), integrations ("works with Salesforce, HubSpot"), supported platforms, SLAs and
+uptime figures, compliance certifications (SOC 2, HIPAA, GDPR), data-retention windows, staffing
+and support hours. These read like offer terms — they are specific, they are not aggregates, they
+sound like something the seller decides — but the BUILD does not know any of them, and inventing
+one is worse than inventing a metric: a visitor can act on "SOC 2 certified" or "covers your
+city" in a way they cannot act on a vanity number. Ship them as `{{capability:*}}` slots
+(`{{capability:metro_coverage}}`, `{{capability:integrations}}`, `{{capability:compliance}}`),
+manifested exactly like claim metrics — plausible sample + one marker + a source tag. A capability
+claim written as an unmarked literal is a finding, however plausible it sounds.
+
+The boundary test: could the DESIGN decide this, or only the business? Price, tier limits, step
+counts, plan names → the design's terms, shown plainly. Where the product operates, what it
+integrates with, what it is certified for, how fast it responds → the business's facts, slotted.
+
 And each page must carry **≥ N distinct typed slots**, where **N ≈ the count of the page's
 entity/claim-bearing sections** (creators, testimonials, stats, logos) — NOT every section. An
 offer-heavy page (pricing, features, steps) legitimately fills those blocks with offer numerals
@@ -107,6 +124,9 @@ The craft audit (`/craft-layer:audit`) reads THIS file (injected as a Read path)
 - counts distinct typed slots per page against N (entity/claim-bearing sections);
 - flags any **claim/aggregate metric written as a literal** — GMV, user/creator counts,
   ratings, durations — that should be a `{{metric:*}}` slot;
+- flags any **capability claim written as a literal** — geographic/market coverage, named
+  integrations, supported platforms, SLA/uptime figures, compliance certifications, retention
+  windows, support hours — that should be a `{{capability:*}}` slot;
 - checks each claim metric's **manifestation** — it must render as the labeled-illustrative
   pattern (plausible value + a visible sample/illustrative marker + a `data-metric` or comment
   source tag), NOT as raw `{{mustache}}` in the output, NOT as an unmarked invented literal;
@@ -127,6 +147,8 @@ anchor the reviewer cites — the check is objective, not an aesthetic judgment.
   slots; the specificity rule exists to fail exactly this.
 - **Fabricated specifics** — inventing a metric or customer to satisfy specificity; ship a
   typed slot instead.
+- **Invented capability** — a coverage, integration, certification, or SLA claim written as a
+  literal because it sounded like an offer term; only the business knows it, so it is a slot.
 - **Raw mustache shipped** — leaving `{{metric:*}}` visible in the rendered UI; render a
   labeled illustrative sample (value + "sample" marker + `data-metric` tag) so the page reads
   finished while staying honest.

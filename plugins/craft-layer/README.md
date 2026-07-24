@@ -46,8 +46,11 @@ The offer contract declares a **mode**, in the same prompt as everything else:
 
 | Mode | What happens | Use when |
 | --- | --- | --- |
-| `one-shot` *(default)* | the whole page is generated from the contract + concept; you first see it finished | small page, a re-run, headless |
+| `one-shot` *(default)* | the page is generated from the contract + concept, with the chain's own handoff points (stack, contract echo, token approval) still yours to answer | small page, a re-run, headless |
 | `guided` | step 3 runs: you pick each section's treatment before it is built | broad or half-formed brief, the page IS the deliverable, or you want options |
+
+`guided` is pinned by ASKING for it in any words — "guided", "section by section", "give me
+options" — not by a flag.
 
 ```bash
 # one-shot
@@ -62,9 +65,10 @@ The offer contract declares a **mode**, in the same prompt as everything else:
 
 Guided costs a handful of exchanges: **Shape** (one whole-page outline pick),
 **Treatment** (3–4 sections batched per exchange, most consequential first), and at most one
-**Signature** decision — capped at six exchanges total, with *"decide the rest for me"*
-offered at every one. It degrades cleanly: no mockup plugins installed → written
-multiple-choice; headless → the whole agenda is auto-decided and reported.
+**Signature** decision — under the exchange cap `section-decisions/references/decision-rounds.md`
+sets, with *"decide the rest for me"* and *"show me one option"* offered at every one. It degrades
+cleanly: no mockup plugins installed → written multiple-choice; headless → the whole agenda is
+auto-decided, every ledger row marked `auto`, and reported.
 
 ## Skills
 
@@ -163,6 +167,17 @@ craft-layer **references, never re-teaches**, these existing skills:
 ## Install
 
 Ships in the **frontend-suite** bundle alongside `ui-ux`, `threejs`, `design-preview`,
-and `a11y` — installing the suite bundles the a11y audit craft delegates to. Performance
-is the one optional external delegation: `/performance:review` requires the `performance`
-plugin; skipped if not installed.
+`shadcn-studio`, and `a11y` — which is the recommended install, because two of those are not
+optional in practice:
+
+- **`ui-ux` — required.** craft-layer writes no build logic itself; `/ui-ux:theme` owns token
+  generation (step 2) and `/ui-ux:build` owns the build (step 5). Without it the chain has no
+  step 2 and no step 5.
+- **`a11y` — required for the audit.** `/craft-layer:audit` delegates the full accessibility
+  pass to `/a11y:audit` unconditionally; craft-layer checks only accent-vs-surface contrast
+  itself.
+- **`performance` — genuinely optional.** `/performance:review` is explicitly skipped when the
+  plugin is absent.
+- **`taskmaster`, `design-preview`, `shadcn-studio` — optional.** They stage guided-mode
+  options at higher fidelity; without them decisions degrade to written multiple-choice and
+  every gate still runs.

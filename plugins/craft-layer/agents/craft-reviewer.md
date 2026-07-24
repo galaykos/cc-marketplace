@@ -60,8 +60,10 @@ and check against its numbers; do not invent or restate budget thresholds here.
    - **motion-sequencing**: `@theatre/studio` excluded from the production bundle +
      reduced-motion jump-to-final.
 9. Anti-sameness (craft gate): read the injected
-   `creative-direction/references/sameness-fingerprint.md` and the build's concept
-   **divergence record**. A build is a finding when it matches the fingerprint on
+   `creative-direction/references/sameness-fingerprint.md` and the build's persisted concept
+   **divergence record**. No record injected: report this gate as `not checked (no divergence
+   record persisted)` and move on — never treat an absent record as an empty one, which would
+   fail every build that simply did not save it. A build is a finding when it matches the fingerprint on
    all-but-one axes (the recurring spine + component vocabulary) AND its divergence record
    is empty or placeholder — grep and COMPARE the record against the registry; never judge
    whether the result is beautiful. An explicit user request for a conventional /
@@ -86,8 +88,11 @@ and check against its numbers; do not invent or restate budget thresholds here.
     sample value; it should have been cut, with the region left standing on the slots that can
     render finished. The anchors are the citable numbers — objective, not aesthetic.
 11. Offer contract (craft gate): read the injected
-    `creative-direction/references/offer-contract.md`. Verify the shipped route list matches
-    the pinned deliverable scope; that ONE product identity spans those routes; that the
+    `creative-direction/references/offer-contract.md` AND the run's PERSISTED contract
+    instance. Without the instance, the scope/length/mode checks have nothing to compare
+    against: report them `not checked (no contract persisted)` and still run the checks that
+    read the build alone (spine slots, proof presence, one product identity). Verify the
+    shipped route list matches the pinned deliverable scope; that ONE product identity spans those routes; that the
     REAL product name — not a concept-invented wordmark — is in `<title>` and the hero; that
     each marketing page answers every offer-spine slot (a plain-language what-line above the
     fold, a named audience, the problem, a 3–5-step how-it-works, price

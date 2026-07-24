@@ -60,6 +60,9 @@ the scale), and `shadcn-theming` when colour is in play. Carry the PATTERNS here
 
 ```
 Build <component/layout> in <where: route/file/section>.
+Spine slots: <which offer-contract slots this section carries>.
+Decided: <the section ledger's `choice` for this section — omit on a one-shot run>.
+Locks: <the ledger's `locks` — the component, instrument, data need, or copy slot it commits>.
 Layout: <grid/columns/hero composition, max-width, density>.
 Components: <card anatomy, table/list density, form rhythm, key states>.
 Interaction: <hover/focus, disclosure, scroll/transition behaviour>.
@@ -96,5 +99,9 @@ Rules:
   audience, problem, how-it-works, price, proof, objection, primary CTA), so the pinned
   contract reaches the build instead of stopping at the concept
   (`plugins/craft-layer/skills/creative-direction/references/offer-contract.md`).
-- Every genuinely open choice was sent to `/design-preview:preview` first, not guessed.
+- Every genuinely open choice was decided, not guessed — staged through whichever staging
+  surface is installed, or degraded to a written choice per `section-decisions`. On a
+  `one-shot` run the concept and archetype defaults decide, which counts as decided.
+- On a `guided` run, every section's `Decided` + `Locks` lines come from the section ledger —
+  a build task written from the concept alone silently discards the user's picks.
 - Neither brief contains hex/px/token names — only the decided direction and patterns.

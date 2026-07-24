@@ -25,7 +25,8 @@ exist, or to re-decide one section later.
 2. **Derive the agenda.** Turn the contract's spine slots into agenda items in
    spine order, expanded per `content-depth.md`'s archetype anchors, plus an
    order-and-rhythm item when the contract declares `long-scroll`. Never add an
-   item the contract did not ask for. Show the agenda before the first question
+   item the contract did not ask for. Where the archetype's section ceiling sits below the
+   spine's slot count, slots COMBINE rather than being dropped — Round 1 decides which. Show the agenda before the first question
    so the user knows the length of what they are agreeing to.
 
 3. **Consume what is already decided.** A taskmaster spec, a `## Visual contract`
@@ -34,8 +35,8 @@ exist, or to re-decide one section later.
 
 4. **Run the rounds** per `skills/section-decisions/references/decision-rounds.md`
    — Shape (whole page, one exchange), Treatment (batched 3–4 sections per
-   exchange, most consequential first), Signature (at most one). Hard ceiling of
-   six exchanges; "decide the rest for me" offered at every one. Stage options
+   exchange, most consequential first), Signature (at most one) — under the exchange cap that
+   reference sets; "decide the rest for me" offered at every one. Stage options
    through the surfaces that own staging — `taskmaster:visual-decisions` for the
    consent gate and mockups, `/design-preview:preview` or `/shadcn-studio:stage`
    for real components, `/ui-ux:theme` when colour is the decision — and degrade

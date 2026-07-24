@@ -26,8 +26,11 @@ taxonomy and its per-tier budgets, then:
    `../skills/creative-direction/references/content-depth.md` (the anti-sameness registry
    and the content-depth anchors) AND
    `../skills/creative-direction/references/offer-contract.md` (the deliverable scope +
-   offer-spine slots) AND, when the run produced a section ledger,
-   `../skills/section-decisions/references/section-ledger.md` plus the ledger itself AND
+   offer-spine slots) AND — from the run's working area — the PERSISTED contract instance and
+   divergence record when they exist (without them the contract and anti-sameness gates cannot
+   run and must be reported as `not checked`, never as passing) AND, when the run produced a
+   section ledger, `../skills/section-decisions/references/section-ledger.md` plus the ledger
+   itself AND
    `../skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
    schema), and have it verify: every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;

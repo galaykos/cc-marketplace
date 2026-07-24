@@ -36,8 +36,9 @@ it; a concept generated and dropped is the failure this seam exists to prevent.
 
 A distinctive page that never says what the product is, who buys it, what it costs, or what
 to click has failed the commission. Before the archetype, pin ONE product under its real
-name, the audience, the one primary action, the route list, the page length, and what is not
-shipping — and ASK when the brief admits several products rather than building all of them.
+name, the audience, the one primary action, the route list, the page length, the MODE
+(`one-shot` by default, `guided` when the user asks to decide section by section), and what is
+not shipping — and ASK when the brief admits several products rather than building all of them.
 The concept's metaphor is a design language, not a rebrand. A long scroll is legitimate when
 DECLARED, and then carries its own rules. Slots, scope rule, and teeth live in
 `references/offer-contract.md`; the craft audit checks it.
