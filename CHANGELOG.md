@@ -4,6 +4,15 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.69.0] - 2026-07-24
+
+craft-layer 0.2.0 — award-grade capabilities. A new `scroll-orchestration` skill
+(Lenis smooth-scroll substrate + ScrollTrigger; native CSS scroll-driven as the
+reduced-bundle path), a new `kinetic-typography` skill (variable-font axis animation +
+split-text reveals), and a new motion-tiers **Tier 5 — Vector (Lottie/Rive)**. Each
+references the existing motion-best-practices / motion-tiers gotchas material by path
+rather than re-teaching it. Tools + decisions, not design templates.
+
 ## [0.68.0] - 2026-07-23
 
 Enforcement-parity and subtraction release, driven by a fresh whole-marketplace

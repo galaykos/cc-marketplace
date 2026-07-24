@@ -33,7 +33,10 @@ teams"). If empty, ask for a one-line product idea and the target stack
    decision — Framer Motion, anime.js, Three.js/R3F, or sprites (the `sprite-motion`
    skill covers the last). Apply the tier's **perf budget**, its `prefers-reduced-motion`
    fallback, and its reduced-bundle fallback. Keep any 3D lazy-loaded with a static
-   fallback per `motion-tiers/references/webgl-3d.md`.
+   fallback per `motion-tiers/references/webgl-3d.md`. For scroll-driven pages use
+   `scroll-orchestration` (Lenis substrate + ScrollTrigger); for animated or
+   variable-font type use `kinetic-typography`; for a designer-authored `.lottie`/`.riv`
+   asset reach for the Vector tier.
 
 5. **Audit.** Run `/craft-layer:audit` on the result to verify the craft gates
    (reduced-motion per tier, lazy + static-fallback 3D, per-tier budgets, sprite/asset

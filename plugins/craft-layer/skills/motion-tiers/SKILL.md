@@ -25,17 +25,20 @@ Answer in order; take the first that fits the surface:
 1. Looping frame-by-frame character / mascot / pixel motion? → **Sprites** (tier 4).
 2. Real 3D, a WebGL background, or a product viewer? → **Three.js / R3F** (tier 3) —
    budget-gated, lazy-loaded, static fallback (see `references/webgl-3d.md`).
-3. Multi-step timeline, SVG draw/morph, or a choreographed hero sequence? →
+3. Have (or want) a designer-authored `.lottie` / `.riv` asset, or an interactive
+   state-machine vector? → **Vector** (tier 5) — a shipped Lottie/Rive beats
+   hand-coding the same motion (see `references/vector.md`).
+4. Multi-step timeline, SVG draw/morph, or a choreographed hero sequence? →
    **anime.js** (tier 2).
-4. React / Vue UI state, layout shift, gesture, exit, or micro-interaction? →
+5. React / Vue UI state, layout shift, gesture, exit, or micro-interaction? →
    **Framer Motion** (tier 1).
-5. Two-state fade/slide with no orchestration? → no tier — CSS transitions
+6. Two-state fade/slide with no orchestration? → no tier — CSS transitions
    (`motion-best-practices`), the cheapest path.
 
 One writer per property per element: never point two tiers at the same `transform`.
 Full decision table with budgets: `references/tier-budgets.md`.
 
-## The four tiers (one line each)
+## The five tiers (one line each)
 
 - **Tier 1 — Framer Motion** (Motion, `motion/react`): React / Next UI state, layout,
   gestures, exit. Budget ≈ 34KB gzip full or ~2.6KB `motion/mini`; compositor-only
@@ -57,6 +60,12 @@ Full decision table with budgets: `references/tier-budgets.md`.
   one packed WebP/AVIF sheet ≤ 150KB; CSS `steps()` or a `requestAnimationFrame` loop
   — compositor-cheap. reduced-motion: pause on a single poster frame. reduced-bundle:
   ship the static poster frame and defer the sheet. Authoring detail: `sprite-motion`.
+- **Tier 5 — Vector (Lottie / Rive)**: designer-authored vector motion. Lottie
+  (`@lottiefiles/dotlottie-react`) = timeline playback; Rive (`@rive-app/react-canvas`)
+  = interactive state-machine. Budget ≈ the `.lottie`/`.riv` asset size + player
+  runtime; lazy-load the asset and player. reduced-motion: render a static poster
+  frame. reduced-bundle: ship a poster image and lazy-load the asset. Lottie-vs-Rive,
+  budget, and both fallbacks: `references/vector.md`.
 
 ## Framework binding (one line)
 
@@ -80,14 +89,30 @@ Every surface answers both, or it does not ship:
   progressively once the heavy chunk is affordable. Measure the fallback path too — a
   fallback that still ships the full tier bundle is not a reduced-bundle path.
 
+## GSAP and sibling skills
+
+GSAP is not a motion tier: its element animation is one alternative inside
+`motion-best-practices`, and its ScrollTrigger is the engine owned by the sibling
+`scroll-orchestration` skill — scroll-driven sequencing is a different job from
+picking a per-surface tier. Two sibling craft skills layer on top of a chosen tier:
+
+- `scroll-orchestration` — scroll-linked reveals, pinning, and ScrollTrigger / Lenis
+  choreography across a page.
+- `kinetic-typography` — text-as-motion (split-text, variable-font, letter staggers).
+
 ## References
 
+- `references/vector.md` — Lottie (timeline) vs Rive (state-machine), the Tier-5
+  budget, the `prefers-reduced-motion` poster path, and the reduced-bundle lazy path.
 - `references/tier-budgets.md` — the full per-tier table: when / bundle-KB / runtime /
   reduced-motion fallback / reduced-bundle fallback.
 - `references/framework-bindings.md` — the tool→framework binding matrix for every named
   stack (React, Next, Vue, Nuxt, Laravel via Inertia, Laravel via Livewire).
 - `references/webgl-3d.md` — the 3D lazy-load + static-fallback rules; cites
   `plugins/threejs/skills/threejs-best-practices/SKILL.md` for R3F correctness.
+- `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
+  split text (invisible), whileInView reveals with no fallback, split-text aria,
+  one-writer-per-property, scroll-link contract.
 
 ## Anti-patterns
 
@@ -102,4 +127,4 @@ Every surface answers both, or it does not ship:
 - **Re-teaching the library** — copying Motion / anime / R3F API recipes into this skill
   instead of referencing `motion-best-practices` / `threejs-best-practices` by path.
 - **GSAP as a tier** — GSAP is an alternative inside `motion-best-practices`, not one of
-  these four decision tiers.
+  these five decision tiers; its ScrollTrigger belongs to `scroll-orchestration`.
