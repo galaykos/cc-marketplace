@@ -26,7 +26,10 @@ and check against its numbers; do not invent or restate budget thresholds here.
    path is a finding.
 3. 3D/WebGL: confirm any Three.js/R3F (or `<canvas>`/WebGL) surface is lazy-loaded
    (dynamic import / code-split, not in the initial bundle) AND has a static
-   fallback for reduced-motion and load-failure. Missing either is a finding.
+   fallback for reduced-motion and load-failure. Load-failure coverage requires an
+   **error boundary** around the scene — a `Suspense`/loading fallback does not catch a
+   rejected chunk import or a thrown/lost WebGL context, so without a boundary the failure
+   unmounts the tree (blank page). Missing lazy-load, static fallback, or boundary is a finding.
 4. Per-tier budgets: check each tier against its budget from the `motion-tiers`
    skill (bundle weight, node/particle counts, frame cost). Flag overruns; cite the
    tier and the budget you compared against.
@@ -46,7 +49,8 @@ and check against its numbers; do not invent or restate budget thresholds here.
      a reduced-motion path.
    - **webgl-effects**: a GPU/pass budget + a capability/static fallback + reduced-motion
      freeze (one static frame) + an animated loop paused off-screen (not left rendering
-     at full DPR when the surface has scrolled away).
+     at full DPR when the surface has scrolled away) + an error boundary so a chunk-load
+     reject or WebGL-context loss falls back to the poster, not a blank tree.
    - **interaction-fx**: the real cursor is preserved (no keyboard-less `cursor:none`),
      effects disable on `pointer:coarse`, reduced-motion path.
    - **physics-motion**: a body-count cap + one world/loop + reduced-motion static (no sim).
@@ -62,14 +66,18 @@ and check against its numbers; do not invent or restate budget thresholds here.
 10. Content depth (craft gate): read the injected
     `creative-direction/references/content-depth.md`. Count sections against the archetype
     range; grep each section/block for a numeral or a `{{slot}}`; count distinct typed slots
-    per page against N. Under the section floor, a block with neither a numeral nor a slot,
-    or below the slot count, is a finding. The anchors are the citable numbers — objective,
-    not aesthetic.
+    per page against N (entity/claim-bearing sections). Under the section floor, a block with
+    neither a numeral nor a slot, or below the slot count, is a finding. Also flag a
+    **fabricated claim metric** — an aggregate/claim numeral (GMV, user/creator counts,
+    ratings, durations) written as a literal where a `{{metric:*}}` slot belongs; it fails the
+    rule even though it is a numeral. Offer numerals (price, fee, step counts) are fine. The
+    anchors are the citable numbers — objective, not aesthetic.
 
 ## Checklist
 
 - [ ] Every animation tier/engine used has a `prefers-reduced-motion` path.
-- [ ] Every 3D/WebGL surface is lazy-loaded and has a static fallback.
+- [ ] Every 3D/WebGL surface is lazy-loaded, has a static fallback, and sits behind an
+      error boundary for chunk-load / WebGL-context failure.
 - [ ] Every tier is within its per-tier perf budget from `motion-tiers`.
 - [ ] The COMBINED initial motion JS is budgeted; non-hero engines lazy-load.
 - [ ] Every sprite/asset is within its size budget.
@@ -78,7 +86,8 @@ and check against its numbers; do not invent or restate budget thresholds here.
       motion-sequencing each meet their done-ness mandate (step 8) when used.
 - [ ] The concept's divergence record breaks ≥1 sameness-fingerprint default (or a
       conventional design was explicitly requested).
-- [ ] Content depth meets the archetype anchors + typed-slot specificity (no filler).
+- [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
+      metrics are `{{metric:*}}` slots, not fabricated literals (no filler).
 - [ ] Full a11y and performance were deferred, not re-checked here.
 
 ## Defer
