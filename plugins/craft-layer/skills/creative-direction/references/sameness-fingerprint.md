@@ -28,6 +28,8 @@ last 5 palettes**. Seeded from the smoke-test evidence documented in the backlog
 - tilt-on-hover cards
 - logo marquee
 - scroll-driven bento/stat reveal
+- default stock imagery (the generic stock-photo hero — imagery chosen off-the-shelf, not art-directed)
+- default icon set (an untouched off-the-shelf icon pack — no consistency or metaphor choice made)
 - (a build leaning only on these has no brief-specific signature move)
 
 ### Recent palette hues (avoid repeating)

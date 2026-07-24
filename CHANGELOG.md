@@ -4,6 +4,25 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.77.0] - 2026-07-24
+
+craft-layer 0.8.0 — new **asset-sourcing** capability (award-grade Part B; from the asset-sourcing
+brainstorm + spec, red-teamed to 25 resolved holes). A decision-router skill that owns what nothing
+in the plugin owned: where award-grade visual assets come from. It decides
+**build-vs-source-vs-commission** for icons, SVG/vector, 3D models, animated-overlay content, and
+illustration/imagery across six axes (budget · licence · format · perf · fidelity · uniqueness) with
+a **categorical** source taxonomy (build-in-code · open-source-lib · asset-marketplace · commission ·
+AI-assisted) — never a vendor catalog, never shipped assets. Adds a **hard, audited licence gate**: a
+required provenance manifest (`path` · `origin` · enumerated `licence-class` · `source`) that a
+read-only reviewer checks for existence + completeness + schema (not legal truth), running even on a
+static asset-only build. Six references (sourcing-decision, licence-discipline, iconography, vector-3d,
+illustration-imagery, animated-modals), each citing sprite-motion / Vector-tier / threejs / Tier-3 /
+design-tokens / kinetic-typography by path, not re-teaching them. Wired into `/craft-layer:craft` as a
+new step-3 asset-plan (before Build) and `/craft-layer:audit` as licence + asset-fit gates; the
+"uniqueness" axis feeds the existing anti-sameness gate via two new fingerprint entries (default stock
+imagery / default icon set). Heavy cascade: context-budget baseline reseeded, catalog regenerated,
+plugin-scout bumped.
+
 ## [0.76.0] - 2026-07-24
 
 craft-layer 0.7.2 — decision-guidance hardening (Part A of the award-grade pass), from

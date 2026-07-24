@@ -79,6 +79,20 @@ and check against its numbers; do not invent or restate budget thresholds here.
     tag), never as raw `{{mustache}}` in the output (unfinished) and never as an unmarked
     invented literal (dishonest); both are findings. The anchors are the citable numbers —
     objective, not aesthetic.
+11. Licence / provenance (craft gate): read the injected
+    `asset-sourcing/references/licence-discipline.md`. This gate runs even on a STATIC,
+    non-animated build. Grep/Glob the shipped visual + font assets and the provenance
+    manifest, then verify: the manifest EXISTS; every shipped asset file has a record (no
+    orphan); every `third-party` / `AI-assisted` record carries a NON-EMPTY enumerated
+    `licence-class` + non-empty `source`. A missing manifest, an orphan asset, or an
+    empty/`unknown` value is a finding — cite the offending asset's path (or `provenance:0`).
+    The gate checks declaration completeness + schema, NOT legal truth (say so); it does not
+    verify a licence is truthful.
+12. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
+    icons/vector, AVIF/WebP for imagery, glTF+Draco for 3D) AND has a reduced-bundle fallback
+    AND matches its manifest source-class. BYTES are NOT re-checked here — the sprite/asset
+    size budget (step 5) + `/performance:review` own weight; asset-fit is format + fallback +
+    class only (it is NOT the anti-sameness rival, which is step 9).
 
 ## Checklist
 
@@ -97,6 +111,11 @@ and check against its numbers; do not invent or restate budget thresholds here.
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
       metrics are `{{metric:*}}` slots, rendered as labeled illustrative samples (not raw
       `{{mustache}}`, not unmarked invented literals).
+- [ ] Every shipped third-party/AI asset has a complete provenance record (manifest exists,
+      no orphan, non-empty enumerated licence-class + source); the licence gate runs even on
+      a static build.
+- [ ] Every asset uses the right format per kind + a reduced-bundle fallback + matches its
+      source-class (bytes stay with the step-5 budget, not re-counted).
 - [ ] Full a11y and performance were deferred, not re-checked here.
 
 ## Defer
