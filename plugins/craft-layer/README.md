@@ -4,8 +4,10 @@ Create unique, high-craft, animated, **informative** web apps — CRMs, SaaS das
 landing pages — on real projects across **React, Tailwind, Vite, Vue, Next, Nuxt, and
 Laravel** (Inertia / Livewire). `craft-layer` is the orchestration layer that turns an
 idea into a crafted app by composing the marketplace's existing UI/motion skills, adding
-only what they lack: a research→brief playbook, a tiered motion **decision** system,
-sprite guidance, information design, and a craft **audit**.
+only what they lack: an offer contract that pins what the page sells, concept-first
+creative direction, an optional guided section-decision loop, a research→brief playbook,
+an asset-sourcing + licence gate, a concept→token-system derivation, a tiered motion
+**decision** system, sprite guidance, information design, and a craft **audit**.
 
 ## The craft flow
 
@@ -139,9 +141,11 @@ auto-decided, every ledger row marked `auto`, and reported.
 - **creative-director** — read-only agent that generates and scores divergent creative
   concepts (metaphor, editorial voice, signature interaction) and returns the winner plus a
   divergence record the craft audit checks.
-- **craft-reviewer** — read-only reviewer for the craft gates (reduced-motion per tier,
-  lazy + static-fallback 3D, per-tier budgets, sprite/asset budgets, licence + asset-fit,
-  accent-vs-surface contrast). Delegates a11y → `/a11y:audit` and performance →
+- **craft-reviewer** — read-only reviewer for the craft gates (offer contract, content depth,
+  anti-sameness, section-ledger conformance, reduced-motion per tier, lazy + static-fallback
+  3D, per-tier budgets, sprite/asset budgets, licence + asset-fit, accent-vs-surface
+  contrast). Cites the sizes and ratios the audit measured for it, and reports `not measured`
+  rather than guessing when it has none. Delegates a11y → `/a11y:audit` and performance →
   `/performance:review`.
 
 ## Reuse map
@@ -165,7 +169,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Requirement clarification into a spec + cards (section-decisions consumes a spec, never re-interrogates it) | `plugins/taskmaster` |
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/a11y:audit` |
 | Performance / Lighthouse (optional external delegation) | `/performance:review` requires the `performance` plugin; skipped if not installed |
-| Chart form / color | the `dataviz` skill |
+| Chart form / color | the `dataviz` skill (external host skill, not in this repo) |
 
 ## Install
 

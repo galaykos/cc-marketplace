@@ -80,8 +80,9 @@ Generation stays `/ui-ux:theme`. Detail: `references/palette-strategy.md`.
 The `sameness-fingerprint` registry (`references/sameness-fingerprint.md`) is the
 source-of-truth of the recurring spine, component vocabulary, and recent hues. Naming
 those there is cataloguing what to DIVERGE FROM — the anti-corpus — not a prescription.
-The audit fails a build that matches the fingerprint on all-but-one axes with an empty
-divergence record; an explicit request for a conventional design is a valid justification.
+The audit fails a build that reproduces the recurring spine end-to-end AND ships ≥3 named
+vocabulary moves unbroken, when the record it carries is empty or contradicted; an absent
+record is `not checked`, and an explicit request for a conventional design is a justification.
 
 ## MOVES taxonomy — categories, cached + opt-in live
 

@@ -80,13 +80,18 @@ without exception:
    `creative-direction/references/sameness-fingerprint.md` and the build's persisted concept
    **divergence record**. No record injected: report this gate as `not checked (no divergence
    record persisted)` and move on — never treat an absent record as an empty one, which would
-   fail every build that simply did not save it. A build is a finding when it matches the fingerprint on
-   all-but-one axes (the recurring spine + component vocabulary) AND its divergence record
-   is empty or placeholder — grep and COMPARE the record against the registry; never judge
-   whether the result is beautiful. An explicit user request for a conventional /
+   fail every build that simply did not save it. A build is a finding when BOTH counts hold:
+   it reproduces the registry's recurring SPINE in order end-to-end AND ships ≥3 of its named
+   vocabulary moves unbroken, AND the record (present) is empty, placeholder, or contradicted
+   by what shipped — verify each claimed entry against the source rather than trusting the
+   record; never judge whether the result is beautiful. An explicit user request for a conventional /
    trust-first design is a valid justification, not a finding.
 10. Content depth (craft gate): read the injected
-    `creative-direction/references/content-depth.md`. Count sections against the archetype
+    `creative-direction/references/content-depth.md`. The archetype and the declared length
+    live in the persisted contract: without it, say `section count not checked (no contract
+    persisted)` and run only the per-block checks below — never emit a section-count finding
+    against a guessed archetype, and never against a build that may have declared
+    `long-scroll`. With it, count sections against that archetype's
     range; grep each section/block for a numeral or a `{{slot}}`; count distinct typed slots
     per page against N (entity/claim-bearing sections). Under the section floor, a block with
     neither a numeral nor a slot, or below the slot count, is a finding. Also flag a

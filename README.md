@@ -296,7 +296,7 @@ performance passes are static reviews rather than Lighthouse runs, so their scor
 Genuinely optional, composed when present: **taskmaster** (`visual-decisions` for mockups, `experience-walkthrough` to walk the assembled page — and a taskmaster spec is consumed, never re-interrogated), **design-preview** / **shadcn-studio** (real-component option previews), **performance** (`/performance:review`, explicitly skipped when absent). Without any of these, guided options become written multiple-choice and every craft gate still runs.
 
 ```bash
-/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + threejs
+/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 13 more
 ```
 
 ## Contributing

@@ -28,12 +28,7 @@ teams"). If empty, ask for a one-line product idea and the target stack
    options and then building all of them is the failure this step exists to stop, and a
    token/kit showcase is not a site route unless asked for. Carry the contract's offer
    spine (plain-language what, audience, problem, how-it-works, price, proof, objection,
-   one CTA) into step 1 so both briefs owe it. PERSIST the pinned contract (including the
-   archetype) and, once the concept exists, its divergence record — at the fixed paths
-   `craft/offer-contract.md` and `craft/divergence-record.md` under the run's working area
-   (the taskmaster docs area when the project has one, otherwise the session scratch; never
-   the shipped tree). The audit's contract, content-depth and anti-sameness gates glob for
-   exactly those names and cannot run if the contract was only spoken.
+   one CTA) into step 1 so both briefs owe it.
    THEN classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`),
    and dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
    metaphor, an editorial voice, and one signature interaction — that breaks the
@@ -45,6 +40,13 @@ teams"). If empty, ask for a one-line product idea and the target stack
    makes the build distinct, and the concept must actually reach the briefs (below) or it
    evaporates. The metaphor is a design LANGUAGE, not a rebrand — the real product name
    stays in the title, hero, and nav.
+   FINALLY, once the archetype is classified and the concept exists, PERSIST both artifacts —
+   the pinned contract INCLUDING its archetype row, and the divergence record — at the fixed
+   paths `craft/offer-contract.md` and `craft/divergence-record.md` under the run's working
+   area (the taskmaster docs area when the project has one, otherwise the session scratch;
+   never the shipped tree). Persisting before the archetype is classified writes an empty
+   Archetype row and leaves the content-depth gate with no anchor. The audit globs for exactly
+   those names; a contract that was only spoken cannot be checked against.
 
 1. **Research → briefs.** Run `/craft-layer:research <the product idea from step 0, with the
    mode/length instructions stripped out>` — never `$ARGUMENTS` verbatim, or "guided" is

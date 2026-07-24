@@ -29,8 +29,17 @@ taxonomy and its per-tier budgets, then:
    need and inject them as facts — per-asset gzipped and raw sizes for every shipped
    sprite/image/font/3D/Lottie file, and per-chunk gzipped size for the built bundle when a
    `dist/`/`build/` output exists (a project's own build command, `wc -c`, `gzip -c | wc -c`,
-   or the bundler's report). Anything you cannot measure — no build output, no toolchain —
-   is injected as `not measured` for that item, and the reviewer reports it that way rather
+   or the bundler's report).
+
+   Compute the CONTRAST RATIOS too — the reviewer cannot, and this is a craft gate rather
+   than a deferred one. Read the resolved accent/ink/surface token values out of the theme
+   (hex or the token file's channels), then compute WCAG relative-luminance ratios for each
+   accent-on-surface pairing per theme with a short script, and inject the numbers. Where a
+   value is only resolvable at runtime (a CSS var chain, a computed colour), say so for that
+   pairing instead of guessing.
+
+   Anything you cannot measure — no build output, no toolchain, an unresolvable colour — is
+   injected as `not measured` for that item, and the reviewer reports it that way rather
    than asserting a verdict.
 2. Run the craft-specific gates by dispatching the findings to the `craft-reviewer`
    agent from this plugin. Inject the Read path to `${CLAUDE_PLUGIN_ROOT}/skills/motion-tiers/references/tier-budgets.md` (authoritative
@@ -39,9 +48,12 @@ taxonomy and its per-tier budgets, then:
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/content-depth.md` (the anti-sameness registry
    and the content-depth anchors) AND
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md` (the deliverable scope +
-   offer-spine slots) AND — from the run's working area — the PERSISTED contract instance and
-   divergence record when they exist (without them the contract and anti-sameness gates cannot
-   run and must be reported as `not checked`, never as passing) AND, when the run produced a
+   offer-spine slots) AND — found by globbing `**/craft/offer-contract.md`,
+   `**/craft/divergence-record.md` and `**/craft/section-ledger.md` (the fixed names the craft
+   flow persists to; search the project and the session working area) — the PERSISTED contract
+   instance and divergence record when they exist. Without the contract, the scope/length/mode
+   AND the content-depth section-count checks have no anchor; without the record, anti-sameness
+   has none. Report each as `not checked`, never as passing and never as failing. AND, when the run produced a
    section ledger, `${CLAUDE_PLUGIN_ROOT}/skills/section-decisions/references/section-ledger.md` plus the ledger
    itself AND
    `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest

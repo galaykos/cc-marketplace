@@ -26,11 +26,11 @@ evaporates, which is the failure the craft flow's step 0 exists to prevent.
    argument. Hand it intent, not values; `/ui-ux:theme` runs its own stack detection, palette
    generation, and live preview.
    Then apply the `theming-system` skill to DERIVE the token-system-direction block the brief
-   carries alongside that string — surface/ink/accent tiers as roles, the display-vs-text
-   accent split, status and chart role intent, light/dark duality — in the exact three-line
-   shape `theming-system/references/concept-to-tokens.md` defines. Roles and direction only,
-   never a value. Without this the block the brief claims to carry does not exist and
-   `/ui-ux:theme` receives a bare vibe string.
+   carries alongside that string, in exactly the shape and line set
+   `theming-system/references/concept-to-tokens.md` defines (it owns the contents — do not
+   work from a summary of them). Roles and direction only, never a value. Carry the
+   palette-strategy mood phrase and avoid-hues note in the brief too. Without this the block
+   the brief claims to carry does not exist and `/ui-ux:theme` receives a bare vibe string.
 3. **Emit the build task for `/ui-ux:build`.** Write a component/layout task naming what
    to build, where, and which mined PATTERNS to apply (grid, card anatomy, density, motion
    energy) — this is the `[what-to-build]` argument. Keep it consistent with the theme

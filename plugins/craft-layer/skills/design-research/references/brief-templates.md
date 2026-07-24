@@ -45,9 +45,14 @@ Rules:
 theme brief carries a compact token-system-direction block whose SHAPE is owned by
 `plugins/craft-layer/skills/theming-system/references/concept-to-tokens.md` —
 `theming-system` derives it and `/ui-ux:theme` consumes it. Fill it as ROLES and direction
-only (never a value): the surface/ink/accent tier direction, the status/chart role intent,
-and the light/dark duality that the concept implies. Follow `concept-to-tokens.md` for the
-block's exact three-line format; do not restate the payload here — thread it.
+only (never a value). Follow `concept-to-tokens.md` for the block's exact line format and its
+contents — that file is the single source of the payload's shape; do not restate or summarize
+the line list here, because a second description of it drifts. Thread it.
+
+Also carry the palette-strategy outputs, which have nowhere else to ride: the **mood phrase**
+and the **avoid-these-hue-families** note (`creative-direction/references/palette-strategy.md`).
+Without a slot they are generated and dropped, and the don't-repeat-recent-hues nudge never
+reaches the palette.
 
 ---
 
@@ -104,6 +109,8 @@ Rules:
 - Every genuinely open choice was decided, not guessed — staged through whichever staging
   surface is installed, or degraded to a written choice per `section-decisions`. On a
   `one-shot` run the concept and archetype defaults decide, which counts as decided.
-- On a `guided` run, every section's `Decided` + `Locks` lines come from the section ledger —
-  a build task written from the concept alone silently discards the user's picks.
+- The `Decided` / `Locks` lines are NOT filled here. On a `guided` run the section-decisions
+  step amends this task after the picks are made, before it reaches `/ui-ux:build`; the ledger
+  does not exist yet at hand-off time. Leave the lines out and let that step add them — a
+  build task that reaches the build without them silently discards the user's picks.
 - Neither brief contains hex/px/token names — only the decided direction and patterns.

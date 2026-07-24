@@ -47,10 +47,11 @@ exist, or to re-decide one section later.
    — one row per agenda item (`slot`, `section`, `choice`, `locks`, `why`,
    `source`), in the run's working area, never in the shipped tree.
 
-6. **Thread it.** Fold each row's `choice` + `locks` into the build task
-   `design-research` hands to `/ui-ux:build`, so the picks reach the build rather
-   than sitting in a file. Report the ledger path, the count of `user` vs `auto`
-   rows, and the next command to run.
+6. **Thread it.** Inside `/craft-layer:craft`, amend the build task `design-research` wrote —
+   adding each row's `Decided` + `Locks` lines — before it reaches `/ui-ux:build`, so the
+   picks reach the build rather than sitting in a file. Standalone, with no build task in
+   play, report the ledger path plus the `/ui-ux:build` invocation to construct from it.
+   Either way, report the count of `user` vs `auto` rows and the next command to run.
 
 ## Notes
 

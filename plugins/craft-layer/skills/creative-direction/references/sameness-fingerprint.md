@@ -47,13 +47,14 @@ the brief reason }. A concept must break **≥ 1** default (K floor = 1; more is
 The audit fails a build when BOTH hold — stated as counts, so the check is falsifiable:
 - the build reproduces the recurring SPINE in order end-to-end, **and** ships ≥ 3 of the
   registry's named vocabulary moves unbroken; AND
-- the divergence record is missing, empty, placeholder, or every entry it claims is
+- the divergence record is present but empty, placeholder, or every entry it claims is
   contradicted by what actually shipped (a record naming a broken default the build still
   contains counts as placeholder — check each entry against the source, do not take the
   record's word for it).
 
-A non-empty record is not automatically a pass; an unverifiable one is reported
-`not checked`, not passed.
+A non-empty record is not automatically a pass. A record that is ABSENT is not a failure
+either: the gate had no input, so it is reported `not checked` — a build is never failed for
+not having saved a file.
 
 The reviewer greps and compares the record against this registry — it does not judge
 whether the result is beautiful. **Escape hatch:** an explicit user request for a
