@@ -54,14 +54,10 @@ Every source yields two kinds of finding; capture BOTH or the brief is colour-on
 - Spacing & density — airy vs compact, the base rhythm.
 - Radius & elevation — sharp vs soft, flat vs shadowed.
 - **Accent contrast (a constraint, not just a vibe)** — the accent must clear contrast on
-  every SURFACE *and* at every SIZE it lands on. **Surface:** light AND dark sections, cards,
-  gradients — if no single accent clears all, brief a surface-specific variant. **Size (the
-  light-theme trap):** a bright accent that passes ≥3:1 at display size routinely FAILS as
-  small text (≥4.5:1) or as an icon / thin chart mark (≥3:1 vs its surface) — so a light theme
-  needs a **darker accent step for small text and marks, distinct from the bright display/fill
-  accent** (reserve the bright one for large type and fills). On a dark surface the accent is
-  usually a fill with light text over it, so this runs the other way and the surface axis
-  already covers it. "Big text" never excuses a low-contrast accent. Generation stays with
+  every SURFACE *and* SIZE, so one bright display accent rarely suffices. The DERIVATION of
+  that split (display/fill vs text/mark, and the contrast step each role needs) is owned by
+  `theming-system` (`skills/theming-system/references/accent-system.md`); the brief only
+  SURFACES the constraint and hands it forward — it restates no thresholds. Generation stays
   `/ui-ux:theme`; verification is a craft gate (`/craft-layer:audit`).
 
 Record direction as adjectives and references, never as hex or px — `/ui-ux:theme` and
@@ -113,7 +109,7 @@ This skill mines and briefs; it does NOT re-teach generation. Reference, never c
 | --- | --- |
 | Token scales (spacing/type/radius/elevation/motion) | `plugins/ui-ux/skills/design-tokens/SKILL.md` |
 | Palette / theme generation, contrast tooling, dark mode | `plugins/ui-ux/skills/shadcn-theming/SKILL.md` |
-| Accent contrast VERIFICATION (every surface + size; display vs darker text/mark step) | `/craft-layer:audit` (craft gate) |
+| Accent-contrast derivation + verification | DERIVED by `theming-system` (`accent-system.md`), VERIFIED by `/craft-layer:audit` |
 | Palette + live preview from the theme brief | `/ui-ux:theme` |
 | Component/layout build from the build task | `/ui-ux:build` |
 

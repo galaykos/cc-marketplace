@@ -41,6 +41,14 @@ Rules:
   name it, so the command re-uses rather than replaces it.
 - One coherent voice — it must match the build task's patterns.
 
+**Token-system direction (derived by `theming-system`).** Alongside the string above, the
+theme brief carries a compact token-system-direction block whose SHAPE is owned by
+`plugins/craft-layer/skills/theming-system/references/concept-to-tokens.md` —
+`theming-system` derives it and `/ui-ux:theme` consumes it. Fill it as ROLES and direction
+only (never a value): the surface/ink/accent tier direction, the status/chart role intent,
+and the light/dark duality that the concept implies. Follow `concept-to-tokens.md` for the
+block's exact three-line format; do not restate the payload here — thread it.
+
 ---
 
 ## Template 2 — Build task

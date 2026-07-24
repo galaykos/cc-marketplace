@@ -4,6 +4,20 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.78.0] - 2026-07-24
+
+craft-layer 0.9.0 — new **theming-system** capability (award-grade Part C; from the theming-system
+brainstorm + spec, red-teamed to 11 resolved holes). A derivation-router skill that owns what was a
+thin adjective string: turning a concept into a **coherent token SYSTEM** by construction — surface/ink/
+accent tiers as roles, the **display-vs-text/mark accent split** (Finding #5) as its single owner, a
+reserved status palette, a chart palette tied to the theme, and a **light/dark duality** stepped from
+ramps (not auto-flipped). It emits ROLES + contrast rules and defers value generation to `/ui-ux:theme`,
+`design-tokens`, `shadcn-theming`, and `dataviz`. Consolidates accent-contrast ownership out of
+design-research + creative-direction + palette-strategy (four restatement sites reduced to pointers),
+and threads a token-system-direction slot into the theme brief so the derivation reaches
+`/ui-ux:theme`. Mechanism only — ships no colour, hex, or token value. No new audit gate: the existing
+accent-contrast gate + the dataviz validator verify what the skill now makes correct by construction.
+
 ## [0.77.0] - 2026-07-24
 
 craft-layer 0.8.0 — new **asset-sourcing** capability (award-grade Part B; from the asset-sourcing

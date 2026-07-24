@@ -35,8 +35,9 @@ teams"). If empty, ask for a one-line product idea and the target stack
    component/layout build task. Detect the target stack here if not already known.
 
 2. **Tokens.** Pass the theme brief to `/ui-ux:theme` to generate design tokens
-   (light/dark) with a live colour preview. Do not hand-roll palettes — `/ui-ux:theme`
-   owns generation.
+   (light/dark) with a live colour preview. The brief carries a `theming-system`-derived
+   token-system direction (roles/direction, not values — shape per `concept-to-tokens.md`)
+   that `/ui-ux:theme` consumes. Do not hand-roll palettes — `/ui-ux:theme` owns generation.
 
 3. **Asset plan — decide where the visual assets come from.** Apply the `asset-sourcing`
    skill: classify the assets the concept needs (icons, SVG/vector, 3D, illustration/imagery,
