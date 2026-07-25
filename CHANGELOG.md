@@ -4,6 +4,37 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.81.0] - 2026-07-25
+
+craft-layer 0.14.0 — the plugin taught anime.js, Three.js, Framer Motion, Lottie/Rive and
+sprites well, and the chain never reached for any of them. Every motion rule was a CEILING —
+per-tier budgets, the cumulative budget, reduced-motion paths, reduced-bundle fallbacks, lazy 3D
+— so a page with no animation at all passed every motion gate cleanly, and the audit reported it
+as a clean table. Three defects, fixed together.
+
+- **Motion is decided BEFORE the build (steps 5 and 6 swapped).** Motion used to be decided after
+  `/ui-ux:build` had already committed a layout, then handed back as a second pass. A retrofit can
+  only add what markup built without it can accept — fade-and-rise reveals — so the structural
+  effects (a pinned scroll act, a WebGL hero surface, a shared-element route transition, a physics
+  stage) were unreachable by construction. Step 5 now decides motion and resolves the build task's
+  `Motion:` and `Signature:` lines; step 6 builds once with both in hand.
+- **The signature interaction now survives to the build.** The concept named ONE signature move at
+  step 0 and the word appeared nowhere in the motion step, in `motion-tiers`, or in the reviewer —
+  the same evaporation step 0 warns about, untreated one step later. Step 5 now starts from the
+  persisted divergence record and assigns the move a section, an owning skill, and a tier; the
+  build task carries it on a new `Signature:` line; the section ledger gains a `signature` row
+  (written even when the Signature round is skipped as unambiguous, as `source: auto`).
+- **A motion FLOOR in the audit (craft-reviewer gate 14).** The reviewer now greps the owning
+  section for the named mechanism. A record naming a signature the build implements nowhere is a
+  finding — the only gate that fails a page for too LITTLE motion. Entrance reveals never count
+  toward it; implemented on the wrong section is a separate lower-severity finding. No divergence
+  record persisted → `not checked`, never a pass, matching every other input-missing gate. The
+  audit's "nothing animates → stop" shortcut no longer swallows it: the signature gate, like the
+  offer-contract, content-depth and anti-sameness gates, runs on a fully static build.
+- **The tier picker's bias made explicit** (`motion-tiers`): cheapest-that-fits is right for every
+  ordinary surface and wrong for the one carrying the signature, which is picked by what the MOVE
+  needs. That sentence is what makes the heavier tiers reachable at all.
+
 ## [0.80.0] - 2026-07-25
 
 craft-layer 0.13.1 — the craft chain could clear every motion, contrast, licence and depth gate

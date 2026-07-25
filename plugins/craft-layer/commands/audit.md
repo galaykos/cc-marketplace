@@ -20,9 +20,11 @@ taxonomy and its per-tier budgets, then:
    provenance manifest. List the tier(s), engine(s), surface(s), and assets found. If
    nothing animates BUT shipped assets are present, still run the asset/licence gates in
    step 2 — do not stop. Only when there is neither motion nor a shipped asset, say so and stop.
-   The motion/asset stop applies to the motion and asset gates ONLY — the offer-contract,
-   content-depth, and anti-sameness gates read page CONTENT and still run on a fully static
-   build, which is exactly when a marketing page is most likely to need them.
+   The stop applies to the motion CEILING gates and the asset gates ONLY. The offer-contract,
+   content-depth, and anti-sameness gates read page CONTENT, and the SIGNATURE gate is a motion
+   FLOOR whose entire purpose is a build with too LITTLE motion — so all four still run on a
+   fully static build, which is exactly when a marketing page is most likely to need them.
+   Never report "nothing animates" as a clean motion table.
 
    **1b. MEASURE what the reviewer cannot.** The reviewer is Read/Grep/Glob and can see no
    file's byte size. You have Bash: before dispatching, collect the numbers its budget gates
@@ -57,7 +59,11 @@ taxonomy and its per-tier budgets, then:
    section ledger, `${CLAUDE_PLUGIN_ROOT}/skills/section-decisions/references/section-ledger.md` plus the ledger
    itself AND
    `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
-   schema) AND the measurements from step 1b, and have it verify: every tier/engine in use honors
+   schema) AND the measurements from step 1b, and have it verify: the concept's ONE **signature
+   interaction** shipped — the divergence record names it, the build task's `Signature:` line
+   assigned it a section, and the named mechanism is implemented there (this is the motion
+   FLOOR and the only gate that fails a page for too little motion; entrance reveals never
+   count toward it, and no record means `not checked`, never a pass); every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **licence gate** —

@@ -72,6 +72,8 @@ Layout: <grid/columns/hero composition, max-width, density>.
 Components: <card anatomy, table/list density, form rhythm, key states>.
 Interaction: <hover/focus, disclosure, scroll/transition behaviour>.
 Motion: <what animates, entrance vs micro-interaction, energy> (per motion-tiers).
+Signature: <the concept's ONE signature interaction, when THIS section owns it — the named
+  move, its owning craft skill, and its tier; omit on every other section>.
 Assets / provenance: <per asset: build-in-code | source | commission, and for anything
   sourced, the manifest entry it must carry>.
 Responsive: <how it reflows at phone / tablet / full>.
@@ -92,6 +94,10 @@ stripe.com/pricing (tier hierarchy) and linear.app (restraint, border accents).
 
 Rules:
 - Patterns and structure, not colour — colour rides in the theme brief.
+- `Motion:` and `Signature:` are resolved by the craft flow's motion step BEFORE the build,
+  not after it — a scroll act, a WebGL surface, a shared-element transition, or a physics
+  stage is structural and cannot be retrofitted onto markup built without it. Exactly ONE
+  section carries `Signature:`; entrance reveals belong on `Motion:` and are not a signature.
 - Reference token DIRECTION by adjective ("compact density"), never token values; the
   worker resolves them via `design-tokens`.
 - Name the source + why for each borrowed pattern, so the build is traceable.

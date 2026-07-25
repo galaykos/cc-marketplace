@@ -30,21 +30,47 @@ it orchestrates existing surfaces:
 4. **asset-sourcing** — decide where each visual asset comes from
    (build-vs-source-vs-commission) and record provenance under a licence gate, before the
    build.
-5. **`/ui-ux:build`** — build components/layout (carrying the ledger's choices when step 3
-   ran), applying `design-tokens` and `information-design`.
-6. **motion routing** — DECIDE the motion, then hand it back to `/ui-ux:build` as a second
-   pass over the same task (craft-layer writes no animation code itself). Route each surface
-   to its owning skill (`motion-tiers` for the
+5. **motion routing** — DECIDE the motion, **before** the build, starting from the concept's
+   ONE signature interaction: which section owns it, which skill implements it, what tier it
+   costs. craft-layer writes no animation code itself — it resolves the build task's `Motion:`
+   and `Signature:` lines. Route each surface to its owning skill (`motion-tiers` for the
    base tier; `scroll-orchestration`, `page-transitions`, `kinetic-typography`,
    `interaction-fx`, `physics-motion`, `motion-sequencing`, `webgl-effects` as needed),
    then fold in the cross-cutting decisions: reduced-motion + reduced-bundle fallbacks, the
    **cumulative** motion budget, **RTL** effect-mirroring vs LTR-islands, and
    **accent-vs-surface contrast**.
-7. **`/craft-layer:audit`** — verify the craft gates (offer contract, content depth, ledger
+6. **`/ui-ux:build`** — build components/layout in ONE pass (carrying the ledger's choices
+   when step 3 ran, the asset plan, and step 5's resolved motion), applying `design-tokens`
+   and `information-design`.
+7. **`/craft-layer:audit`** — verify the craft gates (the signature interaction actually
+   shipped, offer contract, content depth, ledger
    conformance, per-tier + cumulative budget, reduced-motion, contrast, licence + asset-fit,
    the newer-skill gates; delegating full a11y + performance). It measures asset and chunk
    sizes itself before dispatching, and any gate it cannot measure is reported
    `not measured` rather than guessed — then offers to route the findings to a worker.
+
+### Why motion is decided before the build
+
+Every other motion rule in this plugin is a **ceiling** — per-tier budgets, the cumulative
+budget, reduced-motion paths, reduced-bundle fallbacks, lazy-loaded 3D. Ceilings stop bad
+motion; they cannot produce good motion, and a page with no animation at all clears every one
+of them. Two rules close that gap:
+
+- **Step 5 runs before step 6.** Motion decided after a layout is committed can only be
+  retrofitted onto markup that was not built for it, so the retrofit lands on the one thing a
+  retrofit allows — fade-and-rise reveals. A pinned scroll act, a WebGL hero surface, a
+  shared-element route transition, a physics stage: those are structural. They are in the
+  build task or they never ship.
+- **The signature is the motion floor.** The concept names ONE signature interaction at step 0;
+  step 5 assigns it a section, an owning skill, and a tier on the build task's `Signature:`
+  line; the audit checks the named mechanism actually shipped there. It is the only gate that
+  fails a page for too *little* motion, and entrance reveals never count toward it. It is also
+  what makes anime.js, Three.js, physics, and Lottie/Rive reachable at all — the tier picker
+  takes the cheapest tier that fits on every ordinary surface, and only the signature surface
+  is picked by what the move needs.
+
+No divergence record persisted → the gate reports `not checked`, like every other gate whose
+input is missing. It never fails a build that simply never saved one.
 
 ### What the run writes outside your app
 
@@ -163,7 +189,8 @@ auto-decided, every ledger row marked `auto`, and reported.
 - **creative-director** — read-only agent that generates and scores divergent creative
   concepts (metaphor, editorial voice, signature interaction) and returns the winner plus a
   divergence record the craft audit checks.
-- **craft-reviewer** — read-only reviewer for the craft gates (offer contract, content depth,
+- **craft-reviewer** — read-only reviewer for the craft gates (signature-interaction shipped,
+  offer contract, content depth,
   anti-sameness, section-ledger conformance, reduced-motion per tier, lazy + static-fallback
   3D, per-tier budgets, sprite/asset budgets, licence + asset-fit, accent-vs-surface
   contrast). Cites the sizes and ratios the audit measured for it, and reports `not measured`
@@ -200,8 +227,8 @@ Ships in the **frontend-suite** bundle alongside `ui-ux`, `threejs`, `design-pre
 optional in practice:
 
 - **`ui-ux` — required.** craft-layer writes no build logic itself; `/ui-ux:theme` owns token
-  generation (step 2) and `/ui-ux:build` owns the build (step 5). Without it the chain has no
-  step 2 and no step 5.
+  generation (step 2) and `/ui-ux:build` owns the build (step 6). Without it the chain has no
+  step 2 and no step 6.
 - **`a11y` — required for the audit.** `/craft-layer:audit` delegates the full accessibility
   pass to `/a11y:audit` unconditionally; craft-layer checks only accent-vs-surface contrast
   itself.
