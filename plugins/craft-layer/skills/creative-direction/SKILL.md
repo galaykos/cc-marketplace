@@ -68,6 +68,17 @@ Award-grade pages are substantial and specific, not skeletal. The per-archetype 
 (section-count + per-section word floors + a typed-slot specificity rule) lives in
 `references/content-depth.md`. It is checked by the craft audit, not enforced here.
 
+## Type direction — derive a SPEC, not an adjective
+
+Typography carries the largest single weight in the only published award rubric, and it
+is the field a build most often defaults into. This layer derives a typeface SPEC —
+strategy, required axes and features, coverage, licence class, KB ceiling, and what the
+anti-corpus disqualifies — which the theme brief carries and the audit reads back. It
+NEVER names a family: naming answers is a catalog, naming families to diverge from is the
+fingerprint's job. Seven filters, hardest-cutting first, in
+`references/type-strategy.md`. Scales stay `design-tokens`; the static contract
+(fluid sizing, `text-wrap`, loading, licence tiers) stays `kinetic-typography`.
+
 ## Palette direction — mood + don't-repeat, not colour
 
 This skill contributes only the archetype→mood mapping and a don't-repeat-recent-hues
@@ -115,6 +126,8 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
   seed + recency window + release-cadence upkeep.
 - `references/palette-strategy.md` — archetype→mood + don't-repeat nudge; defers colour to
   design-research.
+- `references/type-strategy.md` — the typeface SELECTOR: seven filters deriving a spec,
+  the archetype→strategy table, and the never-name-a-family rule.
 - `references/moves-taxonomy.md` — MOVE categories + when-to-use; the opt-in live pass and
   its probe→degrade fallback.
 

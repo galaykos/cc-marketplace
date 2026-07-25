@@ -1,5 +1,8 @@
 # The scroll-orchestration decision
 
+> **Last verified: 2026-07-25** — Lenis maintenance status and the engine sizings
+> below, plus `animation-timeline`'s Baseline status (still limited availability).
+
 Read on demand from scroll-orchestration. This is the long form of the SKILL's
 "does scroll motion earn its cost?" gate: when to orchestrate scroll at all, which
 effect to reach for, and the one contract that keeps them from fighting.
@@ -54,8 +57,11 @@ the page uses contract 1 on Y only if the axes never overlap for one element.
 
 ## Engine sizing (feed the SKILL's budget)
 
-- Native CSS scroll-driven ≈ 0KB JS, off-main-thread — always the reduced-bundle and
-  below-the-fold choice.
+- Native CSS scroll-driven ≈ 0KB JS, off-main-thread — the reduced-bundle and
+  below-the-fold choice, as a PROGRESSIVE ENHANCEMENT. `animation-timeline` is not
+  Baseline and is absent from a major engine, so it is never the only path: author the
+  visible end state as the base rule and layer the motion behind `@supports`, per
+  `css-scroll-driven.md`. Zero KB is not the same as zero risk.
 - Lenis ≈ 3KB gzip; ScrollTrigger ships inside GSAP (size it from gsap.md). Both count
   against the surface motion budget owned by `motion-tiers`.
 - ScrollTrigger mechanics — one trigger per scene, `.refresh()` after layout, cleanup,

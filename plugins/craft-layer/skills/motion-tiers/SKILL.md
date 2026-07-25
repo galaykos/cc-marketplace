@@ -38,7 +38,8 @@ Answer in order; take the first that fits the surface:
 Cheapest-that-fits is right for ordinary surfaces, wrong for the ONE carrying the concept's
 SIGNATURE interaction — that surface is picked by what the MOVE needs, not by what is cheapest.
 One writer per property per element: never point two tiers at the same `transform`.
-Full decision table with budgets: `references/tier-budgets.md`.
+Full table: `references/tier-budgets.md` — SOURCE OF TRUTH for every KB figure below and
+home of the `Last verified:` date. On drift fix it there first, re-date, then mirror here.
 
 ## The five tiers (one line each)
 

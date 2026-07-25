@@ -20,6 +20,15 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - hero → logo/trust marquee → stat/bento block → feature grid → "how it works" →
   magnetic CTA. A build that reproduces this order end-to-end has diverged on nothing
   structural.
+- **The category-default spine** (a second spine, and it retires differently — see the
+  category-default note below): centred hero with one large headline, a subhead and two
+  buttons → a three-column feature grid → a logo wall → a testimonial carousel → a
+  pricing table → a repeated CTA → a four-column footer. This is the order generated
+  marketing pages converge on, and it is recognised faster than any individual component
+  on it. Reproducing it in order is the structural tell even when every component is
+  restyled. Evidence for this specific ordering is 2026 teardown reporting whose sources
+  echo each other, so treat the ORDER as the durable finding and any accompanying
+  statistic as unverified.
 
 ### Recurring component vocabulary (overused signature moves)
 - kinetic variable-weight headline
@@ -38,6 +47,17 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
   what pages do now, rather than because the sequence is the argument
 - the generated-web composition: gradient hero + one geometric sans + a four-card grid
 - (a build leaning only on these has no brief-specific signature move)
+
+### Type families the category defaults to (avoid unless argued for)
+- the neutral geometric/grotesque UI sans that generated pages reach for first — Inter and
+  Geist by name, and any face chosen because it is what a starter template shipped with.
+  Naming them here is the anti-corpus exception above: they are catalogued as defaults to
+  DIVERGE from, never as a recommendation, and they remain perfectly good typefaces that a
+  brief may still argue for on the merits.
+- the two-family serif-display-over-grotesque-text pairing, when it is reached for as the
+  house move rather than derived. This is a SHAPE, not a family: a build can diverge on
+  both families and still be repeating the pairing strategy.
+- `type-strategy.md` reads this list the way `palette-strategy.md` reads the hues below.
 
 ### Recent palette hues (avoid repeating)
 - editorial lime (light)

@@ -11,6 +11,26 @@ they paint nothing — the word vanishes. Fix: keep the gradient word as ONE ele
 (still animatable as a single unit), or apply the gradient to each glyph span. Never
 split a `bg-clip:text` word into transparent children.
 
+## Sticky header / pinned scene → focused control hidden behind it
+
+Anything the craft layer pins or sticks to a viewport edge — a shrinking sticky nav, a
+pinned ScrollTrigger scene, a floating CTA bar, a cookie/consent sliver — sits on top of
+the page while the user tabs THROUGH the page underneath. Tab to a control that scrolls
+under the sticky element and the focused control is behind it: the focus ring is present
+but unseeable. This is a real, common failure of WCAG 2.2 SC 2.4.11 Focus Not Obscured
+(Minimum), Level AA, which requires that a focused component is not ENTIRELY hidden by
+author-created content. Fixes, cheapest first:
+
+- `scroll-padding-top` on the scroll container, matched to the sticky element's height, so
+  programmatic focus scrolling never parks a control underneath it.
+- Shrink or hide the sticky element while keyboard focus is inside the region it covers.
+- On a pinned scene, ensure the pinned layer is not focusable-through: either move focus
+  with the pin or make the covered region inert for the duration.
+
+Test it by tabbing the whole page with the sticky element at every state it has, not by
+looking at the design. Full-page verification stays `/a11y:audit`'s job; not creating the
+obstruction is the motion decision's job.
+
 ## whileInView / scroll-reveal → hidden until observed
 
 An element that starts at `opacity: 0` and only reveals via an IntersectionObserver

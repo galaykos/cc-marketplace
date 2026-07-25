@@ -92,6 +92,52 @@ one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE
 `THIRD-PARTY-NOTICES`. A manifest at any other path reads as absent to the gate. An
 all-in-code build still owes one, as a first-party declaration.
 
+### Dating volatile facts
+
+A research pass over this plugin found the architecture sound and the **facts** rotten.
+Everything wrong was a claim with a shelf life — a library version, a bundle size, a
+maintenance status, a Baseline state. One reference asserted that a runtime was lighter
+than its alternative when it is roughly three times heavier, with no date on the claim to
+suggest it might have aged.
+
+So: **any file asserting an OBSERVED FACT ABOUT THE WORLD carries a `Last verified: <date>`
+line under its title**, naming what the date covers. Three categories, and only the first
+one dates:
+
+| Category | Dates? | Examples |
+| --- | --- | --- |
+| **Observed fact** — true of something we do not control, and can change without notice | **yes** | a library's gzipped size, a release version, a maintenance status, a Baseline/support state, a licence's terms |
+| **Policy** — a ceiling or rule this plugin CHOSE | no | "a decorative sprite sheet stays under ~150 KB", the contrast ratios, the section-count floors |
+| **Identifier** — a name used to refer to a thing | no | `@theatre/core`, `motion/react`, `oklch()` |
+
+A date on a timeless rule is noise, and noise is how a convention dies. Decision
+procedures, taxonomies, and gates carry no date at all.
+
+Two rules make it worth having:
+
+- **A date on an unverified fact is worse than no date**, because it launders a guess into
+  a checked claim. When only part of a file was re-verified, say which part
+  (`physics-patterns.md` does).
+- **One source of truth per number.** Where a SKILL body repeats a figure so a decision is
+  pickable at a glance, the body names the reference as authoritative; on drift the
+  reference is fixed and re-dated first, then mirrored. A SKILL body at its line cap
+  discharges this through its References section rather than growing a second pointer —
+  the delegation is what matters, not where it is written.
+
+### Gates vs triggers
+
+A **gate** is a defect type — wrong contrast, a missing spine slot, an absent signature. A
+**trigger** is the condition that SURFACES a fault: the viewport, the zoom level, the motion
+preference, the colour mode, the input device. Gate coverage can improve indefinitely while
+the trigger set never changes, and any defect reachable only under an unfired trigger stays
+invisible however careful the review is — so `/craft-layer:audit` reports both, and names the
+triggers it did not fire.
+
+`template/craft-gates/` ships the browser-driveable set as a drop-in Playwright suite
+(200% zoom, reduced-motion, forced-colours, axe in both themes) plus the oklch-aware
+contrast script. It runs in about two seconds. Copy it into a crafted project; the audit
+hands it to any project that has no suite of its own.
+
 ### One-shot or guided
 
 The offer contract declares a **mode**, in the same prompt as everything else:
@@ -138,7 +184,7 @@ auto-decided, every ledger row marked `auto`, and reported.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
 - **theming-system** — derive a coherent token SYSTEM from the concept: surface/ink/accent
-  tiers as roles, the display-vs-text/mark accent split, a reserved status palette, a chart
+  tiers as roles, the three-role accent split (display · fill · text/mark), a reserved status palette, a chart
   palette tied to the theme, and a light/dark duality stepped from ramps. Emits roles +
   contrast rules and defers value generation to `/ui-ux:theme` + `design-tokens` +
   `shadcn-theming`; ships no colour or token value.

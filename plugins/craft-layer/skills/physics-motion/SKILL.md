@@ -72,6 +72,9 @@ Concrete surfaces this unlocks (each still respects the budget + reduced-motion 
 - A draggable/throwable object is a pointer affordance — any content or action it gates
   MUST also be reachable by keyboard and in the static fallback. Never make physics the
   only path to information.
+- Keyboard reach is necessary but NOT sufficient: WCAG 2.2 SC 2.5.7 (AA) requires drag
+  operations to have a single-pointer, non-dragging alternative, for pointer users who
+  cannot drag. Ship an actual click/tap route to the same outcome, not just a tab stop.
 - Respect focus and do not trap it inside a physics canvas.
 
 ## prefers-reduced-motion (mandatory)

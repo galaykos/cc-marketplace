@@ -1,12 +1,12 @@
 ---
 name: theming-system
-description: Use when a concept must become a coherent token SYSTEM — surface/ink/accent tiers, the display-vs-text/mark accent split, a reserved status palette, a theme-derived chart palette, and a light/dark duality stepped from ramps — expressed as ROLES and derivation rules the theme brief carries into /ui-ux:theme. Owns the coherence derivation and the contrast RULES; never ships a colour, hex, named theme, or token value — those belong to /ui-ux:theme + design-tokens.
+description: Use when a concept must become a coherent token SYSTEM — surface/ink/accent tiers, the three-role accent split (display · fill · text/mark), a reserved status palette, a theme-derived chart palette, and a light/dark duality stepped from ramps — expressed as ROLES and derivation rules the theme brief carries into /ui-ux:theme. Owns the coherence derivation and the contrast RULES; never ships a colour, hex, named theme, or token value — those belong to /ui-ux:theme + design-tokens.
 ---
 
 ## What this decides
 
 This skill owns HOW a concept becomes a coherent token SYSTEM — the surface/ink/accent
-tiers, the display-vs-text/mark accent split, a reserved status palette, a chart palette
+tiers, the three-role accent split (display · fill · text/mark), a reserved status palette, a chart palette
 tied to the theme, and a light/dark duality — derived as ROLES and rules that are correct
 by construction. It does NOT generate the values, re-teach a ramp, or ship a theme. Those
 jobs belong to neighbours — reference them by path/name, never restate:
@@ -37,20 +37,29 @@ token system rather than a recoloured default.
 Take each step in turn; each routes to the reference that owns its derivation:
 
 1. **Name the tiers** — surfaces (base/raised/sunken/line), ink (primary/secondary/
-   tertiary), accent (display + text/mark), each a TIER with a ROLE, and map the concept's
-   mood to their RELATIONSHIPS (chroma, contrast step, warmth). → `references/token-tiers.md`.
-2. **Derive the accent split** — on a light ground reserve a darker accent step for small
-   text and marks; on a dark ground the accent is a fill with light text over it. This is
-   the single home of the display-vs-text/mark split. → `references/accent-system.md`.
-3. **Require the duality** — design BOTH modes stepped from the ramps (never `invert()` an
-   auto-flip); state when both are derived and how the duality enters the direction, and
-   cite `shadcn-theming` for the generation mechanics. → `references/light-dark-duality.md`.
-4. **Reserve status, derive chart** — a reserved status palette (good/warn/serious/critical,
+   tertiary), accent (display + fill + text/mark), each a TIER with a ROLE, and map the
+   concept's mood to their RELATIONSHIPS (chroma, contrast step, warmth). → `references/token-tiers.md`.
+2. **Reserve status, derive chart** — a reserved status palette (good/warn/serious/critical,
    never reused for a data series) plus a chart palette DERIVED from the theme ramps, not
    bolted on; defer categorical/validator rules to `dataviz`. → `references/status-and-chart-palette.md`.
+   **This runs BEFORE the accent** because status is a fixed semantic ladder the product
+   inherits and the accent is free — the free thing is constrained by the fixed one. Deriving
+   the accent first and reserving status after is how an accent ends up sitting between two
+   status roles, which no amount of lightness work later can fix.
+3. **Derive the accent** — first constrain the HUE (separation from every reserved status
+   role, a viable step for all three accent tiers, forced-colours survival, not a category
+   default), then derive the STEPS: on a light ground a darker step for small text and marks
+   and a darker fill for text set on it; on a dark ground the relationship inverts. This is
+   the single home of the accent split. → `references/accent-system.md`.
+4. **Require the duality** — design BOTH modes stepped from the ramps (never `invert()` an
+   auto-flip); state when both are derived and how the duality enters the direction, and
+   cite `shadcn-theming` for the generation mechanics. → `references/light-dark-duality.md`.
 5. **Hand off the concept** — pack the token-system direction (metaphor · voice · mood →
    role relationships) into the slot the theme brief carries into `/ui-ux:theme`, so the
    generated system EXPRESSES the concept, not a recoloured default. → `references/concept-to-tokens.md`.
+6. **Name the interchange format** — say in the direction whether the generated system is
+   serialized to the W3C DTCG token format, and if so which roles map to which token
+   groups, so the system survives leaving this codebase. → `references/token-interchange.md`.
 
 ## The two seam rules
 
@@ -63,8 +72,8 @@ duplicating an owner:
   a named colour used as a value — is forbidden. The kill-trigger forbids VALUES, never
   ratios. A fresh session must neither strip the ratios (toothless) nor keep other numbers.
 - **Tiers name, accent-system derives.** `references/token-tiers.md` NAMES the accent roles
-  (display + text/mark, as tiers with roles). `references/accent-system.md` DERIVES the
-  contrast STEPS between them (the display-vs-text/mark split). Tiers name; accent-system derives —
+  (display + fill + text/mark, as tiers with roles). `references/accent-system.md` DERIVES the
+  contrast STEPS between them (hue constraints first, then the split). Tiers name; accent-system derives —
   so the two files never duplicate or contradict the same accent.
 
 ## The kill-trigger
@@ -79,7 +88,7 @@ theme-BUILDER and its rules, never a built theme.
 
 - `references/token-tiers.md` — the token-system SHAPE: surface/ink/accent tiers as ROLES,
   and how the concept's mood maps to the tier relationships. NAMES the accent roles.
-- `references/accent-system.md` — the display-vs-text/mark accent DERIVATION,
+- `references/accent-system.md` — the accent HUE constraints (status separation) + the three-role DERIVATION,
   the single owner of the darker-text-step / accent-fill split and its contrast steps.
 - `references/light-dark-duality.md` — the DUALITY requirement: both modes stepped from the
   ramps (never auto-flip), when to derive them, how it enters the direction; cites shadcn.
@@ -87,6 +96,8 @@ theme-BUILDER and its rules, never a built theme.
   theme-derived chart palette; cites `dataviz` for categorical rules + the validator.
 - `references/concept-to-tokens.md` — the handoff CONTRACT: the token-system-direction
   payload the theme brief carries into `/ui-ux:theme` so the system expresses the concept.
+- `references/token-interchange.md` — the W3C DTCG serialization decision: what the format
+  requires, how the tiers/split/duality/status map onto it, and the component-tier cost.
 
 ## Anti-patterns
 

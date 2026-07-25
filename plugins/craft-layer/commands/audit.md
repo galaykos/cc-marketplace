@@ -33,6 +33,17 @@ taxonomy and its per-tier budgets, then:
    `dist/`/`build/` output exists (a project's own build command, `wc -c`, `gzip -c | wc -c`,
    or the bundler's report).
 
+   **Check the NARROW VIEWPORT if you can drive a browser.** A page whose body scrolls
+   horizontally at a phone width is a layout defect, and layout is this audit's job — not
+   `/a11y:audit`'s and not `/performance:review`'s, so it falls between them and gets
+   checked by nobody. The usual cause is structural rather than cosmetic: a grid or flex
+   item defaults to `min-width: auto`, so one wide child — a data table, a code block, a
+   chart — pushes the whole page wider instead of scrolling inside its own container.
+   Compare `document.body.scrollWidth` against `documentElement.clientWidth` at a narrow
+   width; any excess is a finding, and name the overflowing element. Also read the copy
+   for direction words ("on the right", "below") that a reflowed layout makes false.
+   No browser available → `not measured`, never a silent pass.
+
    Compute the CONTRAST RATIOS too — the reviewer cannot, and this is a craft gate rather
    than a deferred one. Read the resolved accent/ink/surface token values out of the theme
    (hex or the token file's channels), then compute WCAG relative-luminance ratios for each
@@ -43,6 +54,14 @@ taxonomy and its per-tier budgets, then:
    Anything you cannot measure — no build output, no toolchain, an unresolvable colour — is
    injected as `not measured` for that item, and the reviewer reports it that way rather
    than asserting a verdict.
+
+   Inject the FIELD ANCHOR alongside the measured totals, so a number means something. The
+   most recent HTTP Archive Web Almanac medians for a home page are roughly 2.9MB total
+   transfer on desktop (2.6MB mobile), ~700KB JavaScript, ~1MB images, and ~280KB of that JS
+   unused — and only about half of mobile origins pass all three Core Web Vitals. A build
+   sitting on those medians is average, not good. State the comparison as context, never as
+   a pass/fail gate: the thresholds themselves (LCP ≤2.5s, INP ≤200ms, CLS ≤0.1) are field
+   metrics this audit cannot measure, and remain `/performance:review`'s call.
 2. Run the craft-specific gates by dispatching the findings to the `craft-reviewer`
    agent from this plugin. Inject the Read path to `${CLAUDE_PLUGIN_ROOT}/skills/motion-tiers/references/tier-budgets.md` (authoritative
    budgets) AND the Read paths to
@@ -63,7 +82,23 @@ taxonomy and its per-tier budgets, then:
    interaction** shipped — the divergence record names it, the build task's `Signature:` line
    assigned it a section, and the named mechanism is implemented there (this is the motion
    FLOOR and the only gate that fails a page for too little motion; entrance reveals never
-   count toward it, and no record means `not checked`, never a pass); every tier/engine in use honors
+   count toward it — apply the three-part test in
+   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/moves-taxonomy.md`
+   (repeatable · driven-not-fired · changes what the surface affords) and require ALL
+   THREE, because a scroll-linked arrival passes the first two and is still an entrance;
+   and no record means `not checked`, never a pass); the **typeface decision** was made
+   rather than defaulted — the record must carry BOTH the family assignment per role with
+   its loading strategy AND the SPEC it satisfies (the strategy, required axes/features,
+   coverage, licence class and KB ceiling that
+   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/type-strategy.md` derives).
+   A family with no spec behind it is a default wearing a decision's clothes, and is the
+   whole reason this gate checks two things instead of one. Then verify the shipped build
+   against the spec's hard filters — tabular figures where numbers are read down a column,
+   a text cut or `opsz` axis where text runs small and dense, the declared coverage, and
+   the KB ceiling against the measured font bytes from step 1b. A deliberate
+   system/device font stack that SATISFIES its spec passes; this gate never judges which
+   family won. Typography carries the largest single weight in the only published award
+   rubric. Every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **licence gate** —
@@ -110,7 +145,42 @@ taxonomy and its per-tier budgets, then:
    performance / Lighthouse / Core Web Vitals → `/performance:review $ARGUMENTS`.
    `/performance:review` requires the `performance` plugin; skipped if not installed. Run each
    against the same scope and collect their verdicts.
-4. Report one consolidated pass/fail table: the craft gates from step 2, then the
+4. **Lead with COVERAGE — of gates AND of triggers.** Two numbers, because they
+   answer different questions and only one of them is usually asked.
+
+   `Gates: <checked> checked · <not-checked> not checked · <not-measured> not measured`
+   `Triggers fired: <list> · not fired: <list>`
+
+   A GATE is a defect type — wrong contrast, missing spine slot, absent signature. A
+   TRIGGER is the condition that SURFACES a fault: the viewport, the motion preference,
+   the colour mode, the zoom level, the input device. Gate coverage can improve forever
+   while the trigger set never changes, and every defect reachable only under an unfired
+   trigger stays invisible no matter how careful the review was. Report both or the
+   verdict over-claims.
+
+   The default trigger set for a visual build is: **default viewport · narrow viewport ·
+   200% zoom · light · dark · reduced-motion · forced-colours · keyboard-only**. Fire what
+   you can and NAME what you did not — `template/craft-gates/gates.spec.ts` in this plugin
+   runs the browser-driveable ones in about two seconds and is what to hand a project that
+   has no suite. When a trigger cannot be fired, list it under `not fired`; never let an
+   unfired trigger read as a clean result.
+
+   When anything is unchecked the report says in one sentence WHICH inputs were
+   missing. A sheet of `not checked` rows reads as a clean audit at a glance — it is the
+   opposite, and coverage is what makes that visible. State plainly that an audit whose
+   coverage is mostly unchecked is not a verdict on the build, only a verdict on what was
+   available to check.
+
+   **Dropped artifacts are a FINDING, not `not checked`.** Absent working files mean "no
+   input" only when the build never ran the craft flow. When the target carries evidence
+   that it DID — a provenance manifest at one of the licence gate's names, a section
+   ledger, a token system with the flow's role tiers, or the user saying so — then missing
+   `craft/offer-contract.md` or `craft/divergence-record.md` is a run that decided its
+   contract and threw it away, which is the failure step 0 exists to prevent. Report it as
+   one finding naming the missing file, and keep the gates that needed it as `not checked`
+   underneath. Never fail a build that plainly never ran the flow.
+
+   Then the consolidated pass/fail table: the craft gates from step 2, then the
    delegated results from step 3. Both delegates are STATIC reviews, not Lighthouse runs, so
    present Performance ≥ 90 / Accessibility ≥ 95 as the bar their findings are read against —
    never as a measured score, and never as a hard CI gate. A row whose delegate was skipped

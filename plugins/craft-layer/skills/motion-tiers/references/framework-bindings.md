@@ -1,5 +1,10 @@
 # Framework bindings — tool → framework matrix
 
+> **Last verified: 2026-07-25** — the per-framework package names below. Bindings
+> churn faster than anything else in this plugin: a framework's blessed motion
+> package changes without the technique changing at all. Check the package still
+> exists and is maintained before quoting a row.
+
 Which concrete tool implements each tier depends on the stack. The tier DECISION is
 framework-independent; the binding below picks the idiomatic package for that stack so
 you do not, e.g., hand-roll Framer Motion in Vue when `motion-v` exists.

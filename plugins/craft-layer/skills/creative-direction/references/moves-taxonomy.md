@@ -31,6 +31,41 @@ move is available and when it fits; the concrete move is brief-derived.
 Each category points at the craft skill that OWNS its execution — this taxonomy chooses
 the KIND of move; the tier/engine skills build it.
 
+## What makes a move a SIGNATURE — the three-part test
+
+The signature floor says "entrance reveals never count." That is asserted in several
+places and, until now, defined in none — so a well-built arrival animation passes review
+by looking effortful. It is a mechanism question, and it has a mechanism answer. A
+candidate signature must satisfy **all three**; two out of three is an entrance reveal
+wearing better clothes.
+
+1. **Repeatable.** Can the visitor make it happen again, deliberately, without reloading
+   the page? An arrival fires once per element per load and is over. If seeing it twice
+   requires a refresh, it is an entrance.
+2. **Driven, not fired.** Is progress a continuous function of an input the visitor
+   controls moment to moment — pointer position, a drag, a control they operate, scroll
+   offset while a scene is held — or is it a one-shot timeline that runs to completion
+   once something crosses a threshold? Fired is an entrance; driven is a mechanism.
+3. **Changes what the surface AFFORDS, not how it arrives.** This is the decisive one and
+   the one that fails most candidates. Ask: with the motion deleted, what is lost? If the
+   answer is "the static design, arriving less gracefully", it is an entrance reveal —
+   its end state IS the static design. A signature lets the visitor DO something the
+   static surface does not offer: interrogate, operate, compare, steer.
+
+**Test 3 is not a licence to hide information in motion.** Reduced-motion and no-JS paths
+still owe the same INFORMATION — that is not negotiable and is checked separately. What a
+signature adds is affordance and expression: the static state must say the same things,
+while the signature is how a visitor *works* them.
+
+A scroll-linked draw or fade satisfies 1 and 2 whenever it is bound to a scroll range
+rather than a trigger, and still fails 3, because the completed state is simply the
+design. Passing the first two is why these get shipped as signatures by mistake.
+
+Applying the test is the audit's job (`/craft-layer:audit`) and the concept's job
+(`agents/creative-director.md` scores feasibility against it). Neither may satisfy it by
+naming a move from the categories above — the test judges the MECHANISM the brief
+derived, not its family.
+
 ## Cached by default
 
 The taxonomy above is the cached divergence palette, refreshable with the fingerprint at

@@ -20,10 +20,17 @@ Compose one string from these parts (drop any that do not apply):
 
 ```
 <brand colour or hue family>, <vibe in 2–4 words>, echoing <reference site/brand>;
-<light or dark priority>; surfaces <warm/cool/neutral, low-chroma>; type <serif/sans/
-mono mix, display-vs-body contrast>; corners <sharp/rounded/pill>; depth <flat/
-bordered/shadowed>; motion feel <snappy/smooth/dramatic>.
+<light or dark priority>; surfaces <warm/cool/neutral, low-chroma>; type <the SPEC from
+type-strategy.md>; corners <sharp/rounded/pill>; depth <flat/bordered/shadowed>;
+motion feel <snappy/smooth/dramatic>.
 ```
+
+The `type` slot is the one part of this string that is NOT an adjective. It carries the
+spec `creative-direction/references/type-strategy.md` derived — strategy, required axes
+and features, coverage, licence class, KB ceiling, and what the anti-corpus disqualified —
+because type has hard filters (tabular figures, `opsz`, script coverage, licence tier)
+that "a modern sans" cannot express and no reviewer can check. Pass the spec through
+verbatim; the build matches a real family against it and records both.
 
 Filled example:
 

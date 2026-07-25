@@ -66,9 +66,11 @@ not by cramming or by drawing a line around everything.
 
 The default CRM/SaaS surface: many comparable records the user scans, sorts,
 filters, and acts on. Order columns by scan priority (identity → decision-driving
-status/amount → metadata → right-pinned actions), cap visible columns near 7±2,
-keep the header and identity column sticky, and build all four states — loading
-(skeleton), empty, error, filtered-empty. Recipes: `references/dense-ui-patterns.md`.
+status/amount → metadata → right-pinned actions), cap visible columns by when
+horizontal scroll becomes the primary read, keep the header and identity column
+sticky, hold row-action targets to the 24×24 minimum even in compact density, and
+build all four states — loading (skeleton), empty, error, filtered-empty. Recipes:
+`references/dense-ui-patterns.md`.
 
 ### Dashboards
 

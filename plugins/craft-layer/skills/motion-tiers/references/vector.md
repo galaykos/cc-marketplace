@@ -1,5 +1,8 @@
 # Tier 5 — Vector (Lottie / Rive)
 
+> **Last verified: 2026-07-25** — package names and the Lottie-vs-Rive split. The
+> runtime SIZES that decide a tier live in `tier-budgets.md`; re-verify there.
+
 Designer-authored vector motion: the animation is produced in a design tool and
 shipped as an asset the runtime plays, instead of being hand-coded property by
 property. Reach for it when a designer has already authored the motion, or when the
