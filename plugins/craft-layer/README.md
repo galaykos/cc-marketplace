@@ -100,11 +100,16 @@ of the work and overclaims the other, so it is worth pinning down.
 
 The main award weights **Design 40% · Usability 30% · Creativity 20% · Content 10%**, and
 runs a **separate developer award** scored on Semantics/SEO, Animations/Transitions,
-Accessibility, WPO, Responsive Design, and Markup/Meta-data. Winning sites score around
-7/10, and on the ones sampled, accessibility was the *lowest* sub-score.
-(**Last verified 2026-07-25** — the weights, the developer-award criteria, and the sampled
-scores. A third party publishes and revises these; the argument below survives a reweighting,
-the percentages do not.)
+Accessibility, WPO, Responsive Design, and Markup/Meta-data, with a qualifying bar reported
+as **above 7/10**; on the winners sampled, accessibility was the *lowest* sub-score.
+
+(**Last verified 2026-07-25**, and the two halves are not equally sourced. The four weights
+come from the platform's own evaluation page. The developer-award criteria and the 7/10 bar
+do not — that page defers to a guidelines document that is not publicly readable — so they
+rest on secondary reporting that agrees with itself, which is weaker and is marked as such.
+Typography is **not** a scored criterion anywhere in the published rubric; it is one element
+inside Design, and even that placement is secondary reporting. The argument below survives a
+reweighting; the numbers do not.)
 
 - **Those six developer criteria are, almost exactly, this plugin's gate set.** Motion
   with reduced-motion paths, responsive behaviour, performance budgets, semantics, and
@@ -155,7 +160,10 @@ Two rules make it worth having:
 
 - **A date on an unverified fact is worse than no date**, because it launders a guess into
   a checked claim. When only part of a file was re-verified, say which part
-  (`physics-patterns.md` does).
+  (`physics-patterns.md` does) — and when a claim rests on secondary reporting because the
+  primary source is silent or unreadable, say that too (the award rubric above does). A date
+  records that someone looked; it does not record how good the source was, and the two get
+  confused exactly when the claim is doing the most work.
 - **One source of truth per number.** Where a SKILL body repeats a figure so a decision is
   pickable at a glance, the body names the reference as authoritative; on drift the
   reference is fixed and re-dated first, then mirrored. A SKILL body at its line cap

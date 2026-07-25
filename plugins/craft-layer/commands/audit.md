@@ -99,8 +99,7 @@ taxonomy and its per-tier budgets, then:
    a text cut or `opsz` axis where text runs small and dense, the declared coverage, and
    the KB ceiling against the measured font bytes from step 1b. A deliberate
    system/device font stack that SATISFIES its spec passes; this gate never judges which
-   family won. Typography carries the largest single weight in the only published award
-   rubric.
+   family won.
 
    **When the contract's archetype is `app/CRM`** — or the target has a logged-in,
    data-dense half — ALSO run the app-craft floors in
