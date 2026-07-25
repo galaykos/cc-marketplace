@@ -532,6 +532,30 @@ else
   printf '  (none)\n'
 fi
 
+# ---- Dated-fact staleness report ---------------------------------------------
+# Files that assert an observed fact about the world carry `Last verified: <date>`.
+# A date nothing reads is a convention that dies quietly, so this reads them.
+# WARN-ONLY BY DESIGN: a fact does not become wrong on a schedule, and a
+# time-based failure would break CI on a quiet repo with no defect to fix.
+STALE_DAYS=180
+cutoff=$(date -u -v-${STALE_DAYS}d +%F 2>/dev/null || date -u -d "${STALE_DAYS} days ago" +%F 2>/dev/null || echo '')
+printf '== dated-fact staleness (>%sd) ==\n' "$STALE_DAYS"
+if [ -z "$cutoff" ]; then
+  warn "cannot compute a staleness cutoff on this platform; dated facts unchecked"
+else
+  stale_n=0
+  while IFS= read -r f; do
+    d=$(grep -oiE 'last verified:?[^0-9]{0,3}[0-9]{4}-[0-9]{2}-[0-9]{2}' "$f" \
+          | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort | head -1)
+    [ -n "$d" ] || continue
+    if [ "$d" \< "$cutoff" ]; then
+      warn "$f: 'Last verified: $d' is older than ${STALE_DAYS}d — re-verify or re-date"
+      stale_n=$((stale_n + 1))
+    fi
+  done < <(grep -rliE 'last verified' --include='*.md' plugins 2>/dev/null | sort)
+  [ "$stale_n" -eq 0 ] && printf '  (none stale)\n'
+fi
+
 # ---- Context-budget report ---------------------------------------------------
 # Per-plugin session-start description-token surface vs committed baseline.
 # The BLOCKING gate runs as its own CI step (Context-budget gate in

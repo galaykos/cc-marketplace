@@ -55,8 +55,10 @@ taxonomy and its per-tier budgets, then:
    injected as `not measured` for that item, and the reviewer reports it that way rather
    than asserting a verdict.
 
-   Inject the FIELD ANCHOR alongside the measured totals, so a number means something. The
-   most recent HTTP Archive Web Almanac medians for a home page are roughly 2.9MB total
+   Inject the FIELD ANCHOR alongside the measured totals, so a number means something.
+   HTTP Archive Web Almanac medians for a home page (**last verified 2026-07-25**; the
+   Almanac republishes annually, so treat these as aged and re-read before quoting them)
+   are roughly 2.9MB total
    transfer on desktop (2.6MB mobile), ~700KB JavaScript, ~1MB images, and ~280KB of that JS
    unused — and only about half of mobile origins pass all three Core Web Vitals. A build
    sitting on those medians is average, not good. State the comparison as context, never as

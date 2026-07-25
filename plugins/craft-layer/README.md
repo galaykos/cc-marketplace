@@ -102,6 +102,9 @@ The main award weights **Design 40% · Usability 30% · Creativity 20% · Conten
 runs a **separate developer award** scored on Semantics/SEO, Animations/Transitions,
 Accessibility, WPO, Responsive Design, and Markup/Meta-data. Winning sites score around
 7/10, and on the ones sampled, accessibility was the *lowest* sub-score.
+(**Last verified 2026-07-25** — the weights, the developer-award criteria, and the sampled
+scores. A third party publishes and revises these; the argument below survives a reweighting,
+the percentages do not.)
 
 - **Those six developer criteria are, almost exactly, this plugin's gate set.** Motion
   with reduced-motion paths, responsive behaviour, performance budgets, semantics, and
@@ -133,6 +136,12 @@ So: **any file asserting an OBSERVED FACT ABOUT THE WORLD carries a `Last verifi
 line under its title**, naming what the date covers. Three categories, and only the first
 one dates:
 
+**Every shipped file kind, not just `references/`.** The convention was first applied to
+references and the next round of facts landed in a command, an agent, and this README —
+which is how a rule with an implied scope fails. A field anchor in `commands/audit.md` and
+the award rubric quoted above are observed facts as much as a bundle size is; they are dated
+inline, since those files have no header slot.
+
 | Category | Dates? | Examples |
 | --- | --- | --- |
 | **Observed fact** — true of something we do not control, and can change without notice | **yes** | a library's gzipped size, a release version, a maintenance status, a Baseline/support state, a licence's terms |
@@ -152,6 +161,12 @@ Two rules make it worth having:
   reference is fixed and re-dated first, then mirrored. A SKILL body at its line cap
   discharges this through its References section rather than growing a second pointer —
   the delegation is what matters, not where it is written.
+- **Something reads the dates.** `scripts/validate.sh` reports any `Last verified:` older
+  than 180 days. It WARNS and never fails: a fact does not become wrong on a schedule, and
+  a gate that fails on the calendar teaches people to silence it. The warning is a
+  re-verification worklist, and re-dating without re-checking is the one move it cannot
+  detect — which is why the "a date on an unverified fact is worse than no date" rule above
+  stays a matter of discipline, not enforcement.
 
 ### Gates vs triggers
 
