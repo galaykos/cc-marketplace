@@ -1,5 +1,10 @@
 # Physics patterns — matter.js world, sync, and constraints
 
+> **Last verified: partially, 2026-07-25.** matter.js was confirmed active. The
+> `@dimforge/rapier2d` note below was NOT re-checked in that pass — treat it as a
+> lead and verify before choosing it. A date on an unverified fact is worse than
+> no date, so this file states which half it covers.
+
 Read on demand from the physics-motion SKILL. The spring/tween alternative (when NOT to
 use physics) lives in `plugins/ui-ux/skills/motion-best-practices/SKILL.md`; the
 one-writer-per-property trap lives in

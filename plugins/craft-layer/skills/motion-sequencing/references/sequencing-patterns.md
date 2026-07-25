@@ -1,5 +1,12 @@
 # Sequencing patterns — theatre.js core, scroll drive, camera sync, editor export
 
+> **Last verified: 2026-07-25 — and the news is bad.** theatre.js's latest public
+> release is v0.7.0 (August 2023); its README says active development moved to a
+> private repo pending a 1.0 that has not shipped, and package advisors mark it
+> inactive. The mechanics below are still correct; the DEPENDENCY may not be. Read
+> the maintenance gate in `../SKILL.md` before adopting, and re-check the release
+> state — this note is a snapshot, not a verdict.
+
 Read on demand from the motion-sequencing SKILL. GSAP timeline/tween mechanics are NOT
 re-taught here — they live in `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`.
 Scroll progress comes from `plugins/craft-layer/skills/scroll-orchestration/SKILL.md`; 3D

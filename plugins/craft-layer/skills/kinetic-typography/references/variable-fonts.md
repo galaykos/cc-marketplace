@@ -1,5 +1,9 @@
 # Variable fonts — setup, axis animation, payload caveats
 
+> **Last verified: 2026-07-25** — the Fontsource packaging model and the axis/CSS
+> property mapping. No typeface is named here by design; the family is derived,
+> not looked up (`../../creative-direction/references/type-strategy.md`).
+
 > Verify axis names and ranges against the specific family (Fontsource / the
 > foundry's spec) before quoting a literal — `wght` range, whether `wdth` /
 > `opsz` / `slnt` exist, and any custom axes differ per family.
@@ -9,13 +13,19 @@ animating font axes; WHEN to animate type at all is the SKILL's decision.
 
 ## Ship one variable file
 
-- Install `@fontsource-variable/<family>` and import the axis CSS you use, e.g.
-  `import '@fontsource-variable/inter'` (full axes) or a single-axis subset
-  entry when the package exposes one. One file carries the whole continuous
-  range — you never ship `-Regular` + `-Bold` + `-Black` separately.
+- Install `@fontsource-variable/<family>` and import the axis CSS you use —
+  `import '@fontsource-variable/<family>'` for the full axis set, or the
+  single-axis subset entry when the package exposes one (`/wght`, `/opsz`).
+  Prefer the subset: shipping every axis a variable font offers when the spec
+  needs one is the commonest variable-font overspend. One file carries the whole
+  continuous range — you never ship `-Regular` + `-Bold` + `-Black` separately.
+- **Which family is not this file's call.** The typeface SPEC is derived by
+  `../../creative-direction/references/type-strategy.md`; naming one here would
+  be a catalog, and the obvious candidates are on the anti-corpus list precisely
+  because docs like this one kept using them as the example.
 - Declare the family once; set a default axis state on the base selector so the
   static render (and no-JS) is already correct:
-  `font-family:'Inter Variable'; font-variation-settings:"wght" 400;`.
+  `font-family:'<Family> Variable'; font-variation-settings:"wght" 400;`.
 - Registered CSS shorthands (`font-weight`, `font-stretch`, `font-optical-sizing`)
   map to `wght` / `wdth` / `opsz`; for custom axes (`GRAD`, `slnt`, foundry
   axes) you must use `font-variation-settings`.

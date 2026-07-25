@@ -1,5 +1,10 @@
 # Framework bindings — tool → framework matrix
 
+> **Last verified: 2026-07-25** — the per-framework package names below. Bindings
+> churn faster than anything else in this plugin: a framework's blessed motion
+> package changes without the technique changing at all. Check the package still
+> exists and is maintained before quoting a row.
+
 Which concrete tool implements each tier depends on the stack. The tier DECISION is
 framework-independent; the binding below picks the idiomatic package for that stack so
 you do not, e.g., hand-roll Framer Motion in Vue when `motion-v` exists.
@@ -10,7 +15,7 @@ Library idioms stay in the owning skills — this is a routing table, not an API
 
 ## The matrix
 
-| Stack | Tier 1 (UI state / layout) | Tier 2 (timeline / SVG) | Tier 3 (3D / WebGL) | Tier 4 (sprites) |
+| Stack | Tier 1 (UI state / layout) | Tier 2 (Timeline / SVG) | Tier 3 (3D / WebGL) | Tier 4 (Sprites) |
 | --- | --- | --- | --- | --- |
 | **React** | `motion` → `motion/react` (ex-Framer Motion) | `animejs` v4 | `@react-three/fiber` + `drei` over `three` | CSS `steps()` / rAF component |
 | **Next** | `motion/react` (RSC-safe: animate in client components) | `animejs` v4 | `@react-three/fiber`, dynamically imported (`ssr: false`) | CSS `steps()` / rAF client component |

@@ -184,7 +184,13 @@ without exception:
     state machine, a scene. A record naming a signature that the build implements NOWHERE is
     a finding. This is the one gate that can fail a page for too LITTLE motion: every other
     motion gate here is a ceiling, so without it a zero-animation build passes them all
-    cleanly. Entrance reveals are the baseline, not a signature — a page whose only motion is
+    cleanly. Judge the named mechanism with the three-part test in
+    `skills/creative-direction/references/moves-taxonomy.md` — repeatable without a reload,
+    driven by a continuous user-controlled input rather than fired by a threshold, and
+    changing what the surface AFFORDS rather than how it arrives. Require all three: a
+    scroll-linked draw or fade satisfies the first two and is still an arrival, because its
+    completed state is just the static design. Entrance reveals are the baseline, not a
+    signature — a page whose only motion is
     fade-and-rise on scroll fails this gate even when every reveal is correct. Implemented,
     but on a different section than the ledger assigned, is a separate lower-severity finding
     (move shipped, placement drifted). Confirm the mechanism EXISTS and carries the two
@@ -193,6 +199,13 @@ without exception:
 
 ## Checklist
 
+- [ ] The typeface decision was MADE, not defaulted — the record carries the family
+      assignment per role, the loading strategy, AND the spec it satisfies (strategy,
+      required axes/features, coverage, licence class, KB ceiling). Check the build against
+      the spec's hard filters: tabular figures wherever numbers are read down a column, a
+      text cut or `opsz` axis wherever text runs small and dense, and the measured font
+      bytes against the ceiling. A deliberate system-font stack that satisfies its spec
+      passes; a family with no spec is a default. Never judge which family won.
 - [ ] The concept's ONE signature interaction shipped on the section it was assigned —
       the motion floor (no divergence record → gate `not checked`; reveals don't count).
 - [ ] Every animation tier/engine used has a `prefers-reduced-motion` path.

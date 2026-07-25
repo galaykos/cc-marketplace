@@ -32,6 +32,23 @@ Answer before adding anything; take the first that fits:
 If the sequence reads the same when simplified to two or three tweens, keep it in a GSAP
 timeline — a sheet + editor is overhead you have not earned.
 
+## Maintenance gate — check before adopting theatre.js
+
+theatre.js is the right SHAPE for options 3 and 4 and has no equivalent, but it is not a
+safe default: its last public release is v0.7.0 (August 2023), its README states active
+development moved to a private repo pending a 1.0 that has not shipped, and package
+advisors mark it inactive. Adopting an unmaintained runtime is a decision, so make it
+explicitly:
+
+- Re-check the release state at adoption time — this note is a snapshot, not a verdict.
+  `references/sequencing-patterns.md` carries the `Last verified:` date for it.
+- Options 1 and 2 (GSAP timeline) are the default whenever they can express the sequence;
+  escalate to a sheet only when the visual editor or the DOM+3D-camera sync is the actual
+  requirement, not when it is merely tidier.
+- Adopt it only where the exported state JSON is the durable artefact and the runtime is
+  replaceable — the sheet's keyframes must survive swapping the player for a GSAP
+  timeline. Never let theatre.js own state nothing else can read.
+
 ## Declarative sheets (the runtime)
 
 - `@theatre/core` models a project → sheet → object → keyed props. You declare the props

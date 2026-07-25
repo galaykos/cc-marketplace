@@ -21,6 +21,15 @@ screen-reader traps; both live elsewhere and are referenced by path:
 The net-new value here is the decision, variable-font axis animation, phrase
 cross-fade, and the mandatory reduced-motion path on every one of them.
 
+## The static type contract comes first
+
+Kinetic type assumes a type system underneath it: fluid sizing that survives zoom (a
+`clamp()` with a rem floor, never raw `vw`), `text-wrap` used as enhancement only,
+optical sizing switched on, and fallback metrics matched so the face swaps in without
+shifting layout. An animated headline on top of a system missing those reads worse than
+static type would. Settle it before animating — `references/type-system.md`; the scale,
+line-heights, and measure stay `plugins/ui-ux/skills/design-tokens/SKILL.md`.
+
 ## The kinetic-type decision — does the motion earn its cost?
 
 Animate type only on the ONE focal element of a surface: the hero headline, a
@@ -112,6 +121,9 @@ polish.
 
 ## References
 
+- `references/type-system.md` — the static contract: fluid `clamp()` vs zoom, `text-wrap`
+  `balance`/`pretty` scope, optical sizing + superfamilies, the font-loading shift
+  contract, and the desktop-vs-webfont licence trap.
 - `references/variable-fonts.md` — `@fontsource-variable` setup,
   `font-variation-settings` with registered `@property` axes, animating axes on
   scroll + hover, and the flash-of-unstyled / wrong-weight payload caveat.

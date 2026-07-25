@@ -66,9 +66,11 @@ not by cramming or by drawing a line around everything.
 
 The default CRM/SaaS surface: many comparable records the user scans, sorts,
 filters, and acts on. Order columns by scan priority (identity → decision-driving
-status/amount → metadata → right-pinned actions), cap visible columns near 7±2,
-keep the header and identity column sticky, and build all four states — loading
-(skeleton), empty, error, filtered-empty. Recipes: `references/dense-ui-patterns.md`.
+status/amount → metadata → right-pinned actions), cap visible columns by when
+horizontal scroll becomes the primary read, keep the header and identity column
+sticky, hold row-action targets to the 24×24 minimum even in compact density, and
+build all four states — loading (skeleton), empty, error, filtered-empty. Recipes:
+`references/dense-ui-patterns.md`.
 
 ### Dashboards
 
@@ -99,6 +101,26 @@ palette all live there. This skill only decides *that* a chart belongs and sizes
 it into the tile grid. Do not duplicate `dataviz` guidance in craft-layer files,
 and never write the skill in slash form in committed text — cite it by name.
 
+## What the app surface is BUILT from
+
+Rules without routing get hand-rolled, and hand-rolled dense widgets lose the
+accessibility a library ships by default — roving focus, type-ahead, drag
+announcements, focus return. The capability areas a data-dense product needs
+(data grid, virtualization, accessible primitives, drag & drop, command palette,
+forms, charts, server state, dates), each with a when-to-use, a cost, and the
+question unique to this layer — *what accessibility do I get free, and what am I
+signing up to write myself?* — are in `references/product-packages.md`.
+
+## The floors behind the login
+
+craft-layer's positive gates are shaped like a marketing page: the signature
+interaction wants a hero, content-depth counts sections. An app surface answers
+`not applicable` to all of them and is left judged only by ceilings, which a
+grey, sluggish, mouse-only panel passes perfectly. `references/app-craft-floors.md`
+is the floor set for `app/CRM` (and the logged-in half of `product/SaaS`):
+perceived speed, keyboard reach, state completeness, data motion, offered
+density, and undo over confirm.
+
 ## Motion serves the reading, never the data
 
 Motion supports information; it must not bury it. Transitions clarify *where a
@@ -106,6 +128,11 @@ number went* (a row entering, a filter narrowing, a value counting up) — they 
 wayfinding, not spectacle. A KPI that animates every poll is noise; animate on
 change, respect `prefers-reduced-motion`, and never delay the first read behind
 an entrance. Tier and budget decisions live in `../motion-tiers/SKILL.md`.
+
+That is the CEILING. It is not a reason to ship a static app: a data surface
+earns tier-1 shared-layout transitions when a list re-sorts or a card changes
+column, and tier-2 value interpolation when a number changes — the floor under
+this rule is in `references/app-craft-floors.md`.
 
 ## Anti-patterns
 

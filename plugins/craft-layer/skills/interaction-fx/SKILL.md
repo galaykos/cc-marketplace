@@ -12,7 +12,7 @@ the animation primitives: Framer / Motion springs, gestures, and `useSpring` liv
 one-writer-per-property trap lives in
 `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`. Reference both by path.
 
-**Reconciliation with motion-tiers Tier 1:** Tier 1 (Framer) owns *element* animation —
+**Reconciliation with motion-tiers Tier 1:** Tier 1 (UI state / layout) owns *element* animation —
 enter/exit, layout, hover states on a component. This skill is the *pointer-driven
 interaction layer* on top: effects that read the cursor position across the page (custom
 cursor, magnetic pull, tilt-toward-pointer). Pick the tier for the element there; pick
@@ -50,8 +50,11 @@ as a toy and fights the click target underneath.
   (≈±6–10°), reset on leave. Transform only, `transform-style: preserve-3d` on the
   parent and `perspective` on the container; larger angles nauseate rather than delight.
 - **Drag affordance** — a grabbable handle or carousel using Framer drag with inertia and
-  constraints, with a visible grab cursor and a keyboard/scroll equivalent. Mechanics +
-  the single shared pointer loop: `references/pointer-patterns.md`.
+  constraints, with a visible grab cursor, a keyboard/scroll equivalent, AND a
+  single-pointer non-dragging path (tap targets, prev/next, a click-to-position control).
+  WCAG 2.2 SC 2.5.7 (AA) requires the non-dragging pointer route specifically — keyboard
+  access does not satisfy it, because it is pointer users who cannot drag that the
+  criterion protects. Mechanics + the shared pointer loop: `references/pointer-patterns.md`.
 
 ## Accessibility (non-negotiable)
 

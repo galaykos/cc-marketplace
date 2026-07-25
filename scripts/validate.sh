@@ -532,6 +532,40 @@ else
   printf '  (none)\n'
 fi
 
+# ---- No session tooling state inside a plugin --------------------------------
+# A plugin ships to users, so anything tracked under it is distributed. Local
+# Claude Code state (intent-guard, reuse-guard, compaction-advisor) is per-session
+# and per-machine and must never be part of that. The root .gitignore rule is
+# anchored to the repo root, so nested `.claude/` dirs slipped through unnoticed
+# until they were already committed; this is the check that would have caught it.
+while IFS= read -r f; do
+  err "$f: session tooling state tracked inside a plugin — 'git rm -r --cached' it"
+done < <(git ls-files 'plugins/*' 2>/dev/null | grep '/\.claude/' || true)
+
+# ---- Dated-fact staleness report ---------------------------------------------
+# Files that assert an observed fact about the world carry `Last verified: <date>`.
+# A date nothing reads is a convention that dies quietly, so this reads them.
+# WARN-ONLY BY DESIGN: a fact does not become wrong on a schedule, and a
+# time-based failure would break CI on a quiet repo with no defect to fix.
+STALE_DAYS=180
+cutoff=$(date -u -v-${STALE_DAYS}d +%F 2>/dev/null || date -u -d "${STALE_DAYS} days ago" +%F 2>/dev/null || echo '')
+printf '== dated-fact staleness (>%sd) ==\n' "$STALE_DAYS"
+if [ -z "$cutoff" ]; then
+  warn "cannot compute a staleness cutoff on this platform; dated facts unchecked"
+else
+  stale_n=0
+  while IFS= read -r f; do
+    d=$(grep -oiE 'last verified:?[^0-9]{0,3}[0-9]{4}-[0-9]{2}-[0-9]{2}' "$f" \
+          | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort | head -1)
+    [ -n "$d" ] || continue
+    if [ "$d" \< "$cutoff" ]; then
+      warn "$f: 'Last verified: $d' is older than ${STALE_DAYS}d — re-verify or re-date"
+      stale_n=$((stale_n + 1))
+    fi
+  done < <(grep -rliE 'last verified' --include='*.md' plugins 2>/dev/null | sort)
+  [ "$stale_n" -eq 0 ] && printf '  (none stale)\n'
+fi
+
 # ---- Context-budget report ---------------------------------------------------
 # Per-plugin session-start description-token surface vs committed baseline.
 # The BLOCKING gate runs as its own CI step (Context-budget gate in

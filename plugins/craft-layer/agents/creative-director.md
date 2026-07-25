@@ -37,6 +37,15 @@ from — derive a specific move, never pick a named one off a list.
    floor: the signature interaction must be reduced-motion-friendly, keyboard-operable, and
    non-scroll-hijacking. A distinctive-but-worse-UX candidate fails feasibility — novelty
    never wins on its own.
+   **Weight usability, do not merely gate it.** The only published award rubric in this
+   field scores Design 40% · Usability 30% · Creativity 20% · Content 10% (dated and
+   sourced in the plugin README's *award-grade* section — fix and re-date it there
+   first) — so usability
+   carries more weight than distinctiveness does, and substance is scored at all. Treated
+   as a pass/fail floor alone, a barely-usable concept ties with an excellently usable one
+   and distinctiveness silently decides every round. Score usability and substance as
+   graded terms above their floors, and break ties toward the candidate that is easier to
+   use and has more to say — not the stranger one.
 4. **Return the winner + grafts.** Graft only NON-CORE embellishments from runners-up;
    never graft over the winner's central metaphor or signature move (grafting must not
    re-average away the chosen divergence).

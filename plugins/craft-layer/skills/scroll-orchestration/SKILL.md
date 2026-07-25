@@ -23,7 +23,10 @@ Answer before adding anything; take the first that fits the surface:
 
 1. Content is read top-to-bottom with no choreography? → **no orchestration.** Native
    scroll. Do not add a smooth-scroll lib to "feel premium" — it taxes every device
-   for nothing.
+   for nothing. The evidence runs against it: NN/g's scrolljacking study found most
+   participants at least mildly disoriented, worse on mobile and worse the longer the
+   hijacked run — risky even when well executed. Smoothed scroll is earned by
+   choreography that needs it, kept off touch (`syncTouch` OFF) and off long runs.
 2. A few reveal-on-enter sections, no scrubbing? → **no engine.** Native scroll + CSS
    scroll-driven reveals (`references/css-scroll-driven.md`) or an
    IntersectionObserver reveal — the cheapest path, zero runtime.
@@ -31,6 +34,12 @@ Answer before adding anything; take the first that fits the surface:
    **Lenis substrate feeding GSAP ScrollTrigger** — one contract, one engine.
 4. A reduced-bundle build, or the scrub is a single transform? → stay on **native CSS
    scroll-driven** (`animation-timeline: scroll()` / `view()`) and skip the JS.
+
+`animation-timeline` is **not Baseline** (MDN: limited availability; absent from a major
+engine). Options 2 and 4 still stand — the `@supports` + visible-base-rule authoring in
+`references/css-scroll-driven.md` degrades to the static end state — but treat CSS
+scroll-driven as a PROGRESSIVE ENHANCEMENT, never a universal engine: no meaning may
+live in motion the static state loses.
 
 Full decision + the scrub-vs-trigger-vs-parallax choice:
 `references/orchestration-decision.md`.
@@ -114,10 +123,8 @@ Every scroll surface answers this or it does not ship:
 
 ## Perf budget
 
-- Lenis ≈ 3KB gzip; ScrollTrigger ships inside GSAP — count both against the
-  surface's motion budget in `motion-tiers`.
-- Native CSS scroll-driven ≈ 0KB JS — always the reduced-bundle alternative, and the
-  default below the fold.
+- Lenis ≈ 3KB gzip; ScrollTrigger ships inside GSAP — count both against `motion-tiers`.
+- Native CSS scroll-driven ≈ 0KB JS — the reduced-bundle alternative, default below fold.
 - One scroll loop, one engine. A second `requestAnimationFrame` scroll loop is both a
   budget violation and a contract violation.
 

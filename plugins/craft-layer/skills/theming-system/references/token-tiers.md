@@ -46,10 +46,16 @@ is not a value this file emits.
 
 ### Accent — the theme's voice
 
-The accent family carries the concept's identity. It splits into two named roles (the
-derivation of the STEP between them is `accent-system.md`'s job, per the tiers-name /
-accent-system-derives seam rule):
+The accent family carries the concept's identity. It splits into three named roles (the
+derivation of the STEPS between them is `accent-system.md`'s job, per the tiers-name /
+accent-system-derives seam rule). Three, not two, because a fill that carries text answers
+to a different rule than a mark that sits on a surface — collapsing them is the most common
+way an accent passes review at hero size and fails on its own primary button:
 
+- **accent-fill** — the role for a filled area that CARRIES TEXT ON IT: a solid button, a
+  badge, a selected row. Its obligation runs inward — the label on it must clear small-text
+  contrast against the fill — which is a different constraint from every other accent role
+  and the reason this is its own tier rather than a use of accent-display.
 - **accent-display** — the expressive role for large, low-density moments: a hero, a
   display heading, a large mark, a decorative flourish where the accent can be at full
   strength because it is not carrying small text.
@@ -57,9 +63,9 @@ accent-system-derives seam rule):
   marks (icons, indicators, focus rings) that must satisfy the contrast rules (`≥4.5:1` for
   small text, `≥3:1` for marks).
 
-This file NAMES those two accent roles and states that a step between them exists. It does NOT
-derive the step, its direction, or how the ratios resolve — `accent-system.md` owns the
-display-vs-text/mark derivation. Naming here, deriving there, keeps one owner for the split.
+This file NAMES those three accent roles and states that steps between them exist. It does NOT
+derive the steps, their direction, or how the ratios resolve — `accent-system.md` owns the
+accent derivation. Naming here, deriving there, keeps one owner for the split.
 
 ## Mapping mood to tier relationships
 

@@ -92,6 +92,104 @@ one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE
 `THIRD-PARTY-NOTICES`. A manifest at any other path reads as absent to the gate. An
 all-in-code build still owes one, as a first-party declaration.
 
+### What "award-grade" means here — and what it does not
+
+Several files in this plugin use *award-grade* as a quality bar. Checked against the
+actual criteria of the field's main awards platform, that phrase is honest for one half
+of the work and overclaims the other, so it is worth pinning down.
+
+The main award weights **Design 40% · Usability 30% · Creativity 20% · Content 10%**, and
+runs a **separate developer award** scored on Semantics/SEO, Animations/Transitions,
+Accessibility, WPO, Responsive Design, and Markup/Meta-data, with a qualifying bar reported
+as **above 7/10**; on the winners sampled, accessibility was the *lowest* sub-score.
+
+(**Last verified 2026-07-25**, and the two halves are not equally sourced. The four weights
+come from the platform's own evaluation page. The developer-award criteria and the 7/10 bar
+do not — that page defers to a guidelines document that is not publicly readable — so they
+rest on secondary reporting that agrees with itself, which is weaker and is marked as such.
+Typography is **not** a scored criterion anywhere in the published rubric; it is one element
+inside Design, and even that placement is secondary reporting. The argument below survives a
+reweighting; the numbers do not.)
+
+- **Those six developer criteria are, almost exactly, this plugin's gate set.** Motion
+  with reduced-motion paths, responsive behaviour, performance budgets, semantics, and
+  accessibility are what craft-layer measures. Together with Usability and Content — 40%
+  of the main rubric, and the half that is genuinely gateable — this is the bar
+  craft-layer is built to clear.
+- **The Design 40% is mostly art direction, and craft-layer cannot produce it.** The
+  top-tier winners are built on commissioned work: character illustration, photoreal 3D,
+  bespoke type sculpture, cinematic rendering, made by specialist studios. The
+  build-vs-source-vs-**commission** decision correctly returns "commission" for that
+  class of asset, and the flow has no way to execute it (`asset-sourcing/references/sourcing-decision.md`
+  now says so plainly). No orchestration layer closes that gap.
+
+So: craft-layer aims at the developer-award criteria and the substance half of the design
+rubric, on product work — landing pages, SaaS, CRMs. It does not aim at Site of the Year,
+which is won with art direction rather than engineering. The signature-interaction floor
+measures that a mechanism EXISTS, never its production value; those are different bars and
+the plugin only claims the first.
+
+### Dating volatile facts
+
+A research pass over this plugin found the architecture sound and the **facts** rotten.
+Everything wrong was a claim with a shelf life — a library version, a bundle size, a
+maintenance status, a Baseline state. One reference asserted that a runtime was lighter
+than its alternative when it is roughly three times heavier, with no date on the claim to
+suggest it might have aged.
+
+So: **any file asserting an OBSERVED FACT ABOUT THE WORLD carries a `Last verified: <date>`
+line under its title**, naming what the date covers. Three categories, and only the first
+one dates:
+
+**Every shipped file kind, not just `references/`.** The convention was first applied to
+references and the next round of facts landed in a command, an agent, and this README —
+which is how a rule with an implied scope fails. A field anchor in `commands/audit.md` and
+the award rubric quoted above are observed facts as much as a bundle size is; they are dated
+inline, since those files have no header slot.
+
+| Category | Dates? | Examples |
+| --- | --- | --- |
+| **Observed fact** — true of something we do not control, and can change without notice | **yes** | a library's gzipped size, a release version, a maintenance status, a Baseline/support state, a licence's terms |
+| **Policy** — a ceiling or rule this plugin CHOSE | no | "a decorative sprite sheet stays under ~150 KB", the contrast ratios, the section-count floors |
+| **Identifier** — a name used to refer to a thing | no | `@theatre/core`, `motion/react`, `oklch()` |
+
+A date on a timeless rule is noise, and noise is how a convention dies. Decision
+procedures, taxonomies, and gates carry no date at all.
+
+Two rules make it worth having:
+
+- **A date on an unverified fact is worse than no date**, because it launders a guess into
+  a checked claim. When only part of a file was re-verified, say which part
+  (`physics-patterns.md` does) — and when a claim rests on secondary reporting because the
+  primary source is silent or unreadable, say that too (the award rubric above does). A date
+  records that someone looked; it does not record how good the source was, and the two get
+  confused exactly when the claim is doing the most work.
+- **One source of truth per number.** Where a SKILL body repeats a figure so a decision is
+  pickable at a glance, the body names the reference as authoritative; on drift the
+  reference is fixed and re-dated first, then mirrored. A SKILL body at its line cap
+  discharges this through its References section rather than growing a second pointer —
+  the delegation is what matters, not where it is written.
+- **Something reads the dates.** `scripts/validate.sh` reports any `Last verified:` older
+  than 180 days. It WARNS and never fails: a fact does not become wrong on a schedule, and
+  a gate that fails on the calendar teaches people to silence it. The warning is a
+  re-verification worklist, and re-dating without re-checking is the one move it cannot
+  detect — which is why the "a date on an unverified fact is worse than no date" rule above
+  stays a matter of discipline, not enforcement.
+
+### Gates vs triggers
+
+A **gate** is a defect type — wrong contrast, a missing spine slot, an absent signature. A
+**trigger** is the condition that SURFACES a fault: the viewport, the zoom level, the motion
+preference, the colour mode, the input device. Gate coverage can improve indefinitely while
+the trigger set never changes, and any defect reachable only under an unfired trigger stays
+invisible however careful the review is — so `/craft-layer:audit` reports both, and names the
+triggers it did not fire.
+
+`template/craft-gates/` ships the browser-driveable set as a drop-in Playwright suite
+(200% zoom, reduced-motion, forced-colours, axe in both themes) plus the oklch-aware
+contrast script. It runs in about two seconds. Copy it into a crafted project; the audit
+hands it to any project that has no suite of its own.
+
 ### One-shot or guided
 
 The offer contract declares a **mode**, in the same prompt as everything else:
@@ -138,17 +236,19 @@ auto-decided, every ledger row marked `auto`, and reported.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
 - **theming-system** — derive a coherent token SYSTEM from the concept: surface/ink/accent
-  tiers as roles, the display-vs-text/mark accent split, a reserved status palette, a chart
+  tiers as roles, the three-role accent split (display · fill · text/mark), a reserved status palette, a chart
   palette tied to the theme, and a light/dark duality stepped from ramps. Emits roles +
   contrast rules and defers value generation to `/ui-ux:theme` + `design-tokens` +
   `shadcn-theming`; ships no colour or token value.
 - **asset-sourcing** — build-vs-source-vs-commission for icons, SVG/vector, 3D models,
   animated overlays, and illustration/imagery: a categorical source taxonomy plus a hard,
   audited licence/provenance gate; reuses `sprite-motion` + the Vector tier.
-- **motion-tiers** — the tier decision system: Framer Motion, anime.js, Three.js/R3F,
-  and sprites — each with when-to-use, a perf budget, a `prefers-reduced-motion`
-  fallback, a reduced-bundle fallback, and a per-framework tool binding — including
-  **Tier 5 — Vector (Lottie / Rive)** for designer-authored vector motion.
+- **motion-tiers** — the tier decision system, named for the JOB rather than the package
+  that currently does it: **UI state / layout** (Framer Motion), **Timeline / SVG**
+  (anime.js), **3D / WebGL** (Three.js/R3F), **Sprites**, and **Vector** (Lottie / Rive)
+  — each with when-to-use, a perf budget, a `prefers-reduced-motion` fallback, a
+  reduced-bundle fallback, and a per-framework tool binding. A superseded package is then
+  a fact to re-verify, not a taxonomy to rewrite.
 - **sprite-motion** — sprite / sprite-sheet authoring: sheet formats, CSS `steps()` and
   `requestAnimationFrame` loops, reduced-motion poster frames, size budgets.
 - **information-design** — hierarchy, data density, tables/dashboards, and when to reach
