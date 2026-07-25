@@ -88,6 +88,12 @@ Both apply on top of the routed kind, on every asset:
   is the finding — the gate checks declaration completeness + schema, not legal truth.
   Full licence classes, the obligations, and the manifest shape:
   `references/licence-discipline.md`.
+  **A complete manifest is not automatically a discharged asset plan.** When the contract
+  pinned `maximal`, a manifest declaring first-party-and-nothing-shipped passes THIS gate and
+  fails the asset-posture floor — different questions, and the second one is why a build that
+  was asked for reach can ship no imagery with every gate green
+  (`../creative-direction/references/ambition-tiers.md`; the escape is build-in-code
+  generative imagery, not commission — see `references/sourcing-decision.md`).
 - **Reduced-bundle + reduced-motion fallback** — every asset kind ships a lighter path
   (static poster, lower-fidelity format, or an in-code fallback) AND a reduced-motion
   path. These reuse the EXISTING sprite / webgl budgets and motion-tier fallback rules —

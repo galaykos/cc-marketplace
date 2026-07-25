@@ -83,7 +83,9 @@ taxonomy and its per-tier budgets, then:
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/content-depth.md` (the anti-sameness registry
    and the content-depth anchors) AND
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md` (the deliverable scope +
-   offer-spine slots) AND — found by globbing `**/craft/offer-contract.md`,
+   offer-spine slots) AND
+   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/ambition-tiers.md` (the reach
+   tiers and the three floors `maximal` adds) AND — found by globbing `**/craft/offer-contract.md`,
    `**/craft/divergence-record.md` and `**/craft/section-ledger.md` (the fixed names the craft
    flow persists to; search the project and the session working area) — the PERSISTED contract
    instance and divergence record when they exist. Without the contract, the scope/length/mode
@@ -148,7 +150,25 @@ taxonomy and its per-tier budgets, then:
    `pointer:coarse` disable, physics body-cap + reduced static, motion-sequencing
    studio-excluded-from-prod); the concept's **divergence record** breaks ≥1
    sameness-fingerprint default (a build matching the fingerprint with an empty record is a
-   finding, unless a conventional design was explicitly requested); and **content depth**
+   finding, unless a conventional design was explicitly requested) — and **each entry is
+   verified against the shipped source, one at a time, not taken on the record's word**: an
+   entry claiming a default was broken while the build still contains it counts as
+   placeholder, exactly as `sameness-fingerprint.md` says, and the count of contradicted
+   entries is reported. This is the gate's most-skipped half — a record with many entries reads
+   as thorough divergence, and a rich record whose type or palette row is contradicted by the
+   shipped tokens is the failure mode that survives every other check;
+   **ambition conformance** — read the contract's `Ambition` row and grade against THAT tier
+   (`ambition-tiers.md`). At `maximal` the three reach floors are checked: at least THREE
+   distinct motion capabilities driving real surfaces — a `motion-tiers` tier or a sibling
+   engine each count once, from the step-1 detection; at least
+   ONE authored graphic system — generative/procedural canvas, WebGL/shader surface,
+   programmatic SVG system, sprites, or a designer-authored vector asset, where rules, borders,
+   icons and type treatment are composition and do NOT count; and an asset posture that is not
+   all-first-party-emptiness (a manifest declaring nothing shipped passes the licence gate and
+   fails this floor). Each floor is waivable ONLY by a reasoned entry in the divergence record;
+   a floor missed with no waiver is one finding naming the floor. No `Ambition` row in the
+   contract → `not checked`, never a pass and never a fail, and never inferred from how the
+   page looks; and **content depth**
    meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
    template; claim/aggregate metrics ship as `{{metric:*}}` slots and capability claims —
    coverage, integrations, supported platforms, SLAs, compliance certifications — as
