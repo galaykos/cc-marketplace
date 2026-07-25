@@ -532,6 +532,16 @@ else
   printf '  (none)\n'
 fi
 
+# ---- No session tooling state inside a plugin --------------------------------
+# A plugin ships to users, so anything tracked under it is distributed. Local
+# Claude Code state (intent-guard, reuse-guard, compaction-advisor) is per-session
+# and per-machine and must never be part of that. The root .gitignore rule is
+# anchored to the repo root, so nested `.claude/` dirs slipped through unnoticed
+# until they were already committed; this is the check that would have caught it.
+while IFS= read -r f; do
+  err "$f: session tooling state tracked inside a plugin — 'git rm -r --cached' it"
+done < <(git ls-files 'plugins/*' 2>/dev/null | grep '/\.claude/' || true)
+
 # ---- Dated-fact staleness report ---------------------------------------------
 # Files that assert an observed fact about the world carry `Last verified: <date>`.
 # A date nothing reads is a convention that dies quietly, so this reads them.
