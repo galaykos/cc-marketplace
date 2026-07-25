@@ -49,6 +49,28 @@ commission or build-in-code; a low-uniqueness utility need with a tight budget p
 build-in-code or an open-source library. Licence and format are gates — fail either and
 the source is out regardless of the other four.
 
+## When the answer is COMMISSION, say so and stop
+
+This decision can return an answer the craft flow cannot execute. Commissioned
+illustration, a photoreal 3D scene, a bespoke type sculpture — these are what the top of
+the field is actually built from, and no orchestration layer produces them. The honest
+failure mode is not admitting it: the axes get re-run until they yield something
+build-in-code can satisfy, and the result is recorded as a decision when it was a
+capitulation.
+
+So when the axes point at commission:
+
+- **Record commission as the answer**, in the asset plan and the provenance manifest,
+  even when the build then ships a placeholder or a first-party substitute. The gap is
+  the useful information — it tells whoever picks this up what the page is missing.
+- **Name the substitute as a substitute.** A first-party mark standing in for
+  commissioned artwork is a stand-in, not a choice, and the divergence record should not
+  claim it as one.
+- **A build whose every asset resolves to first-party has probably hit this ceiling
+  rather than reasoned its way to a position.** Check whether the brief truly needed no
+  imagery, or whether nothing here could have produced any. Both are legitimate; only one
+  is a design decision.
+
 ## The five source classes
 
 The taxonomy is CATEGORICAL. These are the only source classes; a specific vendor,

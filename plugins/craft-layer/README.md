@@ -92,6 +92,35 @@ one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE
 `THIRD-PARTY-NOTICES`. A manifest at any other path reads as absent to the gate. An
 all-in-code build still owes one, as a first-party declaration.
 
+### What "award-grade" means here — and what it does not
+
+Several files in this plugin use *award-grade* as a quality bar. Checked against the
+actual criteria of the field's main awards platform, that phrase is honest for one half
+of the work and overclaims the other, so it is worth pinning down.
+
+The main award weights **Design 40% · Usability 30% · Creativity 20% · Content 10%**, and
+runs a **separate developer award** scored on Semantics/SEO, Animations/Transitions,
+Accessibility, WPO, Responsive Design, and Markup/Meta-data. Winning sites score around
+7/10, and on the ones sampled, accessibility was the *lowest* sub-score.
+
+- **Those six developer criteria are, almost exactly, this plugin's gate set.** Motion
+  with reduced-motion paths, responsive behaviour, performance budgets, semantics, and
+  accessibility are what craft-layer measures. Together with Usability and Content — 40%
+  of the main rubric, and the half that is genuinely gateable — this is the bar
+  craft-layer is built to clear.
+- **The Design 40% is mostly art direction, and craft-layer cannot produce it.** The
+  top-tier winners are built on commissioned work: character illustration, photoreal 3D,
+  bespoke type sculpture, cinematic rendering, made by specialist studios. The
+  build-vs-source-vs-**commission** decision correctly returns "commission" for that
+  class of asset, and the flow has no way to execute it (`asset-sourcing/references/sourcing-decision.md`
+  now says so plainly). No orchestration layer closes that gap.
+
+So: craft-layer aims at the developer-award criteria and the substance half of the design
+rubric, on product work — landing pages, SaaS, CRMs. It does not aim at Site of the Year,
+which is won with art direction rather than engineering. The signature-interaction floor
+measures that a mechanism EXISTS, never its production value; those are different bars and
+the plugin only claims the first.
+
 ### Dating volatile facts
 
 A research pass over this plugin found the architecture sound and the **facts** rotten.

@@ -157,3 +157,9 @@ cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugi
 grep -n "References\|dense-ui-patterns" skills/information-design/SKILL.md | tail -4
 echo -n "body lines: "; awk '/^---$/{n++;next} n>=2' skills/information-design/SKILL.md | wc -l
 /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/template/craft-gates/gates.spec.ts
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer
+echo "=== where 'award-grade' is claimed ==="; grep -rn "award-grade\|award grade" --include="*.md" . | sed 's/^\.\///'
+echo; echo "=== commission in sourcing-decision ==="; grep -n -B2 -A6 -i "commission" skills/asset-sourcing/references/s
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/creative-direction/references/sameness-fingerprint.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/asset-sourcing/references/sourcing-decision.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/README.md

@@ -46,6 +46,12 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - scrollytelling as the default page STRUCTURE — scroll driving the sequence because that is
   what pages do now, rather than because the sequence is the argument
 - the generated-web composition: gradient hero + one geometric sans + a four-card grid
+- **the data-artefact hero** — a chart, plot, board, or live data widget standing in as the
+  hero image. It is a legitimate move and it is also where a build lands when it cannot
+  commission imagery, so it arrives by default rather than by argument. Two consecutive
+  craft-layer builds reached it independently, which is what put it on this list. A brief
+  that genuinely sells its data has earned it; a brief that simply had no other option has
+  not, and should say so in the divergence record rather than claiming it as a departure.
 - (a build leaning only on these has no brief-specific signature move)
 
 ### Type families the category defaults to (avoid unless argued for)
