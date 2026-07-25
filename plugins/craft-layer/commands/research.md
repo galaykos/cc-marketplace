@@ -46,7 +46,8 @@ When both briefs are ready:
   /ui-ux:build now (Recommended)" / "Report the briefs only".
 - **Invoked as `/craft-layer:craft`'s step 1** — do NOT ask, and do NOT hand off. Report the
   two briefs and return; the craft chain runs `/ui-ux:theme` at its step 2 and `/ui-ux:build`
-  at its step 5, with section decisions and the asset plan in between. Building here would
+  at its step 6, with section decisions, the asset plan and the motion decisions in between.
+  Building here would
   produce the page before the user has decided a single section.
 - **Headless** — report the two briefs and the exact next commands, and take no action
   unprompted.

@@ -35,6 +35,13 @@ demands it. This needs no separate state — the fingerprint IS the memory. Stat
 avoided families in the brief ("not lime-editorial, not navy/gold") so `/ui-ux:theme`
 generates away from them.
 
+One entry on that list is not self-repetition and does not age out with the window: the
+purple/violet gradient is the CATEGORY default that generated pages converged on, and readers
+identify it as machine-made about as fast as they see it. Treat it as a tell, not as a
+neutral hue choice — a palette landing there costs the build its authored feel before a word
+is read. Carry it into the brief explicitly ("not the violet-gradient default") rather than
+hoping generation wanders elsewhere, since it is exactly where generation goes by default.
+
 ## What reaches the theme brief
 
 Only: the mood phrase + the avoid-these-hues note. Everything else about colour (hue

@@ -26,7 +26,7 @@ One row per agenda item, in spine order:
 
 | Field | Holds |
 | --- | --- |
-| `slot` | the offer-contract spine slot (`plain-what`, `audience`, `problem`, `how-it-works`, `price`, `proof`, `objection`, `cta`, or `order-and-rhythm`) |
+| `slot` | the offer-contract spine slot (`plain-what`, `audience`, `problem`, `how-it-works`, `price`, `proof`, `objection`, `cta`), or `order-and-rhythm` / `signature` |
 | `section` | the section this became, by id/anchor — the handle the audit greps for |
 | `choice` | the picked option, one line: what the section IS |
 | `locks` | what the pick commits: a component, an instrument, a data need, a copy slot |
@@ -35,6 +35,13 @@ One row per agenda item, in spine order:
 
 A `long-scroll` run adds one `order-and-rhythm` row covering sequence, section-shape
 variety, CTA cadence, and where the heavy instruments sit.
+
+When the Signature round runs (or is skipped as unambiguous), add one `signature` row naming
+the section that owns the concept's ONE signature interaction, with the move and its owning
+craft skill in `locks`. Skipped-as-unambiguous still gets a row — `source: auto`, `why:
+unambiguous from the concept`. The craft flow's motion step reads it to resolve the build
+task's `Signature:` line, and the audit's signature gate greps that section for the named
+mechanism. No row means the motion step assigns the section itself from the divergence record.
 
 Rows are append-only within a run. A revision replaces `choice`/`why` in place and
 keeps the row — the audit checks the FINAL state, not the history.

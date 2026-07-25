@@ -175,9 +175,26 @@ without exception:
     AND matches its manifest source-class. BYTES are NOT re-checked here — the sprite/asset
     size budget (step 5) + `/performance:review` own weight; asset-fit is format + fallback +
     class only (it is NOT the anti-sameness rival, which is step 9).
+14. Signature interaction (craft gate — the motion FLOOR): read the injected divergence
+    record's SIGNATURE INTERACTION, plus the ledger's `signature` row when a ledger was
+    injected. No record injected: report `not checked (no divergence record persisted)` and
+    move on — never treat an absent record as a build with no signature. With one, grep the
+    owning section for an implementation of the NAMED mechanism: the tier/engine import it
+    needs plus something wiring it to that section — a handler, an observer, a timeline, a
+    state machine, a scene. A record naming a signature that the build implements NOWHERE is
+    a finding. This is the one gate that can fail a page for too LITTLE motion: every other
+    motion gate here is a ceiling, so without it a zero-animation build passes them all
+    cleanly. Entrance reveals are the baseline, not a signature — a page whose only motion is
+    fade-and-rise on scroll fails this gate even when every reveal is correct. Implemented,
+    but on a different section than the ledger assigned, is a separate lower-severity finding
+    (move shipped, placement drifted). Confirm the mechanism EXISTS and carries the two
+    mandatory fallbacks (steps 2 and 4); never judge whether it is impressive, and never
+    count reveals toward it.
 
 ## Checklist
 
+- [ ] The concept's ONE signature interaction shipped on the section it was assigned —
+      the motion floor (no divergence record → gate `not checked`; reveals don't count).
 - [ ] Every animation tier/engine used has a `prefers-reduced-motion` path.
 - [ ] Every 3D/WebGL surface is lazy-loaded, has a static fallback, and sits behind an
       error boundary for chunk-load / WebGL-context failure.

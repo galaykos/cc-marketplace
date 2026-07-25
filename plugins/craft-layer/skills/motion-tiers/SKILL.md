@@ -35,6 +35,8 @@ Answer in order; take the first that fits the surface:
 6. Two-state fade/slide with no orchestration? → no tier — CSS transitions
    (`motion-best-practices`), the cheapest path.
 
+Cheapest-that-fits is right for ordinary surfaces, wrong for the ONE carrying the concept's
+SIGNATURE interaction — that surface is picked by what the MOVE needs, not by what is cheapest.
 One writer per property per element: never point two tiers at the same `transform`.
 Full decision table with budgets: `references/tier-budgets.md`.
 

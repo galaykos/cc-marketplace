@@ -69,7 +69,7 @@ teams"). If empty, ask for a one-line product idea and the target stack
    offered), stage options through
    `taskmaster:visual-decisions` / `/design-preview:preview` / `/shadcn-studio:stage` when
    installed, and write the section ledger. Fold each row's choice + locks into the build
-   task so the picks reach step 5. Two skips, and they differ: `one-shot` skips this step
+   task so the picks reach step 6. Two skips, and they differ: `one-shot` skips this step
    entirely and lets the concept and archetype defaults decide, writing no ledger; a `guided`
    run with no interactive user (headless) still runs the agenda, auto-decides every item, and
    writes the ledger with every row `source: auto` so the choices stay reviewable.
@@ -82,23 +82,31 @@ teams"). If empty, ask for a one-line product idea and the target stack
    asset. Runs BEFORE Build so the build-in-code-vs-source calls feed `/ui-ux:build`.
    This step OWNS the manifest file: write it into the project at one of the accepted names
    (`ASSETS` / `CREDITS` / `PROVENANCE` / `THIRD-PARTY-NOTICES`) as soon as the asset plan is
-   decided, and carry the plan into step 5 on the build task's `Assets / provenance:` line, so
+   decided, and carry the plan into step 6 on the build task's `Assets / provenance:` line, so
    the build sources what was decided. Skipping this because "everything is drawn in code"
    still owes the manifest a first-party declaration — the licence gate runs on static,
    all-in-code builds too, and an unwritten manifest is a finding nobody was assigned to
    prevent.
 
-5. **Build.** Pass the build task — carrying the section ledger's choices when step 3 ran —
-   to `/ui-ux:build` to lay out components and screens,
-   applying `design-tokens` and, for data-dense CRM/SaaS surfaces, the
-   `information-design` skill (hierarchy, density, tables/dashboards, when-to-dataviz).
-
-6. **Motion — route across the craft skills.** This step DECIDES; `/ui-ux:build` implements.
-   Work out what each surface needs, then hand the decisions back to `/ui-ux:build` as a
-   second pass on the same build task (its `Motion:` line, now resolved to a named tier per
-   surface plus the fallbacks below) — craft-layer writes no animation code itself. Reach
-   for the owning skill to make each call (each references its library by path — never
-   re-teach):
+5. **Motion — decide it BEFORE the build.** This step DECIDES; step 6's `/ui-ux:build`
+   implements; craft-layer writes no animation code itself. Motion decided AFTER a layout is
+   committed can only be retrofitted onto markup that was not built for it, which is how a
+   page ends up with nothing but fade-and-rise reveals: the effects that need STRUCTURE — a
+   pinned scroll act, a WebGL hero surface, a shared-element route transition, a physics
+   stage — must be in the build task or they cannot ship at all.
+   START FROM THE SIGNATURE. Read the persisted `craft/divergence-record.md` and make the
+   concept's ONE signature interaction the first motion decision: which section owns it (the
+   ledger's `signature` row when step 3 wrote one), which craft skill implements it, and
+   which tier it costs. The signature is the page's motion FLOOR — every other surface is
+   that plus a baseline — and it is the only motion decision the audit can check by name. A
+   run whose signature never reaches the build task has lost the concept for a second time
+   (step 1 is the first), and the tier picker will not recover it: it takes the CHEAPEST tier
+   that fits each surface, so nothing reaches for anime.js, Three.js, physics, or the Vector
+   tier unless a decision here demands it.
+   Then work out what each remaining surface needs, and resolve TWO lines on the build task:
+   `Motion:` — a named tier per surface plus the fallbacks below — and `Signature:` — the
+   move, its section, and its owning skill. Reach for the owning skill to make each call
+   (each references its library by path — never re-teach):
    - **Tier** (the base per-surface choice) via `motion-tiers`: Framer Motion, anime.js,
      Three.js/R3F, sprites (`sprite-motion`), or the Vector tier (Lottie/Rive).
    - **Scroll-driven** (smooth scroll, scrub, pin, parallax) → `scroll-orchestration`
@@ -109,7 +117,7 @@ teams"). If empty, ask for a one-line product idea and the target stack
    - **Real 2D physics** (gravity, collision, drag-inertia) → `physics-motion`.
    - **Multi-track / editor-authored choreography** → `motion-sequencing`.
    - **Postprocessing / custom shaders on a 3D scene** → `webgl-effects`.
-   - **Data-dense surfaces** → `information-design` (also applied in step 5).
+   - **Data-dense surfaces** → `information-design` (also applied in step 6).
 
    Then fold in the cross-cutting decisions: apply each tier's `prefers-reduced-motion`
    and reduced-bundle fallback; budget the **cumulative** motion JS (one heavy engine
@@ -118,8 +126,16 @@ teams"). If empty, ask for a one-line product idea and the target stack
    (`motion-tiers/references/rtl-bidi.md`); and pick the **accent so it clears contrast on
    every surface** it lands on (verified in step 7).
 
+6. **Build.** Pass the build task — carrying the section ledger's choices when step 3 ran,
+   the asset plan from step 4, and step 5's resolved `Motion:` and `Signature:` lines — to
+   `/ui-ux:build` to lay out components and screens, applying `design-tokens` and, for
+   data-dense CRM/SaaS surfaces, the `information-design` skill (hierarchy, density,
+   tables/dashboards, when-to-dataviz). ONE pass: layout and motion land together, because
+   the signature and the scroll device are structural, not decoration applied afterwards.
+
 7. **Audit.** Run `/craft-layer:audit` on the result to verify the craft gates
-   (reduced-motion per tier, lazy + static-fallback 3D, per-tier + **cumulative** motion
+   (the **signature interaction actually shipped** on the section step 5 assigned it,
+   reduced-motion per tier, lazy + static-fallback 3D, per-tier + **cumulative** motion
    budget, sprite/asset budgets, **accent-vs-surface contrast**, and the newer-skill
    gates — page-transition fallback, WebGL GPU budget, interaction-fx cursor a11y, physics
    body-cap, sequencing studio-excluded-from-prod) and, via its delegation, full
@@ -131,6 +147,6 @@ teams"). If empty, ask for a one-line product idea and the target stack
   detail — those live in `design-tokens`, `motion-best-practices`, and
   `threejs-best-practices`. It sequences them.
 - Stop points are natural after step 2 (tokens approved), step 3 (sections decided) and
-  step 5 (skeleton built); a user can run any step's command standalone.
+  step 6 (built); a user can run any step's command standalone.
 - `guided` is the answer to a broad or half-formed brief: a handful of exchanges up front
   beats discovering at the audit that a whole build answered the wrong question.

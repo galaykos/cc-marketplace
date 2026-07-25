@@ -41,6 +41,11 @@ single decision worth full-fidelity staging (real components, live preview), and
 it is only worth it once. If the concept's signature is already unambiguous, skip
 this round rather than manufacture a choice.
 
+Skipping the ROUND never skips the ROW. Write the `signature` ledger row either way —
+`source: auto` when unambiguous — because the craft flow's motion step resolves the build
+task's `Signature:` line from it and the audit greps that section for the named mechanism.
+A signature nobody assigned to a section is the concept evaporating one step from the build.
+
 ## The cap
 
 **Three rounds, and a hard ceiling of six exchanges including any iteration.** At
