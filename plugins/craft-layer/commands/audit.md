@@ -44,6 +44,18 @@ taxonomy and its per-tier budgets, then:
    for direction words ("on the right", "below") that a reflowed layout makes false.
    No browser available → `not measured`, never a silent pass.
 
+   **Read the SERVED HTML, not the browser's.** `curl -s <url>` — or the framework's
+   SSR/prerender output — must already contain the headline, the body copy and the primary
+   CTA text. An SPA shell (Inertia, a client-only React/Vue mount, a router with SSR merely
+   *configured*) serves an empty root element and fills it from JS, and every check that runs
+   in a browser passes anyway: the screenshot is perfect, the a11y tree is complete, the suite
+   is green. The page is still blank to any crawler that does not execute JS — which on a
+   marketing surface is a large part of the audience, and on a page about machine visibility
+   is the entire argument. `curl -s <url> | grep -ci "<a distinctive headline word>"` returning
+   0 is a FAIL, not a note, and it fails the whole page: no craft above the fold survives a
+   document with no text in it. Configured is not running; only the response body settles it.
+   No reachable URL → `not measured`, never a silent pass.
+
    Compute the CONTRAST RATIOS too — the reviewer cannot, and this is a craft gate rather
    than a deferred one. Read the resolved accent/ink/surface token values out of the theme
    (hex or the token file's channels), then compute WCAG relative-luminance ratios for each

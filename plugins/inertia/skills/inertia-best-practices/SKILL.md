@@ -61,14 +61,14 @@ return Inertia::render('Dashboard', [
 - **Prefetch**: `<Link prefetch>` fetches on hover; `prefetch="mount"` for near-certain next pages.
 - **Merge props**: `Inertia::merge(fn () => $page->items)` appends on reload instead of
   replacing — the infinite-scroll primitive; reset with `router.reload({ reset: ['items'] })`.
-- **Naming**: v2 renames `lazy()` to `Inertia::optional()` — same semantics, update on upgrade.
 
 ## v3 leverage (only when installed)
 
 v3 (stable March 2026; floors: PHP 8.2+, Laravel 11+, React 19 / Svelte 5 adapters) keeps the
 whole v2 server API. The `@inertiajs/vite` plugin replaces the `createInertiaApp` resolve/setup
-boilerplate and wires SSR automatically — even in dev, no separate Node process. Axios is gone
-(built-in XHR client — migrate interceptors or add the axios adapter); packages are ESM-only.
+boilerplate and can serve SSR through the dev server with no separate Node process — once SSR is
+turned on, which it is not by default (see below). Axios is gone (built-in XHR client — migrate
+interceptors or add the axios adapter); packages are ESM-only.
 `useHttp` is `useForm`-style state for non-visit requests; `optimistic()` reverts on failure.
 
 ## Forms: useForm is the default
@@ -121,16 +121,20 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
 
 ## Code splitting and SSR
 
-- v1/v2: `resolvePageComponent(name, import.meta.glob('./Pages/**/*.vue'))` — `*.tsx`/`*.jsx` on
-  the React adapter, `*.svelte` on Svelte — with the default lazy glob yields one chunk per
-  page. `{ eager: true }` bundles every page into the entry — only defensible when measured on
-  a small app; on anything sizable it is pure first-load bloat. On v3 the Vite plugin owns page
-  resolution and code splitting — delete the manual glob.
+- v1/v2: `resolvePageComponent(name, import.meta.glob('./Pages/**/*.vue'))` (`*.tsx`/`*.jsx` on
+  React, `*.svelte` on Svelte) yields one chunk per page; `{ eager: true }` bundles every page
+  into the entry — first-load bloat on anything sizable. On v3 the Vite plugin owns this.
+- **SSR is opt-in and fails silently.** `ssr.enabled = true` pointing at no reachable SSR server
+  does NOT error — Inertia falls back to client rendering, so the browser looks perfect while
+  View Source is an empty `#app`. Enabling it takes ALL of: an SSR entry file, an `--ssr` build
+  target (v1/v2 `ssr.js`; v3 the Vite plugin's SSR option), that bundle deployed, and the SSR
+  process running. Miss one and you shipped CSR while believing the opposite.
+- Verify, never assume: `curl -s <url> | grep -ci "<a word from the headline>"` must be non-zero.
+  That one command separates a page search engines and AI crawlers can read from one they see
+  blank — and no browser check, screenshot or passing test suite can tell you which you built.
 - SSR pays off on SEO- and share-facing pages (marketing, listings, profiles); a login-walled
-  dashboard can skip the extra Node process entirely. If enabled: on v1/v2 build the `ssr.js`
-  target and run the SSR server in deploy (v3's Vite plugin wires this); everywhere, keep
-  `window`/`document` out of setup/render — gate browser APIs behind `onMounted` (Vue) or
-  `useEffect` (React), which never run during the server render.
+  dashboard can skip it. Everywhere keep `window`/`document` out of setup/render — gate browser
+  APIs behind `onMounted` (Vue) or `useEffect` (React), which never run during the server render.
 
 ## Anti-patterns
 
@@ -138,17 +142,13 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
   no partial-reload story. Props are the data layer; async endpoints are for true widgets only.
 - Mirroring `auth.user` or permissions into a Pinia/Zustand/Redux store — shared props already
   are the store, refreshed per navigation; the copy goes stale at the first server-side change.
-- Whole models or `->all()` as props — leaks plus payload bloat (see contract section).
-- `setInterval` polling when v2's `usePoll` is installed; manual visit-chaining for infinite
-  scroll when merge props exist.
-- Hand-rolled error state next to `useForm` — `form.errors` already holds it.
+- Asserting a page is server-rendered because SSR is configured, without ever reading the
+  response body — configured and rendering are different states, and only one is checkable.
 - Expensive props computed unconditionally instead of behind closures/defer, making every
   partial reload pay full price.
-- Filter forms without `preserveState`, wiping user inputs on every result set.
 
 ## Verify against current docs
 
-v1 → v2 renamed and added APIs (`lazy` → `optional`, deferred props, `usePoll`, prefetching,
-merge props); v2 → v3 removed axios, went ESM-only, and moved entry/SSR wiring into the
-`@inertiajs/vite` plugin. Pin advice to the installed versions from the lockfiles and check
-https://inertiajs.com before asserting anything version-sensitive.
+v1 → v2 renamed `lazy` → `optional` and added deferred props, `usePoll`, prefetching and merge
+props; v3 removed axios, went ESM-only, and moved entry/SSR wiring into `@inertiajs/vite`. Pin
+advice to the lockfiles and check https://inertiajs.com before asserting version-sensitive facts.

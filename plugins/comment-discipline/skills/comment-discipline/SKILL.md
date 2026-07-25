@@ -85,6 +85,18 @@ outside it should first be tried as a rename, a type, a test, or an extraction.
   currency units`), ownership and lifetime ("caller must close"), which conditions
   throw, and array or object shapes the type system cannot state.
 
+## A comment that asserts behavior is a claim
+
+The keep-cases license prose about why, and prose is where an unimplemented
+intention hides most comfortably. "Settles in either direction", "the server
+renders this fully", "never blocks": each states an invariant the next reader
+now trusts instead of checking.
+
+Before such a comment ships, either the code plainly implements it or a test
+does — and neither becomes optional because the sentence sounds sure. A comment
+describing behavior the code lacks is worse than none: it stops the one reader
+who would have noticed.
+
 ## Refactor instead of commenting
 
 Most comments are a refactor someone did not have time for. The move is usually
@@ -140,4 +152,3 @@ own audience, not a comment; that is a docs decision, not this rule's.
 - Answering "should this be commented?" without first asking "can this be named,
   typed, or tested instead?"
 - A constraint comment with no link, so nobody can ever prove it obsolete.
-- Enforcing this on generated files, vendored code, or licence headers.

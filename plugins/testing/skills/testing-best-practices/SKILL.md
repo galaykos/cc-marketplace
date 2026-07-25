@@ -117,6 +117,30 @@ instead, and spot-check the suite's teeth with mutation testing (Infection,
 Stryker) on core domain modules — a surviving mutant is a missing assertion
 with an address.
 
+## Assert behavior, never source text
+
+A test that opens a source file and checks it contains a string is a grep
+with a green tick. It passes on code that never runs, breaks on a rename
+that changed nothing, and its real subject is the file's spelling.
+
+    // no — passes even if the guard never executes, or the file is dead
+    expect(file_get_contents($path))->toContain("prefers-reduced-motion");
+
+    // yes — the guard runs and the outcome is observed
+    matchMedia.mock({ reduce: true });
+    render(page);
+    expect(element.getAnimations()).toHaveLength(0);
+
+The tell: would the assertion still pass if the feature were deleted and
+replaced by a comment containing the same words? Then it tests nothing.
+This is the dominant failure mode when a suite is written to accompany
+work rather than to check it — the tests narrate the diff instead of
+exercising it, and every one of them is green before the feature exists.
+
+Where behavior genuinely cannot be exercised — build config, a
+deploy-only path — assert the OUTPUT of running the thing (the built
+artifact, the process exit code), never the input that describes it.
+
 ## Anti-patterns
 
 - Asserting implementation: private state, call counts on internals,

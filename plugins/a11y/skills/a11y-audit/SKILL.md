@@ -44,8 +44,16 @@ Don't use ARIA when a native element exists — no ARIA beats bad ARIA.
 Every interactive element must be reachable and operable by keyboard
 alone.
 
-- Tab reaches it; Enter/Space activates it; Escape dismisses overlays;
-  arrow keys where convention demands them (menus, tabs, radio groups).
+- Tab reaches it; Enter/Space activates it; Escape dismisses overlays.
+- **A composite role is a contract.** `radiogroup`, `tablist`, `listbox`,
+  `menu`, `tree`, `combobox` commit you to the APG keyboard pattern AND
+  roving tabindex — one child tabbable (`0` on the active, `-1` on the
+  rest), arrows moving between them. Tab-through-every-child with no
+  arrow handling is not partial, it is false: the role promises a pattern
+  the widget lacks. Ship the whole pattern or drop the role for buttons.
+- Focusable but not actionable is a defect. `tabindex="0"` on a `span`
+  with no role and no Enter/Space behaviour adds a stop that announces as
+  text and leads nowhere, burying the route to the real action.
 - No positive `tabindex`. Use `0` to join the natural order, `-1` for
   programmatic focus, and fix DOM order instead of reordering with it.
 - Visible focus indicator on every focusable element. `outline: none`
@@ -60,10 +68,9 @@ alone.
 - On modal open, focus enters the dialog; on close, it returns to the
   element that triggered it.
 - Provide a skip link so keyboard users can bypass repeated navigation.
-- Focused element stays visible: sticky headers, toolbars, and other
-  overlays must not fully cover it (SC 2.4.11 Focus Not Obscured); an
-  indicator must exist and be visible (SC 2.4.7). A prominent indicator
-  (Focus Appearance, SC 2.4.13) is AAA — recommend, never flag at AA.
+- Focused element stays visible: sticky headers and overlays must not
+  fully cover it (SC 2.4.11); the indicator must exist and be visible
+  (SC 2.4.7). Focus Appearance (SC 2.4.13) is AAA — never flag at AA.
 
 ## Contrast (AA)
 
@@ -89,14 +96,15 @@ alone.
   in the same flow — auto-populate it or offer it back (SC 3.3.7).
 - Accessible authentication: login must not hinge on a cognitive test —
   allow paste and password managers, no transcription puzzles (SC 3.3.8).
+- Help mechanisms — contact link, chat, FAQ — sit in the same relative
+  place on every page that offers them (SC 3.2.6).
 
 ## Media and images
 
 - Alt text serves the image's purpose in context — what it means, not
   what it looks like. Decorative images get empty `alt=""` so screen
   readers skip them.
-- Captions for video with speech.
-- No autoplaying audio.
+- Captions for video with speech; no autoplaying audio.
 - Respect `prefers-reduced-motion`: gate non-essential animation,
   parallax, and auto-advancing carousels behind the media query.
 
@@ -105,15 +113,10 @@ alone.
 - Target size: 24×24 CSS px is the 2.2 AA floor (SC 2.5.8) — a
   minimum, not the goal. Keep 44px in both dimensions, padding
   included, as the recommended target; the floor does not replace it.
-- Dragging movements: every drag — reorder, slider, drawing — has a
-  single-pointer alternative that works without dragging (SC 2.5.7).
-- Every gesture (swipe, pinch) has a single-pointer alternative —
-  visible controls that do the same thing.
-
-## Consistent help
-
-- Help mechanisms — contact link, chat, FAQ — sit in the same relative
-  place on every page that offers them (SC 3.2.6).
+- Every drag (reorder, slider, drawing) and every gesture (swipe, pinch)
+  has a single-pointer alternative — visible controls doing the same job
+  without dragging or tracing a path (SC 2.5.7). Keyboard access alone
+  does not satisfy this; pointer users need the non-dragging route too.
 
 ## Worked micro-example
 
@@ -123,9 +126,9 @@ An icon-only delete button in a list row needs all of:
       <svg aria-hidden="true">…</svg>
     </button>
 
-- `type="button"` so it never submits an enclosing form.
+- `type="button"` so it never submits an enclosing form, and a visible
+  focus style (the default outline or a styled replacement).
 - `aria-label="Delete item"` because there is no visible text.
-- A visible focus style (the default outline or a styled replacement).
 - A confirm dialog that traps focus while open and returns focus to the
   triggering button on close — deletion is destructive, and a stray
   Enter from an invisible focus position must not destroy data.
