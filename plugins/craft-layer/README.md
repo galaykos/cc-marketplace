@@ -32,7 +32,9 @@ it orchestrates existing surfaces:
    build.
 5. **`/ui-ux:build`** — build components/layout (carrying the ledger's choices when step 3
    ran), applying `design-tokens` and `information-design`.
-6. **motion routing** — route each surface to its owning skill (`motion-tiers` for the
+6. **motion routing** — DECIDE the motion, then hand it back to `/ui-ux:build` as a second
+   pass over the same task (craft-layer writes no animation code itself). Route each surface
+   to its owning skill (`motion-tiers` for the
    base tier; `scroll-orchestration`, `page-transitions`, `kinetic-typography`,
    `interaction-fx`, `physics-motion`, `motion-sequencing`, `webgl-effects` as needed),
    then fold in the cross-cutting decisions: reduced-motion + reduced-bundle fallbacks, the
@@ -43,6 +45,26 @@ it orchestrates existing surfaces:
    the newer-skill gates; delegating full a11y + performance). It measures asset and chunk
    sizes itself before dispatching, and any gate it cannot measure is reported
    `not measured` rather than guessed — then offers to route the findings to a worker.
+
+### What the run writes outside your app
+
+Three working files, at fixed names so a later session — or a standalone
+`/craft-layer:audit` — can find them by glob. They live in the taskmaster docs area when the
+project has one, otherwise the session scratch area, and **never** in the shipped tree:
+
+| File | Written by | Read by |
+| --- | --- | --- |
+| `craft/offer-contract.md` | step 0, after the archetype is classified | the audit's scope, length, mode and content-depth gates |
+| `craft/divergence-record.md` | step 0, once the concept exists | the audit's anti-sameness gate and the plain-language what-line check |
+| `craft/section-ledger.md` | step 3 (guided only) | `/ui-ux:build` via the build task, and the audit's conformance gate |
+
+Missing any of them is not a failure — the gates that need them report `not checked` rather
+than passing or failing a build that simply never saved one.
+
+One file DOES land in the project: the asset **provenance manifest**, written at step 4 under
+one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE`, or
+`THIRD-PARTY-NOTICES`. A manifest at any other path reads as absent to the gate. An
+all-in-code build still owes one, as a first-party declaration.
 
 ### One-shot or guided
 

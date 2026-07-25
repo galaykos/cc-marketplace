@@ -287,9 +287,19 @@ Reach for guided when the brief is broad, when the page IS the deliverable, or w
 The audit checks more than motion: the offer contract, content depth (including that no metric,
 customer, or **capability** claim — coverage, integrations, certifications, SLAs — was invented
 rather than slotted), anti-sameness, licence provenance, contrast, and the motion budgets. It
-ends by offering to route the findings back for fixing, or to report only. The delegated a11y and
-performance passes are static reviews rather than Lighthouse runs, so their score targets
-(Performance ≥ 90, Accessibility ≥ 95) are the bar to aim at, not a measurement.
+measures asset sizes, bundle weights and contrast ratios itself before dispatching its reviewer,
+and anything it cannot measure is reported `not measured` rather than guessed — a gate that
+silently estimates is worse than one that says it could not run. It ends by offering to route the
+findings to a worker for fixing, or to report only. The delegated a11y and performance passes are
+static reviews rather than Lighthouse runs, so their score targets (Performance ≥ 90,
+Accessibility ≥ 95) are the bar to aim at, not a measurement.
+
+A run leaves three working files — `craft/offer-contract.md`, `craft/divergence-record.md` and
+(guided only) `craft/section-ledger.md` — in your task-docs or scratch area, never in the built
+site. They are what lets a later `/craft-layer:audit` check the page against what was actually
+decided; without them those gates report `not checked` rather than guessing. The one file that
+does land in the project is the asset provenance manifest (`ASSETS` / `CREDITS` / `PROVENANCE` /
+`THIRD-PARTY-NOTICES`), which the licence gate globs for.
 
 **What you need installed.** craft-layer orchestrates and writes no build logic itself, so two companions are effectively **required**: **ui-ux** (`/ui-ux:theme` generates the tokens, `/ui-ux:build` builds the components — craft-layer deliberately hand-rolls neither) and **a11y** (the audit delegates the full accessibility pass to `/a11y:audit`). Both ship in the `frontend-suite` bundle alongside craft-layer.
 
