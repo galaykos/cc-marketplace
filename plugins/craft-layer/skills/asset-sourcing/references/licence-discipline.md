@@ -6,10 +6,13 @@ read-only reviewer can verify licence discipline WITHOUT guessing an asset's ori
 
 ## The provenance manifest (required)
 
-A build shipping any non-code visual or font asset carries ONE provenance manifest. The filename is
-your choice — a top-level `ASSETS` / `CREDITS` / `provenance` file, or a per-asset inline provenance
-comment — what matters is that it is grep-able and COMPLETE. It enumerates every such asset with
-four fields:
+A build shipping any non-code visual or font asset carries ONE provenance manifest at a name the
+reviewer can actually find. **Accepted names, globbed by the audit** (repo root or the asset
+directory, any of `.md`/`.txt`/`.json`/no extension): `ASSETS`, `CREDITS`, `PROVENANCE`,
+`THIRD-PARTY-NOTICES`, case-insensitive. Per-asset inline provenance comments remain valid for
+inline/`data:` refs, keyed by the `inline:<id>` marker. A manifest at any other path reads as
+ABSENT to the gate — which is a finding — so use one of these names rather than a creative one.
+It enumerates every such asset with four fields:
 
 - `ref` — WHERE the asset is referenced from: a committed file path, a remote URL, or the
   inline marker `inline:<id>` (the three ref classes are defined below). Existing committed-file

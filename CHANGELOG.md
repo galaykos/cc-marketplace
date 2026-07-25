@@ -4,6 +4,78 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.80.0] - 2026-07-25
+
+craft-layer 0.13.1 — the craft chain could clear every motion, contrast, licence and depth gate
+and still ship a page that never says what the product is. It had no commercial contract: nothing
+asked what is sold, to whom, for how much, or whether a run ships one product or three. Diagnosed
+against a real generated landing page, then fixed at the flow level and hardened across three
+blind review passes.
+
+- **Offer contract (new, `creative-direction/references/offer-contract.md`).** Pinned before the
+  concept and echoed to the user before any file is written: ONE product under its REAL name, the
+  audience, the archetype, the ONE primary action, the exact route list, the page length, the
+  mode, and what is not shipping. When the brief admits several products or directions it ASKS
+  which one — presenting options and then building all of them is a finding, not a compromise —
+  and a token/kit showcase is not a site route unless asked for. The concept's metaphor is a
+  design LANGUAGE, not a rebrand: a concept-invented wordmark in `<title>`/hero fails.
+- **The offer spine.** Eight slots every marketing page owes — plain-language what, audience,
+  problem, how-it-works, price, proof, objection, one repeated CTA verb. Spec sheets and method
+  disclosure are supporting material; a page built only of specs has skipped every other slot,
+  which is how a dense build reads as uninformative. The plain-language check is mechanical, not a
+  matter of taste: the h1 is checked against the divergence record's own metaphor vocabulary.
+- **Proof is slotted, never deleted.** Refusing to fabricate a testimonial is right; deleting the
+  region to avoid it is a second failure and the one that costs the sale. Two failure modes on the
+  far side of that fix are now gated too — the *disclosure stack* (chip AND banner AND confessional
+  lede AND an operator-addressed headline, so a region meant to build belief announces four times
+  that it is unfinished; the budget is one marker per figure plus one footnote) and the *empty
+  placeholder grid* (a logo slot has no plausible sample value that is not an invented company —
+  cut the sub-block, keep the region).
+- **Capability claims — a third numeral class.** Between offer numerals the design decides (price,
+  tiers, step counts) and aggregate metrics it obviously cannot (GMV, user counts) sat coverage,
+  integrations, supported platforms, SLAs, compliance certifications, retention windows. They read
+  like offer terms, only the business knows them, and a visitor can ACT on "SOC 2 certified" or
+  "covers your city". They ship as `{{capability:*}}` slots. The test: could the DESIGN decide
+  this, or only the business?
+- **Long-scroll is a declared decision.** `standard` or `long-scroll` in the contract; long is
+  legitimate, undeclared length is not. On long-scroll the depth anchors become a FLOOR and four
+  rules apply instead — spine answered in the opening third, CTA recurring on one verb, section
+  shapes varied, wayfinding past ~8 sections and lazy below-fold instruments.
+- **Guided builds (new skill `section-decisions` + `/craft-layer:sections`).** The chain was
+  one-shot: a one-line brief in, a whole site out, first review at the end. Now the contract
+  declares a mode — pinned by ASKING for it in any words, no flag — and a guided run derives its
+  agenda from the spine slots (never an invented list), batches it into three capped rounds
+  (Shape → Treatment → Signature), offers 2–3 structurally different treatments per section, and
+  records every pick in a section ledger the build task carries and the audit checks for
+  conformance. "Decide the rest for me" at every exchange; headless auto-decides and marks each
+  row. All option-drawing routes to surfaces that already own it (taskmaster's visual-decisions,
+  design-preview, shadcn-studio, /ui-ux:theme), each optional — with none installed, decisions
+  degrade to written multiple-choice and every gate still runs. A taskmaster spec is CONSUMED,
+  never re-interrogated.
+- **Gates that could not actually run, fixed.** The contract was only spoken and the divergence
+  record is returned by an agent that writes no files, so the contract, content-depth and
+  anti-sameness gates had nothing to compare against. Both now persist at fixed names
+  (`craft/offer-contract.md`, `craft/divergence-record.md`, `craft/section-ledger.md`) that the
+  audit globs for; an absent artifact is reported `not checked`, never passed and never failed.
+  The anti-sameness threshold, previously unfalsifiable, is stated as counts.
+- **Measurement made real.** craft-reviewer is Read/Grep/Glob and cannot see a file's bytes, a
+  chunk's gzipped weight, a contrast ratio or what lands above the fold — yet it was told to check
+  all four. `/craft-layer:audit` now measures asset sizes, bundle weights and WCAG ratios in the
+  main thread and injects them; the reviewer cites an injected number or reports `not measured` and
+  falls back to the structural check. Estimating and presenting it as a verdict is forbidden.
+- **Chain gaps closed.** The asset manifest was a plan with no writer and no channel, so every
+  clean run ended with a licence finding nobody was assigned to prevent (now written at step 4, at
+  a fixed accepted filename, carried on the build task). `/craft-layer:research` hand-off fired
+  mid-chain, letting a guided run build before a single section was decided. The concept could
+  never reach that command. `theming-system` was advertised as a stage no step applied. Step 6
+  named skills but no executor. The audit's fix offer routed to a plugin with no writer. Injected
+  Read paths were relative to the command file rather than the agent's cwd. Tier 5 (Vector) had no
+  budget row.
+- **Docs.** Both READMEs document the offer contract and the five failures it prevents, both
+  modes with runnable examples, long-scroll, the working files a run leaves and where, the
+  provenance manifest names, and which companions are genuinely required (`ui-ux`, `a11y`) versus
+  optional.
+
 ## [0.79.0] - 2026-07-24
 
 craft-layer 0.10.0 — gate hardening from a fresh 3-reviewer pass on the merged plugin (ultra-task,

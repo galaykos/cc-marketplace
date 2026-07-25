@@ -110,7 +110,7 @@ afterwards to sweep the orphans.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + theme builder (shadcn/ReUI/Aceternity, Tailwind, Bootstrap) with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
-| **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM/SaaS/landing) across React/Vue/Next/Nuxt/Laravel: a `/craft-layer:craft` orchestrator, a design-research→token-brief playbook, a tiered motion system (Framer / anime.js / Three.js + `webgl-effects` / Vector Lottie-Rive / sprites, budgeted with reduced-motion), `scroll-orchestration` (Lenis/ScrollTrigger), `kinetic-typography`, `page-transitions`, `interaction-fx`, `physics-motion` (matter.js), `motion-sequencing` (theatre.js), information-design, and a craft audit — reuses ui-ux & threejs | `/craft-layer:craft`, `/craft-layer:audit` |
+| **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM/SaaS/landing) across React/Vue/Next/Nuxt/Laravel: a `/craft-layer:craft` orchestrator, an offer contract that pins what the page SELLS before what it looks like, an optional guided mode that decides the page section by section with you, a design-research→token-brief playbook, a tiered motion system (Framer / anime.js / Three.js + `webgl-effects` / Vector Lottie-Rive / sprites, budgeted with reduced-motion), `scroll-orchestration` (Lenis/ScrollTrigger), `kinetic-typography`, `page-transitions`, `interaction-fx`, `physics-motion` (matter.js), `motion-sequencing` (theatre.js), information-design, and a craft audit — reuses ui-ux & threejs | `/craft-layer:craft`, `/craft-layer:sections`, `/craft-layer:research`, `/craft-layer:audit` |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
@@ -247,6 +247,67 @@ The full loop for a feature:
 Each plugin degrades gracefully when a companion is missing — taskmaster scans manifests itself without stack-scan, and task-runner accepts any task list, not just taskmaster cards. Installed together, version facts flow into clarifying questions, cards flow into disciplined execution, and verification gates close the loop.
 
 If you work on a specific stack, add its review plugin on top (e.g. `laravel` + `mysql` for a Laravel app, `react` + `vite` for a React frontend) — stack-scan's inventory feeds those review commands too.
+
+### Building a landing page or marketing site: craft-layer
+
+`/craft-layer:craft <idea>` turns a product idea into a built, animated, audited page — it detects your stack (React/Next/Vue/Nuxt/Laravel) from the project, and asks only when you gave it no idea at all. Before anything visual is decided it pins an **offer contract** — one product under its real name, the audience, the ONE primary action, the exact route list, the page length, the mode, and what is not shipping — and echoes it back to you before a single file is written. If your brief admits several products or directions, it asks which one instead of building all of them.
+
+The contract is what stops the five ways a generated page fails to sell:
+
+| Failure | What the contract does |
+|---------|------------------------|
+| Two products (or a design-system page) shipped as one site | one product per build; internal kit pages are not routes |
+| The concept's metaphor becomes the product's name | metaphor is a design language; the real name stays in `<title>`, hero and nav |
+| A page of specs that never says what it is, who it's for, or what it costs | an eight-slot offer spine every marketing page owes |
+| Testimonials/logos/stats deleted to avoid fabricating them | proof ships as labelled `{{slots}}`, never as an empty region |
+| Invented facts about the real product — coverage, integrations, certifications, SLAs | capability claims ship as `{{capability:*}}` slots; only price, tiers and step counts are the design's own to state |
+
+**Two modes, declared in the same prompt:**
+
+```bash
+# one-shot — the whole page is generated, you see it finished
+/craft-layer:craft a landing page for Acme, an uptime monitor for solo devs
+
+# guided — you pick each section's treatment before it is built
+/craft-layer:craft guided — a landing page for Acme, an uptime monitor for solo devs
+```
+
+There is no flag to memorize — saying "guided", "section by section", or "give me options" anywhere in the request pins the mode, exactly like naming the audience or the routes does.
+
+Guided mode turns the offer spine into a decision agenda and asks in three capped rounds: **Shape** (one whole-page outline pick), **Treatment** (3–4 sections batched per exchange, most consequential first), and at most one **Signature** decision for the section carrying the concept's signature interaction. Six exchanges maximum *including any iteration*, with *"decide the rest for me"* offered at every one (and *"just show me one option"* when you want a recommendation rather than a menu). Your picks land in a **section ledger** (written to the run's working area, never into the site) that the build reads and the audit checks for conformance, so a decision can't be recorded and then quietly ignored. Run headless, guided auto-decides the whole agenda and marks every row so you can see what you didn't choose.
+
+Reach for guided when the brief is broad, when the page IS the deliverable, or when you want options rather than a result. Long pages are supported explicitly: declare `long-scroll` and the section-count anchors become a floor instead of a range, with the extra length carrying its own rules (the spine answered in the opening third, the CTA recurring on one verb, section shapes varied, wayfinding past ~8 sections, below-fold instruments lazy-mounted).
+
+```bash
+/craft-layer:sections <page>   # guided loop standalone — needs a contract + concept already pinned
+/craft-layer:research <idea>   # the design-research playbook alone → theme brief + build task
+/craft-layer:audit <path>      # craft gates + ledger conformance; can route findings back to fix
+```
+
+The audit checks more than motion: the offer contract, content depth (including that no metric,
+customer, or **capability** claim — coverage, integrations, certifications, SLAs — was invented
+rather than slotted), anti-sameness, licence provenance, contrast, and the motion budgets. It
+measures asset sizes, bundle weights and contrast ratios itself before dispatching its reviewer,
+and anything it cannot measure is reported `not measured` rather than guessed — a gate that
+silently estimates is worse than one that says it could not run. It ends by offering to route the
+findings to a worker for fixing, or to report only. The delegated a11y and performance passes are
+static reviews rather than Lighthouse runs, so their score targets (Performance ≥ 90,
+Accessibility ≥ 95) are the bar to aim at, not a measurement.
+
+A run leaves three working files — `craft/offer-contract.md`, `craft/divergence-record.md` and
+(guided only) `craft/section-ledger.md` — in your task-docs or scratch area, never in the built
+site. They are what lets a later `/craft-layer:audit` check the page against what was actually
+decided; without them those gates report `not checked` rather than guessing. The one file that
+does land in the project is the asset provenance manifest (`ASSETS` / `CREDITS` / `PROVENANCE` /
+`THIRD-PARTY-NOTICES`), which the licence gate globs for.
+
+**What you need installed.** craft-layer orchestrates and writes no build logic itself, so two companions are effectively **required**: **ui-ux** (`/ui-ux:theme` generates the tokens, `/ui-ux:build` builds the components — craft-layer deliberately hand-rolls neither) and **a11y** (the audit delegates the full accessibility pass to `/a11y:audit`). Both ship in the `frontend-suite` bundle alongside craft-layer.
+
+Genuinely optional, composed when present: **taskmaster** (`visual-decisions` for mockups, `experience-walkthrough` to walk the assembled page — and a taskmaster spec is consumed, never re-interrogated), **design-preview** / **shadcn-studio** (real-component option previews), **performance** (`/performance:review`, explicitly skipped when absent). Without any of these, guided options become written multiple-choice and every craft gate still runs.
+
+```bash
+/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 13 more
+```
 
 ## Contributing
 

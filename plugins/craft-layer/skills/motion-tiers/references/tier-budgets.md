@@ -19,6 +19,7 @@ Library idioms are NOT repeated here. This is the DECISION table only:
 | **2 — anime.js v4** (`animejs`, ESM) | Imperative multi-step timelines, SVG draw / morph / motion-path, staggered hero choreography; framework-neutral | ≈ 10–15KB tree-shaken (named imports only) | Main-thread JS tween loop; `waapi.animate` runs off the main thread on WAAPI | `createScope({ mediaQueries: { reduced: '(prefers-reduced-motion: reduce)' } })` → `utils.set(target, finalState)` | Import only used named exports; `waapi` variant or CSS `@keyframes` for simple loops |
 | **3 — Three.js / R3F** (`three`, `@react-three/fiber`, `drei`) | Real 3D, WebGL background, product / model viewer, shader hero | ≈ 150KB+ core, more with R3F + drei — NEVER in the initial bundle; lazy-load only | GPU-bound; render-on-demand (no idle rAF), `setPixelRatio(min(dpr,2))`, dispose on unmount | Freeze `setAnimationLoop`, render one static frame (or swap to the poster image) | Static hero image / `<video poster>` as initial render; load the 3D chunk on viewport / interaction only. See `webgl-3d.md` |
 | **4 — Sprites / sprite-sheets** | Looping frame-by-frame character / mascot / pixel-art motion | ≈ one packed WebP/AVIF sheet ≤ 150KB (budget per sheet, not per frame) | Compositor-cheap: CSS `steps()` on `background-position`, or a throttled `requestAnimationFrame` frame advance | Pause the loop on a single poster frame (`animation-play-state: paused` / stop rAF) | Ship the static poster frame; defer the full sheet until idle / visible. Authoring: `sprite-motion` |
+| **5 — Vector** (Lottie / Rive) | Designer-authored illustrative motion — icons, mascots, empty states, onboarding loops — shipped as data rather than code | Runtime ≈ 35–60KB gz (`lottie-web` full ≈ 60KB, `dotlottie`/`@rive-app/canvas` lighter) PLUS the animation file: budget **≤ 100KB per animation**, and lazy-load the runtime | Main-thread SVG/canvas playback; canvas renderer over SVG for anything with many shapes; one player per surface | Stop the player and render the first/rest frame as a static poster | Export a static SVG/PNG of the rest frame and skip the runtime entirely below the fold. Detail: `vector.md` |
 
 ## Reading the budget
 
@@ -52,5 +53,5 @@ webgl-effects). Budget the COMBINED initial motion JS, not each piece alone:
 
 GSAP is deliberately absent: it is a powerful alternative for complex imperative
 timelines and ScrollTrigger scenes, but it lives as an option inside
-`motion-best-practices`, not as one of these four craft decision tiers. Do not add a
-fifth row for it.
+`motion-best-practices`, not as one of these craft decision tiers. Do not add a row
+for it.

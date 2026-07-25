@@ -29,10 +29,12 @@ exactly one owner, and this file is only the third:
 
 ## The payload — the token-system-direction block
 
-`design-research` derives this block into the theme brief (the token-system-direction slot
-lives in `design-research/references/brief-templates.md`; `/ui-ux:theme` then consumes the brief).
-It is three lines, one per concept facet, each mapping the facet to a token-role DIRECTION —
-adjectives and role names only, never a value:
+THIS skill derives the block; `/craft-layer:research` step 2 is where it is applied, and it
+lands in the theme brief's token-system-direction slot
+(`design-research/references/brief-templates.md`), which `/ui-ux:theme` then consumes.
+`design-research` owns the brief's SHAPE, not this payload's content.
+It is five lines — three mapping a concept facet to a token-role DIRECTION, then two carrying
+the structural decisions the audit gates on. Adjectives and role names only, never a value:
 
 ```
 metaphor → surfaces/ink/accent tier direction: <how the metaphor shapes the surface
@@ -41,7 +43,15 @@ voice    → type/contrast direction: <how the editorial voice shapes the type p
            how sharp or soft the steps between tiers and ink ranks read>
 mood     → chroma/warmth direction: <how saturated the accent/tints sit relative to
            neutral, and the one temperature bias shared across neutrals and accent>
+accent   → split + duality: <that a DISPLAY accent and a darker TEXT/MARK accent step are
+           separate roles, which surfaces each lands on, and how both flip light↔dark>
+roles    → status + chart intent: <the reserved status roles, and whether chart series read
+           as one hue's ramp or as distinct categorical hues>
 ```
+
+The last two lines are not optional garnish: the accent split is what the craft audit's
+contrast gate checks for, and a payload that drops it hands `/ui-ux:theme` a single accent
+token that will end up doing display and small-text duty at once.
 
 Direction-only example (no value is stated — each phrase is a role and an adjective):
 

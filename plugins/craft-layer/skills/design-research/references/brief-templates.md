@@ -45,9 +45,14 @@ Rules:
 theme brief carries a compact token-system-direction block whose SHAPE is owned by
 `plugins/craft-layer/skills/theming-system/references/concept-to-tokens.md` —
 `theming-system` derives it and `/ui-ux:theme` consumes it. Fill it as ROLES and direction
-only (never a value): the surface/ink/accent tier direction, the status/chart role intent,
-and the light/dark duality that the concept implies. Follow `concept-to-tokens.md` for the
-block's exact three-line format; do not restate the payload here — thread it.
+only (never a value). Follow `concept-to-tokens.md` for the block's exact line format and its
+contents — that file is the single source of the payload's shape; do not restate or summarize
+the line list here, because a second description of it drifts. Thread it.
+
+Also carry the palette-strategy outputs, which have nowhere else to ride: the **mood phrase**
+and the **avoid-these-hue-families** note (`creative-direction/references/palette-strategy.md`).
+Without a slot they are generated and dropped, and the don't-repeat-recent-hues nudge never
+reaches the palette.
 
 ---
 
@@ -60,10 +65,15 @@ the scale), and `shadcn-theming` when colour is in play. Carry the PATTERNS here
 
 ```
 Build <component/layout> in <where: route/file/section>.
+Spine slots: <which offer-contract slots this section carries>.
+Decided: <the section ledger's `choice` for this section — omit on a one-shot run>.
+Locks: <the ledger's `locks` — the component, instrument, data need, or copy slot it commits>.
 Layout: <grid/columns/hero composition, max-width, density>.
 Components: <card anatomy, table/list density, form rhythm, key states>.
 Interaction: <hover/focus, disclosure, scroll/transition behaviour>.
 Motion: <what animates, entrance vs micro-interaction, energy> (per motion-tiers).
+Assets / provenance: <per asset: build-in-code | source | commission, and for anything
+  sourced, the manifest entry it must carry>.
 Responsive: <how it reflows at phone / tablet / full>.
 Patterns borrowed from: <source URLs + the one-line why from the mining worksheet>.
 ```
@@ -90,6 +100,17 @@ Rules:
 
 ## Consistency check before handing off
 
-- The theme brief's vibe and the build task's patterns describe ONE product.
-- Every genuinely open choice was sent to `/design-preview:preview` first, not guessed.
+- The theme brief's vibe and the build task's patterns describe ONE product, under its
+  REAL name — not a name the concept's metaphor invented.
+- The build task names which offer-spine slots its section carries (plain-language what,
+  audience, problem, how-it-works, price, proof, objection, primary CTA), so the pinned
+  contract reaches the build instead of stopping at the concept
+  (`plugins/craft-layer/skills/creative-direction/references/offer-contract.md`).
+- Every genuinely open choice was decided, not guessed — staged through whichever staging
+  surface is installed, or degraded to a written choice per `section-decisions`. On a
+  `one-shot` run the concept and archetype defaults decide, which counts as decided.
+- The `Decided` / `Locks` lines are NOT filled here. On a `guided` run the section-decisions
+  step amends this task after the picks are made, before it reaches `/ui-ux:build`; the ledger
+  does not exist yet at hand-off time. Leave the lines out and let that step add them — a
+  build task that reaches the build without them silently discards the user's picks.
 - Neither brief contains hex/px/token names — only the decided direction and patterns.

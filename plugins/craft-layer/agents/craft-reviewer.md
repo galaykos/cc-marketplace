@@ -14,6 +14,19 @@ The `craft-layer:motion-tiers` skill is authoritative for tier definitions and
 their per-tier perf budgets. When a dispatch injects its Read path, Read it first
 and check against its numbers; do not invent or restate budget thresholds here.
 
+**You have Read, Grep and Glob — no Bash, no profiler, no renderer.** You therefore cannot
+measure a file's bytes, a chunk's gzipped weight, a contrast ratio, a frame cost, or what
+lands above the fold. The dispatching command measures those and injects them as facts. Rules,
+without exception:
+
+- A number was injected → cite it and judge against the budget.
+- It was injected as `not measured`, or not injected at all → report that gate
+  `not measured` and fall back to the STRUCTURAL check you can actually perform (is the heavy
+  tier lazy-loaded? is a distinct small-text accent step declared? is a poster/fallback
+  present?).
+- Never estimate a size or a ratio from source and present it as a verdict. A gate that
+  silently guesses is worse than one that says it could not run.
+
 ## Procedure
 
 1. Identify every animation tier AND craft skill in use — tiers (Framer Motion,
@@ -30,19 +43,23 @@ and check against its numbers; do not invent or restate budget thresholds here.
    **error boundary** around the scene — a `Suspense`/loading fallback does not catch a
    rejected chunk import or a thrown/lost WebGL context, so without a boundary the failure
    unmounts the tree (blank page). Missing lazy-load, static fallback, or boundary is a finding.
-4. Per-tier budgets: check each tier against its budget from the `motion-tiers`
-   skill (bundle weight, node/particle counts, frame cost). Flag overruns; cite the
-   tier and the budget you compared against.
-5. Sprites/assets: confirm sprite sheets and media assets stay within the size
-   budgets set by the `sprite-motion` / `motion-tiers` skills. Flag oversized or
-   unoptimized assets.
-6. Accent contrast (craft gate — carved out of the a11y defer): confirm the accent
-   colour(s) clear contrast on EVERY surface AND at every SIZE they land on. Surface: light
-   AND dark sections, cards, gradients. Size (the light-theme trap): a bright display accent
-   reused as small text, an icon, or a thin chart mark must resolve to the DARKER text/mark
-   accent step — small text ≥4.5:1, a non-text mark ≥3:1 vs its surface; a large display
-   accent still needs ≥3:1. A low-contrast accent on any surface, or a bright display accent
-   reused at small text/mark size on a light surface, is a finding.
+4. Per-tier budgets: with injected chunk sizes, check each tier against its budget from the
+   `motion-tiers` skill and cite both numbers. Without them, report `not measured` and check
+   what source shows instead: the tier's import shape (named/tree-shaken vs whole-library),
+   whether tier 3/4/5 is behind a dynamic import, and whether the reduced-bundle fallback
+   named in the tier table exists. Frame cost is never checkable here — defer it.
+5. Sprites/assets: with injected file sizes, check sheets and media against the
+   `sprite-motion` / `motion-tiers` budgets and cite the number. Without them, report
+   `not measured` and check format-per-kind and the presence of a poster/reduced fallback.
+   Never infer a byte size from a filename or a source reference.
+6. Accent contrast (craft gate — carved out of the a11y defer): the STRUCTURAL half is yours,
+   the arithmetic is not. Check that the token system declares a distinct darker text/mark
+   accent step alongside the display accent in each theme, that the recorded ratio is written
+   beside each pairing, and that small-text/icon/thin-mark usages reference the text step
+   rather than the display one (the light-theme trap). A single accent token doing display AND
+   small-text duty on a light surface is a finding you can see in source. Computing a ratio
+   from hex is NOT — cite an injected ratio when the dispatch measured one, otherwise report
+   the numeric check `not measured` and let `/a11y:audit` own it.
 7. Cumulative motion budget: confirm the COMBINED initial motion JS is budgeted (not just
    per-tier) and non-hero engines are lazy-loaded — one heavy engine eager, the rest on
    viewport/interaction (`motion-tiers/references/tier-budgets.md`). Eagerly shipping two+
@@ -60,26 +77,83 @@ and check against its numbers; do not invent or restate budget thresholds here.
    - **motion-sequencing**: `@theatre/studio` excluded from the production bundle +
      reduced-motion jump-to-final.
 9. Anti-sameness (craft gate): read the injected
-   `creative-direction/references/sameness-fingerprint.md` and the build's concept
-   **divergence record**. A build is a finding when it matches the fingerprint on
-   all-but-one axes (the recurring spine + component vocabulary) AND its divergence record
-   is empty or placeholder — grep and COMPARE the record against the registry; never judge
-   whether the result is beautiful. An explicit user request for a conventional /
+   `creative-direction/references/sameness-fingerprint.md` and the build's persisted concept
+   **divergence record**. No record injected: report this gate as `not checked (no divergence
+   record persisted)` and move on — never treat an absent record as an empty one, which would
+   fail every build that simply did not save it. A build is a finding when BOTH counts hold:
+   it reproduces the registry's recurring SPINE in order end-to-end AND ships ≥3 of its named
+   vocabulary moves unbroken, AND the record (present) is empty, placeholder, or contradicted
+   by what shipped — verify each claimed entry against the source rather than trusting the
+   record; never judge whether the result is beautiful. An explicit user request for a conventional /
    trust-first design is a valid justification, not a finding.
 10. Content depth (craft gate): read the injected
-    `creative-direction/references/content-depth.md`. Count sections against the archetype
+    `creative-direction/references/content-depth.md`. The archetype and the declared length
+    live in the persisted contract: without it, say `section count not checked (no contract
+    persisted)` and run only the per-block checks below — never emit a section-count finding
+    against a guessed archetype, and never against a build that may have declared
+    `long-scroll`. With it, count sections against that archetype's
     range; grep each section/block for a numeral or a `{{slot}}`; count distinct typed slots
     per page against N (entity/claim-bearing sections). Under the section floor, a block with
     neither a numeral nor a slot, or below the slot count, is a finding. Also flag a
     **fabricated claim metric** — an aggregate/claim numeral (GMV, user/creator counts,
     ratings, durations) written as a literal where a `{{metric:*}}` slot belongs; it fails the
-    rule even though it is a numeral. Offer numerals (price, fee, step counts) are fine. Also
+    rule even though it is a numeral. Flag the same way an invented **capability claim** — a
+    fact about the real product the build cannot know: geographic/market coverage ("16 US
+    metros", "available in 30 countries"), named integrations, supported platforms, SLA or
+    uptime figures, compliance certifications (SOC 2, HIPAA, GDPR), retention windows, support
+    hours — written as a literal where a `{{capability:*}}` slot belongs. These read like offer
+    terms and are the easiest to miss; the test is whether the DESIGN could decide it or only
+    the business could. Offer numerals (price, tier limits, step counts, plan names) are fine. Also
     check each claim's **manifestation** — it must render as a labeled illustrative sample
     (plausible value + a visible sample/illustrative marker + a `data-metric`/comment source
     tag), never as raw `{{mustache}}` in the output (unfinished) and never as an unmarked
-    invented literal (dishonest); both are findings. The anchors are the citable numbers —
-    objective, not aesthetic.
-11. Licence / provenance (craft gate): read the injected
+    invented literal (dishonest); both are findings. Then count the DISCLOSURE markers per
+    region: one marker per figure plus at most one regional footnote is the budget, so a chip
+    stacked with a banner, a confessional lede, and a headline addressed to the OPERATOR
+    ("…once you fill this in") is a finding — the region reads unfinished, which is what the
+    manifestation rule exists to prevent. Also flag an **empty placeholder affordance** — dashed
+    or greyed tiles standing in for logos or named customers, a slot shipped with no plausible
+    sample value; it should have been cut, with the region left standing on the slots that can
+    render finished. The anchors are the citable numbers — objective, not aesthetic.
+11. Offer contract (craft gate): read the injected
+    `creative-direction/references/offer-contract.md` AND the run's PERSISTED contract
+    instance. Without the instance, the scope/length/mode checks have nothing to compare
+    against: report them `not checked (no contract persisted)` and still run the checks that
+    read the build alone (spine slots, proof presence, one product identity). Verify the
+    shipped route list matches the pinned deliverable scope; that ONE product identity spans those routes; that the
+    REAL product name — not a concept-invented wordmark — is in `<title>` and the hero; that
+    each marketing page answers every offer-spine slot (a plain-language what-line in the
+    page's FIRST section in source order — "above the fold" is a rendered property you cannot
+    see, so source position is the check, a named audience, the problem, a 3–5-step how-it-works, price
+    or `{{price:*}}`, a proof region, an objection/limits block, one repeated primary-CTA
+    verb); that the what-line is checked against the divergence record's METAPHOR VOCABULARY
+    rather than by taste — an h1 assembled from the concept's own figure of speech that names
+    no capability ("A rank is a position, not a score.") is a finding, as is a plain h1 whose
+    first screen never states the product's name; and that a proof region EXISTS rather than
+    having been deleted to avoid
+    fabricating it (the remedy is a `{{metric:*}}`/`{{customer_name}}` slot, per step 10).
+    A second product identity, a renamed product, a kit/showcase page mounted as a product
+    route, an unanswered slot, or an absent proof region is one finding each, naming the
+    slot. Check PRESENCE, never taste.
+    Then check the declared LENGTH. On `standard`, the archetype range applies as written. On
+    `long-scroll`, over-range is NOT a finding — instead verify the long-page rules: each
+    offer-spine slot answered first within roughly the opening third of the page (a back-loaded
+    price, audience, or what-line is a finding), the primary CTA recurring through the scroll on
+    ONE verb rather than appearing only at top and bottom, no long run of consecutive sections
+    built from the same declared layout component or wrapper class (declared shape is what
+    source shows; rendered visual similarity is not yours to judge), an in-page wayfinding
+    affordance (anchor nav, progress, or index) past roughly eight sections, and below-fold instruments mounting lazily so the
+    cumulative per-PAGE motion budget still holds (step 7). A page that ran long without the
+    contract declaring it is itself a finding.
+    Finally, when the dispatch injects a SECTION LEDGER (a `guided` run), check conformance:
+    every ledger row has a matching section in the build (grep its `section` id/anchor), no
+    marketing section exists that no row accounts for, and each row's `locks` — the named
+    instrument, component, or copy slot — actually ships. One finding per mismatched row,
+    naming the slot. REPORT rather than flag the `source: auto` rows so the user sees which
+    sections they did not personally choose. No ledger injected: skip this entirely — a
+    one-shot build is not a finding. Check correspondence, never whether the chosen treatment
+    was a good idea; that call was the user's.
+12. Licence / provenance (craft gate): read the injected
     `asset-sourcing/references/licence-discipline.md`. This gate runs even on a STATIC,
     non-animated build. Grep/Glob the shipped visual + font asset FILES and the provenance
     manifest, AND grep the SOURCE (you are Read/Grep/Glob — there is no build step) for
@@ -96,7 +170,7 @@ and check against its numbers; do not invent or restate budget thresholds here.
     schema over the LITERAL source refs, NOT legal truth (say so); it is blind to
     bundler-injected / framework-component-by-name / string-built / css-var-indirected refs (a
     DECLARED limit) and does not verify a licence is truthful.
-12. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
+13. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
     icons/vector, AVIF/WebP for imagery, glTF+Draco for 3D) AND has a reduced-bundle fallback
     AND matches its manifest source-class. BYTES are NOT re-checked here — the sprite/asset
     size budget (step 5) + `/performance:review` own weight; asset-fit is format + fallback +
@@ -117,8 +191,18 @@ and check against its numbers; do not invent or restate budget thresholds here.
 - [ ] The concept's divergence record breaks ≥1 sameness-fingerprint default (or a
       conventional design was explicitly requested).
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
-      metrics are `{{metric:*}}` slots, rendered as labeled illustrative samples (not raw
-      `{{mustache}}`, not unmarked invented literals).
+      metrics are `{{metric:*}}` slots and capability claims (coverage, integrations, SLAs,
+      certifications) are `{{capability:*}}` slots, rendered as labeled illustrative samples (not raw
+      `{{mustache}}`, not unmarked invented literals), with ONE marker per figure plus at most
+      one regional footnote, no operator-addressed headline, and no empty placeholder tiles.
+- [ ] The offer contract holds — routes match the pinned scope, ONE product under its real
+      name, every offer-spine slot answered, the what-line clear of the concept's metaphor
+      vocabulary, a proof region present as slots not deleted.
+- [ ] Declared page LENGTH matches what shipped; on `long-scroll`, the spine is answered early,
+      the CTA recurs on one verb, section shapes vary, wayfinding exists past ~8 sections, and
+      below-fold instruments lazy-mount.
+- [ ] When a section ledger was injected: every row has its section, no section is unledgered,
+      every `locks` ships, and `auto` rows are reported (no ledger → gate skipped).
 - [ ] Every shipped third-party/AI asset — a committed FILE or a source ref (absolute-URL,
       inline-with-marker, URL-fetched) — has a complete provenance record (manifest exists, no
       orphan, non-empty enumerated licence-class + source; an absolute-URL ref needs a record
