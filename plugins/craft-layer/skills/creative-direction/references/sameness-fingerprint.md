@@ -30,13 +30,38 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - scroll-driven bento/stat reveal
 - default stock imagery (the generic stock-photo hero — imagery chosen off-the-shelf, not art-directed)
 - default icon set (an untouched off-the-shelf icon pack — no consistency or metaphor choice made)
+- oversized-type hero as the default opening — type standing in for a hero image because it
+  is the current default, not because the brief earned a typographic hero
+- WebGL floating-objects / cursor-reactive background — an ambient 3D layer that carries no
+  argument (distinct from a 3D surface the concept actually needs)
+- scrollytelling as the default page STRUCTURE — scroll driving the sequence because that is
+  what pages do now, rather than because the sequence is the argument
+- the generated-web composition: gradient hero + one geometric sans + a four-card grid
 - (a build leaning only on these has no brief-specific signature move)
 
 ### Recent palette hues (avoid repeating)
 - editorial lime (light)
 - navy + gold (dark)
 - aubergine + coral/apricot + mint (dark)
+- purple/violet gradient — see the category-default note below
 - (the don't-repeat-recent nudge in `palette-strategy.md` reads this list)
+
+### Two sources of sameness, and they age differently
+
+Most entries above are SELF-repetition: what craft-layer itself has produced lately, retired
+by the recency window.
+
+The last hue and the last vocabulary entry are a CATEGORY default instead — the look generated
+pages converged on, which readers now identify as machine-made in about a second. It arises
+from a feedback loop rather than from this plugin: the web holds far more generic pages than
+distinctive ones, models reproduce the most frequent pattern, that output returns to the web,
+and the next model trains on it. A category default does NOT retire on the recency window. It
+leaves the registry when the category moves, which is a judgement made at refresh time.
+
+The practical consequence for the concept: landing in the category default is worse than
+landing in a merely conventional design, because it reads as unauthored rather than as
+restrained. The escape hatch still applies — an explicitly requested conventional design is a
+valid justification — but "conventional" and "generated-looking" are not the same request.
 
 ## How divergence is measured (teeth)
 
@@ -67,6 +92,13 @@ At each craft-layer release, add any signature move or palette that has recurred
 builds, and drop hues outside the window. Accepted staleness: the gate detects sameness
 against the last-release snapshot, so a pattern that goes viral mid-release is invisible
 until the next refresh — a known, bounded blind spot.
+
+Category defaults are refreshed from evidence outside this plugin — what the wider web
+converged on since the last release — and are entered with the reason, not just the name, so
+a later refresh can tell whether the default has moved. `moves-taxonomy.md`'s opt-in live
+pass is the mechanism when it is available; a plain read of current design coverage is the
+fallback, and either way what lands here is a CATEGORY to diverge from, never a copied
+design.
 
 ## Anti-patterns
 

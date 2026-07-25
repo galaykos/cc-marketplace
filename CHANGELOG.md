@@ -4,6 +4,37 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.82.0] - 2026-07-25
+
+craft-layer 0.15.0 — anti-corpus registry refresh, the upkeep `sameness-fingerprint.md` owes at
+each release. Until now every entry was SELF-repetition: what craft-layer itself had produced
+lately, retired by the recency window. That misses the bigger source of sameness — the look
+generated pages converged on across the wider web, which readers now identify as machine-made
+about as fast as they see it, and which no amount of not-repeating-ourselves avoids.
+
+- **Four vocabulary entries added**: the oversized-type hero used as a default opening rather
+  than an earned typographic hero; the ambient WebGL floating-objects / cursor-reactive
+  background that carries no argument; scrollytelling adopted as the default page STRUCTURE
+  rather than because the sequence is the argument; and the generated-web composition itself —
+  gradient hero, one geometric sans, a four-card grid.
+- **One palette entry added**: the purple/violet gradient. `palette-strategy.md` now carries it
+  into the theme brief explicitly ("not the violet-gradient default"), because that is precisely
+  where generation goes when nothing pushes it elsewhere — hoping it wanders is not a strategy.
+- **The registry now distinguishes two kinds of sameness, because they age differently.**
+  Self-repetition retires on the recency window. A CATEGORY default does not: it arises from a
+  feedback loop outside this plugin (the web holds more generic pages than distinctive ones,
+  models reproduce the most frequent pattern, that output returns to the web, the next model
+  trains on it), so it leaves the registry only when the category itself moves — a judgement
+  made at refresh time, entered with its reason so a later refresh can tell.
+- **Named the consequence** so the concept step can act on it: landing in the category default
+  is worse than landing in a merely conventional design, because it reads as unauthored rather
+  than as restrained. The escape hatch is unchanged — an explicitly requested conventional
+  design remains a valid justification — but "conventional" and "generated-looking" are not the
+  same request, and the gate should not confuse them.
+
+No gate logic changed. The registry is data the creative-director diverges from and the audit
+compares against; refreshing it changes what counts as sameness, not how sameness is measured.
+
 ## [0.81.0] - 2026-07-25
 
 craft-layer 0.14.0 — the plugin taught anime.js, Three.js, Framer Motion, Lottie/Rive and
