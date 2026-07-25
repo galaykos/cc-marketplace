@@ -4,6 +4,28 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.83.0] - 2026-07-25
+
+New plugin: **comment-discipline** 0.1.1 — the marketplace had no owner for comment volume.
+The coverage that existed was three riders on other topics: one bullet in `code-review`'s
+code-smells ("comment as deodorant"), a drift line in `docs-upkeep`, and a clever-code aside
+in `code-architecture`. Nothing answered "should this comment exist at all", and nothing fired
+while code was being written.
+
+- **The framing is information routing, not comment counting.** A comment is a fact filed in
+  the one place nothing checks — names are read at every call site, types are checked, tests
+  fail when they lie, and a comment drifts in silence. The skill's load-bearing artifact is a
+  routing table sending each kind of fact to the artifact that cannot lie about it, so the
+  information survives instead of being deleted.
+- **A closed keep-case list**: why-not-the-obvious-way, external constraints carrying a link or
+  ticket, intentional-silence markers (empty catch, deliberate fallthrough), TODOs with a ticket
+  ID, and contract facts a signature cannot state (units, ownership, throw conditions).
+- **`/comment-discipline:review`** audits a path or diff against that rubric, one line per finding.
+- **A warn-only `PostToolUse` hook** flags high-confidence cases in the text an edit adds —
+  restatement of the next line, section banners, commented-out code, bare TODOs, docblock tags
+  repeating the signature. Fail-open, never blocks, silent in the common case.
+- Joins `quality-suite` (0.4.0) and `everything` (0.17.10).
+
 ## [0.82.0] - 2026-07-25
 
 craft-layer 0.15.0 — anti-corpus registry refresh, the upkeep `sameness-fingerprint.md` owes at

@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.17.9",
+  "version": "0.17.10",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -76,7 +76,8 @@
     "vite",
     "vue2",
     "vue3",
-    "web-dev"
+    "web-dev",
+    "comment-discipline"
   ],
   "keywords": [
     "suite"

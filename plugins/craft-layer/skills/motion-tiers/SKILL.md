@@ -82,10 +82,10 @@ Livewire + Alpine (CSS / anime.js). Full matrix: `references/framework-bindings.
 Every surface answers both, or it does not ship:
 
 - **prefers-reduced-motion** — remove movement (translation, scale, parallax, spin,
-  autoplay); keep at most an opacity crossfade or a static final frame. Gate in JS with
-  `matchMedia("(prefers-reduced-motion: reduce)")` before animating. This is an
-  accessibility requirement, not polish — `motion-best-practices` owns the CSS
-  kill-switch.
+  autoplay); keep at most an opacity crossfade or a static final frame. Accessibility
+  requirement, not polish. In JS this is a SUBSCRIPTION, never a one-time `.matches`
+  read at mount — `motion-best-practices` owns that mechanism and the CSS kill-switch;
+  what this skill requires is that every tier on the page honors it the same way.
 - **reduced-bundle** — a lighter path when the tier's KB is not affordable (slow
   network, low-end device, or a surface below the fold): drop to CSS, to `motion/mini`,
   or to a static image. Tiers 3 and 4 make this the DEFAULT initial render and upgrade

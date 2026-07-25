@@ -20,7 +20,11 @@ feedback: an opacity crossfade is usually a safe substitute for a slide or zoom.
 ```
 
 The global kill-switch above is the minimum baseline; per-component crossfade fallbacks are
-better. In JS, gate with `matchMedia("(prefers-reduced-motion: reduce)")` before animating.
+better. In JS the preference is a **subscription, not a one-time read** — a bare `.matches`
+check on mount answers only for the instant it ran, so a visitor who turns the setting on
+mid-session keeps every animation until reload, which is exactly when they wanted it to stop.
+Hold the query and `mq.addEventListener("change", …)`, tearing motion down when it flips to
+`reduce`. CSS re-evaluates itself; only the JS path needs this, and so only it gets it wrong.
 
 ## CSS transitions and entry/exit effects
 
@@ -133,22 +137,18 @@ branching to `utils.set(target, finalState)` when it matches.
 
 ## Common mistakes
 
-- Shipping any motion with no `prefers-reduced-motion` path — an accessibility failure,
-  not a style choice.
 - Animating layout properties (`width`, `top`, `margin`) instead of `transform`.
-- Permanent `will-change` on many elements "for performance".
-- JS scroll listeners recalculating styles per scroll event where `animation-timeline`
-  or an `IntersectionObserver` toggle would do.
-- Assuming GSAP plugins still require a paid Club license (free since 3.13).
+- Permanent `will-change` on many elements "for performance"; infinite or autoplaying
+  decorative loops with no pause affordance.
+- JS scroll listeners restyling per scroll event where `animation-timeline` or an
+  `IntersectionObserver` toggle would do.
 - Importing `framer-motion` in new code instead of `motion` / `motion/react`; calling
   anime.js v4 with v3's `anime({ targets })` style or `easing:` param.
-- Treating View Transitions as required: no feature detection, broken flow when
-  `startViewTransition` is missing.
-- Infinite or autoplaying decorative loops with no pause affordance.
+- Treating View Transitions as required — no feature detection, broken without
+  `startViewTransition`. Assuming GSAP plugins still need a Club licence (free since 3.13).
 
 ## Verify Against Current Docs
 
-Digest-first: Read `references/motion.md`, `references/animejs.md`, and `references/gsap.md`
-before fetching — most API questions are answered there. Live fetch stays REQUIRED before
-asserting version-sensitive literals (method names, options, version numbers): motion.dev/docs,
-animejs.com/documentation, gsap.com/docs. Browser support is live-only: https://caniuse.com + MDN.
+Digest-first: Read `references/motion.md`, `references/animejs.md`, `references/gsap.md` — most
+API questions are answered there. Live fetch stays REQUIRED for version-sensitive literals:
+motion.dev/docs, animejs.com/documentation, gsap.com/docs; browser support live-only (caniuse, MDN).

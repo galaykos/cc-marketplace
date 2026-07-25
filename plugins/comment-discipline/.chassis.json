@@ -1,0 +1,10 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "skill": "comment-discipline",
+  "tag": "generic",
+  "worker": null,
+  "applyExtra": [],
+  "description": "Audit comments — restatement of the next line, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, and missing why-comments on non-obvious choices — one line per finding.",
+  "argumentHint": "[path-or-diff]"
+}
