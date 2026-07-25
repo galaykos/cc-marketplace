@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.82.0"
+    "version": "0.83.0"
   },
   "plugins": [
     {
@@ -285,6 +285,11 @@
       "description": "Language-agnostic error-handling discipline: crash on programmer errors, handle operational errors where you can act, typed errors over message-string matching, cause chains preserved across boundaries, one report per failure — no swallowed exceptions, no catch-log-continue towers. Includes /error-handling:review."
     },
     {
+      "name": "comment-discipline",
+      "source": "./plugins/comment-discipline",
+      "description": "Stops over-commenting by treating it as an information-routing problem: every fact goes to the artifact that cannot lie about it — a name, a type, a test, an extracted function — and comments are spent only on what has nowhere else to live: why-not-the-obvious-way, external constraints carrying a link or ticket, intentional-silence markers, and contract facts a signature cannot express. Kills restatement comments, section banners, commented-out code, bare TODOs, and docblock tags that repeat the signature. A warn-only PostToolUse hook flags the high-confidence cases as code is written. Includes /comment-discipline:review."
+    },
+    {
       "name": "concurrency",
       "source": "./plugins/concurrency",
       "description": "Application-level concurrency safety: check-then-act races, optimistic vs pessimistic locking, idempotency keys for retried operations, queue-consumer dedup under at-least-once delivery, distributed locks with TTL and fencing, async parallel-write pitfalls — safe when two copies run at once. Includes /concurrency:review."
@@ -322,7 +327,7 @@
     {
       "name": "quality-suite",
       "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality category in one install — review, architecture principles, design patterns, testing, security, accessibility, debugging, performance, resilience, dependency hygiene, observability, error handling, concurrency safety, secret-leak prevention (secret-scanning), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the code-quality category in one install — review, architecture principles, design patterns, testing, security, accessibility, debugging, performance, resilience, dependency hygiene, observability, error handling, concurrency safety, comment discipline, secret-leak prevention (secret-scanning), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "process-suite",

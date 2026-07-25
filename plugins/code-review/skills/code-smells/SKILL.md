@@ -77,7 +77,8 @@ fix is an opinion; do not report opinions.
   code-architecture owns the deep version of this call).
 - Comment as deodorant. Cue: a comment explaining WHAT confusing code does.
   Risk: comment rots, confusion stays. Fix: rename and extract until the
-  comment is redundant; keep only constraint-comments (the WHY).
+  comment is redundant; keep only constraint-comments (the WHY). The
+  comment-discipline plugin owns comment volume and placement in depth.
 
 ## When it is NOT a smell
 

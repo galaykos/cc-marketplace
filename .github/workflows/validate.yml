@@ -27,6 +27,8 @@ jobs:
         run: bash scripts/smoke/chassis-template-tests.sh
       - name: Reminder-hook guard smoke tests
         run: bash scripts/smoke/hook-guard-tests.sh
+      - name: Comment-discipline hook smoke tests
+        run: bash scripts/smoke/comment-discipline-hook-tests.sh
       - name: Authoring-guard smoke tests
         run: bash scripts/smoke/guard-tests.sh
       - name: Hook syntax smoke tests
