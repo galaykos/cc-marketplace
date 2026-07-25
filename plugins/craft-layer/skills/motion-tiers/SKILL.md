@@ -23,15 +23,15 @@ bundle-KB per surface so the craft audit can check the choice against its budget
 Answer in order; take the first that fits the surface:
 
 1. Looping frame-by-frame character / mascot / pixel motion? → **Sprites** (tier 4).
-2. Real 3D, a WebGL background, or a product viewer? → **Three.js / R3F** (tier 3) —
+2. Real 3D, a WebGL background, or a product viewer? → **3D / WebGL** (tier 3) —
    budget-gated, lazy-loaded, static fallback (see `references/webgl-3d.md`).
 3. Have (or want) a designer-authored `.lottie` / `.riv` asset, or an interactive
    state-machine vector? → **Vector** (tier 5) — a shipped Lottie/Rive beats
    hand-coding the same motion (see `references/vector.md`).
 4. Multi-step timeline, SVG draw/morph, or a choreographed hero sequence? →
-   **anime.js** (tier 2).
+   **Timeline / SVG** (tier 2).
 5. React / Vue UI state, layout shift, gesture, exit, or micro-interaction? →
-   **Framer Motion** (tier 1).
+   **UI state / layout** (tier 1).
 6. Two-state fade/slide with no orchestration? → no tier — CSS transitions
    (`motion-best-practices`), the cheapest path.
 
@@ -43,18 +43,18 @@ home of the `Last verified:` date. On drift fix it there first, re-date, then mi
 
 ## The five tiers (one line each)
 
-- **Tier 1 — Framer Motion** (Motion, `motion/react`): React / Next UI state, layout,
-  gestures, exit. Budget ≈ 34KB gzip full or ~2.6KB `motion/mini`; compositor-only
-  (transform + opacity), FLIP for layout. reduced-motion: `<MotionConfig
-  reducedMotion="user">` or `useReducedMotion()` crossfade. reduced-bundle:
-  `animate()` from `motion/mini`, or plain CSS for simple tweens.
-- **Tier 2 — anime.js v4** (`animejs`, ESM): imperative timelines, SVG draw/morph,
-  staggered hero sequences; framework-neutral. Budget ≈ 10–15KB gzip tree-shaken;
-  main-thread JS (use `waapi.animate` for off-thread). reduced-motion: `createScope`
-  media-query branch to `utils.set(finalState)`. reduced-bundle: import only the named
-  exports you use, or the `waapi` variant / CSS keyframes for simple loops.
-- **Tier 3 — Three.js / R3F** (`three`, `@react-three/fiber`): 3D hero, WebGL
-  background, product viewer. Budget ≈ 150KB+ gzip — NEVER in the initial bundle;
+- **Tier 1 — UI state / layout** (Framer Motion, `motion/react`): React / Next UI
+  state, layout, gestures, exit. Budget ≈ 34KB gzip full or ~2.6KB `motion/mini`;
+  compositor-only (transform + opacity), FLIP for layout. reduced-motion:
+  `<MotionConfig reducedMotion="user">` or `useReducedMotion()` crossfade.
+  reduced-bundle: `animate()` from `motion/mini`, or plain CSS for simple tweens.
+- **Tier 2 — Timeline / SVG** (anime.js v4, `animejs` ESM): imperative timelines, SVG
+  draw/morph, staggered hero sequences; framework-neutral. Budget ≈ 10–15KB gzip
+  tree-shaken; main-thread JS (use `waapi.animate` for off-thread). reduced-motion:
+  `createScope` media-query branch to `utils.set(finalState)`. reduced-bundle: import
+  only the named exports you use, or the `waapi` variant / CSS keyframes for loops.
+- **Tier 3 — 3D / WebGL** (Three.js / R3F, `three`, `@react-three/fiber`): 3D hero,
+  WebGL background, product viewer. Budget ≈ 150KB+ gzip — NEVER in the initial bundle;
   lazy-load on viewport / interaction; GPU cost gated by render-on-demand, DPR ≤ 2,
   disposal, and a loop paused off-screen. reduced-motion: freeze the loop, one static frame.
   reduced-bundle: a static hero image or `<video poster>`; the 3D chunk loads only
@@ -63,7 +63,7 @@ home of the `Last verified:` date. On drift fix it there first, re-date, then mi
   one packed WebP/AVIF sheet ≤ 150KB; CSS `steps()` or a `requestAnimationFrame` loop
   — compositor-cheap. reduced-motion: pause on a single poster frame. reduced-bundle:
   ship the static poster frame and defer the sheet. Authoring detail: `sprite-motion`.
-- **Tier 5 — Vector (Lottie / Rive)**: designer-authored vector motion. Lottie
+- **Tier 5 — Vector** (Lottie / Rive): designer-authored vector motion. Lottie
   (`@lottiefiles/dotlottie-react`) = timeline playback; Rive (`@rive-app/react-canvas`)
   = interactive state-machine. Budget ≈ the `.lottie`/`.riv` asset size + player
   runtime; lazy-load the asset and player. reduced-motion: render a static poster

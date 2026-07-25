@@ -53,10 +53,10 @@ with no constraints is the catalog the kill-trigger forbids.
 Nothing here replaces `motion-tiers`, and a data surface is not a
 motion-free surface. Route it to the existing tiers:
 
-- **Tier 1 (Motion)** — layout/FLIP transitions when a filter narrows a list, a
+- **Tier 1 — UI state / layout** (Motion) — layout/FLIP transitions when a filter narrows a list, a
   row enters or leaves, a card moves column, a drawer opens. Shared-layout
   animation is what makes a re-sort readable instead of a flash.
-- **Tier 2 (anime.js)** — value interpolation on a KPI that changed, chart draw-in
+- **Tier 2 — Timeline / SVG** (anime.js) — value interpolation on a KPI that changed, chart draw-in
   and series morphs, staggered reveal of a tile row.
 
 Both stay inside the existing per-tier and cumulative budgets, and both answer to

@@ -12,7 +12,7 @@ the animation primitives: Framer / Motion springs, gestures, and `useSpring` liv
 one-writer-per-property trap lives in
 `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`. Reference both by path.
 
-**Reconciliation with motion-tiers Tier 1:** Tier 1 (Framer) owns *element* animation —
+**Reconciliation with motion-tiers Tier 1:** Tier 1 (UI state / layout) owns *element* animation —
 enter/exit, layout, hover states on a component. This skill is the *pointer-driven
 interaction layer* on top: effects that read the cursor position across the page (custom
 cursor, magnetic pull, tilt-toward-pointer). Pick the tier for the element there; pick

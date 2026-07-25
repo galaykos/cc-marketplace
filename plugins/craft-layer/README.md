@@ -243,10 +243,12 @@ auto-decided, every ledger row marked `auto`, and reported.
 - **asset-sourcing** — build-vs-source-vs-commission for icons, SVG/vector, 3D models,
   animated overlays, and illustration/imagery: a categorical source taxonomy plus a hard,
   audited licence/provenance gate; reuses `sprite-motion` + the Vector tier.
-- **motion-tiers** — the tier decision system: Framer Motion, anime.js, Three.js/R3F,
-  and sprites — each with when-to-use, a perf budget, a `prefers-reduced-motion`
-  fallback, a reduced-bundle fallback, and a per-framework tool binding — including
-  **Tier 5 — Vector (Lottie / Rive)** for designer-authored vector motion.
+- **motion-tiers** — the tier decision system, named for the JOB rather than the package
+  that currently does it: **UI state / layout** (Framer Motion), **Timeline / SVG**
+  (anime.js), **3D / WebGL** (Three.js/R3F), **Sprites**, and **Vector** (Lottie / Rive)
+  — each with when-to-use, a perf budget, a `prefers-reduced-motion` fallback, a
+  reduced-bundle fallback, and a per-framework tool binding. A superseded package is then
+  a fact to re-verify, not a taxonomy to rewrite.
 - **sprite-motion** — sprite / sprite-sheet authoring: sheet formats, CSS `steps()` and
   `requestAnimationFrame` loops, reduced-motion poster frames, size budgets.
 - **information-design** — hierarchy, data density, tables/dashboards, and when to reach

@@ -1,4 +1,4 @@
-# Tier 3 — WebGL / 3D: lazy-load and static-fallback rules
+# Tier 3 — 3D / WebGL: lazy-load and static-fallback rules
 
 Tier 3 (Three.js / R3F) is budget-gated because it is the only tier whose bundle-KB is
 measured in hundreds, not tens. These rules govern WHEN it is allowed to load and WHAT
