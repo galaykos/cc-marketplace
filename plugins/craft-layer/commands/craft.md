@@ -19,10 +19,21 @@ teams"). If empty, ask for a one-line product idea and the target stack
 0. **Offer contract, then creative direction.** Apply the `creative-direction` skill.
    FIRST pin the offer contract (`skills/creative-direction/references/offer-contract.md`):
    one product under its real name, the audience, the ONE primary action, the exact route
-   list, the page LENGTH (`standard` or `long-scroll` — long is legitimate, undeclared length
+   list, the ROUTE HORIZON (routes the site is known to be getting later and is NOT building
+   now — an empty horizon is the common answer; a named one changes the STRUCTURE, because a
+   terminal landing page and a front door with siblings coming are different builds), the page
+   LENGTH (`standard` or `long-scroll` — long is legitimate, undeclared length
    is not), the MODE — `one-shot` by default, `guided` when `$ARGUMENTS` asks for it in ANY
    words ("guided", "section by section", "give me options", "ask me as you go"); that phrase
-   is SCOPE, so strip it from the product idea before passing the idea to step 1 — and what is
+   is SCOPE, so strip it from the product idea before passing the idea to step 1 — the
+   AMBITION (`standard` by default; `maximal` when `$ARGUMENTS` asks for reach in ANY words —
+   "award winning", "awwwards", "over the top", "very graphical", "cinematic", or naming heavy
+   motion libraries as the POINT of the brief rather than as a stack constraint; `restrained`
+   when it asks for conventional or trust-first). Read
+   `skills/creative-direction/references/ambition-tiers.md` for the tier's three reach floors
+   and carry the pinned tier onto the build task and into the audit — an ambition echoed only
+   as prose in a scope sentence binds nothing and is how a build ignores the bar it was given.
+   Ambition words are SCOPE too: strip them from the product idea before step 1 — and what is
    not shipping. Echo the whole contract to the user BEFORE any file is written. If the
    brief admits several products, positionings, or directions, ASK which one; presenting
    options and then building all of them is the failure this step exists to stop, and a
@@ -86,7 +97,10 @@ teams"). If empty, ask for a one-line product idea and the target stack
    the build sources what was decided. Skipping this because "everything is drawn in code"
    still owes the manifest a first-party declaration — the licence gate runs on static,
    all-in-code builds too, and an unwritten manifest is a finding nobody was assigned to
-   prevent.
+   prevent. And when the contract pinned `maximal`, an all-first-party manifest declaring that
+   nothing shipped does not DISCHARGE this step: it satisfies the licence gate and fails the
+   asset-posture floor, because the brief asked for the thing emptiness cannot deliver
+   (`skills/creative-direction/references/ambition-tiers.md`).
 
 5. **Motion — decide it BEFORE the build.** This step DECIDES; step 6's `/ui-ux:build`
    implements; craft-layer writes no animation code itself. Motion decided AFTER a layout is
@@ -103,9 +117,20 @@ teams"). If empty, ask for a one-line product idea and the target stack
    (step 1 is the first), and the tier picker will not recover it: it takes the CHEAPEST tier
    that fits each surface, so nothing reaches for anime.js, Three.js, physics, or the Vector
    tier unless a decision here demands it.
-   Then work out what each remaining surface needs, and resolve TWO lines on the build task:
-   `Motion:` — a named tier per surface plus the fallbacks below — and `Signature:` — the
-   move, its section, and its owning skill. Reach for the owning skill to make each call
+   WHEN THE CONTRACT PINNED `maximal`, this step owes the reach floors too
+   (`skills/creative-direction/references/ambition-tiers.md`): at least THREE distinct motion
+   capabilities driving real surfaces — a tier or a sibling engine each count once — and at
+   least one AUTHORED graphic system — generative or
+   procedural canvas, a WebGL/shader surface, a programmatic SVG system, sprites, or a
+   designer-authored vector asset. Rules, borders, icons and type treatment are composition,
+   not a graphic system. Buy the reach with LAZY loading, never with a second eager engine:
+   the cumulative budget does not move for ambition, and a floor cleared by breaking a ceiling
+   has traded one finding for a worse one. A floor the brief genuinely does not want is waived
+   in the divergence record with the reason — never by silence.
+   Then work out what each remaining surface needs, and resolve THREE lines on the build task:
+   `Motion:` — a named tier per surface plus the fallbacks below — `Signature:` — the
+   move, its section, and its owning skill — and `Ambition:` — the pinned tier, plus, at
+   `maximal`, which surface carries the graphic system and which tiers make up the three. Reach for the owning skill to make each call
    (each references its library by path — never re-teach):
    - **Tier** (the base per-surface choice) via `motion-tiers`: Framer Motion, anime.js,
      Three.js/R3F, sprites (`sprite-motion`), or the Vector tier (Lottie/Rive).
@@ -127,19 +152,37 @@ teams"). If empty, ask for a one-line product idea and the target stack
    every surface** it lands on (verified in step 7).
 
 6. **Build.** Pass the build task — carrying the section ledger's choices when step 3 ran,
-   the asset plan from step 4, and step 5's resolved `Motion:` and `Signature:` lines — to
+   the asset plan from step 4, and step 5's resolved `Motion:`, `Signature:` and `Ambition:`
+   lines — to
    `/ui-ux:build` to lay out components and screens, applying `design-tokens` and, for
    data-dense CRM/SaaS surfaces, the `information-design` skill (hierarchy, density,
    tables/dashboards, when-to-dataviz). ONE pass: layout and motion land together, because
    the signature and the scroll device are structural, not decoration applied afterwards.
 
-7. **Audit.** Run `/craft-layer:audit` on the result to verify the craft gates
+7. **Audit — the run is NOT complete until this has run.** Run `/craft-layer:audit` on the
+   result to verify the craft gates
    (the **signature interaction actually shipped** on the section step 5 assigned it,
+   the pinned **ambition** honored — at `maximal`, the three reach floors,
    reduced-motion per tier, lazy + static-fallback 3D, per-tier + **cumulative** motion
    budget, sprite/asset budgets, **accent-vs-surface contrast**, and the newer-skill
    gates — page-transition fallback, WebGL GPU budget, interaction-fx cursor a11y, physics
    body-cap, sequencing studio-excluded-from-prod) and, via its delegation, full
    accessibility and performance. Resolve any failed gate before declaring the surface done.
+
+   **A green project suite is not this step.** The most likely way this chain fails is that
+   step 6 ends with the target's own gate passing — a test run, a typecheck, a lint, a build —
+   and the run reads that as done and stops. The project's suite proves the code is correct.
+   It proves nothing about whether the signature shipped, the contract was honored, the
+   ambition was reached, or the divergence record's claims are true of what was built: those
+   are checked HERE and nowhere else, by an agent this step dispatches. A build that skipped
+   this step has no craft verdict, however green it is.
+
+   So the run's final message owes one line, and it is the report the user gets instead of a
+   claim: `Craft audit: <ran | NOT RUN> · Gates: <n> checked · <n> not checked · <n> not
+   measured`. `NOT RUN` is a legitimate outcome — the audit needs a reachable target, and
+   headless or unbuildable runs cannot produce one — but it is stated, never implied by
+   silence. Declaring a surface done without that line is the finding this step exists to
+   prevent.
 
 ## Notes
 

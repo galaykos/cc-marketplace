@@ -15,7 +15,8 @@ an asset-sourcing + licence gate, a concept→token-system derivation, a tiered 
 it orchestrates existing surfaces:
 
 0. **creative-direction** — pin the offer contract (ONE product under its real name, the
-   audience, the one primary action, the route list, the page length, the mode, the
+   audience, the one primary action, the route list and route horizon, the page length, the
+   mode, the **ambition tier**, the
    offer-spine slots the page owes), then generate a divergent concept (central metaphor,
    editorial voice, one signature interaction) that breaks the sameness defaults, before
    anything visual is decided.
@@ -43,11 +44,16 @@ it orchestrates existing surfaces:
    when step 3 ran, the asset plan, and step 5's resolved motion), applying `design-tokens`
    and `information-design`.
 7. **`/craft-layer:audit`** — verify the craft gates (the signature interaction actually
-   shipped, offer contract, content depth, ledger
+   shipped, ambition conformance, offer contract, content depth, ledger
    conformance, per-tier + cumulative budget, reduced-motion, contrast, licence + asset-fit,
    the newer-skill gates; delegating full a11y + performance). It measures asset and chunk
    sizes itself before dispatching, and any gate it cannot measure is reported
    `not measured` rather than guessed — then offers to route the findings to a worker.
+   **The run is not complete until this step ran**, and its final line says so:
+   `Craft audit: <ran | NOT RUN> · Gates: <n> checked · <n> not checked · <n> not measured`.
+   A green project suite is not this step — it proves the code is correct and proves nothing
+   about whether the signature shipped or the contract was honored, which is the way this
+   chain most often ends one step early.
 
 ### Why motion is decided before the build
 
@@ -116,12 +122,22 @@ reweighting; the numbers do not.)
   accessibility are what craft-layer measures. Together with Usability and Content — 40%
   of the main rubric, and the half that is genuinely gateable — this is the bar
   craft-layer is built to clear.
-- **The Design 40% is mostly art direction, and craft-layer cannot produce it.** The
-  top-tier winners are built on commissioned work: character illustration, photoreal 3D,
+- **Half the Design 40% is art direction craft-layer cannot produce, and the split matters.**
+  The top-tier winners are built on commissioned work: character illustration, photoreal 3D,
   bespoke type sculpture, cinematic rendering, made by specialist studios. The
   build-vs-source-vs-**commission** decision correctly returns "commission" for that
   class of asset, and the flow has no way to execute it (`asset-sourcing/references/sourcing-decision.md`
-  now says so plainly). No orchestration layer closes that gap.
+  says so plainly). No orchestration layer closes that gap.
+
+  What the flow CAN execute is the other half: art direction authored in code — generative
+  and procedural canvas, WebGL and shader surfaces, programmatic SVG systems, sprite systems,
+  designer-authored vector. That is real art direction, it is reachable, and until the
+  `maximal` ambition tier existed nothing asked for it: every gate was a ceiling, the one
+  floor checked that a signature mechanism EXISTED, and a page could be commissioned as
+  "award winning" and ship with no authored imagery at all with every gate green. The reach
+  floors (see below) are the fix, and they are honest about their limit — a `maximal` build
+  reached as far as code-authored craft goes, which is further than the default and is not
+  the top of the field.
 
 So: craft-layer aims at the developer-award criteria and the substance half of the design
 rubric, on product work — landing pages, SaaS, CRMs. It does not aim at Site of the Year,
@@ -202,6 +218,30 @@ The offer contract declares a **mode**, in the same prompt as everything else:
 `guided` is pinned by ASKING for it in any words — "guided", "section by section", "give me
 options" — not by a flag.
 
+### How much reach — the ambition tier
+
+The contract pins a second dial the same way, from your own words:
+
+| Tier | Pinned by | The build owes |
+| --- | --- | --- |
+| `restrained` | "conventional", "trust-first", "keep it simple" | the signature floor only |
+| `standard` *(default)* | saying nothing either way | the signature floor only |
+| `maximal` | "award winning", "awwwards", "over the top", "very graphical", "cinematic" — or naming heavy motion libraries as the POINT of the brief | the signature floor **plus** three reach floors |
+
+The three reach floors, checked by the audit and waivable only by a reasoned divergence-record
+entry: **three distinct motion capabilities** driving real surfaces (a tier or a sibling
+engine each count once; two is what cheapest-that-fits produces on its own — one for the
+signature, one for scroll); **one authored graphic system**
+(generative/procedural canvas, WebGL/shader, programmatic SVG, sprites, or designer-authored
+vector — rules, borders, icons and type treatment are composition and do not count); and an
+**asset posture that is not first-party emptiness** (a manifest declaring nothing shipped
+passes the licence gate and fails this floor — they ask different questions).
+
+Nothing is lowered for ambition. Reduced-motion, per-tier and cumulative motion budgets,
+contrast, licence, and the delegated a11y pass are unchanged; reach is bought with lazy
+loading, not with bytes on first paint. Detail:
+`skills/creative-direction/references/ambition-tiers.md`.
+
 ```bash
 # one-shot
 /craft-layer:craft a landing page for Acme, an uptime monitor for solo devs
@@ -225,8 +265,8 @@ auto-decided, every ledger row marked `auto`, and reported.
 
 - **creative-direction** — the concept-first anti-sameness layer: generates a divergent
   concept (metaphor, editorial voice, one signature interaction), scores blind candidates,
-  and records a divergence the audit checks; owns the offer-contract, content-depth, and
-  sameness-fingerprint gates.
+  and records a divergence the audit checks; owns the offer-contract, ambition-tier,
+  content-depth, and sameness-fingerprint gates.
 - **section-decisions** — the guided-build checkpoint: derives a decision agenda from the
   offer contract's spine slots (never an invented one), batches it into three capped rounds,
   offers 2–3 structurally different treatments per section, and records the picks in a

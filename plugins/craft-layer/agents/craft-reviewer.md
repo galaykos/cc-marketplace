@@ -196,6 +196,33 @@ without exception:
     (move shipped, placement drifted). Confirm the mechanism EXISTS and carries the two
     mandatory fallbacks (steps 2 and 4); never judge whether it is impressive, and never
     count reveals toward it.
+15. Ambition conformance (craft gate — the REACH floor): read the `Ambition` row in the
+    injected contract and the injected `creative-direction/references/ambition-tiers.md`. No
+    row: report `not checked (no ambition pinned)` and move on — never infer the tier from how
+    ambitious the page looks, which is the taste judgement every gate here refuses. At
+    `restrained` or `standard` there is nothing extra to check; the signature floor already
+    ran at step 14. At `maximal`, check three floors, each one finding when missed:
+    - **Tier reach** — count DISTINCT motion capabilities driving real surfaces from the
+      injected detection. Both a `motion-tiers` tier (UI-state/layout, Timeline/SVG, 3D/WebGL,
+      Sprites, Vector) and a sibling engine (scroll-orchestration, page-transitions,
+      kinetic-typography, interaction-fx, physics-motion, motion-sequencing, webgl-effects)
+      count, each once. Fewer than three is a finding. Count capabilities, not imports: two
+      entry points into the same tier is one, and a dependency in the manifest that nothing
+      imports is zero.
+    - **Graphic system** — at least one surface carries imagery the build AUTHORED:
+      generative/procedural canvas, a WebGL/shader surface, a programmatic SVG system,
+      sprites, or a designer-authored vector asset. Rules, borders, gutters, icon sets and
+      type treatment are composition and never satisfy this. The test that keeps it
+      falsifiable: deleting a graphic system leaves a visible hole; deleting a mark set
+      leaves a plainer page that still reads.
+    - **Asset posture** — a provenance manifest whose every line declares first-party and
+      nothing shipped is a finding HERE while still passing the licence gate at step 12.
+      The two ask different questions: the licence gate asks whether what shipped is
+      declared, this floor asks whether an asset decision was made at all.
+    Each floor is waived by a reasoned entry in the divergence record naming it — check for
+    one before emitting the finding. A waiver that just asserts the floor does not apply,
+    with no brief reason, is not a waiver. Report reach as counts (`tiers: 2/3`), never as a
+    verdict on how the page looks.
 
 ## Checklist
 
@@ -219,7 +246,13 @@ without exception:
 - [ ] page-transitions / webgl-effects / interaction-fx / physics-motion /
       motion-sequencing each meet their done-ness mandate (step 8) when used.
 - [ ] The concept's divergence record breaks ≥1 sameness-fingerprint default (or a
-      conventional design was explicitly requested).
+      conventional design was explicitly requested), AND every entry it claims was checked
+      one at a time against the shipped source — contradicted entries counted and reported,
+      never taken on the record's word.
+- [ ] The pinned AMBITION was honored — at `maximal`, three distinct motion tiers, one
+      authored graphic system, and an asset posture that is not all-first-party-emptiness;
+      each waivable only by a reasoned divergence-record entry (no `Ambition` row → gate
+      `not checked`, never inferred from how the page looks).
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
       metrics are `{{metric:*}}` slots and capability claims (coverage, integrations, SLAs,
       certifications) are `{{capability:*}}` slots, rendered as labeled illustrative samples (not raw

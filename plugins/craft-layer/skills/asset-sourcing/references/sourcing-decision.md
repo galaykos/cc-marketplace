@@ -71,6 +71,21 @@ So when the axes point at commission:
   imagery, or whether nothing here could have produced any. Both are legitimate; only one
   is a design decision.
 
+**And when the contract pinned `maximal`, that check has teeth instead of being a note.** An
+asset plan resolving to first-party-and-nothing-shipped satisfies the licence gate — the
+manifest is complete and honest — and fails the asset-posture floor in
+`../../creative-direction/references/ambition-tiers.md`, because a brief asking for reach
+asked for the one thing emptiness cannot deliver. The floor is waivable in the divergence
+record with the reason; it is not waivable by silence.
+
+The escape from that floor is **build-in-code**, not commission. Class 1 covers generative
+and procedural imagery — canvas, shaders, programmatic SVG systems, sprite systems — which is
+authored art direction this flow can actually execute, at a fidelity hand-authoring a rich
+illustration never reaches. Commission stays the honest answer for character illustration,
+photoreal 3D, and bespoke type sculpture, and stays unexecutable. Reading the floor as
+pressure to re-run the axes until they yield commission is backwards: it is pressure to
+notice that class 1 was available and nobody reached for it.
+
 ## The five source classes
 
 The taxonomy is CATEGORICAL. These are the only source classes; a specific vendor,

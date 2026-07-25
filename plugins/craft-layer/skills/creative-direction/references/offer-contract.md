@@ -20,8 +20,10 @@ Resolve every row below, echo them to the user, then build:
 | Archetype | the work-type archetype classified from `archetypes.md` — it keys the content-depth anchors the audit counts against, so it must persist with the rest |
 | Primary action | the ONE thing a visitor should do (book a demo, start a trial, contact) |
 | Routes | the exact page/route list that ships |
+| Route horizon | routes the site is KNOWN to be getting later, named and not built — see Part 7 |
 | Length | `standard` or `long-scroll` — see Part 5 |
 | Mode | `one-shot` or `guided` — see Part 6 |
+| Ambition | `restrained`, `standard`, or `maximal` — see Part 7 and `ambition-tiers.md` |
 | Not shipping | what was considered and cut |
 
 **One product per build.** When the brief admits several products, positionings, or
@@ -175,6 +177,31 @@ that forty minutes of building answers the wrong question.
 `guided` changes nothing else in this contract. Every rule in Parts 1–5 still
 holds; the user is choosing between options that already satisfy them.
 
+## Part 7 — Ambition, and the routes that are not here yet
+
+Two rows that exist because a build kept answering a question the contract could not hold.
+
+**Ambition** pins how far the page must REACH — `restrained`, `standard` (the default when
+the user says nothing either way), or `maximal` when the brief asks for reach in any words.
+The tiers, the pinning vocabulary, the three reach floors `maximal` adds, and the ceilings
+that never move regardless are owned by `ambition-tiers.md`. Pin it here, echo it with the
+rest, and persist it: a quality bar carried only as prose in a scope line binds nothing, and
+"award winning" in the brief with no slot to land in is exactly how a build clears every gate
+it has while ignoring what it was asked for.
+
+**Route horizon** is the honest form of "this is the front door, not a landing page".
+`Routes` stays what SHIPS this run — the audit checks the shipped list against it, and that
+check only works if the list is exact. The horizon holds routes the site is known to be
+getting later (contact, knowledge base, FAQ, changelog, careers) which are NOT being built
+now. It changes no gate; it changes the BUILD, because a page designed as a terminal
+single-purpose landing page and a page designed as a front door with siblings coming are
+different structures — nav, footer, and how much a section tries to carry all differ. A
+horizon nobody recorded means the build optimises for the wrong one and gets rebuilt.
+
+An empty horizon is a valid answer and the common one. Naming a route in the horizon and
+then shipping it is a scope finding like any other; naming one and stubbing it into the nav
+as a dead link is worse.
+
 ## What the audit checks (teeth)
 
 `/craft-layer:audit` reads THIS file (injected as a Read path) and verifies:
@@ -190,6 +217,12 @@ holds; the user is choosing between options that already satisfy them.
 - a proof region EXISTS (slotted per Part 4) rather than being absent;
 - ledger conformance is NOT checked here — `section-decisions/references/section-ledger.md`
   owns it, and skips entirely when no ledger exists (a one-shot build is not a finding);
+- the declared AMBITION is honored — at `maximal`, the three reach floors in
+  `ambition-tiers.md` (three distinct motion tiers, one authored graphic system, an asset
+  posture that is not all-first-party-emptiness), each waivable only by a reasoned entry in
+  the divergence record. No ambition row → `not checked`, never a pass and never a fail;
+- no route in the ROUTE HORIZON shipped as a dead nav link — the horizon names what is
+  coming, and a stub in the nav is a broken promise rather than a preview;
 - the declared LENGTH matches what shipped, and on `long-scroll`: every spine slot answered
   first within roughly the opening third, the primary CTA recurring through the scroll on one
   verb, no long run of identically-shaped sections, an in-page wayfinding affordance past
@@ -213,5 +246,10 @@ taste.
   what it is, who it is for, or what it costs.
 - **Scroll as sprawl** — length nobody declared, reached by repeating one section shape until
   the page feels substantial.
+- **Ambition in the prose, not the slot** — "award winning" echoed in the scope sentence and
+  pinned to no row; it reaches nothing, checks nothing, and the build under-delivers against
+  a bar it was told.
+- **Horizon in the nav** — routes named as coming later, then stubbed into the navigation as
+  dead links so the page looks fuller.
 - **Contract as template** — reading the slot table as a fixed section order; the concept
   decides form, the contract decides what must be answered.
