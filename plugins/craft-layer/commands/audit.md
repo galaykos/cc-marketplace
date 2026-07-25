@@ -98,7 +98,25 @@ taxonomy and its per-tier budgets, then:
    the KB ceiling against the measured font bytes from step 1b. A deliberate
    system/device font stack that SATISFIES its spec passes; this gate never judges which
    family won. Typography carries the largest single weight in the only published award
-   rubric. Every tier/engine in use honors
+   rubric.
+
+   **When the contract's archetype is `app/CRM`** — or the target has a logged-in,
+   data-dense half — ALSO run the app-craft floors in
+   `${CLAUDE_PLUGIN_ROOT}/skills/information-design/references/app-craft-floors.md`.
+   The signature and content-depth floors are marketing-shaped and answer `not
+   applicable` behind a login, which leaves an app judged only by ceilings — and a grey,
+   sluggish, mouse-only panel passes every ceiling there is. Check what is checkable
+   statically: a dense grid is ONE tab stop with arrow keys inside (the trigger suite
+   measures this); the app states beyond the table four exist (first-run, permission
+   denied, partial failure, stale/offline); density is offered rather than baked;
+   destructive actions are undoable rather than confirm-gated; and a data surface earns
+   its motion — a list that re-sorts or a value that changes with no transition at all is
+   this floor's version of a page with no signature. Perceived speed (feedback under
+   ~100ms, optimistic writes with a rollback path) is runtime and is reported
+   `not measured` unless something measured it. On a marketing-only target, say the
+   floor set does not apply rather than passing it silently.
+
+   Every tier/engine in use honors
    `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
    each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
    (non-hero engines lazy-loaded); sprites/assets stay within budget; the **licence gate** —

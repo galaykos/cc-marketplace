@@ -1,0 +1,159 @@
+cd plugins/craft-layer && echo "=== signature interaction mentions ===" && grep -rn "signature" --include=*.md . | grep 
+cd plugins/craft-layer && echo "=== signature ===" && grep -rn "signature" . | head -40 && echo && echo "=== divergence-
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/craft.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/craft.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/craft.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/craft.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/craft.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/craft.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/agents/craft-reviewer.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/agents/craft-reviewer.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/audit.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/audit.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/design-research/references/brief-templates.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/design-research/references/brief-templates.md
+cd plugins/craft-layer && for t in "theatre" "GSAP\|gsap" "APCA" "DTCG\|design-tokens.org\|\.tokens" "scroll-driven" "Ba
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins; sed -n '1,55p' $R/craft-layer/skills/
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins; echo "===DESIGN-TOKENS"; sed -n '1,45
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills; cat $R/creative-di
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills; echo "===DENSE"; c
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/scroll-orchestration/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/scroll-orchestration/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/scroll-orchestration/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/scroll-orchestration/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/scroll-orchestration/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-sequencing/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-tiers/references/tier-budgets.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/theming-system/references/accent-system.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/theming-system/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/theming-system/references/token-interchange.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/theming-system/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/references/dense-ui-patterns.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/references/dense-ui-patterns.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/references/dense-ui-patterns.md
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills; grep -n "7±2" -r $
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/SKILL.md
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills; sed -n '48,58p' $R
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/interaction-fx/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/physics-motion/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-tiers/references/gotchas.md
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills; sed -n '1,45p' $R/
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/kinetic-typography/references/type-system.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/kinetic-typography/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/kinetic-typography/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-tiers/references/tier-budgets.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/references/dense-ui-patterns.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/creative-direction/references/sameness-fingerprint.md
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer; sed -n '25,60p' $R/agents
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/agents/creative-director.md
+R=/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer; sed -n '25,45p' $R/comman
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/commands/audit.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/.claude-plugin/plugin.json
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/README.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/README.md
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer
+sed -i '' \
+ -e 's/the display-vs-text\/mark accent split/the three-role accent split (display · fill · text\/mark)/g' \
+ -e 's/# Accent system — the display-vs-text\/mark split/# Accent system — the three-role accent split/' \
+ -e 's/the single home of the display-vs-text\/mark split/the single home of the accent split/' \
+ -e 's/`token-tiers.md` NAMES the two accent roles; THIS file derives the step/`token-tiers.md` NAMES the three accent r
+ -e 's/(display + text\/mark, as tiers with roles)/(display + fill + text\/mark, as tiers with roles)/' \
+ -e 's/contrast STEPS between them (the display-vs-text\/mark split)/contrast STEPS between them (hue constraints first,
+ -e 's/- `references\/accent-system.md` — the display-vs-text\/mark accent DERIVATION,/- `references\/accent-system.md` 
+ -e 's/owns only the display-vs-text\/mark SPLIT that applies them./owns only the accent SPLIT that applies them./' \
+ skills/theming-system/SKILL.md skills/theming-system/references/accent-system.md README.md
+grep -rn "display-vs-text/mark\|two accent roles" skills/theming-system README.md | head
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/README.md
+cd plugins/craft-layer; echo "=== ALREADY DATED ==="; grep -rln "Last verified" skills/ commands/ agents/ | sort; echo; 
+cd plugins/craft-layer; for f in skills/motion-tiers/references/vector.md skills/motion-tiers/references/framework-bindi
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer; sed -n '8,20p' skills/ki
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer
+python3 - <<'PY'
+import re, pathlib
+B = pathlib.Path('.')
+
+def stamp(rel, marker):
+    p = B/rel; t = p.read_text()
+    lines = t.split('\n')
+    # insert after the H1 title line
+    i = next(i for i,l in enumerate(lines) if l.startswith('# '))
+    lines.insert(i+1, '\n' + marker)
+    p.write_text('\n'.join(lines))
+    print('stamped', rel)
+
+stamp('skills/motion-tiers/references/vector.md',
+"""> **Last verified: 2026-07-25** — package names and the Lottie-vs-Rive split. The
+> runtime SIZES that decide a tier live in `tier-budgets.md`; re-verify there.""")
+
+stamp('skills/motion-tiers/references/framework-bindings.md',
+"""> **Last verified: 2026-07-25** — the per-framework package names below. Bindings
+> churn faster than anything else in this plugin: a framework's blessed motion
+> package changes without the technique changing at all. Check the package still
+> exists and is maintained before quoting a row.""")
+
+stamp('skills/physics-motion/references/physics-patterns.md',
+"""> **Last verified: partially, 2026-07-25.** matter.js was confirmed active. The
+> `@dimforge/rapier2d` note below was NOT re-checked in that pass — treat it as a
+> lead and verify before choosing it. A date on an unverified fact is worse than
+> no date, so this file states which half it covers.""")
+
+stamp('skills/motion-sequencing/references/sequencing-patterns.md',
+"""> **Last verified: 2026-07-25 — and the news is bad.** theatre.js's latest public
+> release is v0.7.0 (August 2023); its README says active development moved to a
+> private repo pending a 1.0 that has not shipped, and package advisors mark it
+> inactive. The mechanics below are still correct; the DEPENDENCY may not be. Read
+> the maintenance gate in `../SKILL.md` before adopting, and re-check the release
+> state — this note is a snapshot, not a verdict.""")
+PY
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/scroll-orchestration/references/orchestration-decision.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/kinetic-typography/references/variable-fonts.md
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer
+python3 - <<'PY'
+import pathlib
+p = pathlib.Path('skills/kinetic-typography/references/variable-fonts.md'); t=p.read_text()
+lines=t.split('\n'); i=next(i for i,l in enumerate(lines) if l.startswith('# '))
+lines.insert(i+1, """
+> **Last verified: 2026-07-25** — the Fontsource packaging model and the axis/CSS
+> property mapping. No typeface is named here by design; the family is derived,
+> not looked up (`../../creative-direction/references/type-strategy.md`).""")
+p.write_text('\n'.join(lines)); print('stamped variable-fonts.md')
+
+p = pathlib.Path('skills/scroll-orchestration/references/orchestration-decision.md'); t=p.read_text()
+lines=t.split('\n'); i=next(i for i,l in enumerate(lines) if l.startswith('# '))
+lines.insert(i+1, """
+> **Last verified: 2026-07-25** — Lenis maintenance status and the engine sizings
+> below, plus `animation-timeline`'s Baseline status (still limited availability).""")
+p.write_text('\n'.join(lines)); print('stamped orchestration-decision.md')
+PY
+echo "=== coverage now ==="; total=$(find skills -name '*.md' -path '*/references/*' | wc -l | tr -d ' '); dated=$(grep 
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer; for f in skills/motion-t
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer; sed -n '44,70p' skills/m
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer; echo -n "motion-tiers bo
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-tiers/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-tiers/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-tiers/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/README.md
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer
+for f in skills/sprite-motion/SKILL.md skills/motion-sequencing/SKILL.md skills/scroll-orchestration/SKILL.md; do
+  echo "### $f"
+  grep -nE '≈ ?[0-9]+ ?KB|[0-9]+ ?KB|Baseline|@[a-z0-9-]+/[a-z0-9-]+|caniuse' "$f"
+  echo -n "  body lines: "; awk '/^---$/{n++;next} n>=2' "$f" | wc -l
+  echo -n "  names a reference? "; grep -c "references/" "$f"
+done
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/README.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/README.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/motion-sequencing/SKILL.md
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer
+echo -n "information-design body lines: "; awk '/^---$/{n++;next} n>=2' skills/information-design/SKILL.md | wc -l
+echo "--- its references ---"; ls skills/information-design/references/
+echo "--- archetype dials for app/CRM ---"; grep -n -A2 "app/CRM" skills/creative-direction/references/archetypes.md | h
+echo "--- does anything own perceived speed / keyboard-first / optimistic UI? ---"
+grep -rli "optimistic\|command palette\|keyboard-first\|perceived speed" skills/ || echo "  nothing"
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/references/product-packages.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/references/app-craft-floors.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/SKILL.md
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/skills/information-design/SKILL.md
+cd /Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer
+grep -n "References\|dense-ui-patterns" skills/information-design/SKILL.md | tail -4
+echo -n "body lines: "; awk '/^---$/{n++;next} n>=2' skills/information-design/SKILL.md | wc -l
+/Users/ivangalayko/Programming/Personal/git-repositories/cc-marketplace/plugins/craft-layer/template/craft-gates/gates.spec.ts

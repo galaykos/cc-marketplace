@@ -119,6 +119,32 @@ test.describe('forced-colors: active', () => {
   })
 })
 
+/* ------------------------------------------------- trigger: keyboard traversal */
+/* An app-craft floor, and a measurable one: a grid of interactive cells must be
+   ONE tab stop with arrow keys inside, not one stop per cell. A 5x9 board is 45
+   stops standing between a keyboard user and the rest of the page. This exact
+   check would have caught a real regression in a craft-layer demo build. */
+test('no interactive grid floods the tab order', async ({ page }) => {
+  await page.goto(URL)
+  const r = await page.evaluate(() => {
+    const vis = (el: Element) => (el as HTMLElement).offsetParent !== null
+    const all = [...document.querySelectorAll<HTMLElement>('a[href],button,input,select,textarea,[tabindex]')]
+      .filter((el) => vis(el) && el.tabIndex >= 0)
+    const worst = [...document.querySelectorAll('table, [role="grid"], [role="listbox"]')]
+      .map((g) => ({
+        grid: g.tagName + (g.getAttribute('role') ? `[${g.getAttribute('role')}]` : ''),
+        stops: [...g.querySelectorAll<HTMLElement>('button,a[href],input,[tabindex]')]
+          .filter((el) => vis(el) && el.tabIndex >= 0).length,
+      }))
+      .sort((a, b) => b.stops - a.stops)[0]
+    return { total: all.length, worst: worst ?? null }
+  })
+  // A grid contributing more than a handful of stops is not using roving tabindex.
+  expect(r.worst?.stops ?? 0,
+    `grid ${r.worst?.grid} contributes ${r.worst?.stops} tab stops of ${r.total} on the page`)
+    .toBeLessThanOrEqual(8)
+})
+
 /* --------------------------------------------------------------- trigger: zoom */
 /* 200% browser zoom halves the CSS-pixel viewport, which WCAG 1.4.4 requires
    content to survive. This is the cheapest high-yield trigger there is, and the
