@@ -30,7 +30,12 @@ it orchestrates existing surfaces:
    Also runnable standalone as **`/craft-layer:sections`**. Skipped on `one-shot`.
 4. **asset-sourcing** — decide where each visual asset comes from
    (build-vs-source-vs-commission) and record provenance under a licence gate, before the
-   build.
+   build. Same step, second decision: where each COMPONENT comes from — first-party ·
+   registry block adapted · registry block as-is · installed library — so conventional
+   furniture (nav, footer, pricing, FAQ, testimonial, form) is not rewritten from scratch
+   while the signature section always is. A sourced block carries a greppable
+   `component-source:` marker the licence gate reads; an unmarked one is invisible to it,
+   which the reference states plainly instead of claiming a gate it does not have.
 5. **motion routing** — DECIDE the motion, **before** the build, starting from the concept's
    ONE signature interaction: which section owns it, which skill implements it, what tier it
    costs. craft-layer writes no animation code itself — it resolves the build task's `Motion:`
@@ -80,7 +85,7 @@ input is missing. It never fails a build that simply never saved one.
 
 ### What the run writes outside your app
 
-Three working files, at fixed names so a later session — or a standalone
+Working files, at fixed names so a later session — or a standalone
 `/craft-layer:audit` — can find them by glob. They live in the taskmaster docs area when the
 project has one, otherwise the session scratch area, and **never** in the shipped tree:
 
@@ -88,10 +93,25 @@ project has one, otherwise the session scratch area, and **never** in the shippe
 | --- | --- | --- |
 | `craft/offer-contract.md` | step 0, after the archetype is classified | the audit's scope, length, mode and content-depth gates |
 | `craft/divergence-record.md` | step 0, once the concept exists | the audit's anti-sameness gate and the plain-language what-line check |
+| `craft/content-source.md` | step 0/1, from the copy that already exists | step 1's briefs, the build, and the audit's content-fidelity gate |
 | `craft/section-ledger.md` | step 3 (guided only) | `/ui-ux:build` via the build task, and the audit's conformance gate |
+| `craft/reference-board.md` | step 1 at the `ultra-craft` boost, echoed to you before any file is written | the audit's boost-evidence gate, and step 2's concept work |
+| `craft/build-task.md` | step 5, once its five lines resolve | `/ui-ux:build` at step 6, and the audit's signature, named-escalation, ambition, banned-vocabulary and buyer-REGISTER gates (`Spine regions:` is the register gate's only input) |
 
 Missing any of them is not a failure — the gates that need them report `not checked` rather
 than passing or failing a build that simply never saved one.
+
+Fixed names are findable and collidable in the same move: a second craft run in one session
+writes the same paths, and an abandoned run leaves its files exactly where the next audit
+globs. So every one of them opens with a RUN STAMP — `Run: <YYYY-MM-DDTHH:MMZ> ·
+<product-slug> · <absolute project root>`, computed once at step 0 and copied byte-identical
+onto each artifact. When a glob matches more than one file the audit resolves it by that
+stamp — a match stamped to another project is dropped, the newest agreeing stamp wins, and an
+undecidable set is reported with every candidate rather than silently picking the first hit.
+Artifacts whose stamps disagree are a finding: `divergence.mjs`'s `craft-stamp` assertion
+fails when they do, when one is stamped to a different project, or when one carries no stamp
+while a sibling does. Artifacts written before this rule carry none, and a lone unstamped one
+is used and reported as such.
 
 One file DOES land in the project: the asset **provenance manifest**, written at step 4 under
 one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE`, or
@@ -132,6 +152,19 @@ Three things changed:
   fingerprint axes, and a divergence record that is present but hollow now fails on its own.
   An ABSENT record still reports `not checked`, and an explicitly requested conventional design
   is still a valid justification — the gate never forces novelty nobody asked for.
+- **What the concept step ruled OUT travels too.** The record carries a negative-constraints
+  block on three fixed keys — `Banned genus:`, `Banned register:`, `Banned vocabulary:` — and
+  `Banned vocabulary:` is a comma-separated list of literal terms, not a description. It is
+  copied verbatim onto `craft/build-task.md` as one of the lines the motion step resolves
+  there — named, never numbered — so the builders get it as a rule, and the audit greps the
+  whole shipped tree for its terms ONCE, after the build has finished, matching each term
+  word-bounded and case-insensitively (a substring grep for a banned `REV` would fire on every
+  `Reviews` and `Revenue` on the page, which is how a gate gets ignored; terms under ~4
+  characters are written as quoted phrases). The keys are deliberately not deck-axis names: the divergence gate parses every
+  `Key: value` line of the record, so a ban written as `Motion role: not diagrammatic` would
+  silently overwrite the drawn option and leave the draw assertion grading a constraint
+  string. A build that ships the exact genus its own concept step ruled out is the defect
+  this block exists to end — that ruling used to live only in prose.
 
 ### The divergence gate — `template/craft-gates/divergence.mjs`
 
@@ -139,11 +172,14 @@ The attractor rules used to be advice. The audit checked that a type spec was RE
 outright that it never judges which family won, and `contrast.mjs` measured contrast, never hue
 distance — so nothing could fail a build for landing on the model's default.
 
-`divergence.mjs` is a plain Node script run from the project root. It asserts five things and
+`divergence.mjs` is a plain Node script run from the project root. It asserts seven things and
 exits non-zero on any of them: the accent hue is inside a category-default band; the accent hue
 repeats one of the last five logged runs; a shipped font family is an anti-corpus entry; a
 shipped family repeats a recent run; the recorded deck draw differs from recent draws on fewer
-than three of five axes. No model judgement is involved.
+than three of five axes; one of the three BUYER spine slots is answered in an integrator's
+register (`spine-register`, scoped by the build task's `Spine regions:` line); and the run's
+craft artifacts disagree about which run wrote them (`craft-stamp`). No model judgement is
+involved.
 
 Three details that are load-bearing:
 
@@ -514,7 +550,10 @@ auto-decided, every ledger row marked `auto`, and reported.
   `shadcn-theming`; ships no colour or token value.
 - **asset-sourcing** — build-vs-source-vs-commission for icons, SVG/vector, 3D models,
   animated overlays, and illustration/imagery: a categorical source taxonomy plus a hard,
-  audited licence/provenance gate; reuses `sprite-motion` + the Vector tier.
+  audited licence/provenance gate; reuses `sprite-motion` + the Vector tier. It also owns
+  the COMPONENT decision — four classes over conventional furniture, the signature always
+  first-party, the origin recorded per block — with an explicit table of which of its rules
+  are gates and which are recorded-but-unenforced.
 - **motion-tiers** — the tier decision system, named for the JOB rather than the package
   that currently does it: **UI state / layout** (Framer Motion), **Timeline / SVG**
   (anime.js), **3D / WebGL** (Three.js/R3F), **Sprites**, and **Vector** (Lottie / Rive)

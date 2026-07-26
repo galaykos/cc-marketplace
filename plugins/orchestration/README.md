@@ -34,6 +34,16 @@ opus, whichever is higher; no suffix grammar) and mandating red-team plus
 completeness-critic passes over the findings. Output is a findings backlog,
 never task cards.
 
+One parallel-execution rule is easy to miss because it produces no error and no
+symptom: a per-agent scope lock scopes each agent's VERIFY command too. For a
+cross-cutting property — a banned vocabulary, "no gradient fills", a token
+discipline — N agents each honestly report green over their own files and the
+property is verified nowhere; and a tree-wide command (`tsc`, a build, the test
+suite) run while siblings are still writing reports on their half-saved files
+rather than on the runner's own diff. Both need **one tree-wide gate, run by the
+orchestrator after fan-in**:
+`skills/delegation-contracts/references/tree-wide-gates.md`.
+
 ## Example
 
 ```bash

@@ -91,6 +91,26 @@ without exception:
    moves unbroken, with nothing in the record justifying it, is a finding on its own too.
    Never judge whether the result is beautiful. An explicit user request for a conventional /
    trust-first design is a valid justification, not a finding.
+   THEN run the BANNED-VOCABULARY grep, which is the same gate from the other direction:
+   anti-sameness asks what the record CLAIMED to break, this asks what it ruled OUT. Read the
+   injected `craft/build-task.md`'s `Banned vocabulary:` line — no build task, or no such line
+   on it, falls back to the divergence record's own line, and say which one you read. Split it
+   on commas and Grep the WHOLE injected tree for each term, once, under the MATCH SEMANTICS
+   `creative-direction/references/concept-deck.md` states — word-bounded, case-insensitive, a
+   quoted phrase matched whole. Cite that rule; never restate it and never grep a bare
+   substring, which turns a banned `REV` into a finding on every `Reviews` and `Revenue` the
+   page carries and gets the whole gate waived. Never
+   scope it to the sections you happen to be reading, and never accept a build agent's report
+   that its own files were clean: a per-agent scope makes a per-agent grep, N of them each
+   report green over a subset, and the ban ends up verified nowhere. One finding per term with
+   a hit in RENDERED content — visible copy, a section title, a label, an `aria-label`, alt
+   text, a `data-*` string — citing the term and its `path:line`. A hit inside the run's own
+   `craft/` artifacts, or in a comment quoting the constraint, is not a finding. Report terms
+   CHECKED alongside hits: zero findings over zero terms is not a clean tree, it is an
+   unchecked one. `Banned vocabulary: none` → `not checked (nothing banned)`; no line anywhere
+   → `not checked (no banned-vocabulary line)`, never a pass. This gate is why a build once
+   shipped the exact genus its own concept step had ruled out — the ruling lived in prose, no
+   command read it, and a human found it in a screenshot.
 10. Content depth (craft gate): read the injected
     `creative-direction/references/content-depth.md`. The archetype and the declared length
     live in the persisted contract: without it, say `section count not checked (no contract
@@ -112,7 +132,10 @@ without exception:
     check each claim's **manifestation** — it must render as a labeled illustrative sample
     (plausible value + a visible sample/illustrative marker + a `data-metric`/comment source
     tag), never as raw `{{mustache}}` in the output (unfinished) and never as an unmarked
-    invented literal (dishonest); both are findings. Then count the DISCLOSURE markers per
+    invented literal (dishonest); both are findings. ONE carve-out: a `{{lorem}}` PROSE
+    placeholder that the injected `craft/content-source.md` records in its gaps table is not
+    this finding — it is a recorded hand-back of copy the client owns, graded at step 19.
+    Then count the DISCLOSURE markers per
     region: one marker per figure plus at most one regional footnote is the budget, so a chip
     stacked with a banner, a confessional lede, and a headline addressed to the OPERATOR
     ("…once you fill this in") is a finding — the region reads unfinished, which is what the
@@ -134,7 +157,21 @@ without exception:
     verb); that the what-line is checked against the divergence record's METAPHOR VOCABULARY
     rather than by taste — an h1 assembled from the concept's own figure of speech that names
     no capability ("A rank is a position, not a score.") is a finding, as is a plain h1 whose
-    first screen never states the product's name; and that a proof region EXISTS rather than
+    first screen never states the product's name; that the three BUYER slots — plain-what,
+    audience, problem — are answered in a BUYER's register, where the machine half is SCRIPTED
+    and NOT yours: `template/craft-gates/divergence.mjs`'s `spine-register` assertion resolves
+    the build task's `Spine regions:` line to those page regions and greps them against
+    `creative-direction/references/register-corpus.md` (HTTP verbs, endpoint paths, auth
+    schemes, status codes, ORM/schema terms, protocol limits). REPORT the injected verdict
+    rather than re-deriving it by eye, and say that this half was scripted while the
+    metaphor-vocabulary check beside it is graded by you. YOUR half is the two things no
+    pattern can carry: the build's OWN internal service, queue and worker names standing in a
+    buyer region — read them off the build task and the contract, not off a fixed list — and a
+    region the script reported it could not read (no `Spine regions:` line, or an anchor
+    sitting on a wrapper that holds no copy), which is `not checked` there and a finding here
+    when the target plainly ran the craft flow. Never widen either half into `how it works` or
+    `objection`: the contract ROUTES spec detail there, a limits list is supposed to be
+    concrete, and a whole-page jargon grep fires on correct pages; and that a proof region EXISTS rather than
     having been deleted to avoid
     fabricating it (the remedy is a `{{metric:*}}`/`{{customer_name}}` slot, per step 10).
     A second product identity, a renamed product, a kit/showcase page mounted as a product
@@ -166,7 +203,12 @@ without exception:
     host (`@font-face` `src:`, `@import`, `<link href|src>`, `url(...)`, `<use href>`, an ESM
     import of an absolute URL), inline `data:`/base64 or over-threshold `<svg>` blobs (keyed by
     an `id`/`data-provenance` marker as `inline:<id>`), and URL-fetched `.lottie`/`.riv`/`.glb`/
-    font. Then verify: the manifest EXISTS; every shipped asset file AND every such source ref
+    font. ALSO grep `component-source:` — the one-line marker a sourced component BLOCK carries
+    (`asset-sourcing/references/component-sourcing.md`), keyed to the manifest as
+    `component:<id>`. Check BOTH directions: a marker with no record is an orphan finding, and a
+    `component:<id>` record whose marker no longer exists in the tree is a stale-record finding.
+    An UNMARKED block is presumed first-party and is invisible here — say so when reporting this
+    gate rather than implying sourced components were audited. Then verify: the manifest EXISTS; every shipped asset file AND every such source ref
     maps to a record (no orphan) — an absolute-URL ref needs a record UNLESS the manifest
     declares it `first-party`; every `third-party` / `AI-assisted` record carries a NON-EMPTY
     enumerated `licence-class` + non-empty `source`. A missing manifest, an orphan file OR an
@@ -175,6 +217,15 @@ without exception:
     schema over the LITERAL source refs, NOT legal truth (say so); it is blind to
     bundler-injected / framework-component-by-name / string-built / css-var-indirected refs (a
     DECLARED limit) and does not verify a licence is truthful.
+    THEN grade each `component-source:` marker's CLASS against what shipped — the component
+    half of the "record contradicted by the build" check you already run at step 9, and
+    agent-graded for the same reason: no script sees components at all. `registry-as-is` on a
+    block rendering VISIBLE page content is a finding (as-is is for invisible plumbing — a
+    portal, a focus trap, an unstyled primitive), and a `registry-adapted` block still carrying
+    the registry's own tokens, motion and demo layout is the same finding from the other side:
+    the restyle IS the class. Judge one marker at a time against its file, never the marker's
+    word. No markers in the tree → `not checked (no sourced components declared)`, never a
+    pass — an unmarked build and a first-party build look identical from here.
 13. Asset-fit (craft gate): each shipped asset uses the right FORMAT for its kind (SVG for
     icons/vector, AVIF/WebP for imagery, glTF+Draco for 3D) AND has a reduced-bundle fallback
     AND matches its manifest source-class. BYTES are NOT re-checked here — the sprite/asset
@@ -256,7 +307,18 @@ without exception:
     build looks. At `ultra-craft`, three artifacts were promised and each missing one is a
     finding: a `craft/reference-board.md` carrying at least six FETCHED sources across the
     three lanes, every row with a URL and a fetch date (a row with neither is a lead, not a
-    source — count only complete rows) AND a searches-run block recording a query at each of
+    source — count only complete rows). **Read the `Method` column when the board carries
+    one** (`research-mandate.md` appends it at the end of the row): a row retrieved
+    `browser (escalated ← <status>)` IS a fetched source and counts exactly like a `fetch`
+    row — the column records how the page was retrieved, never whether it counts — while
+    `search-layer` and `fetch-failed` rows are records of an attempt and count toward no
+    source floor. A board with no `Method` column is an older board: count by URL + fetch
+    date as before and say the column was absent, never treat its absence as a miss. One
+    thing there IS a finding for: a row recording a `403`, a `5xx` or an empty document on
+    an origin the contract names as the USER'S OWN, with no escalation outcome recorded
+    (neither `browser (escalated ← …)` nor a `fetch-failed` carrying its reason) — the
+    escalation itself is when-available and a headless run legitimately has none, but
+    RECORDING what was tried is not optional. AND a searches-run block recording a query at each of
     `land-book.com`, `awwwards.com` and `dribbble.com`, where a row marked fetch-blocked still
     counts as searched (report the two counts separately — `searches: 2/3, sources: 4/6` — a
     full source count never covers a missing search); a section ledger, because the boost pinned `guided`
@@ -277,6 +339,44 @@ without exception:
     captured)` — never infer from source that the page looks right, and never report a look
     that did not happen. Judge placement and legibility, never whether the design is
     beautiful.
+
+19. Content fidelity (craft gate — was the client's own copy REPRODUCED, or rewritten):
+    read the injected `craft/content-source.md` and
+    `creative-direction/references/content-source.md`. No artifact injected: report
+    `not checked (no content source persisted)` and move on — a build that never ran the
+    ingestion step is not a build that failed it, and nothing here may be inferred from how
+    the page reads. With one, check six things, each miss one finding naming the block:
+    - **Verbatim claims.** Every captured claim, price, tier name and product name appears in
+      the shipped tree as it appears in the artifact. Copy re-broken across sections and
+      headings re-worded to fit the concept's voice are LEGAL and never findings; a claim
+      restated, tightened, softened or extended is the finding. Compare strings, never tone.
+    - **Legal blocks in full.** Every block the artifact marks as a risk warning, disclaimer
+      or regulatory notice ships COMPLETE and not behind an interaction — inside an
+      accordion, a modal, a "read more", or a tab is a finding, and so is a trimmed one.
+    - **Gaps shipped as gaps.** Every gaps-table row renders as a visible `{{lorem}}`
+      placeholder. A gaps row that quietly acquired a written sentence is the worst finding
+      on this list: it is now indistinguishable from copy the client approved.
+    - **Staleness.** Every source row's `Last verified:` date is inside the artifact's
+      declared `Staleness window` (30 days when it declares none). An older date is a
+      FINDING, not a note — cite the row and its age.
+    - **Supplied-input coverage.** Read the injected contract's `Raw brief:` and
+      `Upgraded brief:` — stored verbatim — and pull every URL and repo path out of them.
+      Each one owes a row in the artifact's Sources table carrying a `Method` (`fetch`,
+      `browser (escalated ← <status>)`, `file`, `pasted`, or `fetch-failed` with a reason).
+      A named source with NO row is a finding naming the source, and a `fetch-failed` row on
+      an origin the contract calls the user's own with no escalation outcome recorded is a
+      second — the escalation is when-available, the record is not. This is Lane C of
+      `design-research/references/mining-method.md` being enforced, not a new rule: the lane
+      already points every tier at the target's own site, and a URL the brief handed the run
+      is a supplied input rather than research. It applies at every tier, because this
+      artifact is written at every tier. No contract injected: report
+      `not checked (no contract to read the brief from)`.
+    - **`source: none-located` honesty.** When the artifact records that no copy was located,
+      page copy reading as authored marketing prose (claims, outcomes, positioning) is a
+      finding: the run wrote what it said it had not found. Spec/method disclosure standing
+      in for the marketing spine is the same finding wearing infrastructure facts.
+    Check reproduction, never quality. Whether the client's own copy is GOOD is not yours to
+    judge, and rewriting it is exactly what this gate exists to catch.
 
 ## Checklist
 
@@ -305,6 +405,11 @@ without exception:
       checked one at a time against the shipped source — contradicted entries counted and
       reported, never taken on the record's word. A present-but-hollow record is a finding on
       its own; an absent one is `not checked`.
+- [ ] The BANNED VOCABULARY was greped ONCE over the whole tree, not per section and not
+      per agent — terms read from `craft/build-task.md`'s `Banned vocabulary:` line (or the
+      divergence record's, said out loud), terms-checked reported beside hits, one finding
+      per term hit in rendered content. `none` → `not checked (nothing banned)`; no line →
+      `not checked (no banned-vocabulary line)`, never a pass.
 - [ ] The pinned AMBITION was honored — at `maximal`, three distinct motion CAPABILITIES (a
       tier or a sibling engine, each counted once — not three tiers), one
       authored graphic system, and an asset posture that is not all-first-party-emptiness;
@@ -328,7 +433,20 @@ without exception:
 - [ ] The pinned BOOST left its receipts — at `ultra-craft`, a reference board with ≥6 dated
       fetched sources AND a recorded query at each of land-book / awwwards / dribbble
       (searches and sources counted separately), a section ledger, and a red-team record
-      (no `Boost` row or `none` → gate `not checked`).
+      (no `Boost` row or `none` → gate `not checked`). A `browser (escalated ← …)` row in the
+      board's `Method` column counts as a fetched source like any other; `search-layer` and
+      `fetch-failed` rows count toward no source floor, and a refusal on a user-owned origin
+      with no escalation outcome recorded is a finding of its own.
+- [ ] Ingested copy was REPRODUCED, not rewritten — claims/prices/names verbatim, legal
+      blocks in full and not behind an interaction, gaps shipped as visible `{{lorem}}`
+      rather than as written sentences, every fetch date inside the declared staleness
+      window, and no authored marketing prose under `source: none-located`
+      (no `craft/content-source.md` → gate `not checked`, never inferred from how the page
+      reads).
+- [ ] Every URL and repo path in the contract's verbatim `Raw brief:` has a Sources row with
+      a `Method` — fetched or failed. Lane C enforced, at every tier; a named source with no
+      row is a finding, and so is a `fetch-failed` on a user-owned origin with no escalation
+      outcome recorded.
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
       metrics are `{{metric:*}}` slots and capability claims (coverage, integrations, SLAs,
       certifications) are `{{capability:*}}` slots, rendered as labeled illustrative samples (not raw
@@ -337,6 +455,12 @@ without exception:
 - [ ] The offer contract holds — routes match the pinned scope, ONE product under its real
       name, every offer-spine slot answered, the what-line clear of the concept's metaphor
       vocabulary, a proof region present as slots not deleted.
+- [ ] The three BUYER slots were answered in a buyer's REGISTER — `divergence.mjs`'s
+      `spine-register` verdict reported as the SCRIPTED half (it reads the build task's
+      `Spine regions:` mapping; no line or no mapped anchor → `not checked`, never a pass),
+      plus this agent's own half: the build's internal service/queue/worker names standing in
+      a plain-what, audience or problem region. `how it works` and `objection` are out of
+      scope for both halves.
 - [ ] Declared page LENGTH matches what shipped; on `long-scroll`, the spine is answered early,
       the CTA recurs on one verb, section shapes vary, wayfinding exists past ~8 sections, and
       below-fold instruments lazy-mount.

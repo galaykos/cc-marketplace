@@ -67,11 +67,22 @@ finding:
   sub-threshold blob is EXEMPT (presumed authored/first-party) so the orphan-scan stays decidable.
 - **URL-fetched** — a `.lottie`/`.riv`/`.glb`/font (or similar) loaded from a URL string. `ref` is
   the URL; the same absolute-URL rule + first-party carve-out apply.
+- **sourced-component** — a component BLOCK taken from a registry (an installed LIBRARY is a
+  declared dependency and is recorded once, not per block). It
+  leaves no URL and no file signature (pasted, restyled source reads as first-party), so the
+  three classes above are all blind to it; it is findable ONLY because
+  `component-sourcing.md` requires a one-line `component-source:` comment beside the block's
+  root, and the manifest names it `ref = component:<id>`. Grep `component-source:` and check
+  BOTH directions — a marker with no record is an orphan, a `component:<id>` record no marker
+  carries is stale. UNMARKED source is presumed first-party, exactly as a sub-threshold inline
+  blob is: the marker makes a declared block checkable, it does not detect an undeclared one.
+  That residual hole is a DECLARED blind spot, stated wherever this gate is quoted.
 
 It CANNOT confirm the declared licence is truthful — AND it is blind to refs that are not literal
 in source: a font/asset URL injected by a bundler or plugin, referenced through a framework
 component by NAME (a `<Font>`/`next/font` face), string-BUILT at runtime (`fetch(base + name)`), or
-reached through a CSS custom-property indirection — none of these appear as a literal ref for the
+reached through a CSS custom-property indirection, or a sourced component block nobody marked —
+none of these appear as a literal ref for the
 grep to catch, so they are a DECLARED blind spot, sitting beside the "not legal truth" limit. The
 teeth are declaration completeness + schema over the LITERAL source refs. Say so plainly; never
 sell the gate as legal assurance, and never claim it closes the hotlink hole by construction.
@@ -96,7 +107,14 @@ reviewer's `path:line — severity — problem — fix` output stays well-formed
   `ref: inline:brand-mark · origin: third-party · licence-class: commissioned · source: …` →
   EXPECT a pass; the SAME blob with no marker and no record → EXPECT a finding;
 - a URL-fetched Lottie (`fetch('https://cdn.example.com/hero.lottie')`) with NO record for that
-  URL → EXPECT a finding.
+  URL → EXPECT a finding;
+- a restyled registry pricing block carrying `component-source: registry-adapted · <registry>
+  pricing-table · permissive (MIT) · component:pricing-01`, recorded as `ref:
+  component:pricing-01 · origin: third-party · licence-class: permissive · source: …` →
+  EXPECT a pass; the same marker with NO record → EXPECT a finding; a `component:*` record
+  whose marker no longer exists in the tree → EXPECT a finding; the same block pasted with NO
+  marker → EXPECT a PASS, and that pass is the declared blind spot, not evidence of
+  compliance.
 
 ## Anti-patterns
 

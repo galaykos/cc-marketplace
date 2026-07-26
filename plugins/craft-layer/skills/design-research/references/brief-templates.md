@@ -78,11 +78,19 @@ Locks: <the ledger's `locks` — the component, instrument, data need, or copy s
 Layout: <grid/columns/hero composition, max-width, density>.
 Components: <card anatomy, table/list density, form rhythm, key states>.
 Interaction: <hover/focus, disclosure, scroll/transition behaviour>.
-Motion: <what animates, entrance vs micro-interaction, energy> (per motion-tiers).
+Motion: <what animates, entrance vs micro-interaction, energy> (per motion-tiers, and at
+  `maximal` one entry marked `<surface>: <tier> (escalated ← <reason>)`).
 Signature: <the concept's ONE signature interaction, when THIS section owns it — the named
   move, its owning craft skill, and its tier; omit on every other section>.
+Ambition: <the contract's pinned tier, and at `maximal` which surface carries the graphic
+  system, which capabilities make up the three, and which surface carries the escalation>.
+Banned vocabulary: <copied VERBATIM from the divergence record's negative-constraints block,
+  or the literal word `none`>.
+Spine regions: <slot>=#<anchor> pairs over the contract's eight slots, ON ONE LINE.
 Assets / provenance: <per asset: build-in-code | source | commission, and for anything
   sourced, the manifest entry it must carry>.
+Components / provenance: <per section: first-party | installed library | registry block, and
+  for anything sourced, the registry it came from and the `component-source:` marker it ships>.
 Responsive: <how it reflows at phone / tablet / full>.
 Patterns borrowed from: <source URLs + the one-line why from the mining worksheet>.
 ```
@@ -101,10 +109,23 @@ stripe.com/pricing (tier hierarchy) and linear.app (restraint, border accents).
 
 Rules:
 - Patterns and structure, not colour — colour rides in the theme brief.
-- `Motion:` and `Signature:` are resolved by the craft flow's motion step BEFORE the build,
-  not after it — a scroll act, a WebGL surface, a shared-element transition, or a physics
-  stage is structural and cannot be retrofitted onto markup built without it. Exactly ONE
-  section carries `Signature:`; entrance reveals belong on `Motion:` and are not a signature.
+- `Motion:`, `Signature:`, `Ambition:`, `Banned vocabulary:` and `Spine regions:` are the five
+  lines the craft flow's motion step resolves BEFORE the build and then persists at
+  `craft/build-task.md` (`/craft-layer:craft` step 5, which owns their exact contents — this
+  template describes the SHAPE, that step decides the values). Motion is structural: a scroll
+  act, a WebGL surface, a shared-element transition or a physics stage cannot be retrofitted
+  onto markup built without it. Exactly ONE section carries `Signature:`; entrance reveals
+  belong on `Motion:` and are not a signature.
+- Each of those five is what a craft gate reads afterwards, which is why an omitted line is an
+  ungraded gate rather than a tidier task: `Signature:` and `Motion:` grade the signature and
+  the named escalation, `Ambition:` the reach floors, `Banned vocabulary:` the one tree-wide
+  grep (match semantics in `creative-direction/references/concept-deck.md`), and
+  `Spine regions:` the buyer-register gate, whose ONLY input it is
+  (`creative-direction/references/register-corpus.md`).
+- **`Spine regions:` is ONE LINE, never wrapped.** `divergence.mjs` reads the line the key
+  sits on and nothing else, so every pair after a wrap is dropped in silence and a wrap before
+  a buyer slot skips the gate outright. Same hard rule, same words, as `concept-deck.md`'s
+  `Banned …` keys.
 - Reference token DIRECTION by adjective ("compact density"), never token values; the
   worker resolves them via `design-tokens`.
 - Name the source + why for each borrowed pattern, so the build is traceable.

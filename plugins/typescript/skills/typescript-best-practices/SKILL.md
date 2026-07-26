@@ -22,8 +22,12 @@ Version facts come from the lockfile, never from memory:
   faster, type behavior identical to 6.0 — so the floors above still gate advice.
 - Read `tsconfig.json` (and its `extends` chain) before advising — half of this
   skill is compiler flags, and advice the config already enforces is noise.
-- The build tool matters: Vite/esbuild/swc strip types without checking, so
-  `tsc --noEmit` in CI is the only thing between a red squiggle and production.
+- The build tool matters: Vite/esbuild/swc strip types without checking, so a
+  type-check in CI is the only thing between a red squiggle and production —
+  but check WHICH one. On the Vite React-TS scaffold (and most monorepos) the
+  root `tsconfig.json` is `files: []` plus `references`, so `tsc --noEmit`
+  checks **nothing** and exits 0: a green that proves the config parsed. Where
+  the root delegates, the real check is `tsc -b` (or `tsc -p tsconfig.app.json`).
 
 ## Strict mode is the floor
 

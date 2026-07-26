@@ -98,7 +98,28 @@ concept chooses. Each is a SLOT with an owner, not a prescribed section:
 Method disclosure, spec sheets, and API tables are **supporting** material: they answer the
 "how it works" and "objection" slots for a technical buyer. A page built ONLY of specs has
 skipped every other slot — that is the most common way a craft build reads as
-uninformative while being dense.
+uninformative while being dense. It is also what a run reaches for when it could not get
+the real copy: unable to fetch the client's own marketing page, it fills every slot with
+the neutral infrastructure facts it does have. Locating the copy is the fix, and
+`content-source.md` owns it — including the observation that a client's published risk
+warning or disclaimer usually answers the **objection** slot better than anything this
+build would write, which is why those blocks reproduce in full rather than being trimmed.
+
+**Checking the REGISTER mechanically — presence is not the same as answered.** A slot can be
+answered and still fail, because the paragraph above is a rule nothing greped for. A build
+answered all eight slots in an INTEGRATOR's voice — `POST /api/task` for what it is, a bearer
+token scope for who it is for, a `workspace_id` global scope for why change — and would have
+passed this gate green while reading as API documentation to the buyer it was commissioned for.
+
+The fix is scoped, never a whole-page jargon grep: a page owes `how it works` and `objection`
+their spec detail, and firing on a correct limits list would teach builds to strip the very
+concreteness this contract asks for. So the check needs to know WHICH region answers WHICH
+slot, and `register-corpus.md` owns all three parts of it — the slot → region mapping carried
+on the build task's `Spine regions:` line (written at every tier, so a `one-shot` run produces
+it with no ledger), the corpus of register markers, and the `spine-register` assertion in
+`template/craft-gates/divergence.mjs` that reads both. Only **plain-what**, **audience** and
+**problem** are graded; the other five slots are unchecked by construction. Density is not the
+defect — a buyer's question answered with an integrator's fact is.
 
 **Checking "plain-language" mechanically.** Whether a sentence is plain reads like taste, but the
 concept makes it testable: the divergence record names the central METAPHOR, so that metaphor's
@@ -109,9 +130,15 @@ and writes no files, so the craft flow must persist it — alongside the pinned 
 the shipped tree — and inject it into the audit. **Fixed names, so a later session can find them
 without being told:** in a `craft/` directory under the run's working area (the taskmaster docs
 area when the project has one, otherwise the session scratch area), as
-`craft/offer-contract.md`, `craft/divergence-record.md`, and `craft/section-ledger.md`. The audit
+`craft/offer-contract.md`, `craft/divergence-record.md`, `craft/content-source.md`,
+`craft/build-task.md`, `craft/section-ledger.md`, and `craft/reference-board.md`. The last two
+are conditional — a ledger on a `guided` run, a board at the `ultra-craft` boost — but every
+one of the six is a first-class stamped artifact under Part 8, and `craft/build-task.md` is
+read by `divergence.mjs` directly. The audit
 globs for `**/craft/offer-contract.md` and its siblings; a persistence rule with no filename is
-the same as no persistence at all. An audit with no
+the same as no persistence at all. Fixed names are also collidable names — a second run in one
+session writes the same paths — so each artifact carries the RUN STAMP that tells the runs
+apart, and the tiebreak for a glob that matches more than one is Part 8. An audit with no
 contract and no record cannot run these checks and must SAY so rather than pass silently; a
 gate that quietly no-ops is worse than an absent one.
 
@@ -195,7 +222,12 @@ A `one-shot` run generates the whole page from the contract and the concept with
 exactly ONE exchange carved out: the CONCEPT FORK. Before any artifact is
 persisted, the run presents 2–3 concept candidates — each a deck draw, a central
 metaphor, an editorial voice and one signature move — and the user picks the one
-the build runs on. Everything else about `one-shot` is unchanged: no section
+the build runs on. **That one exchange also carries the CONTENT-SOURCE question** —
+does copy for this page already exist? — as a second question inside the same
+`AskUserQuestion` call, never a second call, because the exchange is already open
+and it is the cheapest question in the flow (`content-source.md` owns the rules and
+the `source: none-located` default). ONE exchange, two questions; the cap does not
+move. Everything else about `one-shot` is unchanged: no section
 rounds, no per-treatment questions, no colour-by-colour approval; after the fork
 the page arrives finished. The fork binds at every tier, this one included,
 because the concept is the single decision a whole build inherits — and a
@@ -253,10 +285,85 @@ An empty horizon is a valid answer and the common one. Naming a route in the hor
 then shipping it is a scope finding like any other; naming one and stubbing it into the nav
 as a dead link is worse.
 
+## Part 8 — The run stamp, so a second run cannot inherit the first's artifacts
+
+The fixed names in Part 3 are what make these files findable without being told. They are
+also what makes them COLLIDABLE: a second craft run in the same session writes the same
+paths, and a run that stopped early leaves its artifacts sitting exactly where the next
+audit globs. That has happened — a previous run's contract was read as the current run's,
+and a person caught it rather than a gate. Per-run SUBDIRECTORIES are not the fix; they
+would break the fixed-name rule above and the fixed-depth resolution in
+`template/craft-gates/divergence.mjs`, which would then find no contract and no record and
+switch two live assertions off in silence.
+
+So every artifact in `craft/` opens with a RUN STAMP — the first line under the title,
+above every other row:
+
+```
+Run: 2026-07-26T14:32Z · clickinator · /Users/dev/src/clickinator-craft-test
+```
+
+Three fields, in this order, on one line beginning `Run:`, separated by ` · ` (space,
+middle dot, space):
+
+| Field | Shape | Why it is there |
+| --- | --- | --- |
+| Run instant | ISO-8601 UTC to the MINUTE — `YYYY-MM-DDTHH:MMZ` | a date alone cannot separate two runs in one session, which is the failing case |
+| Product slug | the contract's product name, lowercased, non-alphanumerics collapsed to `-` | names the run in a form a reader recognises at a glance |
+| Target project root | the ABSOLUTE path of the project being built | the only field that can prove an artifact belongs to THIS target |
+
+The stamp is computed ONCE, at step 0, and copied BYTE-IDENTICAL onto every artifact the
+run persists — contract, divergence record, content source, build task, section ledger,
+reference board. Identical is the whole mechanism: two artifacts belong to the same run if
+and only if their stamps match exactly, so re-reading the clock per file defeats it. `Run:`
+is deliberately not a deck-axis name and not `Brand echo:` — the same key-collision rule
+`concept-deck.md` states for the negative-constraints block applies here, because the
+divergence gate parses every `Key: value` line of the record it reads.
+
+### The tiebreak, when the glob returns more than one
+
+`**/craft/offer-contract.md` can match several files at once: a session-scratch copy and a
+taskmaster-docs copy, an abandoned run's leftovers, a sibling project vendored into the
+tree. One rule resolves it, with two consumers — the audit's glob and `divergence.mjs`'s
+`craft-stamp` assertion — and it never ends in a silent pick:
+
+1. **A different project is not a candidate.** Drop every match whose third stamp field is
+   not the project being audited. A filter, not a tie: an artifact stamped to another
+   project is evidence of nothing here, and it is the exact shape the collision took.
+2. **One candidate left → it wins.**
+3. **Several left → the strictly NEWEST run instant wins**, and only when the run's other
+   artifacts carry that same stamp. A newest contract beside a build task from the previous
+   run is not a resolution; it is the stale-artifact case this part exists to catch.
+4. **Anything else is UNDECIDABLE, and undecidable is REPORTED** — two candidates sharing
+   one instant, one candidate stamped while another is not, sibling artifacts disagreeing.
+   The audit reports `not checked (ambiguous craft artifacts: <n> matched — <path> <stamp>,
+   …)`, lists every candidate with its stamp, and grades nothing from any of them. Same
+   standing as every other missing input: never a pass, never a fail, and never a silent
+   pick of whichever the glob happened to return first.
+5. **Exactly one candidate carrying NO stamp** is used and reported as
+   `stamp absent (pre-stamp artifact) — not attributable to this run`. Runs that predate
+   this rule wrote none, and refusing to read their artifacts would break every project
+   that has one.
+
+Two artifacts of one run whose stamps DISAGREE are a finding in their own right: one of
+them was left by an earlier run, and every gate reading it is grading this build against
+another run's decisions. Detectable rather than merely unlikely is the point —
+`divergence.mjs`'s `craft-stamp` assertion checks stamp agreement across the contract, the
+divergence record, the build task and the content source on every audit, and fails when
+they disagree, when one is stamped to another project, or when one carries no stamp while a
+sibling does. Steps 1 and 3's agreement clause are therefore SCRIPTED; picking between
+several glob matches spread across directories is graded by the audit reading this list.
+
 ## What the audit checks (teeth)
 
 `/craft-layer:audit` reads THIS file (injected as a Read path) and verifies:
 
+- the artifacts it graded are THIS run's — every glob match is resolved by the Part 8 stamp
+  (a match stamped to another project is dropped, the newest agreeing stamp wins, an
+  undecidable set is reported with every candidate and its stamp and grades nothing), and
+  artifacts whose stamps disagree are one finding naming the file left over from the earlier
+  run. `divergence.mjs`'s `craft-stamp` assertion carries the scripted half; no stamp on any
+  artifact → `not checked`, never a pass;
 - a deliverable-scope block exists and the shipped route list MATCHES it;
 - exactly ONE product identity across the shipped routes;
 - the real product name appears in `<title>` and the hero;
@@ -265,6 +372,12 @@ as a dead link is worse.
   an objection/limits block, and one repeated primary-CTA verb;
 - the plain-what line is checked AGAINST the divergence record's metaphor vocabulary, not by
   taste — an h1 built from the metaphor and naming no capability is a finding;
+- the three BUYER slots — plain-what, audience, problem — are checked against the REGISTER
+  corpus, scoped by the build task's `Spine regions:` mapping. This one is SCRIPTED, not
+  agent-graded: `divergence.mjs`'s `spine-register` assertion, exit 1 on a hit, waivable in
+  `.craft-layer/waivers.json`. No `Spine regions:` line, or no mapped anchor in the tree →
+  `not checked`, never a pass. Method disclosure inside `how it works` and `objection` is
+  legal and is not checked there (`register-corpus.md`);
 - a proof region EXISTS (slotted per Part 4) rather than being absent;
 - ledger conformance is NOT checked here — `section-decisions/references/section-ledger.md`
   owns it, and skips entirely when no ledger exists (a one-shot build is not a finding);
@@ -280,6 +393,11 @@ as a dead link is worse.
   or `none` → `not checked`;
 - no route in the ROUTE HORIZON shipped as a dead nav link — the horizon names what is
   coming, and a stub in the nav is a broken promise rather than a preview;
+- when a `craft/content-source.md` exists, the INGESTED COPY was reproduced rather than
+  rewritten — claims, prices, tier and product names verbatim, legal blocks in full and not
+  behind an interaction, every gaps-table row shipped as a visible `{{lorem}}` rather than as
+  invented copy, and every source row's fetch date inside the declared staleness window
+  (`content-source.md` owns the rules). No artifact → `not checked`;
 - the declared LENGTH matches what shipped, and on `long-scroll`: every spine slot answered
   first within roughly the opening third, the primary CTA recurring through the scroll on one
   verb, no long run of identically-shaped sections, an in-page wayfinding affordance past
@@ -292,6 +410,12 @@ taste.
 
 - **Spec sheet as sales page** — full method disclosure with no plain-language what, no
   named audience, no price, no CTA.
+- **Every slot answered, in the wrong register** — the harder version of the one above, and
+  the one that passes a presence gate: each slot IS answered, and each is answered for
+  whoever will call the API. Graded by `spine-register` (`register-corpus.md`).
+- **Copy invented where copy existed** — the client's published page went unfetched or
+  unasked-for, so the slots were filled from the product's spec facts. The anti-pattern
+  above, with its most common cause.
 - **Metaphor as brand** — the concept's nickname replaces the product's real name.
 - **Two products, one site** — options presented, then all of them built.
 - **Kit page as a route** — the design-system showcase mounted in the product nav.
@@ -310,3 +434,7 @@ taste.
   dead links so the page looks fuller.
 - **Contract as template** — reading the slot table as a fixed section order; the concept
   decides form, the contract decides what must be answered.
+- **Last run's contract, this run's audit** — a second run in one session landing on the
+  first run's artifacts at the same fixed paths, and every gate grading a build against
+  decisions taken for a different product. Unstamped, it is invisible until someone reads
+  the file.
