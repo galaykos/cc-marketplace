@@ -35,7 +35,19 @@ banner first, with its cost line.
 ## Steps
 
 0. **Offer contract, then creative direction.** Apply the `creative-direction` skill.
-   FIRST pin the offer contract (`skills/creative-direction/references/offer-contract.md`):
+   FIRST UPGRADE THE BRIEF, before a single contract row is pinned. Derive, from the user's
+   raw words: a SHARPENED objective (the same job said precisely), the constraints the brief
+   IMPLIES but never states (an audience that implies a reading level, a named stack that
+   implies a render mode, "for our sales team" that implies auth and internal-only), and what
+   it left UNDECIDED — the calls someone has to make that the brief does not make. Sharpening
+   is not rewriting: an upgrade that widens the job, swaps the product, or invents a route the
+   user never asked for has REPLACED the scope, and where the two disagree the raw line wins.
+   ECHO the pair together, `Raw brief:` (their words, verbatim) above `Upgraded brief:` (the
+   sharpened objective, then the implied constraints, then the undecided list), so the user can
+   see what was read into their words at the one moment it is cheap to correct. This is a
+   READOUT, not a question — it adds NO exchange to a `one-shot` run, which still carves out
+   exactly one (the concept fork below), and asks nothing extra of a `guided` one.
+   THEN pin the offer contract (`skills/creative-direction/references/offer-contract.md`):
    one product under its real name, the audience, the ONE primary action, the exact route
    list, the ROUTE HORIZON (routes the site is known to be getting later and is NOT building
    now — an empty horizon is the common answer; a named one changes the STRUCTURE, because a
@@ -55,7 +67,15 @@ banner first, with its cost line.
    not shipping. A BOOSTED run (see Boost above) does not READ these two rows: it pins
    `Ambition: maximal` and `Mode: guided` outright and records `Boost: ultra-craft`. Where a
    boosted brief ALSO asks for conventional, trust-first, fast or cheap, the two orders
-   conflict — ASK which one wins rather than picking silently. Echo the whole contract to the user BEFORE any file is written. If the
+   conflict — ASK which one wins rather than picking silently. Echo the whole contract to the user BEFORE any file is written, and MARK
+   EVERY ROW THAT WAS INFERRED rather than read. A row the user stated stands unmarked; a row
+   this step derived carries the phrase or signal it came FROM — `Ambition: maximal (inferred ←
+   "make it pop")`, `Mode: one-shot (inferred ← no mode words in the brief)`, `Stack: Next.js
+   (inferred ← "App Router" in the brief)`. Nine rows are routinely inferred rather than read —
+   mode, ambition, boost, archetype, palette mood, type strategy, stack, motion tier, content
+   depth — and the audit will not reconstruct a contract row from what shipped, so a row inferred
+   wrong here is never caught downstream: it just propagates. The mark is what makes a wrong read
+   visible while fixing it still costs one sentence. If the
    brief admits several products, positionings, or directions, ASK which one; presenting
    options and then building all of them is the failure this step exists to stop, and a
    token/kit showcase is not a site route unless asked for. Carry the contract's offer
@@ -100,13 +120,17 @@ banner first, with its cost line.
    `low-confidence` for human review). The chosen candidate's draw is the one persisted
    below, logged in step 7 and gated by the audit; the unchosen draws are discarded.
    FINALLY, once the archetype is classified and the concept exists, PERSIST both artifacts —
-   the pinned contract INCLUDING its archetype row and its `Boost` row, and the divergence
+   the pinned contract INCLUDING its archetype row, its `Boost` row, the `Raw brief:` /
+   `Upgraded brief:` pair and every `(inferred ← …)` mark with its basis, and the divergence
    record — at the fixed
    paths `craft/offer-contract.md` and `craft/divergence-record.md` under the run's working
    area (the taskmaster docs area when the project has one, otherwise the session scratch;
    never the shipped tree). Persisting before the archetype is classified writes an empty
    Archetype row and leaves the content-depth gate with no anchor. The audit globs for exactly
-   those names; a contract that was only spoken cannot be checked against.
+   those names; a contract that was only spoken cannot be checked against — and a brief pair or
+   an inference mark that lived only in the echo evaporates with the transcript, leaving the
+   propagation it exists to stop exactly where it was. Written into the file, both are readable
+   by every later step, and by the next session.
 
 1. **Research → briefs.** Run `/craft-layer:research <the product idea from step 0, with the
    mode/length instructions stripped out>` — never `$ARGUMENTS` verbatim, or "guided" is

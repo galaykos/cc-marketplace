@@ -23,9 +23,10 @@ and token direction, then write. The full method is in `references/mining-method
 
 Pull from three lanes, not one:
 
-- **Live products in the same category** — the real thing users compare against
-  (Linear, Stripe, Vercel for SaaS; the target's actual competitors). Walk flows and
-  states, not just the landing hero.
+- **Live products in the same category** — the 2–4 interfaces THIS audience already
+  compares the target against. The brief names them; this file does not, because a
+  roster here becomes the house look every build converges on. Walk flows and states,
+  not just the landing hero.
 - **Pattern galleries** — Mobbin, Godly, Land-book, Refactoring UI, Page Flows,
   UI Sources — for a spread of ONE pattern (pricing tables, empty states, onboarding),
   so you borrow a convention rather than copy a page.

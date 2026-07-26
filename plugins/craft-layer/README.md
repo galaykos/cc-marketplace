@@ -174,6 +174,56 @@ than two candidates clear the usability floor there is no fork; the weak-round p
 This is the one exchange a `one-shot` run now carries — everything else about `one-shot` is
 unchanged, and Part 6 of the offer contract states it.
 
+### Research is inspiration, not a template
+
+Mining used to name its Lane A sources by brand and then instruct the run to treat agreement
+as the answer. That is a catalog feeding an averager: look at the same six products every
+time, keep what they have in common, and the output is the category's centre of mass with a
+different logo. Three changes:
+
+- **A source CLASS, not a roster.** Lane A is now "the 2–4 interfaces THIS audience already
+  compares the target against" — the brief names them, the file does not. It carries the same
+  mechanical kill-trigger `type-strategy.md` applies to typefaces: *if this file would need
+  editing when a new product launches, it has become a catalog.*
+- **Principles, not properties.** The extraction worksheet gained a third column. Column two
+  records what the source DOES; column three records the PRINCIPLE behind it and how this
+  brief re-expresses it. A row whose third column merely restates the second is a copy, not a
+  finding — and the file says so.
+- **Agreement is a flag, not a convention.** Where sources converge is where the category is
+  most predictable, so convergence is now something to diverge FROM, not adopt. The narrow
+  exception — comprehension and accessibility conventions users genuinely rely on — has to be
+  justified in the brief rather than assumed. One source may supply a principle; none may
+  supply the arrangement.
+
+Lane B's pattern galleries keep their names on purpose: they are breadth on a single pattern,
+not a house look, and `ultra-craft`'s research mandate binds three of them by name as a search
+floor the audit enforces.
+
+### The brief the run actually acted on
+
+The offer contract pinned eleven rows and echoed them, but nothing showed you how the run had
+READ your words, and nine of those rows are inferred rather than stated — mode, ambition,
+boost, archetype, palette mood, type strategy, stack, motion tier, content depth. The audit
+deliberately refuses to re-infer a contract row from what shipped, so a wrong read was never
+caught downstream; it just propagated.
+
+Step 0 now opens with a brief pair, before any row is pinned:
+
+```
+Raw brief:      <your words, verbatim>
+Upgraded brief: Objective  — the sharpened objective
+                Implies    — constraints the brief carries but never states
+                Undecided  — what it left open
+```
+
+Sharpen, never replace: where the upgrade and the raw line disagree, the raw line wins. And
+every inferred row is now marked with what it was inferred FROM — `Ambition: maximal (inferred
+← "make it pop")` — so a misread is visible at the one moment it is cheap to correct.
+
+Both are a READOUT, not a question: a `one-shot` run gains no exchange from this. And both are
+written into the persisted contract, not merely spoken, because a mark that lives only in the
+echo leaves with the transcript.
+
 ### Seeing the work
 
 A build once passed a clean typecheck, a clean lint, a 107,016-state sweep, measured WCAG

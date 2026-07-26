@@ -15,6 +15,8 @@ Resolve every row below, echo them to the user, then build:
 
 | Field | Must resolve to |
 | --- | --- |
+| Raw brief | the user's request in their OWN words, verbatim — the line an upgrade sharpens and never replaces |
+| Upgraded brief | the sharpened objective, the constraints the brief IMPLIES but never states, and what it left UNDECIDED — see Part 1a |
 | Product | ONE product, under its REAL name |
 | Audience | who is buying, in a phrase |
 | Archetype | the work-type archetype classified from `archetypes.md` — it keys the content-depth anchors the audit counts against, so it must persist with the rest |
@@ -35,6 +37,38 @@ and each page's proof, pricing, and CTA get half the room they need.
 **Internal artifacts are not routes.** A token/kit/design-system showcase is a useful build
 artifact; it ships as a site route only when the user asked for one. Mounted in the product
 nav it reads as an unfinished demo.
+
+## Part 1a — The brief pair, and marking what was inferred
+
+Before any row above is pinned, the raw brief is UPGRADED — and the upgrade is echoed with
+the contract and persisted inside it, in this shape:
+
+```
+Raw brief: <the user's request, verbatim>
+Upgraded brief:
+  Objective: <the same job, said precisely>
+  Implies: <constraints the brief entails but never states>
+  Undecided: <the calls it leaves open for someone else to make>
+Ambition: maximal (inferred ← "make it pop")
+Mode: one-shot (inferred ← no mode words in the brief)
+Audience: logistics ops leads
+```
+
+Four rules bind it:
+
+- **Sharpen, never replace.** The upgrade says the user's job precisely; it does not widen
+  the scope, swap the product, or add a route nobody asked for. Where the sharpened reading
+  and the raw line disagree, the raw line wins.
+- **Marked means inferred.** A row the user stated is written plain — `Audience` above. A row
+  the run DERIVED carries `(inferred ← <the phrase or signal>)`, so the basis travels with the
+  value. Mode, ambition, boost, archetype, palette mood, type strategy, stack, motion tier and
+  content depth are the rows this most often applies to.
+- **A readout, not a question.** The pair is shown, not asked about; it costs a `one-shot` run
+  no exchange. The user corrects it if it is wrong, at the moment correcting it is cheap.
+- **Persisted, not just spoken.** Both the pair and every mark are written into
+  `craft/offer-contract.md` with the rest of the rows. A mark that lives only in the echo
+  evaporates with the transcript, and a mis-inferred row then propagates through the whole
+  build unchallenged.
 
 ## Part 2 — Product identity survives the concept
 

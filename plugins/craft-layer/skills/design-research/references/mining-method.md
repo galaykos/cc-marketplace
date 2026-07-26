@@ -11,11 +11,18 @@ generation — those live in `plugins/ui-ux/skills/design-tokens/SKILL.md` and
 Cover all three lanes. One lane alone is copying, not research.
 
 ### Lane A — Live products in the same category
-The real interfaces the target's users compare it against. Pick 2–4.
+A source CLASS, never a list: the 2–4 interfaces THIS audience already compares the
+target against. The brief names them; this file does not.
 
-- SaaS / dashboards: Linear, Stripe, Vercel, Height, Retool, Ramp.
-- Marketing / landing: the target's direct competitors' sites.
-- Category leaders whose conventions users already expect.
+- The products this audience opens in the next tab for the same job.
+- The direct competitors the brief names, plus the category leader whose conventions
+  these users already arrive expecting.
+- If the brief names none, ask before mining. An unfilled source class is a gap in the
+  brief — not a licence to reach for whatever ships loudest this quarter.
+
+The test is mechanical: **if this file would need editing when a new product launches,
+it has become a catalog.** A named roster ages into a house look and feeds an averager;
+a source class re-derives itself per target, per audience, per year.
 
 For each, walk beyond the hero: sign-up, empty state, a populated table or list, a
 settings page, a loading and an error state. Craft shows in the boring screens.
@@ -47,15 +54,24 @@ For every source, record BOTH columns. A source that only yields colour is under
 
 ### 2a. Interaction & layout PATTERNS (→ the `/ui-ux:build` task)
 
-| Facet | Prompt | Capture |
+Three columns, and the third does the work. Column two records what the source DOES;
+column three names the PRINCIPLE underneath it and how THIS brief re-expresses that
+principle in its own terms.
+
+**A row whose third column merely restates the second is a copy, not a finding** —
+re-derive it or strike the row. "Sidebar nav, 240px" → "sidebar nav" has extracted
+nothing; "persistent orientation while the workspace changes underneath → our brief
+carries orientation in a fixed spine, not a sidebar" is a finding.
+
+| Facet + prompt | What the source does | Principle → this brief's re-expression |
 | --- | --- | --- |
-| Layout skeleton | Grid columns, max-width, hero composition, nav/sidebar shape | |
-| Content density | Airy marketing vs compact data UI; whitespace rhythm | |
-| Component anatomy | Card structure, table/list row, form field grouping | |
-| States | Empty, loading, error, hover/focus, selected | |
-| Disclosure | Tabs, accordions, drawers, modals, progressive reveal | |
-| Motion | What animates; entrance vs micro-interaction; energy (calm→lively) | |
-| Responsive | How the layout reflows at phone / tablet / full | |
+| Layout skeleton — grid columns, max-width, hero composition, nav/sidebar shape | | |
+| Content density — airy marketing vs compact data UI; whitespace rhythm | | |
+| Component anatomy — card structure, table/list row, form field grouping | | |
+| States — empty, loading, error, hover/focus, selected | | |
+| Disclosure — tabs, accordions, drawers, modals, progressive reveal | | |
+| Motion — what animates; entrance vs micro-interaction; energy (calm→lively) | | |
+| Responsive — how the layout reflows at phone / tablet / full | | |
 
 ### 2b. Token DIRECTION (→ the `/ui-ux:theme` string)
 
@@ -72,13 +88,22 @@ Record as adjectives and references — NOT hex or px. Values are generated down
 
 ## 3. Synthesise
 
-- Cluster findings: where sources agree, that is the convention; where they diverge,
-  that is a decision to make (and a candidate to `/design-preview:preview`).
+- Cluster findings, then read the clusters the right way round. **Where sources AGREE
+  is where the category is most predictable — convergence is a flag to diverge from,
+  not a convention to adopt.** Adopt an agreed pattern only where it is load-bearing
+  for comprehension or accessibility, and say in the brief why it earns the exception.
+  Where they diverge, that is a genuine decision to make (and a candidate to
+  `/design-preview:preview`).
 - Separate the two payloads: colour/type/spacing/radius/motion-feel adjectives go to the
   theme brief; layout/component/state/motion patterns go to the build task.
 - Keep them describing ONE product — reconcile any contradiction before writing.
 - Note every direction that is still genuinely open; those are preview forks, not brief
   lines.
+- **Anti-pattern — reproducing any single source's composition.** If the briefed layout
+  could be captioned "it is that one product, with our colours", the mining produced a
+  clone. One source may supply a principle; none may supply the arrangement. Every
+  composition line must trace to a principle held across sources or to the brief's own
+  constraint — never to one source's page.
 
 ## 4. Hand off
 
