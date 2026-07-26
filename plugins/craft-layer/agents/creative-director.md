@@ -90,6 +90,15 @@ Return, as text:
 - **Divergence record** — one row per departure: { fingerprint axis · the entry it
   replaces · the brief reason }. The audit greps this against the fingerprint, so it must be
   concrete, not placeholder.
+- **Negative constraints** — whatever you RULED OUT, on the three fixed keys
+  `Banned genus:` / `Banned register:` / `Banned vocabulary:`, per the block format in
+  `creative-direction/references/concept-deck.md`. This is the half of your reasoning the
+  rest of the run cannot reconstruct: when a prior build in a sibling directory, or a drawn
+  option's laziest execution, is the thing to stay off, `Banned vocabulary:` carries the
+  literal terms — the labels, unit words and register tells a grep can find — and the build
+  task and the audit's tree-wide grep both read that line. Never restate a ban as
+  `<deck axis>: not …`; that key collides with the draw and overwrites it silently. Nothing
+  ruled out → `Banned vocabulary: none`, never an absent line.
 - **Grafts** — the non-core embellishments carried from runners-up (may be empty).
 - **Confidence** — `ok` or `low-confidence` (with why).
 
@@ -102,5 +111,8 @@ Return, as text:
   category; that manufactures new sameness.
 - **Placeholder divergence record** — an empty or vague record; the audit gate cannot check
   it and the build reads as generic.
+- **Ruling something out in prose** — warning that a prior build's genus is the thing to
+  avoid, in a paragraph, with no `Banned vocabulary:` line. The warning reaches no builder
+  and no gate, and the build ships the genus you ruled out.
 - **Writing a design** — emitting layout, colours, or components; you return a concept, the
   briefs and build tools do the rest.

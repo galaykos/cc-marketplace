@@ -17,6 +17,13 @@
 #   require-only    : `node -e "require(...)"`  with no assertion following
 #   import-only     : `python -c "import ..."`  with no assertion following
 #   compile-only    : `tsc --noEmit`, `-fsyntax-only`, or `go build` as the whole check
+#                     PROJECT-REFERENCES CAVEAT: on a root tsconfig of
+#                     `"files": []` + `"references"` (Vite React-TS scaffold,
+#                     most monorepos) `tsc --noEmit` is not merely weak, it is
+#                     VACUOUS — tsc gets zero files and exits 0 having checked
+#                     nothing. `tsc -b` is the check that runs. Printed as a
+#                     non-blocking NOTE (below), never as a block: this lint
+#                     reads line text and cannot know which config a build uses.
 #   bare-suite-pass : a test runner (npm test / pytest / jest / go test ...) with
 #                     NO named test/assertion token (no -k/-t/named file) AND no
 #                     trailing `asserts <x>` / `including <x>` clause
@@ -104,10 +111,24 @@ if has '^[[:space:]]*(test[[:space:]]+-[fed][[:space:]]|\[[[:space:]]+-[fed][[:s
   weak "existence-only: test -f/-e/-d, [ -f ], or ls proves a path exists, not that behavior works"
 fi
 
+# 3a) project-references NOTE — advisory, never changes the exit code. `tsc
+#     --noEmit` against a root of `"files": []` + `"references"` type-checks ZERO
+#     files and exits 0, so the line is vacuous rather than merely weak; that
+#     shape ships with the Vite React-TS scaffold and most monorepos. Detection
+#     is a cheap heuristic on the CURRENT directory's tsconfig.json — the lint
+#     grades line text and cannot know which config a build really uses, so this
+#     informs the author and blocks nothing. Fires before the block below so a
+#     compile-only line carries the reason it is worse than it looks.
+if has 'tsc[^|;&]*--noemit' && [ -f tsconfig.json ] \
+   && grep -Eq '"files"[[:space:]]*:[[:space:]]*\[[[:space:]]*\]' tsconfig.json \
+   && grep -Eq '"references"[[:space:]]*:' tsconfig.json; then
+  printf 'verify-teeth: NOTE project-references root here (files: [] + references): `tsc --noEmit` type-checks NOTHING and exits 0 — use `tsc -b`\n' >&2
+fi
+
 # 3) compile-only — compiles/type-checks, as the whole check.
 if has '(tsc[^|;&]*--noemit|-fsyntax-only|^[[:space:]]*go[[:space:]]+build([[:space:]]|$))' \
    && ! has "$strong_guard"; then
-  weak "compile-only: compiles/type-checks but runs no assertion"
+  weak "compile-only: compiles/type-checks but runs no assertion (on a files:[] + references root, nothing at all)"
 fi
 
 # 4) require-only / import-only — a bare load with nothing asserted.

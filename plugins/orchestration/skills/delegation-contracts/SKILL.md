@@ -110,9 +110,9 @@ Reads parallelize freely; writes need proof of disjointness.
   lives in git-workflow:worktree-isolation.
 - Read-only agents never need isolation — spawn as many as the work
   supports.
+- **A cross-cutting property needs ONE tree-wide gate, run by the orchestrator after fan-in** — N scoped greps verify it nowhere, and a tree-wide command run mid-fan-out reports on a sibling's half-saved file, not on the runner's diff: `references/tree-wide-gates.md`.
 
-The failure mode is silent: two writers touch one file, the second
-write clobbers the first, and no error is raised anywhere.
+The failure mode is silent: two writers touch one file, the second write clobbers the first, and no error is raised anywhere.
 
 ## Skill priming (authoring-time)
 

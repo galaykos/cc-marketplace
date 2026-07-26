@@ -76,6 +76,17 @@ across build-in-code · open-source-lib · asset-marketplace · commission · AI
 The uniqueness axis feeds the EXISTING anti-sameness gate: a default stock hero or a
 default icon set is a fingerprint default, not a neutral choice.
 
+## The component decision (four classes)
+
+A SECTION is not an asset, and it has its own sourcing decision:
+`references/component-sourcing.md`, six axes across first-party · registry block adapted ·
+registry block as-is · installed library. It ALWAYS runs — an installed library resolves it
+immediately rather than suppressing it — and the signature interaction is always
+first-party, because a block published for general reuse cannot carry the one move that is
+this brief's alone. A sourced block declares itself with a greppable `component-source:`
+marker keyed to a manifest record; an UNMARKED one is invisible to the gate, which that
+file states rather than papers over.
+
 ## Cross-cutting gates
 
 Both apply on top of the routed kind, on every asset:
@@ -105,6 +116,9 @@ Both apply on top of the routed kind, on every asset:
   the five categorical source classes and their selection criteria.
 - `references/licence-discipline.md` — the licence / provenance gate: licence classes,
   what each obliges, and the machine-findable manifest requirement.
+- `references/component-sourcing.md` — where a SECTION comes from: the four component
+  classes, the `component-source:` marker the orphan scan reads, and an explicit table of
+  which of its rules are gates and which are recorded-but-unenforced.
 - `references/iconography.md` — icons as a system: consistency axes + icon-font vs
   inline-SVG vs SVG-sprite + `currentColor` theming + a11y.
 - `references/vector-3d.md` — SVG/vector sourcing (SVGO, inline-vs-file) + 3D-model

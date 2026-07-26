@@ -23,11 +23,13 @@
      CLAUDE_PLUGIN_ROOT       craft-layer's root; makes the anti-corpus LIVE
      CRAFT_CONTRACT           explicit path to the persisted offer contract
      CRAFT_DIVERGENCE_RECORD  explicit path to the persisted divergence record
+     CRAFT_BUILD_TASK         explicit path to the persisted build task
+     CRAFT_CONTENT_SOURCE     explicit path to the persisted content source
 
    Exit codes: 0 clean · 1 one or more assertions failed · 2 not measured.
 */
-import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs'
-import { join, dirname, basename, resolve } from 'node:path'
+import { readFileSync, existsSync, statSync, readdirSync, realpathSync } from 'node:fs'
+import { join, dirname, basename, resolve, relative } from 'node:path'
 
 /* ------------------------------------------------------------- anti-corpus */
 
@@ -209,11 +211,25 @@ function readFamilies(css) {
 const LOG_PATH = '.craft-layer/run-log.md'
 const COLUMNS = ['date', 'brief-slug', 'hue-family', 'type-strategy', 'spine', 'signature', 'draw']
 
-/** Last 5 rows of the seven-column log. A malformed log is EMPTY, never fatal. */
+/** Last 5 rows of the seven-column log. A malformed log is EMPTY, never fatal.
+ *
+ * PARTIAL malformation is the case worth being loud about. A wholly-unreadable log
+ * already warns, but a log where only SOME rows are hand-edited used to be read
+ * partially and silently — the gate then ran against a quietly truncated history
+ * while craft.md and the README both promise "treated as EMPTY and warned about".
+ * Every dropped row is now counted and reported.
+ *
+ * Widths: rows are matched against the HEADER's width when a header is present,
+ * falling back to COLUMNS. Cells map POSITIONALLY, so a column inserted anywhere
+ * but the end of the row shifts every older row's values into the wrong keys —
+ * which reads as a PASS on garbage rather than a skip. New columns are
+ * append-only, and a row wider than its header is reported rather than trusted. */
 function readRunLog(notes) {
   const p = resolve(process.cwd(), LOG_PATH)
   if (!existsSync(p)) return []
   let rows = []
+  let narrow = 0
+  let wide = 0
   try {
     const lines = readFileSync(p, 'utf8').split('\n').filter((l) => l.trim().startsWith('|'))
     const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
@@ -222,8 +238,9 @@ function readRunLog(notes) {
       const c = cells(l)
       if (c.every((x) => /^:?-{2,}:?$/.test(x))) continue
       if (!header && c.some((x) => /brief-slug/i.test(x))) { header = c.map((x) => x.toLowerCase()); continue }
-      if (c.length < COLUMNS.length) continue
       const keys = header ?? COLUMNS
+      if (c.length < keys.length) { narrow++; continue }
+      if (c.length > keys.length) wide++
       const row = {}
       keys.forEach((k, i) => { row[k] = c[i] ?? '' })
       rows.push(row)
@@ -231,6 +248,12 @@ function readRunLog(notes) {
   } catch (e) {
     notes.push(`run log unreadable (${e.message}) — treated as EMPTY`)
     return []
+  }
+  if (narrow) {
+    notes.push(`${LOG_PATH}: ${narrow} row(s) too narrow to parse — DROPPED, so this run diverges from less history than the log appears to hold`)
+  }
+  if (wide) {
+    notes.push(`${LOG_PATH}: ${wide} row(s) wider than the header — extra cells ignored. If a column was inserted mid-row rather than appended, the values read here are MISALIGNED and the repeat gates below are unreliable`)
   }
   if (!rows.length) notes.push(`${LOG_PATH} present but held no parseable rows — treated as EMPTY`)
   return rows.slice(-5)
@@ -251,19 +274,40 @@ function firstExisting(list) {
   return null
 }
 
-const contractPath = () => firstExisting([
-  process.env.CRAFT_CONTRACT,
-  'craft/offer-contract.md',
-  'taskmaster-docs/craft/offer-contract.md',
-  '.craft-layer/offer-contract.md',
-])
+/* The candidate list per artifact, in precedence order. Held in ONE table because
+   the stamp assertion below needs the whole list — the extra candidates are the
+   ambiguity it reports — while every other reader wants only the first that
+   exists. Env vars are read per call, so a test can set one between runs. */
+const ARTIFACT_PATHS = {
+  'offer contract': () => [
+    process.env.CRAFT_CONTRACT,
+    'craft/offer-contract.md',
+    'taskmaster-docs/craft/offer-contract.md',
+    '.craft-layer/offer-contract.md',
+  ],
+  'divergence record': () => [
+    process.env.CRAFT_DIVERGENCE_RECORD,
+    'craft/divergence-record.md',
+    'taskmaster-docs/craft/divergence-record.md',
+    '.craft-layer/divergence-record.md',
+  ],
+  'build task': () => [
+    process.env.CRAFT_BUILD_TASK,
+    'craft/build-task.md',
+    'taskmaster-docs/craft/build-task.md',
+    '.craft-layer/build-task.md',
+  ],
+  'content source': () => [
+    process.env.CRAFT_CONTENT_SOURCE,
+    'craft/content-source.md',
+    'taskmaster-docs/craft/content-source.md',
+    '.craft-layer/content-source.md',
+  ],
+}
 
-const recordPath = () => firstExisting([
-  process.env.CRAFT_DIVERGENCE_RECORD,
-  'craft/divergence-record.md',
-  'taskmaster-docs/craft/divergence-record.md',
-  '.craft-layer/divergence-record.md',
-])
+const contractPath = () => firstExisting(ARTIFACT_PATHS['offer contract']())
+
+const recordPath = () => firstExisting(ARTIFACT_PATHS['divergence record']())
 
 /** A build echoing an existing brand legitimately repeats itself every run. */
 function brandEcho() {
@@ -317,21 +361,489 @@ const waiverFor = (waivers, check, value) => waivers.find((w) =>
   w.check === check && (!String(w.value ?? '').trim() || w.value === '*'
     || String(w.value).toLowerCase() === String(value).toLowerCase()))
 
+/* --------------------------------------------------------- spine register */
+
+/* THE BUYER'S QUESTION, ANSWERED IN AN INTEGRATOR'S VOICE.
+ *
+ * The offer-spine gate checks each slot is PRESENT. A build once answered all
+ * eight — and answered them with `POST /api/task`, a bearer-token scope, a
+ * `workspace_id` global scope and a 403 body. Every gate reported green; a human
+ * read the page and found API documentation wearing a landing page's clothes.
+ *
+ * Only the three BUYER slots are graded — plain-what, audience, problem. Method
+ * disclosure inside `how it works` and `objection` is where the offer contract
+ * ROUTES spec detail, and a limits list is SUPPOSED to be concrete, so a
+ * whole-page grep is the blunt version of this check: it fires on correct pages,
+ * teaches builders to strip real detail, and gets waived into silence.
+ *
+ * Scoping it needs a slot -> region mapping, which is why this reads
+ * `craft/build-task.md`'s `Spine regions:` line. Mapping, corpus and declared
+ * limits: skills/creative-direction/references/register-corpus.md
+ *
+ * `fixture-register.html` and `fixture-register-clean.html` are the pair that
+ * proves this fails for the right reason: same product, same facts, same
+ * endpoints and the same limits list — only the register of the three buyer
+ * slots differs. The clean one MUST pass; a run that fails it has become the
+ * whole-page grep. `fixture-register-falsepos.html` is the third of the set: a
+ * correct buyer page whose copy happens to carry `401(k)`, `429 teams` and
+ * `Suite 502`, with every buyer anchor on a TEXT-ONLY leaf. It must pass, and it
+ * must report all three slots CHECKED rather than unreadable.
+ *
+ * Point a scratch project at each in turn with a build task carrying, ON ONE LINE
+ * AND NEVER WRAPPED (this parser reads the line the key is on and nothing else):
+ *
+ * Spine regions: plain-what=#hero, audience=#hero, problem=#status-quo, how-it-works=#method, price=#pricing, proof=#proof, objection=#limits, cta=#hero
+ */
+
+const REGISTER_SNAPSHOT = {
+  date: '2026-07-26',
+  rules: [
+    ['http-verb', 'g', String.raw`\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(?:/|https?://|\{|:)`],
+    ['http-verb', 'g', String.raw`\b(?:GET|POST|PUT|PATCH|DELETE)\s+(?:request|call|endpoint)s?\b`],
+    ['endpoint-path', 'gi', String.raw`(?:^|[\s"'(\[])/(?:api|v[0-9]+|graphql|rest|oauth|webhooks?)(?:/|\b)`],
+    ['endpoint-path', 'g', String.raw`/\{[A-Za-z_]\w*\}`],
+    ['endpoint-path', 'g', String.raw`/:[a-z_]\w*\b`],
+    ['auth-scheme', 'gi', String.raw`\b(?:bearer token|bearer auth|oauth2?|jwt|json web token|sanctum|api[ -]?key|api[ -]?token|api[ -]?secret|access token|refresh token|client secret|personal access token|hmac|basic auth|token scope|scoped token)\b`],
+    ['auth-scheme', 'gi', String.raw`\b(?:ability|scope|scopes|permission):[a-z_-]+`],
+    ['status-code', 'gi', String.raw`\b(?:HTTP|status(?: code)?|error(?: code)?|response code|responds? with|returns?|rejects? with|rejected(?: with)?|fails? with|throws?)\s+(?:an?\s+)?[1-5][0-9]{2}\b`],
+    ['status-code', 'gi', String.raw`\b(?:401|403|409|418|422|429|451|502|503)\s+(?:unauthori[sz]ed|forbidden|conflict|unprocessable|too many requests|bad gateway|service unavailable|errors?|status|responses?)\b`],
+    ['orm-schema', 'gi', String.raw`\b[a-z][a-z0-9]*_id\b`],
+    ['orm-schema', 'gi', String.raw`\b(?:foreign key|primary key|global scope|eloquent|active ?record|varchar|nullable|polymorphic|soft[ -]delete|join table|database schema|db migration|schema migration|ORM)\b`],
+    ['protocol-limits', 'gi', String.raw`\b(?:rate[ -]limit(?:ed|s|ing)?|requests? per (?:second|minute|hour|day)|req/(?:s|min)|idempotenc\w+|retry-after|webhook payload|exponential backoff|throttl\w+)\b`],
+  ],
+}
+
+/** The corpus, LIVE from the reference when the plugin root is known. Same
+    contract as the anti-corpus above: source and date are printed every run, so a
+    frozen snapshot is visible rather than assumed. */
+function loadRegisterCorpus() {
+  const root = process.env.CLAUDE_PLUGIN_ROOT
+  if (root) {
+    const p = join(root, 'skills/creative-direction/references/register-corpus.md')
+    if (existsSync(p)) {
+      try {
+        const m = readFileSync(p, 'utf8')
+          .match(/<!--\s*register-corpus:start\s*-->([\s\S]*?)<!--\s*register-corpus:end\s*-->/)
+        const rules = []
+        for (const line of (m ? m[1] : '').split('\n')) {
+          const t = line.trim()
+          if (!t || t.startsWith('```')) continue
+          const parts = t.split(' :: ')
+          if (parts.length < 3) continue
+          rules.push([parts[0].trim(), parts[1].trim(), parts.slice(2).join(' :: ').trim()])
+        }
+        if (rules.length) {
+          return { source: p, kind: 'live corpus', date: statSync(p).mtime.toISOString().slice(0, 10), rules }
+        }
+      } catch { /* fall through to the snapshot */ }
+    }
+  }
+  return {
+    source: 'embedded snapshot (CLAUDE_PLUGIN_ROOT unset or corpus missing)',
+    kind: 'frozen snapshot',
+    date: REGISTER_SNAPSHOT.date,
+    rules: REGISTER_SNAPSHOT.rules,
+  }
+}
+
+const buildTaskPath = () => firstExisting(ARTIFACT_PATHS['build task']())
+
+/** `Spine regions: plain-what=#hero, audience=#hero, problem=#status-quo, …` */
+function readSpineRegions() {
+  const p = buildTaskPath()
+  if (!p) return null
+  let text
+  try { text = readFileSync(p, 'utf8') } catch { return null }
+  for (const line of text.split('\n')) {
+    const m = line.match(/^\s*[-*]?\s*Spine regions\s*:\s*(.+?)\s*$/i)
+    if (!m) continue
+    const declared = m[1].replace(/[`*]/g, '').trim()
+    const map = {}
+    if (!/^(?:none|unmapped|n\/a|-|—)$/i.test(declared)) {
+      for (const pair of declared.split(',')) {
+        const mm = pair.trim().match(/^([A-Za-z][A-Za-z-]*)\s*=\s*#?([\w:-]+)$/)
+        if (mm) (map[mm[1].toLowerCase()] ??= []).push(mm[2])
+      }
+    }
+    return { path: p, map, declared }
+  }
+  return null
+}
+
+const SRC_EXT = /\.(?:html?|jsx?|tsx?|vue|astro|svelte|mdx)$/i
+const SKIP_DIR = /^(?:node_modules|dist|build|out|coverage|vendor|craft|taskmaster-docs)$/i
+
+const rel = (p) => relative(process.cwd(), p) || p
+
+/** Shipped source files, dot-directories and build output excluded. */
+function sourceFiles(dir, out = [], budget = { n: 0 }) {
+  let entries
+  try { entries = readdirSync(dir, { withFileTypes: true }) } catch { return out }
+  for (const e of entries) {
+    if (budget.n > 3000) return out
+    if (e.name.startsWith('.')) continue
+    if (e.isDirectory()) { if (!SKIP_DIR.test(e.name)) sourceFiles(join(dir, e.name), out, budget) }
+    else if (SRC_EXT.test(e.name)) { budget.n++; out.push(join(dir, e.name)) }
+  }
+  return out
+}
+
+const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** The element carrying `id="<anchor>"`, bounded by tag balance on its own tag
+    name. Bounding matters more than it looks: without it the region runs to the
+    end of the file and swallows the `how it works` section, which is the blunt
+    whole-page grep this gate exists to NOT be. */
+function regionFor(src, anchor) {
+  const a = esc(anchor)
+  const m = new RegExp(`\\bid\\s*=\\s*(?:"${a}"|'${a}'|\\{\\s*(?:"${a}"|'${a}'|\`${a}\`)\\s*\\})`).exec(src)
+  if (!m) return null
+  const lt = src.lastIndexOf('<', m.index)
+  if (lt < 0) return null
+  const tagM = /^<([A-Za-z][\w.:-]*)/.exec(src.slice(lt, lt + 80))
+  if (!tagM) return null
+  const tag = tagM[1]
+  const gt = src.indexOf('>', m.index)
+  if (gt < 0) return null
+  if (src[gt - 1] === '/') return { start: gt + 1, end: gt + 1, tag, selfClosing: true }
+  const re = new RegExp(`<${esc(tag)}(?=[\\s/>])|</${esc(tag)}\\s*>`, 'g')
+  re.lastIndex = gt + 1
+  let depth = 1
+  let end = src.length
+  let mm
+  while ((mm = re.exec(src))) {
+    if (mm[0][1] === '/') {
+      if (--depth === 0) { end = mm.index; break }
+    } else {
+      const close = src.indexOf('>', mm.index)
+      if (close > 0 && src[close - 1] === '/') continue   // self-closing sibling
+      depth++
+    }
+  }
+  return { start: gt + 1, end, tag, selfClosing: false }
+}
+
+/* `data-*` IS DELIBERATELY ABSENT, and this is the one place this gate reads less
+   than the banned-vocabulary gate does. That gate looks for literal terms a human
+   chose, so a `data-` string is worth checking. This one greps for the SHAPE of
+   code — `\w+_id`, a status number, a route — and `data-testid="task_id"`,
+   `data-state`, `data-slot` are made of exactly that shape while being code hooks
+   no reader ever sees. Including them would fire on correct pages, which is the
+   anti-pattern register-corpus.md names. Stated in its declared limits. */
+const COPY_ATTR = /\b(?:alt|title|aria-label|placeholder)\s*=\s*(?:"([^"]*)"|'([^']*)')/g
+const COPY_KEY = /\b(?:title|label|heading|headline|eyebrow|kicker|lede|subhead|body|copy|text|description|blurb|caption|question|answer|cta|summary|tagline)\s*:\s*(?:"([^"]*)"|'([^']*)'|`([^`]*)`)/g
+
+/** What a READER sees, approximated from source exactly as the banned-vocabulary
+    gate defines rendered content: text between tags, copy attributes, and quoted
+    values of copy-bearing keys. CODE IS NOT COPY — an import path, a
+    `fetch('/api/…')` argument, a `className` and an `href` never reach this list,
+    which is what keeps a hero with a working signup form out of the findings. */
+function copyChunks(slice) {
+  const blank = (m) => ' '.repeat(m.length)
+  const s = slice
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, blank)
+    .replace(/<!--[\s\S]*?-->/g, blank)
+    .replace(/\/\*[\s\S]*?\*\//g, blank)
+  const out = []
+  let i = s.indexOf('<')
+  /* THE LEADING TEXT RUN, before the first child tag — and the whole of a text-only
+     leaf, which has no child tag at all. Starting the walk at the first `<` skipped
+     both: `<h1 id="plain-what">POST /api/task <span>now</span></h1>` graded only
+     "now", and `<h1 id="plain-what">POST /api/task</h1>` produced ZERO chunks and was
+     reported as "an element holding no copy" — telling the builder to move the id
+     onto the element holding the copy, which is where they had already put it, and
+     craft.md step 6 instructs them to. */
+  if (i !== 0) {
+    const head = i < 0 ? s : s.slice(0, i)
+    if (/[A-Za-z]/.test(head)) out.push({ at: 0, text: head.replace(/\{[^{}]*\}/g, ' ') })
+  }
+  while (i >= 0) {
+    const gt = s.indexOf('>', i)
+    if (gt < 0) break
+    const nextLt = s.indexOf('<', gt + 1)
+    const raw = s.slice(gt + 1, nextLt < 0 ? s.length : nextLt)
+    if (/[A-Za-z]/.test(raw)) out.push({ at: gt + 1, text: raw.replace(/\{[^{}]*\}/g, ' ') })
+    if (nextLt < 0) break
+    i = nextLt
+  }
+  for (const re of [COPY_ATTR, COPY_KEY]) {
+    re.lastIndex = 0
+    let m
+    while ((m = re.exec(s))) {
+      const v = m[1] ?? m[2] ?? m[3] ?? ''
+      if (/[A-Za-z]/.test(v)) out.push({ at: m.index, text: v })
+    }
+  }
+  return out
+}
+
+const lineAt = (src, idx) => src.slice(0, Math.max(0, idx)).split('\n').length
+
+const BUYER = { plainwhat: 'plain-what', plainlanguagewhat: 'plain-what', audience: 'audience', problem: 'problem' }
+const METHOD = new Set(['howitworks', 'objection'])
+
 /* ------------------------------------------------------------------ run */
 
 const notes = []
 const results = []   // { check, state: 'PASS'|'FAIL'|'WAIVED'|'SKIP', detail }
 const record = (check, state, detail) => results.push({ check, state, detail })
 
+const waivers = readWaivers(notes)
+
+const settle = (check, failed, value, failDetail, passDetail) => {
+  if (!failed) return record(check, 'PASS', passDetail)
+  const w = waiverFor(waivers, check, value)
+  if (w) return record(check, 'WAIVED', `${failDetail}  [waived: ${w.reason}]`)
+  record(check, 'FAIL', failDetail)
+}
+
+/* The register assertion reads SOURCE + the build task and needs nothing the
+   token gate resolves, so it runs FIRST and its verdict survives an exit-2 run.
+   A page whose CSS lives somewhere unusual is not a page whose copy is unchecked. */
+function spineRegister(corpus) {
+  const compiled = []
+  for (const [cls, flags, source] of corpus.rules) {
+    try { compiled.push({ cls, re: new RegExp(source, flags.includes('g') ? flags : `${flags}g`) }) } catch (e) {
+      notes.push(`register corpus: the '${cls}' pattern will not compile (${e.message}) — DROPPED, so that class is unchecked`)
+    }
+  }
+  if (!compiled.length) return record('spine-register', 'SKIP', 'the register corpus compiled no patterns')
+
+  const spine = readSpineRegions()
+  if (!spine) {
+    return record('spine-register', 'SKIP',
+      "no build task carrying a 'Spine regions:' line (tried craft/, taskmaster-docs/craft/, .craft-layer/, "
+      + 'CRAFT_BUILD_TASK) — the slot->region mapping is this gate\'s only input, and without it the check '
+      + 'degrades to a whole-page grep that fires on a correct objection section. NEVER A PASS.')
+  }
+
+  const wanted = []
+  const alsoMethod = []
+  for (const [slot, anchors] of Object.entries(spine.map)) {
+    const k = slot.replace(/[^a-z]/g, '')
+    if (!BUYER[k]) continue
+    for (const a of anchors) {
+      wanted.push({ slot: BUYER[k], anchor: a })
+      for (const [s2, a2] of Object.entries(spine.map)) {
+        if (METHOD.has(s2.replace(/[^a-z]/g, '')) && a2.includes(a)) alsoMethod.push(`${a} (${BUYER[k]} + ${s2})`)
+      }
+    }
+  }
+  if (!wanted.length) {
+    return record('spine-register', 'SKIP',
+      `${spine.path} maps no buyer slot (plain-what / audience / problem) — declared: "${spine.declared}"`)
+  }
+  if (alsoMethod.length) {
+    notes.push(`spine-register: ${[...new Set(alsoMethod)].join(', ')} answers a buyer slot AND a method slot; `
+      + 'graded as a buyer region, because the buyer\'s question is the one that gets displaced')
+  }
+
+  const anchors = [...new Set(wanted.map((w) => w.anchor))]
+  const found = new Map()
+  for (const f of sourceFiles(process.cwd())) {
+    if (found.size === anchors.length) break
+    let src
+    try {
+      if (statSync(f).size > 512 * 1024) continue
+      src = readFileSync(f, 'utf8')
+    } catch { continue }
+    for (const anchor of anchors) {
+      if (found.has(anchor)) continue
+      const region = regionFor(src, anchor)
+      if (region) found.set(anchor, { file: f, src, region })
+    }
+  }
+
+  const hits = []
+  const checked = []
+  const unreadable = []
+  for (const { slot, anchor } of wanted) {
+    const f = found.get(anchor)
+    if (!f) { unreadable.push(`#${anchor} (${slot}): no element carries that id in the shipped source`); continue }
+    const chunks = copyChunks(f.src.slice(f.region.start, f.region.end))
+    if (!chunks.length) {
+      unreadable.push(`#${anchor} (${slot}): ${rel(f.file)} carries the id on `
+        + `${f.region.selfClosing ? 'a self-closing element' : `a <${f.region.tag}> holding no copy`} — move the id onto the element that holds the slot's copy`)
+      continue
+    }
+    checked.push(`#${anchor} (${slot})`)
+    for (const c of chunks) {
+      for (const { cls, re } of compiled) {
+        re.lastIndex = 0
+        const m = re.exec(c.text)
+        if (m) hits.push({ slot, anchor, cls, marker: m[0].trim(), file: rel(f.file), line: lineAt(f.src, f.region.start + c.at) })
+      }
+    }
+  }
+  for (const u of unreadable) notes.push(`spine-register: ${u} — that slot is NOT CHECKED`)
+
+  if (!checked.length) {
+    return record('spine-register', 'SKIP',
+      `none of the mapped buyer regions [${anchors.map((a) => `#${a}`).join(', ')}] resolved to copy in the shipped source — never a pass`)
+  }
+
+  const seen = new Set()
+  const uniq = hits.filter((h) => {
+    const k = `${h.anchor}|${h.cls}|${h.marker.toLowerCase()}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+
+  /* A CLEAN RESULT OVER PART OF THE BUYER SLOTS IS NOT A CLEAN RESULT.
+     Unreadable slots used to be notes only, so one of three regions resolving was
+     enough to PASS with two slots ungraded — a note nobody reads standing in for a
+     verdict. A FAIL still stands (a marker found is evidence whatever else was
+     missed), but a no-hit run over an incomplete set is SKIP, exactly like every
+     other input this gate cannot see. */
+  if (!uniq.length && unreadable.length) {
+    return record('spine-register', 'SKIP',
+      `buyer regions [${checked.join(', ')}] carry no marker, but ${unreadable.length} mapped buyer `
+      + `slot(s) could not be read — ${unreadable.join('; ')}. Part of the buyer spine was graded and `
+      + 'part of it was not, so this is NOT a pass on the remainder. Fix the mapping or the anchor '
+      + 'and re-run.')
+  }
+
+  const shown = uniq.slice(0, 6).map((h) =>
+    `${h.slot} region #${h.anchor} answers in [${h.cls}] register — "${h.marker}" at ${h.file}:${h.line}`).join('; ')
+  settle('spine-register', uniq.length > 0, uniq[0]?.cls ?? '',
+    `${shown}${uniq.length > 6 ? ` (+${uniq.length - 6} more)` : ''}. `
+      + `The same disclosure is LEGAL in how-it-works and objection, which were not checked; here it is standing `
+      + `in for a buyer's answer. Reproduce: grep -n ${JSON.stringify(uniq[0]?.marker ?? '')} ${uniq[0]?.file ?? ''}`,
+    `all ${checked.length} mapped buyer region(s) [${checked.join(', ')}] were readable and carry no `
+      + `marker from the ${corpus.kind} (${corpus.date}); the other five slots are unchecked by construction`)
+}
+
+/* --------------------------------------------------------------- run stamp */
+
+/* FOUR ARTIFACTS, ONE RUN — OR EVERY GATE BELOW IS GRADING SOMEONE ELSE'S BUILD.
+ *
+ * The craft artifacts live at FIXED names so a later session can find them without
+ * being told. That is also what lets a SECOND run in one session land on the first
+ * run's files, and it has happened: a previous run's contract sat exactly where the
+ * audit globs, and a person caught it rather than a gate. So every artifact opens
+ * with an identical `Run: <instant> · <slug> · <project root>` stamp
+ * (creative-direction/references/offer-contract.md, Part 8), and this assertion is
+ * the scripted half of the tiebreak stated there. Three shapes fail, and each means
+ * at least one file was left behind by an earlier run: the artifacts DISAGREE, one
+ * is stamped to a project that is not this one, or one carries no stamp while a
+ * sibling does. A second candidate path holding a different stamp fails too —
+ * precedence picked one, which is not the same as deciding between them.
+ *
+ * It never guesses a winner. No stamp anywhere is a SKIP that says so, exactly like
+ * every other input this gate cannot see. */
+
+const STAMP_LINE = /^\s*[-*]?\s*Run\s*:\s*(.+?)\s*$/i
+
+function readStamp(p) {
+  try {
+    for (const line of readFileSync(p, 'utf8').split('\n')) {
+      const m = line.match(STAMP_LINE)
+      if (m) return m[1].replace(/[`*]/g, '').trim()
+    }
+  } catch { /* unreadable reads as unstamped, and is reported as such */ }
+  return null
+}
+
+const realish = (p) => { try { return realpathSync(p) } catch { return resolve(p) } }
+
+/** The stamp's third field, when it names a project that is not this one. A
+    non-absolute or absent field is not a mismatch — there is nothing to compare. */
+function foreignProject(stamp) {
+  const declared = stamp.split('·').map((s) => s.trim())[2]
+  if (!declared || !declared.startsWith('/')) return null
+  const a = realish(declared)
+  const b = realish(process.cwd())
+  return (a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`)) ? null : declared
+}
+
+function craftStamp() {
+  const rows = []
+  for (const [name, list] of Object.entries(ARTIFACT_PATHS)) {
+    const paths = []
+    for (const c of list().filter(Boolean)) {
+      const p = resolve(process.cwd(), c)
+      if (paths.includes(p)) continue
+      try { if (!existsSync(p) || !statSync(p).isFile()) continue } catch { continue }
+      paths.push(p)
+    }
+    if (paths.length) {
+      rows.push({
+        name,
+        pick: paths[0],
+        stamp: readStamp(paths[0]),
+        extras: paths.slice(1).map((p) => ({ path: p, stamp: readStamp(p) })),
+      })
+    }
+  }
+  if (!rows.length) {
+    return record('craft-stamp', 'SKIP', 'no craft artifact resolved — nothing to attribute to a run')
+  }
+
+  const shown = rows.map((r) => `${r.name} (${rel(r.pick)}) ${r.stamp ? `"${r.stamp}"` : 'NO STAMP'}`).join('; ')
+  const stamped = rows.filter((r) => r.stamp)
+  if (!stamped.length) {
+    return record('craft-stamp', 'SKIP',
+      `no 'Run:' stamp on any resolved artifact — ${shown}. Pre-stamp artifacts all read as one run, so `
+      + "a previous run's leftovers at these same fixed paths cannot be told from this run's own. NEVER A PASS.")
+  }
+
+  const distinct = [...new Set(stamped.map((r) => r.stamp))]
+  const problems = []
+  if (distinct.length > 1) {
+    problems.push(`the artifacts disagree about which run wrote them — ${distinct.map((s) => `"${s}"`).join(' vs ')}`)
+  }
+  for (const r of rows) {
+    if (!r.stamp) {
+      problems.push(`${r.name} ${rel(r.pick)} carries NO stamp while a sibling does, so it cannot be attributed to this run`)
+    } else {
+      const foreign = foreignProject(r.stamp)
+      if (foreign) problems.push(`${r.name} ${rel(r.pick)} is stamped to ${foreign}, which is not ${process.cwd()}`)
+    }
+    for (const e of r.extras) {
+      if (e.stamp !== r.stamp) {
+        problems.push(`${r.name} also exists at ${rel(e.path)} carrying `
+          + `${e.stamp ? `a different stamp ("${e.stamp}")` : 'no stamp'} — AMBIGUOUS, and path precedence `
+          + `picked ${rel(r.pick)} without deciding anything`)
+      }
+    }
+  }
+
+  settle('craft-stamp', problems.length > 0, distinct[0] ?? '',
+    `${problems.join('; ')}. At least one artifact was left behind by an earlier run, and every gate that `
+      + `reads it is grading this build against another run's decisions. Resolved: ${shown}. Reproduce: `
+      + `grep -n '^Run:' ${rows.flatMap((r) => [rel(r.pick), ...r.extras.map((e) => rel(e.path))]).join(' ')}`,
+    `${stamped.length} resolved artifact(s) carry one stamp — "${distinct[0]}"`)
+}
+
 const anti = loadAntiCorpus()
 console.log(`anti-corpus source: ${anti.source}`)
 console.log(`anti-corpus kind:   ${anti.kind} · snapshot date ${anti.date}`)
+
+const registerCorpus = loadRegisterCorpus()
+console.log(`register corpus:    ${registerCorpus.source}`)
+console.log(`register corpus:    ${registerCorpus.kind} · ${registerCorpus.rules.length} patterns · ${registerCorpus.date}`)
+spineRegister(registerCorpus)
+craftStamp()
+
+/** Print what IS measured before a not-measured exit, so the register verdict is
+    never swallowed by a missing token source. */
+const flushEarly = () => {
+  console.log('')
+  for (const r of results) console.log(`  ${r.state.padEnd(6)} ${r.check.padEnd(20)} ${r.detail}`)
+  for (const n of notes) console.log(`  note   ${n}`)
+  if (results.some((r) => r.state === 'FAIL')) {
+    console.log('  ^ MEASURED AND FAILED. That finding stands on its own; this run exits 2 only')
+    console.log('    because the TOKEN assertions could not run.')
+  }
+}
 
 const tokenPath = findTokenSource()
 if (!tokenPath) {
   console.log(`\nnot measured: no token source found (tried ${TOKEN_CANDIDATES.join(', ')})`)
   console.log('NOT MEASURED IS A FAILURE HERE. A gate that cannot see the build cannot')
   console.log('clear it — set CRAFT_TOKEN_SOURCE to the CSS holding the tokens.')
+  flushEarly()
   process.exit(2)
 }
 let css
@@ -339,6 +851,7 @@ try {
   css = readFileSync(tokenPath, 'utf8')
 } catch (e) {
   console.log(`\nnot measured: token source ${tokenPath} unreadable (${e.message})`)
+  flushEarly()
   process.exit(2)
 }
 const accents = readAccents(css)
@@ -346,6 +859,7 @@ if (!accents.length) {
   console.log(`\nnot measured: ${tokenPath} declares no parseable accent/primary/brand colour`)
   console.log('(oklch(), hsl() and 6-digit hex are understood; an achromatic accent has no hue).')
   console.log('NOT MEASURED IS A FAILURE HERE — see the file header.')
+  flushEarly()
   process.exit(2)
 }
 console.log(`token source:       ${tokenPath}`)
@@ -362,7 +876,6 @@ const families = [...new Set(cssFiles.flatMap((f) => {
   try { return readFamilies(readFileSync(f, 'utf8')) } catch { return [] }
 }))]
 
-const waivers = readWaivers(notes)
 const echo = brandEcho()
 const drawn = readDraw()
 
@@ -403,13 +916,6 @@ if (logAll.length) {
 }
 
 if (echo) notes.push(`brand-echo row found in ${echo.path} ("${echo.value}") — repeat assertions skipped`)
-
-const settle = (check, failed, value, failDetail, passDetail) => {
-  if (!failed) return record(check, 'PASS', passDetail)
-  const w = waiverFor(waivers, check, value)
-  if (w) return record(check, 'WAIVED', `${failDetail}  [waived: ${w.reason}]`)
-  record(check, 'FAIL', failDetail)
-}
 
 /* (i) accent hue inside the category-default band ------------------------- */
 {

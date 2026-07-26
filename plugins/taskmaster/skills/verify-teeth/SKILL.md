@@ -64,7 +64,13 @@ re-implement the list in prose here.
 - `require-only` / `import-only` (`node -e "require(...)"`, `python -c "import ..."` with no
   assertion) → an import proves the module parses, not that it behaves; add an assertion.
 - `compile-only` (`tsc --noEmit`, `-fsyntax-only`, `go build` as the whole check) → compiling
-  is not behaving; exercise the changed code path.
+  is not behaving; exercise the changed code path. **Project-references caveat:** on the very
+  common root of `"files": []` + `"references"` (the Vite React-TS scaffold, most monorepos)
+  `tsc --noEmit` is not merely weak, it is **vacuous** — tsc is handed zero files and exits 0
+  having checked nothing, so the line is a guaranteed green even for the type errors it looks
+  like it covers. `tsc -b` is the check that runs; the linter prints this as a NOTE when it
+  spots that shape in the working directory's `tsconfig.json`, and a NOTE is advice, not a
+  block: it reads line text, so it cannot see which config a build actually uses.
 - `bare-suite-pass` (a runner invoked with no named test / assertion token) → name the new
   test or the asserted outcome, e.g. `pytest -k reject_malicious_host asserts 422`.
 

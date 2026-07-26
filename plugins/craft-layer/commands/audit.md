@@ -16,7 +16,9 @@ taxonomy and its per-tier budgets, then:
    committed FILES (icons, SVG, raster images, 3D models, Lottie/Rive, webfonts, background
    video) or third-party refs grepped from SOURCE — absolute-URL refs at an `https?://` host
    (`@font-face`/`@import`/`<link>`/`url()`/`<use href>`), inline `data:`/over-threshold `<svg>`
-   blobs, and URL-fetched `.lottie`/`.riv`/`.glb`/font — and a
+   blobs, and URL-fetched `.lottie`/`.riv`/`.glb`/font — AND grep `component-source:` for
+   declared sourced COMPONENT blocks (a pasted block carries no URL and no file signature, so
+   the marker is the only thing that makes one visible at all) — and a
    provenance manifest. List the tier(s), engine(s), surface(s), and assets found. If
    nothing animates BUT shipped assets are present, still run the asset/licence gates in
    step 2 — do not stop. Only when there is neither motion nor a shipped asset, say so and stop.
@@ -72,7 +74,13 @@ taxonomy and its per-tier budgets, then:
    assertion pass, and then one image showed a leader label clipped mid-word on the first
    screen. So: run `template/craft-gates/gates.spec.ts` against a reachable `BASE_URL` (copy
    the suite in and install `@playwright/test` + `@axe-core/playwright` when the project has
-   none), which writes two PNGs per breakpoint — 390, 768, 1280, light and dark — into
+   none), passing `CRAFT_EXPECT_TITLE=<the contract's product name>` so the suite can prove the
+   server on that port is THIS build — the suite runs inside the target project and cannot read
+   the contract itself, and a dev port held by another project yields shots of the wrong
+   application, opened and reported as this one's. Without it the suite reports `IDENTITY NOT
+   MEASURED` and still captures; carry that phrase into the `Visual:` line rather than dropping
+   it, because an unverified capture is not the same as a verified one. It writes
+   two PNGs per breakpoint — 390, 768, 1280, light and dark — into
    `<project>/.craft-layer/shots/`. Then READ each image and describe what is visible,
    hunting specifically: text CLIPPED at a container or viewBox edge, OVERLAPPING labels and
    annotations, truncation ellipses, fixed elements covering content, and any element whose
@@ -90,9 +98,35 @@ taxonomy and its per-tier budgets, then:
    `template/craft-gates/contrast.mjs` computes the ratios below; `template/craft-gates/divergence.mjs`
    reads the shipped token source, the project's run log and the recorded deck draw and exits
    non-zero when the build landed on the category default or repeated its own last five runs.
-   Run `node divergence.mjs` from the project root and carry its verdict into the table: exit
+   Run `node divergence.mjs` from the project root with `CLAUDE_PLUGIN_ROOT` set (both of its
+   corpora fall back to a frozen snapshot without it, and it prints which it used) AND with the
+   four artifact paths handed in — `CRAFT_CONTRACT`, `CRAFT_DIVERGENCE_RECORD`,
+   `CRAFT_BUILD_TASK`, `CRAFT_CONTENT_SOURCE`, set to the paths step 2's glob just resolved.
+   The script resolves `craft/…` relative to the PROJECT ROOT, and the craft flow persists those
+   artifacts to the run's working area, which on a project with no `taskmaster-docs/` is the
+   session scratch — outside the project. Omit them and `spine-register` and `craft-stamp` both
+   report `not checked` on the ordinary case, which reads as a clean run rather than an
+   ungraded one. You have already resolved these paths to inject them into the reviewer; pass
+   the same ones here. Then carry the verdict into the table: exit
    1 is a FINDING to resolve or waive in `.craft-layer/waivers.json` with a reason, exit 2 is
    `not measured`, and a gate that was never run is `not checked` — never a pass.
+   One of its assertions is the OFFER-SPINE REGISTER gate, and it is the scripted half of the
+   spine check the reviewer grades by reading: `spine-register` resolves the build task's
+   `Spine regions:` line to the page regions answering plain-what, audience and problem, and
+   fails when a buyer's question is answered with an integrator's fact — an endpoint, a token
+   scheme, a status code, a schema term
+   (`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/register-corpus.md`). It does
+   NOT check `how it works` or `objection`, where the contract routes that same disclosure and
+   a limits list is supposed to be concrete. No `Spine regions:` line, or no mapped anchor in
+   the tree, is `not checked` with the reason printed — never a pass, and never a whole-page
+   jargon grep run by hand instead.
+   Another is `craft-stamp`, the scripted half of the artifact-resolution rule in step 2: it
+   reads the `Run:` stamp off the contract, the divergence record, the build task and the
+   content source it resolved, and exits non-zero when they disagree, when one is stamped to
+   a project that is not this one, or when one carries a stamp while a sibling carries none —
+   each of which means at least one artifact was left behind by an earlier run and every gate
+   reading it is grading this build against another run's decisions. No stamp anywhere is
+   `SKIP` (pre-stamp artifacts), never a pass.
 
    Compute the CONTRAST RATIOS too — the reviewer cannot, and this is a craft gate rather
    than a deferred one. Read the resolved accent/ink/surface token values out of the theme
@@ -123,11 +157,32 @@ taxonomy and its per-tier budgets, then:
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md` (the deliverable scope +
    offer-spine slots) AND
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/ambition-tiers.md` (the reach
-   tiers and the four floors `maximal` adds) AND — found by globbing `**/craft/offer-contract.md`,
-   `**/craft/divergence-record.md`, `**/craft/build-task.md`, `**/craft/section-ledger.md` and `**/craft/reference-board.md`
+   tiers and the four floors `maximal` adds) AND
+   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/content-source.md` (the rules
+   binding copy the client already published) AND — found by globbing `**/craft/offer-contract.md`,
+   `**/craft/divergence-record.md`, `**/craft/build-task.md`, `**/craft/content-source.md`,
+   `**/craft/section-ledger.md` and `**/craft/reference-board.md`
    (the fixed names the craft
    flow persists to; search the project and the session working area) — the PERSISTED contract
-   instance, divergence record and BUILD TASK when they exist. Without the build task, the
+   instance, divergence record, BUILD TASK and CONTENT SOURCE when they exist.
+   **WHEN A GLOB MATCHES MORE THAN ONE FILE, RESOLVE IT BY THE RUN STAMP — never by taking
+   the first hit.** Each artifact opens with `Run: <instant> · <product-slug> · <absolute
+   project root>`. Drop every match whose project field is not the target being audited (an
+   artifact stamped to another project is evidence of nothing here); if one candidate
+   remains it wins; if several do, the strictly NEWEST instant wins and only when the run's
+   other artifacts carry that same stamp. Everything else — two candidates sharing an
+   instant, one stamped while another is not, sibling artifacts disagreeing — is
+   UNDECIDABLE: report `not checked (ambiguous craft artifacts: <n> matched — <path>
+   <stamp>, …)`, list every candidate with its stamp, and grade nothing from any of them. A
+   single unstamped candidate is used and reported as `stamp absent (pre-stamp artifact)`.
+   Artifacts whose stamps DISAGREE are additionally one finding naming the file the earlier
+   run left behind — a second craft run in one session writes these same paths, and a
+   previous run's contract sitting exactly where this glob looks is the failure the stamp
+   exists to make visible (`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md`
+   Part 8; `divergence.mjs`'s `craft-stamp` assertion is the scripted half). Without the content
+   source there is nothing to check ingested copy against, so that gate reports
+   `not checked (no content source persisted)` — never a pass, and never inferred from how the
+   page reads. Without the build task, the
    signature gate and reach floor 4 have no anchor, because both grade a line that lives only
    in it. Without the contract, the scope/length/mode
    AND the content-depth section-count checks have no anchor; without the record, anti-sameness
@@ -135,7 +190,9 @@ taxonomy and its per-tier budgets, then:
    section ledger, `${CLAUDE_PLUGIN_ROOT}/skills/section-decisions/references/section-ledger.md` plus the ledger
    itself AND
    `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
-   schema) AND the measurements from step 1b, and have it verify:
+   schema) AND `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/component-sourcing.md`
+   (the component classes + the `component-source:` marker the orphan scan reads) AND the
+   measurements from step 1b, and have it verify:
    any **SCROLL ACT** that shipped owes its three states — a pinned scene, a scrubbed frame
    sequence or a scroll-revealed panel each need a reduced-motion state, a no-JS state and a
    failure state per
@@ -189,7 +246,15 @@ taxonomy and its per-tier budgets, then:
    `data:`/`<svg>`-with-marker, URL-fetched) — has a complete non-empty provenance record
    (manifest exists, no orphan asset OR unprovenanced ref, enumerated licence-class + source; an
    absolute-URL ref needs a record unless declared first-party), run even on a static
-   asset-only build; **asset-fit** — right format per kind + a reduced-bundle fallback +
+   asset-only build; **sourced components** — every `component-source:` marker maps to a
+   `component:<id>` manifest record and every such record still has its marker in the tree
+   (both directions), and each marker's declared CLASS matches what shipped — `registry-as-is`
+   on a visible surface, or a `registry-adapted` block still wearing the registry's own tokens
+   and layout, is a finding
+   (`${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/component-sourcing.md`, injected
+   below). An UNMARKED pasted block is invisible to this check by construction — report the
+   gate with that limit stated, and no markers at all as `not checked (no sourced components
+   declared)`, never as a pass; **asset-fit** — right format per kind + a reduced-bundle fallback +
    source-class match (bytes stay with the existing sprite/asset budget, not re-counted);
    the **accent clears contrast on every surface AND size** it lands on (large ≥3:1, body ≥4.5:1; on a light
    theme small text/marks use a darker accent step than the display accent — text ≥4.5:1,
@@ -207,6 +272,25 @@ taxonomy and its per-tier budgets, then:
    entries is reported. This is the gate's most-skipped half — a record with many entries reads
    as thorough divergence, and a rich record whose type or palette row is contradicted by the
    shipped tokens is the failure mode that survives every other check;
+   **banned vocabulary** — the negative-constraints block the concept step recorded
+   (`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/concept-deck.md`) reaches
+   this audit as ONE tree-wide grep. Read `craft/build-task.md`'s `Banned vocabulary:` line —
+   falling back to the divergence record's own line when no build task persisted, and saying
+   which was read — split it on commas, and grep the WHOLE shipped tree for each term under
+   the MATCH SEMANTICS that same file states (word-bounded, case-insensitive, a quoted phrase
+   matched whole). Cite them; do not restate them here. Never a bare substring grep: a banned
+   `REV` matched as a substring hits `Reviews` and `Revenue` on every page that has either,
+   and a gate that fires on correct copy is waived into silence. Never
+   a subset, never once per section, and never the file set one build agent happened to
+   write: the whole point is that a scoped grep reports green over its own files while the
+   ban is verified nowhere. Each term with a hit in RENDERED content — visible copy, a
+   section title, a label, an `aria-label`, an alt text, a `data-*` string — is one finding
+   naming the term and its `path:line`; a hit inside the run's own `craft/` artifacts, or in
+   a comment quoting the constraint, is not. Report the number of terms CHECKED beside the
+   number of hits, because zero findings over zero terms is the exact shape this gate exists
+   to stop. `Banned vocabulary: none` → `not checked (nothing banned)`; no line anywhere →
+   `not checked (no banned-vocabulary line)` — never a pass, and never inferred from how the
+   page reads;
    **ambition conformance** — read the contract's `Ambition` row and grade against THAT tier
    (`ambition-tiers.md`). At `maximal` the four reach floors are checked: at least THREE
    distinct motion capabilities driving real surfaces — a `motion-tiers` tier or a sibling
@@ -230,7 +314,11 @@ taxonomy and its per-tier budgets, then:
    **boost evidence** — read the contract's `Boost` row. At `ultra-craft`, check three things
    the boost promised and nothing else can prove: a `craft/reference-board.md` exists (glob it
    the same way) carrying at least six fetched sources across the three lanes, each with a URL
-   and a fetch date, AND a searches-run block recording a category-scoped query at each of the
+   and a fetch date — a row whose appended `Method` column reads `browser (escalated ← <status>)`
+   is a FETCHED source and counts like any other, while `search-layer` and `fetch-failed` rows
+   record an attempt and count toward no floor, and a board with no `Method` column at all is an
+   older board counted by URL + fetch date as before — AND a searches-run block recording a
+   category-scoped query at each of the
    three named galleries — `land-book.com`, `awwwards.com`, `dribbble.com` — where a query
    recorded as fetch-blocked still discharges the search, per
    `${CLAUDE_PLUGIN_ROOT}/skills/ultra-craft/references/research-mandate.md`;
@@ -253,7 +341,26 @@ taxonomy and its per-tier budgets, then:
    repeated CTA verb), a proof region PRESENT as slots rather than deleted, and the declared
    page LENGTH honored (on `long-scroll` the section range is a floor, not a finding — instead
    check spine-answered-early, recurring one-verb CTA, varied section shapes, wayfinding past
-   ~8 sections, lazy below-fold instruments); and, when a section ledger exists, **ledger
+   ~8 sections, lazy below-fold instruments); and, when a `craft/content-source.md` exists,
+   **content fidelity** — the client's own copy was REPRODUCED rather than rewritten: captured
+   claims, prices, tier names and product names verbatim (re-breaking copy across sections and
+   re-wording headings to fit the concept's voice stays legal — restating a claim does not),
+   every legal block reproduced IN FULL and not hidden behind an accordion/modal/"read more",
+   every gaps-table row shipped as a visible `{{lorem}}` rather than as a written sentence,
+   every source row's fetch date inside the artifact's declared staleness window (a stale date
+   is a FINDING, not a note), and — under `source: none-located` — no authored marketing prose
+   standing where the run recorded it had located none, spec and API facts included. ALSO
+   check SUPPLIED-INPUT COVERAGE, which is Lane C of the mining method being enforced rather
+   than restated: grep the contract's verbatim `Raw brief:` and `Upgraded brief:` for URLs and
+   repo paths, and every one of them owes a row in the artifact's Sources table carrying a
+   `Method` — `fetch`, `browser (escalated ← <status>)`, `file`, `pasted`, or `fetch-failed`
+   with its reason. A named source with no row is one finding naming the source; a row reading
+   `fetch-failed` on an origin the contract names as the user's own, with no escalation
+   outcome recorded, is a second (the escalation is when-available, the RECORD is not). This
+   bites at every tier — the artifact is written at `one-shot` and `restrained` too, and a
+   brief-named URL is a supplied input rather than research. On a boosted run the same source
+   should also appear as a brand-assets row on the reference board, where the boost-evidence
+   gate above already counts it. No artifact → `not checked`; and, when a section ledger exists, **ledger
    conformance** — every row has its section in the build, no marketing section is
    unaccounted for, each row's `locks` actually ships, and `source: auto` rows are reported
    rather than flagged (no ledger → skip this gate; a one-shot build is not a finding).

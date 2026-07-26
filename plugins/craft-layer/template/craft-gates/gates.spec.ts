@@ -5,7 +5,8 @@
  * them, e.g. `scripts/` — then:
  *
  *     npm i -D @playwright/test @axe-core/playwright && npx playwright install chromium
- *     BASE_URL=http://localhost:5173 npx playwright test
+ *     CRAFT_EXPECT_TITLE='<a string only THIS build serves>' \
+ *       BASE_URL=http://localhost:5173 npx playwright test
  *     node scripts/contrast.mjs
  *     node scripts/divergence.mjs
  *
@@ -54,6 +55,66 @@ import AxeBuilder from '@axe-core/playwright'
 import { mkdirSync, rmSync } from 'node:fs'
 
 const URL = process.env.BASE_URL ?? 'http://localhost:5173'
+
+/* ------------------------------------------------------------ check: identity */
+/* WHY THIS EXISTS — a port is not an identity. In a real run `:5173`, the
+   default above, was held by an UNRELATED project while the build under test
+   served on `:5182`. An unattended `npx playwright test` captured, opened and
+   reported ANOTHER APPLICATION'S SCREENSHOTS as this build's — through the one
+   step whose entire purpose is looking at what shipped. Nothing flagged it:
+   every check in this file passed, truthfully, about the wrong page.
+
+   The identity source is `CRAFT_EXPECT_TITLE` — any string only the build under
+   test serves, matched against the page's <title> or its body text. It is
+   PASSED IN, not derived: this suite runs inside the target project and has no
+   access to the offer contract or to `divergence.mjs`'s path resolution, so it
+   cannot look up what this build is supposed to be called.
+
+   Two behaviours, and the difference between them is the whole check:
+   - UNSET is `not measured`, never a silent pass — this file's standing
+     convention. The run is skipped WITH A LOUD NOTE naming what was not proved,
+     because the report otherwise reads exactly like a verified capture.
+   - SET AND NOT MATCHING is a FAILURE, not a note. The shots are of the wrong
+     application, and no other assertion here can tell. */
+const EXPECT_TITLE = process.env.CRAFT_EXPECT_TITLE?.trim()
+let identityNoted = false
+
+/** Ask whether the page at BASE_URL is the build under test. Throws when the
+    question was asked and answered NO; when the caller gave us nothing to ask
+    with, records `not measured` on the result and says so once, loudly. */
+async function assertIdentity(page: Page) {
+  const seen = await page.evaluate(() => ({
+    title: document.title,
+    text: (document.body?.innerText ?? '').slice(0, 5000),
+  }))
+  if (!EXPECT_TITLE) {
+    const note =
+      `IDENTITY NOT MEASURED — CRAFT_EXPECT_TITLE is unset, so NOTHING here proved` +
+      ` that ${URL} is serving this build. The page answering it calls itself` +
+      ` ${JSON.stringify(seen.title)}. Ports get reused: any screenshot this run writes` +
+      ` may be another application's, and every other result below is about whatever` +
+      ` page that is. Re-run with CRAFT_EXPECT_TITLE='<a string only this build serves>'.`
+    // On the RESULT, so a report read later carries it too — a console line
+    // nobody scrolled back to is how the wrong-app run passed for a whole day.
+    test.info().annotations.push({ type: 'not measured', description: note })
+    if (!identityNoted) {
+      identityNoted = true
+      console.log(`\n!!! ${note}\n`)
+    }
+    return
+  }
+  expect(`${seen.title}\n${seen.text}`,
+    `WRONG APPLICATION at ${URL}: expected ${JSON.stringify(EXPECT_TITLE)} in the page` +
+    ` title or body, but the page there calls itself ${JSON.stringify(seen.title)}.` +
+    ` Something else is holding this port — check BASE_URL before reading any shot.`)
+    .toContain(EXPECT_TITLE)
+}
+
+test('identity: BASE_URL serves the build under test', async ({ page }) => {
+  await page.goto(URL)
+  await assertIdentity(page)
+  test.skip(!EXPECT_TITLE, 'not measured: CRAFT_EXPECT_TITLE unset — see the note in the output')
+})
 
 /** How the project switches theme. Override if it is not a `.dark` class. */
 const setTheme = (page: Page, dark: boolean) =>
@@ -186,6 +247,11 @@ test.describe('capture: the shipped design, at the widths people read it', () =>
       test(`capture ${label} ${width}w (${mode})`, async ({ page }) => {
         await page.setViewportSize({ width, height })
         await page.goto(URL)
+        /* Identity before the shutter: a wrong-app capture is the failure this
+           whole check exists for, so refuse to photograph a page that does not
+           answer to CRAFT_EXPECT_TITLE rather than write shots nobody can
+           later tell apart from this build's. */
+        await assertIdentity(page)
         await setTheme(page, mode === 'dark')
         await settle(page)
         const stem = `${SHOTS_DIR}/${width}-${mode}`

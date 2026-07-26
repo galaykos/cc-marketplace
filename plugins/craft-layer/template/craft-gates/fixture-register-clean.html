@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relaydeck — register fixture, the passing shape</title>
+    <!--
+      craft-layer register fixture — THE CLEAN CONTROL for
+      `fixture-register.html`. Same product, same eight spine slots, and THE
+      SAME FACTS: the endpoints are still here, the token still has to be
+      minted, and the limits list still names the rate limit, the 429 and the
+      403 by number.
+
+      What changed is only WHERE those facts sit. #hero and #status-quo answer
+      the buyer's two questions — what is this, and why change — in a buyer's
+      register. #method and #limits carry every piece of method disclosure the
+      defective fixture put in the hero, and they are LEGAL there: the offer
+      contract routes spec detail into `how it works` and `objection`, and a
+      limits list is SUPPOSED to be concrete.
+
+      THIS FIXTURE MUST PASS. If `spine-register` fires on it, the check has
+      degraded into a whole-page jargon grep — it would then fail every
+      technically-correct objection section, which is the failure mode the
+      slot -> region mapping exists to prevent.
+    -->
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+      section { padding: 3rem 1.5rem; max-width: 44rem; margin: 0 auto; }
+      h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+      code { background: #f0efe9; padding: 0.1em 0.3em; }
+    </style>
+  </head>
+  <body>
+    <!-- plain-what + audience + cta -->
+    <section id="hero">
+      <p>Relaydeck</p>
+      <h1>Your app hands off the slow work. Your customers stop waiting.</h1>
+      <p>
+        Relaydeck runs the jobs your product cannot finish while someone is
+        watching — imports, exports, renders, statements — and tells you the
+        moment each one is done.
+      </p>
+      <p>
+        For product teams of five to fifty who shipped the feature and are now
+        maintaining the queue behind it.
+      </p>
+      <p><a href="/signup">Start a trial</a></p>
+    </section>
+
+    <!-- problem / status quo -->
+    <section id="status-quo">
+      <h2>Why change</h2>
+      <p>
+        Every team builds this twice. The first version is a nightly script and
+        one table. The second is the on-call rota that grew around it: one
+        customer's overnight import quietly delays everybody else's, the same
+        work runs again because nobody could tell it had finished, and answering
+        “is it stuck?” means someone opening a console at 11pm.
+      </p>
+      <p>You did not set out to maintain a job runner. You are maintaining one.</p>
+    </section>
+
+    <!-- how it works — the SAME method disclosure, LEGAL here and not checked -->
+    <section id="method">
+      <h2>How it works</h2>
+      <ol>
+        <li>Mint a token: <code>POST /api/v1/tokens</code> with an api key.</li>
+        <li>Enqueue: <code>POST /api/v1/tasks/{queue}</code> with the payload.</li>
+        <li>Poll <code>GET /api/v1/tasks/:id</code> or take the webhook payload.</li>
+      </ol>
+      <p>
+        Calls carry a Sanctum bearer token minted per workspace; a consumer
+        holding <code>ability:machine</code> may enqueue and nothing else can.
+      </p>
+    </section>
+
+    <!-- price -->
+    <section id="pricing">
+      <h2>Pricing</h2>
+      <p>Starter 49 a month. Team 149 a month. Scale, on application.</p>
+    </section>
+
+    <!-- proof -->
+    <section id="proof">
+      <h2>Proof</h2>
+      <blockquote data-metric="illustrative">
+        “{{metric:jobs_per_day}} jobs a day, since March.” — {{customer_name}},
+        illustrative sample
+      </blockquote>
+    </section>
+
+    <!-- objection / limits — CONCRETE ON PURPOSE, and not checked -->
+    <section id="limits">
+      <h2>Limits, and what this is not</h2>
+      <ul>
+        <li>Rate limit: 600 requests per minute per workspace; over it you get 429.</li>
+        <li>A revoked token returns 403 on the next call, not at the next renewal.</li>
+        <li>
+          Every read is scoped by <code>workspace_id</code>, so a shared queue
+          across two of your own tenants needs two workspaces.
+        </li>
+        <li>No scheduler. Relaydeck runs what you hand it, when you hand it over.</li>
+      </ul>
+      <p><a href="/signup">Start a trial</a></p>
+    </section>
+  </body>
+</html>

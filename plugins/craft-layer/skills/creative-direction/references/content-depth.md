@@ -98,6 +98,14 @@ finished surface. A bare `{{metric:gmv}}` visible in the rendered output, and an
 invented literal, are BOTH findings — the first unfinished, the second dishonest. (Offer
 numerals need none of this — they are the design's own terms, shown plainly.)
 
+**One carve-out, and it is the opposite case: PROSE the client owns.** A typed claim slot
+renders as a labeled sample because a plausible sample value is both honest and finished.
+There is no honest sample of someone else's positioning, so a prose slot the client has not
+supplied ships as a visible `{{lorem}}` instead — recorded in `content-source.md`'s gaps
+table, which is what makes it a decision rather than an omission. A `{{lorem}}` that artifact
+accounts for is NOT the raw-mustache failure above; an invented sentence in its place is the
+worse one, because it becomes indistinguishable from copy the client approved.
+
 **ONE marker per figure, at most one more per region — markers do not stack.** Honesty signals
 feel free, so they multiply. A region acquires a chip on every figure, then a banner above them,
 then an explanatory lede, then a headline that says the quiet part ("What it has done, once you

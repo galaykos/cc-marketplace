@@ -51,6 +51,78 @@ The run log's `draw` cell carries the same five option names joined by ` / `. Th
 machine gate parses these lines and compares the draw against the logged history, so spell
 the axis names exactly as the headings below.
 
+The record's FIRST line under its title is the run stamp — `Run: <instant> · <product-slug>
+· <absolute project root>`, copied byte-identical from the contract
+(`offer-contract.md` Part 8). It is what tells this run's record from the previous run's at
+the same fixed path, and `Run` is not a deck axis, so it is never parsed as one.
+
+## Recording what the build may NOT be
+
+A draw says which room the concept is generated inside. It says nothing about which room
+the build must stay OUT of — and that second half is what a prior build in a sibling
+directory, an adjacent product of the same client, or a drawn option's laziest execution
+makes urgent. A drawn `Diagrammatic system` sitting next to a prior drafting-sheet build
+walks straight back into it unless something forbids it by name.
+
+So the record carries a NEGATIVE-CONSTRAINTS BLOCK beside the draw — up to three lines,
+each naming what is off-limits and why:
+
+```
+Banned genus: technical drafting sheet — the prior build in the sibling directory ships it, and the drawn Diagrammatic system defaults back into it
+Banned register: draughting-office sheet labelling
+Banned vocabulary: SHEET, TITLE BLOCK, "REV A", "DRAWN BY", SCALE 1:1, first angle projection
+```
+
+**The three keys are fixed and the line format is a hard rule.**
+
+- Exactly these keys: `Banned genus:`, `Banned register:`, `Banned vocabulary:`. One
+  constraint per LINE, never wrapped — a continuation line is read as its own line.
+- `Banned vocabulary:` is a COMMA-SEPARATED list of literal strings: the terms a grep can
+  find in shipped source. A described register ("nothing draughting-flavoured") is not
+  greppable, so it belongs on `Banned register:`, which a reading agent grades, beside a
+  vocabulary line that a command can actually fail on.
+- **How a term is MATCHED — stated here once, cited everywhere else.** Each term is greped
+  **word-bounded and case-insensitively**. Not a substring: a substring grep for a banned
+  `REV` hits *Reviews*, *Revenue* and *Reveal*, and one for `DRAWN` hits *drawn from* — a
+  landing page is full of all four, so every one becomes a finding the run must explain away,
+  and a gate that fires on correct copy is waived into silence inside one run. A term shorter
+  than ~4 characters, or one that is an ordinary English word on its own, must therefore be
+  given as a **quoted phrase** carrying the context that makes it the banned thing — `"REV A"`
+  and `"DRAWN BY"` above, never bare `REV` and `DRAWN`. A quoted phrase is matched whole,
+  quotes stripped. `/craft-layer:audit`, `craft-reviewer` and `orchestration`'s
+  `tree-wide-gates.md` all CITE this paragraph rather than restating it: a second statement of
+  match semantics is a second semantics, and the two disagree the first time either is edited.
+- **NEVER restate a constraint as an axis line.** A line reading `Motion role: not
+  diagrammatic`, or `Graphic-system class: not a drafting sheet`, is the defect written
+  twice: the audit's machine gate scans EVERY line of this record with a generic
+  `Key: value` regex, matches any key naming a deck axis, and assigns it unconditionally,
+  last-write-wins. Such a line silently REPLACES the drawn option, and the draw-repeat
+  assertion then compares a constraint string against the logged run history and reports a
+  verdict on garbage — no error, no warning, no symptom. The three `Banned …` keys are
+  chosen because no deck axis is named that way; inventing a fourth key re-opens the
+  collision, so extend the vocabulary list instead of adding a key.
+- One reason per line, after an em dash. A ban nobody can trace is waived by the first
+  agent who finds it inconvenient.
+- Nothing to ban is a legitimate outcome: write `Banned vocabulary: none` rather than
+  dropping the line, so a later reader can tell a considered nothing from a skipped step.
+
+This is a per-run constraint, not a deck entry — naming one build's forbidden genus here
+does not make this file a catalog, because nothing in the list above is drawn FROM.
+
+**Where the block goes next, because a record nobody reads bans nothing.** Two hand-offs,
+and both are required:
+
+1. `Banned vocabulary:` is copied VERBATIM onto `craft/build-task.md` as one of the lines the
+   motion step resolves there, so the builders receive it as a rule in their dispatch rather
+   than as background. Named, never numbered — the build task's line set grows, and a
+   positional claim about it is wrong the next time it does.
+2. Its terms are the input to ONE tree-wide grep the audit runs over the whole shipped
+   tree, after every parallel builder has finished. N builders each grepping their own
+   files is not that check: each reports green over its own subset and the ban is verified
+   nowhere. The general form of that rule — one cross-cutting gate, run by the
+   orchestrator after fan-in — is `orchestration:delegation-contracts`'
+   `references/tree-wide-gates.md`.
+
 ## Axis 1 — Composition strategy
 
 How the page is spatially organised.
@@ -150,3 +222,6 @@ What kind of AUTHORED graphic the build owns.
   colour value turns this file into a catalog and retires it.
 - **Skipping the record** — an unrecorded draw cannot be excluded next run, so the log
   never accumulates and the deck degrades into a coin toss.
+- **Banning in prose** — writing "we should avoid the drafting-sheet look" into the
+  record's narrative instead of onto `Banned vocabulary:`. Nothing greps a paragraph, the
+  builders never see it, and the build ships the banned register with every gate green.

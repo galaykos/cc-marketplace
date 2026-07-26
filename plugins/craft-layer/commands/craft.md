@@ -131,10 +131,32 @@ banner first, with its cost line.
    makes the build distinct, and the concept must actually reach the briefs (below) or it
    evaporates. The metaphor is a design LANGUAGE, not a rebrand — the real product name
    stays in the title, hero, and nav.
+   WHAT THE DIRECTOR RULES OUT IS PART OF THE RECORD, NOT PART OF ITS PROSE. When the
+   concept step rules a genus, register or vocabulary off — most often a prior build in a
+   sibling directory that the drawn options default straight back into — write it into
+   `craft/divergence-record.md` as the NEGATIVE-CONSTRAINTS BLOCK on its three fixed keys,
+   `Banned genus:` / `Banned register:` / `Banned vocabulary:`, per
+   `skills/creative-direction/references/concept-deck.md`. Two rules bind it. Never restate
+   a ban as `<deck axis>: not …` — the audit's machine gate parses every `Key: value` line
+   of this record and a key naming a deck axis OVERWRITES the drawn option, so the
+   draw-repeat assertion then grades a constraint string against the run history, with no
+   error and no symptom. And `Banned vocabulary:` carries LITERAL terms, comma-separated,
+   because step 5 copies that line onto the build task and step 7 greps the whole shipped
+   tree for those terms: a ruling that stayed in the record's narrative reached no builder
+   and no gate, which is exactly how a build ships the genus its own concept step forbade.
    THEN run the CONCEPT FORK, and run it at EVERY tier — `one-shot` included. Have the
    dispatch return 2–3 candidates instead of one, present each as { the five-axis deck draw ·
    central metaphor · editorial voice · signature interaction }, and ask which one the build
-   runs on with `AskUserQuestion`. The concept fork forks on CONCEPT — the spine and the
+   runs on with `AskUserQuestion`. That ONE call carries a SECOND QUESTION — does copy for
+   this page already EXIST (the live site, a doc, a deck), or does the build ship visible
+   `{{lorem}}` slots? It is an additional question inside the same call, never a second call,
+   so it adds NO exchange to a `one-shot` run, which still carves out exactly this one; and a
+   URL or path the brief ALREADY named is a supplied input rather than a question — read it
+   without asking. Headless, unattended or unanswered → `source: none-located` and visible
+   `{{lorem}}` slots, never invented copy. The rules that bind ingested copy — verbatim
+   claims, legal blocks in full, the `{{lorem}}` default, the fetch date the audit reads —
+   are in `skills/creative-direction/references/content-source.md`.
+   The concept fork forks on CONCEPT — the spine and the
    signature move — never on three shades of one accent: `/ui-ux:theme` already forks on
    colour at its own step, and a second colour fork here would buy nothing. Variety a human
    picked beats variety a model reports having produced. A headless run, or one the user
@@ -145,14 +167,31 @@ banner first, with its cost line.
    existing weak-round path (regenerate once, then return the winner flagged
    `low-confidence` for human review). The chosen candidate's draw is the one persisted
    below, logged in step 7 and gated by the audit; the unchosen draws are discarded.
-   FINALLY, once the archetype is classified and the concept exists, PERSIST both artifacts —
+   FINALLY, once the archetype is classified and the concept exists, PERSIST the run's
+   artifacts —
    the pinned contract INCLUDING its archetype row, its `Boost` row, the `Raw brief:` /
-   `Upgraded brief:` pair and every `(inferred ← …)` mark with its basis, and the divergence
-   record — at the fixed
-   paths `craft/offer-contract.md` and `craft/divergence-record.md` under the run's working
+   `Upgraded brief:` pair and every `(inferred ← …)` mark with its basis, the divergence
+   record, and the CONTENT SOURCE the fork's second question resolved — at the fixed
+   paths `craft/offer-contract.md`, `craft/divergence-record.md` and
+   `craft/content-source.md` under the run's working
    area (the taskmaster docs area when the project has one, otherwise the session scratch;
    never the shipped tree). Persisting before the archetype is classified writes an empty
-   Archetype row and leaves the content-depth gate with no anchor. The audit globs for exactly
+   Archetype row and leaves the content-depth gate with no anchor.
+   EVERY ARTIFACT OPENS WITH THE RUN STAMP. Compute it ONCE here — `Run:
+   <YYYY-MM-DDTHH:MMZ> · <product-slug> · <absolute path of the target project root>` — and
+   copy it BYTE-IDENTICAL onto the first line under each artifact's title, the build task and
+   the reference board included when later steps write them
+   (`skills/creative-direction/references/offer-contract.md` Part 8, which holds the field
+   shapes and the audit's tiebreak). Fixed names are what make these files findable and what
+   makes them collidable: a second run in this session writes the same fixed paths, and an
+   abandoned run leaves its artifacts exactly where the audit globs — which has already
+   happened, with a previous run's contract read as the current run's and a person, not a
+   gate, catching it. The stamp is the only thing that tells one run's artifacts from
+   another's, so a re-read clock per file defeats it; two artifacts whose stamps disagree are
+   a finding at step 7 rather than a coincidence. The content source is
+   written even when nothing was located — `source: none-located` is a recorded DECISION,
+   and an absent artifact is indistinguishable from a run that never asked. The audit globs
+   for exactly
    those names; a contract that was only spoken cannot be checked against — and a brief pair or
    an inference mark that lived only in the echo evaporates with the transcript, leaving the
    propagation it exists to stop exactly where it was. Written into the file, both are readable
@@ -166,6 +205,28 @@ banner first, with its cost line.
    briefs toward the concept (its mining method is unchanged; the concept steers what it
    elaborates and which defaults to break). It emits a freeform theme brief and a
    component/layout build task. Detect the target stack here if not already known.
+   BEFORE mining anything, FINISH THE CONTENT SOURCE. Lane C of the mining method already
+   points the run at the target's own marketing site
+   (`skills/design-research/references/mining-method.md`); when the brief named one, or the
+   step-0 fork surfaced one, RETRIEVE it and complete `craft/content-source.md` before either
+   brief is written, so both carry the client's own words instead of averaging toward the
+   category. A retrieval that returns 403, 5xx or an empty document ESCALATES to a real
+   browser when one is available — the ladder is in
+   `skills/ultra-craft/references/research-mandate.md` under "When a fetch fails", and THAT
+   SECTION binds at every tier, boosted or not — and the attempt, the escalation and its
+   result are recorded either way.
+   EVERY BRIEF-NAMED URL, REPO PATH AND ATTACHED FILE GETS A ROW in that artifact's Sources
+   table — its `Method` and its date, fetched or failed. Lane C is not a new instruction: it
+   already points at the target's own assets and it carries no ambition gate, so what was
+   missing when a run walked past a refusal was the RECORD, not the rule. The audit rebuilds
+   the expected list from the contract's verbatim `Raw brief:`, so a named source with no row
+   is a finding — at every tier, because this artifact is written at every tier. A brief-named
+   URL is a SUPPLIED INPUT rather than research: what ambition and the boost buy is mining
+   DEPTH, and neither decides whether the run read what the user handed it. A boosted run
+   additionally carries the same source on `craft/reference-board.md` as a brand-assets-lane
+   row, where it counts toward the six-source floor. Copy nobody located ships as a visible `{{lorem}}`; the
+   product's API, schema and spec facts are never a substitute for its marketing copy, which
+   is how a sales page ships reading as documentation.
    ON A BOOSTED RUN this step's mining is LIVE, not recalled: fetch every source, six minimum
    across the three lanes, each carrying a URL, a fetch date and a why-line, per
    `skills/ultra-craft/references/research-mandate.md`. That file also names THREE galleries
@@ -212,6 +273,29 @@ banner first, with its cost line.
    asset-posture floor, because the brief asked for the thing emptiness cannot deliver
    (`skills/creative-direction/references/ambition-tiers.md`).
 
+   **THEN decide where the COMPONENTS come from, on the same step and for the same reason.**
+   A section is not an asset and has its own decision
+   (`skills/asset-sourcing/references/component-sourcing.md`): four classes — first-party ·
+   registry block adapted · registry block as-is · installed library — over conventional
+   furniture (nav, footer, pricing table, FAQ, testimonial, form). It runs BEFORE the build
+   because a block sourced after a layout is committed is a retrofit, exactly as motion is.
+   Three bindings. It ALWAYS runs: a target that already ships a component library resolves
+   it IMMEDIATELY to `installed library` — a constraint being recorded, never a choice, and
+   never a licence to introduce a second one — rather than suppressing the decision and
+   recording nothing. The concept's SIGNATURE section is always first-party; a block
+   published for general reuse cannot carry the one move that is this brief's alone. And a
+   sourced block ships a one-line `component-source:` marker keyed to the same manifest step
+   4 already owns, because the licence gate cannot otherwise SEE a pasted component — that
+   marker is the only thing standing between a sourced block and invisibility, and an
+   unmarked one stays invisible, which that reference states rather than hides.
+   Which registry a block came from is recorded, not gated: registries have different house
+   styles, so the choice is a real fork in visual outcome, but nothing asserts don't-repeat-
+   recent on it the way `divergence.mjs` does on hues and typefaces. Carry the outcome into
+   step 6 on the build task's `Components / provenance:` line — class per section, the origin
+   named for anything sourced — and route each adapted block through the matching
+   best-practice skill under `plugins/ui-ux/skills/` (`/ui-ux:build` resolves it) so the block
+   is restyled to THIS build's tokens rather than shipped in its registry's dialect.
+
 5. **Motion — decide it BEFORE the build.** This step DECIDES; step 6's `/ui-ux:build`
    implements; craft-layer writes no animation code itself. Motion decided AFTER a layout is
    committed can only be retrofitted onto markup that was not built for it, which is how a
@@ -246,12 +330,34 @@ banner first, with its cost line.
    names what a contract row was read from, and for the same reason — a preference nobody
    recorded cannot be audited. Buy it lazily; an escalation onto a second eager engine has
    failed the cumulative budget instead.
-   Then work out what each remaining surface needs, and resolve THREE lines on the build task:
+   Then work out what each remaining surface needs, and resolve FIVE lines on the build task:
    `Motion:` — a named tier per surface plus the fallbacks below, and at `maximal` at least one
    `(escalated ← <reason>)` entry — `Signature:` — the
-   move, its section, and its owning skill — and `Ambition:` — the pinned tier, plus, at
+   move, its section, and its owning skill — `Ambition:` — the pinned tier, plus, at
    `maximal`, which surface carries the graphic system, which capabilities make up the three,
-   and which surface carries the escalation. Reach for the owning skill to make each call
+   and which surface carries the escalation — and `Banned vocabulary:` — copied VERBATIM from
+   the divergence record's negative-constraints block, with `none` written out when the
+   concept step ruled nothing off. `Banned vocabulary:` is the only one of the five that is not
+   a decision made HERE: it is a step-0 ruling being carried to the people who write the markup,
+   and it exists because the other lines are the only part of the record the builders
+   are handed. A concept constraint that reaches only the record is a constraint the build
+   cannot obey. Copy it under the match semantics
+   `skills/creative-direction/references/concept-deck.md` states — word-bounded and
+   case-insensitive, a term under ~4 characters given as a quoted phrase — so a ban on `REV`
+   does not arrive as a gate that fires on `Reviews`.
+   THE FIFTH LINE IS `Spine regions:` — which REGION of the page answers which offer-spine
+   slot, written as `<slot>=#<anchor>` pairs over the contract's eight slots, ON ONE LINE AND
+   NEVER WRAPPED (`skills/creative-direction/references/register-corpus.md`). The gate reads
+   the line the key is on and nothing else, so a continuation line is read as its own line:
+   every pair after a wrap is lost without a word, and a wrap falling before a buyer slot
+   leaves the gate nothing to grade and it SKIPs. Let the line be long — the same hard rule,
+   in the same words, that `concept-deck.md` states for the `Banned …` keys. It resolves here, at every
+   tier, because the section names already exist by this step and because `one-shot` — the
+   default, and the mode that shipped the failure — writes no ledger to carry it: a `guided`
+   run copies the ledger's `slot` + `section` columns onto the line rather than re-deriving
+   them. Without the mapping the register gate cannot tell an endpoint standing in for the
+   plain-what line from the same endpoint doing its job inside `how it works`, so it degrades
+   to a whole-page grep that fires on every correct limits list. Reach for the owning skill to make each call
    (each references its library by path — never re-teach):
    - **Tier** (the base per-surface choice) via `motion-tiers`: Framer Motion, anime.js,
      Three.js/R3F, sprites (`sprite-motion`), or the Vector tier (Lottie/Rive).
@@ -274,21 +380,43 @@ banner first, with its cost line.
    (`motion-tiers/references/rtl-bidi.md`); and pick the **accent so it clears contrast on
    every surface** it lands on (verified in step 7).
 
-   FINALLY, once all three lines are resolved, PERSIST them at `craft/build-task.md`, beside
-   the contract and the divergence record. The audit grades the signature against the build
-   task's `Signature:` line and floor 4 against its `Motion:` line, and neither can read a
-   task that exists only in the dispatch. Persist
+   FINALLY, once all five lines are resolved, PERSIST them at `craft/build-task.md`, beside
+   the contract and the divergence record, carrying step 0's `Run:` stamp on its first line
+   BYTE-IDENTICAL — a build task stamped to a different run is a build task the previous run
+   left behind, and step 7 fails it rather than reading its lines as this build's. The audit grades the signature against the build
+   task's `Signature:` line, floor 4 against its `Motion:` line, the reach floors against its
+   `Ambition:` line, the shipped tree against its `Banned vocabulary:` line, and the three
+   BUYER slots' register against its `Spine regions:` line, and none of them can read a task
+   that exists only in the dispatch. Persist
    AFTER the lines exist, never before: a build task written early is the empty-Archetype-row
    failure step 0 already names, one step down. A line that lived only in a handoff cannot be
    checked, for exactly the reason a contract that was only spoken cannot.
 
 6. **Build.** Pass the build task — carrying the section ledger's choices when step 3 ran,
-   the asset plan from step 4, and step 5's resolved `Motion:`, `Signature:` and `Ambition:`
-   lines — to
+   step 4's `Assets / provenance:` AND `Components / provenance:` lines, and step 5's resolved
+   `Motion:`, `Signature:`, `Ambition:`,
+   `Banned vocabulary:` and `Spine regions:` lines — to
    `/ui-ux:build` to lay out components and screens, applying `design-tokens` and, for
    data-dense CRM/SaaS surfaces, the `information-design` skill (hierarchy, density,
    tables/dashboards, when-to-dataviz). ONE pass: layout and motion land together, because
    the signature and the scroll device are structural, not decoration applied afterwards.
+   A section the `Components / provenance:` line assigns to a registry block is restyled to
+   this build's tokens and composition IN THAT SAME PASS and ships its `component-source:`
+   marker: a block pasted now and "themed later" is the unrestyled block the audit calls a
+   finding, and an unmarked one is invisible to the licence gate altogether.
+   EACH REGION THE `Spine regions:` LINE NAMES SHIPS ITS ANCHOR — the `id` goes on the element
+   that HOLDS that slot's copy, not on a wrapper or a self-closing component invocation, or the
+   register gate addresses nothing and reports the slot unchecked. The dispatch that writes a
+   buyer region — plain-what, audience, problem — carries the rule with it: those three answer
+   a buyer's question, so an endpoint, a token scope, a status code or a schema fact standing
+   in for the answer is a finding there, while the same disclosure is exactly what `how it
+   works` and `objection` are FOR (`skills/creative-direction/references/register-corpus.md`).
+   EVERY dispatch carries the `Banned vocabulary:` line, and a section built before the line
+   existed is re-checked against it rather than assumed clean. When the build fans out across
+   parallel agents, the ban is NOT discharged by each agent grepping its own files: that is N
+   green reports for a property verified nowhere, and it is what step 7's single tree-wide
+   grep exists to catch (the general rule, with the concurrency caveat that goes with it, is
+   `orchestration:delegation-contracts`' `references/tree-wide-gates.md`).
 
    **Show the result forming.** After each major section lands — the hero, then the
    signature section, then the assembled page — capture ONE shot at the primary breakpoint
@@ -318,15 +446,43 @@ banner first, with its cost line.
    body-cap, sequencing studio-excluded-from-prod) and, via its delegation, full
    accessibility and performance. Resolve any failed gate before declaring the surface done.
 
+   **Run the banned-vocabulary grep HERE, once, over everything.** The build task's
+   `Banned vocabulary:` line is a cross-cutting property, and this step is the first moment
+   the whole tree exists and nothing is still being written into it. One grep of the entire
+   shipped source for the line's terms, run after every builder has returned — not during,
+   and not once per agent. During a fan-out the result is about a sibling's half-saved file
+   rather than about the build; per agent it is green over a subset while the ban is checked
+   nowhere. `Banned vocabulary: none`, or no line at all, reports `not checked`, never a pass.
+
    **Install the gate suite, then LOOK at what it captured.** The suite is
    `${CLAUDE_PLUGIN_ROOT}/template/craft-gates/` — `gates.spec.ts`, `contrast.mjs` and
    `divergence.mjs`. When the project has no suite of its own, INSTALL it rather than
    recommending it: copy all three in (the two `.mjs` files beside the project's other
    scripts), `npm i -D @playwright/test @axe-core/playwright && npx playwright install
    chromium`, and point it at the dev server step 6 already has up —
-   `BASE_URL=<that server> npx playwright test`, then `node scripts/contrast.mjs` and
+   `BASE_URL=<that server> CRAFT_EXPECT_TITLE=<the contract's product name> npx playwright
+   test`, then `node scripts/contrast.mjs` and
    `node scripts/divergence.mjs`. No second server and no second capture path: the surface
    the build is running on is the one the pictures are taken from.
+   PASS THE ARTIFACT PATHS, or two of its assertions grade nothing. `divergence.mjs` resolves
+   `craft/…` relative to the PROJECT ROOT, and this command persists those artifacts to the
+   run's working area — which on a project with no `taskmaster-docs/` is the session scratch,
+   OUTSIDE the project. So the common case is the one that silently degrades: the register gate
+   and the stamp gate both report `not checked`, the run reads as clean, and the reviewer is
+   forbidden from re-deriving the register verdict by eye. Hand them in explicitly, using the
+   same paths step 0 and step 5 already wrote:
+   `CRAFT_CONTRACT=<…/craft/offer-contract.md> CRAFT_DIVERGENCE_RECORD=<…/craft/divergence-record.md>
+   CRAFT_BUILD_TASK=<…/craft/build-task.md> CRAFT_CONTENT_SOURCE=<…/craft/content-source.md>
+   CLAUDE_PLUGIN_ROOT=<craft-layer root> node scripts/divergence.mjs`. A gate that cannot find
+   its input is not a gate that passed.
+   PASS `CRAFT_EXPECT_TITLE` — the suite cannot derive it. It runs inside the target project
+   and cannot reach the persisted contract, so the ONE thing that proves the shots are of THIS
+   build has to be handed in from here, where the contract's product name is already known.
+   Omit it and the suite reports `IDENTITY NOT MEASURED` and captures anyway: a legitimate
+   outcome, but it means nothing checked that the server on that port is yours. A dev port held
+   by a different project is the ordinary case, not the exotic one — a run that shipped this
+   gate found `:5173` serving an unrelated app while its own build sat on `:5182`, and every
+   shot would have been another application's, opened and reported as this build's.
    The capture trigger writes PNGs into `<project>/.craft-layer/shots/` — two per breakpoint
    at 390, 768 and 1280, light and dark, after a scroll-settle. OPEN THEM. Every tier opens
    them, not only a boosted run: Read each image and say what is actually visible, hunting
@@ -343,6 +499,11 @@ banner first, with its cost line.
    - `divergence.mjs` exiting non-zero is a step-7 FINDING with the same standing as every
      other craft gate — resolve it, or waive it in `<project>/.craft-layer/waivers.json` with
      a reason, before the surface is called done. Exit 2 is `not measured`, never a pass.
+     Its assertions include `spine-register`, which reads the build task's `Spine regions:`
+     line and grades the plain-what / audience / problem regions against the register corpus,
+     so a non-zero exit can also mean every spine slot was ANSWERED in an integrator's voice.
+     Run it with `CLAUDE_PLUGIN_ROOT` set so both corpora are the live ones rather than the
+     frozen snapshots it prints when they are not.
    - A defect FOUND in an opened shot IS a finding, on the same list as the gate failures,
      whatever the DOM checks reported.
    - `Visual: NOT CAPTURED` is REPORTED, never blocking — the same standing as the legitimate

@@ -48,6 +48,38 @@ The brand has already decided things; honour them before inventing.
 If a brand palette or typeface already exists, the theme brief ECHOES it rather than
 proposing a fresh one — say so explicitly in the brief.
 
+#### Lane C is the ENFORCED lane — every brief-named source owes a ROW
+
+Nothing above is new, and that is the point. This lane already sends the run at the
+target's own marketing site, and `design-research` runs at step 1 at EVERY ambition tier
+with no gate on it, so "read the URL the brief handed you" has been the rule the whole
+time. It was ignored anyway: a run met a `403` on the client's own published page, wrote it
+down as a finding, carried on without the copy, and filled the offer spine with the
+product's API facts instead. A rule stated a fourth time would have changed nothing. What
+changes it is a row.
+
+**Every URL, repo path and attached file the brief NAMES gets a row in
+`craft/content-source.md`'s Sources table**
+(`craft-layer/skills/creative-direction/references/content-source.md`), carrying the origin,
+the date, and the `Method` that retrieved it — `fetch`, `browser (escalated ← <status>)`,
+`file`, `pasted`, or `fetch-failed` with its reason. That is the reference board's `Method`
+vocabulary, deliberately: one question, one column, no parallel machinery. A retrieval that
+returns 403, 5xx or an empty document ESCALATES before it is called unavailable — the ladder
+is `craft-layer/skills/ultra-craft/references/research-mandate.md` § "When a fetch fails",
+which binds at every tier and is not restated here.
+
+A brief-named source with NO row is a finding at audit, and it bites at every tier: the
+content-source artifact is written on a `one-shot` or `restrained` run exactly as on a
+boosted one, and the audit rebuilds the expected list from the contract's `Raw brief:`,
+which is stored verbatim. A brief-named URL is a SUPPLIED INPUT, not research — mining depth
+is what ambition and the boost buy, and neither of them is what decides whether the run read
+what it was handed. On a BOOSTED run the same source additionally appears on
+`craft/reference-board.md` as a brand-assets-lane row and counts toward the six-source
+floor; the board is a boosted-run artifact, so it is never what carries this elsewhere.
+
+Recording an obstacle is not clearing it. The row is what makes the difference between the
+two visible to something other than a person reading the page at the end.
+
 ## 2. Extraction worksheet
 
 For every source, record BOTH columns. A source that only yields colour is under-mined.
