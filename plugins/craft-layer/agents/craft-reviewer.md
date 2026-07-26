@@ -223,6 +223,16 @@ without exception:
     one before emitting the finding. A waiver that just asserts the floor does not apply,
     with no brief reason, is not a waiver. Report reach as counts (`tiers: 2/3`), never as a
     verdict on how the page looks.
+16. Boost evidence (craft gate — the PROCESS receipt): read the `Boost` row. `none` or no
+    row: report `not checked (no boost pinned)` — never infer a boost from how thorough the
+    build looks. At `ultra-craft`, three artifacts were promised and each missing one is a
+    finding: a `craft/reference-board.md` carrying at least six FETCHED sources across the
+    three lanes, every row with a URL and a fetch date (a row with neither is a lead, not a
+    source — count only complete rows); a section ledger, because the boost pinned `guided`
+    and its absence is a miss here rather than the legitimate one-shot skip at step 13; and a
+    red-team record naming what it attacked. Report as counts (`sources: 4/6`), and check
+    presence and dating only — whether a source was WORTH fetching is taste, which this agent
+    does not judge.
 
 ## Checklist
 
@@ -253,6 +263,9 @@ without exception:
       authored graphic system, and an asset posture that is not all-first-party-emptiness;
       each waivable only by a reasoned divergence-record entry (no `Ambition` row → gate
       `not checked`, never inferred from how the page looks).
+- [ ] The pinned BOOST left its receipts — at `ultra-craft`, a reference board with ≥6 dated
+      fetched sources, a section ledger, and a red-team record (no `Boost` row or `none` →
+      gate `not checked`).
 - [ ] Content depth meets the archetype anchors + typed-slot specificity — claim/aggregate
       metrics are `{{metric:*}}` slots and capability claims (coverage, integrations, SLAs,
       certifications) are `{{capability:*}}` slots, rendered as labeled illustrative samples (not raw

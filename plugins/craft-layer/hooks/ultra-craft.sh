@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Fail open: never block the prompt. Inject the craft boost directive when the prompt asks.
+# One token: ultra-craft (also ultracraft). No suffix grammar — fixed tier
+# model=auto effort=xhigh (auto = session model or opus, whichever is higher on
+# haiku<sonnet<opus<fable). Slash prompts exit early: /craft-layer:craft parses the
+# token out of its own args, so the hook would double-fire the directive.
+{
+  input=$(cat)
+  prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
+  case "$prompt" in "/"*) exit 0 ;; esac # slash commands own their flag path
+  if printf '%s' "$prompt" | grep -qiE '\bultra-?craft\b'; then
+    echo "ULTRA-CRAFT ACTIVE (model=auto, effort=xhigh) — Extreme Boost for this craft run. Apply the craft-layer 'ultra-craft' skill (skills/ultra-craft/SKILL.md): pin the offer contract's Ambition row to \`maximal\` and its Mode row to \`guided\`, stamp \`Boost: ultra-craft\` into the persisted contract, and honor the six bindings. Research is LIVE — fetch every source, six minimum across three lanes, each with URL, fetch date and a why-line per skills/ultra-craft/references/research-mandate.md; recall is a lead labeled unverified, never a backing. Persist and ECHO craft/reference-board.md before any token is generated, and let the user confirm or redirect there. Reasoning subagents (creative-director, craft-reviewer) dispatch model:auto — session model or opus, whichever is higher, escalate never downgrade; effort xhigh on the Workflow path, inline dispatch escalates model only; builders and token generation stay NATIVE. After the audit, red-team the shipped tree against the contract and divergence record, N=3 as a ceiling sized to blast radius; no Workflow tool means ONE inline pass labeled 'inline heuristic pass — single model, uncorroborated'. Every ceiling holds unchanged — reduced-motion, per-tier and cumulative motion budgets, accent contrast, licence and provenance, accessibility. Print the ⚡ banner first with the cost line; where the brief also asks for fast or cheap, ASK which order wins."
+  fi
+} 2>/dev/null
+exit 0
