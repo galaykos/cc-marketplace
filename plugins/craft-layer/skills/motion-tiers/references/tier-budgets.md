@@ -72,6 +72,30 @@ webgl-effects). Budget the COMBINED initial motion JS, not each piece alone:
 - No fixed ceiling: measure the combined initial motion JS per build against the target
   network. The rule is "one heavy engine eager, the rest lazy" — not a magic number.
 
+## The frame-sequence budget (a scroll act's images, not its JS)
+
+A scroll-scrubbed frame sequence is not tier 4. Tier 4 is a fixed-fps LOOP that ships as one
+packed sheet; a scrubbed sequence is a run of separately decoded frames indexed by scroll
+progress, and it is charged in a different currency. **These caps are POLICY, not measured
+library facts** — the `Last verified` date above governs KB figures and package names, and does
+not move for a decision. Both budgets bind independently: the cumulative budget above meters
+motion JS, this one meters images, and neither buys the other.
+
+| What | Cap |
+| --- | --- |
+| Total transferred, whole sequence | ≤ 1.5 MB |
+| Frame count | ≤ 90 frames |
+| Format | AVIF primary, WebP fallback |
+| Longest edge | ≤ 1600 px |
+| Decode-ahead window | ≤ 8 frames held as `ImageBitmap` |
+| Fetch start | not before the act is within one viewport of entry |
+
+Over cap, the remedy is **fewer frames across the same scroll range** — never a longer
+download. The mechanism, the `save-data` opt-out, the mid-sequence failure behaviour, the
+`ImageBitmap` release rule and the two distinct static states live in
+`plugins/craft-layer/skills/scroll-orchestration/references/scroll-acts.md`. This file owns the
+numbers only.
+
 ## Not a tier
 
 GSAP is deliberately absent: it is a powerful alternative for complex imperative

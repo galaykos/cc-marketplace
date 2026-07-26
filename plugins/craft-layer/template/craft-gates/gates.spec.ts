@@ -261,6 +261,17 @@ for (const [label, width, height] of BREAKPOINTS) {
         if (!clips(cs.overflowX) && !clips(cs.overflowY)) continue
         if (cs.textOverflow === 'ellipsis') continue
         if (cs.getPropertyValue('-webkit-line-clamp') !== 'none') continue
+        // VISUALLY HIDDEN is clipped ON PURPOSE — that is the whole technique. Tailwind's
+        // `sr-only`, Bootstrap's `.visually-hidden` and every hand-rolled variant collapse
+        // the box to ~1px and clip it so the text stays in the accessibility tree and off
+        // the screen. Flagging it reports every correctly-built table caption and skip link
+        // as a defect, and a gate that fires on correct code is a gate people learn to
+        // ignore. Detect the shape rather than a class name: tiny clipped box, or an
+        // explicit clip-path/clip that hides everything.
+        const tiny = el.clientWidth <= 2 && el.clientHeight <= 2
+        const clipHidden =
+          cs.clipPath === 'inset(50%)' || /rect\(0(px)?[,\s]/.test(cs.clip || '')
+        if (tiny || clipHidden) continue
         if (el.clientWidth <= 0 || el.clientHeight <= 0) continue
         const overX = clips(cs.overflowX) ? el.scrollWidth - el.clientWidth : 0
         const overY = clips(cs.overflowY) ? el.scrollHeight - el.clientHeight : 0

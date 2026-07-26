@@ -17,7 +17,8 @@ move is available and when it fits; the concrete move is brief-derived.
   carry the concept's metaphor, not just a headline over an image.
 - **Scroll device** — how scroll drives meaning (pinned scrollytelling / horizontal act /
   scrub-reveal / parallax depth / section morph). When: the sequence itself is part of the
-  argument; never for decoration (see `scroll-orchestration`).
+  argument; never for decoration (see `scroll-orchestration`, and
+  `plugins/craft-layer/skills/scroll-orchestration/references/scroll-acts.md` for what an act costs and what it owes).
 - **Type treatment** — how type behaves (variable-axis / kinetic reveal / oversized
   editorial / rotating slot / annotation). When: type is a focal element and motion serves
   reading (see `kinetic-typography`; one focal type animation per surface).
@@ -60,6 +61,16 @@ while the signature is how a visitor *works* them.
 A scroll-linked draw or fade satisfies 1 and 2 whenever it is bound to a scroll range
 rather than a trigger, and still fails 3, because the completed state is simply the
 design. Passing the first two is why these get shipped as signatures by mistake.
+
+**Where the line falls for a scroll act.** The same reasoning cuts a longer scroll act in
+two, and it is worth stating because the expensive half is the one that fails. A sequence
+the visitor can only watch ADVANCE — scroll moves it forward, and forward is the only
+direction it has — is an entrance reveal with more frames however many frames there are.
+It counts toward `maximal`'s floor 1 (the tier-reach count) and never toward the signature floor. The same
+sequence PASSES test 3 when the visitor can scrub back and forth, hold a state, and
+compare two states against each other: that is the "interrogate, operate, compare, steer"
+above, arriving through scroll rather than through a pointer. The question is never how
+much was rendered. It is whether scroll merely advances the act, or the visitor works it.
 
 Applying the test is the audit's job (`/craft-layer:audit`) and the concept's job
 (`agents/creative-director.md` scores feasibility against it). Neither may satisfy it by

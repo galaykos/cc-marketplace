@@ -32,6 +32,13 @@ taxonomy and its per-tier budgets, then:
    sprite/image/font/3D/Lottie file, and per-chunk gzipped size for the built bundle when a
    `dist/`/`build/` output exists (a project's own build command, `wc -c`, `gzip -c | wc -c`,
    or the bundler's report).
+   **When a scrubbed frame sequence shipped**, measure it too — its caps are in
+   `${CLAUDE_PLUGIN_ROOT}/skills/motion-tiers/references/tier-budgets.md` and nothing else can
+   check them: the TOTAL transferred bytes across every frame (not the per-frame size, which
+   always looks fine), the FRAME COUNT, and whether the poster frame ships EAGER — a real
+   `<img>`, not lazy and not canvas-only, because it is the no-JS state and the LCP candidate.
+   Report the three numbers against the caps. No sequence in the tree means nothing to
+   measure, which is not a failure.
 
    **Check the NARROW VIEWPORT if you can drive a browser.** A page whose body scrolls
    horizontally at a phone width is a layout defect, and layout is this audit's job — not
@@ -116,18 +123,29 @@ taxonomy and its per-tier budgets, then:
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md` (the deliverable scope +
    offer-spine slots) AND
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/ambition-tiers.md` (the reach
-   tiers and the three floors `maximal` adds) AND — found by globbing `**/craft/offer-contract.md`,
-   `**/craft/divergence-record.md`, `**/craft/section-ledger.md` and `**/craft/reference-board.md`
+   tiers and the four floors `maximal` adds) AND — found by globbing `**/craft/offer-contract.md`,
+   `**/craft/divergence-record.md`, `**/craft/build-task.md`, `**/craft/section-ledger.md` and `**/craft/reference-board.md`
    (the fixed names the craft
    flow persists to; search the project and the session working area) — the PERSISTED contract
-   instance and divergence record when they exist. Without the contract, the scope/length/mode
+   instance, divergence record and BUILD TASK when they exist. Without the build task, the
+   signature gate and reach floor 4 have no anchor, because both grade a line that lives only
+   in it. Without the contract, the scope/length/mode
    AND the content-depth section-count checks have no anchor; without the record, anti-sameness
    has none. Report each as `not checked`, never as passing and never as failing. AND, when the run produced a
    section ledger, `${CLAUDE_PLUGIN_ROOT}/skills/section-decisions/references/section-ledger.md` plus the ledger
    itself AND
    `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
-   schema) AND the measurements from step 1b, and have it verify: the concept's ONE **signature
-   interaction** shipped — the divergence record names it, the build task's `Signature:` line
+   schema) AND the measurements from step 1b, and have it verify:
+   any **SCROLL ACT** that shipped owes its three states — a pinned scene, a scrubbed frame
+   sequence or a scroll-revealed panel each need a reduced-motion state, a no-JS state and a
+   failure state per
+   `${CLAUDE_PLUGIN_ROOT}/skills/scroll-orchestration/references/scroll-acts.md` (inject it),
+   and a panel carrying `role="dialog"`, trapping focus, or moving focus at a scroll threshold
+   is a finding — the visitor never opened it, and the tab-stop assertion in `gates.spec.ts` is
+   scoped to grids and listboxes and does not see it. No scroll act in the tree → nothing to
+   check, not a failure;
+   the concept's ONE **signature
+   interaction** shipped — the divergence record names it, `craft/build-task.md`'s `Signature:` line
    assigned it a section, and the named mechanism is implemented there (this is the motion
    FLOOR and the only gate that fails a page for too little motion; entrance reveals never
    count toward it — apply the three-part test in
@@ -190,14 +208,22 @@ taxonomy and its per-tier budgets, then:
    as thorough divergence, and a rich record whose type or palette row is contradicted by the
    shipped tokens is the failure mode that survives every other check;
    **ambition conformance** — read the contract's `Ambition` row and grade against THAT tier
-   (`ambition-tiers.md`). At `maximal` the three reach floors are checked: at least THREE
+   (`ambition-tiers.md`). At `maximal` the four reach floors are checked: at least THREE
    distinct motion capabilities driving real surfaces — a `motion-tiers` tier or a sibling
    engine each count once, from the step-1 detection; at least
    ONE authored graphic system — generative/procedural canvas, WebGL/shader surface,
    programmatic SVG system, sprites, or a designer-authored vector asset, where rules, borders,
    icons and type treatment are composition and do NOT count; and an asset posture that is not
    all-first-party-emptiness (a manifest declaring nothing shipped passes the licence gate and
-   fails this floor). Each floor is waivable ONLY by a reasoned entry in the divergence record;
+   fails this floor); and NAMED ESCALATION — `craft/build-task.md`'s `Motion:` line carries at
+   least one `<surface>: <tier> (escalated ← <reason>)` entry AND that escalated tier is actually
+   present in the shipped tree. The first floor counts capabilities and three cheap ones
+   satisfy a count, so this floor asks the different question the count cannot: did any surface
+   depart from the cheapest tier that fit it? A mark with no matching implementation in the
+   tree is a finding, not a pass — it is the same "decision recorded, never built" failure the
+   divergence-record contradiction check exists for. No build task persisted →
+   `not checked (no build task)`, never a pass — and see the dropped-artifact rule below, which
+   makes DISCARDING one a finding in its own right so the floor cannot be waived by omission. Each floor is waivable ONLY by a reasoned entry in the divergence record;
    a floor missed with no waiver is one finding naming the floor. No `Ambition` row in the
    contract → `not checked`, never a pass and never a fail, and never inferred from how the
    page looks;
@@ -272,8 +298,12 @@ taxonomy and its per-tier budgets, then:
    input" only when the build never ran the craft flow. When the target carries evidence
    that it DID — a provenance manifest at one of the licence gate's names, a section
    ledger, a token system with the flow's role tiers, or the user saying so — then missing
-   `craft/offer-contract.md` or `craft/divergence-record.md` is a run that decided its
-   contract and threw it away, which is the failure step 0 exists to prevent. Report it as
+   `craft/offer-contract.md`, `craft/divergence-record.md` or `craft/build-task.md` is a run
+   that decided its contract and threw it away, which is the failure steps 0 and 5 exist to
+   prevent.
+   The build task belongs on that list for a sharper reason than symmetry: without it floor 4
+   and the signature gate both report `not checked`, so a discarded build task is a floor
+   waived by omission — the one waiver route the reach floors do not grant. Report it as
    one finding naming the missing file, and keep the gates that needed it as `not checked`
    underneath. Never fail a build that plainly never ran the flow.
 

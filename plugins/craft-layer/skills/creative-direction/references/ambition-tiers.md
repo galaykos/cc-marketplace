@@ -14,11 +14,20 @@ checked.
 
 | Tier | Pinned when | The build owes |
 | --- | --- | --- |
-| `restrained` | the user asks for conventional, trust-first, understated, corporate, or "keep it simple" | the signature floor only |
-| `standard` *(default)* | no ambition language either way | the signature floor only |
-| `maximal` | the user asks for reach in ANY words | the signature floor **plus** the three reach floors below |
+| `restrained` | the `restrained` token, or the user asks for conventional, trust-first, understated, corporate, or "keep it simple" | the signature floor only |
+| `standard` *(default)* | the `standard` token, or no ambition language either way | the signature floor only |
+| `maximal` | the `maximal` token, or the user asks for reach in ANY words | the signature floor **plus** the four reach floors below |
 
-**Pinning `maximal` is a reading of intent, not a keyword match.** "award winning",
+**A leading token pins the row outright.** `maximal`, `standard` or `restrained` — lowercase,
+as the first token of `/craft-layer:craft`'s own argument string, or the first token after a
+boost token that owns that slot — states the tier rather than implying it, and echoes UNMARKED.
+The token exists because `ultra-craft` had this half and this row did not: a user could demand
+the expensive PROCESS explicitly and only hint at the expensive OUTPUT, which is the wrong way
+round, since this is the tier that spends bundle weight. A token that CONTRADICTS the brief's
+own prose — `restrained` in front of "an award-winning showpiece" — is two orders, not one, and
+gets the same ASK the ambiguous-words rule below already mandates.
+
+**Absent a token, pinning `maximal` is a reading of intent, not a keyword match.** "award winning",
 "awwwards", "dribbble", "over the top", "very graphical", "cinematic", "showpiece", "make it
 pop", "with effects and animations" all pin it; so does naming heavy motion libraries as the
 POINT of the brief rather than as a stack constraint. When the words are ambiguous, ASK —
@@ -36,7 +45,7 @@ file still owns what the OUTPUT owes; the boost owns how hard the run works to g
 explicitly conventional request is recorded as a DECISION — the same escape hatch
 `sameness-fingerprint.md` already grants — rather than looking like a build that under-reached.
 
-## The three reach floors (`maximal` only)
+## The four reach floors (`maximal` only)
 
 Each is checkable from the shipped tree. Each may be waived, but only in the divergence
 record, with the brief reason — a waiver nobody wrote down is an under-reach.
@@ -90,6 +99,32 @@ none needed?
 has probably hit this ceiling rather than reasoned its way to a position." At `standard` that
 is a note. At `maximal` it is a finding, because the user asked for the thing first-party
 emptiness cannot deliver.
+
+### 4. Named escalation — one surface takes a tier the picker would not have chosen
+
+At least one surface carries a motion tier ABOVE the cheapest that would have fit it, recorded
+on the build task's `Motion:` line as `<surface>: <tier> (escalated ← <reason>)` and checkable
+in the shipped tree.
+
+This floor exists because floor 1 counts and does not reach. Three CHEAP capabilities satisfy a
+count of three, and the tier picker produces exactly that on its own: `craft.md` has it take
+"the CHEAPEST tier that fits each surface", so a `maximal` build can clear every other floor
+and still be a `standard` build wearing a bigger number. Floor 4 is the one rule the picker
+cannot satisfy by itself, because it names the picker's own default as the thing to depart from.
+
+The mark is the mechanism, not the paperwork. `(escalated ← <reason>)` reads like the
+`(inferred ← <basis>)` mark the contract already uses, and for the same reason: a decision that
+records what it departed FROM can be checked, and one that does not is a preference nobody can
+audit.
+
+**Why this floor names no technique.** "Ship a scroll act", "use a shader", "add physics" would
+each be an entry in a list every build picks from — the idea-catalog `moves-taxonomy.md`
+forbids, in this same directory, because a list everyone draws from manufactures a fresh sameness.
+An escalation floor asks for the DEPARTURE, not the destination, so two builds can clear it in
+ways that resemble each other in nothing but their honesty about the trade.
+
+Buy the escalation with LAZY loading, exactly as floor 1 is bought. A surface escalated onto a
+second eager engine has failed the cumulative budget and traded one finding for a worse one.
 
 ## What never moves
 

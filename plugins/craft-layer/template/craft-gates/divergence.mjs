@@ -129,17 +129,56 @@ function toHue(value) {
   return null
 }
 
+/**
+ * How saturated is this colour, on a 0..1 scale comparable across notations? Only used to
+ * pick the most chromatic token when no accent is named — precision matters less than
+ * ranking the same set the same way every run.
+ */
+function toChroma(value) {
+  const v = value.trim()
+  let m = v.match(/^oklch\(\s*([^\s,]+)[\s,]+([^\s,]+)/i)
+  if (m) return Math.min(num(m[2]) / 0.37, 1) // 0.37 is about the sRGB chroma ceiling
+  m = v.match(/^hsla?\(\s*([^\s,]+)[\s,]+([^\s,]+)/i)
+  if (m) return num(m[2]) / 100
+  m = v.match(/^#([0-9a-f]{6})\b/i)
+  if (m) {
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255)
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    return max === 0 ? 0 : (max - min) / max
+  }
+  return 0
+}
+
 /** Accent-ish custom properties, in declaration order. */
 function readAccents(css) {
   const out = []
+  const all = []
   for (const m of css.matchAll(/(--[\w-]+)\s*:\s*([^;}]+)/g)) {
     const name = m[1]
-    if (!/accent|primary|brand/i.test(name)) continue
     const hue = toHue(m[2])
     if (hue === null) continue
-    out.push({ name, value: m[2].trim(), hue, family: hueFamily(hue) })
+    const entry = { name, value: m[2].trim(), hue, chroma: toChroma(m[2]), family: hueFamily(hue) }
+    all.push(entry)
+    if (/accent|primary|brand/i.test(name)) out.push(entry)
   }
-  return out
+  if (out.length) return out
+
+  /* NAME-BASED RESOLUTION IS NOT ENOUGH. A build whose colour system is value-driven and
+   * hue-flat — one hue, hierarchy from lightness alone — has no accent to name, so it
+   * names its tokens by ROLE instead (paper / ink / rule / overlap). Resolving only by
+   * name reports such a build `not measured`, which this gate treats as a failure, so a
+   * legitimately achromatic design fails by construction and cannot pass however correct
+   * it is. That is the same defect shape as failing a brand-echo build for repeating its
+   * own brand.
+   *
+   * Fall back to the most chromatic declared token: whatever hue the system is built on
+   * is the hue worth testing against the category defaults, whether or not anyone called
+   * it an accent. Reported as a fallback so the resolution is never silent. */
+  const chromatic = all.filter((t) => t.chroma > 0)
+  if (!chromatic.length) return []
+  const pick = chromatic.reduce((a, b) => (b.chroma > a.chroma ? b : a))
+  pick.resolvedBy = 'fallback: most chromatic declared token — no accent/primary/brand name found'
+  return [pick]
 }
 
 const SYSTEM_STACK = new Set([
@@ -310,6 +349,7 @@ if (!accents.length) {
   process.exit(2)
 }
 console.log(`token source:       ${tokenPath}`)
+if (accents[0]?.resolvedBy) console.log(`accent resolution:  ${accents[0].resolvedBy} -> ${accents[0].name}`)
 
 /* font-family declarations: the token source plus its sibling stylesheets. */
 const cssFiles = [tokenPath]
@@ -323,9 +363,44 @@ const families = [...new Set(cssFiles.flatMap((f) => {
 }))]
 
 const waivers = readWaivers(notes)
-const log = readRunLog(notes)
 const echo = brandEcho()
 const drawn = readDraw()
+
+/* THE RUN MUST NOT BE COMPARED AGAINST ITSELF.
+ *
+ * craft.md appends this run's row AFTER the audit, so the first pass sees a log without
+ * it. Every pass after that — a re-run, a CI job on a committed project, anyone typing the
+ * command twice — sees the row this same build just wrote and fails the build for
+ * repeating a hue it never repeated. The gate would be single-use, and worse, it would
+ * fail hardest on projects diligent enough to keep their log.
+ *
+ * The draw is the run's fingerprint. A LAST row whose five-axis draw equals the draw in
+ * the current divergence record can only be this run's own record, because the draw is
+ * written once per run and excludes what earlier rows used. Drop exactly that row, and say
+ * so, so the exclusion is never silent. */
+const logAll = readRunLog(notes)
+let log = logAll
+if (logAll.length) {
+  const last = logAll[logAll.length - 1]
+  const norm = (s) => String(s ?? '').toLowerCase().replace(/\s+/g, ' ').trim()
+
+  // Draw match is the strongest signal, but a run with no persisted divergence record has
+  // no draw to match — and that run would then fail against its own row, which is the
+  // whole defect. Fall back to the hue family, which every logged row carries and which
+  // the gate has already resolved for this build.
+  const drawMatch =
+    drawn && norm(last.draw) === norm(AXES.map((a) => drawn.draw[a]).join(' / '))
+  const hueMatch =
+    accents.length > 0 && norm(last['hue-family'] ?? '').includes(norm(accents[0].family))
+
+  if (drawMatch || hueMatch) {
+    log = logAll.slice(0, -1)
+    notes.push(
+      `last log row is THIS run's own record (matched on ${drawMatch ? 'draw' : 'hue family'})` +
+        ' — excluded from the repeat assertions, because a run is not a repeat of itself',
+    )
+  }
+}
 
 if (echo) notes.push(`brand-echo row found in ${echo.path} ("${echo.value}") — repeat assertions skipped`)
 

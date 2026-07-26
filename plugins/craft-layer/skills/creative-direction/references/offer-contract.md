@@ -226,7 +226,7 @@ Two rows that exist because a build kept answering a question the contract could
 
 **Ambition** pins how far the page must REACH — `restrained`, `standard` (the default when
 the user says nothing either way), or `maximal` when the brief asks for reach in any words.
-The tiers, the pinning vocabulary, the three reach floors `maximal` adds, and the ceilings
+The tiers, the pinning vocabulary, the four reach floors `maximal` adds, and the ceilings
 that never move regardless are owned by `ambition-tiers.md`. Pin it here, echo it with the
 rest, and persist it: a quality bar carried only as prose in a scope line binds nothing, and
 "award winning" in the brief with no slot to land in is exactly how a build clears every gate
@@ -268,10 +268,12 @@ as a dead link is worse.
 - a proof region EXISTS (slotted per Part 4) rather than being absent;
 - ledger conformance is NOT checked here — `section-decisions/references/section-ledger.md`
   owns it, and skips entirely when no ledger exists (a one-shot build is not a finding);
-- the declared AMBITION is honored — at `maximal`, the three reach floors in
-  `ambition-tiers.md` (three distinct motion tiers, one authored graphic system, an asset
-  posture that is not all-first-party-emptiness), each waivable only by a reasoned entry in
-  the divergence record. No ambition row → `not checked`, never a pass and never a fail;
+- the declared AMBITION is honored — at `maximal`, the four reach floors in
+  `ambition-tiers.md` (three distinct motion CAPABILITIES — a tier or a sibling engine, each
+  counted once, never three tiers — one authored graphic system, an asset
+  posture that is not all-first-party-emptiness, and one surface whose `Motion:` entry carries
+  `(escalated ← <reason>)` off the cheapest tier that fit it), each waivable only by a reasoned
+  entry in the divergence record. No ambition row → `not checked`, never a pass and never a fail;
 - the declared BOOST left its evidence — at `ultra-craft`, a `craft/reference-board.md`
   carrying dated fetched sources, a section ledger (guided was binding, so its absence is a
   miss rather than a one-shot), and a red-team record naming what it attacked. No boost row
