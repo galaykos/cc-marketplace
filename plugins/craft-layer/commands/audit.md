@@ -56,6 +56,37 @@ taxonomy and its per-tier budgets, then:
    document with no text in it. Configured is not running; only the response body settles it.
    No reachable URL → `not measured`, never a silent pass.
 
+   **CAPTURE the surface and OPEN the images — at EVERY tier, not just a boosted one.** A
+   DOM assertion proves an element exists, carries the right text and computes the right
+   colour. It cannot see that the text runs off the edge of its viewBox, that two
+   annotations land on top of each other, or that a fixed rail is covering the column
+   beneath it. Those are the defects a reader meets first and a query never meets at all —
+   one build passed a clean typecheck, a clean lint, measured WCAG contrast and a full DOM
+   assertion pass, and then one image showed a leader label clipped mid-word on the first
+   screen. So: run `template/craft-gates/gates.spec.ts` against a reachable `BASE_URL` (copy
+   the suite in and install `@playwright/test` + `@axe-core/playwright` when the project has
+   none), which writes two PNGs per breakpoint — 390, 768, 1280, light and dark — into
+   `<project>/.craft-layer/shots/`. Then READ each image and describe what is visible,
+   hunting specifically: text CLIPPED at a container or viewBox edge, OVERLAPPING labels and
+   annotations, truncation ellipses, fixed elements covering content, and any element whose
+   rendered position differs from where the markup implies it sits. Inject the shot paths
+   into the step-2 dispatch so the reviewer opens them too. Anything found in an image is a
+   FINDING, listed with the gate failures.
+   **When a capture will not save, retry with an ABSOLUTE PATH inside an allowed root before
+   concluding the capability is unavailable.** A tool that refuses one path is not a tool
+   that cannot write, and "visual verification is impossible here" declared without that
+   retry is the same unverified assertion as any other. Only after the retry:
+   `Visual: NOT CAPTURED (<reason>)` — reported, never a silent pass, and never a look
+   implied by silence.
+
+   **RUN THE SCRIPT GATES — they are Bash, so they are yours, not the reviewer's.**
+   `template/craft-gates/contrast.mjs` computes the ratios below; `template/craft-gates/divergence.mjs`
+   reads the shipped token source, the project's run log and the recorded deck draw and exits
+   non-zero when the build landed on the category default or repeated its own last five runs.
+   Run `node divergence.mjs` from the project root and carry its verdict into the table: exit
+   1 is a FINDING to resolve or waive in `.craft-layer/waivers.json` with a reason, exit 2 is
+   `not measured`, and a gate that was never run is `not checked` — never a pass.
+
    Compute the CONTRAST RATIOS too — the reviewer cannot, and this is a craft gate rather
    than a deferred one. Read the resolved accent/ink/surface token values out of the theme
    (hex or the token file's channels), then compute WCAG relative-luminance ratios for each
@@ -213,6 +244,8 @@ taxonomy and its per-tier budgets, then:
 
    `Gates: <checked> checked · <not-checked> not checked · <not-measured> not measured`
    `Triggers fired: <list> · not fired: <list>`
+   `Visual: <n> shots opened` — or `Visual: NOT CAPTURED (<reason>)`, which is reported and
+   never blocking, exactly like the `not measured` rows: what it must never be is unsaid.
 
    A GATE is a defect type — wrong contrast, missing spine slot, absent signature. A
    TRIGGER is the condition that SURFACES a fault: the viewport, the motion preference,
@@ -222,10 +255,11 @@ taxonomy and its per-tier budgets, then:
    verdict over-claims.
 
    The default trigger set for a visual build is: **default viewport · narrow viewport ·
-   200% zoom · light · dark · reduced-motion · forced-colours · keyboard-only**. Fire what
-   you can and NAME what you did not — `template/craft-gates/gates.spec.ts` in this plugin
-   runs the browser-driveable ones in about two seconds and is what to hand a project that
-   has no suite. When a trigger cannot be fired, list it under `not fired`; never let an
+   200% zoom · light · dark · reduced-motion · forced-colours · keyboard-only · capture at
+   390/768/1280**. Fire what you can and NAME what you did not —
+   `template/craft-gates/gates.spec.ts` in this plugin
+   runs the browser-driveable ones in a few seconds and is what to INSTALL into a project
+   that has no suite, not merely what to recommend to one. When a trigger cannot be fired, list it under `not fired`; never let an
    unfired trigger read as a clean result.
 
    When anything is unchecked the report says in one sentence WHICH inputs were

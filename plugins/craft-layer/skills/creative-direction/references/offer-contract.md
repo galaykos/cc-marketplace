@@ -15,6 +15,8 @@ Resolve every row below, echo them to the user, then build:
 
 | Field | Must resolve to |
 | --- | --- |
+| Raw brief | the user's request in their OWN words, verbatim — the line an upgrade sharpens and never replaces |
+| Upgraded brief | the sharpened objective, the constraints the brief IMPLIES but never states, and what it left UNDECIDED — see Part 1a |
 | Product | ONE product, under its REAL name |
 | Audience | who is buying, in a phrase |
 | Archetype | the work-type archetype classified from `archetypes.md` — it keys the content-depth anchors the audit counts against, so it must persist with the rest |
@@ -35,6 +37,38 @@ and each page's proof, pricing, and CTA get half the room they need.
 **Internal artifacts are not routes.** A token/kit/design-system showcase is a useful build
 artifact; it ships as a site route only when the user asked for one. Mounted in the product
 nav it reads as an unfinished demo.
+
+## Part 1a — The brief pair, and marking what was inferred
+
+Before any row above is pinned, the raw brief is UPGRADED — and the upgrade is echoed with
+the contract and persisted inside it, in this shape:
+
+```
+Raw brief: <the user's request, verbatim>
+Upgraded brief:
+  Objective: <the same job, said precisely>
+  Implies: <constraints the brief entails but never states>
+  Undecided: <the calls it leaves open for someone else to make>
+Ambition: maximal (inferred ← "make it pop")
+Mode: one-shot (inferred ← no mode words in the brief)
+Audience: logistics ops leads
+```
+
+Four rules bind it:
+
+- **Sharpen, never replace.** The upgrade says the user's job precisely; it does not widen
+  the scope, swap the product, or add a route nobody asked for. Where the sharpened reading
+  and the raw line disagree, the raw line wins.
+- **Marked means inferred.** A row the user stated is written plain — `Audience` above. A row
+  the run DERIVED carries `(inferred ← <the phrase or signal>)`, so the basis travels with the
+  value. Mode, ambition, boost, archetype, palette mood, type strategy, stack, motion tier and
+  content depth are the rows this most often applies to.
+- **A readout, not a question.** The pair is shown, not asked about; it costs a `one-shot` run
+  no exchange. The user corrects it if it is wrong, at the moment correcting it is cheap.
+- **Persisted, not just spoken.** Both the pair and every mark are written into
+  `craft/offer-contract.md` with the rest of the rows. A mark that lives only in the echo
+  evaporates with the transcript, and a mis-inferred row then propagates through the whole
+  build unchallenged.
 
 ## Part 2 — Product identity survives the concept
 
@@ -157,10 +191,18 @@ long is wrong, but because nobody decided it.
 or by running `/craft-layer:sections`. There is no flag to memorize; the mode is pinned in the
 contract like every other row, and echoed back with it.
 
-A `one-shot` run generates the whole page from the contract and the concept, and
-the user first sees it finished. That is the right mode for a small page, a
-re-run, or a headless invocation — and it is the mode in which a misread brief
-survives the entire build.
+A `one-shot` run generates the whole page from the contract and the concept with
+exactly ONE exchange carved out: the CONCEPT FORK. Before any artifact is
+persisted, the run presents 2–3 concept candidates — each a deck draw, a central
+metaphor, an editorial voice and one signature move — and the user picks the one
+the build runs on. Everything else about `one-shot` is unchanged: no section
+rounds, no per-treatment questions, no colour-by-colour approval; after the fork
+the page arrives finished. The fork binds at every tier, this one included,
+because the concept is the single decision a whole build inherits — and a
+headless or unanswered run auto-picks, so the mode stays genuinely unattended.
+That keeps `one-shot` right for a small page, a re-run, or a headless
+invocation — and it is still the mode in which a misread brief survives the
+entire build.
 
 A `guided` run decides the page section by section with the user before it is
 built: the spine slots become a batched decision agenda, each section is offered

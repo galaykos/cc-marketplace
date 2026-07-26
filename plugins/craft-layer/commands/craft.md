@@ -35,7 +35,19 @@ banner first, with its cost line.
 ## Steps
 
 0. **Offer contract, then creative direction.** Apply the `creative-direction` skill.
-   FIRST pin the offer contract (`skills/creative-direction/references/offer-contract.md`):
+   FIRST UPGRADE THE BRIEF, before a single contract row is pinned. Derive, from the user's
+   raw words: a SHARPENED objective (the same job said precisely), the constraints the brief
+   IMPLIES but never states (an audience that implies a reading level, a named stack that
+   implies a render mode, "for our sales team" that implies auth and internal-only), and what
+   it left UNDECIDED — the calls someone has to make that the brief does not make. Sharpening
+   is not rewriting: an upgrade that widens the job, swaps the product, or invents a route the
+   user never asked for has REPLACED the scope, and where the two disagree the raw line wins.
+   ECHO the pair together, `Raw brief:` (their words, verbatim) above `Upgraded brief:` (the
+   sharpened objective, then the implied constraints, then the undecided list), so the user can
+   see what was read into their words at the one moment it is cheap to correct. This is a
+   READOUT, not a question — it adds NO exchange to a `one-shot` run, which still carves out
+   exactly one (the concept fork below), and asks nothing extra of a `guided` one.
+   THEN pin the offer contract (`skills/creative-direction/references/offer-contract.md`):
    one product under its real name, the audience, the ONE primary action, the exact route
    list, the ROUTE HORIZON (routes the site is known to be getting later and is NOT building
    now — an empty horizon is the common answer; a named one changes the STRUCTURE, because a
@@ -55,14 +67,35 @@ banner first, with its cost line.
    not shipping. A BOOSTED run (see Boost above) does not READ these two rows: it pins
    `Ambition: maximal` and `Mode: guided` outright and records `Boost: ultra-craft`. Where a
    boosted brief ALSO asks for conventional, trust-first, fast or cheap, the two orders
-   conflict — ASK which one wins rather than picking silently. Echo the whole contract to the user BEFORE any file is written. If the
+   conflict — ASK which one wins rather than picking silently. Echo the whole contract to the user BEFORE any file is written, and MARK
+   EVERY ROW THAT WAS INFERRED rather than read. A row the user stated stands unmarked; a row
+   this step derived carries the phrase or signal it came FROM — `Ambition: maximal (inferred ←
+   "make it pop")`, `Mode: one-shot (inferred ← no mode words in the brief)`, `Stack: Next.js
+   (inferred ← "App Router" in the brief)`. Nine rows are routinely inferred rather than read —
+   mode, ambition, boost, archetype, palette mood, type strategy, stack, motion tier, content
+   depth — and the audit will not reconstruct a contract row from what shipped, so a row inferred
+   wrong here is never caught downstream: it just propagates. The mark is what makes a wrong read
+   visible while fixing it still costs one sentence. If the
    brief admits several products, positionings, or directions, ASK which one; presenting
    options and then building all of them is the failure this step exists to stop, and a
    token/kit showcase is not a site route unless asked for. Carry the contract's offer
    spine (plain-language what, audience, problem, how-it-works, price, proof, objection,
    one CTA) into step 1 so both briefs owe it.
-   THEN classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`),
-   and dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
+   THEN classify the brief's work-type archetype (`skills/creative-direction/references/archetypes.md`).
+   BEFORE the deck draw, read the PROJECT MEMORY: `<project>/.craft-layer/run-log.md` when it
+   exists — its last 5 rows are what THIS run has to differ from. When the directory does not
+   exist, create `<project>/.craft-layer/` carrying a `.gitignore` whose only line is `*`, so
+   nothing under it is ever committed. `.craft-layer/` is NOT the `craft/` working area and does
+   not move it — it holds only what must OUTLIVE the session (the run log, `waivers.json`,
+   `shots/`), so the log is never written to the session scratch, while the three `craft/`
+   artifacts keep the paths and the working-area rule stated below, unchanged.
+   THEN DRAW the run's starting constraint: one option per axis from
+   `skills/creative-direction/references/concept-deck.md`, seeded by the run log and excluding
+   the options its last 5 rows used. The deck is drawn from, never chosen from. An absent,
+   empty or MALFORMED log is treated as EMPTY — warn, seed the draw from a hash of the brief
+   text plus today's date, and carry on; a bad log never fails a run. Carry the five drawn
+   options into the dispatch below as the room the candidates are generated inside.
+   THEN dispatch the `creative-director` agent to generate a DIVERGENT concept — a central
    metaphor, an editorial voice, and one signature interaction — that breaks the
    sameness-fingerprint defaults (`.../references/sameness-fingerprint.md`) and clears the
    usability floor. Carry the concept AND its divergence record into step 1, plus the
@@ -72,14 +105,32 @@ banner first, with its cost line.
    makes the build distinct, and the concept must actually reach the briefs (below) or it
    evaporates. The metaphor is a design LANGUAGE, not a rebrand — the real product name
    stays in the title, hero, and nav.
+   THEN run the CONCEPT FORK, and run it at EVERY tier — `one-shot` included. Have the
+   dispatch return 2–3 candidates instead of one, present each as { the five-axis deck draw ·
+   central metaphor · editorial voice · signature interaction }, and ask which one the build
+   runs on with `AskUserQuestion`. The concept fork forks on CONCEPT — the spine and the
+   signature move — never on three shades of one accent: `/ui-ux:theme` already forks on
+   colour at its own step, and a second colour fork here would buy nothing. Variety a human
+   picked beats variety a model reports having produced. A headless run, or one the user
+   leaves unanswered, AUTO-PICKS the top-scored candidate and records `source: auto` on the
+   chosen row — the same lane a `guided` ledger already uses — so an unattended choice stays
+   reviewable instead of invisible. Degenerate case: when fewer than 2 candidates clear the
+   usability floor there is nothing to fork BETWEEN, so do NOT ask — inherit the agent's
+   existing weak-round path (regenerate once, then return the winner flagged
+   `low-confidence` for human review). The chosen candidate's draw is the one persisted
+   below, logged in step 7 and gated by the audit; the unchosen draws are discarded.
    FINALLY, once the archetype is classified and the concept exists, PERSIST both artifacts —
-   the pinned contract INCLUDING its archetype row and its `Boost` row, and the divergence
+   the pinned contract INCLUDING its archetype row, its `Boost` row, the `Raw brief:` /
+   `Upgraded brief:` pair and every `(inferred ← …)` mark with its basis, and the divergence
    record — at the fixed
    paths `craft/offer-contract.md` and `craft/divergence-record.md` under the run's working
    area (the taskmaster docs area when the project has one, otherwise the session scratch;
    never the shipped tree). Persisting before the archetype is classified writes an empty
    Archetype row and leaves the content-depth gate with no anchor. The audit globs for exactly
-   those names; a contract that was only spoken cannot be checked against.
+   those names; a contract that was only spoken cannot be checked against — and a brief pair or
+   an inference mark that lived only in the echo evaporates with the transcript, leaving the
+   propagation it exists to stop exactly where it was. Written into the file, both are readable
+   by every later step, and by the next session.
 
 1. **Research → briefs.** Run `/craft-layer:research <the product idea from step 0, with the
    mode/length instructions stripped out>` — never `$ARGUMENTS` verbatim, or "guided" is
@@ -192,6 +243,24 @@ banner first, with its cost line.
    tables/dashboards, when-to-dataviz). ONE pass: layout and motion land together, because
    the signature and the scroll device are structural, not decoration applied afterwards.
 
+   **Show the result forming.** After each major section lands — the hero, then the
+   signature section, then the assembled page — capture ONE shot at the primary breakpoint
+   and show it to the user. Name them so the order reads at a glance: `build-01-hero.png`,
+   `build-02-signature.png`, `build-03-full.png`, and so on in the order they land.
+   This is not a second preview system and never a second server. It reuses step 7's capture
+   path exactly: the same `<project>/.craft-layer/shots/` directory, the same settle sequence
+   (scroll to the bottom, let what that fires finish, return to the top), against the SAME
+   dev server the build is already running on. A staged mockup can drift from what ships —
+   here the preview IS the artifact, which is the only reason it is worth showing.
+   Shots are pruned at the start of each run, so this run's progressive images never mix with
+   the previous run's; step 7's suite prunes again when it captures its own breakpoint grid,
+   so the `build-NN` images are an in-flight view — shown when they are taken — rather than
+   an archive.
+   NO DEV SERVER, no browser, or a target that cannot be served: step 6 emits nothing and
+   SAYS so in one line — `Progressive shots: none (no dev server)`. It never blocks the
+   build, never holds a section back waiting for a picture, and never implies a preview
+   nobody saw.
+
 7. **Audit — the run is NOT complete until this has run.** Run `/craft-layer:audit` on the
    result to verify the craft gates
    (the **signature interaction actually shipped** on the section step 5 assigned it,
@@ -202,6 +271,36 @@ banner first, with its cost line.
    body-cap, sequencing studio-excluded-from-prod) and, via its delegation, full
    accessibility and performance. Resolve any failed gate before declaring the surface done.
 
+   **Install the gate suite, then LOOK at what it captured.** The suite is
+   `${CLAUDE_PLUGIN_ROOT}/template/craft-gates/` — `gates.spec.ts`, `contrast.mjs` and
+   `divergence.mjs`. When the project has no suite of its own, INSTALL it rather than
+   recommending it: copy all three in (the two `.mjs` files beside the project's other
+   scripts), `npm i -D @playwright/test @axe-core/playwright && npx playwright install
+   chromium`, and point it at the dev server step 6 already has up —
+   `BASE_URL=<that server> npx playwright test`, then `node scripts/contrast.mjs` and
+   `node scripts/divergence.mjs`. No second server and no second capture path: the surface
+   the build is running on is the one the pictures are taken from.
+   The capture trigger writes PNGs into `<project>/.craft-layer/shots/` — two per breakpoint
+   at 390, 768 and 1280, light and dark, after a scroll-settle. OPEN THEM. Every tier opens
+   them, not only a boosted run: Read each image and say what is actually visible, hunting
+   the class every DOM assertion in that suite passes — text clipped at a container or
+   viewBox edge, labels or annotations overlapping each other, truncation ellipses, a fixed
+   element covering the content beneath it, and any element whose rendered position differs
+   from where the markup implies it sits. A shot that was written and never opened is not a
+   look, and reporting it as one is exactly the claim this step exists to stop.
+   When capture cannot happen — no package manager, no reachable server, a headless target
+   with no browser — report `Visual: NOT CAPTURED (<reason>)` and carry on. Before concluding
+   that, retry with an ABSOLUTE PATH inside an allowed root: a tool that refuses one path is
+   not a tool that cannot write.
+   Three consequences, and they are deliberately different:
+   - `divergence.mjs` exiting non-zero is a step-7 FINDING with the same standing as every
+     other craft gate — resolve it, or waive it in `<project>/.craft-layer/waivers.json` with
+     a reason, before the surface is called done. Exit 2 is `not measured`, never a pass.
+   - A defect FOUND in an opened shot IS a finding, on the same list as the gate failures,
+     whatever the DOM checks reported.
+   - `Visual: NOT CAPTURED` is REPORTED, never blocking — the same standing as the legitimate
+     `NOT RUN` below. The unacceptable outcome is neither of those; it is silence.
+
    **A green project suite is not this step.** The most likely way this chain fails is that
    step 6 ends with the target's own gate passing — a test run, a typecheck, a lint, a build —
    and the run reads that as done and stops. The project's suite proves the code is correct.
@@ -210,20 +309,48 @@ banner first, with its cost line.
    are checked HERE and nowhere else, by an agent this step dispatches. A build that skipped
    this step has no craft verdict, however green it is.
 
-   So the run's final message owes one line, and it is the report the user gets instead of a
-   claim: `Craft audit: <ran | NOT RUN> · Gates: <n> checked · <n> not checked · <n> not
-   measured`. `NOT RUN` is a legitimate outcome — the audit needs a reachable target, and
+   So the run's final message owes two lines, and they are the report the user gets instead
+   of a claim: `Craft audit: <ran | NOT RUN> · Gates: <n> checked · <n> not checked · <n> not
+   measured`, and beneath it `Visual: <n> shots opened` — or `Visual: NOT CAPTURED
+   (<reason>)`. `NOT RUN` is a legitimate outcome — the audit needs a reachable target, and
    headless or unbuildable runs cannot produce one — but it is stated, never implied by
-   silence. Declaring a surface done without that line is the finding this step exists to
-   prevent.
+   silence, and so is a capture that did not happen. Declaring a surface done without those
+   lines is the finding this step exists to prevent.
 
-8. **Red-team the result — BOOSTED runs only.** Once the audit's gates are resolved, attack
-   the shipped tree against the persisted contract and the divergence record: blind refuters
-   each told to REFUTE that the run honored what it pinned, N=3 as a CEILING sized to blast
-   radius, composing `orchestration:verification-panels` when installed. No Workflow tool
-   means ONE inline pass, labeled `inline heuristic pass — single model, uncorroborated`.
-   Record what was attacked and what survived; never report a panel that did not run. An
-   unboosted run skips this step entirely and says so in no line at all — it was never owed.
+   **Then append the run log.** Once the audit has run, append ONE row to
+   `<project>/.craft-layer/run-log.md` (create the file with its header when missing) and trim
+   it to the last 5 rows. The row is a markdown table row with these seven columns, in this
+   order:
+
+   ```
+   | date | brief-slug | hue-family | type-strategy | spine | signature | draw |
+   ```
+
+   `draw` holds the five drawn concept-deck options joined by ` / `. Three rules bind the log,
+   and each one is what keeps it honest: a row is appended only AFTER the audit runs, so a
+   failed or abandoned run appends NOTHING; the file is trimmed to its last 5 rows on every
+   append, so the memory is a window and not an archive; and a malformed or hand-edited log is
+   treated as EMPTY and warned about, never as a fatal error. This log is the project memory the
+   NEXT run diverges from — an unwritten row makes the next run repeat this one.
+
+8. **Red-team the result AND the fixes — BOOSTED runs only.** Once the audit's gates are
+   resolved, attack the shipped tree against the persisted contract and the divergence
+   record: blind refuters each told to REFUTE that the run honored what it pinned, N=3 as a
+   CEILING sized to blast radius, composing `orchestration:verification-panels` when
+   installed. No Workflow tool means ONE inline pass, labeled `inline heuristic pass — single
+   model, uncorroborated`. Record what was attacked and what survived; never report a panel
+   that did not run.
+   Three rules the panel owes are in `skills/ultra-craft/references/red-team-contract.md`,
+   and each exists because a gate-clean build shipped a defect that inverted its own claim:
+   **sweep** an interactive signature's reachable STATE SPACE rather than reasoning about
+   representative values (the run that produced the rule had a drag handle sitting outside
+   the region it defined in 107,016 of 107,016 states, which every gate passed); attack the
+   post-audit **fix list** as its own claim set, since a fix report is a confident
+   self-assessment written by the author of the defects; and **render the surface and look
+   at it** before calling it verified — clipped text, overlapping annotations and truncation
+   are invisible to every DOM assertion, and a refused screenshot path is a reason to retry
+   with an absolute path in an allowed root, never a reason to declare capture impossible.
+   An unboosted run skips this step entirely and says so in no line at all — it was never owed.
 
 ## Notes
 
