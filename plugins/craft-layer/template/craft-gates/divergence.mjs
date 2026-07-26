@@ -557,17 +557,27 @@ function copyChunks(slice) {
      "now", and `<h1 id="plain-what">POST /api/task</h1>` produced ZERO chunks and was
      reported as "an element holding no copy" — telling the builder to move the id
      onto the element holding the copy, which is where they had already put it, and
-     craft.md step 6 instructs them to. */
+     craft.md step 6 instructs them to.
+
+     WHY THE TEST IS `\p{L}` AND NEVER `[A-Za-z]`. It asks one question — is this run
+     TEXT rather than whitespace and punctuation — and Latin is not the only script
+     that answers yes. Under `[A-Za-z]` an entire Hebrew, Arabic, Cyrillic, Greek,
+     CJK, Thai or Devanagari page has NO copy anywhere: every buyer region reports
+     "holding no copy", spine-register degrades to SKIP across the whole spine, and
+     the message instructs the builder to move an id that was already right. Worse,
+     the regions that DO appear to hold copy are the ones whose slice happens to
+     contain a JSX identifier — `{ITEMS.map(({ title, body }) => (` — so the gate
+     grades JavaScript and ignores the prose. A Hebrew run found exactly that. */
   if (i !== 0) {
     const head = i < 0 ? s : s.slice(0, i)
-    if (/[A-Za-z]/.test(head)) out.push({ at: 0, text: head.replace(/\{[^{}]*\}/g, ' ') })
+    if (/\p{L}/u.test(head)) out.push({ at: 0, text: head.replace(/\{[^{}]*\}/g, ' ') })
   }
   while (i >= 0) {
     const gt = s.indexOf('>', i)
     if (gt < 0) break
     const nextLt = s.indexOf('<', gt + 1)
     const raw = s.slice(gt + 1, nextLt < 0 ? s.length : nextLt)
-    if (/[A-Za-z]/.test(raw)) out.push({ at: gt + 1, text: raw.replace(/\{[^{}]*\}/g, ' ') })
+    if (/\p{L}/u.test(raw)) out.push({ at: gt + 1, text: raw.replace(/\{[^{}]*\}/g, ' ') })
     if (nextLt < 0) break
     i = nextLt
   }
@@ -576,7 +586,7 @@ function copyChunks(slice) {
     let m
     while ((m = re.exec(s))) {
       const v = m[1] ?? m[2] ?? m[3] ?? ''
-      if (/[A-Za-z]/.test(v)) out.push({ at: m.index, text: v })
+      if (/\p{L}/u.test(v)) out.push({ at: m.index, text: v })
     }
   }
   return out
