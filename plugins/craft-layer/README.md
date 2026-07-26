@@ -242,12 +242,44 @@ contrast, licence, and the delegated a11y pass are unchanged; reach is bought wi
 loading, not with bytes on first paint. Detail:
 `skills/creative-direction/references/ambition-tiers.md`.
 
+### How hard the run works — `ultra-craft`
+
+Ambition binds what the OUTPUT owes. It says nothing about how the run got there, so a
+`maximal` page can still be built from one-shot defaults and design knowledge recalled from
+training data. `ultra-craft` is the process boost, and it is a separate word on purpose:
+
+| | Binds | Graded against |
+| --- | --- | --- |
+| `maximal` | what the build owes | the shipped tree |
+| `ultra-craft` | how hard the pipeline works | the receipts it left |
+
+Six bindings: `Ambition` pinned `maximal` and `Mode` pinned `guided` (not read from the
+brief); research that actually **fetches** — six live sources minimum across three lanes,
+each with a URL, a fetch date and a why-line, recall demoted to a lead labeled `unverified`,
+and a category-scoped search recorded at each of three NAMED galleries (`land-book.com` for
+shipped page structure, `awwwards.com` for reach and signature candidates, `dribbble.com` for
+visual direction only — a shot is a concept, never evidence a pattern ships), because naming
+a lane is not naming a source and a full source count never covers a gallery nobody opened;
+a **reference board** persisted and echoed *before the first token is generated*, so you
+redirect the direction while it still costs nothing; the concept and review agents dispatched
+at a boosted tier while builders stay native; and a **red-team** of the shipped tree after
+the audit. The audit reads the contract's `Boost` row back and checks the three receipts —
+board, ledger, red-team record. Detail: `skills/ultra-craft/SKILL.md` and
+`skills/ultra-craft/references/research-mandate.md`.
+
+It implies `maximal`; `maximal` never implies it. It costs wall-clock, exchanges and bundle
+weight — where the same brief also asks for fast or cheap, the run asks which order wins
+instead of guessing.
+
 ```bash
 # one-shot
 /craft-layer:craft a landing page for Acme, an uptime monitor for solo devs
 
 # guided, from the same prompt
 /craft-layer:craft guided — a landing page for Acme, an uptime monitor for solo devs
+
+# boosted: maximal + guided + live research + reference board + red-team
+/craft-layer:craft ultra-craft a landing page for Acme, an uptime monitor for solo devs
 
 # or decide sections for a page whose concept and tokens already exist
 /craft-layer:sections the Acme landing page

@@ -24,6 +24,7 @@ Resolve every row below, echo them to the user, then build:
 | Length | `standard` or `long-scroll` — see Part 5 |
 | Mode | `one-shot` or `guided` — see Part 6 |
 | Ambition | `restrained`, `standard`, or `maximal` — see Part 7 and `ambition-tiers.md` |
+| Boost | `ultra-craft` or `none` — see Part 7; a boost that was only spoken cannot be checked |
 | Not shipping | what was considered and cut |
 
 **One product per build.** When the brief admits several products, positionings, or
@@ -189,6 +190,14 @@ rest, and persist it: a quality bar carried only as prose in a scope line binds 
 "award winning" in the brief with no slot to land in is exactly how a build clears every gate
 it has while ignoring what it was asked for.
 
+**Boost** records whether the run was explicitly boosted with `ultra-craft`. Ambition is
+what the OUTPUT owes; the boost is how hard the PIPELINE worked to get there — live dated
+research, a reference board the user confirmed before tokens existed, guided section rounds,
+escalated concept and review tiers, a red-team of the shipped tree. `craft-layer:ultra-craft`
+owns the contract; a boosted run pins `Ambition: maximal` and `Mode: guided` rather than
+reading them, so the three rows move together and only this one records WHY. `none` is the
+default and the common answer.
+
 **Route horizon** is the honest form of "this is the front door, not a landing page".
 `Routes` stays what SHIPS this run — the audit checks the shipped list against it, and that
 check only works if the list is exact. The horizon holds routes the site is known to be
@@ -221,6 +230,10 @@ as a dead link is worse.
   `ambition-tiers.md` (three distinct motion tiers, one authored graphic system, an asset
   posture that is not all-first-party-emptiness), each waivable only by a reasoned entry in
   the divergence record. No ambition row → `not checked`, never a pass and never a fail;
+- the declared BOOST left its evidence — at `ultra-craft`, a `craft/reference-board.md`
+  carrying dated fetched sources, a section ledger (guided was binding, so its absence is a
+  miss rather than a one-shot), and a red-team record naming what it attacked. No boost row
+  or `none` → `not checked`;
 - no route in the ROUTE HORIZON shipped as a dead nav link — the horizon names what is
   coming, and a stub in the nav is a broken promise rather than a preview;
 - the declared LENGTH matches what shipped, and on `long-scroll`: every spine slot answered

@@ -25,6 +25,13 @@ POINT of the brief rather than as a stack constraint. When the words are ambiguo
 `maximal` costs real bundle weight and build time, and pinning it silently is as wrong as
 ignoring it.
 
+**A boosted run pins `maximal` outright.** `ultra-craft` (`craft-layer:ultra-craft`) is the
+process boost — live dated research, a confirmed reference board, guided rounds, escalated
+concept and review tiers, a red-team of the result — and it implies this tier rather than
+reading it from the brief. The implication runs one way: `maximal` on its own never boosts
+the pipeline, because a user can want an award-grade page out of a cheap one-shot run. This
+file still owns what the OUTPUT owes; the boost owns how hard the run works to get there.
+
 `restrained` and `standard` differ in intent, not in floors. The split exists so an
 explicitly conventional request is recorded as a DECISION — the same escape hatch
 `sameness-fingerprint.md` already grants — rather than looking like a build that under-reached.

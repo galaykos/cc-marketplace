@@ -14,6 +14,24 @@ each step's output into the next.
 teams"). If empty, ask for a one-line product idea and the target stack
 (React/Next/Vue/Nuxt/Laravel) before starting.
 
+## Boost — `ultra-craft`
+
+<!-- boost-preamble:start -->
+This run is BOOSTED when `$ARGUMENTS` carries `ultra-craft` (or `ultracraft`), or a
+bare `ultra` as the FIRST token of this command's own argument string. A bare
+`ultra` belonging to another command — `/caveman ultra` ahead of this call, a flag
+of some other tool — never fires it. When boosted, apply the `ultra-craft` skill
+(`skills/ultra-craft/SKILL.md`) and honor its six bindings: `Ambition` is pinned
+`maximal` and `Mode` is pinned `guided` in step 0 rather than read from the brief,
+`Boost: ultra-craft` is stamped into the persisted contract, step 1's research is
+LIVE and dated per `skills/ultra-craft/references/research-mandate.md`, the
+reference board is echoed and confirmed before step 2, `creative-director` and
+`craft-reviewer` dispatch at the boosted tier, and step 7 is followed by a red-team
+of the shipped tree. The boost token is SCOPE — strip it from the product idea
+before step 1, exactly as mode and ambition words are stripped. Print the skill's ⚡
+banner first, with its cost line.
+<!-- boost-preamble:end -->
+
 ## Steps
 
 0. **Offer contract, then creative direction.** Apply the `creative-direction` skill.
@@ -34,7 +52,10 @@ teams"). If empty, ask for a one-line product idea and the target stack
    and carry the pinned tier onto the build task and into the audit — an ambition echoed only
    as prose in a scope sentence binds nothing and is how a build ignores the bar it was given.
    Ambition words are SCOPE too: strip them from the product idea before step 1 — and what is
-   not shipping. Echo the whole contract to the user BEFORE any file is written. If the
+   not shipping. A BOOSTED run (see Boost above) does not READ these two rows: it pins
+   `Ambition: maximal` and `Mode: guided` outright and records `Boost: ultra-craft`. Where a
+   boosted brief ALSO asks for conventional, trust-first, fast or cheap, the two orders
+   conflict — ASK which one wins rather than picking silently. Echo the whole contract to the user BEFORE any file is written. If the
    brief admits several products, positionings, or directions, ASK which one; presenting
    options and then building all of them is the failure this step exists to stop, and a
    token/kit showcase is not a site route unless asked for. Carry the contract's offer
@@ -52,7 +73,8 @@ teams"). If empty, ask for a one-line product idea and the target stack
    evaporates. The metaphor is a design LANGUAGE, not a rebrand — the real product name
    stays in the title, hero, and nav.
    FINALLY, once the archetype is classified and the concept exists, PERSIST both artifacts —
-   the pinned contract INCLUDING its archetype row, and the divergence record — at the fixed
+   the pinned contract INCLUDING its archetype row and its `Boost` row, and the divergence
+   record — at the fixed
    paths `craft/offer-contract.md` and `craft/divergence-record.md` under the run's working
    area (the taskmaster docs area when the project has one, otherwise the session scratch;
    never the shipped tree). Persisting before the archetype is classified writes an empty
@@ -67,6 +89,17 @@ teams"). If empty, ask for a one-line product idea and the target stack
    briefs toward the concept (its mining method is unchanged; the concept steers what it
    elaborates and which defaults to break). It emits a freeform theme brief and a
    component/layout build task. Detect the target stack here if not already known.
+   ON A BOOSTED RUN this step's mining is LIVE, not recalled: fetch every source, six minimum
+   across the three lanes, each carrying a URL, a fetch date and a why-line, per
+   `skills/ultra-craft/references/research-mandate.md`. That file also names THREE galleries
+   that all get a category-scoped search with the query recorded — `land-book.com`,
+   `awwwards.com`, `dribbble.com` — and holds the rule that a dribbble shot is direction
+   only, never evidence a pattern ships. Searching and sourcing are separate counts. Then persist
+   `craft/reference-board.md` beside the other two artifacts and ECHO it to the user before
+   step 2 generates anything — sources, patterns pulled, the direction they imply, the
+   sameness defaults being broken, and the section agenda step 3 will run. The user confirms
+   or redirects THERE. A board compiled after the tokens exist reports a decision instead of
+   making one.
 
 2. **Tokens.** Pass the theme brief to `/ui-ux:theme` to generate design tokens
    (light/dark) with a live colour preview. The brief carries a `theming-system`-derived
@@ -183,6 +216,14 @@ teams"). If empty, ask for a one-line product idea and the target stack
    headless or unbuildable runs cannot produce one — but it is stated, never implied by
    silence. Declaring a surface done without that line is the finding this step exists to
    prevent.
+
+8. **Red-team the result — BOOSTED runs only.** Once the audit's gates are resolved, attack
+   the shipped tree against the persisted contract and the divergence record: blind refuters
+   each told to REFUTE that the run honored what it pinned, N=3 as a CEILING sized to blast
+   radius, composing `orchestration:verification-panels` when installed. No Workflow tool
+   means ONE inline pass, labeled `inline heuristic pass — single model, uncorroborated`.
+   Record what was attacked and what survived; never report a panel that did not run. An
+   unboosted run skips this step entirely and says so in no line at all — it was never owed.
 
 ## Notes
 

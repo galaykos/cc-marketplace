@@ -86,7 +86,8 @@ taxonomy and its per-tier budgets, then:
    offer-spine slots) AND
    `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/ambition-tiers.md` (the reach
    tiers and the three floors `maximal` adds) AND — found by globbing `**/craft/offer-contract.md`,
-   `**/craft/divergence-record.md` and `**/craft/section-ledger.md` (the fixed names the craft
+   `**/craft/divergence-record.md`, `**/craft/section-ledger.md` and `**/craft/reference-board.md`
+   (the fixed names the craft
    flow persists to; search the project and the session working area) — the PERSISTED contract
    instance and divergence record when they exist. Without the contract, the scope/length/mode
    AND the content-depth section-count checks have no anchor; without the record, anti-sameness
@@ -168,7 +169,18 @@ taxonomy and its per-tier budgets, then:
    fails this floor). Each floor is waivable ONLY by a reasoned entry in the divergence record;
    a floor missed with no waiver is one finding naming the floor. No `Ambition` row in the
    contract → `not checked`, never a pass and never a fail, and never inferred from how the
-   page looks; and **content depth**
+   page looks;
+   **boost evidence** — read the contract's `Boost` row. At `ultra-craft`, check three things
+   the boost promised and nothing else can prove: a `craft/reference-board.md` exists (glob it
+   the same way) carrying at least six fetched sources across the three lanes, each with a URL
+   and a fetch date, AND a searches-run block recording a category-scoped query at each of the
+   three named galleries — `land-book.com`, `awwwards.com`, `dribbble.com` — where a query
+   recorded as fetch-blocked still discharges the search, per
+   `${CLAUDE_PLUGIN_ROOT}/skills/ultra-craft/references/research-mandate.md`;
+   a section ledger exists, because a boosted run pinned `guided` and its absence is a miss
+   rather than the legitimate one-shot skip above; and a red-team record exists naming what it
+   attacked. Each miss is one finding. A `none` row or no row → `not checked`, and never
+   inferred from how thorough the build looks; and **content depth**
    meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
    template; claim/aggregate metrics ship as `{{metric:*}}` slots and capability claims —
    coverage, integrations, supported platforms, SLAs, compliance certifications — as
