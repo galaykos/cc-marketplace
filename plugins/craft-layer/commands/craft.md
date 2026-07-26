@@ -56,15 +56,41 @@ banner first, with its cost line.
    is not), the MODE — `one-shot` by default, `guided` when `$ARGUMENTS` asks for it in ANY
    words ("guided", "section by section", "give me options", "ask me as you go"); that phrase
    is SCOPE, so strip it from the product idea before passing the idea to step 1 — the
-   AMBITION (`standard` by default; `maximal` when `$ARGUMENTS` asks for reach in ANY words —
+   AMBITION — pinned by TOKEN when one is present, and read from the prose otherwise.
+   A leading `maximal`, `standard` or `restrained` — lowercase, no punctuation, as the first
+   token of this command's own argument string, or the first token AFTER a boost token that
+   owns that slot (`ultra`, `ultra-craft`, `ultracraft`) — pins the row OUTRIGHT and echoes it
+   unmarked. This is the half `ultra-craft`
+   already had and this row did not: a user could explicitly demand the expensive PROCESS and
+   only hint at the expensive OUTPUT, which is backwards, because ambition is the one that
+   spends bundle weight. Without a token the row is still read from the prose —
+   `maximal` when `$ARGUMENTS` asks for reach in ANY words —
    "award winning", "awwwards", "over the top", "very graphical", "cinematic", or naming heavy
    motion libraries as the POINT of the brief rather than as a stack constraint; `restrained`
-   when it asks for conventional or trust-first). Read
-   `skills/creative-direction/references/ambition-tiers.md` for the tier's three reach floors
+   when it asks for conventional or trust-first; `standard` by default — and what is NOT
+   SHIPPING, which closes the row list.
+   THREE THINGS THE TOKEN DOES NOT DO. It does not allocate run resources — model tier,
+   research depth and exchange count stay `ultra-craft`'s job, and `ambition-tiers.md` is
+   explicit that `maximal` on its own never boosts the pipeline; wanting the run to work
+   harder is a different request from wanting the page to reach further, and this token
+   answers only the second. It does not override a CONTRADICTING brief: `restrained` in front
+   of "an award-winning showpiece" is two orders, not one, so ASK which wins — the same ask
+   `ambition-tiers.md` already mandates for ambiguous words and this step already mandates for
+   a boosted-plus-conventional brief. And it does not silently beat a BOOST; that conflict is
+   asked too. An unmarked echo distinguishes a token from PROSE INFERENCE and from nothing
+   else — a boosted run also pins unmarked — so do not read the absence of a mark as proof a
+   human typed it.
+   Read
+   `skills/creative-direction/references/ambition-tiers.md` for the tier's four reach floors
    and carry the pinned tier onto the build task and into the audit — an ambition echoed only
    as prose in a scope sentence binds nothing and is how a build ignores the bar it was given.
-   Ambition words are SCOPE too: strip them from the product idea before step 1 — and what is
-   not shipping. A BOOSTED run (see Boost above) does not READ these two rows: it pins
+   Ambition words are SCOPE too — the token included: strip them from the product idea before
+   step 1, and ECHO THE STRIP. `maximal`, `standard` and `restrained` are ordinary English
+   words, so a product genuinely called "Maximal Fitness" or "Standard Chartered" loses its
+   first word to this rule; showing the strip is what makes that visible while correcting it
+   still costs one sentence. If nothing survives the strip, the empty-argument path at the top
+   of this command fires — it is evaluated on what REMAINS, never on the raw string.
+   A BOOSTED run (see Boost above) does not READ these two rows: it pins
    `Ambition: maximal` and `Mode: guided` outright and records `Boost: ultra-craft`. Where a
    boosted brief ALSO asks for conventional, trust-first, fast or cheap, the two orders
    conflict — ASK which one wins rather than picking silently. Echo the whole contract to the user BEFORE any file is written, and MARK
@@ -87,7 +113,7 @@ banner first, with its cost line.
    exist, create `<project>/.craft-layer/` carrying a `.gitignore` whose only line is `*`, so
    nothing under it is ever committed. `.craft-layer/` is NOT the `craft/` working area and does
    not move it — it holds only what must OUTLIVE the session (the run log, `waivers.json`,
-   `shots/`), so the log is never written to the session scratch, while the three `craft/`
+   `shots/`), so the log is never written to the session scratch, while the `craft/`
    artifacts keep the paths and the working-area rule stated below, unchanged.
    THEN DRAW the run's starting constraint: one option per axis from
    `skills/creative-direction/references/concept-deck.md`, seeded by the run log and excluding
@@ -211,15 +237,28 @@ banner first, with its cost line.
    the cumulative budget does not move for ambition, and a floor cleared by breaking a ceiling
    has traded one finding for a worse one. A floor the brief genuinely does not want is waived
    in the divergence record with the reason — never by silence.
+   AND — the fourth floor, which is the only one the picker cannot satisfy by itself — at least
+   one surface takes a tier the picker would NOT have chosen, marked on the `Motion:` line as
+   `<surface>: <tier> (escalated ← <reason>)`. This is the direct inverse of the
+   cheapest-that-fits rule above: floor 1 counts capabilities and three cheap ones satisfy a
+   count, so without a named departure a `maximal` build clears every floor and ships as a
+   `standard` one. The mark names what the surface departed FROM, exactly as `(inferred ← …)`
+   names what a contract row was read from, and for the same reason — a preference nobody
+   recorded cannot be audited. Buy it lazily; an escalation onto a second eager engine has
+   failed the cumulative budget instead.
    Then work out what each remaining surface needs, and resolve THREE lines on the build task:
-   `Motion:` — a named tier per surface plus the fallbacks below — `Signature:` — the
+   `Motion:` — a named tier per surface plus the fallbacks below, and at `maximal` at least one
+   `(escalated ← <reason>)` entry — `Signature:` — the
    move, its section, and its owning skill — and `Ambition:` — the pinned tier, plus, at
-   `maximal`, which surface carries the graphic system and which tiers make up the three. Reach for the owning skill to make each call
+   `maximal`, which surface carries the graphic system, which capabilities make up the three,
+   and which surface carries the escalation. Reach for the owning skill to make each call
    (each references its library by path — never re-teach):
    - **Tier** (the base per-surface choice) via `motion-tiers`: Framer Motion, anime.js,
      Three.js/R3F, sprites (`sprite-motion`), or the Vector tier (Lottie/Rive).
    - **Scroll-driven** (smooth scroll, scrub, pin, parallax) → `scroll-orchestration`
-     (Lenis + ScrollTrigger).
+     (Lenis + ScrollTrigger); for a scroll ACT — a pinned scene, a scrubbed frame sequence, a
+     scroll-revealed panel — its budget and its three required states are in that skill's
+     `references/scroll-acts.md`, and a play-forward sequence is an entrance, not a signature.
    - **Route / page transitions** → `page-transitions` (View Transitions + fallback).
    - **Focal / variable-font type** → `kinetic-typography`.
    - **Pointer micro-interactions** (custom cursor, magnetic, tilt, drag) → `interaction-fx`.
@@ -234,6 +273,14 @@ banner first, with its cost line.
    mirror direction-bearing motion while keeping charts/numerals/code as LTR-islands
    (`motion-tiers/references/rtl-bidi.md`); and pick the **accent so it clears contrast on
    every surface** it lands on (verified in step 7).
+
+   FINALLY, once all three lines are resolved, PERSIST them at `craft/build-task.md`, beside
+   the contract and the divergence record. The audit grades the signature against the build
+   task's `Signature:` line and floor 4 against its `Motion:` line, and neither can read a
+   task that exists only in the dispatch. Persist
+   AFTER the lines exist, never before: a build task written early is the empty-Archetype-row
+   failure step 0 already names, one step down. A line that lived only in a handoff cannot be
+   checked, for exactly the reason a contract that was only spoken cannot.
 
 6. **Build.** Pass the build task — carrying the section ledger's choices when step 3 ran,
    the asset plan from step 4, and step 5's resolved `Motion:`, `Signature:` and `Ambition:`
@@ -264,7 +311,7 @@ banner first, with its cost line.
 7. **Audit — the run is NOT complete until this has run.** Run `/craft-layer:audit` on the
    result to verify the craft gates
    (the **signature interaction actually shipped** on the section step 5 assigned it,
-   the pinned **ambition** honored — at `maximal`, the three reach floors,
+   the pinned **ambition** honored — at `maximal`, the four reach floors,
    reduced-motion per tier, lazy + static-fallback 3D, per-tier + **cumulative** motion
    budget, sprite/asset budgets, **accent-vs-surface contrast**, and the newer-skill
    gates — page-transition fallback, WebGL GPU budget, interaction-fx cursor a11y, physics

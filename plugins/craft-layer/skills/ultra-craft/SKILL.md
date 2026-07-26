@@ -12,7 +12,7 @@ three run shapes fail in different places.
 
 **It boosts the PROCESS. `maximal` binds the OUTPUT.** That split is the whole
 design. `maximal` is a contract slot the audit grades a finished tree against —
-three reach floors, checkable from what shipped (`creative-direction/references/ambition-tiers.md`).
+four reach floors, checkable from what shipped (`creative-direction/references/ambition-tiers.md`).
 Ultra-craft is how hard the pipeline works on the way there: what it reads, who
 decides, what the user sees before the build, and what attacks the result. It
 IMPLIES `maximal`; `maximal` never implies it, because a user can want an
@@ -61,7 +61,7 @@ buys latency, not craft.
 ## The six bindings
 
 1. **Ambition → `maximal`, pinned not inferred.** Write it into the contract's
-   `Ambition` row and carry it onto the build task's `Ambition:` line. The three
+   `Ambition` row and carry it onto the build task's `Ambition:` line. The four
    reach floors apply in full. Where the brief ALSO asks for conventional or
    trust-first, the two orders conflict — ASK, never silently pick.
 

@@ -392,18 +392,40 @@ The contract pins a second dial the same way, from your own words:
 
 | Tier | Pinned by | The build owes |
 | --- | --- | --- |
-| `restrained` | "conventional", "trust-first", "keep it simple" | the signature floor only |
-| `standard` *(default)* | saying nothing either way | the signature floor only |
-| `maximal` | "award winning", "awwwards", "over the top", "very graphical", "cinematic" — or naming heavy motion libraries as the POINT of the brief | the signature floor **plus** three reach floors |
+| `restrained` | the `restrained` token, or "conventional", "trust-first", "keep it simple" | the signature floor only |
+| `standard` *(default)* | the `standard` token, or saying nothing either way | the signature floor only |
+| `maximal` | the `maximal` token, or "award winning", "awwwards", "over the top", "very graphical", "cinematic" — or naming heavy motion libraries as the POINT of the brief | the signature floor **plus** four reach floors |
 
-The three reach floors, checked by the audit and waivable only by a reasoned divergence-record
+**Say it outright rather than hoping it is read.** A leading `maximal`, `standard` or
+`restrained` pins the tier by token; prose inference is the fallback when no token is present.
+
+| What you want | What to type |
+| --- | --- |
+| maximal output, cheap run | `/craft-layer:craft maximal <brief>` |
+| maximal output **plus** the full process boost | `/craft-layer:craft ultra <brief>` |
+| the same boost, in a form that also works in prose | `/craft-layer:craft ultra-craft <brief>` |
+
+The two are different axes and only one implication runs between them. The ambition token pins
+what the OUTPUT owes; `ultra-craft` raises how hard the RUN works — live dated research, a
+confirmed reference board, guided rounds, a red-team of the result. `ultra-craft` implies
+`maximal`; `maximal` never implies `ultra-craft`, because a user can want an award-grade page
+out of a cheap one-shot run. A token that contradicts the brief's own prose is asked about, not
+resolved silently.
+
+The four reach floors, checked by the audit and waivable only by a reasoned divergence-record
 entry: **three distinct motion capabilities** driving real surfaces (a tier or a sibling
 engine each count once; two is what cheapest-that-fits produces on its own — one for the
 signature, one for scroll); **one authored graphic system**
 (generative/procedural canvas, WebGL/shader, programmatic SVG, sprites, or designer-authored
 vector — rules, borders, icons and type treatment are composition and do not count); and an
 **asset posture that is not first-party emptiness** (a manifest declaring nothing shipped
-passes the licence gate and fails this floor — they ask different questions).
+passes the licence gate and fails this floor — they ask different questions); and **one named
+escalation** — at least one surface takes a tier the picker would not have chosen, marked
+`(escalated ← <reason>)` on the build task. The first floor counts and three cheap capabilities
+satisfy a count, so this one asks the question the count cannot: did anything depart from
+cheapest-that-fits? The floor names no technique on purpose — a list every build escalates
+INTO is how a fresh sameness gets manufactured, which is the failure the whole anti-sameness
+side of this plugin exists to stop. It asks for the departure, not the destination.
 
 Nothing is lowered for ambition. Reduced-motion, per-tier and cumulative motion budgets,
 contrast, licence, and the delegated a11y pass are unchanged; reach is bought with lazy
@@ -505,7 +527,10 @@ auto-decided, every ledger row marked `auto`, and reported.
   for data-viz — for the data-dense CRM/SaaS targets.
 - **scroll-orchestration** — the smooth-scroll substrate (Lenis) + scroll-driven
   animation contract; references `gsap.md` for ScrollTrigger and CSS scroll-driven as
-  the reduced-bundle path.
+  the reduced-bundle path. Its `references/scroll-acts.md` owns the scroll ACT — a pinned
+  scene, a scrubbed frame sequence, a scroll-revealed panel — with the frame budget, the
+  three states each act owes, and the rule that a sequence the visitor can only watch
+  advance is an entrance reveal with more frames.
 - **kinetic-typography** — animated + variable-font type: split-text reveals,
   variable-font axes on scroll/hover, phrase cross-fades (references the split-text and
   gradient-clip/aria gotchas rather than re-teaching them).

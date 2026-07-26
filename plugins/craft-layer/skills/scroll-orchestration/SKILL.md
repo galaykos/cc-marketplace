@@ -41,8 +41,8 @@ engine). Options 2 and 4 still stand — the `@supports` + visible-base-rule aut
 scroll-driven as a PROGRESSIVE ENHANCEMENT, never a universal engine: no meaning may
 live in motion the static state loses.
 
-Full decision + the scrub-vs-trigger-vs-parallax choice:
-`references/orchestration-decision.md`.
+Full decision: `references/orchestration-decision.md`. What a scrubbed or pinned scene can
+BE — pinned act, frame sequence, revealed panel — plus their budgets: `references/scroll-acts.md`.
 
 ## The single scroll contract (one source of truth)
 
@@ -79,8 +79,6 @@ breaking anchor links and keyboard scroll.
   the SPA-route-change gotcha in
   `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` — apply it, do not
   re-bake it.
-
-Setup, options, sticky-safety, and the disable path: `references/lenis-substrate.md`.
 
 ## Choose the engine
 
@@ -136,6 +134,8 @@ Every scroll surface answers this or it does not ship:
   as the no-JS reduced-bundle path, support/fallback, and reduced-motion gating.
 - `references/orchestration-decision.md` — when scroll motion earns its cost; scrub vs
   trigger vs parallax; the single-scroll-contract rule (links gotchas.md).
+- `references/scroll-acts.md` — the pinned act, the scrubbed frame sequence and the
+  scroll-revealed panel: budgets, reduced-motion, no-JS and failure states, the no-dialog rule.
 - ScrollTrigger API: `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`.
 
 ## Anti-patterns

@@ -206,7 +206,14 @@ without exception:
     row: report `not checked (no ambition pinned)` and move on — never infer the tier from how
     ambitious the page looks, which is the taste judgement every gate here refuses. At
     `restrained` or `standard` there is nothing extra to check; the signature floor already
-    ran at step 14. At `maximal`, check three floors, each one finding when missed:
+    ran at step 14. At `maximal`, check four floors, each one finding when missed:
+    - **Named escalation** — the injected `craft/build-task.md`'s `Motion:` line carries at
+      least one `<surface>: <tier> (escalated ← <reason>)` entry, AND that escalated tier is
+      actually present in the shipped tree. Tier reach below COUNTS and a count of three is
+      satisfiable by three cheap capabilities; this floor asks the different question — did
+      any surface depart from the cheapest tier that fit it, which is the one thing the tier
+      picker never does unaided. A mark with no matching implementation is a finding, not a
+      pass. No build task persisted → `not checked (no build task)`, never a pass.
     - **Tier reach** — count DISTINCT motion capabilities driving real surfaces from the
       injected detection. Both a `motion-tiers` tier (UI-state/layout, Timeline/SVG, 3D/WebGL,
       Sprites, Vector) and a sibling engine (scroll-orchestration, page-transitions,
@@ -226,9 +233,25 @@ without exception:
       declared, this floor asks whether an asset decision was made at all.
     Each floor is waived by a reasoned entry in the divergence record naming it — check for
     one before emitting the finding. A waiver that just asserts the floor does not apply,
-    with no brief reason, is not a waiver. Report reach as counts (`tiers: 2/3`), never as a
-    verdict on how the page looks.
-16. Boost evidence (craft gate — the PROCESS receipt): read the `Boost` row. `none` or no
+    with no brief reason, is not a waiver. Report reach as counts (`capabilities: 2/3`), never
+    as a verdict on how the page looks.
+16. Scroll acts (craft gate — the three states): DETECT first, because step 1 finds tiers and
+    engines and does not find acts, and the audit's own measurement pass only hooks the frame
+    sequence — so acts 1 and 3 reach this step unseen unless you look. Grep for each: a PINNED
+    scene (`pin:` / `pinSpacing` on a ScrollTrigger, or `position: sticky` bound to a scroll
+    range), a FRAME SEQUENCE (a frame index computed from scroll progress feeding a
+    `drawImage`/`ImageBitmap` draw, or a numbered image manifest), and a REVEALED panel (an
+    overlay whose visibility or transform is driven by scroll offset rather than by a click).
+    Then check each against the injected
+    `skills/scroll-orchestration/references/scroll-acts.md`: a reduced-motion state, a no-JS
+    state and a failure state, all three present. A scroll-revealed panel that carries
+    `role="dialog"`, traps focus, or moves focus when a scroll threshold is crossed is a
+    finding — the visitor never opened it, and the tab-stop assertion in
+    `template/craft-gates/gates.spec.ts` is scoped to grids and listboxes, so a green gate run
+    is not evidence this held. Reference not injected: report
+    `not checked (scroll-acts.md not injected)`. No scroll act in the tree: nothing to check,
+    which is not a failure and not a finding.
+17. Boost evidence (craft gate — the PROCESS receipt): read the `Boost` row. `none` or no
     row: report `not checked (no boost pinned)` — never infer a boost from how thorough the
     build looks. At `ultra-craft`, three artifacts were promised and each missing one is a
     finding: a `craft/reference-board.md` carrying at least six FETCHED sources across the
@@ -242,7 +265,7 @@ without exception:
     presence and dating only — whether a source was WORTH fetching is taste, which this agent
     does not judge.
 
-17. Sight (craft gate — the one thing source cannot show): when the dispatch injects SHOT
+18. Sight (craft gate — the one thing source cannot show): when the dispatch injects SHOT
     PATHS from `.craft-layer/shots/` (two per breakpoint at 390, 768 and 1280, light and
     dark), READ the images. You cannot render a page, but you can look at one that was
     rendered for you, and this is the only gate here that sees position rather than markup.
@@ -282,10 +305,26 @@ without exception:
       checked one at a time against the shipped source — contradicted entries counted and
       reported, never taken on the record's word. A present-but-hollow record is a finding on
       its own; an absent one is `not checked`.
-- [ ] The pinned AMBITION was honored — at `maximal`, three distinct motion tiers, one
+- [ ] The pinned AMBITION was honored — at `maximal`, three distinct motion CAPABILITIES (a
+      tier or a sibling engine, each counted once — not three tiers), one
       authored graphic system, and an asset posture that is not all-first-party-emptiness;
       each waivable only by a reasoned divergence-record entry (no `Ambition` row → gate
       `not checked`, never inferred from how the page looks).
+- [ ] The fourth reach floor — NAMED ESCALATION — was met: at `maximal`, `craft/build-task.md`'s
+      `Motion:` line carries at least one `<surface>: <tier> (escalated ← <reason>)` entry AND
+      that escalated tier is actually present in the shipped tree. Counting capabilities is
+      floor 1's job; this floor asks whether any surface departed from the cheapest tier that
+      fit it, which is the one thing the tier picker never does on its own. A mark with no
+      matching implementation is a finding, not a pass. Waivable only by a reasoned
+      divergence-record entry (no `Ambition` row → `not checked`; no build task persisted →
+      `not checked (no build task)`).
+- [ ] Any SCROLL ACT that shipped owes its three states — a pinned scene, a scrubbed frame
+      sequence or a scroll-revealed panel each need a reduced-motion state, a no-JS state and
+      a failure state, per `skills/scroll-orchestration/references/scroll-acts.md`. A
+      scroll-revealed panel that carries `role="dialog"`, traps focus, or moves focus on a
+      scroll threshold is a finding: the visitor never opened it. The tab-stop assertion in
+      `template/craft-gates/gates.spec.ts` is scoped to grids and listboxes and does NOT see
+      this, so a green gate run is not evidence the rule held.
 - [ ] The pinned BOOST left its receipts — at `ultra-craft`, a reference board with ≥6 dated
       fetched sources AND a recorded query at each of land-book / awwwards / dribbble
       (searches and sources counted separately), a section ledger, and a red-team record
