@@ -98,6 +98,124 @@ one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE
 `THIRD-PARTY-NOTICES`. A manifest at any other path reads as absent to the gate. An
 all-in-code build still owes one, as a first-party declaration.
 
+A second thing lands in the project, and it is deliberately not one of the three above:
+`.craft-layer/`, carrying a `.gitignore` holding `*`. It is git-invisible, and it is the only
+craft artifact that must OUTLIVE the session — a run log in session scratch has no memory to
+offer the next run, which is the whole point of it. It holds `run-log.md` (the project memory)
+and `waivers.json` (see the divergence gate below).
+
+### Why two runs no longer look alike
+
+Anti-sameness used to be purely subtractive: a curated registry of overused spines, moves and
+hues, refreshed once per release, that every run diverged FROM. A blocklist has exactly one
+complement — push every run away from the same points and they all land in the same remaining
+pocket. And because the registry was static within a release, run 2 and run 6 read a
+byte-identical list, so nothing ever compared a run to the one before it.
+
+Three things changed:
+
+- **A concept deck, not just a blocklist** — the deck lives at
+  `skills/creative-direction/references/concept-deck.md`. Five structural axes — composition strategy, colour behaviour, type role, motion role,
+  graphic-system class — each with several STRATEGY options. A run DRAWS one option per axis
+  and the creative-director generates its candidates inside that room. Options are strategies,
+  never families, products or colour values: the same mechanical test `type-strategy.md`
+  applies to type applies here — if the deck needs editing when a new typeface ships, it has
+  become a catalog and must be reverted to constraints.
+- **A project memory.** `.craft-layer/run-log.md` records what each completed run shipped —
+  hue family, type strategy, spine, signature, and the five-axis draw. Step 0 reads it and the
+  draw excludes what the last five rows used. An absent or malformed log is treated as empty:
+  the run warns, seeds the draw from the brief text plus the date, and carries on. A bad log
+  never fails a run.
+- **A divergence FLOOR that scales.** The old floor was one departure at every tier, and the
+  audit only fired when three conditions held together — so a single departure discharged the
+  whole gate. The floor is now 1 / 2 / 3 by ambition, the departures must land on different
+  fingerprint axes, and a divergence record that is present but hollow now fails on its own.
+  An ABSENT record still reports `not checked`, and an explicitly requested conventional design
+  is still a valid justification — the gate never forces novelty nobody asked for.
+
+### The divergence gate — `template/craft-gates/divergence.mjs`
+
+The attractor rules used to be advice. The audit checked that a type spec was RECORDED and said
+outright that it never judges which family won, and `contrast.mjs` measured contrast, never hue
+distance — so nothing could fail a build for landing on the model's default.
+
+`divergence.mjs` is a plain Node script run from the project root. It asserts five things and
+exits non-zero on any of them: the accent hue is inside a category-default band; the accent hue
+repeats one of the last five logged runs; a shipped font family is an anti-corpus entry; a
+shipped family repeats a recent run; the recorded deck draw differs from recent draws on fewer
+than three of five axes. No model judgement is involved.
+
+Three details that are load-bearing:
+
+- **A missing or unparseable token source exits NON-ZERO**, printing `not measured`. Its sibling
+  `contrast.mjs` exits 0 in that case — this gate diverges on purpose, because a silent pass on
+  a missing file is exactly the failure teeth exist to end.
+- **It reports where its anti-corpus came from.** The registry is refreshed per release but the
+  script ships into your project, so it reads the live registry via `${CLAUDE_PLUGIN_ROOT}` when
+  that resolves and falls back to a dated embedded snapshot otherwise — and prints which, with
+  the date, on every run.
+- **Brand echo is exempt from the repeat half.** A project with an existing brand palette or
+  typeface is bound to echo it, and would otherwise fail from run 2 onward. The category-default
+  assertions still apply: echoing a brand is a reason to repeat yourself, never a reason to ship
+  the default.
+
+Waive a finding with an entry in `.craft-layer/waivers.json` carrying a non-empty `reason`; a
+waiver without one does not count.
+
+### The concept fork
+
+After the creative-director returns, the run presents two or three CONCEPT candidates — each a
+different deck draw, spine and signature move — and you pick. This binds at every tier, not only
+in `guided`, and it forks on the concept, never on three shades of one accent (`/ui-ux:theme`
+already does colour at step 2). A headless run auto-picks and records `source: auto`. When fewer
+than two candidates clear the usability floor there is no fork; the weak-round path in
+`agents/creative-director.md` takes over.
+
+This is the one exchange a `one-shot` run now carries — everything else about `one-shot` is
+unchanged, and Part 6 of the offer contract states it.
+
+### Seeing the work
+
+A build once passed a clean typecheck, a clean lint, a 107,016-state sweep, measured WCAG
+contrast and a full DOM assertion pass — then a single screenshot showed a leader label reading
+`£1,200 DAILY CEILING — ABSOLUT`, clipped mid-word, on the first screen. A DOM assertion proves
+an element exists, carries the right text and computes the right colour. It cannot see that the
+text runs off the edge of its viewBox, that two annotations land on top of each other, or that a
+fixed rail is covering the paragraph beside it. Those are the defects a reader meets first and a
+query never meets at all.
+
+So the run now looks at its own output, at **every** tier rather than only under the boost:
+
+- **`gates.spec.ts` captures.** A `capture` trigger writes PNGs at 390, 768 and 1280, light and
+  dark — a full-page shot plus a top-of-viewport shot at each. It settles first (scroll to the
+  bottom, wait for fonts, lazy images and finite animations, scroll back) because a bare
+  `goto()` frame shows an unrevealed page on exactly the scroll-orchestrated builds this plugin
+  exists to produce. Capture never runs inside the reduced-motion, forced-colours or 200%-zoom
+  contexts: those exist to break the page on purpose, and a shot of a deliberately broken page
+  teaches nothing about the shipped design.
+- **Something opens the images.** The audit reads them and reports what is visible, hunting the
+  class DOM checks are blind to. A refused screenshot path is a reason to retry with an absolute
+  path inside an allowed root, never a reason to declare capture impossible.
+- **The run says which half ran.** The final message owes `Visual: <n> shots opened` or
+  `NOT CAPTURED (<reason>)`. `NOT CAPTURED` is a legitimate outcome — a headless or unbuildable
+  target genuinely cannot produce a frame — but it is stated, never implied by silence.
+- **Two fixtures keep it honest.** `fixture-sight.html` carries the three defects on purpose and
+  `fixture-sight-clean.html` is the identical page without them, so the checks are shown to fail
+  for the right reason rather than merely to fail.
+
+Some of this is machine-graded and some is not, and the split is deliberate. Text escaping its
+viewBox, text clipped by a hidden-overflow box, and text-over-text overlap are asserted in code.
+A fixed element covering content is **agent-graded** — it requires opening the image — and the
+fixture header says so. "Structurally verified, not visually verified" is an honest report;
+"verified" alone, when no image was opened, is not.
+
+**Progressive shots.** Once the dev server is up, step 6 emits a shot after each major section
+lands — `build-01-hero.png`, `build-02-signature.png`, `build-03-full.png` — so you watch the
+real page assemble instead of a mockup that can drift from it. With no dev server it emits
+`Progressive shots: none (no dev server)` and never blocks the build. These are an in-flight
+view, not an archive: step 7's suite prunes `.craft-layer/shots/` when it captures, so the audit
+shots replace them.
+
 ### What "award-grade" means here — and what it does not
 
 Several files in this plugin use *award-grade* as a quality bar. Checked against the

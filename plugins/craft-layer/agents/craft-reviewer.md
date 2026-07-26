@@ -80,11 +80,16 @@ without exception:
    `creative-direction/references/sameness-fingerprint.md` and the build's persisted concept
    **divergence record**. No record injected: report this gate as `not checked (no divergence
    record persisted)` and move on — never treat an absent record as an empty one, which would
-   fail every build that simply did not save it. A build is a finding when BOTH counts hold:
-   it reproduces the registry's recurring SPINE in order end-to-end AND ships ≥3 of its named
-   vocabulary moves unbroken, AND the record (present) is empty, placeholder, or contradicted
-   by what shipped — verify each claimed entry against the source rather than trusting the
-   record; never judge whether the result is beautiful. An explicit user request for a conventional /
+   fail every build that simply did not save it. K is the registry's per-ambition floor —
+   `restrained` 1, `standard` 2, `maximal` 3, read from the persisted contract's `Ambition`
+   row (no row → check against 1 and say the tier was not pinned) — and the departures must
+   sit on DIFFERENT fingerprint axes; several departures inside the vocabulary list count
+   once. TWO independent findings, per the registry: (a) a record that is PRESENT but empty,
+   placeholder, or contradicted by what shipped is a finding ON ITS OWN — verify each claimed
+   entry against the source rather than trusting the record; (b) a build reproducing the
+   registry's recurring SPINE in order end-to-end AND shipping ≥3 of its named vocabulary
+   moves unbroken, with nothing in the record justifying it, is a finding on its own too.
+   Never judge whether the result is beautiful. An explicit user request for a conventional /
    trust-first design is a valid justification, not a finding.
 10. Content depth (craft gate): read the injected
     `creative-direction/references/content-depth.md`. The archetype and the declared length
@@ -237,6 +242,19 @@ without exception:
     presence and dating only — whether a source was WORTH fetching is taste, which this agent
     does not judge.
 
+17. Sight (craft gate — the one thing source cannot show): when the dispatch injects SHOT
+    PATHS from `.craft-layer/shots/` (two per breakpoint at 390, 768 and 1280, light and
+    dark), READ the images. You cannot render a page, but you can look at one that was
+    rendered for you, and this is the only gate here that sees position rather than markup.
+    Describe what is visible and hunt the class every DOM assertion passes: text CLIPPED at
+    a container or viewBox edge, OVERLAPPING labels or annotations, truncation ellipses, a
+    fixed element covering the content beneath it, and any element whose rendered position
+    differs from where the markup implies it sits. Each one is a finding, cited by image
+    name plus where in the frame it sits. No shots injected: report `not checked (no shots
+    captured)` — never infer from source that the page looks right, and never report a look
+    that did not happen. Judge placement and legibility, never whether the design is
+    beautiful.
+
 ## Checklist
 
 - [ ] The typeface decision was MADE, not defaulted — the record carries the family
@@ -258,10 +276,12 @@ without exception:
       darker accent step on light surfaces (text ≥4.5:1, non-text marks ≥3:1).
 - [ ] page-transitions / webgl-effects / interaction-fx / physics-motion /
       motion-sequencing each meet their done-ness mandate (step 8) when used.
-- [ ] The concept's divergence record breaks ≥1 sameness-fingerprint default (or a
-      conventional design was explicitly requested), AND every entry it claims was checked
-      one at a time against the shipped source — contradicted entries counted and reported,
-      never taken on the record's word.
+- [ ] The concept's divergence record breaks K sameness-fingerprint defaults on K DIFFERENT
+      axes (K = 1 `restrained` / 2 `standard` / 3 `maximal`, from the contract's `Ambition`
+      row), or a conventional design was explicitly requested; AND every entry it claims was
+      checked one at a time against the shipped source — contradicted entries counted and
+      reported, never taken on the record's word. A present-but-hollow record is a finding on
+      its own; an absent one is `not checked`.
 - [ ] The pinned AMBITION was honored — at `maximal`, three distinct motion tiers, one
       authored graphic system, and an asset posture that is not all-first-party-emptiness;
       each waivable only by a reasoned divergence-record entry (no `Ambition` row → gate
@@ -289,6 +309,9 @@ without exception:
       unless declared first-party); the licence gate runs even on a static build.
 - [ ] Every asset uses the right format per kind + a reduced-bundle fallback + matches its
       source-class (bytes stay with the step-5 budget, not re-counted).
+- [ ] The captured SHOTS were opened — `Visual: <n> shots opened`, with clipped text,
+      overlapping labels, truncation and covered content hunted in the images themselves
+      (no shots injected → gate `not checked (no shots captured)`, never a look implied).
 - [ ] Full a11y and performance were deferred, not re-checked here.
 
 ## Defer

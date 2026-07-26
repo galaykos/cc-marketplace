@@ -157,10 +157,18 @@ long is wrong, but because nobody decided it.
 or by running `/craft-layer:sections`. There is no flag to memorize; the mode is pinned in the
 contract like every other row, and echoed back with it.
 
-A `one-shot` run generates the whole page from the contract and the concept, and
-the user first sees it finished. That is the right mode for a small page, a
-re-run, or a headless invocation — and it is the mode in which a misread brief
-survives the entire build.
+A `one-shot` run generates the whole page from the contract and the concept with
+exactly ONE exchange carved out: the CONCEPT FORK. Before any artifact is
+persisted, the run presents 2–3 concept candidates — each a deck draw, a central
+metaphor, an editorial voice and one signature move — and the user picks the one
+the build runs on. Everything else about `one-shot` is unchanged: no section
+rounds, no per-treatment questions, no colour-by-colour approval; after the fork
+the page arrives finished. The fork binds at every tier, this one included,
+because the concept is the single decision a whole build inherits — and a
+headless or unanswered run auto-picks, so the mode stays genuinely unattended.
+That keeps `one-shot` right for a small page, a re-run, or a headless
+invocation — and it is still the mode in which a misread brief survives the
+entire build.
 
 A `guided` run decides the page section by section with the user before it is
 built: the spine slots become a batched decision agenda, each section is offered

@@ -31,7 +31,11 @@ override it (a "midnight observatory" SaaS concept can pull product/SaaS toward 
 
 Read the recent-hue list in `sameness-fingerprint.md` (last 5 palettes). The brief should
 avoid landing in the SAME hue family as a recent build unless the brief specifically
-demands it. This needs no separate state — the fingerprint IS the memory. State the
+demands it. Two memories feed that nudge, and they are different things: the fingerprint is
+the CATEGORY memory (what craft builds and the wider web have overused, refreshed per
+release), and `<project>/.craft-layer/run-log.md` is the PROJECT memory (the hue family of
+the last 5 runs in THIS codebase). The avoid-list is the UNION of the two — the fingerprint
+alone cannot tell run N from run N−1, which is the repetition a user actually sees. State the
 avoided families in the brief ("not lime-editorial, not navy/gold") so `/ui-ux:theme`
 generates away from them.
 

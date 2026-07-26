@@ -93,15 +93,28 @@ valid justification — but "conventional" and "generated-looking" are not the s
 
 The creative-director agent returns a **divergence record**: for each departure,
 { fingerprint axis (spine / a named vocabulary move / recent hue) · the entry it replaces ·
-the brief reason }. A concept must break **≥ 1** default (K floor = 1; more is better).
+the brief reason }. **K — how many defaults a concept must break — SCALES WITH THE PINNED
+AMBITION: `restrained` 1, `standard` 2, `maximal` 3.** A flat floor of one let a single
+departure discharge the whole gate however far the brief asked the build to reach.
 
-The audit fails a build when BOTH hold — stated as counts, so the check is falsifiable:
-- the build reproduces the recurring SPINE in order end-to-end, **and** ships ≥ 3 of the
-  registry's named vocabulary moves unbroken; AND
-- the divergence record is present but empty, placeholder, or every entry it claims is
-  contradicted by what actually shipped (a record naming a broken default the build still
-  contains counts as placeholder — check each entry against the source, do not take the
-  record's word for it).
+The departures must land on **different fingerprint axes** — the spine, a named vocabulary
+move, a recent hue, a type family or the pairing SHAPE. Three departures all inside the
+vocabulary list are one departure wearing three hats, and count once. When a tier's K
+genuinely cannot be reached on distinct axes, say so in the record with the reason; padding
+the record with same-axis entries is the failure this rule names.
+
+The audit carries TWO independent failure conditions, stated as counts so each is
+falsifiable:
+- **A present record that is hollow fails ON ITS OWN** — empty, placeholder, or every entry
+  it claims contradicted by what actually shipped (a record naming a broken default the
+  build still contains counts as placeholder — check each entry against the source, do not
+  take the record's word for it). A build that reports a divergence it did not make has told
+  the gate something false, and that is a finding whatever the page looks like.
+- **The build reproduces the recurring SPINE in order end-to-end AND ships ≥ 3 of the
+  registry's named vocabulary moves unbroken, with nothing in the record justifying it.**
+  The justification clause is deliberate and is what keeps this from being a blanket OR: a
+  `restrained` build that was ASKED for the conventional spine and says so passes, while a
+  blanket OR would fail it by construction.
 
 A non-empty record is not automatically a pass. A record that is ABSENT is not a failure
 either: the gate had no input, so it is reported `not checked` — a build is never failed for
