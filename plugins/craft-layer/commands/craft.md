@@ -217,13 +217,24 @@ banner first, with its cost line.
    silence. Declaring a surface done without that line is the finding this step exists to
    prevent.
 
-8. **Red-team the result — BOOSTED runs only.** Once the audit's gates are resolved, attack
-   the shipped tree against the persisted contract and the divergence record: blind refuters
-   each told to REFUTE that the run honored what it pinned, N=3 as a CEILING sized to blast
-   radius, composing `orchestration:verification-panels` when installed. No Workflow tool
-   means ONE inline pass, labeled `inline heuristic pass — single model, uncorroborated`.
-   Record what was attacked and what survived; never report a panel that did not run. An
-   unboosted run skips this step entirely and says so in no line at all — it was never owed.
+8. **Red-team the result AND the fixes — BOOSTED runs only.** Once the audit's gates are
+   resolved, attack the shipped tree against the persisted contract and the divergence
+   record: blind refuters each told to REFUTE that the run honored what it pinned, N=3 as a
+   CEILING sized to blast radius, composing `orchestration:verification-panels` when
+   installed. No Workflow tool means ONE inline pass, labeled `inline heuristic pass — single
+   model, uncorroborated`. Record what was attacked and what survived; never report a panel
+   that did not run.
+   Three rules the panel owes are in `skills/ultra-craft/references/red-team-contract.md`,
+   and each exists because a gate-clean build shipped a defect that inverted its own claim:
+   **sweep** an interactive signature's reachable STATE SPACE rather than reasoning about
+   representative values (the run that produced the rule had a drag handle sitting outside
+   the region it defined in 107,016 of 107,016 states, which every gate passed); attack the
+   post-audit **fix list** as its own claim set, since a fix report is a confident
+   self-assessment written by the author of the defects; and **render the surface and look
+   at it** before calling it verified — clipped text, overlapping annotations and truncation
+   are invisible to every DOM assertion, and a refused screenshot path is a reason to retry
+   with an absolute path in an allowed root, never a reason to declare capture impossible.
+   An unboosted run skips this step entirely and says so in no line at all — it was never owed.
 
 ## Notes
 

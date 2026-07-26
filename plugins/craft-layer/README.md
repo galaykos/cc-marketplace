@@ -267,6 +267,16 @@ the audit. The audit reads the contract's `Boost` row back and checks the three 
 board, ledger, red-team record. Detail: `skills/ultra-craft/SKILL.md` and
 `skills/ultra-craft/references/research-mandate.md`.
 
+The red-team owes three rules beyond "look again"
+(`skills/ultra-craft/references/red-team-contract.md`), each earned by a build that cleared
+every gate and shipped a defect inverting its own claim:
+
+| Rule | Catches |
+| --- | --- |
+| **Sweep the state space** — enumerate an interactive signature's reachable states and assert the concept's claims in each, rather than reasoning about representative values | the class where the mechanism works perfectly and means the opposite: a drag handle outside the region it defines in 107,016 of 107,016 states; a legend reading "Permitted" inside the excluded zone in 95% of them |
+| **Attack the fix list** — treat every "fixed" claim as a claim and go to the source | padding swapped for different padding; a label rebound while the geometry stayed hardcoded; one gate fixed by breaking another |
+| **Render it and look** — open the image before calling a surface verified | clipped text, overlapping annotations, truncation, fixed elements covering content — all invisible to DOM assertions and to a clean typecheck |
+
 It implies `maximal`; `maximal` never implies it. It costs wall-clock, exchanges and bundle
 weight — where the same brief also asks for fast or cheap, the run asks which order wins
 instead of guessing.

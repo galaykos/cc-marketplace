@@ -5,19 +5,18 @@ description: Use when a craft run is EXPLICITLY boosted — "ultra-craft"/"ultra
 
 # Ultra-craft — Extreme Boost for a craft run
 
-Ultra-craft is a per-run intensity mode for build-shaped design work. It is the
-craft sibling of `taskmaster:ultra` (which boosts a planning pipeline) and
-`orchestration:ultra-assess` (which boosts an audit). Each stays in its own lane:
-neither auto-triggers the other, because a spec run, an audit run and a build run
-fail in different places.
+Ultra-craft is a per-run intensity mode for build-shaped design work — the craft
+sibling of `taskmaster:ultra` (a planning pipeline) and `orchestration:ultra-assess`
+(an audit). Each stays in its lane; neither auto-triggers the other, because those
+three run shapes fail in different places.
 
 **It boosts the PROCESS. `maximal` binds the OUTPUT.** That split is the whole
 design. `maximal` is a contract slot the audit grades a finished tree against —
 three reach floors, checkable from what shipped (`creative-direction/references/ambition-tiers.md`).
 Ultra-craft is how hard the pipeline works on the way there: what it reads, who
-decides, what the user sees before the build, and what attacks the result.
-Ultra-craft IMPLIES `maximal`; `maximal` never implies ultra-craft, because a user
-can want an award-grade page out of a cheap one-shot run.
+decides, what the user sees before the build, and what attacks the result. It
+IMPLIES `maximal`; `maximal` never implies it, because a user can want an
+award-grade page out of a cheap one-shot run.
 
 ## Triggers
 
@@ -94,12 +93,17 @@ buys latency, not craft.
    there — the cheapest place to change direction is before the first file exists.
    Format in `references/research-mandate.md`.
 
-5. **Red-team the shipped result.** After step 7's audit, attack the built tree
-   against the contract and the divergence record: blind refuters, N=3 as a
-   CEILING, sized to blast radius, each told to REFUTE that the run honored what it
-   pinned. Compose `orchestration:verification-panels` when installed. No Workflow
-   tool → ONE inline pass, labeled `inline heuristic pass — single model,
-   uncorroborated`. Never report a panel that did not run.
+5. **Red-team the shipped result, AND the fixes.** After step 7's audit, blind
+   refuters attack the built tree against the contract and the divergence record,
+   N=3 as a CEILING sized to blast radius, each told to REFUTE. Compose
+   `orchestration:verification-panels` when installed; no Workflow tool → ONE
+   inline pass, labeled `inline heuristic pass — single model, uncorroborated`.
+   Never report a panel that did not run. Three rules the panel owes —
+   SWEEP an interactive signature's reachable state space instead of reasoning
+   about representative values, attack the post-audit FIX LIST as its own claim
+   set, and RENDER the surface and look at it before calling it verified — are in
+   `references/red-team-contract.md`. Each exists because a gate-clean build
+   shipped a defect that inverted the concept's own claim.
 
 6. **Persist the boost so the audit can read it back.** The contract's `Boost` row
    carries `ultra-craft` (or `none`). A boost that was only spoken cannot be
@@ -107,12 +111,12 @@ buys latency, not craft.
 
 ## What the audit checks
 
-`/craft-layer:audit` reads the persisted contract's `Boost` row and, when it says
+`/craft-layer:audit` reads the persisted contract's `Boost` row and, at
 `ultra-craft`, verifies three things beyond the `maximal` floors: a
-`craft/reference-board.md` exists carrying dated sources that clear the mandate's
-minimums; a section ledger exists (guided was binding, so its absence is a miss,
-not a one-shot); and a red-team record exists naming what it attacked. No `Boost`
-row → `not checked`, never a pass and never a fail.
+`craft/reference-board.md` carrying dated sources that clear the mandate's
+minimums; a section ledger (guided was binding, so its absence is a miss, not a
+one-shot); and a red-team record naming what it attacked. No `Boost` row →
+`not checked`, never a pass and never a fail.
 
 ## What never moves
 
@@ -121,19 +125,16 @@ tier, reduced-bundle fallbacks, per-tier AND cumulative motion budgets, accent
 contrast, the licence and provenance gate, and full accessibility. Ultra-craft buys
 process depth and reach — never bytes on first paint, never a waived gate. A boosted
 run that clears a floor by breaking a ceiling has shipped a defect with more moving
-parts.
-
-It buys nothing the flow cannot execute either: commissioned illustration, photoreal 3D
-and bespoke type sculpture stay out of reach. Ultra-craft reaches as far as
-code-authored craft goes, with receipts that the reach was deliberate.
+parts. What it cannot execute at all — commissioned illustration, photoreal 3D,
+bespoke type sculpture — is unchanged too; `ambition-tiers.md` owns that ceiling.
 
 ## Cost, and when to refuse it
 
 Say the cost in one line under the banner: live fetches and guided rounds add
-wall-clock and exchanges; `maximal` adds bundle weight and build time; the red-team
-adds a pass after the audit. Where the same brief also asks for fast, cheap, or a
-quick draft, the two orders conflict — ASK which one wins rather than spending an
-hour on a request for fifteen minutes.
+wall-clock and exchanges; `maximal` adds bundle weight; the red-team adds a pass
+after the audit. Where the brief ALSO asks for fast, cheap, or a quick draft, the
+orders conflict — ASK which wins rather than spending an hour on a request for
+fifteen minutes.
 
 ## Anti-patterns
 
@@ -146,7 +147,8 @@ hour on a request for fifteen minutes.
   status update instead of a decision point.
 - **Boost the builders** — escalating the component build instead of the concept
   and the review, paying for latency in the roles that never needed judgment.
-- **Panel that did not run** — reporting a red-team when no Workflow tool was
-  present and one inline pass happened. Label it or omit it.
+- **Panel that did not run** — reporting a red-team when one inline pass happened.
+- **Fix list taken on trust** — refuting the build, then blessing its repairs.
+- **Verified without looking** — calling a surface right when no image was opened.
 - **Silent boost** — pinning ultra-craft from a brief that never asked, then
   spending the wall-clock and the bundle on it.
