@@ -455,7 +455,12 @@ function readSpineRegions() {
   let text
   try { text = readFileSync(p, 'utf8') } catch { return null }
   for (const line of text.split('\n')) {
-    const m = line.match(/^\s*[-*]?\s*Spine regions\s*:\s*(.+?)\s*$/i)
+    /* Accept the bare, list-marker AND heading forms. A build task writes five lines and
+       only THIS one is machine-parsed — the other four are read by an agent, so heading
+       form works for all of them. A task whose five lines are formatted consistently as
+       `## <key>:` therefore had four live lines and one silently dead one, reported as a
+       SKIP that reads like "nothing to check". Found on a live run, by nobody's review. */
+    const m = line.match(/^\s*#{0,6}\s*[-*]?\s*\**\s*Spine regions\s*\**\s*:\s*(.+?)\s*$/i)
     if (!m) continue
     const declared = m[1].replace(/[`*]/g, '').trim()
     const map = {}
