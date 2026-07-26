@@ -173,7 +173,10 @@ taxonomy and its per-tier budgets, then:
    **boost evidence** — read the contract's `Boost` row. At `ultra-craft`, check three things
    the boost promised and nothing else can prove: a `craft/reference-board.md` exists (glob it
    the same way) carrying at least six fetched sources across the three lanes, each with a URL
-   and a fetch date, per `${CLAUDE_PLUGIN_ROOT}/skills/ultra-craft/references/research-mandate.md`;
+   and a fetch date, AND a searches-run block recording a category-scoped query at each of the
+   three named galleries — `land-book.com`, `awwwards.com`, `dribbble.com` — where a query
+   recorded as fetch-blocked still discharges the search, per
+   `${CLAUDE_PLUGIN_ROOT}/skills/ultra-craft/references/research-mandate.md`;
    a section ledger exists, because a boosted run pinned `guided` and its absence is a miss
    rather than the legitimate one-shot skip above; and a red-team record exists naming what it
    attacked. Each miss is one finding. A `none` row or no row → `not checked`, and never

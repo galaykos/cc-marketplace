@@ -255,7 +255,11 @@ training data. `ultra-craft` is the process boost, and it is a separate word on 
 
 Six bindings: `Ambition` pinned `maximal` and `Mode` pinned `guided` (not read from the
 brief); research that actually **fetches** — six live sources minimum across three lanes,
-each with a URL, a fetch date and a why-line, recall demoted to a lead labeled `unverified`;
+each with a URL, a fetch date and a why-line, recall demoted to a lead labeled `unverified`,
+and a category-scoped search recorded at each of three NAMED galleries (`land-book.com` for
+shipped page structure, `awwwards.com` for reach and signature candidates, `dribbble.com` for
+visual direction only — a shot is a concept, never evidence a pattern ships), because naming
+a lane is not naming a source and a full source count never covers a gallery nobody opened;
 a **reference board** persisted and echoed *before the first token is generated*, so you
 redirect the direction while it still costs nothing; the concept and review agents dispatched
 at a boosted tier while builders stay native; and a **red-team** of the shipped tree after

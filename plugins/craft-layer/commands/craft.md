@@ -91,7 +91,10 @@ banner first, with its cost line.
    component/layout build task. Detect the target stack here if not already known.
    ON A BOOSTED RUN this step's mining is LIVE, not recalled: fetch every source, six minimum
    across the three lanes, each carrying a URL, a fetch date and a why-line, per
-   `skills/ultra-craft/references/research-mandate.md`. Then persist
+   `skills/ultra-craft/references/research-mandate.md`. That file also names THREE galleries
+   that all get a category-scoped search with the query recorded — `land-book.com`,
+   `awwwards.com`, `dribbble.com` — and holds the rule that a dribbble shot is direction
+   only, never evidence a pattern ships. Searching and sourcing are separate counts. Then persist
    `craft/reference-board.md` beside the other two artifacts and ECHO it to the user before
    step 2 generates anything — sources, patterns pulled, the direction they imply, the
    sameness defaults being broken, and the section agenda step 3 will run. The user confirms

@@ -79,6 +79,13 @@ buys latency, not craft.
    a pattern the build copies. This is the binding that closes the widest gap: the
    craft flow reads as if it mines the live web and, without this, binds nothing
    that makes it.
+   Naming a LANE is not naming a source, so three galleries are named and all three
+   get a category-scoped SEARCH with the query recorded — `land-book.com` for
+   shipped page structure, `awwwards.com` for reach and signature candidates,
+   `dribbble.com` for visual direction ONLY, never as evidence a pattern ships. The
+   search floor and the six-source floor are separate counts; neither buys the
+   other, and a blocked fetch is recorded as searched-and-blocked, never papered
+   over with recall.
 
 4. **Reference-board readout before the build.** Persist `craft/reference-board.md`
    and echo it to the user BEFORE step 2 generates a single token: the fetched
@@ -116,10 +123,9 @@ process depth and reach — never bytes on first paint, never a waived gate. A b
 run that clears a floor by breaking a ceiling has shipped a defect with more moving
 parts.
 
-It also buys nothing the flow cannot execute: commissioned illustration, photoreal
-3D and bespoke type sculpture stay out of reach. Ultra-craft reaches as far as
-code-authored craft goes, with the research and the gates to prove the reach was
-deliberate.
+It buys nothing the flow cannot execute either: commissioned illustration, photoreal 3D
+and bespoke type sculpture stay out of reach. Ultra-craft reaches as far as
+code-authored craft goes, with receipts that the reach was deliberate.
 
 ## Cost, and when to refuse it
 
