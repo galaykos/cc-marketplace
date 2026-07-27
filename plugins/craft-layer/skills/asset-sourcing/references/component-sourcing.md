@@ -207,11 +207,25 @@ The section above asks WHICH registry. This one asks how much of it the run actu
 and it is the half that decides whether a registry buys structure or decoration.
 
 A run briefed on two named registries shipped **one** component from a **270**-component
-registry and four primitives from a 1051-component one, and picked, from a catalogue
-holding Hero Parallax, Sticky Scroll Reveal, Bento Grid, Container Scroll and Tracing Beam,
-the generic hover-card. The run's own note recorded that registry as holding "~60" — it had
-never counted, and the estimate it substituted was off by a factor of four in the direction
-that made the pick look reasonable. Nothing was wrong with the pick in isolation. What was wrong is
+registry, picking — from a catalogue holding Hero Parallax, Sticky Scroll Reveal, Bento
+Grid, Container Scroll and Tracing Beam — the generic hover-card. Its own note recorded that
+registry as holding "~60". It had never counted, and the estimate it substituted was off by
+a factor of four in the direction that made the pick look reasonable.
+
+**Every number that run stated about a registry was wrong, including the corrections.** It
+then read the other registry's marketing page and reported "1051 components"; the registry's
+own server answers **20** — the published figure counts components plus examples plus icons
+plus blocks. Three passes, three wrong counts, each one confidently sourced from whatever
+was nearest. A count is not a thing to recall or to read off a homepage banner: it is a
+thing to ask the registry for.
+
+**Registries differ by ARCHETYPE, not just by house style, and that is a sourcing decision.**
+Read live: one registry's free tier is 20 components and they are `data-grid`, `kanban`,
+`gantt`, `event-calendar`, `filters`, `stepper`, `tree` — an app/CRM surface. The other's 270
+are heroes, parallax, bento, scroll reveals and backgrounds — a marketing surface. Pointing a
+landing page at the app registry, or a dashboard at the marketing one, produces a build that
+fights its source the whole way. Match the registry to the archetype in
+`../../creative-direction/references/archetypes.md` before matching a component to a slot. Nothing was wrong with the pick in isolation. What was wrong is
 that the alternatives were never enumerated: the run worked from what it could RECALL of
 the registry instead of from what the registry CONTAINS, and recall is biased toward
 whatever is most common, which is the definition of the default this plugin exists to
