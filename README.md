@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 69 leaf plugins) exists for zero-setup convenience at ~12.3k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 72 leaf plugins) exists for zero-setup convenience at ~14.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,11 +44,11 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 69 | ~12.3k tokens |
+| `everything` | 72 | ~14.7k tokens |
 | `taskmaster-suite` | 37 | ~8.6k tokens |
 | `process-suite` | 13 | ~2.3k tokens |
-| `quality-suite` | 15 | ~2.6k tokens |
-| `frontend-suite` | 17 | ~2.4k tokens |
+| `quality-suite` | 16 | ~2.6k tokens |
+| `frontend-suite` | 19 | ~2.6k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
@@ -65,12 +65,12 @@ Per-prompt hook output (UserPromptSubmit etc.) is dynamic and not counted —
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
-# install: ~12.3k tokens of always-on context per session; prefer a category
+# install: ~14.7k tokens of always-on context per session; prefer a category
 # suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
 # Or one category at a time:
-/plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, React, Vue, TS, Inertia, Livewire, a11y
+/plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, craft-layer, registry-source (MCP), React, Vue, TS, a11y
 /plugin install php-suite@cc-plugins-marketplace        # PHP, Laravel, Livewire, Inertia
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
 /plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
@@ -103,6 +103,47 @@ Note: uninstalling from the /plugin menu inside Claude Code does NOT prune —
 dependencies stay installed. Run `claude plugin prune` from a terminal
 afterwards to sweep the orphans.
 
+### MCP servers
+
+A plugin can ship MCP servers, and installing the plugin is the whole setup —
+nothing to add by hand, no `claude mcp add`. One plugin here does:
+
+| Plugin | Server | Transport | Auth | What it answers |
+|--------|--------|-----------|------|-----------------|
+| `registry-source` | `registry-source` | stdio, local | none | Live component inventory for Aceternity (270), shadcn (62) and Magic UI (247) — `registry_list`, `registry_search`, `registry_get` |
+| `registry-source` | `reui` | http → `mcp.reui.io` | browser sign-in, once | ReUI's own registry: 20 components, 1051 examples, 492 blocks, 562 icons, with real component APIs and exact install commands |
+
+```bash
+/plugin install registry-source@cc-plugins-marketplace
+# then, only if you want the ReUI half:
+#   /mcp  →  reui  →  Authenticate      (opens a browser sign-in you complete)
+```
+
+`registry-source` is included in `frontend-suite` and `everything`.
+
+**Why this exists as a server and not as a rule.** Two skills in this
+marketplace already say, in plain words, never to write registry component
+details from memory. A build broke both anyway — it estimated a 270-component
+registry at "~60", read a 401 on a paid install endpoint as proof the components
+were unavailable, then read a marketing banner as proof they were free. Recall
+does not feel like breaking a rule; it feels like knowing something. A tool in
+the tool list is what makes reaching for the source cheaper than remembering.
+
+**Why a cache and not a bundled copy.** Every answer carries `source`,
+`fetched_at`, `from` (`network` | `cache`) and `stale`. A scraped snapshot has no
+freshness signal, so it gets read as truth forever — this repo has shipped that
+bug twice. With no cache and no network the server says *unreachable* rather
+than reconstructing something plausible.
+
+**Credentials.** No server here holds, requests or forges a licence key. ReUI's
+paid tier is unlocked by a browser sign-in **you** complete; until then that
+entry reports `Needs authentication` and the local server still answers for the
+other three registries, so nothing is blocked. Headless CI can add a personal
+token locally — never committed.
+
+If you added `reui` by hand previously, run `claude mcp remove reui` after
+installing this plugin, or the same server is declared twice.
+
 ## Plugins
 
 ### Frameworks & stacks
@@ -111,7 +152,7 @@ afterwards to sweep the orphans.
 |--------|-------------|----------|
 | **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + theme builder (shadcn/ReUI/Aceternity, Tailwind, Bootstrap) with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
 | **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM/SaaS/landing) across React/Vue/Next/Nuxt/Laravel: a `/craft-layer:craft` orchestrator, an offer contract that pins what the page SELLS before what it looks like, an optional guided mode that decides the page section by section with you, a design-research→token-brief playbook, a tiered motion system (Framer / anime.js / Three.js + `webgl-effects` / Vector Lottie-Rive / sprites, budgeted with reduced-motion), `scroll-orchestration` (Lenis/ScrollTrigger), `kinetic-typography`, `page-transitions`, `interaction-fx`, `physics-motion` (matter.js), `motion-sequencing` (theatre.js), information-design, and a craft audit — reuses ui-ux & threejs | `/craft-layer:craft`, `/craft-layer:sections`, `/craft-layer:research`, `/craft-layer:audit` |
-| **[registry-source](plugins/registry-source/README.md)** | Read component registries from the SOURCE, never from recall: an MCP server with live `list`/`search`/`get` across the free shadcn-compatible registries (Aceternity, shadcn, Magic UI, ReUI's MIT source), 24h-cached with the source URL, fetch date and a `stale` flag on every answer, and a `heavy` flag on any component pulling a 3D/particle runtime. Dependency-free; never holds or forges a licence key | MCP tools: `registry_list`, `registry_search`, `registry_get` |
+| **[registry-source](plugins/registry-source/README.md)** | Read component registries from the SOURCE, never from recall. Ships **two MCP servers** (see [MCP servers](#mcp-servers)): a dependency-free local one with live `list`/`search`/`get` across Aceternity, shadcn and Magic UI — 24h-cached, every answer carrying its source URL, fetch date and a `stale` flag, plus a `heavy` flag on anything pulling a 3D/particle runtime so bundle cost is known before install — and ReUI's own hosted server, so installing the plugin delivers it rather than describing it. Never holds a licence key; ReUI auth is a browser sign-in you complete | MCP tools: `registry_list`, `registry_search`, `registry_get` (+ ReUI's own) |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
 | **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
@@ -213,7 +254,7 @@ afterwards to sweep the orphans.
 |--------|-------------|----------|
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + its wired companions (tasks, engineering discipline, worker agents, ui-ux visual routing) | `/taskmaster-suite:uninstall` |
-| **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, React, React Native, Vue 2/3, TypeScript, Inertia, Livewire, web worker, a11y | `/frontend-suite:uninstall` |
+| **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, craft-layer, registry-source (the component-registry MCP servers), design-preview, shadcn-studio, threejs, React, React Native, Vue 3, TypeScript, Vite, Inertia, Livewire, Next, Nuxt, JavaScript, web worker, a11y, skill-router | `/frontend-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency, comment-discipline | `/quality-suite:uninstall` |

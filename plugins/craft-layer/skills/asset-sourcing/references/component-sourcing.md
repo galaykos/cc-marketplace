@@ -272,11 +272,15 @@ Cite the one that answers the question being asked.
 **Enumerate, then pick.** Before the class decision in "The four classes" runs for a
 surface, the run needs the registry's actual index in front of it, not its memory of one:
 
-- **The shadcn MCP server is the cheap way** and it works with any shadcn-compatible
-  registry — `npx shadcn@latest mcp init --client claude`, with third-party registries
-  declared in `components.json` under `registries` (`{"@acme": "https://…/{name}.json"}`).
-  It exposes search and view, so "what does this registry have for a hero" becomes a query
-  rather than a recollection.
+- **The `registry-source` plugin in this marketplace exists for exactly this step.** Install
+  it and `registry_list` / `registry_search` / `registry_get` answer from the registries'
+  own indexes, cached 24h, with the source URL, fetch date and a `stale` flag on every
+  answer — plus a `heavy` flag naming anything that would pull a 3D/particle runtime. It
+  also ships ReUI's own hosted MCP server, which needs a one-time browser sign-in the user
+  completes. It is in `frontend-suite` and `everything`.
+- **Or the shadcn MCP server**, which works with any shadcn-compatible registry —
+  `npx shadcn@latest mcp init --client claude`, with third-party registries declared in
+  `components.json` under `registries` (`{"@acme": "https://…/{name}.json"}`).
 - **Without MCP, fetch the registry index** (`/registry.json`, the components listing page)
   and read it. A fetch that fails escalates the same way research does — and a 401 on a
   guessed path is evidence about the PATH, never about the terms.

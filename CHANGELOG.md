@@ -4,6 +4,26 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.85.0] - 2026-07-27
+
+Marketplace review from the consumer's side — what someone actually gets when they install
+from here — plus the README's missing MCP documentation.
+
+- **`registry-source` was missing from `frontend-suite`** (now 19 deps, v0.6.0). It was in
+  `everything` only, so anyone installing the frontend category got `craft-layer` and `ui-ux`
+  — both of which now instruct a run to enumerate a registry before picking from it — with no
+  tool to do it. The same describe-don't-deliver bug the ReUI MCP entry fixed, one level up.
+- **`component-sourcing.md` pointed at a manual `npx shadcn@latest mcp init` and never named
+  `registry-source`** — the plugin in this marketplace that ships the capability. Now names it
+  first, with the manual route as the fallback.
+- **README gains an MCP servers section.** It had one incidental mention of MCP and no
+  installation path, while a plugin here ships two servers. Documents both, the transports,
+  the browser-sign-in auth, why a server rather than a rule, why a cache rather than a bundled
+  copy, and the credential boundary.
+- **Stale counts corrected**: 69 → 72 leaf plugins, `everything` ~12.3k → ~14.7k tokens,
+  `frontend-suite` 17 → 19, `quality-suite` 15 → 16, and the `frontend-suite` bundle row now
+  lists what it actually contains rather than a subset from several versions ago.
+
 ## [0.84.1] - 2026-07-27
 
 **registry-source** 0.2.0 — the plugin now ships ReUI's own MCP server alongside the local one.
