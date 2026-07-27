@@ -1,7 +1,7 @@
 {
   "name": "resilience",
-  "version": "0.1.3",
-  "description": "Failure-mode design for integration points: timeouts everywhere, retries with backoff and idempotency, circuit breaking, graceful degradation, backpressure, delivery semantics — designed in, not bolted on after the outage. Includes /resilience:review.",
+  "version": "0.2.0",
+  "description": "Failure-mode design for integration points — timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics — plus the merged error-handling and concurrency disciplines: catches and cause chains, check-then-act races, retry idempotency. Includes /resilience:review, /resilience:error-review, /resilience:concurrency-review.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

@@ -1,6 +1,6 @@
 ---
 name: webgl-effects
-description: Use when adding a postprocessing pass or custom shader to a Three.js/R3F scene — bloom, DOF, a scroll/pointer fragment effect, a bespoke material — or when a craft review flags a WebGL effect with no GPU budget, capability fallback, or reduced-motion path. Sits on motion-tiers Tier 3: decides if the effect earns its GPU cost, drives shader uniforms from scroll/pointer, sets a pass budget, mandates a static/reduced-motion fallback; references threejs-best-practices and webgl-3d.md by path.
+description: Use when adding a postprocessing pass or custom shader to a Three.js/R3F scene — bloom, DOF, a scroll/pointer fragment effect, a bespoke material — or when a review flags a WebGL effect with no GPU budget, capability fallback, or reduced-motion path. Sits on motion-tiers Tier 3.
 ---
 
 ## What this decides

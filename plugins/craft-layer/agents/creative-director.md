@@ -1,6 +1,6 @@
 ---
 name: creative-director
-description: Spawned by the craft flow (the creative-direction skill) to generate a divergent creative concept — a central metaphor, an editorial voice, and one signature interaction — that breaks the sameness-fingerprint defaults and fits the brief. Generates N blind candidates, scores them, and returns the winner plus a structured divergence record the craft audit checks. Read-only; returns a concept, never code or a finished design.
+description: Spawned by the craft flow (the creative-direction skill) to generate a divergent creative concept — metaphor, voice, one signature interaction — breaking sameness-fingerprint defaults. Read-only; returns a concept, never code or a finished design.
 tools: Read, Grep, Glob
 model: opus
 floor: none

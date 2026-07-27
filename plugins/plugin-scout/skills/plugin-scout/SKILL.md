@@ -1,6 +1,6 @@
 ---
 name: plugin-scout
-description: Use when setting up Claude Code plugins for a project, when the user asks "which plugins should I install" or "what plugins fit this repo", when starting work in a repo without marketplace plugins, or right after cloning an unfamiliar codebase — scans manifests for stack signals, suggests marketplace plugins in two tiers, and installs the picked ones after confirmation; `--yes` auto-installs tier-1 picks, `--persist` writes the set to the project's settings.json.
+description: Use when setting up Claude Code plugins for a project — "which plugins should I install", "what plugins fit this repo", starting in a repo without marketplace plugins, or right after cloning an unfamiliar codebase: scans manifests, suggests in two tiers; `--yes` auto-installs tier-1, `--persist` writes project settings.
 ---
 
 ## Purpose
@@ -25,9 +25,9 @@ the user picks. Nothing installs without an explicit pick.
 
 ## Detection
 
-If the stack-scan plugin is installed, reuse its inventory output (required vs
-installed, manifests already parsed) as the detection input — do not re-scan
-what it already read. Otherwise self-scan: read composer.json, package.json,
+If the stack-scan plugin is installed, run `/stack-scan:report` and use its
+inventory output (required vs installed, manifests already parsed) as the
+detection input — actually invoke it; do not re-scan what it already reads. Otherwise self-scan: read composer.json, package.json,
 tsconfig.json, .env, and Dockerfile/docker-compose files, checking exactly the
 signal table below. Rules:
 

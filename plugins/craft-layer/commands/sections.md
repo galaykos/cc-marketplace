@@ -1,5 +1,5 @@
 ---
-description: Decide a crafted page section by section with the user — spine-derived agenda, batched option rounds, picks recorded in a section ledger the build and audit read
+description: Decide a crafted page section by section with the user — batched option rounds recorded in a section ledger.
 argument-hint: [page-or-scope]
 ---
 

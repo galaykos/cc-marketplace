@@ -1,6 +1,6 @@
 ---
 name: section-decisions
-description: Use when a craft build should be decided section by section with the user instead of generated in one shot — turns the offer contract's spine slots into a batched decision agenda, stages two or three structurally different treatments per section through the existing mockup and preview surfaces, and records every pick in a section ledger the build and the craft audit both read. Owns the agenda, the rounds, and the ledger; never re-teaches mockup authoring or option staging.
+description: Use when a craft build should be decided section by section with the user instead of generated in one shot — staged treatments per spine slot, picks recorded in the section ledger the build and audit read.
 ---
 
 ## What this decides

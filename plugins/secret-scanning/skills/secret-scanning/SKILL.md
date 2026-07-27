@@ -1,6 +1,6 @@
 ---
 name: secret-scanning
-description: Use when a secret may be entering the codebase — writing config/.env, wiring an API client, pasting a key, or reviewing a diff for leaked credentials — and to understand the PreToolUse guard hook this plugin ships. Covers the high-confidence secret patterns, why a hook and not advice, remediation, and false-positive handling.
+description: Use when a secret may be entering the codebase — writing config/.env, wiring an API client, pasting a key, or reviewing a diff for leaked credentials — and to understand the PreToolUse guard hook this plugin ships.
 ---
 
 # Secret scanning

@@ -1,6 +1,6 @@
 ---
 name: drift-review
-description: Use when work under a declared task is about to be called done — review the whole diff for this unit of work against what was actually asked, hunting drift (a strayed or cheaper substitute) and cut corners (weakened tests, skipped criteria, left-in stubs) while they are still cheap to fix. Triggers on done, finished, that completes it, wrap-up, drift, stray, scope creep, or cut corners during active execution.
+description: Use when work under a declared task is about to be called done — done, finished, wrap-up, scope creep, cut corners, drift: reviews the whole diff against what was asked, hunting strayed substitutes, weakened tests, skipped criteria, left-in stubs while cheap to fix.
 ---
 
 # Drift review

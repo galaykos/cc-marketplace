@@ -1,6 +1,6 @@
 ---
 name: i18n
-description: Use when adding or reviewing internationalization/localization — translation catalogs and key hygiene, ICU MessageFormat pluralization and gender, locale-aware dates/numbers/currency, RTL layout, fallback chains, and translation extraction. For a product shipping outside one language/market; not for a single-locale app that will stay that way.
+description: Use when adding or reviewing internationalization/localization — translation catalogs and key hygiene, ICU MessageFormat plurals, locale-aware dates/numbers/currency, RTL layout, fallback chains. Not for a single-locale app that will stay that way.
 ---
 
 # Internationalization & localization
@@ -89,6 +89,9 @@ not "does it today".
 
 - Visual/RTL layout mechanics (logical properties, flip testing) also touch `/ui-ux:review`.
 - Locale-aware data storage (collation, timezone columns) → `database-design`.
+- `lang`/`dir` attributes and reading order are ALSO accessibility facts — a
+  wrong `lang` breaks screen-reader pronunciation. `/a11y:audit` checks them
+  from that side; RTL work here should not undo what it asserts.
 
 ## Anti-patterns
 

@@ -1,5 +1,5 @@
 ---
-description: Get an independent stronger-model second opinion at a key moment — composes a facts-only brief (no leaning) and dispatches the blind stronger-model consultant; prints its Take, Risks, and one Alternative. Advice only.
+description: Get an independent stronger-model second opinion at a key moment — facts-only brief, blind consultant; Take, Risks, one Alternative.
 argument-hint: [topic — what to get a fresh take on]
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: physics-motion
-description: Use when a surface needs real 2D physics — objects that fall, collide, or drag — not a spring a library already covers, or when a review flags a physics sim with no body budget, no reduced-motion path, or a drag-only affordance with no keyboard route. Decides real-physics vs spring, runs one matter.js world on a single rAF step, and mandates a body budget, a static reduced-motion fallback, and a keyboard route; references the spring alternative and one-writer gotcha by path.
+description: Use when a surface needs real 2D physics — objects that fall, collide, or drag (matter.js), not a spring a library already covers — or when a review flags a physics sim with no body budget, reduced-motion path, or keyboard route.
 ---
 
 ## What this decides

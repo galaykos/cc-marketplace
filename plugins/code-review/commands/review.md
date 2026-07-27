@@ -1,5 +1,5 @@
 ---
-description: Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass.
+description: Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings; loads every installed matching stack skill in one pass.
 ---
 
 Review the code change in $ARGUMENTS. Resolve scope in this order:
@@ -40,20 +40,22 @@ Then:
 Output rules:
 
 - One line per finding: `path:line — severity — problem — fix`.
-  Severities: `blocker` (wrong behavior/data loss), `major` (bug-prone or
-  misleading), `minor` (smell/convention). Sort by severity, blockers first.
+  Severities: `critical` (wrong behavior/data loss), `high` (bug-prone or
+  misleading), `medium` (smell/convention), `low` (nit). Sort by severity,
+  critical first — the marketplace-wide scale the chassis reviews use, so
+  fan-in output merges with theirs without translation.
 - No praise, no restating the diff, no findings on unchanged lines.
 - Defer instead of duplicating. The fan-in covers two axes:
   - **Stack axis** — idiom detail is already loaded inline when the plugin is
     installed; when absent, name the plugin in the closing line rather than
     guessing its idioms.
-  - **Concern axis** — five plugins claim things step 2 also claims. When one is
+  - **Concern axis** — three plugins claim things step 2 also claims. When one is
     installed, IT owns that finding and this review does not duplicate it:
-    `error-handling` (empty/over-broad catches, swallowed exceptions, missing
-    cause chains), `concurrency` (check-then-act races, retry idempotency,
-    unguarded parallel writes), `observability` (silent catch blocks, correlation
-    IDs, secrets in logs), `resilience` (missing timeouts, unsafe retries, absent
-    degradation paths), `comment-discipline` (comment volume and placement).
+    `resilience` (missing timeouts, unsafe retries, absent degradation paths;
+    empty/over-broad catches, swallowed exceptions, missing cause chains;
+    check-then-act races, retry idempotency, unguarded parallel writes),
+    `observability` (silent catch blocks, correlation IDs, secrets in logs),
+    `comment-discipline` (comment volume and placement).
     Report the finding once and name the owner; when none is installed, this
     review keeps it. The swallowed catch alone had four claimants.
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
@@ -61,12 +63,12 @@ Output rules:
 
 Before the verdict, state the coverage: `Checked: …` and `Not checked: … (why)` so it
 is explicit what was covered, what was clean, and what was skipped — not only what
-broke. Then run one adversarial self-refute pass over every `blocker` finding; if a
+broke. Then run one adversarial self-refute pass over every `critical` finding; if a
 finding does not survive it, drop or downgrade it with a note.
 
-Close with a one-line verdict: merge-ready, merge-after-blockers, or rework.
+Close with a one-line verdict: merge-ready, merge-after-criticals, or rework.
 
 After the verdict, if findings exist, offer the next step as a selectable choice
-(AskUserQuestion): "Fix all findings" / "Fix blockers only" / "Report only". On an
+(AskUserQuestion): "Fix all findings" / "Apply critical+high only" / "Report only". On an
 apply pick, apply the chosen findings rather than making the user retype them.
 Headless: verdict only.

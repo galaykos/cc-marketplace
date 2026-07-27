@@ -1,6 +1,6 @@
 ---
 name: ultra-deep-research
-description: Use when a question needs a deep, multi-source, fact-checked answer with the latest data — deep-research requests, competitive/market/technical scans, or any claim that must be corroborated and dated. Fans out parallel searches, tiers sources by provenance, extracts date-stamped claims, adversarially refutes them, synthesizes a cited report.
+description: Use when a question needs a deep, multi-source, fact-checked answer with the latest data — deep-research requests, competitive/market/technical scans, any claim that must be corroborated and dated.
 ---
 
 # Ultra Deep Research

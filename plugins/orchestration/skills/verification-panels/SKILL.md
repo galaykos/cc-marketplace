@@ -1,6 +1,6 @@
 ---
 name: verification-panels
-description: Use when deciding whether agent findings can be trusted, verifying subagent output, planning a review fan-out, judging competing solutions, or when discovery may stop too early — cost-gated refuter voting, judge panels over independent attempts, loop-until-dry discovery, completeness-critic passes.
+description: Use when deciding whether agent findings can be trusted, verifying subagent output, planning a review fan-out, judging competing solutions, or when discovery may stop too early — refuter voting, judge panels, loop-until-dry, completeness-critic.
 ---
 
 # Verification Panels

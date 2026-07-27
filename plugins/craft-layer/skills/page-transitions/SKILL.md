@@ -1,6 +1,6 @@
 ---
 name: page-transitions
-description: Use when adding motion between routes or pages — a shared element that persists across a nav, a full-page crossfade, or an SPA route change — or when a craft review flags a transition with no reduced-motion or unsupported-browser fallback. Decides whether a transition earns its cost, choreographs shared elements via view-transition-name across React/Next/Nuxt/Astro, and mandates reduced-motion plus an instant fallback; references the View Transitions API.
+description: Use when adding motion between routes or pages — a shared element persisting across a nav, a full-page crossfade, an SPA route change (View Transitions API) — or when a review flags a transition with no reduced-motion or unsupported-browser fallback.
 ---
 
 ## What this decides

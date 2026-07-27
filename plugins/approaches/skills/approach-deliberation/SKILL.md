@@ -1,6 +1,6 @@
 ---
 name: approach-deliberation
-description: Use before starting any non-trivial implementation, FIRST — multi-file changes, new capabilities, two-plus viable shapes — generate 2-3 structurally different approaches, compare trade-offs, commit with a kill-trigger. Picks the SHAPE; file-level planning → code-architecture:plan-before-code.
+description: Use before starting any non-trivial implementation, FIRST — multi-file changes, new capabilities, two-plus viable shapes: 2-3 structurally different approaches, trade-offs, a pick with kill-trigger. Picks the SHAPE; file-level planning is code-architecture:plan-before-code.
 ---
 
 The failure mode this kills: first-idea anchoring. The first plausible approach
@@ -24,7 +24,7 @@ Skip it — the first reasonable approach is correct — when:
 - One obvious continuation of an existing pattern (third handler in a file
   of handlers).
 - The opinion-round skill already ran for this task: approach-deliberation is
-  the user-initiated structural deliberation, opinion-round the auto-nudged
+  the user-initiated structural deliberation, opinion-round the description-routed
   blind persona round — each skips when the other already ran for the task.
 - A prior deliberation or spec already made this call; do not re-litigate.
 

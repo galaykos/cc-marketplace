@@ -1,5 +1,5 @@
 ---
-description: Scan the project's actual dependencies, propose a service plan, then generate docker-compose.yml (+ Dockerfile) to run it locally
+description: Scan the project's dependencies, propose a service plan, then generate docker-compose.yml (+ Dockerfile) to run it locally.
 argument-hint: [path]
 ---
 

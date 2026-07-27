@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: Use when security-reviewing web application code for vulnerabilities to fix — authorization vs authentication (policies, IDOR), injection (SQL/command), XSS (Blade escaping, v-html), mass assignment, file uploads, CSRF boundaries, secrets handling, session/cookie transport, dependency audit, and error/log hygiene — mapped to PHP/Laravel and JS/Vue specifics with exploitability-first severity triage.
+description: Use when security-reviewing web application code — authorization vs authentication (policies, IDOR), injection, XSS, mass assignment, file uploads, CSRF, secrets, session/cookie transport, dependency audit — PHP/Laravel and JS/Vue specifics, exploitability-first triage.
 ---
 
 ## Severity is exploitability times impact

@@ -1,6 +1,6 @@
 ---
 name: react-server-state
-description: Use when fetching, caching, or synchronizing server data in React — choosing and using TanStack Query / SWR / RTK Query for server state, keeping it out of client state (useState/Redux), cache keys and invalidation, mutations and optimistic updates, and avoiding refetch storms and stale-key bugs. The dominant modern data concern web-developer says to keep separate but no skill taught how.
+description: Use when fetching, caching, or synchronizing server data in React — TanStack Query / SWR / RTK Query, server state kept out of useState/Redux, cache keys and invalidation, mutations and optimistic updates, refetch storms, stale-key bugs.
 ---
 
 # React server state

@@ -1,6 +1,6 @@
 ---
 name: payments
-description: Use when integrating or reviewing payments and billing (Stripe, Paddle, Braintree) — webhook idempotency and verification, subscription state machines and races, PCI scope minimization, money representation, proration and dunning, and reconciliation. The failure class here is double-charges and revenue leaks; design against them explicitly.
+description: Use when integrating or reviewing payments and billing (Stripe, Paddle, Braintree) — webhook idempotency and verification, subscription state machines and races, PCI scope minimization, money representation, proration, dunning, reconciliation.
 ---
 
 # Payments and billing
@@ -92,7 +92,7 @@ dispute can be reconstructed. "The webhook must have fired" is not an audit trai
 - Webhook *delivery* semantics as general messaging (idempotency, DLQ) →
   `system-design:event-driven`; this skill owns the payments-specific handling.
 - The general secret handling for API keys → `secret-scanning` / `security`.
-- Concurrency mechanics of the activation race → `/concurrency:review`.
+- Concurrency mechanics of the activation race → `/resilience:concurrency-review`.
 
 ## Anti-patterns
 

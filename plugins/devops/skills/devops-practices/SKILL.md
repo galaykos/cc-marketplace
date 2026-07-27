@@ -1,6 +1,6 @@
 ---
 name: devops-practices
-description: Use when writing or reviewing CI/CD pipelines, Kubernetes manifests, deployment strategy, or secrets handling — pipeline ordering, image hygiene, resource limits and probes, rollout+rollback strategy, and secret injection. Local docker-compose dev environments belong to dev-env; in-code instrumentation belongs to observability.
+description: Use when writing or reviewing CI/CD pipelines, Kubernetes manifests, deployment strategy, or secrets handling. Local docker-compose dev environments belong to dev-env; in-code instrumentation belongs to observability.
 ---
 
 # DevOps practices

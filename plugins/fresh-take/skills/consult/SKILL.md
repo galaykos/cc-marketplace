@@ -1,6 +1,6 @@
 ---
 name: consult
-description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — composes a facts-only consult brief and dispatches a blind stronger-model consultant for an independent take, risks, and one alternative. Advice only — never blocks.
+description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — a blind stronger-model consultant returns an independent take, risks, one alternative. Advice only — never blocks.
 ---
 
 ## What this is
@@ -17,7 +17,10 @@ to the session's leaning is the session's leaning, restated slower.
 - **Stuck debugging** (`stuck-debug`): the same class of fix has failed two or
   more times, or the session is circling one hypothesis without new
   information. The consult question is "what would someone who has not seen my
-  attempts try first?"
+  attempts try first?" This sits deliberately one cycle EARLIER than the
+  debugging plugin's three-failures hard stop — a consult at two failures is
+  the cheap exit that makes the third attempt unnecessary; at three, its
+  stop-and-requestion rule owns the moment.
 - **Irreversible decision** (`irreversible`): a destructive or one-way action
   is imminent — dropping a table or column, force-pushing or rewriting shared
   history, bulk deletion, an API contract about to freeze. The consult question

@@ -1,6 +1,6 @@
 ---
 name: delegation-contracts
-description: Use when spawning subagents, delegating via Task/Agent, writing an agent prompt, planning a fan-out, or reading a subagent report — self-contained prompt contracts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, parallel-writer isolation; siblings: code-architecture:task-orchestration, task-runner:parallel-planning/task-execution.
+description: Use when spawning subagents, delegating via Task/Agent, writing an agent prompt, planning a fan-out, or reading a subagent report — prompt contracts, evidence-backed compressed returns, model/effort tiering; siblings: code-architecture:task-orchestration, task-runner:parallel-planning.
 ---
 
 # Delegation Contracts

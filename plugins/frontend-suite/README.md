@@ -17,10 +17,9 @@ auto-installed.
 ## What's included
 
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Tailwind,
-  CSS3, Bootstrap, Grid, Flexbox) plus `/ui-ux:build`, `/ui-ux:review`,
+  Tailwind) plus `/ui-ux:build`, `/ui-ux:review`,
   `/ui-ux:theme`
-- **react** — hooks rules, render/memo performance, server-state caching,
-  plus `/react:review`
+- **react** — server-state caching discipline (TanStack Query/SWR/RTK Query)
 - **react-native** — list performance, navigation, platform-specific code,
   animations, plus `/react-native:review`
 - **vue3** — script setup, composables, ref/reactive pitfalls, Pinia, plus
@@ -28,10 +27,6 @@ auto-installed.
 
 Note: **vue2** (Vue 2 is EOL) is no longer bundled — install it standalone for
 legacy-app maintenance: `/plugin install vue2@cc-plugins-marketplace`.
-- **javascript** — version-aware ES feature floors, coercion traps, ESM/CJS
-  interop, async correctness, plus `/javascript:review`
-- **typescript** — strict mode as the floor, narrowing over assertions,
-  satisfies, runtime validation, plus `/typescript:review`
 - **vite** — env security, code splitting, base for sub-path deploys, dev
   proxy, plus `/vite:review`
 - **inertia** — partial reloads, deferred props, useForm flow, SSR across

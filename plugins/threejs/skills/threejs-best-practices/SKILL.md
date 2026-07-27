@@ -1,6 +1,6 @@
 ---
 name: threejs-best-practices
-description: Use when building or reviewing Three.js code — scenes, renderers, shaders, react-three-fiber — WebGPU/WebGL renderer choice, TSL, asset loading, disposal/leak discipline, render-loop performance. Version-aware — three moves fast (rXXX releases); resolve the locked revision before advising.
+description: Use when building or reviewing Three.js code — scenes, renderers, shaders, react-three-fiber, WebGPU/WebGL choice, TSL, asset loading, disposal/leak discipline, render-loop performance. Resolve the locked rXXX revision before advising.
 ---
 
 # Three.js best practices

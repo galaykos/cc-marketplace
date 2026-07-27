@@ -1,6 +1,6 @@
 ---
 name: package-hygiene
-description: Use when editing composer.json or package.json, adding/updating/removing a dependency, bumping versions, resolving lockfile merge conflicts, or acting on audit/vulnerability output — semver constraint strategy, lockfile discipline, composer/npm audit triage, and patch/minor/major upgrade lanes. Whether to add a dependency at all is build-vs-buy; what is installed is stack-scan; reading docs before integration code is api-docs-first.
+description: Use when editing composer.json or package.json, adding/updating/removing a dependency, bumping versions, resolving lockfile conflicts, or acting on audit output — semver strategy, lockfile discipline, audit triage, upgrade lanes. Add-at-all is build-vs-buy; docs before integration is api-docs-first.
 ---
 
 # Package Hygiene (composer + npm)

@@ -44,6 +44,11 @@ assert_silent() { # desc  hook  json  [path-override]
 
 # a keyword-dense prompt: WOULD trigger a reminder if jq worked, so no-jq proves fail-open
 LOUD='{"prompt":"adspower scrape build create api endpoint webhook fingerprint camoufox kameleo puppeteer playwright facebook"}'
+# Misfire regression fixtures (live transcripts, 2026-07-27): keyword-dense text that
+# is NOT a request for the work — every reminder hook must stay silent on each.
+NOTIF='{"prompt":"[SYSTEM NOTIFICATION - NOT USER INPUT] task-notification: agent finished, mentions sdk endpoint webhook oauth build create refactor migrate still failing"}'
+META='{"prompt":"we should delete the puppeteer plugin and fix the keyword trigger of the reminder hook, it fires on oauth session cache endpoint refactor still failing mentions"}'
+QUOTE='{"prompt":"UserPromptSubmit hook success: build-vs-buy: weigh take vs wrap vs write — why did that fire on my oauth session endpoint refactor prompt?"}'
 
 found=0
 for hook in "$ROOT"/plugins/*/hooks/remind.sh; do
@@ -54,7 +59,29 @@ for hook in "$ROOT"/plugins/*/hooks/remind.sh; do
   assert_silent "$rel [empty]"          "$hook" '{"prompt":""}'
   assert_silent "$rel [missing-prompt]" "$hook" '{}'
   assert_silent "$rel [no-jq]"          "$hook" "$LOUD" "$NOJQ"
+  assert_silent "$rel [notification-paste]" "$hook" "$NOTIF"
+  assert_silent "$rel [meta-request]"       "$hook" "$META"
+  assert_silent "$rel [quoted-hook-output]" "$hook" "$QUOTE"
 done
+
+# ---- per-prompt budget: two hooks match one prompt, exactly one line total ------
+# Both api-docs-first (endpoint/webhook nouns + verb guard) and taskmaster
+# (build verb, <200 chars) match this prompt; the marker claimed by the first
+# must silence the second. Sandboxed TMPDIR so markers never leak between runs.
+AD="$ROOT/plugins/api-docs-first/hooks/remind.sh"
+TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
+if [ -f "$AD" ] && [ -f "$TM" ]; then
+  BUDGET_TMP="$WORK/budget-tmp"; mkdir -p "$BUDGET_TMP"
+  FIRE='{"prompt":"build a stripe webhook endpoint integration for our billing service"}'
+  out1="$(printf '%s' "$FIRE" | TMPDIR="$BUDGET_TMP" "$BASH_BIN" "$AD" 2>/dev/null)"
+  out2="$(printf '%s' "$FIRE" | TMPDIR="$BUDGET_TMP" "$BASH_BIN" "$TM" 2>/dev/null)"
+  if [ -n "$out1" ]; then pass "budget: first matching hook speaks"; else fail "budget: first matching hook speaks" "api-docs-first stayed silent on a real integration prompt"; fi
+  if [ -z "$out2" ]; then pass "budget: second matching hook yields"; else fail "budget: second matching hook yields" "taskmaster spoke despite claimed marker: $out2"; fi
+  # fresh sandbox: same hook alone still fires (marker scoping, not dead hook)
+  BUDGET_TMP2="$WORK/budget-tmp2"; mkdir -p "$BUDGET_TMP2"
+  out3="$(printf '%s' "$FIRE" | TMPDIR="$BUDGET_TMP2" "$BASH_BIN" "$TM" 2>/dev/null)"
+  if [ -n "$out3" ]; then pass "budget: yielded hook fires alone in a fresh prompt"; else fail "budget: yielded hook fires alone in a fresh prompt" "taskmaster silent with no marker present"; fi
+fi
 
 if [ "$found" -eq 0 ]; then
   printf 'hook-guard-tests: no plugins/*/hooks/remind.sh found under %s\n' "$ROOT" >&2

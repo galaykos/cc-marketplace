@@ -1,6 +1,6 @@
 ---
 name: devops-reviewer
-description: Use PROACTIVELY after a CI/CD pipeline, Dockerfile, Kubernetes manifest, or deploy config is written or changed — reviews pipeline ordering, image hygiene, resource limits and probes, rollout+rollback strategy, and secret handling read-only, returning severity-ranked findings. The read-only counterpart to devops-engineer.
+description: Use PROACTIVELY after a CI/CD pipeline, Dockerfile, Kubernetes manifest, or deploy config is written or changed — read-only, severity-ranked findings. The read-only counterpart to devops-engineer.
 tools: Read, Grep, Bash
 model: inherit
 effort: xhigh

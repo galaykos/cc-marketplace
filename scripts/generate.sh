@@ -143,7 +143,19 @@ render_stack_review() { # obj plugin-dir
   wplugin="${resolved%%:*}"; wname="${resolved##*:}"
   [ -f "$ROOT/plugins/$wplugin/agents/$wname.md" ] \
     || die "worker '$resolved' stamped for $rel has no agent file: plugins/$wplugin/agents/$wname.md"
-  workerChain="$wname → task-runner:task-executor if installed → inline"
+  # Chain head rules: (a) a worker living in ANOTHER plugin gets its full
+  # plugin:name form and its own "if installed" — the bare name dangled when
+  # only this plugin was installed, and the qualifier was only guarding rung 2;
+  # (b) a worker in THIS plugin is always installed with it — bare name, no
+  # qualifier; (c) task-runner:task-executor as head IS rung 2 — collapse, the
+  # old chain printed it twice.
+  if [ "$resolved" = "task-runner:task-executor" ]; then
+    workerChain="task-runner:task-executor if installed → inline"
+  elif [ "$wplugin" = "$(basename "$pdir")" ]; then
+    workerChain="$wname → task-runner:task-executor if installed → inline"
+  else
+    workerChain="$wplugin:$wname if installed → task-runner:task-executor if installed → inline"
+  fi
   aeb="$(printf '%s' "$obj" | jq -r 'if ((.applyExtra // [])|length)>0 then ([.applyExtra[] | " / " + .label]|add) else "" end')"
   dfile="$WORK/m.json"; rfile="$WORK/r.out"
   printf '%s' "$obj" | jq --arg wc "$workerChain" --arg aeb "$aeb" \
@@ -188,13 +200,6 @@ render_worker_agent() { # obj plugin-dir
   emit "$rfile" "$pdir/$agentFile" 0 "$pdir"
 }
 
-render_navigator() { # obj plugin-dir
-  local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out"
-  printf '%s' "$obj" > "$dfile"; ensure_engine
-  render_template "$TEMPLATES/navigator-check.md.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} check.md"
-  emit "$rfile" "$pdir/commands/check.md" 0 "$pdir"
-}
-
 render_chassis() { # obj plugin-dir
   local obj="$1" pdir="$2" rel="${2#$ROOT/}" chassis reason
   chassis="$(printf '%s' "$obj" | jq -r '.chassis // ""')"
@@ -207,7 +212,6 @@ render_chassis() { # obj plugin-dir
     suite-uninstall) render_suite_uninstall "$obj" "$pdir" ;;
     reminder-hook)   render_reminder_hook   "$obj" "$pdir" ;;
     worker-agent)    render_worker_agent    "$obj" "$pdir" ;;
-    navigator)       render_navigator       "$obj" "$pdir" ;;
     "") die "$rel/.chassis.json has no \"chassis\" field" ;;
     *) die "unknown chassis type '$chassis' in $rel/.chassis.json" ;;
   esac

@@ -1,6 +1,6 @@
 ---
 name: opinion-round
-description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — four BLIND parallel opinion personas argue the approach, synthesized to one pick + kill-trigger in one round, auto-proceeding unless takes split on structural shape.
+description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — four BLIND parallel opinion personas, one pick + kill-trigger, auto-proceeding unless takes split on structural shape.
 ---
 
 The failure mode this kills: correlated opinions on rework-shaped tasks.
@@ -35,7 +35,7 @@ The manual command does not bypass this guard.
 
 The taskmaster pipeline is active on the same task — a grill ledger is
 open, a brainstorm dialogue is running, or task cards are executing →
-the auto-nudged round steps back. Taskmaster now runs its own blind
+the round steps back. Taskmaster now runs its own blind
 persona round (these four briefs) at its design and spec step; a second
 round here would only re-litigate that settled one.
 

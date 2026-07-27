@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when facing any bug, failing test, or unexpected behavior, BEFORE proposing or applying a fix — enforces root-cause-first discipline: reproduce deterministically, read the actual error (the first one, not the last), check what changed, run one-hypothesis-one-experiment cycles, bisect when hypotheses run out, and verify the fix against the original reproduction plus the full suite. Three failed fix cycles trigger a stop-and-requestion rule instead of a fourth attempt.
+description: Use when facing any bug, failing test, or unexpected behavior, BEFORE proposing or applying a fix — root-cause-first discipline: reproduce, read the first error, one-hypothesis-one-experiment, bisect, verify against the original reproduction.
 ---
 
 ## The iron law
@@ -109,7 +109,11 @@ weakened checks, plausible-sounding fiction.
 Ask, in order: wrong layer (patching the caller when the callee lies)? wrong
 component (the "obviously broken" one is fine)? wrong assumption (the
 invariant nobody ever tested)? Re-enter Phase 1 with the failed fixes as new
-evidence, or escalate with a report of what was tried and ruled out.
+evidence, or escalate with a report of what was tried and ruled out. When the
+fresh-take plugin is installed, `/fresh-take:consult` is that escalation made
+cheap — it accepts a stuck-debug brief from the SECOND failed cycle, one
+earlier than this hard stop, so consider it before the third attempt, not
+after.
 
 ## Defense in depth — after, never instead
 

@@ -1,6 +1,6 @@
 ---
 name: event-driven
-description: Use when designing or reviewing message-driven architecture — brokers/queues, topic and partition design, event schema versioning, delivery semantics (at-least-once vs exactly-once), the outbox pattern, sagas, dead-letter queues, and consumer idempotency. For in-process framework queues use the stack plugin; this is the cross-broker discipline.
+description: Use when designing or reviewing message-driven architecture — brokers/queues, topics and partitions, event schema versioning, delivery semantics, outbox, sagas, dead-letter queues, consumer idempotency. In-process framework queues belong to the stack plugin.
 ---
 
 # Event-driven architecture
@@ -92,7 +92,7 @@ no one watching is a silent data-loss bucket; monitor its depth.
 - In-process framework queues (Laravel queues, Sidekiq, Celery) as *usage* → the
   stack plugin. This skill owns the cross-broker architecture, not the API.
 - The service-boundary decision (which service owns which event) → `system-design`.
-- Concurrency hazards inside a single consumer → `/concurrency:review`.
+- Concurrency hazards inside a single consumer → `/resilience:concurrency-review`.
 
 ## Anti-patterns
 

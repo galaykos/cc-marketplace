@@ -1,6 +1,6 @@
 ---
 name: interaction-fx
-description: Use when adding a pointer micro-interaction — a custom cursor, magnetic button, tilt, or drag — or when a craft review flags a pointer effect that hides the real cursor, ignores touch, or lacks a reduced-motion path. Decides if it aids affordance or decorates, gives the cursor/magnetic/tilt/drag patterns on one rAF loop, and mandates accessibility (real cursor kept, pointer:coarse off, focus-visible parity) plus reduced-motion; references Framer and the one-writer gotcha by path.
+description: Use when adding a pointer micro-interaction — a custom cursor, magnetic button, tilt, or drag — or when a review flags a pointer effect that hides the real cursor, ignores touch, or lacks a reduced-motion path.
 ---
 
 ## What this decides

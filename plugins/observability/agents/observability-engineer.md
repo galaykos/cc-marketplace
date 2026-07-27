@@ -1,6 +1,6 @@
 ---
 name: observability-engineer
-description: Use PROACTIVELY when adding instrumentation to application code — structured logs, correlation/request IDs, RED/USE metrics, trace spans, health signals — the worker /observability:review routes its fix list to. Returns a diff; defers infra-layer wiring to devops.
+description: Use PROACTIVELY when adding instrumentation to application code — structured logs, correlation/request IDs, RED/USE metrics, trace spans, health signals — the worker /observability:review routes fixes to. Defers infra-layer wiring to devops.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh

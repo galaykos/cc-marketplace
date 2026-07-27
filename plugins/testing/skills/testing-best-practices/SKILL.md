@@ -1,6 +1,6 @@
 ---
 name: testing-best-practices
-description: Use when writing or reviewing tests in any stack — what to test (behavior at public boundaries, not implementation), pyramid pragmatics, Pest/PHPUnit feature tests with factories and framework fakes, Vitest/Jest with testing-library and msw, Playwright/Dusk e2e discipline, mocking at owned boundaries, flaky-test root causes, determinism via frozen clocks and seeded randomness, coverage traps.
+description: Use when writing or reviewing tests in any stack — behavior at public boundaries, pyramid pragmatics, Pest/PHPUnit, Vitest/Jest with testing-library and msw, Playwright/Dusk e2e, mocking at owned boundaries, flaky-test root causes, determinism, coverage traps.
 ---
 
 ## What to test

@@ -1,6 +1,6 @@
 ---
 name: compose-init
-description: Use when generating a docker-compose.yml and Dockerfile to run a project locally — derive every service and image tag from evidence (composer.json config.platform/require floors, ext-* requires, engines/.nvmrc, .env DSNs, CI images), pin exact minor tags, wire healthchecks and volumes, then boot and verify. Consumes the stack-scan inventory when that plugin is installed.
+description: Use when generating docker-compose.yml and a Dockerfile to run a project locally — every service and image tag derived from manifest evidence, exact minor tags pinned, healthchecks wired, then boot and verify. Consumes stack-scan's inventory when installed.
 ---
 
 ## Evidence before generation
@@ -56,8 +56,9 @@ A service table reads as a list; topology mistakes hide in lists. Alongside
 the service-plan table, render the proposed stack as a diagram — inline SVG in
 one self-contained HTML (boxes per service with pinned image tag and source
 citation; arrows for connections with ports; volume cylinders on stateful
-services) — served on the live preview pattern (port `${PREVIEW_PORT:-8123}`, `diagram.html`,
-auto-reload — see taskmaster's visual-decisions skill) or opened via `file://`. "Why is there a
+services) — served on the live preview pattern (port `${PREVIEW_PORT:-8123}`, `compose.html` —
+its own slot; `diagram.html` belongs to taskmaster's ERD — auto-reload — see
+taskmaster's visual-decisions skill) or opened via `file://`. "Why is there a
 minio box?" asked at the picture costs nothing; asked after generation it
 costs a regeneration round. ASCII boxes in chat are an acceptable fallback
 for 3 services or fewer.

@@ -1,6 +1,6 @@
 ---
 name: design-research
-description: Use when starting or restyling a UI/app build and you need to turn reference designs into buildable direction — mine live sites, pattern galleries, and the target's brand assets for interaction/layout PATTERNS plus color/type/spacing/motion token direction, then emit a freeform theme brief for /ui-ux:theme and a component/layout task for /ui-ux:build. Does not generate palettes or token scales itself.
+description: Use when starting or restyling a UI/app build and reference designs must become buildable direction — mines live sites, pattern galleries, and brand assets for patterns and token direction feeding /ui-ux:theme and /ui-ux:build. Does not generate palettes or token scales itself.
 ---
 
 # Design research

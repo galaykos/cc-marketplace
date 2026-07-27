@@ -315,7 +315,7 @@ renders as a stray box in some tab strips).
 `Restore` button. Picking a past pass navigates to it read-only; `Restore`
 copies it over `current.html` server-side, and the reload reaches the open tab
 down the ordinary SSE lane — no separate refresh path. Reserved per-purpose
-files (`theme.html`, `walkthrough.html`, `diagram.html`, `api.html`) are live
+files (`theme.html`, `walkthrough.html`, `diagram.html`, `api.html`, `modules.html`, `compose.html`) are live
 destinations, not history, so they are excluded from the list and rejected by
 restore; the ledger is passes of `current.html` only.
 

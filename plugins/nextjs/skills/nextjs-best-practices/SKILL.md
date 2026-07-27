@@ -1,6 +1,6 @@
 ---
 name: nextjs-best-practices
-description: Use when writing or reviewing Next.js App Router code — server vs client component boundaries, opt-in caching (fetch, revalidate, use cache), server actions, route handlers, streaming with Suspense, metadata API, next/image and next/font, async request APIs, version leverage 14 through 16.
+description: Use when writing or reviewing Next.js App Router code — server vs client component boundaries, opt-in caching (fetch, revalidate, use cache), server actions, route handlers, streaming with Suspense, next/image and next/font, version leverage 14 through 16.
 ---
 
 ## Server Components by default — place client boundaries deliberately

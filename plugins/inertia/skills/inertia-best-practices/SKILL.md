@@ -1,6 +1,6 @@
 ---
 name: inertia-best-practices
-description: Use when writing or reviewing Inertia.js code in a Laravel app with the Vue, React, or Svelte adapter — prop hygiene and page contracts, partial reloads, lazy vs deferred props, useForm flow, shared data via HandleInertiaRequests, Link navigation, flash/redirect patterns, SSR, code splitting, with v1/v2/v3 and adapter-specific advice pinned to the installed packages.
+description: Use when writing or reviewing Inertia.js code in a Laravel app with the Vue, React, or Svelte adapter — prop hygiene, partial reloads, lazy vs deferred props, useForm, shared data, SSR — v1/v2/v3 and adapter advice pinned to the installed packages.
 ---
 
 ## Know the version before advising

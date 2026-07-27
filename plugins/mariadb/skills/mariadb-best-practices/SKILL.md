@@ -1,6 +1,6 @@
 ---
 name: mariadb-best-practices
-description: Use when writing or reviewing MariaDB 10.6+ schemas, queries, or migrations — MariaDB-vs-MySQL divergences, RETURNING clauses, sequences, system-versioned tables, native UUID type, vector search, uca1400 collations, JSON-as-LONGTEXT reality, Galera multi-master awareness. Generic SQL rules live in the sql plugin; MySQL-specific rules in the mysql plugin.
+description: Use when writing or reviewing MariaDB 10.6+ schemas, queries, or migrations — MariaDB-vs-MySQL divergences, RETURNING, sequences, system-versioned tables, native UUID, vector search, JSON-as-LONGTEXT, Galera awareness. Generic SQL lives in sql; MySQL rules in mysql.
 ---
 
 ## MariaDB is not MySQL

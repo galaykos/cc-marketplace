@@ -1,6 +1,6 @@
 ---
 name: threat-modeling
-description: Use during design — before code exists — to threat-model a feature or system: identify assets and trust boundaries, enumerate threats with STRIDE, write abuse cases, and decide mitigations. The design-phase complement to security-review's code-level audit; reach for it when the blast radius of getting security wrong is high.
+description: Use during design — before code exists — to threat-model a feature or system: assets, trust boundaries, STRIDE, abuse cases, mitigations. The design-phase complement to security-review's code-level audit.
 ---
 
 # Threat modeling

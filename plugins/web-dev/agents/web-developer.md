@@ -4,7 +4,7 @@ description: Use PROACTIVELY for general web implementation work — routing, RE
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: react-best-practices,vue2-best-practices,vue3-best-practices,javascript-best-practices,typescript-best-practices,laravel-best-practices,nextjs-best-practices,nuxt-best-practices,node-backend-best-practices
+bestpractices-skill: react-server-state,vue3-best-practices,laravel-best-practices,nextjs-best-practices,nuxt-best-practices,node-backend-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -14,7 +14,7 @@ or restyle it beyond the fix.
 
 ## Rubric
 
-Your authoritative checklist is the `react-best-practices,vue2-best-practices,vue3-best-practices,javascript-best-practices,typescript-best-practices,laravel-best-practices,nextjs-best-practices,nuxt-best-practices,node-backend-best-practices` skill. When a dispatch
+Your authoritative checklist is the `react-server-state,vue3-best-practices,laravel-best-practices,nextjs-best-practices,nuxt-best-practices,node-backend-best-practices` skill. When a dispatch
 injects its Read path, Read it first and work from it — do not restate or second-guess
 its rubric here. Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
@@ -74,8 +74,8 @@ SSR/CSR, a11y) that no single framework skill owns; keep applying it.
 
 Stack-specific review is owned by the framework plugins. Do
 not restate their content — after implementing, recommend the matching
-review command instead: `/react:review`, `/vue2:review`, `/vue3:review`,
-`/javascript:review`, `/laravel:review`, or `/typescript:review` (and `/security:review` when
+installed stack review command instead: `/vue3:review`, `/laravel:review`,
+`/nextjs:review`, `/nuxt:review` (and `/security:review` when
 the change touches auth, sessions, or user input handling).
 
 ## Kill-trigger (three strikes)

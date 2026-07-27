@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Use when a task request is vague, large, or open to multiple interpretations — before any plan, spec, or code: batched clarifying-question rounds against an ambiguity ledger until every requirement is CLEAR or explicitly ASSUMED, grounded in context-scout's codebase facts.
+description: Use when a task request is vague, large, or open to multiple interpretations — before any plan, spec, or code: batched clarifying-question rounds against an ambiguity ledger until every requirement is CLEAR or explicitly ASSUMED.
 ---
 
 ## The core rule
@@ -37,16 +37,19 @@ round so the user always sees what is settled and what still blocks:
 
 Statuses: **CLEAR** (user said it, or code proves it), **ASSUMED** (a default was
 chosen and named, awaiting confirmation), **UNKNOWN** (blocks implementation).
+A volunteered starting point — expertise, how settled the thinking is, code
+familiarity — becomes a ledger row; calibrate: an expert's silence is a
+decision, a newcomer's silence is a gap.
 
 ## Persist and resume
 
 After reprinting the ledger each round, also write it — a header carrying the raw +
 upgraded statement pair plus the table — to `.claude/taskmaster/ledger-<slug>.md`
 (gitignored; `<slug>` a kebab of the task description), so an interrupted
-interrogation is not lost. At grill start, if an unfinished
-`.claude/taskmaster/ledger-*.md` exists, show its task and offer Resume / Start fresh;
-Resume reuses the stored statement (never re-derived), loads the table, and continues
-from the first UNKNOWN row — no re-scout, no re-asking resolved rows. Delete the file when the spec is written.
+interrogation is not lost. At grill start, an unfinished
+`.claude/taskmaster/ledger-*.md` offers Resume / Start fresh; Resume reuses the
+stored statement (never re-derived), loads the table, continues from the first
+UNKNOWN row — no re-scout, no re-asking resolved rows. Delete when the spec is written.
 
 ## Question dimensions
 
@@ -94,19 +97,16 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
 
 ## Big tasks: slice before grilling
 
-When the task is a whole experience or crosses several subsystems (a full
-landing-page experience, onboarding funnel, multi-view feature), do not run one
-flat ledger — it explodes past readability by round 2:
+When the task is a whole experience or crosses several subsystems (an
+onboarding funnel, a multi-view feature), one flat ledger explodes by round 2:
 
 - Round 1 becomes decomposition: propose the slices (screens, flows,
   capabilities) and confirm the slice list itself with the user first.
-- The ledger gains a Slice column; grill slice by slice in priority order —
-  depth-first beats breadth-first, a half-grilled everything helps no one.
+- The ledger gains a Slice column; grill slice by slice in priority order — depth-first beats breadth-first.
 - Cross-slice contracts (data one screen collects that another consumes) get
   their own ledger rows — they are the rows a per-slice view would miss.
-- For multi-screen slices, run the experience-walkthrough skill after their
-  visual decisions land: assemble accepted picks into a clickable demo and
-  walk it before freezing the spec.
+- Multi-screen slices: after their visual decisions land, run
+  experience-walkthrough — accepted picks become a clickable demo, walked before the spec freezes.
 
 ## Stopping and handoff
 

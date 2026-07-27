@@ -1,6 +1,6 @@
 ---
 name: mysql-best-practices
-description: Use when writing or reviewing MySQL 8.0+ schemas, queries, or migrations — InnoDB clustered-PK design, utf8mb4 and collations, strict sql_mode, online DDL and metadata locks, gap locking, JSON usage limits, version leverage 8.0 through 8.4 and 9.7 LTS. Generic SQL rules live in the sql plugin; MariaDB is NOT MySQL — see the mariadb plugin.
+description: Use when writing or reviewing MySQL 8.0+ schemas, queries, or migrations — InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL and metadata locks, gap locking, JSON limits, version leverage through 9.7 LTS. Generic SQL lives in sql; MariaDB is NOT MySQL — see mariadb.
 ---
 
 ## Know the version first

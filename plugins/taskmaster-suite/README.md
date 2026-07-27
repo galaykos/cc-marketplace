@@ -21,14 +21,13 @@ auto-installed.
 - **stack-scan** — inventories what is actually installed before version-dependent advice
 - **plugin-scout** — suggests marketplace plugins matched to the project's manifests
 - **code-architecture** — plan-before-code, SOLID/YAGNI audits, work verification
-- **design-patterns** — suggests (or rejects) a design pattern for a described problem
 - **git-workflow** — branch completion, worktree isolation, review exchange
 - **hindsight** — mines session transcripts for cross-session friction fixes
 - **debugging** — systematic root-cause-with-evidence before any fix
 - **testing** — TDD discipline and test review against testing best practices
 - **security** — security review and threat modeling
 - **api-design** — API contract review and spec-first scaffolding
-- **api-docs-first** — checks current API docs back the integration code
+- **api-docs-first** — checks current API docs back the integration code; also owns the merged docs-upkeep drift scan
 - **sql** — engine-agnostic SQL discipline and review
 - **dev-env** — docker-compose generation and Docker best-practice audits
 - **web-dev** — generalist web-developer worker and frontend-reviewer agents
@@ -39,17 +38,12 @@ auto-installed.
 - **performance** — hotspot and cache-correctness review
 - **claude-authoring** — scaffolds new skills, commands, agents, hooks, plugins
 - **code-review** — severity-sorted correctness and smell review of diffs
-- **approaches** — compares structurally different approaches before implementation
-- **build-vs-buy** — existing-solution check before implementing a capability
+- **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
 - **rollout** — flag strategy, exposure stages, and rollback path before shipping
-- **resilience** — failure-mode gap review: timeouts, retries, degradation
-- **docs-upkeep** — documentation drift scan with exact fixes
-- **estimation** — S/M/L/XL sizing with split recommendations
+- **resilience** — failure-mode gap review: timeouts, retries, degradation, plus the merged error-handling and concurrency audits
 - **a11y** — WCAG 2.2 AA audits of UI code
 - **packages** — dependency vulnerability and outdated-package audit
 - **orchestration** — delegation contracts and verification panels for fan-outs
-- **error-handling** — swallowed-exception and catch-block audits
-- **concurrency** — race, idempotency, and lock-hazard audits
 - **observability** — logging, correlation-ID, and silent-catch audits
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
 - **brain** — committed codebase map injected at session start

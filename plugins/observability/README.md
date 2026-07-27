@@ -34,6 +34,5 @@ spans, health signals — leaving infra-layer wiring to the devops plugin.
 ## Pairs well with
 
 - **devops** — infra-layer wiring (collectors, dashboards, deploy config) the engineer defers to
-- **error-handling** — the catch-block and exception-flow discipline that feeds clean error telemetry
-- **resilience** — timeouts, retries, and degradation paths that your alerts should be watching
+- **resilience** — timeouts, retries, and degradation paths that your alerts should be watching; its error-handling-design skill is the catch-block discipline that feeds clean error telemetry
 - **performance** — hotspot and cache review the metrics you emit help you find

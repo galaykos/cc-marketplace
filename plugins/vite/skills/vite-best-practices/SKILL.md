@@ -1,6 +1,6 @@
 ---
 name: vite-best-practices
-description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security first, optimizeDeps pre-bundling, code splitting (dynamic import, manualChunks), base for sub-path deploys, server.proxy, define pitfalls, import.meta.glob, asset handling, build.target alignment, SSR externalization, library mode, plugin order, HMR guards — pinned to the lockfile's vite version. Type layer and framework rules live in their own plugins.
+description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security, optimizeDeps, code splitting (manualChunks), base for sub-path deploys, server.proxy, import.meta.glob, SSR externalization, plugin order — pinned to the lockfile's vite version. Type layer and framework rules live in their own plugins.
 ---
 
 ## Know the version before advising

@@ -432,15 +432,17 @@ for d in plugins/*/; do
     || err "plugin '$lname' not listed in any top-level README.md plugin table"
 done
 
-# Boost-preamble parity (HARD): the five taskmaster commands carry one
+# Boost-preamble parity (HARD): the four full taskmaster commands carry one
 # byte-identical boost preamble between the `boost-preamble:start/end` markers,
 # and every trigger token the ultra hook greps for is named inside that block —
 # the trigger logic exists twice (bash regex in hooks/ultra.sh + command prose)
 # and this gate keeps the two implementations from diverging silently.
+# taskmaster.md is NOT in the list: it is a thin alias of task.md (checked
+# below), which is how it stays in parity — by carrying nothing to drift.
 TM_CMDS=plugins/taskmaster/commands
 pre_ref=""
 pre_ref_file=""
-for c in task taskmaster brainstorm coverage redteam; do
+for c in task brainstorm coverage redteam; do
   f="$TM_CMDS/$c.md"
   [ -f "$f" ] || { err "boost-preamble: missing command file $f"; continue; }
   blk=$(awk '/boost-preamble:start/{grab=1} grab{print} /boost-preamble:end/{exit}' "$f")
@@ -464,6 +466,20 @@ if [ -f "$ULTRA_HOOK" ] && [ -f "$TM_CMDS/task.md" ]; then
     printf '%s' "$canon_blk" | grep -qF "$plain" \
       || err "boost-preamble: hook token '$plain' (from $ULTRA_HOOK) not named in the command preamble block"
   done < <(grep -oE 'ultra-\?[a-z]+' "$ULTRA_HOOK" | sort -u)
+fi
+# Alias-shape gate (HARD): taskmaster.md must stay a thin delegation to task.md.
+# It was a 105-line byte-copy kept in sync by the parity gate above; parity by
+# duplication was the bug, not the fix. Thin = delegates with $ARGUMENTS, names
+# commands/task.md, carries no preamble block of its own, stays under 25 lines.
+TM_ALIAS="$TM_CMDS/taskmaster.md"
+if [ -f "$TM_ALIAS" ]; then
+  grep -q 'boost-preamble:start' "$TM_ALIAS" \
+    && err "boost-preamble: $TM_ALIAS is an alias — it must not carry its own preamble block (delegate to task.md)"
+  grep -qF 'commands/task.md' "$TM_ALIAS" && grep -qF '$ARGUMENTS' "$TM_ALIAS" \
+    || err "$TM_ALIAS: alias shape broken — must delegate to commands/task.md passing \$ARGUMENTS"
+  alias_lines=$(wc -l < "$TM_ALIAS" | tr -d ' ')
+  [ "$alias_lines" -le 25 ] \
+    || err "$TM_ALIAS: $alias_lines lines — an alias regressing into a copy (ceiling 25)"
 fi
 
 # ---- Role-floor registry gate ------------------------------------------------
@@ -573,6 +589,20 @@ fi
 while IFS= read -r f; do
   err "$f: session tooling state tracked inside a plugin — 'git rm -r --cached' it"
 done < <(git ls-files 'plugins/*' 2>/dev/null | grep '/\.claude/' || true)
+
+# ---- One severity vocabulary on review surfaces --------------------------------
+# Every finding-emitting command and reviewer agent sorts on ONE scale —
+# critical/high/medium/low — so fan-in output merges without translation. Four
+# scales coexisted (blocker/major/minor, moderate, blockers-then-minors, none),
+# which made "Apply critical+high only" and "Fix blockers only" non-interoperable
+# on the same diff. This bans the divergent FORMAT-DEFINITION shapes, not the
+# words: prose like "a wrong mental model is the real blocker" stays legal.
+# taskmaster's spec-adversary is exempt — its blocker/major/minor grades SPEC
+# HOLES inside a closed pipeline, never code findings a fan-in merges.
+while IFS= read -r f; do
+  case "$f" in plugins/taskmaster/agents/spec-adversary.md) continue ;; esac
+  err "${f%%:*}: divergent severity scale on a review surface — use critical/high/medium/low (line: ${f#*:})"
+done < <(grep -rnE 'merge-after-blockers|Severities:[^\n]*blocker|[Bb]lockers first|critical → high → moderate' plugins/*/commands/*.md plugins/*/agents/*.md 2>/dev/null | cut -d: -f1,2 || true)
 
 # ---- Dated-fact staleness report ---------------------------------------------
 # Files that assert an observed fact about the world carry `Last verified: <date>`.

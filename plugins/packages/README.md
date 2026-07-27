@@ -31,7 +31,7 @@ nothing unasked — it ends by offering the patch-lane fixes as a choice.
 
 ## Pairs well with
 
-- **build-vs-buy** — decides whether a dependency should be added at all; packages maintains the ones already in
+- **approaches** (build-vs-buy skill) — decides whether a dependency should be added at all; packages maintains the ones already in
 - **stack-scan** — inventories what is actually installed before version-dependent advice
 - **api-docs-first** — checks current docs back the integration code once a dependency is in use
 - **security** — broader security review beyond the dependency audit surface

@@ -1,6 +1,6 @@
 ---
 name: code-smells
-description: Use when reviewing, refactoring, or judging code quality — a catalog of code smells (bloaters, couplers, change-preventers, dispensables) with detection cues, concrete fixes, and the when-it-is-NOT-a-smell judgment that separates review signal from dogma.
+description: Use when reviewing, refactoring, or judging code quality — a code-smell catalog (bloaters, couplers, change-preventers, dispensables) with detection cues, fixes, and when-it-is-NOT-a-smell judgment.
 ---
 
 A smell is a surface symptom that correlates with deeper trouble — not a bug,

@@ -1,6 +1,6 @@
 ---
 name: performance-tuning
-description: Use when code is measurably slow or heavy, or when reviewing a change for performance — the MEASURING lens: measure-before-and-after discipline, hotspot checklist (N+1 detection, payload, bundle, Core Web Vitals), cache correctness (stampede, TTL, eviction), percentile load testing. Index/schema design → database; statement shape → sql. Not for unmeasured micro-optimizing.
+description: Use when code is measurably slow or heavy, or when reviewing a change for performance — measure-before-and-after, N+1, payload, bundle, Core Web Vitals, cache correctness (stampede, TTL, eviction), percentile load testing. Index/schema design belongs to database; statement shape to sql.
 ---
 
 # Performance tuning
@@ -90,7 +90,7 @@ check the failure modes:
 
 - SQL query-shape and indexing idioms → `/sql:review` (and the dialect plugins). This
   skill counts the queries and reads the plan; the SQL skills fix the statement.
-- Framework-idiom performance (React re-renders, Eloquent hydration) → `/react:review`,
+- Framework-idiom performance (React re-renders, Eloquent hydration) → the stack review command,
   `/laravel:review`. Recommend, do not duplicate.
 - Applying a batch of fixes → the shared `task-executor`; this skill decides *what* is
   slow and *why*, not the mechanical application.

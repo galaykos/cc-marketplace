@@ -1,6 +1,6 @@
 ---
 name: ultra-craft
-description: Use when a craft run is EXPLICITLY boosted — "ultra-craft"/"ultracraft" in a prompt, or a bare `ultra` as the FIRST token of /craft-layer:craft's own args — the Extreme Boost contract for a craft build. Pins ambition `maximal` and mode `guided`, mandates LIVE dated-source web research plus a reference-board walkthrough confirmed before any file is written, escalates the creative-director and craft-reviewer tiers, and red-teams the result. Another command's token never fires it.
+description: Use when a craft run is EXPLICITLY boosted — "ultra-craft"/"ultracraft" in a prompt, or a bare `ultra` as FIRST token of /craft-layer:craft's own args; another command's token never fires it. Pins maximal ambition, live dated-source research, escalated reviewer tiers, and a red-team.
 ---
 
 # Ultra-craft — Extreme Boost for a craft run

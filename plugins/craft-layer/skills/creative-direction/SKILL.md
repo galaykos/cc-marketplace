@@ -1,6 +1,6 @@
 ---
 name: creative-direction
-description: Use before a craft build to fight generic, thin results on a landing page, SaaS, CRM, or app: classify the work-type archetype, dispatch the creative-director agent for a divergent concept (metaphor, voice, one signature interaction) that breaks sameness-fingerprint defaults, key a content-depth budget, and bias palette direction. Ships dials and registries, never templates or an idea catalog; feeds design-research, never replaces it.
+description: Use before a craft build to fight generic, thin results on a landing page, SaaS, CRM, or app — work-type archetype, a divergent concept via the creative-director agent, a content-depth budget, palette bias. Feeds design-research, never replaces it.
 ---
 
 ## What this decides

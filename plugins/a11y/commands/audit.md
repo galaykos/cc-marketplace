@@ -18,9 +18,9 @@ description: "Audit UI code against WCAG 2.2 AA — semantic structure, contrast
    ratios and every interaction state), forms, media, and touch targets.
    Read the actual markup and styles — never infer from file names.
 3. **Report one line per violation** in the format
-   `path:line — WCAG criterion — violation — fix`.
-   Sort blockers first (keyboard traps, missing labels, contrast
-   failures), then minors.
+   `path:line — severity — WCAG criterion — violation — fix`, sorted by
+   severity (critical, high, medium, low) — critical means the surface is
+   unusable for someone (keyboard traps, missing labels, contrast failures).
 4. **End with what was NOT checkable statically** as a manual-test list:
    real screen-reader behavior (VoiceOver/NVDA), 200% zoom and reflow,
    live focus order in a running browser, reduced-motion rendering — so

@@ -1,6 +1,6 @@
 ---
 name: scroll-orchestration
-description: Use when adding smooth scroll, scroll-linked reveals, scrub, pin, or parallax to a web surface, or when a motion review flags scroll drift/jitter, a missing smooth-scroll contract, or a scroll effect with no reduced-motion path. Decides whether scroll motion earns its cost and which engine — a Lenis substrate feeding GSAP ScrollTrigger, or a native CSS scroll-driven reduced-bundle path — sets a KB budget, and mandates one scroll contract plus a prefers-reduced-motion path.
+description: Use when adding smooth scroll, scroll-linked reveals, scrub, pin, or parallax — Lenis + GSAP ScrollTrigger or the native CSS scroll-driven path — or when a review flags scroll drift/jitter, a missing smooth-scroll contract, or no reduced-motion path.
 ---
 
 ## What this decides

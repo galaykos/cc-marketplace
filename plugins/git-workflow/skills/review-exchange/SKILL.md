@@ -1,6 +1,6 @@
 ---
 name: review-exchange
-description: Use when requesting a code review or acting on one received — evidence discipline on both sides: self-review plus a context-rich, readable-size request; comment-as-claim verification, evidence-backed pushback, full-suite re-run when receiving.
+description: Use when requesting a code review or acting on one received — evidence discipline both ways: self-review first, comment-as-claim verification, full-suite re-run when receiving.
 ---
 
 ## Review is an exchange of claims

@@ -1,6 +1,6 @@
 ---
 name: reui-best-practices
-description: Use when building or reviewing ReUI (reui.io) components or blocks — shadcn-compatible registry installs, owned-code discipline, theme alignment with shadcn variables, block adaptation, docs-check before API claims.
+description: Use when building or reviewing ReUI (reui.io) components or blocks — shadcn-compatible registry installs, owned-code discipline, theme alignment with shadcn variables.
 ---
 
 ## What ReUI is and when to reach for it

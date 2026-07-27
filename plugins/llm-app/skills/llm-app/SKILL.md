@@ -1,6 +1,6 @@
 ---
 name: llm-app
-description: Use when building or reviewing an LLM application — RAG pipelines (chunking, embeddings, retrieval quality), eval harnesses and regression testing, prompt versioning, token-cost control, prompt-injection defense, hallucination mitigation, and context-window management. The distinct failure surface of LLM-backed features, which ordinary app testing does not cover.
+description: Use when building or reviewing an LLM application — RAG pipelines (chunking, embeddings, retrieval quality), eval harnesses, prompt versioning, token-cost control, prompt-injection defense, hallucination mitigation, context-window management.
 ---
 
 # LLM application engineering
@@ -56,6 +56,11 @@ instructions and…"). Treat all non-system content as untrusted:
   tightly, and never let retrieved content trigger a destructive action without a check.
 - **Don't echo secrets into context** — anything in the prompt can be exfiltrated by a
   crafted injection.
+
+Injection defense is one face of the app's security posture: auth around the
+LLM endpoint, secret handling, and data privacy belong to the security
+plugin's skills (`api-auth`, `data-privacy`, threat-modeling) — run
+`/security:review` on the integration, not just this checklist.
 
 ## Cost and latency
 

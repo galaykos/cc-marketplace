@@ -37,24 +37,22 @@ Per task, loop — but with a hard ceiling:
    corruption starts: deleted assertions, weakened criteria, hallucinated fixes.
 
 Never make the loop pass by weakening the check: no skipping tests, no editing
-acceptance criteria mid-task, no swapping the verify command for one that happens
-to pass, no `|| true`. The check is the task; gaming it is failing it silently.
+acceptance criteria, no swapping the verify command, no `|| true`. The check is
+the task; gaming it is failing it silently.
 
 ## Reviewer pass (per task)
 
-After the task's verify command passes — and before its status flips to done — run a
-conditional reviewer pass on the diff of a **directly-dispatched** card (a parallel-group/track leaf gets none — see `references/reviewer-routing.md`):
+After the task's verify command passes — before its status flips — run a conditional reviewer pass on a **directly-dispatched** card's diff (a parallel-group/track leaf gets none — `references/reviewer-routing.md`):
 
 - **code-reviewer** (code-review plugin): every task's diff, no condition.
 - **ui-ux-reviewer** (ui-ux plugin): only when the diff touches UI files — components, styles, templates.
-- **architecture-reviewer** (code-architecture plugin): only on structural
-  tasks — new modules, boundary changes, or API changes.
+- **architecture-reviewer** (code-architecture plugin): only structural tasks — new modules, boundary or API changes.
 - **security review** (security plugin): only on tasks touching auth, input validation, or dependencies.
 
 Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
 **Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch
-over the card diff; a `Bash`-holding reviewer is excluded from the batch and run serially; the
-inline security-review skill runs after the batch joins (`references/reviewer-routing.md`
+over the card diff; a `Bash`-holding reviewer runs serially outside it; the inline
+security-review skill runs after the batch joins (`references/reviewer-routing.md`
 § Concurrent dispatch — baseline behavior, not `--crew`-gated).
 Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
@@ -101,12 +99,15 @@ or parked, the run ENDS with a report, no self-restart.
 - Status lives in one place (the task index / todo list, e.g. taskmaster's
   `00-INDEX.md`): pending → in_progress (exactly one) → done | parked(reason). Task definitions stay immutable during the run.
 - A parked task never blocks unrelated tasks; dependency-blocked tasks are marked blocked-by, not attempted anyway.
+- DEVIATION LEDGER: execution departing from the task/plan — different approach, extra
+  file, an unmentioned edge case — gets one line at the task's status entry: what
+  deviated, why. Unwritten deviations resurface as review surprises. Standing: recorded.
 
 ## No status theater
 
-No status dashboards, run boards, or progress pages — the index table plus the conversation already show every flip, and a run-board page goes stale; the index is the single view. HTML
-artifacts (or a localhost preview) are reserved for content that earns the medium — UI
-mockups, walkthroughs, demos; a table a message can carry is not a file.
+No status dashboards, run boards, or progress pages — the index is the single
+view; a run-board page goes stale. HTML artifacts are for content that earns
+the medium (mockups, walkthroughs); a table a message can carry is not a file.
 
 ## Drift tripwires
 
@@ -115,9 +116,8 @@ Stop and re-read the current task the moment any of these appears:
 - An edit touching a file the task does not list.
 - Rewriting the goal in softer words than the acceptance criteria use.
 - Running a different verify command than specified — "faster" or "basically equivalent".
-- Working on something because it is interesting rather than because it is the current task.
-- More than ~30 minutes (or one context-refill) inside one fix cycle without new
-  information — attempt-churn; count it as a failed cycle.
+- Working on something because it is interesting, not because it is the task.
+- Attempt-churn: ~30 minutes (or one context-refill) in a cycle with no new information — a failed cycle.
 
 ## Delegating parallel groups
 
@@ -135,8 +135,8 @@ is the evidence. One failed re-verification sends the task back; a second reclai
 ## Evidence format
 
 Evidence recorded per task is boringly literal: the exact command as run, its exit code, and
-the last relevant lines of output (the failing assertion, the "N passed" summary — not the
-whole log). Manual checks ("dialog renders centered") are recorded as manual, with what was observed; "Verified ✓" alone is not evidence and closes nothing.
+the last relevant output lines. Manual checks ("dialog renders centered") are recorded as
+manual, with what was observed; "Verified ✓" alone is not evidence and closes nothing.
 
 ## Completion protocol
 
@@ -144,11 +144,11 @@ The run is complete only when:
 
 1. Every task is done or parked-with-reason — none silently skipped.
 2. The project's FULL check suite passes at the end (local passes can compose into a global
-   failure) AND the **behavioral-gate** actually runs the produced code (see its skill:
-   `scripts/behavioral-gate.sh --changed <run's files>`) — the repo suite may be a static
-   linter that never executes new code. docs-upkeep's drift check, if installed, joins this gate.
+   failure) AND the **behavioral-gate** actually runs the produced code
+   (`scripts/behavioral-gate.sh --changed <run's files>`) — the repo suite may be a static
+   linter that never executes new code; api-docs-first's drift check, if installed, joins.
 3. The final report is a table: task / status / verify command / evidence line, plus the
    parked list with reasons and the follow-up backlog collected by the scope lock.
 
-Claiming completion without the full-suite run is asserting, not verifying — the
-work-verification discipline (code-architecture plugin) applies to the whole run.
+Claiming completion without the full-suite run is asserting, not verifying —
+work-verification (code-architecture plugin) applies to the whole run.

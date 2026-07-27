@@ -1,6 +1,6 @@
 ---
 name: php-best-practices
-description: Use when writing or reviewing plain PHP code — strict types and === discipline, PSR-4/PSR-12 conventions, version-aware advice pinned to the composer.json floor with a per-version leverage map (8.1 through 8.5), exception handling, DateTimeImmutable, boundary security (prepared statements, output escaping), value objects, static analysis. Framework-specific rules live in the laravel/livewire plugins.
+description: Use when writing or reviewing plain PHP code — strict types and === discipline, PSR-4/PSR-12, version-aware advice pinned to the composer.json floor (8.1–8.5), DateTimeImmutable, prepared statements, value objects, static analysis. Framework rules live in the laravel/livewire plugins.
 ---
 
 ## Know the version before advising

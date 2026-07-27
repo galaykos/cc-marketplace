@@ -1,6 +1,6 @@
 ---
 name: kinetic-typography
-description: Use when animating type on a web surface — kinetic or variable-font headlines, weight/width axis animation on scroll or hover, rotating phrase cross-fades, or a split-text reveal — or when a craft review flags type that moves without earning it or a missing reduced-motion path. Decides when animated type helps vs distracts, animates font-variation-settings axes, and mandates a reduced-motion fallback; references split-text mechanics and the gradient-clip / aria traps by path.
+description: Use when animating type — kinetic or variable-font headlines, weight/width axis animation, rotating phrase cross-fades, split-text reveals — or when a review flags type that moves without earning it or lacks a reduced-motion path.
 ---
 
 ## What this decides

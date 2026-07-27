@@ -27,6 +27,13 @@ confidence in the code, or the fact that it "should" pass are not evidence. The 
 basis for a completion claim is: you ran the exact command, and you are looking at output that
 demonstrates the criterion was met.
 
+This rule has mechanical teeth. Standing: **gate** — this plugin ships a Stop hook
+(`hooks/evidence-gate.sh`) that blocks a turn which claims completion after editing files with
+no command executed after the last edit. Its escape is honesty: prose naming what is unverified
+("not tested — run X to verify") passes. Residuals it names itself: silence evades it, and any
+post-edit execution satisfies it — proving the RIGHT verification ran stays with you.
+`CC_EVIDENCE_GATE=warn|off` downgrades it.
+
 ```
 # Not evidence — an assertion with nothing backing it:
 "I've updated the function, so the tests should pass now."

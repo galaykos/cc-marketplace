@@ -1,5 +1,5 @@
 ---
-description: Run a deep, multi-source, fact-checked research pass — fan out searches, tier sources, refute claims, synthesize a cited report inline and to research/<topic>-<date>.md; --ultra forces the Workflow loop-until-dry engine, --standard the portable path.
+description: Run a deep, multi-source, fact-checked research pass writing a cited report to research/<topic>-<date>.md; --ultra forces the Workflow loop-until-dry engine, --standard the portable path.
 argument-hint: <topic or question> [--ultra|--standard]
 ---
 

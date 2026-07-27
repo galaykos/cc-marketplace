@@ -1,5 +1,5 @@
 ---
-description: Audit comments — restatement of the next line, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, and missing why-comments on non-obvious choices — one line per finding.
+description: Audit comments — restatement, section banners, commented-out code, bare TODOs, docblock tags repeating the signature, missing why-comments — one line per finding.
 argument-hint: [path-or-diff]
 ---
 <!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
@@ -35,7 +35,7 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
 
 6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    Apply all / Apply critical+high only / Report only. On an apply
-   pick, dispatch the finding list down the static chain task-executor → task-runner:task-executor if installed → inline — never leave
+   pick, dispatch the finding list down the static chain task-runner:task-executor if installed → inline — never leave
    the user to retype findings as instructions. In a headless or non-interactive run,
    report only and print the apply command instead of dispatching.
 

@@ -1,6 +1,6 @@
 ---
 name: craft-reviewer
-description: Use PROACTIVELY when auditing a crafted web app's motion and asset gates (spawned by the craft-layer audit flow) — checks every animation tier honors prefers-reduced-motion, 3D/WebGL is lazy-loaded with a static fallback, per-tier motion budgets hold, and sprites/assets stay in budget. Returns a findings list; a11y and performance are deferred, not re-checked.
+description: Use PROACTIVELY when auditing a crafted web app's motion and asset gates — spawned by the craft-layer audit flow. A11y and performance are deferred to their owning tools, not re-checked.
 tools: Read, Grep, Glob
 model: inherit
 effort: xhigh

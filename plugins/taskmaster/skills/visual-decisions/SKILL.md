@@ -1,6 +1,6 @@
 ---
 name: visual-decisions
-description: Use during requirement clarification when a choice is visual or structural — layout variants, user flows, architecture topology, data shapes: the user picks between concrete options (throwaway ASCII wireframes, theme-aware HTML mockups in project colors, example payload tables) instead of prose. Fidelity consent (full / ASCII / none) once per session.
+description: Use during requirement clarification when a choice is visual or structural — layout variants, user flows, architecture topology, data shapes: the user picks between ASCII wireframes, theme-aware HTML mockups, or example payload tables instead of prose. Fidelity consent once per session.
 ---
 
 ## When to show instead of tell
@@ -112,7 +112,7 @@ Always serve — every decision lands in the same tab. One server, one canonical
 4. History is free: the header's version picker lists the dated passes and Restore rolls one back over `current.html` (serve.py rung only). Set `SLOT: favicon` per purpose so the tabs stay distinguishable.
 
 Other flows share this server via per-purpose files (`theme.html`, `walkthrough.html`,
-`diagram.html`, `api.html`) — kill only at pipeline end; stale: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
+`diagram.html`, `api.html`, `modules.html`, `compose.html`) — kill only at pipeline end; stale: `lsof -ti :${PREVIEW_PORT:-8123} | xargs kill`. `file://` is the no-runtime fallback.
 
 ## Data-shape decisions
 

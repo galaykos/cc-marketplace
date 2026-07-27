@@ -10,12 +10,15 @@ the JS package manager from the lockfile present: package-lock.json → npm,
 yarn.lock → yarn, pnpm-lock.yaml → pnpm. If an ecosystem's manifest is absent, skip
 it and say so in the report. If neither manifest exists, say so and stop.
 
-Run read-only commands only — no fixes:
+Run read-only commands only — no fixes (`/security:review` runs the same audit
+commands when reviewing a diff; with both installed, this command is the depth
+pass and security's review should cite it rather than re-run):
 - composer present: `composer audit` and `composer outdated --direct`
 - JS present: `npm audit` / `yarn npm audit` / `pnpm audit` per detected PM, and
   `npm outdated` or the PM's equivalent
 
-Report findings severity-sorted (critical → high → moderate → low), one line per
+Report findings severity-sorted (critical → high → medium → low; advisory
+"moderate" maps to medium), one line per
 finding: `package — severity — direct|transitive — fix lane`, where fix lane is one
 of: patch bump / minor bump / major bump / no fix available. After findings, give an
 upgrade-lane summary: counts per lane, plus the outdated-but-not-vulnerable packages

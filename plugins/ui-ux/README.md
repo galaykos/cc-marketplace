@@ -1,9 +1,11 @@
 # ui-ux
 
 UI/UX best practices with per-stack skills — shadcn/ui, ReUI, Aceternity UI,
-Astryx (Meta's agent-ready design system), Tailwind, CSS3, Bootstrap, CSS
-Grid, Flexbox — plus a theme builder (shadcn/ReUI/Aceternity, Tailwind, or Bootstrap) with a live colour-preview URL
-and a ui-ux-reviewer agent.
+Astryx (Meta's agent-ready design system), and Tailwind — plus a theme builder
+(shadcn/ReUI/Aceternity, Tailwind, or Bootstrap) with a live colour-preview URL
+and a ui-ux-reviewer agent. Generic CSS3/Grid/Flexbox/Bootstrap skills were
+removed after baseline tests showed the model covers them unaided — see
+rationale/stack-skill-baselines.md.
 
 Registry libraries (shadcn, [ReUI](https://reui.io/docs),
 [Aceternity](https://ui.aceternity.com/components)) get docs-first treatment:
@@ -51,12 +53,12 @@ that looks great as a swatch can fail hard as a button.
 ## Contents
 
 - **Skills**: shadcn-best-practices, shadcn-theming, reui-best-practices,
-  aceternity-best-practices, tailwind-best-practices, css3-best-practices,
-  bootstrap-best-practices, css-grid-best-practices, flexbox-best-practices
+  aceternity-best-practices, astryx-best-practices, tailwind-best-practices,
+  design-tokens, theming-system, motion-best-practices
 - **Agent**: ui-ux-reviewer
 
 ## Pairs well with
 
 - **taskmaster** — its visual-decisions skill uses the same always-live mockup
   pattern for layout/flow choices
-- **react / vue3** — component-logic review alongside the visual layer
+- **vue3 / web-dev** — component-logic review alongside the visual layer

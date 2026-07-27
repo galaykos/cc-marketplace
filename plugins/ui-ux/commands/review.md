@@ -11,8 +11,9 @@ ui-ux plugin skills. Steps:
    below when the change touches layout, component structure, state, or accessibility,
    OR spans more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full
    length as changed).
-2. Detect which stacks the code uses (shadcn/ui, ReUI, Aceternity UI, Tailwind, plain CSS3,
-   Bootstrap, Grid, Flexbox). Registry-sourced components are detected by their files under
+2. Detect which stacks the code uses (shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind).
+   Plain CSS/Grid/Flexbox/Bootstrap code gets the model's own review — no skill to load.
+   Registry-sourced components are detected by their files under
    `components/ui/*` and imports of `motion`/`framer-motion`, not by a package.json entry.
    Animation/motion work is detected by any of: `framer-motion`/`motion`/`gsap`/`animejs` imports,
    `@keyframes` blocks, `transition-*`/`animate-*` utility classes or `transition:`/
@@ -27,13 +28,14 @@ ui-ux plugin skills. Steps:
    `skills/aceternity-best-practices/references/aceternity.md`, and
    `skills/astryx-best-practices/references/astryx.md` — then verify version-sensitive
    literals (component/method names, props, options, versions) against the official docs
-   for the installed version: MDN (https://developer.mozilla.org) for CSS3/Grid/Flexbox,
+   for the installed version: MDN (https://developer.mozilla.org) for plain CSS,
    https://tailwindcss.com/docs, https://ui.shadcn.com/docs, https://reui.io/docs,
-   https://ui.aceternity.com/components, https://getbootstrap.com/docs,
+   https://ui.aceternity.com/components,
    https://motion.dev/docs, https://gsap.com/docs, and https://animejs.com/documentation/
    for animation libraries, and https://astryx.atmeta.com/components for Astryx. ReUI and
    Aceternity have no npm version to pin — their current docs page is the only source of truth.
-6. Report findings as `path:line — problem — fix`, ordered by severity.
+6. Report findings as `path:line — severity — problem — fix`, sorted by
+   severity (critical, high, medium, low).
 7. Do not report formatting nits unless they change rendering behavior.
 8. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit which stacks and surfaces were covered, what

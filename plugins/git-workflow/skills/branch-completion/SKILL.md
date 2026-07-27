@@ -1,6 +1,6 @@
 ---
 name: branch-completion
-description: Use when implementation on a development branch is finished and the work needs a destination — full-suite verification gate, then merge / PR / keep / discard offered as explicit choices backed by state evidence, executed end to end, leaving no zombie branches or worktrees.
+description: Use when implementation on a development branch is finished and the work needs a destination — full-suite verification gate, then merge / PR / keep / discard as explicit evidence-backed choices, executed end to end with no zombie branches.
 ---
 
 ## Done code is not a done branch
@@ -15,11 +15,10 @@ states is inventory: unmerged branches age into conflict farms, and every
 
 Before any destination talk, run the project's FULL check suite — tests, lint,
 type-check, build, whatever the repo defines — not just the tests near the
-change. This mirrors the task-runner plugin's completion gate, and for the same
+change. This mirrors the task-runner plugin's completion gate, for the same
 reason: local passes compose into global failures. A red suite ends the
-conversation; there is nothing to merge, PR, or even park with a clear
-conscience. Report the failures and fix them first — never present destination
-options for a branch that does not pass.
+conversation — nothing to merge, PR, or park with a clear conscience. Report
+the failures and fix first; never present destinations for a red branch.
 
 ## Evidence, then options
 
@@ -33,16 +32,19 @@ git log --oneline "$BASE..HEAD"                         # the commits
 ```
 
 Present that evidence plus the suite result, then the destination options —
-the set depends on the base (see "The default branch is PR-only" below). For a
+the set depends on the base (see "The default branch is PR-only" below).
+For a large or many-session branch, offer one optional artifact before the
+destination ask: a change explainer — what changed, why, decisions and
+deviations — for a reviewer who saw none of the work (HTML on the
+design-preview pattern when installed, else markdown). Offer, never default:
+small branches don't earn the ceremony. For a
 feature whose base is NOT the default branch, offer all four: merge locally,
 push and open a PR, keep the branch open, discard the work. When the base IS
 the default branch, drop "merge locally" — offer only push and open a PR, keep
-the branch open, discard the work. Never assume which one applies: a branch
-that looks obviously mergeable may be an experiment, and a scruffy spike may be
-tomorrow's release. Interactive sessions ask via AskUserQuestion; headless
-sessions report the evidence and the options, then stop — choosing a
-destination is not automatable, and destructive defaults are how work
-disappears.
+the branch open, discard the work. Never assume which applies: an obviously
+mergeable branch may be an experiment, a scruffy spike may be tomorrow's
+release. Interactive sessions ask via AskUserQuestion; headless sessions report
+evidence and options, then stop — destructive defaults are how work disappears.
 
 ## The default branch is PR-only
 
@@ -99,17 +101,16 @@ re-setup at the worst moment.
 ## Keep-open protocol
 
 Parking is a decision, not a default. Record why the branch stays open and
-what is still missing, so the next session (or the next person) is not
-reverse-engineering intent from a diff. A kept branch keeps its worktree; a
-kept branch with no written reason is just a zombie with paperwork pending.
+what is missing, so the next session is not reverse-engineering intent from a
+diff. A kept branch keeps its worktree; no written reason = a zombie with
+paperwork pending.
 
 ## Discard protocol
 
-Destruction requires friction. Show exactly what dies — the branch name, the
-commit list, the worktree path — and require the user to type the branch name
-back as confirmation. A "yes" is not enough; typed-name confirmation is what
-separates a deliberate discard from an autocomplete accident. Only then:
-remove the worktree, `git branch -D <branch>`, and report what was destroyed.
+Destruction requires friction. Show exactly what dies — branch name, commit
+list, worktree path — and require the user to type the branch name back; a
+"yes" is not enough to separate deliberate discard from autocomplete accident.
+Only then: remove the worktree, `git branch -D <branch>`, report what died.
 
 ## Refresh the project map
 

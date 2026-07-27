@@ -123,7 +123,7 @@ yagni-check territory, not architecture.
 
 Every fix above lands on a structure some pattern catalog has a name for (strategy, adapter,
 composition over inheritance). That is the correct direction of travel: the violation creates
-the pressure, and a pattern is one possible relief — chosen via the design-patterns plugin's
+the pressure, and a pattern is one possible relief — chosen via the approaches plugin's
 pattern-selection skill, which also lists when NOT to use each. Never the reverse: "we should
 use Strategy here" is not a requirement, and simplest-thing-first (simplicity-principles)
 still wins whenever a plain function or a small local edit relieves the same pressure.

@@ -40,7 +40,7 @@ Pin every finding to the installed `inertiajs/inertia-laravel` and `@inertiajs/*
 
 6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    Apply all / Apply critical+high only / Report only. On an apply
-   pick, dispatch the finding list down the static chain web-developer → task-runner:task-executor if installed → inline — never leave
+   pick, dispatch the finding list down the static chain web-dev:web-developer if installed → task-runner:task-executor if installed → inline — never leave
    the user to retype findings as instructions. In a headless or non-interactive run,
    report only and print the apply command instead of dispatching.
 

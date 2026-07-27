@@ -39,6 +39,21 @@ different questions: `work-verification` asks whether the evidence backs the cla
 `drift-review` asks whether the work that produced it stayed on the task that was
 asked. Cooperative, not tamper-proof — neither is a security boundary.
 
+## Hook: the evidence gate
+
+`work-verification`'s "never assert without output" rule has mechanical teeth: a
+**Stop hook** (`hooks/evidence-gate.sh`) blocks a turn that claims completion
+(done / fixed / implemented / verified / passes) after editing files when **no
+command was executed after the last edit** — the exact shape of the later
+apology "you're right, I didn't actually do it." The escape is honesty: prose
+that names what is unverified ("not tested — run `npm test` to verify") passes.
+
+Honest limits, stated up front: silence evades it (no claim, no judgment), and
+any post-edit execution satisfies it — it proves *something* ran, not that the
+right verification ran. One block per distinct claim; fail-open without jq or a
+readable transcript. Downgrade with `CC_EVIDENCE_GATE=warn`, disable with
+`CC_EVIDENCE_GATE=off`.
+
 ## Example
 
 ```bash

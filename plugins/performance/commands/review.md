@@ -31,7 +31,7 @@ Review the target for performance hotspots and cache-correctness gaps.
    Order by severity: critical, high, medium, low. No praise, no padding.
 
 6. Defer, do not duplicate: SQL statement/index idioms → `/sql:review`;
-   framework-idiom perf → `/react:review` or `/laravel:review`.
+   framework-idiom perf → the installed stack review command (e.g. `/laravel:review`, `/vue3:review`).
 
 7. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit what was covered, what was clean, and what

@@ -52,7 +52,7 @@ Without arguments it asks for a description first. The pipeline then:
    card-splitting
 7. Emits single-prompt task cards to `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a
    `00-INDEX.md` — each card stamped with the stack skills it needs (from the
-   stack-scan inventory), sized via the estimation plugin when installed, and
+   stack-scan inventory), sized via the approaches plugin's estimation skill when installed, and
    grouped into independently shippable milestones on big runs
 8. When task-runner is installed, asks "Start execution now?" — one approval and
    it hands the index straight to the task-execution discipline, no manual

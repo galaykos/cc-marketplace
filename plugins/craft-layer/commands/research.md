@@ -1,5 +1,5 @@
 ---
-description: Turn a product or reference into buildable design direction — mine patterns via design-research, then hand a theme brief to /ui-ux:theme and a build task to /ui-ux:build
+description: Turn a product or reference into buildable design direction — pattern mining handed to /ui-ux:theme and /ui-ux:build.
 argument-hint: [product-or-reference]
 ---
 

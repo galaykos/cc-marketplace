@@ -1,7 +1,7 @@
 {
   "name": "approaches",
-  "version": "0.3.8",
-  "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an auto-nudged opinion round where four parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions.",
+  "version": "0.5.0",
+  "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, S/M/L/XL estimation, rollout planning, and design-pattern selection. Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:size, /approaches:rollout, /approaches:pattern.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

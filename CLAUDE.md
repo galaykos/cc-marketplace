@@ -92,13 +92,14 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **19 named steps;
-18 can fail the build**, and on a push to `master` only **17** run
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **20 named steps;
+19 can fail the build**, and on a push to `master` only **18** run
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
-Beyond the four scripts above: 12 harnesses under `scripts/smoke/`
+Beyond the four scripts above: 13 harnesses under `scripts/smoke/`
 (template-engine, chassis-template, hook-guard, hook-syntax, guard,
 rules-overlap, route-marker, behavioral-verification, completion-gate-hook,
-comment-discipline-hook, preview-guard, `validate-fixtures/parity-check.sh`),
+evidence-gate-hook, comment-discipline-hook, preview-guard,
+`validate-fixtures/parity-check.sh`),
 `role-floors-check.sh`, and the taskmaster author-time lints, which live at
 `plugins/taskmaster/scripts/__tests__/*.test.sh` — not under `scripts/smoke/`.
 A local four-script pass can still be red on merge: several of those harnesses

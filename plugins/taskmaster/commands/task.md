@@ -3,7 +3,7 @@ description: Grill a task to zero ambiguity, decide visuals with mockups, then e
 argument-hint: [task-description]
 ---
 
-<!-- Canonical pipeline — keep commands/taskmaster.md (the /taskmaster alias) in sync -->
+<!-- Canonical pipeline — commands/taskmaster.md is a thin alias that delegates here (validate.sh enforces its shape) -->
 
 Run the full taskmaster pipeline on $ARGUMENTS (if empty, ask for a one-paragraph task
 description first). Do not write implementation code at any step. If $ARGUMENTS is
@@ -80,7 +80,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    the spec. Skip it when the plugin is not installed.
 7. Invoke the task-cards skill to split the spec into single-prompt task cards
    under `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
-   milestones when the run is large — cards sized per the estimation plugin's
+   milestones when the run is large — cards sized per the approaches plugin's estimation
    skill when it is installed (S/M/L/XL; anything L+ is split).
 8. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
    the card list in execution order with parallel groups (and milestones) marked.
