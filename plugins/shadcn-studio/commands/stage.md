@@ -16,7 +16,11 @@ exactly.
    the port. Declined → static-shell fallback.
 3. Provision once per session (stale recovery → copy template → isolated
    `npm ci` → `vite dev` on the dedicated port); author `src/variants/*.tsx` as
-   real shadcn JSX with realistic data; hand over the resolved URL.
+   real shadcn JSX with realistic data; hand over the resolved URL. Variants
+   built on ReUI or Aceternity components: query the registry-source plugin's
+   MCP tools (`registry_search` / `registry_get`, via ToolSearch) for real
+   current names and props before authoring — never recite a component API
+   from memory; without the tools, verify against the live docs URL.
 4. Ask for the pick via AskUserQuestion; iterate in place via HMR. Record the
    pick as a self-contained note (copy the chosen JSX out before cleanup) — never
    a path into the scratch dir.

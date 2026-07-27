@@ -109,7 +109,11 @@ weakened checks, plausible-sounding fiction.
 Ask, in order: wrong layer (patching the caller when the callee lies)? wrong
 component (the "obviously broken" one is fine)? wrong assumption (the
 invariant nobody ever tested)? Re-enter Phase 1 with the failed fixes as new
-evidence, or escalate with a report of what was tried and ruled out.
+evidence, or escalate with a report of what was tried and ruled out. When the
+fresh-take plugin is installed, `/fresh-take:consult` is that escalation made
+cheap — it accepts a stuck-debug brief from the SECOND failed cycle, one
+earlier than this hard stop, so consider it before the third attempt, not
+after.
 
 ## Defense in depth — after, never instead
 

@@ -25,9 +25,9 @@ the user picks. Nothing installs without an explicit pick.
 
 ## Detection
 
-If the stack-scan plugin is installed, reuse its inventory output (required vs
-installed, manifests already parsed) as the detection input — do not re-scan
-what it already read. Otherwise self-scan: read composer.json, package.json,
+If the stack-scan plugin is installed, run `/stack-scan:report` and use its
+inventory output (required vs installed, manifests already parsed) as the
+detection input — actually invoke it; do not re-scan what it already reads. Otherwise self-scan: read composer.json, package.json,
 tsconfig.json, .env, and Dockerfile/docker-compose files, checking exactly the
 signal table below. Rules:
 

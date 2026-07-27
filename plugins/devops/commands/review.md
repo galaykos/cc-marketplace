@@ -6,7 +6,7 @@ argument-hint: [path-or-diff]
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
-Before reporting, validate mechanically against the artifact where a tool exists — `docker compose config`, `kubectl apply --dry-run=client`, `hadolint`, `actionlint` — and cite the output; a finding is verified only when a check backs it. You audit configuration, you do not run deploys.
+Before reporting, validate mechanically against the artifact where a tool exists — `docker compose config`, `kubectl apply --dry-run=client`, `hadolint`, `actionlint` — and cite the output; a finding is verified only when a check backs it. You audit configuration, you do not run deploys. OWNERSHIP: this review owns CI/PRODUCTION containers and pipelines; docker-compose DEV environments and dev Dockerfiles belong to /dev-env:review — decide by what the file deploys, not where it sits.
 
 1. Determine scope from $ARGUMENTS — a file, directory, diff/branch reference, or
    design document. If empty, default to recent changes (`git diff` against the merge

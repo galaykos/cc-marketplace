@@ -6,7 +6,7 @@ argument-hint: [files-or-path]
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
-Before reporting, read the project manifests (composer.json, package.json, .env.example) and pin findings to the actual stack — flag image tags that contradict the manifests' version floors, `ext-*` requires missing from the extension install lines, and services with no evidence in the code (cross-check against the compose-init skill's service derivation table). Verify EOL claims against endoflife.date rather than memory.
+Before reporting, read the project manifests (composer.json, package.json, .env.example) and pin findings to the actual stack — flag image tags that contradict the manifests' version floors, `ext-*` requires missing from the extension install lines, and services with no evidence in the code (cross-check against the compose-init skill's service derivation table). Verify EOL claims against endoflife.date rather than memory. OWNERSHIP: this review owns LOCAL-DEV containers (docker-compose dev environments, dev Dockerfiles); a Dockerfile built for CI/production belongs to /devops:review — decide by what the file deploys, not where it sits.
 
 1. Determine scope from $ARGUMENTS — a file, directory, diff/branch reference, or
    design document. If empty, default to recent changes (`git diff` against the merge
