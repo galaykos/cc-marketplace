@@ -97,7 +97,7 @@
     {
       "name": "api-docs-first",
       "source": "./plugins/api-docs-first",
-      "description": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing. For consuming third-party APIs; defers designing your own REST APIs to api-design."
+      "description": "Docs before claims, both directions: verify current official API/SDK docs before writing integration code (UserPromptSubmit reminder + /api-docs-first:check), and keep your own docs true after a change with the merged docs-upkeep drift scan — README claims, changelog gaps, stale examples, dead links (/api-docs-first:drift)."
     },
     {
       "name": "taskmaster",
@@ -238,11 +238,6 @@
       "name": "resilience",
       "source": "./plugins/resilience",
       "description": "Failure-mode design for integration points — timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics — plus the merged error-handling and concurrency disciplines: catches and cause chains, check-then-act races, retry idempotency. Includes /resilience:review, /resilience:error-review, /resilience:concurrency-review."
-    },
-    {
-      "name": "docs-upkeep",
-      "source": "./plugins/docs-upkeep",
-      "description": "Documentation drift prevention: after any change, sync README claims, changelog entries, ADR links, and API docs with what the code now actually does — docs updated in the same change that invalidated them. Includes /docs-upkeep:check."
     },
     {
       "name": "packages",

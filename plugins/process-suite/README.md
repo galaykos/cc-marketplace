@@ -25,8 +25,9 @@ bundle and prunes the plugins it auto-installed.
   `/approaches:pattern`
 - **hindsight** — mines session transcripts for cross-session friction,
   applied only on approval, plus `/hindsight:harvest`
-- **docs-upkeep** — documentation-drift detection with exact fixes, plus
-  `/docs-upkeep:check`
+- **api-docs-first** — docs verified before integration code, and the merged
+  docs-upkeep drift scan after a change, plus `/api-docs-first:check` and
+  `/api-docs-first:drift`
 - **orchestration** — delegation contracts and verification panels for
   subagent fan-outs, plus `/orchestration:review`
 - **task-runner** — scope-locked task execution with bounded verify-fix loops,

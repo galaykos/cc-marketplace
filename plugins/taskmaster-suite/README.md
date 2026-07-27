@@ -27,7 +27,7 @@ auto-installed.
 - **testing** — TDD discipline and test review against testing best practices
 - **security** — security review and threat modeling
 - **api-design** — API contract review and spec-first scaffolding
-- **api-docs-first** — checks current API docs back the integration code
+- **api-docs-first** — checks current API docs back the integration code; also owns the merged docs-upkeep drift scan
 - **sql** — engine-agnostic SQL discipline and review
 - **dev-env** — docker-compose generation and Docker best-practice audits
 - **web-dev** — generalist web-developer worker and frontend-reviewer agents
@@ -41,7 +41,6 @@ auto-installed.
 - **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
 - **rollout** — flag strategy, exposure stages, and rollback path before shipping
 - **resilience** — failure-mode gap review: timeouts, retries, degradation, plus the merged error-handling and concurrency audits
-- **docs-upkeep** — documentation drift scan with exact fixes
 - **a11y** — WCAG 2.2 AA audits of UI code
 - **packages** — dependency vulnerability and outdated-package audit
 - **orchestration** — delegation contracts and verification panels for fan-outs

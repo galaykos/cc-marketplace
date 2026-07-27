@@ -140,7 +140,7 @@ own audience, not a comment; that is a docs decision, not this rule's.
 - `code-review`'s code-smells owns the one-bullet version ("comment as deodorant")
   as part of a broader smell sweep; this skill owns comment volume and placement in
   depth.
-- `docs-upkeep` owns comment and doc **staleness** — drift between a doc and the
+- the api-docs-first plugin's `docs-upkeep` skill owns comment and doc **staleness** — drift between a doc and the
   code it describes. This skill owns whether the comment should exist at all.
 - Naming, extraction, and file structure as design concerns belong to
   `code-architecture`; this skill only points at them as the destination a comment's

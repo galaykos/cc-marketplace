@@ -46,7 +46,7 @@ reviewer pass runs when the review plugins are installed — code-reviewer on
 every task; ui-ux, architecture, and security reviewers only when the task's
 content warrants them. Blocker/major findings re-enter the bounded fix loop.
 The run only completes when every task is done or parked AND the project's
-full check suite passes — including docs-upkeep's drift check when installed.
+full check suite passes — including api-docs-first's doc-drift check when installed.
 
 Status lives in the task index and the conversation — no HTML dashboards.
 HTML/preview artifacts are reserved for content that needs them: mockups,
@@ -74,4 +74,4 @@ reminder everywhere.
 - **taskmaster** — produces the task cards this plugin executes
 - **code-architecture** — its work-verification discipline applies to the whole run
 - **code-review / ui-ux / security** — power the per-task reviewer pass when installed
-- **docs-upkeep** — its drift check joins the completion gate when installed
+- **api-docs-first** — its doc-drift check (`/api-docs-first:drift`) joins the completion gate when installed

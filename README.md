@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 60 leaf plugins) exists for zero-setup convenience at ~14.1k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 59 leaf plugins) exists for zero-setup convenience at ~14.1k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,8 +44,8 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 60 | ~14.7k tokens |
-| `taskmaster-suite` | 31 | ~8.8k tokens |
+| `everything` | 59 | ~14.7k tokens |
+| `taskmaster-suite` | 30 | ~8.8k tokens |
 | `process-suite` | 9 | ~2.2k tokens |
 | `quality-suite` | 14 | ~3.0k tokens |
 | `frontend-suite` | 19 | ~4.6k tokens |
@@ -203,12 +203,11 @@ installing this plugin, or the same server is declared twice.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **code-architecture** | Engineering process: plan-before-code (+ current-vs-target diagrams), YAGNI, SOLID applied with judgment, task orchestration, work verification, low-cognitive-load, KISS/DRY, always-on surgical-coding discipline (Karpathy guidelines) + architecture-reviewer agent; system-level topology → system-design | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni`, `/code-architecture:solid` |
-| **api-docs-first** | API-docs-first: verify docs before writing integration code; own APIs → api-design | `/api-docs-first:check` |
+| **api-docs-first** | API-docs-first: verify docs before writing integration code; own APIs → api-design — plus the merged docs-upkeep drift scan (README/changelog/example sync) | `/api-docs-first:check`, `/api-docs-first:drift` |
 | **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources + graphql-grpc skill (DataLoader, resolver authz, proto safety, streaming); third-party docs → api-docs-first | `/api-design:review` |
 | **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass | `/code-review:review` |
 | **approaches** | Approach deliberation: 2–3 structurally different candidates, trade-off table, pick + kill-trigger + strategy catalog + blind-persona opinion round — plus the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines | `/approaches:compare`, `/approaches:opinions`, `/approaches:build-vs-buy`, `/approaches:size`, `/approaches:rollout`, `/approaches:pattern` |
 | **resilience** | Failure-mode design at integration points: timeouts, safe retries + idempotency, circuit breaking, degradation, delivery semantics — plus the merged error-handling and concurrency audit disciplines | `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review` |
-| **docs-upkeep** | Doc drift prevention: README/changelog/ADR/API-doc sync in the same change that invalidated them | `/docs-upkeep:check` |
 | **packages** | Composer/npm dependency hygiene — constraints, lockfiles, audit triage, upgrade lanes | `/packages:audit` |
 | **observability** | Structured JSON logs + correlation IDs, log-level semantics, RED/USE metrics without cardinality bombs, trace propagation, symptom-based alerting, honest health checks | `/observability:review` |
 | **[comment-discipline](plugins/comment-discipline/README.md)** | Comments as information routing: facts go to names, types, tests and extracted functions; comments only for why-not-the-obvious-way, constraints with a ticket, intentional-silence markers, and what a signature cannot state — plus a warn-only PostToolUse hook | `/comment-discipline:review` |
@@ -244,7 +243,7 @@ installing this plugin, or the same server is declared twice.
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience (incl. error-handling + concurrency), packages, observability, comment-discipline | `/quality-suite:uninstall` |
-| **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches (incl. build-vs-buy, estimation, rollout, pattern-selection), hindsight, docs-upkeep, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
+| **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches (incl. build-vs-buy, estimation, rollout, pattern-selection), hindsight, api-docs-first, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
 
 ## Usage
 

@@ -1,7 +1,7 @@
 {
   "name": "api-docs-first",
-  "version": "0.3.0",
-  "description": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing. For consuming third-party APIs; defers designing your own REST APIs to api-design.",
+  "version": "0.4.0",
+  "description": "Docs before claims, both directions: verify current official API/SDK docs before writing integration code (UserPromptSubmit reminder + /api-docs-first:check), and keep your own docs true after a change with the merged docs-upkeep drift scan — README claims, changelog gaps, stale examples, dead links (/api-docs-first:drift).",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
