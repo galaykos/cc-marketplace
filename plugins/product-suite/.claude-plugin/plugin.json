@@ -1,0 +1,18 @@
+{
+  "name": "product-suite",
+  "version": "0.1.1",
+  "description": "Meta-bundle: the product-domain disciplines in one install — payments and billing (idempotent webhooks, money handling, ledgers), internationalization (ICU MessageFormat, Intl, RTL), and LLM application engineering (evals, RAG, prompt-injection defense). Uninstall cleanly with /product-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "dependencies": [
+    "payments",
+    "i18n",
+    "llm-app"
+  ],
+  "keywords": [
+    "suite",
+    "product"
+  ]
+}

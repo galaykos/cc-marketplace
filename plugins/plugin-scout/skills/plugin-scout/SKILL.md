@@ -40,7 +40,7 @@ signal table below. Rules:
 
 ## Stack signals (tier 1)
 
-Seventeen plugins, each earned by one signal:
+Fourteen plugins, each earned by one signal:
 
 | Signal (evidence file) | Plugin |
 |---|---|
@@ -50,22 +50,20 @@ Seventeen plugins, each earned by one signal:
 | composer.json require inertiajs/inertia-laravel OR package.json @inertiajs/* | inertia |
 | package.json dep react (and NOT react-native) | react |
 | package.json dep react-native | react-native |
-| package.json dep vue ^2 | vue2 |
-| package.json dep vue ^3 | vue3 |
+| package.json dep vue ^3 (lockfile counts as evidence) | vue3 |
 | package.json dep next | nextjs |
 | package.json dep nuxt | nuxt |
-| package.json dep typescript OR tsconfig.json exists | typescript |
-| package.json exists AND no typescript dep (devDependencies counts) AND no tsconfig.json | javascript |
 | package.json dep express OR fastify OR @nestjs/core | node-backend |
 | package.json dep vite (devDependencies counts) | vite |
 | .env DB_CONNECTION=mysql OR mysql docker image | mysql |
 | mariadb docker image or DSN | mariadb |
 | pgsql/postgres DSN or docker image | postgresql |
 
-When the vue major is ambiguous (constraint spans majors, or lock and manifest
-disagree), ask via AskUserQuestion: "Vue 3 (Recommended)" / "Vue 2" — never
-guess. Headless: suggest neither vue plugin; add a report line naming the
-ambiguous constraint instead.
+Vue 2, plain JavaScript, and TypeScript map to no plugin — those plugins were
+removed after baseline testing (rationale/stack-skill-baselines.md). On a vue
+^2 dep or an ambiguous vue major (constraint spans majors, or lock and
+manifest disagree), suggest nothing for vue; add one report line naming the
+constraint — never guess vue3 from an ambiguous signal.
 
 `sql` has no tier-1 signal and stays in the universal set — it is a
 cross-engine floor referenced by the per-dialect skills, not a stack pick.
@@ -113,10 +111,13 @@ Print one table:
 2. For each pick, run via Bash:
 
    ```bash
-   claude plugin install <name>@cc-plugins-marketplace
+   claude plugin install <name>@cc-plugins-marketplace --scope local
    ```
 
-   That is the only install command form — no other syntax, no bundles here.
+   That is the only install command form — no bundles here. `--scope local`
+   keeps installs repo-only (`.claude/settings.local.json`, gitignored),
+   never user-global. With `--persist`, use `--scope project` instead — see
+   Flags below.
 3. Report per-plugin success or failure as each command finishes; a failure
    does not abort the remaining picks.
 4. Finish with a one-line summary: installed n, failed m, skipped k (already
@@ -132,15 +133,16 @@ Print one table:
   picker, with a hint to rerun without `--yes` to pick tier-2. The
   marketplace-add preflight prompt is unchanged by `--yes` — still asked
   interactively, and in headless mode with the marketplace absent, stop and
-  print the add instructions rather than installing anything. Ambiguous Vue
-  major installs neither vue plugin, same as without the flag. Full rules,
+  print the add instructions rather than installing anything. Full rules,
   the headless-marketplace-absent wording, and the hooks-may-activate-later
   note: `references/flags.md`.
-- `--persist` — after Install, writes the set actually installed this run
-  (picker picks, or the `--yes` tier-1 auto-set) into the project's
-  `.claude/settings.json` (`enabledPlugins` + `extraKnownMarketplaces`);
-  never the full detected set. Combinable with `--yes`. Full merge/create/
-  abort rules and the required commit-trust notice: `references/flags.md`.
+- `--persist` — switches installs this run to `--scope project` and ensures
+  the marketplace entry in the project's `.claude/settings.json`
+  (`enabledPlugins` via the CLI, `extraKnownMarketplaces` merged in) so
+  teammates who clone get the same set; covers only what actually installed
+  this run, never the full detected set. Combinable with `--yes`. Full
+  merge/abort rules and the required commit-trust notice:
+  `references/flags.md`.
 
 ## Boundaries
 

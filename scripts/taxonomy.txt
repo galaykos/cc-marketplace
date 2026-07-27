@@ -18,6 +18,7 @@ pipeline
 hooks
 governance
 suite
+product
 tooling
 research
 git

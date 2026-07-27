@@ -16,11 +16,13 @@ out of $ARGUMENTS first — the remainder is the path. Steps:
    nothing matches.
 4. Ask via AskUserQuestion (multiSelect) which not-yet-installed suggestions
    to install: "Install selected (Recommended)" — then run
-   `claude plugin install <name>@cc-plugins-marketplace` per pick and report
-   the results — / "Skip — report only". Headless: print the exact
-   install commands and stop. With `--yes`: skip this ask and auto-install
-   the tier-1 signal-backed, not-yet-installed picks per the skill's Flags
-   section instead.
-5. With `--persist`: after installing, write the plugins actually installed
-   this run into the project's `.claude/settings.json` per the skill's Flags
-   section (`references/flags.md` for the full rules).
+   `claude plugin install <name>@cc-plugins-marketplace --scope local` per
+   pick (repo-only, never user-global; `--scope project` when `--persist`
+   was passed) and report the results — / "Skip — report only". Headless:
+   print the exact install commands and stop. With `--yes`: skip this ask
+   and auto-install the tier-1 signal-backed, not-yet-installed picks per
+   the skill's Flags section instead.
+5. With `--persist`: after installing, verify the project's
+   `.claude/settings.json` carries the installed set and the marketplace
+   entry per the skill's Flags section (`references/flags.md` for the full
+   rules).

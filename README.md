@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 56 leaf plugins) exists for zero-setup convenience at ~10.6k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`, `product-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 56 leaf plugins) exists for zero-setup convenience at ~10.6k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -51,6 +51,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | `frontend-suite` | 17 | ~2.8k tokens |
 | `php-suite` | 6 | ~0.6k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
+| `product-suite` | 3 | ~0.3k tokens |
 
 Always-on context = the skill/command/agent descriptions every installed
 plugin adds to each session's context window, plus SessionStart hook output
@@ -70,11 +71,12 @@ Per-prompt hook output (UserPromptSubmit etc.) is dynamic and not counted —
 /plugin install everything@cc-plugins-marketplace
 
 # Or one category at a time:
-/plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, craft-layer, registry-source (MCP), React, Vue, TS, a11y
+/plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, craft-layer, registry-source (MCP), React, Vue, a11y
 /plugin install php-suite@cc-plugins-marketplace        # PHP, Laravel, Livewire, Inertia
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
 /plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, approaches, orchestration, task-runner…
+/plugin install product-suite@cc-plugins-marketplace    # payments, i18n, llm-app — product-domain disciplines
 
 ```
 
@@ -236,11 +238,12 @@ installing this plugin, or the same server is declared twice.
 |--------|-------------|----------|
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + its wired companions (tasks, engineering discipline, worker agents, ui-ux visual routing) | `/taskmaster-suite:uninstall` |
-| **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, craft-layer, registry-source (the component-registry MCP servers), design-preview, shadcn-studio, threejs, React, React Native, Vue 3, TypeScript, Vite, Inertia, Livewire, Next, Nuxt, JavaScript, web worker, a11y, skill-router | `/frontend-suite:uninstall` |
+| **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, craft-layer, registry-source (the component-registry MCP servers), design-preview, shadcn-studio, threejs, React, React Native, Vue 3, Vite, Inertia, Livewire, Next, Nuxt, web worker, a11y, skill-router | `/frontend-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
 | **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience (incl. error-handling + concurrency), packages, observability, comment-discipline | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches (incl. build-vs-buy, estimation, rollout, pattern-selection), hindsight, api-docs-first, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
+| **product-suite** | Meta-bundle: product-domain disciplines — payments (billing, webhooks, ledgers), i18n (ICU, Intl, RTL), llm-app (evals, RAG, prompt-injection defense) | `/product-suite:uninstall` |
 
 ## Usage
 

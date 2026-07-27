@@ -5,7 +5,9 @@ tsconfig.json, .env, Dockerfile/docker-compose — and suggest which
 cc-plugins-marketplace plugins to install, in two tiers: stack-matched (with the
 evidence file cited per suggestion) and the universal always-useful set. Already
 installed plugins are marked and skipped. Picked suggestions are installed via
-`claude plugin install <name>@cc-plugins-marketplace` after an explicit confirm.
+`claude plugin install <name>@cc-plugins-marketplace --scope local` after an
+explicit confirm — always repo-scoped, never the user's global scope
+(`--persist` upgrades the scope to `project` for team sharing).
 
 Doctrine: suggestions cite evidence — every stack-matched row names the manifest
 line that earned it, and nothing installs without your pick.
