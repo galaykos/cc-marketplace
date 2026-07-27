@@ -117,11 +117,10 @@ The failure mode is silent: two writers touch one file, the second write clobber
 ## Skill priming (authoring-time)
 
 A delegated implementer writes stack code in a fresh context: no inherited skill
-auto-loading, no `Skill` tool, and it cannot self-locate an installed skill (CWD is
-the user's project; skills live under `~/.claude/plugins/…`, so a project-CWD glob
-misses). Only the orchestrator can resolve the path — so it resolves and injects it.
-For each skill a card names in `Skills to apply` (and each `bestpractices-skill:` a
-worker declares in frontmatter):
+auto-loading, no `Skill` tool, and it cannot self-locate an installed skill (CWD is the
+user's project; skills live under `~/.claude/plugins/…`, so a project-CWD glob misses).
+Only the orchestrator can resolve the path, so it resolves and injects it — for each
+skill a card names in `Skills to apply`, and each `bestpractices-skill:` in frontmatter:
 
 1. **Resolve** dir `<name>`'s installed `SKILL.md` — same-plugin
    `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`, else
@@ -131,9 +130,8 @@ worker declares in frontmatter):
    source for this stack.`
 
 The delegate Reads the file by abs path (CWD-proof) — the canonical skill stays the
-single source of truth. Miss-floor: a card touching stack files but naming no skill
-gets `Read any *-best-practices skill matching the touched files`; `/<stack>:review`
-is the backstop.
+single source of truth. Miss-floor: a card touching stack files but naming no skill gets
+`Read any *-best-practices skill matching the touched files`; `/<stack>:review` backstops.
 
 ## Portable discipline preamble
 
@@ -148,7 +146,9 @@ the orchestrator Reads it and pastes it **verbatim** into every dispatch, and it
 - **Context-dependent prompts.** "Fix the thing we discussed" to an agent that was not in it — garbage back.
 - **Prose-essay returns.** Paragraphs where five `file:line` lines would do; you pay per token.
 - **Evidence-free "done".** A completion claim with no command output is a stopped agent, not a finished task.
-- **Uniform model for every stage.** Judge-tier prices for a rename sweep, or scout-tier effort on the final review.
 - **Blind fan-out.** N workers on a work-list nobody verified — collisions and gaps, found at merge.
 - **Two writers, one file.** The last write wins silently; the first writer's work vanishes without an error.
+- **Uniform model for every stage.** Judge-tier for a rename sweep, or scout-tier on the final review.
 - **Re-doing delegated work yourself.** Dispatching a search then running it inline — pay once, not twice.
+
+Fleet gaps, delegation retrofit, the apply-fixes contract: `references/fleet-and-apply.md`.

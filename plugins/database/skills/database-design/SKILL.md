@@ -10,6 +10,15 @@ the schema, how it migrates, what it indexes, and how connections and transactio
 shaped. Detect the engine and version before writing any SQL — read configs, DSNs,
 compose files, dependency manifests. A `.sql` file alone proves no dialect.
 
+## What this owns, and what `sql` owns
+
+The seam is **design vs statement**. This skill decides the SHAPE that persists —
+tables, keys, types, the migration sequence, pooling and transaction boundaries.
+`sql-best-practices` decides how a STATEMENT against that shape is written, and goes
+deeper on every one of those topics. Where both could speak, this skill defers; a rule
+stated in both would drift, and on a "review this query" prompt four descriptions
+already match at once (`sql`, `database`, plus the engine skills).
+
 ## Schema
 
 - **Normalized by default.** Third normal form until a *measured* read pattern says
@@ -43,25 +52,20 @@ compose files, dependency manifests. A `.sql` file alone proves no dialect.
 >    `name` in a later deploy. A one-step `RENAME COLUMN` breaks every running old
 >    instance the instant it lands.
 
-## Indexing
+## Indexing as a design decision
+
+Index *logic* — how the planner uses a composite, what defeats one — is
+`sql-best-practices` § Indexing logic. What belongs to schema design:
 
 - **Driven by real query patterns you have seen**, not speculation. An index on the
   wrong column is write-cost with no read-benefit; profile the query, read the plan.
-- **Composite column order** matches predicate selectivity and sort needs — the
-  leftmost columns are the ones filtered on equality, then ranges, then sort.
 - **Remove nothing without checking what reads it.** A "redundant" index may be the
   only thing keeping a report query off a full scan.
 - Every foreign key that is filtered or joined on wants an index; the constraint does
   not create one on its own in every engine.
 
-## Query shape
-
-- **Sargable predicates** — no functions wrapping an indexed column
-  (`WHERE lower(email) = …` defeats the index on `email`); compute the other side.
-- **No N+1 loops** — batch or join instead of a query per row; count queries per
-  request, not per iteration.
-- **Keyset pagination over `OFFSET`** for large result sets — `OFFSET 100000` scans
-  and discards 100000 rows every page.
+Statement shape — sargable predicates, N+1, keyset vs `OFFSET` pagination — is
+`sql-best-practices` (§ Sargable predicates, § Pagination) and is not restated here.
 
 ## Connections and transactions
 
@@ -83,7 +87,7 @@ compose files, dependency manifests. A `.sql` file alone proves no dialect.
 
 - Constraints present in the DB, not just the app; every FK filtered/joined is indexed.
 - Migrations reversible or explicitly flagged irreversible-with-backup.
-- No sargability-defeating predicates on hot queries; no `OFFSET` deep pagination.
+- Hot-query statement shape passes `sql-best-practices` (sargability, pagination).
 - Pool size reconciled against the server's connection ceiling.
 
 ## Defer rule
@@ -102,6 +106,5 @@ compose files, dependency manifests. A `.sql` file alone proves no dialect.
 - **Destructive migration in one step** — DROP without expand/contract, no rollback.
 - **Speculative indexes** — indexing columns no query filters on; write cost for
   nothing.
-- **`OFFSET` deep-pagination** — linear scan per page on large tables.
 - **Default pool size** — copied from a tutorial, unrelated to this database's limits.
 - **Long transaction across I/O** — locks held over a network call, blocking writers.

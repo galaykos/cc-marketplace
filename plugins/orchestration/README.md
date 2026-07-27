@@ -22,11 +22,12 @@ shared apply-fixes contract).
 
 ## How it works
 
-Three discipline skills load on demand: **delegation-contracts** when
-dispatching subagents or reading their reports back, **verification-panels**
+Two discipline skills load on demand: **delegation-contracts** when
+dispatching subagents or reading their reports back, and **verification-panels**
 when deciding whether an agent's findings can be trusted or judging competing
-attempts, and **agent-conventions** when naming a new agent or arbitrating
-which reviewer fires on an edit. A fourth, **ultra-assess**, is armed by a
+attempts. Naming a new agent, and arbitrating which reviewer fires on an edit,
+belong to `claude-authoring`'s **authoring-agents** skill. A third,
+**ultra-assess**, is armed by a
 UserPromptSubmit hook: writing "ultra-assess" in a prompt injects the Extreme
 Boost directive for assessment-shaped runs — inventory, audit, gap-analysis —
 escalating reasoning subagents to a fixed auto/xhigh tier (the session model or
@@ -56,4 +57,4 @@ orchestrator after fan-in**:
 - **task-runner** — the parallelize-or-inline verdict and execution loop these contracts feed
 - **taskmaster** — produces the card indices with parallel groups that the review command audits
 - **code-architecture** — task-orchestration decomposes the work these contracts then dispatch
-- **claude-authoring** — scaffolds new agents that agent-conventions keeps in taxonomy
+- **claude-authoring** — owns agent authoring: the naming taxonomy and PROACTIVE-trigger arbitration live in its `authoring-agents` skill
