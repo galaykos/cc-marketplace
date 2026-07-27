@@ -67,12 +67,25 @@ const REGISTRIES = {
     item: (n) => `https://magicui.design/r/${n}.json`,
     note: 'animated marketing components, shadcn-compatible',
   },
-  reui: {
-    index: 'https://api.github.com/repos/keenthemes/reui/contents/registry-reui/_meta/components',
-    item: null,
-    github: 'keenthemes/reui',
-    note: 'MIT source on GitHub — reui.io/r/* requires a paid licence key and is deliberately NOT used here',
-  },
+  /* NO `reui` ENTRY — AND THE REMOVAL IS THE POINT.
+   *
+   * One shipped here pointing at a GitHub contents path. A survey pass ran it
+   * and got three items back: `{dir:1, file:2}`. It was listing a DIRECTORY,
+   * not components, and would have reported that registry as holding 3 things.
+   *
+   * The comment directly above this table already forbade exactly that — "a
+   * half-working entry teaches the model the registry is broken rather than
+   * that it is paid" — and the entry was added anyway, in the same file, in the
+   * same commit. Writing a rule does not enforce it; that is the whole reason
+   * this plugin exists rather than another paragraph telling a model to check.
+   *
+   * ReUI is served by its OWN MCP server, declared beside this one in the
+   * plugin's `.mcp.json` and authenticated by a browser sign-in the user
+   * completes. That server answers with a typed breakdown — components,
+   * examples, blocks, icons — which is strictly better than anything a
+   * credential-free scrape could produce. Two paths to one registry, one of
+   * them lossy, is how a build ends up quoting the wrong number with a source
+   * attached. */
 }
 
 const CACHE_DIR = join(homedir(), '.cache', 'claude-registry-source')
