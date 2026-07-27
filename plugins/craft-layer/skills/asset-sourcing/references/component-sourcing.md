@@ -212,20 +212,42 @@ Grid, Container Scroll and Tracing Beam — the generic hover-card. Its own note
 registry as holding "~60". It had never counted, and the estimate it substituted was off by
 a factor of four in the direction that made the pick look reasonable.
 
-**Every number that run stated about a registry was wrong, including the corrections.** It
-then read the other registry's marketing page and reported "1051 components"; the registry's
-own server answers **20** — the published figure counts components plus examples plus icons
-plus blocks. Three passes, three wrong counts, each one confidently sourced from whatever
-was nearest. A count is not a thing to recall or to read off a homepage banner: it is a
-thing to ask the registry for.
+**Then it got the count wrong twice more, in opposite directions, and the second time it had
+the live server open.** It read the other registry's site and reported "1051 components".
+Corrected against that registry's own MCP to "20, and the 1051 counts everything". Both
+wrong. The server's stats block says:
+
+```
+{"total":2125,"counts":{"block":492,"example":1051,"icon":562,"component":20}}
+```
+
+1051 was exactly right — **as the example count**. 20 was exactly right — **as the component
+count**. Neither figure was ever in dispute; the NOUN was. And the correction was made by
+calling a tool named `list_components`, reading its `20`, and treating a deliberately scoped
+answer as a total — while the tool holding the whole breakdown sat one call away.
+
+**So the discipline is not "look it up", which had already been done.** It is: name the type
+you are counting, and get the number and the noun from the same response. A registry with
+four item types and one banner figure will hand a confident wrong answer to anyone who does
+not say which type they meant — and a precise tool will do the same, because a scoped count
+looks exactly like a total once it is out of context. Ask for the breakdown, quote it whole.
 
 **Registries differ by ARCHETYPE, not just by house style, and that is a sourcing decision.**
-Read live: one registry's free tier is 20 components and they are `data-grid`, `kanban`,
-`gantt`, `event-calendar`, `filters`, `stepper`, `tree` — an app/CRM surface. The other's 270
-are heroes, parallax, bento, scroll reveals and backgrounds — a marketing surface. Pointing a
-landing page at the app registry, or a dashboard at the marketing one, produces a build that
-fights its source the whole way. Match the registry to the archetype in
-`../../creative-direction/references/archetypes.md` before matching a component to a slot. Nothing was wrong with the pick in isolation. What was wrong is
+Read live: one registry's 20 components are `data-grid`, `kanban`, `gantt`, `event-calendar`,
+`filters`, `stepper`, `tree` — an app/CRM surface, with its marketing sections sold as
+premium blocks. The other's 270 are heroes, parallax, bento, scroll reveals and backgrounds —
+a marketing surface, free. Pointing a landing page at the app registry, or a dashboard at the
+marketing one, produces a build that fights its source the whole way. Match the registry to
+the archetype in `../../creative-direction/references/archetypes.md` before matching a
+component to a slot.
+
+**And check what a tier actually reaches, per item type, before planning around it.** On the
+app registry's free tier a `badge` example search returns free `c-*` results and a `chart`
+example search returns ZERO — because `chart` is not one of the 20 free components, so
+nothing built on it is free either. The gate is not "examples are free"; it is "an example is
+as free as the component under it". A build that plans a data section around a registry's
+chart examples, having read that examples are free, discovers the gap after the section is
+designed. Nothing was wrong with the pick in isolation. What was wrong is
 that the alternatives were never enumerated: the run worked from what it could RECALL of
 the registry instead of from what the registry CONTAINS, and recall is biased toward
 whatever is most common, which is the definition of the default this plugin exists to
