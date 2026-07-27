@@ -1,6 +1,7 @@
 [
   {
     "chassis": "optout",
+    "file": "commands/review.md",
     "reason": "Bespoke hotspot/cache-correctness review format predating the fable payload; measurement-driven structure distinct from the checklist-shaped stack-review chassis."
   },
   {

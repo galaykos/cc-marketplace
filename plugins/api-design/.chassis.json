@@ -1,4 +1,5 @@
 {
   "chassis": "optout",
+  "file": "commands/review.md",
   "reason": "Bespoke REST/OpenAPI surface review that cites multiple stack-specific best-practice skills at once; not single-skill stack-review shaped."
 }

@@ -240,18 +240,32 @@ if [ -f "$CREW" ]; then
 fi
 
 # Chassis generated-header gate: every chassis-shaped file — commands/review.md,
-# commands/uninstall.md, hooks/remind.sh — must EITHER carry the generate.sh header
-# OR have its plugin's .chassis.json declare an optout entry (object OR array form).
-# Neither header nor an optout manifest (or no manifest at all) means the deterministic
-# stamper never ran or was bypassed — drift the regenerate-and-diff gate must catch.
+# commands/uninstall.md, commands/check.md, hooks/remind.sh — must EITHER carry the
+# generate.sh header OR be named by an optout entry in its plugin's .chassis.json
+# (object OR array form). Neither means the deterministic stamper never ran or was
+# bypassed — drift the regenerate-and-diff gate must catch.
+#
+# The optout must name the file it exempts. The earlier test was
+# `any(.chassis=="optout")` over the WHOLE manifest, so ONE opt-out entry exempted
+# all four chassis-shaped kinds at once: api-docs-first and build-vs-buy each hand-
+# maintain commands/check.md while generating hooks/remind.sh, and a hand-edit that
+# stripped the header off remind.sh would have been silently covered by check.md's
+# exemption. An unscoped optout is now an error, not a blanket.
 for f in plugins/*/commands/review.md plugins/*/commands/uninstall.md plugins/*/commands/check.md plugins/*/hooks/remind.sh; do
   [ -f "$f" ] || continue
   grep -q 'generated from templates/' "$f" && continue
-  man="$(dirname "$(dirname "$f")")/.chassis.json"
-  if [ -f "$man" ] && jq -e '([.]|flatten)|any(.chassis=="optout")' "$man" >/dev/null 2>&1; then
+  pdir="$(dirname "$(dirname "$f")")"
+  man="$pdir/.chassis.json"
+  rel="${f#$pdir/}"
+  if [ -f "$man" ] && jq -e --arg r "$rel" \
+       '([.]|flatten)|any(.chassis=="optout" and .file==$r)' "$man" >/dev/null 2>&1; then
     continue
   fi
-  err "$f: chassis-shaped file has no generated header and no optout in .chassis.json (run scripts/generate.sh --write)"
+  if [ -f "$man" ] && jq -e '([.]|flatten)|any(.chassis=="optout" and (has("file")|not))' "$man" >/dev/null 2>&1; then
+    err "$man: optout entry has no \"file\" — scope it to the chassis-shaped file it exempts (e.g. \"file\": \"$rel\"), or one exemption silently covers all four kinds"
+    continue
+  fi
+  err "$f: chassis-shaped file has no generated header and no matching optout in .chassis.json (run scripts/generate.sh --write, or add {\"chassis\":\"optout\",\"file\":\"$rel\",\"reason\":\"…\"})"
 done
 
 # Chassis agent-file header gate: every plugins/*/.chassis.json worker-agent object
