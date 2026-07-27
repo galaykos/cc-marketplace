@@ -57,7 +57,7 @@ command -v jq >/dev/null 2>&1 || exit 0
   base=${path##*/}
   strong=""
   case "$base" in
-    current.html | theme.html | walkthrough.html | diagram.html | api.html) strong=basename ;;
+    current.html | theme.html | walkthrough.html | diagram.html | api.html | modules.html | compose.html) strong=basename ;;
   esac
   case "$path" in
     */taskmaster-docs/mockups/*) strong=path ;;

@@ -28,7 +28,7 @@ POLL_INTERVAL_SECONDS = 0.75
 KEEPALIVE_SECONDS = 15
 LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 # Reserved per-purpose destinations other flows write to (see the landing map).
-PER_PURPOSE_FILES = ("theme.html", "walkthrough.html", "diagram.html", "api.html")
+PER_PURPOSE_FILES = ("theme.html", "walkthrough.html", "diagram.html", "api.html", "modules.html", "compose.html")
 # The ledger is the dated-pass history ONLY. A per-purpose file is a live
 # destination, not a past pass of current.html, so offering it as a restorable
 # version would let one click overwrite the decision page with the theme page.
