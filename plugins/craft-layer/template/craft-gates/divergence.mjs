@@ -597,6 +597,144 @@ const lineAt = (src, idx) => src.slice(0, Math.max(0, idx)).split('\n').length
 const BUYER = { plainwhat: 'plain-what', plainlanguagewhat: 'plain-what', audience: 'audience', problem: 'problem' }
 const METHOD = new Set(['howitworks', 'objection'])
 
+/* ------------------------------------------------------- composition shape */
+
+/* THE AXIS NOBODY WAS CHECKING.
+ *
+ * The deck draws FIVE axes and four of them land somewhere a gate can see:
+ * colour behaviour has accent-default-band and hue-repeat, type role has
+ * font-anti-corpus and font-repeat, motion role is the craft-reviewer's job,
+ * graphic-system class is a `maximal` reach floor. Axis 1 — COMPOSITION
+ * STRATEGY — had nothing, and draw-repeat does not close that hole: it grades
+ * the recorded draw STRING against the run history, so it proves the words are
+ * new and never that the page was built the way they say.
+ *
+ * The failure that produced this check: a run drew "Placed clusters" — discrete
+ * positioned groups on an open canvas instead of a running flow — and shipped
+ * `mx-auto max-w-5xl` eleven times in a running flow, which is "Centred spine",
+ * a DIFFERENT option on the same axis. Every assertion passed. The one axis with
+ * no gate was the one that collapsed, and it collapsed to the shape a model
+ * reaches for when nothing argues otherwise: one measure, no exceptions. The
+ * reviewer's words for it were "it looks like a blog post".
+ *
+ * SO THIS MEASURES SHAPE, NOT COMPLIANCE. It deliberately does NOT parse the
+ * drawn option and hunt for that option's signature: eight options would need
+ * eight signature tables, each one a fresh way to be wrong, and a wrong
+ * signature table fails correct pages. It asks the blunter question the failure
+ * actually poses — did this page commit to ANY spatial structure at all?
+ *
+ * Two conditions, and it bites only when BOTH hold, so a build with real
+ * structure ANYWHERE clears it:
+ *
+ *   1. ONE MEASURE — the dominant `mx-auto max-w-*` container accounts for 70%+
+ *      of all such containers. A page of full-bleed panels or an asymmetric
+ *      split does not read this way; a stacked document does.
+ *   2. NO ESCAPES — positioned, spanning and bleeding elements number fewer than
+ *      one per two sections. Layered depth, off-axis fields and placed clusters
+ *      all REQUIRE these; a running flow uses none.
+ *
+ * Vertical rhythm is measured and REPORTED but is not a fail condition. On the
+ * page that motivated this check the rhythm was the weakest of the three signals
+ * (py-12/20/28, three values, 67% dominant) while the page was unmistakably one
+ * shape — rhythm variety is cheap and buys no structure, so gating on it would
+ * have taught builders to sprinkle padding values.
+ *
+ * A PAGE WITH NO FIXED MEASURE AT ALL PASSES, and says why: zero `mx-auto
+ * max-w-*` containers is the opposite of this failure, not a severe case of it.
+ *
+ * A CENTRED SPINE IS A LEGITIMATE DRAW AND THIS GATE FAILS IT. That is on
+ * purpose, and it is what the waiver lane is for — draw the axis, build the
+ * spine, write the waiver with the reason. What must never happen silently is
+ * the page that never decided.
+ */
+
+const ESCAPE_RE = /\b(?:absolute|sticky|fixed|col-span-\w|row-span-\w|col-start-\w|row-start-\w|inset-|w-screen|clip-path|mix-blend-|grid-area)/g
+const CLASS_RE = /class(?:Name)?\s*=\s*(?:"([^"]*)"|'([^']*)'|\{\s*`([^`]*)`\s*\})/g
+
+/* THE PAGE, NOT THE HARNESS. `sourceFiles()` walks everything shipped, which is
+   right for the register gate — copy is copy wherever it lives — and wrong here.
+   A Playwright spec that ASSERTS on layout quotes every utility this check
+   counts, so the first run of this gate scored the test file at 8 escapes and
+   PASSED the very page it was written to catch. Tests, stories, scripts and
+   config describe the page; they are not it. */
+const NOT_THE_PAGE = /(?:^|\/)(?:tests?|__tests__|e2e|spec|specs|stories|scripts|config|mocks?|fixtures?)\//i
+const NOT_THE_PAGE_FILE = /\.(?:spec|test|stories|config|d)\.[jt]sx?$/i
+const isPage = (p) => !NOT_THE_PAGE.test(rel(p)) && !NOT_THE_PAGE_FILE.test(p)
+
+const MIN_SECTIONS = 5
+const MEASURE_DOMINANCE = 0.7
+
+function compositionShape() {
+  const all = sourceFiles(process.cwd())
+  const files = all.filter(isPage)
+  if (!files.length) {
+    return record('composition-shape', 'SKIP',
+      all.length ? `all ${all.length} source file(s) look like tests/scripts, not page source`
+        : 'no shipped source files found to measure')
+  }
+
+  const measures = new Map()
+  const rhythm = new Map()
+  let sections = 0
+  let escapes = 0
+
+  for (const f of files) {
+    let src
+    try { src = readFileSync(f, 'utf8') } catch { continue }
+    sections += (src.match(/<section\b/gi) ?? []).length
+    for (const m of src.matchAll(CLASS_RE)) {
+      const cls = m[1] ?? m[2] ?? m[3] ?? ''
+      /* Escapes are counted ONLY inside class strings. Counting them file-wide
+         scores the word "absolute" in a prose comment as spatial structure —
+         which is how a page carrying one positioned element reported four. */
+      escapes += (cls.match(ESCAPE_RE) ?? []).length
+      if (/\bmx-auto\b/.test(cls)) {
+        const w = /\bmax-w-(\[[^\]\s]+\]|[a-z0-9]+)/.exec(cls)
+        if (w) measures.set(w[1], (measures.get(w[1]) ?? 0) + 1)
+      }
+      /* Only SECTION-scale padding. `py-2` is a button and `py-4` is a nav row;
+         counting them reports a rhythm variety the page's structure never had. */
+      for (const p of cls.matchAll(/\bpy-(\d+)\b/g)) {
+        if (Number(p[1]) >= 10) rhythm.set(p[1], (rhythm.get(p[1]) ?? 0) + 1)
+      }
+    }
+  }
+
+  if (sections < MIN_SECTIONS) {
+    return record('composition-shape', 'SKIP',
+      `only ${sections} <section> element(s) found (${MIN_SECTIONS} needed) — too little page to have a shape`)
+  }
+
+  const total = [...measures.values()].reduce((a, b) => a + b, 0)
+  const rhythmDesc = [...rhythm.entries()].sort((a, b) => b[1] - a[1])
+    .map(([v, n]) => `py-${v}×${n}`).join(', ') || 'none at section scale'
+
+  if (!total) {
+    return record('composition-shape', 'PASS',
+      `no fixed \`mx-auto max-w-*\` measure anywhere across ${sections} section(s) — the page commits to `
+      + `full-width structure rather than to a document column (rhythm: ${rhythmDesc})`)
+  }
+
+  const [topMeasure, topCount] = [...measures.entries()].reduce((a, b) => (b[1] > a[1] ? b : a))
+  const share = topCount / total
+  const escapeFloor = sections / 2
+  const oneMeasure = share >= MEASURE_DOMINANCE
+  const noEscapes = escapes < escapeFloor
+
+  const shape = `max-w-${topMeasure} on ${topCount}/${total} containers (${Math.round(share * 100)}%), `
+    + `${escapes} escape(s) across ${sections} section(s), rhythm: ${rhythmDesc}`
+
+  settle('composition-shape', oneMeasure && noEscapes, topMeasure,
+    `the page never committed to a spatial structure: ${shape}. One measure carries `
+      + `${Math.round(share * 100)}% of containers (>=${MEASURE_DOMINANCE * 100}% is "one measure") and there are `
+      + `fewer than one positioned/spanning/bleeding element per two sections (<${escapeFloor.toFixed(1)}). `
+      + `That is a stacked document, which is what a build lands on when the composition axis is drawn `
+      + `and then not built. Read the drawn Axis 1 option in the divergence record and BUILD it — or, if a `
+      + `centred spine is the deliberate answer, waive this check with that reason. `
+      + `Reproduce: grep -roh 'class[N]*ame="[^"]*mx-auto[^"]*"' . | grep -oE 'max-w-[a-z0-9]+' | sort | uniq -c`,
+    `the page carries spatial structure — ${shape}`)
+}
+
 /* ------------------------------------------------------------------ run */
 
 const notes = []
@@ -840,6 +978,10 @@ console.log(`register corpus:    ${registerCorpus.source}`)
 console.log(`register corpus:    ${registerCorpus.kind} · ${registerCorpus.rules.length} patterns · ${registerCorpus.date}`)
 spineRegister(registerCorpus)
 craftStamp()
+/* Reads SOURCE only, so like the register assertion it runs BEFORE the token
+   resolution below and its verdict survives an exit-2 run. A page whose CSS
+   lives somewhere unusual is not a page whose SHAPE goes unmeasured. */
+compositionShape()
 
 /** Print what IS measured before a not-measured exit, so the register verdict is
     never swallowed by a missing token source. */
@@ -958,14 +1100,50 @@ else {
 }
 
 /* (iii) a shipped family is an anti-corpus entry -------------------------- */
+
+/* THE ANTI-CORPUS WAS LATIN-ONLY, SO EVERY OTHER SCRIPT HAD NO DEFAULT.
+ *
+ * The registry names Inter and Geist — the faces a generated page reaches for
+ * first. That list is correct and it is entirely Latin, and the matcher below
+ * needs the shipped family name to appear IN the registry text, so no wording
+ * in a markdown bullet can cover a family-per-script.
+ *
+ * A Hebrew build shipped "Noto Sans Hebrew Variable" and passed clean. Noto is
+ * Google's universal-coverage fallback set: `Noto Sans <script>` is what an
+ * unstyled page renders in for that script, what the CLI installs, and what a
+ * model names when asked for "a font that supports <script>". It is Inter's
+ * exact role in every writing system Latin does not own — the category default,
+ * arrived at by not choosing.
+ *
+ * So the Noto rule lives in CODE rather than in the registry text, and it is a
+ * PATTERN over the family name rather than a list, because the list would need
+ * one row per script and would be wrong the day a script was missing.
+ *
+ * This is waivable and often SHOULD be waived: for some scripts the quality
+ * alternatives are few or none, and Noto is then a real choice rather than a
+ * default. A waiver with that reason is the difference — same as a centred
+ * spine in `composition-shape`. What must not pass silently is the build that
+ * never looked. */
+const NOTO_DEFAULT = /^\s*Noto\s+(?:Sans|Serif|Naskh|Nastaliq|Kufi|Rashi)\b/i
+
 if (!families.length) record('font-anti-corpus', 'SKIP', `no non-generic font-family declared in ${cssFiles.join(', ')}`)
 else {
-  const hit = families.find((f) =>
+  const listed = families.find((f) =>
     new RegExp(`(^|[^A-Za-z])${f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^A-Za-z]|$)`, 'i').test(anti.familyText))
+  const noto = families.find((f) => NOTO_DEFAULT.test(f))
+  const hit = listed ?? noto
   settle('font-anti-corpus', !!hit, hit ?? '',
-    hit ? `"${hit}" is an anti-corpus family in the ${anti.kind} (${anti.date}) — the category default, `
-      + `not a derived spec. Reproduce: grep -rn "font-family" ${cssFiles.join(' ')}` : '',
-    `shipped families [${families.join(', ')}] are not anti-corpus entries`)
+    listed
+      ? `"${listed}" is an anti-corpus family in the ${anti.kind} (${anti.date}) — the category default, `
+        + `not a derived spec. Reproduce: grep -rn "font-family" ${cssFiles.join(' ')}`
+      : `"${noto}" is the per-script category default. Noto is Google's universal-coverage `
+        + `fallback set: \`Noto Sans <script>\` is what an unstyled page renders in, what the CLI `
+        + `installs, and what gets named when the brief asks for "a font that supports" the `
+        + `script — it is Inter's role outside Latin, and it is arrived at by not choosing. `
+        + `Pick a face with a real argument behind it, or waive this with the reason (for some `
+        + `scripts the alternatives are genuinely few, and that is a decision worth recording). `
+        + `Reproduce: grep -rn "font-family" ${cssFiles.join(' ')}`,
+    `shipped families [${families.join(', ')}] are not anti-corpus entries and none is a Noto per-script default`)
 }
 
 /* (iv) a shipped family repeats one of the last 5 runs -------------------- */

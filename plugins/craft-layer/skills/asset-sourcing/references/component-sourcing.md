@@ -201,6 +201,47 @@ mis-positioned key — plus its own assertion beside the two existing repeat che
 both exist this is a recorded decision, not a gate — and the cheap half is already worth
 having, because a decision nobody recorded cannot be diverged from later.
 
+## Survey the registry before picking from it — recorded, not gated
+
+The section above asks WHICH registry. This one asks how much of it the run actually saw,
+and it is the half that decides whether a registry buys structure or decoration.
+
+A run briefed on two named registries shipped **one** component from a ~60-component
+registry and **four** primitives from a 1051-component one, and picked, from a catalogue
+holding Hero Parallax, Sticky Scroll Reveal, Bento Grid, Container Scroll and Tracing Beam,
+the generic hover-card. Nothing was wrong with the pick in isolation. What was wrong is
+that the alternatives were never enumerated: the run worked from what it could RECALL of
+the registry instead of from what the registry CONTAINS, and recall is biased toward
+whatever is most common, which is the definition of the default this plugin exists to
+leave. The same run guessed a registry URL, took a 401, and concluded the library was
+licence-gated — it was not; its 1000+ components are free — because a guess had stood in
+for a listing.
+
+**Enumerate, then pick.** Before the class decision in "The four classes" runs for a
+surface, the run needs the registry's actual index in front of it, not its memory of one:
+
+- **The shadcn MCP server is the cheap way** and it works with any shadcn-compatible
+  registry — `npx shadcn@latest mcp init --client claude`, with third-party registries
+  declared in `components.json` under `registries` (`{"@acme": "https://…/{name}.json"}`).
+  It exposes search and view, so "what does this registry have for a hero" becomes a query
+  rather than a recollection.
+- **Without MCP, fetch the registry index** (`/registry.json`, the components listing page)
+  and read it. A fetch that fails escalates the same way research does — and a 401 on a
+  guessed path is evidence about the PATH, never about the licence.
+
+**Record the survey on the build task**: which registries were listed, roughly how many
+components were in scope, and what was picked. Two lines. The point is not an audit trail
+for its own sake — it is that a run which writes `surveyed: 60, picked: 1` has been made to
+notice the ratio, and a run that never counted cannot notice anything.
+
+**No script gates this, and none can.** "Components considered" leaves no trace in the
+shipped tree; only the picked ones ship. This binds the BUILD and is checkable by the
+`craft-reviewer` agent only insofar as the build task records it. Treat a maximal-ambition
+build that drew one generic block from a registry full of structural ones as an under-reach
+— and note that it will not surface as a component finding, it will surface as
+`composition-shape` failing in `../../../template/craft-gates/divergence.mjs`, because the
+structure those unseen components would have carried is exactly what that check measures.
+
 ## An unrestyled block is a finding
 
 A class-3 block on a surface the visitor reads, or a class-2 block that kept the

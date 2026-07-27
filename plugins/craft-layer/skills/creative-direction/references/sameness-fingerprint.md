@@ -63,6 +63,16 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - the two-family serif-display-over-grotesque-text pairing, when it is reached for as the
   house move rather than derived. This is a SHAPE, not a family: a build can diverge on
   both families and still be repeating the pairing strategy.
+- **the per-script default face — `Noto Sans <script>` and its siblings.** Everything above
+  this line is Latin, and that was the whole gap: a Hebrew build shipped Noto Sans Hebrew and
+  cleared the check, because Inter's ROLE in a non-Latin script is played by a different name.
+  Noto is Google's universal-coverage fallback set — what an unstyled page renders in, what
+  the CLI installs, and what gets named when a brief asks for "a font that supports" a script.
+  It is chosen by not choosing, which is the definition this section uses. Enforced as a
+  PATTERN in `template/craft-gates/divergence.mjs` rather than as rows here, because a list
+  would need one entry per writing system and would be wrong the day one was missing. For
+  some scripts the quality alternatives are genuinely few — waive it with that reason, and
+  the waiver is the argument this section asks for.
 - `type-strategy.md` reads this list the way `palette-strategy.md` reads the hues below.
 
 ### Recent palette hues (avoid repeating)
