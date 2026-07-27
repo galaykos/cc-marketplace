@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.85.0"
+    "version": "0.86.0"
   },
   "plugins": [
     {
@@ -337,7 +337,7 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, intent-drift guarding (intent-guard), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "everything",
@@ -375,24 +375,9 @@
       "description": "LLM application engineering: eval harnesses and regression gates (evaluate, don't eyeball), RAG pipelines (chunking, embeddings, retrieval quality + re-ranking, grounding and citation), prompt versioning, prompt-injection defense, token-cost control, and context management — a firing llm-app skill and a /llm-app:review command. Defers provider API specifics to the claude-api skill."
     },
     {
-      "name": "intent-guard",
-      "source": "./plugins/intent-guard",
-      "description": "Lean, warn-only drift and corner-cutting guard for a coding agent. Anchors one declared intent X (with criteria) per session, injects a single continuous UserPromptSubmit reminder to review your diff before you call work done, and drives a drift-review diff-review-at-done against the session-base commit — an independent reviewer subagent when running top-level, honest self-review inside a subagent. No completion-blocking hook and no per-action ceremony; every output is advisory. Fills the mid-run intent-vs-action seam between coverage-check (entry) and work-verification (exit). Three warn-only hooks (UserPromptSubmit capture, PostToolUse note, Stop summary) plus the drift-review skill. Includes /intent-guard:intent and /intent-guard:status. Not tamper-proof and not a security boundary — cooperative and defeatable by an agent with shell access; it raises the visibility cost of casual drift, not an adversary."
-    },
-    {
       "name": "ultra-deep-research",
       "source": "./plugins/ultra-deep-research",
       "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Writes the report inline and to research/<topic>-<date>.md."
-    },
-    {
-      "name": "reuse-guard",
-      "source": "./plugins/reuse-guard",
-      "description": "Warn-only reuse-hygiene guard so a cooperating agent does not build on dead code. Two-tier by design. Tier 1 — language-agnostic ambient reuse-a-corpse: a PostToolUse hook greps incoming edits for references to symbols in a session-cached deprecated-symbol set (union of @deprecated / #[deprecated] / [Obsolete] / DEPRECATED-style markers) and warns once on a hit, silent otherwise. Tier 2 — on-demand /reuse-guard:check [symbol|path]: per-language dead-code tool shellout plus export-aware orphan / reachability detection and a full deprecated-reference report. Not tamper-proof and not a security boundary — a heuristic string match, warn-only, and defeatable by anyone with shell access; it raises the visibility of casual reuse-of-dead-code, not an adversary. Precision lives in the Tier-2 command, not the ambient hook."
-    },
-    {
-      "name": "compaction-advisor",
-      "source": "./plugins/compaction-advisor",
-      "description": "Advice-only nudge to run /compact when a session grows long. A UserPromptSubmit hook counts user turns per session and, on a repeating 50-turn interval, prints one line suggesting /compact if an early chunk is no longer relevant to the current task — the model judges relevance from the nudge text. Resets on SessionStart source=compact|clear so it never nags right after a compaction or a context clear. Single self-healing state file per working tree, warn-only and fail-open: any error exits 0 silently, a corrupt or foreign-session state file re-seeds rather than going silent. No token API, no byte-size thresholds, and it never runs /compact itself — the user decides."
     },
     {
       "name": "threejs",

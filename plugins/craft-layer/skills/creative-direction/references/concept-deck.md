@@ -208,10 +208,44 @@ What kind of AUTHORED graphic the build owns.
 - **Declared none** — the build ships no graphic system and says so; layout and type carry
   everything, and the absence must be argued.
 
+## The concept fork — a human picks between draws
+
+The draw fixes the room; it does not fix the concept generated inside it. So the dispatch
+returns **2–3 candidates rather than one**, and a person chooses. Variety a human picked
+beats variety a model reports having produced.
+
+Run the fork at **every tier, `one-shot` included.** Present each candidate as
+{ the five-axis draw · central metaphor · editorial voice · signature interaction } and ask
+which one the build runs on with a single `AskUserQuestion`.
+
+**That one call carries a second question**, never a second call, so it adds no exchange to
+a `one-shot` run: does copy for this page already EXIST (the live site, a doc, a deck), or
+does the build ship visible `{{lorem}}` slots? A URL or path the brief ALREADY named is a
+supplied input, not a question — read it without asking. The rules binding ingested copy
+are in `content-source.md`.
+
+**The fork forks on CONCEPT** — the spine and the signature move — never on three shades of
+one accent. `/ui-ux:theme` already forks on colour at its own step, and a second colour fork
+here buys nothing.
+
+Three degenerate cases, each with a defined answer:
+
+- **Headless, unattended, or unanswered** — auto-pick the top-scored candidate and record
+  `source: auto` on the chosen row, the same lane a `guided` ledger already uses, so an
+  unattended choice stays reviewable instead of invisible. Copy defaults to
+  `source: none-located` and visible `{{lorem}}` slots — never invented copy.
+- **Fewer than 2 candidates clear the usability floor** — there is nothing to fork BETWEEN,
+  so do NOT ask. Inherit the weak-round path: regenerate once, then return the winner
+  flagged `low-confidence` for human review.
+- **A candidate is chosen** — its draw is the one persisted, logged and gated. The unchosen
+  draws are discarded, not kept as alternates.
+
 ## Anti-patterns
 
 - **Choosing instead of drawing** — reading the deck and picking the combination that feels
   right; that reproduces the attractor the deck exists to escape.
+- **Forking on one candidate** — presenting a single concept as a choice. A fork with one
+  arm is a report, and the fork exists precisely to stop that.
 - **Redrawing until it is comfortable** — one redraw per axis, with a recorded reason. A
   second redraw is a choice wearing a draw's clothes.
 - **Treating the draw as the design** — shipping the five option names as if they were a

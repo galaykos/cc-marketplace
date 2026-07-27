@@ -21,10 +21,10 @@ All current marketplace plugins (69 today) install as dependencies, grouped here
 - **Data** — sql, mysql, mariadb, postgresql, database: engine-specific and engine-agnostic schema and query review
 - **APIs & architecture** — api-design (incl. graphql-grpc skill), api-docs-first, system-design (incl. event-driven skill), code-architecture, design-patterns: contract, topology, and structure review
 - **Delivery** — taskmaster, task-runner, git-workflow, code-review, testing, debugging, dev-env, devops, rollout: spec-to-ship pipeline and its gates
-- **Quality & safety** — security (incl. data-privacy + api-auth skills), secret-scanning, packages, performance, resilience, error-handling, concurrency, observability, intent-guard, reuse-guard: audits that catch defects before they ship
+- **Quality & safety** — security (incl. data-privacy + api-auth skills), secret-scanning, packages, performance, resilience, error-handling, concurrency, observability: audits that catch defects before they ship
 - **Process** — approaches, build-vs-buy, estimation, docs-upkeep, hindsight: decision and learning loops around the work
 - **Browser automation** — playwright, puppeteer, automation-builder: driving real browsers and building automations on them
-- **Claude tooling** — claude-authoring, orchestration, skill-router, brain, plugin-scout, stack-scan, compaction-advisor, ultra-deep-research, llm-app: extending and steering Claude Code itself
+- **Claude tooling** — claude-authoring, orchestration, skill-router, brain, plugin-scout, stack-scan, ultra-deep-research, llm-app: extending and steering Claude Code itself
 - **Domain** — payments, i18n: payment-integration and internationalization review
 
 Prefer a themed slice instead? The focused bundles — php-suite, frontend-suite,

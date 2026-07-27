@@ -8,7 +8,7 @@ taskmaster-docs
 !.claude/settings.json
 # Session tooling state must never ship inside a plugin. The rule above is
 # root-anchored (a mid-pattern slash anchors to the .gitignore dir), so nested
-# .claude/ dirs were never matched — which is how six intent-guard/compaction
-# files got committed into plugins/craft-layer/. Enforced in scripts/validate.sh.
+# .claude/ dirs were never matched — which is how six per-session state files
+# got committed into plugins/craft-layer/. Enforced in scripts/validate.sh.
 plugins/**/.claude/
 .playwright-mcp/

@@ -39,4 +39,3 @@ auto-installed.
 
 - **taskmaster-suite** — spec and task-card pipeline whose output these reviews gate
 - **git-workflow** — full-suite verification before merge/PR when a branch finishes
-- **intent-guard** — keeps the session diff aligned with the declared task intent
