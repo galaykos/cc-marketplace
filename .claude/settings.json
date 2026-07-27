@@ -4,16 +4,33 @@
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/authoring-guard.sh" }
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/authoring-guard.sh"
+          }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/done-gate.sh" }
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/done-gate.sh"
+          }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "taskmaster-suite@cc-plugins-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "cc-plugins-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "galaykos/cc-marketplace"
+      }
+    }
   }
 }
