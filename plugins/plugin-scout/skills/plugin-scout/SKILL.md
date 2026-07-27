@@ -83,14 +83,13 @@ catalog is the source of truth and stays in sync as plugins change.
 
 Print one table:
 
-| Plugin | Tier | Evidence | Installed |
-|---|---|---|---|
-| laravel | 1 | composer.json: laravel/framework ^11 | — |
-| debugging | 2 | universal | ✓ |
+| # | Plugin | Tier | Evidence | Installed |
+|---|---|---|---|---|
+| 1 | laravel | 1 | composer.json: laravel/framework ^11 | — |
+| 2 | debugging | 2 | universal | ✓ |
 
-- Evidence cites file and dependency (e.g. `composer.json: laravel/framework
-  ^11`); tier-2 rows just say "universal".
-- Installed column: ✓ when `claude plugin list` shows it, — otherwise.
+- Evidence cites file and dependency; tier-2 rows just say "universal".
+  Installed column: ✓ when `claude plugin list` shows it, — otherwise.
 - Exclude plugin-scout itself and every bundle (everything and all `*-suite`)
   from the table.
 - When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite installs
@@ -101,12 +100,14 @@ Print one table:
 
 ## Install
 
-1. Without `--yes`: ask via AskUserQuestion with multiSelect over the
-   not-yet-installed suggestions, tier-1 picks listed first and
-   pre-described with their evidence: "Install selected (Recommended)"
-   framing, plus a "Skip — report only" option. Headless: print the exact
-   install commands for every not-installed suggestion instead of running
-   anything, then stop.
+1. Without `--yes`: the numbered report table is the picker surface —
+   selection is by row, unbounded by AskUserQuestion's 4-option cap. Ask
+   one multiSelect question: "Install recommended set" (every tier-1
+   pick, named with its evidence; omitted when tier-1 is empty) / "Skip —
+   report only"; any other rows are picked via Other as numbers and/or
+   names (comma-separated, ranges OK). Full selection contract:
+   `references/picker.md`. Headless: print the exact install commands for
+   every not-installed suggestion instead of running anything, then stop.
    With `--yes`: skip this picker — see Flags below for the auto-select set.
 2. For each pick, run via Bash:
 
@@ -118,11 +119,10 @@ Print one table:
    keeps installs repo-only (`.claude/settings.local.json`, gitignored),
    never user-global. With `--persist`, use `--scope project` instead — see
    Flags below.
-3. Report per-plugin success or failure as each command finishes; a failure
-   does not abort the remaining picks.
-4. Finish with a one-line summary: installed n, failed m, skipped k (already
-   installed).
-5. If `--persist` was passed, write the plugins actually installed this run
+3. Report per-plugin success or failure as each command finishes (a failure
+   does not abort the rest); finish with one line: installed n, failed m,
+   skipped k (already installed).
+4. If `--persist` was passed, write the plugins actually installed this run
    into the project's settings — see Flags below.
 
 ## Flags
