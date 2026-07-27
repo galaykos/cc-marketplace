@@ -77,6 +77,19 @@ Published by Vercel Labs; `npx -y skills <command>`.
 - Installs symlink into agent directories by default (`--copy` to copy)
   and are tracked in `skills-lock.json` at the project root.
 
+## TTY picker escape hatch
+
+For very long tables an unbounded interactive multi-select ships at
+`scripts/pick.sh` (fzf with TAB-toggle when available, else a numbered
+prompt with ranges). It needs a real TTY, which model-run Bash lacks, so
+the flow is: write the eligible rows to a scratch file as
+`<number><TAB><label>` lines, print the exact
+`! bash <absolute path to pick.sh> <rows file>` command for the user to
+run themselves (the `!` prefix runs it user-side and its output lands in
+the conversation), then read the returned `PICKED: <numbers>` line and
+treat those numbers as row picks. Offer it when rows exceed two pages
+(>32); never require it.
+
 ## Why no --yes / auto-install exists
 
 plugin-scout auto-installs its tier-1 picks under `--yes` because those

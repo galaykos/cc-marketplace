@@ -101,12 +101,12 @@ Print one table:
 ## Install
 
 1. Without `--yes`: offer rows as explicit options at maximum density —
-   one AskUserQuestion call holds up to 4 multiSelect questions x 4
-   options (16 slots); page further calls until every suggestion was
-   offered. Tier-1 picks lead the first page with their evidence; one
-   slot per call is "Stop — skip remaining"; Other always accepts
-   numbers/names/ranges against the numbered table. Full contract:
-   `references/picker.md`. Headless: print the exact install commands
+   one call holds 4 multiSelect questions x 4 options (16 slots); page
+   until every eligible suggestion was offered. Installed rows are never
+   options; rows overlapping an installed plugin's category sort last.
+   Tier-1 leads the first page with evidence; one slot per call is
+   "Stop — skip remaining"; Other accepts numbers/names/ranges. Full
+   contract: `references/picker.md`. Headless: print install commands
    for every not-installed suggestion instead, then stop.
    With `--yes`: skip this picker — see Flags below for the auto-select set.
 2. For each pick, run via Bash:

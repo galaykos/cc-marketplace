@@ -33,7 +33,23 @@ non-suggestion. Two rules close that failure mode:
 - Reserve exactly one option slot per call: **"Stop — skip remaining"**
   on the last question. Picking it ends the picker; rows already selected
   on any page still install. Selecting nothing on a page just advances.
-- Already-installed rows are never offered — they are not choices.
+
+## Eligibility and ordering
+
+- **Installed is not a choice.** Before the first page, validate the
+  suggestion list against `claude plugin list` AND the dependency lists
+  of any installed suite bundle (a leaf an installed suite provides is
+  installed in effect — check the suite's `plugin.json` dependencies).
+  Filtered rows keep their ✓ table row for inventory but never appear as
+  a picker option; picked via Other anyway, they are skipped and counted
+  as "skipped (already installed)".
+- **Overlap deprioritizes, never hides.** A row whose catalog keywords
+  intersect an installed plugin's keywords is a potential conflict: it
+  sorts to the final pages within its tier, and its option description
+  names the overlap (e.g. "overlaps installed code-review"). It is still
+  offered — deprioritization orders pages, full coverage decides them.
+  Tier-1 evidence outranks overlap: a signal-backed pick stays on the
+  first page even when it overlaps something installed.
 
 ## Other as the bulk channel
 
@@ -51,6 +67,19 @@ line) — it never substitutes for offering a row.
 - "Stop — skip remaining" combined with row picks on the same page: the
   row picks install, the stop ends further paging — both honored, say so
   in one line.
+
+## TTY picker escape hatch
+
+For very long tables an unbounded interactive multi-select ships at
+`scripts/pick.sh` (fzf with TAB-toggle when available, else a numbered
+prompt with ranges). It needs a real TTY, which model-run Bash lacks, so
+the flow is: write the eligible rows to a scratch file as
+`<number><TAB><label>` lines, print the exact
+`! bash <absolute path to pick.sh> <rows file>` command for the user to
+run themselves (the `!` prefix runs it user-side and its output lands in
+the conversation), then read the returned `PICKED: <numbers>` line and
+treat those numbers as row picks under the same rules as Other. Offer it
+when suggestions exceed two pages (>32 rows); never require it.
 
 ## Boundaries
 

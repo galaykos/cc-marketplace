@@ -23,8 +23,11 @@ Steps:
 4. Run the picker per the skill's Install section: max density — each
    AskUserQuestion call fills 4 multiSelect questions x 4 options (16
    slots), one "Stop — skip remaining" slot per call, paging until every
-   row was offered; Other takes numbers and/or `source/skillId` (ranges
-   OK). No recommended-set option: nothing on skills.sh is vetted. Headless:
+   eligible row was offered. Installed rows are never options;
+   overlap-with-installed rows sort last, overlap named. Other takes
+   numbers and/or `source/skillId` (ranges OK); >32 rows, offer the
+   `scripts/pick.sh` TTY picker per `references/mechanics.md`. No
+   recommended-set option: nothing on skills.sh is vetted. Headless:
    print the exact `npx -y skills add <owner>/<repo> --skill <skillId> -y`
    commands and stop. There is no auto-install flag — see the skill's
    Boundaries.

@@ -17,8 +17,11 @@ out of $ARGUMENTS first — the remainder is the path. Steps:
 4. Run the picker per the skill's `references/picker.md` contract: max
    density — each AskUserQuestion call fills 4 multiSelect questions x 4
    options (16 slots), tier-1 picks first with evidence, one "Stop — skip
-   remaining" slot per call, paging until every not-installed suggestion
-   was offered; Other takes numbers/names/ranges as bulk picks. Then run
+   remaining" slot per call, paging until every eligible suggestion was
+   offered. Installed rows (including leaves an installed suite provides)
+   are never options; overlap-with-installed rows sort last, overlap
+   named. Other takes numbers/names/ranges as bulk picks; >32 rows, offer
+   the `scripts/pick.sh` TTY picker per the contract. Then run
    `claude plugin install <name>@cc-plugins-marketplace --scope local` per
    pick (repo-only, never user-global; `--scope project` when `--persist`
    was passed) and report the results. Headless: print the exact install
