@@ -100,12 +100,11 @@ done
 # NOT a `**` glob (globstar is off in scripts/) — with references/ INCLUDED (the 8
 # leaks lived there). Excludes the taskmaster + task-runner plugins, where these are
 # legitimate domain vocab. The `taskmaster-docs` PATH is a legitimate working-dir ref
-# in ~6 plugins and is deliberately NOT a pattern. Patterns use a portable boundary
-# `(^|[^[:alnum:]])` (BSD grep has no \b) and the singular `card ` shape so "discards"
-# and the plural "cards 03,05" pedagogy example stay clean. A line carrying an inline
-# `<!-- jargon-ok -->` marker is skipped, for a doc legitimately quoting the vocab.
-# Patterns, rescue list and honest-scope note live in scripts/lib/plugin-checks.sh
-# (pc_jargon), so this gate and its smoke fixtures share one source.
+# in ~6 plugins and is deliberately NOT a pattern.
+# The patterns themselves, the ordinary-English rescue list, the <!-- jargon-ok -->
+# escape and the honest-scope note all live in scripts/lib/plugin-checks.sh
+# (pc_jargon) — one source shared by this gate and its smoke fixtures. Do not
+# restate them here; two copies of a matcher is a guarantee one goes stale.
 while IFS= read -r mdf; do
   case "$mdf" in
     plugins/taskmaster/*|plugins/task-runner/*) continue ;;

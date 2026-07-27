@@ -45,18 +45,22 @@ pc_skill_budget() {
 # (1) a real leak sharing a line with a rescued phrase is missed; (2) unrescued
 # ordinary English in these shapes still false-positives, and the author's only
 # recourse is the <!-- jargon-ok --> marker.
-PC_JARGON='(^|[^[:alnum:]])(card #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
-# These shapes also match prose a plugin has every right to write, and did:
-# "Use a credit card 16 digits long" (payments), "The backlog of user stories is
-# groomed weekly" (estimation/rollout) and "finding #2 in the OWASP report"
-# (security) were all REJECTED before this rescue list existed.
-PC_JARGON_EN='(credit|debit|gift|payment|loyalty|graphics|SIM|library|report) card|card (number|reader|holder)|(product|sprint|issue|story|user|work) backlog|backlog of|(finding|smoke[ -]test) #?[0-9]+ (in|of|from) '
 pc_jargon() {
-  local f="$1" hit
+  local f="$1" hit jargon rescue
   [ -f "$f" ] || return 0
-  hit=$(grep -v '<!-- jargon-ok -->' "$f" \
-        | grep -ivE "$PC_JARGON_EN" \
-        | grep -iEo "$PC_JARGON" \
+  jargon='(^|[^[:alnum:]])(card #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
+  # Ordinary English that these shapes WOULD reject. No shipped plugin .md
+  # contains them — the gate would have failed CI — so these are probes from the
+  # task card, not observed leaks. Stating it that way keeps the claim inside
+  # its evidence, which is the same discipline the gate itself is about.
+  #   "Use a credit card 16 digits long."            (payments)
+  #   "The backlog of user stories is groomed."      (estimation / rollout)
+  #   "See finding #2 in the OWASP report."          (security)
+  #   "Run smoke test 3 in the regression suite."
+  rescue='(credit|debit|gift|payment|loyalty|graphics|SIM|library|report) card|card (number|reader|holder)|(product|sprint|issue|story|user|work) backlog|backlog of|(finding|smoke[ -]test) #?[0-9]+ (in|of|from) '
+  hit=$(grep -viF '<!-- jargon-ok -->' "$f" \
+        | grep -ivE "$rescue" \
+        | grep -iEo "$jargon" \
         | sed 's/^[^[:alnum:]]//' | sort -u | tr '\n' ',' | sed 's/,$//')
   [ -z "$hit" ] && return 0
   printf '%s\n' "$hit"

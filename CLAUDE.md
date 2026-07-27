@@ -50,8 +50,10 @@ in its own `recorded` tier, and saying so is the point.
   jargon (`card NN` / `Finding #N` / `smoke-test #N` / `the backlog`) in shipped
   plugin `.md` files (`references/` included), excluding the taskmaster + task-runner
   plugins; mark a line legitimately quoting the vocab with `<!-- jargon-ok -->`.
-- `scripts/check-version-bumps.sh` — a plugin whose files changed vs the base ref
-  must bump its `plugin.json` version (new plugins are exempt).
+- `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
+  vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
+  so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
+  `ROADMAP.md` — a typo fix there does not demand a semver bump.
 - `scripts/context-budget.sh` — BLOCKING per-leaf description-token gate vs the
   committed baseline (own CI step); accept intentional growth with
   `--update-baseline`, never in CI.
