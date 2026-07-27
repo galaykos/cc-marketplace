@@ -3,7 +3,7 @@ description: Grill a task to zero ambiguity, decide visuals with mockups, then e
 argument-hint: [task-description]
 ---
 
-<!-- Canonical pipeline — keep commands/taskmaster.md (the /taskmaster alias) in sync -->
+<!-- Canonical pipeline — commands/taskmaster.md is a thin alias that delegates here (validate.sh enforces its shape) -->
 
 Run the full taskmaster pipeline on $ARGUMENTS (if empty, ask for a one-paragraph task
 description first). Do not write implementation code at any step. If $ARGUMENTS is

@@ -16,5 +16,21 @@ Your authoritative checklist is the `tailwind-best-practices,shadcn-best-practic
    (labels, contrast, focus states, keyboard reachability), responsive behavior,
    idiomatic use of the stack (no fighting the framework), and layout-tool fit
    (Grid for 2D, Flexbox for 1D).
-3. Output one line per finding: `path:line — severity — problem — fix`.
-4. No praise, no scope creep, no formatting nits.
+
+## Defer rule
+
+- Component/view LOGIC (state, effects, data fetching) → the web-dev plugin's
+  frontend-reviewer; markup and styles only here.
+- Deep WCAG auditing beyond the basics above → `/a11y:audit`; flag, don't audit.
+- Theme token VALUES and palette generation → `/ui-ux:theme`.
+
+## Checklist before finishing
+
+- [ ] The styling stack was detected and its skill applied (or noted absent).
+- [ ] Every finding cites file:line and the rule or idiom it violates.
+- [ ] No component-logic findings smuggled in past the defer rule.
+
+Output: findings one line each — `path:line — severity — problem — fix` —
+severity-ordered (critical, high, medium, low), then a one-line coverage
+inventory of what was checked and what was skipped. No praise, no scope creep,
+no formatting nits.
