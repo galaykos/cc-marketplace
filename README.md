@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 66 leaf plugins) exists for zero-setup convenience at ~14.1k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 64 leaf plugins) exists for zero-setup convenience at ~14.1k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,10 +44,10 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 66 | ~14.7k tokens |
-| `taskmaster-suite` | 37 | ~8.8k tokens |
+| `everything` | 64 | ~14.7k tokens |
+| `taskmaster-suite` | 35 | ~8.8k tokens |
 | `process-suite` | 12 | ~2.2k tokens |
-| `quality-suite` | 16 | ~3.0k tokens |
+| `quality-suite` | 14 | ~3.0k tokens |
 | `frontend-suite` | 19 | ~4.6k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
@@ -211,12 +211,10 @@ installing this plugin, or the same server is declared twice.
 | **approaches** | Approach deliberation: 2–3 structurally different candidates, trade-off table, pick + kill-trigger + strategy catalog (tracer bullet, spike, strangler fig, inversion…) + auto-nudged opinion round (blind persona subagents: Standards Purist / Quality-over-Speed / Skeptic-Investigator → one-round pick) | `/approaches:compare`, `/approaches:opinions` |
 | **build-vs-buy** | Gate zero for generic capability: library/stdlib search, health table, take/wrap/write verdict, never-hand-roll list | `/build-vs-buy:check` |
 | **rollout** | Per-feature rollout: flags with removal dates, compat windows, expand-migrate-contract, staged exposure with gate metrics, rollback path before ship | `/rollout:plan` |
-| **resilience** | Failure-mode design at integration points: timeouts, safe retries + idempotency, circuit breaking, degradation, backpressure, delivery semantics | `/resilience:review` |
+| **resilience** | Failure-mode design at integration points: timeouts, safe retries + idempotency, circuit breaking, degradation, delivery semantics — plus the merged error-handling and concurrency audit disciplines | `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review` |
 | **docs-upkeep** | Doc drift prevention: README/changelog/ADR/API-doc sync in the same change that invalidated them | `/docs-upkeep:check` |
 | **packages** | Composer/npm dependency hygiene — constraints, lockfiles, audit triage, upgrade lanes | `/packages:audit` |
 | **observability** | Structured JSON logs + correlation IDs, log-level semantics, RED/USE metrics without cardinality bombs, trace propagation, symptom-based alerting, honest health checks | `/observability:review` |
-| **error-handling** | Crash on programmer errors, handle operational errors where you can act, typed errors over message matching, cause chains, one report per failure, no swallowed exceptions | `/error-handling:review` |
-| **concurrency** | Check-then-act races, optimistic vs pessimistic locking, idempotency keys, queue-consumer dedup under at-least-once, distributed locks with TTL + fencing, async parallel-write pitfalls | `/concurrency:review` |
 | **[comment-discipline](plugins/comment-discipline/README.md)** | Comments as information routing: facts go to names, types, tests and extracted functions; comments only for why-not-the-obvious-way, constraints with a ticket, intentional-silence markers, and what a signature cannot state — plus a warn-only PostToolUse hook | `/comment-discipline:review` |
 | **orchestration** | Subagent orchestration: delegation contracts, compressed returns, model tiering, refuter/judge panels, loop-until-dry | `/orchestration:review` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
@@ -249,7 +247,7 @@ installing this plugin, or the same server is declared twice.
 | **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, craft-layer, registry-source (the component-registry MCP servers), design-preview, shadcn-studio, threejs, React, React Native, Vue 3, TypeScript, Vite, Inertia, Livewire, Next, Nuxt, JavaScript, web worker, a11y, skill-router | `/frontend-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
-| **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience, packages, observability, error-handling, concurrency, comment-discipline | `/quality-suite:uninstall` |
+| **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience (incl. error-handling + concurrency), packages, observability, comment-discipline | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches, hindsight, build-vs-buy, rollout, docs-upkeep, estimation, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
 
 ## Usage

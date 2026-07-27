@@ -49,13 +49,13 @@ Output rules:
   - **Stack axis** — idiom detail is already loaded inline when the plugin is
     installed; when absent, name the plugin in the closing line rather than
     guessing its idioms.
-  - **Concern axis** — five plugins claim things step 2 also claims. When one is
+  - **Concern axis** — three plugins claim things step 2 also claims. When one is
     installed, IT owns that finding and this review does not duplicate it:
-    `error-handling` (empty/over-broad catches, swallowed exceptions, missing
-    cause chains), `concurrency` (check-then-act races, retry idempotency,
-    unguarded parallel writes), `observability` (silent catch blocks, correlation
-    IDs, secrets in logs), `resilience` (missing timeouts, unsafe retries, absent
-    degradation paths), `comment-discipline` (comment volume and placement).
+    `resilience` (missing timeouts, unsafe retries, absent degradation paths;
+    empty/over-broad catches, swallowed exceptions, missing cause chains;
+    check-then-act races, retry idempotency, unguarded parallel writes),
+    `observability` (silent catch blocks, correlation IDs, secrets in logs),
+    `comment-discipline` (comment volume and placement).
     Report the finding once and name the owner; when none is installed, this
     review keeps it. The swallowed catch alone had four claimants.
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer

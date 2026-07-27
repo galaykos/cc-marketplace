@@ -24,11 +24,9 @@ auto-installed.
 - **a11y** — WCAG 2.2 AA audit, one line per violation with the concrete fix, plus `/a11y:audit`
 - **debugging** — systematic root cause with evidence before any fix, plus `/debugging:debug`
 - **performance** — measure-first hotspot and cache-correctness review, plus `/performance:review`
-- **resilience** — timeouts, safe retries, and degradation paths at integration points, plus `/resilience:review`
+- **resilience** — timeouts, safe retries, and degradation paths at integration points, plus the merged error-handling (catches, cause chains) and concurrency (races, idempotency, locks) disciplines: `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review`
 - **packages** — composer/npm dependency hygiene and security-audit triage, plus `/packages:audit`
 - **observability** — structured logs, correlation IDs, metrics without cardinality bombs, plus `/observability:review`
-- **error-handling** — no swallowed exceptions, typed errors, preserved cause chains, plus `/error-handling:review`
-- **concurrency** — check-then-act races, idempotency, distributed-lock pitfalls, plus `/concurrency:review`
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
 
 | Command | What it does |

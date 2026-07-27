@@ -42,14 +42,12 @@ auto-installed.
 - **approaches** — compares structurally different approaches before implementation
 - **build-vs-buy** — existing-solution check before implementing a capability
 - **rollout** — flag strategy, exposure stages, and rollback path before shipping
-- **resilience** — failure-mode gap review: timeouts, retries, degradation
+- **resilience** — failure-mode gap review: timeouts, retries, degradation, plus the merged error-handling and concurrency audits
 - **docs-upkeep** — documentation drift scan with exact fixes
 - **estimation** — S/M/L/XL sizing with split recommendations
 - **a11y** — WCAG 2.2 AA audits of UI code
 - **packages** — dependency vulnerability and outdated-package audit
 - **orchestration** — delegation contracts and verification panels for fan-outs
-- **error-handling** — swallowed-exception and catch-block audits
-- **concurrency** — race, idempotency, and lock-hazard audits
 - **observability** — logging, correlation-ID, and silent-catch audits
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
 - **brain** — committed codebase map injected at session start

@@ -92,7 +92,7 @@ dispute can be reconstructed. "The webhook must have fired" is not an audit trai
 - Webhook *delivery* semantics as general messaging (idempotency, DLQ) →
   `system-design:event-driven`; this skill owns the payments-specific handling.
 - The general secret handling for API keys → `secret-scanning` / `security`.
-- Concurrency mechanics of the activation race → `/concurrency:review`.
+- Concurrency mechanics of the activation race → `/resilience:concurrency-review`.
 
 ## Anti-patterns
 

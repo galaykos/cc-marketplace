@@ -1,8 +1,7 @@
 ---
-description: Audit code for concurrency hazards — check-then-act races, missing idempotency on retried paths, unguarded parallel writes, locks without TTL or fencing — one line per finding.
+description: Audit error handling — empty or over-broad catches, swallowed exceptions, message-string branching, missing cause chains, internals leaking to users — one line per finding.
 argument-hint: [path-diff-or-design-doc]
 ---
-<!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
@@ -16,7 +15,7 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
    more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
    changed).
 
-3. Invoke the `concurrency-safety` skill from this plugin and apply its checklist across the
+3. Invoke the `error-handling-design` skill from this plugin and apply its checklist across the
    scope — cite the skill's rubric, do not restate it here.
 
 4. Report findings one line each, sorted by severity (critical, high, medium, low):
