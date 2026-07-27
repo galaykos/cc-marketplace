@@ -2,6 +2,11 @@
 
 > **Last verified: 2026-07-25.** Every KB figure and package name below has a shelf
 > life — runtimes are rewritten, players are replaced, and a stale number here is worse
+> **Dating volatile facts.** Any line asserting an observed fact that can rot — a
+> bundle-KB figure, a package's maintenance status, a browser-support claim — carries
+> a `Last verified: YYYY-MM-DD` header on its file. Policy statements and stable
+> identifiers do not. Re-verify before trusting a dated figure; the rationale is in
+> `rationale/craft-layer-design.md`.
 > than no number because it is quoted with confidence. This table once claimed the Rive
 > runtime was lighter than lottie-web when it is roughly three times heavier. Re-verify
 > against the library's own docs/changelog before quoting a literal, and move this date
@@ -15,7 +20,7 @@ Library idioms are NOT repeated here. This is the DECISION table only:
 - Motion / GSAP / anime.js API: `plugins/ui-ux/skills/motion-best-practices/SKILL.md`
   (+ `plugins/ui-ux/skills/motion-best-practices/references/animejs.md`).
 - Three.js / R3F correctness: `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
-- Sprite-sheet authoring: the `sprite-motion` skill.
+- Sprite-sheet authoring: `sprite.md`.
 
 ## A tier is named for the job, not the package that currently does it
 
@@ -41,7 +46,7 @@ to the decision itself and needs the argument that a sixth job exists.
 | **1 — UI state / layout** (Framer Motion — `motion`, `motion/react`) | React / Next UI state, layout animation, gestures, exit / enter transitions, micro-interactions | ≈ 34KB full; ≈ 2.6KB `motion/mini` `animate()` | Compositor-only (transform + opacity); layout via FLIP; no per-frame React state | `<MotionConfig reducedMotion="user">` tree-wide, or `useReducedMotion()` → opacity crossfade / final state | `animate()` from `motion/mini`, or plain CSS transitions for two-state tweens |
 | **2 — Timeline / SVG** (anime.js v4 — `animejs`, ESM) | Imperative multi-step timelines, SVG draw / morph / motion-path, staggered hero choreography; framework-neutral | ≈ 10–15KB tree-shaken (named imports only) | Main-thread JS tween loop; `waapi.animate` runs off the main thread on WAAPI | `createScope({ mediaQueries: { reduced: '(prefers-reduced-motion: reduce)' } })` → `utils.set(target, finalState)` | Import only used named exports; `waapi` variant or CSS `@keyframes` for simple loops |
 | **3 — 3D / WebGL** (Three.js / R3F — `three`, `@react-three/fiber`, `drei`) | Real 3D, WebGL background, product / model viewer, shader hero | ≈ 150KB+ core, more with R3F + drei — NEVER in the initial bundle; lazy-load only | GPU-bound; render-on-demand (no idle rAF), `setPixelRatio(min(dpr,2))`, dispose on unmount | Freeze `setAnimationLoop`, render one static frame (or swap to the poster image) | Static hero image / `<video poster>` as initial render; load the 3D chunk on viewport / interaction only. See `webgl-3d.md` |
-| **4 — Sprites / sprite-sheets** | Looping frame-by-frame character / mascot / pixel-art motion | ≈ one packed WebP/AVIF sheet ≤ 150KB (budget per sheet, not per frame) | Compositor-cheap: CSS `steps()` on `background-position`, or a throttled `requestAnimationFrame` frame advance | Pause the loop on a single poster frame (`animation-play-state: paused` / stop rAF) | Ship the static poster frame; defer the full sheet until idle / visible. Authoring: `sprite-motion` |
+| **4 — Sprites / sprite-sheets** | Looping frame-by-frame character / mascot / pixel-art motion | ≈ one packed WebP/AVIF sheet ≤ 150KB (budget per sheet, not per frame) | Compositor-cheap: CSS `steps()` on `background-position`, or a throttled `requestAnimationFrame` frame advance | Pause the loop on a single poster frame (`animation-play-state: paused` / stop rAF) | Ship the static poster frame; defer the full sheet until idle / visible. Authoring: `sprite.md` |
 | **5 — Vector** (Lottie / Rive) | Designer-authored illustrative motion — icons, mascots, empty states, onboarding loops — shipped as data rather than code | Runtime varies by player and is NOT interchangeable: `@lottiefiles/dotlottie-web` ≈ 50KB gz, `lottie-web` ≈ 60KB gz, `@rive-app/canvas` ≈ 200KB gz (it bundles a WASM renderer — the heaviest, not the lightest). PLUS the animation file: budget **≤ 100KB per animation**, and lazy-load the runtime | Main-thread SVG/canvas playback; canvas renderer over SVG for anything with many shapes; one player per surface | Stop the player and render the first/rest frame as a static poster | Export a static SVG/PNG of the rest frame and skip the runtime entirely below the fold. Detail: `vector.md` |
 
 ## Reading the budget
@@ -59,13 +64,13 @@ to the decision itself and needs the argument that a sixth job exists.
 ## The cumulative budget (combined motion JS)
 
 Per-tier KB is necessary but not sufficient — real surfaces combine tiers AND the sibling
-engines (scroll-orchestration's Lenis + ScrollTrigger, physics-motion, motion-sequencing,
+engines (scroll-orchestration's Lenis + ScrollTrigger, physics-motion,
 webgl-effects). Budget the COMBINED initial motion JS, not each piece alone:
 
 - **Baseline** for a motion-rich page: Lenis + ScrollTrigger + ONE tier. That is the
   affordable default.
-- **Every additional EAGER engine** — a second tier, physics (matter.js), sequencing
-  (`@theatre/core`), WebGL (three) — must justify its weight or **lazy-load off the
+- **Every additional EAGER engine** — a second tier, physics (matter.js),
+  WebGL (three) — must justify its weight or **lazy-load off the
   critical path** (on viewport / interaction, as tier 3 always does).
 - If the hero does not need an engine, do not ship it eagerly for a below-the-fold
   surface — split it out and load on approach.

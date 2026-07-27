@@ -11,7 +11,7 @@ of that choice. It does not author the asset, re-teach a runtime, or theme it. T
 jobs belong to neighbours — reference them by path, never restate:
 
 - Sprite-sheet / raster-frame authoring, and background video motion:
-  `plugins/craft-layer/skills/sprite-motion/SKILL.md`.
+  `plugins/craft-layer/skills/motion-tiers/references/sprite.md`.
 - Lottie-vs-Rive vector-motion playback + budget:
   `plugins/craft-layer/skills/motion-tiers/references/vector.md`.
 - Three.js / R3F 3D correctness and the Tier-3 poly/texture budget:
@@ -45,7 +45,7 @@ Answer in order; the first kind that matches routes the decision:
    mechanics by path).
 6. A **font** / typeface? → `kinetic-typography` (+ its `variable-fonts` reference)
    selects it; its LICENCE runs through the gate below.
-7. Background or inline **video**? → `sprite-motion` owns the motion; its LICENCE runs
+7. Background or inline **video**? → tier 4 (`motion-tiers`) owns the motion; its LICENCE runs
    through the gate below.
 
 Every kind then passes the two cross-cutting gates before it ships.
@@ -65,7 +65,7 @@ Every kind then passes the two cross-cutting gates before it ships.
   Lottie / `.riv` / video); reduced-motion + no-jank enter/exit are mandatory.
 - **Font** — selection defers to kinetic-typography; the gate carries its licence
   (SIL-OFL obliges shipping the licence text + Reserved-Font-Name).
-- **Video** — sprite-motion owns encode / poster / fallback; the gate carries its
+- **Video** — motion-tiers tier 4 owns encode / poster / fallback; the gate carries its
   licence.
 
 ## The source decision (six axes)
@@ -137,7 +137,7 @@ Both apply on top of the routed kind, on every asset:
 - **Shipping an asset** — this skill decides sourcing; it NEVER ships an actual icon
   set, model, or image. Ship an asset and it has become a catalog — stop and re-scope
   to categories + selection criteria.
-- **Re-teaching a neighbour** — copying sprite-motion, Vector-tier, threejs, or
+- **Re-teaching a neighbour** — copying motion-tiers, Vector-tier, threejs, or
   design-tokens content in here instead of citing it by path; any restated budget
   NUMBER or re-taught API is a finding.
 - **A shipped asset with no provenance** — a third-party or AI-assisted asset with no

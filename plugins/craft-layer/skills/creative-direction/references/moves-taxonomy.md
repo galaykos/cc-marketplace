@@ -25,7 +25,7 @@ move is available and when it fits; the concrete move is brief-derived.
 - **Motion signature** — the ONE interaction that is the brand's fingerprint (pointer
   field / magnetic pull / physics accent / WebGL surface / sprite character). When: it
   strengthens an affordance or the brand; one per build (see `interaction-fx`,
-  `webgl-effects`, `physics-motion`, `sprite-motion`, `motion-sequencing`).
+  `webgl-effects`, `physics-motion`, `motion-tiers` tier 4).
 - **Layout system** — the spatial logic (asymmetric grid / bento / editorial columns /
   canvas/free / split). When: the structure itself signals the concept.
 

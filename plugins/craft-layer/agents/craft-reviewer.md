@@ -31,7 +31,7 @@ without exception:
 
 1. **Identify what shipped.** Grep imports and entry points for every tier (Framer Motion,
    anime.js, Three.js/R3F, sprites, Vector) and sibling engine (scroll-orchestration,
-   page-transitions, interaction-fx, physics-motion, motion-sequencing, webgl-effects), and
+   page-transitions, interaction-fx, physics-motion, webgl-effects), and
    name the surface each drives. The checklist below is graded against that list.
 2. **Read the injected references before judging against them** — `motion-tiers` for budgets,
    and each reference the dispatch names for the gate that cites it. Do not restate their
@@ -81,8 +81,8 @@ without exception:
 - [ ] Every sprite/asset is within its size budget.
 - [ ] The accent clears contrast on every surface AND size — small text/marks resolve to the
       darker accent step on light surfaces (text ≥4.5:1, non-text marks ≥3:1).
-- [ ] page-transitions / webgl-effects / interaction-fx / physics-motion /
-      motion-sequencing each meet their done-ness mandate (step 8) when used.
+- [ ] page-transitions / webgl-effects / interaction-fx / physics-motion each meet
+      their done-ness mandate (step 8) when used.
 - [ ] The concept's divergence record breaks K sameness-fingerprint defaults on K DIFFERENT
       axes (K = 1 `restrained` / 2 `standard` / 3 `maximal`, from the contract's `Ambition`
       row), or a conventional design was explicitly requested; AND every entry it claims was

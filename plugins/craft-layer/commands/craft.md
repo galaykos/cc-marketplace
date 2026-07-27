@@ -145,12 +145,12 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
 
    Reach for the owning skill per call — each references its library by path, never re-teach. **Tier**
    (the base per-surface choice) → `motion-tiers`: Framer Motion, anime.js, Three.js/R3F, sprites
-   (`sprite-motion`), or the Vector tier (Lottie/Rive). **Scroll-driven** → `scroll-orchestration`; a
+   (tier 4), or the Vector tier (Lottie/Rive). **Scroll-driven** → `scroll-orchestration`; a
    scroll ACT's budget and three required states are in `references/scroll-acts.md`, and a
    play-forward sequence is an entrance, not a signature. **Route / page transitions** →
    `page-transitions` · **focal / variable-font type** → `kinetic-typography` · **pointer
-   micro-interactions** → `interaction-fx` · **real 2D physics** → `physics-motion` · **multi-track
-   choreography** → `motion-sequencing` · **postprocessing / shaders** → `webgl-effects` ·
+   micro-interactions** → `interaction-fx` · **real 2D physics** → `physics-motion` ·
+   **postprocessing / shaders** → `webgl-effects` ·
    **data-dense surfaces** → `information-design`.
 
    Then fold in the cross-cutting decisions: each tier's `prefers-reduced-motion` and reduced-bundle

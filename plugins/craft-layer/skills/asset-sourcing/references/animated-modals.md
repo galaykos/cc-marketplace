@@ -16,7 +16,7 @@ When a modal / overlay carries an animation, decide via `sourcing-decision.md`'s
   (`plugins/craft-layer/skills/motion-tiers/references/vector.md`) and record its licence
   (`licence-discipline.md`).
 - **Video** — a short overlay video defers sourcing / encoding to
-  `plugins/craft-layer/skills/sprite-motion/SKILL.md` and is under the licence gate.
+  `plugins/craft-layer/skills/motion-tiers/references/sprite.md` and is under the licence gate.
 
 ## Mechanics — cited, not taught
 
