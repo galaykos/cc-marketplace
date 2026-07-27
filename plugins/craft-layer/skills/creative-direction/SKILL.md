@@ -142,7 +142,7 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
 - **Concept dropped** — generating a concept the craft command never threads into the
   briefs; it evaporates and the build defaults.
 - **Router carries logic** — inlining a rubric, dial semantics, or anchors into this body
-  instead of its reference file; the body must stay a router within 100–150 lines.
+  instead of its reference file; the body must stay a router within 150 lines.
 - **Duplicating generation** — restating palette/token/mining rules here instead of routing
   to their owners.
 - **Idea catalog** — enumerating named moves or a template per archetype; ship categories,

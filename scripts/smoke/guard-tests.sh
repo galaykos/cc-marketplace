@@ -10,7 +10,7 @@ rc=0
 
 json() { jq -cn --arg p "$1" '{tool_input:{file_path:$p}}'; }
 
-check() { # $1 desc  $2 file_path  $3 want: budget|doc-location|none
+check() { # $1 desc  $2 file_path  $3 want: ceiling|doc-location|none
   local out ex body
   out=$(printf '%s' "$(json "$2")" | bash "$GUARD"; printf 'EXIT:%s' "$?")
   ex=${out##*EXIT:}; body=${out%EXIT:*}
@@ -27,12 +27,15 @@ check() { # $1 desc  $2 file_path  $3 want: budget|doc-location|none
 TMPSK="plugins/debugging/skills/_guardtest"; mkdir -p "$TMPSK"
 { echo '---'; echo 'name: _guardtest'; echo 'description: Use when testing the guard budget path with an over-length body.'; echo '---'; echo; for i in $(seq 1 170); do echo "l$i"; done; } > "$TMPSK/SKILL.md"
 CLEANSK="plugins/debugging/skills/_guardclean"; mkdir -p "$CLEANSK"
-{ echo '---'; echo 'name: _guardclean'; echo 'description: Use when testing the guard with an in-budget body that stays clean.'; echo '---'; echo; for i in $(seq 1 110); do echo "l$i"; done; } > "$CLEANSK/SKILL.md"
+# 40 lines, DELIBERATELY: this fixture is the regression guard for the removed
+# 100-line floor. At its old 110 lines it sat above the floor, so re-adding
+# `-lt 100` to pc_skill_budget would have kept every smoke test green.
+{ echo '---'; echo 'name: _guardclean'; echo 'description: Use when testing the guard with a short body that stays clean.'; echo '---'; echo; for i in $(seq 1 40); do echo "l$i"; done; } > "$CLEANSK/SKILL.md"
 STRAY="plugins/debugging/_guardstray.md"; echo "# stray" > "$STRAY"
 cleanup() { rm -rf "$TMPSK" "$CLEANSK" "$STRAY"; }
 trap cleanup EXIT
 
-check "over-budget SKILL" "$ROOT/$TMPSK/SKILL.md"                                   budget
+check "over-budget SKILL" "$ROOT/$TMPSK/SKILL.md"                                   ceiling
 check "stray plugin .md"  "$ROOT/$STRAY"                                            Non-functional
 check "clean SKILL"       "$ROOT/$CLEANSK/SKILL.md"                                 none
 check "non-plugin edit"   "$ROOT/src/app.ts"                                        none

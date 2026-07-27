@@ -120,8 +120,8 @@ other rules:
   plugin.json whose name matches (scripts/validate.sh, the marketplace-entry check);
 - every plugins/ directory is registered — no orphans
   (scripts/validate.sh, the orphan-directory check);
-- every SKILL.md has matching name, a description, and a 100–150 line
-  body (scripts/validate.sh, the SKILL.md body-budget check);
+- every SKILL.md has matching name, a description, and a body within the
+  150-line ceiling (scripts/validate.sh, the SKILL.md body-budget check);
 - every doc string shaped like /<plugin>:<command> names a registered
   plugin (scripts/validate.sh, the command-reference check);
 - every hooks.json parses and its scripts are executable

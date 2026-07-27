@@ -30,7 +30,7 @@
   case "$rel" in
     plugins/*/skills/*/SKILL.md)
       v=$(pc_skill_budget "$abs" 2>/dev/null) || \
-        warns="SKILL body ${v##* } lines — outside the 100-150 budget ($rel)"
+        warns="SKILL body ${v##* } lines — over the 150-line ceiling ($rel)"
       ;;
   esac
   case "$rel" in

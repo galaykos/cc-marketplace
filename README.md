@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 72 leaf plugins) exists for zero-setup convenience at ~14.7k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 69 leaf plugins) exists for zero-setup convenience at ~14.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -45,10 +45,10 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
 | `everything` | 69 | ~14.7k tokens |
-| `taskmaster-suite` | 37 | ~8.6k tokens |
-| `process-suite` | 13 | ~2.3k tokens |
-| `quality-suite` | 16 | ~2.6k tokens |
-| `frontend-suite` | 19 | ~2.6k tokens |
+| `taskmaster-suite` | 37 | ~8.8k tokens |
+| `process-suite` | 12 | ~2.2k tokens |
+| `quality-suite` | 16 | ~3.0k tokens |
+| `frontend-suite` | 19 | ~4.6k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
@@ -346,7 +346,7 @@ does land in the project is the asset provenance manifest (`ASSETS` / `CREDITS` 
 Genuinely optional, composed when present: **taskmaster** (`visual-decisions` for mockups, `experience-walkthrough` to walk the assembled page — and a taskmaster spec is consumed, never re-interrogated), **design-preview** / **shadcn-studio** (real-component option previews), **performance** (`/performance:review`, explicitly skipped when absent). Without any of these, guided options become written multiple-choice and every craft gate still runs.
 
 ```bash
-/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 13 more
+/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 14 more
 ```
 
 ## Contributing

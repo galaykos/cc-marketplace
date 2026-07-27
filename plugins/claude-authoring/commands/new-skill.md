@@ -1,5 +1,5 @@
 ---
-description: Scaffold a SKILL.md — trigger-rich description, 100–150 line body.
+description: Scaffold a SKILL.md — trigger-rich description, 150-line body cap.
 argument-hint: [skill-name] [purpose]
 ---
 
@@ -38,10 +38,10 @@ Scaffold a new skill from $ARGUMENTS. Steps:
    - TODO: the tempting-but-wrong moves this skill exists to prevent.
    ```
 
-   Line-budget guidance: inside this marketplace the validator requires the
-   body (every line after the closing `---`) to be 100–150 lines. Reach the
-   window by expanding the three sections with real guidance — more rules,
-   more worked examples, edge cases, a verification section — never with
+   Line-budget guidance: inside this marketplace the validator caps the body
+   (every line after the closing `---`) at 150 lines. There is no minimum —
+   stop when the rules are stated. If a section still needs depth, add real
+   guidance — more rules, worked examples, edge cases, verification — never
    filler prose or blank-line padding. Project skills created elsewhere have
    no such budget and may be shorter; keep them as tight as the content
    allows.
@@ -51,7 +51,7 @@ Scaffold a new skill from $ARGUMENTS. Steps:
    f=<path>/SKILL.md
    head -1 "$f" | grep -q '^---$' && echo frontmatter-opener-ok
    awk '/^---$/{c++; next} c==1' "$f" | grep -Eq '^(name|description):' && echo frontmatter-keys-ok
-   awk '/^---$/{c++; next} c>=2' "$f" | wc -l   # marketplace target: 100–150
+   awk '/^---$/{c++; next} c>=2' "$f" | wc -l   # marketplace ceiling: 150, no floor
    ```
 5. Offer the next step as a selectable choice (AskUserQuestion): "Load the
    authoring-skills skill and flesh out the TODOs now (Recommended)" /

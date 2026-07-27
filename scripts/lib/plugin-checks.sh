@@ -6,15 +6,61 @@
 # pc_skill_budget <skill_md_path>
 # On a body-length violation: prints "budget <path> <n>" and returns 1.
 # Clean or missing file: prints nothing, returns 0.
+#
+# CEILING ONLY (2026-07-27). The former 100-line FLOOR was removed: it failed the
+# build for a skill that said its piece in 60 lines, so bodies were padded up to
+# clear it — 58 of 139 skills sat pinned to a budget edge (35 at 100-109, 5 at
+# exactly 100, 23 at exactly 150). The floor manufactured the bloat the ceiling
+# exists to stop.
+#
+# LIMITATION (honest scope), two residuals:
+#   1. Nothing replaces the floor as a stub guard. validate.sh's description
+#      check reads the frontmatter `description:` line only and constrains body
+#      length in no way, so a 3-line body with a trigger sentence now passes
+#      every gate in this repo. Accepted, not covered.
+#   2. n=0 (missing or unterminated frontmatter — the `c>=2` awk emits nothing)
+#      now returns 0 instead of failing. This function is authoring-guard.sh's
+#      ONLY SKILL.md check, so a malformed SKILL.md draws no in-session warning;
+#      validate.sh's frontmatter-opener/terminator checks still catch it at CI.
 pc_skill_budget() {
   local f="$1" n
   [ -f "$f" ] || return 0
   n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
-  if [ "$n" -lt 100 ] || [ "$n" -gt 150 ]; then
+  if [ "$n" -gt 150 ]; then
     printf 'budget %s %s\n' "$f" "$n"
     return 1
   fi
   return 0
+}
+
+# pc_jargon <md_path>
+# Internal-taskmaster-vocabulary denylist with an ordinary-English rescue list.
+# On a hit: prints the comma-joined matches and returns 1. Clean: prints nothing,
+# returns 0. Lives here so validate.sh and the smoke fixtures share ONE source —
+# a fixture that re-declared the patterns would drift from the gate it tests.
+#
+# LIMITATION (honest scope): a heuristic denylist over prose with a rescue list,
+# not a parser. It converts "leak the internal vocabulary without noticing" into
+# "leak it in a form that does not read as ordinary English". Two residuals:
+# (1) a real leak sharing a line with a rescued phrase is missed; (2) unrescued
+# ordinary English in these shapes still false-positives, and the author's only
+# recourse is the <!-- jargon-ok --> marker.
+PC_JARGON='(^|[^[:alnum:]])(card #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
+# These shapes also match prose a plugin has every right to write, and did:
+# "Use a credit card 16 digits long" (payments), "The backlog of user stories is
+# groomed weekly" (estimation/rollout) and "finding #2 in the OWASP report"
+# (security) were all REJECTED before this rescue list existed.
+PC_JARGON_EN='(credit|debit|gift|payment|loyalty|graphics|SIM|library|report) card|card (number|reader|holder)|(product|sprint|issue|story|user|work) backlog|backlog of|(finding|smoke[ -]test) #?[0-9]+ (in|of|from) '
+pc_jargon() {
+  local f="$1" hit
+  [ -f "$f" ] || return 0
+  hit=$(grep -v '<!-- jargon-ok -->' "$f" \
+        | grep -ivE "$PC_JARGON_EN" \
+        | grep -iEo "$PC_JARGON" \
+        | sed 's/^[^[:alnum:]]//' | sort -u | tr '\n' ',' | sed 's/,$//')
+  [ -z "$hit" ] && return 0
+  printf '%s\n' "$hit"
+  return 1
 }
 
 # pc_doc_location <plugins_relative_md> <allow_regex>

@@ -42,7 +42,7 @@ jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
   || err "$MP: owner must be an object with a string .name"
 
 # Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
-# name: + description:, and a 100-150 line body
+# name: + description:, and a body within the 150-line ceiling (no floor)
 for d in plugins/*/skills/*/; do
   [ -d "$d" ] || continue
   f="${d}SKILL.md"
@@ -55,7 +55,7 @@ for d in plugins/*/skills/*/; do
   [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
   echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during)"
-  if lines=$(pc_skill_budget "$f"); then :; else err "$f: body is ${lines##* } lines, outside 100-150 budget"; fi
+  if lines=$(pc_skill_budget "$f"); then :; else err "$f: body is ${lines##* } lines, over the 150-line ceiling"; fi
 done
 
 # Commands need frontmatter with description:; agents additionally need name:
@@ -104,14 +104,14 @@ done
 # `(^|[^[:alnum:]])` (BSD grep has no \b) and the singular `card ` shape so "discards"
 # and the plural "cards 03,05" pedagogy example stay clean. A line carrying an inline
 # `<!-- jargon-ok -->` marker is skipped, for a doc legitimately quoting the vocab.
-JARGON='(^|[^[:alnum:]])(card #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
+# Patterns, rescue list and honest-scope note live in scripts/lib/plugin-checks.sh
+# (pc_jargon), so this gate and its smoke fixtures share one source.
 while IFS= read -r mdf; do
   case "$mdf" in
     plugins/taskmaster/*|plugins/task-runner/*) continue ;;
   esac
-  hit=$(grep -v '<!-- jargon-ok -->' "$mdf" | grep -iEo "$JARGON" | sed 's/^[^[:alnum:]]//' | sort -u | tr '\n' ',' | sed 's/,$//')
-  [ -n "$hit" ] \
-    && err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->"
+  hit=$(pc_jargon "$mdf") \
+    || err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->"
 done < <(find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \))
 
 # Every /plugin:command reference in docs must resolve to a listed plugin
@@ -162,9 +162,17 @@ if [ -f "$EV" ]; then
     printf '%s\n' "$evdeps" | grep -qx "$name" \
       || err "everything bundle missing dependency '$name' (must list every non-suite plugin)"
   done
-  rc=$(grep -oE 'all [0-9]+ plugins' README.md | grep -oE '[0-9]+' | head -1)
-  { [ -z "$rc" ] || [ "$rc" = "$nonsuite" ]; } \
-    || err "README says 'all $rc plugins' but there are $nonsuite non-suite plugins"
+  # Matches "all N plugins" AND "all N leaf plugins". The optional-word form is
+  # the point: the narrow original regex could not see README.md's actual wording
+  # ("all 72 leaf plugins"), so rc came back empty and the check passed vacuously
+  # — shipping the exact 72-vs-69 drift it was written to catch. A missing count
+  # is now an error too, not a silent pass.
+  rc=$(grep -oE 'all [0-9]+ (leaf )?plugins' README.md | grep -oE '[0-9]+' | head -1)
+  if [ -z "$rc" ]; then
+    err "README.md has no 'all N leaf plugins' count — the leaf-count claim must exist to be checkable"
+  elif [ "$rc" != "$nonsuite" ]; then
+    err "README.md's leaf count says $rc but there are $nonsuite non-suite plugins"
+  fi
 fi
 
 # Stack-authoring-gap guard: a worker agent declaring `bestpractices-skill: <dir[,dir]>`

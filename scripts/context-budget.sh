@@ -108,8 +108,23 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       baseline_tok="$b"
       delta=$((tokens - b))
       delta_str="$delta"
-      if [ "$delta" -gt 0 ]; then
-        warn_lines="${warn_lines}FAIL: $bname +$delta tok over baseline (intentional? re-baseline via --update-baseline)
+      # TOLERANCE=2 tokens per plugin, not zero.
+      #
+      # BASIS (a number with no stated basis is theater). The metric is bytes/4,
+      # so 2 tokens is an 8-byte edit — one short word. Every meaningful
+      # description change is larger: adding a trigger phrase costs 15+ bytes.
+      # At zero tolerance, fixing a 4-character typo in one description took
+      # i18n from 116 to 117 tokens and exited 1, freezing every description in
+      # the marketplace at its current byte length.
+      #
+      # LIMITATION (honest scope): this converts "any typo is a blocking budget
+      # failure" into "only real surface growth is". It does NOT bound aggregate
+      # drift — 76 plugins each drifting +2 is up to 152 tokens (~1% of the
+      # everything bundle) that no run reports. Accepted, not covered; the
+      # ratchet is per-plugin, and that is exactly what it means.
+      TOLERANCE=2
+      if [ "$delta" -gt "$TOLERANCE" ]; then
+        warn_lines="${warn_lines}FAIL: $bname +$delta tok over baseline (tolerance $TOLERANCE; intentional? re-baseline via --update-baseline)
 "
         fail=1
       fi
