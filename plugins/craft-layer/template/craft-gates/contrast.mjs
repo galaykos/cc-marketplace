@@ -5,11 +5,39 @@
    WCAG 2 is the conformance gate (per craft-layer theming-system/accent-system):
    APCA is not normative and WCAG 3 has not settled a contrast algorithm.
 
-   Run: node scripts/contrast.mjs
-*/
-import { readFileSync } from 'node:fs'
+   Run from the PROJECT ROOT, against the plugin's own copy — no vendoring needed:
+     cd <project> && node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs
 
-const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8')
+   WHY THE TOKEN SOURCE IS RESOLVED FROM `process.cwd()` AND NOT FROM THIS FILE.
+   It used to be `new URL('../src/index.css', import.meta.url)` — relative to the
+   SCRIPT — which silently made the gate work in exactly one layout: copied to
+   `<project>/scripts/`. Run any other way it read the PLUGIN's own template CSS,
+   or crashed. So the gate was coupled to being vendored, and vendoring is what
+   produces a stale snapshot that passes builds the current gate fails. Reading
+   from the working directory is what lets one copy of this file, in the plugin,
+   grade any project — and it matches how `divergence.mjs` has always resolved
+   its token source, including the same env override and candidate list. */
+import { readFileSync, existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const TOKEN_CANDIDATES = [
+  process.env.CRAFT_TOKEN_SOURCE,
+  'src/index.css',
+  'src/app.css',
+  'app/globals.css',
+  'resources/css/app.css',
+  'assets/css/main.css',
+].filter(Boolean)
+
+const cssPath = TOKEN_CANDIDATES.map((c) => resolve(process.cwd(), c)).find((p) => existsSync(p))
+if (!cssPath) {
+  console.error(`not measured: no token source found under ${process.cwd()}`)
+  console.error(`(tried ${TOKEN_CANDIDATES.join(', ')}) — set CRAFT_TOKEN_SOURCE to the CSS holding the tokens.`)
+  console.error('NOT MEASURED IS A FAILURE HERE: a gate that cannot see the build cannot clear it.')
+  process.exit(2)
+}
+console.log(`token source:       ${cssPath}`)
+const css = readFileSync(cssPath, 'utf8')
 
 function parseBlock(selector) {
   const i = css.indexOf(selector)

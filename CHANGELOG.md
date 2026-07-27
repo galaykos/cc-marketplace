@@ -4,6 +4,58 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.84.1] - 2026-07-27
+
+**registry-source** 0.2.0 — the plugin now ships ReUI's own MCP server alongside the local one.
+
+- **A marketplace has to DELIVER a capability, not describe one.** ReUI's hosted server
+  (`mcp.reui.io` — live search, real component APIs, exact install commands) is the right way
+  to read that registry, and it was first set up by hand with `claude mcp add`, which reaches
+  exactly nobody who installs this marketplace. Caught by the user with the question that
+  states the whole bug: *"this is a marketplace — how will he install MCP also?"* A plugin
+  shipping `.mcp.json` is the delivery mechanism; a README line saying "you could also add…"
+  is not.
+- **No credential is held anywhere in this repo.** The entry is unauthenticated until the user
+  runs `/mcp` → `reui` → **Authenticate**, a browser sign-in they complete themselves — the
+  same reason the local server refuses to carry a licence key. Until then it reports `Needs
+  authentication` and the local server still answers for Aceternity, shadcn and Magic UI, so
+  nothing is blocked on it. Headless environments add a personal token locally, never committed.
+- Anyone who added `reui` by hand should `claude mcp remove reui` once this plugin is
+  installed, or the same server is declared twice.
+
+## [0.84.0] - 2026-07-27
+
+New plugin: **registry-source** 0.1.0 — an MCP server that reads component registries from
+the source, because two skills already forbade working from memory and a run breached both
+anyway, three times in one session.
+
+- **The rules existed and did not fire.** `ui-ux/skills/reui-best-practices` says "never write
+  ReUI API details from memory"; `aceternity-best-practices` says "do not reconstruct the
+  component from memory". A run still estimated a registry at "~60 components" against an index
+  holding **270**, read a 401 on a paid install endpoint as proof the components were
+  unavailable, then read the vendor's marketing page as proof the endpoint was open. None of it
+  was disobedience — recall does not feel like breaking a rule, it feels like knowing something,
+  and the moment a check would have helped is the moment it feels least necessary. Prose cannot
+  fire there; a tool in the tool list can, because it makes fetching cheaper than remembering.
+- **A cache, deliberately not a scraped copy.** Scraping the registries once into a tidy file
+  puts the same bug one layer out, and this repo proved it twice: the hand-written inventory in
+  `aceternity-best-practices/references/aceternity.md` was five days old and said "100+" against
+  an actual 270, and the gate copied into a built project was already older than the plugin that
+  shipped it. So every answer carries `source`, `fetched_at`, `from` and `stale` beside the data
+  — same bytes on disk as a scraped copy, opposite epistemics. No cache and no network returns
+  *unreachable*, never a plausible reconstruction.
+- **`heavy` flags bundle cost before install** — `three`, `@react-three/*`, `three-globe`,
+  `cobe`, `@tsparticles/*`, `simplex-noise`. A registry index is the only place a build learns
+  what a block COSTS before installing it, which is what craft-layer's ambition floor 1 and its
+  "house motion must not satisfy a reach floor" clause both turn on.
+- **On the gated registry.** `reui.io/r/*` answers `Authentication required … Bearer
+  YOUR_LICENSE_KEY`. The server does not hold, request, forge or route a licence key, and points
+  at that project's own MIT repository instead — the licence working as written, not a
+  workaround. A paywall on a convenience API is a fact about paying for tooling; the LICENSE file
+  is the fact about the code.
+- Dependency-free: raw JSON-RPC over stdio, node built-ins only, so there is no npm step and
+  nothing to rot against an SDK.
+
 ## [0.83.0] - 2026-07-25
 
 New plugin: **comment-discipline** 0.1.1 — the marketplace had no owner for comment volume.

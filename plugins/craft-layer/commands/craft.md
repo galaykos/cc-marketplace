@@ -454,16 +454,43 @@ banner first, with its cost line.
    rather than about the build; per agent it is green over a subset while the ban is checked
    nowhere. `Banned vocabulary: none`, or no line at all, reports `not checked`, never a pass.
 
-   **Install the gate suite, then LOOK at what it captured.** The suite is
+   **RUN the gate suite from the plugin — do not copy it into the build.** The suite is
    `${CLAUDE_PLUGIN_ROOT}/template/craft-gates/` — `gates.spec.ts`, `contrast.mjs` and
-   `divergence.mjs`. When the project has no suite of its own, INSTALL it rather than
-   recommending it: copy all three in (the two `.mjs` files beside the project's other
-   scripts), `npm i -D @playwright/test @axe-core/playwright && npx playwright install
-   chromium`, and point it at the dev server step 6 already has up —
-   `BASE_URL=<that server> CRAFT_EXPECT_TITLE=<the contract's product name> npx playwright
-   test`, then `node scripts/contrast.mjs` and
-   `node scripts/divergence.mjs`. No second server and no second capture path: the surface
-   the build is running on is the one the pictures are taken from.
+   `divergence.mjs`. None of them needs to LIVE in the project to grade it: the two `.mjs`
+   gates resolve their token source and their artifact paths from `process.cwd()`, and the
+   spec is driven by `BASE_URL` and reads no project file at all. So running the PLUGIN'S
+   copy from the project root is equivalent to running a vendored one, and needs no copy to
+   exist:
+
+   ```
+   cd <project> && CLAUDE_PLUGIN_ROOT=<craft-layer root> \
+     node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs
+   ```
+
+   **A copied gate is a snapshot, and a stale gate is worse than no gate** — it reports green
+   with authority. This is not hypothetical: a build shipped with `scripts/divergence.mjs`
+   copied in, the plugin then grew two assertions, and the copy went on PASSING a page the
+   current gate fails twice. Nothing warns, because a snapshot has no freshness signal. The
+   same disease produced a five-day-old component inventory that undercounted a registry by
+   270 to "100+"; the fix is the same one — read the source, do not keep a copy of it.
+
+   It is also a deliverable question. These are the design tool's self-audit scripts; a
+   client's landing page is not where they live, and `gates.spec.ts` in particular costs
+   `@playwright/test` + `@axe-core/playwright` + a Chromium download in that project's
+   dependency tree. Install those ONLY when the suite is actually going to be run, in the
+   session, against the dev server step 6 already has up — `BASE_URL=<that server>
+   CRAFT_EXPECT_TITLE=<the contract's product name> npx playwright test`. Installing a test
+   dependency and not running the test is the pure-cost case: a build once shipped all three
+   files and both dependencies, and the suite never executed once.
+
+   **Vendoring is opt-in and belongs to the project, not to this step.** When the user wants
+   craft gates enforced in their OWN CI after this run ends, that is a real want and a
+   different decision: copy the files deliberately, record which plugin version they came
+   from, and say plainly that they will not track the plugin. Never vendor by default, and
+   never present a vendored copy as the gate.
+
+   No second server and no second capture path either way: the surface the build is running
+   on is the one the pictures are taken from.
    PASS THE ARTIFACT PATHS, or two of its assertions grade nothing. `divergence.mjs` resolves
    `craft/…` relative to the PROJECT ROOT, and this command persists those artifacts to the
    run's working area — which on a project with no `taskmaster-docs/` is the session scratch,
@@ -473,8 +500,8 @@ banner first, with its cost line.
    same paths step 0 and step 5 already wrote:
    `CRAFT_CONTRACT=<…/craft/offer-contract.md> CRAFT_DIVERGENCE_RECORD=<…/craft/divergence-record.md>
    CRAFT_BUILD_TASK=<…/craft/build-task.md> CRAFT_CONTENT_SOURCE=<…/craft/content-source.md>
-   CLAUDE_PLUGIN_ROOT=<craft-layer root> node scripts/divergence.mjs`. A gate that cannot find
-   its input is not a gate that passed.
+   CLAUDE_PLUGIN_ROOT=<craft-layer root> node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs`.
+   A gate that cannot find its input is not a gate that passed.
    PASS `CRAFT_EXPECT_TITLE` — the suite cannot derive it. It runs inside the target project
    and cannot reach the persisted contract, so the ONE thing that proves the shots are of THIS
    build has to be handed in from here, where the contract's product name is already known.

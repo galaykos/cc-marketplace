@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.83.0"
+    "version": "0.84.1"
   },
   "plugins": [
     {
@@ -18,6 +18,11 @@
       "name": "craft-layer",
       "source": "./plugins/craft-layer",
       "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel: /craft-layer:craft chains creative-direction (offer contract + concept-first, anti-sameness), optional guided section-decisions (/craft-layer:sections), design-research, asset-sourcing (build-vs-source-vs-commission + a licence gate), theming-system (concept→coherent token tiers + accent split + light/dark duality), token + component build, and a tiered motion system (Framer, anime.js, Three.js/R3F + webgl-effects, Vector Lottie/Rive, sprites — reduced-motion + reduced-bundle fallbacks), plus scroll-orchestration (Lenis/ScrollTrigger), kinetic-typography, page-transitions, interaction-fx, physics-motion, motion-sequencing, information-design, and /craft-layer:audit. Reuses ui-ux + threejs. /craft-layer:craft ultra-craft boosts a run: ambition maximal + guided rounds, live dated web research echoed as a reference board before any file is written, escalated concept/review tiers, and a red-team of the shipped tree."
+    },
+    {
+      "name": "registry-source",
+      "source": "./plugins/registry-source",
+      "description": "Read component registries from the source, never from memory. Ships two MCP servers: a dependency-free local one with live list/search/get across Aceternity, shadcn and Magic UI — 24h-cached, every answer carrying its source URL, fetch date and a stale flag — plus ReUI's own hosted server, so installing the plugin delivers it. Flags components pulling a 3D/particle runtime so bundle cost is known before install. Never holds a licence key; ReUI auth is a browser sign-in the user completes."
     },
     {
       "name": "react",
