@@ -29,11 +29,6 @@ rework-shaped tasks.
 /approaches:opinions migrate the session store from files to Redis
 ```
 
-A `UserPromptSubmit` hook watches plain prompts for rework-shaped keywords
-(refactor, rewrite, restructure, migrate, redesign, ...) and prints a one-line
-nudge toward `/approaches:opinions`. It never blocks the prompt and stays
-silent on slash commands.
-
 ## Pairs well with
 
 - **code-architecture** — hands the chosen approach to a file-level plan before coding
