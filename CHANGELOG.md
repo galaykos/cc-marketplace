@@ -4,6 +4,25 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.84.1] - 2026-07-27
+
+**registry-source** 0.2.0 — the plugin now ships ReUI's own MCP server alongside the local one.
+
+- **A marketplace has to DELIVER a capability, not describe one.** ReUI's hosted server
+  (`mcp.reui.io` — live search, real component APIs, exact install commands) is the right way
+  to read that registry, and it was first set up by hand with `claude mcp add`, which reaches
+  exactly nobody who installs this marketplace. Caught by the user with the question that
+  states the whole bug: *"this is a marketplace — how will he install MCP also?"* A plugin
+  shipping `.mcp.json` is the delivery mechanism; a README line saying "you could also add…"
+  is not.
+- **No credential is held anywhere in this repo.** The entry is unauthenticated until the user
+  runs `/mcp` → `reui` → **Authenticate**, a browser sign-in they complete themselves — the
+  same reason the local server refuses to carry a licence key. Until then it reports `Needs
+  authentication` and the local server still answers for Aceternity, shadcn and Magic UI, so
+  nothing is blocked on it. Headless environments add a personal token locally, never committed.
+- Anyone who added `reui` by hand should `claude mcp remove reui` once this plugin is
+  installed, or the same server is declared twice.
+
 ## [0.84.0] - 2026-07-27
 
 New plugin: **registry-source** 0.1.0 — an MCP server that reads component registries from

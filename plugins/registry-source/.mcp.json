@@ -3,6 +3,11 @@
     "registry-source": {
       "command": "node",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.mjs"]
+    },
+    "reui": {
+      "type": "http",
+      "url": "https://mcp.reui.io",
+      "_comment": "ReUI's own live registry server. Declared here so installing this plugin DELIVERS it — a server configured by hand on one machine reaches nobody who installs the marketplace. Unauthenticated until the user runs /mcp, selects reui and chooses Authenticate: a browser sign-in they complete themselves, so no credential is ever held in this repo, in a plugin, or by an agent. Until then it reports 'Needs authentication' and the local registry-source server above still answers for Aceternity, shadcn and Magic UI. Headless environments use a personal token via an Authorization header instead — that is the user's to add locally, never committed here."
     }
   }
 }

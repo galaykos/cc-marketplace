@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.84.0"
+    "version": "0.84.1"
   },
   "plugins": [
     {
@@ -22,7 +22,7 @@
     {
       "name": "registry-source",
       "source": "./plugins/registry-source",
-      "description": "Read component registries from the source instead of from memory. An MCP server exposing live list/search/get across the free shadcn-compatible registries (Aceternity, shadcn, Magic UI, ReUI's MIT source), cached 24h with the source URL, fetch date and a stale flag returned on every answer. Flags components that pull a 3D/particle runtime so a block's bundle cost is known before it is installed. Never holds or forges a licence key."
+      "description": "Read component registries from the source, never from memory. Ships two MCP servers: a dependency-free local one with live list/search/get across Aceternity, shadcn and Magic UI — 24h-cached, every answer carrying its source URL, fetch date and a stale flag — plus ReUI's own hosted server, so installing the plugin delivers it. Flags components pulling a 3D/particle runtime so bundle cost is known before install. Never holds a licence key; ReUI auth is a browser sign-in the user completes."
     },
     {
       "name": "react",

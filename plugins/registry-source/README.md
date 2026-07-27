@@ -59,17 +59,44 @@ ambition floors and its "house motion must not satisfy a reach floor" clause bot
 | `magicui` | `magicui.design/r/registry.json` | animated marketing components |
 | `reui` | `github.com/keenthemes/reui` (MIT) | index only — see below |
 
-**On ReUI.** `reui.io/r/*` answers `Authentication required … Bearer YOUR_LICENSE_KEY`. This
-server does not hold, request, forge or route a licence key, and points at the project's own
-MIT repository instead. That is not a workaround — it is the licence working as written. A
-paywall on a convenience API is a fact about paying for tooling; the LICENSE file is the fact
-about the code, and the two answer different questions.
+**On ReUI.** `reui.io/r/*` answers `Authentication required … Bearer YOUR_LICENSE_KEY`. The
+local server does not hold, request, forge or route a licence key, and points at the
+project's own MIT repository instead. That is not a workaround — it is the licence working
+as written. A paywall on a convenience API is a fact about paying for tooling; the LICENSE
+file is the fact about the code, and the two answer different questions.
+
+## Two servers, one install
+
+`.mcp.json` declares **both** the local index server and ReUI's own hosted one:
+
+| server | transport | auth |
+| --- | --- | --- |
+| `registry-source` | stdio, local, dependency-free | none |
+| `reui` | http → `mcp.reui.io` | browser sign-in, once |
+
+**The second entry exists because a marketplace has to DELIVER a capability, not describe
+one.** ReUI's server is the right way to read that registry — live search, real component
+APIs, exact install commands — and it was first set up by hand on one machine with
+`claude mcp add`, which reaches exactly nobody who installs this marketplace. A plugin
+shipping `.mcp.json` is the delivery mechanism; a note in a README saying "you could also
+add…" is not.
+
+To authenticate: `/mcp` → **reui** → **Authenticate**. A browser sign-in the user completes
+themselves, so **no credential is ever held in this repo, in a plugin, or by an agent** — the
+same reason the local server refuses to carry a licence key. Until that is done it reports
+`Needs authentication` and the local server still answers for Aceternity, shadcn and Magic
+UI, so nothing is blocked on it. Headless environments use a personal token via an
+`Authorization` header, added locally and never committed.
 
 ## Install
 
 Dependency-free — node built-ins and raw JSON-RPC over stdio, so there is no npm step and
-nothing to rot against an SDK version. The plugin ships `.mcp.json`; installing the plugin
-is the whole setup.
+nothing to rot against an SDK version. Installing the plugin is the whole setup; the only
+manual step is the one-time ReUI browser sign-in above, and only if you want that registry.
+
+If you previously added `reui` by hand (`claude mcp add --transport http reui
+https://mcp.reui.io`), remove it once this plugin is installed — `claude mcp remove reui` —
+or the same server is declared twice.
 
 Cache lives at `~/.cache/claude-registry-source/`, 24h TTL, `refresh: true` on any tool to
 bypass it.
