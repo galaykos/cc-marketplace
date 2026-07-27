@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 59 leaf plugins) exists for zero-setup convenience at ~14.1k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 59 leaf plugins) exists for zero-setup convenience at ~11.0k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,12 +44,12 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 59 | ~14.7k tokens |
-| `taskmaster-suite` | 30 | ~8.8k tokens |
-| `process-suite` | 9 | ~2.2k tokens |
-| `quality-suite` | 14 | ~3.0k tokens |
-| `frontend-suite` | 19 | ~4.6k tokens |
-| `php-suite` | 6 | ~0.7k tokens |
+| `everything` | 59 | ~11.0k tokens |
+| `taskmaster-suite` | 30 | ~7.3k tokens |
+| `process-suite` | 9 | ~1.9k tokens |
+| `quality-suite` | 14 | ~2.9k tokens |
+| `frontend-suite` | 19 | ~3.1k tokens |
+| `php-suite` | 6 | ~0.6k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
 Always-on context = the skill/command/agent descriptions every installed
@@ -65,7 +65,7 @@ Per-prompt hook output (UserPromptSubmit etc.) is dynamic and not counted —
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
-# install: ~14.7k tokens of always-on context per session; prefer a category
+# install: ~11.0k tokens of always-on context per session; prefer a category
 # suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
