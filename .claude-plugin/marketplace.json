@@ -12,7 +12,7 @@
     {
       "name": "ui-ux",
       "source": "./plugins/ui-ux",
-      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), theme creation for shadcn/ReUI/Aceternity, Tailwind, or Bootstrap with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents."
+      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents. Generic CSS3/Grid/Flexbox/Bootstrap skills proved baseline-redundant and were removed — see rationale/stack-skill-baselines.md."
     },
     {
       "name": "craft-layer",
@@ -27,17 +27,12 @@
     {
       "name": "react",
       "source": "./plugins/react",
-      "description": "React best practices: hooks rules, render/memo performance, state management, component patterns — plus a react-server-state skill for server-cache libraries (TanStack Query/SWR/RTK Query), cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState and avoiding refetch storms."
+      "description": "React server-state discipline: TanStack Query/SWR/RTK Query for server caches, cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState, avoiding refetch storms. General React idioms (hooks rules, memo, composition) proved baseline-redundant and were removed — see rationale/stack-skill-baselines.md."
     },
     {
       "name": "react-native",
       "source": "./plugins/react-native",
       "description": "React Native best practices: list performance, navigation, platform-specific code, animations."
-    },
-    {
-      "name": "vue2",
-      "source": "./plugins/vue2",
-      "description": "Vue 2.7 best practices: Composition API backport, reactivity caveats, migration readiness. Vue 2 is EOL (Dec 2023) — for maintaining legacy apps only; new work should use vue3."
     },
     {
       "name": "vue3",
@@ -148,16 +143,6 @@
       "name": "security",
       "source": "./plugins/security",
       "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review and a security-engineer worker agent."
-    },
-    {
-      "name": "javascript",
-      "source": "./plugins/javascript",
-      "description": "Vanilla JavaScript best practices: version-aware ES feature floors from engines/browserslist/lockfile, strict equality and coercion traps, ESM vs CommonJS interop, async correctness and the event loop, this-binding and closures, immutability, error handling, boundary validation, number precision and BigInt, security at boundaries. Includes /javascript:review."
-    },
-    {
-      "name": "typescript",
-      "source": "./plugins/typescript",
-      "description": "TypeScript best practices: strict mode as the floor, any vs unknown discipline, narrowing over assertions, generics restraint, satisfies, runtime validation at boundaries, tsconfig hygiene. Includes /typescript:review."
     },
     {
       "name": "node-backend",

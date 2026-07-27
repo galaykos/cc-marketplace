@@ -1,7 +1,7 @@
 {
   "name": "react",
-  "version": "0.3.3",
-  "description": "React best practices: hooks rules, render/memo performance, state management, component patterns — plus a react-server-state skill for server-cache libraries (TanStack Query/SWR/RTK Query), cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState and avoiding refetch storms.",
+  "version": "0.5.0",
+  "description": "React server-state discipline: TanStack Query/SWR/RTK Query for server caches, cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState, avoiding refetch storms. General React idioms (hooks rules, memo, composition) proved baseline-redundant and were removed — see rationale/stack-skill-baselines.md.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

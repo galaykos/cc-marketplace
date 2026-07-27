@@ -4,7 +4,7 @@ description: Use PROACTIVELY to implement UI work — layouts, breakpoints, spac
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: tailwind-best-practices,shadcn-best-practices,bootstrap-best-practices,motion-best-practices
+bestpractices-skill: tailwind-best-practices,shadcn-best-practices,motion-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -14,7 +14,7 @@ or restyle it beyond the fix.
 
 ## Rubric
 
-Your authoritative checklist is the `tailwind-best-practices,shadcn-best-practices,bootstrap-best-practices,motion-best-practices` skill. When a dispatch
+Your authoritative checklist is the `tailwind-best-practices,shadcn-best-practices,motion-best-practices` skill. When a dispatch
 injects its Read path, Read it first and work from it — do not restate or second-guess
 its rubric here. Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.

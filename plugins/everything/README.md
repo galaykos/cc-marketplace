@@ -14,9 +14,9 @@ it auto-installed.
 
 ## What's included
 
-All current marketplace plugins (59 today) install as dependencies, grouped here by theme:
+All current marketplace plugins (56 today) install as dependencies, grouped here by theme:
 
-- **Stacks** — php, laravel, livewire, inertia, javascript, typescript, react, react-native, nextjs, nuxt, vue2, vue3, node-backend, vite, web-dev: language and framework best-practice skills and reviews
+- **Stacks** — php, laravel, livewire, inertia, react (server-state), react-native, nextjs, nuxt, vue3, node-backend, vite, web-dev: framework best-practice skills and reviews
 - **UI & accessibility** — ui-ux, shadcn-studio, design-preview, a11y: component build/review, staged visual decisions, WCAG auditing
 - **Data** — sql, mysql, mariadb, postgresql, database: engine-specific and engine-agnostic schema and query review
 - **APIs & architecture** — api-design (incl. graphql-grpc skill), api-docs-first (incl. the docs-upkeep drift scan), system-design (incl. event-driven skill), code-architecture: contract, topology, and structure review

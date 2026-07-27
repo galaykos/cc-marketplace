@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 59 leaf plugins) exists for zero-setup convenience at ~11.0k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 56 leaf plugins) exists for zero-setup convenience at ~10.6k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,11 +44,11 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 59 | ~11.0k tokens |
-| `taskmaster-suite` | 30 | ~7.3k tokens |
+| `everything` | 56 | ~10.6k tokens |
+| `taskmaster-suite` | 30 | ~7.2k tokens |
 | `process-suite` | 9 | ~1.9k tokens |
 | `quality-suite` | 14 | ~2.9k tokens |
-| `frontend-suite` | 19 | ~3.1k tokens |
+| `frontend-suite` | 17 | ~2.8k tokens |
 | `php-suite` | 6 | ~0.6k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
@@ -65,7 +65,7 @@ Per-prompt hook output (UserPromptSubmit etc.) is dynamic and not counted —
 /plugin install taskmaster-suite@cc-plugins-marketplace
 
 # Everything in the marketplace — every plugin, all stacks. Convenience
-# install: ~11.0k tokens of always-on context per session; prefer a category
+# install: ~10.6k tokens of always-on context per session; prefer a category
 # suite unless you want zero per-repo setup.
 /plugin install everything@cc-plugins-marketplace
 
@@ -151,17 +151,14 @@ installing this plugin, or the same server is declared twice.
 | **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + theme builder (shadcn/ReUI/Aceternity, Tailwind, Bootstrap) with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
 | **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel: /craft-layer:craft chains creative-direction (offer contract + concept-first, anti-sameness), optional guided section-decisions (/craft-layer:sections), design-research, asset-sourcing (build-vs-source-vs-commission + a licence gate), theming-system (concept→coherent token tiers + accent split + light/dark duality), token + component build, and a tiered motion system (Framer, anime.js, Three.js/R3F + webgl-effects, Vector Lottie/Rive, sprites — reduced-motion + reduced-bundle fallbacks), plus scroll-orchestration (Lenis/ScrollTrigger), kinetic-typography, page-transitions, interaction-fx, physics-motion, information-design, and /craft-layer:audit. Reuses ui-ux + threejs. /craft-layer:craft ultra-craft boosts a run: ambition maximal + guided rounds, live dated web research echoed as a reference board before any file is written, escalated concept/review tiers, and a red-team of the shipped tree. | `/craft-layer:craft`, `/craft-layer:sections`, `/craft-layer:research`, `/craft-layer:audit` |
 | **[registry-source](plugins/registry-source/README.md)** | Read component registries from the SOURCE, never from recall. Ships **two MCP servers** (see [MCP servers](#mcp-servers)): a dependency-free local one with live `list`/`search`/`get` across Aceternity, shadcn and Magic UI — 24h-cached, every answer carrying its source URL, fetch date and a `stale` flag, plus a `heavy` flag on anything pulling a 3D/particle runtime so bundle cost is known before install — and ReUI's own hosted server, so installing the plugin delivers it rather than describing it. Never holds a licence key; ReUI auth is a browser sign-in you complete | MCP tools: `registry_list`, `registry_search`, `registry_get` (+ ReUI's own) |
-| **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
+| **react** | React server-state discipline: TanStack Query/SWR/RTK Query, cache keys and invalidation, optimistic updates | auto-firing skill |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
-| **vue2** | Vue 2.7: Composition API, reactivity, migration readiness | `/vue2:review` |
 | **vue3** | Vue 3: script setup, composables, ref/reactive, Pinia | `/vue3:review` |
 | **[nextjs](plugins/nextjs/README.md)** | Next.js: App Router server/client boundaries, opt-in caching, server actions as public endpoints, route handlers, streaming with Suspense, next/image & next/font — version-aware 14–16 | `/nextjs:review` |
 | **[nuxt](plugins/nuxt/README.md)** | Nuxt: Nitro server routes, hybrid rendering route rules, useFetch/useAsyncData payload dedup, SSR-safe useState, auto-imports discipline, runtimeConfig, SEO meta | `/nuxt:review` |
 | **php** | PHP: strict types, === discipline, PSR conventions, version-aware 8.1–8.5 leverage map, exceptions, boundary security | `/php:review` |
 | **laravel** | Laravel: Eloquent N+1, form requests, service layer, queues, policies | `/laravel:review` |
 | **livewire** | Livewire 3/4: components, wire:model, performance, Alpine interop | `/livewire:review` |
-| **[javascript](plugins/javascript/README.md)** | Vanilla JS: version-aware ES feature floors, === and coercion traps, ESM vs CommonJS interop, async correctness + event loop, this-binding & closures/leaks, boundary validation, BigInt, prototype-pollution safety | `/javascript:review` |
-| **[typescript](plugins/typescript/README.md)** | Strict mode floor, any vs unknown, narrowing over assertions, satisfies, runtime validation at boundaries, tsconfig hygiene | `/typescript:review` |
 | **[node-backend](plugins/node-backend/README.md)** | Server-side Node.js (Express 5, NestJS 11, Fastify 5): middleware vs DI vs plugin-encapsulation architecture, async error propagation, boundary validation (zod, class-validator), streaming/backpressure, graceful shutdown | `/node-backend:review` |
 | **[vite](plugins/vite/README.md)** | Vite: VITE_ env-leak security, dep pre-bundling, code splitting/manualChunks, base for sub-path deploys, dev server.proxy, define pitfalls, SSR, library mode, plugin order, HMR guards | `/vite:review` |
 | **[threejs](plugins/threejs/README.md)** | Three.js: WebGPURenderer-first (WebGL2 fallback), TSL shaders, react-three-fiber/drei, glTF/Draco/KTX2 pipelines, disposal/leak discipline, draw-call performance — version-aware per rXXX | `/threejs:review` |
@@ -247,7 +244,7 @@ installing this plugin, or the same server is declared twice.
 
 ## Usage
 
-Skills auto-trigger based on context (e.g., `react-best-practices` activates when writing React code). Commands like `/react:review` are invoked manually. You can also invoke them from the command line or via the plugin menu.
+Skills auto-trigger based on context (e.g., `laravel-best-practices` activates when writing Laravel code). Commands like `/laravel:review` are invoked manually. You can also invoke them from the command line or via the plugin menu.
 
 Plugins with their own README carry detailed usage and examples — see the links in the plugin tables above.
 
@@ -274,7 +271,7 @@ The full loop for a feature:
 
 Each plugin degrades gracefully when a companion is missing — taskmaster scans manifests itself without stack-scan, and task-runner accepts any task list, not just taskmaster cards. Installed together, version facts flow into clarifying questions, cards flow into disciplined execution, and verification gates close the loop.
 
-If you work on a specific stack, add its review plugin on top (e.g. `laravel` + `mysql` for a Laravel app, `react` + `vite` for a React frontend) — stack-scan's inventory feeds those review commands too.
+If you work on a specific stack, add its review plugin on top (e.g. `laravel` + `mysql` for a Laravel app, `vue3` + `vite` for a Vue frontend) — stack-scan's inventory feeds those review commands too.
 
 ### Building a landing page or marketing site: craft-layer
 

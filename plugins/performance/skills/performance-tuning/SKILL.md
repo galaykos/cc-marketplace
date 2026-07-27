@@ -90,7 +90,7 @@ check the failure modes:
 
 - SQL query-shape and indexing idioms → `/sql:review` (and the dialect plugins). This
   skill counts the queries and reads the plan; the SQL skills fix the statement.
-- Framework-idiom performance (React re-renders, Eloquent hydration) → `/react:review`,
+- Framework-idiom performance (React re-renders, Eloquent hydration) → the stack review command,
   `/laravel:review`. Recommend, do not duplicate.
 - Applying a batch of fixes → the shared `task-executor`; this skill decides *what* is
   slow and *why*, not the mechanical application.
