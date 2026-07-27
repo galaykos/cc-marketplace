@@ -21,6 +21,25 @@ publishable plugin.
 `scripts/validate.sh` enforces this: any `.md` under `plugins/` that is not one of
 the functional kinds above fails the build (and CI on every PR).
 
+## Say what has teeth (convention)
+
+When a plugin document states a rule, name its standing — **gate** (a script fails
+the build), **agent-graded** (a reviewer judges it, real variance), **recorded**
+(written down, nothing reads it back), or **unenforceable** (say why). A reader
+cannot tell those apart from the sentence alone, which is how a rule gets trusted
+as a guarantee while nothing enforces it.
+
+The canonical statement lives in the `claude-authoring` plugin's `authoring-skills`
+skill, because that one SHIPS — a convention that exists only in this file reaches
+contributors to this repo and nobody who installs from it. Read it there; do not
+restate the table here, or the two drift.
+
+Worked examples in-repo: the "What has teeth and what is recorded" table in
+`plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
+`craft-layer` and `taskmaster` follow it today; the rest adopt it as they are
+touched, not in a sweep. **No script enforces this** — which puts the convention
+in its own `recorded` tier, and saying so is the point.
+
 ## Plugin change gates
 
 - `scripts/validate.sh` — structure, frontmatter, SKILL.md 100–150-line body budget,

@@ -28,7 +28,26 @@ https://reui.io/docs for those; the pages ARE the version, no npm to pin.
    the CLI fills `{style}` from the project's `style` field and `{name}`
    from the item being added.
 3. Add items via the shadcn CLI: `npx shadcn@latest add @reui/<name>`.
-   Free components use `c-*` names and need no authentication.
+
+   **`c-*` IS NOT THE FREE-COMPONENT PREFIX.** This file said it was. The
+   registry's own server distinguishes four TYPES, and `c-*` names one of them:
+   `component` (plain names — `alert`, `badge`, `data-grid`), `example`
+   (`c-badge-22`, `c-alert-3`), `block`, and `icon`. Components and examples are
+   free; blocks and icons are premium. So `c-*` marks an EXAMPLE, free or not,
+   and a plain name marks a component — the opposite of a paywall prefix.
+
+   The gate is per-type and it composes: **an example is only as free as the
+   component under it.** A `badge` example search returns free `c-badge-*`
+   results; a `chart` example search returns nothing on the free tier, because
+   `chart` is not one of the free components and nothing built on it is free
+   either. Plan a section around "free examples" without checking its component
+   and the gap surfaces after the section exists.
+
+   Never state a count or a catalogue for this registry from a static file —
+   including this one. Ask the registry: ReUI ships its own MCP server
+   (`mcp.reui.io`, declared by the `registry-source` plugin, unlocked by a
+   one-time browser sign-in), and `list_components` / `search` / `get_component`
+   answer with the type named beside every number.
 4. Premium items: put `REUI_LICENSE_KEY=...` in `.env.local`, switch the
    registry entry to the object form with an `Authorization: Bearer
    ${REUI_LICENSE_KEY}` header — one namespace serves free and paid alike.

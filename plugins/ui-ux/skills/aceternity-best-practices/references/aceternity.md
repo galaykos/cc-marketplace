@@ -44,14 +44,25 @@ component-specific comes from that component's page, fetched fresh.
 - Some components need extra packages or Tailwind/config additions — listed
   only on their own page; there is no global manifest to consult instead.
 
-## Component category inventory (index as fetched today)
+## Component categories — shape only, NO COUNT
 
 Backgrounds & Effects; Card Components; Scroll & Parallax; Text Components;
 Buttons; Loaders; Navigation; Inputs & Forms; Overlays & Popovers; Carousels
 & Sliders; Layout & Grid; Data & Visualization; Cursor & Pointer; 3D
 Components; Sections & Blocks (hero, feature, pricing, testimonial blocks).
-100+ components across these categories; individual names churn — the live
-index is authoritative for what exists right now.
+
+**No number lives in this file, deliberately.** It used to say "100+
+components"; the registry's own index answers **270**, split `ui` and `block`.
+The figure was not stale — it was wrong when written, and a `Last verified`
+date cannot detect that, so re-dating this file would have preserved the error
+with a fresher stamp on it. A count in a static file is a count that will be
+wrong; the registry index is the only thing that knows.
+
+Get it live instead. `registry_list({registry:"aceternity"})` from the
+`registry-source` plugin returns the current inventory with per-item
+dependencies and a `heavy` flag for anything pulling a 3D/particle runtime —
+which also prices a block's bundle cost before it is installed. Without that
+plugin, `https://ui.aceternity.com/registry.json` is the same data raw.
 
 ## Not in this digest — live-fetch-only
 
