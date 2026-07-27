@@ -105,6 +105,29 @@ command (run the cards, apply the fixes, review the diff):
 - One offer per handoff moment — a completion that spawns three questions
   is a quiz, not a handoff.
 
+## Say what has teeth
+
+A skill body asserts rules. Some are checked by a script, some judged by an
+agent, most only written down — and a reader cannot tell which from the
+sentence. That is how a rule gets trusted as a guarantee for months while
+nothing enforces it. Real cases: a "never write component APIs from memory"
+line broken three times in one session by the model that had it loaded; a
+design axis chosen every run and checked by no assertion.
+
+Name a rule's standing where it is stated:
+
+| Standing | Means |
+| --- | --- |
+| **gate** | a script fails the build — name the script and check |
+| **agent-graded** | a reviewer judges it; real variance, still a real check |
+| **recorded** | written to an artifact; nothing reads it back |
+| **unenforceable** | cannot be checked as stated — say why |
+
+Naming a blind spot is not weakness; calling an agent-graded check a gate is
+the over-claim. And a rule that keeps being broken is not under-stated — it is
+in the wrong tier, and needs a hook, a script, or a tool the model reaches for
+instead of another paragraph.
+
 ## Common failures
 
 - Vague descriptions. "Helps with testing" gives the dispatcher nothing to
