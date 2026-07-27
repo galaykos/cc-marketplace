@@ -1,6 +1,6 @@
 {
   "name": "registry-source",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Read component registries from the source, never from memory. Ships two MCP servers: a dependency-free local one with live list/search/get across Aceternity, shadcn and Magic UI — 24h-cached, every answer carrying its source URL, fetch date and a stale flag — plus ReUI's own hosted server, so installing the plugin delivers it. Flags components pulling a 3D/particle runtime so bundle cost is known before install. Never holds a licence key; ReUI auth is a browser sign-in the user completes.",
   "author": {
     "name": "Ivan-WG",
