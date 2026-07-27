@@ -25,29 +25,50 @@ fallback** below.
 
 ## The dials
 
-Each archetype sets five dials. Values are directional (low / medium / high, or a bias),
+Each archetype sets six dials. Values are directional (low / medium / high, or a bias),
 never pixels or components.
 
-| Archetype | Tone | Density | Motion energy | Spine bias | Depth target |
-| --- | --- | --- | --- | --- | --- |
-| creative/portfolio | expressive, confident | low, generous whitespace | high — motion is the signature | work-led (grid/case-studies first) | medium (case studies carry it) |
-| marketing/campaign | persuasive, punchy | medium | medium–high, one hero moment | narrative arc to a single CTA | medium |
-| product/SaaS | credible, precise | high, information-dense | medium, restrained | problem→solution→proof→pricing | high (many sections + specifics) |
-| editorial/content | authoritative, calm | text-first | low, reading-safe | long-form flow, few interruptions | very high (long inner pages) |
-| app/CRM | efficient, trustworthy | high (data) | low on marketing, none in-app | front-door pages → app entry | medium marketing; in-app defers to information-design |
-| **general (fallback)** | neutral, adaptable | medium | medium | hero→value→proof→CTA | medium (mid-range anchors) |
+| Archetype | Tone | Density | Motion energy | Spine bias | **Composition bias** | Depth target |
+| --- | --- | --- | --- | --- | --- | --- |
+| creative/portfolio | expressive, confident | low, generous whitespace | high — motion is the signature | work-led (grid/case-studies first) | broken grid · layered depth · off-axis | medium (case studies carry it) |
+| marketing/campaign | persuasive, punchy | medium | medium–high, one hero moment | narrative arc to a single CTA | full-bleed panels · asymmetric split | medium |
+| product/SaaS | credible, precise | high, information-dense | medium, restrained | problem→solution→proof→pricing | strict column grid · asymmetric split | high (many sections + specifics) |
+| editorial/content | authoritative, calm | text-first | low, reading-safe | long-form flow, few interruptions | **centred spine** — its home | very high (long inner pages) |
+| app/CRM | efficient, trustworthy | high (data) | low on marketing, none in-app | front-door pages → app entry | asymmetric split (persistent rail) | medium marketing; in-app defers to information-design |
+| **general (fallback)** | neutral, adaptable | medium | medium | hero→value→proof→CTA | drawn, with no bias applied | medium (mid-range anchors) |
+
+**Composition bias exists because a page can pass every other gate and still be the wrong
+shape.** Spine bias orders the sections; composition bias is how they occupy space, and the
+two are independent — the same problem→solution→proof→pricing order builds as a strict grid,
+a split, or a stack of full-bleed panels, and those are three different products to look at.
+The values name options from `concept-deck.md` Axis 1; the dial is a starting position the
+draw and the concept can push against, exactly like every other dial here.
+
+**Centred spine is editorial's home and everywhere else it needs an argument.** It is the
+shape a build lands on when nothing decides, because it is the shape prose defaults to — one
+measure, top to bottom, no exceptions. That makes it simultaneously the RIGHT answer for a
+publication and the tell of a page that never chose. A run that draws it outside
+editorial/content should be able to say why in one line; the `composition-shape` assertion in
+`template/craft-gates/divergence.mjs` fails the undecided version and takes a waiver for the
+deliberate one. A marketing/campaign brief that ships editorial's composition has not
+under-reached on motion or colour — it has answered a different archetype's question.
 
 ## How the dials feed downstream
 
 - **Tone + motion energy** seed the creative-director agent's concept (voice + the single
   signature interaction) and the palette mood (`palette-strategy.md`).
 - **Density + spine bias** inform the build task `design-research` writes.
+- **Composition bias** weights the Axis 1 draw in `concept-deck.md` and reaches the build task
+  as a named structure, not as an adjective. It must arrive somewhere a builder reads: a
+  composition that lived only in this table is the one the page silently defaults away from.
 - **Depth target** selects the row in `content-depth.md`.
 
 ## The `general` fallback
 
 When no archetype fits, use `general`: medium on every dial, the mid-range content-depth
-anchors, and a hero→value→proof→CTA spine bias. The agent still generates a divergent
+anchors, and a hero→value→proof→CTA spine bias. Composition is the one dial `general` does
+NOT set to a middle value — there is no middle composition, and the nearest thing to one is
+the centred spine this file just warned about. `general` leaves Axis 1 to the draw unweighted. The agent still generates a divergent
 concept — the fallback sets neutral dials, it does not skip creative direction. Prefer a
 nearest-archetype match with adjusted dials over `general` whenever one is defensible;
 `general` is the floor, not the default.
