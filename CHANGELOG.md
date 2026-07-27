@@ -4,6 +4,117 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.86.0] - 2026-07-27
+
+Three ambient-hook plugins retired, and a fresh-eyes debloat of the craft-layer surfaces.
+Both halves came from one complaint: too many folders appearing inside projects, and a
+`/craft-layer:craft` that had grown to trip over its own rules.
+
+### Removed — HARD DELETE, and it will break installs
+
+**`compaction-advisor`, `intent-guard` and `reuse-guard` are gone from this marketplace.**
+There is no deprecation window. Anyone with them installed gets a resolution failure on their
+next marketplace refresh and must uninstall manually:
+
+```
+/plugin uninstall compaction-advisor
+/plugin uninstall intent-guard
+/plugin uninstall reuse-guard
+```
+
+They were removed for one shared reason: each registered hooks that wrote a dedicated
+`.claude/<plugin>/` directory into **every project they ran in**, and two of the three also
+fired on every turn or every edit. `intent-guard` was the heaviest object in the marketplace
+by ambient cost — three hook events, one on `UserPromptSubmit`, one on `PostToolUse` for
+`Edit|Write|MultiEdit|NotebookEdit|Bash|Agent`, one on `Stop`. `reuse-guard` ran a repo-wide
+`grep -rlEI` on a 10-minute TTL on every edit. `compaction-advisor` shipped no skill and no
+command at all — 144 lines of turn-counter whose entire output was one advisory line at turn
+50.
+
+**Two capabilities survived, as skills in the plugin that already owned the adjacent seam:**
+
+- `drift-review` → **`code-architecture`**. Reviews the whole diff for a unit of work against
+  the declared task, for drift and cut corners, at the moment work is called done. It now
+  derives its diff base from `git merge-base` instead of a state file, and takes the task from
+  the invoking context instead of `intent.json`.
+- `reuse-hygiene` → **`code-review`**. The pre-reuse check that a symbol is not deprecated or
+  orphaned, with the former Tier-2 pass (dead-code tool shellout, export-aware orphan
+  detection, deprecated-reference report) absorbed into the skill body.
+
+**Three commands were NOT ported and are gone**: `/intent-guard:intent`,
+`/intent-guard:status` and `/reuse-guard:check`. The first two existed only to read and write
+the state directory that no longer exists; the third's capability lives in the
+`reuse-hygiene` skill body rather than in a command of its own.
+
+Any `.claude/intent-guard/`, `.claude/reuse-guard/` or `.claude/compaction-advisor/`
+directory left in one of your projects is now orphaned and safe to delete.
+
+### Changed — `hindsight` keeps its capability and stops creating a folder
+
+`hindsight` (0.2.0) was **kept** — it is `SessionEnd`-only, costs nothing per turn, and its
+transcript-mining capability has no other owner here (it already absorbed the retired
+`retrospective` plugin). Its machine-local state moved out of the project tree:
+`ledger.jsonl` and `reports/` now live at `$HOME/.claude/hindsight/<slug>/`, where `<slug>`
+is the same one Claude Code uses for `~/.claude/projects/`.
+
+`anti-patterns.md` deliberately stays project-local at
+`<project>/.claude/hindsight/anti-patterns.md` — it is team-shared, a committed CLAUDE.md
+pointer resolves to it, and it is written only on an explicit approval pick. So there is now
+nothing to gitignore for this plugin.
+
+**Existing project-local ledgers are not migrated.** Harvest falls back to ranking raw
+transcripts from `~/.claude/projects/<slug>/`, which is the same path it already used for
+pre-install history, so the first harvest after upgrading still has data.
+
+### Changed — craft-layer debloat (0.39.0)
+
+The three surfaces a craft run loads went from **1531 lines to 582** (~62%):
+`commands/craft.md` 598 → 204, `commands/audit.md` 431 → 184,
+`agents/craft-reviewer.md` 502 → 194.
+
+Guards were **removed, not merely compressed**, and the record of which is
+`taskmaster-docs/craft-guard-inventory.md` — a row per guard with what enforced it (gate /
+agent-graded / recorded / unenforceable) and a keep/cut verdict. That file lives in a
+gitignored working area, so if the record should ship it needs a tracked home outside
+`plugins/` (repo convention: documentation never lives inside a plugin).
+
+Most of the reduction came from removing duplication rather than rules: `craft.md` restated
+the audit in full, `audit.md` restated the reviewer's check list in full, and
+`craft-reviewer.md`'s 350-line procedure restated its own 97-line checklist. Each now has one
+owner.
+
+Behaviour that actually changed:
+
+- **The ambition token is gone.** A leading `maximal` / `standard` / `restrained` no longer
+  pins the contract row. It ate the first word of a product genuinely called "Maximal
+  Fitness" — a bug the command documented rather than fixed — to pin a row the prose already
+  infers. Ambition is read from the brief.
+- **Progressive `build-NN-*.png` shots during the build are gone.** They duplicated the
+  audit's capture path for an in-flight view nothing graded.
+- **Prose-only ceremony is gone** — echo mandates and `(inferred ← …)` marks that no gate and
+  no later step read back. The brief pair and the inference marks still bind, because
+  `creative-direction/references/offer-contract.md` Part 1a owns them and the command points
+  there.
+
+Two corrections found by reading the gate scripts rather than the prose:
+
+- **`CRAFT_TOKEN_SOURCE` was missing from the documented audit invocation**, although
+  `contrast.mjs` treats a missing token source as a hard FAILURE and three `divergence.mjs`
+  assertions cannot resolve without it. It is now in the command block.
+- **`audit.md` said to copy the gate suite into the project**, directly contradicting
+  `craft.md`'s never-vendor rule. Both now say run the plugin's copy.
+
+Only one of the five build-task lines is actually a gate input: `divergence.mjs` parses
+`Run:` and `Spine regions:` and nothing else. `Motion:`, `Signature:`, `Ambition:` and
+`Banned vocabulary:` are agent-graded — kept, and now labelled honestly.
+
+### Fixed — documentation that was false before this change
+
+- The root README described `intent-guard` as holding "turn completion (Stop gate)". Its
+  `summary.sh` emitted no decision field of any kind and never held a turn. The row is gone
+  with the plugin.
+- `quality-suite`'s README listed `intent-guard`, which its `plugin.json` never depended on.
+
 ## [0.85.0] - 2026-07-27
 
 Marketplace review from the consumer's side — what someone actually gets when they install

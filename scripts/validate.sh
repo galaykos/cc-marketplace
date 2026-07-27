@@ -534,7 +534,7 @@ fi
 
 # ---- No session tooling state inside a plugin --------------------------------
 # A plugin ships to users, so anything tracked under it is distributed. Local
-# Claude Code state (intent-guard, reuse-guard, compaction-advisor) is per-session
+# Claude Code state under a `.claude/` dir is per-session
 # and per-machine and must never be part of that. The root .gitignore rule is
 # anchored to the repo root, so nested `.claude/` dirs slipped through unnoticed
 # until they were already committed; this is the check that would have caught it.

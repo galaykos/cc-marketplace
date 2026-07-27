@@ -30,9 +30,14 @@ plugin.
 
 Best-practice skills auto-trigger by context — `plan-before-code`,
 `surgical-coding`, `low-cognitive-load`, `simplicity-principles` (KISS/DRY),
-`solid-principles`, `yagni-check`, `task-orchestration`, and `work-verification`.
-The `architecture-reviewer` agent reviews structural changes for boundaries,
-cohesion, and cognitive load.
+`solid-principles`, `yagni-check`, `task-orchestration`, `work-verification`, and
+`drift-review`. The `architecture-reviewer` agent reviews structural changes for
+boundaries, cohesion, and cognitive load.
+
+`work-verification` and `drift-review` are the two done-time gates and they ask
+different questions: `work-verification` asks whether the evidence backs the claim,
+`drift-review` asks whether the work that produced it stayed on the task that was
+asked. Cooperative, not tamper-proof — neither is a security boundary.
 
 ## Example
 

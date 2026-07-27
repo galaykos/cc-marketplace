@@ -38,8 +38,6 @@ bundle and prunes the plugins it auto-installed.
   vs manifests, plus `/stack-scan:report`
 - **plugin-scout** — stack-matched marketplace plugin suggestions, plus
   `/plugin-scout:suggest`
-- **intent-guard** — warn-only drift guard against a declared task intent,
-  plus `/intent-guard:intent` and `/intent-guard:status`
 
 | Command | What it does |
 |---------|--------------|

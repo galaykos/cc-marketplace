@@ -295,12 +295,11 @@ A fixed element covering content is **agent-graded** — it requires opening the
 fixture header says so. "Structurally verified, not visually verified" is an honest report;
 "verified" alone, when no image was opened, is not.
 
-**Progressive shots.** Once the dev server is up, step 6 emits a shot after each major section
-lands — `build-01-hero.png`, `build-02-signature.png`, `build-03-full.png` — so you watch the
-real page assemble instead of a mockup that can drift from it. With no dev server it emits
-`Progressive shots: none (no dev server)` and never blocks the build. These are an in-flight
-view, not an archive: step 7's suite prunes `.craft-layer/shots/` when it captures, so the audit
-shots replace them.
+**Shots are captured at the audit, not during the build.** The suite writes two PNGs per
+breakpoint — 390, 768, 1280, light and dark — into `.craft-layer/shots/`, and the audit OPENS
+them and says what is visible. (Earlier versions also emitted progressive `build-NN-*.png` shots
+after each section landed; that was dropped — it duplicated the audit's capture path for an
+in-flight view nothing graded.)
 
 ### What "award-grade" means here — and what it does not
 
@@ -433,20 +432,23 @@ The contract pins a second dial the same way, from your own words:
 | `maximal` | the `maximal` token, or "award winning", "awwwards", "over the top", "very graphical", "cinematic" — or naming heavy motion libraries as the POINT of the brief | the signature floor **plus** four reach floors |
 
 **Say it outright rather than hoping it is read.** A leading `maximal`, `standard` or
-`restrained` pins the tier by token; prose inference is the fallback when no token is present.
+Ambition is read from the brief's own prose — "award winning", "cinematic", heavy motion as the
+POINT read as `maximal`; "conventional" or "trust-first" as `restrained`. There is **no ambition
+token**. An earlier version accepted a leading `maximal` / `standard` / `restrained` word that
+pinned the row outright; it was removed, because it silently ate the first word of a product
+genuinely called "Maximal Fitness" and pinned a row prose already infers.
 
 | What you want | What to type |
 | --- | --- |
-| maximal output, cheap run | `/craft-layer:craft maximal <brief>` |
-| maximal output **plus** the full process boost | `/craft-layer:craft ultra <brief>` |
-| the same boost, in a form that also works in prose | `/craft-layer:craft ultra-craft <brief>` |
+| an award-grade page from a cheap one-shot run | say so in the brief: `/craft-layer:craft an awwwards-grade <brief>` |
+| the full process boost as well | `/craft-layer:craft ultra <brief>` |
+| the same boost, in a form that also works mid-prose | `/craft-layer:craft ultra-craft <brief>` |
 
-The two are different axes and only one implication runs between them. The ambition token pins
+Ambition and boost are different axes and only one implication runs between them. Ambition is
 what the OUTPUT owes; `ultra-craft` raises how hard the RUN works — live dated research, a
 confirmed reference board, guided rounds, a red-team of the result. `ultra-craft` implies
-`maximal`; `maximal` never implies `ultra-craft`, because a user can want an award-grade page
-out of a cheap one-shot run. A token that contradicts the brief's own prose is asked about, not
-resolved silently.
+`maximal`; `maximal` never implies `ultra-craft`. A boost that contradicts the brief's own prose
+is asked about, not resolved silently.
 
 The four reach floors, checked by the audit and waivable only by a reasoned divergence-record
 entry: **three distinct motion capabilities** driving real surfaces (a tier or a sibling

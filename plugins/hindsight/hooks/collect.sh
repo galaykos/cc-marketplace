@@ -3,7 +3,8 @@
 # even with a stripped/broken PATH, where `/usr/bin/env bash` itself exits 127
 # with stderr noise before this script ever runs.
 # Fail silent: never block or noise SessionEnd (D14). Appends one cheap-stats
-# row per ended session to <cwd>/.claude/hindsight/ledger.jsonl (D2, D4-D6).
+# row per ended session to $HOME/.claude/hindsight/<slug>/ledger.jsonl — machine-local,
+# never inside the project tree (D2, D4-D6).
 # Transcript JSONL format is officially unstable (D13) — every parse is
 # defensive and prefers undercounting over crashing.
 {
@@ -67,7 +68,19 @@
     }' 2>/dev/null) || exit 0
   [ -n "$row" ] || exit 0
 
-  mkdir -p "$cwd/.claude/hindsight" 2>/dev/null || exit 0
-  printf '%s\n' "$row" >>"$cwd/.claude/hindsight/ledger.jsonl" 2>/dev/null || exit 0
+  # Machine-local state lives under $HOME, never in the project tree. The ledger holds
+  # absolute transcript paths and per-machine session history, so it was never a project
+  # artifact — and creating a directory inside every project this hook runs in is a cost
+  # the plugin should not impose. $HOME is read explicitly: `~` does not expand under a
+  # stripped environment, and an unset HOME exits 0 like every other failure here. The
+  # slug is the same rule Claude Code uses for its projects dir — the absolute cwd with
+  # every non-alphanumeric character replaced by '-' — so a project's ledger and its
+  # transcripts sit under matching names.
+  [ -n "${HOME:-}" ] || exit 0
+  slug=$(printf '%s' "$cwd" | tr -c '[:alnum:]' '-') || exit 0
+  [ -n "$slug" ] || exit 0
+  dir="$HOME/.claude/hindsight/$slug"
+  mkdir -p "$dir" 2>/dev/null || exit 0
+  printf '%s\n' "$row" >>"$dir/ledger.jsonl" 2>/dev/null || exit 0
 } 2>/dev/null
 exit 0

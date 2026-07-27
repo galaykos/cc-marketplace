@@ -29,12 +29,17 @@ to the per-framework review plugins.
 Reviews state their coverage (`Checked:` / `Not checked:`) and close with a
 one-line verdict — merge-ready, merge-after-blockers, or rework — with an
 option to apply the fixes. The plugin also ships a `code-reviewer` agent
-that reviews proactively after code is written, and the `code-smells` skill:
-the smell catalog (with when-it-is-NOT-a-smell judgment) both apply.
+that reviews proactively after code is written, and two skills: `code-smells`
+— the smell catalog, with when-it-is-NOT-a-smell judgment — and
+`reuse-hygiene`, the pre-reuse check that a symbol you are about to build on
+is not deprecated or orphaned, plus the deep pass (dead-code tool shellout,
+export-aware orphan detection, deprecated-reference report) when a quick read
+cannot settle it. The two split cleanly: `code-smells` catalogs dead code as a
+**review finding**; `reuse-hygiene` is the check you run **before** reusing.
 
 ## Pairs well with
 
-- **code-architecture** — the structural/YAGNI depth this review defers to
+- **code-architecture** — the structural/YAGNI depth this review defers to, plus
+  `drift-review`: whether the same diff stayed on the declared task intent
 - **security** — deep security review beyond the correctness pass here
 - **php** / **typescript** — per-stack idiom review for detail this plugin skips
-- **intent-guard** — checks the same diff stayed on the declared task intent

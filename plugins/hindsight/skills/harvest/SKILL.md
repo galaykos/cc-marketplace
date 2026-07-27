@@ -13,12 +13,13 @@ collects cheap stats. Nothing is written without an explicit user pick.
 
 ## Locate data
 
-- Ledger: `.claude/hindsight/ledger.jsonl` in the project root — one JSON
-  row per session, schema v1:
+- Ledger: `$HOME/.claude/hindsight/<slug>/ledger.jsonl` — machine-local, not
+  in the project tree. One JSON row per session, schema v1:
   `{"v":1, "session_id", "ts_start", "ts_end", "turns", "friction_events",
   "errors", "user_msgs", "reason", "transcript_path", "mined": false}`.
-- Transcripts: `~/.claude/projects/<slug>/*.jsonl`, where `<slug>` is the
-  absolute cwd with every non-alphanumeric character replaced by `-`.
+- Transcripts: `~/.claude/projects/<slug>/*.jsonl`. `<slug>` is the same in
+  both paths: the absolute cwd with every non-alphanumeric character
+  replaced by `-`.
 - A missing ledger is not an error — the fallback below covers projects
   where the hook never ran (pre-install history, jq-less machines).
 
@@ -73,8 +74,9 @@ Produce exactly four sections:
    what worked instead when the transcripts show it.
 
 Show the report inline AND save a copy to
-`.claude/hindsight/reports/YYYY-MM-DD.md` (today's date, creating the
-directory if needed; a same-day re-harvest overwrites the file).
+`$HOME/.claude/hindsight/<slug>/reports/YYYY-MM-DD.md` (today's date,
+creating the directory if needed; a same-day re-harvest overwrites the
+file). Reports are machine-local, beside the ledger — never in the project.
 
 ## Apply gate
 
@@ -87,8 +89,10 @@ category, each proposal a separate option and every question carrying a
   `/claude-authoring:new-plugin` (whichever fits the idea's size) when
   claude-authoring is installed; else write the idea as a one-paragraph
   scaffold brief in the harvest output for manual capture.
-- Warnings → write picks to `.claude/hindsight/anti-patterns.md` (which must be
-  tracked, not gitignored, so the committed pointer resolves for teammates) and
+- Warnings → write picks to `<project>/.claude/hindsight/anti-patterns.md` — the
+  ONE project-tree file this plugin writes, and only on an explicit pick. It is
+  team-shared, so it must be tracked, not gitignored, or the committed pointer
+  below does not resolve for teammates. Everything else stays machine-local. Then
   propose exactly ONE pointer line for CLAUDE.md referencing that file — the
   pointer is itself an option, never auto-added.
 
@@ -110,7 +114,9 @@ a valid outcome and still counts as a completed harvest.
 - Current project only — never mine other projects' slug directories or
   cross-project ledgers.
 - Never edits application code: outputs are CLAUDE.md lines, files under
-  `.claude/hindsight/`, and claude-authoring handoffs, nothing else.
+  `$HOME/.claude/hindsight/<slug>/`, the project's
+  `.claude/hindsight/anti-patterns.md`, and claude-authoring handoffs,
+  nothing else.
 - No auto-apply — every write passes the apply gate above.
 - Transcript JSONL format is officially unstable; read defensively —
   skip malformed lines, tolerate missing fields, never hard-fail on

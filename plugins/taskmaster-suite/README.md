@@ -66,8 +66,8 @@ full-fidelity escalations above taskmaster's built-in mockup preview; both are
 projects, renders real components via the project's own dev server;
 shadcn-studio: greenfield/non-React, stands up its own dev server);
 **laravel** and the other stack plugins — stack-specific;
-**intent-guard**, **secret-scanning**, **reuse-guard**, **compaction-advisor** —
-hook-heavy and behavior-changing, install them deliberately;
+**secret-scanning** —
+hook-heavy and behavior-changing, install it deliberately;
 **ultra-deep-research** — heavy research harness, opt-in.
 
 ## Uninstall

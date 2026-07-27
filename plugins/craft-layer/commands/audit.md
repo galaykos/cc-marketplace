@@ -3,429 +3,182 @@ description: Audit a crafted web app's motion and asset gates, delegating a11y a
 argument-hint: [path-or-scope]
 ---
 
-Audit the craft gates for the target in $ARGUMENTS (if empty, ask which path or
-scope to audit first). Load the `motion-tiers` skill from this plugin for the tier
-taxonomy and its per-tier budgets, then:
+Audit the craft gates for the target in `$ARGUMENTS` (if empty, ask which path or scope first). Load the
+`motion-tiers` skill for the tier taxonomy and its budgets. This command MEASURES, RESOLVES and REPORTS;
+the `craft-reviewer` agent owns the gate checks — dispatch to it, never restate its check list here.
 
-1. Detect what the target uses: grep the scope for each animation tier's imports and
-   entry points — Framer Motion / `motion`, anime.js, Three.js / R3F / `<canvas>`,
-   sprite sheets, and the Vector tier (`lottie-web`/`@lottiefiles/*`/`@dotlottie/*`,
-   `@rive-app/*`, `.lottie`/`.json` animation data, `.riv`) — AND the sibling engines (scroll-orchestration/Lenis, page-transitions/
-   View Transitions, interaction-fx, physics-motion/matter, motion-sequencing/theatre,
-   webgl-effects), plus any 3D/WebGL surface — AND scan for shipped visual/font ASSETS, whether
-   committed FILES (icons, SVG, raster images, 3D models, Lottie/Rive, webfonts, background
-   video) or third-party refs grepped from SOURCE — absolute-URL refs at an `https?://` host
-   (`@font-face`/`@import`/`<link>`/`url()`/`<use href>`), inline `data:`/over-threshold `<svg>`
-   blobs, and URL-fetched `.lottie`/`.riv`/`.glb`/font — AND grep `component-source:` for
-   declared sourced COMPONENT blocks (a pasted block carries no URL and no file signature, so
-   the marker is the only thing that makes one visible at all) — and a
-   provenance manifest. List the tier(s), engine(s), surface(s), and assets found. If
-   nothing animates BUT shipped assets are present, still run the asset/licence gates in
-   step 2 — do not stop. Only when there is neither motion nor a shipped asset, say so and stop.
-   The stop applies to the motion CEILING gates and the asset gates ONLY. The offer-contract,
-   content-depth, and anti-sameness gates read page CONTENT, and the SIGNATURE gate is a motion
-   FLOOR whose entire purpose is a build with too LITTLE motion — so all four still run on a
-   fully static build, which is exactly when a marketing page is most likely to need them.
-   Never report "nothing animates" as a clean motion table.
+1. **Detect what shipped.** Grep the scope for each animation tier's imports and entry points (Framer
+   Motion/`motion`, anime.js, Three.js/R3F/`<canvas>`, sprite sheets, the Vector tier —
+   `lottie-web`/`@lottiefiles/*`/`@dotlottie/*`/`@rive-app/*`, `.lottie`/`.riv`), the sibling engines
+   (scroll-orchestration/Lenis, page-transitions/View Transitions, interaction-fx, physics-motion,
+   motion-sequencing, webgl-effects), every shipped visual/font ASSET — committed files and third-party
+   refs from source (absolute-URL `@font-face`/`@import`/`<link>`/`url()`/`<use href>`, inline
+   `data:`/oversized `<svg>`, URL-fetched `.lottie`/`.riv`/`.glb`/font) — every `component-source:`
+   marker, and the provenance manifest.
 
-   **1b. MEASURE what the reviewer cannot.** The reviewer is Read/Grep/Glob and can see no
-   file's byte size. You have Bash: before dispatching, collect the numbers its budget gates
-   need and inject them as facts — per-asset gzipped and raw sizes for every shipped
-   sprite/image/font/3D/Lottie file, and per-chunk gzipped size for the built bundle when a
-   `dist/`/`build/` output exists (a project's own build command, `wc -c`, `gzip -c | wc -c`,
-   or the bundler's report).
-   **When a scrubbed frame sequence shipped**, measure it too — its caps are in
-   `${CLAUDE_PLUGIN_ROOT}/skills/motion-tiers/references/tier-budgets.md` and nothing else can
-   check them: the TOTAL transferred bytes across every frame (not the per-frame size, which
-   always looks fine), the FRAME COUNT, and whether the poster frame ships EAGER — a real
-   `<img>`, not lazy and not canvas-only, because it is the no-JS state and the LCP candidate.
-   Report the three numbers against the caps. No sequence in the tree means nothing to
-   measure, which is not a failure.
+   If nothing animates but assets shipped, still run the asset/licence gates. Only when there is neither
+   motion nor a shipped asset do you stop — and that stop covers the motion CEILING gates and asset gates
+   ONLY. The offer-contract, content-depth and anti-sameness gates read page CONTENT, and the SIGNATURE
+   gate is a motion FLOOR whose whole purpose is a build with too LITTLE motion, so all four run on a
+   fully static build. Never report "nothing animates" as a clean motion table.
 
-   **Check the NARROW VIEWPORT if you can drive a browser.** A page whose body scrolls
-   horizontally at a phone width is a layout defect, and layout is this audit's job — not
-   `/a11y:audit`'s and not `/performance:review`'s, so it falls between them and gets
-   checked by nobody. The usual cause is structural rather than cosmetic: a grid or flex
-   item defaults to `min-width: auto`, so one wide child — a data table, a code block, a
-   chart — pushes the whole page wider instead of scrolling inside its own container.
-   Compare `document.body.scrollWidth` against `documentElement.clientWidth` at a narrow
-   width; any excess is a finding, and name the overflowing element. Also read the copy
-   for direction words ("on the right", "below") that a reflowed layout makes false.
-   No browser available → `not measured`, never a silent pass.
+2. **MEASURE what the reviewer cannot.** It is Read/Grep/Glob and can see no byte size. You have Bash:
+   collect the numbers its budget gates need and inject them as facts.
 
-   **Read the SERVED HTML, not the browser's.** `curl -s <url>` — or the framework's
-   SSR/prerender output — must already contain the headline, the body copy and the primary
-   CTA text. An SPA shell (Inertia, a client-only React/Vue mount, a router with SSR merely
-   *configured*) serves an empty root element and fills it from JS, and every check that runs
-   in a browser passes anyway: the screenshot is perfect, the a11y tree is complete, the suite
-   is green. The page is still blank to any crawler that does not execute JS — which on a
-   marketing surface is a large part of the audience, and on a page about machine visibility
-   is the entire argument. `curl -s <url> | grep -ci "<a distinctive headline word>"` returning
-   0 is a FAIL, not a note, and it fails the whole page: no craft above the fold survives a
-   document with no text in it. Configured is not running; only the response body settles it.
-   No reachable URL → `not measured`, never a silent pass.
+   - Per-asset gzipped and raw sizes for every sprite/image/font/3D/Lottie file; per-chunk gzipped size
+     for the built bundle when a `dist/`/`build/` output exists.
+   - **A scrubbed frame sequence** — caps in `${CLAUDE_PLUGIN_ROOT}/skills/motion-tiers/references/tier-budgets.md`,
+     and nothing else checks them: TOTAL bytes across every frame (not the per-frame size, which always
+     looks fine), the FRAME COUNT, and whether the poster frame ships EAGER — a real `<img>`, not lazy
+     and not canvas-only, because it is the no-JS state and the LCP candidate. No sequence → nothing to
+     measure, not a failure.
+   - **CONTRAST RATIOS** — resolve the accent/ink/surface token values and compute WCAG
+     relative-luminance ratios per pairing per theme. A value only resolvable at runtime is
+     `not measured` for that pairing, never guessed.
+   - **NARROW VIEWPORT**, if you can drive a browser. A body scrolling horizontally at phone width is a
+     layout defect, and layout is this audit's job — not `/a11y:audit`'s and not `/performance:review`'s,
+     so it otherwise falls between them and nobody checks it. Compare `document.body.scrollWidth` against
+     `documentElement.clientWidth` and name the overflowing element; the usual cause is structural, a
+     grid or flex item defaulting to `min-width: auto` so one wide child pushes the page instead of
+     scrolling inside itself. Also read the copy for direction words a reflow makes false. No browser →
+     `not measured`.
+   - **THE SERVED HTML, not the browser's.** `curl -s <url>` — or the SSR/prerender output — must already
+     contain the headline, body copy and primary CTA text. An SPA shell serves an empty root and fills it
+     from JS, and every browser-run check passes anyway: perfect screenshot, complete a11y tree, green
+     suite, page still blank to any crawler that does not execute JS.
+     `curl -s <url> | grep -ci "<a distinctive headline word>"` returning 0 is a FAIL, not a note, and it
+     fails the whole page. Configured is not running; only the response body settles it. No reachable
+     URL → `not measured`.
 
-   **CAPTURE the surface and OPEN the images — at EVERY tier, not just a boosted one.** A
-   DOM assertion proves an element exists, carries the right text and computes the right
-   colour. It cannot see that the text runs off the edge of its viewBox, that two
-   annotations land on top of each other, or that a fixed rail is covering the column
-   beneath it. Those are the defects a reader meets first and a query never meets at all —
-   one build passed a clean typecheck, a clean lint, measured WCAG contrast and a full DOM
-   assertion pass, and then one image showed a leader label clipped mid-word on the first
-   screen. So: run `template/craft-gates/gates.spec.ts` against a reachable `BASE_URL` (copy
-   the suite in and install `@playwright/test` + `@axe-core/playwright` when the project has
-   none), passing `CRAFT_EXPECT_TITLE=<the contract's product name>` so the suite can prove the
-   server on that port is THIS build — the suite runs inside the target project and cannot read
-   the contract itself, and a dev port held by another project yields shots of the wrong
-   application, opened and reported as this one's. Without it the suite reports `IDENTITY NOT
-   MEASURED` and still captures; carry that phrase into the `Visual:` line rather than dropping
-   it, because an unverified capture is not the same as a verified one. It writes
-   two PNGs per breakpoint — 390, 768, 1280, light and dark — into
-   `<project>/.craft-layer/shots/`. Then READ each image and describe what is visible,
-   hunting specifically: text CLIPPED at a container or viewBox edge, OVERLAPPING labels and
-   annotations, truncation ellipses, fixed elements covering content, and any element whose
-   rendered position differs from where the markup implies it sits. Inject the shot paths
-   into the step-2 dispatch so the reviewer opens them too. Anything found in an image is a
-   FINDING, listed with the gate failures.
-   **When a capture will not save, retry with an ABSOLUTE PATH inside an allowed root before
-   concluding the capability is unavailable.** A tool that refuses one path is not a tool
-   that cannot write, and "visual verification is impossible here" declared without that
-   retry is the same unverified assertion as any other. Only after the retry:
-   `Visual: NOT CAPTURED (<reason>)` — reported, never a silent pass, and never a look
-   implied by silence.
+   Anything unmeasurable — no build output, no toolchain, an unresolvable colour — is injected as
+   `not measured` for that item, and the reviewer reports it that way rather than asserting a verdict.
 
-   **RUN THE SCRIPT GATES — they are Bash, so they are yours, not the reviewer's.**
-   `template/craft-gates/contrast.mjs` computes the ratios below; `template/craft-gates/divergence.mjs`
-   reads the shipped token source, the project's run log and the recorded deck draw and exits
-   non-zero when the build landed on the category default or repeated its own last five runs.
-   Run `node divergence.mjs` from the project root with `CLAUDE_PLUGIN_ROOT` set (both of its
-   corpora fall back to a frozen snapshot without it, and it prints which it used) AND with the
-   four artifact paths handed in — `CRAFT_CONTRACT`, `CRAFT_DIVERGENCE_RECORD`,
-   `CRAFT_BUILD_TASK`, `CRAFT_CONTENT_SOURCE`, set to the paths step 2's glob just resolved.
-   The script resolves `craft/…` relative to the PROJECT ROOT, and the craft flow persists those
-   artifacts to the run's working area, which on a project with no `taskmaster-docs/` is the
-   session scratch — outside the project. Omit them and `spine-register` and `craft-stamp` both
-   report `not checked` on the ordinary case, which reads as a clean run rather than an
-   ungraded one. You have already resolved these paths to inject them into the reviewer; pass
-   the same ones here. Then carry the verdict into the table: exit
-   1 is a FINDING to resolve or waive in `.craft-layer/waivers.json` with a reason, exit 2 is
-   `not measured`, and a gate that was never run is `not checked` — never a pass.
-   One of its assertions is the OFFER-SPINE REGISTER gate, and it is the scripted half of the
-   spine check the reviewer grades by reading: `spine-register` resolves the build task's
-   `Spine regions:` line to the page regions answering plain-what, audience and problem, and
-   fails when a buyer's question is answered with an integrator's fact — an endpoint, a token
-   scheme, a status code, a schema term
-   (`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/register-corpus.md`). It does
-   NOT check `how it works` or `objection`, where the contract routes that same disclosure and
-   a limits list is supposed to be concrete. No `Spine regions:` line, or no mapped anchor in
-   the tree, is `not checked` with the reason printed — never a pass, and never a whole-page
-   jargon grep run by hand instead.
-   Another is `craft-stamp`, the scripted half of the artifact-resolution rule in step 2: it
-   reads the `Run:` stamp off the contract, the divergence record, the build task and the
-   content source it resolved, and exits non-zero when they disagree, when one is stamped to
-   a project that is not this one, or when one carries a stamp while a sibling carries none —
-   each of which means at least one artifact was left behind by an earlier run and every gate
-   reading it is grading this build against another run's decisions. No stamp anywhere is
-   `SKIP` (pre-stamp artifacts), never a pass.
+3. **Resolve the persisted artifacts BY RUN STAMP.** Glob `**/craft/offer-contract.md`,
+   `divergence-record.md`, `build-task.md`, `content-source.md`, `section-ledger.md` and
+   `reference-board.md` across the project AND the session working area. **When a glob matches more than
+   one file, never take the first hit.** Each opens with
+   `Run: <instant> · <product-slug> · <absolute project root>`. Drop every match whose project field is
+   not the target. One candidate left wins; several, and the strictly NEWEST instant wins, but only when
+   the run's other artifacts carry that same stamp. Everything else — two sharing an instant, one stamped
+   while a sibling is not, stamps disagreeing — is UNDECIDABLE: report `not checked (ambiguous craft
+   artifacts: <n> matched — <path> <stamp>, …)`, list every candidate, grade nothing from any of them. A
+   single unstamped candidate is used and reported `stamp absent (pre-stamp artifact)`. Disagreeing
+   stamps are additionally ONE finding naming the file an earlier run left behind
+   (`.../references/offer-contract.md` Part 8).
 
-   Compute the CONTRAST RATIOS too — the reviewer cannot, and this is a craft gate rather
-   than a deferred one. Read the resolved accent/ink/surface token values out of the theme
-   (hex or the token file's channels), then compute WCAG relative-luminance ratios for each
-   accent-on-surface pairing per theme with a short script, and inject the numbers. Where a
-   value is only resolvable at runtime (a CSS var chain, a computed colour), say so for that
-   pairing instead of guessing.
+4. **RUN THE SCRIPT GATES — they are Bash, so they are yours, not the reviewer's.** Run them from the
+   PLUGIN, never a copy: a vendored gate is a snapshot with no freshness signal, and a stale gate reports
+   green with authority. `gates.spec.ts` costs `@playwright/test` + `@axe-core/playwright` + a Chromium
+   download in the target's tree — install those only when the suite is actually going to run, this
+   session, against a reachable server.
 
-   Anything you cannot measure — no build output, no toolchain, an unresolvable colour — is
-   injected as `not measured` for that item, and the reviewer reports it that way rather
-   than asserting a verdict.
+   ```
+   cd <project> && CLAUDE_PLUGIN_ROOT=<craft-layer root> \
+     CRAFT_CONTRACT=<…/craft/offer-contract.md> CRAFT_DIVERGENCE_RECORD=<…/craft/divergence-record.md> \
+     CRAFT_BUILD_TASK=<…/craft/build-task.md> CRAFT_CONTENT_SOURCE=<…/craft/content-source.md> \
+     CRAFT_TOKEN_SOURCE=<the CSS holding the tokens> \
+     node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs
+   BASE_URL=<the dev server> CRAFT_EXPECT_TITLE=<the contract's product name> npx playwright test
+   ```
 
-   Inject the FIELD ANCHOR alongside the measured totals, so a number means something.
-   HTTP Archive Web Almanac medians for a home page (**last verified 2026-07-25**; the
-   Almanac republishes annually, so treat these as aged and re-read before quoting them)
-   are roughly 2.9MB total
-   transfer on desktop (2.6MB mobile), ~700KB JavaScript, ~1MB images, and ~280KB of that JS
-   unused — and only about half of mobile origins pass all three Core Web Vitals. A build
-   sitting on those medians is average, not good. State the comparison as context, never as
-   a pass/fail gate: the thresholds themselves (LCP ≤2.5s, INP ≤200ms, CLS ≤0.1) are field
-   metrics this audit cannot measure, and remain `/performance:review`'s call.
-2. Run the craft-specific gates by dispatching the findings to the `craft-reviewer`
-   agent from this plugin. Inject the Read path to `${CLAUDE_PLUGIN_ROOT}/skills/motion-tiers/references/tier-budgets.md` (authoritative
-   budgets) AND the Read paths to
-   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/sameness-fingerprint.md` and
-   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/content-depth.md` (the anti-sameness registry
-   and the content-depth anchors) AND
-   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md` (the deliverable scope +
-   offer-spine slots) AND
-   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/ambition-tiers.md` (the reach
-   tiers and the four floors `maximal` adds) AND
-   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/content-source.md` (the rules
-   binding copy the client already published) AND — found by globbing `**/craft/offer-contract.md`,
-   `**/craft/divergence-record.md`, `**/craft/build-task.md`, `**/craft/content-source.md`,
-   `**/craft/section-ledger.md` and `**/craft/reference-board.md`
-   (the fixed names the craft
-   flow persists to; search the project and the session working area) — the PERSISTED contract
-   instance, divergence record, BUILD TASK and CONTENT SOURCE when they exist.
-   **WHEN A GLOB MATCHES MORE THAN ONE FILE, RESOLVE IT BY THE RUN STAMP — never by taking
-   the first hit.** Each artifact opens with `Run: <instant> · <product-slug> · <absolute
-   project root>`. Drop every match whose project field is not the target being audited (an
-   artifact stamped to another project is evidence of nothing here); if one candidate
-   remains it wins; if several do, the strictly NEWEST instant wins and only when the run's
-   other artifacts carry that same stamp. Everything else — two candidates sharing an
-   instant, one stamped while another is not, sibling artifacts disagreeing — is
-   UNDECIDABLE: report `not checked (ambiguous craft artifacts: <n> matched — <path>
-   <stamp>, …)`, list every candidate with its stamp, and grade nothing from any of them. A
-   single unstamped candidate is used and reported as `stamp absent (pre-stamp artifact)`.
-   Artifacts whose stamps DISAGREE are additionally one finding naming the file the earlier
-   run left behind — a second craft run in one session writes these same paths, and a
-   previous run's contract sitting exactly where this glob looks is the failure the stamp
-   exists to make visible (`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/offer-contract.md`
-   Part 8; `divergence.mjs`'s `craft-stamp` assertion is the scripted half). Without the content
-   source there is nothing to check ingested copy against, so that gate reports
-   `not checked (no content source persisted)` — never a pass, and never inferred from how the
-   page reads. Without the build task, the
-   signature gate and reach floor 4 have no anchor, because both grade a line that lives only
-   in it. Without the contract, the scope/length/mode
-   AND the content-depth section-count checks have no anchor; without the record, anti-sameness
-   has none. Report each as `not checked`, never as passing and never as failing. AND, when the run produced a
-   section ledger, `${CLAUDE_PLUGIN_ROOT}/skills/section-decisions/references/section-ledger.md` plus the ledger
-   itself AND
-   `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/licence-discipline.md` (the provenance-manifest
-   schema) AND `${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/component-sourcing.md`
-   (the component classes + the `component-source:` marker the orphan scan reads) AND the
-   measurements from step 1b, and have it verify:
-   any **SCROLL ACT** that shipped owes its three states — a pinned scene, a scrubbed frame
-   sequence or a scroll-revealed panel each need a reduced-motion state, a no-JS state and a
-   failure state per
-   `${CLAUDE_PLUGIN_ROOT}/skills/scroll-orchestration/references/scroll-acts.md` (inject it),
-   and a panel carrying `role="dialog"`, trapping focus, or moving focus at a scroll threshold
-   is a finding — the visitor never opened it, and the tab-stop assertion in `gates.spec.ts` is
-   scoped to grids and listboxes and does not see it. No scroll act in the tree → nothing to
-   check, not a failure;
-   the concept's ONE **signature
-   interaction** shipped — the divergence record names it, `craft/build-task.md`'s `Signature:` line
-   assigned it a section, and the named mechanism is implemented there (this is the motion
-   FLOOR and the only gate that fails a page for too little motion; entrance reveals never
-   count toward it — apply the three-part test in
-   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/moves-taxonomy.md`
-   (repeatable · driven-not-fired · changes what the surface affords) and require ALL
-   THREE, because a scroll-linked arrival passes the first two and is still an entrance;
-   and no record means `not checked`, never a pass); the **typeface decision** was made
-   rather than defaulted — the record must carry BOTH the family assignment per role with
-   its loading strategy AND the SPEC it satisfies (the strategy, required axes/features,
-   coverage, licence class and KB ceiling that
-   `${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/type-strategy.md` derives).
-   A family with no spec behind it is a default wearing a decision's clothes, and is the
-   whole reason this gate checks two things instead of one. Then verify the shipped build
-   against the spec's hard filters — tabular figures where numbers are read down a column,
-   a text cut or `opsz` axis where text runs small and dense, the declared coverage, and
-   the KB ceiling against the measured font bytes from step 1b. A deliberate
-   system/device font stack that SATISFIES its spec passes; this gate never judges which
-   family won.
+   Pass the paths step 3 resolved: `divergence.mjs` resolves `craft/…` relative to the PROJECT ROOT while
+   the craft flow persists to the run's working area — the session scratch on a project with no
+   `taskmaster-docs/`, outside the project. Omit them and `spine-register` and `craft-stamp` both report
+   `not checked` on the ordinary case, which reads as a clean run rather than an ungraded one.
+   `CLAUDE_PLUGIN_ROOT` keeps both corpora live rather than the frozen snapshots it prints without it.
+   `CRAFT_TOKEN_SOURCE` is required whenever the tokens are not where the gates look — `contrast.mjs`
+   treats a missing token source as a FAILURE and three `divergence.mjs` assertions cannot resolve
+   without it. `CRAFT_EXPECT_TITLE` is the only thing proving the server on that port is THIS build; the
+   suite runs inside the target and cannot read the contract, and without it reports `IDENTITY NOT
+   MEASURED` and captures anyway — carry that phrase into the `Visual:` line rather than dropping it.
 
-   **When the contract's archetype is `app/CRM`** — or the target has a logged-in,
-   data-dense half — ALSO run the app-craft floors in
-   `${CLAUDE_PLUGIN_ROOT}/skills/information-design/references/app-craft-floors.md`.
-   The signature and content-depth floors are marketing-shaped and answer `not
-   applicable` behind a login, which leaves an app judged only by ceilings — and a grey,
-   sluggish, mouse-only panel passes every ceiling there is. Check what is checkable
-   statically: a dense grid is ONE tab stop with arrow keys inside (the trigger suite
-   measures this); the app states beyond the table four exist (first-run, permission
-   denied, partial failure, stale/offline); density is offered rather than baked;
-   destructive actions are undoable rather than confirm-gated; and a data surface earns
-   its motion — a list that re-sorts or a value that changes with no transition at all is
-   this floor's version of a page with no signature. Perceived speed (feedback under
-   ~100ms, optimistic writes with a rollback path) is runtime and is reported
-   `not measured` unless something measured it. On a marketing-only target, say the
-   floor set does not apply rather than passing it silently.
+   Carry the verdicts into the table: **exit 1 is a FINDING** to resolve or waive in
+   `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`** · a gate never run
+   is `not checked`. None of the three is a pass.
 
-   Every tier/engine in use honors
-   `prefers-reduced-motion`; each 3D/WebGL surface is lazy-loaded with a static fallback;
-   each tier is within its per-tier budget AND the COMBINED initial motion JS is budgeted
-   (non-hero engines lazy-loaded); sprites/assets stay within budget; the **licence gate** —
-   every shipped third-party/AI asset — a committed FILE or a source ref (absolute-URL, inline
-   `data:`/`<svg>`-with-marker, URL-fetched) — has a complete non-empty provenance record
-   (manifest exists, no orphan asset OR unprovenanced ref, enumerated licence-class + source; an
-   absolute-URL ref needs a record unless declared first-party), run even on a static
-   asset-only build; **sourced components** — every `component-source:` marker maps to a
-   `component:<id>` manifest record and every such record still has its marker in the tree
-   (both directions), and each marker's declared CLASS matches what shipped — `registry-as-is`
-   on a visible surface, or a `registry-adapted` block still wearing the registry's own tokens
-   and layout, is a finding
-   (`${CLAUDE_PLUGIN_ROOT}/skills/asset-sourcing/references/component-sourcing.md`, injected
-   below). An UNMARKED pasted block is invisible to this check by construction — report the
-   gate with that limit stated, and no markers at all as `not checked (no sourced components
-   declared)`, never as a pass; **asset-fit** — right format per kind + a reduced-bundle fallback +
-   source-class match (bytes stay with the existing sprite/asset budget, not re-counted);
-   the **accent clears contrast on every surface AND size** it lands on (large ≥3:1, body ≥4.5:1; on a light
-   theme small text/marks use a darker accent step than the display accent — text ≥4.5:1,
-   non-text marks ≥3:1); the newer skills
-   meet their done-ness (page-transition instant-nav fallback, webgl GPU/pass budget +
-   capability fallback + off-screen loop pause + an error boundary for chunk-load/context
-   failure, interaction-fx real-cursor +
-   `pointer:coarse` disable, physics body-cap + reduced static, motion-sequencing
-   studio-excluded-from-prod); the concept's **divergence record** breaks ≥1
-   sameness-fingerprint default (a build matching the fingerprint with an empty record is a
-   finding, unless a conventional design was explicitly requested) — and **each entry is
-   verified against the shipped source, one at a time, not taken on the record's word**: an
-   entry claiming a default was broken while the build still contains it counts as
-   placeholder, exactly as `sameness-fingerprint.md` says, and the count of contradicted
-   entries is reported. This is the gate's most-skipped half — a record with many entries reads
-   as thorough divergence, and a rich record whose type or palette row is contradicted by the
-   shipped tokens is the failure mode that survives every other check;
-   **banned vocabulary** — the negative-constraints block the concept step recorded
-   (`${CLAUDE_PLUGIN_ROOT}/skills/creative-direction/references/concept-deck.md`) reaches
-   this audit as ONE tree-wide grep. Read `craft/build-task.md`'s `Banned vocabulary:` line —
-   falling back to the divergence record's own line when no build task persisted, and saying
-   which was read — split it on commas, and grep the WHOLE shipped tree for each term under
-   the MATCH SEMANTICS that same file states (word-bounded, case-insensitive, a quoted phrase
-   matched whole). Cite them; do not restate them here. Never a bare substring grep: a banned
-   `REV` matched as a substring hits `Reviews` and `Revenue` on every page that has either,
-   and a gate that fires on correct copy is waived into silence. Never
-   a subset, never once per section, and never the file set one build agent happened to
-   write: the whole point is that a scoped grep reports green over its own files while the
-   ban is verified nowhere. Each term with a hit in RENDERED content — visible copy, a
-   section title, a label, an `aria-label`, an alt text, a `data-*` string — is one finding
-   naming the term and its `path:line`; a hit inside the run's own `craft/` artifacts, or in
-   a comment quoting the constraint, is not. Report the number of terms CHECKED beside the
-   number of hits, because zero findings over zero terms is the exact shape this gate exists
-   to stop. `Banned vocabulary: none` → `not checked (nothing banned)`; no line anywhere →
-   `not checked (no banned-vocabulary line)` — never a pass, and never inferred from how the
-   page reads;
-   **ambition conformance** — read the contract's `Ambition` row and grade against THAT tier
-   (`ambition-tiers.md`). At `maximal` the four reach floors are checked: at least THREE
-   distinct motion capabilities driving real surfaces — a `motion-tiers` tier or a sibling
-   engine each count once, from the step-1 detection; at least
-   ONE authored graphic system — generative/procedural canvas, WebGL/shader surface,
-   programmatic SVG system, sprites, or a designer-authored vector asset, where rules, borders,
-   icons and type treatment are composition and do NOT count; and an asset posture that is not
-   all-first-party-emptiness (a manifest declaring nothing shipped passes the licence gate and
-   fails this floor); and NAMED ESCALATION — `craft/build-task.md`'s `Motion:` line carries at
-   least one `<surface>: <tier> (escalated ← <reason>)` entry AND that escalated tier is actually
-   present in the shipped tree. The first floor counts capabilities and three cheap ones
-   satisfy a count, so this floor asks the different question the count cannot: did any surface
-   depart from the cheapest tier that fit it? A mark with no matching implementation in the
-   tree is a finding, not a pass — it is the same "decision recorded, never built" failure the
-   divergence-record contradiction check exists for. No build task persisted →
-   `not checked (no build task)`, never a pass — and see the dropped-artifact rule below, which
-   makes DISCARDING one a finding in its own right so the floor cannot be waived by omission. Each floor is waivable ONLY by a reasoned entry in the divergence record;
-   a floor missed with no waiver is one finding naming the floor. No `Ambition` row in the
-   contract → `not checked`, never a pass and never a fail, and never inferred from how the
-   page looks;
-   **boost evidence** — read the contract's `Boost` row. At `ultra-craft`, check three things
-   the boost promised and nothing else can prove: a `craft/reference-board.md` exists (glob it
-   the same way) carrying at least six fetched sources across the three lanes, each with a URL
-   and a fetch date — a row whose appended `Method` column reads `browser (escalated ← <status>)`
-   is a FETCHED source and counts like any other, while `search-layer` and `fetch-failed` rows
-   record an attempt and count toward no floor, and a board with no `Method` column at all is an
-   older board counted by URL + fetch date as before — AND a searches-run block recording a
-   category-scoped query at each of the
-   three named galleries — `land-book.com`, `awwwards.com`, `dribbble.com` — where a query
-   recorded as fetch-blocked still discharges the search, per
-   `${CLAUDE_PLUGIN_ROOT}/skills/ultra-craft/references/research-mandate.md`;
-   a section ledger exists, because a boosted run pinned `guided` and its absence is a miss
-   rather than the legitimate one-shot skip above; and a red-team record exists naming what it
-   attacked. Each miss is one finding. A `none` row or no row → `not checked`, and never
-   inferred from how thorough the build looks; and **content depth**
-   meets the archetype anchors + typed-slot specificity (anchors are tunable ranges, not a
-   template; claim/aggregate metrics ship as `{{metric:*}}` slots and capability claims —
-   coverage, integrations, supported platforms, SLAs, compliance certifications — as
-   `{{capability:*}}` slots, both rendered as labeled
-   illustrative samples — not raw `{{mustache}}`, not unmarked invented literals; offer
-   numerals like price/fee/step-count are fine, ONE disclosure marker per figure plus at most
-   one regional footnote, no operator-addressed headline, no empty placeholder tiles); and the
-   **offer contract** — the shipped
-   routes match the pinned scope, ONE product identity under its REAL name (in `<title>` +
-   hero, not a concept-invented wordmark), every offer-spine slot answered per marketing
-   page (plain-language what — checked against the divergence record's metaphor vocabulary,
-   not by taste — audience, problem, how-it-works, price, proof, objection, one
-   repeated CTA verb), a proof region PRESENT as slots rather than deleted, and the declared
-   page LENGTH honored (on `long-scroll` the section range is a floor, not a finding — instead
-   check spine-answered-early, recurring one-verb CTA, varied section shapes, wayfinding past
-   ~8 sections, lazy below-fold instruments); and, when a `craft/content-source.md` exists,
-   **content fidelity** — the client's own copy was REPRODUCED rather than rewritten: captured
-   claims, prices, tier names and product names verbatim (re-breaking copy across sections and
-   re-wording headings to fit the concept's voice stays legal — restating a claim does not),
-   every legal block reproduced IN FULL and not hidden behind an accordion/modal/"read more",
-   every gaps-table row shipped as a visible `{{lorem}}` rather than as a written sentence,
-   every source row's fetch date inside the artifact's declared staleness window (a stale date
-   is a FINDING, not a note), and — under `source: none-located` — no authored marketing prose
-   standing where the run recorded it had located none, spec and API facts included. ALSO
-   check SUPPLIED-INPUT COVERAGE, which is Lane C of the mining method being enforced rather
-   than restated: grep the contract's verbatim `Raw brief:` and `Upgraded brief:` for URLs and
-   repo paths, and every one of them owes a row in the artifact's Sources table carrying a
-   `Method` — `fetch`, `browser (escalated ← <status>)`, `file`, `pasted`, or `fetch-failed`
-   with its reason. A named source with no row is one finding naming the source; a row reading
-   `fetch-failed` on an origin the contract names as the user's own, with no escalation
-   outcome recorded, is a second (the escalation is when-available, the RECORD is not). This
-   bites at every tier — the artifact is written at `one-shot` and `restrained` too, and a
-   brief-named URL is a supplied input rather than research. On a boosted run the same source
-   should also appear as a brand-assets row on the reference board, where the boost-evidence
-   gate above already counts it. No artifact → `not checked`; and, when a section ledger exists, **ledger
-   conformance** — every row has its section in the build, no marketing section is
-   unaccounted for, each row's `locks` actually ships, and `source: auto` rows are reported
-   rather than flagged (no ledger → skip this gate; a one-shot build is not a finding).
-   Collect its
-   `path:line — severity — problem — fix` lines.
-3. Delegate the checks craft-layer does not own — do not re-implement them: FULL
-   accessibility → `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check is
-   already covered as a craft gate in step 2; a11y owns the comprehensive pass);
-   performance / Lighthouse / Core Web Vitals → `/performance:review $ARGUMENTS`.
-   `/performance:review` requires the `performance` plugin; skipped if not installed. Run each
-   against the same scope and collect their verdicts.
-4. **Lead with COVERAGE — of gates AND of triggers.** Two numbers, because they
-   answer different questions and only one of them is usually asked.
+5. **CAPTURE and OPEN the images — at EVERY tier, not just a boosted run.** A DOM assertion proves an
+   element exists, carries the right text and computes the right colour. It cannot see text running off
+   its viewBox, two annotations landing on each other, or a fixed rail covering the column beneath —
+   the defects a reader meets first and a query never meets at all. The suite writes two PNGs per
+   breakpoint (390, 768, 1280, light and dark) into `<project>/.craft-layer/shots/`. READ each and
+   describe what is visible, hunting: text CLIPPED at a container or viewBox edge, OVERLAPPING labels,
+   truncation ellipses, fixed elements covering content, any element whose rendered position differs
+   from where the markup implies. Inject the shot paths into step 6 so the reviewer opens them too.
+   Anything found in an image IS a finding. **When a capture will not save, retry with an ABSOLUTE PATH
+   inside an allowed root before concluding the capability is unavailable** — a tool that refuses one
+   path is not a tool that cannot write. Only then `Visual: NOT CAPTURED (<reason>)`: reported, never
+   blocking, never implied by silence.
 
-   `Gates: <checked> checked · <not-checked> not checked · <not-measured> not measured`
-   `Triggers fired: <list> · not fired: <list>`
-   `Visual: <n> shots opened` — or `Visual: NOT CAPTURED (<reason>)`, which is reported and
-   never blocking, exactly like the `not measured` rows: what it must never be is unsaid.
+6. **Dispatch `craft-reviewer`** with the step-2 measurements, the step-3 artifacts, the step-5 shot
+   paths, and Read paths to the references its checks cite: `motion-tiers/references/tier-budgets.md` ·
+   `creative-direction/references/` `sameness-fingerprint.md`, `content-depth.md`, `offer-contract.md`,
+   `ambition-tiers.md`, `content-source.md`, `concept-deck.md`, `moves-taxonomy.md`, `type-strategy.md`,
+   `register-corpus.md` · `scroll-orchestration/references/scroll-acts.md` ·
+   `asset-sourcing/references/` `licence-discipline.md`, `component-sourcing.md` ·
+   `section-decisions/references/section-ledger.md` plus the ledger when one exists · and, when the
+   contract's archetype is `app/CRM` or the target has a logged-in data-dense half,
+   `information-design/references/app-craft-floors.md`.
 
-   A GATE is a defect type — wrong contrast, missing spine slot, absent signature. A
-   TRIGGER is the condition that SURFACES a fault: the viewport, the motion preference,
-   the colour mode, the zoom level, the input device. Gate coverage can improve forever
-   while the trigger set never changes, and every defect reachable only under an unfired
-   trigger stays invisible no matter how careful the review was. Report both or the
-   verdict over-claims.
+   The agent's prompt carries what it checks and what each missing input makes `not checked`. Two things
+   this step still tells it: which artifacts resolved and which are absent with the reason, and that a
+   missing input is `not checked` — never a pass, never a fail, never inferred from how the page reads.
+   Collect its `path:line — severity — problem — fix` lines.
 
-   The default trigger set for a visual build is: **default viewport · narrow viewport ·
-   200% zoom · light · dark · reduced-motion · forced-colours · keyboard-only · capture at
-   390/768/1280**. Fire what you can and NAME what you did not —
-   `template/craft-gates/gates.spec.ts` in this plugin
-   runs the browser-driveable ones in a few seconds and is what to INSTALL into a project
-   that has no suite, not merely what to recommend to one. When a trigger cannot be fired, list it under `not fired`; never let an
-   unfired trigger read as a clean result.
+7. **Delegate what craft-layer does not own** — do not re-implement: full accessibility →
+   `/a11y:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check stays a craft gate; a11y owns the
+   comprehensive pass); performance / Core Web Vitals → `/performance:review $ARGUMENTS`, skipped when
+   the `performance` plugin is absent. Same scope, collect both verdicts.
 
-   When anything is unchecked the report says in one sentence WHICH inputs were
-   missing. A sheet of `not checked` rows reads as a clean audit at a glance — it is the
-   opposite, and coverage is what makes that visible. State plainly that an audit whose
-   coverage is mostly unchecked is not a verdict on the build, only a verdict on what was
-   available to check.
+8. **Report — lead with COVERAGE, of gates AND of triggers.**
 
-   **Dropped artifacts are a FINDING, not `not checked`.** Absent working files mean "no
-   input" only when the build never ran the craft flow. When the target carries evidence
-   that it DID — a provenance manifest at one of the licence gate's names, a section
-   ledger, a token system with the flow's role tiers, or the user saying so — then missing
-   `craft/offer-contract.md`, `craft/divergence-record.md` or `craft/build-task.md` is a run
-   that decided its contract and threw it away, which is the failure steps 0 and 5 exist to
-   prevent.
-   The build task belongs on that list for a sharper reason than symmetry: without it floor 4
-   and the signature gate both report `not checked`, so a discarded build task is a floor
-   waived by omission — the one waiver route the reach floors do not grant. Report it as
-   one finding naming the missing file, and keep the gates that needed it as `not checked`
-   underneath. Never fail a build that plainly never ran the flow.
+   ```
+   Gates: <n> checked · <n> not checked · <n> not measured
+   Triggers fired: <list> · not fired: <list>
+   Visual: <n> shots opened          (or: Visual: NOT CAPTURED (<reason>))
+   ```
 
-   Then the consolidated pass/fail table: the craft gates from step 2, then the
-   delegated results from step 3. Both delegates are STATIC reviews, not Lighthouse runs, so
-   present Performance ≥ 90 / Accessibility ≥ 95 as the bar their findings are read against —
-   never as a measured score, and never as a hard CI gate. A row whose delegate was skipped
-   (plugin not installed) or whose input was `not measured` says so explicitly; a gate that
-   could not run is reported `not checked`, never folded into a pass. Order findings by
-   severity and name the owning tool for each delegated line.
-5. When findings map to real files, offer the fix as a selectable choice
-   (AskUserQuestion): "Fix the craft findings now" / "Report only". craft-layer ships no
-   writer — both its agents are read-only — so route the accepted fixes down a static chain:
-   `task-runner:task-executor` when the task-runner plugin is installed, else
-   `ui-ux:ui-ux-engineer` for markup/style/component work, else apply them inline. Findings
-   owned by a delegate go to that delegate's own worker (`a11y:a11y-engineer`,
-   `performance:performance-engineer`). Headless: report only and print the exact
-   `/a11y:audit` and `/performance:review` commands to rerun.
+   A GATE is a defect type — wrong contrast, missing spine slot, absent signature. A TRIGGER is the
+   condition that SURFACES a fault: viewport, motion preference, colour mode, zoom, input device. Gate
+   coverage can improve forever while the trigger set never changes, and a defect reachable only under an
+   unfired trigger stays invisible however careful the review was. The default set: **default viewport ·
+   narrow viewport · 200% zoom · light · dark · reduced-motion · forced-colours · keyboard-only · capture
+   at 390/768/1280**. Fire what you can and NAME what you did not.
+
+   When anything is unchecked, say in one sentence WHICH inputs were missing. A sheet of `not checked`
+   rows reads as a clean audit at a glance and is the opposite: an audit whose coverage is mostly
+   unchecked is not a verdict on the build, only on what was available to check.
+
+   **Dropped artifacts are a FINDING, not `not checked`.** Absent working files mean "no input" only when
+   the build never ran the craft flow. When the target shows it DID — a provenance manifest, a section
+   ledger, a token system with the flow's role tiers, or the user saying so — a missing contract,
+   divergence record or build task is a run that decided its contract and threw it away. The build task
+   belongs on that list for a sharper reason than symmetry: without it the signature gate and reach floor
+   4 both report `not checked`, so a discarded build task is a floor waived by omission, the one waiver
+   route the reach floors do not grant. One finding naming the missing file, with the gates that needed
+   it `not checked` underneath. Never fail a build that plainly never ran the flow.
+
+   **A green project suite is not this audit.** The likeliest failure is a build ending with the target's
+   own tests, typecheck or lint passing and the run reading that as done. That proves the code is
+   correct. It proves nothing about whether the signature shipped, the contract was honored, or the
+   divergence record's claims are true of what was built.
+
+   Then the consolidated table: craft gates, then the delegated results. Both delegates are STATIC
+   reviews, not Lighthouse runs, so present Performance ≥ 90 / Accessibility ≥ 95 as the bar their
+   findings are read against — never a measured score, never a hard CI gate. A row whose delegate was
+   skipped or whose input was `not measured` says so. Order findings by severity and name the owning tool
+   for each delegated line.
+
+9. **Append the run log.** After the audit runs, append ONE row to `<project>/.craft-layer/run-log.md`
+   (creating it with its header when missing) and trim to the last 5:
+   `| date | brief-slug | hue-family | type-strategy | spine | signature | draw |`, where `draw` holds
+   the five drawn deck options joined by ` / `. A row is appended only AFTER the audit runs, so a failed
+   or abandoned run appends nothing; the trim keeps the memory a window, not an archive; a malformed log
+   is treated as EMPTY and warned about, never fatal. This is what the next run's `draw-repeat` grades
+   against — an unwritten row makes the next run repeat this one.
+
+10. **Offer the fix.** When findings map to real files, offer it as an AskUserQuestion choice: "Fix the
+    craft findings now" / "Report only". craft-layer ships no writer — both its agents are read-only —
+    so route accepted fixes to `task-runner:task-executor` when installed, else `ui-ux:ui-ux-engineer`
+    for markup/style/component work, else apply inline. Findings owned by a delegate go to that
+    delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Headless: report only,
+    and print the exact `/a11y:audit` and `/performance:review` commands to rerun.
