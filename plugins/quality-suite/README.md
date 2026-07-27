@@ -18,7 +18,7 @@ auto-installed.
 
 - **code-review** — correctness bugs, code smells, and convention drift on any diff or PR, plus `/code-review:review`
 - **code-architecture** — plan-before-code, SOLID, YAGNI, and evidence-based verification via `/code-architecture:plan`, `/code-architecture:solid`, `/code-architecture:yagni`, `/code-architecture:verify`
-- **design-patterns** — GoF pattern selection (or rejection) for a described problem, plus `/design-patterns:suggest`
+- **approaches** — GoF pattern selection (or rejection) for a described problem via its pattern-selection skill, plus `/approaches:pattern` and the rest of its pre-code deliberation surface
 - **testing** — test pyramid, mocking boundaries, flaky-test causes, TDD workflow, plus `/testing:review`
 - **security** — OWASP-aligned code review and design-phase threat modeling, plus `/security:review`
 - **a11y** — WCAG 2.2 AA audit, one line per violation with the concrete fix, plus `/a11y:audit`

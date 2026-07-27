@@ -24,7 +24,7 @@ command -v jq >/dev/null 2>&1 || exit 0
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
-  printf '%s' "$head" | grep -qF '/build-vs-buy:check' && exit 0 # own suggestion quoted back = transcript, not intent
+  printf '%s' "$head" | grep -qF '/approaches:build-vs-buy' && exit 0 # own suggestion quoted back = transcript, not intent
   if printf '%s' "$head" | grep -qiE '\b(build|implement|write|create)\b|roll[[:space:]-]*(my|our|your)?[[:space:]-]*own|from[[:space:]]scratch|hand[[:space:]-]*roll' && printf '%s' "$head" | grep -qiE '(auth(entication|orization)?|login|session|oauth|jwt|password[[:space:]]hash|parser|tokeni[sz]er|date[[:space:]-]*(lib|library|math|parsing)|time[[:space:]]?zone|queue|job[[:space:]]queue|message[[:space:]]broker|cache|rate[[:space:]-]*limit(er|ing)?|state[[:space:]]machine|pdf|csv[[:space:]]parser|email[[:space:]]sending|smtp|payment|billing|encryption|crypto(graphy)?|hashing|search[[:space:]]engine|full[[:space:]-]*text[[:space:]]search|orm|scheduler|cron|websocket|pub[[:space:]-]*sub|i18n|internationali[sz]ation|feature[[:space:]]flag|markdown[[:space:]]parser|diff(ing)?[[:space:]]algorithm|uuid|slug)'; then
     # PER-PROMPT BUDGET: at most one reminder line per prompt across every
     # reminder hook installed. All hooks derive the same key from the prompt;
@@ -37,7 +37,7 @@ command -v jq >/dev/null 2>&1 || exit 0
     key=$(printf '%s%s' "$sid" "$prompt" | cksum | cut -d' ' -f1)
     mark="${TMPDIR:-/tmp}/cc-remind-$key"
     if mkdir "$mark" 2>/dev/null || [ ! -d "$mark" ]; then
-      printf '%s (%s).\n' 'build-vs-buy: this looks like building a capability often already solved by a battle-tested library or service — before writing it, weigh take (adopt) vs wrap vs write via an existing-solution search, health table, and verdict; skip only if you already know no fit exists' '/build-vs-buy:check'
+      printf '%s (%s).\n' 'build-vs-buy: this looks like building a capability often already solved by a battle-tested library or service — before writing it, weigh take (adopt) vs wrap vs write via an existing-solution search, health table, and verdict; skip only if you already know no fit exists' '/approaches:build-vs-buy'
     fi
     find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-remind-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
   fi

@@ -95,11 +95,6 @@
       "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin."
     },
     {
-      "name": "design-patterns",
-      "source": "./plugins/design-patterns",
-      "description": "Design pattern selection across the full GoF catalog: which pattern fits where, when NOT to use one, and look-alike disambiguation."
-    },
-    {
       "name": "api-docs-first",
       "source": "./plugins/api-docs-first",
       "description": "Verify current API docs before writing integration code; ask for a URL or file when docs are missing. For consuming third-party APIs; defers designing your own REST APIs to api-design."
@@ -227,7 +222,7 @@
     {
       "name": "approaches",
       "source": "./plugins/approaches",
-      "description": "Solution-approach deliberation: before non-trivial implementation, generate 2-3 structurally different approaches, compare trade-offs, pick with a stated kill-trigger — plus a strategy catalog (tracer bullet, walking skeleton, spike, strangler fig, inversion, Polya) mapped to the risk each one beats, and an opinion round where four parallel blind opinion-lens subagents (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue refactor-shaped tasks and synthesis converges to one pick in a single round. Includes /approaches:compare and /approaches:opinions."
+      "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, S/M/L/XL estimation, rollout planning, and design-pattern selection. Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:size, /approaches:rollout, /approaches:pattern."
     },
     {
       "name": "hindsight",
@@ -238,16 +233,6 @@
       "name": "brain",
       "source": "./plugins/brain",
       "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Map-only tracer (Phase 1a); an anchored-notes layer is planned. Nothing outside brain/ is ever modified."
-    },
-    {
-      "name": "build-vs-buy",
-      "source": "./plugins/build-vs-buy",
-      "description": "Gate zero before writing generic capability: check whether a library, service, or stdlib feature already solves it — candidate health table, take/wrap/write verdict, never-hand-roll list (crypto, auth, timezones, parsers). A UserPromptSubmit hook nudges the check when a prompt proposes building a commonly-solved capability. Includes /build-vs-buy:check."
-    },
-    {
-      "name": "rollout",
-      "source": "./plugins/rollout",
-      "description": "Per-feature rollout planning: feature flags, backward compatibility, staged exposure (internal → percentage → full), migration sequencing (expand-migrate-contract), and a rollback path stated BEFORE ship. Includes /rollout:plan."
     },
     {
       "name": "resilience",
@@ -268,11 +253,6 @@
       "name": "orchestration",
       "source": "./plugins/orchestration",
       "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), and agent conventions (engineer/reviewer naming taxonomy, one-surface PROACTIVELY arbitration, the shared apply-fixes contract). Includes /orchestration:review."
-    },
-    {
-      "name": "estimation",
-      "source": "./plugins/estimation",
-      "description": "Task sizing and effort estimation: S/M/L/XL classes with concrete anchors, reference-class calibration against work actually completed, uncertainty multipliers for unknowns, split triggers for oversized work, and estimate-vs-actual tracking persisted to a durable append-only ledger (with deferred-work parking) so calibration accumulates across runs. Includes /estimation:size."
     },
     {
       "name": "a11y",
@@ -312,7 +292,7 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation, hindsight mining, build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent orchestration, task execution, stack scanning, plugin scouting, and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (with the build-vs-buy, estimation, rollout, and pattern-selection disciplines folded into approaches), hindsight mining, docs upkeep, subagent orchestration, task execution, stack scanning, plugin scouting, and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "everything",

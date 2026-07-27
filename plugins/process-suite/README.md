@@ -2,7 +2,7 @@
 
 Meta-bundle: the engineering-process category in one install — git workflow,
 approach deliberation, hindsight mining,
-build-vs-buy gates, rollout planning, docs upkeep, estimation, subagent
+docs upkeep, subagent
 orchestration, task execution, stack scanning, plugin scouting, and intent
 drift guarding. Uninstalls cleanly: `/process-suite:uninstall` removes the
 bundle and prunes the plugins it auto-installed.
@@ -19,17 +19,14 @@ bundle and prunes the plugins it auto-installed.
 - **git-workflow** — worktree isolation and the branch-finish protocol
   (verify, merge/PR/park, clean up), plus `/git-workflow:finish`
 - **approaches** — 2-3 structurally different approaches with a kill-trigger
-  before implementing, plus `/approaches:compare` and `/approaches:opinions`
+  before implementing, plus the merged build-vs-buy, estimation, rollout, and
+  pattern-selection disciplines: `/approaches:compare`, `/approaches:opinions`,
+  `/approaches:build-vs-buy`, `/approaches:size`, `/approaches:rollout`,
+  `/approaches:pattern`
 - **hindsight** — mines session transcripts for cross-session friction,
   applied only on approval, plus `/hindsight:harvest`
-- **build-vs-buy** — existing-solution check before hand-rolling a capability,
-  plus `/build-vs-buy:check`
-- **rollout** — feature flags, staged exposure, and a rollback path stated
-  before ship, plus `/rollout:plan`
 - **docs-upkeep** — documentation-drift detection with exact fixes, plus
   `/docs-upkeep:check`
-- **estimation** — S/M/L/XL sizing with anchors and split triggers, plus
-  `/estimation:size`
 - **orchestration** — delegation contracts and verification panels for
   subagent fan-outs, plus `/orchestration:review`
 - **task-runner** — scope-locked task execution with bounded verify-fix loops,
