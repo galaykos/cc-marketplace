@@ -79,10 +79,10 @@ Print one numbered table, all queries merged, deduplicated by
 
 ## Install
 
-1. The numbered table is the picker surface — selection is by row,
-   unbounded by AskUserQuestion's 4-option cap. Ask one multiSelect
-   question: "Skip — report only", up to three standout rows as named
-   options, and any row selectable via Other as numbers and/or
+1. Offer rows as explicit options at maximum density — one
+   AskUserQuestion call holds up to 4 multiSelect questions x 4 options
+   (16 slots); page further calls until every row was offered. One slot
+   per call is "Stop — skip remaining"; Other accepts numbers and/or
    `source/skillId` (comma-separated, ranges OK; a token matching no row
    installs nothing — re-ask for just the unmatched). No "recommended
    set" option exists here: nothing on skills.sh is vetted, so no row

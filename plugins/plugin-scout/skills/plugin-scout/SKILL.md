@@ -100,14 +100,14 @@ Print one table:
 
 ## Install
 
-1. Without `--yes`: the numbered report table is the picker surface —
-   selection is by row, unbounded by AskUserQuestion's 4-option cap. Ask
-   one multiSelect question: "Install recommended set" (every tier-1
-   pick, named with its evidence; omitted when tier-1 is empty) / "Skip —
-   report only"; any other rows are picked via Other as numbers and/or
-   names (comma-separated, ranges OK). Full selection contract:
-   `references/picker.md`. Headless: print the exact install commands for
-   every not-installed suggestion instead of running anything, then stop.
+1. Without `--yes`: offer rows as explicit options at maximum density —
+   one AskUserQuestion call holds up to 4 multiSelect questions x 4
+   options (16 slots); page further calls until every suggestion was
+   offered. Tier-1 picks lead the first page with their evidence; one
+   slot per call is "Stop — skip remaining"; Other always accepts
+   numbers/names/ranges against the numbered table. Full contract:
+   `references/picker.md`. Headless: print the exact install commands
+   for every not-installed suggestion instead, then stop.
    With `--yes`: skip this picker — see Flags below for the auto-select set.
 2. For each pick, run via Bash:
 
