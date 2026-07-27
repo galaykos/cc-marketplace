@@ -135,6 +135,11 @@
       "description": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install — stack-matched tier and always-useful tier — then install the picked ones after confirmation. Includes /plugin-scout:suggest."
     },
     {
+      "name": "vercel-skills-scout",
+      "source": "./plugins/vercel-skills-scout",
+      "description": "Scout skills.sh — Vercel's open agent-skills directory — for third-party skills matching the project's stack: scans manifests, queries the skills.sh search API, reports each hit with provenance (source repo, install count, skills.sh URL), previews the picked skills' SKILL.md before anything lands, then installs only explicit picks via npx skills add — project-level, never global, never auto-installed. Includes /vercel-skills-scout:suggest."
+    },
+    {
       "name": "testing",
       "source": "./plugins/testing",
       "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review and a test-engineer worker agent."
