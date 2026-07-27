@@ -17,7 +17,7 @@ any mix of content directories:
       README.md                    optional, recommended once non-trivial
 
 Every content directory is optional; ship only the kinds the plugin
-actually needs. An empty scaffold directory is clutter, not foresight.
+actually needs. An empty scaffold directory is clutter, not foresight (Admission law).
 
 ## plugin.json
 
@@ -96,7 +96,8 @@ not by habit:
 Prefer the smallest artifact that does the job: a skill before an
 agent, an agent before a command-plus-hook apparatus. A plugin whose
 every feature is a hook is usually a skill wearing armor; a plugin
-with one command and no knowledge is usually a shell alias.
+with one command and no knowledge is usually a shell alias. This is
+the Admission law — `authoring-skills`, "The four laws".
 
 ## Release hygiene
 
@@ -142,4 +143,4 @@ Treat a red validator as a broken build, not a suggestion.
 - Versions never bumped. Ten content changes at 0.1.0 means no one —
   including you — can tell which behavior any install actually has.
 - Kitchen-sink plugins. Unrelated skills bundled under one name force
-  users to install everything to get anything; split by audience.
+  users to install everything to get anything; split by audience (Admission law).

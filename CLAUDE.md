@@ -23,6 +23,20 @@ publishable plugin.
 `scripts/validate.sh` enforces this: any `.md` under `plugins/` that is not one of
 the functional kinds above fails the build (and CI on every PR).
 
+## The four laws (convention)
+
+Proportionality, honest limitation, the theater test, admission. Each was
+independently re-derived across this marketplace under a different subject
+heading, by authors who did not know the others had written it. A principle with
+no home gets rewritten every time it is needed. The evidence — which sites, how
+many, in which vocabularies — lives with the doctrine, not here.
+
+The home is the `claude-authoring` plugin's `authoring-skills` skill, "The four
+laws", with the derivation in its `references/doctrine.md`. **Cite it; do not
+restate it here** — a fifth copy of a law about not keeping copies would be its
+own counter-example. Same reasoning as the teeth convention below: it lives in a
+plugin because that one SHIPS.
+
 ## Say what has teeth (convention)
 
 When a plugin document states a rule, name its standing — **gate** (a script fails
