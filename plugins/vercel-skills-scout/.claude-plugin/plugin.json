@@ -1,0 +1,13 @@
+{
+  "name": "vercel-skills-scout",
+  "version": "0.1.0",
+  "description": "Scout skills.sh — Vercel's open agent-skills directory — for third-party skills matching the project's stack: scans manifests, queries the skills.sh search API, reports each hit with provenance (source repo, install count, skills.sh URL), previews the picked skills' SKILL.md before anything lands, then installs only explicit picks via npx skills add — project-level, never global, never auto-installed. Includes /vercel-skills-scout:suggest.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling",
+    "research"
+  ]
+}
