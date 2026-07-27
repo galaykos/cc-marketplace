@@ -30,9 +30,8 @@ delays the change, and teaches everyone to ignore panel verdicts. (Proportionali
 
 ## Panel width — this skill owns N
 
-Panel size is sized to blast radius, never filled to a quota. This is the sizing
-authority for every consumer; a consumer that re-derives its own N does not inherit
-later corrections to this one.
+Sized to blast radius, never filled to a quota. This is the sizing authority for every
+consumer; one that re-derives its own N does not inherit corrections to this.
 
 | Blast radius | Panel |
 |---|---|
@@ -41,12 +40,14 @@ later corrections to this one.
 | **Large** — irreversible, security/auth/data, or cross-module | 3, and round up one row when two risk factors stack |
 
 No `Workflow` tool → 1 inline pass, reported as **"inline heuristic pass — single
-model, uncorroborated"**, never as a panel or an adversary count.
+model, uncorroborated"**, never as a panel or an adversary count. That label is owned
+here; consumers cite it rather than restating it, so a change to the wording reaches
+every one of them. The boost dispatch tier is owned here too — `references/dispatch-tier.md`.
 
-A consumer may map its OWN trigger conditions onto these rows — `spec-redteam`'s four
-gate bullets, `ultra`'s recon/coverage columns — because which conditions signal "large"
-is domain knowledge those skills hold and this one does not. What it may not do is
-invent a different N for the same radius.
+A consumer may map its OWN triggers onto these rows — `spec-redteam`'s four gate
+bullets, `ultra`'s recon/coverage columns — because which conditions signal "large" is
+domain knowledge they hold and this skill does not. It may not invent a different N for
+the same radius.
 
 ## Refuter voting
 

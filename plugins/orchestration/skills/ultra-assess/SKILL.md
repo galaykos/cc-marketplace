@@ -43,12 +43,10 @@ e.g. `fable`, never the word `auto`). Print it once per run, not once per phase.
 
 ## Fixed tier
 
-`model=auto, effort=xhigh`, always — the bare `ultra-assess` token carries no
-tier suffix (the old `-<model>[-<effort>]` grammar is REMOVED, mirroring
-`ultra-task`). `auto` resolves at dispatch time to the session model or opus,
-whichever is higher on the ladder haiku<sonnet<opus<fable — escalate, never
-downgrade. The hook injects `(model=auto, effort=xhigh)`; every rule below
-reads those values.
+`model=auto, effort=xhigh`, always — the bare `ultra-assess` token carries no tier
+suffix (the old `-<model>[-<effort>]` grammar is REMOVED, mirroring `ultra-task`).
+The resolution rule is owned by `orchestration:verification-panels` § Panel width, in this plugin; the hook injects
+`(model=auto, effort=xhigh)` and every rule below reads those values.
 
 ## The escalation contract (`ULTRA-ASSESS ACTIVE`)
 
@@ -127,3 +125,11 @@ distinguish a real fan-out from an inline walk without trusting tone.
 - It does not persist across runs or expose an "off" command; re-type the phrase.
 - It does not write build artifacts — no spec, no cards, no execution marker.
 - It does not auto-trigger `ultra-task`, and `ultra-task` does not auto-trigger it.
+
+## Residual: no cross-plugin activation guard
+
+Two boost tokens in one prompt inject two directives and nothing can stop it — three
+independently-installed plugins share no writable state. Standing **unenforceable**;
+the off switch (`CC_BOOST=off`, or `ORCHESTRATION_BOOST=off`) is what IS implementable. Full
+statement, with the trigger-narrowing limits:
+`orchestration:verification-panels` `references/dispatch-tier.md`.

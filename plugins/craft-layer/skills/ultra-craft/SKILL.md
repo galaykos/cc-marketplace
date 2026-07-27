@@ -40,18 +40,16 @@ First visible line of the response, once per run (not per phase), plain markdown
 
     ⚡ ULTRA-CRAFT — maximal + live research + guided + <model>/xhigh + red-team
 
-Substitute `<model>` with the RESOLVED tier, never the word `auto`. Follow it with
-the one-line cost disclosure below. Never print this banner and a taskmaster boost
-banner in the same response — one boost owns one run.
+Substitute `<model>` with the RESOLVED tier, never the word `auto`; follow it with the
+one-line cost disclosure below. Never print this banner and another boost's in the same
+response — output-level only, see the residual at the end.
 
 ## Fixed tier
 
-`model=auto, effort=xhigh`, always — the bare token carries no tier suffix. `auto`
-resolves at dispatch to the session model or opus, whichever is higher on
-haiku<sonnet<opus<fable: escalate, never downgrade, and the resolution is a FLOOR,
-so it never lowers an agent below its shipped frontmatter. `effort` is settable
-ONLY on the Workflow `agent()` path — inline Agent dispatch escalates model only.
-Never edit agent frontmatter to achieve this; the boost is a dispatch-time override.
+`model=auto, effort=xhigh`, always — the bare token carries no tier suffix. The
+resolution rule is owned by `orchestration:verification-panels` § Panel width and is not restated here; it is a FLOOR, so it
+never lowers an agent below its shipped frontmatter. Never edit agent frontmatter to
+achieve this — the boost is a dispatch-time override.
 
 REASONING roles escalate: `creative-director` (concept divergence) and
 `craft-reviewer` (the audit's gate pass). Mechanical and breadth roles — the token
@@ -131,24 +129,26 @@ bespoke type sculpture — is unchanged too; `ambition-tiers.md` owns that ceili
 ## Cost, and when to refuse it
 
 Say the cost in one line under the banner: live fetches and guided rounds add
-wall-clock and exchanges; `maximal` adds bundle weight; the red-team adds a pass
-after the audit. Where the brief ALSO asks for fast, cheap, or a quick draft, the
-orders conflict — ASK which wins rather than spending an hour on a request for
-fifteen minutes.
+wall-clock and exchanges; `maximal` adds bundle weight; the red-team adds a pass after
+the audit. Where the brief ALSO asks for fast, cheap, or a quick draft, the orders
+conflict — ASK which wins, rather than spending an hour on a fifteen-minute request.
 
 ## Anti-patterns
 
-- **Boost as adjective** — "ultra" echoed in the run's prose and bound to no row,
-  reaching nothing and checking nothing. The failure `maximal` was built to stop,
-  one level up.
-- **Research theatre** — a reference board of plausible URLs nobody fetched. Worse
-  than no board: it launders recall as evidence.
-- **Board after tokens** — echoing the readout once the palette exists makes it a
-  status update instead of a decision point.
-- **Boost the builders** — escalating the component build instead of the concept
-  and the review, paying for latency in the roles that never needed judgment.
-- **Panel that did not run** — reporting a red-team when one inline pass happened.
-- **Fix list taken on trust** — refuting the build, then blessing its repairs.
+- **Boost as adjective** — "ultra" in prose, bound to no row, checking nothing.
+- **Research theatre** — a board of URLs nobody fetched; launders recall as evidence.
+- **Board after tokens** — echoed after the palette exists: a status update, not a
+  decision point.
+- **Boost the builders** — escalating the build instead of the concept and review,
+  paying latency in roles that never needed judgment.
+- **Panel that did not run** — reporting a red-team when one inline pass happened;
+  **fix list taken on trust** — refuting the build, then blessing its repairs.
 - **Verified without looking** — calling a surface right when no image was opened.
-- **Silent boost** — pinning ultra-craft from a brief that never asked, then
-  spending the wall-clock and the bundle on it.
+- **Silent boost** — pinning ultra-craft from a brief that never asked for it.
+
+## Residual: no cross-plugin activation guard
+
+Two boost tokens in one prompt inject two directives; nothing can stop it — three
+independently-installed plugins share no writable state. Standing **unenforceable**; the
+off switch (`CC_BOOST=off` / `CRAFT_BOOST=off`) is what IS implementable. Full statement:
+`verification-panels` `references/dispatch-tier.md`.
