@@ -20,11 +20,14 @@ Steps:
    evidence | overlap | installed) as defined by the skill, top 5 per
    query, deduplicated. On API failure, stop and point at browsing
    https://www.skills.sh.
-4. Ask one AskUserQuestion (multiSelect) per the skill's Install section:
-   "Skip — report only" plus up to three standout rows as named options,
-   any row selectable via Other as numbers and/or `source/skillId`
-   (ranges OK) — full coverage, no suggestion unreachable, and no
-   recommended-set option since nothing on skills.sh is vetted. Headless:
+4. Run the picker per the skill's Install section: max density — each
+   AskUserQuestion call fills 4 multiSelect questions x 4 options (16
+   slots), one "Stop — skip remaining" slot per call, paging until every
+   eligible row was offered. Installed rows are never options;
+   overlap-with-installed rows sort last, overlap named. Other takes
+   numbers and/or `source/skillId` (ranges OK); >32 rows, offer the
+   `scripts/pick.sh` TTY picker per `references/mechanics.md`. No
+   recommended-set option: nothing on skills.sh is vetted. Headless:
    print the exact `npx -y skills add <owner>/<repo> --skill <skillId> -y`
    commands and stop. There is no auto-install flag — see the skill's
    Boundaries.

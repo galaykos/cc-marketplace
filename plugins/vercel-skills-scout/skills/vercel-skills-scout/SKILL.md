@@ -79,15 +79,18 @@ Print one numbered table, all queries merged, deduplicated by
 
 ## Install
 
-1. The numbered table is the picker surface — selection is by row,
-   unbounded by AskUserQuestion's 4-option cap. Ask one multiSelect
-   question: "Skip — report only", up to three standout rows as named
-   options, and any row selectable via Other as numbers and/or
-   `source/skillId` (comma-separated, ranges OK; a token matching no row
-   installs nothing — re-ask for just the unmatched). No "recommended
-   set" option exists here: nothing on skills.sh is vetted, so no row
-   gets recommended framing. Headless: print the exact commands below and
-   stop.
+1. Offer rows as explicit options at maximum density — one
+   AskUserQuestion call holds up to 4 multiSelect questions x 4 options
+   (16 slots); page further calls until every eligible row was offered.
+   Installed rows (per `skills ls`) are never options; rows with a
+   non-empty Overlap column sort to the final pages, their option text
+   naming the overlapped plugin. One slot per call is "Stop — skip
+   remaining"; Other accepts numbers and/or `source/skillId`
+   (comma-separated, ranges OK; a token matching no row installs
+   nothing — re-ask for just the unmatched). No "recommended set" option
+   exists here: nothing on skills.sh is vetted. For very long tables the
+   TTY picker in `references/mechanics.md` is the unbounded alternative.
+   Headless: print the exact commands below and stop.
 2. Preview before install — for each pick, fetch the skill's SKILL.md from
    the source repo (raw.githubusercontent.com, main then master) and show
    its frontmatter description plus body line count, so the user can

@@ -54,10 +54,21 @@ Response (200, JSON):
 
 Published by Vercel Labs; `npx -y skills <command>`.
 
-- `add <owner>/<repo> --skill <skillId> -y` — install one skill from a
-  repo. Project-level is the default inside a project; `-g`/`--global` is
+- `add <owner>/<repo> --skill <name> -y` — install one skill from a
+  repo. Verified gotcha: `--skill` matches the skill's DISPLAY name from
+  the CLI's own listing (e.g. `"Plugin Structure"`), not the skills.sh
+  `skillId` (`plugin-structure`) — passing the skillId prints the repo's
+  skill list and exits 0 without installing. Run
+  `add <owner>/<repo> -l` first, then pass the exact listed name, and
+  verify the install with `skills ls` — exit code 0 proves nothing.
+  Project-level is the default inside a project; `-g`/`--global` is
   user-level and this plugin never passes it. `--skill '*'` installs a
   repo's whole set — never use it here; one pick, one skill.
+- Install side effects to expect: skill content lands in
+  `.agents/skills/<name>/` with symlinks into each agent dir
+  (`.claude/skills/<name>`), and `skills-lock.json` appears at the
+  project root — surface both to the user, who decides whether to commit
+  or gitignore them.
 - `ls` — list installed skills (the report's installed column).
 - `remove`, `update` — lifecycle commands out of this plugin's scope;
   mention them, do not run them.
@@ -65,6 +76,19 @@ Published by Vercel Labs; `npx -y skills <command>`.
   an alternative the user can run manually to trial a skill.
 - Installs symlink into agent directories by default (`--copy` to copy)
   and are tracked in `skills-lock.json` at the project root.
+
+## TTY picker escape hatch
+
+For very long tables an unbounded interactive multi-select ships at
+`scripts/pick.sh` (fzf with TAB-toggle when available, else a numbered
+prompt with ranges). It needs a real TTY, which model-run Bash lacks, so
+the flow is: write the eligible rows to a scratch file as
+`<number><TAB><label>` lines, print the exact
+`! bash <absolute path to pick.sh> <rows file>` command for the user to
+run themselves (the `!` prefix runs it user-side and its output lands in
+the conversation), then read the returned `PICKED: <numbers>` line and
+treat those numbers as row picks. Offer it when rows exceed two pages
+(>32); never require it.
 
 ## Why no --yes / auto-install exists
 

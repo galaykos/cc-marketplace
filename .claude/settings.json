@@ -23,7 +23,8 @@
     ]
   },
   "enabledPlugins": {
-    "claude-authoring@cc-plugins-marketplace": true
+    "claude-authoring@cc-plugins-marketplace": true,
+    "code-review@cc-plugins-marketplace": true
   },
   "extraKnownMarketplaces": {
     "cc-plugins-marketplace": {

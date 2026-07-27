@@ -4,8 +4,14 @@ docs
 .junie
 taskmaster-docs
 # Local Claude Code state — track only settings.json (the committed authoring-guard hook)
+# plus the committed project skills below (a parent dir must be unignored before
+# anything under it can be re-included).
 .claude/*
 !.claude/settings.json
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/chassis-workflow/
+!.claude/skills/plugin-structure
 # Session tooling state must never ship inside a plugin. The rule above is
 # root-anchored (a mid-pattern slash anchors to the .gitignore dir), so nested
 # .claude/ dirs were never matched — which is how six per-session state files

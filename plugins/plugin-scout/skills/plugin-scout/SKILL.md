@@ -91,23 +91,23 @@ Print one table:
 - Evidence cites file and dependency; tier-2 rows just say "universal".
   Installed column: ✓ when `claude plugin list` shows it, — otherwise.
 - Exclude plugin-scout itself and every bundle (everything and all `*-suite`)
-  from the table.
-- When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite installs
-  MOST of the universal set as one bundle (see its README for deliberate
-  exclusions — e.g. secret-scanning), if picking individually feels slow.
+  from the numbered table. Under it, list each not-installed suite whose
+  dependency list covers 3+ suggested not-installed rows, with the rows it
+  bundles (e.g. "php-suite bundles #1-#4, #9") — suite-as-shortcut rules:
+  `references/picker.md`.
 - Zero stack signals → print the tier-2-only report with the note "no stack
   signals found".
 
 ## Install
 
-1. Without `--yes`: the numbered report table is the picker surface —
-   selection is by row, unbounded by AskUserQuestion's 4-option cap. Ask
-   one multiSelect question: "Install recommended set" (every tier-1
-   pick, named with its evidence; omitted when tier-1 is empty) / "Skip —
-   report only"; any other rows are picked via Other as numbers and/or
-   names (comma-separated, ranges OK). Full selection contract:
-   `references/picker.md`. Headless: print the exact install commands for
-   every not-installed suggestion instead of running anything, then stop.
+1. Without `--yes`: offer rows as explicit options at maximum density —
+   one call holds 4 multiSelect questions x 4 options (16 slots); page
+   until every eligible suggestion was offered. Installed rows are never
+   options; rows overlapping an installed plugin's category sort last.
+   Tier-1 leads the first page with evidence; one slot per call is
+   "Stop — skip remaining"; Other accepts numbers/names/ranges. Full
+   contract: `references/picker.md`. Headless: print install commands
+   for every not-installed suggestion instead, then stop.
    With `--yes`: skip this picker — see Flags below for the auto-select set.
 2. For each pick, run via Bash:
 
