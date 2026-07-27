@@ -206,16 +206,32 @@ having, because a decision nobody recorded cannot be diverged from later.
 The section above asks WHICH registry. This one asks how much of it the run actually saw,
 and it is the half that decides whether a registry buys structure or decoration.
 
-A run briefed on two named registries shipped **one** component from a ~60-component
-registry and **four** primitives from a 1051-component one, and picked, from a catalogue
+A run briefed on two named registries shipped **one** component from a **270**-component
+registry and four primitives from a 1051-component one, and picked, from a catalogue
 holding Hero Parallax, Sticky Scroll Reveal, Bento Grid, Container Scroll and Tracing Beam,
-the generic hover-card. Nothing was wrong with the pick in isolation. What was wrong is
+the generic hover-card. The run's own note recorded that registry as holding "~60" — it had
+never counted, and the estimate it substituted was off by a factor of four in the direction
+that made the pick look reasonable. Nothing was wrong with the pick in isolation. What was wrong is
 that the alternatives were never enumerated: the run worked from what it could RECALL of
 the registry instead of from what the registry CONTAINS, and recall is biased toward
 whatever is most common, which is the definition of the default this plugin exists to
-leave. The same run guessed a registry URL, took a 401, and concluded the library was
-licence-gated — it was not; its 1000+ components are free — because a guess had stood in
-for a listing.
+leave. That registry answered 200 on every path, the whole time.
+
+**A gated registry gates the ENDPOINT, not the component.** The same run hit the other
+registry's install path, took a 401, and stopped there. The 401 was real — that host
+answers `Authentication required … Bearer YOUR_LICENSE_KEY`, and a licence key is not
+something this flow may request, hold, or enter. But the components behind it were MIT in
+the project's own repository, and MIT is MIT wherever it is served from. A licence check on
+a CONVENIENCE API is a fact about paying for tooling; the question `licence-discipline.md`
+asks is what terms the CODE carries. Read the repository's LICENSE, take the source from a
+path that is actually open, and record THAT retrieval path in `PROVENANCE.md` rather than
+the one that was attempted.
+
+Both directions of this are wrong and the run made each in turn: a paywalled installer
+reported as an unavailable component, and later — reading the vendor's own "free and
+open-source" page — a gated endpoint reported as open. Marketing copy describes the
+project; an HTTP status describes the endpoint; the LICENSE file describes the terms.
+Cite the one that answers the question being asked.
 
 **Enumerate, then pick.** Before the class decision in "The four classes" runs for a
 surface, the run needs the registry's actual index in front of it, not its memory of one:
@@ -227,7 +243,17 @@ surface, the run needs the registry's actual index in front of it, not its memor
   rather than a recollection.
 - **Without MCP, fetch the registry index** (`/registry.json`, the components listing page)
   and read it. A fetch that fails escalates the same way research does — and a 401 on a
-  guessed path is evidence about the PATH, never about the licence.
+  guessed path is evidence about the PATH, never about the terms.
+
+**The index also prices the run's motion reach, which nothing else does.** A registry index
+lists each item's dependencies, so reading it answers a question the tier picker otherwise
+answers by guessing: what a block COSTS. One registry's index resolves to `three`,
+`@react-three/fiber`, `@react-three/drei`, `three-globe`, `cobe`, `simplex-noise` and
+`@tsparticles/*` — meaning a 3D capability can arrive as a component choice rather than as
+a separate engine decision, and meaning a casually-picked block can put a WebGL runtime in
+the bundle that nobody budgeted. Both directions matter: `ambition-tiers.md` floor 1 wants
+three distinct capabilities and the section below forbids buying them with house motion, so
+the index is where a build learns which blocks would do that BEFORE installing one.
 
 **Record the survey on the build task**: which registries were listed, roughly how many
 components were in scope, and what was picked. Two lines. The point is not an audit trail
