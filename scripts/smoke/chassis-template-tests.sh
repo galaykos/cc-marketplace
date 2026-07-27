@@ -106,6 +106,11 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook.json" "$H"; then
   expect_has "$H" 'case "$prompt" in "" | "/"*) exit 0' "hook: empty + slash guards"
   expect_has "$H" "adspower|local" "hook: regex substituted"
   expect_absent "$H" " && [ " "hook(plain): no extraGuard when null"
+  expect_has "$H" 'CC_REMIND:-on' "hook: CC_REMIND off switch present"
+  expect_has "$H" 'cut -c1-400' "hook: head-window narrowing present"
+  expect_has "$H" 'task-notification|SYSTEM NOTIFICATION' "hook: machinery guard present"
+  expect_has "$H" 'grep -qF' "hook: own-command echo guard present"
+  expect_has "$H" 'cc-remind-' "hook: per-prompt budget marker present"
 fi
 
 # ---- reminder hook: extraGuard ------------------------------------------------
