@@ -37,7 +37,7 @@ Before reporting, read the project manifests (composer.json, package.json, .env.
 
 6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    Apply all / Apply critical+high only / Report only / Skip — audit only, no writes. On an apply
-   pick, dispatch the finding list down the static chain devops-engineer → task-runner:task-executor if installed → inline — never leave
+   pick, dispatch the finding list down the static chain devops:devops-engineer if installed → task-runner:task-executor if installed → inline — never leave
    the user to retype findings as instructions. In a headless or non-interactive run,
    report only and print the apply command instead of dispatching.
 
