@@ -56,5 +56,9 @@ Scaffold a new skill from $ARGUMENTS. Steps:
 5. Offer the next step as a selectable choice (AskUserQuestion): "Load the
    authoring-skills skill and flesh out the TODOs now (Recommended)" /
    "Skip — I'll fill the scaffold in myself". On yes, load the skill and
-   continue; plain text only when headless. Deeper rules live there — the
-   deeper rules — description writing, scoping, and budget techniques.
+   continue; plain text only when headless. Deeper rules live there —
+   description writing, scoping, and budget techniques.
+6. Before the skill ships, remind about the baseline: run the target scenario
+   WITHOUT the skill and record the failure it exists to fix — the loop is
+   authoring-skills' `references/behavioral-testing.md`. A skill with no
+   baseline failure restates what the model already does.

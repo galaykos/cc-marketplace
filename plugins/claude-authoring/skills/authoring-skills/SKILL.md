@@ -42,10 +42,16 @@ not a summary.
   weigh it against neighbors: "Use when X — does Y."
 - Include trigger vocabulary verbatim. If users say "review my diff", the
   words "review" and "diff" belong in the description, not synonyms.
+- Trigger conditions ONLY, never a workflow recap — a description that
+  summarizes steps makes the model follow the summary and skip the body.
+  It answers "should I load this now?", not "what does this do?".
 - A skill that never fires is dead weight: it costs registry space and
   reader attention while delivering nothing. Write the description for the
   dispatcher, then test it: given the target request, would THIS line win
   against every other installed skill?
+- Baseline a NEW behavioral skill: run the scenario WITHOUT it and record the
+  failure — none means the skill restates what the model already does. Loop in
+  `references/behavioral-testing.md`. Standing: recorded — no script runs it.
 
 ## One capability per skill
 
@@ -55,17 +61,13 @@ Scope a skill to a single capability with a single trigger.
   cannot, it is two skills.
 - Split when the body needs headings for unrelated behaviors — if a reader
   who came for section A never needs section B, they are two skills
-  fighting over one trigger.
-- Splitting also sharpens descriptions: two narrow triggers each beat one
-  vague umbrella trigger.
+  fighting over one trigger. Two narrow triggers beat one vague umbrella.
 
 ## The 150-line ceiling
 
 A body over 150 lines fails the build. There is **no floor** — a skill that
 says its piece in 60 lines is finished, not thin:
 
-- Brevity forces prioritization: each line earns its place against the line
-  it displaces.
 - Link references instead of inlining walls — point to a spec, script, or doc
   path and state only the rule the reader needs right now.
 - Over 150 lines means two skills, or a doc belonging elsewhere.
@@ -75,8 +77,7 @@ says its piece in 60 lines is finished, not thin:
 Order the body the way a reader under time pressure consumes it:
 
 1. Rules first — the imperatives the skill exists to enforce.
-2. Examples second — one concrete good/bad pair beats three paragraphs of
-   qualification.
+2. Examples second — one concrete good/bad pair beats three qualifications.
 3. Anti-patterns last — failure modes with names, so reviews can cite them.
 
 Style:
@@ -134,9 +135,8 @@ tell which from the sentence. Name a rule's standing where it is stated:
 | **unenforceable** | cannot be checked as stated — say why |
 
 Naming a blind spot is not weakness; calling an agent-graded check a gate is
-the over-claim. And a rule that keeps being broken is not under-stated — it is
-in the wrong tier, and needs a hook, a script, or a tool the model reaches for
-instead of another paragraph.
+the over-claim. A rule that keeps being broken is in the wrong tier — it needs
+a hook, script, or tool, not another paragraph.
 
 ## Common failures
 
@@ -148,7 +148,7 @@ instead of another paragraph.
 - Restating general knowledge. The model already knows what a unit test is;
   a body explaining it wastes budget. Spend lines only on what is local:
   this repo's conventions, thresholds, paths, and commands.
-- Name/directory drift. Renaming the directory without updating `name:` (or
-  vice versa) fails validation — they must match exactly.
-- Body written before description. Author the trigger first; if you cannot
-  write a sharp "Use when …", the capability is not yet a skill.
+- Name/directory drift. `name:` and the directory must match exactly;
+  validation fails otherwise.
+- Body before description. Author the trigger first — no sharp "Use when …"
+  means the capability is not yet a skill.
