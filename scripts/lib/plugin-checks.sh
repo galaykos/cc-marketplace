@@ -79,6 +79,61 @@ pc_doc_location() {
   return 1
 }
 
+# pc_rules_cofire <rules_tsv_path> <corpus_dir>
+# CONTENT-row co-firing gate. Two content rows co-fire when BOTH patterns match at
+# least one file in a shared corpus of representative source snippets. Every such
+# unordered pair must be blessed by a
+#   "# co-fire-ok: content <skillA> <skillB>"
+# directive in the same file — the same convention the glob axis already uses.
+#
+# WHY A CORPUS, not pattern equality: pc_rules_overlap flags glob rows that share an
+# IDENTICAL pattern string. Content rows never do — all five are distinct regexes at
+# low confidence — so extending that algorithm here would be vacuous, matching nothing
+# ever. Content rows collide because two DIFFERENT regexes match the same text: one
+# ordinary React component containing `await`, `catch`, `fetch(`, `console.error` and
+# `token` fires four of them at once. Only a corpus can express that.
+#
+# LIMITATION (honest scope): the corpus is a fixed, hand-written sample. This converts
+# "add a content row and never learn what it co-fires with" into "add one and the gate
+# names every existing row it collides with on realistic code". It does NOT prove the
+# absence of collisions on code shapes the corpus does not contain, and it says nothing
+# about whether a blessed co-fire is a good idea — only that someone declared it.
+#
+# On violation: prints "cofire <skillA> <skillB> <file>" per unblessed pair, returns 1.
+pc_rules_cofire() {
+  local f="$1" corpus="$2" rc=0
+  [ -f "$f" ] || return 0
+  [ -d "$corpus" ] || return 0
+  local blessed pats skills n i j
+  blessed=$(grep '^# co-fire-ok:[[:space:]]*content ' "$f" 2>/dev/null \
+            | sed 's/^# co-fire-ok:[[:space:]]*content //')
+  # collect content rows
+  local -a P S
+  while IFS="$(printf '\t')" read -r kind pat skill rest; do
+    [ "$kind" = content ] || continue
+    P+=("$pat"); S+=("$skill")
+  done < <(grep -v '^#' "$f")
+  n=${#P[@]}
+  for (( i=0; i<n; i++ )); do
+    for (( j=i+1; j<n; j++ )); do
+      local hit=""
+      for c in "$corpus"/*; do
+        [ -f "$c" ] || continue
+        if grep -qE "${P[$i]}" "$c" 2>/dev/null && grep -qE "${P[$j]}" "$c" 2>/dev/null; then
+          hit="$(basename "$c")"; break
+        fi
+      done
+      [ -n "$hit" ] || continue
+      printf '%s\n' "$blessed" | grep -qE "(^|[[:space:]])${S[$i]}([[:space:]]|$)" \
+        && printf '%s\n' "$blessed" | grep -qE "(^|[[:space:]])${S[$j]}([[:space:]]|$)" \
+        && printf '%s\n' "$blessed" | grep -q "${S[$i]} ${S[$j]}\|${S[$j]} ${S[$i]}" && continue
+      printf 'cofire %s %s %s\n' "${S[$i]}" "${S[$j]}" "$hit"
+      rc=1
+    done
+  done
+  return $rc
+}
+
 # pc_rules_overlap <rules_tsv_path>
 # Flags unresolved same-pattern collisions among high-confidence glob rows.
 # Every unordered pair of rows sharing an identical pattern must be either

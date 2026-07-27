@@ -5,6 +5,24 @@
 # co-fire-ok: *.tsx react-best-practices typescript-best-practices
 # co-fire-ok: *.tsx react-native-best-practices typescript-best-practices
 # co-fire-ok: *.blade.php livewire-best-practices laravel-best-practices
+# Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
+# These five rows are all `low` confidence: they do NOT emit an inline nudge, they
+# accumulate into one session digest (route.sh:6). Several firing on one file is the
+# designed behaviour, not a collision — an ordinary React component with await, catch,
+# fetch( and a token legitimately touches all four concerns. Blessed so that a NEW
+# content row must be considered against the corpus rather than added blind.
+# co-fire-ok: content concurrency-safety error-handling-design
+# co-fire-ok: content concurrency-safety security-review
+# co-fire-ok: content concurrency-safety observability-design
+# co-fire-ok: content error-handling-design security-review
+# co-fire-ok: content error-handling-design observability-design
+# co-fire-ok: content security-review observability-design
+#
+# LIMITATION (honest scope): NOT routed by any rule — mysql/mariadb/postgresql
+# best-practices, database-design, comment-discipline, code-smells, reuse-hygiene and
+# every code-architecture skill. *.sql routes to sql-best-practices only. Adding
+# routing is a separate decision this file does not take; the gap is recorded, not
+# silently filled.
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high

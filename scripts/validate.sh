@@ -339,6 +339,17 @@ if [ -d "$SR" ]; then
 $overlaps
 EOF_OVERLAPS
   fi
+  # Content-row co-firing, against a corpus of representative snippets. Content rows
+  # never share a literal pattern, so the glob-axis equality test above is vacuous for
+  # them; two different regexes matching one file is the real collision.
+  cofires=$(pc_rules_cofire "$SR/rules.tsv" scripts/smoke/router-corpus) || true
+  if [ -n "$cofires" ]; then
+    while IFS= read -r cf; do
+      err "rules.tsv unblessed content co-fire ($cf) — add a '# co-fire-ok: content <a> <b>' directive with a reason, or narrow a pattern"
+    done <<EOF_COFIRES
+$cofires
+EOF_COFIRES
+  fi
 fi
 
 # All-bundle dependency gate (hard): generalizes the everything-only completeness
