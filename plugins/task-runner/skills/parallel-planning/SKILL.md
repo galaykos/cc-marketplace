@@ -49,7 +49,7 @@ Recommend DELEGATE when ALL hold:
 - File sets provably disjoint — no two concurrent tasks touch one file.
 - Parallel tasks are size M or better; a *lone* S task spends more on spawn
   than on work — but a **same-worker disjoint S-cluster (≥3)** BATCHes into one
-  agent when its level has a concurrent sibling (see Batching below).
+  agent when its level has a concurrent sibling (see Batching below). (Honest limitation and Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 Otherwise recommend INLINE. Borderline (1.2–1.5×): present both, note the tie, default
 inline — predictability beats a thin win.

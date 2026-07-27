@@ -103,7 +103,7 @@ buys latency, not craft.
    about representative values, attack the post-audit FIX LIST as its own claim
    set, and RENDER the surface and look at it before calling it verified — are in
    `references/red-team-contract.md`. Each exists because a gate-clean build
-   shipped a defect that inverted the concept's own claim.
+   shipped a defect that inverted the concept's own claim. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 6. **Persist the boost so the audit can read it back.** The contract's `Boost` row
    carries `ultra-craft` (or `none`). A boost that was only spoken cannot be

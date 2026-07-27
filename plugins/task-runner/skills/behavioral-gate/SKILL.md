@@ -116,7 +116,7 @@ isolation). It is keyed off the run registering itself, so a run that never writ
 `active-run.json` is not enforced (fail-open), and a recorded pass could in principle be
 forged. What the hook closes is the honest-but-forgetful skip; deliberate evasion now
 requires actively omitting the register or faking the record, not merely forgetting to run
-the gate.
+the gate. (Honest limitation law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 Two further residuals, one now narrowed: a non-index run (a todo or plan list) records
 no card counts in `gate-pass.json`, so the card-completeness check never fires for it — only

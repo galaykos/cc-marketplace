@@ -52,7 +52,7 @@ dispatch them; execution boosts architecture-reviewer separately via task-execut
 The recipe numbers (recon 3, red-team N=3, coverage cap 3) are **maxima for the
 worst case**, not a quota to always fill. Pick the smallest N that covers the
 blast radius; the mandatory phases still always run — sizing tunes N, never drops
-a phase to zero.
+a phase to zero. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 | Blast radius | Recon lenses | Red-team panel | Coverage loop |
 |---|---|---|---|

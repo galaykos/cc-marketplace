@@ -36,7 +36,7 @@
 # Exit codes:
 #   0  teeth OK (no known-weak form matched)
 #   2  weak form matched (reason on stderr)
-#   3  usage error
+#   3  usage error (Honest limitation law: claude-authoring/skills/authoring-skills/SKILL.md "The four laws".)
 set -euo pipefail
 
 die_usage() {

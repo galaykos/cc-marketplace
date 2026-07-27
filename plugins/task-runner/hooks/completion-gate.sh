@@ -27,7 +27,7 @@
 # forgetful path: a registered run cannot stop "done" without a recorded gate pass.
 #
 # Default is BLOCK (one-shot, only inside a registered run). Downgrade to print-only
-# with TASK_RUNNER_STOP_GATE=warn. Fail-open on missing jq/git or a malformed sentinel.
+# with TASK_RUNNER_STOP_GATE=warn. Fail-open on missing jq/git or a malformed sentinel. (Honest limitation law: claude-authoring/skills/authoring-skills/SKILL.md "The four laws".)
 
 input=$(cat)
 

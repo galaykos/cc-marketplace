@@ -90,7 +90,7 @@ named SKILL.md before implementing — e.g. laravel-best-practices; or "none det
 - Mark parallel groups — cards with no mutual dependency that touch disjoint
   files. Within a group, put the riskiest card first so failures surface early.
 - Cards coupled through shared work-in-progress state are ordering bugs: merge
-  them or move the shared piece into its own earlier card.
+  them or move the shared piece into its own earlier card. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## Milestones for big runs
 

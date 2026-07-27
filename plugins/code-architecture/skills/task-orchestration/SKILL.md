@@ -32,7 +32,7 @@ Before assigning or running tasks, build the dependency graph:
 
 Two tasks are safe to run in parallel (concurrently, or dispatched to separate subagents) only
 if **neither reads a still-changing output of the other and neither writes to shared state**.
-Concretely:
+Concretely: (Honest limitation and Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 - Safe to parallelize: task A adds a new file `services/export.ts`; task B adds a new file
   `services/import.ts`. No shared files, no shared runtime state, no ordering requirement.

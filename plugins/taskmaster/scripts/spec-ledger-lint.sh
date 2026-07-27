@@ -20,7 +20,7 @@
 # Exit codes:
 #   0  ledger present and converged (every row CLEAR or ASSUMED)
 #   2  violation (reason on stderr)
-#   3  usage error
+#   3  usage error (Honest limitation law: claude-authoring/skills/authoring-skills/SKILL.md "The four laws".)
 set -euo pipefail
 
 die_usage() {

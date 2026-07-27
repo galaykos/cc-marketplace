@@ -14,7 +14,7 @@ invisible until someone clicks through, and they cost a rebuild if the spec
 freezes first.
 
 Trigger threshold: three or more screens/states, or any flow where sequence
-itself is a requirement. A single widget or page stays in visual-decisions.
+itself is a requirement. A single widget or page stays in visual-decisions. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## The demo artifact
 

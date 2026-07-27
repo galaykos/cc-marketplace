@@ -78,7 +78,7 @@ grammar is REMOVED — bare tokens only, one fixed tier.)
   legacy forms as opus/xhigh. Hands-off execution needs task-runner ≥0.11.0;
   older runners fall back to interactive.
 - Fan-out counts are CEILINGS sized to blast radius, additionally gated by
-  `budget.remaining()` on the Workflow path (see dispatch-tiers).
+  `budget.remaining()` on the Workflow path (see dispatch-tiers). (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## Goal mode — autonomy on top of the boost
 

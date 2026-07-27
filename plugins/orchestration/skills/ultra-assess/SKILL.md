@@ -74,7 +74,7 @@ ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this 
 - Tier by role, not per-run: readers per their lens (above), opinion-lens native; the
   boost is for the red-team + critic. Fan-out counts are ceilings sized to blast radius.
 - Fan-out only when the Workflow tool is present; else run the inline fallback.
-```
+``` (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## The recipe
 
