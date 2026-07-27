@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -11,7 +11,6 @@
     "api-design",
     "api-docs-first",
     "approaches",
-    "automation-builder",
     "brain",
     "build-vs-buy",
     "claude-authoring",
@@ -49,10 +48,8 @@
     "payments",
     "performance",
     "php",
-    "playwright",
     "plugin-scout",
     "postgresql",
-    "puppeteer",
     "react",
     "react-native",
     "registry-source",

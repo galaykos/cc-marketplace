@@ -4,6 +4,19 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.88.0] - 2026-07-27
+
+**Three plugins removed: `playwright`, `puppeteer`, `automation-builder`.** The
+browser-automation trio was un-suited (installable only individually or via
+`everything`), sink/source-only in the marketplace's composition graph, and its
+keyword reminder hooks were the most frequent misfire source. Removal via
+`scripts/remove-plugin.sh`; the `navigator` chassis kind, its template, its
+sample fixture, and the `proceed-closer` block leave with the only two plugins
+that used them. `everything` drops 14,424 → 14,084 always-on description tokens
+(66 leaf plugins). References to the `@playwright/test` npm library in
+craft-layer's gates and the testing chassis are untouched — the library is not
+the plugin.
+
 ## [0.87.0] - 2026-07-27
 
 A debloat that started as a review and ended up rewriting the gates that caused the

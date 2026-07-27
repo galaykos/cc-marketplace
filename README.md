@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 69 leaf plugins) exists for zero-setup convenience at ~14.7k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 66 leaf plugins) exists for zero-setup convenience at ~14.1k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -44,7 +44,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
-| `everything` | 69 | ~14.7k tokens |
+| `everything` | 66 | ~14.7k tokens |
 | `taskmaster-suite` | 37 | ~8.8k tokens |
 | `process-suite` | 12 | ~2.2k tokens |
 | `quality-suite` | 16 | ~3.0k tokens |
@@ -76,8 +76,6 @@ Per-prompt hook output (UserPromptSubmit etc.) is dynamic and not counted —
 /plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, estimation, orchestration, task-runner…
 
-# Browser-automation plugins install individually:
-/plugin install playwright@cc-plugins-marketplace       # (same for puppeteer)
 ```
 
 Recommended default: install `process-suite` globally, add the matching
@@ -173,9 +171,6 @@ installing this plugin, or the same server is declared twice.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **[playwright](plugins/playwright/README.md)** | Playwright navigator: current API from live docs, locators/auto-wait/network/storageState/trace, robust patterns, connectOverCDP to attach to a running Chromium | `/playwright:check` |
-| **[puppeteer](plugins/puppeteer/README.md)** | Puppeteer navigator: current API, waits, request interception, puppeteer-extra stealth, connect via browserWSEndpoint | `/puppeteer:check` |
-| **[automation-builder](plugins/automation-builder/README.md)** | Automation planner + worker: tool-choice think-process, sequenced plan, browser-automation-engineer agent that scaffolds and runs | `/automation-builder:build` |
 
 ### Databases & SQL
 

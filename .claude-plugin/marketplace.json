@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.87.0"
+    "version": "0.88.0"
   },
   "plugins": [
     {
@@ -298,21 +298,6 @@
       "name": "concurrency",
       "source": "./plugins/concurrency",
       "description": "Application-level concurrency safety: check-then-act races, optimistic vs pessimistic locking, idempotency keys for retried operations, queue-consumer dedup under at-least-once delivery, distributed locks with TTL and fencing, async parallel-write pitfalls — safe when two copies run at once. Includes /concurrency:review."
-    },
-    {
-      "name": "playwright",
-      "source": "./plugins/playwright",
-      "description": "Playwright automation navigator: resolves the current API from live docs (playwright.dev), link map per area (locators, auto-waiting, network interception, storageState auth, test runner, trace viewer, connectOverCDP), and robust-automation patterns. Includes /playwright:check and a Playwright-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
-    },
-    {
-      "name": "puppeteer",
-      "source": "./plugins/puppeteer",
-      "description": "Puppeteer automation navigator: current API from live docs (pptr.dev), link map (page API, waitForSelector, request interception, puppeteer.connect over CDP, puppeteer-extra stealth), and robust-automation patterns. Includes /puppeteer:check and a Puppeteer-keyword reminder hook. Defers general third-party doc verification to api-docs-first."
-    },
-    {
-      "name": "automation-builder",
-      "source": "./plugins/automation-builder",
-      "description": "Browser-automation planner and worker: a think-process skill that turns an automation goal into a tool choice (Playwright vs Puppeteer) and a sequenced plan, plus a browser-automation-engineer agent that scaffolds and runs the automation. Includes /automation-builder:build and an automation-keyword reminder hook. Pairs with the playwright and puppeteer plugins; defers doc verification to api-docs-first."
     },
     {
       "name": "frontend-suite",

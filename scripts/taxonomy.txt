@@ -15,7 +15,6 @@ navigator
 docs
 process
 pipeline
-automation
 hooks
 governance
 suite

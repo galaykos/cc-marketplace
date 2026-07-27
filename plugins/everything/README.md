@@ -14,7 +14,7 @@ it auto-installed.
 
 ## What's included
 
-All current marketplace plugins (69 today) install as dependencies, grouped here by theme:
+All current marketplace plugins (66 today) install as dependencies, grouped here by theme:
 
 - **Stacks** — php, laravel, livewire, inertia, javascript, typescript, react, react-native, nextjs, nuxt, vue2, vue3, node-backend, vite, web-dev: language and framework best-practice skills and reviews
 - **UI & accessibility** — ui-ux, shadcn-studio, design-preview, a11y: component build/review, staged visual decisions, WCAG auditing
@@ -23,7 +23,6 @@ All current marketplace plugins (69 today) install as dependencies, grouped here
 - **Delivery** — taskmaster, task-runner, git-workflow, code-review, testing, debugging, dev-env, devops, rollout: spec-to-ship pipeline and its gates
 - **Quality & safety** — security (incl. data-privacy + api-auth skills), secret-scanning, packages, performance, resilience, error-handling, concurrency, observability: audits that catch defects before they ship
 - **Process** — approaches, build-vs-buy, estimation, docs-upkeep, hindsight: decision and learning loops around the work
-- **Browser automation** — playwright, puppeteer, automation-builder: driving real browsers and building automations on them
 - **Claude tooling** — claude-authoring, orchestration, skill-router, brain, plugin-scout, stack-scan, ultra-deep-research, llm-app: extending and steering Claude Code itself
 - **Domain** — payments, i18n: payment-integration and internationalization review
 
