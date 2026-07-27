@@ -114,10 +114,18 @@ if [ "$is_bundle" -eq 0 ]; then
     leaves=$((leaves + 1))
   done
   [ "$apply" -eq 1 ] || leaves=$((leaves - 1))   # dry-run: dir still present
-  if grep -qE "all [0-9]+ plugins" README.md; then
-    say "README.md: set 'all N plugins' counts to $leaves"
+  # Same regex shape as scripts/validate.sh's leaf-count gate — both must see
+  # "all N plugins" AND "all N leaf plugins", or this script stops maintaining
+  # the very line that gate depends on. Two expressions because the bare one
+  # cannot match the leaf wording: `all [0-9]+ plugins` requires " plugins" to
+  # follow the digits, so it skips "all 72 leaf plugins" entirely — which is the
+  # exact miss that let the count go stale under a gate written to catch it.
+  if grep -qE "all [0-9]+ (leaf )?plugins" README.md; then
+    say "README.md: set 'all N [leaf] plugins' counts to $leaves"
     if [ "$apply" -eq 1 ]; then
-      tmp=$(mktemp); sed -E "s/all [0-9]+ plugins/all $leaves plugins/g" README.md > "$tmp"; mv "$tmp" README.md
+      tmp=$(mktemp)
+      sed -E "s/all [0-9]+ leaf plugins/all $leaves leaf plugins/g; s/all [0-9]+ plugins/all $leaves plugins/g" README.md > "$tmp"
+      mv "$tmp" README.md
     fi
   fi
   if grep -qE '^\| *`everything` *\| *[0-9]+ *\|' README.md; then

@@ -1,6 +1,7 @@
 [
   {
     "chassis": "optout",
+    "file": "commands/review.md",
     "reason": "Bespoke OWASP-wide security review with its own audit-tooling integration (composer audit/npm audit) and vulnerability-advisory folding; broader scope than a single-skill stack-review chassis."
   },
   {

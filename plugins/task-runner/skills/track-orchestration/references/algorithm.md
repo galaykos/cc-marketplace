@@ -31,7 +31,7 @@ Read each milestone's normalized `Files:` set. A milestone is **track-eligible**
 file-set is disjoint from every other candidate's, it touches no shared/registry file,
 and its dependency milestones are not blocking. Everything else is a **serial milestone**
 (run by the orchestrator in the main tree, in dependency order). If the index has no
-`Files:` lines, or 0–1 milestone is eligible → warn and fall back to `task-execution`.
+`Files:` lines, or 0–1 milestone is eligible → warn and fall back to `task-execution`. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## 2. Wave loop (strict dependency waves — fork-join)
 

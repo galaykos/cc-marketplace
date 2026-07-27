@@ -33,7 +33,7 @@ computed. This file is the contract those references implement.
   dependency order, interleaved with the waves.
 - **One worktree + one branch per track.** Named `<run-branch>-track-<slug>` where
   `<slug>` is a git-ref-safe milestone slug. The orchestrator creates the worktree and
-  its `<wt>/.claude/task-runner/` directory before dispatch.
+  its `<wt>/.claude/task-runner/` directory before dispatch. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## Track-worker dispatch
 

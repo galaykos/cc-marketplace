@@ -49,10 +49,36 @@ modes. Tag vocabulary is closed (11 tags) and synced across `agent-tags.md`,
 3. Gates before push:
    `bash scripts/generate.sh --check && bash scripts/validate.sh && bash scripts/check-version-bumps.sh master`.
 
+## Preserve blocks — the per-region escape
+
+When a generated file needs ONE local difference, do **not** reach for `optout`
+(which forfeits every later template improvement) or add a template slot (which
+re-renders all 31 sharers of `review-command.md.tmpl` and patch-bumps 31
+`plugin.json` in a single commit). Put a preserve block in the template:
+
+```
+<!-- preserve:notes -->
+default body, shipped by the template
+<!-- /preserve:notes -->
+```
+
+`emit()` transplants the tree's version of each same-named block into the render
+before ANY comparison, so both modes agree: an edit inside the block is not drift
+in `--check` and is not clobbered by `--write`, while everything outside still
+refreshes from the template. The template stays authoritative about WHICH blocks
+exist; the tree is authoritative about what is INSIDE them.
+
+Round trip: `bash scripts/smoke/preserve-block-tests.sh` (CI step).
+
 ## Gotchas
 
-- Hand-editing a generated file gets reverted by the next `--write` and flagged
-  by `--check`; hand-shaped files need an `optout` entry instead.
+- Hand-editing a generated file OUTSIDE a preserve block gets reverted by the
+  next `--write` and flagged by `--check`; a whole hand-shaped file needs an
+  `optout` entry instead.
+- An `optout` entry MUST name the file it exempts:
+  `{"chassis":"optout","file":"commands/review.md","reason":"…"}`. Without
+  `file` it is an error — one unscoped exemption used to cover all four
+  chassis-shaped kinds at once.
 - `--write` already bumps plugin.json for stamped plugins — don't double-bump.
 - Chassis-shaped filenames (`commands/review.md`, `uninstall.md`,
   `hooks/remind.sh`) MUST be either generated (header) or opted out —

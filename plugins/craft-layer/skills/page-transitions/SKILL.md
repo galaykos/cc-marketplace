@@ -6,10 +6,8 @@ description: Use when adding motion between routes or pages — a shared element
 ## What this decides
 
 This skill decides WHETHER a route or page change earns a transition and HOW to
-choreograph it across the frameworks craft-layer targets. It does NOT re-teach the View
 Transitions API — `document.startViewTransition`, the `@view-transition { navigation }`
 at-rule, feature-detection, and Motion's `animateView` already live in
-`plugins/ui-ux/skills/motion-best-practices/SKILL.md` — reference by path, never copy.
 
 **Reconciliation:** motion-best-practices owns the *API* (how to call the browser's
 view-transition primitives and the reduced-motion snippet). This skill owns the
@@ -74,11 +72,11 @@ re-bake it here.
 
 No page transition ships without this:
 
-- Gate the JS path behind `matchMedia('(prefers-reduced-motion: reduce)')` — when
-  reduced, navigate instantly with no `startViewTransition` wrapper.
-- Gate the CSS with `@media (prefers-reduced-motion: reduce)` to drop the
-  `::view-transition-*` animations (the snippet is in motion-best-practices) so reduced
-  users land on the new page at once, correct and un-animated.
+- When reduced, navigate instantly with no `startViewTransition` wrapper, and drop the
+  `::view-transition-*` animations (snippet in motion-best-practices) so users land on
+  the new page at once, correct and un-animated.
+- Gate both layers and land on the static final state — mechanism and the three ways
+  it is missed: `../motion-tiers/references/reduced-motion.md`.
 - A shared-element move is motion too — reduced-motion means the element simply appears
   in its new place, not that it flies there slowly.
 

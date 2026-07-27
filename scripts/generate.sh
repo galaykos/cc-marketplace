@@ -84,6 +84,19 @@ mark_changed() { case " $CHANGED_PLUGINS " in *" $1 "*) : ;; *) CHANGED_PLUGINS=
 
 emit() { # rendered-file target-path is_exec(0|1) plugin-dir
   local rendered="$1" target="$2" isexec="$3" pdir="$4" rel="${2#$ROOT/}"
+  # Preserve blocks: transplant the tree's version of each
+  # <!-- preserve:NAME --> body into the render before ANY comparison, so a
+  # sanctioned local divergence is not drift in --check and is not clobbered by
+  # --write. Everything outside those markers still refreshes from the template.
+  # Both modes go through here, so they cannot disagree about what "the render"
+  # is. No-op for the files that carry no markers, which today is all of them.
+  if grep -q '^<!--[[:space:]]*preserve:' "$rendered" 2>/dev/null; then
+    ensure_engine
+    local merged="$WORK/merged.$$"
+    if merge_preserve_blocks "$rendered" "$target" > "$merged" 2>/dev/null; then
+      rendered="$merged"
+    fi
+  fi
   if [ "$MODE" = check ]; then
     if [ ! -f "$target" ] || ! cmp -s "$rendered" "$target"; then
       printf 'DRIFT content: %s\n' "$rel" >&2; DRIFT=1

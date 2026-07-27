@@ -25,9 +25,9 @@ evaporates, which is the failure the craft flow's step 0 exists to prevent.
    reference the palette should echo — this is `/ui-ux:theme`'s `[brand-color-vibe-or-reference]`
    argument. Hand it intent, not values; `/ui-ux:theme` runs its own stack detection, palette
    generation, and live preview.
-   Then apply the `theming-system` skill to DERIVE the token-system-direction block the brief
+   Then apply the `ui-ux:theming-system` skill to DERIVE the token-system-direction block the brief
    carries alongside that string, in exactly the shape and line set
-   `theming-system/references/concept-to-tokens.md` defines (it owns the contents — do not
+   `plugins/ui-ux/skills/theming-system/references/concept-to-tokens.md` defines (it owns the contents — do not
    work from a summary of them). Roles and direction only, never a value. Carry the
    palette-strategy mood phrase and avoid-hues note in the brief too. Without this the block
    the brief claims to carry does not exist and `/ui-ux:theme` receives a bare vibe string.

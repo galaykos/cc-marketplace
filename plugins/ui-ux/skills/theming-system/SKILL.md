@@ -9,7 +9,6 @@ This skill owns HOW a concept becomes a coherent token SYSTEM — the surface/in
 tiers, the three-role accent split (display · fill · text/mark), a reserved status palette, a chart palette
 tied to the theme, and a light/dark duality — derived as ROLES and rules that are correct
 by construction. It does NOT generate the values, re-teach a ramp, or ship a theme. Those
-jobs belong to neighbours — reference them by path/name, never restate:
 
 - `/ui-ux:theme` — generates the token VALUES and the live preview from the theme brief
   this skill fills; it owns value generation, this skill owns the coherent direction.
@@ -60,6 +59,24 @@ Take each step in turn; each routes to the reference that owns its derivation:
 6. **Name the interchange format** — say in the direction whether the generated system is
    serialized to the W3C DTCG token format, and if so which roles map to which token
    groups, so the system survives leaving this codebase. → `references/token-interchange.md`.
+
+## Where this sits in ui-ux
+
+Moved here from `craft-layer` on 2026-07-27: three skills in this plugin touched the
+same concern from different plugins, so a reader asking "how do I theme this" got a
+different answer depending on what was installed. They are one pipeline:
+
+- `design-tokens` — the numeric SCALES a value is stepped along (spacing, radius, type,
+  the ramps). Vocabulary; no colour decisions.
+- **This skill** — the ROLES derived from a concept: surface/ink/accent tiers, the
+  three-role accent split, status and chart palettes, light/dark duality. Rules and
+  ratios, never values.
+- `shadcn-theming` — the VALUES and the stack wiring: the actual ramps, the dark-mode
+  second design, the CSS-variable or Sass format for the installed stack, the preview.
+
+Concept → roles → values → stack. The craft flow still drives this skill through
+`/craft-layer:research` and `/craft-layer:craft`; the move changed its address, not its
+place in that flow.
 
 ## The two seam rules
 

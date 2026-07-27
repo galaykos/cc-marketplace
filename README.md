@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 72 leaf plugins) exists for zero-setup convenience at ~14.7k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). Browser-automation plugins (playwright, puppeteer, automation-builder) install individually. `everything` (all 69 leaf plugins) exists for zero-setup convenience at ~14.7k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -45,10 +45,10 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | Bundle | Plugins | Always-on context (approx.) |
 |--------|---------|-----------------------------|
 | `everything` | 69 | ~14.7k tokens |
-| `taskmaster-suite` | 37 | ~8.6k tokens |
-| `process-suite` | 13 | ~2.3k tokens |
-| `quality-suite` | 16 | ~2.6k tokens |
-| `frontend-suite` | 19 | ~2.6k tokens |
+| `taskmaster-suite` | 37 | ~8.8k tokens |
+| `process-suite` | 12 | ~2.2k tokens |
+| `quality-suite` | 16 | ~3.0k tokens |
+| `frontend-suite` | 19 | ~4.6k tokens |
 | `php-suite` | 6 | ~0.7k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
 
@@ -151,7 +151,7 @@ installing this plugin, or the same server is declared twice.
 | Plugin | Description | Commands |
 |--------|-------------|----------|
 | **[ui-ux](plugins/ui-ux/README.md)** | UI/UX best practices: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind, CSS3, Bootstrap, CSS Grid, Flexbox + theme builder (shadcn/ReUI/Aceternity, Tailwind, Bootstrap) with live colour preview + ui-ux-reviewer & ui-ux-engineer agents | `/ui-ux:review`, `/ui-ux:theme` |
-| **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM/SaaS/landing) across React/Vue/Next/Nuxt/Laravel: a `/craft-layer:craft` orchestrator, an offer contract that pins what the page SELLS before what it looks like, an optional guided mode that decides the page section by section with you, a design-research→token-brief playbook, a tiered motion system (Framer / anime.js / Three.js + `webgl-effects` / Vector Lottie-Rive / sprites, budgeted with reduced-motion), `scroll-orchestration` (Lenis/ScrollTrigger), `kinetic-typography`, `page-transitions`, `interaction-fx`, `physics-motion` (matter.js), `motion-sequencing` (theatre.js), information-design, and a craft audit — reuses ui-ux & threejs | `/craft-layer:craft`, `/craft-layer:sections`, `/craft-layer:research`, `/craft-layer:audit` |
+| **[craft-layer](plugins/craft-layer/README.md)** | Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel: /craft-layer:craft chains creative-direction (offer contract + concept-first, anti-sameness), optional guided section-decisions (/craft-layer:sections), design-research, asset-sourcing (build-vs-source-vs-commission + a licence gate), theming-system (concept→coherent token tiers + accent split + light/dark duality), token + component build, and a tiered motion system (Framer, anime.js, Three.js/R3F + webgl-effects, Vector Lottie/Rive, sprites — reduced-motion + reduced-bundle fallbacks), plus scroll-orchestration (Lenis/ScrollTrigger), kinetic-typography, page-transitions, interaction-fx, physics-motion, information-design, and /craft-layer:audit. Reuses ui-ux + threejs. /craft-layer:craft ultra-craft boosts a run: ambition maximal + guided rounds, live dated web research echoed as a reference board before any file is written, escalated concept/review tiers, and a red-team of the shipped tree. | `/craft-layer:craft`, `/craft-layer:sections`, `/craft-layer:research`, `/craft-layer:audit` |
 | **[registry-source](plugins/registry-source/README.md)** | Read component registries from the SOURCE, never from recall. Ships **two MCP servers** (see [MCP servers](#mcp-servers)): a dependency-free local one with live `list`/`search`/`get` across Aceternity, shadcn and Magic UI — 24h-cached, every answer carrying its source URL, fetch date and a `stale` flag, plus a `heavy` flag on anything pulling a 3D/particle runtime so bundle cost is known before install — and ReUI's own hosted server, so installing the plugin delivers it rather than describing it. Never holds a licence key; ReUI auth is a browser sign-in you complete | MCP tools: `registry_list`, `registry_search`, `registry_get` (+ ReUI's own) |
 | **react** | React: hooks, render/memo, state management, patterns | `/react:review` |
 | **react-native** | React Native: list performance, navigation, platform code, animations | `/react-native:review` |
@@ -346,7 +346,7 @@ does land in the project is the asset provenance manifest (`ASSETS` / `CREDITS` 
 Genuinely optional, composed when present: **taskmaster** (`visual-decisions` for mockups, `experience-walkthrough` to walk the assembled page — and a taskmaster spec is consumed, never re-interrogated), **design-preview** / **shadcn-studio** (real-component option previews), **performance** (`/performance:review`, explicitly skipped when absent). Without any of these, guided options become written multiple-choice and every craft gate still runs.
 
 ```bash
-/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 13 more
+/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 14 more
 ```
 
 ## Contributing
@@ -362,7 +362,7 @@ CI runs `bash scripts/validate.sh` on every push and pull request (`.github/work
 
 ## Releasing
 
-The marketplace as a whole is versioned by `metadata.version` in `.claude-plugin/marketplace.json` and documented in [CHANGELOG.md](CHANGELOG.md). Two CI gates keep this honest: `scripts/check-version-bumps.sh` requires every changed plugin's `plugin.json` version to strictly increase, and `scripts/validate.sh` requires the top `## [X.Y.Z]` entry in the changelog to match `metadata.version`.
+The marketplace as a whole is versioned by `metadata.version` in `.claude-plugin/marketplace.json` and documented in [CHANGELOG.md](CHANGELOG.md). Two CI gates keep this honest: `scripts/check-version-bumps.sh` requires every plugin with a functional change to strictly increase its `plugin.json` version (doc-only edits to a plugin's root README/CHANGELOG/ROADMAP are exempt), and `scripts/validate.sh` requires the top `## [X.Y.Z]` entry in the changelog to match `metadata.version`.
 
 Tagging is a **manual** step (there is no CI auto-tag). After a pull request that bumps `metadata.version` is merged to `master`, tag the release from an up-to-date `master`:
 

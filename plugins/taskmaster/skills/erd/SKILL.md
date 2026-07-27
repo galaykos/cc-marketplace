@@ -3,7 +3,7 @@ name: erd
 description: Use during spec writing (grill or brainstorm) when the requirement ledger touches persistent data — two-plus entities, a relation change, a schema shape to settle: gets a mermaid erDiagram approved before any migration exists, then embedded in the spec's Data Model section as a binding contract.
 ---
 
-## When the model earns a diagram
+## When the model earns a diagram (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 Fire only when the requirement ledger implies persistent data with structure:
 two-plus entities, or any change to a relation between existing ones — a new

@@ -8,6 +8,7 @@
   },
   {
     "chassis": "optout",
+    "file": "commands/check.md",
     "reason": "bespoke check command, not a live-docs navigator"
   }
 ]

@@ -57,7 +57,7 @@ Every source yields two kinds of finding; capture BOTH or the brief is colour-on
 - **Accent contrast (a constraint, not just a vibe)** — the accent must clear contrast on
   every SURFACE *and* SIZE, so one bright display accent rarely suffices. The DERIVATION of
   that split (display/fill vs text/mark, and the contrast step each role needs) is owned by
-  `theming-system` (`skills/theming-system/references/accent-system.md`); the brief only
+  `ui-ux:theming-system` (`plugins/ui-ux/skills/theming-system/references/accent-system.md`); the brief only
   SURFACES the constraint and hands it forward — it restates no thresholds. Generation stays
   `/ui-ux:theme`; verification is a craft gate (`/craft-layer:audit`).
 
@@ -104,13 +104,12 @@ only genuinely open questions preview.
 
 ## Reuse map
 
-This skill mines and briefs; it does NOT re-teach generation. Reference, never copy:
 
 | Concern | Owned by |
 | --- | --- |
 | Token scales (spacing/type/radius/elevation/motion) | `plugins/ui-ux/skills/design-tokens/SKILL.md` |
 | Palette / theme generation, contrast tooling, dark mode | `plugins/ui-ux/skills/shadcn-theming/SKILL.md` |
-| Accent-contrast derivation + verification | DERIVED by `theming-system` (`accent-system.md`), VERIFIED by `/craft-layer:audit` |
+| Accent-contrast derivation + verification | DERIVED by `ui-ux:theming-system` (`accent-system.md`), VERIFIED by `/craft-layer:audit` |
 | Palette + live preview from the theme brief | `/ui-ux:theme` |
 | Component/layout build from the build task | `/ui-ux:build` |
 

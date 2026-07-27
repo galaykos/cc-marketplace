@@ -11,7 +11,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    Motion/`motion`, anime.js, Three.js/R3F/`<canvas>`, sprite sheets, the Vector tier —
    `lottie-web`/`@lottiefiles/*`/`@dotlottie/*`/`@rive-app/*`, `.lottie`/`.riv`), the sibling engines
    (scroll-orchestration/Lenis, page-transitions/View Transitions, interaction-fx, physics-motion,
-   motion-sequencing, webgl-effects), every shipped visual/font ASSET — committed files and third-party
+   webgl-effects), every shipped visual/font ASSET — committed files and third-party
    refs from source (absolute-URL `@font-face`/`@import`/`<link>`/`url()`/`<use href>`, inline
    `data:`/oversized `<svg>`, URL-fetched `.lottie`/`.riv`/`.glb`/font) — every `component-source:`
    marker, and the provenance manifest.

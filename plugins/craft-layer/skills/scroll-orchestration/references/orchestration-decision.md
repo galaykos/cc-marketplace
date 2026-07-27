@@ -1,27 +1,14 @@
-# The scroll-orchestration decision
+# Scrub vs trigger vs parallax
 
-> **Last verified: 2026-07-25** — Lenis maintenance status and the engine sizings
-> below, plus `animation-timeline`'s Baseline status (still limited availability).
+The one scroll decision `../SKILL.md` does not make. Its "Choose the engine"
+section picks Lenis+ScrollTrigger vs native CSS scroll-driven — a different axis.
+This picks the mental model.
 
-Read on demand from scroll-orchestration. This is the long form of the SKILL's
-"does scroll motion earn its cost?" gate: when to orchestrate scroll at all, which
-effect to reach for, and the one contract that keeps them from fighting.
+Four other sections used to live here — whether scroll motion earns its cost, the
+single-scroll-contract rule, engine sizing, and reduced-motion — each restating a
+section of the SKILL body heading-for-heading, including the same KB figures.
+They were deleted on 2026-07-27 rather than kept in sync by hand.
 
-## Does scroll motion earn its cost?
-
-Scroll motion is expensive: main-thread work, a KB budget, an accessibility surface,
-and a maintenance cost. Add it only when it does a JOB the static page cannot:
-
-- **Earns it:** communicating progress through a long narrative, revealing dense
-  content in digestible beats, a signature hero moment, spatial storytelling where
-  position carries meaning.
-- **Does NOT earn it:** "premium feel" with no content job, motion on a
-  utility/dashboard/form surface, parallax on a page users came to read fast, smooth
-  scroll added because a competitor has it.
-
-Default to native scroll. Make the surface justify every effect against its cost.
-
-## Scrub vs trigger vs parallax
 
 Three distinct mental models — pick ONE per scene, never blend:
 
@@ -38,38 +25,3 @@ Three distinct mental models — pick ONE per scene, never blend:
 
 Rule of thumb: reveal → trigger; "I control the timeline" → scrub; depth → parallax.
 When two feel plausible, pick the cheaper (trigger < scrub < parallax).
-
-## The single-scroll-contract rule
-
-The one non-negotiable: exactly ONE source of truth for scroll position per axis.
-Mixing native scroll, a smooth-scroll lib, and scroll-driven CSS causes drift and
-jitter because each reads a different position. The full failure mode is documented
-in `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` — do not
-re-derive it; the two legal contracts are:
-
-1. **Native scroll + CSS scroll-driven** (`css-scroll-driven.md`) — browser is the
-   single truth; zero JS. The reduced-bundle default.
-2. **Lenis feeding ScrollTrigger** (`lenis-substrate.md`) — Lenis owns position,
-   ScrollTrigger reads it via `lenis.on('scroll', ScrollTrigger.update)`.
-
-Never run both on the same axis. A horizontal gallery may use contract 2 on X while
-the page uses contract 1 on Y only if the axes never overlap for one element.
-
-## Engine sizing (feed the SKILL's budget)
-
-- Native CSS scroll-driven ≈ 0KB JS, off-main-thread — the reduced-bundle and
-  below-the-fold choice, as a PROGRESSIVE ENHANCEMENT. `animation-timeline` is not
-  Baseline and is absent from a major engine, so it is never the only path: author the
-  visible end state as the base rule and layer the motion behind `@supports`, per
-  `css-scroll-driven.md`. Zero KB is not the same as zero risk.
-- Lenis ≈ 3KB gzip; ScrollTrigger ships inside GSAP (size it from gsap.md). Both count
-  against the surface motion budget owned by `motion-tiers`.
-- ScrollTrigger mechanics — one trigger per scene, `.refresh()` after layout, cleanup,
-  `gsap.matchMedia()` — live in
-  `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`. Reference, never copy.
-
-## Reduced-motion is part of the decision
-
-A scene with no `prefers-reduced-motion` answer is not done. Trigger reveals collapse
-to their visible end state; scrub/parallax are removed (not just slowed); Lenis is
-never instantiated. See `SKILL.md` and `lenis-substrate.md` for the exact gates.

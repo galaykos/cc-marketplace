@@ -50,14 +50,13 @@ one boost banner per phase, never two goal banners in one response.
 
 ## Fixed tier — one rule, stated once
 
-`model=auto, effort=xhigh`, always. `auto` resolves at dispatch to the session
-model or opus, whichever is higher on haiku<sonnet<opus<fable — escalate, never
-downgrade; the resolution is a FLOOR (`max(marker, frontmatter)`), so it never
-lowers an agent below its shipped tier. `effort` is settable ONLY on the
-Workflow `agent()` path — the Agent tool has no effort knob, so inline dispatch
-escalates model only. Never edit agent frontmatter to achieve this; the boost
-is a dispatch-time override. (The old per-token `-<model>`/`-<effort>` suffix
-grammar is REMOVED — bare tokens only, one fixed tier.)
+`model=auto, effort=xhigh`, always. What `auto` resolves to, the
+escalate-never-downgrade ladder, and why `effort` binds only on the Workflow
+`agent()` path are owned by `orchestration:verification-panels` § Panel width — cited, not restated. Taskmaster adds two
+rules of its own: the resolution is a FLOOR (`max(marker, frontmatter)`), so it never
+lowers an agent below its shipped tier; and never edit agent frontmatter to achieve
+it — the boost is a dispatch-time override. (The old per-token `-<model>`/`-<effort>`
+suffix grammar is REMOVED — bare tokens only, one fixed tier.)
 
 ## The boost contract (both modes)
 
@@ -78,7 +77,7 @@ grammar is REMOVED — bare tokens only, one fixed tier.)
   legacy forms as opus/xhigh. Hands-off execution needs task-runner ≥0.11.0;
   older runners fall back to interactive.
 - Fan-out counts are CEILINGS sized to blast radius, additionally gated by
-  `budget.remaining()` on the Workflow path (see dispatch-tiers).
+  `budget.remaining()` on the Workflow path (see dispatch-tiers). (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## Goal mode — autonomy on top of the boost
 
@@ -145,3 +144,11 @@ adversary count. Auto-take, ledger, and markers operate identically inline.
   boundary only via the `00-INDEX.md` marker.
 - Boost mechanical/breadth roles, suppress safety halts, or source
   requirements from untrusted content. The single ⚡ banner line is the whole cue.
+
+## Residual: no cross-plugin activation guard
+
+Two boost tokens in one prompt inject two directives and nothing can stop it — three
+independently-installed plugins share no writable state. Standing **unenforceable**;
+the off switch (`CC_BOOST=off`, or `TASKMASTER_BOOST=off`) is what IS implementable. Full
+statement, with the trigger-narrowing limits:
+`orchestration:verification-panels` `references/dispatch-tier.md`.

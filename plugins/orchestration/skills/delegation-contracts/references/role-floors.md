@@ -98,7 +98,7 @@ agent per claim told to *break* it under ordered provenance rules, the same shap
 `spec-adversary`, so it takes a row. Producer and auditor land in different classes because
 the work differs, not because one was missed.
 
-## Residual — main-thread PROACTIVE dispatch is not covered
+## Residual — main-thread PROACTIVE dispatch is not covered (Honest limitation law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 `system-design-reviewer` has no dispatcher file anywhere; it is auto-dispatched by the main
 thread from its `Use PROACTIVELY` description, and `code-reviewer` / `architecture-reviewer`

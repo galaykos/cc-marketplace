@@ -26,7 +26,28 @@ paid for. Convene one only when the output clears at least one bar:
 Everything else — typo fixes, formatting, mechanical renames, output you
 will immediately verify by running it — gets one reviewer or none. A
 five-agent panel voting on a typo fix is theater: it costs real tokens,
-delays the change, and teaches everyone to ignore panel verdicts.
+delays the change, and teaches everyone to ignore panel verdicts. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+
+## Panel width — this skill owns N
+
+Sized to blast radius, never filled to a quota. This is the sizing authority for every
+consumer; one that re-derives its own N does not inherit corrections to this.
+
+| Blast radius | Panel |
+|---|---|
+| **Small** — ≤2 files, isolated, low risk | 2 refuters |
+| **Medium** — the default shape | 3 |
+| **Large** — irreversible, security/auth/data, or cross-module | 3, and round up one row when two risk factors stack |
+
+No `Workflow` tool → 1 inline pass, reported as **"inline heuristic pass — single
+model, uncorroborated"**, never as a panel or an adversary count. That label is owned
+here; consumers cite it rather than restating it, so a change to the wording reaches
+every one of them. The boost dispatch tier is owned here too — `references/dispatch-tier.md`.
+
+A consumer may map its OWN triggers onto these rows — `spec-redteam`'s four gate
+bullets, `ultra`'s recon/coverage columns — because which conditions signal "large" is
+domain knowledge they hold and this skill does not. It may not invent a different N for
+the same radius.
 
 ## Refuter voting
 

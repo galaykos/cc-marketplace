@@ -11,7 +11,7 @@ re-teach any library's API. Idioms live elsewhere — reference them by path:
 - Motion / GSAP / anime.js idioms: `plugins/ui-ux/skills/motion-best-practices/SKILL.md`
   (+ `plugins/ui-ux/skills/motion-best-practices/references/animejs.md`).
 - Three.js / R3F correctness: `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
-- Sprite-sheet authoring detail: the `sprite-motion` skill.
+- Sprite-sheet authoring detail: `references/sprite.md`.
 
 The net-new value here is the taxonomy, the per-tier budgets, the framework bindings,
 and the two mandatory fallbacks. Every tier ships BOTH a `prefers-reduced-motion` path
@@ -39,7 +39,8 @@ Cheapest-that-fits is right for ordinary surfaces, wrong for the ONE carrying th
 SIGNATURE interaction — that surface is picked by what the MOVE needs, not by what is cheapest.
 One writer per property per element: never point two tiers at the same `transform`.
 Full table: `references/tier-budgets.md` — SOURCE OF TRUTH for every KB figure below and
-home of the `Last verified:` date. On drift fix it there first, re-date, then mirror here.
+the `Last verified:` date; fix drift there, then mirror here. Standing **recorded** — the
+mirror is manual and no gate checks the two agree.
 
 ## The five tiers (one line each)
 
@@ -62,7 +63,7 @@ home of the `Last verified:` date. On drift fix it there first, re-date, then mi
 - **Tier 4 — Sprites / sprite-sheets**: looping character / mascot motion. Budget ≈
   one packed WebP/AVIF sheet ≤ 150KB; CSS `steps()` or a `requestAnimationFrame` loop
   — compositor-cheap. reduced-motion: pause on a single poster frame. reduced-bundle:
-  ship the static poster frame and defer the sheet. Authoring detail: `sprite-motion`.
+  ship the static poster frame and defer the sheet. Authoring detail: `references/sprite.md`.
 - **Tier 5 — Vector** (Lottie / Rive): designer-authored vector motion. Lottie
   (`@lottiefiles/dotlottie-react`) = timeline playback; Rive (`@rive-app/react-canvas`)
   = interactive state-machine. Budget ≈ the `.lottie`/`.riv` asset size + player
@@ -102,7 +103,7 @@ These apply on top of the chosen tier, on every surface:
   `references/rtl-bidi.md`.
 - **Cumulative motion budget** — budget the COMBINED initial motion JS, not each tier
   alone; baseline is Lenis + ScrollTrigger + one tier, and every extra eager engine
-  (a second tier, physics, sequencing, WebGL) justifies its weight or lazy-loads. Rule:
+  (a second tier, physics, WebGL) justifies its weight or lazy-loads. Rule:
   `references/tier-budgets.md`.
 - **Reveal default = fallback-safe** — a scroll/enter reveal starts VISIBLE and hides only
   once JS confirms it can reveal (then observe); never ship a bare observer-gated
@@ -124,9 +125,10 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
 - `references/vector.md` — Lottie (timeline) vs Rive (state-machine), the Tier-5
   budget, the `prefers-reduced-motion` poster path, and the reduced-bundle lazy path.
 - `references/tier-budgets.md` — the full per-tier table: when / bundle-KB / runtime /
-  reduced-motion fallback / reduced-bundle fallback.
-- `references/framework-bindings.md` — the tool→framework binding matrix for every named
-  stack (React, Next, Vue, Nuxt, Laravel via Inertia, Laravel via Livewire).
+  both fallbacks.
+- `references/sprite.md` — Tier-4 authoring: sheet layout, `steps()` and rAF loops, poster fallback, size budget.
+- `references/framework-bindings.md` — the tool→framework binding matrix for every
+  named stack (React, Next, Vue, Nuxt, Laravel via Inertia or Livewire).
 - `references/webgl-3d.md` — the 3D lazy-load + static-fallback rules; cites
   `plugins/threejs/skills/threejs-best-practices/SKILL.md` for R3F correctness.
 - `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
@@ -141,14 +143,12 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
   budget is what makes the choice reviewable and is what the audit checks.
 - **Three.js in the initial bundle** — 150KB+ of WebGL blocking first paint with no
   lazy-load and no static fallback.
-- **A tier with one fallback** — a reduced-motion path but no reduced-bundle path (or
-  the reverse). Both are mandatory on every surface.
-- **Two tiers on one element** — Framer Motion and anime.js both writing `transform`;
-  choose one writer per property.
-- **Re-teaching the library** — copying Motion / anime / R3F API recipes into this skill
-  instead of referencing `motion-best-practices` / `threejs-best-practices` by path.
-- **GSAP as a tier** — GSAP is an alternative inside `motion-best-practices`, not one of
-  these five decision tiers; its ScrollTrigger belongs to `scroll-orchestration`.
-- **Bare whileInView reveal** — `opacity:0` gated only on an observer; invisible with JS
-  off, in a prerender, or in a screenshot. Default to the fallback-safe reveal (start
-  visible, hide only once JS confirms) — see `references/gotchas.md`.
+- **A tier with one fallback** — reduced-motion but no reduced-bundle path, or the
+  reverse. Both are mandatory on every surface.
+- **Two tiers on one element** — two engines writing `transform`; one writer per property.
+- **Re-teaching the library** — copying Motion / anime / R3F recipes here instead of
+  referencing `motion-best-practices` / `threejs-best-practices` by path.
+- **GSAP as a tier** — an alternative inside `motion-best-practices`, not one of these
+  five tiers; its ScrollTrigger belongs to `scroll-orchestration`.
+- **Bare whileInView reveal** — `opacity:0` gated only on an observer; invisible with
+  JS off, in a prerender, or a screenshot. Default fallback-safe — `references/gotchas.md`.

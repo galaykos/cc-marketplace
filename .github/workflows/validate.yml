@@ -25,6 +25,8 @@ jobs:
         run: bash scripts/smoke/template-engine-tests.sh
       - name: Chassis template smoke tests
         run: bash scripts/smoke/chassis-template-tests.sh
+      - name: Chassis preserve-block smoke tests
+        run: bash scripts/smoke/preserve-block-tests.sh
       - name: Reminder-hook guard smoke tests
         run: bash scripts/smoke/hook-guard-tests.sh
       - name: Comment-discipline hook smoke tests

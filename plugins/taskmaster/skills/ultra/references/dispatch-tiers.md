@@ -54,6 +54,11 @@ worst case**, not a quota to always fill. Pick the smallest N that covers the
 blast radius; the mandatory phases still always run — sizing tunes N, never drops
 a phase to zero.
 
+The **Red-team panel** column below is not owned here: panel width is
+`orchestration:verification-panels` § Panel width, and this table maps taskmaster's
+radius rows onto it. Recon lenses and the coverage loop ARE owned here — they are
+pipeline phases no other plugin runs. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+
 | Blast radius | Recon lenses | Red-team panel | Coverage loop |
 |---|---|---|---|
 | **Small** — ≤2 files, isolated, low risk | 1 (inline scout) | 2 adversaries | 1 pass |

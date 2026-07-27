@@ -6,6 +6,21 @@
 #   {{> block}}      one-level include of templates/blocks/<block>.md (no recursion)
 #   {{#if key}}..{{/if}}   keep body iff manifest key is truthy (no else, no nesting)
 # Sourced as a library: sets no shell options, leaks no globals (all vars local).
+#
+# PRESERVE BLOCKS (see merge_preserve_blocks below) are a stamper-side concept,
+# not a render-side one: the template renders them like any other text, and the
+# stamper transplants the tree's version of each block into the render before
+# comparing or writing.
+#
+#   <!-- preserve:NAME -->
+#   default body, shipped by the template
+#   <!-- /preserve:NAME -->
+#
+# They exist because the only escape from the drift gate was a whole-file
+# `optout`: a generated file needing ONE different sentence had to be
+# hand-maintained forever, forfeiting every later template improvement — while
+# the alternative, a new template slot, re-renders all 31 sharers of
+# review-command.md.tmpl and patch-bumps 31 plugin.json in a single commit.
 
 # _read_raw <file>: emit file bytes then an 'X' sentinel so callers can preserve a
 # trailing newline through $(...) (which strips trailing newlines). Nonzero if unreadable.
@@ -69,6 +84,53 @@ _substitute() {
     out+="$before$val"
   done
   printf '%s%s' "$out" "$rest"
+}
+
+# merge_preserve_blocks <rendered-file> <target-file>: emit the rendered bytes with
+# every `<!-- preserve:NAME -->…<!-- /preserve:NAME -->` body replaced by the SAME-named
+# body already present in <target-file>. Blocks absent from the target keep the
+# template's default. Unknown blocks in the target (a marker the template dropped) are
+# discarded with the rest of the stale render — the template is authoritative about
+# WHICH blocks exist; the tree is authoritative about what is INSIDE them.
+#
+# A missing/unreadable target emits the render unchanged, so a first stamp works.
+#
+# LIMITATION (honest scope): markers are matched as whole lines, so a block cannot
+# start mid-line and blocks cannot nest. An unterminated marker in the target ends at
+# EOF and takes the file's tail with it into the preserved body — malformed input
+# round-trips as itself rather than being rejected. Nothing validates that a preserved
+# body is still meaningful against a changed template.
+merge_preserve_blocks() {
+  if [[ $# -ne 2 ]]; then
+    printf 'template-engine: usage: merge_preserve_blocks <rendered> <target>\n' >&2
+    return 2
+  fi
+  local rendered="$1" target="$2"
+  if [[ ! -r "$target" ]]; then cat "$rendered"; return 0; fi
+  awk '
+    function opener(l,   n) { return match(l, /^<!--[[:space:]]*preserve:[^ ]+[[:space:]]*-->$/) }
+    function closer(l)      { return match(l, /^<!--[[:space:]]*\/preserve:[^ ]+[[:space:]]*-->$/) }
+    function nameof(l,   s) { s = l; sub(/^<!--[[:space:]]*\/?preserve:/, "", s); sub(/[[:space:]]*-->$/, "", s); return s }
+    # pass 1: the TARGET — collect each preserved body verbatim
+    NR == FNR {
+      if (collecting) {
+        if (closer($0) && nameof($0) == cur) { collecting = 0; next }
+        body[cur] = body[cur] $0 "\n"; next
+      }
+      if (opener($0)) { cur = nameof($0); body[cur] = ""; have[cur] = 1; collecting = 1 }
+      next
+    }
+    # pass 2: the RENDER — swap in the target body where one exists
+    {
+      if (skipping) { if (closer($0) && nameof($0) == cur) { skipping = 0; print } ; next }
+      if (opener($0)) {
+        cur = nameof($0); print
+        if (have[cur]) { printf "%s", body[cur]; skipping = 1 }
+        next
+      }
+      print
+    }
+  ' "$target" "$rendered"
 }
 
 # render_template <template-file> <manifest-json-or-file>: rendered bytes on stdout.

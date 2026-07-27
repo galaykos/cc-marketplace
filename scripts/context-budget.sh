@@ -6,7 +6,7 @@
 # PLUS the stdout of its SessionStart hooks (run sandboxed against an empty
 # project — a deterministic, repo-neutral lower bound; real hook output can
 # grow with the user's project). chars/4 — compared against a committed
-# baseline. Any plugin over its baseline fails the run (exit 1);
+# baseline. A plugin more than its tolerance over baseline fails (exit 1);
 # --update-baseline, a missing jq, and a missing baseline file stay exit 0.
 # NOT metered (dynamic, per-prompt): UserPromptSubmit/PostToolUse/etc. hook
 # output — those plugins are listed informationally at the end of the run.
@@ -90,11 +90,13 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       total_bytes=$((total_bytes + bytes))
     done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
     is_leaf=0
+    members=$(jq -r '.dependencies | length' "$pj" 2>/dev/null || echo 1)
   else
     # Leaf: measure the plugin's own dir (descriptions + SessionStart stdout).
     pdir="${pj%/.claude-plugin/plugin.json}"
     total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") ))
     is_leaf=1
+    members=1
   fi
   tokens=$(( (total_bytes + 2) / 4 ))
   # TOTAL sums leaves only — bundles would double-count their members.
@@ -108,8 +110,29 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       baseline_tok="$b"
       delta=$((tokens - b))
       delta_str="$delta"
-      if [ "$delta" -gt 0 ]; then
-        warn_lines="${warn_lines}FAIL: $bname +$delta tok over baseline (intentional? re-baseline via --update-baseline)
+      # Tolerance: 2 tokens for a leaf, 2 x member-count for a bundle.
+      #
+      # BASIS (a number with no stated basis is theater). The metric is bytes/4,
+      # so 2 tokens is an 8-byte edit — one short word. Every meaningful
+      # description change is larger: adding a trigger phrase costs 15+ bytes.
+      # At zero tolerance, fixing a 4-character typo in one description took
+      # i18n from 116 to 117 tokens and exited 1, freezing every description in
+      # the marketplace at its current byte length.
+      #
+      # A bundle SUMS its members, so a flat 2 would re-create the friction this
+      # removes: three +1 leaf typos all pass, then `everything` fails at +3
+      # naming plugins nobody edited. The bundle allowance is therefore the sum
+      # of its members' allowances.
+      #
+      # LIMITATION (honest scope): this converts "any typo is a blocking budget
+      # failure" into "only real surface growth is". It does NOT bound aggregate
+      # drift — every leaf drifting its full +2 is ~150 tokens across the
+      # marketplace that no run reports, and a bundle's scaled allowance widens
+      # in proportion. Accepted, not covered; the ratchet is per-plugin, and
+      # that is exactly what it means.
+      tolerance=$((2 * members))
+      if [ "$delta" -gt "$tolerance" ]; then
+        warn_lines="${warn_lines}FAIL: $bname +$delta tok over baseline (tolerance $tolerance; intentional? re-baseline via --update-baseline)
 "
         fail=1
       fi

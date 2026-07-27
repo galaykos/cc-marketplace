@@ -5,9 +5,11 @@ description: Use when creating or restyling a UI colour theme — shadcn/ReUI/Ac
 
 ## A theme is a token set, not sprinkled colors
 
-shadcn/ui theming lives entirely in CSS custom properties — a `:root` block for
-light and a `.dark` block for dark. Components consume tokens (`bg-primary`,
-`text-muted-foreground`); they never hold literal colors. Creating or changing a
+Colour pipeline here: `design-tokens` (SCALES) → `theming-system` (ROLES) → this skill (VALUES).
+
+shadcn/ui theming lives entirely in CSS custom properties — a `:root` block for light
+and a `.dark` block for dark. Components consume tokens (`bg-primary`,
+`text-muted-foreground`); never literal colors. Creating or changing a
 theme therefore means writing ONE token set — never editing `components/ui/*`
 files to recolor them, never scattering hex values through pages.
 
@@ -142,8 +144,7 @@ as variable names:
 
 - Recoloring by editing `components/ui/*` source or compiled CSS output.
 - Dark mode via `filter: invert()` or by copying light values verbatim.
-- A `primary` whose `primary-foreground` fails 4.5:1 — the most common broken
-  shadcn theme in the wild.
+- A `primary` whose `primary-foreground` fails 4.5:1 — the commonest broken theme.
 - Chart colors improvised per page instead of `chart-*` tokens.
 - Picking a theme from swatches alone — components change how colours read;
   judge the preview, both modes.

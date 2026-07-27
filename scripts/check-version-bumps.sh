@@ -7,6 +7,17 @@
 # pushing:  bash scripts/check-version-bumps.sh [base-ref]   (default: origin/master)
 #
 # New plugins (no manifest at base) are exempt — a first release needs no bump.
+#
+# DOC-ONLY changes are exempt too: a typo fix in a plugin's root README.md,
+# CHANGELOG.md or ROADMAP.md does not force a semver bump. Before this filter,
+# correcting one character in plugins/i18n/README.md failed the gate.
+# The exclusions use :(glob) so `*` does NOT cross a directory separator —
+# plugins/x/template/README.md is shipped code and still forces a bump.
+#
+# LIMITATION (honest scope): this converts "a doc typo silently demands a
+# version bump" into "only functional changes demand one". It cannot tell a
+# substantive README rewrite from a typo — a real documentation change now ships
+# without a bump unless the author bumps deliberately.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -22,7 +33,11 @@ command -v jq >/dev/null 2>&1 || { echo "FAIL: jq is required" >&2; exit 1; }
 
 fail=0
 # Plugin dirs with any change since the merge-base with $base (three-dot diff).
-changed=$(git diff --name-only "$base"...HEAD -- plugins/ | sed -nE 's#^(plugins/[^/]+)/.*#\1#p' | sort -u)
+changed=$(git diff --name-only "$base"...HEAD -- plugins/ \
+  ':(exclude,glob)plugins/*/README.md' \
+  ':(exclude,glob)plugins/*/CHANGELOG.md' \
+  ':(exclude,glob)plugins/*/ROADMAP.md' \
+  | sed -nE 's#^(plugins/[^/]+)/.*#\1#p' | sort -u)
 
 [ -z "$changed" ] && { echo "OK: no plugin changes to version-check"; exit 0; }
 

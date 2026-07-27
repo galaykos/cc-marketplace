@@ -6,15 +6,65 @@
 # pc_skill_budget <skill_md_path>
 # On a body-length violation: prints "budget <path> <n>" and returns 1.
 # Clean or missing file: prints nothing, returns 0.
+#
+# CEILING ONLY (2026-07-27). The former 100-line FLOOR was removed: it failed the
+# build for a skill that said its piece in 60 lines, so bodies were padded up to
+# clear it — 58 of 139 skills sat pinned to a budget edge (35 at 100-109, 5 at
+# exactly 100, 23 at exactly 150). The floor manufactured the bloat the ceiling
+# exists to stop.
+#
+# LIMITATION (honest scope), two residuals:
+#   1. Nothing replaces the floor as a stub guard. validate.sh's description
+#      check reads the frontmatter `description:` line only and constrains body
+#      length in no way, so a 3-line body with a trigger sentence now passes
+#      every gate in this repo. Accepted, not covered.
+#   2. n=0 (missing or unterminated frontmatter — the `c>=2` awk emits nothing)
+#      now returns 0 instead of failing. This function is authoring-guard.sh's
+#      ONLY SKILL.md check, so a malformed SKILL.md draws no in-session warning;
+#      validate.sh's frontmatter-opener/terminator checks still catch it at CI.
 pc_skill_budget() {
   local f="$1" n
   [ -f "$f" ] || return 0
   n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
-  if [ "$n" -lt 100 ] || [ "$n" -gt 150 ]; then
+  if [ "$n" -gt 150 ]; then
     printf 'budget %s %s\n' "$f" "$n"
     return 1
   fi
   return 0
+}
+
+# pc_jargon <md_path>
+# Internal-taskmaster-vocabulary denylist with an ordinary-English rescue list.
+# On a hit: prints the comma-joined matches and returns 1. Clean: prints nothing,
+# returns 0. Lives here so validate.sh and the smoke fixtures share ONE source —
+# a fixture that re-declared the patterns would drift from the gate it tests.
+#
+# LIMITATION (honest scope): a heuristic denylist over prose with a rescue list,
+# not a parser. It converts "leak the internal vocabulary without noticing" into
+# "leak it in a form that does not read as ordinary English". Two residuals:
+# (1) a real leak sharing a line with a rescued phrase is missed; (2) unrescued
+# ordinary English in these shapes still false-positives, and the author's only
+# recourse is the <!-- jargon-ok --> marker.
+pc_jargon() {
+  local f="$1" hit jargon rescue
+  [ -f "$f" ] || return 0
+  jargon='(^|[^[:alnum:]])(card #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
+  # Ordinary English that these shapes WOULD reject. No shipped plugin .md
+  # contains them — the gate would have failed CI — so these are probes from the
+  # task card, not observed leaks. Stating it that way keeps the claim inside
+  # its evidence, which is the same discipline the gate itself is about.
+  #   "Use a credit card 16 digits long."            (payments)
+  #   "The backlog of user stories is groomed."      (estimation / rollout)
+  #   "See finding #2 in the OWASP report."          (security)
+  #   "Run smoke test 3 in the regression suite."
+  rescue='(credit|debit|gift|payment|loyalty|graphics|SIM|library|report) card|card (number|reader|holder)|(product|sprint|issue|story|user|work) backlog|backlog of|(finding|smoke[ -]test) #?[0-9]+ (in|of|from) '
+  hit=$(grep -viF '<!-- jargon-ok -->' "$f" \
+        | grep -ivE "$rescue" \
+        | grep -iEo "$jargon" \
+        | sed 's/^[^[:alnum:]]//' | sort -u | tr '\n' ',' | sed 's/,$//')
+  [ -z "$hit" ] && return 0
+  printf '%s\n' "$hit"
+  return 1
 }
 
 # pc_doc_location <plugins_relative_md> <allow_regex>
@@ -27,6 +77,61 @@ pc_doc_location() {
   printf '%s\n' "$rel" | grep -qE "$allow" && return 0
   printf 'doc-location %s\n' "$mdf"
   return 1
+}
+
+# pc_rules_cofire <rules_tsv_path> <corpus_dir>
+# CONTENT-row co-firing gate. Two content rows co-fire when BOTH patterns match at
+# least one file in a shared corpus of representative source snippets. Every such
+# unordered pair must be blessed by a
+#   "# co-fire-ok: content <skillA> <skillB>"
+# directive in the same file — the same convention the glob axis already uses.
+#
+# WHY A CORPUS, not pattern equality: pc_rules_overlap flags glob rows that share an
+# IDENTICAL pattern string. Content rows never do — all five are distinct regexes at
+# low confidence — so extending that algorithm here would be vacuous, matching nothing
+# ever. Content rows collide because two DIFFERENT regexes match the same text: one
+# ordinary React component containing `await`, `catch`, `fetch(`, `console.error` and
+# `token` fires four of them at once. Only a corpus can express that.
+#
+# LIMITATION (honest scope): the corpus is a fixed, hand-written sample. This converts
+# "add a content row and never learn what it co-fires with" into "add one and the gate
+# names every existing row it collides with on realistic code". It does NOT prove the
+# absence of collisions on code shapes the corpus does not contain, and it says nothing
+# about whether a blessed co-fire is a good idea — only that someone declared it.
+#
+# On violation: prints "cofire <skillA> <skillB> <file>" per unblessed pair, returns 1.
+pc_rules_cofire() {
+  local f="$1" corpus="$2" rc=0
+  [ -f "$f" ] || return 0
+  [ -d "$corpus" ] || return 0
+  local blessed pats skills n i j
+  blessed=$(grep '^# co-fire-ok:[[:space:]]*content ' "$f" 2>/dev/null \
+            | sed 's/^# co-fire-ok:[[:space:]]*content //')
+  # collect content rows
+  local -a P S
+  while IFS="$(printf '\t')" read -r kind pat skill rest; do
+    [ "$kind" = content ] || continue
+    P+=("$pat"); S+=("$skill")
+  done < <(grep -v '^#' "$f")
+  n=${#P[@]}
+  for (( i=0; i<n; i++ )); do
+    for (( j=i+1; j<n; j++ )); do
+      local hit=""
+      for c in "$corpus"/*; do
+        [ -f "$c" ] || continue
+        if grep -qE "${P[$i]}" "$c" 2>/dev/null && grep -qE "${P[$j]}" "$c" 2>/dev/null; then
+          hit="$(basename "$c")"; break
+        fi
+      done
+      [ -n "$hit" ] || continue
+      printf '%s\n' "$blessed" | grep -qE "(^|[[:space:]])${S[$i]}([[:space:]]|$)" \
+        && printf '%s\n' "$blessed" | grep -qE "(^|[[:space:]])${S[$j]}([[:space:]]|$)" \
+        && printf '%s\n' "$blessed" | grep -q "${S[$i]} ${S[$j]}\|${S[$j]} ${S[$i]}" && continue
+      printf 'cofire %s %s %s\n' "${S[$i]}" "${S[$j]}" "$hit"
+      rc=1
+    done
+  done
+  return $rc
 }
 
 # pc_rules_overlap <rules_tsv_path>

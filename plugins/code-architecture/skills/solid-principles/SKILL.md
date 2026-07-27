@@ -59,7 +59,7 @@ dispatcher.
 And the inverse error is worse: building extension points before a second variant exists is
 speculative generality — a single-implementation interface "for extensibility" is exactly what
 the yagni-check skill flags. Open/Closed is a response to observed change pressure, not a
-default posture.
+default posture. (Admission law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## L — Liskov Substitution: subtypes honor the base contract
 

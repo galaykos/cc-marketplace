@@ -58,7 +58,7 @@ once:
 - a **tier** from `motion-tiers/references/tier-budgets.md` — UI-state/layout, Timeline/SVG,
   3D/WebGL, Sprites, Vector;
 - a **sibling engine** — scroll-orchestration, page-transitions, kinetic-typography,
-  interaction-fx, physics-motion, motion-sequencing, webgl-effects.
+  interaction-fx, physics-motion, webgl-effects.
 
 Count capabilities, not imports: two entry points into the same tier is one, and a dependency
 in the manifest that nothing imports is zero. Two is what cheapest-that-fits produces on its

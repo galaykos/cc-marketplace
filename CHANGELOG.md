@@ -4,6 +4,60 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.87.0] - 2026-07-27
+
+A debloat that started as a review and ended up rewriting the gates that caused the
+bloat. `everything` drops 14,694 → 14,424 always-on description tokens.
+
+**The 100-line SKILL.md floor is gone.** It failed the build for a skill that said its
+piece in 60 lines, so bodies were padded up to clear it: 58 of 139 skills sat pinned to
+a budget edge, 35 of them at 100–109. The 150-line ceiling stays. Every one of the 11
+sites that taught the floor was updated, including the scaffolder and a frozen string in
+a CI smoke harness.
+
+**Gates that lied now tell the truth.** `validate.sh`'s leaf-count check was a vacuous
+no-op — its regex could not match README's own wording, so it shipped the exact 72-vs-69
+drift it was written to catch. `CLAUDE.md` said "run all four" against 19 CI steps, and
+listed a warn-only script as blocking. A `rationale/` directory now exists, because
+`CLAUDE.md` sent tracked docs to a location that was gitignored.
+
+**A typo no longer trips three gates.** Doc-only plugin changes stop demanding a semver
+bump; the description budget gains a stated 2-token tolerance (scaled for bundles, which
+sum their members); the jargon denylist stops rejecting "credit card 16 digits", "the
+backlog of user stories" and "finding #2 in the OWASP report", and finally has fixture
+coverage in both directions.
+
+**The four laws.** Proportionality, honest limitation, the theater test, and admission
+were each independently re-derived across the marketplace under different subject
+headings — proportionality at 18 sites in 5 plugins, honest limitation in four mutually
+unaware vocabularies. They are stated once now, in the `authoring-skills` skill
+`CLAUDE.md` already designated as the home, and 34 files cite them instead of each
+owning a private copy. Zero new always-on tokens.
+
+**craft-layer 2,177 → 1,849 tokens, 16 → 13 skills.** `sprite-motion` folded into
+`motion-tiers` (it self-declared as that skill's tier 4 in its own first line);
+`motion-sequencing` deleted (its own text said theatre.js went inactive in Aug 2023);
+`theming-system` moved to `ui-ux`, beside the two skills that already owned the same
+concern; 471 lines of design essay moved out of the plugin to `rationale/`.
+
+**Boost hooks stop firing on quotations.** A pasted log or "don't use ultra-goal here"
+used to inject the directive — for `ultra-goal`, a full hands-off autonomy contract.
+Hooks now ignore quoted spans, look only at the opening 200 characters, refuse negated
+mentions, and refuse their own banner echoed back. `CC_BOOST=off` disables every boost
+hook; per-plugin switches disable one each.
+
+**New gates.** Chassis preserve-blocks, so a generated file can differ by one region
+without opting out of generation entirely. A corpus-based content co-fire check for
+`skill-router` — the existing pattern-equality test was structurally incapable of seeing
+content-row collisions, and one ordinary React component fires four content skills at
+once. Opt-outs must now name the file they exempt; one entry used to exempt all four
+chassis-shaped kinds.
+
+Merged: `agent-conventions` into `authoring-agents` (both fired on "write me a new
+reviewer agent" and neither referenced the other). Trimmed: `database-design` to cite
+`sql` rather than restate it — the merge was dropped because `plugins/database` ships a
+destructive-SQL guard hook that `plugins/sql` does not.
+
 ## [0.86.0] - 2026-07-27
 
 Three ambient-hook plugins retired, and a fresh-eyes debloat of the craft-layer surfaces.

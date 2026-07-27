@@ -6,7 +6,6 @@ description: Use when adding a pointer micro-interaction — a custom cursor, ma
 ## What this decides
 
 This skill decides WHETHER a pointer effect aids affordance or is decoration, and WHICH
-pattern to use — then pins the accessibility rules and the budget. It does NOT re-teach
 the animation primitives: Framer / Motion springs, gestures, and `useSpring` live in
 `plugins/ui-ux/skills/motion-best-practices/SKILL.md` (+ `plugins/ui-ux/skills/motion-best-practices/references/motion.md`) — and the
 one-writer-per-property trap lives in
@@ -69,11 +68,11 @@ as a toy and fights the click target underneath.
 
 ## prefers-reduced-motion (mandatory)
 
-- Under `matchMedia('(prefers-reduced-motion: reduce)')`: no cursor follow, no magnetic
-  pull, no tilt — the control keeps its static hover/focus state only.
-- Gate the pointer loop in JS before it starts AND the effect CSS inside
-  `@media (prefers-reduced-motion: reduce)`. A pointer rAF loop with no matchMedia guard
-  is the classic miss.
+- When reduced: no cursor follow, no magnetic pull, no tilt — the control keeps its
+  static hover/focus state only. The pointer rAF loop is the classic miss; gate it
+  before the first frame, not inside it.
+- Gate both layers and land on the static final state — mechanism and the three ways
+  it is missed: `../motion-tiers/references/reduced-motion.md`.
 
 ## Perf budget
 

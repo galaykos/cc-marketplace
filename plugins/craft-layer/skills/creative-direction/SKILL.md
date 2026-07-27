@@ -86,7 +86,7 @@ fingerprint's job. Seven filters, hardest-cutting first, in
 
 This skill contributes only the archetype→mood mapping and a don't-repeat-recent-hues
 nudge (driven by the fingerprint's recent-hue list). Colour and accent DIRECTION stay in
-`design-research` (the briefer); the accent-contrast DERIVATION is owned by `theming-system`.
+`design-research` (the briefer); the accent-contrast DERIVATION is owned by `ui-ux:theming-system`.
 Generation stays `/ui-ux:theme`. Detail: `references/palette-strategy.md`.
 
 ## Anti-sameness — what to diverge from
@@ -114,7 +114,7 @@ absent. Detail: `references/moves-taxonomy.md`.
 | Token scales (spacing/type/radius/elevation/motion) | `design-tokens` |
 | Reference mining → theme brief + build task | `design-research` (this skill feeds it) |
 | Colour / accent DIRECTION | `design-research` |
-| Accent-contrast derivation | `theming-system` (`accent-system.md`) |
+| Accent-contrast derivation | `ui-ux:theming-system` (`accent-system.md`) |
 | Live research provenance / licence discipline | `ultra-deep-research` (opt-in) |
 | Content-depth + anti-sameness VERIFICATION | `/craft-layer:audit` (craft gate) |
 
@@ -142,7 +142,7 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
 - **Concept dropped** — generating a concept the craft command never threads into the
   briefs; it evaporates and the build defaults.
 - **Router carries logic** — inlining a rubric, dial semantics, or anchors into this body
-  instead of its reference file; the body must stay a router within 100–150 lines.
+  instead of its reference file; the body must stay a router within 150 lines.
 - **Duplicating generation** — restating palette/token/mining rules here instead of routing
   to their owners.
 - **Idea catalog** — enumerating named moves or a template per archetype; ship categories,

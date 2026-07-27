@@ -6,12 +6,10 @@ description: Use when adding a postprocessing pass or custom shader to a Three.j
 ## What this decides
 
 This skill decides WHETHER a postprocessing pass or custom shader earns the GPU cost and
-WHICH effect layer to add — then pins the pipeline and budget. It does NOT re-teach
 Three.js: the renderer (WebGPU-default), TSL shader authoring (`three/tsl`), disposal,
 and the render loop live in `plugins/threejs/skills/threejs-best-practices/SKILL.md`; the
 lazy-load contract, the two-render static fallback, and capability gating live in
 `plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md` — reference both by
-path, never copy.
 
 **Reconciliation with motion-tiers Tier 3:** Tier 3
 (`plugins/craft-layer/skills/motion-tiers/SKILL.md`) decides whether to be 3D at all and
@@ -70,9 +68,10 @@ in the JS bundle. Budget it like paint, not like KB.
 
 ## prefers-reduced-motion (mandatory)
 
-- Under `matchMedia('(prefers-reduced-motion: reduce)')`: freeze animated uniforms and
-  render ONE static frame (the in-scene reduced-motion rule from webgl-3d.md) — the
-  effect is visible but still.
+- When reduced, freeze animated uniforms and render ONE static frame (the in-scene rule
+  from webgl-3d.md) — the effect is visible but still.
+- Gate both layers and land on the static final state — mechanism and the three ways
+  it is missed: `../motion-tiers/references/reduced-motion.md`.
 - Gate any uniform-driving loop (scroll scrub, pointer, time) behind the media query
   before it starts; a `uTime` uniform ticking every frame with no gate is the classic
   miss.

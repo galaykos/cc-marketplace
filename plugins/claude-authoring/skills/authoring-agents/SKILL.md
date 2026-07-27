@@ -133,7 +133,9 @@ Keep the split hard; hybrid agents do both jobs badly.
 
 - Trigger overlap. A new agent whose description matches the same moments
   as an existing agent makes dispatch a coin flip. Diff your description
-  against every installed agent's before adding one.
+  against every installed agent's before adding one. Arbitration rules —
+  name one surface, most-specific-wins — and the `-engineer`/`-reviewer`
+  naming taxonomy: `references/naming-and-triggers.md`.
 - Kitchen-sink agents. One agent covering three domains has a description
   too broad to dispatch precisely and a body too long to obey. One domain
   per agent; compose via sequential dispatch instead.

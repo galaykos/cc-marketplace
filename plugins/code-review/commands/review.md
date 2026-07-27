@@ -43,11 +43,21 @@ Output rules:
   Severities: `blocker` (wrong behavior/data loss), `major` (bug-prone or
   misleading), `minor` (smell/convention). Sort by severity, blockers first.
 - No praise, no restating the diff, no findings on unchanged lines.
-- Defer instead of duplicating: structural/YAGNI concerns → recommend
-  /code-architecture:yagni or the architecture-reviewer agent; security-deep
-  issues → /security:review; stack-idiom detail → already covered inline by the
-  stack fan-in when the plugin is installed — when absent, name the plugin in
-  the closing line rather than guessing its idioms.
+- Defer instead of duplicating. The fan-in covers two axes:
+  - **Stack axis** — idiom detail is already loaded inline when the plugin is
+    installed; when absent, name the plugin in the closing line rather than
+    guessing its idioms.
+  - **Concern axis** — five plugins claim things step 2 also claims. When one is
+    installed, IT owns that finding and this review does not duplicate it:
+    `error-handling` (empty/over-broad catches, swallowed exceptions, missing
+    cause chains), `concurrency` (check-then-act races, retry idempotency,
+    unguarded parallel writes), `observability` (silent catch blocks, correlation
+    IDs, secrets in logs), `resilience` (missing timeouts, unsafe retries, absent
+    degradation paths), `comment-discipline` (comment volume and placement).
+    Report the finding once and name the owner; when none is installed, this
+    review keeps it. The swallowed catch alone had four claimants.
+  - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
+    agent; security-deep issues → `/security:review`.
 
 Before the verdict, state the coverage: `Checked: …` and `Not checked: … (why)` so it
 is explicit what was covered, what was clean, and what was skipped — not only what

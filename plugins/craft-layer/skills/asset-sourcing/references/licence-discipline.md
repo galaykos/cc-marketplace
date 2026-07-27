@@ -76,7 +76,7 @@ finding:
   BOTH directions — a marker with no record is an orphan, a `component:<id>` record no marker
   carries is stale. UNMARKED source is presumed first-party, exactly as a sub-threshold inline
   blob is: the marker makes a declared block checkable, it does not detect an undeclared one.
-  That residual hole is a DECLARED blind spot, stated wherever this gate is quoted.
+  That residual hole is a DECLARED blind spot, stated wherever this gate is quoted. (Honest limitation law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 It CANNOT confirm the declared licence is truthful — AND it is blind to refs that are not literal
 in source: a font/asset URL injected by a bundler or plugin, referenced through a framework

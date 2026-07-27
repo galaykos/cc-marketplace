@@ -3,7 +3,7 @@
 A scope lock is the core of a parallel dispatch: each writer gets a disjoint file set, so
 two agents never clobber one file. The lock does its job. What nobody notices is that the
 lock **also scopes every verify command the agent runs** — and for a property that spans
-the whole tree, a scoped check is not a weaker check. It is a check that cannot fail.
+the whole tree, a scoped check is not a weaker check. It is a check that cannot fail. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 Two failure modes come out of this, they look nothing alike, and one gate fixes both.
 

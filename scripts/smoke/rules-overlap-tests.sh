@@ -53,5 +53,37 @@ else
   echo "FAIL: missing file should return 0"; rc=1
 fi
 
+
+# --- content-row co-firing (pc_rules_cofire) ---------------------------------
+# The glob-axis test above flags rows sharing an IDENTICAL pattern. Content rows
+# never do, so that algorithm is vacuous for them; these cases prove the corpus
+# gate catches what pattern equality structurally cannot.
+. scripts/lib/plugin-checks.sh
+CORPUS=scripts/smoke/router-corpus
+RT=$(mktemp); trap 'rm -f "$RT"' EXIT
+
+# 1. the shipped file is clean (every real pair is blessed)
+if pc_rules_cofire plugins/skill-router/rules.tsv "$CORPUS" >/dev/null; then
+  echo "PASS[cofire]: shipped rules.tsv has no unblessed content co-fire"
+else
+  echo "FAIL[cofire]: shipped rules.tsv has an unblessed content co-fire"; rc=1
+fi
+
+# 2. an unblessed row with a DISTINCT regex that overlaps on real code must fail
+cp plugins/skill-router/rules.tsv "$RT"
+printf 'content\t\\b(catch|rescue)\\b\tzz-probe\tzz\tlow\n' >> "$RT"
+if pc_rules_cofire "$RT" "$CORPUS" >/dev/null; then
+  echo "FAIL[cofire]: distinct-regex overlap went undetected"; rc=1
+else
+  echo "PASS[cofire]: distinct-regex overlap detected"
+fi
+
+# 3. the glob-axis gate must NOT see it — proving the two checks are not redundant
+if pc_rules_overlap "$RT" >/dev/null; then
+  echo "PASS[cofire]: pattern-equality gate is blind to it, as expected"
+else
+  echo "FAIL[cofire]: pattern-equality gate unexpectedly flagged a content row"; rc=1
+fi
+
 [ "$rc" -eq 0 ] && echo "All rules-overlap smoke tests passed."
 exit "$rc"

@@ -24,7 +24,7 @@ skills/<name>/SKILL.md:
 - Line 1 is exactly `---` and a closing `---` terminates the frontmatter.
 - `name:` is present and equals the skill's directory name exactly.
 - `description:` is present.
-- The body — every line after the closing `---` — is 100 to 150 lines.
+- The body — every line after the closing `---` — is at most 150 lines.
 
 Count the body before you commit:
 
@@ -59,18 +59,16 @@ Scope a skill to a single capability with a single trigger.
 - Splitting also sharpens descriptions: two narrow triggers each beat one
   vague umbrella trigger.
 
-## The 100–150 line budget
+## The 150-line ceiling
 
-This marketplace rejects bodies under 100 or over 150 lines. The budget is
-a feature, not a ceiling to resent:
+A body over 150 lines fails the build. There is **no floor** — a skill that
+says its piece in 60 lines is finished, not thin:
 
-- Brevity forces prioritization. Each line must earn its place against the
-  line it displaces.
-- Link references instead of inlining walls: point to a spec file, script,
-  or doc path and state only the rule the reader needs right now.
-- Under 100 lines usually means the skill restates the obvious or is too
-  thin to be a skill at all; over 150 means it is two skills or a doc that
-  belongs elsewhere with a pointer here.
+- Brevity forces prioritization: each line earns its place against the line
+  it displaces.
+- Link references instead of inlining walls — point to a spec, script, or doc
+  path and state only the rule the reader needs right now.
+- Over 150 lines means two skills, or a doc belonging elsewhere.
 
 ## Body structure
 
@@ -105,16 +103,28 @@ command (run the cards, apply the fixes, review the diff):
 - One offer per handoff moment — a completion that spawns three questions
   is a quiz, not a handoff.
 
+## The four laws
+
+Applying sites cite `claude-authoring/skills/authoring-skills/SKILL.md`, "The
+four laws", by path — a path citation works without this skill firing.
+Derivation: `references/doctrine.md`. Standing: **recorded** — nothing checks
+that an applying site cites it; law 4's ratchet is the only partial gate.
+
+- **Proportionality.** Size the ceremony to the blast radius. Counts are
+  ceilings, not quotas — pick the smallest N covering the risk; never fill a
+  number because it was written down. Local thresholds stay local.
+- **Honest limitation.** A gate names what it converts from silent to blocking,
+  and what stays prose. State the residual; a hidden one gets trusted.
+- **The theater test.** Name what the ceremony catches that nothing else
+  catches. No answer means theater — a check that cannot fail included.
+- **Admission.** An artifact earns existence by carrying a rule nothing else
+  carries. Prefer the smallest artifact that works; delete, don't deprecate.
+
 ## Say what has teeth
 
-A skill body asserts rules. Some are checked by a script, some judged by an
-agent, most only written down — and a reader cannot tell which from the
-sentence. That is how a rule gets trusted as a guarantee for months while
-nothing enforces it. Real cases: a "never write component APIs from memory"
-line broken three times in one session by the model that had it loaded; a
-design axis chosen every run and checked by no assertion.
-
-Name a rule's standing where it is stated:
+The taxonomy for the honest-limitation law above. Some rules are checked by a
+script, some judged by an agent, most only written down — and a reader cannot
+tell which from the sentence. Name a rule's standing where it is stated:
 
 | Standing | Means |
 | --- | --- |

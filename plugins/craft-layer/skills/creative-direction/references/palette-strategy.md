@@ -6,8 +6,8 @@ archetype→mood MAPPING and a don't-repeat-recent-hues NUDGE. It emits DIRECTIO
 
 **Ownership boundary (binding).** Colour and accent DIRECTION — the brand hue family,
 warmth, light/dark priority, surface chroma — live in `design-research` (its token-direction
-extraction; the briefer). The accent-contrast DERIVATION is owned by `theming-system`
-(`skills/theming-system/references/accent-system.md`), not design-research and not this
+extraction; the briefer). The accent-contrast DERIVATION is owned by `ui-ux:theming-system`
+(`plugins/ui-ux/skills/theming-system/references/accent-system.md`), not design-research and not this
 layer. This layer does NOT restate or duplicate any of them. Generation of actual palette
 values stays `/ui-ux:theme` / `shadcn-theming`.
 
@@ -55,7 +55,7 @@ emit the full colour direction — this one is the mood + anti-repeat layer on t
 ## Anti-patterns
 
 - **Duplicating the accent owners** — restating hue family / warmth (design-research's
-  direction) or the accent-contrast DERIVATION (`theming-system`'s) here; this layer only
+  direction) or the accent-contrast DERIVATION (`ui-ux:theming-system`'s) here; this layer only
   adds mood + anti-repeat.
 - **Deciding values** — putting hex or a token scale in the brief; ship direction, let
   `/ui-ux:theme` generate.

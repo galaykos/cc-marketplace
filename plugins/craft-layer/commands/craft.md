@@ -81,7 +81,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    mandate, and `craft/reference-board.md` is persisted and echoed before step 2.
 
 2. **Tokens.** Pass the theme brief to `/ui-ux:theme` for design tokens (light/dark) with a live
-   colour preview. The brief carries a `theming-system`-derived token-system direction (roles, not
+   colour preview. The brief carries a `ui-ux:theming-system`-derived token-system direction (roles, not
    values — shape per `concept-to-tokens.md`). Do not hand-roll palettes.
 
 3. **Section decisions — only when the contract declares `guided`.** Apply `section-decisions` (or
@@ -145,12 +145,12 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
 
    Reach for the owning skill per call — each references its library by path, never re-teach. **Tier**
    (the base per-surface choice) → `motion-tiers`: Framer Motion, anime.js, Three.js/R3F, sprites
-   (`sprite-motion`), or the Vector tier (Lottie/Rive). **Scroll-driven** → `scroll-orchestration`; a
+   (tier 4), or the Vector tier (Lottie/Rive). **Scroll-driven** → `scroll-orchestration`; a
    scroll ACT's budget and three required states are in `references/scroll-acts.md`, and a
    play-forward sequence is an entrance, not a signature. **Route / page transitions** →
    `page-transitions` · **focal / variable-font type** → `kinetic-typography` · **pointer
-   micro-interactions** → `interaction-fx` · **real 2D physics** → `physics-motion` · **multi-track
-   choreography** → `motion-sequencing` · **postprocessing / shaders** → `webgl-effects` ·
+   micro-interactions** → `interaction-fx` · **real 2D physics** → `physics-motion` ·
+   **postprocessing / shaders** → `webgl-effects` ·
    **data-dense surfaces** → `information-design`.
 
    Then fold in the cross-cutting decisions: each tier's `prefers-reduced-motion` and reduced-bundle
@@ -193,7 +193,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    what it pinned, N=3 as a CEILING sized to blast radius, composing
    `orchestration:verification-panels` when installed; no Workflow tool means ONE inline pass, labeled
    `inline heuristic pass — single model, uncorroborated`. The three rules the panel owes are in
-   `skills/ultra-craft/references/red-team-contract.md`. An unboosted run skips this entirely.
+   `skills/ultra-craft/references/red-team-contract.md`. An unboosted run skips this entirely. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## Notes
 

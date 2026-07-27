@@ -124,7 +124,7 @@ new empty-notes-array case. Ran `npm run lint`: `0 problems`. Both criteria from
 - [ ] If verification wasn't possible (e.g., no test harness exists), that limitation is stated
       plainly instead of substituting an assertion for evidence.
 
-## Verification is proportional, not theatrical
+## Verification is proportional, not theatrical (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 This doesn't mean every one-line change needs a paragraph of ceremony — it means the *claim*
 made should never exceed the *evidence* gathered. For a trivial fix, running the single
