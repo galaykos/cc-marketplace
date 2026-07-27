@@ -1,6 +1,6 @@
 ---
 name: theming-system
-description: Use when a concept must become a coherent token SYSTEM — surface/ink/accent tiers, the three-role accent split (display · fill · text/mark), a reserved status palette, a theme-derived chart palette, and a light/dark duality stepped from ramps — expressed as ROLES and derivation rules the theme brief carries into /ui-ux:theme. Owns the coherence derivation and the contrast RULES; never ships a colour, hex, named theme, or token value — those belong to /ui-ux:theme + design-tokens.
+description: Use when a concept must become a coherent token SYSTEM — surface/ink/accent tiers, the three-role accent split, a reserved status palette, a theme-derived chart palette, light/dark duality — as ROLES and derivation rules for /ui-ux:theme. Never ships a colour, hex, or token value.
 ---
 
 ## What this decides

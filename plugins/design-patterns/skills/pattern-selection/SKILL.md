@@ -1,6 +1,6 @@
 ---
 name: pattern-selection
-description: Use when structuring code and weighing — or naming — a design pattern (Factory, Strategy, Observer, Decorator, and the rest of the GoF catalog). Maps a problem to the right creational/structural/behavioral pattern, gives when-NOT per pattern, disambiguates look-alikes, points to the full catalog; simplest-thing-first, refactor-to-pattern only when the simple thing breaks.
+description: Use when structuring code and weighing — or naming — a design pattern (Factory, Strategy, Observer, Decorator, the GoF catalog): maps a problem to the right pattern with when-NOT per pattern and look-alike disambiguation.
 ---
 
 ## The rule: name the problem first, pattern second

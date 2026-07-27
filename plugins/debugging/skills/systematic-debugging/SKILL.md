@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when facing any bug, failing test, or unexpected behavior, BEFORE proposing or applying a fix — enforces root-cause-first discipline: reproduce deterministically, read the actual error (the first one, not the last), check what changed, run one-hypothesis-one-experiment cycles, bisect when hypotheses run out, and verify the fix against the original reproduction plus the full suite. Three failed fix cycles trigger a stop-and-requestion rule instead of a fourth attempt.
+description: Use when facing any bug, failing test, or unexpected behavior, BEFORE proposing or applying a fix — root-cause-first discipline: reproduce, read the first error, one-hypothesis-one-experiment, bisect, verify against the original reproduction.
 ---
 
 ## The iron law

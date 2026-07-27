@@ -1,6 +1,6 @@
 ---
 name: node-backend-best-practices
-description: Use when writing or reviewing server-side Node.js code in Express 5, NestJS 11, or Fastify 5 — async error propagation, validation at the boundary (zod, class-validator, JSON Schema), middleware vs DI vs plugin-encapsulation architecture, streaming and backpressure, graceful shutdown, config/env discipline, and per-framework footguns. Language-level rules live in the javascript/typescript plugins.
+description: Use when writing or reviewing server-side Node.js code in Express 5, NestJS 11, or Fastify 5 — async error propagation, boundary validation (zod, class-validator), middleware vs DI vs plugin architecture, streaming and backpressure, graceful shutdown, per-framework footguns. Language rules live in javascript/typescript.
 ---
 
 ## The three composition models — work with the grain

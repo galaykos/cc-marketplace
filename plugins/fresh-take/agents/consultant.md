@@ -1,6 +1,6 @@
 ---
 name: consultant
-description: Spawned by /fresh-take:consult — reads a facts-only consult brief cold (stuck debugging or an imminent irreversible action), investigates the repo read-only, and returns an independent Take, Risks, and one concrete Alternative. Advice only — never blocks, never writes code.
+description: Spawned by /fresh-take:consult — reads a facts-only consult brief cold, investigates the repo read-only, returns an independent Take, Risks, one concrete Alternative. Advice only — never blocks, never writes code.
 tools: Read, Grep, Glob
 model: inherit
 effort: high

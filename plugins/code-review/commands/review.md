@@ -1,5 +1,5 @@
 ---
-description: Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass.
+description: Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings; loads every installed matching stack skill in one pass.
 ---
 
 Review the code change in $ARGUMENTS. Resolve scope in this order:

@@ -1,6 +1,6 @@
 ---
 name: i18n
-description: Use when adding or reviewing internationalization/localization — translation catalogs and key hygiene, ICU MessageFormat pluralization and gender, locale-aware dates/numbers/currency, RTL layout, fallback chains, and translation extraction. For a product shipping outside one language/market; not for a single-locale app that will stay that way.
+description: Use when adding or reviewing internationalization/localization — translation catalogs and key hygiene, ICU MessageFormat plurals, locale-aware dates/numbers/currency, RTL layout, fallback chains. Not for a single-locale app that will stay that way.
 ---
 
 # Internationalization & localization

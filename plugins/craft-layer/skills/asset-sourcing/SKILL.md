@@ -1,6 +1,6 @@
 ---
 name: asset-sourcing
-description: Use when a web-app surface needs a visual asset — an icon system, SVG/vector, 3D model, animated modal/overlay, illustration or imagery, a font, or background video — and you must decide whether to build it in code, source an open asset, or commission it, in what format, at what bundle cost, under what licence. Routes each kind, pins the six-axis build-vs-source-vs-commission decision, and enforces a machine-findable licence/provenance gate; never names a vendor, never ships an asset.
+description: Use when a web-app surface needs a visual asset — an icon system, SVG/vector, 3D model, illustration or imagery, a font, or background video — deciding build vs source vs commission, format, bundle cost, licence/provenance. Never names a vendor, never ships an asset.
 ---
 
 ## What this decides

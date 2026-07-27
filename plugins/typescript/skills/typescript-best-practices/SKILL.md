@@ -1,6 +1,6 @@
 ---
 name: typescript-best-practices
-description: Use when writing or reviewing TypeScript code — strict mode as the non-negotiable floor plus noUncheckedIndexedAccess/exactOptionalPropertyTypes, any vs unknown discipline, narrowing over assertions, discriminated unions with never-exhaustiveness, runtime validation at boundaries (zod/valibot, parse-don't-validate), generics restraint, as const and satisfies, string literal unions over enums, tsconfig hygiene, all pinned to the typescript version in the lockfile.
+description: Use when writing or reviewing TypeScript code — strict mode as the floor, any vs unknown, narrowing over assertions, discriminated unions with never-exhaustiveness, runtime validation at boundaries (zod/valibot), as const and satisfies, tsconfig hygiene — pinned to the lockfile's typescript version.
 ---
 
 ## Know the version before advising

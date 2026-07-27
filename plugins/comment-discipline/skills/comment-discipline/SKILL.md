@@ -1,6 +1,6 @@
 ---
 name: comment-discipline
-description: Use when writing or reviewing code and deciding whether a comment should exist — route each fact to the artifact that cannot lie about it (a name, a type, a test, an extracted function) and spend comments only on the keep-cases: why-not-the-obvious-way, external constraints carrying a ticket, intentional-silence markers, and contract facts a signature cannot state. Kills restatement comments, section banners, commented-out code, bare TODOs, and docblock tags repeating the signature.
+description: Use when writing or reviewing code and deciding whether a comment should exist — route each fact to the artifact that cannot lie about it; keep only why-comments, external constraints, intentional-silence markers, and contract facts a signature cannot state.
 ---
 
 ## Core rule

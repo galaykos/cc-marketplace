@@ -5,6 +5,6 @@
   "tag": "generic",
   "worker": null,
   "applyExtra": [],
-  "description": "Audit comments — restatement of the next line, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, and missing why-comments on non-obvious choices — one line per finding.",
+  "description": "Audit comments — restatement, section banners, commented-out code, bare TODOs, docblock tags repeating the signature, missing why-comments — one line per finding.",
   "argumentHint": "[path-or-diff]"
 }

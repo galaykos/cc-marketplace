@@ -1,6 +1,6 @@
 ---
 name: api-auth
-description: Use when building or reviewing API authentication and authorization — token types (session, opaque, JWT), Laravel Sanctum vs Passport, OAuth2/OIDC flows, scopes, refresh-token rotation, secure token storage and transport, revocation, and expiry. Covers the day-one token-secured-API decisions and the top OWASP auth failures.
+description: Use when building or reviewing API authentication and authorization — session/opaque/JWT tokens, Laravel Sanctum vs Passport, OAuth2/OIDC flows, scopes, refresh-token rotation, storage and transport, revocation, expiry.
 ---
 
 # API authentication & authorization

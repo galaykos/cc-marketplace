@@ -1,6 +1,6 @@
 ---
 name: ultra
-description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task" (boost) or "ultra-goal" (boost + hands-off autonomy) anywhere in a taskmaster prompt (hyphen optional), a bare `ultra`/`goal` as FIRST token of a taskmaster command's own args, or an `Ultra:`/`Goal: true` index marker; a bare token owned by ANOTHER command never fires. Escalates reasoning subagents, mandates red-team+coverage; goal mode auto-takes recommendations to a green suite with a vetoable audit ledger.
+description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task" (boost) or "ultra-goal" (boost + hands-off autonomy) anywhere in a taskmaster prompt (hyphen optional), a bare `ultra`/`goal` as FIRST token of a taskmaster command's own args, or an `Ultra:`/`Goal: true` index marker; a bare token owned by ANOTHER command never fires.
 ---
 
 # Ultra — Extreme Boost for a taskmaster run (+ hands-off Goal mode)

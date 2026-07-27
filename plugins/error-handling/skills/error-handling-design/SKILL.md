@@ -1,6 +1,6 @@
 ---
 name: error-handling-design
-description: Use when writing or reviewing exception and error handling — try/catch placement, error boundaries, error propagation, custom error types, rethrow and cause chains — to decide fail-fast vs recover, where to catch, and what to report, instead of catch-log-continue at every layer.
+description: Use when writing or reviewing exception and error handling — try/catch placement, error boundaries, propagation, custom error types, rethrow and cause chains, fail-fast vs recover — instead of catch-log-continue at every layer.
 ---
 
 ## Core rule

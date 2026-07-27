@@ -1,6 +1,6 @@
 ---
 name: build-vs-buy
-description: Use before implementing any capability that sounds generic — auth, pagination, date/time handling, queues, search, CSV/PDF, payments, validation, caching, retries — to check whether a library, service, or stdlib feature already solves it before writing a line.
+description: Use before implementing any capability that sounds generic — auth, pagination, date/time, queues, search, CSV/PDF, payments, validation, caching, retries — check whether a library, service, or stdlib feature already solves it.
 ---
 
 The most expensive code is a working, tested, hand-rolled version of something

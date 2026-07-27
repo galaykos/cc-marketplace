@@ -1,5 +1,5 @@
 ---
-description: Create a crafted web app (CRM, SaaS, landing page) end to end — orchestrates design-research, token + component build, motion-tier selection, and a craft audit by chaining the marketplace's existing UI/motion surfaces.
+description: Create a crafted web app (CRM, SaaS, landing page) end to end by chaining the marketplace's UI and motion surfaces.
 argument-hint: [product-idea]
 ---
 

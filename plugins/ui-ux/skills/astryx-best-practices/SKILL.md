@@ -1,6 +1,6 @@
 ---
 name: astryx-best-practices
-description: Use when building or reviewing UI with Astryx, Meta's open-source React design system (@astryxdesign/core, StyleX) — component selection, theming, dark mode, agent manifest/CLI usage. BETA — verify current APIs against astryx.atmeta.com before writing code.
+description: Use when building or reviewing UI with Astryx, Meta's open-source React design system (@astryxdesign/core, StyleX). BETA — verify current APIs against astryx.atmeta.com before writing code.
 ---
 
 # Astryx best practices

@@ -1,6 +1,6 @@
 ---
 name: studio
-description: Use when a visual or UI decision needs REAL interactive components but the project is greenfield or non-React — no runnable Vite+React app for design-preview to host. Stands up a self-contained shadcn + Vite (Tailwind v4) sandbox on its own dev server, renders agent-authored variants side by side with real interactivity (sort/filter/dialog), strict consent before any write, scratch outside the work tree, verified cleanup, and a static-shell fallback.
+description: Use when a visual or UI decision needs REAL interactive components but the project is greenfield or non-React — no runnable Vite+React app for design-preview to host: a self-contained shadcn + Vite sandbox on its own dev server rendering variants side by side, strict consent before any write.
 ---
 
 ## Where this sits

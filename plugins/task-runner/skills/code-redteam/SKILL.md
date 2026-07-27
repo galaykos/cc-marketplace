@@ -1,6 +1,6 @@
 ---
 name: code-redteam
-description: Use when a boosted (ultra/goal) run produced code and the diff must be red-teamed before trust — N=3 blind refuter panel plus completeness-critic over the SHIPPED code, not just spec/cards. Composes orchestration:verification-panels; single inline pass when panels unavailable.
+description: Use when a boosted (ultra/goal) run produced code and the diff must be red-teamed before trust — N=3 blind refuter panel plus completeness-critic over the SHIPPED code, not just spec/cards.
 ---
 
 # Code Red-Team

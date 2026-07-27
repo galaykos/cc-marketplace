@@ -1,6 +1,6 @@
 ---
 name: real-preview
-description: Use when a visual decision needs REAL component fidelity — the project's actual design-system components, true typography and spacing — beyond what token-mimicking static mockups can show. Vite + React projects only; renders 2-3 candidate variants in a scratch dev-server entry with zero edits to existing files, strict consent before writing into the source tree, and guaranteed cleanup. Falls back to the taskmaster shell mockup when Vite is absent.
+description: Use when a visual decision needs REAL component fidelity — the project's actual design-system components, true typography and spacing — beyond token-mimicking static mockups. Vite + React projects only; scratch dev-server entry, strict consent, guaranteed cleanup. Falls back to the taskmaster shell mockup when Vite is absent.
 ---
 
 ## When to escalate here

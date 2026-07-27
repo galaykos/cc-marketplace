@@ -1,6 +1,6 @@
 ---
 name: opinion-round
-description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — four BLIND parallel opinion personas argue the approach, synthesized to one pick + kill-trigger in one round, auto-proceeding unless takes split on structural shape.
+description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — four BLIND parallel opinion personas, one pick + kill-trigger, auto-proceeding unless takes split on structural shape.
 ---
 
 The failure mode this kills: correlated opinions on rework-shaped tasks.

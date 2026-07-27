@@ -1,6 +1,6 @@
 ---
 name: estimation
-description: Use when sizing a task, card, or backlog — before committing to scope or sequencing — to classify effort honestly with reference anchors instead of optimism, and to flag what must be split or spiked first.
+description: Use when sizing a task, card, or backlog — before committing to scope or sequencing — effort classes against reference anchors instead of optimism, flagging what must be split or spiked first.
 ---
 
 Estimates are comparisons, not prophecies. "This resembles X, which took Y"

@@ -1,6 +1,6 @@
 ---
 name: sql-best-practices
-description: Use when writing or reviewing SQL STATEMENTS on any engine — sargable predicates, join correctness, composite index logic, NULL three-valued traps, isolation discipline, constraints as truth, keyset pagination, additive migrations, parameterized queries. Engine-specific rules → mysql/mariadb/postgresql; schema-level design → database.
+description: Use when writing or reviewing SQL STATEMENTS on any engine — sargable predicates, join correctness, composite indexes, NULL three-valued traps, isolation, keyset pagination, additive migrations, parameterized queries. Engine-specific rules → mysql/mariadb/postgresql; schema-level design → database.
 ---
 
 ## Sargable predicates

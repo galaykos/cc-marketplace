@@ -1,6 +1,6 @@
 ---
 name: coverage-check
-description: Use after task-cards splits a spec into cards — verifies every spec success criterion is covered by a card and no card proves what the spec never asked, blocking execution handoff until each gap, orphan, and drift is resolved or accepted.
+description: Use after task-cards splits a spec into cards — verifies every spec success criterion has a card and no card proves what the spec never asked, blocking execution handoff until resolved.
 ---
 
 ## Where this sits

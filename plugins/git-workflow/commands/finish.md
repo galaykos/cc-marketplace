@@ -1,5 +1,5 @@
 ---
-description: Finish a development branch — verify the full suite, show state evidence, ask merge/PR/keep/discard, execute the choice with cleanup
+description: Finish a development branch — full-suite verify with state evidence, then merge/PR/keep/discard with cleanup.
 argument-hint: [branch]
 ---
 

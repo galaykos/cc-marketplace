@@ -1,6 +1,6 @@
 ---
 name: consult
-description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — composes a facts-only consult brief and dispatches a blind stronger-model consultant for an independent take, risks, and one alternative. Advice only — never blocks.
+description: Use when a session is stuck after repeated failed fix attempts, or before an irreversible action (destructive command, schema drop, force-push, history rewrite) — a blind stronger-model consultant returns an independent take, risks, one alternative. Advice only — never blocks.
 ---
 
 ## What this is

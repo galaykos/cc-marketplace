@@ -1,6 +1,6 @@
 ---
 name: graphql-grpc
-description: Use when designing or reviewing a GraphQL or gRPC API — GraphQL schema design, the N+1/dataloader problem, resolver authorization, query depth/complexity limiting, pagination and error handling; gRPC protobuf design, streaming, deadlines, and versioning. These are distinct paradigms from REST with distinct failure modes; for REST use api-design.
+description: Use when designing or reviewing a GraphQL or gRPC API — schema design, N+1/dataloader, resolver authorization, depth/complexity limits; protobuf design, streaming, deadlines, versioning. For REST use api-design.
 ---
 
 # GraphQL & gRPC APIs

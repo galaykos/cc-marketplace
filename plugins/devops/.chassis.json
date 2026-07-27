@@ -16,7 +16,7 @@
     "chassis": "worker-agent",
     "agentFile": "agents/devops-engineer.md",
     "name": "devops-engineer",
-    "description": "Use PROACTIVELY for CI/CD pipelines, container builds, Kubernetes manifests, deployment strategy, observability, or secrets-handling work. Generating local docker-compose dev environments belongs to the dev-env plugin.",
+    "description": "Use PROACTIVELY for CI/CD pipelines, container builds, Kubernetes manifests, deployment strategy, observability, or secrets-handling work. Local docker-compose dev environments belong to dev-env.",
     "tools": "Read, Write, Edit, Bash, Grep, Glob",
     "model": "inherit",
     "effort": "xhigh",

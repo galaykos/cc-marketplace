@@ -1,6 +1,6 @@
 ---
 name: llm-app
-description: Use when building or reviewing an LLM application — RAG pipelines (chunking, embeddings, retrieval quality), eval harnesses and regression testing, prompt versioning, token-cost control, prompt-injection defense, hallucination mitigation, and context-window management. The distinct failure surface of LLM-backed features, which ordinary app testing does not cover.
+description: Use when building or reviewing an LLM application — RAG pipelines (chunking, embeddings, retrieval quality), eval harnesses, prompt versioning, token-cost control, prompt-injection defense, hallucination mitigation, context-window management.
 ---
 
 # LLM application engineering

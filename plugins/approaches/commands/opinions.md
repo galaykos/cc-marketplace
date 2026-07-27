@@ -1,5 +1,5 @@
 ---
-description: Run an opinion-round — four parallel blind opinion-lens personas argue the approach, synthesized to one pick + kill-trigger — before implementation.
+description: Run an opinion-round — four parallel blind opinion-lens personas, one pick + kill-trigger — before implementation.
 ---
 
 Run the opinion-round skill on $ARGUMENTS (if empty, ask for a one-paragraph

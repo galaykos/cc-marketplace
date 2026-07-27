@@ -1,6 +1,6 @@
 ---
 name: deep-staging
-description: Use when authoring staged variants inside a running shadcn-studio sandbox — decides the lane (design / creative / dataviz), what each variant varies and holds constant, and which states to build, so staged options carry real substance instead of one frame with a caption. Read after the studio skill has a sandbox running; studio owns the lifecycle, this owns the substance.
+description: Use when authoring staged variants inside a running shadcn-studio sandbox — lane choice, what each variant varies and holds constant, which states to build. Studio owns the lifecycle; this owns the substance.
 ---
 
 ## Where this sits

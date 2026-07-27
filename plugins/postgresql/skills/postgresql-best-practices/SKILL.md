@@ -1,6 +1,6 @@
 ---
 name: postgresql-best-practices
-description: Use when writing or reviewing PostgreSQL 14+ schemas, queries, or migrations — MVCC/vacuum reality, rich native types (timestamptz, jsonb, uuid, numeric), the index arsenal (partial, expression, covering, GIN, BRIN, CONCURRENTLY), lock-aware zero-downtime migrations, ON CONFLICT and RETURNING, connection pooling, version leverage through 17/18. Generic SQL rules live in the sql plugin.
+description: Use when writing or reviewing PostgreSQL 14+ schemas, queries, or migrations — MVCC/vacuum, timestamptz/jsonb/uuid, the index arsenal (partial, expression, covering, GIN, BRIN, CONCURRENTLY), lock-aware zero-downtime migrations, ON CONFLICT, pooling, version leverage through 17/18. Generic SQL rules live in the sql plugin.
 ---
 
 ## MVCC and vacuum reality

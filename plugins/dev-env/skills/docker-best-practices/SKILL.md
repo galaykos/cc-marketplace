@@ -1,6 +1,6 @@
 ---
 name: docker-best-practices
-description: Use when writing or auditing Dockerfiles and compose files — layer caching order, .dockerignore hygiene, multi-stage builds, exact base tags with alpine/slim trade-offs, non-root USER, HEALTHCHECK, secrets kept out of layers and build args, PID 1 signal handling, compose profiles, dev resource limits, EOL base images treated as vulnerabilities. CI/CD pipelines and production deployment belong to the devops plugin.
+description: Use when writing or auditing Dockerfiles and compose files — layer caching order, .dockerignore, multi-stage builds, exact base tags, non-root USER, HEALTHCHECK, secrets out of layers, PID 1 signals, compose profiles, EOL base images. CI/CD and production deployment belong to devops.
 ---
 
 ## Layer order is cache strategy

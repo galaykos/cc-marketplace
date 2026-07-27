@@ -1,6 +1,6 @@
 ---
 name: strategy-catalog
-description: Use when choosing HOW to attack a task — named implementation strategies (tracer bullet, strangler fig, spike-then-rewrite, and more), each mapped to the dominant risk it beats, with failure modes and a selection table.
+description: Use when choosing HOW to attack a task — named implementation strategies (tracer bullet, strangler fig, spike-then-rewrite), each mapped to the dominant risk it beats.
 ---
 
 A strategy is a shape for the work, chosen by the dominant risk. Pick the risk

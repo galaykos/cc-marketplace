@@ -1,6 +1,6 @@
 ---
 name: transcript-miner
-description: Deep-reads a single Claude Code session transcript JSONL and returns compressed friction findings — corrections given, repeated chores, failed fix attempts, and friction contexts — each backed by verbatim evidence quotes. Spawned by the /hindsight:harvest fan-out, one miner per selected session; the harvest pipeline synthesizes proposals from the compressed output in the main thread.
+description: Spawned by the /hindsight:harvest fan-out, one miner per selected session — deep-reads one session transcript JSONL and returns compressed friction findings backed by verbatim evidence quotes; synthesis stays in the main thread.
 tools: Read, Grep, Bash
 model: sonnet
 effort: medium

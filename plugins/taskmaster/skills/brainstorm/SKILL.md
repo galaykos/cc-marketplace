@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: Use when the request is still an idea rather than a task — no concrete capability list, an "I want something like…", a thought that could go five directions: shapes it into an approved design via one-question-at-a-time dialogue and sectional approval, then hands off to grill. Never writes code.
+description: Use when the request is still an idea rather than a task — no concrete capability list, an "I want something like…", a thought that could go five directions: dialogue to an approved design, then hands off to grill. Never writes code.
 ---
 
 ## Where this sits in the pipeline

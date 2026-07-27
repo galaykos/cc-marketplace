@@ -1,6 +1,6 @@
 ---
 name: compose-init
-description: Use when generating a docker-compose.yml and Dockerfile to run a project locally — derive every service and image tag from evidence (composer.json config.platform/require floors, ext-* requires, engines/.nvmrc, .env DSNs, CI images), pin exact minor tags, wire healthchecks and volumes, then boot and verify. Consumes the stack-scan inventory when that plugin is installed.
+description: Use when generating docker-compose.yml and a Dockerfile to run a project locally — every service and image tag derived from manifest evidence, exact minor tags pinned, healthchecks wired, then boot and verify. Consumes stack-scan's inventory when installed.
 ---
 
 ## Evidence before generation

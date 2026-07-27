@@ -1,6 +1,6 @@
 ---
 name: behavioral-gate
-description: Use during run completion (and the tracks merged-branch final gate) — actually run the produced artifact: its test suite via a real runner plus a smoke of each shell entrypoint, not just re-linting. Fails an empty suite, a code run with zero runnable check, a crashing entrypoint, a documented-but-dead flag.
+description: Use during run completion (and the tracks merged-branch final gate) — actually runs the produced artifact: test suite via a real runner plus a smoke of each shell entrypoint, not just re-linting.
 ---
 
 # Behavioral gate

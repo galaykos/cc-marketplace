@@ -1,6 +1,6 @@
 ---
 name: a11y-audit
-description: "Use when writing or reviewing UI markup, styles, or interactions — a WCAG 2.2 AA checklist covering semantics, contrast, keyboard access, focus, forms, media, and the ARIA rules that prevent well-meant attributes from making things worse."
+description: Use when writing or reviewing UI markup, styles, or interactions — a WCAG 2.2 AA checklist: semantics, contrast, keyboard access, focus, forms, media, and the ARIA rules that prevent well-meant attributes from making things worse.
 ---
 
 # Accessibility Audit (WCAG 2.2 AA)

@@ -1,5 +1,5 @@
 ---
-description: "Mine session transcripts for cross-session friction — propose CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings, applied only on approval."
+description: Mine session transcripts for cross-session friction — propose CLAUDE.md rules, skill ideas, and failed-approach warnings, applied only on approval.
 ---
 
 # Harvest

@@ -1,6 +1,6 @@
 ---
 name: data-privacy
-description: Use when handling personal data or building for GDPR/CCPA compliance — PII classification and data mapping, the data-subject rights (access, erasure, portability), consent capture, retention and deletion policies, data minimization, pseudonymization, and audit trails. The regulatory data-handling layer above code-level security review.
+description: Use when handling personal data or building for GDPR/CCPA compliance — PII classification, data-subject rights (access, erasure, portability), consent, retention and deletion, minimization, pseudonymization. The regulatory layer above code-level security review.
 ---
 
 # Data privacy & compliance

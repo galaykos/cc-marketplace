@@ -1,6 +1,6 @@
 ---
 name: visual-decisions
-description: Use during requirement clarification when a choice is visual or structural — layout variants, user flows, architecture topology, data shapes: the user picks between concrete options (throwaway ASCII wireframes, theme-aware HTML mockups in project colors, example payload tables) instead of prose. Fidelity consent (full / ASCII / none) once per session.
+description: Use during requirement clarification when a choice is visual or structural — layout variants, user flows, architecture topology, data shapes: the user picks between ASCII wireframes, theme-aware HTML mockups, or example payload tables instead of prose. Fidelity consent once per session.
 ---
 
 ## When to show instead of tell

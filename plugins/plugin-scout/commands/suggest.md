@@ -1,5 +1,5 @@
 ---
-description: Scan the project's manifests and suggest which marketplace plugins to install — with an option to install the picked ones, auto-install tier-1 picks (--yes), or persist the installed set to project settings (--persist)
+description: Scan the project's manifests and suggest which marketplace plugins to install — install the picked ones, --yes auto-installs tier-1, --persist writes project settings.
 argument-hint: [path] [--yes] [--persist]
 ---
 

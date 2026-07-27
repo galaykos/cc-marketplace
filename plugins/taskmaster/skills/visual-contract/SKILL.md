@@ -1,6 +1,6 @@
 ---
 name: visual-contract
-description: Use during spec writing, after visual/creative options were staged (brainstorm or grill's visual-decisions) — binds the picks into a `## Visual contract` spec section the cards must conform to, as erd binds `## Data Model`. Fires only on a staged pick; structural descriptions, not live artifacts.
+description: Use during spec writing, after visual/creative options were staged (brainstorm or grill's visual-decisions) — binds the picks into a `## Visual contract` spec section the cards must conform to. Fires only on a staged pick.
 ---
 
 ## Where this sits

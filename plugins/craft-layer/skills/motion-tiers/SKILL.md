@@ -1,6 +1,6 @@
 ---
 name: motion-tiers
-description: Use when deciding HOW to animate a web-app surface — choosing between Framer Motion, anime.js, Three.js/R3F, or sprite-sheets, or when a motion review flags a missing perf budget, prefers-reduced-motion path, or reduced-bundle fallback. Picks a tier per surface + framework, sets a bundle-KB and runtime budget, and mandates reduced-motion and reduced-bundle fallbacks; reuses motion-best-practices and threejs-best-practices idioms.
+description: Use when deciding HOW to animate a web-app surface — Framer Motion vs anime.js vs Three.js/R3F vs sprite-sheets — or when a motion review flags a missing perf budget, prefers-reduced-motion path, or reduced-bundle fallback.
 ---
 
 ## What this decides

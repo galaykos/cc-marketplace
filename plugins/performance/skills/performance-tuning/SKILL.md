@@ -1,6 +1,6 @@
 ---
 name: performance-tuning
-description: Use when code is measurably slow or heavy, or when reviewing a change for performance — the MEASURING lens: measure-before-and-after discipline, hotspot checklist (N+1 detection, payload, bundle, Core Web Vitals), cache correctness (stampede, TTL, eviction), percentile load testing. Index/schema design → database; statement shape → sql. Not for unmeasured micro-optimizing.
+description: Use when code is measurably slow or heavy, or when reviewing a change for performance — measure-before-and-after, N+1, payload, bundle, Core Web Vitals, cache correctness (stampede, TTL, eviction), percentile load testing. Index/schema design belongs to database; statement shape to sql.
 ---
 
 # Performance tuning

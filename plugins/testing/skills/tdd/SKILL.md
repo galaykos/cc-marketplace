@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Use when implementing a feature or fixing a bug and the change should be test-driven — the red-green-refactor loop (one failing test, watched failing for the right reason, minimum code to pass, refactor on green only), test lists as a burn-down plan, red-green regression proof for bug fixes, taskmaster acceptance criteria as failing tests, when TDD is the wrong tool, and the anti-patterns that fake the loop.
+description: Use when implementing a feature or fixing a bug test-first — red-green-refactor, test lists as a burn-down plan, red-green regression proof for bug fixes, when TDD is the wrong tool.
 ---
 
 ## The loop

@@ -1,6 +1,6 @@
 ---
 name: information-design
-description: Use when designing or reviewing data-dense CRM, SaaS, or admin surfaces — dashboards, tables, list views, stat/KPI tiles — to set information hierarchy (primary/secondary/tertiary signal), tune data density and grouping, and decide chart vs table vs stat-tile. Chart form and color defer to the dataviz skill.
+description: Use when designing or reviewing data-dense CRM, SaaS, or admin surfaces — dashboards, tables, list views, stat/KPI tiles: hierarchy, density, chart vs table vs stat-tile. Chart form and color defer to the dataviz skill.
 ---
 
 # Information design for dense surfaces
