@@ -28,6 +28,26 @@ will immediately verify by running it — gets one reviewer or none. A
 five-agent panel voting on a typo fix is theater: it costs real tokens,
 delays the change, and teaches everyone to ignore panel verdicts. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
+## Panel width — this skill owns N
+
+Panel size is sized to blast radius, never filled to a quota. This is the sizing
+authority for every consumer; a consumer that re-derives its own N does not inherit
+later corrections to this one.
+
+| Blast radius | Panel |
+|---|---|
+| **Small** — ≤2 files, isolated, low risk | 2 refuters |
+| **Medium** — the default shape | 3 |
+| **Large** — irreversible, security/auth/data, or cross-module | 3, and round up one row when two risk factors stack |
+
+No `Workflow` tool → 1 inline pass, reported as **"inline heuristic pass — single
+model, uncorroborated"**, never as a panel or an adversary count.
+
+A consumer may map its OWN trigger conditions onto these rows — `spec-redteam`'s four
+gate bullets, `ultra`'s recon/coverage columns — because which conditions signal "large"
+is domain knowledge those skills hold and this one does not. What it may not do is
+invent a different N for the same radius.
+
 ## Refuter voting
 
 For a single finding whose truth matters: spawn N independent skeptics,

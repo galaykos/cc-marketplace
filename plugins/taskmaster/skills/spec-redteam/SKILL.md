@@ -79,9 +79,10 @@ first match wins:
 4. Zero bullets fire but a boost forces the run (§ the gate's Exception) → **2 adversaries**.
 
 Count the four bullets as four; the security bullet is ONE disjunction counted once, not
-once per surface named in it. Every panel member is blind and independent — each gets only
-the spec path, never another member's findings — then dedupe holes across the panel before
-presenting. These counts are ceilings, not quotas.
+once per surface named in it. These counts are ceilings, not quotas. Panel MECHANICS —
+blindness, dedupe, the no-`Workflow` label — are `orchestration:verification-panels`; do
+not re-derive them. This ladder only maps this gate's bullets onto that skill's radius
+rows, as `code-redteam` does.
 
 The agent returns a structured holes list grouped by lens, each hole tagged
 `blocker | major | minor` with a section, the hole, and a suggested fix.

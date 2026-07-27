@@ -55,3 +55,29 @@ A new agent is not done when its file is written. It must also:
    description claims "all worker agents" or the agent's domain — plus that suite's
    uninstall prune list. A bundle promising a set it no longer contains is a silent
    lie the validator cannot catch.
+
+## Fan-out doctrine — who owns which rule
+
+Four rules were each stated 3–5 times across three plugins with no owner. Each now
+has exactly one full statement; every other site keeps a one-line restatement plus a
+pointer, because a SKILL body is not always-on and a bare pointer degrades a rule to
+one the model may never follow.
+
+| Rule | Owner |
+|---|---|
+| Never two writers on one file | `orchestration:delegation-contracts` |
+| Topo-sort into levels, then group disjoint file sets | `task-runner:parallel-planning` |
+| The fresh-session test | `taskmaster:task-cards` |
+| A subagent's "done" is a claim, not evidence | `task-runner:task-execution` |
+| Panel WIDTH (how many refuters) | `orchestration:verification-panels` § Panel width |
+
+The split is by ACT, not by plugin convenience: delegation mechanics to orchestration,
+execution-time scheduling to task-runner, card authoring to taskmaster.
+
+Panel width moved here from `taskmaster/skills/ultra/references/dispatch-tiers.md`,
+which orchestration's own review command used to cite as the sizing authority — the
+plugin that owns panels was deferring panel width into a consumer. `dispatch-tiers`
+still owns recon lenses and the coverage loop; those are pipeline phases no other
+plugin runs.
+
+Standing: **recorded**. No script checks that a new fan-out rule picks an owner.
