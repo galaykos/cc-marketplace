@@ -43,3 +43,11 @@ ledger for anything the sources disagree on, and names what it could **not** ver
 Every load-bearing claim is corroborated by ≥2 independent quality sources, date-stamped,
 and attacked before it is trusted. No fabricated URLs, dates, or figures — an explicit
 "not found" over a confident guess. Time-sensitive answers are stamped "as of <date>".
+
+## Suite membership
+
+None — standalone by design (recorded; nothing enforces this). A research run
+fans out parallel web searches and can escalate to a Workflow-driven
+loop-until-dry sweep — a token cost that should be chosen per install, not
+ride in silently with a bundle (same reasoning as taskmaster-suite's
+deliberate secret-scanning exclusion).

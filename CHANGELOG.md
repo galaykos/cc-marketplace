@@ -4,6 +4,29 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.89.0] - 2026-07-27
+
+**New bundle `product-suite`** (payments, i18n, llm-app): the product-domain
+disciplines — each a domain skill plus a review command — get a suite parent
+instead of living un-suited; ~0.3k always-on tokens. The three remaining
+un-suited leaves are now standalone **by declaration**: `node-backend`
+(tier-1 signal is its distribution path), `fresh-take` (hook + stronger-model
+consult are per-install opt-ins), `ultra-deep-research` (token cost chosen
+per install) — each README carries a "Suite membership" section naming the
+standing (recorded).
+
+**plugin-scout 0.4.0.** Installs are now repo-scoped, never user-global:
+default `--scope local` (gitignored `.claude/settings.local.json`),
+`--persist` switches to `--scope project` and verifies the settings shape the
+CLI leaves behind. The tier-1 signal table drops the `vue2`, `typescript`,
+and `javascript` rows — those plugins were removed in the baseline-tested
+stack kills (rationale/stack-skill-baselines.md, commit bb8f2d2, which
+shipped without a changelog entry) but the table still suggested them, so
+scout could recommend an install that
+fails; vue ^2 / ambiguous vue majors now get a report line instead of a
+suggestion. `frontend-suite` 0.7.1 stops advertising JavaScript/TypeScript
+members it no longer has.
+
 ## [0.88.0] - 2026-07-27
 
 **Three plugins removed: `playwright`, `puppeteer`, `automation-builder`.** The

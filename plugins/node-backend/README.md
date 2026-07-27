@@ -32,7 +32,14 @@ actually ships.
 
 ## Pairs well with
 
-- **javascript / typescript** — the language layer underneath these frameworks
 - **api-design** — REST contract shape for the routes these frameworks serve
 - **sql / database** — the queries and connection pools under the handlers
 - **security** — auth flows and OWASP review on top of boundary validation
+
+## Suite membership
+
+None — standalone by design (recorded; nothing enforces this). node-backend
+is a tier-1 stack plugin: plugin-scout suggests it when package.json carries
+express, fastify, or @nestjs/core, so its distribution path is the detection
+signal, not a bundle. No Node-backend suite exists to join, and padding it
+into a frontend or PHP bundle would burn context on unrelated stacks.

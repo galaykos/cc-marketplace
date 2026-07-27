@@ -29,3 +29,10 @@ opinion is formed blind from the code, not anchored to the thread's hypothesis.
 
 One consultant per consult — never a panel. If you want adversarial voting,
 compose the orchestration plugin's verification-panels yourself.
+
+## Suite membership
+
+None — standalone by design (recorded; nothing enforces this). fresh-take
+ships a UserPromptSubmit reminder hook and dispatches a stronger-model
+consultant on demand; both are deliberate opt-ins a bundle would install
+silently. Install it alone, when you want the second opinion.

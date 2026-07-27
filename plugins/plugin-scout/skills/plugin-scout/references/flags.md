@@ -18,8 +18,9 @@ table always prints before any install happens.
   report only, run no picker, and add a hint line to rerun without `--yes` to
   pick from the tier-2 set manually.
 - Ambiguous Vue major (see Stack signals): `--yes` does not resolve the
-  ambiguity. Install neither vue plugin and keep the report's ambiguous-
-  constraint line — an ambiguous signal is not a signal-backed pick.
+  ambiguity. Suggest nothing for vue and keep the report's ambiguous-
+  constraint line — an ambiguous signal is not a signal-backed pick. (There
+  is no vue2 plugin to fall back to; it was removed after baseline testing.)
 - Marketplace-add preflight is unaffected by `--yes`: adding a marketplace is
   a trust decision and is never silent. Interactive sessions still ask via
   AskUserQuestion as in Preflight. In headless mode with `--yes` set and the
@@ -39,31 +40,35 @@ table always prints before any install happens.
 
 ## `--persist`
 
-Runs after the Install section completes (whether install ran via the picker
-or via `--yes`), and only writes what actually got installed.
+Changes the Install section's scope and adds a settings step afterwards; it
+covers only what actually got installed this run.
 
-- Target: the project's `.claude/settings.json` (repo-relative, the
-  team-shared file — deliberately not a user-scope file, since the point of
-  `--persist` is that teammates who clone the repo get the same set without
-  rerunning plugin-scout) (R6).
+- Install scope: with `--persist`, every `claude plugin install` this run uses
+  `--scope project` instead of the default `--scope local` — the CLI itself
+  records the `enabledPlugins` entries in the project's `.claude/settings.json`
+  (repo-relative, the team-shared file — deliberately not user scope, since
+  the point of `--persist` is that teammates who clone the repo get the same
+  set without rerunning plugin-scout) (R6).
 - Written set: exactly the plugins actually installed this run — the picker's
   picks, or the `--yes` tier-1 auto-set. Never the full detected set and never
   plugins that were already installed before this run (they need no new
   entry). This mirrors the explicit-pick invariant the rest of the skill
   holds to (R4).
-- Shape (Verified platform facts):
+- Settings step, after installs finish: verify `.claude/settings.json` carries
+  both keys, merging in with `jq` whatever the CLI did not write itself —
   - `enabledPlugins`: `{"<name>@cc-plugins-marketplace": true}` — one entry
-    per plugin written this run.
+    per plugin installed this run.
   - `extraKnownMarketplaces`: `{"cc-plugins-marketplace": {"source":
     {"source": "github", "repo": "galaykos/cc-marketplace"}}}`.
-- Merge, not overwrite: read the existing file with `jq`, deep-merge the new
-  `enabledPlugins` entries and the `extraKnownMarketplaces` entry into it, and
-  write the merged result back — every unrelated existing key (other
-  `enabledPlugins` entries, other settings) is preserved untouched (A3).
+- Merge, not overwrite: read the existing file with `jq`, deep-merge the
+  missing entries into it, and write the merged result back — every unrelated
+  existing key (other `enabledPlugins` entries, other settings) is preserved
+  untouched (A3).
 - Missing file: create it, seeded as `{}`, then merge into that (R2).
-- Unparseable existing JSON: abort `--persist` with a clear message naming the
-  file and the parse error, and write nothing — do not overwrite a file the
-  skill cannot safely parse (R2).
+- Unparseable existing JSON: abort the settings step with a clear message
+  naming the file and the parse error, and write nothing — do not overwrite a
+  file the skill cannot safely parse. Installs that already ran at project
+  scope are not rolled back; say so in the message (R2).
 - Required notice: after a successful write, print one line stating that
   committing this file means anyone who clones the repo and accepts the
   Claude Code trust prompt will auto-install these plugins (R6).
@@ -77,9 +82,16 @@ or via `--yes`), and only writes what actually got installed.
 - Combinable with `--yes`: run Install (auto-installing the tier-1 set), then
   persist that same set.
 
-## Not in scope
+## Scope model
 
-No new `--scope` flag: direct `claude plugin install` calls keep the CLI
-default (user scope) regardless of these flags; `--persist` is the mechanism
-for per-repo/team persistence, so a separate scope flag would be redundant
-(A4, D2).
+Every install this skill runs is repo-scoped — never the CLI's `user` default,
+which would enable the plugin globally across every repo on the machine:
+
+- Default: `--scope local` — this project's `.claude/settings.local.json`,
+  gitignored, personal. Repo-only with zero commit surface.
+- With `--persist`: `--scope project` — this project's `.claude/settings.json`,
+  team-shared, committed.
+
+No separate `--scope` flag is exposed: the two-mode mapping above is the whole
+scope surface, and a user who wants a global install can run
+`claude plugin install` themselves (A4, D2 revised).
