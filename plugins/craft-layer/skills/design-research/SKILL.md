@@ -104,7 +104,6 @@ only genuinely open questions preview.
 
 ## Reuse map
 
-This skill mines and briefs; it does NOT re-teach generation. Reference, never copy:
 
 | Concern | Owned by |
 | --- | --- |

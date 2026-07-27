@@ -8,7 +8,6 @@ description: Use when a web-app surface needs a visual asset — an icon system,
 This skill owns WHERE an award-grade visual asset comes from — build it in code,
 source an open one, or commission it — and pins the format, bundle cost, and licence
 of that choice. It does not author the asset, re-teach a runtime, or theme it. Those
-jobs belong to neighbours — reference them by path, never restate:
 
 - Sprite-sheet / raster-frame authoring, and background video motion:
   `plugins/craft-layer/skills/motion-tiers/references/sprite.md`.

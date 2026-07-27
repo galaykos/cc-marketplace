@@ -6,7 +6,6 @@ description: Use when animating type on a web surface — kinetic or variable-fo
 ## What this decides
 
 This skill decides WHEN type should move and animates the two net-new kinetic
-patterns — variable-font axes and rotating phrases. It does NOT re-teach how to
 split text into lines/words/chars, and it does NOT re-bake the invisibility and
 screen-reader traps; both live elsewhere and are referenced by path:
 
@@ -114,10 +113,10 @@ polish.
   the split phrase revealed with a single opacity fade or no motion; the
   rotating slot frozen on its first real word (or at most an opacity crossfade,
   never translation).
-- Gate BOTH layers: JS with `matchMedia("(prefers-reduced-motion: reduce)")`
-  before starting any scroll/hover axis tween or the rotation interval; CSS
-  inside `@media (prefers-reduced-motion: reduce)`. A rotation running on a
-  `setInterval` with no matchMedia guard is the most-missed violation.
+- The rotation `setInterval` is the most-missed violation — gate it before it
+  starts, not inside the tick.
+- Gate both layers and land on the static final state — mechanism and the three ways
+  it is missed: `../motion-tiers/references/reduced-motion.md`.
 
 ## References
 

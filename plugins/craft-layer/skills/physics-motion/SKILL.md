@@ -6,7 +6,6 @@ description: Use when a surface needs real 2D physics — objects that fall, col
 ## What this decides
 
 This skill decides WHETHER a surface needs a real 2D physics simulation (versus a spring
-or tween) and HOW to run one within budget. It does NOT re-teach spring/tween motion —
 Framer/Motion springs and gesture drag live in
 `plugins/ui-ux/skills/motion-best-practices/SKILL.md` — and it honours the one-writer trap
 in `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`. Reference both by path.
@@ -54,19 +53,6 @@ weight, collision, or inertia is the point.
 - Sync once per frame from the ONE loop; never write element transforms from a separate
   observer or event. Recompute static walls on resize so bounds track the viewport.
 
-## Common shapes
-
-Concrete surfaces this unlocks (each still respects the budget + reduced-motion below):
-
-- **Falling / stacking pile** — tags, logos, or product chips drop in and settle on a
-  floor; a playful hero or an "our stack" section.
-- **Tossable cards** — grab-and-throw items with weight that bump and settle (portfolio,
-  gallery, a "shuffle" interaction).
-- **Pinboard / draggable field** — items you drag with inertia and constraints, snapping
-  or jostling against neighbours.
-- **Bubble packing** — circles that pack and jostle into space (a physics-flavoured
-  distribution/dataviz motif) — render to canvas past a few dozen.
-
 ## Accessibility
 
 - A draggable/throwable object is a pointer affordance — any content or action it gates
@@ -79,11 +65,11 @@ Concrete surfaces this unlocks (each still respects the budget + reduced-motion 
 
 ## prefers-reduced-motion (mandatory)
 
-- Under `matchMedia('(prefers-reduced-motion: reduce)')`: do NOT start the simulation —
-  render the objects in a settled/static layout (their rest arrangement), so the surface
-  reads correctly with zero motion.
-- Gate the runner/rAF behind the query before it starts; honour a runtime change by
-  tearing the world down. A physics loop with no reduced-motion gate is the classic miss.
+- When reduced, do NOT start the simulation — render the objects in their rest
+  arrangement, so the surface reads correctly with zero motion. Honour a runtime change
+  by tearing the world down. The physics runner is the classic miss.
+- Gate both layers and land on the static final state — mechanism and the three ways
+  it is missed: `../motion-tiers/references/reduced-motion.md`.
 
 ## Perf budget
 

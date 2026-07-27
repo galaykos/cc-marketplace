@@ -39,7 +39,8 @@ Cheapest-that-fits is right for ordinary surfaces, wrong for the ONE carrying th
 SIGNATURE interaction — that surface is picked by what the MOVE needs, not by what is cheapest.
 One writer per property per element: never point two tiers at the same `transform`.
 Full table: `references/tier-budgets.md` — SOURCE OF TRUTH for every KB figure below and
-home of the `Last verified:` date. On drift fix it there first, re-date, then mirror here.
+the `Last verified:` date; fix drift there, then mirror here. Standing **recorded** — the
+mirror is manual and no gate checks the two agree.
 
 ## The five tiers (one line each)
 
@@ -144,8 +145,7 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
   lazy-load and no static fallback.
 - **A tier with one fallback** — reduced-motion but no reduced-bundle path, or the
   reverse. Both are mandatory on every surface.
-- **Two tiers on one element** — Framer Motion and anime.js both writing `transform`;
-  choose one writer per property.
+- **Two tiers on one element** — two engines writing `transform`; one writer per property.
 - **Re-teaching the library** — copying Motion / anime / R3F recipes here instead of
   referencing `motion-best-practices` / `threejs-best-practices` by path.
 - **GSAP as a tier** — an alternative inside `motion-best-practices`, not one of these

@@ -6,11 +6,9 @@ description: Use when adding smooth scroll, scroll-linked reveals, scrub, pin, o
 ## What this decides
 
 This skill decides WHETHER a surface needs orchestrated scroll motion and WHICH
-engine drives it — then pins the contract and the budget. It does not re-teach the
 ScrollTrigger API: scrub, pin, parallax, one-trigger-per-scene, `.refresh()`,
 cleanup, and `gsap.matchMedia()` already live in
 `plugins/ui-ux/skills/motion-best-practices/references/gsap.md` — reference by path,
-never copy.
 
 **GSAP reconciliation:** GSAP is NOT a motion tier. Element and UI animation is a
 tier choice in `plugins/craft-layer/skills/motion-tiers/SKILL.md`. GSAP — via
@@ -84,12 +82,10 @@ breaking anchor links and keyboard scroll.
 
 - **Lenis + ScrollTrigger** — scrub, pin, parallax, choreographed scroll scenes.
   Budget: Lenis ≈ 3KB + GSAP/ScrollTrigger (sized in gsap.md); a JS scroll loop on
-  the main thread. Its mechanics: reference gsap.md, do not re-teach here.
 - **Native CSS scroll-driven** — `animation-timeline: scroll()` / `view()` runs the
   animation off the main thread with zero JS. The reduced-bundle path; degrades to a
   static final state where unsupported. Detail: `references/css-scroll-driven.md`.
 
-## Reveal with fallback (do not re-bake)
 
 Any scroll reveal MUST stay readable with the animation stripped out — no-JS,
 prerender, print, a full-page screenshot, or an observer that never fires. The
@@ -111,13 +107,12 @@ The full decision + reuse of the i18n base rules:
 
 Every scroll surface answers this or it does not ship:
 
-- Check `matchMedia('(prefers-reduced-motion: reduce)')` before instantiating Lenis.
-  When reduced, DO NOT start Lenis — leave native scroll intact.
-- Drop scrub, pin, and parallax; keep at most an opacity crossfade or the static
-  final state. Gate ScrollTrigger scenes with `gsap.matchMedia()` (see gsap.md).
-- For CSS scroll-driven, wrap the `animation-timeline` rules in
-  `@media (prefers-reduced-motion: no-preference)` so reduced-motion users land on
-  the static layout.
+- When reduced, DO NOT start Lenis — leave native scroll intact.
+- Drop scrub, pin, and parallax; keep at most an opacity crossfade. Gate ScrollTrigger
+  scenes with `gsap.matchMedia()` (see gsap.md); CSS scroll-driven rules go behind
+  `@media (prefers-reduced-motion: no-preference)`.
+- Gate both layers and land on the static final state — mechanism and the three ways
+  it is missed: `../motion-tiers/references/reduced-motion.md`.
 
 ## Perf budget
 
@@ -132,8 +127,9 @@ Every scroll surface answers this or it does not ship:
   the ScrollTrigger feed, and the reduced-motion disable path.
 - `references/css-scroll-driven.md` — native `animation-timeline: scroll()` / `view()`
   as the no-JS reduced-bundle path, support/fallback, and reduced-motion gating.
-- `references/orchestration-decision.md` — when scroll motion earns its cost; scrub vs
-  trigger vs parallax; the single-scroll-contract rule (links gotchas.md).
+- `references/orchestration-decision.md` — scrub vs trigger vs parallax: the three
+  mental models, when each applies, and why never to blend them on one scene.
+
 - `references/scroll-acts.md` — the pinned act, the scrubbed frame sequence and the
   scroll-revealed panel: budgets, reduced-motion, no-JS and failure states, the no-dialog rule.
 - ScrollTrigger API: `plugins/ui-ux/skills/motion-best-practices/references/gsap.md`.
