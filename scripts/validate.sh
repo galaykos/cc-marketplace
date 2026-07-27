@@ -574,6 +574,20 @@ while IFS= read -r f; do
   err "$f: session tooling state tracked inside a plugin — 'git rm -r --cached' it"
 done < <(git ls-files 'plugins/*' 2>/dev/null | grep '/\.claude/' || true)
 
+# ---- One severity vocabulary on review surfaces --------------------------------
+# Every finding-emitting command and reviewer agent sorts on ONE scale —
+# critical/high/medium/low — so fan-in output merges without translation. Four
+# scales coexisted (blocker/major/minor, moderate, blockers-then-minors, none),
+# which made "Apply critical+high only" and "Fix blockers only" non-interoperable
+# on the same diff. This bans the divergent FORMAT-DEFINITION shapes, not the
+# words: prose like "a wrong mental model is the real blocker" stays legal.
+# taskmaster's spec-adversary is exempt — its blocker/major/minor grades SPEC
+# HOLES inside a closed pipeline, never code findings a fan-in merges.
+while IFS= read -r f; do
+  case "$f" in plugins/taskmaster/agents/spec-adversary.md) continue ;; esac
+  err "${f%%:*}: divergent severity scale on a review surface — use critical/high/medium/low (line: ${f#*:})"
+done < <(grep -rnE 'merge-after-blockers|Severities:[^\n]*blocker|[Bb]lockers first|critical → high → moderate' plugins/*/commands/*.md plugins/*/agents/*.md 2>/dev/null | cut -d: -f1,2 || true)
+
 # ---- Dated-fact staleness report ---------------------------------------------
 # Files that assert an observed fact about the world carry `Last verified: <date>`.
 # A date nothing reads is a convention that dies quietly, so this reads them.

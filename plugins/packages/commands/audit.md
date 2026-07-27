@@ -15,7 +15,8 @@ Run read-only commands only — no fixes:
 - JS present: `npm audit` / `yarn npm audit` / `pnpm audit` per detected PM, and
   `npm outdated` or the PM's equivalent
 
-Report findings severity-sorted (critical → high → moderate → low), one line per
+Report findings severity-sorted (critical → high → medium → low; advisory
+"moderate" maps to medium), one line per
 finding: `package — severity — direct|transitive — fix lane`, where fix lane is one
 of: patch bump / minor bump / major bump / no fix available. After findings, give an
 upgrade-lane summary: counts per lane, plus the outdated-but-not-vulnerable packages

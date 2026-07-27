@@ -33,7 +33,8 @@ ui-ux plugin skills. Steps:
    https://motion.dev/docs, https://gsap.com/docs, and https://animejs.com/documentation/
    for animation libraries, and https://astryx.atmeta.com/components for Astryx. ReUI and
    Aceternity have no npm version to pin — their current docs page is the only source of truth.
-6. Report findings as `path:line — problem — fix`, ordered by severity.
+6. Report findings as `path:line — severity — problem — fix`, sorted by
+   severity (critical, high, medium, low).
 7. Do not report formatting nits unless they change rendering behavior.
 8. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit which stacks and surfaces were covered, what
