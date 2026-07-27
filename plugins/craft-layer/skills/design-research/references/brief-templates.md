@@ -48,10 +48,10 @@ Rules:
   name it, so the command re-uses rather than replaces it.
 - One coherent voice — it must match the build task's patterns.
 
-**Token-system direction (derived by `theming-system`).** Alongside the string above, the
+**Token-system direction (derived by `ui-ux:theming-system`).** Alongside the string above, the
 theme brief carries a compact token-system-direction block whose SHAPE is owned by
-`plugins/craft-layer/skills/theming-system/references/concept-to-tokens.md` —
-`theming-system` derives it and `/ui-ux:theme` consumes it. Fill it as ROLES and direction
+`plugins/ui-ux/skills/theming-system/references/concept-to-tokens.md` —
+`ui-ux:theming-system` derives it and `/ui-ux:theme` consumes it. Fill it as ROLES and direction
 only (never a value). Follow `concept-to-tokens.md` for the block's exact line format and its
 contents — that file is the single source of the payload's shape; do not restate or summarize
 the line list here, because a second description of it drifts. Thread it.

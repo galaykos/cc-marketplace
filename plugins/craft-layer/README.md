@@ -23,7 +23,7 @@ it orchestrates existing surfaces:
 1. **`/craft-layer:research`** — mine reference designs + interaction/layout patterns,
    emit a theme brief and a build task, biased toward the concept.
 2. **`/ui-ux:theme`** — generate design tokens (light/dark) + live preview from the brief;
-   `theming-system` derives the coherent token-system direction the brief carries.
+   `ui-ux:theming-system` derives the coherent token-system direction the brief carries.
 3. **section-decisions** *(guided mode only)* — decide the page section by section with the
    user: the spine slots become a batched agenda, each section is offered as 2–3 structurally
    different treatments, and the picks land in a section ledger the build and audit read.
@@ -133,11 +133,10 @@ runs no longer look alike, what "award-grade" does and does not mean — is in
   `/design-preview:preview`, `/shadcn-studio:stage` and `/ui-ux:theme`, each optional.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
-- **theming-system** — derive a coherent token SYSTEM from the concept: surface/ink/accent
-  tiers as roles, the three-role accent split (display · fill · text/mark), a reserved status palette, a chart
-  palette tied to the theme, and a light/dark duality stepped from ramps. Emits roles +
-  contrast rules and defers value generation to `/ui-ux:theme` + `design-tokens` +
-  `shadcn-theming`; ships no colour or token value.
+- **theming-system** — MOVED to the `ui-ux` plugin (2026-07-27); it sits beside
+  `design-tokens` and `shadcn-theming`, which own the same concern. The craft flow
+  still uses it: `/craft-layer:research` and `/craft-layer:craft` invoke
+  `ui-ux:theming-system` to derive the token-system direction the brief carries.
 - **asset-sourcing** — build-vs-source-vs-commission for icons, SVG/vector, 3D models,
   animated overlays, and illustration/imagery: a categorical source taxonomy plus a hard,
   audited licence/provenance gate; reuses motion-tiers tier 4 + the Vector tier. It also owns
@@ -203,7 +202,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Concern | Owned by |
 | --- | --- |
 | Design-token scales | `plugins/ui-ux/skills/design-tokens` |
-| Palette / theme value generation (craft-layer's own `theming-system` derives the token-system DIRECTION; these own the VALUES) | `plugins/ui-ux/skills/shadcn-theming` + `/ui-ux:theme` |
+| Palette / theme value generation (craft-layer's own `ui-ux:theming-system` derives the token-system DIRECTION; these own the VALUES) | `plugins/ui-ux/skills/shadcn-theming` + `/ui-ux:theme` |
 | Motion library idioms (Framer, GSAP, anime.js) | `plugins/ui-ux/skills/motion-best-practices` (+ `references/animejs.md`) |
 | GSAP timelines | `plugins/ui-ux/skills/motion-best-practices/references/gsap.md` |
 | Spring/tween alternative (physics-motion references, to decide when NOT to use physics) | `plugins/ui-ux/skills/motion-best-practices` |

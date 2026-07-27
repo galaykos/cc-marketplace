@@ -87,6 +87,9 @@ A component using `blue-500` directly has broken the tier boundary; it should us
 
 - Generating and tuning the color palette itself (ramps, contrast, dark mode) →
   `shadcn-theming`.
+- Deriving a token SYSTEM from a creative concept — surface/ink/accent ROLES, the
+  three-role accent split, light/dark duality → `theming-system`. This skill owns the
+  numeric SCALES a value is stepped along; that one owns the roles set on top of them.
 - Applying tokens in a specific stack's components → that stack's best-practices skill.
 - Accessibility of the resulting contrast/targets → `/a11y:audit`.
 

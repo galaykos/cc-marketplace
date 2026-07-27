@@ -2,7 +2,7 @@
    Parses the oklch() token values out of src/index.css, converts to sRGB, and
    computes WCAG 2 relative-luminance ratios for every pairing that matters.
 
-   WCAG 2 is the conformance gate (per craft-layer theming-system/accent-system):
+   WCAG 2 is the conformance gate (per ui-ux theming-system/accent-system):
    APCA is not normative and WCAG 3 has not settled a contrast algorithm.
 
    Run from the PROJECT ROOT, against the plugin's own copy — no vendoring needed:

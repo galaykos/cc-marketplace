@@ -81,7 +81,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    mandate, and `craft/reference-board.md` is persisted and echoed before step 2.
 
 2. **Tokens.** Pass the theme brief to `/ui-ux:theme` for design tokens (light/dark) with a live
-   colour preview. The brief carries a `theming-system`-derived token-system direction (roles, not
+   colour preview. The brief carries a `ui-ux:theming-system`-derived token-system direction (roles, not
    values — shape per `concept-to-tokens.md`). Do not hand-roll palettes.
 
 3. **Section decisions — only when the contract declares `guided`.** Apply `section-decisions` (or

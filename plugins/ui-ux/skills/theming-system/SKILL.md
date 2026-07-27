@@ -60,6 +60,24 @@ Take each step in turn; each routes to the reference that owns its derivation:
    serialized to the W3C DTCG token format, and if so which roles map to which token
    groups, so the system survives leaving this codebase. → `references/token-interchange.md`.
 
+## Where this sits in ui-ux
+
+Moved here from `craft-layer` on 2026-07-27: three skills in this plugin touched the
+same concern from different plugins, so a reader asking "how do I theme this" got a
+different answer depending on what was installed. They are one pipeline:
+
+- `design-tokens` — the numeric SCALES a value is stepped along (spacing, radius, type,
+  the ramps). Vocabulary; no colour decisions.
+- **This skill** — the ROLES derived from a concept: surface/ink/accent tiers, the
+  three-role accent split, status and chart palettes, light/dark duality. Rules and
+  ratios, never values.
+- `shadcn-theming` — the VALUES and the stack wiring: the actual ramps, the dark-mode
+  second design, the CSS-variable or Sass format for the installed stack, the preview.
+
+Concept → roles → values → stack. The craft flow still drives this skill through
+`/craft-layer:research` and `/craft-layer:craft`; the move changed its address, not its
+place in that flow.
+
 ## The two seam rules
 
 Both bind every card and every reference; they keep the files from stripping rules or
