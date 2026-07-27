@@ -68,6 +68,25 @@ line) — it never substitutes for offering a row.
   row picks install, the stop ends further paging — both honored, say so
   in one line.
 
+## Suites as shortcuts
+
+Leaves do not depend on each other; a `*-suite` is a convenience bundle
+that installs its members as dependencies. The picker treats a suite as a
+shortcut, never a default:
+
+- A not-installed suite whose `plugin.json` dependencies cover 3+
+  suggested not-installed rows earns one explicit option on the first
+  page it fits, described as "installs N of the suggested rows (#a, #b,
+  …) as dependencies; clean removal via /<suite>:uninstall". Suites never
+  enter the numbered table — the option is the whole surface.
+- Picking a suite is one explicit pick for the bundle: install it with
+  the same `claude plugin install <suite>@cc-plugins-marketplace` scope
+  rules; its members then count as installed for every later page
+  (eligibility filters them out) and dedupe against individual picks of
+  the same members.
+- `--yes` never auto-installs a suite — the auto-select set stays
+  tier-1 leaves only; a mass install must be a human pick.
+
 ## TTY picker escape hatch
 
 For very long tables an unbounded interactive multi-select ships at

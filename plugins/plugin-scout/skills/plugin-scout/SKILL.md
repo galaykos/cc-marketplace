@@ -91,10 +91,10 @@ Print one table:
 - Evidence cites file and dependency; tier-2 rows just say "universal".
   Installed column: ✓ when `claude plugin list` shows it, — otherwise.
 - Exclude plugin-scout itself and every bundle (everything and all `*-suite`)
-  from the table.
-- When 5+ tier-2 plugins are suggested, add one line: taskmaster-suite installs
-  MOST of the universal set as one bundle (see its README for deliberate
-  exclusions — e.g. secret-scanning), if picking individually feels slow.
+  from the numbered table. Under it, list each not-installed suite whose
+  dependency list covers 3+ suggested not-installed rows, with the rows it
+  bundles (e.g. "php-suite bundles #1-#4, #9") — suite-as-shortcut rules:
+  `references/picker.md`.
 - Zero stack signals → print the tier-2-only report with the note "no stack
   signals found".
 

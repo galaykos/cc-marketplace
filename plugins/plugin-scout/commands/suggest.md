@@ -20,8 +20,10 @@ out of $ARGUMENTS first — the remainder is the path. Steps:
    remaining" slot per call, paging until every eligible suggestion was
    offered. Installed rows (including leaves an installed suite provides)
    are never options; overlap-with-installed rows sort last, overlap
-   named. Other takes numbers/names/ranges as bulk picks; >32 rows, offer
-   the `scripts/pick.sh` TTY picker per the contract. Then run
+   named. A suite covering 3+ suggested rows earns one shortcut option
+   (never under `--yes`). Other takes numbers/names/ranges as bulk picks;
+   >32 rows, offer the `scripts/pick.sh` TTY picker per the contract.
+   Then run
    `claude plugin install <name>@cc-plugins-marketplace --scope local` per
    pick (repo-only, never user-global; `--scope project` when `--persist`
    was passed) and report the results. Headless: print the exact install
