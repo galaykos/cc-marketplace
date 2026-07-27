@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.17.10",
+  "version": "0.18.0",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -17,6 +17,7 @@
     "claude-authoring",
     "code-architecture",
     "code-review",
+    "comment-discipline",
     "compaction-advisor",
     "concurrency",
     "craft-layer",
@@ -56,6 +57,7 @@
     "puppeteer",
     "react",
     "react-native",
+    "registry-source",
     "resilience",
     "reuse-guard",
     "rollout",
@@ -76,8 +78,7 @@
     "vite",
     "vue2",
     "vue3",
-    "web-dev",
-    "comment-discipline"
+    "web-dev"
   ],
   "keywords": [
     "suite"

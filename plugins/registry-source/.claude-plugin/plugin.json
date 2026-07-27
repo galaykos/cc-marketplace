@@ -1,0 +1,17 @@
+{
+  "name": "registry-source",
+  "version": "0.1.0",
+  "description": "Read component registries from the source instead of from memory. An MCP server exposing live list/search/get across the free shadcn-compatible registries (Aceternity, shadcn, Magic UI, ReUI's MIT source), cached 24h with the source URL, fetch date and a stale flag returned on every answer. Flags components that pull a 3D/particle runtime so a block's bundle cost is known before it is installed. Never holds or forges a licence key.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "ui-ux",
+    "frontend",
+    "tooling",
+    "research",
+    "navigator"
+  ]
+}
