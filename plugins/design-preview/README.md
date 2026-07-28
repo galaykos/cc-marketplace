@@ -54,7 +54,7 @@ server, addressed by the `PREVIEW_PORT` convention — the port token is
 `${PREVIEW_PORT:-8123}` (env override, default `8123`). Artifacts land in
 `taskmaster-docs/mockups/` under per-purpose file slots so producers never clobber
 each other's tab. shadcn-studio is the exception: it runs its OWN Vite dev server
-on a dedicated port (`Number(process.env.PREVIEW_PORT) || 8124`), never the shared
+on a dedicated port (`Number(process.env.SHADCN_STUDIO_PORT) || 8124`), never the shared
 static one.
 
 The preferred first rung for the shared server is the taskmaster plugin's

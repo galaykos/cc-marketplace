@@ -45,9 +45,9 @@ jobs:
         run: bash scripts/smoke/completion-gate-hook-tests.sh
       - name: Evidence-gate hook smoke tests
         run: bash scripts/smoke/evidence-gate-hook-tests.sh
-      - name: Taskmaster author-time lint tests (verify-teeth, skills-stamp, spec-ledger)
+      - name: Taskmaster author-time lint tests + task-runner harnesses
         run: |
-          for t in plugins/taskmaster/scripts/__tests__/*.test.sh; do
+          for t in plugins/taskmaster/scripts/__tests__/*.test.sh plugins/task-runner/scripts/__tests__/*.test.sh; do
             echo "== $t"; bash "$t"
           done
       - name: validate.sh parity harness (FAIL paths still fire)

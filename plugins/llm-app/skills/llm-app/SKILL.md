@@ -97,7 +97,8 @@ fine-tune for *behavior*, retrieve for *facts*.
 ## Defer rule
 
 - Provider API specifics (model IDs, pricing, params, the Messages/tool-use API) →
-  the claude-api skill; verify current docs, do not answer model facts from memory.
+  Claude Code's built-in claude-api skill (harness-provided, not a marketplace
+  plugin); verify current docs, do not answer model facts from memory.
 - Secret handling for API keys → `secret-scanning`.
 - Serving/infra (rate limits, scaling the vector DB) → `devops`.
 

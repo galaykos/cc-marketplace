@@ -25,8 +25,9 @@ project, everything themed through the same CSS-variable tokens.
 
 | Command | What it does |
 |---------|--------------|
-| `/ui-ux:review [files-or-diff]` | Review UI code against the per-stack skills (shadcn, ReUI, Aceternity, Tailwind, CSS Grid, Flexbox…) |
+| `/ui-ux:review [files-or-diff]` | Review UI code against the per-stack skills (shadcn, ReUI, Aceternity, Astryx, Tailwind…) |
 | `/ui-ux:theme [brand-color-vibe-or-reference]` | Create or restyle a UI colour theme — shadcn/ReUI/Aceternity, Tailwind, or Bootstrap — with a live preview URL |
+| `/ui-ux:build [what-to-build]` | Build or restyle a UI component/layout via the ui-ux-engineer worker, applying the stack best-practice and token skills |
 
 ## Theme builder example
 
@@ -55,7 +56,7 @@ that looks great as a swatch can fail hard as a button.
 - **Skills**: shadcn-best-practices, shadcn-theming, reui-best-practices,
   aceternity-best-practices, astryx-best-practices, tailwind-best-practices,
   design-tokens, theming-system, motion-best-practices
-- **Agent**: ui-ux-reviewer
+- **Agents**: ui-ux-reviewer, ui-ux-engineer
 
 ## Pairs well with
 

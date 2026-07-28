@@ -7,7 +7,7 @@ Run the spec-redteam skill from this plugin on $ARGUMENTS (a
 `taskmaster-docs/specs/<name>.md` path or a slug; if empty, use the most recent
 spec under `taskmaster-docs/specs/`).
 
-<!-- boost-preamble:start — byte-identical across the 5 taskmaster commands; scripts/validate.sh enforces parity and hook-token agreement -->
+<!-- boost-preamble:start — byte-identical across the four full taskmaster commands (taskmaster.md is a thin alias, gated separately); scripts/validate.sh enforces parity and hook-token agreement -->
 **Run-status line (always):** print ONE status line as the first visible output of
 every run — a boosted run prints the ⚡ banner (owned by the taskmaster `ultra`
 skill; the banner IS its status line); a standard run prints

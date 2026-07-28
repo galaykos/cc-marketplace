@@ -6,7 +6,7 @@ argument-hint: [files-or-diff]
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
-Identify the framework first from package.json (express / @nestjs/* / fastify) and review against that framework's idioms and official docs (expressjs.com, docs.nestjs.com, fastify.dev); language-level JS/TS findings defer to the javascript and typescript plugins.
+Identify the framework first from package.json (express / @nestjs/* / fastify) and review against that framework's idioms and official docs (expressjs.com, docs.nestjs.com, fastify.dev); language-level JS/TS findings are in-scope baseline — no marketplace plugin owns them, so report them here rather than deferring.
 
 1. Determine scope from $ARGUMENTS — a file, directory, diff/branch reference, or
    design document. If empty, default to recent changes (`git diff` against the merge

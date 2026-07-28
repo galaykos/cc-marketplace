@@ -22,7 +22,8 @@ and checks its migration notes before advising.
 
 ## Pairs well with
 
-- **react** — component correctness around react-three-fiber trees
+- **react** — server-state discipline (TanStack Query/SWR) for the data feeding
+  R3F scenes
 - **vite** — bundling/code-splitting the three chunk and asset handling
 - **ui-ux** (motion skill) — DOM/CSS animation on the page around the canvas
 - **performance** — measuring before optimizing what `renderer.info` surfaces

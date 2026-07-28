@@ -61,7 +61,9 @@ section=$(awk '
 [ -n "$section" ] || violation "no-ledger: spec has no '## Ambiguity ledger (final)' section — grill must embed the converged ledger before cards"
 
 # Data rows: pipe-table rows minus the header row and the |---| separator.
-rows=$(printf '%s\n' "$section" | grep -E '^\|' | grep -Ev '^\|[[:space:]:|-]+\|?$' | grep -Eiv '^\|[[:space:]]*#?[[:space:]]*\|?[[:space:]]*question' || true)
+# Header forms accepted: "Question"-style and grill's canonical "Item"-style
+# (`| # | Item | Current understanding | Status | Source |`), case-insensitive.
+rows=$(printf '%s\n' "$section" | grep -E '^\|' | grep -Ev '^\|[[:space:]:|-]+\|?$' | grep -Eiv '^\|[[:space:]]*#?[[:space:]]*\|?[[:space:]]*(question|item)' || true)
 
 [ -n "$rows" ] || violation "empty-ledger: ledger section holds no data rows"
 

@@ -17,9 +17,11 @@
 #
 # LIMITATION (honest scope): NOT routed by any rule — mysql/mariadb/postgresql
 # best-practices, database-design, comment-discipline, code-smells, reuse-hygiene and
-# every code-architecture skill. *.sql routes to sql-best-practices only. Adding
-# routing is a separate decision this file does not take; the gap is recorded, not
-# silently filled.
+# every code-architecture skill. *.sql routes to sql-best-practices only. Plain *.ts /
+# *.js files match NO glob either: only *.tsx/*.jsx, test files (*.test.*, *.spec.*,
+# **/tests/**) and named configs (next/nuxt/vite) route, so an ordinary .ts module edit
+# fires nothing. Adding routing is a separate decision this file does not take; the gap
+# is recorded, not silently filled.
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high

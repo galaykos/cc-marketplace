@@ -19,7 +19,9 @@ entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
   area immediately; per-area depth loads on demand with `/brain <area>`.
 - **Warns when stale.** `brain/INDEX.md` records the commit it was built against. If the
   repo has moved past it, the injected map carries a one-line hint:
-  `⚠ brain map is behind HEAD — run /brain index to refresh.`
+  `⚠ brain map is behind HEAD (built <hash>, <n> files changed) — offer /brain index to refresh.`
+  — or, when drift is ≤5 files, the self-heal variant that tells Claude to run the
+  incremental refresh now (see Freshness).
 
 ## Install
 
@@ -45,8 +47,9 @@ The produce→consume→refresh loop (wired across the marketplace): taskmaster'
 context-scout and delegation-contracts readers use the map as an **orientation
 prior** — they verify touched areas with their own greps and trust the code over a
 stale map — and git-workflow's branch-finish offers `/brain index` when the stamp is
-behind the merged result. The session-start hint only appears in repos with ≥200
-tracked files, where a map actually pays.
+behind the merged result. The session-start no-map nudge only appears in repos with
+≥200 tracked files, where a map actually pays; the staleness hint for an existing
+map carries no size gate.
 
 Small drift **self-heals**: when ≤5 files changed since the `built:` stamp, the
 session-start hint instructs Claude to run the incremental `/brain index` refresh

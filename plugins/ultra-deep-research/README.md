@@ -38,7 +38,7 @@ A report that leads with the answer, carries inline `[n]` citations, states per-
 confidence with reasons, lists sources with their tier and date, keeps a contradiction
 ledger for anything the sources disagree on, and names what it could **not** verify.
 
-## Accuracy guarantees
+## Accuracy discipline (recorded/agent-graded — no script enforces it)
 
 Every load-bearing claim is corroborated by ≥2 independent quality sources, date-stamped,
 and attacked before it is trusted. No fabricated URLs, dates, or figures — an explicit

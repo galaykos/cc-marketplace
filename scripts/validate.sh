@@ -93,25 +93,44 @@ for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.
     && err "$f: description carries a 'Trigger words:' list — fold terms into the trigger sentence"
 done
 
-# Jargon-leak guard (HARD): internal taskmaster process vocabulary — "card NN",
-# "Finding #N", "smoke-test #N", "the backlog" — must not leak into shipped plugin
-# prose (today's craft-layer review scrubbed 8 such leaks no gate saw). Scans every
-# functional .md per plugin (SKILL.md, references/*.md, commands, agents) via find —
-# NOT a `**` glob (globstar is off in scripts/) — with references/ INCLUDED (the 8
-# leaks lived there). Excludes the taskmaster + task-runner plugins, where these are
-# legitimate domain vocab. The `taskmaster-docs` PATH is a legitimate working-dir ref
-# in ~6 plugins and is deliberately NOT a pattern.
-# The patterns themselves, the ordinary-English rescue list, the <!-- jargon-ok -->
-# escape and the honest-scope note all live in scripts/lib/plugin-checks.sh
-# (pc_jargon) — one source shared by this gate and its smoke fixtures. Do not
-# restate them here; two copies of a matcher is a guarantee one goes stale.
+# Jargon-leak guard (HARD): internal taskmaster process vocabulary — "card NN" /
+# "cards NN", "Finding #N", "smoke-test #N", "the backlog" — must not leak into
+# shipped plugin prose (today's craft-layer review scrubbed 8 such leaks no gate
+# saw). Scans every functional .md per plugin (SKILL.md, references/*.md, commands,
+# agents) via find — NOT a `**` glob (globstar is off in scripts/) — with
+# references/ INCLUDED (the 8 leaks lived there), PLUS the plugin-root docs
+# (README/CHANGELOG/ROADMAP) via shell glob, which never crosses `/` — root docs
+# previously escaped the scan entirely. Excludes the taskmaster + task-runner
+# plugins, where these are legitimate domain vocab. The `taskmaster-docs` PATH is a
+# legitimate working-dir ref in ~6 plugins and is deliberately NOT a pattern.
+#
+# Removed-artifact guard (HARD), same file set: references to plugins/skills
+# removed or merged away in the W6.5 baseline sweep (typescript, vue2,
+# react-best-practices, the css-family skills, …) are dangling pointers the
+# /plugin:command check cannot see — ~10 plugins carried them undetected.
+# claude-api must be described as Claude Code's built-in/external skill, never as
+# a marketplace artifact.
+#
+# The patterns themselves, the rescue lists, the <!-- jargon-ok --> /
+# <!-- removed-ok --> escapes and the honest-scope notes all live in
+# scripts/lib/plugin-checks.sh (pc_jargon, pc_removed_refs) — one source shared by
+# these gates and their smoke fixtures. Do not restate them here; two copies of a
+# matcher is a guarantee one goes stale.
 while IFS= read -r mdf; do
   case "$mdf" in
     plugins/taskmaster/*|plugins/task-runner/*) continue ;;
   esac
   hit=$(pc_jargon "$mdf") \
     || err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->"
-done < <(find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \))
+  rhit=$(pc_removed_refs "$mdf") \
+    || err "$mdf: references removed marketplace artifact [$rhit] — reroute to a live plugin/skill or mark the line <!-- removed-ok -->"
+done < <(
+  {
+    find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \)
+    # an unmatched glob prints its literal pattern; the pc_* [ -f ] guard skips it
+    printf '%s\n' plugins/*/README.md plugins/*/CHANGELOG.md plugins/*/ROADMAP.md
+  } | sort -u
+)
 
 # Every /plugin:command reference in docs must resolve to a listed plugin
 known=$(jq -r '.plugins[].name' "$MP")
@@ -454,7 +473,7 @@ for c in task brainstorm coverage redteam; do
   if [ -z "$pre_ref" ]; then
     pre_ref="$h"; pre_ref_file="$f"
   elif [ "$h" != "$pre_ref" ]; then
-    err "boost-preamble: $f block differs from $pre_ref_file — the five commands must be byte-identical between markers"
+    err "boost-preamble: $f block differs from $pre_ref_file — the four full commands (task, brainstorm, coverage, redteam) must be byte-identical between markers; the taskmaster.md alias is gated separately"
   fi
 done
 ULTRA_HOOK=plugins/taskmaster/hooks/ultra.sh

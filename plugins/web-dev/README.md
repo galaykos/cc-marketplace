@@ -37,7 +37,7 @@ to `/ui-ux:review`.
 
 ## Pairs well with
 
-- **react** / **vue3** — per-framework idioms both agents load and defer to
-- **typescript** — type-level review the pair recommends for TS-heavy diffs
+- **vue3** / **nextjs** / **nuxt** — per-framework idioms both agents load and defer to
+- **react** — server-state caching discipline the reviewer loads for React data fetching
 - **ui-ux** — visual and design-system review the frontend-reviewer defers to
 - **a11y** — full WCAG audit; the agents only enforce a semantic baseline

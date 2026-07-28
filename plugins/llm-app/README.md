@@ -9,5 +9,6 @@ Building LLM-backed features — the failure surface ordinary app testing does n
 - **`/llm-app:review`** — flag the critical classes: no eval/regression gate, user input
   concatenated into the system prompt, uncited RAG answers, uncapped cost.
 
-Defers provider API specifics (model IDs, params, pricing) to the claude-api skill —
-verify live docs, never answer model facts from memory.
+Defers provider API specifics (model IDs, params, pricing) to Claude Code's built-in
+claude-api skill — harness-provided, not part of this marketplace — verify live docs,
+never answer model facts from memory.

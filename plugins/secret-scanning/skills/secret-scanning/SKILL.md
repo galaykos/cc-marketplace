@@ -44,9 +44,11 @@ through":
 
 1. **Move the value out.** Reference an environment variable or a secret store
    (`process.env.X`, `config('services.x.key')`, a mounted secret) — never the literal.
-2. **If it is genuinely a fixture or example**, make it obviously fake (`AKIA` +
-   `EXAMPLE…`, `sk_live_placeholder`) or place it outside a committed path. The guard
-   passes obviously-fake values.
+2. **If it is genuinely a fixture or example**, know the patterns are shape-only — a
+   fake that still matches the shape (`AKIA` + 16 base32 chars, however obviously
+   labeled) is denied like the real thing. The working escapes are a value that does
+   not match the shape (`sk_live_placeholder` is too short for the Stripe pattern) or
+   splitting the literal so the written text never contains the full pattern.
 3. **If a real secret already leaked** (committed before the guard, or found in a
    review), rotate it first — removal from history is secondary and does not un-expose
    a key that was pushed. Flag its location; do not quietly rewrite history someone

@@ -30,5 +30,5 @@ your release actually ships.
 
 ## Pairs well with
 
-- **react** — the shared hooks and render rules underneath React Native
-- **typescript** — the type layer this component review skips
+- **react** — server-state discipline (TanStack Query/SWR, cache keys,
+  invalidation) for the data layer under RN screens

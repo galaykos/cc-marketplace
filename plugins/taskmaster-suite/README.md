@@ -39,7 +39,6 @@ auto-installed.
 - **claude-authoring** — scaffolds new skills, commands, agents, hooks, plugins
 - **code-review** — severity-sorted correctness and smell review of diffs
 - **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
-- **rollout** — flag strategy, exposure stages, and rollback path before shipping
 - **resilience** — failure-mode gap review: timeouts, retries, degradation, plus the merged error-handling and concurrency audits
 - **a11y** — WCAG 2.2 AA audits of UI code
 - **packages** — dependency vulnerability and outdated-package audit

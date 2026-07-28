@@ -1,11 +1,10 @@
 # process-suite
 
 Meta-bundle: the engineering-process category in one install — git workflow,
-approach deliberation, hindsight mining,
-docs upkeep, subagent
-orchestration, task execution, stack scanning, plugin scouting, and intent
-drift guarding. Uninstalls cleanly: `/process-suite:uninstall` removes the
-bundle and prunes the plugins it auto-installed.
+approach deliberation, hindsight mining, docs upkeep, subagent orchestration,
+task execution, stack scanning, plugin scouting, and skill routing. Uninstalls
+cleanly: `/process-suite:uninstall` removes the bundle and prunes the plugins
+it auto-installed.
 
 ## Install
 
@@ -36,6 +35,8 @@ bundle and prunes the plugins it auto-installed.
   vs manifests, plus `/stack-scan:report`
 - **plugin-scout** — stack-matched marketplace plugin suggestions, plus
   `/plugin-scout:suggest`
+- **skill-router** — hook that auto-loads the matching best-practice skill on
+  edit
 
 | Command | What it does |
 |---------|--------------|

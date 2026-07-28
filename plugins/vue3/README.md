@@ -30,6 +30,6 @@ release actually ships.
 
 ## Pairs well with
 
-- **typescript** — the type layer this component review skips
 - **inertia** — bridge-level review when Vue 3 is your Inertia adapter
-- **vue2** — the older line, when a project still runs 2.7
+- **nuxt** — framework-level review when these components live in a Nuxt app
+- **vite** — the build layer under most Vue 3 projects

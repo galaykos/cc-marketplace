@@ -30,13 +30,13 @@ table always prints before any install happens.
   command-printing mode here — that would silently skip the trust decision
   `--yes` is not allowed to skip.
 - Headless without `--yes`: behavior is unchanged from today — print install
-  commands instead of running them, then stop (A2).
+  commands instead of running them, then stop.
 - Headless with `--yes` and the marketplace present: installs proceed for
-  real (that is the point of the flag; A2).
+  real (that is the point of the flag).
 - Docs note: plugins installed via `--yes` may ship hooks (SessionStart,
   UserPromptSubmit, etc.) that activate in later sessions once installed —
   this is no different from a manual install, but is worth surfacing because
-  the user did not see an install picker for these specific picks (R13).
+  the user did not see an install picker for these specific picks.
 
 ## `--persist`
 
@@ -48,12 +48,12 @@ covers only what actually got installed this run.
   records the `enabledPlugins` entries in the project's `.claude/settings.json`
   (repo-relative, the team-shared file — deliberately not user scope, since
   the point of `--persist` is that teammates who clone the repo get the same
-  set without rerunning plugin-scout) (R6).
+  set without rerunning plugin-scout).
 - Written set: exactly the plugins actually installed this run — the picker's
   picks, or the `--yes` tier-1 auto-set. Never the full detected set and never
   plugins that were already installed before this run (they need no new
   entry). This mirrors the explicit-pick invariant the rest of the skill
-  holds to (R4).
+  holds to.
 - Settings step, after installs finish: verify `.claude/settings.json` carries
   both keys, merging in with `jq` whatever the CLI did not write itself —
   - `enabledPlugins`: `{"<name>@cc-plugins-marketplace": true}` — one entry
@@ -63,22 +63,22 @@ covers only what actually got installed this run.
 - Merge, not overwrite: read the existing file with `jq`, deep-merge the
   missing entries into it, and write the merged result back — every unrelated
   existing key (other `enabledPlugins` entries, other settings) is preserved
-  untouched (A3).
-- Missing file: create it, seeded as `{}`, then merge into that (R2).
+  untouched.
+- Missing file: create it, seeded as `{}`, then merge into that.
 - Unparseable existing JSON: abort the settings step with a clear message
   naming the file and the parse error, and write nothing — do not overwrite a
   file the skill cannot safely parse. Installs that already ran at project
-  scope are not rolled back; say so in the message (R2).
+  scope are not rolled back; say so in the message.
 - Required notice: after a successful write, print one line stating that
   committing this file means anyone who clones the repo and accepts the
-  Claude Code trust prompt will auto-install these plugins (R6).
+  Claude Code trust prompt will auto-install these plugins.
 - Removal note for docs: a persisted `true` entry re-installs the plugin the
   next time settings are read if someone runs `claude plugin uninstall`
   manually — uninstalling does not remove the settings.json entry. Removing a
   plugin from the persisted set requires editing `.claude/settings.json`
-  directly (R8).
+  directly.
 - Running `--persist` inside the cc-marketplace repo itself is accepted and
-  out of scope for special-casing — the self-reference is harmless (R9).
+  out of scope for special-casing — the self-reference is harmless.
 - Combinable with `--yes`: run Install (auto-installing the tier-1 set), then
   persist that same set.
 
@@ -94,4 +94,4 @@ which would enable the plugin globally across every repo on the machine:
 
 No separate `--scope` flag is exposed: the two-mode mapping above is the whole
 scope surface, and a user who wants a global install can run
-`claude plugin install` themselves (A4, D2 revised).
+`claude plugin install` themselves.

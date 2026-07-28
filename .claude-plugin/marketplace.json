@@ -5,7 +5,7 @@
     "email": "public@galayko.com"
   },
   "metadata": {
-    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, browser automation, and the taskmaster clarification-to-execution workflow suite.",
+    "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
     "version": "0.89.0"
   },
   "plugins": [
@@ -57,7 +57,7 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 10/11/12/13), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel) the php/laravel review commands route their fixes to."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel) the php/laravel review commands route their fixes to."
     },
     {
       "name": "livewire",
@@ -87,7 +87,7 @@
     {
       "name": "code-architecture",
       "source": "./plugins/code-architecture",
-      "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification, low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin."
+      "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — enforced by a blocking Stop hook that refuses a completion claim when files were edited but nothing ran afterward — low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin."
     },
     {
       "name": "api-docs-first",
@@ -97,7 +97,7 @@
     {
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
-      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round, decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/)."
+      "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/)."
     },
     {
       "name": "design-preview",
@@ -237,7 +237,7 @@
     {
       "name": "orchestration",
       "source": "./plugins/orchestration",
-      "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), and agent conventions (engineer/reviewer naming taxonomy, one-surface PROACTIVELY arbitration, the shared apply-fixes contract). Includes /orchestration:review."
+      "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared apply-fixes contract and the fleet mapping for review-only plugins. Includes /orchestration:review."
     },
     {
       "name": "a11y",
@@ -257,7 +257,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Three.js, Inertia, Livewire, the generalist web worker, real-component visual decisions (design-preview), greenfield shadcn staging (shadcn-studio), accessibility auditing, and file-aware skill auto-routing (skill-router). Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Three.js, Inertia, Livewire, the generalist web worker, the craft layer (craft-layer), visual decisions (design-preview), shadcn staging (shadcn-studio), registry sourcing (registry-source), accessibility auditing, and skill auto-routing (skill-router). Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "php-suite",
@@ -297,7 +297,7 @@
     {
       "name": "skill-router",
       "source": "./plugins/skill-router",
-      "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, TS/JS, React/Vue/Inertia/Livewire, SQL, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Every relevant skill co-fires per edit (a11y alongside ui-ux); fail-open, once per skill per session."
+      "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, SQL, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Every relevant skill co-fires per edit (a11y alongside ui-ux); fail-open, once per skill per session."
     },
     {
       "name": "secret-scanning",
@@ -317,7 +317,7 @@
     {
       "name": "llm-app",
       "source": "./plugins/llm-app",
-      "description": "LLM application engineering: eval harnesses and regression gates (evaluate, don't eyeball), RAG pipelines (chunking, embeddings, retrieval quality + re-ranking, grounding and citation), prompt versioning, prompt-injection defense, token-cost control, and context management — a firing llm-app skill and a /llm-app:review command. Defers provider API specifics to the claude-api skill."
+      "description": "LLM application engineering: eval harnesses and regression gates (evaluate, don't eyeball), RAG pipelines (chunking, embeddings, retrieval quality + re-ranking, grounding and citation), prompt versioning, prompt-injection defense, token-cost control, and context management — a firing llm-app skill and a /llm-app:review command. Defers provider API specifics to Claude Code's built-in claude-api skill (harness-provided, not part of this marketplace)."
     },
     {
       "name": "ultra-deep-research",

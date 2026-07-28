@@ -125,7 +125,7 @@ assumption list, or the user says "enough". Then:
 2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
    goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected
    alternatives and kill-trigger, non-goals, success criteria, and the converged ledger embedded
-   as `## Ambiguity ledger (final)`; run `scripts/spec-ledger-lint.sh --spec <file>` (blocks
+   as `## Ambiguity ledger (final)`; run `${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh --spec <file>` (blocks
    UNKNOWN/missing/empty ledger) until exit 0. Staged visual/creative picks → invoke the
    `visual-contract` skill to bind them as `## Visual contract`.
 3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to

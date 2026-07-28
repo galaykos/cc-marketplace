@@ -2,7 +2,7 @@
 
 Inertia.js best practices for Laravel with the Vue, React, or Svelte adapter:
 partial reloads, deferred and lazy props, `useForm` flow, shared data via
-middleware, prop hygiene, SSR, code splitting, v1 vs v2 feature awareness.
+middleware, prop hygiene, SSR, code splitting, v1/v2/v3 feature awareness.
 
 The core Inertia API (useForm, Link, router, usePage) is the same across
 adapters — advice detects the installed adapter from the lockfile and matches
@@ -30,7 +30,9 @@ Zustand anti-patterns).
 ```
 
 v2 features (deferred props, prefetching, polling, merge props) are only
-suggested when the lockfile shows v2 — v1 projects get v1 advice.
+suggested when the lockfile shows v2+, and v3 leverage (the `@inertiajs/vite`
+plugin owning entry/SSR wiring, ESM-only, axios removed) only when it shows
+v3 — v1 projects get v1 advice.
 
 ## Pairs well with
 

@@ -4,7 +4,9 @@
 # PreToolUse secret guard. DENIES a Write/Edit/MultiEdit that introduces a
 # high-confidence secret, before it reaches disk. Fail-open: any error, or a missing
 # jq, exits 0 (allow) and never blocks legitimate work. Only high-confidence provider
-# patterns deny — placeholder/fixture values with obviously-fake content pass.
+# patterns deny — matching is shape-only: a fixture that still matches a pattern's
+# shape (an AKIA-shaped fake) is denied; non-matching shapes (sk_live_placeholder,
+# short values) pass.
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0

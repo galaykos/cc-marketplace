@@ -9,6 +9,6 @@
   "argumentHint": "[files-or-diff]",
   "applyExtra": [],
   "divergence": {
-    "preamble": "Identify the framework first from package.json (express / @nestjs/* / fastify) and review against that framework's idioms and official docs (expressjs.com, docs.nestjs.com, fastify.dev); language-level JS/TS findings defer to the javascript and typescript plugins."
+    "preamble": "Identify the framework first from package.json (express / @nestjs/* / fastify) and review against that framework's idioms and official docs (expressjs.com, docs.nestjs.com, fastify.dev); language-level JS/TS findings are in-scope baseline — no marketplace plugin owns them, so report them here rather than deferring."
   }
 }
