@@ -36,8 +36,12 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 4. **`quality-suite` is 14 plugins / 2,908 always-on tokens, of which 11 are pure
    `PROSE`.** Its three hook-carrying members (`comment-discipline` warn,
    `secret-scanning` deny, `database` ask) enforce nothing about code quality.
+   *(Fixed 2026-07-28 — §7: split into a 6-plugin mechanism bundle at 949 tokens
+   and an 8-plugin advisory bundle at 1,873.)*
 5. **7 skills fire on every code edit with the same trigger phrase** ("when
    writing or reviewing code"). Two of them contradict each other on interfaces.
+   *(Partly fixed 2026-07-28 — 7 → 5 by folding two to references (§7); the
+   contradiction arbitrated in §6 P1-2.)*
 6. **`everything` = 10,723 always-on tokens** before a single file is read, and 14
    plugins ship per-prompt/per-tool hook output the budget script does not meter.
 7. **Nothing compares the delivered result to the original request.**
@@ -81,7 +85,7 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 | H | **Output discipline** | At audit time: `grep -rilE "terse\|concise output\|token efficien\|output style\|response length"` over `plugins/**` → zero governance hits, no `outputStyles/` in any of 65 plugins. **Fixed 2026-07-28** — `comment-discipline/hooks/verbosity.sh` (§6 P0-2) | none → HOOK-WARN | MISSING → **ADVISORY** |
 | I | **Comment discipline** | At audit time `comment-discipline/hooks/scan.sh:12-14` declared "This hook still NEVER blocks or vetoes an edit". **Fixed 2026-07-28** — a PreToolUse lane now denies 2 of the 5 categories, one-shot per file (§6 P0-3) | HOOK-WARN → HOOK-BLOCK (2 of 5) | ADVISORY → **PARTIAL** |
 | J | **Failure honesty** | Paths to done-on-assertion enumerated in §3.3 | GATE (holed) | **PARTIAL** |
-| K | **Instruction dilution** | 124 SKILL.md; `everything` 10,723 tok; top-5 collisions in §4 | — | **SEVERE** |
+| K | **Instruction dilution** | 124 SKILL.md; `everything` 10,723 tok; top-5 collisions in §4. **2026-07-28** — 2 non-discriminating skills folded to references (§7), C1/C2 arbitrated (§6 P1-2), `quality-suite` split 2,908 → 949 + 1,873. 122 skills now; the ratio barely moves | — | **SEVERE** |
 | L | **Trigger reliability** | 10-skill sample below | — | **PARTIAL** — 4/10 non-discriminating |
 | M | **Measurability** | No `*eval*` / `*benchmark*` file under `plugins/` or `scripts/`. `scripts/smoke/canary.sh:2` "NOT a CI gate (needs a live model)". `hindsight/hooks/collect.sh:6` writes; only `/hindsight:harvest` reads. **2026-07-28** — `verbosity.sh` now leaves a per-scan ledger (§6 P2), the first data trail here; still write-only, so the axis does not move | none | **MISSING** |
 
@@ -89,9 +93,9 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 
 | Skill | Description trigger | Discriminating? |
 |---|---|---|
-| `code-architecture:simplicity-principles` | "when writing or reviewing code" | **No** — fires on everything |
+| `code-architecture:simplicity-principles` | "when writing or reviewing code" | **No** — fires on everything. *Folded to a reference 2026-07-28 (§7)* |
 | `code-architecture:low-cognitive-load` | "when writing or reviewing for readability" | **No** |
-| `code-architecture:surgical-coding` | "writing, editing, or refactoring code outside a planned pipeline" | **No** — negatively scoped, unfalsifiable at fire time |
+| `code-architecture:surgical-coding` | "writing, editing, or refactoring code outside a planned pipeline" | **No** — negatively scoped, unfalsifiable at fire time. *Folded to a reference 2026-07-28 (§7)* |
 | `code-review:code-smells` | "reviewing, refactoring, or judging code quality" | **No** |
 | `comment-discipline` | "…and deciding whether a comment should exist" | Marginal — decision clause narrows it |
 | `api-docs-first` | "before writing any code that calls an external API, SDK, or third-party library" | Yes |
@@ -505,26 +509,36 @@ within its existing four lines, since that body is also at the 150 ceiling.
 
 ## 7. Structural proposals
 
-**Merges / deletions (pay for the new surfaces):**
+**Merges / deletions — executed 2026-07-28, with two corrections.**
 
-| Action | Rationale |
+| # | Proposed | Outcome |
+|---|---|---|
+| 1 | Delete `simplicity-principles`, fold KISS/DRY into `low-cognitive-load` | **Done** — as a fold, not a delete. Its 114-line body moved to `low-cognitive-load/references/kiss-dry.md`; the skill directory is gone. −1 always-on trigger, 0 lines of material lost |
+| 2 | Delete `surgical-coding`, fold into `plan-before-code` | **Done, same shape** — body at `plan-before-code/references/surgical-edits.md`, Karpathy attribution carried with the text. −1 always-on trigger |
+| 3 | Merge `approaches:size` + `approaches:estimation` | **NOT DONE — the review was wrong.** `size` is a *command*, `estimation` is the *skill* it invokes. All six `approaches` commands have exactly this shape (`compare`→`strategy-catalog`, `opinions`→`opinion-round`, `pattern`→`pattern-selection`, `rollout`→`rollout-planning`, `build-vs-buy`→`build-vs-buy`), and it is the documented house pattern — `authoring-commands`: a command is "a thin entry point over a skill". Merging them would delete the pattern and leave `estimation` with no command. Counting a command and its skill as "one capability, two surfaces" was a misread |
+| 4 | Demote 4 plugins out of `everything` | **NOT DONE — forbidden by an existing gate.** `scripts/validate.sh:178-181` fails the build if `everything` omits any non-suite plugin. The gate is right: a bundle named `everything` that silently drops four plugins is precisely the over-claim this repo's own convention forbids. Attempted, caught by the gate, reverted byte-for-byte. The 10.6k concern is real; the answer is the category suites, which already exist |
+| 5 | Split `quality-suite` | **Done.** 14 → 6 (mechanism-bearing) + new `quality-principles-suite` at 8 (advisory) |
+
+**Split, measured** (`scripts/context-budget.sh`):
+
+| Bundle | Members | Before | After |
+|---|---|---|---|
+| `quality-suite` | 14 → 6 | 2,908 | **949** |
+| `quality-principles-suite` | new, 8 | — | **1,873** |
+
+A project wanting the enforcing half now pays 949 instead of 2,908. Taking both
+costs 2,822 — still less than the old single bundle, since each suite description
+is counted once.
+
+**New surfaces: two, both paid for**, as §7 required.
+
+| New | Paid by |
 |---|---|
-| Delete `code-architecture:simplicity-principles`, fold KISS/DRY into `low-cognitive-load` | Both non-discriminating, both always-on, overlapping content. −1 skill |
-| Delete `code-architecture:surgical-coding`, fold into `plan-before-code` | Trigger is negatively scoped and unfalsifiable at fire time. −1 skill |
-| Merge `approaches:size` + `approaches:estimation` | One capability, two surfaces |
-| Demote `claude-authoring`, `ultra-deep-research`, `vercel-skills-scout`, `plugin-scout` out of `everything` | Authoring/meta tools; always-on cost, rarely decisive during coding. −~900 tok |
-| Split `quality-suite` → `quality-suite` (the 3 with mechanisms + `code-review` + `testing`) and `quality-principles-suite` (the 9 prose skills) | Lets a user take enforcement without dilution |
+| `comment-discipline` verbosity capability (P0-2) | `simplicity-principles` deletion |
+| `quality-principles-suite` | `surgical-coding` deletion |
 
-**New surfaces — two, both paid for:**
-
-1. **`comment-discipline` verbosity capability** (P0-2) — paid by
-   `simplicity-principles` deletion.
-2. **Nothing else.** The prior turn's `lean-output` + `definition-of-done`
-   proposals are **withdrawn**: `definition-of-done` is ~70% duplicate of
-   `evidence-gate` + `completion-gate` + `behavioral-gate` + `drift-review`, and
-   the correct move is P0-1 (fix the hole) not P0-new (add a fifth gate).
-   `lean-output` as a standalone plugin would ship prose into a system where
-   prose is the failing mechanism.
+**Not attempted:** demoting plugins out of `everything` (item 4 above), and the
+review-command consolidation, which needs its own pass.
 
 **Argued against:** adding a `release-ops` plugin (Phase-6 gap named in the prior
 audit) — real, but it does not touch the three reported failures. P2.

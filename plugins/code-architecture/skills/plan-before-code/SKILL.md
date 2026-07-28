@@ -140,6 +140,12 @@ The test isn't "did I fill out every section" — it's "could someone else read 
 exactly which file to open and what it should expose, without guessing." If yes, you've planned
 enough regardless of how much of the template you used.
 
+## Edits made without a plan
+
+Read `references/surgical-edits.md` for the everyday edit this ceremony does not cover: surfacing
+assumptions first, every changed line traceable to the request, the orphan rule, vague ask to verifiable
+goal. `surgical-coding` was merged in here (Karpathy guidelines, MIT); its trigger — "outside a planned pipeline" — could not be evaluated at fire time.
+
 ## When to apply
 
 Apply this before any change that touches more than one file, introduces a new module, or adds

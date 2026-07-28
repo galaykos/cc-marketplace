@@ -69,7 +69,7 @@ self-introduced abstractions — ask for the concrete second case.
 
 - Ask: "Do we have a second real use case today, or is this for a hypothetical future one?" If
   it's hypothetical, propose building the concrete version now and generalizing when the second
-  case actually shows up (see simplicity-principles: rule of three).
+  case actually shows up (see low-cognitive-load: rule of three).
 - Ask: "What breaks if we ship the simple version and revisit this when it's actually needed?"
   Usually: nothing. Revisiting later, with a real second case in hand, produces a better
   abstraction than guessing now.
@@ -123,5 +123,5 @@ Any unchecked box is a candidate for the delete-until-it-hurts test above.
 
 Run this check when designing a new function/module, and again in review whenever a diff adds a
 parameter, interface, config key, or "generic" mechanism that isn't immediately exercised by an
-existing caller. It pairs with simplicity-principles for what to do once you've confirmed
+existing caller. It pairs with low-cognitive-load for what to do once you've confirmed
 something is speculative (delete it) versus genuinely reused (extract it).

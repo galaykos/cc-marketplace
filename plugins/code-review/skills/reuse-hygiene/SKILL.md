@@ -122,7 +122,7 @@ build on) and **orphan detection on demand**. It is not the whole dead-code stor
   upstream — belongs to `packages` package-hygiene. This reasons about symbols inside
   the repo, not third-party health.
 - **Pre-existing dead code passed mid-task** — a corpse you notice while editing for
-  an unrelated reason — belongs to `code-architecture` surgical-coding: mention it,
+  an unrelated reason — belongs to `code-architecture` plan-before-code: mention it,
   never delete it in an unrelated diff. The orphan rule above covers only orphans
   *your* change creates. (Admission law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 

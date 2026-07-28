@@ -99,7 +99,7 @@ Prefer code where the behavior relevant to understanding a line is nearby — in
 function or file — over code that's technically "clean" but forces the reader to jump through
 four files and two levels of dependency injection to see what actually happens. Indirection
 earns its cost only when it removes real duplication or isolates real variation (see
-simplicity-principles); indirection added purely for "layering" makes the reader do the
+`references/kiss-dry.md`); indirection added purely for "layering" makes the reader do the
 integration work the code should have done for them.
 
 - Prefer a slightly longer function with the logic visible over scattering it across
@@ -116,6 +116,14 @@ Every variable alive in a scope is something the reader must track for the rest 
 Narrow variable lifetime: declare as close to first use as possible, and let variables go out
 of scope (return early, use a block) as soon as they're no longer needed rather than keeping
 a wide, long-lived set of mutable locals that all interact by the end of the function.
+
+## KISS and DRY
+
+Read `references/kiss-dry.md` when the specific question is duplication or over-design:
+simplest thing that works, the rule of three before extracting, DRY of knowledge rather
+than of text, and the precedence order when those pull against SOLID or YAGNI.
+`simplicity-principles` was merged in here because its trigger — "when writing or
+reviewing code" — fired on every edit and so discriminated nothing.
 
 ## When to apply
 

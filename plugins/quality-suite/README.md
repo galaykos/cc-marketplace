@@ -1,11 +1,18 @@
 # quality-suite
 
-Meta-bundle: the code-quality category in one install — review, architecture
-principles, design patterns, testing, security, accessibility, debugging,
-performance, resilience, dependency hygiene, observability, error handling,
-concurrency safety, comment discipline, secret-leak prevention, and automatic
-skill routing. Uninstalls cleanly: `/quality-suite:uninstall` removes the
-bundle and prunes the plugins it auto-installed.
+Meta-bundle: the code-quality plugins that carry a **mechanism** — something that
+gates, blocks, warns at write time, or routes — in one install. Review and code
+smells, architecture principles with the evidence-at-claim Stop gate, testing,
+comment discipline, secret-leak prevention, and file-aware skill auto-routing.
+Uninstalls cleanly: `/quality-suite:uninstall` removes the bundle and prunes the
+plugins it auto-installed.
+
+The eight advisory disciplines this bundle used to carry — security, a11y,
+debugging, performance, resilience, packages, observability, approaches — moved to
+**quality-principles-suite** in 0.5.0. They were never gates, and bundling them here
+meant a project wanting enforcement paid for their always-on description context
+too. Install both if you want what the old bundle was; the split exists so that is
+a choice.
 
 ## Install
 
@@ -18,18 +25,10 @@ bundle and prunes the plugins it auto-installed.
 
 - **code-review** — correctness bugs, code smells, and convention drift on any diff or PR, plus `/code-review:review`
 - **code-architecture** — plan-before-code, SOLID, YAGNI, and evidence-based verification via `/code-architecture:plan`, `/code-architecture:solid`, `/code-architecture:yagni`, `/code-architecture:verify`
-- **approaches** — GoF pattern selection (or rejection) for a described problem via its pattern-selection skill, plus `/approaches:pattern` and the rest of its pre-code deliberation surface
 - **testing** — test pyramid, mocking boundaries, flaky-test causes, TDD workflow, plus `/testing:review`
-- **security** — OWASP-aligned code review and design-phase threat modeling, plus `/security:review`
-- **a11y** — WCAG 2.2 AA audit, one line per violation with the concrete fix, plus `/a11y:audit`
-- **debugging** — systematic root cause with evidence before any fix, plus `/debugging:debug`
-- **performance** — measure-first hotspot and cache-correctness review, plus `/performance:review`
-- **resilience** — timeouts, safe retries, and degradation paths at integration points, plus the merged error-handling (catches, cause chains) and concurrency (races, idempotency, locks) disciplines: `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review`
-- **packages** — composer/npm dependency hygiene and security-audit triage, plus `/packages:audit`
-- **observability** — structured logs, correlation IDs, metrics without cardinality bombs, plus `/observability:review`
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
-- **comment-discipline** — routes every fact to the artifact that cannot lie about it and spends comments only where nothing else can hold them, plus a warn-only write-time hook and `/comment-discipline:review`
+- **comment-discipline** — routes every fact to the artifact that cannot lie about it and spends comments only where nothing else can hold them; a PostToolUse hook warns on all five noise categories and a PreToolUse lane denies the two strictest before the write, plus `/comment-discipline:review`
 
 | Command | What it does |
 |---------|--------------|
@@ -37,5 +36,6 @@ bundle and prunes the plugins it auto-installed.
 
 ## Pairs well with
 
+- **quality-principles-suite** — the advisory half, split out of this bundle in 0.5.0
 - **taskmaster-suite** — spec and task-card pipeline whose output these reviews gate
 - **git-workflow** — full-suite verification before merge/PR when a branch finishes
