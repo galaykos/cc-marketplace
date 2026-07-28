@@ -100,5 +100,45 @@ T12="$WS/t12.jsonl"
 { tool_entry Edit; tool_entry Agent; text_entry "Done — the reviewer confirmed it."; } > "$T12"
 check "Agent tool after edit passes"                "" "$T12" 0 "__NONE__"
 
+# --- ACK phrase-scoping (13-19) -------------------------------------------
+# A failure named as the thing that was FIXED is part of the claim, not an
+# acknowledgement. Bare failure nouns used to escape the gate; 13-15 are the
+# regression cases, 16-19 guard the honest reports that must still pass.
+
+# 13. The fixed-a-failure claim: 'failing' as the OBJECT of the fix -> block.
+T13="$WS/t13.jsonl"
+{ tool_entry Edit; text_entry "Fixed the failing test — should work now."; } > "$T13"
+check "'fixed the failing test' blocks"             "" "$T13" 2 "$BLOCK_SUB"
+
+# 14. Past-tense failure noun in a completion claim -> block.
+T14="$WS/t14.jsonl"
+{ tool_entry Edit; text_entry "Fixed it. The old failure is gone."; } > "$T14"
+check "'the old failure is gone' blocks"            "" "$T14" 2 "$BLOCK_SUB"
+
+# 15. Failure named as resolved, plural -> block.
+T15="$WS/t15.jsonl"
+{ tool_entry Edit; text_entry "Implemented — that resolves the two failed assertions."; } > "$T15"
+check "'resolves the failed assertions' blocks"     "" "$T15" 2 "$BLOCK_SUB"
+
+# 16. Honest: the check itself is the subject and still red -> allow.
+T16="$WS/t16.jsonl"
+{ tool_entry Edit; text_entry "Implemented, but two tests still fail — output above."; } > "$T16"
+check "'tests still fail' passes"                   "" "$T16" 0 "__NONE__"
+
+# 17. Honest: build named as the failing subject -> allow.
+T17="$WS/t17.jsonl"
+{ tool_entry Edit; text_entry "Done with the refactor; the build failed on the type check."; } > "$T17"
+check "'the build failed' passes"                   "" "$T17" 0 "__NONE__"
+
+# 18. Honest: failure carries its cause -> allow.
+T18="$WS/t18.jsonl"
+{ tool_entry Edit; text_entry "Implemented. It fails with ENOENT when the cache dir is absent."; } > "$T18"
+check "'fails with <cause>' passes"                 "" "$T18" 0 "__NONE__"
+
+# 19. Honest: bare 'still failing' with no subject -> allow.
+T19="$WS/t19.jsonl"
+{ tool_entry Edit; text_entry "Fix applied. Still failing."; } > "$T19"
+check "bare 'still failing' passes"                 "" "$T19" 0 "__NONE__"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
