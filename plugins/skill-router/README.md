@@ -14,8 +14,8 @@ Installed automatically by the `taskmaster-suite` and `everything` bundles.
 
 The plugin routes on two independent signals, and it helps to keep them apart:
 
-- **File → skill** (`rules.tsv`): you edited a `.sql` file, so load the SQL skill. Fires after an edit.
-- **Prompt → command** (`prompt-rules.tsv`): you asked for a landing page, so `/craft-layer:craft` fits better than the generic pipeline. Fires on the prompt, before any work starts.
+- **File → skill** (`rules.tsv`, pattern-matched in the hook): you edited a `.sql` file, so load the SQL skill. Fires after an edit. Deterministic, because "this path is SQL" is a fact.
+- **Prompt → command** (catalog + model judgment): you asked for a landing page, so `/craft-layer:craft` may fit better than the pipeline you named. Fires before any work starts. Judged, not matched, because "which tool fits this ask" is not a fact about the string.
 
 ## What it does
 
@@ -24,24 +24,47 @@ Four hooks, all fail-open (any error, or a missing `jq`, exits silently and neve
 - **`SessionStart` → `prime.sh`** — sniffs the repo's manifests (composer.json, package.json, Dockerfiles, `*.tsx`/`*.sql` presence) and injects a one-line index of the skills relevant to this stack, filtered to the plugins you actually have installed.
 - **`PostToolUse` (Edit/Write/MultiEdit) → `route.sh`** — after an edit, matches the file against `rules.tsv`. A high-confidence match (path or extension) injects a directive to load the relevant skill and review the change against it — **once per signal per session**, so a run of `.sql` edits nudges you once, not every time.
 - **`SessionEnd` → `summary.sh`** — low-confidence content signals (a file that mentions `password`, uses `async`/locks, is dense with `try/catch`) never interrupt inline; they accumulate and surface once as a quiet end-of-session digest.
-- **`UserPromptSubmit` → `route-prompt.sh`** — matches the prompt against `prompt-rules.tsv` and names the best-suited command in one line. "build a landing page" points at `/craft-layer:craft`, "a colour change on this shadcn project" at `/ui-ux:theme`, anything feature-shaped and unclaimed at `/taskmaster:task`.
+- **`UserPromptSubmit` → `route-prompt.sh`** — on the first work-shaped prompt of a session, injects the catalog of commands actually installed here plus the rules for judging which one fits the ask. The hook does not pick; the model does.
 
-## Prompt routing, and why priority
+## The tool-fit check
 
-The marketplace's reminder hooks each nudge toward their own plugin, and when two match one prompt the winner is — by their own comment — *scheduling order*. Fine for a nudge, useless for "which tool actually fits this". `prompt-rules.tsv` replaces that with an explicit priority column: highest match wins, ties break by row order.
+You ask for a marketing landing page and the only plugin that speaks up nudges you into a requirements pipeline. The fix is not a bigger keyword table — a table routes only the phrasings its author imagined, and every new plugin needs a new row. So the hook hands over the **catalog** and the **discipline**, and the judgment stays with the model, which reads meaning:
 
 ```
-# pattern	command	owning_plugin	priority	reason
-landing page|marketing (site|page)	/craft-layer:craft	craft-layer	90	visual-craft work — live reference research, a board you approve
-(colou?r|theme|palette) (change|swap)	/ui-ux:theme	ui-ux	85	a colour decision — judge candidates on a live preview URL
-build|create|add|implement	/taskmaster:task	taskmaster	10	feature-shaped ask — pin down scope before code
+[skill-router] Tool-fit check (once this session). Commands installed here, and what each is for:
+
+- /a11y:audit — Audit UI code against WCAG 2.2 AA
+- /craft-layer:craft — Create a crafted web app (CRM, SaaS, landing page) end to end…
+- /ui-ux:theme — Create or restyle a CSS-variable UI theme…
+  … one line per installed command …
 ```
 
-A rule fires only if its `owning_plugin` is installed, so an uninstalled specialist falls through to the next-best row rather than pointing at a command you do not have. Adding a route is one tab-separated row — `route-prompt.sh` carries no literal command names and `scripts/validate.sh` fails the build if one appears. The gate also rejects a row whose command resolves to no `plugins/*/commands/*.md`, whose `owning_plugin` disagrees with the command's own plugin, whose priority is not an integer, or that is missing a field.
+The catalog is built at runtime from each installed plugin's `commands/*.md` frontmatter — the descriptions already there, already length-linted. Nothing is generated, so nothing can drift, and a command you have not installed can never be suggested.
 
-**Standing: gated.** `scripts/smoke/prompt-route-tests.sh` (its own CI step) asserts which command comes back for each shape, that priority beats row order, that every guard silences it, and that all four gate strings above actually fire.
+### What the model is told to do with it
 
-The router claims the same per-prompt marker the reminder hooks use, so at most one advisory line lands on a prompt. **Residual, stated rather than papered over:** the harness decides which `UserPromptSubmit` hook runs first, so a reminder hook can still win that race and speak instead of the router. Priority is authoritative among these rules, not across independently-installed processes. `CC_REMIND=off` silences every advisory nudge including this one; `CC_ROUTE=off` silences only the router.
+1. Judge by the **ask's substance**, not its wording. Most requests fit no command; silence is the default.
+2. **You named a tool and something else clearly fits better** → an `AskUserQuestion` with exactly two options, never a silent switch:
+
+```
+You: run taskmaster: create a marketing landing page
+
+⚠ taskmaster grills requirements; this ask is a visual deliverable.
+  [ Proceed with /craft-layer:craft (Recommended) ]  [ Proceed with taskmaster as asked ]
+```
+
+3. No tool named and one clearly fits → one line, no picker.
+4. Close call, or your choice was already right → nothing at all. Over-suggesting is the failure mode a catalog invites, and rule 4 is what holds it back.
+5. One picker per named tool per session. Declining is durable.
+6. Under a hands-off boost (`ultra-goal`, or a `Goal:` marker), the Recommended route is auto-taken and written to the goal ledger with its rationale and both options — auditable after the fact, like every other goal auto-take.
+
+### What has teeth here
+
+**Agent-graded — the routing verdict.** Which command the model picks is a judgment with real variance. No script asserts it, and this README will not pretend otherwise.
+
+**Gated — the mechanism.** `scripts/smoke/prompt-route-tests.sh` (its own CI step) asserts the catalog is built, that every entry resolves to a real command file, that it contains only installed plugins, that the directive still carries all six discipline rules, that each guard silences the hook, and that it injects once per session. `scripts/validate.sh` fails the build on a hardcoded slash-command token in the hook, or on a fifth prompt-matching pattern — the signature of a routing table regrowing in shell.
+
+**The cost, plainly:** ~2.3k tokens on the first work-shaped prompt of a session, paid whether or not a better tool exists. A chat-only session pays nothing. `CC_ROUTE=off` disables this check; `CC_REMIND=off` disables every advisory nudge in the marketplace, this one included.
 
 It never forces a skill to run — hooks cannot — it injects a directive the model then acts on. It complements the existing description-based skill triggering; it does not replace it.
 

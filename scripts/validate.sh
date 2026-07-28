@@ -370,44 +370,31 @@ $cofires
 EOF_COFIRES
   fi
 
-  # prompt-rules.tsv resolution gate (hard). The prompt router suggests COMMANDS, so
-  # the failure mode is a row naming one that does not exist — the user is told to run
-  # something the harness will reject. Every row must carry five fields, resolve to a
-  # real plugins/<plugin>/commands/<cmd>.md whose plugin matches the installed-filter
-  # column, price itself with an integer priority, and hold a pattern grep can compile.
-  PR="$SR/prompt-rules.tsv"
-  if [ -f "$PR" ]; then
-    lineno=0
-    while IFS=$'\t' read -r pattern command plugin priority reason || [ -n "$pattern" ]; do
-      lineno=$((lineno + 1))
-      case "$pattern" in ''|'#'*) continue ;; esac
-      reason="${reason%$'\r'}"
-      if [ -z "$command" ] || [ -z "$plugin" ] || [ -z "$priority" ] || [ -z "$reason" ]; then
-        err "prompt-rules.tsv:$lineno: needs five tab-separated fields (pattern, command, owning_plugin, priority, reason)"
-        continue
-      fi
-      case "$priority" in ''|*[!0-9]*) err "prompt-rules.tsv:$lineno: priority '$priority' is not a non-negative integer" ;; esac
-      case "$command" in
-        /*:*)
-          cmd_plugin=${command#/}; cmd_plugin=${cmd_plugin%%:*}
-          cmd_name=${command##*:}
-          [ -f "plugins/$cmd_plugin/commands/$cmd_name.md" ] \
-            || err "prompt-rules.tsv:$lineno: command '$command' resolves to no plugins/$cmd_plugin/commands/$cmd_name.md"
-          [ "$cmd_plugin" = "$plugin" ] \
-            || err "prompt-rules.tsv:$lineno: command '$command' belongs to '$cmd_plugin' but the installed-filter column says '$plugin'"
-          ;;
-        *) err "prompt-rules.tsv:$lineno: command '$command' is not a /plugin:command token" ;;
-      esac
-      [ -d "plugins/$plugin" ] || err "prompt-rules.tsv:$lineno: owning_plugin '$plugin' is not a plugin in this marketplace"
-      printf 'x' | grep -qE "$pattern" 2>/dev/null
-      [ "$?" -ge 2 ] && err "prompt-rules.tsv:$lineno: pattern does not compile as an ERE"
-    done < "$PR"
-    # route-prompt.sh must stay table-driven, exactly as route.sh must: a literal
-    # command name in the hook is a route that no longer shows up in the table.
-    prompt_lits=$(grep -v '^[[:space:]]*#' "$SR/hooks/route-prompt.sh" 2>/dev/null \
+  # Tool-fit check gate (hard). route-prompt.sh injects a catalog it builds at runtime
+  # from the installed plugins' command frontmatter, and hands the ROUTING JUDGMENT to
+  # the model. Two properties are mechanically checkable and both are load-bearing:
+  #
+  #   1. No literal command token in the hook. A hardcoded `/plugin:command` is a route
+  #      the catalog never shows and nobody can audit — the same rule route.sh carries.
+  #   2. No per-tool routing patterns. The hook is allowed exactly ONE prompt-matching
+  #      grep (the work-shaped gate); a second would be a routing table growing back in
+  #      shell, which is the mechanism this deliberately replaced.
+  #
+  # What is NOT gated, stated plainly: which command the model picks. That is a
+  # judgment with real variance — agent-graded, not gated. See the has-teeth
+  # convention in CLAUDE.md; do not describe this check as guaranteeing a route.
+  RP="$SR/hooks/route-prompt.sh"
+  if [ -f "$RP" ]; then
+    prompt_lits=$(grep -v '^[[:space:]]*#' "$RP" 2>/dev/null \
       | grep -oE '/[a-z][a-z0-9-]+:[a-z][a-z0-9-]+' | sort -u || true)
     [ -z "$prompt_lits" ] \
-      || err "skill-router route-prompt.sh carries literal command token(s): $(echo $prompt_lits) — must stay prompt-rules.tsv-driven"
+      || err "skill-router route-prompt.sh carries literal command token(s): $(echo $prompt_lits) — the catalog is built from installed plugins, never hardcoded"
+    # Count prompt-matching greps: `$head` is the scrubbed prompt, so every grep over it
+    # is a prompt pattern. The narrowing refusals and the single work-shaped gate are the
+    # budget; anything past it is a routing rule.
+    head_greps=$(grep -c 'printf .%s. "\$head" | grep' "$RP" 2>/dev/null || echo 0)
+    [ "$head_greps" -le 4 ] \
+      || err "skill-router route-prompt.sh matches the prompt $head_greps times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell"
   fi
 fi
 
