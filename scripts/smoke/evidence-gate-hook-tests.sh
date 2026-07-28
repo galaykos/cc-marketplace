@@ -140,5 +140,12 @@ T19="$WS/t19.jsonl"
 { tool_entry Edit; text_entry "Fix applied. Still failing."; } > "$T19"
 check "bare 'still failing' passes"                 "" "$T19" 0 "__NONE__"
 
+# 20. No regression from the ACK tightening: a failure word plus real post-edit
+# execution must still pass on the EVIDENCE path, not on the escape path. If the
+# tightening ever over-reaches, this is the case that stays green while 13-15 flip.
+T20="$WS/t20.jsonl"
+{ tool_entry Edit; tool_entry Bash; text_entry "Fixed the failing test — suite is green, output above."; } > "$T20"
+check "failure word + post-edit execution passes"   "" "$T20" 0 "__NONE__"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -44,6 +44,10 @@
 #     with its sample stated, not a universal constant.
 #   - Assumes PostToolUse carries `transcript_path`. If it does not, every path here
 #     exits 0 and the hook is simply silent — it degrades to nothing, never to noise.
+#   - The ledger below is WRITE-ONLY by design: nothing reads it back automatically.
+#     It exists so the threshold and this hook's effect can be evaluated later against
+#     real data instead of re-argued. Calling it a feedback loop today would be the
+#     over-claim this plugin's own review flagged in `hindsight`.
 #
 # FAIL-OPEN: missing jq/awk, unreadable transcript, or any error exits 0.
 {
@@ -107,6 +111,27 @@ EOF
   [ "$calls" -ge "$MIN_TOOL_CALLS" ] || { mkdir -p "$dir" 2>/dev/null && printf '%s 0\n' "$lines" > "$state" 2>/dev/null; exit 0; }
 
   ratio=$((chars / calls))
+
+  # LEDGER. Every scan is recorded, warned or not — this is the only measurement
+  # trail any plugin in this marketplace leaves. The threshold above was calibrated
+  # once, on one machine, from transcripts that predate this hook; without a record
+  # of what it sees in practice, nothing could ever say whether 600 is right, or
+  # whether the warning changed the sessions that got it. A number nobody reads back
+  # is the failure this plugin's own review named.
+  #
+  # Machine-local, never inside the project tree — same placement reasoning as
+  # hindsight/hooks/collect.sh. One compact row per scan, capped so an old ledger
+  # cannot grow without bound. Nothing reads this automatically; it is a dataset for
+  # a future evaluation, and saying that is the honest scope.
+  ledger="${HOME:-/tmp}/.claude/comment-discipline/verbosity-ledger.jsonl"
+  if [ "$(wc -c < "$ledger" 2>/dev/null || echo 0)" -lt 1048576 ]; then
+    mkdir -p "${ledger%/*}" 2>/dev/null &&
+      jq -cn --arg s "$sid" --argjson c "$chars" --argjson t "$calls" \
+             --argjson r "$ratio" --argjson th "$THRESHOLD" --argjson l "$lines" \
+        '{session:$s,chars:$c,calls:$t,ratio:$r,threshold:$th,lines:$l,warned:($r>$th)}' \
+        >> "$ledger" 2>/dev/null
+  fi
+
   if [ "$ratio" -le "$THRESHOLD" ]; then
     mkdir -p "$dir" 2>/dev/null && printf '%s 0\n' "$lines" > "$state" 2>/dev/null
     exit 0

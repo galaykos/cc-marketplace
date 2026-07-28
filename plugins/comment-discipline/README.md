@@ -83,6 +83,14 @@ against the main thread's 389.
 | Exempt | subagent transcripts, sessions under 8 tool calls, transcripts under 60 lines |
 | Cannot tell | prose the user asked for from unrequested narration — which is why it warns rather than blocks |
 
+Every scan is recorded — warned or not — as one JSON row in
+`~/.claude/comment-discipline/verbosity-ledger.jsonl` (machine-local, never in the
+project tree, capped at 1 MB). The threshold above was calibrated once, on one
+machine, from transcripts predating this hook; the ledger is what a later evaluation
+would read to say whether 600 is right and whether the warning changed anything.
+**Nothing reads it automatically.** Calling it a feedback loop today would be an
+over-claim — it is a dataset, and that is its whole current standing.
+
 Stop-event delivery was considered and rejected: a `Stop` hook reaches the model
 only by blocking, and spending a turn to complain about output volume emits more
 prose than it saves.

@@ -83,7 +83,7 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 | J | **Failure honesty** | Paths to done-on-assertion enumerated in §3.3 | GATE (holed) | **PARTIAL** |
 | K | **Instruction dilution** | 124 SKILL.md; `everything` 10,723 tok; top-5 collisions in §4 | — | **SEVERE** |
 | L | **Trigger reliability** | 10-skill sample below | — | **PARTIAL** — 4/10 non-discriminating |
-| M | **Measurability** | No `*eval*` / `*benchmark*` file under `plugins/` or `scripts/`. `scripts/smoke/canary.sh:2` "NOT a CI gate (needs a live model)". `hindsight/hooks/collect.sh:6` writes; only `/hindsight:harvest` reads | none | **MISSING** |
+| M | **Measurability** | No `*eval*` / `*benchmark*` file under `plugins/` or `scripts/`. `scripts/smoke/canary.sh:2` "NOT a CI gate (needs a live model)". `hindsight/hooks/collect.sh:6` writes; only `/hindsight:harvest` reads. **2026-07-28** — `verbosity.sh` now leaves a per-scan ledger (§6 P2), the first data trail here; still write-only, so the axis does not move | none | **MISSING** |
 
 ### L — 10-skill trigger sample
 
@@ -490,10 +490,16 @@ Stated plainly: this does not make axis F `ENFORCED`. **Net lines: 0** — item 
 within its existing four lines, since that body is also at the 150 ceiling.
 `task-runner` 0.21.2.
 
-### P2 — everything else
+### P2 — everything else — **partially applied 2026-07-28**
 
-Estimate write-back (axis G), `hindsight` auto-read, review-command consolidation,
-`license` key present on 1 of 65 `plugin.json`.
+| Item | Status |
+|---|---|
+| **E3 regression case** (§8) | **Applied.** `evidence-gate-hook-tests.sh` case 20: a failure word *plus* real post-edit execution must pass on the EVIDENCE path, not the escape path. It is the case that stays green if the P0-1 tightening ever over-reaches, while 13-15 flip. Suite 19 → **20 passed** |
+| **Measurement trail** (axis M) | **Applied.** `verbosity.sh` records every scan — warned or not — to `~/.claude/comment-discipline/verbosity-ledger.jsonl` (machine-local, 1 MB cap). The P0-2 threshold was calibrated once, on one machine, from transcripts predating the hook; without a record of what it sees in practice, nothing could ever say whether 600 is right or whether the warning changed the sessions that got it. **Write-only by design and labelled so** — nothing reads it back, and calling it a feedback loop today would be exactly the `hindsight` over-claim this review flagged in Verdict 9 |
+| **`license` on 1 of 65** | **Not a defect — closed, no change.** The outlier is `registry-source`, the one plugin shipping executable code (`mcp/server.mjs`) rather than only markdown. A plugin that ships redistributable code declaring MIT is correct; 64 markdown-only plugins inheriting the repo `LICENSE` is also correct. Nothing in `validate.sh`, `lib/plugin-checks.sh`, or `authoring-plugins/SKILL.md` reads the field. Adding it to 64 files would cost 64 version bumps for inert metadata — the churn would be the defect |
+| **Estimate write-back** (axis G) | **Not started.** `approaches:size`, task-runner speedup estimates, and `context-budget` deltas remain write-only |
+| **`hindsight` auto-read** | **Not started.** Its ledger is still read only by the `/hindsight:harvest` COMMAND |
+| **Review-command consolidation** | **Not started** — belongs with §7, which is unapplied |
 
 ---
 

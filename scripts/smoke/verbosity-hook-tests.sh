@@ -94,5 +94,31 @@ out=$(jq -cn --arg tp "$WS/verbose.jsonl" '{transcript_path:$tp}' | bash "$HOOK"
 if [ "$rc" -eq 0 ] && [ -z "$out" ]; then pass=$((pass+1)); printf 'PASS  payload without cwd/session_id fails open\n'
 else fail=$((fail+1)); printf 'FAIL  payload without cwd/session_id (rc=%s out=%s)\n' "$rc" "$out"; fi
 
+# --- ledger (13-15) --------------------------------------------------------
+# Every scan is recorded, warned or not — the measurement trail. HOME is redirected
+# so these cases never touch the real ledger.
+LEDGER_HOME="$WS/home"; LEDGER="$LEDGER_HOME/.claude/comment-discipline/verbosity-ledger.jsonl"
+ledger_run() { # transcript  session-id
+  jq -cn --arg tp "$1" --arg cwd "$CWD" --arg sid "$2" \
+     '{transcript_path:$tp,cwd:$cwd,session_id:$sid}' \
+    | env HOME="$LEDGER_HOME" bash "$HOOK" >/dev/null 2>&1
+}
+ledger_run "$WS/verbose.jsonl" L1
+if [ -s "$LEDGER" ] && jq -e '.warned == true and .ratio == 1000' "$LEDGER" >/dev/null 2>&1
+then pass=$((pass+1)); printf 'PASS  ledger records a warned scan\n'
+else fail=$((fail+1)); printf 'FAIL  ledger records a warned scan (%s)\n' "$(cat "$LEDGER" 2>/dev/null)"; fi
+
+ledger_run "$WS/terse.jsonl" L2
+if [ "$(wc -l < "$LEDGER" 2>/dev/null | tr -d ' ')" = "2" ] \
+   && jq -se 'last | .warned == false' "$LEDGER" >/dev/null 2>&1
+then pass=$((pass+1)); printf 'PASS  ledger also records a silent (below-threshold) scan\n'
+else fail=$((fail+1)); printf 'FAIL  ledger also records a silent scan (%s)\n' "$(cat "$LEDGER" 2>/dev/null)"; fi
+
+# An exempt path must leave no row at all — the ledger records scans, not calls.
+ledger_run "$WS/subagents/a.jsonl" L3
+if [ "$(wc -l < "$LEDGER" 2>/dev/null | tr -d ' ')" = "2" ]
+then pass=$((pass+1)); printf 'PASS  exempt transcript writes no ledger row\n'
+else fail=$((fail+1)); printf 'FAIL  exempt transcript writes no ledger row (%s rows)\n' "$(wc -l < "$LEDGER" 2>/dev/null)"; fi
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
