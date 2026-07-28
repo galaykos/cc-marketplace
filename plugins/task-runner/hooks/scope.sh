@@ -3,7 +3,12 @@
 # PostToolUse scope-lock tripwire. When an active run has declared its allowed files
 # in $cwd/.claude/task-runner/scope.json, this warns (non-blocking) if an Edit/Write
 # landed OUTSIDE that set — the "touch only files the task lists" discipline made
-# mechanical. No scope file → no-op (the discipline is opt-in per run). Fail-open.
+# mechanical. The warning is emitted as the PostToolUse stdout JSON envelope
+# ({"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":...}},
+# exit 0) — the one non-blocking channel the executing model actually receives;
+# plain stdout text with exit 0 never reaches it (same channel reasoning as
+# completion-gate.sh, whose Stop event reaches the model only through exit 2).
+# No scope file → no-op (the discipline is opt-in per run). Fail-open.
 #
 # COVERAGE LIMIT (honest scope): this hook reads only the INLINE path's scope.json.
 # Delegated workers get per-card scope-<cardId>.json files (routing.md) which this
@@ -40,6 +45,10 @@ exec 3>&2
   [ "$allowed" = "n" ] || exit 0
 
   task=$(jq -r '.task // "the current task"' "$scope" 2>/dev/null)
-  printf '[task-runner] scope-lock: %s was edited but is NOT among the files %s declared. If intentional, add it to the task definition; otherwise this is scope creep — record it as a follow-up and revert this edit.\n' "$rel" "$task"
+  warn=$(printf '[task-runner] scope-lock: %s was edited but is NOT among the files %s declared. If intentional, add it to the task definition; otherwise this is scope creep — record it as a follow-up and revert this edit.' "$rel" "$task")
+  # jq builds the envelope so the message stays valid JSON whatever $rel contains.
+  # jq presence is guaranteed here by the guard at the top of the block.
+  jq -cn --arg ctx "$warn" \
+    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
 } 2>/dev/null
 exit 0

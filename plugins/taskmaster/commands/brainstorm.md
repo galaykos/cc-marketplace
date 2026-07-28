@@ -7,7 +7,7 @@ Run the brainstorm skill from this plugin on $ARGUMENTS (if empty, ask what
 idea the user wants to explore). No implementation code, scaffolding, or file
 creation beyond the design doc at any point.
 
-<!-- boost-preamble:start — byte-identical across the 5 taskmaster commands; scripts/validate.sh enforces parity and hook-token agreement -->
+<!-- boost-preamble:start — byte-identical across the four full taskmaster commands (taskmaster.md is a thin alias, gated separately); scripts/validate.sh enforces parity and hook-token agreement -->
 **Run-status line (always):** print ONE status line as the first visible output of
 every run — a boosted run prints the ⚡ banner (owned by the taskmaster `ultra`
 skill; the banner IS its status line); a standard run prints

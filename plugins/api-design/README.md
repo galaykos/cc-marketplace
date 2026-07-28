@@ -22,6 +22,7 @@ Designing your own API. For *consuming* third-party APIs, see the sibling
 | Command | What it does |
 |---------|--------------|
 | `/api-design:review [routes-controllers-or-spec]` | Review route files, controllers, FormRequests, API Resources, or an OpenAPI spec against the skill |
+| `/api-design:scaffold [openapi-spec-path]` | Scaffold Laravel routes, FormRequests, API Resources, and controllers from an approved OpenAPI spec (spec-first) |
 
 ## Example
 

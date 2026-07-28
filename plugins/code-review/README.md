@@ -42,4 +42,4 @@ cannot settle it. The two split cleanly: `code-smells` catalogs dead code as a
 - **code-architecture** — the structural/YAGNI depth this review defers to, plus
   `drift-review`: whether the same diff stayed on the declared task intent
 - **security** — deep security review beyond the correctness pass here
-- **php** / **typescript** — per-stack idiom review for detail this plugin skips
+- **php** — per-stack idiom review for detail this plugin skips

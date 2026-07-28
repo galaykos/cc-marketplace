@@ -17,9 +17,10 @@ Scaffold a new subagent from $ARGUMENTS. Steps:
      `.claude/agents/<name>.md`. If the repo root contains a
      `.claude-plugin/` directory (plugin/marketplace repo), target
      `plugins/<plugin>/agents/<name>.md` instead — ask which plugin.
-3. Write the agent file from this template — all five frontmatter keys are
-   required (this marketplace's validator rejects files missing any of name,
-   description, model, effort):
+3. Write the agent file from this template — four frontmatter keys are
+   gate-required (this marketplace's validator rejects files missing any of
+   name, description, model, effort). `tools:` is optional, but omitting it
+   grants ALL tools — always list it explicitly:
 
    ```markdown
    ---
@@ -56,5 +57,5 @@ Scaffold a new subagent from $ARGUMENTS. Steps:
 5. Offer the next step as a selectable choice (AskUserQuestion): "Load the
    authoring-agents skill and flesh out the TODOs now (Recommended)" /
    "Skip — I'll fill the scaffold in myself". On yes, load the skill and
-   continue; plain text only when headless. Deeper rules live there — the
-   deeper rules — PROACTIVELY phrasing, tool scoping, worker vs reviewer.
+   continue; plain text only when headless. Deeper rules live there —
+   PROACTIVELY phrasing, tool scoping, worker vs reviewer.

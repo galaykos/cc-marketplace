@@ -108,7 +108,29 @@ mk bare.md '# Spec
 Do.'
 run_case "bare heading accepted" 0 "" --spec "$tmp/bare.md"
 
-# 8) usage errors
+# 8) grill's canonical Item header: converged ledger -> pass
+mk item-good.md '# Spec
+## Ambiguity ledger (final)
+| # | Item | Current understanding | Status | Source |
+|---|------|-----------------------|--------|--------|
+| 1 | Auth method | Session-based | CLEAR | config/auth.php:14 |
+| 2 | Who can delete | Owner only | ASSUMED | default, round 2 |
+## Goal
+Do the thing.'
+run_case "Item-header converged ledger passes" 0 "" --spec "$tmp/item-good.md"
+
+# 9) grill's canonical Item header: open UNKNOWN row -> blocked
+mk item-unknown.md '# Spec
+## Ambiguity ledger (final)
+| # | Item | Current understanding | Status | Source |
+|---|------|-----------------------|--------|--------|
+| 1 | Auth method | Session-based | CLEAR | config/auth.php:14 |
+| 3 | Bulk-action UX | ? | UNKNOWN | — |
+## Goal
+Do the thing.'
+run_case "Item-header UNKNOWN row blocked" 2 "open-unknown" --spec "$tmp/item-unknown.md"
+
+# 10) usage errors
 run_case "missing --spec is usage error" 3 "usage error" --line "x"
 run_case "nonexistent file is usage error" 3 "not found" --spec "$tmp/nope.md"
 

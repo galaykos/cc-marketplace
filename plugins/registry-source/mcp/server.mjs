@@ -3,9 +3,9 @@
  *
  * WHY THIS EXISTS AS A TOOL AND NOT AS A RULE.
  *
- * Two skills in this marketplace already say it in plain words —
- * `ui-ux/skills/reui-best-practices` ("never write ReUI API details from
- * memory") and `ui-ux/skills/aceternity-best-practices` ("do not reconstruct
+ * Two skills in this marketplace already say it in plain words — the ui-ux
+ * plugin's ReUI best-practices skill ("never write ReUI API details from
+ * memory") and its Aceternity best-practices skill ("do not reconstruct
  * the component from memory"). Both are well written. A run breached each of
  * them anyway, in the same session, three times over: it estimated a registry
  * at "~60 components" when the index holds 270, it read a 401 on a paid
@@ -34,8 +34,9 @@
  *
  * WHAT IT WILL NOT DO. One registry gates its install API behind a paid
  * licence key. This server does not hold, request, forge or route a licence
- * key, and its ReUI entry points at that project's own MIT repository instead
- * — which is not a workaround but the licence working exactly as written. A
+ * key, and carries no ReUI entry at all — that registry is served by its own
+ * hosted MCP server, declared beside this one in the plugin's `.mcp.json`.
+ * That is not a workaround but the licence working exactly as written. A
  * paywall on a convenience API is a fact about paying for tooling; the LICENSE
  * file is the fact about the code.
  *
@@ -90,6 +91,14 @@ const REGISTRIES = {
 
 const CACHE_DIR = join(homedir(), '.cache', 'claude-registry-source')
 const TTL_MS = 24 * 60 * 60 * 1000
+
+/* serverInfo.version reads the plugin manifest so the two can never drift —
+   a hardcoded copy here shipped 0.1.0 against a 0.2.x plugin.json. */
+const PLUGIN_VERSION = (() => {
+  try {
+    return JSON.parse(readFileSync(new URL('../.claude-plugin/plugin.json', import.meta.url), 'utf8')).version
+  } catch { return '0.0.0' }
+})()
 
 /* Dependencies that put a 3D/particle runtime in the bundle. Flagged because a
    registry index is the only place a build can learn what a block COSTS before
@@ -251,14 +260,14 @@ const TOOLS = [
   {
     name: 'registry_list',
     description:
-      'List every component in the free component registries (aceternity, shadcn, magicui, reui), read live from '
+      'List every component in the free component registries (aceternity, shadcn, magicui), read live from '
       + 'their published index and cached for 24h. Returns name, kind, dependencies, and a `heavy` flag for anything '
       + 'pulling a 3D/particle runtime — plus source URL, fetch date and a stale flag on every answer. Use this BEFORE '
       + 'picking a component or estimating what a registry contains; never state a component count or catalogue from memory.',
     inputSchema: {
       type: 'object',
       properties: {
-        registry: { type: 'string', description: 'aceternity | shadcn | magicui | reui. Omit for all.' },
+        registry: { type: 'string', description: 'aceternity | shadcn | magicui. Omit for all.' },
         refresh: { type: 'boolean', description: 'Bypass the 24h cache and refetch.' },
       },
     },
@@ -312,7 +321,7 @@ async function handle(req) {
       result: {
         protocolVersion: params?.protocolVersion ?? '2024-11-05',
         capabilities: { tools: {} },
-        serverInfo: { name: 'registry-source', version: '0.1.0' },
+        serverInfo: { name: 'registry-source', version: PLUGIN_VERSION },
       },
     }
   }

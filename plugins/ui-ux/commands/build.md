@@ -21,7 +21,7 @@ the explicit entry point to the ui-ux-engineer worker — a build verb to comple
 
 3. Dispatch the `ui-ux-engineer` worker with the request, instructing it to apply this
    plugin's relevant skills: the matching stack best-practice skill (shadcn/reui/
-   aceternity/astryx/tailwind/bootstrap/css3/grid/flexbox), `design-tokens` for
+   aceternity/astryx/tailwind), `design-tokens` for
    spacing/type/radius/elevation/motion
    from the scale (no magic numbers), and `shadcn-theming` when colors are in play.
    When the request names a registry block to adapt, that registry's best-practice skill is

@@ -1,7 +1,7 @@
 ---
 name: transcript-miner
 description: Spawned by the /hindsight:harvest fan-out, one miner per selected session — deep-reads one session transcript JSONL and returns compressed friction findings backed by verbatim evidence quotes; synthesis stays in the main thread.
-tools: Read, Grep, Bash
+tools: Read, Grep
 model: sonnet
 effort: medium
 floor: none

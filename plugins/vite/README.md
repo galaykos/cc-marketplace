@@ -32,6 +32,6 @@ and Rolldown is opt-in in 7 — all resolved from the lockfile, never assumed.
 
 ## Pairs well with
 
-- **typescript** — covers the type layer and `tsconfig` this plugin leaves alone
-- **react / vue3** — framework review plugins; this one covers the build tool they skip
+- **vue3** — component-level review for the app code above this build layer
+- **react** — server-state caching discipline for the app code this build review skips
 - **stack-scan** — supplies the locked vite version the advice pins against

@@ -1,0 +1,1 @@
+- **typescript** — the type layer this component review skips

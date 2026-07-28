@@ -35,5 +35,4 @@ vice versa.
 
 - **vue3** — component-level rules for the Vue code inside these pages
 - **vite** — the build layer under the Nuxt dev server and bundling
-- **typescript** — the type layer this framework review skips
 - **ui-ux** — styling and accessibility review for the rendered markup

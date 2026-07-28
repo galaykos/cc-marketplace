@@ -95,10 +95,14 @@ is the cache.
 
 ## Defer rule
 
-- General React idioms (effects, keys, memoization) → `react-best-practices`.
+- General React idioms (effects, keys, memoization) — no defer target: the
+  `react-best-practices` sibling skill is removed. <!-- removed-ok -->
+  Baseline testing showed the base model covers general idioms unaided
+  (`rationale/stack-skill-baselines.md`); handle them inline.
 - The backend endpoint the query hits (N+1, payload) → `/performance:review`,
   `/api-design:review`.
-- Client-state architecture (global UI state shape) → `react-best-practices`.
+- Client-state architecture (global UI state shape) — likewise baseline after
+  the same removal; there is no client-state skill to defer to. Handle inline.
 
 ## Anti-patterns
 

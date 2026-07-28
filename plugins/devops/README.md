@@ -37,4 +37,4 @@ configuration and never runs deploys.
 - **dev-env** — generating local docker-compose dev environments, which this plugin explicitly defers to
 - **observability** — in-code instrumentation; devops owns only the infra-layer wiring
 - **secret-scanning** — sweeps for already-committed secrets while devops reviews secret injection
-- **rollout** — staged rollout planning around the deploy-with-rollback strategy this plugin reviews
+- **approaches** — its rollout-planning skill covers staged rollout planning around the deploy-with-rollback strategy this plugin reviews

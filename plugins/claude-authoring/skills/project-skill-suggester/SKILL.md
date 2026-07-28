@@ -98,13 +98,13 @@ Identical to routine-detector's, and binding here too:
 
 ## Worked example
 
-A task splits into seven cards; four of them (`03`, `05`, `06`, `08`) each
+A task splits into seven cards; four of them (`03`, `05`, `06`, `08`) each <!-- jargon-ok -->
 re-describe the project's in-house `LedgerClient` — how to open a unit of work,
 the required idempotency key, the commit/rollback contract — and none of the
 cards' "Skills to apply" names a covering skill. That is a four-card cluster of
 durable, uncovered knowledge. After the index is written, offer:
 
-> **Cluster:** cards 03, 05, 06, 08 each restate `LedgerClient` usage
+> **Cluster:** cards 03, 05, 06, 08 each restate `LedgerClient` usage <!-- jargon-ok -->
 > (unit-of-work, idempotency key, commit contract) — no skill covers it.
 > **Payoff:** a `ledger-client` project skill loads that contract on every
 > future ledger task instead of it being re-derived per card.

@@ -3,9 +3,8 @@
 Subagent orchestration discipline: delegation contracts (self-contained
 prompts, compressed evidence-backed returns, model/effort tiering,
 scout-then-fanout, writer isolation), verification panels (refuter voting,
-judge panels, loop-until-dry, completeness critic), and agent conventions
-(engineer/reviewer naming taxonomy, one-surface PROACTIVELY arbitration, the
-shared apply-fixes contract).
+judge panels, loop-until-dry, completeness critic), plus the shared
+apply-fixes contract and the fleet mapping for review-only plugins.
 
 ## Install
 

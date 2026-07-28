@@ -74,7 +74,7 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed "<the run's touched f
 | Exit | Meaning | Completion action |
 |------|---------|-------------------|
 | 0 | covered, or honest `no-executable-surface` | gate passes |
-| 2 | `empty-suite` / `no-behavioral-coverage` / `entrypoint-error` / `dead-affordance` | block completion |
+| 2 | `empty-suite` / `no-behavioral-coverage` / `unverifiable-suite` / `entrypoint-error` / `dead-affordance` | block completion |
 | 3 | usage | fix the invocation |
 
 ## Worked example

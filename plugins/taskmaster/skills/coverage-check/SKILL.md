@@ -1,6 +1,6 @@
 ---
 name: coverage-check
-description: Use after task-cards splits a spec into cards — verifies every spec success criterion has a card and no card proves what the spec never asked, blocking execution handoff until resolved.
+description: Use after task-cards splits a spec into cards — verifies every spec success criterion has a card and no card proves what the spec never asked, holding the execution handoff until findings resolve (agent-graded; no script enforces it).
 ---
 
 ## Where this sits
@@ -83,12 +83,14 @@ is then resolved here, in the main thread, through the gate below.
 
 **Headless fallback.** When subagent dispatch is unavailable, build the matrix
 inline: read the spec and every card yourself and apply the same rules and
-format. The gate blocks identically — only the fresh-eyes property degrades,
-so read both documents cold, end to end, before matching.
+format. The resolution procedure below is unchanged — only the fresh-eyes
+property degrades, so read both documents cold, end to end, before matching.
 
 ## The resolution gate
 
-Do not proceed to the handoff while any finding is unresolved. Present the matrix,
+Standing: **agent-graded — no script enforces this.** The hold below is this
+skill's instruction to the executing agent, judged in-thread; no build gate
+backs it. Do not proceed to the handoff while any finding is unresolved. Present the matrix,
 then take each finding through a choice (AskUserQuestion; bare options when
 headless):
 
@@ -128,8 +130,9 @@ proceed.
   writes a card file. Splitting is task-cards' judgment, not this gate's.
 - **String-matching criteria.** Coverage is about meaning — a criterion and the
   acceptance line that satisfies it rarely share words. Judge intent.
-- **Proceeding on an unresolved gap.** A blocking gate that waves gaps through is
-  the advisory gate it was chosen over. Every finding is resolved or accepted.
+- **Proceeding on an unresolved gap.** The hold is agent-graded — nothing but
+  this instruction stops a wave-through, which is exactly why every finding is
+  resolved or explicitly accepted before the handoff.
 - **Flagging a legitimate non-goal as a gap.** The spec's `## Non-goals` are not
   criteria; do not demand cards for them.
 - **Re-litigating an accepted gap.** Once recorded in `## Coverage` with a reason,

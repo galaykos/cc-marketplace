@@ -3,9 +3,9 @@
 Meta-bundle: the code-quality category in one install — review, architecture
 principles, design patterns, testing, security, accessibility, debugging,
 performance, resilience, dependency hygiene, observability, error handling,
-concurrency safety, and secret-leak prevention. Uninstalls cleanly:
-`/quality-suite:uninstall` removes the bundle and prunes the plugins it
-auto-installed.
+concurrency safety, comment discipline, secret-leak prevention, and automatic
+skill routing. Uninstalls cleanly: `/quality-suite:uninstall` removes the
+bundle and prunes the plugins it auto-installed.
 
 ## Install
 
@@ -28,6 +28,8 @@ auto-installed.
 - **packages** — composer/npm dependency hygiene and security-audit triage, plus `/packages:audit`
 - **observability** — structured logs, correlation IDs, metrics without cardinality bombs, plus `/observability:review`
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
+- **skill-router** — hook that auto-loads the matching best-practice skill on edit
+- **comment-discipline** — routes every fact to the artifact that cannot lie about it and spends comments only where nothing else can hold them, plus a warn-only write-time hook and `/comment-discipline:review`
 
 | Command | What it does |
 |---------|--------------|

@@ -87,8 +87,8 @@ Mid-implementation, when reality contradicts the pick's assumptions:
 - Requirements ambiguous → taskmaster grill first; deliberating over an
   ambiguous goal produces confident nonsense.
 - Winner picked → plan-before-code for file-level planning, then implement.
-- Pattern-level choice inside the winner (factory vs builder) →
-  design-patterns plugin.
+- Pattern-level choice inside the winner (factory vs builder) → this plugin's
+  own pattern-selection skill (`/approaches:pattern`).
 
 ## Worked micro-example
 

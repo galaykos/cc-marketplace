@@ -52,18 +52,30 @@ restate the table here, or the two drift.
 
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
-`craft-layer` and `taskmaster` follow it today; the rest adopt it as they are
-touched, not in a sweep. **No script enforces this** — which puts the convention
-in its own `recorded` tier, and saying so is the point.
+Adopted incrementally as plugins are touched, not in a sweep: explicit
+`Standing:` markers ship in 6 plugins today (claude-authoring,
+code-architecture, orchestration, task-runner, taskmaster,
+vercel-skills-scout), plus craft-layer's worked table above. **No script
+enforces this** — which puts the convention in its own `recorded` tier, and
+saying so is the point.
 
 ## Plugin change gates
 
 - `scripts/validate.sh` — structure, frontmatter, SKILL.md 150-line body ceiling (no floor),
   reference resolution, the description linter (max 500 chars, no "Trigger words:"
   lists), and the doc-location rule above. It also blocks leaked internal taskmaster
-  jargon (`card NN` / `Finding #N` / `smoke-test #N` / `the backlog`) in shipped
-  plugin `.md` files (`references/` included), excluding the taskmaster + task-runner
-  plugins; mark a line legitimately quoting the vocab with `<!-- jargon-ok -->`.
+  jargon (`card NN` / `Finding #N` / `smoke-test #N` / `the backlog`, plural
+  forms like `cards NN` included) in shipped plugin `.md` files —
+  `references/` AND the plugin-root docs (`README.md` / `CHANGELOG.md` /
+  `ROADMAP.md`) are scanned — excluding the taskmaster + task-runner plugins;
+  mark a line legitimately quoting the vocab with `<!-- jargon-ok -->`. Same
+  file set, same script: a **removed-artifact guard** fails any reference to a
+  plugin or skill removed or merged away from this marketplace (typescript,
+  vue2, rollout, react-best-practices, the css-family skills, …) unless the
+  line discusses the removal itself or carries `<!-- removed-ok -->`;
+  `claude-api` must be described as Claude Code's built-in skill, never as a
+  marketplace artifact. Patterns and rescue lists live in
+  `scripts/lib/plugin-checks.sh`, one source shared with the smoke fixtures.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
@@ -92,16 +104,20 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **20 named steps;
-19 can fail the build**, and on a push to `master` only **18** run
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **21 named steps;
+20 can fail the build**, and on a push to `master` only **19** run
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
-Beyond the four scripts above: 13 harnesses under `scripts/smoke/`
-(template-engine, chassis-template, hook-guard, hook-syntax, guard,
-rules-overlap, route-marker, behavioral-verification, completion-gate-hook,
-evidence-gate-hook, comment-discipline-hook, preview-guard,
-`validate-fixtures/parity-check.sh`),
-`role-floors-check.sh`, and the taskmaster author-time lints, which live at
-`plugins/taskmaster/scripts/__tests__/*.test.sh` — not under `scripts/smoke/`.
+Beyond the four scripts above: 14 harnesses under `scripts/smoke/`
+(template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
+guard, rules-overlap, route-marker, behavioral-verification,
+completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
+preview-guard, `validate-fixtures/parity-check.sh`),
+`scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
+lints — taskmaster's at `plugins/taskmaster/scripts/__tests__/*.test.sh` plus
+task-runner's at `plugins/task-runner/scripts/__tests__/*.test.sh`, one shared
+CI step, not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
+deliberately NOT a CI step: its own header says it needs a live model; it
+stays a local authoring harness.)
 A local four-script pass can still be red on merge: several of those harnesses
 assert **exact gate message strings**, so rewording a gate's error breaks CI.
 

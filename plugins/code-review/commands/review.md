@@ -17,10 +17,11 @@ more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full leng
 changed).
 
 Stack fan-in — one pass, no duplicate reviews: from the changed files' types and
-manifests, list every matching best-practice skill (`.ts`/`.tsx` → typescript, plus
-react or vue per the manifest; markup/utility classes touched → the matching ui-ux
-stack skill + a11y-audit; `.php`/`.blade.php` → php, plus laravel/livewire per
-composer.json; `.vue` → vue2/vue3 per the manifest; `.sql`/migrations → sql + the
+manifests, list every matching best-practice skill (`.ts`/`.tsx` → no language
+plugin, the baseline covers language-level review; `.tsx`/`.jsx` with react in
+the manifest → react (server-state only); markup/utility classes touched → the
+matching ui-ux stack skill + a11y-audit; `.php`/`.blade.php` → php, plus
+laravel/livewire per composer.json; `.vue` → vue3; `.sql`/migrations → sql + the
 engine skill). Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name

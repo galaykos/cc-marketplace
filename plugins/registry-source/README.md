@@ -57,13 +57,17 @@ ambition floors and its "house motion must not satisfy a reach floor" clause bot
 | `aceternity` | `ui.aceternity.com/registry.json` | motion-heavy marketing blocks; several are `heavy` |
 | `shadcn` | `ui.shadcn.com/r/index.json` | the base primitives most registries build on |
 | `magicui` | `magicui.design/r/registry.json` | animated marketing components |
-| `reui` | `github.com/keenthemes/reui` (MIT) | index only — see below |
+| `reui` | **not served locally** — hosted MCP server at `mcp.reui.io` | see below |
 
-**On ReUI.** `reui.io/r/*` answers `Authentication required … Bearer YOUR_LICENSE_KEY`. The
-local server does not hold, request, forge or route a licence key, and points at the
-project's own MIT repository instead. That is not a workaround — it is the licence working
-as written. A paywall on a convenience API is a fact about paying for tooling; the LICENSE
-file is the fact about the code, and the two answer different questions.
+**On ReUI.** `reui.io/r/*` answers `Authentication required … Bearer YOUR_LICENSE_KEY`, so
+the local server has **no** ReUI entry at all — a credential-free scrape could only be a
+half-working one, and a half-working entry teaches the model the registry is broken rather
+than that it is paid. ReUI is served by its own hosted MCP server, declared beside this one
+in `.mcp.json` (next section). The local server does not hold, request, forge or route a
+licence key. That is not a workaround — it is the licence working as written. A paywall on
+a convenience API is a fact about paying for tooling; the LICENSE file
+(`github.com/keenthemes/reui`, MIT) is the fact about the code, and the two answer
+different questions.
 
 ## Two servers, one install
 

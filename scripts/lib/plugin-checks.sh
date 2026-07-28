@@ -48,7 +48,9 @@ pc_skill_budget() {
 pc_jargon() {
   local f="$1" hit jargon rescue
   [ -f "$f" ] || return 0
-  jargon='(^|[^[:alnum:]])(card #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
+  # cards? — plural included (2026-07-28): "cards 03, 05" leaked past the
+  # singular-only pattern in a shipped SKILL while reading as internal vocab.
+  jargon='(^|[^[:alnum:]])(cards? #?[0-9][0-9]|finding #[0-9]|smoke[ -]test #?[0-9]|the back-?log)'
   # Ordinary English that these shapes WOULD reject. No shipped plugin .md
   # contains them — the gate would have failed CI — so these are probes from the
   # task card, not observed leaks. Stating it that way keeps the claim inside
@@ -64,6 +66,67 @@ pc_jargon() {
         | sed 's/^[^[:alnum:]]//' | sort -u | tr '\n' ',' | sed 's/,$//')
   [ -z "$hit" ] && return 0
   printf '%s\n' "$hit"
+  return 1
+}
+
+# pc_removed_refs <md_path>
+# Removed-artifact reference denylist (ground truth: rationale/stack-skill-
+# baselines.md, 2026-07-27). The typescript/javascript/vue2 plugins and the
+# react/css-family best-practices skills were removed; design-patterns,
+# intent-guard, rollout, error-handling and concurrency were merged away as
+# plugins. A shipped doc still routing to one of them is a dangling pointer no
+# other gate sees — validate.sh's reference check reads only the
+# /plugin:command slash form. On a hit: prints the comma-joined matches and
+# returns 1. Clean: prints nothing, returns 0. Lives here so validate.sh and
+# the smoke fixtures share ONE source, same as pc_jargon.
+#
+# SHAPE-BOUNDED BY DESIGN: rollout, concurrency, error-handling, typescript
+# and javascript are ordinary technical English as bare words ("migrations, or
+# concurrency" appears in ~20 review commands), so PLUGIN names match only in
+# reference shapes — a bolded member row (**vue2**), "<name> plugin(s)", a
+# plugins/<name> path, an install target (<name>@…), a routing arrow
+# (→ <name>), or the /<name>: command form. Removed SKILL names
+# (react-best-practices, css3/css-grid/flexbox/bootstrap-best-practices) are
+# unambiguous hyphenates and match word-bounded anywhere. claude-api is Claude
+# Code's BUILT-IN skill, not a marketplace artifact: a line naming it as if it
+# were one is a hit UNLESS that line says built-in, external or
+# harness-provided (or carries the escape) — the honest wording stays legal.
+# harness-provided is in the token list because the shipped llm-app disclosure
+# wraps: "Claude Code's built-in" ends one line and "claude-api skill —
+# harness-provided, not part of this marketplace" starts the next, and this
+# check is line-scoped by design.
+#
+# LIMITATION (honest scope): a heuristic over prose, lowercase-only for plugin
+# names (TitleCase "TypeScript" is the language, not the plugin), so a
+# capitalized stale row would slip; capability-breadth staleness ("react
+# reviews components") names no removed artifact and is invisible here. The
+# rescue list frees lines DISCUSSING a removal; anything else needs the
+# <!-- removed-ok --> marker.
+pc_removed_refs() {
+  local f="$1" b plug skills shapes rescue hit capi
+  [ -f "$f" ] || return 0
+  b='[^[:alnum:]-]'
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency'
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices'
+  shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? plugins?($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)($skills)($b|\$)"
+  # Lines legitimately discussing the removal itself stay legal without a
+  # marker. Every phrase below is quoted from a shipped disclosure:
+  #   "it was removed after baseline testing"          (plugin-scout flags.md)
+  #   "`error-handling` and `concurrency` plugins were / merged into this one"
+  #   "**vue2** (Vue 2 is EOL) is no longer bundled"   (frontend-suite README)
+  rescue="(was|were|been|are|is) (removed|merged|retired)|merged into|no longer|plugins? (were|was)($b|\$)"
+  hit=$(grep -vF '<!-- removed-ok -->' "$f" \
+        | grep -viE "$rescue" \
+        | grep -Eo "$shapes" \
+        | sed -e 's/^[^[:alnum:]*]*//' -e 's/[^[:alnum:]*]*$//' | sort -u | tr '\n' ',' | sed 's/,$//')
+  capi=$(grep -vF '<!-- removed-ok -->' "$f" \
+        | grep -ivE 'built-in|external|harness-provided' \
+        | grep -Eo "(^|$b)claude-api($b|\$)" \
+        | sed -e 's/^[^[:alnum:]]*//' -e 's/[^[:alnum:]]*$//' | sort -u | tr '\n' ',' | sed 's/,$//')
+  if [ -z "$hit" ] && [ -z "$capi" ]; then
+    return 0
+  fi
+  printf '%s\n' "$hit${hit:+${capi:+,}}$capi"
   return 1
 }
 

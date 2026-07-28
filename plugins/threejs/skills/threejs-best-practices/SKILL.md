@@ -100,7 +100,9 @@ scene keeps its geometry, material, and textures alive on the GPU:
 
 - Bundler mechanics (code-splitting the three chunk, import.meta.glob asset
   handling) → the vite plugin.
-- General React correctness around R3F components → the react plugin.
+- Server state feeding R3F components (query libs, cache keys) → the react
+  plugin's react-server-state; general React correctness is baseline — handle
+  it inline.
 - DOM/CSS animation (Motion, GSAP) → ui-ux motion-best-practices; three owns
   the canvas, not the page.
 - WCAG/a11y of the page hosting the canvas → the a11y plugin.
