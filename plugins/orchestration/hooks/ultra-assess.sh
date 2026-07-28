@@ -30,7 +30,11 @@
   #      opens "ULTRA-<X> ACTIVE"; a prompt quoting that is a transcript paste, not
   #      an invocation. Catching the self-echo is worth a line because the commonest
   #      way a boost banner reaches a prompt is a previous run's output.
-  printf '%s' "$head" | grep -qiE "ultra-?[a-z]+ +active" && exit 0
+  #      The four boost tokens are ENUMERATED, not `ultra-?[a-z]+`: the loose form
+  #      also matched Claude Code's own vocabulary, so "ultracode active — now
+  #      ultra-assess X" (and "ultrathink active, …") silently suppressed the boost
+  #      the user had just typed. Regression: scripts/smoke/hook-guard-tests.sh.
+  printf '%s' "$head" | grep -qiE "ultra-?(task|goal|assess(ment)?|craft) +active" && exit 0
   if printf '%s' "$head" | grep -qiE '\bultra-?assess(ment)?\b'; then
     # Fixed tier, matching ultra-task: model=auto (session model or opus, whichever
     # is higher) + effort=xhigh. No suffix grammar — bare token only.

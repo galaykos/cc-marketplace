@@ -33,7 +33,11 @@
   #      opens "ULTRA-<X> ACTIVE"; a prompt quoting that is a transcript paste, not
   #      an invocation. Catching the self-echo is worth a line because the commonest
   #      way a boost banner reaches a prompt is a previous run's output.
-  printf '%s' "$head" | grep -qiE "ultra-?[a-z]+ +active" && exit 0
+  #      The four boost tokens are ENUMERATED, not `ultra-?[a-z]+`: the loose form
+  #      also matched Claude Code's own vocabulary, so "ultracode active — now
+  #      ultra-task X" (and "ultrathink active, …") silently suppressed the boost the
+  #      user had just typed. Regression cases: scripts/smoke/hook-guard-tests.sh.
+  printf '%s' "$head" | grep -qiE "ultra-?(task|goal|assess(ment)?|craft) +active" && exit 0
   if printf '%s' "$head" | grep -qiE '\bultra-?goal\b'; then
     echo "ULTRA-GOAL ACTIVE (model=auto, effort=xhigh) — hands-off Extreme Boost for this taskmaster run. Apply the taskmaster 'ultra' skill (skills/ultra/SKILL.md) in Goal mode: full boost contract (reasoning subagents model:auto — session model or opus, whichever is higher, escalate never downgrade; effort xhigh on the Workflow path, inline dispatch escalates model only; scouts and opinion-lens stay NATIVE), mandatory red-team + coverage, auto-take every recommendation per the skill's Goal rules with every auto-take audited to the goal ledger, stamp 'Goal: true (model=auto, effort=xhigh)' into 00-INDEX.md, never suppress safety halts, print the ⚡ banner first. Fan-out only when the Workflow tool is present; else inline fallback labeled 'inline heuristic pass — single model, uncorroborated'."
   elif printf '%s' "$head" | grep -qiE '\bultra-?task\b'; then

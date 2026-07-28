@@ -75,7 +75,7 @@ This mirrors the three-cycle ceiling used elsewhere in the pipeline: bounded,
 never an unbounded loop, but also never the maximum fan-out on a task that a
 single scout and a two-voter panel would settle.
 
-## Fan-out cost — `budget.remaining()` gates the ceilings
+## Fan-out cost — `budget.remaining()` and the workflow-size guideline gate the ceilings
 
 The counts above bound wall-clock (concurrency is capped) but not tokens. On the
 `Workflow` path the harness exposes `budget.total` / `budget.spent()` /
@@ -88,6 +88,23 @@ that is all the budget funds. `budget.total == null` means no token target, so t
 ceilings alone apply. The inline (non-`Workflow`) path exposes no budget handle; there the
 counts are the only bound. This is D2's cost concern answered at the granularity that has
 a real handle, not a total-agent cap that binds the wrong variable.
+
+A second bound is the harness's, not ours: the session carries a **workflow-size
+guideline** (default *medium* — keep one workflow under ~15 agents; the user can raise or
+remove it). Where the counts above and that guideline disagree, the guideline wins, because
+it is the user's standing preference and ours is a per-phase heuristic. Two rules keep the
+two compatible:
+
+- **Size per workflow invocation, not per run.** Each fan-out phase is its own `Workflow`
+  call, so recon (≤3), spec-redteam (≤3) and a coverage round (≤3) never sum against one
+  ceiling. The phase that actually collides is **card-verify** — "one fan-out pass per card"
+  over a large index is a single wide stage. Batch it: verify cards in waves that respect
+  the guideline rather than opening one agent per card in one call.
+- **Shrink, never drop, and say so.** A stage that cannot fit shrinks toward its inline
+  fallback (down to N=1); red-team and coverage still always run. `log()` the shrink and the
+  deferred count — a silent truncation reads as full coverage, which is exactly the
+  over-claim the honest-limitation law forbids. (`orchestration:verification-panels`
+  `references/dispatch-tier.md` § Native harness interop owns this rule for all three boosts.)
 
 ## What does NOT change
 

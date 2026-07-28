@@ -10,6 +10,13 @@
 # symlinks) so it exercises genuine absence — matching both the legacy `|| exit 0` guard
 # and the regenerated `command -v jq || exit 0` guard. Companion to (and does NOT touch)
 # scripts/smoke/guard-tests.sh, which covers the authoring-guard.
+#
+# Second section: the three BOOST hooks (taskmaster ultra.sh, orchestration
+# ultra-assess.sh, craft-layer ultra-craft.sh). Same guard question, opposite default —
+# a boost hook must SPEAK on a real invocation and stay silent on a pasted banner. The
+# regression it pins: the self-echo guard was `ultra-?[a-z]+ +active`, which also matched
+# Claude Code's own `ultracode` / `ultrathink` vocabulary, so a prompt opening
+# "ultracode active — now ultra-task X" silently suppressed the boost.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${CHASSIS_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
@@ -88,8 +95,47 @@ if [ "$found" -eq 0 ]; then
   exit 2
 fi
 
+# ---- boost hooks: fire on an invocation, stay silent on a pasted banner ---------
+# One row per case: hook path | want (speak|silent) | prompt.
+assert_boost() { # desc  hook  want  prompt
+  local desc="$1" hook="$2" want="$3" prompt="$4" out rc_
+  out="$(printf '%s' "$prompt" | jq -Rs '{prompt:.}' | "$BASH_BIN" "$hook" 2>/dev/null)"; rc_=$?
+  if [ "$rc_" -ne 0 ]; then fail "$desc" "exit $rc_ (want 0 — boost hooks fail open)"; return; fi
+  case "$want" in
+    speak)  [ -n "$out" ] && pass "$desc" || fail "$desc" "wanted a directive, got silence" ;;
+    silent) [ -z "$out" ] && pass "$desc" || fail "$desc" "wanted silence, spoke: ${out:0:60}…" ;;
+  esac
+}
+
+boost_found=0
+for spec in \
+  "taskmaster/hooks/ultra.sh|ultra-task|ULTRA-TASK ACTIVE" \
+  "taskmaster/hooks/ultra.sh|ultra-goal|ULTRA-GOAL ACTIVE" \
+  "orchestration/hooks/ultra-assess.sh|ultra-assess|ULTRA-ASSESS ACTIVE" \
+  "craft-layer/hooks/ultra-craft.sh|ultra-craft|ULTRA-CRAFT ACTIVE"
+do
+  rel="${spec%%|*}"; rest="${spec#*|}"; tok="${rest%%|*}"; banner="${rest#*|}"
+  hook="$ROOT/plugins/$rel"
+  [ -f "$hook" ] || continue
+  boost_found=$((boost_found+1))
+  assert_boost "$rel [$tok invocation]"        "$hook" speak  "$tok build the thing"
+  # REGRESSION: harness vocabulary in the same prompt must not eat the boost.
+  assert_boost "$rel [$tok after ultracode]"   "$hook" speak  "ultracode active — now $tok build the thing"
+  assert_boost "$rel [$tok after ultrathink]"  "$hook" speak  "ultrathink active, $tok build the thing"
+  # Still refuses its own banner echoed back, and a negated mention.
+  assert_boost "$rel [own banner pasted]"      "$hook" silent "$banner (model=auto, effort=xhigh) — $tok"
+  assert_boost "$rel [negated]"                "$hook" silent "do not use $tok for this one"
+  assert_boost "$rel [slash prompt]"           "$hook" silent "/taskmaster:task $tok build the thing"
+  assert_boost "$rel [harness word alone]"     "$hook" silent "ultracode ultrathink refactor the auth module"
+done
+
+if [ "$boost_found" -eq 0 ]; then
+  printf 'hook-guard-tests: no boost hooks found under %s/plugins\n' "$ROOT" >&2
+  exit 2
+fi
+
 if [ "$rc" -eq 0 ]; then
-  printf '\nAll %d reminder hooks passed guard cases (slash / empty / no-jq).\n' "$found"
+  printf '\nAll %d reminder hooks passed guard cases (slash / empty / no-jq); %d boost hooks passed trigger cases.\n' "$found" "$boost_found"
 else
   printf '\nSome guard-case asserts FAILED.\n'
 fi
