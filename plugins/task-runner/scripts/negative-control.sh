@@ -55,8 +55,11 @@ classify_red() {
   local blob; blob=$(cat)
   # 1) HARD assertion markers FIRST: these strings never appear in a pure
   #    build/collection error, so matching them here cannot misfile a build red.
+  #    `not ok ` is deliberately NOT here — see tier 4. TAP prints it for ANY
+  #    failing subtest, a load/build failure included, so it is a generic fail
+  #    glyph and not a hard assertion marker.
   if printf '%s\n' "$blob" | grep -Eq \
-     'AssertionError|ERR_ASSERTION|--- FAIL:|^E +assert|not ok |assert(ion)?[[:space:]]+(failed|error)|FAILED .*assert|expect\(|Expected:.*Received:'; then
+     'AssertionError|ERR_ASSERTION|--- FAIL:|^E +assert|assert(ion)?[[:space:]]+(failed|error)|FAILED .*assert|expect\(|Expected:.*Received:'; then
     printf 'assertion\n'; return 0
   fi
   # 2) collection / import errors (pytest ERROR collecting, python ImportError,
@@ -71,9 +74,12 @@ classify_red() {
     printf 'build\n'; return 0
   fi
   # 4) generic per-test fail glyphs, meaningful ONLY once build/collection are
-  #    ruled out (node --test prints ✖ for build failures too, so this must come
-  #    after the build/collection checks, never before them).
-  if printf '%s\n' "$blob" | grep -Eq '✖|✗'; then
+  #    ruled out. `node --test` prints ✖ for build failures too, and under its TAP
+  #    reporter (the non-TTY default on older Node) the same failure prints
+  #    `not ok 1 - <file>` — which is why the reporter node happens to pick must
+  #    not change the verdict. Both live here, after the build/collection checks,
+  #    never before them.
+  if printf '%s\n' "$blob" | grep -Eq '✖|✗|not ok '; then
     printf 'assertion\n'; return 0
   fi
   printf 'unknown\n'; return 0

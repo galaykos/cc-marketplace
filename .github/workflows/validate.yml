@@ -12,6 +12,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # Pin Node: several harnesses shell out to `node --test`, and its DEFAULT
+      # REPORTER is version-dependent (older majors emit TAP `not ok` for a
+      # non-TTY run, newer ones emit the spec reporter's `✖`). Left to the
+      # runner image's stock Node, a GitHub image bump silently changes that
+      # output and with it what negative-control.sh classifies a red as — the
+      # regression behind "invalid-control ... (rc=0 want=4)", green locally and
+      # red in CI. classify_red() now reads both shapes and a fixture locks that
+      # in; this pin is the second layer, keeping CI and a dev machine on the
+      # same major so the harnesses are compared against one Node, not two.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - name: Validate marketplace structure
         run: bash scripts/validate.sh
       - name: Context-budget gate
