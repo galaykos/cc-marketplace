@@ -369,6 +369,33 @@ EOF_OVERLAPS
 $cofires
 EOF_COFIRES
   fi
+
+  # Tool-fit check gate (hard). route-prompt.sh injects a catalog it builds at runtime
+  # from the installed plugins' command frontmatter, and hands the ROUTING JUDGMENT to
+  # the model. Two properties are mechanically checkable and both are load-bearing:
+  #
+  #   1. No literal command token in the hook. A hardcoded `/plugin:command` is a route
+  #      the catalog never shows and nobody can audit — the same rule route.sh carries.
+  #   2. No per-tool routing patterns. The hook is allowed exactly ONE prompt-matching
+  #      grep (the work-shaped gate); a second would be a routing table growing back in
+  #      shell, which is the mechanism this deliberately replaced.
+  #
+  # What is NOT gated, stated plainly: which command the model picks. That is a
+  # judgment with real variance — agent-graded, not gated. See the has-teeth
+  # convention in CLAUDE.md; do not describe this check as guaranteeing a route.
+  RP="$SR/hooks/route-prompt.sh"
+  if [ -f "$RP" ]; then
+    prompt_lits=$(grep -v '^[[:space:]]*#' "$RP" 2>/dev/null \
+      | grep -oE '/[a-z][a-z0-9-]+:[a-z][a-z0-9-]+' | sort -u || true)
+    [ -z "$prompt_lits" ] \
+      || err "skill-router route-prompt.sh carries literal command token(s): $(echo $prompt_lits) — the catalog is built from installed plugins, never hardcoded"
+    # Count prompt-matching greps: `$head` is the scrubbed prompt, so every grep over it
+    # is a prompt pattern. The narrowing refusals and the single work-shaped gate are the
+    # budget; anything past it is a routing rule.
+    head_greps=$(grep -c 'printf .%s. "\$head" | grep' "$RP" 2>/dev/null || echo 0)
+    [ "$head_greps" -le 4 ] \
+      || err "skill-router route-prompt.sh matches the prompt $head_greps times — at most 4 (three narrowing refusals + one work-shaped gate); a fifth is a routing table regrowing in shell"
+  fi
 fi
 
 # All-bundle dependency gate (hard): generalizes the everything-only completeness
