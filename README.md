@@ -238,7 +238,7 @@ installing this plugin, or the same server is declared twice.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **quality-principles-suite** | Meta-bundle: the eight advisory quality disciplines — approaches, security, a11y, debugging, performance, resilience, packages, observability. Split out of quality-suite in 0.5.0; none of them is a gate | `/quality-principles-suite:uninstall` |
+| **quality-principles-suite** | Meta-bundle: the eight advisory quality disciplines — approaches, security, a11y, debugging, performance, resilience, packages, observability. Split out of quality-suite in 0.7.0; none of them is a gate | `/quality-principles-suite:uninstall` |
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + its wired companions (tasks, engineering discipline, worker agents, ui-ux visual routing) | `/taskmaster-suite:uninstall` |
 | **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, craft-layer, registry-source (the component-registry MCP servers), design-preview, shadcn-studio, threejs, React, React Native, Vue 3, Vite, Inertia, Livewire, Next, Nuxt, web worker, a11y, skill-router | `/frontend-suite:uninstall` |

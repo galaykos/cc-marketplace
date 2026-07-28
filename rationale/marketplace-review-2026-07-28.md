@@ -51,10 +51,18 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 8. **Nothing measures anything.** Zero eval or benchmark artifacts under
    `plugins/` or `scripts/`. `scripts/smoke/canary.sh:2` is the only live-model
    harness and is deliberately not a CI step. Every behavioral claim in this
-   marketplace is unmeasured.
-9. **`hindsight` is write-only in practice** — `hooks/collect.sh:6` appends to
-   `$HOME/.claude/hindsight/<slug>/ledger.jsonl`; the only reader is the
-   `/hindsight:harvest` `COMMAND`.
+   marketplace is unmeasured. *(Two qualifications found later: `context-budget.sh`
+   does check its predictions against measurements and fails on drift — §3.4 — and
+   `verbosity.sh` now leaves a data trail, §6 P2. Neither measures whether a plugin
+   improves outcomes, so the verdict stands as written.)*
+9. **`hindsight`'s ledger is read only by a command** — `hooks/collect.sh:6`
+   appends to `$HOME/.claude/hindsight/<slug>/ledger.jsonl`; the only reader is
+   `/hindsight:harvest`. *Revised 2026-07-28:* the fact is right, listing it under
+   "nothing measures anything" was not. `README.md:24-36` documents this as a
+   deliberate three phases — collect (automatic) / harvest (on demand) / apply (on
+   approval) — behind a two-session recurrence gate and per-category consent. An
+   automatic reader would break its own "nothing is written without an explicit
+   pick" contract. See §3.4.
 10. **Honest conclusion: the marketplace is too large for its enforcement mass.**
     3 real gates (2 Stop, 1 PreToolUse-deny) carry 124 skills. Cut list in §7.
     *(4 after P0-3. The ratio is the point, and 4:124 is not materially better
@@ -74,9 +82,9 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 | C | Verification requires output | `code-architecture` | `skills/work-verification/SKILL.md:22-31` "never assert without output"; enforced by `hooks/evidence-gate.sh` | GATE (holed) | **PARTIAL** — see §3.3 and Verdict 1 |
 | C′ | Behavioral completion | `task-runner` | `skills/behavioral-gate/SKILL.md:104-108`, `hooks/completion-gate.sh` exit 2 | GATE | **ENFORCED** for registered runs; fail-open otherwise (`SKILL.md:113-118`, stated) |
 | D | Tests run vs written | `testing` | `skills/testing-best-practices/SKILL.md` is authoring guidance throughout; no runner, no gate | PROSE | **ADVISORY** — `testing` never runs anything. Running belongs to `task-runner:behavioral-gate`, which is a different plugin the user may not have |
-| E | Review agreement | `code-review` | `commands/review.md:20-28` enumerates and loads matching stack skills in one pass; `:54-60` names a single owner per finding | COMMAND | **PARTIAL** — fan-in is real, not just claimed. But 32 `review.md` commands ship, and `:26` instructs "never tell the user to run the per-stack review commands" — the sprawl is contradicted by its own flagship |
+| E | Review agreement | `code-review` | `commands/review.md:20-28` enumerates and loads matching stack skills in one pass; `:54-60` names a single owner per finding | COMMAND | **ENFORCED at the fan-in** *(revised 2026-07-28)* — fan-in is real, not just claimed. The original "sprawl contradicted by its flagship" reading was **wrong**: `:26` reads "never tell the user to run the per-stack review commands separately; **this command is the fan-in**" — a routing instruction to the model mid-review, not a claim the commands are redundant. And **28 of the 32 are their plugin's only command**. See §3.4 |
 | F | Result vs **original request** | `code-architecture:drift-review` | `skills/drift-review/SKILL.md:3` "reviews the whole diff against what was asked"; **2026-07-28** wired into `task-execution/SKILL.md:145-148` completion protocol (§6 P1-3) | PROSE + COMMAND → part of the completion protocol, still PROSE-tier | **ADVISORY** — the only request-level check. `taskmaster:coverage` is explicitly *not* this: `skills/coverage-check/SKILL.md:14` "delivered code against criteria later — this checks that the criteria are all [covered]" |
-| G | See it / cost it before build | `taskmaster:visual-decisions`, `design-preview`, `approaches:size` | wireframes + mockups exist; `approaches:size` emits S/M/L/XL | COMMAND | **PARTIAL** — see-it: yes. Cost-it: estimates are write-only. No file records predicted-vs-actual for `approaches:size`, `task-runner` speedup, or `context-budget` deltas. Nothing reads them back |
+| G | See it / cost it before build | `taskmaster:visual-decisions`, `design-preview`, `approaches:size` | wireframes + mockups exist; `approaches:size` emits S/M/L/XL | COMMAND | **PARTIAL** — see-it: yes. Cost-it: 2 of 3 estimates are write-only (`approaches:size`, `task-runner` speedup). *Corrected 2026-07-28:* `context-budget` deltas are **not** — `scripts/context-budget.sh:110-135` reads the baseline back on every run and FAILs beyond tolerance. That one is a prediction checked against a measurement, enforced in CI. See §3.4 |
 
 ### Unnamed axes — where the reported failures live
 
@@ -214,6 +222,26 @@ at all — `not verified` whether any are stale, but nothing in the repo could d
 it if they were.
 
 ---
+
+### 3.4 Findings withdrawn on inspection (2026-07-28)
+
+Three items survived the review and then failed when someone went to build them.
+Recorded here rather than deleted, because a review that only keeps its wins is
+not evidence of anything.
+
+| Finding | Why it was withdrawn |
+|---|---|
+| **Review-command sprawl** (axis E) — "32 `review.md` commands ship … the sprawl is contradicted by its own flagship" | Two errors. (1) `code-review/commands/review.md:26` reads in full: "Load each skill whose plugin IS installed and apply it inside the single pass below — never tell the user to run the per-stack review commands separately; **this command is the fan-in** for the overlapping review surfaces." That is a routing instruction to the model *during* a fan-in review, not a claim the commands are redundant. Quoting the clause without its sentence inverted it. (2) **28 of the 32 are their plugin's only command.** "Consolidation" would strip 28 plugins of their sole entry point. The count is real; the conclusion drawn from it was not |
+| **`context-budget` deltas are write-only** (axis G) | Flatly false. `scripts/context-budget.sh:110-135` reads the committed baseline on every run, prints the delta, and raises `FAIL: <plugin> +<delta> tok over baseline` past tolerance — its own blocking CI step. It is the one prediction in this marketplace that *is* checked against a measurement. The other two axis-G claims (`approaches:size`, `task-runner` speedup) stand |
+| **`hindsight` is write-only in practice** (Verdict 9) | The fact is right and the framing was wrong. `hindsight/README.md:24-36` documents three deliberate phases — collect (automatic), harvest (**on demand**), apply (**on approval**) — with a two-session recurrence gate and per-category consent. On-demand is the design, not an omission; an automatic reader would break its stated "Nothing is written without an explicit pick" contract. Listing it under "nothing measures anything" mistook a consent boundary for a gap |
+
+**What this leaves genuinely open on axis G:** `approaches:size` classes and
+`task-runner`'s speedup number have no reader. Closing either needs a mechanism
+that captures *actuals* — per-task elapsed time, real wall-clock speedup — which
+nothing records today. Building that recorder now, unasked, to feed a comparison
+nobody has requested, is the speculative generality `yagni-check` exists to flag.
+**Not built. Left open, and named.**
+
 
 ## 4. Conflict map
 
@@ -501,9 +529,9 @@ within its existing four lines, since that body is also at the 150 ceiling.
 | **E3 regression case** (§8) | **Applied.** `evidence-gate-hook-tests.sh` case 20: a failure word *plus* real post-edit execution must pass on the EVIDENCE path, not the escape path. It is the case that stays green if the P0-1 tightening ever over-reaches, while 13-15 flip. Suite 19 → **20 passed** |
 | **Measurement trail** (axis M) | **Applied.** `verbosity.sh` records every scan — warned or not — to `~/.claude/comment-discipline/verbosity-ledger.jsonl` (machine-local, 1 MB cap). The P0-2 threshold was calibrated once, on one machine, from transcripts predating the hook; without a record of what it sees in practice, nothing could ever say whether 600 is right or whether the warning changed the sessions that got it. **Write-only by design and labelled so** — nothing reads it back, and calling it a feedback loop today would be exactly the `hindsight` over-claim this review flagged in Verdict 9 |
 | **`license` on 1 of 65** | **Not a defect — closed, no change.** The outlier is `registry-source`, the one plugin shipping executable code (`mcp/server.mjs`) rather than only markdown. A plugin that ships redistributable code declaring MIT is correct; 64 markdown-only plugins inheriting the repo `LICENSE` is also correct. Nothing in `validate.sh`, `lib/plugin-checks.sh`, or `authoring-plugins/SKILL.md` reads the field. Adding it to 64 files would cost 64 version bumps for inert metadata — the churn would be the defect |
-| **Estimate write-back** (axis G) | **Not started.** `approaches:size`, task-runner speedup estimates, and `context-budget` deltas remain write-only |
-| **`hindsight` auto-read** | **Not started.** Its ledger is still read only by the `/hindsight:harvest` COMMAND |
-| **Review-command consolidation** | **Not started** — belongs with §7, which is unapplied |
+| **Estimate write-back** (axis G) | **Partly withdrawn, remainder not built.** `context-budget` deltas were never write-only — the gate reads them back and fails on drift (§3.4). `approaches:size` and the task-runner speedup number genuinely have no reader, and closing either needs an actuals recorder nothing has asked for. Left open and named rather than built speculatively |
+| **`hindsight` auto-read** | **Withdrawn** (§3.4). On-demand harvest is the documented design, behind a consent gate; an automatic reader would break its own contract |
+| **Review-command consolidation** | **Withdrawn** (§3.4). 28 of the 32 `review.md` commands are their plugin's only command, and the "contradicted by its flagship" reading came from quoting half a sentence |
 
 ---
 

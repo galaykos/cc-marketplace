@@ -46,6 +46,6 @@ the split is about being able to *choose*, not a recommendation to take only one
 
 ## Pairs well with
 
-- **quality-suite** — the enforcing half; the two were one bundle until 0.5.0
+- **quality-suite** — the enforcing half; the two were one bundle until 0.7.0
 - **taskmaster-suite** — the spec and task-card pipeline whose output these reviews read
 - **git-workflow** — full-suite verification before merge/PR when a branch finishes

@@ -9,7 +9,7 @@ plugins it auto-installed.
 
 The eight advisory disciplines this bundle used to carry — security, a11y,
 debugging, performance, resilience, packages, observability, approaches — moved to
-**quality-principles-suite** in 0.5.0. They were never gates, and bundling them here
+**quality-principles-suite** in 0.7.0. They were never gates, and bundling them here
 meant a project wanting enforcement paid for their always-on description context
 too. Install both if you want what the old bundle was; the split exists so that is
 a choice.
@@ -36,6 +36,6 @@ a choice.
 
 ## Pairs well with
 
-- **quality-principles-suite** — the advisory half, split out of this bundle in 0.5.0
+- **quality-principles-suite** — the advisory half, split out of this bundle in 0.7.0
 - **taskmaster-suite** — spec and task-card pipeline whose output these reviews gate
 - **git-workflow** — full-suite verification before merge/PR when a branch finishes
