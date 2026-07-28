@@ -37,11 +37,17 @@
 #   - Transcript tail only (last 4000 entries); a session longer than that is
 #     judged on its tail.
 #   - CLAIM and ACK are matched over the SAME window (the last 30 lines of
-#     assistant text), so an honest acknowledgement several messages back still
-#     licenses a naked claim now. Narrowing ACK to the final message alone was
-#     considered and rejected: it would block honest reports that state the
-#     caveat before the summary, and it fixes no observed case — every measured
-#     escape was same-sentence, which the phrase-scoping above closes.
+#     assistant text), and the window bleeds in BOTH directions. Measured:
+#       * ACK bleed — "not tested yet" two messages back licenses a fresh naked
+#         "Everything is implemented and verified. Done." in this turn.
+#       * CLAIM bleed — a previous turn's legitimate "All tests pass, done."
+#         still sits in the window, so a later small edit ending in text that
+#         claims nothing at all can be blocked for a claim it never made.
+#     Both predate this hook's phrase-scoping and neither is fixed here; an
+#     earlier revision of this comment described only the first, which flattered
+#     the gate. Narrowing ACK to the final message alone was considered and
+#     rejected: it would block honest reports that state the caveat before the
+#     summary, and it fixes no measured escape — those were all same-sentence.
 #   - One block per distinct claim (state marker) — a re-stop on the same
 #     final text passes, so an unfixable disagreement cannot loop forever.
 #
@@ -89,8 +95,21 @@ printf '%s' "$said" | grep -qiwE "$CLAIM" || exit 0
 # never reached the evidence scan. A failure named as the thing that was FIXED
 # is part of the claim, not an acknowledgement of it. So the failure vocabulary
 # is now phrase-scoped — the subject must be the check ("tests still fail",
-# "the build failed") or the failure must carry its cause ("fails with ENOENT").
-ACK='not tested|untested|unverified|not verified|did not run|didn.t run|have not run|haven.t run|not run yet|cannot verify|could not verify|not green|still fail(ing|s)?|currently fail(ing|s)?|(tests?|suite|build|lint|checks?|it) (still |currently )?fail(ing|ed|s)?|fail(ing|ed|s)? (with|on|because|due)|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|please verify|verify manually|left to do|remains to'
+# "the build failed", "two tests are failing") or a present-tense failure must
+# carry its cause ("fails with ENOENT").
+#
+# WHAT THIS DOES NOT CLOSE — a regex cannot see tense, and pretending otherwise
+# would be the over-claim this repo's own conventions forbid. A completion claim
+# that names a PAST failure with the check as its subject still escapes:
+#     "The build failed earlier; after my fix it is all good now. Done."
+# The same shape is also the most natural way to report a genuinely red suite
+# ("the build failed on the type check"), so the two readings are the same string
+# and no pattern separates them. Narrowing further would trade this residual for
+# false blocks on honest reports, which is the worse failure: a gate that cries
+# wolf gets switched off. Measured on this branch: of seven past-tense escape
+# shapes found in review, four now block and three do not. Treat this gate as
+# closing the BARE-NOUN class, not the tense problem.
+ACK='not tested|untested|unverified|not verified|did not (run|rerun)|didn.t (run|rerun)|have not (run|rerun)|haven.t (run|rerun)|not (run|rerun) yet|cannot verify|could not verify|not green|still fail(ing|s)?|currently fail(ing|s)?|(tests?|suite|build|lint|checks?|it) (is|are|was|were) (still |currently )?fail(ing|ed|s)?|(tests?|suite|build|lint|checks?|it) (still |currently )?fail(ing|ed|s)?|fail(ing|s) (with|on|because|due)|in progress|still working|wip|not done|incomplete|halt|halting|halted|blocked|parked|known issue|please verify|verify manually|left to do|remains to'
 printf '%s' "$said" | grep -qiwE "$ACK" && exit 0
 
 # 2+3. MUTATION AND EVIDENCE ORDER: one row of tool names per assistant entry

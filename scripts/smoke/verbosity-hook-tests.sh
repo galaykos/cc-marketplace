@@ -120,5 +120,26 @@ if [ "$(wc -l < "$LEDGER" 2>/dev/null | tr -d ' ')" = "2" ]
 then pass=$((pass+1)); printf 'PASS  exempt transcript writes no ledger row\n'
 else fail=$((fail+1)); printf 'FAIL  exempt transcript writes no ledger row (%s rows)\n' "$(wc -l < "$LEDGER" 2>/dev/null)"; fi
 
+# --- state must be writable or the hook does nothing (16) ------------------
+# Both advertised bounds — "one warning per session" and the RESCAN_EVERY scan
+# limit — live in the state file. If it cannot be written the hook has no memory:
+# it would warn on EVERY tool call and re-scan the whole transcript every time,
+# the exact opposite of both claims. Writability is a precondition, not a courtesy.
+UNW="$WS/unwritable"; mkdir -p "$UNW/.claude"; chmod 555 "$UNW/.claude"
+UNW_HOME="$WS/home2"
+unw_out=""
+for _ in 1 2 3; do
+  unw_out="$unw_out$(jq -cn --arg tp "$WS/verbose.jsonl" --arg cwd "$UNW" --arg sid U1 \
+    '{transcript_path:$tp,cwd:$cwd,session_id:$sid}' \
+    | env HOME="$UNW_HOME" bash "$HOOK" 2>/dev/null)"
+done
+unw_rows=$( { wc -l < "$UNW_HOME/.claude/comment-discipline/verbosity-ledger.jsonl"; } 2>/dev/null | tr -d ' ' )
+if [ -z "$unw_out" ] && [ -z "${unw_rows:-}" -o "${unw_rows:-0}" = "0" ]; then
+  pass=$((pass+1)); printf 'PASS  unwritable state dir silences the hook entirely\n'
+else
+  fail=$((fail+1)); printf 'FAIL  unwritable state dir silences the hook (out=%s rows=%s)\n' "$unw_out" "${unw_rows:-0}"
+fi
+chmod 755 "$UNW/.claude"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

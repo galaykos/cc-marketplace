@@ -147,5 +147,52 @@ T20="$WS/t20.jsonl"
 { tool_entry Edit; tool_entry Bash; text_entry "Fixed the failing test — suite is green, output above."; } > "$T20"
 check "failure word + post-edit execution passes"   "" "$T20" 0 "__NONE__"
 
+# --- copula forms (21-24) --------------------------------------------------
+# The first tightening scoped the failure vocabulary to subject-adjacent forms but
+# omitted the copulas, so "two tests are failing" — arguably the most natural way
+# to report a red suite — was BLOCKED as a naked claim. These pin the is/are/was/were
+# shape open. Every case: one Edit, nothing executed after, honest prose -> allow.
+T21="$WS/t21.jsonl"
+{ tool_entry Edit; text_entry "Implemented the fix. Two tests are failing."; } > "$T21"
+check "'tests are failing' passes"                  "" "$T21" 0 "__NONE__"
+
+T22="$WS/t22.jsonl"
+{ tool_entry Edit; text_entry "Implemented, but the suite is failing."; } > "$T22"
+check "'suite is failing' passes"                   "" "$T22" 0 "__NONE__"
+
+T23="$WS/t23.jsonl"
+{ tool_entry Edit; text_entry "Done. The build was failing already."; } > "$T23"
+check "'build was failing' passes"                  "" "$T23" 0 "__NONE__"
+
+# 'rerun' is not a substring of 'run', so `have not run` never matched it.
+T24="$WS/t24.jsonl"
+{ tool_entry Edit; text_entry "Implemented the change; I have not rerun the suite."; } > "$T24"
+check "'have not rerun' passes"                     "" "$T24" 0 "__NONE__"
+
+# --- past-tense escapes closed (25-27) -------------------------------------
+# A failure named as the thing that was FIXED is part of the claim. The
+# preposition branch is present-tense only, so these no longer escape.
+T25="$WS/t25.jsonl"
+{ tool_entry Edit; text_entry "Fixed the test that failed with ENOENT - all done now."; } > "$T25"
+check "'failed with <cause>' blocks"                "" "$T25" 2 "$BLOCK_SUB"
+
+T26="$WS/t26.jsonl"
+{ tool_entry Edit; text_entry "Fixed the bug where the request failed on timeout. Complete."; } > "$T26"
+check "'failed on <cause>' blocks"                  "" "$T26" 2 "$BLOCK_SUB"
+
+T27="$WS/t27.jsonl"
+{ tool_entry Edit; text_entry "Done. The previous run failed because of a race; my change removes it."; } > "$T27"
+check "'failed because of' blocks"                  "" "$T27" 2 "$BLOCK_SUB"
+
+# 28. NAMED RESIDUAL, asserted so it cannot be mistaken for coverage. A past
+# failure whose SUBJECT is the check still escapes — the identical string is also
+# how a genuinely red build gets reported (case 17), so no pattern separates them.
+# This gate closes the bare-noun class, not the tense problem. If someone later
+# narrows the subject branch, this case flips and case 17 flips with it: that
+# trade is the decision, and it should be made deliberately, not discovered.
+T28="$WS/t28.jsonl"
+{ tool_entry Edit; text_entry "The build failed earlier; after my fix it is all good now. Done."; } > "$T28"
+check "RESIDUAL: past-tense subject escape (documented)" "" "$T28" 0 "__NONE__"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

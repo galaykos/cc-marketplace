@@ -25,6 +25,10 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 
    The gate works exactly until the turn mentions a failure — i.e. it fails on
    bug-fix turns, which is most of them. Largest single-change effect on failure #3.
+   *(Fixed 2026-07-28 — §6 P0-1. **Partially**: the bare-noun class is closed, the
+   tense problem is not. Adversarial review found four more escapes, of which three
+   now block and one is a named residual. The fix also introduced, then removed, a
+   false-positive class on the `is/are/was/were failing` shape.)*
 2. **Output discipline is `MISSING`, and 27 SKILL.md lines actively demand
    narration.** Chattiness is not an absence of suppression; it is a marketplace
    requirement. Any "be concise" rule added as prose loses to those 27.
@@ -344,7 +348,7 @@ above 10,732 by an amount this repo cannot currently measure.
 ### P0-1 — Close the evidence-gate honesty hole — **APPLIED 2026-07-28**
 
 **File:** `plugins/code-architecture/hooks/evidence-gate.sh` (ACK block).
-`plugin.json` 0.9.1 → 0.9.2.
+`plugin.json` 0.9.1 → 0.9.2 (shipped 0.10.0 after the §7 folds).
 
 Before:
 ```bash
@@ -367,14 +371,39 @@ Mechanism: GATE (holed) → GATE. **Net tokens: 0** (hook body, not description)
 | Drop `please verify\|verify manually` | **kept** | Those are honest hand-off phrasings, not evasions |
 
 **Verification:** `scripts/smoke/evidence-gate-hook-tests.sh` extended 12 → 19
-cases (3 regression, 4 honest-report guards). **19 passed, 0 failed.** All four
-repo gates green (`validate`, `check-version-bumps master`, `context-budget`,
-`generate --check`), plus `hook-syntax` (44 scripts) and `hook-guard`.
+cases (3 regression, 4 honest-report guards), then extended again after adversarial
+review to **28 passed, 0 failed** — see the correction below. All four repo gates green,
+plus `hook-syntax` and `hook-guard`.
+
+**The first cut over-claimed, and introduced a false-positive class.** Adversarial
+review measured both:
+
+| Shape | First cut | Now |
+|---|---|---|
+| `"Implemented the fix. Two tests are failing."` | **blocked** (regression — master passed it) | passes |
+| `"…the suite is failing."` / `"…was failing."` | **blocked** (regression) | passes |
+| `"…I have not rerun the suite."` | **blocked** — `have not run` never matched `rerun` | passes |
+| `"Fixed the test that failed with ENOENT — all done now."` | escaped | **blocks** |
+| `"Fixed the bug where the request failed on timeout. Complete."` | escaped | **blocks** |
+| `"The build failed earlier; after my fix it is all good now. Done."` | escaped | **still escapes** |
+
+Two fixes: the subject-adjacent branch gained the copulas (`is|are|was|were`), which
+were simply missing and cost honest reports; and the preposition branch became
+present-tense only, so a *fixed* past failure carrying its cause no longer escapes.
+
+**The residual is named, not papered over.** A regex cannot see tense, and the last
+row above is the same string a genuinely red build produces (`"the build failed on the
+type check"`, an intended escape pinned at case 17). Narrowing further trades the
+residual for false blocks on honest reports — the worse failure, since a gate that
+cries wolf gets switched off. Of seven past-tense escape shapes found in review, four
+now block and three do not. **This gate closes the bare-noun class, not the tense
+problem**, and §1's "it fails on bug-fix turns, which is most of them → fixed" claimed
+more than shipped. Case 28 asserts the residual so it cannot be mistaken for coverage.
 
 ### P0-2 — Output contract as a mechanism, not a rule — **APPLIED 2026-07-28**
 
 **Files:** new `plugins/comment-discipline/hooks/verbosity.sh`; `hooks/hooks.json`;
-`README.md`; `plugin.json` 0.2.0 → 0.3.0 (+ `marketplace.json` description sync);
+`README.md`; `plugin.json` 0.2.0 → 0.3.0 — shipped **0.5.0** after the review fixes (+ `marketplace.json` sync);
 new `scripts/smoke/verbosity-hook-tests.sh`; one CI step.
 
 Mechanism: `MISSING` → HOOK-WARN. **Net always-on tokens: 0** — `context-budget.sh`
@@ -411,7 +440,7 @@ standing rules. It reports a measured fact about the current session that nothin
 else in the marketplace measures — and in doing so puts the first real number
 against axis M.
 
-**Verification:** `scripts/smoke/verbosity-hook-tests.sh` — **12 passed, 0 failed**
+**Verification:** `scripts/smoke/verbosity-hook-tests.sh` — **16 passed, 0 failed**
 (terse/median/just-under silent; outlier warns; once-per-session bound; fresh
 session re-arms; subagent exempt; <8 calls, <60 lines, missing, malformed, and
 partial payloads all fail open silently; every case asserts rc 0 — it can never
@@ -425,7 +454,7 @@ threshold is one machine's calibration; assumes `PostToolUse` carries
 ### P0-3 — Narrow comment-discipline to a targeted block — **APPLIED 2026-07-28**
 
 **Files:** `plugins/comment-discipline/hooks/scan.sh`, `hooks/hooks.json`,
-`README.md`, `plugin.json` 0.3.0 → 0.4.0 (+ `marketplace.json` sync),
+`README.md`, `plugin.json` 0.3.0 → 0.4.0, shipped **0.5.0** (+ `marketplace.json` sync),
 `scripts/smoke/comment-discipline-hook-tests.sh`.
 
 One detector, two lanes, chosen by `hook_event_name` (absent ⇒ PostToolUse, the
@@ -454,7 +483,8 @@ recoverable from the code line (a rule the file already justifies at `:183-184` 
 `is_code()` matches syntax, not prose. Banners and dead docblock tags are
 house-style calls; a bare `TODO` can be a legitimate mid-task marker.
 
-**Why it cannot wedge a session.** The deny is one-shot per file per session (same
+**Why it cannot wedge a session** *(hardened 2026-07-28 after adversarial review —
+the first cut of this did NOT hold; see below)*. The deny is one-shot per file per session (same
 bounding idea as `completion-gate.sh`'s one-block-per-commit). A second edit to the
 same file passes and the PostToolUse lane warns instead — a false positive costs one
 extra turn. Without a `session_id` the bound is unenforceable, so the deny is
@@ -470,11 +500,21 @@ longer distinguish an emission from an emission *on the correct lane*. It is now
 Stop-key-only grep plus a behavioral assertion that PostToolUse never carries a
 `permissionDecision`.
 
+**The bound did not hold on the first cut — found by adversarial review.** The marker
+write was `mkdir -p … 2>/dev/null && : > "$marker" 2>/dev/null`, result unchecked, with
+no `cwd` guard. Measured: with `$cwd/.claude` at mode 555, or with `cwd` absent from the
+payload (marker path resolving under a sealed `/`), the deny fired on attempt 1, 2 and 3
+of the *same* Write — unbounded, unsatisfiable, exactly the wedge four shipped documents
+said was impossible. Fixed at `scan.sh:280-297`: session id, cwd, hashable path and a
+marker confirmed on disk are all preconditions, and any one missing withholds the deny
+entirely. **A bound that cannot be recorded is not a bound**, so blocking is not
+defensible without it.
+
 **Verification:** `scripts/smoke/comment-discipline-hook-tests.sh` — **all cases
-passed**, 11 new (2 lane-separation, 9 PreToolUse: both denies, the one-shot bound,
-per-file re-arm, all three warn-only categories staying allowed, a keep-case comment,
-the generated-file exemption, and the no-session_id withholding). All four repo gates
-green; `plugin-scout` 0.8.1 → 0.8.2 for its regenerated `catalog.md`.
+passed**, 13 new (2 lane-separation, 9 PreToolUse behavioral, plus 2 pinning the
+no-wedge withhold under an unwritable marker dir and a missing `cwd`; without those the
+central safety claim was unasserted prose). All four repo gates green;
+`plugin-scout` 0.8.1 → 0.8.2 for its regenerated `catalog.md`.
 
 ### P1-1 — Green-shaped loop exit — **DROPPED 2026-07-28, on inspection**
 
@@ -526,7 +566,7 @@ within its existing four lines, since that body is also at the 150 ceiling.
 
 | Item | Status |
 |---|---|
-| **E3 regression case** (§8) | **Applied.** `evidence-gate-hook-tests.sh` case 20: a failure word *plus* real post-edit execution must pass on the EVIDENCE path, not the escape path. It is the case that stays green if the P0-1 tightening ever over-reaches, while 13-15 flip. Suite 19 → **20 passed** |
+| **E3 regression case** (§8) | **Applied.** `evidence-gate-hook-tests.sh` case 20: a failure word *plus* real post-edit execution must pass on the EVIDENCE path, not the escape path. It is the case that stays green if the P0-1 tightening ever over-reaches, while 13-15 flip. Suite 19 → 20, now **28 passed** after the review fixes |
 | **Measurement trail** (axis M) | **Applied.** `verbosity.sh` records every scan — warned or not — to `~/.claude/comment-discipline/verbosity-ledger.jsonl` (machine-local, 1 MB cap). The P0-2 threshold was calibrated once, on one machine, from transcripts predating the hook; without a record of what it sees in practice, nothing could ever say whether 600 is right or whether the warning changed the sessions that got it. **Write-only by design and labelled so** — nothing reads it back, and calling it a feedback loop today would be exactly the `hindsight` over-claim this review flagged in Verdict 9 |
 | **`license` on 1 of 65** | **Not a defect — closed, no change.** The outlier is `registry-source`, the one plugin shipping executable code (`mcp/server.mjs`) rather than only markdown. A plugin that ships redistributable code declaring MIT is correct; 64 markdown-only plugins inheriting the repo `LICENSE` is also correct. Nothing in `validate.sh`, `lib/plugin-checks.sh`, or `authoring-plugins/SKILL.md` reads the field. Adding it to 64 files would cost 64 version bumps for inert metadata — the churn would be the defect |
 | **Estimate write-back** (axis G) | **Partly withdrawn, remainder not built.** `context-budget` deltas were never write-only — the gate reads them back and fails on drift (§3.4). `approaches:size` and the task-runner speedup number genuinely have no reader, and closing either needs an actuals recorder nothing has asked for. Left open and named rather than built speculatively |
@@ -589,7 +629,7 @@ Runnable without human judgment. Each proves or disproves one P0.
 | E7 | Same, but added text opens with `// @generated by tool — do not edit` | P0-3 exemption | no decision emitted | **Run → silent ✓** |
 | E7b | Warn-only categories (bare `TODO`, section banner) on the PreToolUse lane | P0-3 scoping | no decision emitted | **Run → silent ✓** |
 | E7c | PreToolUse payload with no `session_id` | P0-3 cannot bound ⇒ withhold | no decision emitted | **Run → silent ✓** |
-| E8 | Synthetic PostToolUse payload, transcript at 1,000 chars/tool-call | P0-2 | warn emitted; **not** emitted at 200 / 155 / 590 chars per call | **Run → 12/12, `scripts/smoke/verbosity-hook-tests.sh`** |
+| E8 | Synthetic PostToolUse payload, transcript at 1,000 chars/tool-call | P0-2 | warn emitted; **not** emitted at 200 / 155 / 590 chars per call | **Run → 16/16, `scripts/smoke/verbosity-hook-tests.sh`** |
 
 E1–E4b are pure `printf | bash hooks/evidence-gate.sh` — no model in the loop.
 E5–E8 likewise. All belong in `scripts/smoke/` as CI steps, which would also give
@@ -607,6 +647,13 @@ rm -f "$DIR/.claude/evidence-gate-last"
 ---
 
 ## 9. Not verified
+
+- The P0-2 calibration corpus — "1,933 local session transcripts, 135 main-thread"
+  — is **not reproducible from this repo**. It was measured against
+  `~/.claude/projects/**` on one machine at one moment. Nothing here can re-derive
+  it, and no artifact records the raw distribution. Treat the threshold as a
+  starting number with its provenance stated, not a validated constant.
+
 
 - Whether any of the 41 stack `*-best-practices` skills contain stale version
   claims. Nothing in the repo could detect it.

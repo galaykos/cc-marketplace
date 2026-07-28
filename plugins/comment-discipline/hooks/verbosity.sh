@@ -86,6 +86,17 @@
 
   dir="$cwd/.claude/comment-discipline"
   state="$dir/verbosity-$sid"
+
+  # BOTH BOUNDS BELOW LIVE IN THAT STATE FILE — "at most one warning per session" and
+  # "at most one transcript scan per RESCAN_EVERY lines". If it cannot be written, the
+  # hook has no memory: it warns on every tool call and re-scans the whole transcript
+  # every time, which is the opposite of both promises. So writability is checked ONCE,
+  # here, on the cheap path, before any expensive work — an unwritable state dir means
+  # this hook does nothing at all. Same rule as the deny lane in scan.sh: a bound that
+  # cannot be recorded is not a bound.
+  mkdir -p "$dir" 2>/dev/null || exit 0
+  [ -w "$dir" ] || exit 0
+
   last=0
   if [ -r "$state" ]; then
     read -r last warned _ < "$state" 2>/dev/null || exit 0
@@ -108,7 +119,7 @@ $(jq -rs '
 EOF
   case "${chars:-}${calls:-}" in ''|*[!0-9]*) chars=""; calls="" ;; esac
   [ -n "$chars" ] && [ -n "$calls" ] || exit 0
-  [ "$calls" -ge "$MIN_TOOL_CALLS" ] || { mkdir -p "$dir" 2>/dev/null && printf '%s 0\n' "$lines" > "$state" 2>/dev/null; exit 0; }
+  [ "$calls" -ge "$MIN_TOOL_CALLS" ] || { printf '%s 0\n' "$lines" > "$state" 2>/dev/null; exit 0; }
 
   ratio=$((chars / calls))
 
@@ -133,11 +144,11 @@ EOF
   fi
 
   if [ "$ratio" -le "$THRESHOLD" ]; then
-    mkdir -p "$dir" 2>/dev/null && printf '%s 0\n' "$lines" > "$state" 2>/dev/null
+    printf '%s 0\n' "$lines" > "$state" 2>/dev/null
     exit 0
   fi
 
-  mkdir -p "$dir" 2>/dev/null && printf '%s 1\n' "$lines" > "$state" 2>/dev/null
+  printf '%s 1\n' "$lines" > "$state" 2>/dev/null
 
   msg=$(printf 'comment-discipline: this session has emitted ~%s characters of prose per tool call (threshold %s; p95 of measured sessions is ~389). Cut preamble, narration of steps already visible in the tool calls, and closing summaries that restate the diff. Report outcomes, not process. Shown once per session.' "$ratio" "$THRESHOLD")
 

@@ -277,6 +277,16 @@
   # and the PostToolUse lane warns on it instead — so a false positive costs one
   # extra turn, never a wedged session. Same bounding idea as task-runner's
   # one-block-per-commit completion gate.
+  #
+  # THE BOUND IS THE PRECONDITION, NOT A COURTESY. Every input the one-shot needs —
+  # a session id, a cwd, a hashable path, and a marker that actually landed on disk —
+  # is checked BEFORE the deny is emitted, and any one of them missing withholds the
+  # deny entirely. An earlier revision wrote the marker with `2>/dev/null` and ignored
+  # the result, which meant a read-only `$cwd/.claude` (sealed root when cwd was
+  # absent, a 555 checkout, a container mount) produced a deny on every attempt with
+  # nothing recording that it had fired: precisely the unwedgeable loop this comment
+  # promised could not happen. Blocking is only defensible while it is bounded, so a
+  # bound that cannot be recorded means no block at all.
   [ "$blockable" -gt 0 ] || exit 0
 
   # Generated output declares itself in its own header; its banners are deliberate.
@@ -284,11 +294,14 @@
 
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
   [ -n "$sid" ] || exit 0                     # cannot bound the one-shot → do not block
+  [ -n "$cwd" ] || exit 0                     # no cwd → nowhere to record the bound
   key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
   [ -n "$key" ] || exit 0
   marker="$cwd/.claude/comment-discipline/blocked-$sid-$key"
   [ -e "$marker" ] && exit 0
-  mkdir -p "$cwd/.claude/comment-discipline" 2>/dev/null && : > "$marker" 2>/dev/null
+  mkdir -p "$cwd/.claude/comment-discipline" 2>/dev/null || exit 0
+  : > "$marker" 2>/dev/null || exit 0
+  [ -e "$marker" ] || exit 0                  # marker did not land → deny stays unbounded → withhold
 
   reason=$(printf '%s Write the edit again without them: a comment restating the next line, or a line of commented-out code, has no fact to carry — delete it or move the fact to a name, a type, or a test. Blocked once per file; a repeat edit to this file goes through with a warning instead.' "$warn")
   jq -cn --arg r "$reason" \
