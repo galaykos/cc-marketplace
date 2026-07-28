@@ -61,6 +61,45 @@ Without arguments it asks for a description first. The pipeline then:
 A reminder hook also nudges you toward `/taskmaster` when it detects a short,
 feature-shaped prompt (build/add/implement…) with thin detail.
 
+## Invocation cheat sheet — boost, and the two knobs Claude Code owns
+
+Three separate knobs, easy to confuse because they all start with `ultra`:
+
+| Token | What it moves | Owned by |
+|---|---|---|
+| `ultra-task` / `ultra-goal` (or bare `ultra` / `goal` as a command's first argument) | subagent tier floor, mandatory red-team + coverage, bounded fan-out ceilings, goal ledger | this plugin |
+| `ultracode` | permission and bias to actually call the `Workflow` tool — real parallel fan-out instead of the inline fallback | Claude Code |
+| `ultrathink` | main-thread reasoning depth: the clarifying rounds, spec judgment, synthesis | Claude Code |
+
+They compose; none substitutes for another. The boost never changes your session
+model, and `effort=xhigh` binds only on the `Workflow` path — so an unpaired boost
+escalates the model alone. Two forms work:
+
+```bash
+# All three knobs. Keywords must precede everything, so no slash command.
+ultracode ultrathink ultra-task run the taskmaster pipeline: <one-paragraph task>
+
+# Deterministic command dispatch. Boost only — no ultracode/ultrathink here.
+/taskmaster:task ultra <one-paragraph task>
+```
+
+Three rules that catch people out:
+
+- **A slash command must be the first character of the message.** `ultracode /taskmaster:task …`
+  is plain text — the command never dispatches (the boost hook still fires, which is
+  what makes the failure look like it worked).
+- **Never put `ultracode` / `ultrathink` inside a slash command's arguments.** They are
+  harness keywords, not taskmaster flags; there they become part of your task description.
+- **One deliverable per run.** Two unrelated goals share one ambiguity ledger and the
+  clarifying rounds interleave. Run them separately, or state the dependency explicitly
+  so the split produces ordered milestones.
+
+Without any `Workflow` path every fan-out phase degrades to a single inline agent,
+reported as `inline heuristic pass — single model, uncorroborated` — never as a panel.
+Full rules, including the workflow-size ceiling and why interactive phases never fan
+out: the `orchestration` plugin's `verification-panels` skill,
+`references/dispatch-tier.md` § Native harness interop.
+
 ## Ultra-goal — hands-off mode
 
 Prefix any taskmaster command with a bare `goal` (as its first argument) or drop an

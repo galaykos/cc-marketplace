@@ -119,9 +119,18 @@ is headed **"inline heuristic pass — single model, uncorroborated"**, and the 
 summary states which phases ran degraded. Verdict language must let the reader
 distinguish a real fan-out from an inline walk without trusting tone.
 
+The opt-in gate is the user's to satisfy, not this plugin's: `Workflow` runs on an
+explicit opt-in (`ultracode`, or invoking a skill like this one that directs it), and
+`effort` binds only there — so an unpaired boost escalates the model alone. Say it once
+per run: `ultracode` supplies the fan-out half, `ultrathink` the orthogonal main-thread
+half. Rules, including the workflow-size ceiling and the interactive-phase rule:
+`verification-panels` `references/dispatch-tier.md` § Native harness interop.
+
 ## What ultra-assess does NOT do
 
 - It does not change the user's main-thread session model — the user sets that.
+- It does not fan out an interactive phase (a consent gate, a user pick): subagents have
+  no user I/O, so those stay in the main thread whatever a harness default says.
 - It does not persist across runs or expose an "off" command; re-type the phrase.
 - It does not write build artifacts — no spec, no cards, no execution marker.
 - It does not auto-trigger `ultra-task`, and `ultra-task` does not auto-trigger it.

@@ -27,12 +27,12 @@ Active for THIS run when either holds this turn:
 - `/craft-layer:craft` ran with `ultra-craft` in its args, or with a bare `ultra`
   as the FIRST token of that command's own argument string.
 
-Ownership rule: `ultra` is a shared word. Another command's flag — `/caveman ultra`
-preceding a craft request, an `--ultra` belonging to some other tool — NEVER fires
-this. Only the explicit `ultra-craft` token may cross a command boundary. Outside a
-real craft request the directive is inert: a stray token in pasted content, a log,
-or quoted chat changes nothing. Single-run and stateless — no flag file, no `off`
-command, re-type the token to boost the next run.
+Ownership rule: `ultra` is a shared word. Another command's flag — `/caveman ultra` preceding
+a craft request, an `--ultra` belonging to some other tool — NEVER fires this. Only the
+explicit `ultra-craft` token may cross a command boundary. Outside a real craft request the
+directive is inert: a stray token in pasted content, a log, or quoted chat changes nothing.
+Single-run and stateless — no flag file, no `off` command, re-type the token to boost the
+next run.
 
 ## Banner
 
@@ -46,15 +46,14 @@ response — output-level only, see the residual at the end.
 
 ## Fixed tier
 
-`model=auto, effort=xhigh`, always — the bare token carries no tier suffix. The
-resolution rule is owned by `orchestration:verification-panels` § Panel width and is not restated here; it is a FLOOR, so it
-never lowers an agent below its shipped frontmatter. Never edit agent frontmatter to
-achieve this — the boost is a dispatch-time override.
+`model=auto, effort=xhigh`, always — the bare token carries no tier suffix. The resolution
+rule is owned by `orchestration:verification-panels` § Panel width and is not restated here;
+it is a FLOOR, so it never lowers an agent below its shipped frontmatter. Never edit agent
+frontmatter to achieve this — the boost is a dispatch-time override.
 
-REASONING roles escalate: `creative-director` (concept divergence) and
-`craft-reviewer` (the audit's gate pass). Mechanical and breadth roles — the token
-generator, the component build, asset lookups — stay NATIVE. Escalating a builder
-buys latency, not craft.
+REASONING roles escalate: `creative-director` (concept divergence) and `craft-reviewer` (the
+audit's gate pass). Mechanical and breadth roles — the token generator, the component build,
+asset lookups — stay NATIVE. Escalating a builder buys latency, not craft.
 
 ## The six bindings
 
@@ -63,45 +62,40 @@ buys latency, not craft.
    reach floors apply in full. Where the brief ALSO asks for conventional or
    trust-first, the two orders conflict — ASK, never silently pick.
 
-2. **Mode → `guided`.** Step 3's section walkthrough runs: agenda derived from the
-   spine, batched rounds, section ledger written. A headless run still runs the
-   agenda, auto-decides, and marks every row `source: auto`. "Decide the rest for
-   me" stays on offer at every exchange — guided is a right to be asked, not a
-   duty to answer.
+2. **Mode → `guided`.** Step 3's section walkthrough runs: agenda derived from the spine,
+   batched rounds, section ledger written. A headless run still runs the agenda,
+   auto-decides, and marks every row `source: auto`. "Decide the rest for me" stays on offer
+   at every exchange — guided is a right to be asked, not a duty to answer.
 
-3. **Live research, not recalled research.** Step 1's mining must actually FETCH.
-   The minimums, the dating rule, and what a source has to carry live in
-   `references/research-mandate.md`. Recall from model memory is permitted only as
-   a LEAD to fetch, is labeled `unverified`, and may never be the sole backing for
-   a pattern the build copies. This is the binding that closes the widest gap: the
-   craft flow reads as if it mines the live web and, without this, binds nothing
-   that makes it.
-   Naming a LANE is not naming a source, so three galleries are named and all three
-   get a category-scoped SEARCH with the query recorded — `land-book.com` for
-   shipped page structure, `awwwards.com` for reach and signature candidates,
-   `dribbble.com` for visual direction ONLY, never as evidence a pattern ships. The
-   search floor and the six-source floor are separate counts; neither buys the
-   other, and a blocked fetch is recorded as searched-and-blocked, never papered
-   over with recall.
+3. **Live research, not recalled research.** Step 1's mining must actually FETCH. The
+   minimums, the dating rule, and what a source has to carry live in
+   `references/research-mandate.md`. Recall from model memory is permitted only as a LEAD to
+   fetch, is labeled `unverified`, and may never be the sole backing for a pattern the build
+   copies. This is the binding that closes the widest gap: the craft flow reads as if it
+   mines the live web and, without this, binds nothing that makes it.
+   Naming a LANE is not naming a source, so three galleries are named and all three get a
+   category-scoped SEARCH with the query recorded — `land-book.com` for shipped page
+   structure, `awwwards.com` for reach and signature candidates, `dribbble.com` for visual
+   direction ONLY, never as evidence a pattern ships. The search floor and the six-source
+   floor are separate counts; neither buys the other, and a blocked fetch is recorded as
+   searched-and-blocked, never papered over with recall.
 
-4. **Reference-board readout before the build.** Persist `craft/reference-board.md`
-   and echo it to the user BEFORE step 2 generates a single token: the fetched
-   sources, the patterns pulled from each, the palette/type/motion direction they
-   imply, and the section agenda that will be built. The user confirms or redirects
-   there — the cheapest place to change direction is before the first file exists.
-   Format in `references/research-mandate.md`.
+4. **Reference-board readout before the build.** Persist `craft/reference-board.md` and echo
+   it to the user BEFORE step 2 generates a single token: the fetched sources, the patterns
+   pulled from each, the palette/type/motion direction they imply, and the section agenda
+   that will be built. The user confirms or redirects there — the cheapest place to change
+   direction is before the first file exists. Format in `references/research-mandate.md`.
 
-5. **Red-team the shipped result, AND the fixes.** After step 7's audit, blind
-   refuters attack the built tree against the contract and the divergence record,
-   N=3 as a CEILING sized to blast radius, each told to REFUTE. Compose
-   `orchestration:verification-panels` when installed; no Workflow tool → ONE
-   inline pass, labeled `inline heuristic pass — single model, uncorroborated`.
-   Never report a panel that did not run. Three rules the panel owes —
-   SWEEP an interactive signature's reachable state space instead of reasoning
-   about representative values, attack the post-audit FIX LIST as its own claim
-   set, and RENDER the surface and look at it before calling it verified — are in
-   `references/red-team-contract.md`. Each exists because a gate-clean build
-   shipped a defect that inverted the concept's own claim. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+5. **Red-team the shipped result, AND the fixes.** After step 7's audit, blind refuters
+   attack the built tree against the contract and the divergence record, N=3 as a CEILING
+   sized to blast radius, each told to REFUTE. Compose `orchestration:verification-panels`
+   when installed; no Workflow tool → ONE inline pass, labeled `inline heuristic pass —
+   single model, uncorroborated`. Never report a panel that did not run. Three rules the
+   panel owes — SWEEP an interactive signature's reachable state space instead of reasoning
+   about representative values, attack the post-audit FIX LIST as its own claim set, and
+   RENDER the surface and look at it before calling it verified — are in
+   `references/red-team-contract.md`. Each exists because a gate-clean build shipped a
+   defect that inverted the concept's own claim. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 6. **Persist the boost so the audit can read it back.** The contract's `Boost` row
    carries `ultra-craft` (or `none`). A boost that was only spoken cannot be
@@ -109,22 +103,21 @@ buys latency, not craft.
 
 ## What the audit checks
 
-`/craft-layer:audit` reads the persisted contract's `Boost` row and, at
-`ultra-craft`, verifies three things beyond the `maximal` floors: a
-`craft/reference-board.md` carrying dated sources that clear the mandate's
-minimums; a section ledger (guided was binding, so its absence is a miss, not a
-one-shot); and a red-team record naming what it attacked. No `Boost` row →
-`not checked`, never a pass and never a fail.
+`/craft-layer:audit` reads the persisted contract's `Boost` row and, at `ultra-craft`,
+verifies three things beyond the `maximal` floors: a `craft/reference-board.md` carrying
+dated sources that clear the mandate's minimums; a section ledger (guided was binding, so
+its absence is a miss, not a one-shot); and a red-team record naming what it attacked. No
+`Boost` row → `not checked`, never a pass and never a fail.
 
 ## What never moves
 
-Every ceiling in `ambition-tiers.md` holds unchanged: `prefers-reduced-motion` per
-tier, reduced-bundle fallbacks, per-tier AND cumulative motion budgets, accent
-contrast, the licence and provenance gate, and full accessibility. Ultra-craft buys
-process depth and reach — never bytes on first paint, never a waived gate. A boosted
-run that clears a floor by breaking a ceiling has shipped a defect with more moving
-parts. What it cannot execute at all — commissioned illustration, photoreal 3D,
-bespoke type sculpture — is unchanged too; `ambition-tiers.md` owns that ceiling.
+Every ceiling in `ambition-tiers.md` holds unchanged: `prefers-reduced-motion` per tier,
+reduced-bundle fallbacks, per-tier AND cumulative motion budgets, accent contrast, the
+licence and provenance gate, and full accessibility. Ultra-craft buys process depth and
+reach — never bytes on first paint, never a waived gate. A boosted run that clears a floor
+by breaking a ceiling has shipped a defect with more moving parts. What it cannot execute at
+all — commissioned illustration, photoreal 3D, bespoke type sculpture — is unchanged too;
+`ambition-tiers.md` owns that ceiling.
 
 ## Cost, and when to refuse it
 
@@ -132,6 +125,13 @@ Say the cost in one line under the banner: live fetches and guided rounds add
 wall-clock and exchanges; `maximal` adds bundle weight; the red-team adds a pass after
 the audit. Where the brief ALSO asks for fast, cheap, or a quick draft, the orders
 conflict — ASK which wins, rather than spending an hour on a fifteen-minute request.
+
+The fan-out half is the harness's, not this plugin's: `Workflow` runs on the user's explicit
+opt-in (`ultracode`, or invoking a skill like this one that directs it) and `effort` binds
+only there, so an unpaired boost escalates the model alone; `ultrathink` is the orthogonal
+main-thread half. The guided rounds and the board confirmation are INTERACTIVE — subagents
+have no user I/O, so they never fan out, whatever a harness default says. Rules + the
+workflow-size ceiling: `verification-panels` `references/dispatch-tier.md` § Native harness interop.
 
 ## Anti-patterns
 
