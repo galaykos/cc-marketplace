@@ -71,7 +71,7 @@ Mechanism labels: `PROSE` / `COMMAND` / `HOOK-WARN` / `HOOK-ASK` / `HOOK-BLOCK` 
 | C′ | Behavioral completion | `task-runner` | `skills/behavioral-gate/SKILL.md:104-108`, `hooks/completion-gate.sh` exit 2 | GATE | **ENFORCED** for registered runs; fail-open otherwise (`SKILL.md:113-118`, stated) |
 | D | Tests run vs written | `testing` | `skills/testing-best-practices/SKILL.md` is authoring guidance throughout; no runner, no gate | PROSE | **ADVISORY** — `testing` never runs anything. Running belongs to `task-runner:behavioral-gate`, which is a different plugin the user may not have |
 | E | Review agreement | `code-review` | `commands/review.md:20-28` enumerates and loads matching stack skills in one pass; `:54-60` names a single owner per finding | COMMAND | **PARTIAL** — fan-in is real, not just claimed. But 32 `review.md` commands ship, and `:26` instructs "never tell the user to run the per-stack review commands" — the sprawl is contradicted by its own flagship |
-| F | Result vs **original request** | `code-architecture:drift-review` | `skills/drift-review/SKILL.md:3` "reviews the whole diff against what was asked" | PROSE + COMMAND | **ADVISORY** — the only request-level check. `taskmaster:coverage` is explicitly *not* this: `skills/coverage-check/SKILL.md:14` "delivered code against criteria later — this checks that the criteria are all [covered]" |
+| F | Result vs **original request** | `code-architecture:drift-review` | `skills/drift-review/SKILL.md:3` "reviews the whole diff against what was asked"; **2026-07-28** wired into `task-execution/SKILL.md:145-148` completion protocol (§6 P1-3) | PROSE + COMMAND → part of the completion protocol, still PROSE-tier | **ADVISORY** — the only request-level check. `taskmaster:coverage` is explicitly *not* this: `skills/coverage-check/SKILL.md:14` "delivered code against criteria later — this checks that the criteria are all [covered]" |
 | G | See it / cost it before build | `taskmaster:visual-decisions`, `design-preview`, `approaches:size` | wireframes + mockups exist; `approaches:size` emits S/M/L/XL | COMMAND | **PARTIAL** — see-it: yes. Cost-it: estimates are write-only. No file records predicted-vs-actual for `approaches:size`, `task-runner` speedup, or `context-budget` deltas. Nothing reads them back |
 
 ### Unnamed axes — where the reported failures live
@@ -224,6 +224,9 @@ it if they were.
 > "boundaries, both sides depend on an abstraction the policy side owns."
 > "The abstraction belongs to the consumer and is shaped by what it needs"
 
+**Resolved 2026-07-28** (§6 P1-2) — both files now name the discriminator: origin,
+not implementation count.
+
 Triggers: `yagni-check:3` "designing or reviewing for speculative generality";
 `solid-principles:3` "designing or reviewing classes, interfaces, inheritance, or
 module boundaries". Both fire on the same interface. **Same plugin.** No arbitration
@@ -236,6 +239,9 @@ line in either file.
 
 > `plugins/observability/skills/observability-design/SKILL.md:145-146`
 > "Silent catch blocks — an exception swallowed with no log, metric, or span event"
+
+**Resolved 2026-07-28** (§6 P1-2) — existence is resilience's, emission is
+observability's, one finding under one owner.
 
 Not contradictory, but the same finding with two owners and no arbiter.
 `code-review/commands/review.md:54-60` has an ownership protocol — it applies only
@@ -438,27 +444,51 @@ per-file re-arm, all three warn-only categories staying allowed, a keep-case com
 the generated-file exemption, and the no-session_id withholding). All four repo gates
 green; `plugin-scout` 0.8.1 → 0.8.2 for its regenerated `catalog.md`.
 
-### P1-1 — Green-shaped loop exit
+### P1-1 — Green-shaped loop exit — **DROPPED 2026-07-28, on inspection**
 
-**File:** `plugins/task-runner/skills/task-execution/SKILL.md:35`
+The proposed line would have restated text the file already carries. The completion
+protocol at `task-execution/SKILL.md:143-150` already requires (1) "Every task is done
+or parked-with-reason — none silently skipped" and (3) a final report table of "task /
+status / verify command / evidence line, plus the parked list with reasons". A halted
+task is therefore neither silently dropped nor reportable as done.
 
-Before: "**Three failed fix cycles → halt the task.**"
-After: add — "A halted task is RED, never reported inside a done summary. The run's
-final status line must name every halted task by id before any completion claim."
+The residual is real but small: "parked-with-reason" can absorb a halt, and the run
+then completes with an honest parked entry rather than a red one. Closing it would cost
+a **deletion** — that SKILL body sits at exactly the 150-line ceiling — to add a
+sentence beside one already saying most of it.
 
-Mechanism: PROSE → PROSE (but readable by `completion-gate`). **Net: +15 tok.**
+Adding a redundant prose rule, at the ceiling, to a file this review criticises for
+prose density, is the anti-pattern the review is about. Dropped and recorded, not
+quietly skipped.
 
-### P1-2 — Arbitration lines for C1 and C2
+### P1-2 — Arbitration lines for C1 and C2 — **APPLIED 2026-07-28**
 
-**Files:** `yagni-check/SKILL.md`, `solid-principles/SKILL.md`,
-`error-handling-design/SKILL.md`, `observability-design/SKILL.md`.
-One line each naming the sibling and who wins. **Net: +30 tok total.**
+Both collisions resolved by naming the **discriminator**, not by picking a winner —
+a bare "X wins" would be wrong half the time.
 
-### P1-3 — Request-level satisfaction gate
+| Conflict | Files | Discriminator |
+|---|---|---|
+| C1 — single-implementation interface | `yagni-check/SKILL.md:24-32`, `solid-principles/SKILL.md:117-121` | **Origin, not implementation count.** Written by the consumer to state what it needs at a genuine boundary → SOLID, and one implementation is normal. Added ahead of a second provider nobody asked for → YAGNI |
+| C2 — catch blocks | `error-handling-design/SKILL.md:43-46`, `observability-design/SKILL.md:144-147` | **Existence vs emission.** Whether the catch should EXIST and where it sits → resilience. What a kept catch must EMIT → observability. One finding, one owner |
 
-**File:** `plugins/code-architecture/skills/drift-review/SKILL.md`
-Wire `drift-review` into `task-runner`'s completion protocol so it runs on the
-final diff rather than only on invocation. Mechanism: COMMAND → GATE-adjacent.
+**Net lines: 0 in two of the four files.** `error-handling-design` was at exactly 150
+and `observability-design` at 145, so the resilience text was compressed into the
+existing bullet's line count rather than appended. Bumps: `code-architecture` 0.9.3,
+`resilience` 0.2.1, `observability` 0.2.8.
+
+### P1-3 — Request-level satisfaction gate — **APPLIED 2026-07-28**
+
+**File:** `plugins/task-runner/skills/task-execution/SKILL.md:145-148` (completion
+protocol, item 2). `drift-review` now joins the end-of-run checks when
+`code-architecture` is installed, reading the whole-run diff **against what was
+ASKED** — the axis F gap, which no suite covers. Follows the pattern already there
+for `api-docs-first`'s drift check.
+
+Mechanism: COMMAND → part of the completion protocol (still PROSE-tier: the protocol
+is agent-followed, and `completion-gate.sh` checks a gate-pass record, not this).
+Stated plainly: this does not make axis F `ENFORCED`. **Net lines: 0** — item 2 rewritten
+within its existing four lines, since that body is also at the 150 ceiling.
+`task-runner` 0.21.2.
 
 ### P2 — everything else
 

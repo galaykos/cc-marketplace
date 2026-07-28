@@ -24,6 +24,12 @@ does — will likely need a different shape than the one you guessed.
 - **Single-implementation interfaces/abstract classes.** An `interface PaymentProvider` with
   exactly one class implementing it, introduced "in case we add another provider." An interface
   with one implementation isn't abstraction, it's indirection with no payoff yet.
+  **Boundary with solid-principles (D — dependency inversion):** that skill asks for exactly
+  this shape at process edges, vendors, and things you swap in tests, and it wins there — a
+  single-implementation `OrderStore` owned by the domain is inversion, not speculation. The
+  discriminator is where the interface came from, not how many classes implement it: written
+  by the consumer to state what it needs (SOLID wins) versus added ahead of a second provider
+  nobody has asked for (this rule wins). One implementation is normal in the first case.
 - **Config nobody sets.** A setting, env var, or feature flag that has always been left at its
   default in every environment. If it's never been changed, it isn't configuration — it's a
   constant wearing a costume.
