@@ -101,7 +101,7 @@ its delegation-contracts skill; otherwise the contract above suffices.
    Verdict is one of: aligned / detail divergence / structural divergence.
 2. Synthesize ONE pick — what was taken from whom, what was given up;
    approach-deliberation's output shape, so downstream handling is
-   identical. With surgical-coding (code-architecture) installed the pick
+   identical. With plan-before-code (code-architecture) installed the pick
    honors its scope lock — debt arguments never widen the change.
 3. State the kill-trigger: the concrete mid-implementation discovery
    that would flip the pick. A pick without a kill-trigger is a hope.

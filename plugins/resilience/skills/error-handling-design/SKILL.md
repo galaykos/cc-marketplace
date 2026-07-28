@@ -40,10 +40,10 @@ complete the failure (respond 500, abort the job, reject the message).
 - Catch-log-continue at every level produces the log where one failure
   appears five times with five stack traces, and nobody can say where
   it was actually handled — usually because it never was.
-- The natural catch sites are few: the top-level request/job/message
-  handler, integration-point wrappers, and the rare mid-layer with a
-  real fallback. A catch block that only logs and rethrows at a layer
-  with no boundary role is a candidate for deletion.
+- The natural catch sites are few: top-level request/job/message handlers,
+  integration-point wrappers, the rare mid-layer with a real fallback. Log-and-rethrow
+  at a layer with no boundary role is a candidate for deletion. observability-design
+  reports catches too: it owns what a kept catch EMITS, this whether it EXISTS — one owner.
 
 ## No swallowing
 

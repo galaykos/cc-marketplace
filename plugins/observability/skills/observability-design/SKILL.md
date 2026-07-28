@@ -143,7 +143,9 @@ web server can write bytes while every real request fails behind it.
   island.
 - error-level everything — the log level that cried wolf.
 - Silent catch blocks — an exception swallowed with no log, metric, or
-  span event; the incident with no evidence.
+  span event; the incident with no evidence. resilience's
+  error-handling-design also reports catches: it owns whether the catch
+  should EXIST, this owns what a kept one EMITS. One finding, one owner.
 - user_id as a metric label — the dashboard that OOMed the monitoring
   stack.
 - The unconditional-200 health check — green while everything burns.

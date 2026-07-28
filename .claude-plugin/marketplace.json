@@ -252,7 +252,7 @@
     {
       "name": "comment-discipline",
       "source": "./plugins/comment-discipline",
-      "description": "Stops over-commenting by treating it as an information-routing problem: every fact goes to the artifact that cannot lie about it — a name, a type, a test, an extracted function — and comments are spent only on what has nowhere else to live: why-not-the-obvious-way, external constraints carrying a link or ticket, intentional-silence markers, and contract facts a signature cannot express. Kills restatement comments, section banners, commented-out code, bare TODOs, and docblock tags that repeat the signature. A warn-only PostToolUse hook flags the high-confidence cases as code is written. Includes /comment-discipline:review."
+      "description": "Stops over-commenting by treating it as an information-routing problem: every fact goes to the artifact that cannot lie about it — a name, a type, a test, an extracted function — and comments are spent only on what has nowhere else to live: why-not-the-obvious-way, external constraints carrying a link or ticket, intentional-silence markers, and contract facts a signature cannot express. Kills restatement comments, section banners, commented-out code, bare TODOs, and docblock tags that repeat the signature. One hook, two lanes: PostToolUse warns on every category as code is written, and PreToolUse denies just the two strictest — a comment restating the next line, and commented-out code — once per file per session, so a false positive costs one turn and never wedges a run. A second warn-only hook extends the same routing rule to the terminal: it measures prose-per-tool-call against a calibrated threshold and says so once when a session narrates instead of reporting. Includes /comment-discipline:review."
     },
     {
       "name": "frontend-suite",
@@ -277,7 +277,12 @@
     {
       "name": "quality-suite",
       "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality category in one install — review, architecture principles, design patterns, testing, security, accessibility, debugging, performance, resilience, dependency hygiene, observability, error handling, concurrency safety, comment discipline, secret-leak prevention (secret-scanning), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the code-quality plugins that carry a MECHANISM, in one install — review and code smells, architecture principles with the evidence-at-claim Stop gate, testing, comment discipline (warn-on-write plus a narrow pre-write deny), secret-leak prevention, and file-aware skill auto-routing. The advisory disciplines it used to bundle — security, a11y, debugging, performance, resilience, packages, observability, approaches — moved to quality-principles-suite, so this half can be installed without their always-on context. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "quality-principles-suite",
+      "source": "./plugins/quality-principles-suite",
+      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, and observability. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context. Uninstall cleanly with /quality-principles-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "process-suite",

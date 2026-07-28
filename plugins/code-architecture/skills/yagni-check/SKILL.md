@@ -24,6 +24,12 @@ does — will likely need a different shape than the one you guessed.
 - **Single-implementation interfaces/abstract classes.** An `interface PaymentProvider` with
   exactly one class implementing it, introduced "in case we add another provider." An interface
   with one implementation isn't abstraction, it's indirection with no payoff yet.
+  **Boundary with solid-principles (D — dependency inversion):** that skill asks for exactly
+  this shape at process edges, vendors, and things you swap in tests, and it wins there — a
+  single-implementation `OrderStore` owned by the domain is inversion, not speculation. The
+  discriminator is where the interface came from, not how many classes implement it: written
+  by the consumer to state what it needs (SOLID wins) versus added ahead of a second provider
+  nobody has asked for (this rule wins). One implementation is normal in the first case.
 - **Config nobody sets.** A setting, env var, or feature flag that has always been left at its
   default in every environment. If it's never been changed, it isn't configuration — it's a
   constant wearing a costume.
@@ -63,7 +69,7 @@ self-introduced abstractions — ask for the concrete second case.
 
 - Ask: "Do we have a second real use case today, or is this for a hypothetical future one?" If
   it's hypothetical, propose building the concrete version now and generalizing when the second
-  case actually shows up (see simplicity-principles: rule of three).
+  case actually shows up (see low-cognitive-load: rule of three).
 - Ask: "What breaks if we ship the simple version and revisit this when it's actually needed?"
   Usually: nothing. Revisiting later, with a real second case in hand, produces a better
   abstraction than guessing now.
@@ -117,5 +123,5 @@ Any unchecked box is a candidate for the delete-until-it-hurts test above.
 
 Run this check when designing a new function/module, and again in review whenever a diff adds a
 parameter, interface, config key, or "generic" mechanism that isn't immediately exercised by an
-existing caller. It pairs with simplicity-principles for what to do once you've confirmed
+existing caller. It pairs with low-cognitive-load for what to do once you've confirmed
 something is speculative (delete it) versus genuinely reused (extract it).

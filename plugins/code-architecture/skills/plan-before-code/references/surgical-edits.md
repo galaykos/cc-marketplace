@@ -1,7 +1,11 @@
----
-name: surgical-coding
-description: Use when writing, editing, or refactoring code outside a planned pipeline — surface assumptions, competing interpretations over silent picks, changed lines traceable to the request.
----
+# Surgical edits: assumptions, traceability, orphans
+
+The `surgical-coding` skill was merged into `plan-before-code` here on 2026-07-28.
+Its trigger — "outside a planned pipeline" — was negatively scoped and so could not
+be evaluated at fire time. Adapted from Andrej Karpathy's LLM-coding guidelines
+(multica-ai/andrej-karpathy-skills, MIT); that attribution travels with the text.
+`plan-before-code` reads this file for edits made without a plan.
+
 
 ## Where this fits
 
@@ -70,7 +74,7 @@ Minimum code that solves the stated problem:
   checklist; this is its inline reflex.
 - No abstractions for single-use code; the default is the third occurrence,
   and a real second caller earns the abstraction only when the duplication
-  is knowledge, not text (see simplicity-principles).
+  is knowledge, not text (see `low-cognitive-load/references/kiss-dry.md`).
 - No error handling for states that cannot occur — handling impossible
   errors is how 50-line functions become 200.
 - The gut check: would a senior engineer reading this diff call it

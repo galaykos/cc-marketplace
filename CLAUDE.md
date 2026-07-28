@@ -104,14 +104,14 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **21 named steps;
-20 can fail the build**, and on a push to `master` only **19** run
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **22 named steps;
+21 can fail the build**, and on a push to `master` only **20** run
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
-Beyond the four scripts above: 14 harnesses under `scripts/smoke/`
+Beyond the four scripts above: 15 harnesses under `scripts/smoke/`
 (template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
 guard, rules-overlap, route-marker, behavioral-verification,
 completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
-preview-guard, `validate-fixtures/parity-check.sh`),
+verbosity-hook, preview-guard, `validate-fixtures/parity-check.sh`),
 `scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
 lints — taskmaster's at `plugins/taskmaster/scripts/__tests__/*.test.sh` plus
 task-runner's at `plugins/task-runner/scripts/__tests__/*.test.sh`, one shared

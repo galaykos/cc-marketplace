@@ -74,7 +74,10 @@ pc_jargon() {
 # baselines.md, 2026-07-27). The typescript/javascript/vue2 plugins and the
 # react/css-family best-practices skills were removed; design-patterns,
 # intent-guard, rollout, error-handling and concurrency were merged away as
-# plugins. A shipped doc still routing to one of them is a dangling pointer no
+# plugins. simplicity-principles and surgical-coding (code-architecture,
+# 2026-07-28) were merged into low-cognitive-load and plan-before-code as
+# references — the material survives, the always-on trigger does not, so a doc
+# still routing a reader to them by name is the same dangling pointer. A shipped doc still routing to one of them is a dangling pointer no
 # other gate sees — validate.sh's reference check reads only the
 # /plugin:command slash form. On a hit: prints the comma-joined matches and
 # returns 1. Clean: prints nothing, returns 0. Lives here so validate.sh and
@@ -107,7 +110,7 @@ pc_removed_refs() {
   [ -f "$f" ] || return 0
   b='[^[:alnum:]-]'
   plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency'
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices'
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding'
   shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? plugins?($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)($skills)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:

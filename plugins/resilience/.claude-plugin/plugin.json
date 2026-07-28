@@ -1,6 +1,6 @@
 {
   "name": "resilience",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Failure-mode design for integration points — timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics — plus the merged error-handling and concurrency disciplines: catches and cause chains, check-then-act races, retry idempotency. Includes /resilience:review, /resilience:error-review, /resilience:concurrency-review.",
   "author": {
     "name": "Ivan-WG",

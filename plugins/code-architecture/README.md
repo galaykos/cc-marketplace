@@ -1,10 +1,11 @@
 # code-architecture
 
 Engineering process for code-level structure: plan-before-code, YAGNI checks,
-SOLID applied with judgment, task orchestration, work verification, low-
-cognitive-load code, and KISS/DRY simplicity — plus always-on surgical-coding
-discipline (surface assumptions, every changed line traces to the request, clean
-up your own orphans), after Karpathy's LLM-coding guidelines.
+SOLID applied with judgment, task orchestration, work verification, and
+low-cognitive-load code. KISS/DRY and the surgical-edit discipline (surface
+assumptions, every changed line traces to the request, clean up your own
+orphans — after Karpathy's LLM-coding guidelines) travel as references of the
+two skills that own them, not as separate always-on triggers.
 
 Owns code-level structure — units, interfaces, file placement. Defers system-
 level topology (service boundaries, scaling, caching) to the `system-design`
@@ -29,10 +30,16 @@ plugin.
 ## Skills & agent
 
 Best-practice skills auto-trigger by context — `plan-before-code`,
-`surgical-coding`, `low-cognitive-load`, `simplicity-principles` (KISS/DRY),
-`solid-principles`, `yagni-check`, `task-orchestration`, `work-verification`, and
-`drift-review`. The `architecture-reviewer` agent reviews structural changes for
-boundaries, cohesion, and cognitive load.
+`low-cognitive-load`, `solid-principles`, `yagni-check`, `task-orchestration`,
+`work-verification`, and `drift-review`. The `architecture-reviewer` agent reviews
+structural changes for boundaries, cohesion, and cognitive load.
+
+Two skills were merged away in 0.10.0 rather than deleted: KISS/DRY is now
+`low-cognitive-load/references/kiss-dry.md`, and the surgical-edit discipline is
+`plan-before-code/references/surgical-edits.md`. Both had descriptions reading
+"when writing or reviewing code", which fires on every edit and discriminates
+nothing; folding them cut two always-on triggers while keeping every line of the
+material.
 
 `work-verification` and `drift-review` are the two done-time gates and they ask
 different questions: `work-verification` asks whether the evidence backs the claim,

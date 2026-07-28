@@ -7,7 +7,7 @@ cc-plugins-marketplace is a self-hosted marketplace of best-practice plugins for
 Three lanes in — when unsure, take the first:
 
 1. **Start here:** run `/plugin-scout:suggest` — scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `process-suite`, `product-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 57 leaf plugins) exists for zero-setup convenience at ~10.6k tokens of always-on context per session — most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `quality-principles-suite`, `process-suite`, `product-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` (all 57 leaf plugins) exists for zero-setup convenience at ~10.6k tokens of always-on context per session — most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -47,7 +47,8 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | `everything` | 57 | ~10.6k tokens |
 | `taskmaster-suite` | 30 | ~7.2k tokens |
 | `process-suite` | 9 | ~1.9k tokens |
-| `quality-suite` | 14 | ~2.9k tokens |
+| `quality-suite` | 6 | ~0.9k tokens |
+| `quality-principles-suite` | 8 | ~1.9k tokens |
 | `frontend-suite` | 17 | ~2.8k tokens |
 | `php-suite` | 6 | ~0.6k tokens |
 | `db-suite` | 5 | ~0.5k tokens |
@@ -202,7 +203,7 @@ installing this plugin, or the same server is declared twice.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **code-architecture** | Engineering process: plan-before-code (+ current-vs-target diagrams), YAGNI, SOLID applied with judgment, task orchestration, work verification, low-cognitive-load, KISS/DRY, always-on surgical-coding discipline (Karpathy guidelines) + architecture-reviewer agent; system-level topology → system-design | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni`, `/code-architecture:solid` |
+| **code-architecture** | Engineering process: plan-before-code (+ current-vs-target diagrams), YAGNI, SOLID applied with judgment, task orchestration, work verification, low-cognitive-load (carrying KISS/DRY), surgical-edit discipline folded into plan-before-code (Karpathy guidelines) + architecture-reviewer agent; system-level topology → system-design | `/code-architecture:plan`, `/code-architecture:verify`, `/code-architecture:yagni`, `/code-architecture:solid` |
 | **api-docs-first** | API-docs-first: verify docs before writing integration code; own APIs → api-design — plus the merged docs-upkeep drift scan (README/changelog/example sync) | `/api-docs-first:check`, `/api-docs-first:drift` |
 | **[api-design](plugins/api-design/README.md)** | REST design: resource naming, status codes, pagination, versioning, RFC 9457 errors, idempotency, Laravel API Resources + graphql-grpc skill (DataLoader, resolver authz, proto safety, streaming); third-party docs → api-docs-first | `/api-design:review` |
 | **code-review** | Stack-agnostic review: correctness bugs, code smells, convention drift — severity-sorted findings + code-reviewer agent + code-smells skill. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass | `/code-review:review` |
@@ -237,6 +238,7 @@ installing this plugin, or the same server is declared twice.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
+| **quality-principles-suite** | Meta-bundle: the eight advisory quality disciplines — approaches, security, a11y, debugging, performance, resilience, packages, observability. Split out of quality-suite in 0.7.0; none of them is a gate | `/quality-principles-suite:uninstall` |
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + its wired companions (tasks, engineering discipline, worker agents, ui-ux visual routing) | `/taskmaster-suite:uninstall` |
 | **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, craft-layer, registry-source (the component-registry MCP servers), design-preview, shadcn-studio, threejs, React, React Native, Vue 3, Vite, Inertia, Livewire, Next, Nuxt, web worker, a11y, skill-router | `/frontend-suite:uninstall` |
