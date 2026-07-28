@@ -286,13 +286,27 @@ case_classify "assertion message mentions SyntaxError -> assertion" assertion \
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   '"'"'OTHERWORD'"'"' !== '"'"'SyntaxError'"'"''
 
-# --- Fix 1: TAP `not ok` is a hard assertion marker. ---
+# --- TAP `not ok` with no build/collection signature is an assertion (tier 4). ---
 case_classify "TAP not-ok -> assertion" assertion \
 'TAP version 13
 1..1
 not ok 1 - answer should be 42
   ---
   operator: equal'
+
+# --- Reporter independence: the SAME node build failure prints ✖ under the spec
+#     reporter and `not ok` under TAP (the non-TTY default on older Node). Both
+#     must classify as build, or CI's node version decides the verdict. This is
+#     the regression behind "invalid-control ... (rc=0 want=4)" on TAP runners. ---
+case_classify "node syntax under TAP reporter -> build" build \
+'TAP version 13
+# Subtest: add.test.js
+not ok 1 - add.test.js
+  ---
+  error: '"'"'test failed'"'"'
+  stack: |-
+    SyntaxError: Unexpected token '"'"')'"'"'
+  ...'
 
 # --- Fix 1: a bare per-test fail glyph, no build/collection signature -> assertion. ---
 case_classify "bare fail glyph -> assertion" assertion \

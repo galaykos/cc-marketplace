@@ -2,10 +2,16 @@
 # Absolute-path shebang not `/usr/bin/env bash`: the fail-open guarantee must hold
 # even under a stripped PATH where `env bash` exits 127.
 # PostToolUse comment-discipline guard (warn-only). On an Edit/Write/MultiEdit it inspects
-# only the *added* text and prints ONE `comment-discipline:` line when it matches a
-# high-confidence noise pattern. Silence is the common case. It NEVER blocks or vetoes an
-# edit — no blocking hook JSON, only plain stdout. Fail-open: a missing jq/awk, or any
-# error, exits 0.
+# only the *added* text and emits ONE `comment-discipline:` line when it matches a
+# high-confidence noise pattern. Silence is the common case.
+#
+# The warning is emitted as the PostToolUse stdout JSON envelope
+# ({"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":...}}, exit 0)
+# — the one non-blocking channel the executing model actually receives; plain stdout text
+# with exit 0 never reaches it (same channel reasoning as task-runner/hooks/scope.sh).
+# `additionalContext` is NOT a blocking key: it adds context, it cannot veto. This hook
+# still NEVER blocks or vetoes an edit — it emits no `permissionDecision` and no
+# `decision`. Fail-open: a missing jq/awk, or any error, exits 0.
 {
   command -v jq  >/dev/null 2>&1 || exit 0
   command -v awk >/dev/null 2>&1 || exit 0
@@ -42,7 +48,7 @@
     ] | join("\n")' 2>/dev/null) || exit 0
   [ -n "$added" ] || exit 0
 
-  printf '%s\n' "$added" | awk '
+  warn=$(printf '%s\n' "$added" | awk '
   function add_tok(set, w,   x) {
     if (w == "") return
     x = tolower(w)
@@ -218,6 +224,12 @@
       parts = parts (parts == "" ? "" : ", ") H[k] " " CATS[k]
     }
     printf "comment-discipline: %d added %s (%s) — check the routing table in the comment-discipline skill for where those facts belong.\n", total, (total == 1 ? "comment looks like noise" : "comments look like noise"), parts
-  }'
+  }')
+  [ -n "$warn" ] || exit 0
+
+  # jq builds the envelope so the message stays valid JSON whatever the comment text
+  # contains. jq presence is guaranteed by the guard at the top of the block.
+  jq -cn --arg ctx "$warn" \
+    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
 } 2>/dev/null
 exit 0

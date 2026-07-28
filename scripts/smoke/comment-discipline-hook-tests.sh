@@ -49,9 +49,17 @@ PY
 run() { printf '%s' "$1" | "$BASH_BIN" "$HOOK" 2>/dev/null; }
 
 assert_fires() { # desc  json  expected-category-substring
-  local desc="$1" out
+  local desc="$1" out ctx
   out="$(run "$2")"
   if [ -z "$out" ]; then fail "$desc" "wanted a warning, got silence"; return; fi
+  # The warning travels in the PostToolUse envelope — plain stdout never reaches the
+  # model. Unwrap it before matching, the same way scope-hook.test.sh does.
+  if ! printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' >/dev/null 2>&1; then
+    fail "$desc" "stdout is not a PostToolUse envelope: $out"; return
+  fi
+  ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')"
+  if [ -z "$ctx" ]; then fail "$desc" "envelope carries no additionalContext: $out"; return; fi
+  out="$ctx"
   case "$out" in
     comment-discipline:*) ;;
     *) fail "$desc" "warning not prefixed 'comment-discipline:': $out"; return ;;
@@ -165,10 +173,24 @@ else
 fi
 
 # ---- 4. never blocks ----------------------------------------------------------------
-if grep -qE 'permissionDecision|"decision"|hookSpecificOutput' "$HOOK"; then
+# `hookSpecificOutput`/`additionalContext` is deliberately NOT in this list: it is the
+# non-blocking context channel this hook now uses to reach the model, not a veto.
+# The blocking keys are `permissionDecision` (PreToolUse) and `decision` (Stop).
+# Comment lines are stripped first: the hook's header *names* these keys to say it does
+# not emit them, and a doc mention is not an emission.
+if grep -vE '^[[:space:]]*#' "$HOOK" | grep -qE 'permissionDecision|"decision"'; then
   fail "hook emits no blocking JSON" "found a blocking key in $HOOK"
 else
   pass "hook emits no blocking JSON"
+fi
+
+# and it must still exit 0 on the firing path, not just the silent one
+fire_rc_out="$(run "$(envelope Write /tmp/proj/a.js '// increment the counter
+counter++;')")"; fire_rc=$?
+if [ "$fire_rc" -eq 0 ] && [ -n "$fire_rc_out" ]; then
+  pass "exits 0 while warning (never vetoes the edit)"
+else
+  fail "exits 0 while warning (never vetoes the edit)" "exit $fire_rc, output: $fire_rc_out"
 fi
 
 printf '\n'
