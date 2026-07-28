@@ -369,6 +369,46 @@ EOF_OVERLAPS
 $cofires
 EOF_COFIRES
   fi
+
+  # prompt-rules.tsv resolution gate (hard). The prompt router suggests COMMANDS, so
+  # the failure mode is a row naming one that does not exist — the user is told to run
+  # something the harness will reject. Every row must carry five fields, resolve to a
+  # real plugins/<plugin>/commands/<cmd>.md whose plugin matches the installed-filter
+  # column, price itself with an integer priority, and hold a pattern grep can compile.
+  PR="$SR/prompt-rules.tsv"
+  if [ -f "$PR" ]; then
+    lineno=0
+    while IFS=$'\t' read -r pattern command plugin priority reason || [ -n "$pattern" ]; do
+      lineno=$((lineno + 1))
+      case "$pattern" in ''|'#'*) continue ;; esac
+      reason="${reason%$'\r'}"
+      if [ -z "$command" ] || [ -z "$plugin" ] || [ -z "$priority" ] || [ -z "$reason" ]; then
+        err "prompt-rules.tsv:$lineno: needs five tab-separated fields (pattern, command, owning_plugin, priority, reason)"
+        continue
+      fi
+      case "$priority" in ''|*[!0-9]*) err "prompt-rules.tsv:$lineno: priority '$priority' is not a non-negative integer" ;; esac
+      case "$command" in
+        /*:*)
+          cmd_plugin=${command#/}; cmd_plugin=${cmd_plugin%%:*}
+          cmd_name=${command##*:}
+          [ -f "plugins/$cmd_plugin/commands/$cmd_name.md" ] \
+            || err "prompt-rules.tsv:$lineno: command '$command' resolves to no plugins/$cmd_plugin/commands/$cmd_name.md"
+          [ "$cmd_plugin" = "$plugin" ] \
+            || err "prompt-rules.tsv:$lineno: command '$command' belongs to '$cmd_plugin' but the installed-filter column says '$plugin'"
+          ;;
+        *) err "prompt-rules.tsv:$lineno: command '$command' is not a /plugin:command token" ;;
+      esac
+      [ -d "plugins/$plugin" ] || err "prompt-rules.tsv:$lineno: owning_plugin '$plugin' is not a plugin in this marketplace"
+      printf 'x' | grep -qE "$pattern" 2>/dev/null
+      [ "$?" -ge 2 ] && err "prompt-rules.tsv:$lineno: pattern does not compile as an ERE"
+    done < "$PR"
+    # route-prompt.sh must stay table-driven, exactly as route.sh must: a literal
+    # command name in the hook is a route that no longer shows up in the table.
+    prompt_lits=$(grep -v '^[[:space:]]*#' "$SR/hooks/route-prompt.sh" 2>/dev/null \
+      | grep -oE '/[a-z][a-z0-9-]+:[a-z][a-z0-9-]+' | sort -u || true)
+    [ -z "$prompt_lits" ] \
+      || err "skill-router route-prompt.sh carries literal command token(s): $(echo $prompt_lits) — must stay prompt-rules.tsv-driven"
+  fi
 fi
 
 # All-bundle dependency gate (hard): generalizes the everything-only completeness

@@ -53,6 +53,8 @@ jobs:
         run: bash scripts/smoke/rules-overlap-tests.sh
       - name: Route marker smoke tests
         run: bash scripts/smoke/route-marker-tests.sh
+      - name: Prompt-router smoke tests
+        run: bash scripts/smoke/prompt-route-tests.sh
       - name: Behavioral-verification smoke tests
         run: bash scripts/smoke/behavioral-verification-tests.sh
       - name: Completion-gate hook smoke tests
