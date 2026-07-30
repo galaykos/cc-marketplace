@@ -299,5 +299,62 @@ quiet=$(printf '{"tool_name":"Write","tool_input":{"file_path":"src/app.ts"}}' |
   && { echo "PASS: consent hook silent on an unrelated write"; pass=$((pass+1)); } \
   || { echo "FAIL: consent hook prompted on an unrelated write"; fail=$((fail+1)); }
 
+# ---- behavioral-gate EVIDENCE, red-team PANEL WIDTH, general DISCLOSURE ------------
+# gate-pass.json is model-authored; bg-<head>.json is written by behavioral-gate.sh
+# itself. Without the second, "the gate passed" is a sentence a run can type having
+# never run the gate.
+RS2="$ROOT/plugins/task-runner/scripts/reduction-record.sh"
+BGDIR="$REPO/.claude/task-runner/bg"; RTDIR="$REPO/.claude/task-runner/rt"
+REDDIR="$REPO/.claude/task-runner/reductions"
+rm -rf "$RVDIR" "$REDDIR"; mkdir -p "$BGDIR"
+printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$HEAD" > "$GP"
+
+check "bg dir armed, no verdict record for HEAD -> block" "" "$J" 2 "left no verdict record"
+printf '{"head":"%s","verdict":"empty-suite"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate verdict red + reporting complete -> block" "" "$J" 2 'reached "empty-suite"'
+printf '{"head":"%s","verdict":"covered"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate covered -> allow" "" "$J" 0 __NONE__
+
+# red-team panel width: boosted runs only, keyed off the index marker
+mkdir -p "$REPO/x" "$RTDIR"
+printf 'Ultra: true\n' > "$REPO/x/00-INDEX.md"
+printf '{"slug":"t","branch":"%s","index_path":"x/00-INDEX.md"}' "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" > "$SENT"
+check "boosted run, empty red-team panel -> block" "" "$J" 2 "red-team panel is short"
+for l in logic security repro; do printf '{}' > "$RTDIR/rt-lens-$l.json"; done
+check "boosted run, 3 lenses but no critic -> block" "" "$J" 2 "red-team panel is short"
+printf '{}' > "$RTDIR/rt-critic-m1.json"
+check "boosted run, full panel -> allow" "" "$J" 0 __NONE__
+
+# the observer records refuter and critic dispatches from their markers
+rm -f "$RTDIR"/*.json
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RT-LENS: security\\nrefute this"}}' "$REPO" | bash "$OBS" >/dev/null 2>&1
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RT-CRITIC: m1\\nwhat is missing"}}' "$REPO" | bash "$OBS" >/dev/null 2>&1
+if [ -f "$RTDIR/rt-lens-security.json" ] && [ -f "$RTDIR/rt-critic-m1.json" ]; then
+  echo "PASS: rv-observe records refuter and critic dispatches"; pass=$((pass+1))
+else
+  echo "FAIL: rv-observe missed a red-team marker"; fail=$((fail+1))
+fi
+
+# a recorded degradation substitutes for the panel, but then must be disclosed
+rm -f "$RTDIR"/*.json
+bash "$RS2" --kind redteam --id m1 --reason "Workflow tool unavailable" --record-dir "$REDDIR" >/dev/null 2>&1
+[ -f "$REDDIR/redteam-m1.json" ] \
+  && { echo "PASS: reduction-record writes a kinded record"; pass=$((pass+1)); } \
+  || { echo "FAIL: reduction-record wrote nothing"; fail=$((fail+1)); }
+SILENT2="$WS/silent2.jsonl"; SHOWN2="$WS/shown2.jsonl"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"All done, gate green."}]}}\n' > "$SILENT2"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Reduced: red-team ran degraded (inline, uncorroborated)."}]}}\n' > "$SHOWN2"
+check "recorded reduction + report hides it -> block" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT2"'"}' 2 "recorded a reduction"
+check "recorded reduction + report discloses it -> allow" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SHOWN2"'"}' 0 __NONE__
+
+# reduction-record refuses a reason-less reduction outright
+if bash "$RS2" --kind dispatch --id m2 --record-dir "$REDDIR" >/dev/null 2>&1; then
+  echo "FAIL: reduction-record accepted a reduction with no reason"; fail=$((fail+1))
+else
+  echo "PASS: reduction-record refuses a reason-less reduction"; pass=$((pass+1))
+fi
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

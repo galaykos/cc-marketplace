@@ -40,8 +40,10 @@ absent), consult `parallel-planning`'s `Dispatch:` recommendation
 - `Dispatch: workflow-tracks` → engage the `--tracks` path, but only under the **Run-now
   confirmation** (interactive) or a **`Goal:` marker** (hands-off), AND only if track
   preconditions hold (non-base run branch + clean tree + per-milestone `Files:` sets). If
-  preconditions are unmet, **downgrade to the default path** and write the downgrade
-  reason **into the run report** so a hands-off downgrade stays auditable. Auto-picked
+  preconditions are unmet, **downgrade to the default path**, record it with
+  `scripts/reduction-record.sh --kind dispatch --id <milestone|run> --reason "<why>"`,
+  and name it in the run report — the record makes that disclosure mandatory (the
+  completion gate blocks a report that omits it) instead of a rule nothing read. Auto-picked
   tracks downgrade — they never refuse; an *explicit* `--tracks` keeps
   `track-orchestration`'s create-or-refuse contract.
 
@@ -62,9 +64,10 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
    the gate pass) so the hook can enforce that a behavioral-gate pass is recorded before
    the run stops clean. `branch` scopes enforcement to the run's own branch, so a
-   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/` in the same step: reviewer-coverage
-   enforcement is armed by that directory existing, and arming it lazily would let the
-   context pressure that causes a skip also prevent the dir that would have caught it.
+   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/`, `rt/` and `bg/` in the same step:
+   reviewer-coverage, red-team-panel and behavioral-gate-evidence enforcement are each
+   armed by their directory existing, and arming them lazily would let the context
+   pressure that causes a cut also prevent the dir that would have caught it.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional

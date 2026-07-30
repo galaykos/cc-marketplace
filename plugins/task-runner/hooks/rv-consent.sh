@@ -11,10 +11,12 @@
 # action a gated skip must take: writing the skip record. So the record write is the
 # chokepoint, and the completion gate is what makes writing it unavoidable.
 #
-# WHAT IT ASKS ABOUT: rv-skip-* only. rv-seen-* (a real dispatch, observed) and
-# rv-exempt-* (the two DESIGN carve-outs — a parallel-group/track leaf, and a
-# reviewer plugin that is not installed) are routine and never prompt. Prompting on
-# routine records would train the reflex this gate exists to prevent.
+# WHAT IT ASKS ABOUT: a DISCRETIONARY reduction — a reviewer pass skipped
+# (review-skip.sh --reason) or any other promise narrowed (reduction-record.sh: a
+# degraded red-team panel, a downgraded fan-out, a narrowed suite). rv-seen-* (a real
+# dispatch, observed) and rv-exempt-* (the DESIGN carve-outs — a parallel-group/track
+# leaf, a reviewer plugin that is not installed) are routine and never prompt.
+# Prompting on routine records would train the reflex this gate exists to prevent.
 #
 # HONEST LIMIT: under auto-accept, bypassPermissions, or a headless run there is no
 # human and no prompt — the ask degrades to allow. In those modes consent is
@@ -37,7 +39,7 @@
   blob=$(printf '%s' "$input" | jq -r '.tool_input // {} | tostring' 2>/dev/null)
   discretionary=0
   printf '%s' "$blob" | grep -q 'rv-skip-' && discretionary=1
-  if printf '%s' "$blob" | grep -q 'review-skip\.sh' &&
+  if printf '%s' "$blob" | grep -qE 'review-skip\.sh|reduction-record\.sh' &&
      printf '%s' "$blob" | grep -q -- '--reason'; then
     discretionary=1
   fi
@@ -51,8 +53,8 @@
   # shown to the user is the one place this hook must get the text right.
   flat=$(printf '%s' "$blob" | sed 's/\\//g')
 
-  card=$(printf '%s' "$flat" | grep -oE -- '--card *"?[a-zA-Z0-9._-]{1,64}' | head -1 |
-    sed -E 's/^--card *"?//')
+  card=$(printf '%s' "$flat" | grep -oE -- '--(card|id) *"?[a-zA-Z0-9._-]{1,64}' | head -1 |
+    sed -E 's/^--(card|id) *"?//')
   if [ -z "$card" ]; then
     card=$(printf '%s' "$flat" | grep -oE 'rv-skip-[a-zA-Z0-9._-]{1,64}' | head -1 |
       sed -E 's/^rv-skip-//; s/\.json$//')
@@ -66,7 +68,9 @@
     sed -E 's/^--reason *"//; s/"$//' | cut -c1-300)
   [ -n "$reason" ] || reason="no reason given in the command"
 
-  msg=$(printf 'Skipping the reviewer pass for card %s. Reason: %s\n\nApproving records the skip and lets the run continue; the completion report must still disclose it. Denying means the reviewer pass runs.' "$card" "$reason")
+  what="the reviewer pass for card"
+  printf '%s' "$flat" | grep -q 'reduction-record\.sh' && what="a declared step for"
+  msg=$(printf 'Reducing %s %s. Reason: %s\n\nApproving records the reduction and lets the run continue; the completion report must still disclose it. Denying means the full step runs.' "$what" "$card" "$reason")
 
   jq -cn --arg m "$msg" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$m}}' 2>/dev/null

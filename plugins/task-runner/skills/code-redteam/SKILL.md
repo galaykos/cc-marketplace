@@ -50,6 +50,11 @@ deliverable the input-side red-team skipped.
 Spawn exactly three blind refuters over the diff, independent (no refuter sees another's
 verdict), each handed the same diff but a DIFFERENT attack lens.
 
+**Coverage markers.** Each refuter's prompt opens with `RT-LENS: <lens>`, the critic's
+with `RT-CRITIC: <ref>`. `hooks/rv-observe.sh` records those dispatches; `completion-gate.sh`
+refuses a clean stop on a boosted run whose panel is short — three lenses and one critic,
+or a recorded degradation.
+
 **Tier — the caller supplies it.** This skill never reads `00-INDEX.md`; the caller
 (`task-execution`, or `track-orchestration` on the tracks path) passes the **already
 resolved** `(model, effort)` in, so `auto` is resolved before it reaches here per
@@ -118,6 +123,10 @@ not be reported as one: no "refuters", no "panel", no "verified". Its report hea
 **"inline heuristic pass — single model, uncorroborated"** (the independence that makes
 refutation mean something did not exist). A skipped red-team is a silent regression,
 never an option; an unlabeled degraded one is a false claim, equally never an option.
+
+Record it as well as labelling it: `scripts/reduction-record.sh --kind redteam --id <ref>
+--reason "<why>"`. That record is what lets the gate accept a short panel, and what makes
+the report's disclosure mandatory rather than optional.
 
 ## When it fires
 

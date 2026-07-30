@@ -17,9 +17,9 @@
 # pass records with the same conviction. What has teeth is evidence the ORCHESTRATOR
 # could not fabricate without lying in a tool call: this hook sees the dispatch itself.
 #
-# WHAT IT PROVES, EXACTLY: that an Agent/Task dispatch carrying `RV-CARD: <id>` was
-# made while a run was registered. Not that the reviewer read anything, not that its
-# findings were acted on, not that the right reviewer was chosen. Review DEPTH stays
+# WHAT IT PROVES, EXACTLY: that an Agent/Task dispatch carrying one of the markers below
+# was made while a run was registered. Not that the reviewer or refuter read anything,
+# not that its findings were acted on, not that the right one was chosen. DEPTH stays
 # unenforceable — a subagent's transcript is a separate file the parent hook cannot
 # see. This closes "the pass never happened", which is the failure that occurred.
 #
@@ -35,23 +35,35 @@
   # and the completion gate is fail-open there for the same reason.
   [ -r "$cwd/.claude/task-runner/active-run.json" ] || exit 0
 
-  # The marker rides in the dispatch prompt (reviewer-routing.md § Priming). Read the
-  # whole tool_input rather than a single field: the Agent tool names it `prompt`,
-  # and a future dispatch shape that carries it elsewhere should still count.
-  marker=$(printf '%s' "$input" | jq -r '.tool_input // {} | tostring' 2>/dev/null |
-    grep -oE 'RV-CARD: ?[a-zA-Z0-9._-]{1,64}' | head -1)
-  [ -n "$marker" ] || exit 0
+  # Markers ride in the dispatch prompt. Read the whole tool_input rather than a single
+  # field: the Agent tool names it `prompt`, and a future dispatch shape carrying it
+  # elsewhere should still count.
+  #
+  #   RV-CARD: <card>   a card's reviewer pass      (reviewer-routing.md § Coverage marker)
+  #   RT-LENS: <lens>   one red-team refuter        (code-redteam § The N=3 refuter panel)
+  #   RT-CRITIC: <id>   the completeness critic     (same)
+  #
+  # One observer, several kinds: a second hook per mandated dispatch would be four
+  # copies of this file, and the marketplace's admission law forbids that.
+  blob=$(printf '%s' "$input" | jq -r '.tool_input // {} | tostring' 2>/dev/null)
 
-  card=${marker#RV-CARD:}
-  card=${card# }
-  case "$card" in '' | *[!a-zA-Z0-9._-]*) exit 0 ;; esac
+  record() { # record <subdir> <prefix> <id>
+    case "$3" in '' | *[!a-zA-Z0-9._-]*) return 0 ;; esac
+    d="$cwd/.claude/task-runner/$1"
+    mkdir -p "$d" 2>/dev/null || return 0
+    [ -w "$d" ] || return 0
+    # Idempotent by id: several reviewers dispatch per card (code-reviewer plus the tag
+    # route) and one record per card is what the gate counts.
+    printf '{"id":"%s","dispatched":true}\n' "$3" > "$d/$2-$3.json" 2>/dev/null
+  }
 
-  dir="$cwd/.claude/task-runner/rv"
-  mkdir -p "$dir" 2>/dev/null || exit 0
-  [ -w "$dir" ] || exit 0
+  m=$(printf '%s' "$blob" | grep -oE 'RV-CARD: ?[a-zA-Z0-9._-]{1,64}' | head -1)
+  [ -n "$m" ] && { v=${m#RV-CARD:}; record rv rv-seen "${v# }"; }
 
-  # Idempotent: several reviewers dispatch per card (code-reviewer plus the tag route),
-  # and one record per card is what the gate counts.
-  printf '{"card":"%s","dispatched":true}\n' "$card" > "$dir/rv-seen-$card.json" 2>/dev/null
+  m=$(printf '%s' "$blob" | grep -oE 'RT-LENS: ?[a-zA-Z0-9._-]{1,64}' | head -1)
+  [ -n "$m" ] && { v=${m#RT-LENS:}; record rt rt-lens "${v# }"; }
+
+  m=$(printf '%s' "$blob" | grep -oE 'RT-CRITIC: ?[a-zA-Z0-9._-]{1,64}' | head -1)
+  [ -n "$m" ] && { v=${m#RT-CRITIC:}; record rt rt-critic "${v# }"; }
 } 2>/dev/null
 exit 0

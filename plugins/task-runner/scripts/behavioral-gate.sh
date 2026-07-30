@@ -376,9 +376,27 @@ for e in "${verdicts[@]}"; do
   [ "$val" = covered ] && continue
   FINAL="$val"; break
 done
+
+# MACHINE EVIDENCE. gate-pass.json is written by the MODEL, so on its own it records a
+# claim, not a run: a run can write {"head":...} having never invoked this script. This
+# writes what THIS script actually concluded, for the HEAD it concluded it at, and
+# completion-gate.sh cross-checks the claim against it. Armed by the directory existing
+# (created at run registration), so a plain non-run invocation writes nothing. Failure to
+# write is never fatal — the gate's own verdict and exit code are unchanged either way.
+bg_record() { # $1 = verdict label
+  bg_dir="$(pwd)/.claude/task-runner/bg"
+  [ -d "$bg_dir" ] && [ -w "$bg_dir" ] || return 0
+  command -v git >/dev/null 2>&1 || return 0
+  bg_head=$(git rev-parse HEAD 2>/dev/null) || return 0
+  printf '{"head":"%s","verdict":"%s","runners":"%s"}\n' \
+    "$bg_head" "$1" "${verdicts[*]}" > "$bg_dir/bg-$bg_head.json" 2>/dev/null || true
+}
+
 if [ -n "$FINAL" ]; then
+  bg_record "$FINAL"
   log "VERDICT: $FINAL (runners: ${verdicts[*]})"
   exit 2
 fi
+bg_record covered
 log "VERDICT: covered (runners: ${verdicts[*]})"
 exit 0
