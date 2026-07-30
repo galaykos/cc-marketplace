@@ -49,7 +49,7 @@ After the task's verify command passes — before its status flips — run a con
 - **architecture-reviewer** (code-architecture plugin): only structural tasks — new modules, boundary or API changes.
 - **security review** (security plugin): only on tasks touching auth, input validation, or dependencies.
 
-Each fires only if its plugin is installed; a missing reviewer is skipped silently, never a failure.
+Each fires only if its plugin is installed; a missing reviewer is not a failure, but it is never silent — record it with `scripts/review-skip.sh --card <id> --exempt no-reviewer-installed`. A reviewer pass dropped for any other reason is a DISCRETIONARY skip: it needs the user's approval first, then `--reason "<why>"`, and it must appear under `Skipped:` in the completion report. The completion gate counts reviewer records against done cards and refuses a clean stop when they are short or when a recorded skip went undisclosed.
 **Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch
 over the card diff; a `Bash`-holding reviewer runs serially outside it; the inline
 security-review skill runs after the batch joins (`references/reviewer-routing.md`

@@ -225,5 +225,79 @@ else
   echo "FAIL: discriminating control writes nc-pass record (rc=$rc)"; fail=$((fail+1))
 fi
 
+# ---- per-card REVIEWER coverage (rv/) --------------------------------------------
+# The gap this closes, from a real run: 8 cards done, reviewers dispatched on card 01
+# only, "all 8 done, none parked" reported, every other gate green. Unlike nc/, the
+# records here are written by a HOOK observing the dispatch (rv-observe.sh), not by
+# the model — a model-authored pass record would have been written with the same
+# conviction as the cards_done:8 that run already wrote.
+RVDIR="$REPO/.claude/task-runner/rv"
+OBS="$ROOT/plugins/task-runner/hooks/rv-observe.sh"
+RS="$ROOT/plugins/task-runner/scripts/review-skip.sh"
+rm -rf "$NCDIR"                                   # isolate: this section tests rv/ only
+printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$HEAD" > "$GP"
+
+rm -rf "$RVDIR"
+check "no rv dir at all -> legacy allow" "" "$J" 0 __NONE__
+
+mkdir -p "$RVDIR"
+printf '{"card":"01"}' > "$RVDIR/rv-seen-01.json"
+check "rv records 1 < done 3 -> block" "" "$J" 2 "per-card reviewer records"
+check "rv records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "per-card reviewer records"
+
+# the observer writes a record from a dispatch carrying the marker
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RV-CARD: 02\\nreview the diff"}}' "$REPO" \
+  | bash "$OBS" >/dev/null 2>&1
+if [ -f "$RVDIR/rv-seen-02.json" ]; then
+  echo "PASS: rv-observe records an observed dispatch"; pass=$((pass+1))
+else
+  echo "FAIL: rv-observe did not record the dispatch"; fail=$((fail+1))
+fi
+
+# a dispatch WITHOUT the marker is not counted (fails toward blocking, never silence)
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"review the diff for card 03"}}' "$REPO" \
+  | bash "$OBS" >/dev/null 2>&1
+if [ -f "$RVDIR/rv-seen-03.json" ]; then
+  echo "FAIL: rv-observe recorded an unmarked dispatch"; fail=$((fail+1))
+else
+  echo "PASS: unmarked dispatch is not counted"; pass=$((pass+1))
+fi
+
+# an exemption covers the third card -> counts satisfied, no skip recorded -> allow
+bash "$RS" --card 03 --exempt leaf --record-dir "$RVDIR" >/dev/null 2>&1
+check "rv records 3 == done 3 (seen+seen+exempt) -> allow" "" "$J" 0 __NONE__
+
+# a DISCRETIONARY skip must be disclosed in the closing report
+rm -f "$RVDIR/rv-exempt-03.json"
+bash "$RS" --card 03 --reason "context pressure" --record-dir "$RVDIR" >/dev/null 2>&1
+[ -f "$RVDIR/rv-skip-03.json" ] \
+  && { echo "PASS: review-skip.sh writes rv-skip with a reason"; pass=$((pass+1)); } \
+  || { echo "FAIL: review-skip.sh did not write rv-skip"; fail=$((fail+1)); }
+
+SILENT="$WS/silent.jsonl"; DISCLOSED="$WS/disclosed.jsonl"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"All 3 cards done, none parked."}]}}\n' > "$SILENT"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Skipped: card 03 reviewer pass, context pressure."}]}}\n' > "$DISCLOSED"
+check "recorded skip + report hides it -> block" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT"'"}' 2 "does not mention it"
+check "recorded skip + report discloses it -> allow" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$DISCLOSED"'"}' 0 __NONE__
+
+# consent gate: a discretionary skip asks; an exemption and a plain edit do not
+CONSENT="$ROOT/plugins/task-runner/hooks/rv-consent.sh"
+ask=$(printf '{"tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 03 --reason \\"ctx pressure\\""}}' | bash "$CONSENT" 2>/dev/null)
+if printf '%s' "$ask" | grep -q '"permissionDecision":"ask"' && printf '%s' "$ask" | grep -q 'card 03'; then
+  echo "PASS: consent hook asks before a discretionary skip"; pass=$((pass+1))
+else
+  echo "FAIL: consent hook did not ask (out=<$ask>)"; fail=$((fail+1))
+fi
+quiet=$(printf '{"tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 04 --exempt leaf"}}' | bash "$CONSENT" 2>/dev/null)
+[ -z "$quiet" ] \
+  && { echo "PASS: consent hook silent on an exemption"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted on an exemption"; fail=$((fail+1)); }
+quiet=$(printf '{"tool_name":"Write","tool_input":{"file_path":"src/app.ts"}}' | bash "$CONSENT" 2>/dev/null)
+[ -z "$quiet" ] \
+  && { echo "PASS: consent hook silent on an unrelated write"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted on an unrelated write"; fail=$((fail+1)); }
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

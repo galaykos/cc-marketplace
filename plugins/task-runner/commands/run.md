@@ -62,7 +62,9 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
    the gate pass) so the hook can enforce that a behavioral-gate pass is recorded before
    the run stops clean. `branch` scopes enforcement to the run's own branch, so a
-   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo.
+   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/` in the same step: reviewer-coverage
+   enforcement is armed by that directory existing, and arming it lazily would let the
+   context pressure that causes a skip also prevent the dir that would have caught it.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional

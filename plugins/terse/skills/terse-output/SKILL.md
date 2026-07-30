@@ -29,6 +29,11 @@ A prose line is ~100 rendered characters: a 300-character paragraph spends 3, no
 A big task does not buy a big reply. 40 files written, same budget, denser lines.
 Before sending: count prose lines. Over budget → **delete content**, do not reword it.
 
+One line is never budgetable: **a step you skipped**. Say it when you decide it, not at
+the end — the 1-line progress budget is not a reason to defer the disclosure, and the
+`Skipped` slot below is where it lands in the report. Budget pressure is precisely the
+pressure that produces an undisclosed skip.
+
 Work-done reports use one skeleton, same order every time, empty parts skipped:
 
 1. **Verdict** — one line, what is now true. `Done. spec/ = 70 files, 16.8k lines.`

@@ -135,6 +135,41 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
       gate_exit
     fi
   fi
+  # PER-CARD REVIEWER COVERAGE. Same arithmetic as the nc block, different evidence:
+  # rv-seen-* records are written by hooks/rv-observe.sh when it OBSERVES a reviewer
+  # dispatch carrying the card's RV-CARD marker, so the count is not model-authored.
+  # rv-skip-* is a discretionary skip (consent-gated, disclosed); rv-exempt-* is a
+  # design carve-out (leaf card, reviewer plugin absent).
+  #
+  # This closes the gap a real run fell through: reviewers ran on card 01, were
+  # dropped on 02-08 under context pressure, and nothing noticed — every other gate
+  # was green and the report said "all 8 done, none parked". The rv/ dir is created
+  # at run registration (commands/run.md step 1), NOT on first use: opt-in-by-presence
+  # would be defeated by the same pressure that causes the skip.
+  rvdir="$cwd/.claude/task-runner/rv"
+  if [ "$verdict" = "complete" ] && [ -d "$rvdir" ]; then
+    cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
+    rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$rv_count" -lt "$cdone" ] 2>/dev/null; then
+      slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)
+      printf '[task-runner] completion-gate: %s reports %s done cards but only %s per-card reviewer records in .claude/task-runner/rv/.\n' "$slug" "$cdone" "$rv_count" >&2
+      printf '  Every done card needs an observed reviewer dispatch (the RV-CARD marker in the prompt), a recorded skip (scripts/review-skip.sh --card --reason) or an exemption (--exempt). Run the missing reviews, then stop.\n' >&2
+      gate_exit
+    fi
+    # A recorded skip must be DISCLOSED, not just filed. Presence only — this cannot
+    # judge whether the disclosure is honest, and does not pretend to.
+    if find "$rvdir" -maxdepth 1 -name 'rv-skip-*.json' 2>/dev/null | grep -q . ; then
+      tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+      if [ -n "$tp" ] && [ -r "$tp" ]; then
+        said=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' "$tp" 2>/dev/null | tail -40)
+        if [ -n "$said" ] && ! printf '%s' "$said" | grep -qi 'skipped'; then
+          printf '[task-runner] completion-gate: this run recorded a skipped reviewer pass, and the closing report does not mention it.\n' >&2
+          printf '  Name every skipped card and its reason in the report before stopping — a skip the user has to ask about is the gap this gate exists to prevent.\n' >&2
+          gate_exit
+        fi
+      fi
+    fi
+  fi
   exit 0                                          # gate pass for THIS commit (cards complete or legacy) → allow
 fi
 
