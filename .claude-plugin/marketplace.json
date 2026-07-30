@@ -338,6 +338,11 @@
       "name": "fresh-take",
       "source": "./plugins/fresh-take",
       "description": "Independent stronger-model second opinion at key moments — stuck debugging or an imminent irreversible action. /fresh-take:consult composes a facts-only brief (no leaning) and dispatches a blind stronger-model consultant with read-only repo access; it returns a Take, Risks, and one Alternative. A UserPromptSubmit reminder hook nudges the command on key-moment phrases. Advice only — it never blocks, gates, or edits anything."
+    },
+    {
+      "name": "terse",
+      "source": "./plugins/terse",
+      "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker."
     }
   ]
 }

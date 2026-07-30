@@ -1,0 +1,5 @@
+{
+  "chassis": "optout",
+  "file": "commands/check.md",
+  "reason": "Not the chassis check command (which verifies a docs/config surface before work). This one runs scripts/measure.sh over the current session transcript and reports prose lines per turn-final message against the active level's budget — a measurement report with no review, no fix list, and no skill dispatch."
+}
