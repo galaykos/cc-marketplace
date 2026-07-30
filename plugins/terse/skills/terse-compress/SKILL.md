@@ -33,9 +33,9 @@ Refuse, and say which rule applies:
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/verify-compress.sh" FILE FILE.original.md
    ```
 
-   Four checks that pass or fail on bytes: identifiers, paths and URLs all
-   survived · heading count unchanged · every number still present · the file
-   actually shrank. A non-zero exit means restore or fix, never report. What the
+   Five checks that pass or fail on bytes: identifiers, paths and URLs all
+   survived · heading count unchanged · fenced code blocks intact · every number
+   still present · the file actually shrank. A non-zero exit means restore or fix, never report. What the
    script cannot judge is meaning — a compression that kept every identifier and
    deleted the sentence explaining why still exits 0.
 5. **Report** in the plugin's report shape: verdict line with before/after bytes
@@ -70,5 +70,5 @@ frontmatter · heading text · list nesting and table structure · every `MUST`,
 `mv FILE.original.md FILE` restores it exactly. Say this in the report — a
 compression the user cannot undo in one command is not a safe compression.
 
-Standing: **agent-graded**, plus the two mechanical checks in step 4, which are
+Standing: **agent-graded**, plus the five mechanical checks in step 4, which are
 the only part with real teeth. Nothing in CI verifies a compressed memory file.

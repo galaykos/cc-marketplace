@@ -5,9 +5,9 @@
 #   verify-compress.sh <compressed-file> <backup-file>
 #
 # WHY A SCRIPT AND NOT A CHECKLIST. Every other rule in this plugin is prose a
-# model can satisfy by believing it did. These four checks either pass or fail on
-# bytes: identifiers and URLs present in both, heading set unchanged, every number
-# still there, and the file actually got smaller. That is the whole difference
+# model can satisfy by believing it did. These five checks either pass or fail on
+# bytes: identifiers and URLs present in both, heading set unchanged, fenced code
+# blocks intact, every number still there, and the file actually got smaller. That is the whole difference
 # between `agent-graded` and something with teeth, and compression is the one
 # place in this plugin that edits a user's file.
 #

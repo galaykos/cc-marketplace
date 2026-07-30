@@ -149,7 +149,17 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
   rvdir="$cwd/.claude/task-runner/rv"
   if [ "$verdict" = "complete" ] && [ -d "$rvdir" ]; then
     cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
-    rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) 2>/dev/null | wc -l | tr -d ' ')
+    # TWO CORRECTIONS over a raw file count, both found by adversarial review:
+    #
+    # -newer "$sentinel": card ids repeat across runs (taskmaster emits 01..NN every
+    # time), so run B's coverage was satisfied by run A's leftover records — the gate
+    # was fully defeated from the second run in a repo onward. Only records written
+    # since THIS run registered count.
+    #
+    # distinct ids: rv-seen-01 plus rv-skip-01 is two files and one card. Counting
+    # files let a two-card run pass with card 02 never reviewed, skipped, or exempted.
+    rv_count=$(find "$rvdir" -maxdepth 1 \( -name 'rv-seen-*.json' -o -name 'rv-skip-*.json' -o -name 'rv-exempt-*.json' \) -newer "$sentinel" 2>/dev/null |
+      sed -E 's#.*/rv-(seen|skip|exempt)-##; s#\.json$##' | sort -u | wc -l | tr -d ' ')
     if [ "$rv_count" -lt "$cdone" ] 2>/dev/null; then
       slug=$(jq -r '.slug // "the active run"' "$sentinel" 2>/dev/null)
       printf '[task-runner] completion-gate: %s reports %s done cards but only %s per-card reviewer records in .claude/task-runner/rv/.\n' "$slug" "$cdone" "$rv_count" >&2
@@ -170,8 +180,14 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
       printf '  gate-pass.json is written by hand; bg/bg-<head>.json is written by the gate itself. Run scripts/behavioral-gate.sh against this HEAD, then stop.\n' >&2
       gate_exit
     fi
+    # PASSING VERDICTS ARE TWO, not one: behavioral-gate.sh exits 0 for `covered` AND
+    # for `no-executable-surface` (its own contract — an honest doc/lint-only change has
+    # nothing runnable to prove). Treating the second as red blocked every docs run at
+    # completion with no way forward, which is a worse failure than the silence this
+    # whole mechanism replaced.
     bgv=$(jq -r '.verdict // empty' "$bgdir/bg-$head.json" 2>/dev/null)
-    if [ -n "$bgv" ] && [ "$bgv" != "covered" ]; then
+    case "$bgv" in covered | no-executable-surface | '') bgv="" ;; esac
+    if [ -n "$bgv" ]; then
       printf '[task-runner] completion-gate: behavioral-gate.sh reached "%s" for HEAD %s, and the run is reporting complete.\n' "$bgv" "${head:0:12}" >&2
       printf '  A run may not close over a red or unverifiable behavioral gate. Fix the coverage, re-run the gate, then stop.\n' >&2
       gate_exit
@@ -190,13 +206,33 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
   if [ "$verdict" = "complete" ] && [ -d "$rtdir" ]; then
     idx=$(jq -r '.index_path // empty' "$sentinel" 2>/dev/null)
     boosted=0
-    if [ -n "$idx" ] && [ -r "$cwd/$idx" ]; then
-      grep -qiE '^[[:space:]]*(Ultra|Goal):[[:space:]]*true' "$cwd/$idx" 2>/dev/null && boosted=1
+    case "$idx" in /*) idxp="$idx" ;; *) idxp="$cwd/$idx" ;; esac   # absolute or relative
+    if [ -n "$idx" ] && [ -r "$idxp" ]; then
+      grep -qiE '^[[:space:]]*(Ultra|Goal):[[:space:]]*true' "$idxp" 2>/dev/null && boosted=1
+    fi
+    # A boosted run that shipped no code has nothing for a code red-team to refute —
+    # code-redteam fires "when a boosted run produced code". Arming rt/ at registration
+    # is unconditional, so without this a legitimate docs-only ultra run blocked at
+    # completion and the only escape was recording a semantically false degradation.
+    # Unknown diff (no base recorded, or git cannot resolve it) → do not enforce: a
+    # missed check costs a check, a false block costs the run.
+    if [ "$boosted" = 1 ]; then
+      run_base=$(jq -r '.base // empty' "$sentinel" 2>/dev/null)
+      code_touched=unknown
+      if [ -n "$run_base" ] && git -C "$cwd" rev-parse --verify "$run_base" >/dev/null 2>&1; then
+        if git -C "$cwd" diff --name-only "$run_base..HEAD" 2>/dev/null |
+             grep -qvE '\.(md|txt|json|ya?ml|lock|csv|svg|png|jpe?g|gif)$|^$'; then
+          code_touched=yes
+        else
+          code_touched=no
+        fi
+      fi
+      [ "$code_touched" = "no" ] && boosted=0
     fi
     if [ "$boosted" = 1 ]; then
-      lenses=$(find "$rtdir" -maxdepth 1 -name 'rt-lens-*.json' 2>/dev/null | wc -l | tr -d ' ')
-      critic=$(find "$rtdir" -maxdepth 1 -name 'rt-critic-*.json' 2>/dev/null | wc -l | tr -d ' ')
-      degraded=$(find "$cwd/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' 2>/dev/null | wc -l | tr -d ' ')
+      lenses=$(find "$rtdir" -maxdepth 1 -name 'rt-lens-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
+      critic=$(find "$rtdir" -maxdepth 1 -name 'rt-critic-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
+      degraded=$(find "$cwd/.claude/task-runner/reductions" -maxdepth 1 -name 'redteam-*.json' -newer "$sentinel" 2>/dev/null | wc -l | tr -d ' ')
       if [ "$degraded" -eq 0 ] 2>/dev/null && { [ "$lenses" -lt 3 ] || [ "$critic" -lt 1 ]; } 2>/dev/null; then
         printf '[task-runner] completion-gate: this is a boosted run, and the code red-team panel is short: %s of 3 refuter lenses, %s of 1 completeness critic.\n' "$lenses" "$critic" >&2
         printf '  Dispatch the missing refuters (each prompt carries RT-LENS: <lens>, the critic RT-CRITIC: <id>), or record the degraded inline pass with scripts/reduction-record.sh --kind redteam --id <ref> --reason "...". Then stop.\n' >&2
@@ -209,16 +245,32 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
   # this cannot judge whether the disclosure is honest, and does not pretend to. What
   # it removes is the case the incident was made of — a reduction that happened, was
   # recorded, and never reached the person reading the report.
-  if [ "$verdict" = "complete" ] && {
-       find "$rvdir" -maxdepth 1 -name 'rv-skip-*.json' 2>/dev/null | grep -q . ||
-       find "$cwd/.claude/task-runner/reductions" -maxdepth 1 -name '*.json' 2>/dev/null | grep -q . ; }; then
-    tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
-    if [ -n "$tp" ] && [ -r "$tp" ]; then
-      said=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' "$tp" 2>/dev/null | tail -40)
-      if [ -n "$said" ] && ! printf '%s' "$said" | grep -qiE 'skipped|reduced|degraded'; then
-        printf '[task-runner] completion-gate: this run recorded a reduction (a skipped reviewer pass, a degraded red-team, or a narrowed dispatch) and the closing report does not mention it.\n' >&2
-        printf '  Name every reduction and its reason in the report before stopping — a cut the user has to ask about is the gap this gate exists to prevent.\n' >&2
-        gate_exit
+  if [ "$verdict" = "complete" ]; then
+    # WHAT MUST BE DISCLOSED: the ID of every reduction recorded during THIS run.
+    # Grepping for the words skipped/reduced/degraded was wrong in both directions —
+    # "Tests: 41 passed, 0 skipped" satisfied it while the real cut went unmentioned,
+    # and an honest "the reviewer pass was omitted with your approval" was blocked.
+    # An id is specific: naming card 07 is what disclosure means.
+    ids=$(find "$rvdir" -maxdepth 1 -name 'rv-skip-*.json' -newer "$sentinel" 2>/dev/null |
+            sed -E 's|.*/rv-skip-||; s|\.json$||'
+          find "$cwd/.claude/task-runner/reductions" -maxdepth 1 -name '*.json' -newer "$sentinel" 2>/dev/null |
+            sed -E 's|.*/[a-z]+-||; s|\.json$||')
+    ids=$(printf '%s\n' "$ids" | sed '/^$/d' | sort -u)
+    if [ -n "$ids" ]; then
+      tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+      if [ -n "$tp" ] && [ -r "$tp" ]; then
+        # The whole final report, not a fixed tail: a long report can carry its
+        # disclosure well above the last 40 lines.
+        said=$(jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' "$tp" 2>/dev/null | tail -200)
+        missing=""
+        for id in $ids; do
+          printf '%s' "$said" | grep -qF "$id" || missing="$missing $id"
+        done
+        if [ -n "$said" ] && [ -n "$missing" ]; then
+          printf '[task-runner] completion-gate: this run recorded reductions that the closing report never names:%s\n' "$missing" >&2
+          printf '  Name each one and its reason (the records are in .claude/task-runner/rv/ and reductions/) before stopping — a cut the user has to ask about is the gap this gate exists to prevent.\n' >&2
+          gate_exit
+        fi
       fi
     fi
   fi

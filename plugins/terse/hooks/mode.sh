@@ -109,11 +109,11 @@
   printf '%s' "$head" | grep -qE 'terse mode (active|—)|terse mode off\. normal|terse (lite|full|ultra|wenyan-[a-z]+) —' && about=1
 
   if [ "$about" -eq 0 ]; then
-    # OFF. "normal mode" is not a brevity phrase in any form — vim has one, an app
-    # boots in one, a dark-mode comparison mentions one, and "get back to normal
-    # mode in vim" is not a request about replies. Only length/verbosity words
-    # count; the reliable off switch is /terse:level off.
-    if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\bnormal (verbosity|length|replies)\b|\bback to normal (length|verbosity)\b'; then
+    # OFF. Not a bare noun phrase in any form: "normal mode" belongs to vim and to an
+    # app's boot state, and even "normal length" appears mid-sentence about CSS
+    # line-height. The trigger is a REQUEST shape — back to / resume / return to — or an
+    # explicit terse-off. The reliable switch stays /terse:level off.
+    if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\b(back to|resume|return to|go back to) normal (length|verbosity|replies)\b|\bbe more verbose\b|\bstop being terse\b'; then
       write_level off && confirm off
     fi
     # ON, in two shapes. `terse on` is deliberately NOT one of them: "a bit terse
@@ -124,6 +124,13 @@
     # end of prompt. Without that boundary "terse ultra vires doctrine" switched
     # to ultra and "I prefer terse full sentences" switched to full: the level
     # word was being read out of the middle of an ordinary sentence.
+    # NEGATION GUARD. "do not enable terse mode, I hate it" and "never turn on terse"
+    # both switched it ON: the trigger saw its own keywords and never looked left. A
+    # negator anywhere in the clause before them disqualifies the whole prompt — a user
+    # arguing about the mode is not asking for it.
+    printf '%s' "$head" | grep -qE "(do ?n.?t|don't|never|no need to|without|avoid|stop|rather not|hate|dislike)[a-z ,'’-]{0,30}(terse|enable|activate|turn on)" && exit 0
+    # "is that terse full?" is a question about the mode, not a request for it.
+    case "$head" in \?*|*\?) printf '%s' "$head" | grep -qE '^(is|are|was|does|did|what|why|how)\b' && exit 0 ;; esac
     on_verb='\bterse mode on\b|\b(enable|activate|turn on) terse( mode)?\b'
     on_level='\bterse( mode| level| to)* (lite|full|ultra|wenyan(-(lite|full|ultra))?)[[:space:]]*([.,!?;]|$)'
     if printf '%s' "$head" | grep -qE "$on_level"; then

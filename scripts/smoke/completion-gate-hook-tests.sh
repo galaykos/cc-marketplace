@@ -276,25 +276,37 @@ bash "$RS" --card 03 --reason "context pressure" --record-dir "$RVDIR" >/dev/nul
 
 SILENT="$WS/silent.jsonl"; DISCLOSED="$WS/disclosed.jsonl"
 printf '{"type":"assistant","message":{"content":[{"type":"text","text":"All 3 cards done, none parked."}]}}\n' > "$SILENT"
-printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Skipped: card 03 reviewer pass, context pressure."}]}}\n' > "$DISCLOSED"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Skipped: card 03 reviewer pass (context pressure)."}]}}\n' > "$DISCLOSED"
 check "recorded skip + report hides it -> block" "" \
-  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT"'"}' 2 "does not mention it"
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT"'"}' 2 "never names"
 check "recorded skip + report discloses it -> allow" "" \
   '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$DISCLOSED"'"}' 0 __NONE__
 
 # consent gate: a discretionary skip asks; an exemption and a plain edit do not
 CONSENT="$ROOT/plugins/task-runner/hooks/rv-consent.sh"
-ask=$(printf '{"tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 03 --reason \\"ctx pressure\\""}}' | bash "$CONSENT" 2>/dev/null)
+ask=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 03 --reason \\"ctx pressure\\""}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
 if printf '%s' "$ask" | grep -q '"permissionDecision":"ask"' && printf '%s' "$ask" | grep -q 'card 03'; then
   echo "PASS: consent hook asks before a discretionary skip"; pass=$((pass+1))
 else
   echo "FAIL: consent hook did not ask (out=<$ask>)"; fail=$((fail+1))
 fi
-quiet=$(printf '{"tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 04 --exempt leaf"}}' | bash "$CONSENT" 2>/dev/null)
+quiet=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 04 --exempt leaf"}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
 [ -z "$quiet" ] \
   && { echo "PASS: consent hook silent on an exemption"; pass=$((pass+1)); } \
   || { echo "FAIL: consent hook prompted on an exemption"; fail=$((fail+1)); }
-quiet=$(printf '{"tool_name":"Write","tool_input":{"file_path":"src/app.ts"}}' | bash "$CONSENT" 2>/dev/null)
+quiet=$(printf '{"cwd":"%s","tool_name":"Write","tool_input":{"file_path":"src/app.ts"}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+# merely READING about a record is not the act that needs consent
+noise=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"grep -r rv-skip- ."}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+[ -z "$noise" ] \
+  && { echo "PASS: consent hook silent on a grep that merely names a record"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted on a grep"; fail=$((fail+1)); }
+# outside a registered run it must never speak
+rm -f "$SENT.bak"; cp "$SENT" "$SENT.bak"; rm -f "$SENT"
+outside=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 03 --reason \\"x\\""}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+mv "$SENT.bak" "$SENT"
+[ -z "$outside" ] \
+  && { echo "PASS: consent hook silent outside a registered run"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted outside a registered run"; fail=$((fail+1)); }
 [ -z "$quiet" ] \
   && { echo "PASS: consent hook silent on an unrelated write"; pass=$((pass+1)); } \
   || { echo "FAIL: consent hook prompted on an unrelated write"; fail=$((fail+1)); }
@@ -314,6 +326,13 @@ printf '{"head":"%s","verdict":"empty-suite"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
 check "behavioral-gate verdict red + reporting complete -> block" "" "$J" 2 'reached "empty-suite"'
 printf '{"head":"%s","verdict":"covered"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
 check "behavioral-gate covered -> allow" "" "$J" 0 __NONE__
+# no-executable-surface is behavioral-gate's OTHER exit-0 verdict: a docs/lint-only
+# change has nothing runnable to prove. Treating it as red blocked every docs run.
+printf '{"head":"%s","verdict":"no-executable-surface"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate no-executable-surface (honest pass) -> allow" "" "$J" 0 __NONE__
+printf '{"head":"%s","verdict":"unverifiable-suite"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate unverifiable-suite -> block" "" "$J" 2 'reached "unverifiable-suite"'
+printf '{"head":"%s","verdict":"covered"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
 
 # red-team panel width: boosted runs only, keyed off the index marker
 mkdir -p "$REPO/x" "$RTDIR"
@@ -343,9 +362,9 @@ bash "$RS2" --kind redteam --id m1 --reason "Workflow tool unavailable" --record
   || { echo "FAIL: reduction-record wrote nothing"; fail=$((fail+1)); }
 SILENT2="$WS/silent2.jsonl"; SHOWN2="$WS/shown2.jsonl"
 printf '{"type":"assistant","message":{"content":[{"type":"text","text":"All done, gate green."}]}}\n' > "$SILENT2"
-printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Reduced: red-team ran degraded (inline, uncorroborated)."}]}}\n' > "$SHOWN2"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Reduced: red-team for m1 ran degraded (inline, uncorroborated)."}]}}\n' > "$SHOWN2"
 check "recorded reduction + report hides it -> block" "" \
-  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT2"'"}' 2 "recorded a reduction"
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT2"'"}' 2 "never names"
 check "recorded reduction + report discloses it -> allow" "" \
   '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SHOWN2"'"}' 0 __NONE__
 

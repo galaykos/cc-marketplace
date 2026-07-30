@@ -64,10 +64,13 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
    the gate pass) so the hook can enforce that a behavioral-gate pass is recorded before
    the run stops clean. `branch` scopes enforcement to the run's own branch, so a
-   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/`, `rt/` and `bg/` in the same step:
-   reviewer-coverage, red-team-panel and behavioral-gate-evidence enforcement are each
-   armed by their directory existing, and arming them lazily would let the context
-   pressure that causes a cut also prevent the dir that would have caught it.
+   sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/`, `rt/`, `bg/` and `reductions/` in the same
+   step: reviewer-coverage, red-team-panel and behavioral-gate-evidence enforcement are
+   each armed by their directory existing, and arming them lazily would let the context
+   pressure that causes a cut also prevent the dir that would have caught it. Records
+   from an EARLIER run are ignored automatically (the gate counts only records newer
+   than `active-run.json`), so a re-registration re-arms every check by itself — but
+   deleting the stale files at registration keeps the dirs readable for a human.
 2. Execute per the task-execution skill: one task in progress, scope locked, the
    exact verify command per task, at most three fix cycles before parking; after
    each task's verify passes, run the reviewer pass per the skill (conditional
@@ -80,7 +83,9 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    - the **behavioral-gate** on the run's changed files —
      `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed "<the run's touched
      files>" [--entrypoint <bin>] [--differential 'flag::with::without']`, run from a
-     disposable checkout/temp so it never mutates the live tree. The repo suite may be a
+     disposable checkout/temp so it never mutates the live tree. Pass
+     `--record-dir <live-repo>/.claude/task-runner/bg` so the gate's own verdict record
+     lands in the repo the Stop hook reads, not in the copy that is about to be deleted. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves
      it ran. A green suite alone does NOT close the run.
    On BOTH green, record the pass to `.claude/task-runner/gate-pass.json` as ONE JSON

@@ -30,6 +30,7 @@
 // untouched. A proxy that drops a message breaks the server it was meant to make
 // cheaper.
 import { spawn } from 'node:child_process';
+import { StringDecoder } from 'node:string_decoder';
 
 const [, , cmd, ...args] = process.argv;
 if (!cmd) {
@@ -138,10 +139,15 @@ child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
 
 // Requests upstream are forwarded byte-for-byte; they are only READ on the way
 // past, to remember which ids asked for a catalog.
+// StringDecoder, not chunk.toString(): a chunk boundary can fall inside a multibyte
+// character, and toString() on each half yields U+FFFD. That corrupted pass-through
+// lines containing any non-ASCII text, which is exactly the byte-for-byte promise this
+// proxy makes about traffic it does not shrink.
+const inDecoder = new StringDecoder('utf8');
 let inBuf = '';
 process.stdin.on('data', (chunk) => {
   child.stdin.write(chunk);
-  inBuf += chunk.toString('utf8');
+  inBuf += inDecoder.write(chunk);
   let nl;
   while ((nl = inBuf.indexOf('\n')) !== -1) {
     noteRequest(inBuf.slice(0, nl));
@@ -151,9 +157,10 @@ process.stdin.on('data', (chunk) => {
 });
 process.stdin.on('end', () => child.stdin.end());
 
+const outDecoder = new StringDecoder('utf8');
 let buf = '';
 child.stdout.on('data', (chunk) => {
-  buf += chunk.toString('utf8');
+  buf += outDecoder.write(chunk);
   let nl;
   while ((nl = buf.indexOf('\n')) !== -1) {
     const line = buf.slice(0, nl);

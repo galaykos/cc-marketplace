@@ -19,14 +19,19 @@
 # at the point of decision instead of being reconstructed later — the disclosure the
 # original incident never made. Standing: recorded.
 #
-# Default --record-dir is .claude/task-runner/rv under CWD, matching where the observer
-# hook and the completion gate look.
+# Default --record-dir is <repo-root>/.claude/task-runner/rv, where the observer hook and
+# the completion gate look.
 set -euo pipefail
 
 PROG=review-skip
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 
-CARD=""; REASON=""; EXEMPT=""; DIR=".claude/task-runner/rv"
+CARD=""; REASON=""; EXEMPT="";
+# Anchored at the repo ROOT, not the shell's cwd: a `cd sub && ...` invocation wrote the
+# record where the completion gate never looks, so the count came up short and blocked
+# the run.
+ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+DIR="$ROOT_DIR/.claude/task-runner/rv"
 while [ $# -gt 0 ]; do
   case "$1" in
     --card) [ $# -ge 2 ] || usage "--card needs an argument"; CARD="$2"; shift 2 ;;
@@ -50,7 +55,9 @@ esac
 
 mkdir -p "$DIR" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$DIR" >&2; exit 5; }
 
-esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+# Strips control characters as well as escaping: a newline in --reason wrote a record
+# that is not valid JSON, which nothing reads back today but breaks the first tool that does.
+esc() { printf '%s' "$1" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
 if [ -n "$EXEMPT" ]; then
   printf '{"card":"%s","exempt":"%s"}\n' "$CARD" "$EXEMPT" > "$DIR/rv-exempt-$CARD.json"

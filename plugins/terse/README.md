@@ -77,8 +77,9 @@ Two things worth knowing early:
 - **It never trades work for brevity.** If a reply cannot hold every finding, the
   findings go into a file and the message cites the path. Report a gap and it
   must say so under `Skipped:`, which prints `none` when there is nothing.
-- **Turning it off is one command**, and `CC_TERSE=off` overrides everything for
-  a single headless run. Uninstalling leaves one file behind:
+- **Turning it off is one command** — `/terse:level off`, or in plain words "stop
+  being terse", "be more verbose", "back to normal length". `CC_TERSE=off` overrides
+  everything for a single headless run. Uninstalling leaves one file behind:
   `~/.claude/terse-mode` — `/terse:level off` removes it.
 
 ## Commands
@@ -88,7 +89,7 @@ Two things worth knowing early:
 | `/terse:level [lite\|full\|ultra\|wenyan-*\|off\|status]` | Set or report the level; the hook writes it, machine-local, persists across sessions |
 | `/terse:check [--last N] [--tokens] [--all] [--since Nd]` | Measure turn-final messages against the active budget — one session or every session in the project. Report-only |
 | `/terse:commit` | Conventional Commits message from the staged diff — full English, no noise |
-| `/terse:compress <file>` | Compress one named prose markdown file in place, with a backup and four mechanical checks |
+| `/terse:compress <file>` | Compress one named prose markdown file in place, with a backup and five mechanical checks |
 | `/terse:help` | The reference card |
 
 ## Budgets
@@ -188,7 +189,7 @@ tool the model picks. Forwards any line it cannot parse untouched.
 | The shape contract | **unenforceable** at write time; nothing can rewrite a message after it is emitted. Reinforced per turn, measured after the fact |
 | Scope guard (no less work) | **unenforceable** — no script can measure thinking that did not happen. Stated in every injection because that is the only lever available |
 | Budget compliance | **recorded** — `/terse:check` reports it on demand; nothing reads it back automatically |
-| `/terse:compress` safety | **agent-graded**, plus two mechanical checks (identifier diff, heading count) the skill requires before reporting |
+| `/terse:compress` safety | **agent-graded**, plus five mechanical checks (identifiers/URLs, heading count, fenced blocks, numbers, size) the skill requires before reporting |
 | Commit format | **unenforceable** here — a project's own `commitlint` or hook outranks it |
 
 ## Deliberately not here

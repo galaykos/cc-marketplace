@@ -30,8 +30,34 @@
 set -euo pipefail
 
 PROG=behavioral-gate
+BG_RECORD_DIR=
 log()   { printf '%s: %s\n' "$PROG" "$*" >&2; }
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
+
+# MACHINE EVIDENCE. gate-pass.json is written by the MODEL, so on its own it records a
+# claim, not a run: a run can write {"head":...} having never invoked this script. This
+# writes what THIS script actually concluded, for the HEAD it concluded it at, and
+# completion-gate.sh cross-checks the claim against it.
+#
+# Armed by the directory existing (created at run registration), so a plain non-run
+# invocation writes nothing. Called on EVERY exit path, including the honest
+# no-executable-surface pass: a legitimate run that produced no runnable surface would
+# otherwise leave no record, and the completion gate would block it forever for a pass
+# it actually earned. Failure to write is never fatal — verdict and exit code are
+# unchanged either way, so this can only ever add evidence, never withhold a result.
+bg_record() { # bg_record <verdict-label> [runners]
+  # --record-dir names the LIVE repo's bg dir. run.md runs this gate from a disposable
+  # checkout so it cannot mutate the tree it is judging, which means $(pwd) here is the
+  # temp copy: without the flag the record landed in a directory about to be deleted and
+  # the completion gate then blocked an honest run for a pass it had actually earned.
+  bg_dir="${BG_RECORD_DIR:-$(pwd)/.claude/task-runner/bg}"
+  [ -d "$bg_dir" ] && [ -w "$bg_dir" ] || return 0
+  command -v git >/dev/null 2>&1 || return 0
+  bg_head=$(git rev-parse HEAD 2>/dev/null) || return 0
+  printf '{"head":"%s","verdict":"%s","runners":"%s"}\n' \
+    "$bg_head" "$1" "${2:-}" > "$bg_dir/bg-$bg_head.json" 2>/dev/null || true
+  return 0
+}
 
 TIMEOUT_SECS="${BEHAVIORAL_GATE_TIMEOUT:-60}"
 
@@ -71,13 +97,14 @@ add_changed() {
 }
 while [ $# -gt 0 ]; do
   case "$1" in
+    --record-dir)     shift; [ $# -gt 0 ] || usage "--record-dir requires a value"; BG_RECORD_DIR="$1"; shift ;;
     --changed)        shift; [ $# -gt 0 ] || usage "--changed requires a value"; add_changed "$1"; shift ;;
     --changed=*)      add_changed "${1#--changed=}"; shift ;;
     --entrypoint)     shift; [ $# -gt 0 ] || usage "--entrypoint requires a value"; ENTRYPOINTS+=("$1"); shift ;;
     --entrypoint=*)   ENTRYPOINTS+=("${1#--entrypoint=}"); shift ;;
     --differential)   shift; [ $# -gt 0 ] || usage "--differential requires a value"; DIFFERENTIALS+=("$1"); shift ;;
     --differential=*) DIFFERENTIALS+=("${1#--differential=}"); shift ;;
-    -h|--help)   printf 'usage: %s --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\'']\n' "$PROG" >&2; exit 3 ;;
+    -h|--help)   printf 'usage: %s --changed <file-or-list> [--changed <more>] [--entrypoint <bin>] [--differential '\''flag::with::without'\''] [--record-dir <live-repo>/.claude/task-runner/bg]\n' "$PROG" >&2; exit 3 ;;
     --*)         usage "unknown flag: $1" ;;
     *)           add_changed "$1"; shift ;;
   esac
@@ -107,10 +134,12 @@ if [ "${#runners[@]}" -eq 0 ]; then
   if [ "$HAS_OPAQUE" = 1 ]; then
     log "needs behavioral coverage but NO test runner resolves for the touched types"
     log "VERDICT: no-behavioral-coverage"
+    bg_record no-behavioral-coverage
     exit 2
   fi
   log "only non-executable/doc types touched (.md/.json/.txt/.yml/.yaml/.sh); no runner resolvable"
   log "VERDICT: no-executable-surface (honest lint-only; nothing to run)"
+  bg_record no-executable-surface
   exit 0
 fi
 
@@ -318,6 +347,7 @@ smoke_entrypoints() {
       if [ "$RUN_RC" -eq 124 ] || [ "$RUN_RC" -eq 126 ] || [ "$RUN_RC" -eq 127 ] || [ "$RUN_RC" -ge 128 ]; then
         log "entrypoint[$ep]: hard crash on invoke (exit $RUN_RC: signal/not-exec/not-found/timeout)"
         log "VERDICT: entrypoint-error ($ep)"
+        bg_record entrypoint-error
         exit 2
       fi
       if printf '%s\n' "$CAP" | grep -Eiq 'usage|help|option|--[a-z]'; then
@@ -325,6 +355,7 @@ smoke_entrypoints() {
       else
         log "entrypoint[$ep]: errored on invoke (exit $RUN_RC) with no usage output — treating as crash"
         log "VERDICT: entrypoint-error ($ep)"
+        bg_record entrypoint-error
         exit 2
       fi
     fi
@@ -361,6 +392,7 @@ smoke_entrypoints() {
       if [ "$ok" != 1 ]; then
         log "entrypoint[$ep2]: differential FAILED for '$flag' (declared with='$with' without='$without')"
         log "VERDICT: dead-affordance ($ep2 $flag)"
+        bg_record dead-affordance
         exit 2
       fi
       log "entrypoint[$ep2]: differential OK for '$flag' (observable differs as declared)"
@@ -377,26 +409,11 @@ for e in "${verdicts[@]}"; do
   FINAL="$val"; break
 done
 
-# MACHINE EVIDENCE. gate-pass.json is written by the MODEL, so on its own it records a
-# claim, not a run: a run can write {"head":...} having never invoked this script. This
-# writes what THIS script actually concluded, for the HEAD it concluded it at, and
-# completion-gate.sh cross-checks the claim against it. Armed by the directory existing
-# (created at run registration), so a plain non-run invocation writes nothing. Failure to
-# write is never fatal — the gate's own verdict and exit code are unchanged either way.
-bg_record() { # $1 = verdict label
-  bg_dir="$(pwd)/.claude/task-runner/bg"
-  [ -d "$bg_dir" ] && [ -w "$bg_dir" ] || return 0
-  command -v git >/dev/null 2>&1 || return 0
-  bg_head=$(git rev-parse HEAD 2>/dev/null) || return 0
-  printf '{"head":"%s","verdict":"%s","runners":"%s"}\n' \
-    "$bg_head" "$1" "${verdicts[*]}" > "$bg_dir/bg-$bg_head.json" 2>/dev/null || true
-}
-
 if [ -n "$FINAL" ]; then
-  bg_record "$FINAL"
+  bg_record "$FINAL" "${verdicts[*]:-}"
   log "VERDICT: $FINAL (runners: ${verdicts[*]})"
   exit 2
 fi
-bg_record covered
+bg_record covered "${verdicts[*]:-}"
 log "VERDICT: covered (runners: ${verdicts[*]})"
 exit 0

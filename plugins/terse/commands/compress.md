@@ -14,8 +14,8 @@ Stop before doing anything if:
 - `<path>.original.md` already exists — a second pass would destroy the only
   human-readable copy
 
-Then follow the skill: read the file whole, back it up, rewrite, run the two
-mechanical checks (identifier diff, heading count), and report before/after bytes
+Then follow the skill: read the file whole, back it up, rewrite, run the five
+mechanical checks, and report before/after bytes
 with the restore command.
 
 This is the only place in this plugin where compression touches a file on disk.

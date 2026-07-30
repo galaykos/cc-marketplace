@@ -89,6 +89,24 @@ is, written only by the orchestrator turn, never by a worker.
   them) as a follow-up backlog. If the merged set is empty or a parked root cascades the
   whole graph, report the run **failed / no-op** — never a green completion.
 
+## Coverage records on this path
+
+The completion gate counts per-card reviewer records against done cards, and the tracks
+path is where they are easiest to forget: a track worker is a leaf and dispatches no
+reviewers at all (`references/reviewer-routing.md` § Tracks). So the ORCHESTRATOR records
+them — the worker cannot:
+
+- every card executed inside a track leaf → `scripts/review-skip.sh --card <id> --exempt leaf`
+- every card the orchestrator reviews itself on the serial milestones → the reviewer
+  dispatch carries `RV-CARD: <id>` and is observed automatically
+- any reduction forced by preconditions — a downgraded dispatch, a degraded red-team →
+  `scripts/reduction-record.sh --kind <dispatch|redteam> --id <ref> --reason "<why>"`,
+  which also makes naming it in the report mandatory
+
+Without the exemption records a tracks run blocks at completion having done nothing
+wrong, which is the failure mode this whole mechanism must not add. Records written
+before the run registered are ignored, so re-registration re-arms every check.
+
 ## Final gate and the red-gate protocol
 
 After all tracks merged and serial milestones ran, run one full project check suite on

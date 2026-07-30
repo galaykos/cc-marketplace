@@ -31,7 +31,12 @@ set -euo pipefail
 PROG=reduction-record
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 
-KIND=""; ID=""; REASON=""; DIR=".claude/task-runner/reductions"
+KIND=""; ID=""; REASON="";
+# Anchored at the repo ROOT, not the shell's cwd: a `cd sub && ...` invocation wrote the
+# record where the completion gate never looks, so the count came up short and blocked
+# the run.
+ROOT_DIR=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+DIR="$ROOT_DIR/.claude/task-runner/reductions"
 while [ $# -gt 0 ]; do
   case "$1" in
     --kind) [ $# -ge 2 ] || usage "--kind needs an argument"; KIND="$2"; shift 2 ;;
@@ -54,7 +59,9 @@ case "$ID" in *[!a-zA-Z0-9._-]*) usage "--id carries path characters: $ID" ;; es
 
 mkdir -p "$DIR" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$DIR" >&2; exit 5; }
 
-esc=$(printf '%s' "$REASON" | sed 's/\\/\\\\/g; s/"/\\"/g')
+# Strips control characters as well as escaping: a newline in --reason wrote a record
+# that is not valid JSON, which nothing reads back today but breaks the first tool that does.
+esc=$(printf '%s' "$REASON" | tr -d '\000-\037' | sed 's/\\/\\\\/g; s/"/\\"/g')
 printf '{"kind":"%s","id":"%s","reduced":true,"reason":"%s"}\n' "$KIND" "$ID" "$esc" > "$DIR/$KIND-$ID.json"
 
 # Loud on purpose: this line is the mid-run disclosure.

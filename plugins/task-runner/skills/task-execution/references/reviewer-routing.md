@@ -122,6 +122,12 @@ reviewer pass** (routed or baseline) — a track-worker is a leaf and cannot dis
 reviewers. Accepted MVP limitation, consistent with implement-side routing being off in
 tracks.
 
+**Record every such card**: `scripts/review-skip.sh --card <id> --exempt leaf`. The
+completion gate counts reviewer records against done cards, so a leaf card with neither a
+dispatch nor an exemption blocks the stop. The record costs one command and keeps the
+count honest; without it the gate would refuse a run that did nothing wrong, which is a
+worse failure than the silence it replaced.
+
 ## Batch carve-out
 
 A **batch** (bundled same-worker S-cards, `references/routing.md` § Batch dispatch) is
