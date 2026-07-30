@@ -41,11 +41,15 @@ wrong symbol, and this is the one rule that outranks register consistency.
 A work-done report keeps the skeleton, verdict line first:
 
 ```
-成。spec/ 七十文件，一萬六千八百行。
+Done. spec/ 七十文件 — 70 files, 16,800 lines.
 | 路徑 | 行 |   (table, free)
 所見：
 - `Status.php:170` 僅驗 apRate → 四規之閘不行，存 pending 而無 reason
+Skipped: none.
 ```
+
+The verdict opens in latin and the counts are repeated as digits — see the
+fallback rule below, which this example would otherwise be the first to break.
 
 ## Falls back to the latin layer
 

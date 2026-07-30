@@ -53,6 +53,9 @@ fi
 # byte-for-byte, and until this check existed that rule had no teeth: `ids()` only
 # sees backticked spans, URLs and dotted filenames, so deleting a whole ```bash
 # block full of bare commands passed every other check.
+# Compares the SET of lines, sorted: it proves no line was lost or altered, not
+# that order survived. Reordering inside a block passes — say so rather than let
+# "fenced code blocks intact" read as byte-for-byte.
 fences() { awk '/^[[:space:]]*```/{f=!f; next} f' "$1" 2>/dev/null | sed 's/[[:space:]]*$//' | sort; }
 lostf=$(comm -23 <(fences "$old") <(fences "$new"))
 if [ -n "$lostf" ]; then

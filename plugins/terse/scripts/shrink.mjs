@@ -164,7 +164,13 @@ child.stdout.on('data', (chunk) => {
       const obj = JSON.parse(line);
       // Re-serialize ONLY when a description actually changed. Every other line —
       // including every tool result — leaves this proxy exactly as it arrived.
-      if (shrinkPayload(obj)) out = JSON.stringify(obj);
+      //
+      // And not even then if the line carries an integer literal too long to
+      // survive a JSON round-trip: a catalog response can hold both a shrinkable
+      // description and a 19-digit id in `_meta`, and rounding that id is a worse
+      // outcome than a verbose description. Cheap pre-check on the raw text,
+      // because by the time it is parsed the damage is already done.
+      if (shrinkPayload(obj) && !/[0-9]{16,}/.test(line)) out = JSON.stringify(obj);
     } catch {
       out = line; // not JSON, or an unexpected shape — forward as-is
     }

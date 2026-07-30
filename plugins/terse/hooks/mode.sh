@@ -96,28 +96,43 @@
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400 | tr 'A-Z' 'a-z')
   about=0
-  printf '%s' "$head" | grep -qE '(delete|remove|uninstall|disable|install|list|which|audit|fix|write|edit)[a-z -]{0,40}(plugin|hook|reminder|skill|command)' && about=1
-  # This hook's own output, echoed back in a pasted transcript. BOTH shapes it
-  # emits must be listed: the confirmation ("TERSE MODE — level: x") and the
-  # far more common per-turn line ("TERSE ultra — chat message only"). Listing
-  # only the first let a pasted reminder silently switch the level.
-  printf '%s' "$head" | grep -qE 'terse mode (active|off|—)|terse (lite|full|ultra|wenyan-[a-z]+) —' && about=1
+  printf '%s' "$head" | grep -qE '(delete|remove|uninstall|disable|install|list|which|audit|fix|write|edit|test)[a-z -]{0,40}(plugin|hook|reminder|skill|command)' && about=1
+  # This hook's own output, echoed back in a pasted transcript. Every shape it
+  # emits must be listed — the confirmation ("TERSE MODE — level: x") and the
+  # far more common per-turn line ("TERSE ultra — chat message only").
+  #
+  # Each pattern carries enough context to stay distinct from a user typing the
+  # same words. A previous version guarded on bare `terse mode off`, which is the
+  # documented way to ASK for off — the guard swallowed the request and the off
+  # trigger below became unreachable. The emitted line is always `TERSE MODE OFF.
+  # Normal response…`, so the sentence tail is what separates echo from intent.
+  printf '%s' "$head" | grep -qE 'terse mode (active|—)|terse mode off\. normal|terse (lite|full|ultra|wenyan-[a-z]+) —' && about=1
 
   if [ "$about" -eq 0 ]; then
-    # OFF. "normal mode" alone is not a brevity phrase — vim has one, an app boots
-    # in one, a dark-mode comparison mentions one. Requiring a brevity word costs
-    # nothing: the reliable off switch is /terse:level off.
-    if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\bnormal (verbosity|length|replies)\b|\bback to normal (mode|length|verbosity)\b'; then
+    # OFF. "normal mode" is not a brevity phrase in any form — vim has one, an app
+    # boots in one, a dark-mode comparison mentions one, and "get back to normal
+    # mode in vim" is not a request about replies. Only length/verbosity words
+    # count; the reliable off switch is /terse:level off.
+    if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\bnormal (verbosity|length|replies)\b|\bback to normal (length|verbosity)\b'; then
       write_level off && confirm off
     fi
-    # ON. `terse on` is deliberately NOT accepted: "a bit terse on occasion" is
-    # ordinary prose about tone, and switching a persistent mode from it turns an
-    # opt-in plugin into an ambient one. An explicit level, or "terse mode on".
-    if printf '%s' "$head" | grep -qE '\bterse mode on\b|\bterse( mode)? (lite|full|ultra|wenyan(-(lite|full|ultra))?)\b'; then
-      lvl=$(printf '%s' "$head" | grep -oE '\bterse mode on\b|\bterse( mode)? (lite|full|ultra|wenyan(-(lite|full|ultra))?)\b' | awk '{print $NF}' | head -1)
-      [ "$lvl" = "on" ] && lvl=full
+    # ON, in two shapes. `terse on` is deliberately NOT one of them: "a bit terse
+    # on occasion" is prose about tone, and switching a persistent mode from it
+    # turns an opt-in plugin into an ambient one.
+    #
+    # The level form REQUIRES the level word to end the clause — punctuation or
+    # end of prompt. Without that boundary "terse ultra vires doctrine" switched
+    # to ultra and "I prefer terse full sentences" switched to full: the level
+    # word was being read out of the middle of an ordinary sentence.
+    on_verb='\bterse mode on\b|\b(enable|activate|turn on) terse( mode)?\b'
+    on_level='\bterse( mode| level| to)* (lite|full|ultra|wenyan(-(lite|full|ultra))?)[[:space:]]*([.,!?;]|$)'
+    if printf '%s' "$head" | grep -qE "$on_level"; then
+      lvl=$(printf '%s' "$head" | grep -oE "$on_level" | head -1 |
+            tr -d '.,!?;' | awk '{print $NF}')
       [ "$lvl" = "wenyan" ] && lvl=wenyan-full
       write_level "$lvl" && confirm "$lvl"
+    elif printf '%s' "$head" | grep -qE "$on_verb"; then
+      write_level full && confirm full
     fi
   fi
 
@@ -140,6 +155,6 @@
     *) w='' ;;
   esac
 
-  emit "$(printf 'TERSE %s — chat message only; full depth in the work, the code, the files, the subagent prompts. Budget: progress 1 line, %s prose lines (tables, code and trees are free). Report shape: verdict → artifacts → max 5 findings as `path:line — problem → impact` → skipped (print `none` if nothing was) → blocker → next. Cut process narration, re-summary of files just written, unchanged inventories, framing phrases, closing offers. Never drop a finding to fit — overflow goes to a file, cited by path.%s' "$level" "$b" "$w")"
+  emit "$(printf 'TERSE %s — chat message only; full depth in the work, the code, the files, the subagent prompts. Budget: progress 1 line, %s prose lines (tables, code and trees are free). Report shape: verdict → artifacts → max 5 findings as `path:line — problem → impact` (cap waived when findings are the deliverable, e.g. an invoked review or audit) → skipped (print `none` if nothing was) → blocker → next. Cut process narration, re-summary of files just written, unchanged inventories, framing phrases, closing offers. Never drop a finding to fit — overflow goes to a file, cited by path.%s' "$level" "$b" "$w")"
 } 2>/dev/null
 exit 0
