@@ -17,7 +17,8 @@
 # LIMITATION (honest scope):
 #   - Advisory. `additionalContext` is not a blocking key; this can inform a turn,
 #     never stop one.
-#   - Costs ~90 tokens of input per prompt while active, and nothing when off.
+#   - Costs ~120 tokens of input per prompt while active (measured: 476 chars),
+#     and nothing when off.
 #     That is the price of persistence; `/terse:level off` stops paying it.
 #   - Natural-language switching is a narrow heuristic, not parsing. The slash
 #     command is the reliable path and the one the docs name.
@@ -57,6 +58,12 @@
 
   confirm() { # confirm <level> — level just changed, so re-state the whole contract
     if [ "$1" = "off" ]; then
+      # CC_TERSE beats the file (see the resolution below), so "off" cannot promise
+      # silence while the environment still sets a level — say which one wins.
+      case "${CC_TERSE:-}" in
+        lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra)
+          emit "TERSE MODE: level file cleared, but CC_TERSE=$CC_TERSE is set in the environment and overrides it — still active at $CC_TERSE. Unset CC_TERSE to stop." ;;
+      esac
       emit 'TERSE MODE OFF. Normal response length resumes; no further reminders this session.'
     fi
     c=$(card)
@@ -90,14 +97,24 @@
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400 | tr 'A-Z' 'a-z')
   about=0
   printf '%s' "$head" | grep -qE '(delete|remove|uninstall|disable|install|list|which|audit|fix|write|edit)[a-z -]{0,40}(plugin|hook|reminder|skill|command)' && about=1
-  printf '%s' "$head" | grep -qE 'terse mode (active|off) —' && about=1 # this hook's own output, echoed back
+  # This hook's own output, echoed back in a pasted transcript. BOTH shapes it
+  # emits must be listed: the confirmation ("TERSE MODE — level: x") and the
+  # far more common per-turn line ("TERSE ultra — chat message only"). Listing
+  # only the first let a pasted reminder silently switch the level.
+  printf '%s' "$head" | grep -qE 'terse mode (active|off|—)|terse (lite|full|ultra|wenyan-[a-z]+) —' && about=1
 
   if [ "$about" -eq 0 ]; then
-    if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\bnormal (mode|verbosity|length)\b'; then
+    # OFF. "normal mode" alone is not a brevity phrase — vim has one, an app boots
+    # in one, a dark-mode comparison mentions one. Requiring a brevity word costs
+    # nothing: the reliable off switch is /terse:level off.
+    if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\bnormal (verbosity|length|replies)\b|\bback to normal (mode|length|verbosity)\b'; then
       write_level off && confirm off
     fi
-    if printf '%s' "$head" | grep -qE '\bterse( mode)? (on|lite|full|ultra|wenyan(-(lite|full|ultra))?)\b'; then
-      lvl=$(printf '%s' "$head" | grep -oE '\bterse( mode)? (on|lite|full|ultra|wenyan(-(lite|full|ultra))?)\b' | awk '{print $NF}' | head -1)
+    # ON. `terse on` is deliberately NOT accepted: "a bit terse on occasion" is
+    # ordinary prose about tone, and switching a persistent mode from it turns an
+    # opt-in plugin into an ambient one. An explicit level, or "terse mode on".
+    if printf '%s' "$head" | grep -qE '\bterse mode on\b|\bterse( mode)? (lite|full|ultra|wenyan(-(lite|full|ultra))?)\b'; then
+      lvl=$(printf '%s' "$head" | grep -oE '\bterse mode on\b|\bterse( mode)? (lite|full|ultra|wenyan(-(lite|full|ultra))?)\b' | awk '{print $NF}' | head -1)
       [ "$lvl" = "on" ] && lvl=full
       [ "$lvl" = "wenyan" ] && lvl=wenyan-full
       write_level "$lvl" && confirm "$lvl"

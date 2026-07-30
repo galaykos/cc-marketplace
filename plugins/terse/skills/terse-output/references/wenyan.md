@@ -53,3 +53,13 @@ Any content the classical register cannot carry precisely — a security warning
 a destructive-action confirmation, a step the user must type — is written in the
 latin layer at the same level's budget. Ambiguity is a defect; register is a
 preference.
+
+**Verdicts and gate acknowledgements are always latin**, at every wenyan level.
+Not for readability: hooks in this marketplace grep the assistant's own words in
+English. `scripts/done-gate.sh` blocks a turn unless a failing gate is acknowledged
+with words like `fail`, `failing`, `blocked` — an honest 敗 never matches, so the
+honest turn is the one that gets blocked. `code-architecture/hooks/evidence-gate.sh`
+fires on claims like `done`, `fixed`, `verified` — a 成 never matches, so the gate
+silently disarms itself for the whole session. Write the verdict line, the
+completion claim, and any acknowledgement of a red check in English; the rest of
+the message stays 文言.

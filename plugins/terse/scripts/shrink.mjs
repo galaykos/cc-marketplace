@@ -87,19 +87,46 @@ function squeeze(text) {
   return s.length ? s : text;
 }
 
+// Ids of the catalog requests we are allowed to rewrite the response of. Matching
+// on response SHAPE instead was wrong: a `tools/call` result whose payload happens
+// to contain a `resources` array — every cloud, registry and k8s server has one —
+// got its data rewritten, which is corruption, not compression. Only a response to
+// a list request is a catalog.
+const CATALOG_METHODS = new Set([
+  'tools/list', 'prompts/list', 'resources/list', 'resources/templates/list',
+]);
+const pendingCatalog = new Set();
+
+function noteRequest(line) {
+  try {
+    const msg = JSON.parse(line);
+    const each = Array.isArray(msg) ? msg : [msg];
+    for (const m of each) {
+      if (m && CATALOG_METHODS.has(m.method) && m.id !== undefined) pendingCatalog.add(String(m.id));
+    }
+  } catch { /* not JSON we understand — nothing to remember */ }
+}
+
+// Returns true when a description actually changed. The caller re-serializes only
+// then: JSON.parse/stringify on every line silently rounds any integer above 2^53
+// (snowflake ids, nanosecond timestamps, i64 counters) in messages this proxy has
+// no business touching at all.
 function shrinkPayload(obj) {
-  const r = obj?.result;
-  if (!r || typeof r !== 'object') return obj;
+  if (!obj || obj.id === undefined || !pendingCatalog.delete(String(obj.id))) return false;
+  const r = obj.result;
+  if (!r || typeof r !== 'object') return false;
+  let changed = false;
   for (const key of ['tools', 'prompts', 'resources', 'resourceTemplates']) {
     if (Array.isArray(r[key])) {
       for (const entry of r[key]) {
         if (entry && typeof entry.description === 'string') {
-          entry.description = squeeze(entry.description);
+          const next = squeeze(entry.description);
+          if (next !== entry.description) { entry.description = next; changed = true; }
         }
       }
     }
   }
-  return obj;
+  return changed;
 }
 
 const child = spawn(cmd, args, { stdio: ['pipe', 'pipe', 'inherit'] });
@@ -109,7 +136,20 @@ child.on('error', (e) => {
 });
 child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
 
-process.stdin.pipe(child.stdin); // requests upstream: never touched
+// Requests upstream are forwarded byte-for-byte; they are only READ on the way
+// past, to remember which ids asked for a catalog.
+let inBuf = '';
+process.stdin.on('data', (chunk) => {
+  child.stdin.write(chunk);
+  inBuf += chunk.toString('utf8');
+  let nl;
+  while ((nl = inBuf.indexOf('\n')) !== -1) {
+    noteRequest(inBuf.slice(0, nl));
+    inBuf = inBuf.slice(nl + 1);
+  }
+  if (inBuf.length > 1e6) inBuf = ''; // a line this long is not a JSON-RPC request
+});
+process.stdin.on('end', () => child.stdin.end());
 
 let buf = '';
 child.stdout.on('data', (chunk) => {
@@ -121,7 +161,10 @@ child.stdout.on('data', (chunk) => {
     if (!line.trim()) { process.stdout.write('\n'); continue; }
     let out = line;
     try {
-      out = JSON.stringify(shrinkPayload(JSON.parse(line)));
+      const obj = JSON.parse(line);
+      // Re-serialize ONLY when a description actually changed. Every other line —
+      // including every tool result — leaves this proxy exactly as it arrived.
+      if (shrinkPayload(obj)) out = JSON.stringify(obj);
     } catch {
       out = line; // not JSON, or an unexpected shape — forward as-is
     }

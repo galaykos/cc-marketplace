@@ -2,8 +2,10 @@
 
 Brevity modes usually compress **words**. That is the layer that already works.
 Measured across three long real sessions running a word-compression mode at its
-strongest setting, mid-turn progress lines held at 17–265 characters while
-turn-final messages ran 1,194–4,447. Short sentences, hundreds of them.
+strongest setting, mid-turn progress lines held at 17–265 characters while every
+turn-final message ran 1,194–4,447. Scored against a 12-line ceiling those
+sessions land at mean 27.1 / 25.6 / 25.7 prose lines, with 100% / 81% / 100% of
+turn-final messages over. Short sentences, hundreds of them.
 
 What grows is **shape**: the last message of a turn narrates its own process,
 re-summarizes the files it just wrote, re-prints an unchanged inventory, and frames
@@ -24,6 +26,11 @@ cited by path.
 ```
 
 Installed, it does nothing until switched on. There is no ambient mode.
+
+**Running another brevity mode?** Remove it first. A second always-on compression
+plugin (caveman and its `/caveman-*` skills are the common case) injects competing
+word rules on the same prompts, and its skill descriptions collide with all four of
+this plugin's — the dispatcher can fire either. They are not designed to coexist.
 
 ## Usage
 
@@ -49,9 +56,10 @@ asking you to trust it:
 /terse:check --all --since 7d   # every session in this project, last 7 days
 ```
 
-A typical read: `mean 5.8, max 34, over ceiling 3 (15%)` — the mean is inside
-budget, so the mode is holding; the max says one message ran long, and `--last`
-shows which.
+A typical read: `mean 27.1, max 36, over ceiling 7 (100%)` — that is a session
+with the mode off, every closing message over budget. Under `full` the mean should
+sit below 12; the max tells you whether one report ran long or the whole session
+drifted, and `--last` shows which messages.
 
 The rest is on demand, and none of it needs the mode to be on:
 
@@ -100,8 +108,15 @@ Work-done reports take one skeleton every time: verdict → artifact table → a
 nothing was) → blocker → next. A gap hides better than a finding: an unseen finding
 looks like no finding, but an unrun check looks like a passed one.
 
+The 5-finding cap does **not** apply when findings are the deliverable: a review,
+audit or scan you invoked returns all of them, in that command's own format.
+Truncating a report-only command's output into a file is data loss with a budget
+for an excuse.
+
 `wenyan-lite` / `wenyan-full` / `wenyan-ultra` keep those budgets and swap the word
-layer for classical Chinese — `skills/terse-output/references/wenyan.md`.
+layer for classical Chinese — `skills/terse-output/references/wenyan.md`. Verdicts
+and gate acknowledgements stay in English there, because two Stop hooks in this
+marketplace grep the assistant's own words for `fail` / `blocked` / `done`.
 
 ## Crew — compressed-return subagents
 
@@ -129,7 +144,17 @@ active re-injects one compact line carrying the *budgets and the report skeleton
 not the word rules, which were never the part that drifted. ~120 input tokens per
 prompt while on, nothing when off. Fails open and silent without `jq`.
 
-`CC_TERSE=off|lite|full|ultra|wenyan-*` overrides the state file, for headless runs.
+`CC_TERSE=off|lite|full|ultra|wenyan-*` overrides the state file, for headless runs
+— including over `/terse:level off`, which says so when both are set.
+
+This is **not** a `CC_REMIND` reminder hook. That variable silences the marketplace's
+advisory nudges and the one-nudge-per-prompt marker they share; a user-selected mode
+is not a nudge, so it neither claims that marker nor answers to that switch. Its off
+switches are the level itself and `CC_TERSE=off`.
+
+Always-on cost of the plugin itself: **886 tokens** of command, skill and agent
+descriptions, paid every session whether the mode is on or off — the price of the
+full command set, and `everything` bundle users pay it by default.
 
 ## Optional, wire them yourself
 

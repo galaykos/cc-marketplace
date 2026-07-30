@@ -5,9 +5,16 @@ argument-hint: "[lite | full | ultra | off | status]"
 
 # /terse:level
 
-The level is written by this plugin's `hooks/mode.sh` when it sees this command, so
-the switch already happened before you read this. Your job is to confirm it and
-follow the contract, not to re-implement it.
+The level is written by this plugin's `hooks/mode.sh` when it sees this command,
+so the switch normally happened before you read this. It can also have failed
+silently — an unwritable config dir, or a state file someone replaced with a
+symlink, both make the hook exit without writing. **Read the state before you
+confirm anything**; announcing a level that was never written is worse than the
+switch not happening:
+
+```bash
+cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode" 2>/dev/null || echo none
+```
 
 Parse the first token of `$ARGUMENTS`:
 

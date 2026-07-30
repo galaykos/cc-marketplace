@@ -1,6 +1,6 @@
 ---
 description: Measure this session's turn-final messages against the active terse budget — prose lines per message, mean, max, percent over ceiling. Report-only, changes nothing.
-argument-hint: "[--last N] [--session-file PATH]"
+argument-hint: "[--last N] [--tokens] [--all] [--since Nd] [--session-file PATH]"
 ---
 
 # /terse:check

@@ -34,7 +34,12 @@ Work-done reports use one skeleton, same order every time, empty parts skipped:
 1. **Verdict** — one line, what is now true. `Done. spec/ = 70 files, 16.8k lines.`
 2. **Artifacts** — table or tree. Path plus one phrase. No sentences.
 3. **Findings** — max 5, ranked by cost of not knowing, one line each, in the form
-   `path:line — problem → impact`. Overflow: `+N more in <file>`.
+   `path:line — problem → impact`. Overflow goes to a file outside the source tree
+   (the session scratchpad, never inside `plugins/`), cited as `+N more in <path>`.
+   **The cap does not apply when findings are the deliverable** — a review, audit,
+   or scan the user invoked returns every finding it found, in that command's own
+   format. Compressing someone's requested output into a file is data loss wearing
+   a budget.
 4. **Skipped** — what the turn did not do, and why: a check not run, a file not
    touched, a sample instead of the full pass. Print `Skipped: none` explicitly.
    An omitted section is invisible; an empty one is a claim that can be held.

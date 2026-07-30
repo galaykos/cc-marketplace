@@ -5,10 +5,17 @@
 # messages. Report-only — it never edits, never blocks, and exits 0 on every path
 # except a usage error.
 #
-# WHAT COUNTS AS TURN-FINAL: an assistant message carrying text and NO tool_use
-# block. Mid-turn narration rides along with the tool call that follows it, so it
-# lands in a message that has both; the messages isolated by this filter are the
-# ones a user actually reads at the end of a turn. Heuristic, and stated as one.
+# WHAT COUNTS AS TURN-FINAL: an assistant MESSAGE — keyed by `.message.id`, not by
+# transcript line — that carries text and no tool_use block anywhere in it.
+#
+# The line-based version of this filter was wrong. Claude Code writes one JSONL
+# line per content block, so a single assistant message routinely spans several
+# lines: on a real transcript, 94 of 261 messages were split, and their `text`
+# block sat alone on a line with no tool_use beside it. Filtering per line scored
+# every one of those mid-turn narration lines as turn-final, which is exactly the
+# short-message population the metric must exclude. Grouping by message id first
+# is the fix; the heuristic itself — text with no tool call is what the user reads
+# at the end of a turn — is unchanged, and still a heuristic.
 #
 # WHAT COUNTS AS A PROSE LINE: a non-blank line that is not inside a fenced code
 # block and does not start with `|`. Tables, code and trees are free by contract,
@@ -77,23 +84,41 @@ case "$level" in
 esac
 
 # One row per turn-final message: "<prose-lines> <chars>".
+#
+# Pass 1 collects every message id that used a tool anywhere in it; pass 2 emits
+# the text of the messages left, merging the lines that share an id back into one
+# message. The sentinel is printable on purpose — a control character here works
+# but makes the script itself unreadable to git and to an editor.
 rows_for() {
+  toolids=$(jq -rR 'fromjson? // empty
+    | select(type == "object" and .type == "assistant")
+    | select(((.message.content // []) | map(select(type == "object" and .type == "tool_use")) | length) > 0)
+    | .message.id // empty' "$1" 2>/dev/null | sort -u)
+
   jq -rR 'fromjson? // empty
     | select(type == "object" and .type == "assistant")
-    | (.message.content // []) as $c
-    | select(($c | map(select(type == "object" and .type == "tool_use")) | length) == 0)
-    | ($c | map(select(type == "object" and .type == "text") | .text) | join("\n")) as $t
+    | (.message.id // "noid") as $id
+    | ((.message.content // []) | map(select(type == "object" and .type == "text") | .text) | join("\n")) as $t
     | select($t != "")
-    | "\u0001MSG\n" + $t' "$1" 2>/dev/null |
-    awk '
-      /^\001MSG$/ { if (have) print n, chars; have=1; n=0; chars=0; fence=0; next }
+    | "@@MSG " + $id + "\n" + $t' "$1" 2>/dev/null |
+    TERSE_TOOLIDS="$toolids" awk '
+      # via the environment, not -v: a -v value cannot carry newlines on BSD awk
+      BEGIN { k = split(ENVIRON["TERSE_TOOLIDS"], a, "\n"); for (i = 1; i <= k; i++) if (a[i] != "") S[a[i]] = 1 }
+      /^@@MSG / {
+        id = substr($0, 7)
+        if (id != cur) {
+          if (have && !S[cur]) print n, chars
+          have = 1; n = 0; chars = 0; fence = 0; cur = id
+        }
+        next
+      }
       { chars += length($0) + 1
         if ($0 ~ /^[[:space:]]*```/) { fence = !fence; next }
         if (fence) next
         if ($0 ~ /^[[:space:]]*$/) next
         if ($0 ~ /^[[:space:]]*\|/) next
         n += int((length($0) + 99) / 100) }
-      END { if (have) print n, chars }'
+      END { if (have && !S[cur]) print n, chars }'
 }
 
 # ---- cross-session mode ------------------------------------------------------

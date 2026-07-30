@@ -37,12 +37,29 @@ else
   pass "every identifier, path and URL survived"
 fi
 
-h_old=$(grep -c '^#' "$old" 2>/dev/null || echo 0)
-h_new=$(grep -c '^#' "$new" 2>/dev/null || echo 0)
+# No `|| echo 0` here: grep -c ALREADY prints 0, and exits 1 while doing it, so the
+# fallback appended a second line. "0\n0" then made `[ -ne ]` error out and the
+# heading check passed unconditionally on any headingless file — a check that
+# cannot fail, which is the theater this repo's own doctrine names.
+h_old=$(grep -c '^#' "$old" 2>/dev/null)
+h_new=$(grep -c '^#' "$new" 2>/dev/null)
 if [ "$h_old" -ne "$h_new" ]; then
   fail "heading count changed: $h_old → $h_new (a section moved or vanished)"
 else
   pass "heading count unchanged ($h_new)"
+fi
+
+# Fenced blocks, content and all. The skill's strictest rule is that code survives
+# byte-for-byte, and until this check existed that rule had no teeth: `ids()` only
+# sees backticked spans, URLs and dotted filenames, so deleting a whole ```bash
+# block full of bare commands passed every other check.
+fences() { awk '/^[[:space:]]*```/{f=!f; next} f' "$1" 2>/dev/null | sed 's/[[:space:]]*$//' | sort; }
+lostf=$(comm -23 <(fences "$old") <(fences "$new"))
+if [ -n "$lostf" ]; then
+  fail "lines inside fenced code blocks are missing:"
+  printf '%s\n' "$lostf" | sed 's/^/        /'
+else
+  pass "fenced code blocks intact"
 fi
 
 nums() { grep -oE '\b[0-9]+([.,][0-9]+)*\b' "$1" 2>/dev/null | sort -u; }
