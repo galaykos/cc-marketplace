@@ -132,3 +132,13 @@ observation — the card is not yet a task — halt with evidence rather than lo
   cover every criterion and still verify with `test -f`.
 - Waving through a `2` "because the code obviously works" — obvious-works is exactly the
   plausible-but-wrong the gate exists to catch; sharpen the line instead.
+
+## What enforces this
+
+The lint itself is a **gate when it runs**: `scripts/verify-teeth-lint.sh` exits non-zero
+on a toothless Verify line. Whether it runs at all is **recorded** — this skill says to run
+it per card, and nothing observes that it did. Unlike the execution-side passes (reviewer,
+red-team, behavioral gate), card authoring ends before any run registers, so there is no
+Stop gate positioned to count records. Naming the gap is the honest option; claiming the
+lint's tier for its invocation would be the over-claim this marketplace's has-teeth
+convention forbids.

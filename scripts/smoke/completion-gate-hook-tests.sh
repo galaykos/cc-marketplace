@@ -225,5 +225,155 @@ else
   echo "FAIL: discriminating control writes nc-pass record (rc=$rc)"; fail=$((fail+1))
 fi
 
+# ---- per-card REVIEWER coverage (rv/) --------------------------------------------
+# The gap this closes, from a real run: 8 cards done, reviewers dispatched on card 01
+# only, "all 8 done, none parked" reported, every other gate green. Unlike nc/, the
+# records here are written by a HOOK observing the dispatch (rv-observe.sh), not by
+# the model — a model-authored pass record would have been written with the same
+# conviction as the cards_done:8 that run already wrote.
+RVDIR="$REPO/.claude/task-runner/rv"
+OBS="$ROOT/plugins/task-runner/hooks/rv-observe.sh"
+RS="$ROOT/plugins/task-runner/scripts/review-skip.sh"
+rm -rf "$NCDIR"                                   # isolate: this section tests rv/ only
+printf '{"head":"%s","cards_total":3,"cards_done":3,"cards_parked":0}' "$HEAD" > "$GP"
+
+rm -rf "$RVDIR"
+check "no rv dir at all -> legacy allow" "" "$J" 0 __NONE__
+
+mkdir -p "$RVDIR"
+printf '{"card":"01"}' > "$RVDIR/rv-seen-01.json"
+check "rv records 1 < done 3 -> block" "" "$J" 2 "per-card reviewer records"
+check "rv records short + warn mode -> print-only" "TASK_RUNNER_STOP_GATE=warn" "$J" 0 "per-card reviewer records"
+
+# the observer writes a record from a dispatch carrying the marker
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RV-CARD: 02\\nreview the diff"}}' "$REPO" \
+  | bash "$OBS" >/dev/null 2>&1
+if [ -f "$RVDIR/rv-seen-02.json" ]; then
+  echo "PASS: rv-observe records an observed dispatch"; pass=$((pass+1))
+else
+  echo "FAIL: rv-observe did not record the dispatch"; fail=$((fail+1))
+fi
+
+# a dispatch WITHOUT the marker is not counted (fails toward blocking, never silence)
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"review the diff for card 03"}}' "$REPO" \
+  | bash "$OBS" >/dev/null 2>&1
+if [ -f "$RVDIR/rv-seen-03.json" ]; then
+  echo "FAIL: rv-observe recorded an unmarked dispatch"; fail=$((fail+1))
+else
+  echo "PASS: unmarked dispatch is not counted"; pass=$((pass+1))
+fi
+
+# an exemption covers the third card -> counts satisfied, no skip recorded -> allow
+bash "$RS" --card 03 --exempt leaf --record-dir "$RVDIR" >/dev/null 2>&1
+check "rv records 3 == done 3 (seen+seen+exempt) -> allow" "" "$J" 0 __NONE__
+
+# a DISCRETIONARY skip must be disclosed in the closing report
+rm -f "$RVDIR/rv-exempt-03.json"
+bash "$RS" --card 03 --reason "context pressure" --record-dir "$RVDIR" >/dev/null 2>&1
+[ -f "$RVDIR/rv-skip-03.json" ] \
+  && { echo "PASS: review-skip.sh writes rv-skip with a reason"; pass=$((pass+1)); } \
+  || { echo "FAIL: review-skip.sh did not write rv-skip"; fail=$((fail+1)); }
+
+SILENT="$WS/silent.jsonl"; DISCLOSED="$WS/disclosed.jsonl"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"All 3 cards done, none parked."}]}}\n' > "$SILENT"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Skipped: card 03 reviewer pass (context pressure)."}]}}\n' > "$DISCLOSED"
+check "recorded skip + report hides it -> block" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT"'"}' 2 "never names"
+check "recorded skip + report discloses it -> allow" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$DISCLOSED"'"}' 0 __NONE__
+
+# consent gate: a discretionary skip asks; an exemption and a plain edit do not
+CONSENT="$ROOT/plugins/task-runner/hooks/rv-consent.sh"
+ask=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 03 --reason \\"ctx pressure\\""}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+if printf '%s' "$ask" | grep -q '"permissionDecision":"ask"' && printf '%s' "$ask" | grep -q 'card 03'; then
+  echo "PASS: consent hook asks before a discretionary skip"; pass=$((pass+1))
+else
+  echo "FAIL: consent hook did not ask (out=<$ask>)"; fail=$((fail+1))
+fi
+quiet=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 04 --exempt leaf"}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+[ -z "$quiet" ] \
+  && { echo "PASS: consent hook silent on an exemption"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted on an exemption"; fail=$((fail+1)); }
+quiet=$(printf '{"cwd":"%s","tool_name":"Write","tool_input":{"file_path":"src/app.ts"}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+# merely READING about a record is not the act that needs consent
+noise=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"grep -r rv-skip- ."}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+[ -z "$noise" ] \
+  && { echo "PASS: consent hook silent on a grep that merely names a record"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted on a grep"; fail=$((fail+1)); }
+# outside a registered run it must never speak
+rm -f "$SENT.bak"; cp "$SENT" "$SENT.bak"; rm -f "$SENT"
+outside=$(printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"bash review-skip.sh --card 03 --reason \\"x\\""}}' "$REPO" | bash "$CONSENT" 2>/dev/null)
+mv "$SENT.bak" "$SENT"
+[ -z "$outside" ] \
+  && { echo "PASS: consent hook silent outside a registered run"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted outside a registered run"; fail=$((fail+1)); }
+[ -z "$quiet" ] \
+  && { echo "PASS: consent hook silent on an unrelated write"; pass=$((pass+1)); } \
+  || { echo "FAIL: consent hook prompted on an unrelated write"; fail=$((fail+1)); }
+
+# ---- behavioral-gate EVIDENCE, red-team PANEL WIDTH, general DISCLOSURE ------------
+# gate-pass.json is model-authored; bg-<head>.json is written by behavioral-gate.sh
+# itself. Without the second, "the gate passed" is a sentence a run can type having
+# never run the gate.
+RS2="$ROOT/plugins/task-runner/scripts/reduction-record.sh"
+BGDIR="$REPO/.claude/task-runner/bg"; RTDIR="$REPO/.claude/task-runner/rt"
+REDDIR="$REPO/.claude/task-runner/reductions"
+rm -rf "$RVDIR" "$REDDIR"; mkdir -p "$BGDIR"
+printf '{"head":"%s","cards_total":1,"cards_done":1,"cards_parked":0}' "$HEAD" > "$GP"
+
+check "bg dir armed, no verdict record for HEAD -> block" "" "$J" 2 "left no verdict record"
+printf '{"head":"%s","verdict":"empty-suite"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate verdict red + reporting complete -> block" "" "$J" 2 'reached "empty-suite"'
+printf '{"head":"%s","verdict":"covered"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate covered -> allow" "" "$J" 0 __NONE__
+# no-executable-surface is behavioral-gate's OTHER exit-0 verdict: a docs/lint-only
+# change has nothing runnable to prove. Treating it as red blocked every docs run.
+printf '{"head":"%s","verdict":"no-executable-surface"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate no-executable-surface (honest pass) -> allow" "" "$J" 0 __NONE__
+printf '{"head":"%s","verdict":"unverifiable-suite"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+check "behavioral-gate unverifiable-suite -> block" "" "$J" 2 'reached "unverifiable-suite"'
+printf '{"head":"%s","verdict":"covered"}' "$HEAD" > "$BGDIR/bg-$HEAD.json"
+
+# red-team panel width: boosted runs only, keyed off the index marker
+mkdir -p "$REPO/x" "$RTDIR"
+printf 'Ultra: true\n' > "$REPO/x/00-INDEX.md"
+printf '{"slug":"t","branch":"%s","index_path":"x/00-INDEX.md"}' "$(git -C "$REPO" rev-parse --abbrev-ref HEAD)" > "$SENT"
+check "boosted run, empty red-team panel -> block" "" "$J" 2 "red-team panel is short"
+for l in logic security repro; do printf '{}' > "$RTDIR/rt-lens-$l.json"; done
+check "boosted run, 3 lenses but no critic -> block" "" "$J" 2 "red-team panel is short"
+printf '{}' > "$RTDIR/rt-critic-m1.json"
+check "boosted run, full panel -> allow" "" "$J" 0 __NONE__
+
+# the observer records refuter and critic dispatches from their markers
+rm -f "$RTDIR"/*.json
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RT-LENS: security\\nrefute this"}}' "$REPO" | bash "$OBS" >/dev/null 2>&1
+printf '{"cwd":"%s","tool_name":"Agent","tool_input":{"prompt":"RT-CRITIC: m1\\nwhat is missing"}}' "$REPO" | bash "$OBS" >/dev/null 2>&1
+if [ -f "$RTDIR/rt-lens-security.json" ] && [ -f "$RTDIR/rt-critic-m1.json" ]; then
+  echo "PASS: rv-observe records refuter and critic dispatches"; pass=$((pass+1))
+else
+  echo "FAIL: rv-observe missed a red-team marker"; fail=$((fail+1))
+fi
+
+# a recorded degradation substitutes for the panel, but then must be disclosed
+rm -f "$RTDIR"/*.json
+bash "$RS2" --kind redteam --id m1 --reason "Workflow tool unavailable" --record-dir "$REDDIR" >/dev/null 2>&1
+[ -f "$REDDIR/redteam-m1.json" ] \
+  && { echo "PASS: reduction-record writes a kinded record"; pass=$((pass+1)); } \
+  || { echo "FAIL: reduction-record wrote nothing"; fail=$((fail+1)); }
+SILENT2="$WS/silent2.jsonl"; SHOWN2="$WS/shown2.jsonl"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"All done, gate green."}]}}\n' > "$SILENT2"
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"Done. Reduced: red-team for m1 ran degraded (inline, uncorroborated)."}]}}\n' > "$SHOWN2"
+check "recorded reduction + report hides it -> block" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SILENT2"'"}' 2 "never names"
+check "recorded reduction + report discloses it -> allow" "" \
+  '{"cwd":"'"$REPO"'","stop_hook_active":false,"transcript_path":"'"$SHOWN2"'"}' 0 __NONE__
+
+# reduction-record refuses a reason-less reduction outright
+if bash "$RS2" --kind dispatch --id m2 --record-dir "$REDDIR" >/dev/null 2>&1; then
+  echo "FAIL: reduction-record accepted a reduction with no reason"; fail=$((fail+1))
+else
+  echo "PASS: reduction-record refuses a reason-less reduction"; pass=$((pass+1))
+fi
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

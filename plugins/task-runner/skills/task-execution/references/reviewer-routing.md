@@ -52,6 +52,15 @@ For a gap-tag `code-reviewer` dispatch, also inject:
 > "For this dispatch you ARE the domain reviewer — apply the primed rubric; do not defer
 > framework detail to a per-stack review."
 
+**Coverage marker** — every reviewer dispatch prompt opens with one line naming the card:
+
+> `RV-CARD: <card id>`
+
+`hooks/rv-observe.sh` watches for it and records that the pass was dispatched; the
+completion gate counts those records against done cards. A dispatch that omits the marker
+is not counted, so the run blocks at completion rather than passing silently — the failure
+direction is deliberate.
+
 **Compressed-return contract** — every reviewer dispatch prompt ALSO demands a compressed
 return (delegation-contracts § Compressed returns), injected verbatim:
 
@@ -112,6 +121,12 @@ milestones** of a `--tracks` run. A card executed **inside a parallel-group/trac
 reviewer pass** (routed or baseline) — a track-worker is a leaf and cannot dispatch
 reviewers. Accepted MVP limitation, consistent with implement-side routing being off in
 tracks.
+
+**Record every such card**: `scripts/review-skip.sh --card <id> --exempt leaf`. The
+completion gate counts reviewer records against done cards, so a leaf card with neither a
+dispatch nor an exemption blocks the stop. The record costs one command and keeps the
+count honest; without it the gate would refuse a run that did nothing wrong, which is a
+worse failure than the silence it replaced.
 
 ## Batch carve-out
 

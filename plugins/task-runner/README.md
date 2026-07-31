@@ -61,6 +61,37 @@ tool call is blocked and fed back, so an announced next step actually happens
 instead of leaving a dead turn the user waits on. An intentional pause is a tool,
 not prose: a question via `AskUserQuestion`, or a parked card with a reason.
 
+## Nothing gets quietly dropped
+
+A real run reviewed card 01, dropped the reviewer pass on cards 02-08 to save context,
+reported "all 8 done, none parked", and passed every gate; the user found out by asking,
+and closing the gap turned up a real bug. The step next to it — the per-card negative
+control — could not be skipped that way, because a script writes its record and the gate
+counts them. The reviewer pass was prose.
+
+So the mandated passes now leave evidence a run cannot author for itself:
+
+| Mandated step | Evidence | Gate |
+|---|---|---|
+| per-card reviewer pass | `rv-seen-*` written by a PostToolUse hook that sees the dispatch's `RV-CARD` marker | records ≥ done cards |
+| behavioral gate | `bg-<head>.json` written by `behavioral-gate.sh` itself | must exist for the reported HEAD, and its verdict must be a passing one |
+| red-team panel (boosted runs that shipped code) | `rt-lens-*` / `rt-critic-*` from the same observer | 3 lenses + 1 critic, or a recorded degradation |
+
+Skips stay possible and stop being silent. `scripts/review-skip.sh` (per card) and
+`scripts/reduction-record.sh` (a degraded panel, a downgraded dispatch, a narrowed
+suite) record the cut with its reason and print it to the transcript at the moment of the
+decision; in an interactive session a PreToolUse hook asks you to approve it first. The
+completion gate then refuses a clean stop unless the closing report names each recorded
+id. Design carve-outs — a track leaf, a reviewer plugin that is not installed — record an
+exemption and never prompt.
+
+Records written before the current registration are ignored, so a re-registration re-arms
+every check and last week's run cannot satisfy this one.
+
+What this does NOT prove: that a reviewer read carefully, that a reason is honest, or
+anything at all in a run that never registered. Depth is invisible to a parent hook —
+a subagent's transcript is a separate file.
+
 The block is bounded twice over: it fires only on the branch the run registered
 itself on, and at most once per commit — so a genuine stop costs one extra turn,
 each new commit re-arms the gate for the next card, and a sentinel left behind by
