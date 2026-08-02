@@ -5,6 +5,14 @@ on:
     branches: [master]
   pull_request:
 
+# Least privilege at the top, widened per job only where a job needs more. Without
+# this the job inherits the repository default token scope, which on many repos is
+# still write-all — every step, including third-party actions, then runs with a
+# token that can push. Nothing here writes to the repo; it reads and asserts.
+# (Flagged by this marketplace's own plugins/devops/scripts/workflow-audit.sh.)
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest

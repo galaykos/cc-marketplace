@@ -240,6 +240,34 @@ Post-refutation. Every item states its **standing** and whether it adds a
 
 ### P2 — mechanisms, prose cut
 
+> **Partially landed 2026-08-02** — first tranche, three items, **zero new skill
+> or command descriptions** as the lane requires.
+>
+> | Item | Shipped | Standing |
+> |---|---|---|
+> | NoSQL (database) | `hooks/guard.sh` gains the empty-filter `deleteMany`/`updateMany`/`remove`, `.drop*()`, and request-path `Scan` branches — same fail-open ask lane. **The skill stayed cut.** 18 fixtures, both directions | gate (ask) |
+> | CI supply-chain (devops) | `scripts/workflow-audit.sh` (6 rules, exit 2 on critical) + `hooks/workflow-guard.sh` PreToolUse **deny on exactly 2 classes**. **No SKILL.md** — 12 lines added to the existing `devops-practices` validation table instead. 14 fixtures | gate (deny + exit code) |
+> | Debt ratchet (code-review) | `scripts/debt-scan.sh` — 5 categories, committed baseline, `--check` exits 2 on growth, `--update-baseline` accepts it, `--age` resolves first-seen dates by git pickaxe. **No new skill and no new command** — a `--debt` lane on the existing `/code-review:review`. 14 fixtures | gate |
+>
+> **M3 paid off immediately and measurably.** Before the CI glob widened, exactly
+> two plugins had a `scripts/__tests__/` directory. These three items add three
+> more, and all 46 of their fixtures run in CI on the first push — the "entirely
+> prospective" value became actual within one lane.
+>
+> **The audit found a real defect in this repository on its first run**, and then
+> a defect in itself. `.github/workflows/validate.yml` had no top-level
+> `permissions:` block, so every step inherited the repo default token scope —
+> fixed here. And the first draft of rule 2 flagged
+> `${{ github.event.pull_request.base.sha }}` as critical: a 40-char SHA GitHub
+> generates and no PR author can influence. Matching by prefix
+> (`github.event.pull_request.*`) was the wrong unit; it now matches by LEAF, and
+> a fixture locks that specific false positive. A gate that cries wolf on ordinary
+> CI is a gate that gets switched off, taking the two real classes with it.
+>
+> **Still open in P2:** sweep-migration residual gate, project-conventions hook,
+> licence scan, flake-hunt, pgvector reference, Expo reference + rules rows,
+> design-preview Vue/Blade paths, document-analysis coverage manifest.
+
 Every item here survived on its script or hook and lost its SKILL.md. That is
 the pattern: **ship the teeth, skip the description.** Applying it across P2
 avoids ~11 new metered descriptions (~660 tokens at the measured average).

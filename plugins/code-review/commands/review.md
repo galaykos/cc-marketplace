@@ -10,6 +10,17 @@ Review the code change in $ARGUMENTS. Resolve scope in this order:
    (`git diff $(git merge-base HEAD origin/HEAD 2>/dev/null || echo HEAD~1)`).
 4. Nothing to review — say so and stop.
 
+**Debt lane** (`/code-review:review --debt`, or on request): instead of the diff
+review, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/debt-scan.sh --dir . --age` and
+report the table it prints. Five categories — suppressions, skipped tests, bare
+markers, deprecated-symbol references, feature flags — counted, compared against
+`.claude/debt-baseline.json`, with `--age` resolving first-seen dates by git
+pickaxe. Two things to say and neither is the count: which categories GREW, and
+which markers are oldest. "340 TODOs" is a number nobody acts on; "11 older than
+two years, 3 of them in payments" is a decision. If no baseline exists, say that
+`--update-baseline` starts the ratchet and that the first run only establishes a
+line to hold — do not present the initial numbers as findings.
+
 Triage before the deep read: a trivial, single-file, or purely mechanical change
 earns a one-line verdict — state it and stop. Take the full pass below when the change
 touches correctness-sensitive code (auth, data, migrations, concurrency), OR spans

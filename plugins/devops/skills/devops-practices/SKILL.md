@@ -71,9 +71,21 @@ Config is code; check it before shipping and paste the output:
 | k8s manifest | `kubectl apply --dry-run=client -f` (or `kubeconform`) |
 | Helm chart | `helm template \| kubeconform`, `helm lint` |
 | CI workflow | the CI system's lint/dry-run (`actionlint`, `gitlab-ci lint`) |
+| GitHub Actions trust boundary | `bash ${CLAUDE_PLUGIN_ROOT}/scripts/workflow-audit.sh` |
 
 "The manifest looks right" is not evidence; the dry-run's output is. If no mechanical
 check exists for an artifact, say so explicitly rather than implying it was verified.
+
+`workflow-audit.sh` covers the axis `actionlint` does not: who the workflow trusts.
+Exit 2 means a critical finding — `pull_request_target`/`workflow_run` checking out
+the untrusted head (fork code running with base-repo secrets and a write token), or
+an author-controlled `${{ github.event.* }}` field interpolated into a `run:` block,
+which GitHub substitutes into the shell before the shell runs. Warn-level findings —
+actions pinned to a mutable tag, no top-level `permissions:`, a self-hosted runner on
+a fork-reachable trigger, secrets reachable from a fork trigger — are reported and do
+not fail. A PreToolUse hook denies the two critical shapes at edit time; it
+deliberately denies nothing else, because a deny that fires on ambiguous cases gets
+switched off and takes the unambiguous ones with it.
 
 ## The observability boundary
 
