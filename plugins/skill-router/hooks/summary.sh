@@ -23,6 +23,39 @@
   ' "$state_file" 2>/dev/null) || { rm -f "$state_file" 2>/dev/null; exit 0; }
 
   [ -n "$line" ] && printf '[skill-router] Low-confidence signals seen this session — consider: %s.\n' "$line"
+
+  # SURFACED LEDGER. Before the state file goes, append what this session's
+  # router actually surfaced to a machine-local JSONL. This file is the only
+  # record anywhere that a routing rule did anything: until it existed, every
+  # argument this marketplace made about a plugin's worth was made from token
+  # counts and trigger-phrase overlap, because there was no denominator. A rule
+  # that surfaced nothing across N sessions is the cheapest possible retirement
+  # argument, and that sentence was unwriteable while this line was `rm -f` alone.
+  #
+  # It records what the router OFFERED, not what the model loaded — hence
+  # `surfaced`, never `usage`. Nothing reads it automatically; /hindsight:harvest
+  # reports it on demand, matching hindsight's collect → harvest → apply contract.
+  # Machine-local ($HOME, never the project tree), same slug rule as
+  # hindsight/hooks/collect.sh, fail-silent, and skipped entirely when
+  # CC_SURFACED_LOG=off.
+  case "${CC_SURFACED_LOG:-on}" in
+    off) : ;;
+    *)
+      slug=$(printf '%s' "$cwd" | tr -c '[:alnum:]' '-' 2>/dev/null) || slug=""
+      if [ -n "$slug" ] && [ -n "${HOME:-}" ]; then
+        dir="$HOME/.claude/skill-router/$slug"
+        if mkdir -p "$dir" 2>/dev/null; then
+          jq -c --arg sid "$session_id" '{
+            v: 1,
+            ts: (now | todate),
+            session_id: $sid,
+            fired: ((.fired // []) | unique),
+            pending_low: ((.pending_low // []) | map(.skill) | unique)
+          }' "$state_file" >> "$dir/surfaced.jsonl" 2>/dev/null
+        fi
+      fi ;;
+  esac
+
   rm -f "$state_file" 2>/dev/null
 } 2>/dev/null
 exit 0

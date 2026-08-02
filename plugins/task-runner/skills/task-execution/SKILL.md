@@ -32,13 +32,16 @@ Per task, loop — but with a hard ceiling:
    nc records: `discriminating` → flip; `vacuous`/`invalid-control` → back into this
    loop (no teeth); `isolation-halt` → halt. Manual/visual: `--skip "<reason>"`, same flags.
 4. Fail → diagnose from the actual output, fix, go to 2.
-5. **Three failed fix cycles → halt the task.** Report what was tried, the exact
-   failing output, and the current hypothesis. A fourth blind attempt is where
+5. **Three failed fix cycles → halt the task.** Before halting, make ONE bounded dispatch to
+   `debugging:debugger` if installed and attach its diagnosis to the evidence — three failures
+   mean the DIAGNOSIS is wrong, not the fix, and a fourth attempt from this thread repeats the
+   same wrong premise with less context left. No new loop: the halt happens either way. Report
+   what was tried, the exact failing output, and the hypothesis. A fourth blind attempt is where
    corruption starts: deleted assertions, weakened criteria, hallucinated fixes.
 
-Never make the loop pass by weakening the check: no skipping tests, no editing
-acceptance criteria, no swapping the verify command, no `|| true`. The check is
-the task; gaming it is failing it silently.
+Never make the loop pass by weakening the check: no skipping tests, no editing acceptance
+criteria, no swapping the verify command, no `|| true`. The check is the task; gaming it is
+failing it silently.
 
 ## Reviewer pass (per task)
 
@@ -50,11 +53,10 @@ After the task's verify command passes — before its status flips — run a con
 - **security review** (security plugin): only on tasks touching auth, input validation, or dependencies.
 
 Each fires only if its plugin is installed; a missing reviewer is not a failure, but it is never silent — record it with `scripts/review-skip.sh --card <id> --exempt no-reviewer-installed`. A reviewer pass dropped for any other reason is a DISCRETIONARY skip: it needs the user's approval first, then `--reason "<why>"`, and it must appear under `Skipped:` in the completion report. The completion gate counts reviewer records against done cards and refuses a clean stop when they are short or when a recorded skip went undisclosed.
-**Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch
-over the card diff; a `Bash`-holding reviewer runs serially outside it; the inline
-security-review skill runs after the batch joins (`references/reviewer-routing.md`
-§ Concurrent dispatch — baseline behavior, not `--crew`-gated).
-Plus the card's `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
+**Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch over the card diff; a `Bash`-holding reviewer runs serially outside it; the
+inline security-review skill runs after the batch joins (`references/reviewer-routing.md` § Concurrent dispatch — baseline behavior, not `--crew`-gated). Plus the card's
+`Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate
+it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
 **Role-tier floor — applies boosted or NOT:** an agent with a row in delegation-contracts `references/role-floors.md` dispatches at `max(marker tier if present ELSE the session model, its floor)` — never below the session model; agents with no row are unfloored and unchanged (omit `model:`). A registry miss → omit `model:` and log `role-floors.md unresolved — floors not applied` in the run report.
 
@@ -63,27 +65,24 @@ Plus the card's `Agent:` tag adds a primed domain reviewer per `references/revie
 — it sharpens the shared goal, NEVER a license to widen, drop, or reinterpret a card;
 cards stay the sole scope authority, halt-with-evidence unchanged. Absent → as today.
 
-**Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker,
-dispatch the reviewer, delegated worker, and **code-redteam** panel agents with the resolved `model:` override — excluding
-`opinion-lens` — so the boost reaches execution even in a fresh session; code-redteam never reads the index itself, so pass it the resolved `(model, effort)`. A batch carries no tier override of its own — it dispatches like any other card (`references/routing.md` § Batch dispatch). Read BOTH
-markers: tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still
-escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A
-trailing `(model=…, effort=…)` sets the tier — `model=auto` resolves HERE, to the executing session's model or opus, whichever is higher (haiku<sonnet<opus<fable); a malformed one falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at
-run start, boosted or not: `⚡ Ultra run — workers model=<marker-model>→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` = `$CLAUDE_EFFORT` when the harness exposes it — `echo ${CLAUDE_EFFORT:-inherit}` — else the literal `inherit`). The Agent tool escalates model
-only (marker `effort` applies on the `Workflow` path). Delegated stack implementers also
-get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to
-apply`). Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced
-diff — at each serial milestone boundary and once before completion (in `--tracks`: once on the merged branch) — routing confirmed
-findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take
-pipeline gates — the run-plan preview is DISPLAYED, then execution proceeds without
-waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on
-forward progress (a task moved parked→done), else surface the parked list and stop.
-Halt-with-evidence, mis-specified-task halts, and the full-suite completion gate are
-UNCHANGED and NEVER suppressed under Goal.
+**Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker, dispatch the reviewer, delegated worker, and **code-redteam** panel agents with the
+resolved `model:` override — excluding `opinion-lens` — so the boost reaches execution even in a fresh session; code-redteam never reads the index itself, so pass it the
+resolved `(model, effort)`. A batch carries no tier override of its own — it dispatches like any other card (`references/routing.md` § Batch dispatch). Read BOTH markers:
+tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A trailing
+`(model=…, effort=…)` sets the tier — `model=auto` resolves HERE, to the executing session's model or opus, whichever is higher (haiku<sonnet<opus<fable); a malformed one
+falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at run start, boosted or not: `⚡ Ultra run — workers
+model=<marker-model>→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` =
+`$CLAUDE_EFFORT` when the harness exposes it — `echo ${CLAUDE_EFFORT:-inherit}` — else the literal `inherit`). The Agent tool escalates model only (marker `effort`
+applies on the `Workflow` path). Delegated stack implementers also get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to apply`).
+Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced diff — at each serial milestone boundary and once before completion (in `--tracks`:
+once on the merged branch) — routing confirmed findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take pipeline gates — the
+run-plan preview is DISPLAYED, then execution proceeds without waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on forward progress (a task
+moved parked→done), else surface the parked list and stop. Halt-with-evidence, mis-specified-task halts, and the full-suite completion gate are UNCHANGED and NEVER
+suppressed under Goal.
 
-Blocker/major findings send the task back into the fix loop; each such round counts toward
-the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Minor findings go to the
-follow-up backlog, not the current diff; after a reviewer-driven fix, re-run the verify command before re-review.
+Blocker/major findings send the task back into the fix loop; each such round counts toward the SAME three-cycle ceiling as verify failures (under `--crew`, the crew loop
+uses its own fresh budget) — so the reviewer pass cannot loop unboundedly. Minor findings go to the follow-up backlog, not the current diff; after a reviewer-driven fix,
+re-run the verify command before re-review.
 
 ## No unbounded outer loop
 

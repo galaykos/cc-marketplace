@@ -6,8 +6,11 @@
 #   > Last verified: YYYY-MM-DD — <root doc URL>[ — npm:<package>@<major>]
 #
 # and prints a warning for any digest whose stamp is older than the threshold.
-# Reference files with no stamp are hand-written skill material, not
-# doc-derived — silently ignored. NEVER blocks: exits 0 on every path,
+# Scans BOTH */references/*.md and skills/*/SKILL.md: a version-leverage claim is
+# usually inline in the SKILL body, not in a reference file. Files with no stamp
+# are hand-written skill material, not doc-derived — silently ignored here.
+# validate.sh separately REQUIRES a stamp from any plugin whose own description
+# claims version leverage; that is the blocking half of this pair. NEVER blocks: exits 0 on every path,
 # including after warnings (warn-only by contract, spec A2); the CI step adds
 # continue-on-error as belt and braces. Runnable locally:
 #   bash scripts/check-doc-staleness.sh [--days N] [--path DIR] [--live]
@@ -89,7 +92,17 @@ while IFS= read -r f; do
       echo "info: npm view $pkg failed (npm missing or offline) — skipped live check for $f"
     fi
   fi
-done < <(find "$root" -type f -path '*/references/*.md' 2>/dev/null)
+# WIDENED 2026-08-02 to include skills/*/SKILL.md. The scan was references-only,
+# and every one of the ~15 version-leverage stack plugins — nextjs, nuxt, vue3,
+# laravel, php, vite, threejs, node-backend, react-native, livewire, inertia,
+# mysql, mariadb, postgresql, sql — ships ZERO files under any references/
+# directory. All ten stamped files in the tree sit in ui-ux and craft-layer.
+# Their version claims live inline in SKILL.md bodies, which this check had never
+# been able to see. Those plugins are exempt from the baseline-redundancy loop
+# precisely BECAUSE they encode version leverage, so a stale leverage map turns
+# the marketplace's one durable advantage over a blind model into confidently
+# wrong advice that decays silently rather than on any edit.
+done < <(find "$root" -type f \( -path '*/references/*.md' -o -path '*/skills/*/SKILL.md' \) 2>/dev/null)
 
 # Warn-only by contract: never fail the caller, even after warnings.
 exit 0

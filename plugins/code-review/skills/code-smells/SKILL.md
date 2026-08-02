@@ -3,6 +3,14 @@ name: code-smells
 description: Use when reviewing, refactoring, or judging code quality — a code-smell catalog (bloaters, couplers, change-preventers, dispensables) with detection cues, fixes, and when-it-is-NOT-a-smell judgment.
 ---
 
+> **Boundary with the built-in `simplify`.** Claude Code ships a `simplify` skill that
+> reviews changed code for reuse, simplification, efficiency and altitude, then APPLIES
+> the fixes — quality only, by its own declaration, and it does not hunt for bugs. That
+> overlaps this catalog and `reuse-hygiene` directly. Prefer the host skill for a quick
+> cleanup pass over a diff you just wrote. Reach for this one when the question is
+> WHICH smell and whether it is a smell at all — the judgment section here ("when it is
+> NOT a smell") is the part that does not exist there. Do not restate its guidance. <!-- host-ok -->
+
 A smell is a surface symptom that correlates with deeper trouble — not a bug,
 not a verdict. Every smell here carries three parts: the cue that detects it,
 the risk it predicts, and the fix that removes it. A smell without a concrete

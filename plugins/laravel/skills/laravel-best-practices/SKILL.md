@@ -2,6 +2,7 @@
 name: laravel-best-practices
 description: Use when writing or reviewing Laravel code — Eloquent N+1 prevention and eager loading, form request validation, thin controllers with service/action classes, queued jobs, authorization policies, migrations.
 ---
+> Last verified: 2026-08-02 — https://laravel.com/docs/13.x/releases
 
 ## Know the version before advising
 
@@ -141,13 +142,12 @@ public function down(): void { Schema::table('users', fn ($t) => $t->dropColumn(
 
 ## Common mistakes
 
-- Looping over a relationship without eager loading, or eager loading a relation never used.
-- Validating in the controller instead of a `FormRequest`, and fat controllers reaching into multiple models/services directly instead of delegating.
-- Relying on `@can` in Blade as the only authorization check, leaving the route open.
-- Mass assignment via an unguarded model fed `$request->all()`; use a real `$fillable` plus `$request->validated()`.
-- Returning a full Eloquent model to the client instead of an API Resource, leaking internal attributes.
-- Passing whole Eloquent models into queued job constructors instead of IDs, or writing `handle()` methods that aren't safe to run twice.
-- Calling `env()` outside `config/*.php` (breaks after `config:cache`), editing a migration that already ran, or leaving `down()` empty/incorrect.
+- Looping over a relationship without eager loading, or eager loading a relation never used. - Validating in the controller instead of a
+  `FormRequest`, and fat controllers reaching into multiple models/services directly instead of delegating. - Relying on `@can` in Blade as the only
+  authorization check, leaving the route open. - Mass assignment via an unguarded model fed `$request->all()`; use a real `$fillable` plus
+  `$request->validated()`. - Returning a full Eloquent model to the client instead of an API Resource, leaking internal attributes. - Passing whole
+  Eloquent models into queued job constructors instead of IDs, or writing `handle()` methods that aren't safe to run twice. - Calling `env()` outside
+  `config/*.php` (breaks after `config:cache`), editing a migration that already ran, or leaving `down()` empty/incorrect.
 
 ## Verify Against Current Docs
 

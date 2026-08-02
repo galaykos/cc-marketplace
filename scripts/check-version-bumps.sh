@@ -62,6 +62,27 @@ for dir in $changed; do
       echo "FAIL: plugin '$name' version went backwards ($base_ver -> $cur) — must increase" >&2
       fail=1
     fi
+    # CHANGELOG COVERAGE (added 2026-08-02). A bump the consumer cannot read is a
+    # version number, not a release. Verified before this landed: 0 git tags across
+    # the repository and 0 of 58 leaves shipping a CHANGELOG.md, while validate.sh
+    # has always ALLOWED one and this script already excludes it from triggering a
+    # bump. So a user upgrading `laravel` 0.3.1 -> 0.4.0 had no artifact anywhere
+    # naming what changed.
+    #
+    # Deliberately WARN, not FAIL, and the reason is the same one that kept the
+    # version-stamp gate a warning until its verification pass ran: making it hard
+    # today would demand 58 backfilled changelogs describing releases nobody
+    # recorded at the time, i.e. invented history in the file whose whole job is
+    # history. It hardens per plugin: once a plugin HAS a CHANGELOG.md, an entry
+    # for the new version is required, so adopting the file opts that plugin in.
+    if [ -f "$dir/CHANGELOG.md" ]; then
+      if ! grep -qF "$cur" "$dir/CHANGELOG.md" 2>/dev/null; then
+        echo "FAIL: plugin '$name' bumped to $cur but $dir/CHANGELOG.md has no entry for it" >&2
+        fail=1
+      fi
+    else
+      echo "WARN: plugin '$name' bumped $base_ver -> $cur with no CHANGELOG.md — the consumer has no artifact naming what changed" >&2
+    fi
   fi
 done
 

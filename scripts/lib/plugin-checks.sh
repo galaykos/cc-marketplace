@@ -250,3 +250,202 @@ pc_rules_overlap() {
       exit bad
     }' "$f"
 }
+
+# pc_rules_reachable <rules_tsv>
+# Every shipped routing row must be ABLE to fire. Prints one `unreachable <kind>
+# <pattern> <skill>` line per dead row and returns 1; clean or missing file
+# returns 0.
+#
+# WHY THIS EXISTS. skill-router's match_glob (plugins/skill-router/hooks/route.sh:42-53)
+# understands exactly one multi-segment form, `**/dir/**`, which it tests against
+# the full path. EVERY other pattern is matched against the BASENAME — so a
+# pattern containing a `/` outside that one form is compared to a string that can
+# never contain a `/`, and cannot match any file, ever. `**/routes/api.php`
+# shipped in that state and routed api-design zero times for months. The three
+# existing router harnesses could not see it: rules-overlap-tests.sh checks
+# pattern COLLISIONS and route-marker-tests.sh checks MARKER semantics, and a row
+# that never fires collides with nothing and reaches no marker. A rule nobody can
+# prove fires is indistinguishable from a rule that was never written, which is
+# also why nobody could ever justify deleting one.
+#
+# LIMITATION (honest scope). This is a STRUCTURAL check, not a corpus check: it
+# proves a glob CAN match some path, never that any file in a real project does.
+# For content rows it only compiles the regex (an invalid ERE can never match
+# either); asserting that each content regex matches a real fixture would need a
+# corpus covering all 31 glob rows, and expanding scripts/smoke/router-corpus
+# re-runs pc_rules_cofire's O(n^2) pairing over every added file. Accepted, not
+# covered — the dead-pattern class above is the one that actually shipped.
+pc_rules_reachable() {
+  local tsv="$1" bad=0 kind pattern skill rest
+  [ -f "$tsv" ] || return 0
+  while IFS=$'\t' read -r kind pattern skill rest; do
+    case "$kind" in ''|'#'*) continue ;; esac
+    [ -n "$pattern" ] || continue
+    case "$kind" in
+      glob)
+        # The only path-aware form route.sh implements.
+        case "$pattern" in '**/'*'/**') continue ;; esac
+        # Anything else is basename-matched; a `/` makes it unmatchable.
+        case "$pattern" in
+          */*) printf 'unreachable glob %s %s\n' "$pattern" "$skill"; bad=1 ;;
+        esac ;;
+      content)
+        printf '' | grep -qE "$pattern" 2>/dev/null
+        [ $? -gt 1 ] && { printf 'unreachable content %s %s\n' "$pattern" "$skill"; bad=1; } ;;
+    esac
+  done < "$tsv"
+  return $bad
+}
+
+# pc_host_overlap <md_path>
+# Fails a shipped plugin .md that introduces a SKILL whose name collides with a
+# skill Claude Code itself ships. Prints one `hostoverlap <path>
+# <name>` line per hit and returns 1; clean returns 0.
+#
+# WHY THIS EXISTS. This marketplace already made the host-deferral decision twice
+# and wrote it down twice — craft-layer/skills/information-design/SKILL.md defers
+# chart form and colour to the built-in `dataviz` skill BY NAME ("Do not duplicate
+# dataviz guidance in craft-layer files", and "Duplicating dataviz" listed as an
+# anti-pattern), and llm-app defers provider API specifics to the built-in
+# claude-api skill. Both are held together by prose. The one host boundary any
+# script enforces runs the OTHER way: pc_removed_refs' rescue list forbids
+# describing `claude-api` as a marketplace artifact. Nothing checked the direction
+# that costs tokens — a plugin re-implementing a capability the user already has,
+# paying always-on description cost to compete with it for the same trigger.
+#
+# The name list is the host skill roster as of 2026-08-02. It is a NAME collision
+# check only: a plugin may still cover adjacent ground, and should say so as a
+# deferral. Mark a legitimate mention with <!-- host-ok --> on the line, matching
+# the rescue idiom pc_removed_refs already uses.
+#
+# LIMITATION (honest scope). Name equality only. A skill called `chart-styling`
+# that silently restates dataviz trips nothing, and the roster is a hardcoded list
+# that goes stale when the harness ships a new built-in — the same standing
+# pc_removed_refs' hardcoded removal list already carries. Accepted, not covered.
+pc_host_overlap() {
+  local f="$1" bad=0 name host
+  [ -f "$f" ] || return 0
+  local hosts="dataviz artifact-design artifact-capabilities skill-creator claude-api update-config keybindings-help fewer-permission-prompts claude-in-chrome simplify"
+  # SKILLS ONLY. Commands are namespaced at the call site (`/code-review:review`
+  # cannot be typed for the host's bare `/review`), so a command-name collision is
+  # not a collision. A skill competes on its DESCRIPTION for the same trigger
+  # regardless of which plugin owns it, which is the cost this gate is about.
+  case "$f" in
+    */skills/*/SKILL.md) name=$(basename "$(dirname "$f")") ;;
+    *) return 0 ;;
+  esac
+  grep -qF '<!-- host-ok -->' "$f" && return 0
+  for host in $hosts; do
+    if [ "$name" = "$host" ]; then
+      printf 'hostoverlap %s %s\n' "$f" "$name"; bad=1
+    fi
+  done
+  return $bad
+}
+
+# pc_handoff_refs <md_path> [plugins_root]
+# Every bare `<plugin>:<name>` handoff in a shipped plugin doc must RESOLVE to a
+# real artifact in that plugin: agents/<name>.md, skills/<name>/SKILL.md or
+# commands/<name>.md. Prints one `handoff <path> <token>` line per unresolved
+# reference and returns 1; clean returns 0.
+#
+# WHY THIS EXISTS. validate.sh has always gated the SLASH form `/plugin:command`
+# globally, and pc_removed_refs knows a hardcoded list of plugins deleted from
+# this marketplace. Neither sees the bare `plugin:agent` form — the one the
+# routing chains, reviewer maps and worker handoffs are actually written in. So
+# `ui-ux:ui-ux-enginer` (typo), `taskrunner:task-executor` (wrong plugin name) and
+# a rename that missed one call site all shipped green, and the failure is silent
+# at runtime: the model reads a name that does not exist and quietly does the work
+# inline instead of delegating. About 90 such edges ship today across 37 distinct
+# targets, and nothing checked any of them.
+#
+# TWO STRUCTURAL GUARDS, so there is no exclusion list to maintain:
+#   1. LHS must be a real plugin directory. That drops `model:opus`, `http:` and
+#      every YAML-ish token in one rule.
+#   2. A token immediately preceded by `<` is markup, not a handoff. Blade and
+#      Livewire component tags (`<livewire:item-row />`) share this syntax
+#      exactly, and a cross-plugin handoff is never written as an opening tag.
+#      Without this the three shipped Livewire examples fail, and the alternative
+#      — an HTML comment escape inside a fenced Blade snippet — would corrupt the
+#      example it is documenting.
+# Fenced code is deliberately IN scope: the reviewer Resolution map and the worker
+# chains live inside fences, and they are the edges most worth checking.
+#
+# LIMITATION (honest scope). Resolution only. It cannot tell whether the
+# referenced plugin is INSTALLED in the reader's session — that is the degradation
+# question, and the answer is prose ("if installed") that no script can verify
+# means what it says. It also cannot see a deferral to a HOST skill, which is
+# written as a bare name with no plugin prefix; pc_host_overlap covers the name
+# collision, nothing covers a host deferral going stale.
+#
+# Mark a legitimate non-reference (a Blade tag, a quoted example of a bad name)
+# with <!-- handoff-ok --> on the line, matching the rescue idiom the jargon and
+# removed-artifact guards already use.
+#
+# SINGLE PASS, deliberately. The first implementation looped over every line and
+# spawned grep+sed+sort per line; across ~400 shipped docs that took validate.sh
+# from 30s to 110s, and role-floors-check — which runs validate.sh nine times —
+# to seven minutes. A gate slow enough to discourage running it locally is a gate
+# that only fires in CI. Two greps per file, then one filesystem probe per
+# DISTINCT token.
+pc_handoff_refs() {
+  local f="$1" root="${2:-plugins}" bad=0 tok lhs rhs ln skiplines
+  [ -f "$f" ] || return 0
+  # Line numbers carrying the escape, as a space-padded set for O(1)-ish lookup.
+  skiplines=" $(grep -nF '<!-- handoff-ok -->' "$f" 2>/dev/null | cut -d: -f1 | tr '\n' ' ')"
+  while IFS= read -r ln; do
+    [ -n "$ln" ] || continue
+    tok="${ln#*:}"; ln="${ln%%:*}"
+    case "$skiplines" in *" $ln "*) continue ;; esac
+    lhs="${tok%%:*}"; rhs="${tok##*:}"
+    [ -d "$root/$lhs" ] || continue
+    [ -f "$root/$lhs/agents/$rhs.md" ] && continue
+    [ -f "$root/$lhs/skills/$rhs/SKILL.md" ] && continue
+    [ -f "$root/$lhs/commands/$rhs.md" ] && continue
+    printf 'handoff %s %s\n' "$f" "$tok"
+    bad=1
+  done < <(grep -nEo '(^|[^/`<[:alnum:]_-])[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' "$f" 2>/dev/null \
+    | sed -E 's/^([0-9]+):[^a-z]*/\1:/' | sort -u -t: -k1,1 -k2,2)
+  return $bad
+}
+
+# pc_version_stamp <plugin_dir>
+# A plugin whose OWN plugin.json description claims version leverage should carry
+# a `> Last verified: YYYY-MM-DD — <url>` stamp somewhere in its skills, so
+# check-doc-staleness.sh can see it decay. Prints `unstamped <plugin>` and returns
+# 1 when the claim exists and no stamp does; returns 0 otherwise.
+#
+# STANDING: recorded, NOT gate — and the distinction is the point, per CLAUDE.md's
+# has-teeth convention. validate.sh prints this as a WARN and never fails on it.
+#
+# WHY IT IS NOT BLOCKING YET. rationale/stack-skill-baselines.md exempts ~20
+# tier-1 stack plugins from the baseline-redundancy loop on the explicit promise
+# that they encode version leverage rather than idioms. Ten of them make that
+# claim in their own description and none carries a stamp. Making this blocking
+# today would force a stamp onto each — and a stamp is a claim that a human or a
+# fetch actually verified the content on that date against that URL. Writing ten
+# of those without doing the verification would be a fabricated provenance record
+# in the one file whose entire purpose is provenance: the honest-limitation law
+# forbids it more clearly than almost anything else in this repo.
+#
+# TO PROMOTE IT TO `gate`: run one real verification pass per claimant, stamp what
+# was actually checked, then change validate.sh's warn to err. The list this
+# prints IS the work queue for that pass.
+pc_version_stamp() {
+  local pdir="$1" pj="$1/.claude-plugin/plugin.json" desc name
+  [ -f "$pj" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && return 0
+  name=$(jq -r '.name // empty' "$pj" 2>/dev/null)
+  desc=$(jq -r '.description // empty' "$pj" 2>/dev/null)
+  # `lockfile` was in this list and was WRONG: `packages` describes lockfile
+  # DISCIPLINE — semver semantics, which do not drift — and was flagged as owing a
+  # provenance stamp it has nothing to stamp. A detector that manufactures debt
+  # teaches people to ignore it. Match only phrases that assert a moving fact.
+  printf '%s' "$desc" | grep -qiE 'version-aware|version leverage|version-leverage|as of [0-9]|version[- ]conditional|[0-9]+\.[0-9]+\+' || return 0
+  # find, not a glob: an unmatched glob is a literal path under bash and a hard
+  # error under zsh, and this file is sourced by both validate.sh and a hook.
+  find "$pdir/skills" -type f -name '*.md' -exec grep -lq '^> Last verified:' {} + 2>/dev/null && return 0
+  printf 'unstamped %s\n' "$name"
+  return 1
+}

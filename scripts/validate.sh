@@ -124,6 +124,10 @@ while IFS= read -r mdf; do
     || err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->"
   rhit=$(pc_removed_refs "$mdf") \
     || err "$mdf: references removed marketplace artifact [$rhit] — reroute to a live plugin/skill or mark the line <!-- removed-ok -->"
+  ohit=$(pc_host_overlap "$mdf") \
+    || err "$mdf: skill name collides with a built-in Claude Code skill [${ohit##* }] — defer to the host skill by name instead of re-implementing it, or mark the line <!-- host-ok -->"
+  hhit=$(pc_handoff_refs "$mdf") \
+    || err "$mdf: unresolved cross-plugin handoff [$(printf '%s' "$hhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] — names no agents/, skills/ or commands/ file in that plugin; fix the name or mark the line <!-- handoff-ok -->"
 done < <(
   {
     find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \)
@@ -358,6 +362,20 @@ if [ -d "$SR" ]; then
 $overlaps
 EOF_OVERLAPS
   fi
+  # Reachability gate (hard): a row that CANNOT fire is worse than a missing row —
+  # it reads as coverage. `**/routes/api.php` shipped for months matching nothing,
+  # because route.sh basename-matches every pattern except the `**/dir/**` form.
+  # The overlap and marker harnesses cannot see this class: a dead row collides
+  # with nothing and reaches no marker.
+  unreach=$(pc_rules_reachable "$SR/rules.tsv") || true
+  if [ -n "$unreach" ]; then
+    while IFS= read -r ur; do
+      err "rules.tsv unreachable row ($ur) — route.sh matches non-'**/dir/**' patterns against the BASENAME, so this can never fire"
+    done <<EOF_UNREACH
+$unreach
+EOF_UNREACH
+  fi
+
   # Content-row co-firing, against a corpus of representative snippets. Content rows
   # never share a literal pattern, so the glob-axis equality test above is vacuous for
   # them; two different regexes matching one file is the real collision.
@@ -468,14 +486,53 @@ done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
+# Version-leverage stamp coverage (HARD, promoted from WARN on 2026-08-02).
+# rationale/stack-skill-baselines.md exempts ~20 stack plugins from the
+# baseline-redundancy loop on the promise that they encode version leverage rather
+# than idioms; check-doc-staleness.sh can only see that leverage decay where a
+# `> Last verified: YYYY-MM-DD — <url>` stamp exists, and until this morning not
+# one of those plugins carried one.
+#
+# It shipped as a WARN because promoting it first would have forced a fabricated
+# provenance record onto nine plugins — a stamp asserts that someone checked the
+# content against that URL on that date, and writing nine unchecked ones would be
+# a lie in the one file whose entire purpose is provenance. The verification pass
+# has now run: every claimant's load-bearing version claim was checked against
+# upstream and stamped with the URL actually consulted, so the gate has teeth
+# without anyone having to trust it on faith.
+for d in plugins/*/; do
+  us=$(pc_version_stamp "$d") \
+    || err "plugin '${us##* }' claims version leverage with no \`> Last verified:\` stamp in any skill — check-doc-staleness.sh is structurally blind to its claims. Verify one load-bearing claim against upstream and stamp it, or narrow the plugin's description so it stops claiming version leverage."
+done
+
 # README-listing (HARD): every plugin must also be LISTED in the top-level
 # README.md plugin tables — a bolded `**name**` or `**[name](...)` row. Presence
 # of a per-plugin README is not discoverability; 9 plugins shipped invisible to
 # the catalog before this gate (2026-07-23).
+#
+# TIGHTENED 2026-08-02: the previous form accepted the bolded name ANYWHERE in
+# the file, so a plugin mentioned once in a prose paragraph counted as catalogued
+# while appearing in no table a reader browses. The row must now actually be a
+# table row — a line starting `| **name**` or `| **[name](`.
 for d in plugins/*/; do
   lname=$(basename "$d")
-  grep -qF "**${lname}**" README.md || grep -qF "**[${lname}](" README.md \
-    || err "plugin '$lname' not listed in any top-level README.md plugin table"
+  grep -qE "^\| \*\*(\[)?${lname}(\])?" README.md \
+    || err "plugin '$lname' has no README.md plugin-table ROW (a prose mention is not a catalogue entry)"
+done
+
+# Empty-section gate (HARD): a `###` heading followed by a table header and its
+# separator with ZERO data rows is a section that claims a category and lists
+# nothing. `### Automation & browser` sat empty from 2026-07-06 until this gate
+# landed, and every structural check in this repo passed it — an empty table is
+# well-formed markdown.
+awk '
+  /^### / { heading=$0; state=1; next }
+  state==1 && /^\| *Plugin/ { state=2; next }
+  state==2 && /^\|[-| ]+\|$/ { state=3; next }
+  state==3 { if ($0 ~ /^\|/) { state=0 } else if ($0 ~ /^[[:space:]]*$/) { print heading; state=0 } else { state=0 } }
+  { if (state==1 && $0 !~ /^[[:space:]]*$/ && $0 !~ /^\| *Plugin/) state=0 }
+' README.md | while IFS= read -r emptyheading; do
+  err "README.md section '$emptyheading' has a table header with no rows — list something or remove the heading"
 done
 
 # Boost-preamble parity (HARD): the four full taskmaster commands carry one

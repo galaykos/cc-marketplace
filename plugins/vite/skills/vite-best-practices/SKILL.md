@@ -3,6 +3,8 @@ name: vite-best-practices
 description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security, optimizeDeps, code splitting (manualChunks), base for sub-path deploys, server.proxy, import.meta.glob, SSR externalization, plugin order — pinned to the lockfile's vite version. Type layer and framework rules live in their own plugins.
 ---
 
+> Last verified: 2026-08-02 — https://vite.dev/releases
+
 ## Know the version before advising
 
 - The locked `vite` entry (package-lock.json / yarn.lock / pnpm-lock.yaml / bun.lock)
@@ -137,16 +139,13 @@ Advising above the locked version is a finding; confirm boundaries against the d
 
 ## Anti-patterns
 
-- Secrets behind `VITE_` vars, or `process.env.SECRET` in client code — both ship
-  to the browser. Server secrets never touch the client bundle.
-- Missing `base` on a sub-path deploy — assets 404 the moment it's not at root.
-- `optimizeDeps` include/exclude hacks that mask a broken dep export, committed
-  instead of fixing the dep.
-- One unsplit vendor chunk (or hundreds of micro-chunks) instead of splitting by
-  change-frequency at route boundaries.
-- `define` values without `JSON.stringify` — raw substitution injects a bare
-  identifier and breaks the build or the value.
-- Assuming `build.target` follows `.browserslistrc` — Vite does not read it.
+- Secrets behind `VITE_` vars, or `process.env.SECRET` in client code — both ship to the browser. Server
+  secrets never touch the client bundle. - Missing `base` on a sub-path deploy — assets 404 the moment it's
+  not at root. - `optimizeDeps` include/exclude hacks that mask a broken dep export, committed instead of
+  fixing the dep. - One unsplit vendor chunk (or hundreds of micro-chunks) instead of splitting by
+  change-frequency at route boundaries. - `define` values without `JSON.stringify` — raw substitution injects
+  a bare identifier and breaks the build or the value. - Assuming `build.target` follows `.browserslistrc` —
+  Vite does not read it.
 
 ## Verify Against Current Docs
 

@@ -6,6 +6,14 @@
           { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/collect.sh" }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-use.sh" }
+        ]
+      }
     ]
   }
 }

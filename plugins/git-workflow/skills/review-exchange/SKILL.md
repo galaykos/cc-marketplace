@@ -19,6 +19,14 @@ fixture, a rename half-applied. Every one of those a reviewer finds instead
 costs a round-trip and spends credibility that real design questions need.
 If the diff surprises its own author anywhere, fix that before requesting.
 
+Do the mechanical half by dispatch, not by hand, when the tooling is installed:
+`/code-review:review` on the diff for correctness and convention drift,
+`code-architecture:drift-review` for scope drift against what was asked, and
+`/secret-scanning:scan` for anything that must never reach a PR. Reading the diff
+yourself is still the requirement — those find a different class than a human
+read does, and neither substitutes for the other. `/git-workflow:finish` runs the
+same three before it offers a destination.
+
 ## What the request contains
 
 Three things, none optional:

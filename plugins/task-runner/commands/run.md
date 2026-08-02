@@ -1,6 +1,6 @@
 ---
 description: Execute a task list with scope lock, bounded verify-fix loops, and a full-suite completion gate
-argument-hint: [tasks-dir-index-or-list] [--tracks[=N]] [--crew]
+argument-hint: [tasks-dir-index-or-list] [--tracks[=N]] [--crew] [--sweep]
 ---
 
 Invoke the task-execution skill from this plugin and run the task list in
@@ -15,6 +15,33 @@ independent milestones run as concurrent git-worktree tracks. `N` is clamped to
 usage error (do not run); bare `--tracks` uses the default cap `min(eligible, 4)`. With
 no `--tracks` — or when the index lacks per-milestone `Files:` sets or has 0–1 eligible
 milestone — run the serial `task-execution` path below (backward compatible).
+
+**`--sweep`** — at-scale mechanical change (a codemod, a rename, "replace every X
+with Y") rather than a task list. Bounded by a residual gate instead of a card count:
+
+1. FREEZE the target set before editing anything —
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/sweep-residual.sh --freeze --id <id> --pattern <ere>`.
+   Enumerate in FOUR passes, not one: the direct form; the aliased, re-exported or
+   barrel form; the dynamic or string-constructed reference; and non-code carriers
+   (config, CI yaml, docs, fixtures, i18n keys). What one grep misses is invisible
+   to the gate too, so the passes are the work, not ceremony.
+2. Execute in COMMITTED BATCHES through the ordinary inner loop, one commit per
+   batch, so every step is bisectable and a bad batch reverts alone.
+3. MEASURE after each batch: `--measure --id <id>`. Exit 2 = residual survives,
+   4 = the target set moved (a file carrying the pattern appeared after the freeze
+   — re-freeze deliberately, never edit the state file), 5 = cannot measure. The
+   residual must strictly DECREASE batch over batch; a batch that does not move it
+   is a batch that edited the wrong thing.
+4. FINISH at zero, or record every survivor with
+   `--allow --id <id> --file <path> --reason "<why it stays>"`. A survivor with no
+   written reason is not allowed — that is the difference between an allowlist and
+   a suppression comment.
+
+Why the gate exists: handed twelve occurrences where three sit behind an aliased
+import and one is built at runtime, the honest failure is not knowledge. It is that
+nothing re-runs the enumeration after the edits, so a green suite over the paths
+that HAVE tests reads as a finished migration. Batches are disjoint by
+construction, so they are exactly what `--tracks` already consumes.
 
 **`--crew`** — a bare boolean opt-in (default off; `--crew=<value>` is a usage error). When
 present, after each **directly-dispatched** card's build verify passes, run the per-card

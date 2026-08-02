@@ -52,6 +52,25 @@
     [ -z "$lockhit" ] && printf '%s' "$text" | grep -qiE '\balter[[:space:]]+table\b[^;]*\balter\b[^;]*\btype\b|\balter[[:space:]]+table\b[^;]*\bset[[:space:]]+not[[:space:]]+null\b' && lockhit="a table-rewriting ALTER (column TYPE change or SET NOT NULL)"
   fi
 
+  # NoSQL analogues of the same two hazards, same warn/ask lane. The relational
+  # branches above are blind to them by construction: an unfiltered deleteMany({})
+  # is the exact shape of a DELETE with no WHERE, and a Scan on a request path is
+  # the read-side twin of a full-table sweep — it is O(table) per request, gets
+  # slower as data grows, and passes every test written against a small fixture.
+  # Only checked when nothing above fired; relational data loss wins the message.
+  if [ -z "$hit" ] && [ -z "$lockhit" ]; then
+    # deleteMany / updateMany / remove with an EMPTY filter, and .drop() outright.
+    if printf '%s' "$text" | grep -qE '\b(deleteMany|updateMany|remove)\([[:space:]]*\{[[:space:]]*\}'; then
+      hit="an unfiltered deleteMany/updateMany/remove (empty filter matches every document)"
+    elif printf '%s' "$text" | grep -qE '\.drop(Collection|Database|Indexes)?\([[:space:]]*\)'; then
+      hit="a collection/database drop"
+    # DynamoDB Scan outside a script/migration path: full-table read per request.
+    elif printf '%s' "$text" | grep -qE '\b(ScanCommand|\.scan\()' \
+      && ! printf '%s' "$flc" | grep -qE '(script|migration|seed|backfill|bin/|tools/|__tests__|\.test\.|\.spec\.)'; then
+      lockhit="a DynamoDB Scan outside a script path (reads the whole table per request; derive a key schema or a GSI from the access pattern instead)"
+    fi
+  fi
+
   [ -n "$hit" ] || [ -n "$lockhit" ] || exit 0
 
   if [ -n "$hit" ]; then

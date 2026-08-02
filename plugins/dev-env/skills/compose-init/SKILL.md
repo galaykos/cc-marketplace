@@ -3,6 +3,8 @@ name: compose-init
 description: Use when generating docker-compose.yml and a Dockerfile to run a project locally — every service and image tag derived from manifest evidence, exact minor tags pinned, healthchecks wired, then boot and verify. Consumes stack-scan's inventory when installed.
 ---
 
+> Last verified: 2026-08-02 — https://endoflife.date/nodejs
+
 ## Evidence before generation
 
 Every service, image tag, and extension in the generated files traces to a
@@ -66,7 +68,7 @@ for 3 services or fewer.
 ## Image pinning
 
 Exact minor tags, always: `php:8.5-fpm`, `mysql:9.7`, `postgres:18.4`,
-`redis:8.8-alpine`, `node:24.13-alpine`. Never `latest`, never a bare major —
+`redis:8.8-alpine`, `node:24.16-alpine`. Never `latest`, never a bare major —
 both change under you on the next pull. When CI or a production Dockerfile
 reveals the version actually deployed, match it exactly: local/prod version
 skew is the bug class this skill exists to kill.

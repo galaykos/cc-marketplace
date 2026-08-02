@@ -5,6 +5,14 @@ on:
     branches: [master]
   pull_request:
 
+# Least privilege at the top, widened per job only where a job needs more. Without
+# this the job inherits the repository default token scope, which on many repos is
+# still write-all — every step, including third-party actions, then runs with a
+# token that can push. Nothing here writes to the repo; it reads and asserts.
+# (Flagged by this marketplace's own plugins/devops/scripts/workflow-audit.sh.)
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -61,9 +69,17 @@ jobs:
         run: bash scripts/smoke/completion-gate-hook-tests.sh
       - name: Evidence-gate hook smoke tests
         run: bash scripts/smoke/evidence-gate-hook-tests.sh
-      - name: Taskmaster author-time lint tests + task-runner harnesses
+      # Every plugin-shipped test harness, not a hardcoded two. A plugin that
+      # ships a script gate and a scripts/__tests__/ directory is enforced by
+      # this step the moment it lands; before this glob widened, a third
+      # plugin's fixtures would have sat unrun in CI with nothing saying so —
+      # the recorded-masquerading-as-gate failure CLAUDE.md's has-teeth
+      # convention forbids. The -f guard keeps an unmatched glob (no plugin
+      # ships tests) from expanding literally and failing the step.
+      - name: Plugin author-time lint + harness tests (all plugins)
         run: |
-          for t in plugins/taskmaster/scripts/__tests__/*.test.sh plugins/task-runner/scripts/__tests__/*.test.sh; do
+          for t in plugins/*/scripts/__tests__/*.test.sh; do
+            [ -f "$t" ] || continue
             echo "== $t"; bash "$t"
           done
       - name: validate.sh parity harness (FAIL paths still fire)

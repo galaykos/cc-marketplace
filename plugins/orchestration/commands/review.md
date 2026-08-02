@@ -33,4 +33,16 @@ risks before efficiency nits). Say "no gaps" when clean.
 
 Report-only: change nothing unasked. End with a handoff offer (AskUserQuestion
 when available): "Fix the prompts now (Recommended)" / "Skip — report only".
+
+On the apply pick, the sink depends on where the prompt lives, and the two cases
+are genuinely different — do not collapse them:
+
+- **Prompt is in flight** (a fan-out you are about to dispatch this turn): rewrite
+  it inline and dispatch. There is no file to edit, so a file-editing worker is
+  the wrong tool; routing here would be ceremony.
+- **Prompt lives on disk** (a `commands/*.md`, `agents/*.md` or SKILL.md body):
+  dispatch the fix list down `task-runner:task-executor if installed → inline`,
+  the same chain every other review command in this marketplace uses. A prompt
+  file is a file.
+
 Headless: print the fixed prompt fragments inline.

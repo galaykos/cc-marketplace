@@ -33,4 +33,8 @@ Review branch:
 End with an offer, not a bare report. In the review branch, ask via AskUserQuestion
 "Apply these fixes now (Recommended)" / "Report only"; after an approved contract
 preview, ask "Start implementing this contract now (Recommended)" / "Stop here — spec
-only". Headless: findings or approved contract only.
+only". On either apply pick, dispatch the work down the static chain
+`web-dev:web-developer if installed → task-runner:task-executor if installed →
+inline` — api-design ships no worker agent of its own, so naming the chain is the
+only thing that keeps an approved contract from dying in chat.
+Headless: findings or approved contract only.

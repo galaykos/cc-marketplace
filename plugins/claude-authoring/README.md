@@ -39,3 +39,25 @@ also fires on its own whenever you write or edit that artifact kind by hand.
 - **plugin-scout** — suggests existing marketplace plugins to install; claude-authoring covers the artifacts you build yourself
 - **taskmaster** — the project-skill-suggester fires after its spec-to-cards split when cards share uncaptured repo knowledge
 - **hindsight** — harvests session friction into skill/plugin ideas that these scaffold commands turn into real files
+
+## Boundary with the built-in `skill-creator`
+
+Claude Code ships a `skill-creator` skill. It is not a competitor to this plugin
+and the two do different halves of the job, but until 2026-08-02 nothing here
+named it at all — which is how a marketplace ends up re-implementing something the
+user already has. <!-- host-ok -->
+
+| Job | Use |
+|---|---|
+| What a good SKILL.md / agent / command / hook looks like, and this marketplace's conventions | `claude-authoring` |
+| Scaffolding a skill, packaging it, structural validation | either — `/claude-authoring:new-skill` follows house layout; `skill-creator` ships `package_skill.py` and `quick_validate.py` |
+| Optimising a description so it triggers when it should | **`skill-creator`** — it ships `improve_description.py`; nothing here does |
+| **Measuring whether a skill does anything** | **`skill-creator`** — it ships a working control/treatment eval loop: paired with-skill and baseline subagents in one turn, a BLIND comparator that does not know which side produced which output, a grader, and benchmarking with variance |
+
+That last row matters most. `skills/authoring-skills/references/behavioral-testing.md`
+describes exactly that loop as a method, and
+`rationale/stack-skill-baselines.md` records the one time it was run by hand —
+three plugins and five skills removed on the evidence. **Do not build a second
+harness for it.** When a skill needs measuring, run the host's loop and record the
+verdict; this marketplace's contribution is the doctrine and the ledger, not the
+runner.

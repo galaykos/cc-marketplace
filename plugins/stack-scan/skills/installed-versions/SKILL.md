@@ -27,6 +27,16 @@ Scan in this order; missing files are findings, not dead ends:
   `setup-*` versions — production truth often lives in these, not local binaries.
 - **Env hints**: `.env`/`.env.example` DSNs name engines when compose does not.
 
+Outside PHP and JS/TS the scan order above is not enough, because "runtime beats
+lock" stops being unambiguous: Go silently downloads a compiler that is not the
+one on `PATH`, `rust-toolchain.toml` overrides rustup per directory, `global.json`
+rollForward selects a different SDK than `dotnet --version` prints, `uv.lock`
+carries a stricter `requires-python` than `pyproject.toml`, the JVM toolchain
+block outranks `JAVA_HOME`, and a pnpm `catalog:` specifier is an alias rather
+than a version. Read `references/ecosystems.md` before reporting a version for
+Python, Go, Rust, .NET, JVM, Ruby, or any pnpm workspace — it lists only the
+conflicts, not the filenames.
+
 ## Reading the JS lockfile without drowning
 
 Do not dump thousands of transitive entries. Resolve versions ONLY for: direct

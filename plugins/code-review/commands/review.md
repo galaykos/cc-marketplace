@@ -10,6 +10,17 @@ Review the code change in $ARGUMENTS. Resolve scope in this order:
    (`git diff $(git merge-base HEAD origin/HEAD 2>/dev/null || echo HEAD~1)`).
 4. Nothing to review — say so and stop.
 
+**Debt lane** (`/code-review:review --debt`, or on request): instead of the diff
+review, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/debt-scan.sh --dir . --age` and
+report the table it prints. Five categories — suppressions, skipped tests, bare
+markers, deprecated-symbol references, feature flags — counted, compared against
+`.claude/debt-baseline.json`, with `--age` resolving first-seen dates by git
+pickaxe. Two things to say and neither is the count: which categories GREW, and
+which markers are oldest. "340 TODOs" is a number nobody acts on; "11 older than
+two years, 3 of them in payments" is a decision. If no baseline exists, say that
+`--update-baseline` starts the ratchet and that the first run only establishes a
+line to hold — do not present the initial numbers as findings.
+
 Triage before the deep read: a trivial, single-file, or purely mechanical change
 earns a one-line verdict — state it and stop. Take the full pass below when the change
 touches correctness-sensitive code (auth, data, migrations, concurrency), OR spans
@@ -71,5 +82,9 @@ Close with a one-line verdict: merge-ready, merge-after-criticals, or rework.
 
 After the verdict, if findings exist, offer the next step as a selectable choice
 (AskUserQuestion): "Fix all findings" / "Apply critical+high only" / "Report only". On an
-apply pick, apply the chosen findings rather than making the user retype them.
+apply pick, dispatch the finding list down the static chain
+`task-runner:task-executor if installed → inline` — never leave the user to retype
+findings, and never apply a list of this size inline when a scope-locked executor
+with its own verify-fix loop is available. This plugin ships a REVIEWER, not a
+worker, so `task-executor` is the head of the chain rather than its second rung.
 Headless: verdict only.

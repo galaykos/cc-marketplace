@@ -1,6 +1,6 @@
 ---
 name: real-preview
-description: Use when a visual decision needs REAL component fidelity — the project's actual design-system components, true typography and spacing — beyond token-mimicking static mockups. Vite + React projects only; scratch dev-server entry, strict consent, guaranteed cleanup. Falls back to the taskmaster shell mockup when Vite is absent.
+description: Use when a visual decision needs REAL component fidelity — the project's actual design-system components, true typography and spacing — beyond token-mimicking static mockups. Vite (React or Vue/Nuxt) and Laravel Blade/Livewire; scratch entry, strict consent, guaranteed cleanup. Falls back to the taskmaster shell mockup when neither path is available.
 ---
 
 ## When to escalate here
@@ -17,6 +17,12 @@ cannot carry the decision:
 Everything cheaper — layout structure, density, motion feel — stays in the
 taskmaster visual-decisions shell. One escalation per decision, not per pass.
 
+> **Boundary with the built-in `claude-in-chrome`.** The host drives a page the dev
+> server already serves — screenshots, console, clicks — and is the better tool for
+> INSPECTING a running app. This skill does the other half: standing up a scratch
+> surface rendering 2-3 variants the app has no route for yet, then removing it. Use
+> both — this renders the options, the host looks at them. <!-- host-ok -->
+
 ## Detection — lock beats memory
 
 Confirm ALL of these before offering anything (reuse the stack-scan inventory
@@ -25,12 +31,14 @@ when that plugin is installed):
 | Check | Evidence required |
 |-------|-------------------|
 | Vite present | `vite.config.{ts,js,mjs}` exists, `vite` in devDependencies |
-| React wired | `@vitejs/plugin-react` (or `-swc`) in the config's plugins |
+| Framework wired | `@vitejs/plugin-react` (or `-swc`), **or** `@vitejs/plugin-vue`, in the config's plugins |
 | Dev script | `package.json` `scripts.dev` (or `scripts.start`) runs vite |
 | Component paths | `components.json` aliases, or `tsconfig` paths, or `src/components/` |
 
-Any check failing → skip straight to Fallback. Never `npm install` anything to
-make detection pass.
+Laravel (Blade/Livewire) takes the SEPARATE path below — detect it by
+`artisan` + `composer.json` requiring `laravel/framework`, with `@vite` in a
+Blade layout. Any check failing on both paths → skip straight to Fallback. Never
+`npm install` or `composer require` anything to make detection pass.
 
 ## Consent gate — stricter than mockups
 
@@ -40,6 +48,13 @@ This flow writes into the user's source tree. Before ANY write, ask via
 > Render real-component preview? Writes `design-preview.html` (project root) and
 > `src/__design-preview__/main.tsx`, then runs `npm run dev`. Both files are
 > deleted after the pick.
+
+On the Laravel path the prompt must name the route file too, because a scratch
+ROUTE is reachable in a way a scratch HTML file is not:
+
+> Render real-component preview? Writes `resources/views/__design-preview__.blade.php`
+> and one route in `routes/web.php` inside a marked block, then runs the dev
+> server. Both are removed after the pick.
 
 Options: proceed / use static shell mockup instead / skip. This gate is separate
 from any mockup fidelity consent already given — that consent covered throwaway
@@ -55,8 +70,26 @@ or config integration is needed:
 - `src/__design-preview__/main.tsx`: imports the project's global stylesheet
   (whatever `src/main.tsx` imports), mounts React, renders the variants.
 
-Never modify existing files — not `vite.config`, not routes, not `index.html`.
-If the preview cannot work without touching an existing file, stop and fall back.
+**Vue / Nuxt:** the same trick, unchanged. Only the mount call differs —
+`createApp(Preview).mount('#dp-root')` in `src/__design-preview__/main.ts`, with
+the entry importing the project's global stylesheet exactly as the React path
+does. Nuxt's own dev server does not serve extra entries, so for a Nuxt project
+run `vite` against the app directory, or fall back.
+
+**Laravel Blade / Livewire: the trick does NOT transfer.** PHP owns routing, so
+there is no extra-HTML-entry mechanism to borrow — assuming there is, and adding
+an entry Vite never serves, is the failure this section exists to prevent. The
+path is instead: a scratch route file (`routes/__design-preview__.php`, required
+from nothing) or one closure added to `routes/web.php` behind a clearly marked
+block, plus a scratch Blade view carrying `@vite` and the variants. Because that
+touches `routes/web.php` in the one case where a separate file cannot be loaded
+without registering it, name that file explicitly in the consent prompt, and
+verify its removal the same way — a leftover route in a real app is worse than a
+leftover HTML file, because it is reachable.
+
+Never modify existing files — not `vite.config`, not routes, not `index.html` —
+except the single named Laravel case above, under its own consent. If the preview
+cannot work without touching an existing file, stop and fall back.
 
 ## The preview page
 
@@ -90,9 +123,12 @@ pipeline, record the pick as a CLEAR ledger row with
 A preview that leaves files behind is a failed run, whatever was picked:
 
 1. Delete `design-preview.html` and `src/__design-preview__/` at the pick, on
-   abort, and on fallback alike.
-2. Verify: list both paths and confirm absence; a repo-wide search for
-   `__design-preview__` must come back empty.
+   abort, and on fallback alike. On the Laravel path, also delete the scratch
+   Blade view and remove the marked route block from `routes/web.php`.
+2. Verify: list every path written and confirm absence; a repo-wide search for
+   `__design-preview__` must come back empty. On Laravel, `php artisan route:list`
+   must no longer show the scratch route — file absence alone does not prove a
+   route is gone if the block was left in `routes/web.php`.
 3. Kill the dev server ONLY if this flow started it (by noted PID).
 4. Stale leftovers from a crashed session: the same search-and-delete is the
    recovery, run it before starting a new preview.
