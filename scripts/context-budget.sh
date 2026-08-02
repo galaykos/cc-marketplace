@@ -314,12 +314,37 @@ done
 
 echo "TOTAL: $leaf_tokens_total tokens"
 
+# AGGREGATE CEILING. The per-plugin ratchet above says of itself, at :127-131, that
+# it "does NOT bound aggregate drift" — every leaf may drift its full +2 and no run
+# reports the sum, while --update-baseline accepts any growth on request. So the one
+# number the README advertises to users as the cost of `everything` had nothing
+# holding it anywhere. This does: a declared ceiling that fails the build, so a new
+# leaf has to be paid for by a deletion or by an explicit, reviewable decision to
+# raise the number in this file. That is the only version of the marketplace's own
+# "new surfaces name their funding deletion" rule with teeth.
+#
+# Raising it is legitimate and deliberately visible: edit the line below in a commit
+# someone reviews. --update-baseline does NOT move it, which is the point — the
+# per-plugin ratchet is a convenience, this is a budget.
+ALWAYS_ON_CEILING=12600
+if [ "$leaf_tokens_total" -gt "$ALWAYS_ON_CEILING" ]; then
+  warn_lines="${warn_lines}FAIL: always-on total $leaf_tokens_total exceeds the declared ceiling $ALWAYS_ON_CEILING — pay for the new surface with a deletion, or raise ALWAYS_ON_CEILING in scripts/context-budget.sh in a reviewed commit (--update-baseline does not move it)
+"
+  fail=1
+fi
+
 # Second metered channel, own table so the always-on table's shape is stable.
 if [ -n "$dyn_rows" ]; then
   echo
   printf '%-20s %8s %10s %10s\n' "plugin (dynamic)" "tokens" "baseline" "delta"
   printf '%s' "$dyn_rows"
   echo "TOTAL DYNAMIC: $leaf_dyn_total tokens (per work-shaped prompt + per Edit, not per session)"
+  DYNAMIC_CEILING=2600
+  if [ "$leaf_dyn_total" -gt "$DYNAMIC_CEILING" ]; then
+    warn_lines="${warn_lines}FAIL: dynamic total $leaf_dyn_total exceeds the declared ceiling $DYNAMIC_CEILING — same rule as the always-on ceiling
+"
+    fail=1
+  fi
 fi
 
 # Remote MCP servers cannot be read offline. Naming them is the whole point:

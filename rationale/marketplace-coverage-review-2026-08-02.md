@@ -377,6 +377,30 @@ avoids ~11 new metered descriptions (~660 tokens at the measured average).
 
 | Item | Evidence | Tier |
 |---|---|---|
+> **Landed 2026-08-02.** Three of the critic's items, plus the host-overlap
+> deferrals P1's gate could not write:
+>
+> - **`everything` token ceiling** — `ALWAYS_ON_CEILING=12600` and
+>   `DYNAMIC_CEILING=2600` in `context-budget.sh`, failing the build when the
+>   aggregate is exceeded. `--update-baseline` does NOT move them, which is the
+>   whole point: the per-plugin ratchet is a convenience, this is a budget, and
+>   raising it is an edit someone reviews. Negative control run. This is the only
+>   version of "new surfaces name their funding deletion" with teeth.
+> - **Release contract** — `check-version-bumps.sh` now checks changelog coverage,
+>   `gate` for plugins that have a `CHANGELOG.md` and `WARN` for those that do not.
+>   Split for the same reason the version stamp was: hard-for-everyone today means
+>   ~58 backfilled changelogs describing releases nobody recorded. `code-review` and
+>   `devops` ship worked examples; a stale entry fails, verified by control.
+> - **Host-overlap deferrals** — the substantive half `pc_host_overlap` cannot
+>   reach, since it only catches NAME collisions and there are none.
+>   `security:security-review` now states its boundary with the host
+>   `/security-review` command; `code-smells` with the host `simplify`;
+>   `real-preview` with `claude-in-chrome`; and `claude-authoring`'s README with
+>   `skill-creator`, including the row that matters most — the host ships a working
+>   control/treatment eval loop with a blind comparator, so **do not build a second
+>   one**. This marketplace's contribution is the doctrine and the ledger, not the
+>   runner.
+
 | **Release contract for consumers** | 0 git tags; 0 of 58 leaves ship a `CHANGELOG.md` although `validate.sh:131` allows it and `check-version-bumps.sh:38` already excludes it from forcing a bump; every leaf is 0.x; the bump gate runs only on `pull_request`, so master pushes are exempt. A user upgrading `laravel` 0.3.1 → 0.4.0 has no artifact naming what changed. Cheapest teeth: extend `check-version-bumps.sh` to require a matching CHANGELOG entry whenever it demands a bump | P1 |
 | **Disclose the third-party MCP server inside `everything`** | `registry-source/.mcp.json` declares `reui` as an HTTP server at `https://mcp.reui.io` alongside the local node server. `registry-source` is a dependency of `everything`, which `README.md:10` recommends for "zero-setup convenience", with a metered baseline of **0** and no column for network egress. This is the marketplace's only outbound third-party runtime dependency and no lens — including the supply-chain one — opened a `.mcp.json` | P1 |
 | **README strategy honesty** | `README.md:3` claims coverage "from React and Vue to Laravel and beyond". The evidence says "and beyond" is false: `rules.tsv` is PHP/Blade/Laravel/Livewire/Inertia/React-shaped, the one backend worker ships from `laravel`, neither scout detects a non-JS/PHP manifest, 4 SQL plugins and 0 NoSQL. One edited sentence; the cheapest honesty fix in the repo and the one the four laws most directly demand | P1 |

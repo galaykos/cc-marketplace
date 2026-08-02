@@ -17,6 +17,12 @@ cannot carry the decision:
 Everything cheaper — layout structure, density, motion feel — stays in the
 taskmaster visual-decisions shell. One escalation per decision, not per pass.
 
+> **Boundary with the built-in `claude-in-chrome`.** The host drives a page the dev
+> server already serves — screenshots, console, clicks — and is the better tool for
+> INSPECTING a running app. This skill does the other half: standing up a scratch
+> surface rendering 2-3 variants the app has no route for yet, then removing it. Use
+> both — this renders the options, the host looks at them. <!-- host-ok -->
+
 ## Detection — lock beats memory
 
 Confirm ALL of these before offering anything (reuse the stack-scan inventory

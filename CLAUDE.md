@@ -91,7 +91,14 @@ saying so is the point.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
-  `ROADMAP.md` — a typo fix there does not demand a semver bump.
+  `ROADMAP.md` — a typo fix there does not demand a semver bump. Since 2026-08-02 it
+  also checks **changelog coverage**, and the tier is split on purpose: a plugin
+  that HAS a `CHANGELOG.md` must carry an entry for the version it just bumped to
+  (`gate`), and one that has none draws a `WARN` naming the consumer's problem. It
+  is not hard for everyone because that would demand ~58 backfilled changelogs
+  describing releases nobody recorded — invented history in the file whose job is
+  history. Adding the file opts a plugin in; `code-review` and `devops` ship the
+  worked examples.
 - `scripts/context-budget.sh` — BLOCKING token gate vs committed baselines (own
   CI step), across **two** channels since 2026-08-02: **always-on**
   (`context-budget-baseline.json` — descriptions + SessionStart stdout + local
