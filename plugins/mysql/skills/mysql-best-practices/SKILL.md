@@ -3,6 +3,8 @@ name: mysql-best-practices
 description: Use when writing or reviewing MySQL 8.0+ schemas, queries, or migrations — InnoDB clustered-PK design, utf8mb4, strict sql_mode, online DDL and metadata locks, gap locking, JSON limits, version leverage through 9.7 LTS. Generic SQL lives in sql; MariaDB is NOT MySQL — see mariadb.
 ---
 
+> Last verified: 2026-08-02 — https://endoflife.date/mysql
+
 ## Know the version first
 
 `SELECT VERSION();` when a connection exists; otherwise docker-compose/CI image

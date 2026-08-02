@@ -234,6 +234,32 @@ Post-refutation. Every item states its **standing** and whether it adds a
 | W2 | **stack-scan authority-conflict reference.** `references/ecosystems.md` — narrowed to the five places two local files disagree and the non-obvious one wins: `uv.lock`'s own stricter `requires-python`; `global.json` `rollForward` selecting a different SDK than `dotnet --version` prints; the Go `toolchain` directive + `GOTOOLCHAIN` silently fetching a compiler that is not the shell binary; `rust-toolchain.toml` overriding rustup per-directory; pnpm's `catalog:` being an alias resolved through `pnpm-workspace.yaml`. Per-version feature lists cut — those are the shape that measured 0 delta twice. | recorded |
 | W3 | **Un-orphan the orphaned agents.** `/debugging:debug` never names `debugging:debugger`; the string `debugging:debugger` appears **nowhere in the repository**. Route the proven fix down `task-runner:task-executor if installed → inline`, and let task-execution's three-cycle halt make ONE bounded dispatch to it before halting. **Corrected scope:** four more agents have zero external referrers — `craft-layer:creative-director`, `terse:terse-builder`, `terse:terse-investigator`, `terse:terse-reviewer`. | agent-graded |
 | W4 | **Apply-lane parity for the THREE commands missing a dispatch target.** Not one. `code-review/commands/review.md:72-74`, `api-design/commands/review.md:33-36`, `orchestration/commands/review.md:34-35` all offer an apply pick that names no target; the other 29 carry the `task-runner:task-executor` chain. Plus `a11y:a11y-audit` on the ui-ux/frontend rows and `resilience:resilience-design` on the backend/api rows of `reviewer-routing.md` — LHS keys unchanged so the vocab-sync gate stays green. | gate (RHS half: `validate.sh:234-237` resolution-checks the Resolution map) |
+> **W5's blocking half landed 2026-08-02, after the verification pass it was
+> waiting on.** Nine claimants, each checked against upstream, each stamped with
+> the URL actually consulted:
+>
+> | Plugin | Claim checked | Verdict |
+> |---|---|---|
+> | laravel | "Laravel 13 current, March 2026, PHP 8.3+" | accurate (13.7.0, 2026-04-28) |
+> | nextjs | "16 current stable; 16.2 as of 2026-07" | accurate (16.2.12, 2026-07-25) |
+> | mysql | "8.0 EOL April 2026; 8.4 LTS" | accurate (extended support ended 2026-04-30) |
+> | mariadb | "10.11 / 11.4 / 11.8 / 12.3 LTS; x.3 is the LTS from 12.x" | accurate (12.3.2 LTS, May 2026) |
+> | php | "floor range 8.1–8.5; 8.5 current" | accurate (8.5.8, 2026-07-02) |
+> | vite | "Vite 7 and 8 require Node 20.19+/22.12+" | accurate (Vite 8 stable 2026-03-12) |
+> | threejs | "WebGPU Baseline since Jan 2026" | accurate (Chrome/Edge/Firefox/Safari 26+) |
+> | dev-env | example image tags | **STALE — `node:24.13-alpine` fixed to 24.16** |
+> | postgresql | — | already stamped via `references/pgvector.md` |
+>
+> Eight of nine were accurate; the ninth had drifted three patch releases and
+> nothing could see it, which is the case the gate exists for. `packages` was
+> DROPPED as a claimant: the detector matched the word `lockfile` in a description
+> about lockfile DISCIPLINE — semver semantics, which do not drift — and a
+> detector that manufactures debt teaches people to ignore it. Narrowing it also
+> surfaced `mariadb`, which the old pattern had missed entirely.
+>
+> The WARN is now an `err`, with a negative control run: removing one stamp fails
+> the build with the plugin named. Standing moves `recorded` → **gate**.
+
 | W5 | **Make the version-leverage stamp gate reach the plugins whose exemption depends on it.** `check-doc-staleness.sh:92` scans `*/references/*.md`; all 15 stack plugins have **zero** files under any `references/` directory, so all 10 stamped files in the repo sit in ui-ux/craft-layer and the check has never seen a single version claim any stack plugin makes. Widen to `plugins/*/skills/*/SKILL.md`; a plugin whose own description claims version leverage MUST carry a stamp (hard existence gate, no network, no model). Freshness stays warn-only. | gate (existence) + recorded (freshness) |
 | W6 | **Teach the scouts the stacks this marketplace does not cover.** Narrowed: the Astro/Django framing is wrong — `vercel-skills-scout/SKILL.md:47-51` already recovers interactively on zero signals. The surviving leg is **SvelteKit**, which matches the `vite` devDependency row, never reaches the ask-the-user branch, and returns Vite skills for a SvelteKit question. Plus `plugin-scout/references/signals.md` for repos its 14 manifest signals cannot see — four of the eight families are already encoded verbatim as `rules.tsv` rows (`:45-47`, `:40-41`, `:53-54`, `:55`) and should be lifted, not re-derived. | agent-graded |
 | W7 | **`/git-workflow:finish` review fan-out.** `finish.md:11-26` goes suite-green → destination offer with nothing between; `review-exchange` — the skill scoped to "requesting a code review or acting on one received" — contains zero references of any kind. Insert `/code-review:review`, `drift-review`, `/secret-scanning:scan`, each if installed. **Sequenced after M2:** this makes every branch-finish permanently more expensive, forever, with nothing verifying the added spend bought a finding. | agent-graded |

@@ -3,6 +3,8 @@ name: mariadb-best-practices
 description: Use when writing or reviewing MariaDB 10.6+ schemas, queries, or migrations — MariaDB-vs-MySQL divergences, RETURNING, sequences, system-versioned tables, native UUID, vector search, JSON-as-LONGTEXT, Galera awareness. Generic SQL lives in sql; MySQL rules in mysql.
 ---
 
+> Last verified: 2026-08-02 — https://endoflife.date/mariadb
+
 ## MariaDB is not MySQL
 
 Same wire protocol, diverged engines since 5.5 — the most common MariaDB bug in

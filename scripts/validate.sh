@@ -486,22 +486,24 @@ done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
 
-# Version-leverage stamp coverage (WARN, standing `recorded` — see
-# pc_version_stamp's header for why it is not a gate). rationale/stack-skill-
-# baselines.md exempts ~20 stack plugins from the baseline-redundancy loop on the
-# promise that they encode version leverage; check-doc-staleness.sh can only see
-# that leverage decay where a `> Last verified:` stamp exists. This prints the
-# work queue for the verification pass that would let the warn become an err.
-unstamped_list=""
-unstamped_n=0
+# Version-leverage stamp coverage (HARD, promoted from WARN on 2026-08-02).
+# rationale/stack-skill-baselines.md exempts ~20 stack plugins from the
+# baseline-redundancy loop on the promise that they encode version leverage rather
+# than idioms; check-doc-staleness.sh can only see that leverage decay where a
+# `> Last verified: YYYY-MM-DD — <url>` stamp exists, and until this morning not
+# one of those plugins carried one.
+#
+# It shipped as a WARN because promoting it first would have forced a fabricated
+# provenance record onto nine plugins — a stamp asserts that someone checked the
+# content against that URL on that date, and writing nine unchecked ones would be
+# a lie in the one file whose entire purpose is provenance. The verification pass
+# has now run: every claimant's load-bearing version claim was checked against
+# upstream and stamped with the URL actually consulted, so the gate has teeth
+# without anyone having to trust it on faith.
 for d in plugins/*/; do
-  us=$(pc_version_stamp "$d") || { unstamped_list="$unstamped_list ${us##* }"; unstamped_n=$((unstamped_n + 1)); }
+  us=$(pc_version_stamp "$d") \
+    || err "plugin '${us##* }' claims version leverage with no \`> Last verified:\` stamp in any skill — check-doc-staleness.sh is structurally blind to its claims. Verify one load-bearing claim against upstream and stamp it, or narrow the plugin's description so it stops claiming version leverage."
 done
-if [ "$unstamped_n" -gt 0 ]; then
-  printf 'WARN: %s plugin(s) claim version leverage with no `> Last verified:` stamp anywhere in their skills —%s\n' \
-    "$unstamped_n" "$unstamped_list" >&2
-  printf 'WARN: check-doc-staleness.sh is structurally blind to those claims until each is verified and stamped (recorded, not gated — CLAUDE.md has-teeth)\n' >&2
-fi
 
 # README-listing (HARD): every plugin must also be LISTED in the top-level
 # README.md plugin tables — a bolded `**name**` or `**[name](...)` row. Presence

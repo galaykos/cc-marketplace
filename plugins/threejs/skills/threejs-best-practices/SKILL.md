@@ -3,6 +3,8 @@ name: threejs-best-practices
 description: Use when building or reviewing Three.js code — scenes, renderers, shaders, react-three-fiber, WebGPU/WebGL choice, TSL, asset loading, disposal/leak discipline, render-loop performance. Resolve the locked rXXX revision before advising.
 ---
 
+> Last verified: 2026-08-02 — https://web.dev/blog/webgpu-supported-major-browsers
+
 # Three.js best practices
 
 Three.js releases on a ~6–10-week `rXXX` cadence with real API movement between

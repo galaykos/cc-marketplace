@@ -84,7 +84,10 @@ saying so is the point.
   basename-matches everything else, and README structure (a `###` heading with a
   table header and zero rows fails; a plugin needs a real table ROW, not a prose
   mention). Patterns and rescue lists live in `scripts/lib/plugin-checks.sh`,
-  one source shared with the smoke fixtures.
+  one source shared with the smoke fixtures. A **version-leverage stamp gate**
+  (also `plugin-checks.sh`) fails any plugin whose description claims version
+  leverage while no skill of its carries a `> Last verified: YYYY-MM-DD — <url>`
+  stamp — the input `check-doc-staleness.sh` needs to see that leverage decay.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /

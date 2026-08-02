@@ -438,7 +438,11 @@ pc_version_stamp() {
   jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && return 0
   name=$(jq -r '.name // empty' "$pj" 2>/dev/null)
   desc=$(jq -r '.description // empty' "$pj" 2>/dev/null)
-  printf '%s' "$desc" | grep -qiE 'version-aware|version leverage|version-leverage|as of [0-9]|lockfile' || return 0
+  # `lockfile` was in this list and was WRONG: `packages` describes lockfile
+  # DISCIPLINE — semver semantics, which do not drift — and was flagged as owing a
+  # provenance stamp it has nothing to stamp. A detector that manufactures debt
+  # teaches people to ignore it. Match only phrases that assert a moving fact.
+  printf '%s' "$desc" | grep -qiE 'version-aware|version leverage|version-leverage|as of [0-9]|version[- ]conditional|[0-9]+\.[0-9]+\+' || return 0
   # find, not a glob: an unmatched glob is a literal path under bash and a hard
   # error under zsh, and this file is sourced by both validate.sh and a hook.
   find "$pdir/skills" -type f -name '*.md' -exec grep -lq '^> Last verified:' {} + 2>/dev/null && return 0
