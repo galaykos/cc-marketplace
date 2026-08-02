@@ -7,6 +7,17 @@ Build the UI described in $ARGUMENTS (if empty, ask what to build and where). Th
 the explicit entry point to the ui-ux-engineer worker — a build verb to complement
 /ui-ux:review and /ui-ux:theme.
 
+**A decided spec in $ARGUMENTS BINDS.** When the request carries decided lines —
+`Composition:`, `Graphic system:`, `Signature:`, `Copy voice:`, `Banned vocabulary:`,
+`Spine regions:`, `Decided:`, `Locks:`, `Motion:`, `Ambition:` — they OUTRANK every
+default in the skills below, and they are carried into the worker dispatch verbatim
+rather than summarised. Those lines are the only channel by which a decided art
+direction reaches this command; a build that silently resolves them back to the stack
+default has discarded the decision and produced the generic result the caller ran a
+concept stage to avoid. When a decided line and a best-practice default conflict, the
+decided line wins and the conflict is reported — not quietly resolved toward the
+convention.
+
 1. Detect the stack from the repo (shadcn, ReUI, Aceternity, Astryx, Tailwind, Bootstrap,
    plain CSS3, Grid/Flexbox, React/Vue) so the right best-practice skill and token
    conventions apply. A component registry already present in the tree is a detection
@@ -42,5 +53,9 @@ the explicit entry point to the ui-ux-engineer worker — a build verb to comple
    (`/shadcn-studio:stage` or `design-preview`) when either is installed, else fall back
    to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
    via ASCII options inline — so the choice is made on concrete mockups without dead-ending
-   on a missing command. Headless: build to the most conventional interpretation and note
-   assumptions.
+   on a missing command. Headless: take the decided lines above as binding, resolve what
+   they leave open to the most COMMITTED reading consistent with them, and note every
+   assumption. "Build to the most conventional interpretation" was the instruction here
+   until it was read against its own output: it names the failure mode as the procedure,
+   on the most reachable UI entry point in this marketplace, and it orders exactly the
+   stacked centred document `craft-layer`'s composition gate exists to fail.

@@ -110,16 +110,74 @@ const PAIRS = [
 ]
 
 let failures = 0
+/* ROLE ALIASES — the repair that made this gate able to measure anything.
+   The PAIRS table above is written in theming-system's ROLE vocabulary, and
+   `--ink-1` / `--surface-base` / `--accent-display` are names no project in this
+   marketplace emits: theming-system itself calls them `ink-primary/secondary/
+   tertiary`, and every shadcn build — the stack ui-ux ships guidance for —
+   writes `--foreground` / `--background` / `--primary`. So all 44 pairings
+   resolved to nothing, every line printed `not measured (token missing)`,
+   `failures` stayed 0, and the terminator printed "OK: every pairing clears its
+   WCAG 2 threshold" over a build it had never read a single colour from — while
+   gates.spec.ts switched axe's own `color-contrast` rule off and named THIS file
+   the gate of record. A contrast gate that cannot resolve a token is not a
+   passing contrast gate; it is no contrast gate, and it was standing in for one.
+
+   Each role now resolves to the first name present in the block, so one table
+   grades both vocabularies. */
+const ROLE_ALIASES = {
+  '--ink-1':           ['--ink-1', '--ink-primary', '--foreground', '--card-foreground'],
+  '--ink-2':           ['--ink-2', '--ink-secondary', '--muted-foreground', '--foreground'],
+  '--ink-3':           ['--ink-3', '--ink-tertiary', '--muted-foreground'],
+  '--surface-base':    ['--surface-base', '--background'],
+  '--surface-raised':  ['--surface-raised', '--card', '--popover', '--background'],
+  '--surface-sunken':  ['--surface-sunken', '--muted', '--secondary', '--background'],
+  '--accent-fill':     ['--accent-fill', '--primary'],
+  '--accent-on':       ['--accent-on', '--primary-foreground'],
+  '--accent-text':     ['--accent-text', '--primary'],
+  '--accent-display':  ['--accent-display', '--primary'],
+  '--focus-ring':      ['--focus-ring', '--ring'],
+  '--control-border':  ['--control-border', '--border', '--input'],
+  '--status-critical': ['--status-critical', '--destructive'],
+}
+const pick = (t, role) => {
+  for (const k of (ROLE_ALIASES[role] ?? [role])) if (t[k]) return [t[k], k]
+  return [null, null]
+}
+
+let measured = 0
 for (const [mode, sel] of [['light', ':root'], ['dark', '.dark']]) {
   const t = parseBlock(sel)
   console.log(`\n${mode.toUpperCase()}`)
-  for (const [name, fg, bg, min] of PAIRS) {
-    if (!t[fg] || !t[bg]) { console.log(`  ?  ${name.padEnd(20)} not measured (token missing)`); continue }
-    const r = ratio(t[fg], t[bg])
+  for (const [name, fgRole, bgRole, min] of PAIRS) {
+    const [fg, fgName] = pick(t, fgRole)
+    const [bg, bgName] = pick(t, bgRole)
+    if (!fg || !bg) {
+      console.log(`  ?  ${name.padEnd(20)} not measured (no token for ${!fg ? fgRole : bgRole})`)
+      continue
+    }
+    measured++
+    const r = ratio(fg, bg)
     const ok = r >= min
     if (!ok) failures++
-    console.log(`  ${ok ? 'PASS' : 'FAIL'} ${name.padEnd(20)} ${r.toFixed(2)}:1  (needs ${min}:1)`)
+    const via = (fgName !== fgRole || bgName !== bgRole) ? `  [${fgName} on ${bgName}]` : ''
+    console.log(`  ${ok ? 'PASS' : 'FAIL'} ${name.padEnd(20)} ${r.toFixed(2)}:1  (needs ${min}:1)${via}`)
   }
 }
-console.log(`\n${failures === 0 ? 'OK: every pairing clears its WCAG 2 threshold.' : `${failures} pairing(s) FAIL.`}`)
+
+console.log(`\ncoverage: ${measured}/${PAIRS.length * 2} pairing(s) measured`)
+/* ZERO MEASURED IS NOT A PASS. Same reasoning divergence.mjs states in its own
+   header and applies to a missing token source: a gate whose subject is "does
+   this build clear the threshold" cannot treat "I read no colours" as clearing
+   it — least of all while it is the reason a real checker is switched off. */
+if (measured === 0) {
+  console.error('\nnot measured: no pairing resolved a token in this build.')
+  console.error(`(looked for ${Object.keys(ROLE_ALIASES).length} roles under both the theming-system and shadcn vocabularies)`)
+  console.error('NOT MEASURED IS A FAILURE HERE: gates.spec.ts disables axe\'s color-contrast rule')
+  console.error('because this file is the gate of record. If neither runs, nothing checks contrast.')
+  process.exit(2)
+}
+console.log(failures === 0
+  ? `OK: all ${measured} measured pairing(s) clear their WCAG 2 threshold.`
+  : `${failures} pairing(s) FAIL.`)
 process.exit(failures === 0 ? 0 : 1)

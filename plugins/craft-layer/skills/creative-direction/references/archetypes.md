@@ -35,7 +35,7 @@ never pixels or components.
 | product/SaaS | credible, precise | high, information-dense | medium, restrained | problem→solution→proof→pricing | strict column grid · asymmetric split | high (many sections + specifics) |
 | editorial/content | authoritative, calm | text-first | low, reading-safe | long-form flow, few interruptions | **centred spine** — its home | very high (long inner pages) |
 | app/CRM | efficient, trustworthy | high (data) | low on marketing, none in-app | front-door pages → app entry | asymmetric split (persistent rail) | medium marketing; in-app defers to information-design |
-| **general (fallback)** | neutral, adaptable | medium | medium | hero→value→proof→CTA | drawn, with no bias applied | medium (mid-range anchors) |
+| **general (fallback)** | neutral, adaptable | medium | medium | drawn, with no bias applied | drawn, with no bias applied | medium (mid-range anchors) |
 
 **Composition bias exists because a page can pass every other gate and still be the wrong
 shape.** Spine bias orders the sections; composition bias is how they occupy space, and the
@@ -66,7 +66,12 @@ under-reached on motion or colour — it has answered a different archetype's qu
 ## The `general` fallback
 
 When no archetype fits, use `general`: medium on every dial, the mid-range content-depth
-anchors, and a hero→value→proof→CTA spine bias. Composition is the one dial `general` does
+anchors, and NO spine bias. "No archetype fits" is the strongest signal available that a
+brief is unusual, and answering it with `hero→value→proof→CTA` — the most reproduced page
+order on the web, and the recurring spine `sameness-fingerprint.md` names as the category
+default — pointed the fallback at the average every time it fired. Spine is now the SECOND
+dial `general` leaves to the draw, for the same reason as the first: there is no neutral
+section order, only the common one. Composition is likewise a dial `general` does
 NOT set to a middle value — there is no middle composition, and the nearest thing to one is
 the centred spine this file just warned about. `general` leaves Axis 1 to the draw unweighted. The agent still generates a divergent
 concept — the fallback sets neutral dials, it does not skip creative direction. Prefer a

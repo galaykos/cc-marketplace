@@ -65,11 +65,11 @@ that silently does nothing.
 
 ## Building the palette
 
-- Start from the existing neutral base (zinc/slate/stone) — don't churn every
-  surface to change a brand.
+- App shells start from the neutral base; a marketing or signature surface picks its
+  GROUND deliberately — neutral base + swapped `primary` IS the accent swap.
 - Express the brand as `primary` in oklch: pick hue, then set lightness ~0.55–0.65
   (light mode) so white foreground passes contrast; `ring` follows primary.
-- Surfaces stay low-chroma (≤ 0.03): tinted greys, not pastel walls.
+- Chroma ≤ 0.03 binds dense data surfaces; a hero ground follows the brief instead.
 - Contrast gates are hard: 4.5:1 for body-size text on its surface, 3:1 for
   large text and UI boundaries (border on background). Check every pair you
   emit — both modes — before showing anything.

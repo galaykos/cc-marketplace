@@ -37,8 +37,12 @@ agent's marker.
 1. Detect the styling stack (Tailwind/shadcn, Bootstrap, plain CSS) and locate
    existing design tokens (theme config, CSS custom properties, spacing scale)
    before writing any styles.
-2. Reuse existing components and tokens over inventing new ones. New values or
-   components only when nothing in the project fits.
+2. Reuse existing components and tokens over inventing new ones — on a FIX
+   dispatch, always. On a BUILD dispatch this binds FURNITURE (inputs, dialogs,
+   tables, nav, form controls) and NOT the surface the task marks `Signature:`
+   or the structure it marks `Composition:`, which are first-party by
+   construction. Composing a decided art direction only from primitives already
+   in the tree is how every build converges on the component library's defaults.
 3. Implement mobile-first: base styles for the smallest screen size, then layer
    breakpoints upward.
 4. Confirm responsive coverage at the code level: check that breakpoint
@@ -47,6 +51,13 @@ agent's marker.
    layout breakage between them. This is a check for the presence of
    responsive rules in the code, not a rendered or visual verification of any
    screen size.
+5. A decided spec in the dispatch BINDS. Lines reading `Composition:`,
+   `Graphic system:`, `Signature:`, `Copy voice:`, `Banned vocabulary:`,
+   `Ambition:` or `Motion:` outrank every default in the skills above and every
+   convention in the checklist below. Build what they say; where one conflicts
+   with a stack idiom, follow the decided line and say so in the rationale.
+   Silently resolving a decided line back to the stack default discards the
+   decision and is the failure this rule exists to stop.
 
 ## Domain checklist
 
@@ -60,13 +71,18 @@ applying it (WCAG contrast and touch-target rules stay here).
   than fixed pixel widths that would force horizontal scroll; touch targets
   ≥ 44px.
 - Visual hierarchy: size, weight, and color signal importance; one primary
-  action per view.
+  action per view. On a marketing or signature surface, check CONTRAST between
+  steps, not just membership in the scale — a page where the largest type is
+  2.5x the body is consistent and flat.
 - Color: use the project's palette/tokens; WCAG AA contrast — 4.5:1 for body
   text, 3:1 for large text.
 - Element placement: proximity groups related controls; alignment follows a
-  grid; primary actions sit in predictable positions.
-- Typography: sizes from the scale's steps; line-height suits the size;
-  measure stays readable (roughly 45–75 characters).
+  grid; primary actions sit in predictable positions. "Predictable" governs
+  CONTROLS, not composition — it is not a reason to centre every section or to
+  overrule a decided `Composition:` line.
+- Typography: sizes from the scale's steps; line-height suits the size; measure
+  stays readable (roughly 45–75 characters) for BODY copy — a display line is
+  not body copy and the measure rule does not cap it.
 
 - Note which breakpoints were checked and how (a code-level presence check,
   not a rendered verification).

@@ -24,8 +24,9 @@ exist, or to re-decide one section later.
 
 2. **Derive the agenda.** Turn the contract's spine slots into agenda items in
    spine order, expanded per `content-depth.md`'s archetype anchors, plus an
-   order-and-rhythm item when the contract declares `long-scroll`. Never add an
-   item the contract did not ask for. Where the archetype's section ceiling sits below the
+   order-and-rhythm item when the contract declares `long-scroll`, plus the one
+   `concept` slot (the concept's metaphor as a section in its own right — offered
+   in Round 1, declining it is a legitimate pick). Never add an item beyond those. Where the archetype's section ceiling sits below the
    spine's slot count, slots COMBINE rather than being dropped — Round 1 decides which. Show the agenda before the first question
    so the user knows the length of what they are agreeing to.
 

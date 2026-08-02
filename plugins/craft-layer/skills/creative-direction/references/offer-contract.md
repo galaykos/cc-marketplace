@@ -20,6 +20,7 @@ Resolve every row below, echo them to the user, then build:
 | Product | ONE product, under its REAL name |
 | Audience | who is buying, in a phrase |
 | Archetype | the work-type archetype classified from `archetypes.md` — it keys the content-depth anchors the audit counts against, so it must persist with the rest |
+| Slots not owed | every offer-spine slot this archetype or brief does not owe, per the Part 3 table, each with its one-line why — the row that makes a scoped spine a DECISION the audit can read rather than an omission it must guess at |
 | Primary action | the ONE thing a visitor should do (book a demo, start a trial, contact) |
 | Routes | the exact page/route list that ships |
 | Route horizon | routes the site is KNOWN to be getting later, named and not built — see Part 7 |
@@ -81,8 +82,9 @@ cannot find it.
 
 ## Part 3 — The offer spine (slots, archetype-scaled)
 
-Every marketing / front-door page owes these answers, in whatever order and form the
-concept chooses. Each is a SLOT with an owner, not a prescribed section:
+A marketing / front-door page owes these answers, in whatever order and form the concept
+chooses — but WHICH of them it owes is archetype-keyed, and the table below the slot list
+is the authority. Each is a SLOT with an owner, not a prescribed section:
 
 | Slot | The visitor's question | Failure mode |
 | --- | --- | --- |
@@ -155,10 +157,25 @@ category has not said what this one does. The metaphor belongs in the eyebrow, t
 the visual system, and the signature interaction — everywhere except the one sentence that has to
 survive a reader who arrived knowing nothing.
 
-Scale by archetype: marketing/campaign may fold several slots into one narrative;
-product/SaaS owes most slots their own block; app/CRM front doors owe the full spine on the
-marketing surface. Section COUNTS stay with `content-depth.md` — this file sets what must
-be answered, that one sets how much.
+**WHICH slots a page owes is archetype-keyed. This table is the authority.** The spine was
+written for a product with a price and a buyer, and then applied to every front door: a
+studio portfolio and a publication fell through to the unqualified rule above and owed a
+pricing block and an objections list, which is how they end up wearing SaaS furniture they
+have no use for. A slot not owed is not a dropped slot.
+
+| Archetype | Owes | Does NOT owe |
+| --- | --- | --- |
+| product/SaaS | all eight, most in their own block | — |
+| app/CRM (front door) | all eight | — |
+| marketing/campaign | all eight, several may fold into one narrative | — |
+| creative/portfolio | plain-what, who-it-is-for, primary CTA; the WORK is the proof | offer+price, objection, problem/status-quo as a stated block |
+| editorial/content | plain-what, who-it-is-for | offer+price, objection, proof, how-it-works, primary CTA as a sales verb |
+| general (fallback) | plain-what, who-it-is-for, primary CTA | judged per brief; record what was ruled out |
+
+Any slot in the `Does NOT owe` column may still be answered when the brief calls for it —
+this scopes what is COMPELLED, not what is permitted. Record the ruling on the contract's
+`Slots not owed` row so the audit reads a decision rather than an omission. Section COUNTS
+stay with `content-depth.md` — this file sets what must be answered, that one sets how much.
 
 ## Part 4 — Proof is slotted, never deleted
 
@@ -169,8 +186,12 @@ that costs the sale. `content-depth.md` already owns the remedy: ship the region
 (plausible value + visible sample marker + source tag). Structure ships; the user fills the
 facts.
 
-A page with no proof region at all — no testimonial, no logo, no outcome, no `{{metric:*}}`
-— is a finding, whether it was dropped by oversight or on principle.
+On product/SaaS, app/CRM and marketing/campaign, a page with no proof region at all — no
+testimonial, no logo, no outcome, no `{{metric:*}}` — is a finding, whether it was dropped
+by oversight or on principle. On creative/portfolio and editorial/content the WORK is the
+proof: a shipped project, a case study, a piece with a byline. Compelling a metric-tile row
+and a role-attributed quote onto those two produces borrowed furniture — the generic trust
+band that reads as filler precisely because every page has one.
 
 Two failure modes sit on the far side of that fix, both owned by `content-depth.md`: the
 **disclosure stack** (a chip AND a banner AND a confessional lede AND a headline addressed to the
@@ -367,9 +388,11 @@ several glob matches spread across directories is graded by the audit reading th
 - a deliverable-scope block exists and the shipped route list MATCHES it;
 - exactly ONE product identity across the shipped routes;
 - the real product name appears in `<title>` and the hero;
-- every offer-spine slot is answered on each marketing page — grep for a plain-language
-  what-line, an audience phrase, a step sequence, price or `{{price:*}}`, a proof region,
-  an objection/limits block, and one repeated primary-CTA verb;
+- every offer-spine slot the archetype OWES is answered on each marketing page — grep for a
+  plain-language what-line, an audience phrase, a step sequence, price or `{{price:*}}`, a
+  proof region, an objection/limits block, and one repeated primary-CTA verb, MINUS whatever
+  the contract's `Slots not owed` row rules out with a reason. An unruled missing slot is a
+  finding; a ruled one is a recorded decision;
 - the plain-what line is checked AGAINST the divergence record's metaphor vocabulary, not by
   taste — an h1 built from the metaphor and naming no capability is a finding;
 - the three BUYER slots — plain-what, audience, problem — are checked against the REGISTER
