@@ -192,11 +192,30 @@ const SYSTEM_STACK = new Set([
   'initial', 'unset', 'menlo', 'monaco', 'consolas', 'courier new', 'cascadia mono',
 ])
 
-/** Every non-generic family named by font-family: or @font-face in the given CSS. */
+/** Every non-generic family named by font-family:, a Tailwind v4 `--font-*`
+ *  theme variable, or @font-face in the given CSS.
+ *
+ *  READS THE TWO FORMS IT USED TO MISS. Matching only literal `font-family:`
+ *  made this gate blind on the two setups the anti-corpus most wants to catch:
+ *  Tailwind v4 declares the stack as `@theme { --font-sans: Inter, … }` and
+ *  never emits a `font-family` line at all, and a project that writes
+ *  `font-family: var(--font-sans)` hid the family behind an indirection the old
+ *  loop skipped by name. Both recorded SKIP — "no non-generic font declared" —
+ *  which the terminator then folded into a green. So the plugin's most-quoted
+ *  anti-sameness claim had no teeth in exactly the stack it ships guidance for,
+ *  and the way to pass the font gate was to never choose a typeface. */
 function readFamilies(css) {
   const out = new Map()
-  for (const m of css.matchAll(/font-family\s*:\s*([^;}]+)/gi)) {
-    for (const raw of m[1].split(',')) {
+  /* Resolve custom-property indirection first, so `font-family: var(--font-sans)`
+     is read as whatever --font-sans holds. */
+  const vars = new Map([...css.matchAll(/(--[\w-]+)\s*:\s*([^;}]+)/g)]
+    .map((m) => [m[1], m[2]]))
+  const deref = (s, depth = 0) => depth > 4 ? s
+    : s.replace(/var\(\s*(--[\w-]+)\s*(?:,[^)]*)?\)/g,
+      (_, k) => vars.has(k) ? deref(vars.get(k), depth + 1) : '')
+  const DECL = /(?:font-family|--font-(?:sans|serif|mono|display|heading|body|brand|title))\s*:\s*([^;}]+)/gi
+  for (const m of css.matchAll(DECL)) {
+    for (const raw of deref(m[1]).split(',')) {
       const name = raw.trim().replace(/^["']|["']$/g, '').trim()
       if (!name || name.startsWith('var(') || name.length < 3) continue
       if (SYSTEM_STACK.has(name.toLowerCase())) continue
@@ -1189,8 +1208,25 @@ if (notes.length) {
 }
 
 const failed = results.filter((r) => r.state === 'FAIL')
+const skipped = results.filter((r) => r.state === 'SKIP')
+const graded = results.length - skipped.length
 console.log('')
+
+/* COVERAGE BEFORE VERDICT. Every assertion here SKIPs when its input artifact is
+   absent, and a build that produced no craft artifacts and declared no typeface
+   skips nearly all of them — so the terminator used to print the identical green
+   over 1-of-7 graded as over 7-of-7. That is the has-teeth over-claim this repo's
+   own convention forbids, printed by the file that calls itself "the teeth": the
+   laziest possible build read as "clears every divergence assertion", while a
+   build that did the work was the only one that could fail. Coverage is now
+   stated on every run, and the clean line says how many assertions it speaks for.
+   A SKIP is still not a failure — the gate genuinely cannot grade an input it was
+   never given — but it can no longer be silently counted as a pass. */
+console.log(`coverage: ${graded}/${results.length} assertion(s) graded`
+  + (skipped.length ? `, ${skipped.length} SKIP (${skipped.map((r) => r.check).join(', ')})` : ''))
 console.log(failed.length
   ? `${failed.length} divergence assertion(s) FAILED — the build landed on a default it was told to leave.`
-  : 'OK: the build clears every divergence assertion.')
+  : graded === 0
+    ? 'NOT MEASURED: every assertion skipped — this run proves nothing about divergence.'
+    : `OK: the build clears the ${graded} divergence assertion(s) that could be graded.`)
 process.exit(failed.length ? 1 : 0)

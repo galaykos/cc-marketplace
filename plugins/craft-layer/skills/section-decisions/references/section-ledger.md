@@ -26,7 +26,7 @@ One row per agenda item, in spine order:
 
 | Field | Holds |
 | --- | --- |
-| `slot` | the offer-contract spine slot (`plain-what`, `audience`, `problem`, `how-it-works`, `price`, `proof`, `objection`, `cta`), or `order-and-rhythm` / `signature` |
+| `slot` | the offer-contract spine slot (`plain-what`, `audience`, `problem`, `how-it-works`, `price`, `proof`, `objection`, `cta`), or `order-and-rhythm` / `signature` / `concept` |
 | `section` | the section this became, by id/anchor — the handle the audit greps for |
 | `choice` | the picked option, one line: what the section IS |
 | `locks` | what the pick commits: a component, an instrument, a data need, a copy slot |

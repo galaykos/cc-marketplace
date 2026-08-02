@@ -25,6 +25,17 @@ with a deliberate line-height (tighter for headings, ~1.5 for body) and a small 
 weights. Do not pick font sizes per component; assign a step. Line-length matters too —
 cap body measure around 60–75 characters for readability.
 
+**A UI scale is not a display scale.** The steps above size text and CHROME. A 1.25 ratio
+topping out at `40` puts the largest type on the page at 2.5× body — which is a heading,
+not a display size, and it is why pages built strictly from this scale read as competent
+and forgettable however good the rest is. A page with a hero, a section opener, or a
+statement moment takes its largest step from a separate DISPLAY tier — roughly `56, 72,
+96, 128`+, set tight (line-height ~0.9–1.05) with negative tracking, fluid via `clamp()`
+so it holds at phone. Membership in a scale is not the same as CONTRAST between steps:
+state the display-to-body ratio the brief asked for and check the built page against it.
+Marketing and editorial surfaces owe a display tier; app shells and dense data surfaces
+legitimately do not — say which this is.
+
 ### Radius
 A short radius scale (`0, 4, 8, 12, full`) applied consistently: inputs and cards share
 a radius, pills use `full`. Mixed radii on sibling elements read as unfinished.
@@ -107,3 +118,6 @@ A component using `blue-500` directly has broken the tier boundary; it should us
 - **A type size per component** — sizes chosen ad hoc instead of assigned a scale step.
 - **Overgrown scales** — twelve spacing steps and nine radii nobody can keep straight; a
   scale earns its size by being small enough to hold in your head.
+- **Scale membership mistaken for hierarchy** — every size is a legal step and the largest
+  is 2.5× the smallest, so the page is internally consistent and visually flat. Consistency
+  is the floor; contrast is the thing the reader actually sees.

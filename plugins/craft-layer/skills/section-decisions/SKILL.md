@@ -32,8 +32,18 @@ the archetype owes, so a slot may resolve into more than one section; and on a
 `long-scroll` build the agenda gains an ORDER-AND-RHYTHM decision, because
 sequence and section-shape variety are where long pages fail (Part 5).
 
-Inventing an agenda item outside the contract is the failure this rule prevents —
-it reintroduces the sprawl the contract exists to stop.
+**Plus exactly one non-conversion slot: the CONCEPT SECTION.** `slot: concept`, offered in
+Round 1 like any other, carrying the concept's central metaphor as a section in its own
+right — a manifesto, a specimen wall, an archive, a colophon, one full-bleed statement.
+Deriving the agenda purely from the offer contract made every page this pipeline can decide
+a conversion funnel, because no memorable section answers a sales slot; a build could not be
+offered one without violating this rule. One slot reopens that without reintroducing sprawl:
+the ledger already admits `order-and-rhythm` and `signature` as non-spine values. A build
+that ships no concept section is not a finding — declining it is a legitimate pick — but it
+must have been OFFERED, and the ledger records which way it went.
+
+Inventing agenda items BEYOND that — a decision for a section neither the contract nor the
+concept slot asks for — is the sprawl this rule exists to stop.
 
 ## Rounds, not an interrogation
 

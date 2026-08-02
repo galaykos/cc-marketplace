@@ -11,7 +11,8 @@ range is not a design.
 
 ## Per-archetype anchors
 
-Section counts and slot specificity are GATED (the audit counts them). The copy-volume columns
+Slot specificity is GATED (the audit greps for it). Section counts are REPORTED, not gated —
+see "What the audit checks" below. The copy-volume columns
 are authoring guidance, deliberately ungated — word-counting is exactly what the specificity
 rule exists to stop being gameable.
 
@@ -24,8 +25,8 @@ rule exists to stop being gameable.
 | app/CRM | **5–8 marketing sections** | 30–70 words | in-app density → `information-design` |
 | general (fallback) | 7–10 | 30–80 words | 500–1000 words |
 
-**app/CRM is not a no-op.** Its marketing/front-door pages still owe the 5–8-section floor
-and the specificity rule below; only the logged-in, data-dense app screens defer to
+**app/CRM is not a no-op.** Its marketing/front-door pages still owe the specificity rule
+below (the section range is context, not a floor); only the logged-in, data-dense app screens defer to
 `information-design` (which governs data density, not marketing copy depth).
 
 **On a `long-scroll` build the range is a FLOOR, not a ceiling.** When the offer contract declares
@@ -129,9 +130,9 @@ still satisfies its presence requirement; a grid of empty placeholders does not.
 
 The craft audit (`/craft-layer:audit`) reads THIS file (injected as a Read path) and:
 
-- counts sections against the archetype's range — as a floor only when the offer contract
-  declares `long-scroll`, in which case over-range is not a finding and the Part-5 long-page
-  rules apply instead;
+- reports the section count against the archetype's range as context — never a finding on
+  count alone, in either direction; on a `long-scroll` contract the Part-5 long-page rules
+  apply instead;
 - greps each block for a numeral or a `{{slot}}`;
 - counts distinct typed slots per page against N (entity/claim-bearing sections);
 - flags any **claim/aggregate metric written as a literal** — GMV, user/creator counts,
@@ -148,10 +149,21 @@ The craft audit (`/craft-layer:audit`) reads THIS file (injected as a Read path)
 - flags an **empty placeholder affordance** — a dashed/greyed tile grid standing in for logos or
   named customers, i.e. a slot shipped with no plausible sample value; it should have been cut.
 
-A build under the section floor, a block carrying neither a numeral nor a slot, a page below
-the slot count, a fabricated claim numeral (a literal where a `{{metric:*}}` slot belongs), OR
-a claim rendered as raw `{{mustache}}` / an unmarked invented literal, is a finding. Offer numerals (price, fee, step counts) are not flagged. The numbers are the
-anchor the reviewer cites — the check is objective, not an aesthetic judgment.
+A block carrying neither a numeral nor a slot, a page below the slot count, a fabricated
+claim numeral (a literal where a `{{metric:*}}` slot belongs), OR a claim rendered as raw
+`{{mustache}}` / an unmarked invented literal, is a finding. Offer numerals (price, fee,
+step counts) are not flagged. The numbers are the anchor the reviewer cites — the check is
+objective, not an aesthetic judgment.
+
+**The section COUNT is reported, never a finding on its own.** A minimum-section counter
+can only push one way: more blocks. Against the eight slots the offer contract already
+owes, a 9–13 range demands one to five sections no slot asked for — which is where
+"Integrations", "Why us", "Security", "FAQ" and "Get started" arrive, and why a build that
+answers its brief in six committed sections had to pad to clear a number. Restraint is a
+legitimate answer and this file no longer fails it. Thinness is caught by the SPECIFICITY
+rule below the table, which is the half that cannot be satisfied by adding blocks: a
+section with no numeral and no typed slot is a finding at any count. Report the count
+against the range as context for the reviewer's judgement; do not convert it to a verdict.
 
 ## Anti-patterns
 
@@ -171,4 +183,4 @@ anchor the reviewer cites — the check is objective, not an aesthetic judgment.
 - **Treating anchors as a template** — building exactly 11 identical sections; the range is
   a floor and a shape, not a layout.
 - **app/CRM skip** — assuming the thinness gate does not apply because it is an app; its
-  marketing surface still owes the floor.
+  marketing surface still owes the specificity rule.

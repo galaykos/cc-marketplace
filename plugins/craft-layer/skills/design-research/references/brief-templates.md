@@ -75,7 +75,14 @@ Build <component/layout> in <where: route/file/section>.
 Spine slots: <which offer-contract slots this section carries>.
 Decided: <the section ledger's `choice` for this section — omit on a one-shot run>.
 Locks: <the ledger's `locks` — the component, instrument, data need, or copy slot it commits>.
-Layout: <grid/columns/hero composition, max-width, density>.
+Composition: <the drawn Axis 1 option, VERBATIM from the divergence record's `Composition
+  strategy:` line> — built as <two or three concrete structural facts that make it that
+  option and not a centred column: what is fixed against what scrolls, where the measure
+  breaks, what bleeds past the container>.
+Graphic system: <the drawn Axis 5 option, VERBATIM — `Declared none` is a legitimate value
+  and must be written, not omitted>.
+Layout: <grid/columns/hero composition, max-width, density — subordinate to `Composition:`
+  above; where the two disagree, `Composition:` wins>.
 Components: <card anatomy, table/list density, form rhythm, key states>.
 Interaction: <hover/focus, disclosure, scroll/transition behaviour>.
 Motion: <what animates, entrance vs micro-interaction, energy> (per motion-tiers, and at
@@ -86,6 +93,9 @@ Ambition: <the contract's pinned tier, and at `maximal` which surface carries th
   system, which capabilities make up the three, and which surface carries the escalation>.
 Banned vocabulary: <copied VERBATIM from the divergence record's negative-constraints block,
   or the literal word `none`>.
+Copy voice: <the concept's editorial voice, made buildable: person and address · sentence-length
+  band · what it does with fragments, questions and imperatives · 2–3 literal NEVERs. An
+  adjective ("confident", "warm") is not a value here — it survives into no sentence>.
 Spine regions: <slot>=#<anchor> pairs over the contract's eight slots, ON ONE LINE.
 Assets / provenance: <per asset: build-in-code | source | commission, and for anything
   sourced, the manifest entry it must carry>.
@@ -98,13 +108,22 @@ Patterns borrowed from: <source URLs + the one-line why from the mining workshee
 Filled example:
 
 ```
-Build the pricing section on /pricing. Layout: three-column card grid, centred,
-max-width ~1100px, generous whitespace. Components: cards with tier name, price,
-feature list, single CTA; the recommended tier raised with a border accent, not a
-shadow. Interaction: subtle hover lift on cards; monthly/annual toggle with an
-animated pill. Motion: cards fade-and-rise on scroll into view, staggered, calm
-energy. Responsive: three columns → one, cards full-width at phone. Patterns from
-stripe.com/pricing (tier hierarchy) and linear.app (restraint, border accents).
+Build the pricing section on /pricing. Spine slots: price, objection.
+Composition: Asymmetric split — built as a left rail holding the price fixed at 38%
+against a scrolling right column of what it buys; no centred `mx-auto max-w-*`
+container on this route; the objection list bleeds full-width under both.
+Graphic system: Declared none.
+Layout: two fields, rail and column; the break is the rail's right edge.
+Components: the price set as the largest type on the page, tabular figures, tier
+name as a small caps label above it; what-it-buys as a plain list, no cards, no
+shadows. Interaction: the rail stays put while the list scrolls past it; the
+monthly/annual switch re-renders the figure in place. Motion: the figure
+interpolates on switch — nothing else animates in this section.
+Copy voice: second person, addresses the reader directly · 6–14 words a sentence ·
+fragments allowed as list items, never as headings · NEVER "everything you need",
+NEVER a two-clause imperative headline, NEVER "simple, powerful, flexible".
+Responsive: rail becomes a sticky header strip at phone; the list keeps its measure.
+Patterns from stripe.com/pricing (tier hierarchy) and linear.app (restraint).
 ```
 
 Rules:

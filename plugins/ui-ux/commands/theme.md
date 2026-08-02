@@ -4,8 +4,11 @@ argument-hint: [brand-color-vibe-or-reference]
 ---
 
 Build a UI theme for this project from $ARGUMENTS (a brand color, a vibe like
-"warm editorial", or a reference site). Invoke the shadcn-theming skill from
-this plugin and follow it exactly.
+"warm editorial", or a reference site). Invoke the `theming-system` skill for the
+role DIRECTION (metaphor→surfaces, voice→type, mood→chroma), then `shadcn-theming`
+for the VALUES, and follow both exactly. Loading only the value skill discards the
+derivation at the stage that writes the numbers, which is how a concept becomes an
+accent swap.
 
 1. Resolve the STACK before anything else — detect, do not ask blind. Read
    `components.json` (cssVariables, baseColor), `package.json`/lockfile for
