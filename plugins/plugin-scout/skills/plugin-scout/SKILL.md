@@ -6,9 +6,9 @@ description: Use when setting up Claude Code plugins for a project — "which pl
 ## Purpose
 
 Scan the current project, suggest marketplace plugins in two tiers — tier 1
-stack-specific (earned by a detection signal, evidence cited) and tier 2
-universal (always useful, no signal needed) — then install exactly the ones
-the user picks. Nothing installs without an explicit pick.
+stack-specific (earned by a detection signal, evidence cited) and tier 2 universal
+(always useful, no signal needed) — then install exactly the ones the user picks.
+Nothing installs without an explicit pick.
 
 ## Preflight
 
@@ -25,10 +25,10 @@ the user picks. Nothing installs without an explicit pick.
 
 ## Detection
 
-If the stack-scan plugin is installed, run `/stack-scan:report` and use its
-inventory output (required vs installed, manifests already parsed) as the
-detection input — actually invoke it; do not re-scan what it already reads. Otherwise self-scan: read composer.json, package.json,
-tsconfig.json, .env, and Dockerfile/docker-compose files, checking exactly the
+If the stack-scan plugin is installed, run `/stack-scan:report` and use its inventory output
+(required vs installed, manifests already parsed) as the detection input — actually invoke
+it; do not re-scan what it already reads. Otherwise self-scan: read composer.json,
+package.json, tsconfig.json, .env, and Dockerfile/docker-compose files, checking exactly the
 signal table below. Rules:
 
 - Detection is read-only. Never install anything and never run package
@@ -68,12 +68,17 @@ constraint — never guess vue3 from an ambiguous signal.
 `sql` has no tier-1 signal and stays in the universal set — it is a
 cross-engine floor referenced by the per-dialect skills, not a stack pick.
 
+Before falling through to tier 2, read `references/signals.md` — evidence-bearing signals
+for plugins this table cannot see (CI, compose, OpenAPI, payment keys, locales, LLM keys,
+otel) plus rows for stacks this marketplace does NOT cover. Without it a repo with no
+composer.json and no package.json scores zero and drops to ~43 undifferentiated rows.
+
 ## Universal set (tier 2)
 
-Read `references/catalog.md` (generated — one `name — [keywords] —
-description` row per marketplace plugin). The tier-2 universal set is **every
-catalog plugin except** the tier-1 detection plugins in the table above (they
-earn a row only when their signal fires), the bundles (`everything` and any
+Read `references/catalog.md` (generated — one `name — [keywords] — description` row per
+marketplace plugin). The tier-2 universal set is **every catalog plugin except** the tier-1
+detection plugins in the table above (they earn a row only when their signal fires), the
+bundles (`everything` and any
 `*-suite`), and `plugin-scout` itself. Suggest that remainder regardless of
 stack with "universal" as the evidence; read each row's keywords and
 description to phrase the suggestion. Do not hard-code a plugin list here — the
@@ -100,42 +105,37 @@ Print one table:
 
 ## Install
 
-1. Without `--yes`: offer rows as explicit options at maximum density —
-   one call holds 4 multiSelect questions x 4 options (16 slots); page
-   until every eligible suggestion was offered. Installed rows are never
-   options; rows overlapping an installed plugin's category sort last.
-   Tier-1 leads the first page with evidence; one slot per call is
-   "Stop — skip remaining"; Other accepts numbers/names/ranges. Full
-   contract: `references/picker.md`. Headless: print install commands
-   for every not-installed suggestion instead, then stop.
-   With `--yes`: skip this picker — see Flags below for the auto-select set.
-2. For each pick, run via Bash:
+1. Without `--yes`: offer rows as explicit options at maximum density — one call holds 4
+multiSelect questions x 4 options (16 slots); page until every eligible suggestion was
+offered. Installed rows are never options; rows overlapping an installed plugin's
+category sort last. Tier-1 leads the first page with evidence; one slot per call is
+"Stop — skip remaining"; Other accepts numbers/names/ranges. Full contract:
+`references/picker.md`. Headless: print install commands for every not-installed
+suggestion instead, then stop. With `--yes`: skip this picker — see Flags below for the
+auto-select set. 2. For each pick, run via Bash:
 
    ```bash
    claude plugin install <name>@cc-plugins-marketplace --scope local
    ```
 
-   That is the only install command form — no bundles here. `--scope local`
-   keeps installs repo-only (`.claude/settings.local.json`, gitignored),
-   never user-global. With `--persist`, use `--scope project` instead — see
-   Flags below.
-3. Report per-plugin success or failure as each command finishes (a failure
-   does not abort the rest); finish with one line: installed n, failed m,
-   skipped k (already installed).
-4. If `--persist` was passed, write the plugins actually installed this run
-   into the project's settings — see Flags below.
+That is the only install command form — no bundles here. `--scope local` keeps installs
+repo-only (`.claude/settings.local.json`, gitignored), never user-global. With
+`--persist`, use `--scope project` instead — see Flags below. 3. Report per-plugin
+success or failure as each command finishes (a failure does not abort the rest); finish
+with one line: installed n, failed m, skipped k (already installed). 4. If `--persist`
+was passed, write the plugins actually installed this run into the project's settings —
+see Flags below.
 
 ## Flags
 
 - `--yes` — auto-installs tier-1 signal-backed, not-yet-installed picks
-  instead of showing the picker; the full report table still prints first.
-  Tier-2 picks are never auto-installed. Zero tier-1 picks: report only, no
-  picker, with a hint to rerun without `--yes` to pick tier-2. The
-  marketplace-add preflight prompt is unchanged by `--yes` — still asked
-  interactively, and in headless mode with the marketplace absent, stop and
-  print the add instructions rather than installing anything. Full rules,
-  the headless-marketplace-absent wording, and the hooks-may-activate-later
-  note: `references/flags.md`.
+instead of showing the picker; the full report table still prints first. Tier-2 picks
+are never auto-installed. Zero tier-1 picks: report only, no picker, with a hint to
+rerun without `--yes` to pick tier-2. The marketplace-add preflight prompt is unchanged
+by `--yes` — still asked interactively, and in headless mode with the marketplace
+absent, stop and print the add instructions rather than installing anything. Full rules,
+the headless-marketplace-absent wording, and the hooks-may-activate-later note:
+`references/flags.md`.
 - `--persist` — switches installs this run to `--scope project` and ensures
   the marketplace entry in the project's `.claude/settings.json`
   (`enabledPlugins` via the CLI, `extraKnownMarketplaces` merged in) so

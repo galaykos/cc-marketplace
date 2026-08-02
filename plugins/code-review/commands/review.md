@@ -71,5 +71,9 @@ Close with a one-line verdict: merge-ready, merge-after-criticals, or rework.
 
 After the verdict, if findings exist, offer the next step as a selectable choice
 (AskUserQuestion): "Fix all findings" / "Apply critical+high only" / "Report only". On an
-apply pick, apply the chosen findings rather than making the user retype them.
+apply pick, dispatch the finding list down the static chain
+`task-runner:task-executor if installed → inline` — never leave the user to retype
+findings, and never apply a list of this size inline when a scope-locked executor
+with its own verify-fix loop is available. This plugin ships a REVIEWER, not a
+worker, so `task-executor` is the head of the chain rather than its second rung.
 Headless: verdict only.

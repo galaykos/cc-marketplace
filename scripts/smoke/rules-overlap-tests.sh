@@ -165,5 +165,66 @@ else
 fi
 rm -rf "$HOSTFIX"
 
+# --- cross-plugin handoff resolution (pc_handoff_refs) -----------------------
+# ~90 bare `plugin:agent` edges ship across 37 distinct targets and nothing
+# checked any of them: validate.sh gates the SLASH form only, and pc_removed_refs
+# knows a hardcoded list of DELETED plugins. A typo or a missed rename in a live
+# name failed silently at runtime — the model reads a name that does not exist
+# and quietly works inline instead of delegating.
+HFIX="$(mktemp -d)"
+
+# 12. every shipped doc resolves
+hrc=0
+while IFS= read -r hf; do pc_handoff_refs "$hf" >/dev/null || hrc=1; done < <(
+  find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' \
+    -o -path '*/commands/*.md' -o -path '*/agents/*.md' \) | sort -u)
+if [ "$hrc" -eq 0 ]; then
+  echo "PASS[handoff]: every shipped cross-plugin handoff resolves"
+else
+  echo "FAIL[handoff]: a shipped cross-plugin handoff does not resolve"; rc=1
+fi
+
+# 13. a typo in a LIVE plugin name must be caught — the class pc_removed_refs
+#     structurally cannot see, since the plugin was never removed
+printf 'route to ui-ux:ui-ux-enginer now\n' > "$HFIX/typo.md"
+if pc_handoff_refs "$HFIX/typo.md" >/dev/null; then
+  echo "FAIL[handoff]: typo in a live agent name went undetected"; rc=1
+else
+  echo "PASS[handoff]: typo in a live agent name detected"
+fi
+
+# 14. a real reference must pass
+printf 'dispatch code-review:code-reviewer then task-runner:task-executor\n' > "$HFIX/ok.md"
+if pc_handoff_refs "$HFIX/ok.md" >/dev/null; then
+  echo "PASS[handoff]: resolving reference accepted"
+else
+  echo "FAIL[handoff]: resolving reference wrongly flagged"; rc=1
+fi
+
+# 15. Blade/Livewire component tags share the syntax exactly and must NOT trip it
+printf '@foreach ($i as $x) <livewire:item-row :item="$x" /> @endforeach\n' > "$HFIX/blade.md"
+if pc_handoff_refs "$HFIX/blade.md" >/dev/null; then
+  echo "PASS[handoff]: markup tag ignored (preceded by <)"
+else
+  echo "FAIL[handoff]: markup tag wrongly flagged as a handoff"; rc=1
+fi
+
+# 16. a non-plugin LHS is out of scope with no exclusion list
+printf 'set model:opus and fetch http:whatever\n' > "$HFIX/lhs.md"
+if pc_handoff_refs "$HFIX/lhs.md" >/dev/null; then
+  echo "PASS[handoff]: non-plugin left-hand side out of scope"
+else
+  echo "FAIL[handoff]: non-plugin left-hand side wrongly flagged"; rc=1
+fi
+
+# 17. the documented escape must work
+printf 'bad example ui-ux:nope <!-- handoff-ok -->\n' > "$HFIX/esc.md"
+if pc_handoff_refs "$HFIX/esc.md" >/dev/null; then
+  echo "PASS[handoff]: <!-- handoff-ok --> rescue honoured"
+else
+  echo "FAIL[handoff]: <!-- handoff-ok --> rescue ignored"; rc=1
+fi
+rm -rf "$HFIX"
+
 [ "$rc" -eq 0 ] && echo "All rules-overlap smoke tests passed."
 exit "$rc"

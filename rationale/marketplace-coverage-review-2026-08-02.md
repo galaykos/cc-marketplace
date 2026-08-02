@@ -184,6 +184,50 @@ Post-refutation. Every item states its **standing** and whether it adds a
 
 ### P1 — wiring that multiplies what already ships (zero new descriptions)
 
+> **Landed 2026-08-02.** All seven, zero new skill or command descriptions.
+> Verified green: 4 gate scripts, 16 smoke harnesses, `parity-check`,
+> `role-floors-check`, 8 plugin author-time lints.
+>
+> - **W1** `pc_handoff_refs` — ~90 bare `plugin:agent` edges across 37 targets,
+>   none previously checked. All resolve today; a typo in a LIVE name is now
+>   caught, which is the class `pc_removed_refs` structurally cannot see. Two
+>   structural guards instead of an exclusion list: LHS must be a real plugin dir,
+>   and a token preceded by `<` is markup (Blade/Livewire tags share the syntax).
+> - **W2** `stack-scan/.../references/ecosystems.md` — the five authority
+>   conflicts only (Go toolchain, `rust-toolchain.toml`, `global.json`
+>   rollForward, `uv.lock`'s own `requires-python`, JVM toolchain) plus pnpm
+>   `catalog:` alias resolution. Per-version feature lists deliberately cut — that
+>   is the shape that measured 0 delta twice.
+> - **W3** `debugging:debugger` un-orphaned in its own command; task-execution
+>   makes ONE bounded dispatch to it before the three-cycle halt.
+> - **W4** apply-lane parity for all **three** commands that named no target
+>   (`code-review`, `api-design`, and `orchestration` — the last with an explicit
+>   in-flight-vs-on-disk split rather than a pretend dispatch). `a11y:a11y-audit`
+>   added to the frontend/ui-ux rows and `resilience:resilience-design` to the
+>   backend/api rows of the reviewer Resolution map.
+> - **W5** `check-doc-staleness.sh` widened to `skills/*/SKILL.md`, so the ~15
+>   stack plugins' inline version claims are visible to it for the first time.
+>   The blocking half is **not** shipped: `pc_version_stamp` reports the 9
+>   claimants with no stamp as a WARN. Promoting it to a gate would force a
+>   fabricated provenance record onto nine plugins; the printed list is the work
+>   queue for the real verification pass.
+> - **W6** SvelteKit/Astro/Angular/Django/Rails/Flutter/Go/Rust/Workers/Deno/
+>   Terraform rows in vercel-skills-scout, ordered BEFORE the `vite` row — a
+>   SvelteKit repo used to match `vite` and get Vite skills back. Plus
+>   `plugin-scout/.../references/signals.md` for the repos its 14 manifest signals
+>   cannot see.
+> - **W7** `/git-workflow:finish` runs `/code-review:review`,
+>   `code-architecture:drift-review` and `/secret-scanning:scan` before offering a
+>   destination; a critical finding drops merge and PR until resolved or waived on
+>   the record. `review-exchange` gained the reciprocal reference it had never
+>   carried.
+>
+> Regression found and fixed in the same pass: the first `pc_handoff_refs` spawned
+> three processes per LINE and took `validate.sh` from 30s to 110s (and
+> `role-floors-check`, which runs it nine times, to 445s). Rewritten single-pass:
+> 33s and 145s. A gate slow enough to discourage running locally only ever fires
+> in CI.
+
 | # | Item | Standing |
 |---|---|---|
 | W1 | **Cross-plugin reference gate, modes 1+2.** One extractor in `plugin-checks.sh`: (1) every bare `<plugin>:<name>` where `plugins/<plugin>/` exists must resolve to an agent, skill or command file; (2) each resolved reference must carry a declared dependency, a degradation clause within 2 lines, or `<!-- handoff-ok: reason -->`. Today `pc_removed_refs` knows only a hardcoded list of 8 removed names, so `ui-ux:ui-ux-enginer` passes every gate. **Mode 3 (bundle closure) is cut — see §4.** Needs a second extractor keyed on host skill names, or it gates ~200 in-repo edges and zero external ones. | gate |

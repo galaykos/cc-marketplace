@@ -126,6 +126,8 @@ while IFS= read -r mdf; do
     || err "$mdf: references removed marketplace artifact [$rhit] — reroute to a live plugin/skill or mark the line <!-- removed-ok -->"
   ohit=$(pc_host_overlap "$mdf") \
     || err "$mdf: skill name collides with a built-in Claude Code skill [${ohit##* }] — defer to the host skill by name instead of re-implementing it, or mark the line <!-- host-ok -->"
+  hhit=$(pc_handoff_refs "$mdf") \
+    || err "$mdf: unresolved cross-plugin handoff [$(printf '%s' "$hhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] — names no agents/, skills/ or commands/ file in that plugin; fix the name or mark the line <!-- handoff-ok -->"
 done < <(
   {
     find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \)
@@ -483,6 +485,23 @@ for d in plugins/*/; do
 done
 [ "$rm_count" -eq 0 ] \
   || err "$rm_count plugin(s) missing README.md:${missing_readme}"
+
+# Version-leverage stamp coverage (WARN, standing `recorded` — see
+# pc_version_stamp's header for why it is not a gate). rationale/stack-skill-
+# baselines.md exempts ~20 stack plugins from the baseline-redundancy loop on the
+# promise that they encode version leverage; check-doc-staleness.sh can only see
+# that leverage decay where a `> Last verified:` stamp exists. This prints the
+# work queue for the verification pass that would let the warn become an err.
+unstamped_list=""
+unstamped_n=0
+for d in plugins/*/; do
+  us=$(pc_version_stamp "$d") || { unstamped_list="$unstamped_list ${us##* }"; unstamped_n=$((unstamped_n + 1)); }
+done
+if [ "$unstamped_n" -gt 0 ]; then
+  printf 'WARN: %s plugin(s) claim version leverage with no `> Last verified:` stamp anywhere in their skills —%s\n' \
+    "$unstamped_n" "$unstamped_list" >&2
+  printf 'WARN: check-doc-staleness.sh is structurally blind to those claims until each is verified and stamped (recorded, not gated — CLAUDE.md has-teeth)\n' >&2
+fi
 
 # README-listing (HARD): every plugin must also be LISTED in the top-level
 # README.md plugin tables — a bolded `**name**` or `**[name](...)` row. Presence

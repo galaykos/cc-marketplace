@@ -9,10 +9,27 @@ first. If a branch was named and is not checked out, switch to it (or its
 worktree) before doing anything else.
 
 Run the project's full check suite as the gate — a red suite stops here with
-the failures reported; no destination options for broken work. On green, gather
-the state evidence the skill specifies (diffstat against the base, ahead/behind
-counts, commit list, suite output tail) and present it, then use
-AskUserQuestion. The default branch is PR-only: when the branch's base is the
+the failures reported; no destination options for broken work.
+
+On green, before offering any destination, run the review passes that exist in
+this installation — each only if its plugin is installed, none of them fatal on
+absence, all of them named in the report so a skip is visible:
+
+- `/code-review:review` on the branch diff — correctness, smells, convention drift.
+- `code-architecture:drift-review` on the whole diff — did the work stray from what
+  was actually asked, are there weakened tests, left-in stubs, skipped criteria.
+- `/secret-scanning:scan` on the diff — a credential reaching a PR is the one
+  finding that cannot be fixed by a later commit.
+
+A green suite is evidence the code RUNS, not that it should merge; without this
+step those three are named nowhere in the path between finishing work and
+shipping it. Any `critical` finding drops "merge locally" and "push and open a
+PR" from the offered set until it is resolved, or the user explicitly waives it
+on the record — record the waiver text in the report, not just the choice.
+
+Then gather the state evidence the skill specifies (diffstat against the base,
+ahead/behind counts, commit list, suite output tail), present it together with
+the review results, and use AskUserQuestion. The default branch is PR-only: when the branch's base is the
 repo's default branch (resolve it via `git symbolic-ref refs/remotes/origin/HEAD`,
 falling back to whichever of main/master exists), drop "merge locally" and offer
 three options — push and open a PR, keep the branch open, discard the work. When

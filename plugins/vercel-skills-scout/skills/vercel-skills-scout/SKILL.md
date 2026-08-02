@@ -44,6 +44,27 @@ never run package managers, and a query is earned only by cited evidence
 | package.json dep vite (devDependencies counts) | `vite` |
 | DB engine in .env DSN or docker image | that engine's name |
 
+**Stacks this marketplace does not cover** — check these BEFORE the vite row,
+because a meta-framework that builds on vite will otherwise match `vite` and
+return Vite skills for a SvelteKit question. That is the failure mode the
+zero-signals branch below cannot rescue: the repo HAS signals, they are just the
+wrong ones. When one of these matches, say plainly "no marketplace plugin covers
+this — skills.sh is the intended path" rather than leaving it implicit:
+
+| Signal (evidence file) | Query |
+|---|---|
+| `@sveltejs/kit` dep or `svelte.config.*` | `sveltekit` |
+| `astro` dep or `astro.config.*` | `astro` |
+| `angular.json` or `@angular/core` dep | `angular` |
+| `manage.py`, or pyproject with `django` / `fastapi` | that framework's name |
+| `Gemfile` with `rails` | `rails` |
+| `pubspec.yaml` | `flutter` |
+| `go.mod` | `go` |
+| `Cargo.toml` | `rust` |
+| `wrangler.toml` / `wrangler.jsonc` | `cloudflare workers` |
+| `deno.json` / `deno.jsonc` | `deno` |
+| `*.tf` / `*.tofu` | `terraform` |
+
 An explicit query argument (`/vercel-skills-scout:suggest <query>`)
 replaces detection entirely. Zero signals and no argument: ask the user
 for a free-text query via AskUserQuestion; headless, report "no stack
