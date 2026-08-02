@@ -51,7 +51,7 @@ not a summary.
   against every other installed skill?
 - Baseline a NEW behavioral skill: run the scenario WITHOUT it and record the
   failure — none means the skill restates what the model already does. Loop in
-  `references/behavioral-testing.md`. Standing: recorded — no script runs it.
+  `references/behavioral-testing.md` (RUNNER: the host `skill-creator`, not ours). Check `rationale/measured-zero-shapes.md` first — four shapes measured at zero. Recorded: no script runs it. <!-- host-ok -->
 
 ## One capability per skill
 

@@ -169,6 +169,15 @@ on every `Edit`/`Write`, fail-open by its own declaration (`:2-3`). It warns; it
 cannot stop anything. Counting it as enforcement is the tier over-claim this
 file's own convention forbids.
 
+**Maintainer path, not a gate.** `scripts/retirement-queue.sh` — ranks shipped
+skills by the two usage ledgers written since 2026-08-02
+(`~/.claude/skill-router/<slug>/surfaced.jsonl`, what the router OFFERED;
+`~/.claude/hindsight/<slug>/skills.jsonl`, what was INVOKED). Always exits 0 and
+never proposes a deletion: zero invocations proves nobody used it HERE, non-zero
+proves it fired and not that it helped, and "never surfaced" mostly measures the
+router's coverage — 102 of 126 skills have no `rules.tsv` row at all. It says
+where a control/treatment run is worth spending, nothing more.
+
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned
 plugin-removal script. It rewrites leaf-derived numbers only. Removing a *leaf*
 changes every suite that listed it, and those suites' member counts get a `WARN`,

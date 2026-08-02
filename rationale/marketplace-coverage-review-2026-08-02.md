@@ -408,6 +408,34 @@ avoids ~11 new metered descriptions (~660 tokens at the measured average).
 | **Audit `web-dev` and `brain`** | The two plugins with zero skills, therefore invisible to every skill-shaped lens and absent from all 40 taxonomy rows. `web-dev`: 2 agents, 0 skills, 0 commands, a name claiming the whole territory. `brain`: 1 agent, 1 command, a SessionStart hook, 0 skills, overlapping the host `init` and hindsight with no deferral in any direction. These are the two concrete answers to "the backlog contains no deletions" | P2 |
 | **MCP as claude-authoring's missing fifth extension point** | `authoring-plugins/SKILL.md:13-16` enumerates four (skills, agents, commands, hooks); the only "MCP" string in the plugin is `authoring-agents/SKILL.md:101` telling you not to give agents MCP tools — while this repo ships one | P2 |
 | **Time/timezone and multi-tenancy** | `grep -rIlE 'timezone\|DST\|UTC offset' plugins/` = 0 files; `grep -rIl 'multi-?tenan' plugins/` = 0 files. Both schema- and code-anchored, both top-tier production bug sources, neither named in any taxonomy row or the rejected list | P2 |
+> **Landed 2026-08-02** — the two remaining critic items that could be built
+> without a deletion decision:
+>
+> - **`rationale/measured-zero-shapes.md`** — the four SHAPES that measured zero
+>   (per-version idiom maps, canonical-doctrine checklists, style-rule catalogues,
+>   framework restatement), with the numbers, plus what has NOT measured zero so
+>   the file does not read as "never write anything". `pc_removed_refs` gates the
+>   removed NAMES and structurally cannot see a new proposal wearing the same
+>   shape — which is exactly how `python-best-practices` and `nosql-data-modeling`
+>   reached this review's own synthesis before the refuter killed them. Cited from
+>   `/claude-authoring:new-skill` step 6 and from `authoring-skills`, i.e. at the
+>   moment a skill is proposed. Standing: recorded, and deliberately so — gating on
+>   four fuzzy prose shapes is the false-positive class that gets a gate disabled.
+> - **`scripts/retirement-queue.sh`** — ranks shipped skills against the two
+>   ledgers M2 started writing. Always exits 0 and never proposes a deletion, and
+>   the header says why in three parts: zero invocations proves nobody used it
+>   HERE, non-zero proves it fired rather than that it helped, and "never surfaced"
+>   mostly measures the ROUTER's coverage, since 102 of 126 skills have no
+>   `rules.tsv` row. It answers where a control/treatment run is worth spending —
+>   the question that has gone unanswered since the doctrine's only eight removals
+>   in July 2026.
+>
+> Two bugs found by running it, both the subshell class that has now appeared
+> three times today: `grep -c` printing `0` AND exiting 1, so `|| echo 0` produced
+> `"0\n0"` and every later arithmetic test aborted; and a counter incremented
+> inside a `while` piped to `sort`, which never survives the subshell — the same
+> trap that made the dynamic context meter read zero this morning.
+
 | **A retirement lane** | The doctrine's method has produced 8 removals total, all on 2026-07-27, none since, while 126 skills / 42 plugin-shipped scripts / 16 hook-bearing plugins have never been tested against it. Keyed on M2's telemetry: any skill with zero `fired[]` events across N sessions enters the control/treatment queue automatically. Without it the evidence base freezes at eight rows while the surface it governs keeps growing | P2 |
 | **A "measured-zero shapes" list** | `pc_removed_refs` blocks the removed *names* (typescript, vue2, react-best-practices…) but an author proposing `python-best-practices` or `nosql-data-modeling` trips nothing — which is exactly what happened at two ranks of this very backlog. A list of shapes that measured zero (per-version idiom maps, canonical-doctrine checklists, framework restatement, style catalogs) beside the ledger, cited from `/claude-authoring:new-skill`, would have pre-empted both without an eval run | P2 |
 | **A discrimination dimension in the description linter** | `context-budget.sh` meters what a description costs; `validate.sh`'s linter checks length and forbids "Trigger words:". Neither checks the property that predicted every removal — whether the trigger clause discriminates. The prior review's §2 axis L sampled 10 skills, found 4 non-discriminating, produced two folds, and the axis was never mechanized | P2 |

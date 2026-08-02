@@ -58,7 +58,19 @@ Scaffold a new skill from $ARGUMENTS. Steps:
    "Skip — I'll fill the scaffold in myself". On yes, load the skill and
    continue; plain text only when headless. Deeper rules live there —
    description writing, scoping, and budget techniques.
-6. Before the skill ships, remind about the baseline: run the target scenario
-   WITHOUT the skill and record the failure it exists to fix — the loop is
-   authoring-skills' `references/behavioral-testing.md`. A skill with no
-   baseline failure restates what the model already does.
+6. **Before writing a line**, check the proposal against
+   `rationale/measured-zero-shapes.md` — four shapes that were MEASURED at zero
+   delta and removed from this marketplace: per-version idiom maps, canonical-
+   doctrine checklists, style-rule catalogues, framework restatement. If the
+   proposal matches one, the burden is not "argue it is different"; it is to name
+   what a blind control would MISS, specifically enough to seed a fixture. The
+   name gate (`pc_removed_refs`) blocks the removed NAMES and cannot see a new
+   proposal wearing the same shape — which is how two of them reached a backlog in
+   2026-08.
+7. Before the skill ships, remind about the baseline: run the target scenario
+   WITHOUT the skill and record the failure it exists to fix. Claude Code's
+   built-in `skill-creator` skill ships that loop as working code — paired
+   with-skill and baseline subagents, a blind comparator, a grader — so run the
+   host's loop rather than improvising one; the marketplace's own doctrine for it
+   is authoring-skills' `references/behavioral-testing.md`. A skill with no
+   baseline failure restates what the model already does. <!-- host-ok -->
