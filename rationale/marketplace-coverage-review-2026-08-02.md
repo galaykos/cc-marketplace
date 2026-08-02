@@ -405,6 +405,33 @@ avoids ~11 new metered descriptions (~660 tokens at the measured average).
 | **Disclose the third-party MCP server inside `everything`** | `registry-source/.mcp.json` declares `reui` as an HTTP server at `https://mcp.reui.io` alongside the local node server. `registry-source` is a dependency of `everything`, which `README.md:10` recommends for "zero-setup convenience", with a metered baseline of **0** and no column for network egress. This is the marketplace's only outbound third-party runtime dependency and no lens — including the supply-chain one — opened a `.mcp.json` | P1 |
 | **README strategy honesty** | `README.md:3` claims coverage "from React and Vue to Laravel and beyond". The evidence says "and beyond" is false: `rules.tsv` is PHP/Blade/Laravel/Livewire/Inertia/React-shaped, the one backend worker ships from `laravel`, neither scout detects a non-JS/PHP manifest, 4 SQL plugins and 0 NoSQL. One edited sentence; the cheapest honesty fix in the repo and the one the four laws most directly demand | P1 |
 | **An `everything` token ceiling** | `context-budget.sh:127-131` says of itself: "It does NOT bound aggregate drift… the ratchet is per-plugin". Bundle tolerance is 2× member count, so `everything` may drift 116 tokens per run silently, and `--update-baseline` rewrites the baseline on demand. ~5 lines: a declared ceiling that fails the build, so every new leaf must be paid for by a deletion instead of by a baseline update. This is the only version of the funding-deletion rule that has teeth | P1 |
+> **Audited 2026-08-02 — `rationale/web-dev-brain-audit-2026-08-02.md`. Both
+> nominations fail, and one inverts.**
+>
+> `web-dev` has **12 inbound references from 10 plugins**: it is the resolved
+> worker for the `frontend` and `api` tags in task-runner's routing map, the
+> verify-side reviewer for `frontend`, and the apply-chain head in nine chassis
+> review commands. `generate.sh` hard-errors when a stamped worker has no agent
+> file, so deleting it does not degrade those chains — it breaks the generator.
+> Zero skills is the CORRECT shape for a plugin whose whole job is to be a
+> dispatch target; a description would only compete for a trigger it does not want.
+>
+> `brain` is genuinely low-connectivity (2 references, neither a real caller) but
+> costs 89 always-on tokens — fourth-cheapest leaf — and its SessionStart hook
+> emits 0 bytes in a sandbox, ~60 in a repo with no map. It is not redundant with
+> the host `init` (which writes `CLAUDE.md`, instructions) or with `hindsight`.
+> Keep; the residual is that nothing routes to it, which is a routing fix.
+>
+> **The instrument was wrong, and that is the finding.** The nomination came from
+> a skill-count heuristic applied without checking the graph, and for `web-dev` it
+> inverted the truth. The same blind spot hid all three skill-less plugins
+> (`web-dev`, `brain`, `registry-source`) from this review's own 40-domain
+> taxonomy. The deletion question is therefore still open: `terse` (886),
+> `craft-layer` (1,025), `taskmaster` (931) and `approaches` (581) hold 3,423
+> tokens between them and none has been through the baseline loop. That is where
+> a cut argument can be made from evidence — `scripts/retirement-queue.sh` and the
+> two ledgers now exist for exactly that.
+
 | **Audit `web-dev` and `brain`** | The two plugins with zero skills, therefore invisible to every skill-shaped lens and absent from all 40 taxonomy rows. `web-dev`: 2 agents, 0 skills, 0 commands, a name claiming the whole territory. `brain`: 1 agent, 1 command, a SessionStart hook, 0 skills, overlapping the host `init` and hindsight with no deferral in any direction. These are the two concrete answers to "the backlog contains no deletions" | P2 |
 | **MCP as claude-authoring's missing fifth extension point** | `authoring-plugins/SKILL.md:13-16` enumerates four (skills, agents, commands, hooks); the only "MCP" string in the plugin is `authoring-agents/SKILL.md:101` telling you not to give agents MCP tools — while this repo ships one | P2 |
 | **Time/timezone and multi-tenancy** | `grep -rIlE 'timezone\|DST\|UTC offset' plugins/` = 0 files; `grep -rIl 'multi-?tenan' plugins/` = 0 files. Both schema- and code-anchored, both top-tier production bug sources, neither named in any taxonomy row or the rejected list | P2 |
