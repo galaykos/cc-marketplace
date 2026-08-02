@@ -39,5 +39,19 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
    the user to retype findings as instructions. In a headless or non-interactive run,
    report only and print the apply command instead of dispatching.
 
+7. **Prime the worker's rubric in that same dispatch.** A worker has no `Skill` tool and
+   cannot locate an installed skill from the project CWD, so the `bestpractices-skill:`
+   line in its agent frontmatter names a rubric it cannot open — unqualified, it works
+   from recalled convention. Read that line from the chain head's agent file and resolve
+   each comma-separated token to the FIRST hit of
+   `${CLAUDE_PLUGIN_ROOT}/skills/<tok>/SKILL.md` →
+   `find ~/.claude/plugins/cache -path '*/skills/<tok>/SKILL.md' | sort -V | tail -1` →
+   `plugins/*/skills/<tok>/SKILL.md`, then add one line per hit to the dispatch text:
+   `Read <abs-path> before writing; it is the authoritative best-practice source for this
+   stack.` A token that resolves nowhere is skipped silently, never an error. Full
+   doctrine, and the discipline preamble that rides the same dispatch:
+   `orchestration:delegation-contracts` § Skill priming. Standing: agent-graded — no
+   script verifies a dispatch actually carried the paths.
+
 You may close by recommending an ultra-assess re-run when the change was large or
 high-risk — recommend it only, never self-execute it.

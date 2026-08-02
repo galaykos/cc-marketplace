@@ -14,10 +14,21 @@ or restyle it beyond the fix.
 
 ## Rubric
 
-Your authoritative checklist is the `database-design,sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices` skill. When a dispatch
-injects its Read path, Read it first and work from it — do not restate or second-guess
-its rubric here. Apply fixes in reviewable increments: one concern per change, each
-independently verifiable.
+Your authoritative rubric is `database-design,sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices` — comma-separated when more than
+one, each naming a skill directory, not a file you can find by name.
+
+You have no `Skill` tool, so a dispatch that primes you injects one absolute
+`Read <path>` per skill: Read those first and work from them, and do not restate or
+second-guess their rubric here.
+
+If NO such path was injected, you were dispatched unprimed. Say so in the first line of
+your return — `dispatched unprimed — rubric not loaded` — and work only from what this
+file already inlines. Never present recalled convention as the named skill's rubric; the
+caller cannot tell the two apart from your output, and that is the whole reason this
+line exists.
+
+Apply fixes in reviewable increments: one concern per change, each independently
+verifiable.
 
 ## Call-site discipline
 

@@ -59,6 +59,12 @@ if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-lang.json" "$L"; 
   expect_has "$L" "Apply critical+high only" "lang: apply critical+high option"
   expect_has "$L" "https://laravel.com/docs" "lang: docsUrl rendered (lang block kept)"
   expect_has "$L" "backend-engineer → task-runner:task-executor if installed → inline" "lang: workerChain stamped"
+  # Skill priming: a worker has no `Skill` tool, so the dispatch must resolve and inject
+  # the rubric's Read path. Without these the agent's `bestpractices-skill:` names a file
+  # it can never open and it works from recalled convention instead.
+  expect_has "$L" "bestpractices-skill:" "lang: apply lane names the frontmatter key to resolve"
+  expect_has "$L" "skills/<tok>/SKILL.md" "lang: apply lane carries the resolution glob"
+  expect_has "$L" "Read <abs-path> before writing" "lang: apply lane carries the injected Read line"
   expect_absent "$L" "design-doc review" "lang: concern affordance dropped"
 fi
 
@@ -85,6 +91,10 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "PROACTIVELY" "worker: description carries PROACTIVELY (validate.sh gate)"
   expect_has "$W" "three strikes" "worker: three-strikes kill-trigger present"
   expect_has "$W" "fails its verify three" "worker: kill-trigger cites 3 failed cycles"
+  # The worker must name its own lack of a Skill tool and self-report an unprimed
+  # dispatch — otherwise "rubric not loaded" is indistinguishable from "rubric applied".
+  expect_has "$W" "no \`Skill\` tool" "worker: states it cannot load the skill itself"
+  expect_has "$W" "dispatched unprimed — rubric not loaded" "worker: unprimed dispatch is self-reported"
   expect_absent "$W" "Domain checklist" "worker: no restated checklist (skill pointer only)"
 fi
 

@@ -180,5 +180,8 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
     craft findings now" / "Report only". craft-layer ships no writer — both its agents are read-only —
     so route accepted fixes to `task-runner:task-executor` when installed, else `ui-ux:ui-ux-engineer`
     for markup/style/component work, else apply inline. Findings owned by a delegate go to that
-    delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Headless: report only,
+    delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Whichever worker you
+    land on has no `Skill` tool: resolve each token of its `bestpractices-skill:` frontmatter to an
+    installed `SKILL.md` and inject `Read <abs-path>` per hit into the dispatch, skipping misses
+    (`orchestration:delegation-contracts` § Skill priming). Headless: report only,
     and print the exact `/a11y:audit` and `/performance:review` commands to rerun.

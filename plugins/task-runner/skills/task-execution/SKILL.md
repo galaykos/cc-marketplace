@@ -58,7 +58,7 @@ inline security-review skill runs after the batch joins (`references/reviewer-ro
 `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate
 it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
-**Role-tier floor — applies boosted or NOT:** an agent with a row in delegation-contracts `references/role-floors.md` dispatches at `max(marker tier if present ELSE the session model, its floor)` — never below the session model; agents with no row are unfloored and unchanged (omit `model:`). A registry miss → omit `model:` and log `role-floors.md unresolved — floors not applied` in the run report.
+**Role-tier floor — applies boosted or NOT:** an agent with a row in delegation-contracts `references/role-floors.md` dispatches at `max(marker tier if present ELSE the session model, its floor)` — never below the session model; agents with no row are unfloored and unchanged (omit `model:`). A registry miss → omit `model:` and log `role-floors.md unresolved — floors not applied` in the run report. **Skill priming — also applies boosted or NOT:** a delegated implementer has no `Skill` tool and cannot self-locate an installed skill, so resolve+inject an absolute `Read <abs-path>` for BOTH each skill a card names in `Skills to apply` and each comma-separated token of the worker's own `bestpractices-skill:` frontmatter (delegation-contracts § Skill priming; misses skipped, never an error). Unprimed, the worker writes from recalled convention while naming a rubric it never opened.
 
 **Upgraded statement:** when `00-INDEX.md` carries a `## Upgraded statement` blockquote
 (the `> `-prefixed section task-cards writes), read it as binding context for every task
@@ -73,7 +73,7 @@ tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still escalat
 falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at run start, boosted or not: `⚡ Ultra run — workers
 model=<marker-model>→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` =
 `$CLAUDE_EFFORT` when the harness exposes it — `echo ${CLAUDE_EFFORT:-inherit}` — else the literal `inherit`). The Agent tool escalates model only (marker `effort`
-applies on the `Workflow` path). Delegated stack implementers also get delegation-contracts § Skill priming (resolve+inject `Read <abs-path>` per `Skills to apply`).
+applies on the `Workflow` path).
 Under the marker, ALSO run the **code-redteam** pass (its skill) over the produced diff — at each serial milestone boundary and once before completion (in `--tracks`:
 once on the merged branch) — routing confirmed findings to reopen the targeted card under a fresh budget. **Under `Goal:`** (hands-off): auto-take pipeline gates — the
 run-plan preview is DISPLAYED, then execution proceeds without waiting; post-run "Retry parked" is bounded to at most ONE auto-retry, and only on forward progress (a task

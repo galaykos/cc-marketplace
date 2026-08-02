@@ -27,6 +27,11 @@ the explicit entry point to the ui-ux-engineer worker — a build verb to comple
    When the request names a registry block to adapt, that registry's best-practice skill is
    the one that governs it, and the block is restyled to the project's own tokens rather
    than shipped in the registry's defaults.
+   Naming those skills does not load them — the worker has no `Skill` tool. Resolve each
+   one (and each token of its `bestpractices-skill:` frontmatter) to an installed
+   `SKILL.md` and inject `Read <abs-path>` per hit, skipping misses
+   (`orchestration:delegation-contracts` § Skill priming). Unprimed, it restyles from
+   recalled convention rather than from the token scale it was told to obey.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
 
 4. Keep accessibility in view while building: semantic elements, labels, focus order —

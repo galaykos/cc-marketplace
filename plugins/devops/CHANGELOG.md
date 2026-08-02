@@ -2,6 +2,18 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.2 — 2026-08-02
+
+### Fixed
+- **`/devops:review` now hands `devops-engineer` its rubric, instead of only naming
+  it.** The worker has no `Skill` tool and cannot locate an installed skill from your
+  project directory, so `bestpractices-skill: devops-practices` pointed at a file it
+  could never open — every apply-lane fix was written from recalled convention while
+  the agent reported working to the skill. The apply lane now resolves each named
+  skill to its installed `SKILL.md` and injects an absolute `Read` path, and the agent
+  self-reports `dispatched unprimed — rubric not loaded` when no path arrives, so the
+  two cases stop looking identical in its output.
+
 ## 0.5.0 — 2026-08-02
 
 ### Added

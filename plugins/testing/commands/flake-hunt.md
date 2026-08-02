@@ -31,7 +31,11 @@ failure this command exists to end:
 - **broken** — failed every run. Not flaky. Read the failure.
 
 Then apply, on a pick: dispatch the fix list down
-`testing:test-engineer → task-runner:task-executor if installed → inline`.
+`testing:test-engineer → task-runner:task-executor if installed → inline`. Prime the
+chain head in that same dispatch — it has no `Skill` tool, so resolve each token of its
+`bestpractices-skill:` frontmatter to an installed `SKILL.md` and inject
+`Read <abs-path>` per hit, skipping misses (`orchestration:delegation-contracts`
+§ Skill priming).
 
 Two things must appear in the report even when nothing is found, because their
 absence is what turns a clean run into a false assurance: the N used (a 1-in-50
