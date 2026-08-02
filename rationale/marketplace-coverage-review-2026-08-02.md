@@ -264,9 +264,25 @@ Post-refutation. Every item states its **standing** and whether it adds a
 > a fixture locks that specific false positive. A gate that cries wolf on ordinary
 > CI is a gate that gets switched off, taking the two real classes with it.
 >
-> **Still open in P2:** sweep-migration residual gate, project-conventions hook,
-> licence scan, flake-hunt, pgvector reference, Expo reference + rules rows,
-> design-preview Vue/Blade paths, document-analysis coverage manifest.
+> **Tranche 2, landed 2026-08-02** — four more items.
+>
+> | Item | Shipped | Standing |
+> |---|---|---|
+> | Sweep migration (task-runner) | `scripts/sweep-residual.sh` — freeze the target set + tree hash, re-measure after each batch, exit 2 residual / 4 target-set-moved / 5 cannot-measure; allowlist entries require a written reason. `--sweep` lane on the existing `/task-runner:run`, **no new skill**. 13 fixtures | gate |
+> | Flake-hunt (testing) | `scripts/flake-hunt.sh` — N runs × 2 axes, set-diffed into order-dependent / non-deterministic / **broken**, each with its fix lane; baseline ratchet for known flakes. `/testing:flake-hunt` command. 13 fixtures | gate |
+> | Project conventions (code-review) | `hooks/conventions.sh` PostToolUse, one-shot per session, emitting config **paths** and the CI lint invocation. **The skill stayed cut, and so did the digest** — an earlier design emitted "the three settings most often violated", the exact narrowing shape the doctrine measured as making review worse. A fixture asserts no setting VALUE appears in the output. 12 fixtures | advisory hook |
+>
+> **The dynamic meter earned itself in this tranche.** Adding one command
+> description (`/testing:flake-hunt`) cost **+42 always-on** — expected — and
+> **+14 dynamic**, because `skill-router`'s UserPromptSubmit hook rebuilds the
+> command catalogue at runtime and re-injects it on every work-shaped prompt. That
+> second-order cost was invisible to every gate in this repo before M1 landed
+> earlier today. Both baselines re-seeded deliberately; `everything` is now
+> 12,048 always-on + 2,413 dynamic.
+>
+> **Still open in P2:** licence scan (packages), pgvector reference (postgresql),
+> Expo reference + `rules.tsv` rows (react-native), design-preview Vue/Blade
+> paths, document-analysis coverage manifest (ultra-deep-research).
 
 Every item here survived on its script or hook and lost its SKILL.md. That is
 the pattern: **ship the teeth, skip the description.** Applying it across P2
