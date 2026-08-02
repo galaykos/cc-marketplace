@@ -36,7 +36,7 @@ glob	**/resources/js/Pages/**	inertia-best-practices	inertia	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework
 glob	*.php	php-best-practices	php	high	!composer.json~laravel/framework
-glob	**/routes/api.php	api-design	api-design	high
+glob	api.php	api-design	api-design	high
 glob	openapi*.yml	api-design	api-design	high
 glob	openapi*.yaml	api-design	api-design	high
 glob	*.test.*	testing-best-practices	testing	high

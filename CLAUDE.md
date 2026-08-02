@@ -74,20 +74,41 @@ saying so is the point.
   vue2, rollout, react-best-practices, the css-family skills, …) unless the
   line discusses the removal itself or carries `<!-- removed-ok -->`;
   `claude-api` must be described as Claude Code's built-in skill, never as a
-  marketplace artifact. Patterns and rescue lists live in
-  `scripts/lib/plugin-checks.sh`, one source shared with the smoke fixtures.
+  marketplace artifact. Same file set: a **host-overlap guard** fails any plugin
+  SKILL whose directory name equals a skill Claude Code itself ships (`dataviz`,
+  `skill-creator`, `artifact-design`, `claude-api`, `simplify`, …) unless the
+  line carries `<!-- host-ok -->` — commands are out of scope, being namespaced
+  at the call site. It also gates **routing reachability**: every
+  `plugins/skill-router/rules.tsv` glob row must be able to fire under
+  `route.sh`'s `match_glob`, which understands only the `**/dir/**` form and
+  basename-matches everything else, and README structure (a `###` heading with a
+  table header and zero rows fails; a plugin needs a real table ROW, not a prose
+  mention). Patterns and rescue lists live in `scripts/lib/plugin-checks.sh`,
+  one source shared with the smoke fixtures.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
   `ROADMAP.md` — a typo fix there does not demand a semver bump.
-- `scripts/context-budget.sh` — BLOCKING per-leaf description-token gate vs the
-  committed baseline (own CI step); accept intentional growth with
-  `--update-baseline`, never in CI.
+- `scripts/context-budget.sh` — BLOCKING token gate vs committed baselines (own
+  CI step), across **two** channels since 2026-08-02: **always-on**
+  (`context-budget-baseline.json` — descriptions + SessionStart stdout + local
+  MCP `tools/list`) and **dynamic** (`context-budget-dynamic-baseline.json` —
+  UserPromptSubmit and per-tool hook stdout, measured with a work-shaped prompt
+  and a synthetic `Edit`). The dynamic channel was unmetered before that and the
+  omission was load-bearing: skill-router alone injects ~2.4k tokens no baseline
+  saw. Accept intentional growth with `--update-baseline`, never in CI. Still
+  unmetered BY NATURE and reported by name each run rather than scored zero:
+  skill BODIES loaded by a routing rule, and remote MCP servers.
 
 - `scripts/generate.sh --check` — BLOCKING chassis-drift gate (own CI step): every
   chassis-generated file (review commands, worker agents, suite uninstalls,
   reminder hooks) must byte-match its template output; regenerate with
-  `--write` after editing templates or `.chassis.json`.
+  `--write` after editing templates or `.chassis.json`. Two repo-level steps ride
+  the same gate and are NOT chassis files: plugin-scout's `catalog.md`, and the
+  README **bundle table** between `<!-- generated:bundle-table -->` and
+  `<!-- end:bundle-table -->` (rows and the leaf-count sentence come from each
+  bundle's `plugin.json` dependencies plus both context-budget baselines — edit
+  them by hand and `--check` fails).
 
 Run all four before pushing:
 
@@ -113,9 +134,11 @@ guard, rules-overlap, route-marker, prompt-route, behavioral-verification,
 completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
 verbosity-hook, preview-guard, `validate-fixtures/parity-check.sh`),
 `scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
-lints — taskmaster's at `plugins/taskmaster/scripts/__tests__/*.test.sh` plus
-task-runner's at `plugins/task-runner/scripts/__tests__/*.test.sh`, one shared
-CI step, not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
+lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
+ANY plugin shipping a harness is enforced the moment it lands (taskmaster and
+task-runner are the two that do today; the glob was hardcoded to exactly those
+two until 2026-08-02, which meant a third plugin's fixtures would have sat
+unrun with nothing saying so). Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
 deliberately NOT a CI step: its own header says it needs a live model; it
 stays a local authoring harness.)
 A local four-script pass can still be red on merge: several of those harnesses

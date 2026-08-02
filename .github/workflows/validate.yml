@@ -61,9 +61,17 @@ jobs:
         run: bash scripts/smoke/completion-gate-hook-tests.sh
       - name: Evidence-gate hook smoke tests
         run: bash scripts/smoke/evidence-gate-hook-tests.sh
-      - name: Taskmaster author-time lint tests + task-runner harnesses
+      # Every plugin-shipped test harness, not a hardcoded two. A plugin that
+      # ships a script gate and a scripts/__tests__/ directory is enforced by
+      # this step the moment it lands; before this glob widened, a third
+      # plugin's fixtures would have sat unrun in CI with nothing saying so —
+      # the recorded-masquerading-as-gate failure CLAUDE.md's has-teeth
+      # convention forbids. The -f guard keeps an unmatched glob (no plugin
+      # ships tests) from expanding literally and failing the step.
+      - name: Plugin author-time lint + harness tests (all plugins)
         run: |
-          for t in plugins/taskmaster/scripts/__tests__/*.test.sh plugins/task-runner/scripts/__tests__/*.test.sh; do
+          for t in plugins/*/scripts/__tests__/*.test.sh; do
+            [ -f "$t" ] || continue
             echo "== $t"; bash "$t"
           done
       - name: validate.sh parity harness (FAIL paths still fire)
