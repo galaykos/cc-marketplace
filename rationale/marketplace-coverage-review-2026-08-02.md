@@ -313,8 +313,21 @@ Post-refutation. Every item states its **standing** and whether it adds a
 > prose** before the word-multiset check caught it. Any future line-reclaiming
 > pass must be fence-aware; the working version is in this commit's history.
 >
-> **Still open in P2:** design-preview Vue/Blade paths, document-analysis coverage
-> manifest (ultra-deep-research).
+> **Tranche 4, landed 2026-08-02 — P2 COMPLETE, 11 of 11.**
+>
+> | Item | Shipped | Standing |
+> |---|---|---|
+> | design-preview beyond React | Vue/Nuxt branch (the extra-HTML-entry trick transfers unchanged; only the mount call differs) and a Laravel branch that says plainly the trick does **NOT** transfer — PHP owns routing, so it is a scratch Blade view plus one marked route block. Consent prompt names the route file, and cleanup verifies with `php artisan route:list`, because a leftover ROUTE is reachable in a way a leftover HTML file is not | agent-graded |
+> | Local-corpus analysis (ultra-deep-research) | `references/local-corpus.md` + a pointer in the SKILL body. **No new skill description** — the refuter's narrowing kept the coverage manifest and dropped the rest. Reuses the shipped verifier agent and contradiction ledger, pointed inward at internal contradictions | agent-graded |
+>
+> The earlier note that these two "need a funding deletion you approve" was wrong
+> and is corrected here: both host skills had real headroom (114 and 116 lines
+> against 150). The ceiling pressure was specific to `react-native`, `task-runner`
+> and `plugin-scout`, and generalising it was an error.
+>
+> `design-preview`'s description grew +7 tokens (React-only → Vite React/Vue plus
+> Laravel). The gate caught it, the baseline was re-seeded deliberately, and the
+> README bundle table regenerated itself: `everything` is now ~12.1k always-on.
 
 Every item here survived on its script or hook and lost its SKILL.md. That is
 the pattern: **ship the teeth, skip the description.** Applying it across P2
