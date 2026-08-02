@@ -1,0 +1,5 @@
+{
+  "chassis": "optout",
+  "file": "commands/check.md",
+  "reason": "Not the chassis check command (which verifies a docs/config surface before work begins). This one takes a shell command as its argument and runs the plugin's own hook in --check mode to report the verdict it would return — a classifier probe over one string, with no docs surface, no review, no fix list and no skill dispatch."
+}
