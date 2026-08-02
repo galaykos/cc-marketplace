@@ -1,0 +1,14 @@
+{
+  "name": "command-guard",
+  "version": "0.1.0",
+  "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, db:wipe, DROP DATABASE, rm -rf /, git clean -fdx, docker compose down -v, terraform destroy, cloud deletes) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf ./dir, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. Ships /command-guard:check and a user-owned allow-file the agent cannot edit.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "security",
+    "hooks",
+    "governance"
+  ]
+}

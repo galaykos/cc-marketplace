@@ -305,6 +305,11 @@
       "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, SQL, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Every relevant skill co-fires per edit (a11y alongside ui-ux); fail-open, once per skill per session."
     },
     {
+      "name": "command-guard",
+      "source": "./plugins/command-guard",
+      "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, db:wipe, DROP DATABASE, rm -rf /, git clean -fdx, docker compose down -v, terraform destroy, cloud deletes) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf ./dir, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. Ships /command-guard:check and a user-owned allow-file the agent cannot edit."
+    },
+    {
       "name": "secret-scanning",
       "source": "./plugins/secret-scanning",
       "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape."
