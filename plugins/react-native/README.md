@@ -32,3 +32,25 @@ your release actually ships.
 
 - **react** — server-state discipline (TanStack Query/SWR, cache keys,
   invalidation) for the data layer under RN screens
+
+## Expo / EAS
+
+`skills/react-native-best-practices/references/expo.md` carries the Expo facts
+whose standard remediation has **inverted**, and only those — it is deliberately
+not a second best-practices body:
+
+- From SDK 55 the New Architecture is always on, so `newArchEnabled: false` is a
+  silently accepted no-op rather than the fix it was in 2024/2025.
+- `expo install` resolves against the SDK's compatibility matrix; `npm install`
+  does not, and the failure surfaces later as a native crash.
+- Under CNG, `expo prebuild --clean` overwrites hand edits to `ios/`/`android/` —
+  native changes belong in a config plugin.
+- An EAS Update published against a mismatched `runtimeVersion` is never
+  delivered, with no error anywhere.
+
+`/react-native:review` reads it automatically when `expo` is in the manifest, and
+`skill-router` routes this skill on `app.config.*` and `eas.json` edits in an Expo
+project. **Honest limitation:** the SKILL.md body does not point at it, because
+that body sits exactly at the 150-line ceiling and nothing in it was redundant
+enough to delete for the pointer. So the reference is reachable from the review
+command and from here, not from the skill body itself.

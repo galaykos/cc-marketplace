@@ -1,5 +1,5 @@
 ---
-description: Audit composer/npm dependencies — vulnerabilities and outdated packages, severity-sorted with a fix lane per finding; report-only
+description: Audit composer/npm dependencies — vulnerabilities, outdated packages, and dependency licences against the project's distribution mode; severity-sorted with a fix lane per finding; report-only
 ---
 
 Audit the project's dependencies for vulnerabilities and outdated packages against
@@ -28,3 +28,33 @@ This command is report-only — apply nothing unasked. End by offering as a sele
 choice (AskUserQuestion when available): "Apply the patch-lane fixes now
 (Recommended)" / "Skip — report only". When headless, print the exact commands the
 user would run instead.
+
+## Licence lane
+
+Dependency licences are the third axis of this audit and the only one with a
+script, because it is the only one a read cannot do. Run:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/licence-scan.sh --dir . --distribution <mode>
+```
+
+`<mode>` is `saas`, `distributed-binary`, `internal`, `oss-permissive` or
+`oss-copyleft`. **Ask the user which one if it is not already in
+`.licence-policy.json`, and do not guess** — the mode IS the decision, and the
+axes run opposite ways: MPL-2.0 and LGPL are routine in a SaaS backend and a
+hazard in a shipped binary; AGPL is the exact inverse, biting hardest on SaaS,
+where "we don't distribute, so copyleft doesn't apply" is precisely wrong.
+
+Report the script's output, and say three things it makes visible that a
+`package.json` read cannot:
+
+- **Which findings are transitive.** Almost all of them will be. A denied licence
+  usually arrives through a dependency of a dependency, so "we didn't install
+  that" is not a defence and the fix is upstream, not in the manifest.
+- **Exit 3 is not a pass.** It means unresolvable: an npm `lockfileVersion` 1
+  carries no licence data at all, so a scan of it finds nothing for the wrong
+  reason. Say that plainly rather than reporting "no licence issues".
+- **This is declared metadata, not legal truth.** It cannot see a dual-licensed
+  package that declares one side, vendored code with no manifest entry, or a
+  LICENSE file contradicting the declared SPDX id. Never present it as advice a
+  lawyer would give.

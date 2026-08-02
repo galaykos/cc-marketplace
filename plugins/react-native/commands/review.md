@@ -6,6 +6,8 @@ argument-hint: [files-or-diff]
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
+Before reporting, read package.json and the lockfile for `expo`. If the project is an Expo project, ALSO read the skill's `references/expo.md` and check the four things whose standard remediation has since inverted: from SDK 55 `newArchEnabled: false` is a silently accepted no-op rather than a fix; `expo install` (not `npm install`) is the only correct resolver in a managed project; `expo prebuild --clean` overwrites hand-edited files under ios/ and android/, so native changes belong in a config plugin; and an EAS Update published against a mismatched `runtimeVersion` is never delivered, with no error anywhere. Pin every finding to the installed expo version — each of these is version-conditional, and below SDK 55 the old advice is still right.
+
 1. Determine scope from $ARGUMENTS — a file, directory, diff/branch reference, or
    design document. If empty, default to recent changes (`git diff` against the merge
    base, falling back to the latest commits).

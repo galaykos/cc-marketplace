@@ -280,9 +280,41 @@ Post-refutation. Every item states its **standing** and whether it adds a
 > earlier today. Both baselines re-seeded deliberately; `everything` is now
 > 12,048 always-on + 2,413 dynamic.
 >
-> **Still open in P2:** licence scan (packages), pgvector reference (postgresql),
-> Expo reference + `rules.tsv` rows (react-native), design-preview Vue/Blade
-> paths, document-analysis coverage manifest (ultra-deep-research).
+> **Tranche 3, landed 2026-08-02** — three more.
+>
+> | Item | Shipped | Standing |
+> |---|---|---|
+> | Licence (packages) | `scripts/licence-scan.sh` — lockfile-driven, distribution-mode aware, exit 2 denied / 3 unresolvable, `--init` writes a policy. **Not inert by default**: `--distribution saas` alone is a complete run, which is what the cost refuter's kill hinged on. A licence lane on the existing `/packages:audit`, **no new skill**. 23 fixtures | gate |
+> | pgvector (postgresql) | `references/pgvector.md` — opclass/metric mismatch silently disabling the index, post-filtered ANN returning fewer and worse rows as the filter tightens, `ef_search`, the 2000-dim ceiling, model change = backfill. Pointed at from the index-arsenal section | agent-graded |
+> | Expo (react-native) | `references/expo.md` — only the four facts whose standard remediation INVERTED. Plus `app.config.*` and `eas.json` `rules.tsv` rows guarded on `package.json~"expo"`, and a `.chassis.json` preamble so `/react-native:review` reads it | agent-graded |
+>
+> **The licence scanner's evidence is a measurement inside this repo, so the
+> measurement is also the test.** `plugins/shadcn-studio/template/package-lock.json`
+> has 170 entries, twelve MPL-2.0 (lightningcss and its eleven platform binaries,
+> pulled in transitively by Tailwind v4), **none in `package.json`**. A fixture
+> asserts all twelve are found AND that the premise still holds — if MPL ever
+> appears in the manifest, the fixture fails rather than silently proving nothing.
+> The same lockfile is clean for `saas` and denied for `distributed-binary`, which
+> is the distribution-mode conditional demonstrated on live data rather than
+> asserted.
+>
+> **One item could not be done as specified, and forcing it would have been
+> worse.** `react-native`'s SKILL.md body sits at exactly the 150-line ceiling.
+> Adding a four-line pointer to the Expo reference needs four lines back, and
+> repacking every prose paragraph outside its code fences yielded **zero** — the
+> body is genuinely dense. The available trades were deleting content on my own
+> judgment (the "Common mistakes" recap is the only redundancy, and it is the
+> review command's checklist) or over-running the gate. Neither happened. The
+> reference is reachable from `/react-native:review` via the chassis preamble and
+> from `plugins/react-native/README.md`, and NOT from the skill body — stated in
+> that README as a limitation rather than left for a reader to discover.
+>
+> An earlier attempt at the same repack **reflowed a fenced `jsx` example into
+> prose** before the word-multiset check caught it. Any future line-reclaiming
+> pass must be fence-aware; the working version is in this commit's history.
+>
+> **Still open in P2:** design-preview Vue/Blade paths, document-analysis coverage
+> manifest (ultra-deep-research).
 
 Every item here survived on its script or hook and lost its SKILL.md. That is
 the pattern: **ship the teeth, skip the description.** Applying it across P2

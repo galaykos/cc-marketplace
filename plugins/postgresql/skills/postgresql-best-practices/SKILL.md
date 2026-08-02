@@ -38,6 +38,12 @@ description: Use when writing or reviewing PostgreSQL 14+ schemas, queries, or m
   INVALID index: check and drop/rebuild on failure. (Same for DROP CONCURRENTLY.)
 - Composite order and FK-indexing rules from the sql plugin apply unchanged —
   Postgres does not index FKs automatically.
+- **HNSW / IVFFlat (pgvector)**: read `references/pgvector.md` before writing or
+  reviewing any vector query. Its failures are correctness bugs that present as
+  relevance complaints and raise no error — an index built with the wrong operator
+  class is silently unused, and a `WHERE` alongside `ORDER BY embedding <=> $1`
+  post-filters the candidate set, so a tenant-scoped search returns fewer and worse
+  rows the more selective the filter gets. Both look fine on a small fixture.
 
 ## Lock-aware migrations
 
