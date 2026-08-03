@@ -99,9 +99,11 @@ loaded <k> of <m>[; rescued <names>][; missing <names>][; ignored off-name injec
   skill is CORRECT and must never appear here. A path naming a skill you never listed is a
   caller ROUTING bug, is not authoritative, and must not be applied.
 
-When `<m>` is 0 and there is no off-name path, emit no line at all — nothing was missing,
-so an alarm would be false. When every skill in `<m>` was injected and read and nothing was
-rescued, emit no line either.
+Emit no line at all in exactly two cases, and both require there to be NO off-name path:
+`<m>` is 0 with no off-name path — nothing was missing, so an alarm would be false; or
+every skill in `<m>` was injected and read, nothing was rescued, and there is no off-name
+path. An off-name injection ALWAYS produces a line, however well the rest of the dispatch
+went — that is the whole point of tracking it separately from the other three fields.
 
 For any skill you could not load, say so at the point you use it, not only at the top, and
 state the gap there and give no rubric-attributed guidance for it. Never present recalled

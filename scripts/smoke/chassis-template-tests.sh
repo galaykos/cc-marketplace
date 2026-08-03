@@ -110,7 +110,12 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # A rescue that ends complete still means the caller shipped a broken dispatch.
   expect_has "$W" "REQUIRED even when you end up holding everything" "worker: successful rescue is still reported"
   # <m>=0 must not fire an alarm, or a correct dispatch reports itself failed.
-  expect_has "$W" "emit no line at all" "worker: zero applicable skills raises no alarm"
+  expect_has "$W" "Emit no line at all in exactly two cases" "worker: zero applicable skills raises no alarm"
+  # Both no-line cases must be gated on off-name being empty. Left unqualified, the
+  # suppression rule contradicts the emit rule and a routing bug is dropped precisely
+  # when the rest of the dispatch was perfect.
+  expect_has "$W" "both require there to be NO off-name path" "worker: suppression is gated on off-name"
+  expect_has "$W" "ALWAYS produces a line" "worker: an off-name injection is never suppressed"
   # Off-name keys on the NAMED list; keyed on <m> it accuses every stack-narrowed caller.
   expect_has "$W" "this against your NAMED list, never against" "worker: off-name keys on named list, not applying subset"
   expect_has "$W" "do not treat it as authoritative" "worker: an off-name rubric is never applied"
