@@ -121,11 +121,11 @@ no reliable way to resolve a skill unaided (`references/skill-priming.md` — wh
 `Bash` CAN self-rescue). The orchestrator resolves and injects, per skill a card names in
 `Skills to apply` and per `bestpractices-skill:` token in frontmatter:
 
-1. **Resolve** dir `<name>`'s `SKILL.md`, first hit wins — same-plugin
-   `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`, else live checkout
-   `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '\.bak' | head -1`,
+1. **Resolve** dir `<name>`'s `SKILL.md`, first hit wins — `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`,
+   else sibling-in-your-marketplace `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<name>/SKILL.md`,
+   else `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '\.bak' | head -1`,
    else `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | sort -V | tail -1`,
-   else repo `plugins/*/skills/<name>/SKILL.md` (dev). On miss: skip, never error — NAME it.
+   else repo `plugins/*/skills/<name>/SKILL.md` (dev). Globs exact, finds heuristic; order matters and the rationale is in `references/skill-priming.md`. On miss: skip, never error — NAME it.
 2. **Inject**: `Read <abs-path> before writing; it is the authoritative best-practice
    source for this stack.`
 

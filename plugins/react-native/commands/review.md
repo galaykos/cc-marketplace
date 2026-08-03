@@ -50,6 +50,7 @@ Before reporting, read package.json and the lockfile for `expo`. If the project 
    from recalled convention. Read that line from the chain head's agent file and resolve
    each comma-separated token to the FIRST hit of
    `${CLAUDE_PLUGIN_ROOT}/skills/<tok>/SKILL.md` →
+   `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<tok>/SKILL.md` (sibling plugin, YOUR marketplace) →
    `find ~/.claude/plugins/marketplaces -path '*/skills/<tok>/SKILL.md' | grep -v '\.bak' | head -1` →
    `find ~/.claude/plugins/cache -path '*/skills/<tok>/SKILL.md' | sort -V | tail -1` →
    `plugins/*/skills/<tok>/SKILL.md`, then add one line per hit to the dispatch text:

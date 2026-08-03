@@ -40,14 +40,22 @@ because it is the only party that can rank provenance.
 ## Resolution ladder (first hit wins)
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` — same plugin, unambiguous.
-2. `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '\.bak' | head -1`
-3. `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | sort -V | tail -1`
-4. `plugins/*/skills/<name>/SKILL.md` — repo-relative, development only.
+2. `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<name>/SKILL.md` — sibling plugin in the SAME
+   marketplace. This rung matters: a cross-plugin token (`sql-best-practices` cited by a
+   Laravel worker) resolves here without ever leaving the marketplace the dispatching
+   plugin was installed from. `taskmaster/scripts/skills-stamp-lint.sh:72` already uses
+   exactly this glob.
+3. `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '\.bak' | head -1`
+4. `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | sort -V | tail -1`
+5. `plugins/*/skills/<name>/SKILL.md` — repo-relative, development only.
 
-Marketplaces outrank cache because the checkout is what the user installed; `.bak` is
-excluded because it is by definition superseded. A name that resolves nowhere is skipped,
-never an error — but **name the miss**, or a rubric that silently shrank reads identically
-to one that applied in full.
+Rungs 1–2 are exact; 3–4 are heuristics and are ordered last on purpose. A machine can
+carry several marketplaces at once (six on the box this was verified against, one of them
+a `.bak`), so a bare `find … | head -1` picks arbitrarily among them — fine as a fallback,
+wrong as a first choice. Marketplaces outrank cache because the checkout is what the user
+installed; `.bak` is excluded because it is by definition superseded. A name that resolves
+nowhere is skipped, never an error — but **name the miss**, or a rubric that silently
+shrank reads identically to one that applied in full.
 
 ## Self-rescue (delegate side)
 

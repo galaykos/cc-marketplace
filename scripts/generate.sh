@@ -130,7 +130,16 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 # --- per-chassis renderers --------------------------------------------------------
 render_stack_review() { # obj plugin-dir
   local obj="$1" pdir="$2" rel="${2#$ROOT/}"
-  local tag worker resolved wplugin wname workerChain aeb dfile rfile
+  local tag worker resolved wplugin wname workerChain aeb dfile rfile cmdfile
+  # Optional output path, mirroring worker-agent's `agentFile`. Absent -> commands/review.md,
+  # so every existing manifest renders byte-identical. This exists because resilience's
+  # concurrency-review/error-review were hand-copies of the SAME rendered body, and a
+  # hand-copy of a generated file drifts on every template edit — twice, observed, before
+  # they were folded in here.
+  cmdfile="$(printf '%s' "$obj" | jq -r '.commandFile // "commands/review.md"')"
+  case "$cmdfile" in
+    /*|*..*) die "commandFile '$cmdfile' in $rel must be a plugin-relative path without .." ;;
+  esac
   tag="$(printf '%s' "$obj" | jq -r '.tag // ""')"
   worker="$(printf '%s' "$obj" | jq -r 'if (.worker // null)==null then "" else .worker end')"
   if [ -n "$worker" ]; then
@@ -161,8 +170,8 @@ render_stack_review() { # obj plugin-dir
   printf '%s' "$obj" | jq --arg wc "$workerChain" --arg aeb "$aeb" \
     '. + {lang:(.variant=="lang"), concern:(.variant=="concern"), workerChain:$wc, applyExtraBlock:$aeb, divergencePreamble:((.divergence // {}).preamble // "")}' > "$dfile"
   ensure_engine
-  render_template "$TEMPLATES/review-command.md.tmpl" "$dfile" > "$rfile" || die "render failed: $rel review.md"
-  emit "$rfile" "$pdir/commands/review.md" 0 "$pdir"
+  render_template "$TEMPLATES/review-command.md.tmpl" "$dfile" > "$rfile" || die "render failed: $rel $cmdfile"
+  emit "$rfile" "$pdir/$cmdfile" 0 "$pdir"
 }
 
 render_suite_uninstall() { # obj plugin-dir
