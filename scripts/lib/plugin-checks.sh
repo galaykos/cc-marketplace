@@ -478,3 +478,28 @@ pc_dispatch_priming() {
   printf '%s\n' "${f#plugins/}"
   return 1
 }
+
+# pc_ladder_drift <file> — any document that spells out the skill-resolution ladder must
+# spell out the WHOLE current one. The ladder was fixed four times on the agent side while
+# apply-lane (which generates 30+ commands) kept the stale form for three rounds: nobody
+# notices, because a stale ladder still resolves most skills most of the time and fails
+# only on the cases the fixes were for. A file "spells out the ladder" iff it names the
+# marketplaces find; then it must also carry every correction.
+pc_ladder_drift() {
+  local f="$1" miss=""
+  [ -f "$f" ] || return 0
+  grep -qF 'plugins/marketplaces' "$f" 2>/dev/null || return 0
+  # Each correction may be expressed as SHELL (the Bash variant, apply-lane, the
+  # doctrine ladder) or as PROSE RULES (the no-Bash agents, which have no shell to run).
+  # Accept either — a gate that only recognises one form fails the correct other one,
+  # which is the same false-alarm-on-correct-input defect this branch spent rounds fixing.
+  grep -qF 'skills/*/' "$f" || miss="$miss nested-category"
+  { grep -qF '/marketplaces/[^/]*/\.' "$f" || grep -qF 'dot-prefixed components' "$f"; } \
+    || miss="$miss dot-dir-mirrors"
+  { grep -qF 'for(i=NF;i>0;i--)' "$f" || grep -qF 'version SEGMENT' "$f" \
+    || grep -qF 'highest version directory' "$f"; } || miss="$miss version-segment-sort"
+  grep -qF '.bak' "$f" || miss="$miss bak-exclusion"
+  [ -z "$miss" ] && return 0
+  printf '%s:%s\n' "${f#./}" "$miss"
+  return 1
+}

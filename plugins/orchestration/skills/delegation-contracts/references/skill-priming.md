@@ -46,7 +46,7 @@ because it is the only party that can rank provenance.
    Laravel worker) resolves here without ever leaving the marketplace the dispatching
    plugin was installed from. `taskmaster/scripts/skills-stamp-lint.sh:72` already uses
    exactly this glob.
-3. `find ~/.claude/plugins/marketplaces \( -path '*/skills/<name>/SKILL.md' -o -path '*/skills/*/<name>/SKILL.md' \) | grep -v '/[^/]*\.bak/' | sort | head -1`
+3. `find ~/.claude/plugins/marketplaces \( -path '*/skills/<name>/SKILL.md' -o -path '*/skills/*/<name>/SKILL.md' \) | grep -v '/[^/]*\.bak/' | grep -v '/marketplaces/[^/]*/\.' | sort | head -1`
 4. same `find` under `~/.claude/plugins/cache`, keyed on the version field and taking the
    highest: `awk -F/ '{v="0.0.0"; for(i=NF;i>0;i--) if($i ~ /^[0-9]+(\.[0-9]+)+$/){v=$i; break} print v"\t"$0}' | sort -V | tail -1 | cut -f2-`
 5. `plugins/*/skills/<name>/SKILL.md` — repo-relative, development only.
@@ -75,6 +75,12 @@ this file:
   all. Given `aa-mp/laravel/0.10.0/…` and `zz-mp/laravel/0.9.0/…`, whole-path `sort -V |
   tail -1` returns **0.9.0**. Extracting the version field first (`$(NF-3)`) returns
   0.10.0. Every earlier version of this ladder shipped the broken form.
+
+The second `grep -v` drops OTHER RUNTIMES' mirrors: a marketplace may ship
+`<mp>/.agents/skills/<name>/`, `.roo`, `.kiro`, `.junie` beside its real
+`<mp>/plugins/<p>/skills/<name>/`. They are not `.bak`, and a dot sorts BEFORE a letter, so
+without this they win `head -1` outright — measured on `caveman`, where four such mirrors
+sorted ahead of the real copy.
 
 When rung 3 yields more than one live copy, the pick was decided by sort order, not by
 authority. Report the count; do not present an arbitrary pick as an authoritative one.

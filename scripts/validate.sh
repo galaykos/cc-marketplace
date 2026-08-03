@@ -505,6 +505,16 @@ for d in plugins/*/; do
     || err "plugin '${us##* }' claims version leverage with no \`> Last verified:\` stamp in any skill — check-doc-staleness.sh is structurally blind to its claims. Verify one load-bearing claim against upstream and stamp it, or narrow the plugin's description so it stops claiming version leverage."
 done
 
+# Ladder-drift (HARD): a document that spells out the skill-resolution ladder must carry
+# every correction the ladder has had. apply-lane generates 30+ review commands and sat
+# three rounds behind the agent side — a stale ladder still resolves most skills, and
+# fails only on exactly the cases each fix was written for.
+for lf in templates/blocks/*.md templates/*.tmpl plugins/*/commands/*.md plugins/*/agents/*.md plugins/*/skills/*/SKILL.md plugins/*/skills/*/references/*.md; do
+  [ -f "$lf" ] || continue
+  ld=$(pc_ladder_drift "$lf") \
+    || err "$ld — this file spells out the skill-resolution ladder but is missing those corrections. Each was added because the stale form silently resolved the WRONG copy (or none). Sync it with \`orchestration:delegation-contracts\` references/skill-priming.md, or stop restating the ladder and cite that file instead."
+done
+
 # Dispatch-priming (HARD): a command that hands a fix list to a subagent must tell the
 # dispatching thread to resolve that agent's rubric and inject a Read path. The agent has
 # no `Skill` tool, so `bestpractices-skill:` names a file it cannot open — and every

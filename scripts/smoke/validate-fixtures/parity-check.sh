@@ -14,7 +14,7 @@ RM="$P/README.md"
 RBAK=$(mktemp) || exit 2
 cp "$RM" "$RBAK" || exit 2
 cleanup() {
-  rm -rf "$SK" "$DOC" ${DP_TMPDIR:+"$DP_TMPDIR"}
+  rm -rf "$SK" "$DOC" ${DP_TMPDIR:+"$DP_TMPDIR"} ${LD_TMPDIR:+"$LD_TMPDIR"}
   bad=0
   if [ -f "$RBAK" ]; then
     cp "$RBAK" "$RM"
@@ -200,5 +200,55 @@ dpassert_clean ok-mechanism.md     # spells the mechanism out
 dpassert_clean ok-marker.md        # <!-- priming-ok --> suppresses
 dpassert_clean clean-no-dispatch.md  # "dispatch this agent" in authoring prose is not a dispatch
 dpassert_clean clean-mention.md      # merely mentioning a worker is not a dispatch
+
+# ---------------------------------------------------------------------------
+# Ladder-drift gate: both directions, both expression forms.
+#
+# apply-lane generates 30+ review commands and sat three rounds behind the agent
+# side with a stale resolution ladder. Nobody noticed because a stale ladder still
+# resolves most skills most of the time — it fails only on the cases each fix was
+# written for. The gate must also accept the PROSE form the no-Bash agents use, or
+# it fails correct files.
+# ---------------------------------------------------------------------------
+LDD=$(mktemp -d) || exit 2
+LD_TMPDIR="$LDD"
+ld() { printf '%s\n' "$2" > "$LDD/$1"; }
+
+FULL_SH='find ~/.claude/plugins/marketplaces \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) | grep -v "/[^/]*\.bak/" | grep -v "/marketplaces/[^/]*/\." | sort
+awk -F/ "{for(i=NF;i>0;i--) ...}"'
+FULL_PROSE='resolve under ~/.claude/plugins/marketplaces, also matching skills/*/<name>/SKILL.md;
+discard .bak components and dot-prefixed components under a marketplace root;
+among cache paths take the highest version directory.'
+
+ld full-shell.md          "$FULL_SH"
+ld full-prose.md          "$FULL_PROSE"
+ld stale-no-nested.md     'find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" | grep -v "/[^/]*\.bak/" | grep -v "/marketplaces/[^/]*/\." | sort
+awk -F/ "{for(i=NF;i>0;i--) ...}"'
+ld stale-no-dotdir.md     'find ~/.claude/plugins/marketplaces \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) | grep -v "/[^/]*\.bak/" | sort
+awk -F/ "{for(i=NF;i>0;i--) ...}"'
+ld stale-fixed-index.md   'find ~/.claude/plugins/marketplaces \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) | grep -v "/[^/]*\.bak/" | grep -v "/marketplaces/[^/]*/\." | sort
+awk -F/ "{print \$(NF-3)}"'
+ld not-a-ladder.md        'This file mentions dispatch and priming but never names the resolution search root.'
+
+ldassert_hit() {
+  out_l=$(pc_ladder_drift "$LDD/$1"); st=$?
+  if [ "$st" -ne 0 ] && [ -n "$out_l" ]; then echo "PASS: ladder-drift hit: $1"
+  else echo "FAIL: ladder-drift $1 (status=$st hit='$out_l'; want nonzero + name)"; rc=1; fi
+}
+ldassert_clean() {
+  out_l=$(pc_ladder_drift "$LDD/$1"); st=$?
+  if [ "$st" -eq 0 ] && [ -z "$out_l" ]; then echo "PASS: ladder-drift clean: $1"
+  else echo "FAIL: ladder-drift $1 (status=$st hit='$out_l'; want status 0 + empty)"; rc=1; fi
+}
+
+# TRUE POSITIVES — one per correction the ladder has actually had.
+ldassert_hit   stale-no-nested.md      # nested-category skills reported UNRESOLVED
+ldassert_hit   stale-no-dotdir.md      # other runtimes' mirrors win head -1
+ldassert_hit   stale-fixed-index.md    # NF-3 keys a vendor dir on 74 real paths
+
+# TRUE NEGATIVES — both expression forms are complete, and a non-ladder file is skipped.
+ldassert_clean full-shell.md
+ldassert_clean full-prose.md
+ldassert_clean not-a-ladder.md
 
 exit $rc
