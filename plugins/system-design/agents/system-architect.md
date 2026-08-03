@@ -33,15 +33,23 @@ placeholder to fill and nothing to guess:
 
 ```sh
 for s in $(echo 'system-design,domain-modeling,event-driven' | tr ',' ' '); do
-  p=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | grep -v '\.bak' | head -1)
-  [ -n "$p" ] || p=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null | sort -V | tail -1)
-  printf '%s\t%s\n' "$s" "${p:-UNRESOLVED}"
+  all=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | sort)
+  live=$(printf '%s\n' "$all" | grep -v '/[^/]*\.bak/')
+  p=$(printf '%s\n' "$live" | head -1); src=marketplace; n=$(printf '%s\n' "$live" | grep -c .)
+  if [ -z "$p" ]; then
+    c=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null)
+    p=$(printf '%s\n' "$c" | awk -F/ 'NF>3{print $(NF-3)"\t"$0}' | sort -V | tail -1 | cut -f2-)
+    src=cache; n=$(printf '%s\n' "$c" | grep -c .)
+  fi
+  printf '%s\t%s\tsrc=%s\tcopies=%s\tstale-suppressed=%s\n' "$s" "${p:-UNRESOLVED}" "$src" "$n" \
+    "$(( $(printf '%s\n' "$all" | grep -c .) - $(printf '%s\n' "$live" | grep -c .) ))"
 done
 ```
 
-Read the first path that resolves and state which one you used — naming your pick is what
-makes a stale-rubric bug findable later. A name that resolves nowhere is not an error:
-report it as unresolved and continue. If nothing resolves at all, open your return with
+Read EVERY path it prints, not just the first, and state which path you used for each
+skill plus any that came back `UNRESOLVED` — report those and continue. A `copies=` count above 1 means several installs ship that skill and the pick was decided
+by sort order, not authority — say so. `stale-suppressed=` above 0 means a `.bak` mirror
+was filtered out; those mirrors do differ in content, so name that too. If nothing resolves at all, open your return with
 `dispatched unprimed — rubric not loaded`, and never present recalled convention as the
 named skill's rubric — the caller cannot tell the two apart from your output.
 

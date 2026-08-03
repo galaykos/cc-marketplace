@@ -100,8 +100,21 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # and exclude .bak, or a stale cached rubric loads silently.
   expect_has "$W" "self-rescue" "worker: self-rescue backstop present"
   expect_has "$W" "~/.claude/plugins/marketplaces" "worker: self-rescue prefers the live checkout"
-  expect_has "$W" "grep -v '\\.bak'" "worker: self-rescue excludes stale .bak mirrors"
-  expect_has "$W" "sort -V | tail -1" "worker: cache fallback picks the highest version"
+  # Anchored to a path SEGMENT, so a plugin merely named *.backup* is not filtered out.
+  expect_has "$W" "grep -v '/[^/]*\\.bak/'" "worker: self-rescue excludes stale .bak mirrors"
+  # The live-checkout branch must SORT before head -1: raw find order is filesystem order,
+  # and unsorted it returned the .bak mirror first on the machine this was measured on.
+  expect_has "$W" '| sort)' "worker: live-checkout pick is deterministic, not filesystem order"
+  # Ambiguity must be reported for whichever channel produced the pick, and a suppressed
+  # .bak mirror must be visible — those mirrors were measured to DIFFER in content, so a
+  # silent suppression is a stale-rubric bug the caller cannot see.
+  expect_has "$W" "src=%s" "worker: names which channel produced the pick"
+  expect_has "$W" "stale-suppressed=%s" "worker: reports suppressed .bak mirrors"
+  expect_absent "$W" "live-copies=" "worker: no marketplace-only count (blind to cache ambiguity)"
+  # Cache fallback must sort the VERSION SEGMENT. `sort -V` over whole paths lets the
+  # marketplace name dominate — it returns 0.9.0 over 0.10.0 across two roots.
+  expect_has "$W" 'awk -F/ ' "worker: cache fallback extracts the version field"
+  expect_has "$W" "sort -V | tail -1 | cut -f2-" "worker: cache fallback sorts by version, not whole path"
   # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
   # runnable-looking command gets executed verbatim, returns nothing, and the agent
   # then reports "unresolved" for a skill that is in fact installed.

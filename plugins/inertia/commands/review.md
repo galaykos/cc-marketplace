@@ -54,8 +54,8 @@ Pin every finding to the installed `inertiajs/inertia-laravel` and `@inertiajs/*
    `bestpractices-skill:` line and resolve each comma-separated token to the FIRST hit of
    `${CLAUDE_PLUGIN_ROOT}/skills/<tok>/SKILL.md` →
    `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<tok>/SKILL.md` (sibling plugin, YOUR marketplace) →
-   `find ~/.claude/plugins/marketplaces -path '*/skills/<tok>/SKILL.md' | grep -v '\.bak' | head -1` →
-   `find ~/.claude/plugins/cache -path '*/skills/<tok>/SKILL.md' | sort -V | tail -1` →
+   `find ~/.claude/plugins/marketplaces -path '*/skills/<tok>/SKILL.md' | grep -v '/[^/]*\.bak/' | sort | head -1` →
+   `find ~/.claude/plugins/cache -path '*/skills/<tok>/SKILL.md' | awk -F/ '{print $(NF-3)"\t"$0}' | sort -V | tail -1 | cut -f2-` →
    `plugins/*/skills/<tok>/SKILL.md`, then add one line per hit to the dispatch text:
    `Read <abs-path> before writing; it is the authoritative best-practice source for this
    stack.` A token that resolves nowhere is skipped, never an error — but name it, so a

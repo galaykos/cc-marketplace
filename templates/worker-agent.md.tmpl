@@ -19,8 +19,9 @@ Your authoritative rubric is `{{bestpractices-skill}}` — comma-separated when 
 one, each naming a skill directory, not a file you can find by name.
 
 You have no `Skill` tool, so a dispatch that primes you injects one absolute
-`Read <path>` per skill: Read those first and work from them, and do not restate or
-second-guess their rubric here.
+`Read <path>` per skill: Read those first and work from them. Do not restate their rubric
+in THIS file or second-guess it — quoting a rule back when you are asked to, or to justify
+a finding, is not restating it.
 
 If NO such path was injected, you were dispatched unprimed — a direct spawn, or a
 dispatch site that skipped its priming step. Do not proceed on recall. **If you hold `Bash`, self-rescue before doing any work.**
@@ -30,16 +31,25 @@ placeholder to fill and nothing to guess:
 
 ```sh
 for s in $(echo '{{bestpractices-skill}}' | tr ',' ' '); do
-  p=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | grep -v '\.bak' | head -1)
-  [ -n "$p" ] || p=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null | sort -V | tail -1)
-  printf '%s\t%s\n' "$s" "${p:-UNRESOLVED}"
+  all=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | sort)
+  live=$(printf '%s\n' "$all" | grep -v '/[^/]*\.bak/')
+  p=$(printf '%s\n' "$live" | head -1); src=marketplace; n=$(printf '%s\n' "$live" | grep -c .)
+  if [ -z "$p" ]; then
+    c=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null)
+    p=$(printf '%s\n' "$c" | awk -F/ 'NF>3{print $(NF-3)"\t"$0}' | sort -V | tail -1 | cut -f2-)
+    src=cache; n=$(printf '%s\n' "$c" | grep -c .)
+  fi
+  printf '%s\t%s\tsrc=%s\tcopies=%s\tstale-suppressed=%s\n' "$s" "${p:-UNRESOLVED}" "$src" "$n" \
+    "$(( $(printf '%s\n' "$all" | grep -c .) - $(printf '%s\n' "$live" | grep -c .) ))"
 done
 ```
 
-Read the first path that resolves and state which one you used — several copies of the
-same skill coexist at different versions, so naming your pick is what makes a
-stale-rubric bug findable later. A name that resolves nowhere is not an error: report it
-as unresolved and continue.
+Read **every** path it prints, not just the first — the loop emits one row per skill, and
+stopping at row one silently drops the rest of your rubric. Then state, in your return,
+which path you used for each skill and which names came back `UNRESOLVED`; report the
+unresolved ones and continue rather than stopping. A `copies=` count above 1 means several installs ship that skill and the pick was decided
+by sort order, not authority — say so. `stale-suppressed=` above 0 means a `.bak` mirror
+was filtered out; those mirrors do differ in content, so name that too.
 
 If you hold no `Bash`, or nothing resolved, say so in the first line of your return —
 `dispatched unprimed — rubric not loaded` — and work only from what this file already

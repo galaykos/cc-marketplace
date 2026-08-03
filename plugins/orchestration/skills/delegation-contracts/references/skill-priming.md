@@ -45,9 +45,25 @@ because it is the only party that can rank provenance.
    Laravel worker) resolves here without ever leaving the marketplace the dispatching
    plugin was installed from. `taskmaster/scripts/skills-stamp-lint.sh:72` already uses
    exactly this glob.
-3. `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '\.bak' | head -1`
-4. `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | sort -V | tail -1`
+3. `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '/[^/]*\.bak/' | sort | head -1`
+4. `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | awk -F/ '{print $(NF-3)"\t"$0}' | sort -V | tail -1 | cut -f2-`
 5. `plugins/*/skills/<name>/SKILL.md` — repo-relative, development only.
+
+Two details in rungs 3–4 are load-bearing, and both were wrong in the first draft of
+this file:
+
+- **`sort` before `head -1` on rung 3.** Raw `find` order is filesystem order. Measured
+  here, unsorted `find` returned the `.bak` mirror FIRST for `sql-best-practices` — only
+  the exclusion saved it. Without `sort`, which live marketplace wins is unstable across
+  machines and across runs on one machine.
+- **Rung 4 sorts the VERSION SEGMENT, not the whole path.** `sort -V` on full paths lets
+  the marketplace-name segment dominate the comparison, so it is not a version sort at
+  all. Given `aa-mp/laravel/0.10.0/…` and `zz-mp/laravel/0.9.0/…`, whole-path `sort -V |
+  tail -1` returns **0.9.0**. Extracting the version field first (`$(NF-3)`) returns
+  0.10.0. Every earlier version of this ladder shipped the broken form.
+
+When rung 3 yields more than one live copy, the pick was decided by sort order, not by
+authority. Report the count; do not present an arbitrary pick as an authoritative one.
 
 Rungs 1–2 are exact; 3–4 are heuristics and are ordered last on purpose. A machine can
 carry several marketplaces at once (six on the box this was verified against, one of them
