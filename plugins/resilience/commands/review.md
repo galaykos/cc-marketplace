@@ -42,8 +42,11 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
 7. **Prime the worker's rubric in that same dispatch.** A worker has no `Skill` tool and
    cannot locate an installed skill from the project CWD, so the `bestpractices-skill:`
    line in its agent frontmatter names a rubric it cannot open — unqualified, it works
-   from recalled convention. Read that line from the chain head's agent file and resolve
-   each comma-separated token to the FIRST hit of
+   from recalled convention. The chain head's agent file is
+   `${CLAUDE_PLUGIN_ROOT}/agents/<name>.md` when the head lives in THIS plugin, else
+   `"${CLAUDE_PLUGIN_ROOT}"/../<plugin>/agents/<name>.md` — naming an agent file without
+   saying where it is would repeat the exact bug this step exists to fix. Read its
+   `bestpractices-skill:` line and resolve each comma-separated token to the FIRST hit of
    `${CLAUDE_PLUGIN_ROOT}/skills/<tok>/SKILL.md` →
    `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<tok>/SKILL.md` (sibling plugin, YOUR marketplace) →
    `find ~/.claude/plugins/marketplaces -path '*/skills/<tok>/SKILL.md' | grep -v '\.bak' | head -1` →

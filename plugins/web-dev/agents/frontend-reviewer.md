@@ -30,13 +30,10 @@ and work only from what this file already inlines. Never present recalled conven
 the named skill's rubric — the caller cannot tell the two apart from your output, and
 that is the whole reason this line exists.
 
-## Rubric
-
-Detect the framework from the files and imports, then load the matching skill as your
-authority — from the set
-`react-server-state,react-native-best-practices,vue3-best-practices,inertia-best-practices,livewire-best-practices,vite-best-practices,nextjs-best-practices,nuxt-best-practices`
-— whichever the diff touches.
-Skip silently if a skill's plugin is not installed.
+Detect the framework from the files and imports and apply only the injected rubrics whose
+framework the diff actually touches — an injected path for a framework not in this diff is
+noise, not a mandate. A skill whose plugin is not installed resolves to no path at all;
+skip it silently.
 
 ## What you check
 

@@ -511,7 +511,9 @@ done
 # dispatch site in this marketplace named one and injected nothing, silently, because
 # prose promising an injection reads like prose performing one. Presence-only by nature:
 # whether a run carried the paths is agent-graded and not checkable here.
-for cmdf in plugins/*/commands/*.md; do
+# Skills and their references dispatch too — scanned so a future one cannot land
+# unprimed. Zero violations across both today; the scan is insurance, not a backlog.
+for cmdf in plugins/*/commands/*.md plugins/*/skills/*/SKILL.md plugins/*/skills/*/references/*.md; do
   [ -f "$cmdf" ] || continue
   dp=$(pc_dispatch_priming "$cmdf") \
     || err "$dp dispatches work to a subagent without a priming step — the agent has no \`Skill\` tool, so its \`bestpractices-skill:\` names a rubric it cannot open and it will work from recalled convention. Add the resolve+inject step (cite \`orchestration:delegation-contracts\` § Skill priming), or mark the line \`<!-- priming-ok -->\` if the target genuinely has no rubric to load."

@@ -73,7 +73,9 @@ The prompt to each track-worker contains, in order:
    command to this worktree with `git -C <abs>` or absolute paths. Do NOT touch any path
    outside it. Do NOT write `00-INDEX.md` (you do not have it)."*
 3. The milestone's card **text** inline, in dependency order.
-4. For every skill named in the cards' `Skills to apply`, the orchestrator resolves its
+4. For every skill named in the cards' `Skills to apply` — plus every comma-separated
+   token of the `bestpractices-skill:` frontmatter of any worker the leaf will route to —
+   the orchestrator resolves its
    installed `SKILL.md` and injects a `Read <abs-path>` line HERE (delegation-contracts
    § Skill priming) — the leaf cannot self-load skills, so priming it at dispatch is the
    ONLY way a framework card in a track reaches its worker with the skill loaded. Then:

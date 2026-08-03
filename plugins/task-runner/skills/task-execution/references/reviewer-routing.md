@@ -41,8 +41,13 @@ observability -> code-review:code-reviewer + prime {card Skills-to-apply} + obse
 ## Priming (the orchestrator primes every routed reviewer)
 
 Reviewer agents have no Skill tool and cannot self-load a rubric, so the **orchestrator**
-injects it. For each named skill, Read its installed `SKILL.md` and paste a
-**reviewer-phrased** inject into the dispatch prompt:
+injects it. For each named skill — those listed in the map above AND every comma-separated
+token of the reviewer's own `bestpractices-skill:` frontmatter — resolve its installed
+`SKILL.md` by the ladder in delegation-contracts § Skill priming (same-plugin glob →
+sibling-plugin glob → marketplaces find, `.bak` excluded → versioned cache find → repo,
+first hit wins; a miss is skipped but NAMED). "Read its installed `SKILL.md`" without
+that ladder is the same unfollowable instruction this section exists to remove. Then
+paste a **reviewer-phrased** inject into the dispatch prompt:
 
 > "Read `<abs-path>` before reviewing; treat it as the authoritative review rubric for
 > this dispatch."
