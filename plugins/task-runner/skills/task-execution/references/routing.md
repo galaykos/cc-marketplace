@@ -48,10 +48,12 @@ and picks the first present in its available-agent-types list.
    FILE by the three-rung ladder in delegation-contracts `references/skill-priming.md`
    § Resolving the AGENT file, since its copies disagree about which skills the worker even
    names — resolve its installed `SKILL.md` and inject a `Read <abs-path>` line into the
-   same prompt. **Mark every CARD-derived path `supplementary`**: a card's `Skills to apply`
-   is by construction outside the worker's frontmatter (a `testing-best-practices` card
-   routed to `laravel:backend-engineer`), and an unlabelled outside path is refused unread
-   and reported as a caller routing error (delegation-contracts § Skill priming) — a delegate cannot self-load skills, and a card
+   same prompt. **Dedupe by skill name across the two sources, then mark
+   `supplementary` exactly those paths the resolved head's `bestpractices-skill:` does NOT
+   list** — a `testing-best-practices` card routed to `laravel:backend-engineer` needs the
+   label; a `laravel-best-practices` card routed to that same worker does not, and labelling
+   it would inject one skill twice and count it twice in the worker's `<m>`. An unlabelled
+   outside path is refused unread and reported as a caller routing error (delegation-contracts § Skill priming) — a delegate cannot self-load skills, and a card
    naming no skill still dispatches to a worker whose frontmatter names one. Do this **unconditionally, not
    only under ultra**: a framework card must reach its worker with the framework skill
    primed, or the code is written framework-blind and only caught (if at all) at review.

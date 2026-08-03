@@ -81,9 +81,12 @@ return (delegation-contracts § Compressed returns), injected verbatim:
 
 **Bound:** inject the reviewer's OWN `bestpractices-skill:` tokens (always — they are the
 rubric it was built around) + the card's `Skills to apply` (deduped) + at most one agnostic
-domain skill from the map. **Both of those latter terms are outside the reviewer's own
-frontmatter — the card's `Skills to apply` as much as the map skill — so inject BOTH marked
-`supplementary`, or the reviewer discards them unread and false-alarms a routing error.** The sentinel `none detected` (or an absent `Skills to apply`
+domain skill from the map (deduped against the other two terms — the `devops` row's map
+skill IS `devops-reviewer`'s only frontmatter token, and injecting it twice counts one skill
+twice in the reviewer's `<m>`). **Mark `supplementary` exactly those paths the resolved
+reviewer's own `bestpractices-skill:` does NOT list, whichever term they came from** — an
+unlabelled outside path is discarded unread and false-alarms a routing error, and a label on
+a path the reviewer already names is the double-count above. The sentinel `none detected` (or an absent `Skills to apply`
 line) zeroes only the CARD-derived term; the reviewer's own tokens are unaffected. Reading
 it as zeroing everything dispatches `code-review:code-reviewer` with neither `code-smells`
 nor `reuse-hygiene` while both sit installed. A named skill that is absent is omitted and
