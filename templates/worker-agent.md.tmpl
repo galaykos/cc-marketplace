@@ -78,10 +78,12 @@ selected, not the whole menu; a skill correctly out of scope is not missing.
   the caller shipped a short dispatch and only this line tells them so.
 - you hold all of them and every one was injected — no marker needed.
 
-Whichever line you emit, append `; ignored off-name injection <names>` if any injected
-path named a skill outside `<m>`. Without it, a caller who primed you with the WRONG
-plugin's rubric — a routing bug — is indistinguishable from one who merely primed you
-short, and the routing bug is the more alarming of the two.
+If any injected path named a skill outside `<m>`, report it — appended to whichever line
+above you emit, or, when that line is "no marker needed", emit it ALONE as
+`ignored off-name injection <names>`. It must never be the case that a routing bug goes
+unreported because the rest of the dispatch happened to be fine: a caller who primed you
+with the WRONG plugin's rubric is otherwise indistinguishable from one who primed you
+correctly, and it is the more alarming of the two.
 
 For any skill you could not load, say so at the point you use it, not only at the top.
 Never present recalled convention as the named skill's rubric; the caller cannot tell the

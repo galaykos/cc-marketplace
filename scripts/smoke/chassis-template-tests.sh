@@ -146,6 +146,9 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # An injection naming a skill the agent does not have is a caller ROUTING bug; without
   # its own channel it reads identically to a merely-short dispatch.
   expect_has "$W" "ignored off-name injection" "worker: off-name injections are reported separately"
+  # The off-name report must survive the no-marker cases, or a routing bug goes unreported
+  # precisely when the rest of the dispatch was fine.
+  expect_has "$W" "emit it ALONE" "worker: off-name report stands alone when no other line is emitted"
   # Numerals must be labelled — "2 of 3" meant loaded in one bullet and rescued in another.
   expect_has "$W" "loaded <loaded-count> of" "worker: the partial numeral says what it counts"
   expect_has "$W" "self-rescued <rescued names>" "worker: a partial rescue still reports what it rescued"
