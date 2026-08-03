@@ -507,3 +507,22 @@ pc_ladder_drift() {
   printf '%s:%s\n' "${f#./}" "$miss"
   return 1
 }
+
+# pc_supplementary_label <file> — a dispatch site that injects a skill OUTSIDE the
+# resolved head's frontmatter must mark it `supplementary`. Workers refuse an unlabelled
+# outside path unread and report it as a caller routing error, so an unlabelled deliberate
+# inject is silently discarded — the branch shipped four of these, each found by audit
+# rather than by any gate, because presence-of-a-priming-step (pc_dispatch_priming) cannot
+# see a missing label.
+#
+# Fires only on files that describe an outside-frontmatter inject in one of the shapes
+# actually used; a site injecting only the head's own tokens is out of scope by design.
+pc_supplementary_label() {
+  local f="$1"
+  [ -f "$f" ] || return 0
+  grep -qiE 'skills? (this|THIS) (review|audit) (itself )?(detected and )?loaded|does NOT name, inject it too|per skill you actually loaded|inject (that|this plugin.s own|whichever)' "$f" 2>/dev/null || return 0
+  grep -qF 'supplementary' "$f" && return 0
+  grep -qF 'supplementary-ok' "$f" && return 0
+  printf '%s\n' "${f#./}"
+  return 1
+}

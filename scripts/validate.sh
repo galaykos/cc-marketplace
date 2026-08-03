@@ -505,6 +505,16 @@ for d in plugins/*/; do
     || err "plugin '${us##* }' claims version leverage with no \`> Last verified:\` stamp in any skill — check-doc-staleness.sh is structurally blind to its claims. Verify one load-bearing claim against upstream and stamp it, or narrow the plugin's description so it stops claiming version leverage."
 done
 
+# Supplementary-label (HARD): a site that injects a skill outside the resolved head's
+# frontmatter must mark it `supplementary`, or the worker discards it unread and reports a
+# caller routing error. Four such sites shipped unlabelled on this branch; the
+# priming-presence gate above cannot see a missing label, so this is its own check.
+for sf in plugins/*/commands/*.md templates/blocks/*.md plugins/*/skills/*/references/*.md; do
+  [ -f "$sf" ] || continue
+  sl=$(pc_supplementary_label "$sf") \
+    || err "$sl injects a skill outside the resolved head's frontmatter without marking it \`supplementary\` — the worker refuses an unlabelled outside path unread and reports it as YOUR routing bug, so the inject is silently discarded. Append \` — supplementary\` to those paths, or mark the line <!-- supplementary-ok --> if the target has no refusal contract."
+done
+
 # Ladder-drift (HARD): a document that spells out the skill-resolution ladder must carry
 # every correction the ladder has had. apply-lane generates 30+ review commands and sat
 # three rounds behind the agent side — a stale ladder still resolves most skills, and

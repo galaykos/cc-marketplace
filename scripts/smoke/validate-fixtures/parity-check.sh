@@ -14,7 +14,7 @@ RM="$P/README.md"
 RBAK=$(mktemp) || exit 2
 cp "$RM" "$RBAK" || exit 2
 cleanup() {
-  rm -rf "$SK" "$DOC" ${DP_TMPDIR:+"$DP_TMPDIR"} ${LD_TMPDIR:+"$LD_TMPDIR"}
+  rm -rf "$SK" "$DOC" ${DP_TMPDIR:+"$DP_TMPDIR"} ${LD_TMPDIR:+"$LD_TMPDIR"} ${SL_TMPDIR:+"$SL_TMPDIR"}
   bad=0
   if [ -f "$RBAK" ]; then
     cp "$RBAK" "$RM"
@@ -260,5 +260,44 @@ ldassert_hit   stale-no-bak.md         # resolves to the stale .bak mirror; meas
 ldassert_clean full-shell.md
 ldassert_clean full-prose.md
 ldassert_clean not-a-ladder.md
+
+# ---------------------------------------------------------------------------
+# Supplementary-label gate: both directions.
+#
+# pc_dispatch_priming proves a priming step EXISTS; it cannot see that an
+# outside-frontmatter inject went out unlabelled, and four such sites shipped
+# that way on this branch. A worker refuses an unlabelled outside path unread,
+# so the deliberate inject is discarded and the caller is blamed for it.
+# ---------------------------------------------------------------------------
+SLD=$(mktemp -d) || exit 2
+SL_TMPDIR="$SLD"
+sl() { printf '%s\n' "$2" > "$SLD/$1"; }
+
+sl bad-detected.md    'Inject the stack skills THIS review loaded to produce the findings.'
+sl bad-own-rubric.md  "Since no worker names it, inject that one too."
+sl bad-perskill.md    'Inject one `Read <abs-path>` line per skill you actually loaded.'
+sl ok-labelled.md     'Inject the stack skills THIS review loaded, each marked supplementary.'
+sl ok-marker.md       'Inject one `Read <abs-path>` line per skill you actually loaded. <!-- supplementary-ok -->'
+sl clean-own-only.md  'Resolve each token of its `bestpractices-skill:` frontmatter and inject one Read path per hit.'
+
+slassert_hit() {
+  o=$(pc_supplementary_label "$SLD/$1"); st=$?
+  if [ "$st" -ne 0 ] && [ -n "$o" ]; then echo "PASS: supplementary-label hit: $1"
+  else echo "FAIL: supplementary-label $1 (status=$st hit='$o'; want nonzero + name)"; rc=1; fi
+}
+slassert_clean() {
+  o=$(pc_supplementary_label "$SLD/$1"); st=$?
+  if [ "$st" -eq 0 ] && [ -z "$o" ]; then echo "PASS: supplementary-label clean: $1"
+  else echo "FAIL: supplementary-label $1 (status=$st hit='$o'; want status 0 + empty)"; rc=1; fi
+}
+
+# TRUE POSITIVES — the three real shapes that shipped unlabelled.
+slassert_hit   bad-detected.md
+slassert_hit   bad-own-rubric.md
+slassert_hit   bad-perskill.md
+# TRUE NEGATIVES — labelled, escape-hatched, and a site injecting only the head's own tokens.
+slassert_clean ok-labelled.md
+slassert_clean ok-marker.md
+slassert_clean clean-own-only.md
 
 exit $rc
