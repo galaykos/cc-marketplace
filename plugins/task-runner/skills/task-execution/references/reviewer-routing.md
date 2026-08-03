@@ -82,7 +82,9 @@ Runs after the card's verification passes — a command OR a recorded manual che
 (`SKILL.md`'s manual-check rule), so UI/visual cards without a runnable command are still reviewed.
 
 1. **Existing pass:** baseline `code-reviewer` + whichever diff-content gates match the
-   diff (ui-ux / architecture / security).
+   diff (ui-ux / architecture / security) — each primed per § Priming from its own
+   `bestpractices-skill:` frontmatter. The baseline set is primed for the same reason the
+   tag route is: a reviewer that never opened its rubric still returns confident findings.
 2. **Tag route:** add the card's tag reviewer (map above), primed per § Priming.
 3. **Dedup over (agent + rubric):** never run the same review twice.
    - A real reviewer agent is never dispatched twice (e.g. a `ui-ux` card whose diff also

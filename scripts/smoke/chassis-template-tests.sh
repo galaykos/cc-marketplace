@@ -95,6 +95,13 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # dispatch — otherwise "rubric not loaded" is indistinguishable from "rubric applied".
   expect_has "$W" "no \`Skill\` tool" "worker: states it cannot load the skill itself"
   expect_has "$W" "dispatched unprimed — rubric not loaded" "worker: unprimed dispatch is self-reported"
+  # Self-rescue backstop: covers direct Agent spawns and any dispatch site that skipped
+  # its step — neither of which the orchestrator can reach. Must prefer the live checkout
+  # and exclude .bak, or a stale cached rubric loads silently.
+  expect_has "$W" "self-rescue" "worker: self-rescue backstop present"
+  expect_has "$W" "~/.claude/plugins/marketplaces" "worker: self-rescue prefers the live checkout"
+  expect_has "$W" "grep -v '\\.bak'" "worker: self-rescue excludes stale .bak mirrors"
+  expect_has "$W" "sort -V | tail -1" "worker: cache fallback picks the highest version"
   expect_absent "$W" "Domain checklist" "worker: no restated checklist (skill pointer only)"
 fi
 

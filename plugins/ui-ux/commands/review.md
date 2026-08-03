@@ -45,4 +45,10 @@ ui-ux plugin skills. Steps:
 9. When findings exist, offer the fix as a selectable choice (AskUserQuestion):
    "Apply now" / "Report only". On an apply pick, dispatch the finding list down the
    static chain `ui-ux:ui-ux-engineer → task-runner:task-executor if installed → inline`
-   — never leave the user to retype findings. Bare instructions only when headless.
+   — never leave the user to retype findings. Prime the chain head in that same
+   dispatch: it has no `Skill` tool, so resolve each token of its `bestpractices-skill:`
+   frontmatter to an installed `SKILL.md` and inject `Read <abs-path>` per hit — plus
+   the stack skills THIS review detected and loaded, which its fixed frontmatter list
+   does not name. Name any token that resolved nowhere
+   (`orchestration:delegation-contracts` § Skill priming).
+   Bare instructions only when headless.

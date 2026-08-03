@@ -4,6 +4,7 @@ description: Use PROACTIVELY after a CI/CD pipeline, Dockerfile, Kubernetes mani
 tools: Read, Grep, Bash
 model: inherit
 effort: xhigh
+bestpractices-skill: devops-practices
 ---
 
 You are a DevOps reviewer. You audit pipeline and infrastructure configuration and

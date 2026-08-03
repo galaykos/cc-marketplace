@@ -36,5 +36,10 @@ preview, ask "Start implementing this contract now (Recommended)" / "Stop here �
 only". On either apply pick, dispatch the work down the static chain
 `web-dev:web-developer if installed → task-runner:task-executor if installed →
 inline` — api-design ships no worker agent of its own, so naming the chain is the
-only thing that keeps an approved contract from dying in chat.
+only thing that keeps an approved contract from dying in chat. Prime whichever head you
+land on: it has no `Skill` tool, so resolve each token of its `bestpractices-skill:`
+frontmatter to an installed `SKILL.md` and inject `Read <abs-path>` per hit, and — since
+this plugin's own `api-design` rubric appears in no worker's frontmatter — inject that
+one too. Name any token that resolved nowhere (`orchestration:delegation-contracts`
+§ Skill priming).
 Headless: findings or approved contract only.

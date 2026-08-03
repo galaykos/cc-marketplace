@@ -22,11 +22,27 @@ You have no `Skill` tool, so a dispatch that primes you injects one absolute
 `Read <path>` per skill: Read those first and work from them, and do not restate or
 second-guess their rubric here.
 
-If NO such path was injected, you were dispatched unprimed. Say so in the first line of
-your return — `dispatched unprimed — rubric not loaded` — and work only from what this
-file already inlines. Never present recalled convention as the named skill's rubric; the
-caller cannot tell the two apart from your output, and that is the whole reason this
-line exists.
+If NO such path was injected, you were dispatched unprimed — a direct spawn, or a
+dispatch site that skipped its priming step. Do not proceed on recall. **If you hold
+`Bash`, self-rescue before doing any work**, once per skill name above:
+
+```sh
+# 1. installed marketplace checkouts win; .bak mirrors are stale, never use them
+find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' 2>/dev/null | grep -v '\.bak' | head -1
+# 2. else the highest-versioned cache copy — several versions coexist
+find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' 2>/dev/null | sort -V | tail -1
+```
+
+Read the first path that resolves and state which one you used — several copies of the
+same skill coexist at different versions, so naming your pick is what makes a
+stale-rubric bug findable later. A name that resolves nowhere is not an error: report it
+as unresolved and continue.
+
+If you hold no `Bash`, or nothing resolved, say so in the first line of your return —
+`dispatched unprimed — rubric not loaded` — and work only from what this file already
+inlines. Never present recalled convention as the named skill's rubric; the caller
+cannot tell the two apart from your output, and that is the whole reason this line
+exists.
 
 Apply fixes in reviewable increments: one concern per change, each independently
 verifiable.

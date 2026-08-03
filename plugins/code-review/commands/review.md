@@ -87,4 +87,13 @@ apply pick, dispatch the finding list down the static chain
 findings, and never apply a list of this size inline when a scope-locked executor
 with its own verify-fix loop is available. This plugin ships a REVIEWER, not a
 worker, so `task-executor` is the head of the chain rather than its second rung.
+
+Prime that dispatch. `task-executor` has no `Skill` tool AND declares no
+`bestpractices-skill:` frontmatter, so unlike a stack worker it has nothing to resolve —
+and a fix list is not a task card, so nothing else names its rubric either. You already
+loaded the matching stack skills to produce these findings: inject one
+`Read <abs-path>` line per skill you actually loaded, so the executor applies the same
+rubric the review was judged against rather than recalled convention. Name any skill you
+loaded whose file you could not resolve. Doctrine:
+`orchestration:delegation-contracts` § Skill priming.
 Headless: verdict only.

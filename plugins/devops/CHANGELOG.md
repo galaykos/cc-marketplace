@@ -2,6 +2,19 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.5 — 2026-08-03
+
+### Fixed
+- **`devops-reviewer` declares its own rubric** (`devops-practices`), so a dispatch can
+  prime it. It previously carried no `bestpractices-skill:` line, so there was nothing
+  for any dispatch site to resolve and it reviewed from recalled convention.
+- **`devops-engineer` self-rescues when dispatched unprimed.** If it receives no injected
+  rubric path — a direct spawn, or a caller that skipped its priming step — it now
+  locates the skill itself via `find ~/.claude/plugins/marketplaces`, preferring the live
+  checkout over stale `.bak` mirrors and version-pinned cache copies, and states which
+  path it used. If it cannot resolve one, it opens its return with `dispatched unprimed
+  — rubric not loaded` instead of quietly proceeding.
+
 ## 0.5.2 — 2026-08-02
 
 ### Fixed

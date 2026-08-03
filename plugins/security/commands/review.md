@@ -35,5 +35,10 @@ skipped — not only what broke. Then run one adversarial self-refute pass over 
 When findings exist, offer remediation as a selectable choice (AskUserQuestion):
 "Apply now, critical first" / "Report only". On an apply pick, dispatch the finding
 list down the static chain `security:security-engineer → task-runner:task-executor if
-installed → inline` — never leave the user to retype findings. Bare instructions only
-when headless.
+installed → inline` — never leave the user to retype findings. Prime the chain head in
+that same dispatch: it has no `Skill` tool, so resolve each token of its
+`bestpractices-skill:` frontmatter to an installed `SKILL.md` and inject
+`Read <abs-path>` per hit, naming any token that resolved nowhere
+(`orchestration:delegation-contracts` § Skill priming). A remediation written from
+recalled convention is exactly the failure mode this review exists to catch.
+Bare instructions only when headless.

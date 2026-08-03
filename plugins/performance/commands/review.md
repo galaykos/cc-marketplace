@@ -43,4 +43,9 @@ Review the target for performance hotspots and cache-correctness gaps.
    "Apply now" / "Measure first, then decide" / "Report only". On an apply pick,
    dispatch the finding list down the static chain `performance:performance-engineer →
    task-runner:task-executor if installed → inline` — never leave the user to retype
-   findings as instructions. In headless or non-interactive runs, report only.
+   findings as instructions. Prime the chain head in that same dispatch: it has no
+   `Skill` tool, so resolve each token of its `bestpractices-skill:` frontmatter to an
+   installed `SKILL.md` and inject `Read <abs-path>` per hit, naming any token that
+   resolved nowhere (`orchestration:delegation-contracts` § Skill priming). Unprimed, it
+   optimizes from recalled convention rather than the rubric these findings cite.
+   In headless or non-interactive runs, report only.

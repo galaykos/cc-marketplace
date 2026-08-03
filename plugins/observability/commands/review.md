@@ -45,10 +45,16 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
    from recalled convention. Read that line from the chain head's agent file and resolve
    each comma-separated token to the FIRST hit of
    `${CLAUDE_PLUGIN_ROOT}/skills/<tok>/SKILL.md` →
+   `find ~/.claude/plugins/marketplaces -path '*/skills/<tok>/SKILL.md' | grep -v '\.bak' | head -1` →
    `find ~/.claude/plugins/cache -path '*/skills/<tok>/SKILL.md' | sort -V | tail -1` →
    `plugins/*/skills/<tok>/SKILL.md`, then add one line per hit to the dispatch text:
    `Read <abs-path> before writing; it is the authoritative best-practice source for this
-   stack.` A token that resolves nowhere is skipped silently, never an error. Full
+   stack.` A token that resolves nowhere is skipped, never an error — but name it, so a
+   missing plugin is visible rather than a rubric that quietly shrank. If the chain head
+   declares NO `bestpractices-skill:` at all (`task-runner:task-executor` does not), there
+   is nothing in frontmatter to resolve and a fix list is not a task card — inject instead
+   the skills THIS review itself loaded to produce the findings, so the applier works to
+   the same rubric the findings were judged against. Full
    doctrine, and the discipline preamble that rides the same dispatch:
    `orchestration:delegation-contracts` § Skill priming. Standing: agent-graded — no
    script verifies a dispatch actually carried the paths.

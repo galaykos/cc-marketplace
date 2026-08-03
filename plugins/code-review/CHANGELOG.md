@@ -3,6 +3,19 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.10.1 — 2026-08-03
+
+### Fixed
+- **`/code-review:review` now hands `task-executor` the stack skills the review was
+  judged against.** The executor has no `Skill` tool *and* declares no
+  `bestpractices-skill:` frontmatter, and a fix list is not a task card — so unlike a
+  stack worker it had nothing to resolve from any source, and applied findings from
+  recalled convention. The apply lane now injects one `Read <abs-path>` per skill this
+  review actually loaded, so the applier and the reviewer work to the same rubric.
+- **`code-reviewer` declares its own rubric** (`code-smells`, `reuse-hygiene`), so the
+  task-runner reviewer pass can prime it. Previously it carried no `bestpractices-skill:`
+  line at all, which left nothing for any dispatch site to resolve.
+
 ## 0.10.0 — 2026-08-02
 
 ### Added

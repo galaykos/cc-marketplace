@@ -505,6 +505,18 @@ for d in plugins/*/; do
     || err "plugin '${us##* }' claims version leverage with no \`> Last verified:\` stamp in any skill — check-doc-staleness.sh is structurally blind to its claims. Verify one load-bearing claim against upstream and stamp it, or narrow the plugin's description so it stops claiming version leverage."
 done
 
+# Dispatch-priming (HARD): a command that hands a fix list to a subagent must tell the
+# dispatching thread to resolve that agent's rubric and inject a Read path. The agent has
+# no `Skill` tool, so `bestpractices-skill:` names a file it cannot open — and every
+# dispatch site in this marketplace named one and injected nothing, silently, because
+# prose promising an injection reads like prose performing one. Presence-only by nature:
+# whether a run carried the paths is agent-graded and not checkable here.
+for cmdf in plugins/*/commands/*.md; do
+  [ -f "$cmdf" ] || continue
+  dp=$(pc_dispatch_priming "$cmdf") \
+    || err "$dp dispatches work to a subagent without a priming step — the agent has no \`Skill\` tool, so its \`bestpractices-skill:\` names a rubric it cannot open and it will work from recalled convention. Add the resolve+inject step (cite \`orchestration:delegation-contracts\` § Skill priming), or mark the line \`<!-- priming-ok -->\` if the target genuinely has no rubric to load."
+done
+
 # README-listing (HARD): every plugin must also be LISTED in the top-level
 # README.md plugin tables — a bolded `**name**` or `**[name](...)` row. Presence
 # of a per-plugin README is not discoverability; 9 plugins shipped invisible to

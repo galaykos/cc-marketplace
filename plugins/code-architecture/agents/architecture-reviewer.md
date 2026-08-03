@@ -4,6 +4,7 @@ description: Use PROACTIVELY after structural, module, or API changes — review
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh
+bestpractices-skill: solid-principles,low-cognitive-load,yagni-check
 ---
 
 You are an architecture reviewer. Given a diff or module:

@@ -4,6 +4,7 @@ description: Use PROACTIVELY for system-level design work, before or during impl
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: opus
 effort: xhigh
+bestpractices-skill: system-design,domain-modeling,event-driven
 ---
 
 You are a system architect. You design and implement system-level structure:

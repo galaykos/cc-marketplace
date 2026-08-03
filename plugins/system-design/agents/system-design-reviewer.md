@@ -4,6 +4,7 @@ description: Use PROACTIVELY after a system design, RFC, or service topology is 
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh
+bestpractices-skill: system-design,domain-modeling
 ---
 
 You are a system-design reviewer. You audit system-level structure and report; you

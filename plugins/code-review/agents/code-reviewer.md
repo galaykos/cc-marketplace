@@ -4,6 +4,7 @@ description: Use PROACTIVELY after writing or modifying code outside UI framewor
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh
+bestpractices-skill: code-smells,reuse-hygiene
 ---
 
 You are a code reviewer. Given a diff, branch, or set of files:

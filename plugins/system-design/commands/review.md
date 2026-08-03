@@ -36,7 +36,11 @@ implementing it.
 
 6. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    "Have the system-architect implement the fixes now (Recommended)" / "Report only".
-   On implement, dispatch the `system-architect` worker with the finding list. In
+   On implement, dispatch the `system-architect` worker with the finding list. Prime it
+   in that same dispatch: it has no `Skill` tool, so resolve each token of its
+   `bestpractices-skill:` frontmatter to an installed `SKILL.md` and inject
+   `Read <abs-path>` per hit, naming any token that resolved nowhere
+   (`orchestration:delegation-contracts` § Skill priming). In
    headless or non-interactive runs, report only.
 
    **Role-tier floor.** `system-architect` and `system-design-reviewer` both carry a row in

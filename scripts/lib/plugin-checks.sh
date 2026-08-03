@@ -449,3 +449,32 @@ pc_version_stamp() {
   printf 'unstamped %s\n' "$name"
   return 1
 }
+
+# pc_dispatch_priming <command.md> — a command that hands a fix list to a subagent
+# must also tell the dispatching thread to resolve and inject that agent's rubric.
+#
+# Why this is a gate and not a convention: a delegated agent has no `Skill` tool, so a
+# `bestpractices-skill:` line names a file it cannot open. Every dispatch site in this
+# marketplace named a rubric and injected nothing — for as long as the templates had
+# existed — and nothing failed, because prose that promises an injection reads exactly
+# like prose that performs one. This checks PRESENCE of the instruction only; whether a
+# given run actually carried the paths stays agent-graded and unmeasurable from here.
+#
+# Escape hatch: `<!-- priming-ok -->` on a dispatching line whose target genuinely has
+# no rubric to load (a format-only or process-only worker).
+pc_dispatch_priming() {
+  local f="$1" body
+  [ -f "$f" ] || return 0
+  # Dispatch verbs that hand work to a named agent. Deliberately narrow: prose merely
+  # MENTIONING an agent is not a dispatch, and a gate that fires on mentions gets muted.
+  # Requires a WORK OBJECT, not just the verb: "dispatch this agent" in authoring prose
+  # describes when a reader should spawn something, and is not itself a dispatch site.
+  body=$(grep -nE 'dispatch (the|it|them|whichever)[^.]{0,40}(finding|fix|work|mapping|violation|list|worker|down)|route accepted fixes|On implement, dispatch' "$f" 2>/dev/null) || return 0
+  [ -n "$body" ] || return 0
+  grep -q 'priming-ok' "$f" && return 0
+  # The doctrine citation is the accepted proof; so is spelling the mechanism out.
+  grep -q 'Skill priming' "$f" && return 0
+  grep -qE 'inject .*`?Read <abs-path>' "$f" && return 0
+  printf '%s\n' "${f#plugins/}"
+  return 1
+}

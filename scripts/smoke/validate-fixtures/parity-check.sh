@@ -14,7 +14,7 @@ RM="$P/README.md"
 RBAK=$(mktemp) || exit 2
 cp "$RM" "$RBAK" || exit 2
 cleanup() {
-  rm -rf "$SK" "$DOC"
+  rm -rf "$SK" "$DOC" ${DP_TMPDIR:+"$DP_TMPDIR"}
   bad=0
   if [ -f "$RBAK" ]; then
     cp "$RBAK" "$RM"
@@ -152,5 +152,53 @@ rassert_clean clean-ordinary-english.md        # rollout/concurrency/etc. as pla
 
 # ESCAPE HATCH — <!-- removed-ok --> suppresses a would-be hit.
 rassert_clean rescued-removed-ok-marker.md
+
+# ---------------------------------------------------------------------------
+# Dispatch-priming gate: both directions, plus the escape hatch.
+#
+# The bug this gate exists for was invisible for as long as the templates had
+# existed: every dispatch site named a rubric and injected nothing, and prose
+# promising an injection reads exactly like prose performing one. Exercises
+# pc_dispatch_priming directly — same function validate.sh calls.
+# ---------------------------------------------------------------------------
+DPD=$(mktemp -d) || exit 2
+# NOTE: do NOT `trap ... EXIT` here — it would REPLACE the cleanup trap set above
+# and leak the planted scratch files into plugins/. Extend cleanup() instead.
+DP_TMPDIR="$DPD"
+dp() { printf '%s\n' "$2" > "$DPD/$1"; }
+
+dp bad-dispatch.md          'On an apply pick, dispatch the finding list down the chain `x:worker → inline`.'
+dp bad-worker.md            'On implement, dispatch the `system-architect` worker with the finding list.'
+dp bad-route.md             'Headless aside, route accepted fixes to `task-runner:task-executor` when installed.'
+dp ok-doctrine.md           'Dispatch the finding list down the chain. Prime it per `delegation-contracts` § Skill priming.'
+dp ok-mechanism.md          'Dispatch the fix list down the chain, and inject `Read <abs-path>` per resolved skill.'
+dp ok-marker.md             'Dispatch the finding list down the chain. <!-- priming-ok -->'
+dp clean-no-dispatch.md     'What situation should make the main session dispatch this agent, and what does it return?'
+dp clean-mention.md         'The reviewer is read-only; a file-editing worker is the wrong shape for a prompt fix.'
+
+dpassert_hit() {
+  out_d=$(pc_dispatch_priming "$DPD/$1"); st=$?
+  if [ "$st" -ne 0 ] && [ -n "$out_d" ]; then echo "PASS: dispatch-priming hit: $1"
+  else echo "FAIL: dispatch-priming $1 (status=$st hit='$out_d'; want nonzero + name)"; rc=1; fi
+}
+dpassert_clean() {
+  out_d=$(pc_dispatch_priming "$DPD/$1"); st=$?
+  if [ "$st" -eq 0 ] && [ -z "$out_d" ]; then echo "PASS: dispatch-priming clean: $1"
+  else echo "FAIL: dispatch-priming $1 (status=$st hit='$out_d'; want status 0 + empty)"; rc=1; fi
+}
+
+# TRUE POSITIVES — a dispatch with no priming step, in each phrasing that ships.
+dpassert_hit   bad-dispatch.md
+dpassert_hit   bad-worker.md
+dpassert_hit   bad-route.md
+
+# RESCUES — either accepted proof clears it.
+dpassert_clean ok-doctrine.md      # cites the doctrine
+dpassert_clean ok-mechanism.md     # spells the mechanism out
+
+# ESCAPE HATCH + TRUE NEGATIVES.
+dpassert_clean ok-marker.md        # <!-- priming-ok --> suppresses
+dpassert_clean clean-no-dispatch.md  # "dispatch this agent" in authoring prose is not a dispatch
+dpassert_clean clean-mention.md      # merely mentioning a worker is not a dispatch
 
 exit $rc

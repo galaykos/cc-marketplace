@@ -42,7 +42,11 @@ are genuinely different — do not collapse them:
   the wrong tool; routing here would be ceremony.
 - **Prompt lives on disk** (a `commands/*.md`, `agents/*.md` or SKILL.md body):
   dispatch the fix list down `task-runner:task-executor if installed → inline`,
-  the same chain every other review command in this marketplace uses. A prompt
+  the same chain every other review command in this marketplace uses. Prime it with
+  `delegation-contracts` itself — the executor has no `Skill` tool and no
+  `bestpractices-skill:` frontmatter, and the rubric these findings cite is this
+  plugin's own: resolve `delegation-contracts`' installed `SKILL.md` and inject
+  `Read <abs-path>` (§ Skill priming). A prompt
   file is a file.
 
 Headless: print the fixed prompt fragments inline.
