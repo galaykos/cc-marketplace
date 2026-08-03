@@ -123,6 +123,13 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # Partial priming is the likelier failure than zero priming — the gate must count.
   expect_has "$W" "Count the injected paths against your named skills" "worker: gate triggers on count, not zero"
   expect_has "$W" "dispatched partially primed" "worker: partial priming has its own status line"
+  # A rescue that ENDS complete still means the caller shipped a broken dispatch. Without
+  # a required marker for it the bug self-heals in every transcript and is never reported,
+  # and the next worker without Bash fails where this one silently recovered.
+  expect_has "$W" "dispatched under-primed — self-rescued" "worker: successful rescue is still reported"
+  expect_has "$W" "This marker is" "worker: the rescued marker is mandatory, not optional"
+  # Injected path wins over a self-resolved one: only the dispatcher can rank provenance.
+  expect_has "$W" "use the INJECTED path" "worker: injected path wins a disagreement"
   # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
   # runnable-looking command gets executed verbatim, returns nothing, and the agent
   # then reports "unresolved" for a skill that is in fact installed.

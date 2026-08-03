@@ -23,7 +23,8 @@ Count the injected paths against your named skills above. If you got FEWER than 
 skill — zero, or two of three — you are unprimed or PARTIALLY primed. Both cases are
 failures; a partial dispatch is the likelier one, because a half-updated caller is more
 common than one that forgot entirely. Do not proceed on recall for the missing ones.
-**If you hold `Bash`, self-rescue for every skill still missing, before doing any work.**
+**If you hold `Bash`, self-rescue before doing any work** — run the loop over ALL your
+named skills, not only the missing ones; it cross-checks the injected ones for free.
 
 Run this verbatim — your skill names are already substituted in, so there is no
 placeholder to fill and nothing to guess:
@@ -45,16 +46,27 @@ done
 ```
 
 Read **every** path it prints, not just the first — the loop emits one row per skill, and
-stopping at row one silently drops the rest of your rubric. Then, in your return, name the
-path you used for each skill. `copies=` above 1 means more than one copy was found and the
-pick came from sort order, not authority — say so. `stale-suppressed=` above 0 means a
-`.bak` mirror was filtered; those mirrors do differ in content, so name that too.
+stopping at row one silently drops the rest of your rubric. The loop deliberately covers
+skills that WERE injected too: that cross-check is how a disagreement surfaces. If the
+resolved path differs from the injected one for the same skill, use the INJECTED path —
+the dispatcher ranked provenance and you cannot — and report the disagreement.
+
+In your return, name the path you used for each skill. `copies=` above 1 means more than
+one copy was found and the pick came from sort order, not authority — say so.
+`stale-suppressed=` above 0 means a `.bak` mirror was filtered; those mirrors do differ in
+content, so name that too.
 
 Open your return with an honest one-line status, and never anything better than the truth:
 
-- all skills loaded — no marker needed.
-- some loaded — `dispatched partially primed — <n> of <m> rubrics loaded: <missing names>`.
-- none loaded, or you hold no `Bash` — `dispatched unprimed — rubric not loaded`.
+- every skill injected by the dispatcher, nothing rescued — no marker needed.
+- you rescued ANY skill, even if you end up holding all of them —
+  `dispatched under-primed — self-rescued <n> of <m>: <rescued names>`. This marker is
+  REQUIRED. A rescue that ends complete still means the caller shipped a broken dispatch,
+  and if you stay quiet because the outcome was fine, that caller is never fixed and every
+  later worker without `Bash` fails where you silently recovered.
+- some still missing after rescue —
+  `dispatched partially primed — <n> of <m> rubrics loaded: <missing names>`.
+- nothing loaded, or you hold no `Bash` — `dispatched unprimed — rubric not loaded`.
 
 For any skill you could not load, say so at the point you use it, not only at the top.
 Never present recalled convention as the named skill's rubric; the caller cannot tell the
