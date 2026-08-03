@@ -148,7 +148,20 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "ignored off-name injection" "worker: off-name injections are reported separately"
   # The off-name report must survive the no-marker cases, or a routing bug goes unreported
   # precisely when the rest of the dispatch was fine.
-  expect_has "$W" "emit it ALONE" "worker: off-name report stands alone when no other line is emitted"
+  expect_has "$W" "it ALONE as \`ignored off-name injection" "worker: off-name report stands alone when no other line is emitted"
+  # The off-name alarm must key on the NAMED list. Keyed on <m> (the applying subset) it
+  # accuses a correct caller every time detection narrows the stack: the dispatcher injects
+  # per named skill and cannot know what detection selected.
+  expect_has "$W" "Judge this against your NAMED list" "worker: off-name alarm keys on named list, not the applying subset"
+  # "Rescued" must exclude the cross-check pass, or a fully-primed dispatch reports itself
+  # under-primed — the loop deliberately covers already-injected skills.
+  expect_has "$W" "cross-check, not a rescue" "worker: cross-checking an injected skill is not a rescue"
+  # Loaded must mean READ, not merely name-matched: an injected path that 404s otherwise
+  # counts as loaded, suppresses rescue, and emits no marker for a rubric never read.
+  expect_has "$W" "AND read successfully" "worker: loaded requires a successful read"
+  expect_has "$W" "if the injected path does not resolve" "worker: unreadable injected path falls back"
+  # The suppressed-mirror count must survive the cache fallback, which reassigns hits/live.
+  expect_has "$W" "sup + " "worker: stale-suppressed accumulates across both channels"
   # Numerals must be labelled — "2 of 3" meant loaded in one bullet and rescued in another.
   expect_has "$W" "loaded <loaded-count> of" "worker: the partial numeral says what it counts"
   expect_has "$W" "self-rescued <rescued names>" "worker: a partial rescue still reports what it rescued"

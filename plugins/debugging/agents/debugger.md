@@ -19,13 +19,16 @@ find by name, and you have no `Skill` tool to load it with. A dispatch that prim
 injects an absolute `Read <path>`: Read it first and work from it, and do not restate or
 second-guess its rubric here.
 
-Match the injected paths BY NAME against your named skills above — a path for a skill
-outside `<m>` does not count as loaded. If you hold FEWER than one per
+Match the injected paths BY NAME against your named skills above, then READ each match. A
+skill counts as loaded only when its path both name-matched AND read successfully — an
+injected path that 404s or is unreadable is NOT loaded; put that skill back in the missing
+set. A path for a skill outside `<m>` does not count as loaded either. If you hold FEWER than one per
 skill — zero, or two of three — you are unprimed or PARTIALLY primed. Both cases are
 failures; a partial dispatch is the likelier one, because a half-updated caller is more
 common than one that forgot entirely. Do not proceed on recall for the missing ones.
-**If you hold `Bash`, self-rescue before doing any work** — run the loop over ALL your
-named skills, not only the missing ones; it cross-checks the injected ones for free.
+**If you hold `Bash`, run the loop below before doing any work.** Run it over ALL your
+named skills, not only the missing ones — for a missing skill that is a rescue, for an
+injected one it is a free cross-check, and only the former counts as "rescued" later.
 
 Run this verbatim — your skill names are already substituted in, so there is no
 placeholder to fill and nothing to guess:
@@ -35,14 +38,14 @@ f() { printf '%s\n' "$1" | grep -v '/[^/]*\.bak/'; }   # drop superseded .bak mi
 c() { printf '%s\n' "$1" | grep -c .; }
 for s in $(echo 'systematic-debugging' | tr ',' ' '); do
   hits=$(find ~/.claude/plugins/marketplaces \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) 2>/dev/null | sort)
-  live=$(f "$hits"); src=marketplace; p=$(printf '%s\n' "$live" | head -1)
+  live=$(f "$hits"); src=marketplace; p=$(printf '%s\n' "$live" | head -1); sup=$(( $(c "$hits") - $(c "$live") ))
   if [ -z "$p" ]; then
     hits=$(find ~/.claude/plugins/cache \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) 2>/dev/null \
       | awk -F/ '{v="0.0.0"; for(i=NF;i>0;i--) if($i ~ /^[0-9]+(\.[0-9]+)+$/){v=$i; break} print v"\t"$0}' | sort -V | cut -f2-)
-    live=$(f "$hits"); src=cache; p=$(printf '%s\n' "$live" | tail -1)
+    live=$(f "$hits"); src=cache; p=$(printf '%s\n' "$live" | tail -1); sup=$(( sup + $(c "$hits") - $(c "$live") ))
   fi
   [ -n "$p" ] || src=none
-  printf '%s\t%s\tsrc=%s\tcopies=%s\tstale-suppressed=%s\n' "$s" "${p:-UNRESOLVED}" "$src" "$(c "$live")" "$(( $(c "$hits") - $(c "$live") ))"
+  printf '%s\t%s\tsrc=%s\tcopies=%s\tstale-suppressed=%s\n' "$s" "${p:-UNRESOLVED}" "$src" "$(c "$live")" "$sup"
 done
 ```
 
@@ -50,7 +53,9 @@ Read **every** path it prints, not just the first — the loop emits one row per
 stopping at row one silently drops the rest of your rubric. The loop deliberately covers
 skills that WERE injected too: that cross-check is how a disagreement surfaces. If the
 resolved path differs from the injected one for the same skill, use the INJECTED path —
-the dispatcher ranked provenance and you cannot — and report the disagreement.
+the dispatcher ranked provenance and you cannot — and report the disagreement. The one
+exception: if the injected path does not resolve or cannot be read, use the resolved one
+and say you did.
 
 In your return, name the path you used for each skill. `copies=` above 1 means more than
 one copy was found and the pick came from sort order, not authority — say so.
@@ -71,15 +76,20 @@ selected, not the whole menu; a skill correctly out of scope is not missing.
   any, so one line carries both facts.
 - you hold all of them, but rescued any — `dispatched under-primed — self-rescued
   <rescued-count> of <m>: <rescued names>`. REQUIRED even though you ended up complete:
-  the caller shipped a short dispatch and only this line tells them so.
+  the caller shipped a short dispatch and only this line tells them so. **Rescued** means
+  a skill whose path you got from the loop because NO injected path named it. Running the
+  loop over a skill that WAS injected is a cross-check, not a rescue — if every skill was
+  injected, nothing was rescued and this line must not fire.
 - you hold all of them and every one was injected — no marker needed.
 
-If any injected path named a skill outside `<m>`, report it — appended to whichever line
-above you emit, or, when that line is "no marker needed", emit it ALONE as
-`ignored off-name injection <names>`. It must never be the case that a routing bug goes
-unreported because the rest of the dispatch happened to be fine: a caller who primed you
-with the WRONG plugin's rubric is otherwise indistinguishable from one who primed you
-correctly, and it is the more alarming of the two.
+If any injected path named a skill that is NOT in your named list at all, report it —
+appended to whichever line above you emit, or, when that line is "no marker needed", emit
+it ALONE as `ignored off-name injection <names>`. Judge this against your NAMED list, never
+against `<m>`: the dispatcher injects one path per named skill and cannot know which ones
+your detection selected, so a path for a named skill that is merely out of scope here is
+CORRECT and must not be reported. Only a path naming a skill you never listed is the
+routing bug — a caller who primed you with the wrong plugin's rubric — and it must not go
+unreported just because the rest of the dispatch was fine.
 
 For any skill you could not load, say so at the point you use it, not only at the top.
 Never present recalled convention as the named skill's rubric; the caller cannot tell the
