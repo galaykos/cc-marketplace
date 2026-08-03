@@ -127,7 +127,7 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # a required marker for it the bug self-heals in every transcript and is never reported,
   # and the next worker without Bash fails where this one silently recovered.
   expect_has "$W" "dispatched under-primed — self-rescued" "worker: successful rescue is still reported"
-  expect_has "$W" "REQUIRED. A rescue that ends complete" "worker: the rescued marker is mandatory, not optional"
+  expect_has "$W" "REQUIRED even though you ended up complete" "worker: the rescued marker is mandatory, not optional"
   # Injected path wins over a self-resolved one: only the dispatcher can rank provenance.
   expect_has "$W" "use the INJECTED path" "worker: injected path wins a disagreement"
   # A menu-style rubric (8 framework skills, one diff) legitimately gets one path. Without
@@ -135,7 +135,12 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "not the whole menu" "worker: menu rubrics do not false-alarm as partial"
   # No-Bash agents cannot rescue, so a partial dispatch must still be REPORTED by them;
   # routing them to the bare unprimed marker loses the missing-names list.
-  expect_has "$W" "you hold at least one skill but not all" "worker: partial tier is reachable without Bash"
+  # Every state must have exactly ONE slot. A first-match ladder where the rescue bullet
+  # claims all rescue cases makes the partial bullet unreachable, so a 1-of-3 rescue
+  # reports "self-rescued 1 of 3" and never names what is still missing.
+  expect_has "$W" "you hold some but not all" "worker: partial tier is its own reachable state"
+  expect_has "$W" "you hold NONE" "worker: taxonomy is gated on what is HELD, not on what happened"
+  expect_has "$W" "self-rescued <rescued names>" "worker: a partial rescue still reports what it rescued"
   # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
   # runnable-looking command gets executed verbatim, returns nothing, and the agent
   # then reports "unresolved" for a skill that is in fact installed.

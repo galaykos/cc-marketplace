@@ -32,25 +32,26 @@ path `~/.claude/plugins` and pattern `**/skills/<that-name>/SKILL.md`, then pick
 rules IN ORDER — never just the first hit, because Glob has returned a stale `.bak` mirror
 first in testing:
 
-1. discard any path with a `.bak` directory component (superseded; content does differ),
+1. discard any path having a directory component that IS `.bak` or ENDS in `.bak` — e.g.
+   `cc-plugins-marketplace.bak`. These are unmanaged mirrors with no freshness guarantee:
+   measured, some are byte-identical to the live copy and others differ by 14 lines, and
+   you cannot tell which without reading both,
 2. prefer `plugins/marketplaces/…` over `plugins/cache/…`,
-3. among cache paths only, take the highest version directory.
+3. break any remaining tie by highest version directory, then by shortest path. If two
+   still survive, the pick came from order, not authority — say so.
 
-Say which path you chose for each rescued skill and what you discarded. If several
-survive rule 3, the pick came from order and not authority — say that too.
-
-Open your return with the FIRST line that matches; `<m>` is the number of your named skills that
+Say which path you chose for each rescued skill and what you discarded. Open your return with the FIRST line that matches; `<m>` is the number of your named skills that
 actually apply to THIS dispatch — for a rubric you select from by detected stack, that is
 what detection selected, not the whole menu; a skill correctly out of scope is not missing:
 
-- all skills injected, nothing rescued — no marker needed.
-- you rescued any —
-  `dispatched under-primed — self-rescued <rescued-count> of <m>: <rescued names>`. REQUIRED
-  even when you end up holding all of them: the caller shipped a short dispatch and only
-  this line tells them so.
-- still missing after rescue —
-  `dispatched partially primed — <loaded-count> of <m> rubrics loaded: <missing names>`.
-- none — `dispatched unprimed — rubric not loaded`.
+- you hold NONE — `dispatched unprimed — rubric not loaded`.
+- you hold some but not all — `dispatched partially primed — <loaded-count> of <m> rubrics
+  loaded: missing <missing names>`; append `; self-rescued <rescued names>` if you rescued
+  any, so one line carries both facts.
+- you hold all of them, but rescued any — `dispatched under-primed — self-rescued
+  <rescued-count> of <m>: <rescued names>`. REQUIRED even though you ended up complete:
+  the caller shipped a short dispatch and only this line tells them so.
+- you hold all of them and every one was injected — no marker needed.
 
 For any skill you could not load, say so at the point you use it, not only at the top, and
 work there only from what this file already inlines. Never present recalled convention as

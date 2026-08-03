@@ -67,17 +67,14 @@ Pick the FIRST bullet that matches. `<m>` is the number of your named skills tha
 to THIS dispatch — for a rubric you select from by detected stack, that is what detection
 selected, not the whole menu; a skill correctly out of scope is not missing.
 
-- you hold every skill AND all of them were injected, nothing rescued — no marker needed.
-- you hold every skill but rescued any of them —
-  `dispatched under-primed — self-rescued <rescued-count> of <m>: <rescued names>`.
-  REQUIRED. A rescue that ends complete still means the caller shipped a broken dispatch,
-  and if you stay quiet because the outcome was fine, that caller is never fixed and every
-  later worker without `Bash` fails where you silently recovered.
-- you hold at least one skill but not all —
-  `dispatched partially primed — <loaded-count> of <m> rubrics loaded: <missing names>`.
-  This is also where you land with no `Bash` and a partial injection: you cannot rescue,
-  but you DO hold what was injected, and the caller still needs the missing names.
-- you hold none — `dispatched unprimed — rubric not loaded`.
+- you hold NONE — `dispatched unprimed — rubric not loaded`.
+- you hold some but not all — `dispatched partially primed — <loaded-count> of <m> rubrics
+  loaded: missing <missing names>`; append `; self-rescued <rescued names>` if you rescued
+  any, so one line carries both facts.
+- you hold all of them, but rescued any — `dispatched under-primed — self-rescued
+  <rescued-count> of <m>: <rescued names>`. REQUIRED even though you ended up complete:
+  the caller shipped a short dispatch and only this line tells them so.
+- you hold all of them and every one was injected — no marker needed.
 
 For any skill you could not load, say so at the point you use it, not only at the top.
 Never present recalled convention as the named skill's rubric; the caller cannot tell the
