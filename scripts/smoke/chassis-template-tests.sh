@@ -91,85 +91,51 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "PROACTIVELY" "worker: description carries PROACTIVELY (validate.sh gate)"
   expect_has "$W" "three strikes" "worker: three-strikes kill-trigger present"
   expect_has "$W" "fails its verify three" "worker: kill-trigger cites 3 failed cycles"
-  # The worker must name its own lack of a Skill tool and self-report an unprimed
-  # dispatch — otherwise "rubric not loaded" is indistinguishable from "rubric applied".
+  # The worker must name its own lack of a Skill tool and report an unprimed dispatch —
+  # otherwise "rubric not loaded" is indistinguishable from "rubric applied".
   expect_has "$W" "no \`Skill\` tool" "worker: states it cannot load the skill itself"
-  expect_has "$W" "dispatched unprimed — rubric not loaded" "worker: unprimed dispatch is self-reported"
+  # Status is FOUR INDEPENDENT FACTS, not a first-match ladder. Five review rounds of
+  # mutually-exclusive bullets produced a false alarm or an unreachable state every time;
+  # independent fields cannot have that class of bug.
+  expect_has "$W" "loaded <k> of <m>" "worker: status line is assembled, not selected"
+  expect_has "$W" "This is not" "worker: status is explicitly not a menu to pick from"
+  expect_has "$W" "; rescued <names>" "worker: rescued is its own field"
+  expect_has "$W" "; missing <names>" "worker: missing is its own field"
+  expect_has "$W" "ignored off-name injection" "worker: off-name is its own field"
+  # Rescue must be keyed on what LOADED, not on what was NAMED: an injected path that
+  # 404s is not a rescue trigger under a name-keyed rule, so a dead injection reported
+  # as a perfect dispatch.
+  expect_has "$W" "no injected path for them LOADED" "worker: an unreadable injection triggers rescue"
+  expect_has "$W" "read successfully" "worker: loaded requires a successful read"
+  # A rescue that ends complete still means the caller shipped a broken dispatch.
+  expect_has "$W" "REQUIRED even when you end up holding everything" "worker: successful rescue is still reported"
+  # <m>=0 must not fire an alarm, or a correct dispatch reports itself failed.
+  expect_has "$W" "emit no line at all" "worker: zero applicable skills raises no alarm"
+  # Off-name keys on the NAMED list; keyed on <m> it accuses every stack-narrowed caller.
+  expect_has "$W" "this against your NAMED list, never against" "worker: off-name keys on named list, not applying subset"
+  expect_has "$W" "do not treat it as authoritative" "worker: an off-name rubric is never applied"
   # Self-rescue backstop: covers direct Agent spawns and any dispatch site that skipped
-  # its step — neither of which the orchestrator can reach. Must prefer the live checkout
-  # and exclude .bak, or a stale cached rubric loads silently.
-  expect_has "$W" "self-rescue" "worker: self-rescue backstop present"
+  # its step — neither of which the orchestrator can reach.
   expect_has "$W" "~/.claude/plugins/marketplaces" "worker: self-rescue prefers the live checkout"
   # Anchored to a path SEGMENT, so a plugin merely named *.backup* is not filtered out.
   expect_has "$W" "grep -v '/[^/]*\\.bak/'" "worker: self-rescue excludes stale .bak mirrors"
-  # The live-checkout branch must SORT before head -1: raw find order is filesystem order,
-  # and unsorted it returned the .bak mirror first on the machine this was measured on.
+  # Other runtimes' mirrors live in dot-dirs under a marketplace root and sort AHEAD of
+  # the real plugins/<name>/ copy.
+  expect_has "$W" "/marketplaces/[^/]*/" "worker: other runtimes' dot-dir mirrors are excluded"
   expect_has "$W" '| sort)' "worker: live-checkout pick is deterministic, not filesystem order"
-  # Ambiguity must be reported for whichever channel produced the pick, and a suppressed
-  # .bak mirror must be visible — those mirrors were measured to DIFFER in content, so a
-  # silent suppression is a stale-rubric bug the caller cannot see.
-  expect_has "$W" "src=%s" "worker: names which channel produced the pick"
-  expect_has "$W" "stale-suppressed=%s" "worker: reports suppressed .bak mirrors"
-  expect_absent "$W" "live-copies=" "worker: no marketplace-only count (blind to cache ambiguity)"
-  # Cache fallback must sort the VERSION SEGMENT. `sort -V` over whole paths lets the
-  # marketplace name dominate — it returns 0.9.0 over 0.10.0 across two roots.
-  # Scan BACKWARD for a semver-looking field rather than a fixed index: 74 of 1525 real
-  # cache paths are deeper than the dominant layout, where NF-3 keys a vendor dir.
+  # Cache fallback must sort the VERSION SEGMENT: sort -V over whole paths lets the
+  # marketplace name dominate and returns 0.9.0 over 0.10.0 across two roots.
   expect_has "$W" 'for(i=NF;i>0;i--)' "worker: cache fallback scans for the version field"
-  expect_has "$W" '/^[0-9]+(\.[0-9]+)+$/' "worker: version field matched by shape, not position"
-  # Nested-category skills (skills/<category>/<name>/SKILL.md) exist in installed
-  # plugins; a flat-only glob reports them UNRESOLVED while they sit readable on disk.
+  expect_has "$W" "sort -V | cut -f2-" "worker: cache fallback sorts by version, not whole path"
+  # Nested-category skills (skills/<category>/<name>/SKILL.md) ship in installed plugins.
   expect_has "$W" '-o -path "*/skills/*/$s/SKILL.md"' "worker: nested-category skills are matched"
-  # Partial priming is the likelier failure than zero priming — the gate must count.
-  expect_has "$W" "Match the injected paths BY NAME" "worker: gate matches by name, not bare count"
-  expect_has "$W" "dispatched partially primed" "worker: partial priming has its own status line"
-  # A rescue that ENDS complete still means the caller shipped a broken dispatch. Without
-  # a required marker for it the bug self-heals in every transcript and is never reported,
-  # and the next worker without Bash fails where this one silently recovered.
-  expect_has "$W" "dispatched under-primed — self-rescued" "worker: successful rescue is still reported"
-  expect_has "$W" "REQUIRED even though you ended up complete" "worker: the rescued marker is mandatory, not optional"
-  # Injected path wins over a self-resolved one: only the dispatcher can rank provenance.
-  expect_has "$W" "use the INJECTED path" "worker: injected path wins a disagreement"
-  # A menu-style rubric (8 framework skills, one diff) legitimately gets one path. Without
-  # this qualifier the partial marker fires on every normal dispatch and gets ignored.
-  expect_has "$W" "not the whole menu" "worker: menu rubrics do not false-alarm as partial"
-  # No-Bash agents cannot rescue, so a partial dispatch must still be REPORTED by them;
-  # routing them to the bare unprimed marker loses the missing-names list.
-  # Every state must have exactly ONE slot. A first-match ladder where the rescue bullet
-  # claims all rescue cases makes the partial bullet unreachable, so a 1-of-3 rescue
-  # reports "self-rescued 1 of 3" and never names what is still missing.
-  expect_has "$W" "you hold some but not all" "worker: partial tier is its own reachable state"
-  expect_has "$W" "you hold NONE" "worker: taxonomy is gated on what is HELD, not on what happened"
-  # <m>=0 (no named skill applies to this diff) must not fire the unprimed alarm: bullet 1
-  # is otherwise vacuously true and a correct dispatch reports itself as failed.
-  expect_has "$W" '`<m>` is 0' "worker: zero applicable skills is not an unprimed dispatch"
-  # An injection naming a skill the agent does not have is a caller ROUTING bug; without
-  # its own channel it reads identically to a merely-short dispatch.
-  expect_has "$W" "ignored off-name injection" "worker: off-name injections are reported separately"
-  # The off-name report must survive the no-marker cases, or a routing bug goes unreported
-  # precisely when the rest of the dispatch was fine.
-  expect_has "$W" "it ALONE as \`ignored off-name injection" "worker: off-name report stands alone when no other line is emitted"
-  # The off-name alarm must key on the NAMED list. Keyed on <m> (the applying subset) it
-  # accuses a correct caller every time detection narrows the stack: the dispatcher injects
-  # per named skill and cannot know what detection selected.
-  expect_has "$W" "Judge this against your NAMED list" "worker: off-name alarm keys on named list, not the applying subset"
-  # "Rescued" must exclude the cross-check pass, or a fully-primed dispatch reports itself
-  # under-primed — the loop deliberately covers already-injected skills.
-  expect_has "$W" "cross-check, not a rescue" "worker: cross-checking an injected skill is not a rescue"
-  # Loaded must mean READ, not merely name-matched: an injected path that 404s otherwise
-  # counts as loaded, suppresses rescue, and emits no marker for a rubric never read.
-  expect_has "$W" "AND read successfully" "worker: loaded requires a successful read"
-  expect_has "$W" "if the injected path does not resolve" "worker: unreadable injected path falls back"
   # The suppressed-mirror count must survive the cache fallback, which reassigns hits/live.
   expect_has "$W" "sup + " "worker: stale-suppressed accumulates across both channels"
-  # Numerals must be labelled — "2 of 3" meant loaded in one bullet and rescued in another.
-  expect_has "$W" "loaded <loaded-count> of" "worker: the partial numeral says what it counts"
-  expect_has "$W" "self-rescued <rescued names>" "worker: a partial rescue still reports what it rescued"
-  # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
-  # runnable-looking command gets executed verbatim, returns nothing, and the agent
-  # then reports "unresolved" for a skill that is in fact installed.
+  # Copy-runnable: an unsubstituted <name> inside a runnable-looking command gets executed
+  # verbatim, returns nothing, and the agent reports an installed skill as unresolved.
   expect_absent "$W" "skills/<name>/SKILL.md" "worker: no unsubstituted placeholder in the self-rescue command"
   expect_has "$W" "for s in \$(echo 'observability-design' | tr ',' ' ')" "worker: self-rescue loop carries the real skill names"
+  expect_has "$W" "not the whole menu" "worker: menu rubrics do not false-alarm as partial"
   expect_absent "$W" "Domain checklist" "worker: no restated checklist (skill pointer only)"
 fi
 

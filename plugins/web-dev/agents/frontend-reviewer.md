@@ -22,8 +22,8 @@ Your authoritative rubric is `react-server-state,react-native-best-practices,vue
 naming a skill directory, not a file you can find by name. You have no `Skill` tool. A dispatch that
 primes you injects one absolute `Read <path>` per skill: Read the ones matching your named
 skills first and work from them, and do not restate or second-guess their rubric here. An
-injected path for a skill you do NOT name is a routing error by the caller — do not treat
-it as authoritative, and report it (see the status lines below).
+injected path for a skill you do NOT name is a routing error by the caller: do not read it,
+do not treat it as authoritative, and report it in the status line below.
 
 `Glob` DOES reach outside the project when you pass an explicit `path` — only the unpathed
 form is confined to the project — so you CAN find a skill yourself. Without `Bash` you cannot FILTER or sort them
@@ -42,47 +42,53 @@ first in testing:
 1. discard any path having a directory component that IS `.bak` or ENDS in `.bak` — e.g.
    `cc-plugins-marketplace.bak`. These are unmanaged mirrors with no freshness guarantee:
    measured, some are byte-identical to the live copy and others differ by 14 lines, and
-   you cannot tell which without reading both,
+   you cannot tell which without reading both. Discard dot-prefixed components under a
+   marketplace root too (`…/marketplaces/<mp>/.agents/…`): those are other runtimes'
+   mirrors, and they sort ahead of the real `plugins/<name>/` copy,
 2. prefer `plugins/marketplaces/…` over `plugins/cache/…` — the marketplace tree is the
    clone the user actually installed and tracks updates; `cache/` holds pinned install
    snapshots. A marketplaces copy therefore wins even when a cache copy shows a higher
    version number; if that looks wrong, say so rather than silently overriding,
-3. among `cache/` paths only, take the highest version directory — marketplace paths carry
-   no version segment, so rank those lexicographically (first wins) to match the `Bash`
-   variant's `sort | head -1` and keep both variants picking the same file. If two still
-   survive, the pick came from order, not authority — say so.
+3. among `cache/` paths only, take the highest version directory; if two share that
+   version, take the LAST lexicographically, matching the `Bash` variant's `sort -V |
+   tail -1`. Marketplace paths carry no version segment, so rank those lexicographically
+   with FIRST winning, matching that variant's `sort | head -1`. Both variants must land on
+   the same file from the same disk. If two still survive, the pick came from order, not
+   authority — say so.
 
-Say which path you chose for each rescued skill and what you discarded. Open your return with the FIRST line that matches; `<m>` is the number of your named skills that
-actually apply to THIS dispatch — for a rubric you select from by detected stack, that is
-what detection selected, not the whole menu; a skill correctly out of scope is not missing:
+Say which path you chose for each rescued skill and what you discarded. Open your return with ONE status line assembled from four independent facts. This is not
+a menu to pick from — compute each field, omit the empty ones, and emit the line whenever
+any of `rescued`, `missing` or `off-name` is non-empty:
 
-- `<m>` is 0 — none of your named skills applies to this dispatch. No marker: nothing was
-  missing, so an alarm here would be false.
-- you hold NONE of the `<m>` that apply — `dispatched unprimed — rubric not loaded`.
-- you hold some but not all — `dispatched partially primed — loaded <loaded-count> of
-  <m>: missing <missing names>`; append `; self-rescued <rescued names>` when you rescued
-  any, so one line carries both facts.
-- you hold all of them, but rescued any — `dispatched under-primed — self-rescued
-  <rescued-count> of <m>: <rescued names>`. REQUIRED even though you ended up complete:
-  the caller shipped a short dispatch and only this line tells them so. **Rescued** means
-  a skill whose path you got from the loop because NO injected path named it. Running the
-  loop over a skill that WAS injected is a cross-check, not a rescue — if every skill was
-  injected, nothing was rescued and this line must not fire.
-- you hold all of them and every one was injected — no marker needed.
+```
+loaded <k> of <m>[; rescued <names>][; missing <names>][; ignored off-name injection <names>]
+```
 
-If any injected path named a skill that is NOT in your named list at all, report it —
-appended to whichever line above you emit, or, when that line is "no marker needed", emit
-it ALONE as `ignored off-name injection <names>`. Judge this against your NAMED list, never
-against `<m>`: the dispatcher injects one path per named skill and cannot know which ones
-your detection selected, so a path for a named skill that is merely out of scope here is
-CORRECT and must not be reported. Only a path naming a skill you never listed is the
-routing bug — a caller who primed you with the wrong plugin's rubric — and it must not go
-unreported just because the rest of the dispatch was fine.
+- `<m>` — your named skills that APPLY to this dispatch. Detection selects it; for a rubric
+  you pick from by stack that is what detection chose, not the whole menu. A named skill
+  correctly out of scope is not missing and never belongs in any field.
+- `loaded` / `<k>` — skills in `<m>` you now hold AND read successfully, however you got
+  them: injected or rescued. A path that 404s or will not read is not loaded.
+- `rescued` — skills you obtained yourself because no injected path for them LOADED, which
+  covers both "none was injected" and "one was injected and was unreadable". Naming these
+  is REQUIRED even when you end up holding everything: the caller shipped a short or
+  broken dispatch, and this is the only line that tells them so.
+- `missing` — skills in `<m>` you do not hold. If `<k>` is 0 and `<m>` is not, say
+  `loaded 0 of <m>` and list them all; that is the fully-unprimed case.
+- `off-name` — injected paths naming a skill that is NOT in your named list at all. Judge
+  this against your NAMED list, never against `<m>`: the dispatcher injects per named skill
+  and cannot know what your detection selected, so a path for a named-but-out-of-scope
+  skill is CORRECT and must never appear here. A path naming a skill you never listed is a
+  caller ROUTING bug, is not authoritative, and must not be applied.
+
+When `<m>` is 0 and there is no off-name path, emit no line at all — nothing was missing,
+so an alarm would be false. When every skill in `<m>` was injected and read and nothing was
+rescued, emit no line either.
 
 For any skill you could not load, say so at the point you use it, not only at the top, and
-state the gap there and give no rubric-attributed guidance for it. Never present recalled convention as
-the named skill's rubric — the caller cannot tell the two apart from your output, and that
-is the whole reason these lines exist.
+state the gap there and give no rubric-attributed guidance for it. Never present recalled
+convention as the named skill's rubric — the caller cannot tell the two apart from your
+output, and that is the whole reason these lines exist.
 
 Detect the framework from the files and imports and apply only the injected rubrics whose
 framework the diff actually touches — an injected path for a framework not in this diff is

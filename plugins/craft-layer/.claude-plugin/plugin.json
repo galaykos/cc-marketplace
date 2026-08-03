@@ -1,6 +1,6 @@
 {
   "name": "craft-layer",
-  "version": "0.44.8",
+  "version": "0.44.9",
   "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel: /craft-layer:craft chains creative-direction (offer contract + concept-first, anti-sameness), optional guided section-decisions (/craft-layer:sections), design-research, asset-sourcing (build-vs-source-vs-commission + a licence gate), ui-ux:theming-system (concept→coherent token tiers + accent split + light/dark duality), token + component build, and a tiered motion system (Framer, anime.js, Three.js/R3F + webgl-effects, Vector Lottie/Rive, sprites — reduced-motion + reduced-bundle fallbacks), plus scroll-orchestration (Lenis/ScrollTrigger), kinetic-typography, page-transitions, interaction-fx, physics-motion, information-design, and /craft-layer:audit. Reuses ui-ux + threejs. /craft-layer:craft ultra-craft boosts a run: ambition maximal + guided rounds, live dated web research echoed as a reference board before any file is written, escalated concept/review tiers, and a red-team of the shipped tree.",
   "author": {
     "name": "Ivan-WG",
