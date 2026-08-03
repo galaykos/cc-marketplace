@@ -16,13 +16,17 @@ Your authoritative rubric is `devops-practices` — a skill directory name, not 
 can find by name, and you have no `Skill` tool to load it with. A dispatch that primes you
 injects an absolute `Read <path>`: Read it first and work from it.
 
-If NO path was injected, you hold `Bash` — self-rescue before reviewing anything:
+If NO path was injected, you hold `Bash` — self-rescue before reviewing anything.
+
+Run this verbatim — your skill names are already substituted in, so there is no
+placeholder to fill and nothing to guess:
 
 ```sh
-# live checkout wins; .bak mirrors are stale, never use them
-find ~/.claude/plugins/marketplaces -path '*/skills/devops-practices/SKILL.md' 2>/dev/null | grep -v '\.bak' | head -1
-# else the highest-versioned cache copy — several versions coexist
-find ~/.claude/plugins/cache -path '*/skills/devops-practices/SKILL.md' 2>/dev/null | sort -V | tail -1
+for s in $(echo 'devops-practices' | tr ',' ' '); do
+  p=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | grep -v '\.bak' | head -1)
+  [ -n "$p" ] || p=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null | sort -V | tail -1)
+  printf '%s\t%s\n' "$s" "${p:-UNRESOLVED}"
+done
 ```
 
 Read the first path that resolves and say which one you used. If nothing resolves, open

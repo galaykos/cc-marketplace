@@ -22,14 +22,17 @@ You have no `Skill` tool, so a dispatch that primes you injects one absolute
 second-guess their rubric here.
 
 If NO such path was injected, you were dispatched unprimed — a direct spawn, or a
-dispatch site that skipped its priming step. Do not proceed on recall. **If you hold
-`Bash`, self-rescue before doing any work**, once per skill name above:
+dispatch site that skipped its priming step. Do not proceed on recall. **If you hold `Bash`, self-rescue before doing any work.**
+
+Run this verbatim — your skill names are already substituted in, so there is no
+placeholder to fill and nothing to guess:
 
 ```sh
-# 1. installed marketplace checkouts win; .bak mirrors are stale, never use them
-find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' 2>/dev/null | grep -v '\.bak' | head -1
-# 2. else the highest-versioned cache copy — several versions coexist
-find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' 2>/dev/null | sort -V | tail -1
+for s in $(echo 'observability-design' | tr ',' ' '); do
+  p=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | grep -v '\.bak' | head -1)
+  [ -n "$p" ] || p=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null | sort -V | tail -1)
+  printf '%s\t%s\n' "$s" "${p:-UNRESOLVED}"
+done
 ```
 
 Read the first path that resolves and state which one you used — several copies of the

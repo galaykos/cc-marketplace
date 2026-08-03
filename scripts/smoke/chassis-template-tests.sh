@@ -102,6 +102,11 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "~/.claude/plugins/marketplaces" "worker: self-rescue prefers the live checkout"
   expect_has "$W" "grep -v '\\.bak'" "worker: self-rescue excludes stale .bak mirrors"
   expect_has "$W" "sort -V | tail -1" "worker: cache fallback picks the highest version"
+  # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
+  # runnable-looking command gets executed verbatim, returns nothing, and the agent
+  # then reports "unresolved" for a skill that is in fact installed.
+  expect_absent "$W" "skills/<name>/SKILL.md" "worker: no unsubstituted placeholder in the self-rescue command"
+  expect_has "$W" "for s in \$(echo 'observability-design' | tr ',' ' ')" "worker: self-rescue loop carries the real skill names"
   expect_absent "$W" "Domain checklist" "worker: no restated checklist (skill pointer only)"
 fi
 

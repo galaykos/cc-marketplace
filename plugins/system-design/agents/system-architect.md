@@ -26,14 +26,17 @@ dispatch that primes you injects one absolute `Read <path>` per skill: Read thos
 and work from them, and do not restate or second-guess their rubric here.
 
 If NO path was injected, you were dispatched unprimed — a direct spawn, or a dispatch
-site that skipped its priming step. **You hold `Bash`, so self-rescue before doing any
-work**, once per skill name above:
+site that skipped its priming step. **You hold `Bash`, so self-rescue before doing any work.**
+
+Run this verbatim — your skill names are already substituted in, so there is no
+placeholder to fill and nothing to guess:
 
 ```sh
-# live checkout wins; .bak mirrors are stale, never use them
-find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' 2>/dev/null | grep -v '\.bak' | head -1
-# else the highest-versioned cache copy — several versions coexist
-find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' 2>/dev/null | sort -V | tail -1
+for s in $(echo 'system-design,domain-modeling,event-driven' | tr ',' ' '); do
+  p=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | grep -v '\.bak' | head -1)
+  [ -n "$p" ] || p=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null | sort -V | tail -1)
+  printf '%s\t%s\n' "$s" "${p:-UNRESOLVED}"
+done
 ```
 
 Read the first path that resolves and state which one you used — naming your pick is what
