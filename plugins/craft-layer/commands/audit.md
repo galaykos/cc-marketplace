@@ -6,6 +6,11 @@ argument-hint: [path-or-scope]
 Audit the craft gates for the target in `$ARGUMENTS` (if empty, ask which path or scope first). Load the
 `motion-tiers` skill for the tier taxonomy and its budgets. This command MEASURES, RESOLVES and REPORTS;
 the `craft-reviewer` agent owns the gate checks — dispatch to it, never restate its check list here.
+Prime it like any other worker: it has no `Skill` tool, so resolve each token of its
+`bestpractices-skill:` frontmatter (`orchestration:delegation-contracts` § Skill priming,
+agent-file ladder in `references/skill-priming.md`) and inject `Read <abs-path>` per hit.
+Any reference file you also pass it — offer-contract, section-ledger, divergence-record —
+names no skill it declares, so mark those ` — supplementary` or it refuses them unread.
 
 1. **Detect what shipped.** Grep the scope for each animation tier's imports and entry points (Framer
    Motion/`motion`, anime.js, Three.js/R3F/`<canvas>`, sprite sheets, the Vector tier —

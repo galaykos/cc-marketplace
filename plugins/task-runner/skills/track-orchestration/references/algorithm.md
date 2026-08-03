@@ -74,7 +74,10 @@ The prompt to each track-worker contains, in order:
    outside it. Do NOT write `00-INDEX.md` (you do not have it)."*
 3. The milestone's card **text** inline, in dependency order.
 4. For every skill named in the cards' `Skills to apply` — plus every comma-separated
-   token of the `bestpractices-skill:` frontmatter of any worker the leaf will route to —
+   token of the `bestpractices-skill:` frontmatter of the worker each card's `Agent:` tag
+   maps to in `task-execution/references/routing.md` (the LEAF never routes, so keying this
+   on "any worker the leaf will route to" made the term empty and a card with no
+   `Skills to apply` reached the leaf with zero rubric) —
    the orchestrator resolves its
    installed `SKILL.md` and injects a `Read <abs-path>` line HERE (delegation-contracts
    § Skill priming) — the leaf cannot self-load skills, so priming it at dispatch is the

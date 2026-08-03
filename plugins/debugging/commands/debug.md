@@ -23,7 +23,11 @@ does not decide whether to ship it.
 
 Then route the proven fix down `task-runner:task-executor if installed → inline`,
 the same chain every review command in this marketplace uses — a diagnosis that
-ends in chat is a diagnosis the user has to re-type.
+ends in chat is a diagnosis the user has to re-type. Prime that dispatch:
+`task-executor` has no `Skill` tool and declares no `bestpractices-skill:`, so there is
+nothing in frontmatter to resolve — inject instead one `Read <abs-path> — supplementary`
+per skill THIS investigation actually used, so the fix is applied to the same rubric the
+diagnosis was reached under (`orchestration:delegation-contracts` § Skill priming).
 
 Report: the root cause with its evidence chain, the fix and why it follows
 from the diagnosis, verification output (the original reproduction passing

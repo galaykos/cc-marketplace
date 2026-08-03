@@ -41,5 +41,5 @@ route→request→resource mapping by hand.
    head declares nothing. The default head `laravel:backend-engineer` declares three tokens
    and none of them is `api-design`, so a condition on an empty frontmatter never fires on
    the default path and the scaffolder writes the contract without the rubric that approved
-   it. `/api-design:review` injects it unconditionally for the same reason (`orchestration:delegation-contracts` § Skill priming). Headless: output the mapping
+   it. `/api-design:review` injects whichever rubric it applied, for the same reason (`orchestration:delegation-contracts` § Skill priming). Headless: output the mapping
    and files as a plan, write nothing.

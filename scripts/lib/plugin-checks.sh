@@ -463,24 +463,29 @@ pc_version_stamp() {
 # Escape hatch: `<!-- priming-ok -->` on a dispatching line whose target genuinely has
 # no rubric to load (a format-only or process-only worker).
 pc_dispatch_priming() {
-  local f="$1" body
+  local f="$1" ln proof_win
   [ -f "$f" ] || return 0
-  # Dispatch verbs that hand work to a named agent. Deliberately narrow: prose merely
-  # MENTIONING an agent is not a dispatch, and a gate that fires on mentions gets muted.
-  # Requires a WORK OBJECT, not just the verb: "dispatch this agent" in authoring prose
-  # describes when a reader should spawn something, and is not itself a dispatch site.
-  # -i is load-bearing: a sentence-initial "Dispatch the `x` worker …" is the commonest
-  # real shape and a case-sensitive pattern missed every one of them, including a live
-  # unprotected site. It also made three rescue fixtures vacuous — they returned at the
-  # early exit and never reached the arms they were written to exercise.
-  body=$(grep -niE 'dispatch (the|it|them|whichever)[^.]{0,40}(finding|fix|work|mapping|violation|list|worker|down)|route accepted fixes|On implement, dispatch' "$f" 2>/dev/null) || return 0
-  [ -n "$body" ] || return 0
   grep -q 'priming-ok' "$f" && return 0
-  # The doctrine citation is the accepted proof; so is spelling the mechanism out.
-  grep -q 'Skill priming' "$f" && return 0
-  grep -qE 'inject .*`?Read <abs-path>' "$f" && return 0
-  printf '%s\n' "${f#plugins/}"
-  return 1
+  # Trigger: dispatch verbs with a WORK OBJECT. Widened after two live unprimed sites
+  # used shapes the first draft missed ("Dispatch, unless …", "route the proven fix down").
+  # -i because sentence-initial is the commonest real form.
+  # PROXIMITY-scoped proof: the accepted proof must appear within 45 lines AFTER the
+  # matched dispatch, not merely somewhere in the file. File-scoped, one primed lane
+  # rescued an unprimed one in the same document — measured on craft-layer:audit, whose
+  # step 6 dispatched a reviewer with no priming while step 10's fix lane carried it.
+  while IFS=: read -r ln _; do
+    [ -n "$ln" ] || continue
+    # Window of 45: the real apply-lane gap is 39 lines (step 6 dispatches, step 7's
+    # citation closes it), while craft-layer's genuine defect — step 6 dispatching a
+    # reviewer unprimed, rescued only by step 10's fix lane — is 74. The window sits
+    # between them on purpose; both distances were measured, not guessed.
+    proof_win=$(sed -n "${ln},$((ln+45))p" "$f" 2>/dev/null)
+    printf '%s' "$proof_win" | grep -qF 'Skill priming' && continue
+    printf '%s' "$proof_win" | grep -qE 'inject .*`?Read <abs-path>' && continue
+    printf '%s\n' "${f#plugins/}:$ln"
+    return 1
+  done < <(grep -niE 'dispatch(,| (the|it|them|whichever))[^.]{0,60}(finding|fix|mapping|violation|list|down|investigation|`[a-z0-9-]+` worker)|route (accepted fixes|the [a-z ]*fix)|hand (the|it) [^.]{0,40}(list|fix|investigation)|On implement, dispatch' "$f" 2>/dev/null)
+  return 0
 }
 
 # pc_ladder_drift <file> — any document that spells out the skill-resolution ladder must
@@ -518,11 +523,18 @@ pc_ladder_drift() {
 # Fires only on files that describe an outside-frontmatter inject in one of the shapes
 # actually used; a site injecting only the head's own tokens is out of scope by design.
 pc_supplementary_label() {
-  local f="$1"
+  local f="$1" ln line win
   [ -f "$f" ] || return 0
-  grep -qiE 'skills? (this|THIS) (review|audit) (itself )?(detected and )?loaded|does NOT name, inject it too|per skill you actually loaded|inject (that|this plugin.s own|whichever)' "$f" 2>/dev/null || return 0
-  grep -qF 'supplementary' "$f" && return 0
-  grep -qF 'supplementary-ok' "$f" && return 0
-  printf '%s\n' "${f#./}"
-  return 1
+  while IFS=: read -r ln line; do
+    [ -n "$ln" ] || continue
+    # SENTENCE-scoped (the matched line ±2), not file-scoped and not one line. File-scoped
+    # made the escape-hatch arm unreachable — the plain-word test already matched any file
+    # containing "supplementary-ok" — while strictly line-scoped broke on wrapped prose,
+    # where "inject it too," ends one line and "marked `supplementary`." starts the next.
+    win=$(sed -n "$((ln>2?ln-2:1)),$((ln+2))p" "$f" 2>/dev/null)
+    printf '%s' "$win" | grep -qF 'supplementary' && continue
+    printf '%s\n' "${f#plugins/}:$ln"
+    return 1
+  done < <(grep -niE 'skills? this (review|audit) (itself )?(detected and )?loaded|does NOT name, inject it too|per skill you actually loaded|inject (that|this plugin.s own|whichever)|mark(ed)? .?supplementary|inject [^.]{0,40}— supplementary' "$f" 2>/dev/null)
+  return 0
 }

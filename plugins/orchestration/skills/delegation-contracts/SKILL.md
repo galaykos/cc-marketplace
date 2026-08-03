@@ -138,7 +138,7 @@ Execution discipline (halt / exact-verify / scope / defer / full-suite / evidenc
 property of the dispatch, not the worker — a delegated specialist has no `Skill` tool
 and cannot load an execution skill. Canonical text: `references/discipline-preamble.md`;
 the orchestrator Reads it and pastes it **verbatim** into every dispatch, and it
-**overrides the worker's own default procedure**.
+**overrides the worker's own default procedure**. <!-- priming-ok: § Skill priming above is this file's priming rule; this section is about the discipline preamble -->
 
 ## Anti-patterns
 

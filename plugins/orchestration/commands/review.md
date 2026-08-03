@@ -47,7 +47,8 @@ are genuinely different — do not collapse them:
   `bestpractices-skill:` frontmatter, and the rubric these findings cite is this
   plugin's own: resolve `delegation-contracts`' installed `SKILL.md` and inject
   `Read <abs-path> — supplementary` (§ Skill priming) — it is outside the head's
-  frontmatter, and unlabelled it is discarded unread. A prompt
+  frontmatter, and a worker carrying a refusal clause discards an unlabelled outside path
+  unread (`task-executor` carries none today, which is why this is a hedge and not a bug). A prompt
   file is a file.
 
 Headless: print the fixed prompt fragments inline.
