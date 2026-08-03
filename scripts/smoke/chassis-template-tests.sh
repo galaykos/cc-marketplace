@@ -126,7 +126,9 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "grep -v '/[^/]*\\.bak/'" "worker: self-rescue excludes stale .bak mirrors"
   # Other runtimes' mirrors live in dot-dirs under a marketplace root and sort AHEAD of
   # the real plugins/<name>/ copy.
-  expect_has "$W" "/marketplaces/[^/]*/" "worker: other runtimes' dot-dir mirrors are excluded"
+  # The trailing \. is what makes the filter dot-SPECIFIC. Without it the expression
+  # discards every marketplace hit and kills rung 3 outright, so assert the full form.
+  expect_has "$W" "/marketplaces/[^/]*/\\." "worker: other runtimes' dot-dir mirrors are excluded"
   expect_has "$W" '| sort)' "worker: live-checkout pick is deterministic, not filesystem order"
   # Cache fallback must sort the VERSION SEGMENT: sort -V over whole paths lets the
   # marketplace name dominate and returns 0.9.0 over 0.10.0 across two roots.

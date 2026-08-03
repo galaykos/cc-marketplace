@@ -129,17 +129,25 @@ Rung 3 matters for the same arithmetic as the skill ladder's rung 2: a cache roo
 ## Self-rescue (delegate side)
 
 A delegate that receives no injected path for a skill self-rescues, by whichever tool it
-holds. `Bash`: rungs 3–4 above. `Glob` only: one call with an explicit
-`path` of `~/.claude/plugins` and pattern `**/skills/<name>/SKILL.md`, then pick by
-discarding `.bak` components, preferring `marketplaces/` over `cache/`, and taking the
-highest version among cache hits — a rule it must apply by reading the paths, since it has
-no `Bash` to filter with, and Glob's own order has handed back the `.bak` mirror first.
+holds. `Bash`: rungs 3–4 above. `Glob` only: TWO calls with an explicit `path` of
+`~/.claude/plugins` — pattern `**/skills/<name>/SKILL.md` and, because a skill may nest one
+level under a category, `**/skills/*/<name>/SKILL.md`. A single flat call reports the 66
+nested skills installed here as unresolved, for the same reason rungs 3–4 carry two
+`-path` arms. Pool both results, then pick by discarding any component that is or ends in
+`.bak`, discarding dot-prefixed components under a marketplace root, preferring
+`marketplaces/` over `cache/`, and taking the highest version among cache hits — rules it
+applies by READING the paths, since it has no `Bash` to filter with and Glob's own order
+has handed back the `.bak` mirror first.
 
 This is a backstop, not the design: it covers direct `Agent` spawns and any dispatch site
-that skipped its step, neither of which the orchestrator can reach. A delegate that
-rescued anything says so (`dispatched under-primed — self-rescued …`) even when it ends up
-holding everything — otherwise the broken caller is never told. One holding nothing, with
-no tool to look, opens with `dispatched unprimed — rubric not loaded`.
+that skipped its step, neither of which the orchestrator can reach.
+
+**Status contract.** A delegate reports with the four-field line its agent body defines —
+`loaded <k> of <m>[; rescued <names>][; missing <names>][; ignored off-name injection
+<names>]` — assembled from independent facts, never selected from a menu. A rescue is
+reported even when the delegate ends up holding everything, or the broken caller is never
+told. Do not author a delegate against any earlier single-marker wording: the agents and
+this file must state one contract, and this is it.
 
 ## Standing
 

@@ -175,6 +175,11 @@ dp ok-mechanism.md          'Dispatch the fix list down the chain, and inject `R
 dp ok-marker.md             'Dispatch the finding list down the chain. <!-- priming-ok -->'
 dp clean-no-dispatch.md     'What situation should make the main session dispatch this agent, and what does it return?'
 dp clean-mention.md         'The reviewer is read-only; a file-editing worker is the wrong shape for a prompt fix.'
+# Sentence-initial. The detector was case-SENSITIVE, so every one of these was invisible —
+# including a live unprotected site — and the three rescue fixtures above (all written
+# "Dispatch the …") returned at the early exit without reaching the arms they name.
+dp bad-capital.md           'Dispatch the finding list down the chain `x:worker → inline`.'
+dp ok-capital.md            'Dispatch the finding list down the chain. <!-- priming-ok -->'
 
 dpassert_hit() {
   out_d=$(pc_dispatch_priming "$DPD/$1"); st=$?
@@ -200,6 +205,8 @@ dpassert_clean ok-mechanism.md     # spells the mechanism out
 dpassert_clean ok-marker.md        # <!-- priming-ok --> suppresses
 dpassert_clean clean-no-dispatch.md  # "dispatch this agent" in authoring prose is not a dispatch
 dpassert_clean clean-mention.md      # merely mentioning a worker is not a dispatch
+dpassert_hit   bad-capital.md       # sentence-initial dispatch, unprimed
+dpassert_clean ok-capital.md        # sentence-initial dispatch, rescued by the marker
 
 # ---------------------------------------------------------------------------
 # Ladder-drift gate: both directions, both expression forms.

@@ -12,8 +12,8 @@ Consumer-facing changes only. Newest first.
   rubric path — a direct spawn, or a caller that skipped its priming step — it now
   locates the skill itself via `find ~/.claude/plugins/marketplaces`, preferring the live
   checkout over stale `.bak` mirrors and version-pinned cache copies, and states which
-  path it used. If it cannot resolve one, it opens its return with `dispatched unprimed
-  — rubric not loaded` instead of quietly proceeding.
+  path it used, and names anything it could not resolve in that same line instead of
+  quietly proceeding.
 
 ## 0.5.2 — 2026-08-02
 
@@ -24,7 +24,7 @@ Consumer-facing changes only. Newest first.
   could not reliably open — every apply-lane fix was written from recalled convention while
   the agent reported working to the skill. The apply lane now resolves each named
   skill to its installed `SKILL.md` and injects an absolute `Read` path, and the agent
-  self-reports `dispatched unprimed — rubric not loaded` when no path arrives, so the
+  reports the gap in its four-field status line (`loaded 0 of 1; missing devops-practices`) when no path arrives, so the
   two cases stop looking identical in its output.
 
 ## 0.5.0 — 2026-08-02

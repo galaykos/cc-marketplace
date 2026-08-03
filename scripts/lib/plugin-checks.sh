@@ -469,7 +469,11 @@ pc_dispatch_priming() {
   # MENTIONING an agent is not a dispatch, and a gate that fires on mentions gets muted.
   # Requires a WORK OBJECT, not just the verb: "dispatch this agent" in authoring prose
   # describes when a reader should spawn something, and is not itself a dispatch site.
-  body=$(grep -nE 'dispatch (the|it|them|whichever)[^.]{0,40}(finding|fix|work|mapping|violation|list|worker|down)|route accepted fixes|On implement, dispatch' "$f" 2>/dev/null) || return 0
+  # -i is load-bearing: a sentence-initial "Dispatch the `x` worker …" is the commonest
+  # real shape and a case-sensitive pattern missed every one of them, including a live
+  # unprotected site. It also made three rescue fixtures vacuous — they returned at the
+  # early exit and never reached the arms they were written to exercise.
+  body=$(grep -niE 'dispatch (the|it|them|whichever)[^.]{0,40}(finding|fix|work|mapping|violation|list|worker|down)|route accepted fixes|On implement, dispatch' "$f" 2>/dev/null) || return 0
   [ -n "$body" ] || return 0
   grep -q 'priming-ok' "$f" && return 0
   # The doctrine citation is the accepted proof; so is spelling the mechanism out.
