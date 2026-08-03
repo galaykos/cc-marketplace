@@ -142,6 +142,12 @@ has handed back the `.bak` mirror first.
 This is a backstop, not the design: it covers direct `Agent` spawns and any dispatch site
 that skipped its step, neither of which the orchestrator can reach.
 
+**Supplementary label.** Any injected path naming a skill the worker's frontmatter does not
+list must be marked `supplementary` — card `Skills to apply`, a review's detected stack
+skills, the dispatching plugin's own rubric. A worker refuses an UNLABELLED outside path
+unread and reports it as a caller routing error; a labelled one is authoritative for that
+dispatch and joins `<m>` so it shows up in `loaded`.
+
 **Status contract.** A delegate reports with the four-field line its agent body defines —
 `loaded <k> of <m>[; rescued <names>][; missing <names>][; ignored off-name injection
 <names>]` — assembled from independent facts, never selected from a menu. A rescue is

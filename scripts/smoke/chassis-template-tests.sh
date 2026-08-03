@@ -65,6 +65,11 @@ if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-lang.json" "$L"; 
   expect_has "$L" "bestpractices-skill:" "lang: apply lane names the frontmatter key to resolve"
   expect_has "$L" "skills/<tok>/SKILL.md" "lang: apply lane carries the resolution glob"
   expect_has "$L" "Read <abs-path> before writing" "lang: apply lane carries the injected Read line"
+  # Keyed on an EMPTY frontmatter this missed 7 shipped commands whose head declares tokens
+  # that simply exclude the reviewing plugin's own skill (/threejs:review → web-developer
+  # ships six framework rubrics and never threejs-best-practices).
+  expect_has "$L" "does NOT name, inject it too" "lang: apply lane keys on absence-from-frontmatter"
+  expect_has "$L" "supplementary" "lang: outside-frontmatter injects carry the label"
   expect_absent "$L" "design-doc review" "lang: concern affordance dropped"
 fi
 
@@ -125,6 +130,10 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # rubric the dispatcher spent the ladder resolving, and false-alarms on a correct call.
   expect_has "$W" "marks it **supplementary**" "worker: a labelled supplementary path is authoritative"
   expect_has "$W" "count it in" "worker: supplementary paths count toward loaded"
+  # "count it in loaded" is only executable if <m> admits supplementary paths: <k> counts
+  # skills in <m>, and a supplementary skill is by definition not in the NAMED list, so
+  # without this the rule forces either an invisible inject or "loaded 3 of 2".
+  expect_has "$W" "PLUS every path the dispatch" "worker: <m> admits supplementary paths so <k> can count them"
   # Self-rescue backstop: covers direct Agent spawns and any dispatch site that skipped
   # its step — neither of which the orchestrator can reach.
   expect_has "$W" "~/.claude/plugins/marketplaces" "worker: self-rescue prefers the live checkout"

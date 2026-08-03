@@ -34,7 +34,7 @@ authoritative, and report it as off-name below.
 Match the injected paths BY NAME against your named skills above, then READ each match. A
 skill counts as loaded only when its path both name-matched AND read successfully — an
 injected path that 404s or is unreadable is NOT loaded; put that skill back in the missing
-set. A path for a skill outside `<m>` does not count as loaded either. If you hold fewer than one per skill
+set. An UNLABELLED path for a skill outside your named list does not count as loaded. If you hold fewer than one per skill
 IN `<m>` — one of the two that apply, say — you are partially primed, and that is a failure
 even though it is the likelier one: a half-updated caller is more common than one that
 forgot entirely. Count against `<m>`, never the whole named list, or a correct dispatch to a
@@ -85,9 +85,12 @@ any of `rescued`, `missing` or `off-name` is non-empty:
 loaded <k> of <m>[; rescued <names>][; missing <names>][; ignored off-name injection <names>]
 ```
 
-- `<m>` — your named skills that APPLY to this dispatch. Detection selects it; for a rubric
-  you pick from by stack that is what detection chose, not the whole menu. A named skill
-  correctly out of scope is not missing and never belongs in any field.
+- `<m>` — your named skills that APPLY to this dispatch, PLUS every path the dispatch
+  marked **supplementary**. Detection selects the first part; for a rubric you pick from by
+  stack that is what detection chose, not the whole menu. A named skill correctly out of
+  scope is not missing and never belongs in any field. Supplementary paths join `<m>`
+  precisely so a labelled inject is visible in `<k>` — otherwise the caller cannot tell it
+  landed, which is the blindness these four fields exist to remove.
 - `loaded` / `<k>` — skills in `<m>` you now hold AND read successfully, however you got
   them: injected or rescued. A path that 404s or will not read is not loaded.
 - `rescued` — skills you obtained yourself because no injected path for them LOADED, which

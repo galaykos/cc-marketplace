@@ -66,12 +66,15 @@ Before reporting, read the project manifests (composer.json, package.json, .env.
    `plugins/*/skills/<tok>/SKILL.md`, then add one line per hit to the dispatch text:
    `Read <abs-path> before writing; it is the authoritative best-practice source for this
    stack.` A token that resolves nowhere is skipped, never an error — but name it, so a
-   missing plugin is visible rather than a rubric that quietly shrank. If the dispatched head declares
-   NO `bestpractices-skill:` (`task-runner:task-executor` does not), OR its agent file
-   cannot be found or read at all, there is nothing in frontmatter to resolve and a fix
-   list is not a task card — inject instead
-   the skills THIS review itself loaded to produce the findings, so the applier works to
-   the same rubric the findings were judged against. Full
+   missing plugin is visible rather than a rubric that quietly shrank. Then close the gap between what the head
+   declares and what THIS review actually judged by: **for every skill this review loaded
+   that the head's frontmatter does NOT name, inject it too, marked `supplementary`.** That
+   covers three cases with one rule — the head declares nothing at all
+   (`task-runner:task-executor`), its agent file cannot be found or read, or it declares
+   tokens that simply exclude this plugin's own rubric (a `/threejs:review` routed to
+   `web-dev:web-developer` otherwise ships six framework rubrics and never
+   `threejs-best-practices`). Unlabelled, the worker refuses an outside path unread, so the
+   label is what makes this land. Full
    doctrine, and the discipline preamble that rides the same dispatch:
    `orchestration:delegation-contracts` § Skill priming. Standing: agent-graded — no
    script verifies a dispatch actually carried the paths.

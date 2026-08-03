@@ -36,8 +36,10 @@ route→request→resource mapping by hand.
    which skills the worker names, so use the three-rung ladder in
    `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT
    file — then resolve each token of its `bestpractices-skill:` frontmatter to an installed
-   `SKILL.md` and inject `Read <abs-path>` per hit, skipping misses. When the head you land
-   on declares none — `task-runner:task-executor` does not — inject this plugin's own
-   `api-design` rubric instead, marked **supplementary**, exactly as `/api-design:review`
-   does (`orchestration:delegation-contracts` § Skill priming). Headless: output the mapping
+   `SKILL.md` and inject `Read <abs-path>` per hit, skipping misses. Inject this plugin's own
+   `api-design` rubric too, marked **supplementary**, on EVERY branch — not only when the
+   head declares nothing. The default head `laravel:backend-engineer` declares three tokens
+   and none of them is `api-design`, so a condition on an empty frontmatter never fires on
+   the default path and the scaffolder writes the contract without the rubric that approved
+   it. `/api-design:review` injects it unconditionally for the same reason (`orchestration:delegation-contracts` § Skill priming). Headless: output the mapping
    and files as a plan, write nothing.

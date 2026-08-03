@@ -183,9 +183,10 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
     delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Whichever worker you
     land on has no `Skill` tool: resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each token of its `bestpractices-skill:` frontmatter to an
     installed `SKILL.md` and inject `Read <abs-path>` per hit into the dispatch, skipping misses.
-    `task-runner:task-executor` is the FIRST preference here and declares no
-    `bestpractices-skill:` at all, so that resolves zero tokens: when the head you land on
-    declares none, inject instead one `Read <abs-path>` per craft skill THIS audit loaded,
-    marked **supplementary**, or the fixes are applied against none of the rubric they were
-    judged by (`orchestration:delegation-contracts` § Skill priming). Headless: report only,
+    Then, for every craft skill THIS audit loaded that the
+    head's frontmatter does NOT name, inject it too marked **supplementary**. No head here
+    names one: `task-runner:task-executor` (first preference) declares nothing at all, and
+    `ui-ux-engineer`/`a11y-engineer`/`performance-engineer` declare tokens that exclude
+    every craft skill — so keyed on an EMPTY frontmatter this fires on one head and misses
+    the other three, and the fixes are applied against none of the rubric they were judged by (`orchestration:delegation-contracts` § Skill priming). Headless: report only,
     and print the exact `/a11y:audit` and `/performance:review` commands to rerun.
