@@ -140,6 +140,14 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # reports "self-rescued 1 of 3" and never names what is still missing.
   expect_has "$W" "you hold some but not all" "worker: partial tier is its own reachable state"
   expect_has "$W" "you hold NONE" "worker: taxonomy is gated on what is HELD, not on what happened"
+  # <m>=0 (no named skill applies to this diff) must not fire the unprimed alarm: bullet 1
+  # is otherwise vacuously true and a correct dispatch reports itself as failed.
+  expect_has "$W" '`<m>` is 0' "worker: zero applicable skills is not an unprimed dispatch"
+  # An injection naming a skill the agent does not have is a caller ROUTING bug; without
+  # its own channel it reads identically to a merely-short dispatch.
+  expect_has "$W" "ignored off-name injection" "worker: off-name injections are reported separately"
+  # Numerals must be labelled — "2 of 3" meant loaded in one bullet and rescued in another.
+  expect_has "$W" "loaded <loaded-count> of" "worker: the partial numeral says what it counts"
   expect_has "$W" "self-rescued <rescued names>" "worker: a partial rescue still reports what it rescued"
   # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
   # runnable-looking command gets executed verbatim, returns nothing, and the agent

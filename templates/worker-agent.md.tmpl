@@ -67,14 +67,21 @@ Pick the FIRST bullet that matches. `<m>` is the number of your named skills tha
 to THIS dispatch — for a rubric you select from by detected stack, that is what detection
 selected, not the whole menu; a skill correctly out of scope is not missing.
 
-- you hold NONE — `dispatched unprimed — rubric not loaded`.
-- you hold some but not all — `dispatched partially primed — <loaded-count> of <m> rubrics
-  loaded: missing <missing names>`; append `; self-rescued <rescued names>` if you rescued
+- `<m>` is 0 — none of your named skills applies to this dispatch. No marker: nothing was
+  missing, so an alarm here would be false.
+- you hold NONE of the `<m>` that apply — `dispatched unprimed — rubric not loaded`.
+- you hold some but not all — `dispatched partially primed — loaded <loaded-count> of
+  <m>: missing <missing names>`; append `; self-rescued <rescued names>` when you rescued
   any, so one line carries both facts.
 - you hold all of them, but rescued any — `dispatched under-primed — self-rescued
   <rescued-count> of <m>: <rescued names>`. REQUIRED even though you ended up complete:
   the caller shipped a short dispatch and only this line tells them so.
 - you hold all of them and every one was injected — no marker needed.
+
+Whichever line you emit, append `; ignored off-name injection <names>` if any injected
+path named a skill outside `<m>`. Without it, a caller who primed you with the WRONG
+plugin's rubric — a routing bug — is indistinguishable from one who merely primed you
+short, and the routing bug is the more alarming of the two.
 
 For any skill you could not load, say so at the point you use it, not only at the top.
 Never present recalled convention as the named skill's rubric; the caller cannot tell the
