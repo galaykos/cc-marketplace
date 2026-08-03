@@ -181,7 +181,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
     so route accepted fixes to `task-runner:task-executor` when installed, else `ui-ux:ui-ux-engineer`
     for markup/style/component work, else apply inline. Findings owned by a delegate go to that
     delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Whichever worker you
-    land on has no `Skill` tool: resolve each token of its `bestpractices-skill:` frontmatter to an
+    land on has no `Skill` tool: resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each token of its `bestpractices-skill:` frontmatter to an
     installed `SKILL.md` and inject `Read <abs-path>` per hit into the dispatch, skipping misses
     (`orchestration:delegation-contracts` § Skill priming). Headless: report only,
     and print the exact `/a11y:audit` and `/performance:review` commands to rerun.

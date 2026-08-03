@@ -36,7 +36,7 @@ When findings exist, offer remediation as a selectable choice (AskUserQuestion):
 "Apply now, critical first" / "Report only". On an apply pick, dispatch the finding
 list down the static chain `security:security-engineer → task-runner:task-executor if
 installed → inline` — never leave the user to retype findings. Prime the chain head in
-that same dispatch: it has no `Skill` tool, so resolve each token of its
+that same dispatch: it has no `Skill` tool, so resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each token of its
 `bestpractices-skill:` frontmatter to an installed `SKILL.md` and inject
 `Read <abs-path>` per hit, naming any token that resolved nowhere
 (`orchestration:delegation-contracts` § Skill priming). A remediation written from

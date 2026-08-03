@@ -32,7 +32,10 @@ route→request→resource mapping by hand.
    only". On write, dispatch the mapping down the static chain `backend-engineer`
    (laravel) if installed → `task-runner:task-executor` if installed → inline — never
    dead-end on a missing agent. Prime the chain head in that dispatch: it has no `Skill`
-   tool, so resolve each token of its `bestpractices-skill:` frontmatter to an installed
+   tool, so resolve its agent file first — several copies exist and they DISAGREE about
+   which skills the worker names, so use the three-rung ladder in
+   `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT
+   file — then resolve each token of its `bestpractices-skill:` frontmatter to an installed
    `SKILL.md` and inject `Read <abs-path>` per hit, skipping misses
    (`orchestration:delegation-contracts` § Skill priming). Headless: output the mapping
    and files as a plan, write nothing.

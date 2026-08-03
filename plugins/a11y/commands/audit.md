@@ -30,7 +30,7 @@ description: "Audit UI code against WCAG 2.2 AA — semantic structure, contrast
    only" / "Stop here". On apply, dispatch the `a11y-engineer` worker with the
    violation list — it prefers the semantic fix over the ARIA patch and tags each
    change with the WCAG criterion it satisfies. In headless runs, report only.
-   Prime it in that same dispatch: the worker has no `Skill` tool, so resolve each
+   Prime it in that same dispatch: the worker has no `Skill` tool, resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each
    token of its `bestpractices-skill:` frontmatter to an installed `SKILL.md` and
    inject `Read <abs-path>` per hit, skipping misses
    (`orchestration:delegation-contracts` § Skill priming). Unprimed, it works from

@@ -32,7 +32,7 @@ failure this command exists to end:
 
 Then apply, on a pick: dispatch the fix list down
 `testing:test-engineer → task-runner:task-executor if installed → inline`. Prime the
-chain head in that same dispatch — it has no `Skill` tool, so resolve each token of its
+chain head in that same dispatch — it has no `Skill` tool, so resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each token of its
 `bestpractices-skill:` frontmatter to an installed `SKILL.md` and inject
 `Read <abs-path>` per hit, skipping misses (`orchestration:delegation-contracts`
 § Skill priming).
