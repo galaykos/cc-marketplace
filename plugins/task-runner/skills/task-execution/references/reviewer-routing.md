@@ -74,9 +74,12 @@ return (delegation-contracts § Compressed returns), injected verbatim:
 > summary of the summary; findings past the cap collapse into one final `+N more (minor)`
 > line. Your final message is data for the orchestrator, not prose for a human."
 
-**Bound:** inject the card's `Skills to apply` (deduped) + at most one agnostic domain
-skill from the map. The sentinel `none detected` (or an absent `Skills to apply` line)
-resolves to **zero** priming skills — no log. A named skill that is absent is omitted and
+**Bound:** inject the reviewer's OWN `bestpractices-skill:` tokens (always — they are the
+rubric it was built around) + the card's `Skills to apply` (deduped) + at most one agnostic
+domain skill from the map. The sentinel `none detected` (or an absent `Skills to apply`
+line) zeroes only the CARD-derived term; the reviewer's own tokens are unaffected. Reading
+it as zeroing everything dispatches `code-review:code-reviewer` with neither `code-smells`
+nor `reuse-hygiene` while both sit installed. A named skill that is absent is omitted and
 **logged in the run report**. If a reviewer ends with **zero** domain grounding (every
 priming skill missed, or a real reviewer agent whose rubric is absent), flag
 *"review had no domain grounding"* in the run report — do not pass silently.

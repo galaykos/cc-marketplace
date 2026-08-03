@@ -69,7 +69,12 @@ if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}/.." ]; then
   for tok in $(printf '%s' "$val" | tr ',' ' '); do
     case "$tok" in *[!a-z0-9-]*|"") continue ;; esac
     found=0
-    for sk in "${CLAUDE_PLUGIN_ROOT}"/../*/skills/"$tok"/SKILL.md; do
+    # Two install layouts: a marketplace CHECKOUT puts siblings at ../<plugin>/, while a
+    # CACHE install roots at <mp>/<plugin>/<version> — three deep — so one `..` reaches the
+    # plugin's other VERSIONS and the one-level glob matches nothing. Try both, or this
+    # probe warns "unreachable" for every stamped skill on a cache install.
+    for sk in "${CLAUDE_PLUGIN_ROOT}"/../*/skills/"$tok"/SKILL.md \
+              "${CLAUDE_PLUGIN_ROOT}"/../../*/*/skills/"$tok"/SKILL.md; do
       [ -f "$sk" ] && { found=1; break; }
     done
     [ "$found" = 1 ] || printf '%s: warn unreachable-skill: "%s" is stamped but no installed sibling plugin ships skills/%s/SKILL.md — the card will run framework-blind unless that plugin is installed\n' "$PROG" "$tok" "$tok" >&2

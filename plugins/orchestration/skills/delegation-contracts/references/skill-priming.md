@@ -41,11 +41,20 @@ because it is the only party that can rank provenance.
 ## Resolution ladder (first hit wins)
 
 1. `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md` — same plugin, unambiguous.
-2. `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<name>/SKILL.md` — sibling plugin in the SAME
-   marketplace. This rung matters: a cross-plugin token (`sql-best-practices` cited by a
-   Laravel worker) resolves here without ever leaving the marketplace the dispatching
-   plugin was installed from. `taskmaster/scripts/skills-stamp-lint.sh:72` already uses
-   exactly this glob.
+2. Sibling plugin in the SAME install. **Two layouts exist and the rung needs both:**
+   - checkout — `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<name>/SKILL.md`, valid when the root
+     is `marketplaces/<mp>/plugins/<plugin>/`, where `..` IS the plugins directory.
+   - cache — `"${CLAUDE_PLUGIN_ROOT}"/../../*/*/skills/<name>/SKILL.md`, taking the highest
+     version segment. Under a cache install the root is `cache/<mp>/<plugin>/<version>`,
+     **three** segments deep, so one `..` reaches the plugin's other VERSIONS and the
+     one-level form matches nothing at all — verified: it returns zero hits for
+     `sql-best-practices` from an installed laravel root, while the two-level form
+     resolves it.
+
+   This rung matters: a cross-plugin token (`sql-best-practices` cited by a Laravel
+   worker) resolves here without leaving the install the dispatching plugin came from.
+   `taskmaster/scripts/skills-stamp-lint.sh` uses the one-level form and had the same
+   defect; it now tries both.
 3. `find ~/.claude/plugins/marketplaces \( -path '*/skills/<name>/SKILL.md' -o -path '*/skills/*/<name>/SKILL.md' \) | grep -v '/[^/]*\.bak/' | grep -v '/marketplaces/[^/]*/\.' | sort | head -1`
 4. same `find` under `~/.claude/plugins/cache`, keyed on the version field and taking the
    highest: `awk -F/ '{v="0.0.0"; for(i=NF;i>0;i--) if($i ~ /^[0-9]+(\.[0-9]+)+$/){v=$i; break} print v"\t"$0}' | sort -V | tail -1 | cut -f2-`
@@ -73,8 +82,11 @@ this file:
 - **Rung 4 sorts the VERSION SEGMENT, not the whole path.** `sort -V` on full paths lets
   the marketplace-name segment dominate the comparison, so it is not a version sort at
   all. Given `aa-mp/laravel/0.10.0/…` and `zz-mp/laravel/0.9.0/…`, whole-path `sort -V |
-  tail -1` returns **0.9.0**. Extracting the version field first (`$(NF-3)`) returns
-  0.10.0. Every earlier version of this ladder shipped the broken form.
+  tail -1` returns **0.9.0**. Extracting the version field first returns 0.10.0. Take that
+  field as the last segment matching `^[0-9]+(\.[0-9]+)+$` scanning RIGHT TO LEFT, not as
+  a fixed `$(NF-3)`: for the nested `skills/<category>/<name>/SKILL.md` layout this file
+  defends two paragraphs above, `NF-3` is the literal string `skills`. The fenced awk does
+  the right-to-left scan; the prose used to say `$(NF-3)` and disagreed with it.
 
 The second `grep -v` drops OTHER RUNTIMES' mirrors: a marketplace may ship
 `<mp>/.agents/skills/<name>/`, `.roo`, `.kiro`, `.junie` beside its real

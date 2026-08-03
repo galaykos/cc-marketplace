@@ -122,7 +122,7 @@ the copies it can find — it CAN find them (`Bash` via `find`, `Glob` via an ex
 card names in `Skills to apply` and per `bestpractices-skill:` token in frontmatter:
 
 1. **Resolve** dir `<name>`'s `SKILL.md`, first hit wins — `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`,
-   else sibling-in-your-marketplace `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<name>/SKILL.md`,
+   else sibling, BOTH layouts — checkout `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<name>/SKILL.md`, else cache `"${CLAUDE_PLUGIN_ROOT}"/../../*/*/skills/<name>/SKILL.md` at the highest version (a cache root is `<mp>/<plugin>/<version>`, so one `..` is other VERSIONS and the one-level form matches NOTHING),
    else `find ~/.claude/plugins/marketplaces \( -path '*/skills/<name>/SKILL.md' -o -path '*/skills/*/<name>/SKILL.md' \) | grep -v '/[^/]*\.bak/' | grep -v '/marketplaces/[^/]*/\.' | sort | head -1`,
    else the same find under `cache`, keyed on the version SEGMENT (never the whole path) — full form in `references/skill-priming.md`,
    else repo `plugins/*/skills/<name>/SKILL.md` (dev). Globs exact, finds heuristic; order matters and the rationale is in `references/skill-priming.md`. On miss: skip, never error — NAME it.

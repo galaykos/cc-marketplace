@@ -2,7 +2,7 @@
 
 Consumer-facing changes only. Newest first.
 
-## 0.5.23 — 2026-08-03
+## 0.5.24 — 2026-08-03
 
 ### Fixed
 - **`devops-reviewer` declares its own rubric** (`devops-practices`), so a dispatch can
