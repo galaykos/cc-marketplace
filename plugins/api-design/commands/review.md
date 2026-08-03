@@ -40,6 +40,7 @@ only thing that keeps an approved contract from dying in chat. Prime whichever h
 land on: it has no `Skill` tool, so resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each token of its `bestpractices-skill:`
 frontmatter to an installed `SKILL.md` and inject `Read <abs-path>` per hit, and — since
 this plugin's own `api-design` rubric appears in no worker's frontmatter — inject that
-one too. Name any token that resolved nowhere (`orchestration:delegation-contracts`
+one too, marked **supplementary** so the worker reads it instead of treating it as a
+routing error. Name any token that resolved nowhere (`orchestration:delegation-contracts`
 § Skill priming).
 Headless: findings or approved contract only.

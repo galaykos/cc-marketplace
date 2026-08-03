@@ -21,9 +21,12 @@ rubric only where component logic actually changed.
 Your authoritative rubric is `react-server-state,react-native-best-practices,vue3-best-practices,inertia-best-practices,livewire-best-practices,vite-best-practices,nextjs-best-practices,nuxt-best-practices` — comma-separated when more than one, each
 naming a skill directory, not a file you can find by name. You have no `Skill` tool. A dispatch that
 primes you injects one absolute `Read <path>` per skill: Read the ones matching your named
-skills first and work from them, and do not restate or second-guess their rubric here. An
-injected path for a skill you do NOT name is a routing error by the caller: do not read it,
-do not treat it as authoritative, and report it in the status line below.
+skills first and work from them, and do not restate or second-guess their rubric here. An injected path for a skill you do NOT name comes in two
+kinds and only one is an error. If the dispatch marks it **supplementary** — it detected
+the skill, or the skill is the reviewing plugin's own — then it IS authoritative for this
+dispatch: read it, work from it, and count it in `loaded`. An UNLABELLED path for a skill
+you never listed is a caller routing error: do not read it, do not treat it as
+authoritative, and report it as off-name below.
 
 `Glob` DOES reach outside the project when you pass an explicit `path` — only the unpathed
 form is confined to the project — so you CAN find a skill yourself. Without `Bash` you cannot FILTER or sort them
@@ -75,8 +78,9 @@ loaded <k> of <m>[; rescued <names>][; missing <names>][; ignored off-name injec
   broken dispatch, and this is the only line that tells them so.
 - `missing` — skills in `<m>` you do not hold. If `<k>` is 0 and `<m>` is not, say
   `loaded 0 of <m>` and list them all; that is the fully-unprimed case.
-- `off-name` — injected paths naming a skill that is NOT in your named list at all. Judge
-  this against your NAMED list, never against `<m>`: the dispatcher injects per named skill
+- `off-name` — UNLABELLED injected paths naming a skill that is NOT in your named list at
+  all. A path the dispatch marked supplementary is correct and belongs in `loaded`, never
+  here. Judge this against your NAMED list, never against `<m>`: the dispatcher injects per named skill
   and cannot know what your detection selected, so a path for a named-but-out-of-scope
   skill is CORRECT and must never appear here. A path naming a skill you never listed is a
   caller ROUTING bug, is not authoritative, and must not be applied.

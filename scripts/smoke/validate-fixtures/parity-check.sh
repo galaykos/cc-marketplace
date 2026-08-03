@@ -179,7 +179,7 @@ dp clean-mention.md         'The reviewer is read-only; a file-editing worker is
 # including a live unprotected site — and the three rescue fixtures above (all written
 # "Dispatch the …") returned at the early exit without reaching the arms they name.
 dp bad-capital.md           'Dispatch the finding list down the chain `x:worker → inline`.'
-dp ok-capital.md            'Dispatch the finding list down the chain. <!-- priming-ok -->'
+dp ok-capital.md            'Dispatch the finding list down the chain, primed per `delegation-contracts` § Skill priming.'
 
 dpassert_hit() {
   out_d=$(pc_dispatch_priming "$DPD/$1"); st=$?
@@ -206,7 +206,7 @@ dpassert_clean ok-marker.md        # <!-- priming-ok --> suppresses
 dpassert_clean clean-no-dispatch.md  # "dispatch this agent" in authoring prose is not a dispatch
 dpassert_clean clean-mention.md      # merely mentioning a worker is not a dispatch
 dpassert_hit   bad-capital.md       # sentence-initial dispatch, unprimed
-dpassert_clean ok-capital.md        # sentence-initial dispatch, rescued by the marker
+dpassert_clean ok-capital.md        # sentence-initial dispatch, rescued by the DOCTRINE arm (ok-marker covers the hatch)
 
 # ---------------------------------------------------------------------------
 # Ladder-drift gate: both directions, both expression forms.
@@ -235,6 +235,8 @@ ld stale-no-dotdir.md     'find ~/.claude/plugins/marketplaces \( -path "*/skill
 awk -F/ "{for(i=NF;i>0;i--) ...}"'
 ld stale-fixed-index.md   'find ~/.claude/plugins/marketplaces \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) | grep -v "/[^/]*\.bak/" | grep -v "/marketplaces/[^/]*/\." | sort
 awk -F/ "{print \$(NF-3)}"'
+ld stale-no-bak.md        'find ~/.claude/plugins/marketplaces \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) | grep -v "/marketplaces/[^/]*/\." | sort
+awk -F/ "{for(i=NF;i>0;i--) ...}"'
 ld not-a-ladder.md        'This file mentions dispatch and priming but never names the resolution search root.'
 
 ldassert_hit() {
@@ -252,6 +254,7 @@ ldassert_clean() {
 ldassert_hit   stale-no-nested.md      # nested-category skills reported UNRESOLVED
 ldassert_hit   stale-no-dotdir.md      # other runtimes' mirrors win head -1
 ldassert_hit   stale-fixed-index.md    # NF-3 keys a vendor dir on 74 real paths
+ldassert_hit   stale-no-bak.md         # resolves to the stale .bak mirror; measured, not theoretical
 
 # TRUE NEGATIVES — both expression forms are complete, and a non-ladder file is skipped.
 ldassert_clean full-shell.md

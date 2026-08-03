@@ -118,7 +118,13 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_has "$W" "ALWAYS produces a line" "worker: an off-name injection is never suppressed"
   # Off-name keys on the NAMED list; keyed on <m> it accuses every stack-narrowed caller.
   expect_has "$W" "this against your NAMED list, never against" "worker: off-name keys on named list, not applying subset"
-  expect_has "$W" "do not treat it as authoritative" "worker: an off-name rubric is never applied"
+  expect_has "$W" "do not treat it as authoritative" "worker: an unlabelled off-name rubric is never applied"
+  # Five dispatch sites DELIBERATELY inject skills outside the worker's frontmatter (the
+  # stack skills a review detected, the reviewing plugin's own rubric, the tag map's
+  # domain skill). Without the supplementary carve-out the worker discards exactly the
+  # rubric the dispatcher spent the ladder resolving, and false-alarms on a correct call.
+  expect_has "$W" "marks it **supplementary**" "worker: a labelled supplementary path is authoritative"
+  expect_has "$W" "count it in" "worker: supplementary paths count toward loaded"
   # Self-rescue backstop: covers direct Agent spawns and any dispatch site that skipped
   # its step — neither of which the orchestrator can reach.
   expect_has "$W" "~/.claude/plugins/marketplaces" "worker: self-rescue prefers the live checkout"

@@ -31,7 +31,8 @@ the explicit entry point to the ui-ux-engineer worker — a build verb to comple
    the worker names, so use the three-rung ladder in `orchestration:delegation-contracts`
    `references/skill-priming.md` § Resolving the AGENT file. Then resolve each
    one (and each token of that frontmatter) to an installed
-   `SKILL.md` and inject `Read <abs-path>` per hit, skipping misses
+   `SKILL.md` and inject `Read <abs-path>` per hit, skipping misses; mark any path outside
+   the worker's own frontmatter **supplementary**, or it is discarded as a routing error
    (`orchestration:delegation-contracts` § Skill priming). Unprimed, it restyles from
    recalled convention rather than from the token scale it was told to obey.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
