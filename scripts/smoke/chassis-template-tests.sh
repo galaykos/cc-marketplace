@@ -129,7 +129,7 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # domain skill). Without the supplementary carve-out the worker discards exactly the
   # rubric the dispatcher spent the ladder resolving, and false-alarms on a correct call.
   expect_has "$W" "marks it **supplementary**" "worker: a labelled supplementary path is authoritative"
-  expect_has "$W" "count it in" "worker: supplementary paths count toward loaded"
+  expect_has "$W" "counts in \`loaded\`" "worker: supplementary paths count toward loaded"
   # "count it in loaded" is only executable if <m> admits supplementary paths: <k> counts
   # skills in <m>, and a supplementary skill is by definition not in the NAMED list, so
   # without this the rule forces either an invisible inject or "loaded 3 of 2".

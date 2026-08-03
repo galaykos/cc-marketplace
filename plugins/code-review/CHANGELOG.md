@@ -3,7 +3,7 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
-## 0.10.12 — 2026-08-03
+## 0.10.13 — 2026-08-03
 
 ### Fixed
 - **`/code-review:review` now hands `task-executor` the stack skills the review was

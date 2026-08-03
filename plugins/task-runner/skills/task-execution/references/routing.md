@@ -54,7 +54,9 @@ and picks the first present in its available-agent-types list.
    label; a `laravel-best-practices` card routed to that same worker does not, and labelling
    it would inject one skill twice and count it twice in the worker's `<m>`. An unlabelled
    outside path is refused unread and reported as a caller routing error (delegation-contracts § Skill priming) — a delegate cannot self-load skills, and a card
-   naming no skill still dispatches to a worker whose frontmatter names one. Do this **unconditionally, not
+   naming no skill still dispatches to a worker whose frontmatter usually names one
+   (`task-executor` — the `generic` worker and the universal fallback — names none, so
+   zero tokens and zero injections, which degrades correctly). Do this **unconditionally, not
    only under ultra**: a framework card must reach its worker with the framework skill
    primed, or the code is written framework-blind and only caught (if at all) at review.
    When a stamped skill's `SKILL.md` cannot be resolved (plugin not installed), NEVER

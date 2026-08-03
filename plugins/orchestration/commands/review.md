@@ -46,7 +46,8 @@ are genuinely different — do not collapse them:
   `delegation-contracts` itself — the executor has no `Skill` tool and no
   `bestpractices-skill:` frontmatter, and the rubric these findings cite is this
   plugin's own: resolve `delegation-contracts`' installed `SKILL.md` and inject
-  `Read <abs-path>` (§ Skill priming). A prompt
+  `Read <abs-path> — supplementary` (§ Skill priming) — it is outside the head's
+  frontmatter, and unlabelled it is discarded unread. A prompt
   file is a file.
 
 Headless: print the fixed prompt fragments inline.

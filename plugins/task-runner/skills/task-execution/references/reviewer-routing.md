@@ -81,7 +81,8 @@ return (delegation-contracts § Compressed returns), injected verbatim:
 
 **Bound:** inject the reviewer's OWN `bestpractices-skill:` tokens (always — they are the
 rubric it was built around) + the card's `Skills to apply` (deduped) + at most one agnostic
-domain skill from the map (deduped against the other two terms — the `devops` row's map
+domain skill(s) from the map — one row (`api`) lists two and BOTH are injected, so read
+this as the row's skills, not a hard cap of one (deduped against the other two terms — the `devops` row's map
 skill IS `devops-reviewer`'s only frontmatter token, and injecting it twice counts one skill
 twice in the reviewer's `<m>`). **Mark `supplementary` exactly those paths the resolved
 reviewer's own `bestpractices-skill:` does NOT list, whichever term they came from** — an

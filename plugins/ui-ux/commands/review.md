@@ -48,7 +48,9 @@ ui-ux plugin skills. Steps:
    — never leave the user to retype findings. Prime the chain head in that same
    dispatch: it has no `Skill` tool, so resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each token of its `bestpractices-skill:`
    frontmatter to an installed `SKILL.md` and inject `Read <abs-path>` per hit — plus
-   the stack skills THIS review detected and loaded, which its fixed frontmatter list
-   does not name. Mark each of those extra paths **supplementary** in the dispatch text, or the worker treats it as a routing error and discards it unread. Name any token that resolved nowhere
+   every stack skill THIS review loaded that the head's frontmatter does NOT name, and only
+   those, marked **supplementary**. The head names `tailwind`, `shadcn` and `motion`, which
+   are exactly what a common diff detects: label those and you inject each twice and the
+   worker counts each twice. Unlabelled, an outside path is discarded unread. Name any token that resolved nowhere
    (`orchestration:delegation-contracts` § Skill priming).
    Bare instructions only when headless.

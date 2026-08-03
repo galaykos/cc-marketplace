@@ -39,8 +39,8 @@ inline` — api-design ships no worker agent of its own, so naming the chain is 
 only thing that keeps an approved contract from dying in chat. Prime whichever head you
 land on: it has no `Skill` tool, so resolve its agent file first — several copies exist and they DISAGREE about which skills the worker names, so use the three-rung ladder in `orchestration:delegation-contracts` `references/skill-priming.md` § Resolving the AGENT file — then resolve each token of its `bestpractices-skill:`
 frontmatter to an installed `SKILL.md` and inject `Read <abs-path>` per hit, and — since
-this plugin's own `api-design` rubric appears in no worker's frontmatter — inject that
-one too, marked **supplementary** so the worker reads it instead of treating it as a
-routing error. Name any token that resolved nowhere (`orchestration:delegation-contracts`
+this plugin's rubrics appear in no worker's frontmatter — inject WHICHEVER of `api-design`
+or `graphql-grpc` this run actually applied, marked **supplementary**. Injecting the fixed
+name hands a GraphQL/gRPC review's worker the REST rules the review itself discarded. Name any token that resolved nowhere (`orchestration:delegation-contracts`
 § Skill priming).
 Headless: findings or approved contract only.

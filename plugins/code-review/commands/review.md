@@ -92,8 +92,10 @@ Prime that dispatch. `task-executor` has no `Skill` tool AND declares no
 `bestpractices-skill:` frontmatter, so unlike a stack worker it has nothing to resolve —
 and a fix list is not a task card, so nothing else names its rubric either. You already
 loaded the matching stack skills to produce these findings: inject one
-`Read <abs-path>` line per skill you actually loaded, so the executor applies the same
-rubric the review was judged against rather than recalled convention. Name any skill you
+`Read <abs-path> — supplementary` line per skill you actually loaded, so the executor
+applies the same rubric the review was judged against rather than recalled convention.
+The label is not optional: each names a skill outside the head's (empty) frontmatter, and
+a worker carrying a refusal clause discards an unlabelled outside path unread. Name any skill you
 loaded whose file you could not resolve. Doctrine:
 `orchestration:delegation-contracts` § Skill priming.
 Headless: verdict only.
