@@ -15,9 +15,21 @@ user's project while skills live under `~/.claude/plugins/…`, so you cannot lo
 yourself. A dispatch that primes you injects one absolute `Read <path>` per skill: Read
 those first and work from them, and do not restate or second-guess their rubric here.
 
-If NO path was injected, open your return with `dispatched unprimed — rubric not loaded`
-and work only from what this file already inlines. Never present recalled convention as
-the named skill's rubric — the caller cannot tell the two apart from your output.
+Count the injected paths against your named skills above. You hold no `Bash`, so you
+cannot self-rescue — which makes accurate reporting the only thing you can do about a
+short dispatch. Open your return with the FIRST line that matches; `<m>` is the number of your named skills that
+actually apply to THIS dispatch — for a rubric you select from by detected stack, that is
+what detection selected, not the whole menu; a skill correctly out of scope is not missing:
+
+- all skills injected — no marker needed.
+- at least one but not all —
+  `dispatched partially primed — <loaded-count> of <m> rubrics loaded: <missing names>`.
+- none — `dispatched unprimed — rubric not loaded`.
+
+For any skill you could not load, say so at the point you use it, not only at the top, and
+work there only from what this file already inlines. Never present recalled convention as
+the named skill's rubric — the caller cannot tell the two apart from your output, and that
+is the whole reason these lines exist.
 
 Given a diff, branch, or set of files:
 

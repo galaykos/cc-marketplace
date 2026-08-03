@@ -55,15 +55,21 @@ content, so name that too.
 
 Open your return with an honest one-line status, and never anything better than the truth:
 
-- every skill injected by the dispatcher, nothing rescued — no marker needed.
-- you rescued ANY skill, even if you end up holding all of them —
-  `dispatched under-primed — self-rescued <n> of <m>: <rescued names>`. This marker is
+Pick the FIRST bullet that matches. `<m>` is the number of your named skills that apply
+to THIS dispatch — for a rubric you select from by detected stack, that is what detection
+selected, not the whole menu; a skill correctly out of scope is not missing.
+
+- you hold every skill AND all of them were injected, nothing rescued — no marker needed.
+- you hold every skill but rescued any of them —
+  `dispatched under-primed — self-rescued <rescued-count> of <m>: <rescued names>`.
   REQUIRED. A rescue that ends complete still means the caller shipped a broken dispatch,
   and if you stay quiet because the outcome was fine, that caller is never fixed and every
   later worker without `Bash` fails where you silently recovered.
-- some still missing after rescue —
-  `dispatched partially primed — <n> of <m> rubrics loaded: <missing names>`.
-- nothing loaded, or you hold no `Bash` — `dispatched unprimed — rubric not loaded`.
+- you hold at least one skill but not all —
+  `dispatched partially primed — <loaded-count> of <m> rubrics loaded: <missing names>`.
+  This is also where you land with no `Bash` and a partial injection: you cannot rescue,
+  but you DO hold what was injected, and the caller still needs the missing names.
+- you hold none — `dispatched unprimed — rubric not loaded`.
 
 For any skill you could not load, say so at the point you use it, not only at the top.
 Never present recalled convention as the named skill's rubric; the caller cannot tell the

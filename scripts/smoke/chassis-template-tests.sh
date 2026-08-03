@@ -127,9 +127,15 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # a required marker for it the bug self-heals in every transcript and is never reported,
   # and the next worker without Bash fails where this one silently recovered.
   expect_has "$W" "dispatched under-primed — self-rescued" "worker: successful rescue is still reported"
-  expect_has "$W" "This marker is" "worker: the rescued marker is mandatory, not optional"
+  expect_has "$W" "REQUIRED. A rescue that ends complete" "worker: the rescued marker is mandatory, not optional"
   # Injected path wins over a self-resolved one: only the dispatcher can rank provenance.
   expect_has "$W" "use the INJECTED path" "worker: injected path wins a disagreement"
+  # A menu-style rubric (8 framework skills, one diff) legitimately gets one path. Without
+  # this qualifier the partial marker fires on every normal dispatch and gets ignored.
+  expect_has "$W" "not the whole menu" "worker: menu rubrics do not false-alarm as partial"
+  # No-Bash agents cannot rescue, so a partial dispatch must still be REPORTED by them;
+  # routing them to the bare unprimed marker loses the missing-names list.
+  expect_has "$W" "you hold at least one skill but not all" "worker: partial tier is reachable without Bash"
   # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
   # runnable-looking command gets executed verbatim, returns nothing, and the agent
   # then reports "unresolved" for a skill that is in fact installed.
