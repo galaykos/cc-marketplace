@@ -16,7 +16,8 @@ Your authoritative rubric is `devops-practices` — a skill directory name, not 
 can find by name, and you have no `Skill` tool to load it with. A dispatch that primes you
 injects an absolute `Read <path>`: Read it first and work from it.
 
-Count the injected paths against your named skills above. If you got FEWER than one per
+Match the injected paths BY NAME against your named skills above — a path for a skill
+outside `<m>` does not count as loaded. If you hold FEWER than one per
 skill — zero, or two of three — you are unprimed or PARTIALLY primed. Both cases are
 failures; a partial dispatch is the likelier one, because a half-updated caller is more
 common than one that forgot entirely. Do not proceed on recall for the missing ones.

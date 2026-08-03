@@ -7,16 +7,17 @@ states the evidence behind it, and the one case where a delegate can rescue itse
 
 | Tool it holds | Can it locate its own rubric? |
 |---|---|
-| `Glob` only | **No.** `Glob` is scoped to the user's project CWD; skills live under `~/.claude/plugins/…`, so a project-CWD pattern matches nothing. |
+| `Glob` only | **Yes, with an explicit `path`.** Only the UNPATHED form is confined to the project. Verified: a `Read/Grep/Glob` agent resolved a skill under `~/.claude/plugins` in one call. It cannot FILTER or version-sort the results, and Glob returned the `.bak` mirror FIRST — the probe read the stale copy. |
 | `Bash` | **Yes** — `find ~/.claude/plugins -path '*/skills/<name>/SKILL.md'` returns hits. Verified against a live spawned agent, not assumed. |
 | Neither | No. Say so; do not proceed on recall. |
 
 The older doctrine said flatly that a delegate "cannot self-locate an installed skill."
-That was true of the `Glob` path it had in mind and false for every `Bash`-holding
-worker this marketplace ships — 10 of the 12 that declare a rubric. It is corrected here
-rather than quietly: a limitation that is wider than reality gets designed around, and
-the design that resulted was 4 dispatch paths that all named a rubric and injected
-nothing.
+That is false for every agent here, in two separate ways, and both were found by probing
+rather than by reasoning: `Bash` holders can `find`, and `Glob` holders can pass an
+explicit `path`. A limitation stated wider than reality gets designed around, and the
+design that resulted was 4 dispatch paths that all named a rubric and injected nothing.
+What is genuinely true is narrower and is the whole reason injection still matters: no
+delegate can rank the copies it finds.
 
 ## Why self-location is still not enough
 
@@ -88,11 +89,18 @@ shrank reads identically to one that applied in full.
 
 ## Self-rescue (delegate side)
 
-A `Bash`-holding delegate that receives NO injected path runs steps 2–3 itself and states
-which path it used. This is a backstop, not the design: it covers direct `Agent` spawns
-and any dispatch site that skipped its step, neither of which the orchestrator can reach.
-A delegate without `Bash`, or with nothing resolved, opens its return with
-`dispatched unprimed — rubric not loaded` and works only from what its own body inlines.
+A delegate that receives no injected path for a skill self-rescues, by whichever tool it
+holds. `Bash`: rungs 3–4 above. `Glob` only: one call with an explicit
+`path` of `~/.claude/plugins` and pattern `**/skills/<name>/SKILL.md`, then pick by
+discarding `.bak` components, preferring `marketplaces/` over `cache/`, and taking the
+highest version among cache hits — a rule it must apply by reading the paths, since it has
+no `Bash` to filter with, and Glob's own order has handed back the `.bak` mirror first.
+
+This is a backstop, not the design: it covers direct `Agent` spawns and any dispatch site
+that skipped its step, neither of which the orchestrator can reach. A delegate that
+rescued anything says so (`dispatched under-primed — self-rescued …`) even when it ends up
+holding everything — otherwise the broken caller is never told. One holding nothing, with
+no tool to look, opens with `dispatched unprimed — rubric not loaded`.
 
 ## Standing
 

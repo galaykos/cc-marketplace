@@ -22,7 +22,8 @@ You have no `Skill` tool, so a dispatch that primes you injects one absolute
 in THIS file or second-guess it — quoting a rule back when you are asked to, or to justify
 a finding, is not restating it.
 
-Count the injected paths against your named skills above. If you got FEWER than one per
+Match the injected paths BY NAME against your named skills above — a path for a skill
+outside `<m>` does not count as loaded. If you hold FEWER than one per
 skill — zero, or two of three — you are unprimed or PARTIALLY primed. Both cases are
 failures; a partial dispatch is the likelier one, because a half-updated caller is more
 common than one that forgot entirely. Do not proceed on recall for the missing ones.

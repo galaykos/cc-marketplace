@@ -121,7 +121,7 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   # plugins; a flat-only glob reports them UNRESOLVED while they sit readable on disk.
   expect_has "$W" '-o -path "*/skills/*/$s/SKILL.md"' "worker: nested-category skills are matched"
   # Partial priming is the likelier failure than zero priming — the gate must count.
-  expect_has "$W" "Count the injected paths against your named skills" "worker: gate triggers on count, not zero"
+  expect_has "$W" "Match the injected paths BY NAME" "worker: gate matches by name, not bare count"
   expect_has "$W" "dispatched partially primed" "worker: partial priming has its own status line"
   # A rescue that ENDS complete still means the caller shipped a broken dispatch. Without
   # a required marker for it the bug self-heals in every transcript and is never reported,

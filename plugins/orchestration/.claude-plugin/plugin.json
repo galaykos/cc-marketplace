@@ -1,6 +1,6 @@
 {
   "name": "orchestration",
-  "version": "0.13.4",
+  "version": "0.13.5",
   "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared apply-fixes contract and the fleet mapping for review-only plugins. Includes /orchestration:review.",
   "author": {
     "name": "Ivan-WG",

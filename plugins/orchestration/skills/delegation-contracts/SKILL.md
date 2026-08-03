@@ -116,22 +116,22 @@ The failure mode is silent: two writers touch one file, the second write clobber
 
 ## Skill priming (authoring-time)
 
-A delegated implementer writes stack code fresh: no skill auto-loading, no `Skill` tool,
-no reliable way to resolve a skill unaided (`references/skill-priming.md` — why, and what
-`Bash` CAN self-rescue). The orchestrator resolves and injects, per skill a card names in
-`Skills to apply` and per `bestpractices-skill:` token in frontmatter:
+A delegated implementer writes stack code fresh: no skill auto-loading, no `Skill` tool, and no way to RANK
+the copies it can find — it CAN find them (`Bash` via `find`, `Glob` via an explicit `path`;
+`references/skill-priming.md`), so ranking is the orchestrator's job. It resolves and injects, per skill a
+card names in `Skills to apply` and per `bestpractices-skill:` token in frontmatter:
 
 1. **Resolve** dir `<name>`'s `SKILL.md`, first hit wins — `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`,
    else sibling-in-your-marketplace `"${CLAUDE_PLUGIN_ROOT}"/../*/skills/<name>/SKILL.md`,
-   else `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '/[^/]*\.bak/' | sort | head -1`,
-   else newest cached version — sort the version SEGMENT, never the whole path: `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | awk -F/ '{print $(NF-3)"\t"$0}' | sort -V | tail -1 | cut -f2-`,
+   else `find ~/.claude/plugins/marketplaces \( -path '*/skills/<name>/SKILL.md' -o -path '*/skills/*/<name>/SKILL.md' \) | grep -v '/[^/]*\.bak/' | sort | head -1`,
+   else the same find under `cache`, keyed on the version SEGMENT (never the whole path) — full form in `references/skill-priming.md`,
    else repo `plugins/*/skills/<name>/SKILL.md` (dev). Globs exact, finds heuristic; order matters and the rationale is in `references/skill-priming.md`. On miss: skip, never error — NAME it.
 2. **Inject**: `Read <abs-path> before writing; it is the authoritative best-practice
    source for this stack.`
 
-Abs paths are CWD-proof, so the canonical skill stays the single source of truth.
-Miss-floor: a card touching stack files but naming no skill gets `Read any
-*-best-practices skill matching the touched files`; `/<stack>:review` backstops.
+Abs paths are CWD-proof, so the canonical skill stays the single source of truth. Miss-floor:
+a card touching stack files but naming no skill gets `Read any *-best-practices skill
+matching the touched files`; `/<stack>:review` backstops.
 
 ## Portable discipline preamble
 
