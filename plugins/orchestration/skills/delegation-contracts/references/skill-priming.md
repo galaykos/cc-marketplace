@@ -105,6 +105,27 @@ installed; `.bak` is excluded because it is by definition superseded. A name tha
 nowhere is skipped, never an error — but **name the miss**, or a rubric that silently
 shrank reads identically to one that applied in full.
 
+## Resolving the AGENT file (before you can read its frontmatter)
+
+`bestpractices-skill:` lives in the worker's agent definition, so priming needs that file
+resolved before any skill is. It has the same several-copies problem and needs its own
+three-rung ladder, first hit wins:
+
+1. `${CLAUDE_PLUGIN_ROOT}/agents/<name>.md` — worker in THIS plugin.
+2. `"${CLAUDE_PLUGIN_ROOT}"/../<plugin>/agents/<name>.md` — cross-plugin, checkout layout.
+3. `"${CLAUDE_PLUGIN_ROOT}"/../../<plugin>/*/agents/<name>.md` at the highest version —
+   cross-plugin, cache layout.
+
+Skipping this is not cosmetic, because copies genuinely disagree about which skills the
+worker even names. Measured on one machine: `ui-ux:ui-ux-reviewer` at cache `0.7.7` still
+declares a skill this marketplace has since removed, where the live checkout declares the
+current `motion-best-practices`. A dispatcher that lands on the old copy injects a
+removed skill's rubric and silently drops the current one, while every status field reads
+clean. Resolve the agent file by provenance, exactly as you resolve the skill.
+
+Rung 3 matters for the same arithmetic as the skill ladder's rung 2: a cache root is
+`<mp>/<plugin>/<version>`, so one `..` reaches other VERSIONS of the same plugin.
+
 ## Self-rescue (delegate side)
 
 A delegate that receives no injected path for a skill self-rescues, by whichever tool it

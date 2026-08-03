@@ -41,8 +41,13 @@ observability -> code-review:code-reviewer + prime {card Skills-to-apply} + obse
 ## Priming (the orchestrator primes every routed reviewer)
 
 Reviewer agents have no Skill tool and cannot self-load a rubric, so the **orchestrator**
-injects it. For each named skill — those listed in the map above AND every comma-separated
-token of the reviewer's own `bestpractices-skill:` frontmatter — resolve its installed
+injects it. Resolve the reviewer's AGENT file first — its `bestpractices-skill:` line lives
+there and the file has several on-disk copies that DISAGREE (one cached `ui-ux-reviewer`
+names a removed skill where the live one names the current set), so use the three-rung
+agent ladder in delegation-contracts `references/skill-priming.md` § Resolving the AGENT
+file; every routed reviewer is cross-plugin from task-runner, so rungs 2-3 always apply.
+Then, for each named skill — those listed in the map above AND every comma-separated
+token of that frontmatter — resolve its installed
 `SKILL.md` by the ladder in delegation-contracts § Skill priming (same-plugin glob →
 sibling-plugin glob → marketplaces find, `.bak` excluded → versioned cache find → repo,
 first hit wins; a miss is skipped but NAMED). "Read its installed `SKILL.md`" without

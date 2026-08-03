@@ -44,9 +44,11 @@ and picks the first present in its available-agent-types list.
    allowed-files, and the index's `## Upgraded statement` block when one is present.
    The preamble overrides the worker's own default procedure. THEN, for
    every skill named in the card's `Skills to apply` **and every comma-separated token of
-   the resolved worker's own `bestpractices-skill:` frontmatter**, resolve its installed
-   `SKILL.md` and inject a `Read <abs-path>` line into the same prompt
-   (delegation-contracts § Skill priming) — a delegate cannot self-load skills, and a card
+   the resolved worker's own `bestpractices-skill:` frontmatter** — resolving that agent
+   FILE by the three-rung ladder in delegation-contracts `references/skill-priming.md`
+   § Resolving the AGENT file, since its copies disagree about which skills the worker even
+   names — resolve its installed `SKILL.md` and inject a `Read <abs-path>` line into the
+   same prompt (delegation-contracts § Skill priming) — a delegate cannot self-load skills, and a card
    naming no skill still dispatches to a worker whose frontmatter names one. Do this **unconditionally, not
    only under ultra**: a framework card must reach its worker with the framework skill
    primed, or the code is written framework-blind and only caught (if at all) at review.
