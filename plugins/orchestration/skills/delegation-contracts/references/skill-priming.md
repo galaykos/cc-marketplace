@@ -45,9 +45,22 @@ because it is the only party that can rank provenance.
    Laravel worker) resolves here without ever leaving the marketplace the dispatching
    plugin was installed from. `taskmaster/scripts/skills-stamp-lint.sh:72` already uses
    exactly this glob.
-3. `find ~/.claude/plugins/marketplaces -path '*/skills/<name>/SKILL.md' | grep -v '/[^/]*\.bak/' | sort | head -1`
-4. `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | awk -F/ '{print $(NF-3)"\t"$0}' | sort -V | tail -1 | cut -f2-`
+3. `find ~/.claude/plugins/marketplaces \( -path '*/skills/<name>/SKILL.md' -o -path '*/skills/*/<name>/SKILL.md' \) | grep -v '/[^/]*\.bak/' | sort | head -1`
+4. same `find` under `~/.claude/plugins/cache`, keyed on the version field and taking the
+   highest: `awk -F/ '{v="0.0.0"; for(i=NF;i>0;i--) if($i ~ /^[0-9]+(\.[0-9]+)+$/){v=$i; break} print v"\t"$0}' | sort -V | tail -1 | cut -f2-`
 5. `plugins/*/skills/<name>/SKILL.md` — repo-relative, development only.
+
+The second `-path` in rungs 3–4 is not decoration. Skills may nest one level under a
+category (`skills/<category>/<name>/SKILL.md`); 66 such files ship in installed plugins on
+the machine this was measured on, and a flat-only glob reports every one of them
+`UNRESOLVED` while they sit readable on disk. This marketplace ships none today, so the
+case reaches `bestpractices-skill:` tokens never and a card's `Skills to apply` freely.
+
+Filter `.bak` BEFORE deciding to fall through to cache. Testing the unfiltered hit list
+means a marketplace holding ONLY a `.bak` copy blocks the cache branch, and the skill
+resolves nowhere even though a good cached copy exists. Measured, not theorised: a skill
+in exactly that state regressed from resolving to `UNRESOLVED` when the filter was applied
+after the fallthrough test instead of before it.
 
 Two details in rungs 3–4 are load-bearing, and both were wrong in the first draft of
 this file:

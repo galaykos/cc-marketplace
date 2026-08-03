@@ -16,30 +16,46 @@ Your authoritative rubric is `devops-practices` — a skill directory name, not 
 can find by name, and you have no `Skill` tool to load it with. A dispatch that primes you
 injects an absolute `Read <path>`: Read it first and work from it.
 
-If NO path was injected, you hold `Bash` — self-rescue before reviewing anything.
+Count the injected paths against your named skills above. If you got FEWER than one per
+skill — zero, or two of three — you are unprimed or PARTIALLY primed. Both cases are
+failures; a partial dispatch is the likelier one, because a half-updated caller is more
+common than one that forgot entirely. Do not proceed on recall for the missing ones.
+**If you hold `Bash`, self-rescue for every skill still missing, before doing any work.**
 
 Run this verbatim — your skill names are already substituted in, so there is no
 placeholder to fill and nothing to guess:
 
 ```sh
+f() { printf '%s\n' "$1" | grep -v '/[^/]*\.bak/'; }   # drop superseded .bak mirrors
+c() { printf '%s\n' "$1" | grep -c .; }
 for s in $(echo 'devops-practices' | tr ',' ' '); do
-  all=$(find ~/.claude/plugins/marketplaces -path "*/skills/$s/SKILL.md" 2>/dev/null | sort)
-  live=$(printf '%s\n' "$all" | grep -v '/[^/]*\.bak/')
-  p=$(printf '%s\n' "$live" | head -1); src=marketplace; n=$(printf '%s\n' "$live" | grep -c .)
+  hits=$(find ~/.claude/plugins/marketplaces \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) 2>/dev/null | sort)
+  live=$(f "$hits"); src=marketplace; p=$(printf '%s\n' "$live" | head -1)
   if [ -z "$p" ]; then
-    c=$(find ~/.claude/plugins/cache -path "*/skills/$s/SKILL.md" 2>/dev/null)
-    p=$(printf '%s\n' "$c" | awk -F/ 'NF>3{print $(NF-3)"\t"$0}' | sort -V | tail -1 | cut -f2-)
-    src=cache; n=$(printf '%s\n' "$c" | grep -c .)
+    hits=$(find ~/.claude/plugins/cache \( -path "*/skills/$s/SKILL.md" -o -path "*/skills/*/$s/SKILL.md" \) 2>/dev/null \
+      | awk -F/ '{v="0.0.0"; for(i=NF;i>0;i--) if($i ~ /^[0-9]+(\.[0-9]+)+$/){v=$i; break} print v"\t"$0}' | sort -V | cut -f2-)
+    live=$(f "$hits"); src=cache; p=$(printf '%s\n' "$live" | tail -1)
   fi
-  printf '%s\t%s\tsrc=%s\tcopies=%s\tstale-suppressed=%s\n' "$s" "${p:-UNRESOLVED}" "$src" "$n" \
-    "$(( $(printf '%s\n' "$all" | grep -c .) - $(printf '%s\n' "$live" | grep -c .) ))"
+  [ -n "$p" ] || src=none
+  printf '%s\t%s\tsrc=%s\tcopies=%s\tstale-suppressed=%s\n' "$s" "${p:-UNRESOLVED}" "$src" "$(c "$live")" "$(( $(c "$hits") - $(c "$live") ))"
 done
 ```
 
-Read EVERY path it prints and say which one you used for each; a `copies=` count
-above 1 means the pick was decided by sort order, not authority, so say so. If nothing resolves, open
-your return with `dispatched unprimed — rubric not loaded` and never present recalled
-convention as the skill's rubric — the caller cannot tell the two apart from your output.
+Read **every** path it prints, not just the first — the loop emits one row per skill, and
+stopping at row one silently drops the rest of your rubric. Then, in your return, name the
+path you used for each skill. `copies=` above 1 means more than one copy was found and the
+pick came from sort order, not authority — say so. `stale-suppressed=` above 0 means a
+`.bak` mirror was filtered; those mirrors do differ in content, so name that too.
+
+Open your return with an honest one-line status, and never anything better than the truth:
+
+- all skills loaded — no marker needed.
+- some loaded — `dispatched partially primed — <n> of <m> rubrics loaded: <missing names>`.
+- none loaded, or you hold no `Bash` — `dispatched unprimed — rubric not loaded`.
+
+For any skill you could not load, say so at the point you use it, not only at the top.
+Never present recalled convention as the named skill's rubric; the caller cannot tell the
+two apart from your output, and that is the whole reason these lines exist.
 
 Procedure:
 1. Establish scope: CI configs, Dockerfiles/compose, k8s manifests/Helm, deploy

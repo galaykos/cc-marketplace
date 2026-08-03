@@ -113,8 +113,16 @@ if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
   expect_absent "$W" "live-copies=" "worker: no marketplace-only count (blind to cache ambiguity)"
   # Cache fallback must sort the VERSION SEGMENT. `sort -V` over whole paths lets the
   # marketplace name dominate — it returns 0.9.0 over 0.10.0 across two roots.
-  expect_has "$W" 'awk -F/ ' "worker: cache fallback extracts the version field"
-  expect_has "$W" "sort -V | tail -1 | cut -f2-" "worker: cache fallback sorts by version, not whole path"
+  # Scan BACKWARD for a semver-looking field rather than a fixed index: 74 of 1525 real
+  # cache paths are deeper than the dominant layout, where NF-3 keys a vendor dir.
+  expect_has "$W" 'for(i=NF;i>0;i--)' "worker: cache fallback scans for the version field"
+  expect_has "$W" '/^[0-9]+(\.[0-9]+)+$/' "worker: version field matched by shape, not position"
+  # Nested-category skills (skills/<category>/<name>/SKILL.md) exist in installed
+  # plugins; a flat-only glob reports them UNRESOLVED while they sit readable on disk.
+  expect_has "$W" '-o -path "*/skills/*/$s/SKILL.md"' "worker: nested-category skills are matched"
+  # Partial priming is the likelier failure than zero priming — the gate must count.
+  expect_has "$W" "Count the injected paths against your named skills" "worker: gate triggers on count, not zero"
+  expect_has "$W" "dispatched partially primed" "worker: partial priming has its own status line"
   # The block must be copy-runnable: an unsubstituted <name> placeholder inside a
   # runnable-looking command gets executed verbatim, returns nothing, and the agent
   # then reports "unresolved" for a skill that is in fact installed.
