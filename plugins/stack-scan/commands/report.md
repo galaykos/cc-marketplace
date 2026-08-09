@@ -4,7 +4,21 @@ argument-hint: [path]
 ---
 
 Invoke the installed-versions skill from this plugin against $ARGUMENTS (or the
-repository root if no argument). Steps:
+repository root if no argument).
+
+**Steps 1-4 belong in a subagent.** This command reads every manifest, every
+lockfile, the Dockerfiles and the CI configs, and returns one table plus a
+one-line summary — and it is most often called as a *precursor* to other work,
+so the raw lockfile content it reads competes for context with the task that
+asked for it. Dispatch with the Agent tool, resolving `installed-versions`'
+installed `SKILL.md` to an absolute path as a `Read <abs-path>` line, since a
+subagent cannot invoke a skill and the skill's source-precedence order is the
+whole method. Require back exactly the four outputs below — the table with its
+per-cell citations, the red-flag list (or the explicit "none found"), and the
+one-line stack summary — and no lockfile excerpts. Step 5's question stays in
+this thread; a subagent cannot ask it.
+
+Steps:
 
 1. Scan manifests, lockfiles, runtime pins, Dockerfiles/compose files, and CI
    configs per the skill's source order; run version binaries (`php -v`,

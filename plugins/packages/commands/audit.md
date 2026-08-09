@@ -10,6 +10,23 @@ the JS package manager from the lockfile present: package-lock.json → npm,
 yarn.lock → yarn, pnpm-lock.yaml → pnpm. If an ecosystem's manifest is absent, skip
 it and say so in the report. If neither manifest exists, say so and stop.
 
+**Dispatch the command runs to a subagent.** `npm audit` on a real lockfile prints
+thousands of lines of advisory JSON-ish prose, and `composer outdated` scales with
+the dependency count; the deliverable is a severity-sorted list plus lane counts.
+Send the audit and outdated runs — and the licence-lane script below — to one Agent
+dispatch, with the `package-hygiene` `SKILL.md` resolved to an absolute path as a
+`Read <abs-path>` line (a subagent cannot invoke the skill itself) and the
+`${CLAUDE_PLUGIN_ROOT}` in the licence command expanded to a literal path (the
+variable is not set in a subagent). Require back the per-finding lines, the
+upgrade-lane counts, the licence-scan output, and **the exit code of every command
+it ran** — an audit that failed to execute and one that found nothing both print
+nothing, and only the exit code separates them. Skip the dispatch for a
+single-ecosystem project with a short lockfile, where inline is cheaper than the
+round trip.
+
+Two things must NOT move into the subagent: the distribution-mode question below
+(it is a user decision) and the closing apply pick. Ask both here.
+
 Run read-only commands only — no fixes (`/security:review` runs the same audit
 commands when reviewing a diff; with both installed, this command is the depth
 pass and security's review should cite it rather than re-run):

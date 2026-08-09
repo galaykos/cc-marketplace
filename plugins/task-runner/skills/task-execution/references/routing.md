@@ -25,16 +25,46 @@ generic       → [task-runner:task-executor]
 ```
 
 A tag's list may gain more-specific specialists over time; the runner walks it in order
-and picks the first present in its available-agent-types list.
+and picks the first **present and eligible** — presence alone is not enough.
+
+### Stack eligibility (applies before presence)
+
+A worker whose expertise is a specific language or framework is eligible only when
+that stack is actually in the project. Check the manifests, not the card's prose:
+
+| Worker | Eligible only when |
+|---|---|
+| `laravel:backend-engineer` | `composer.json` exists AND requires `laravel/framework` or `illuminate/*` |
+
+Every other worker in the map is stack-neutral and always eligible when present.
+
+Without this rule `backend` resolves by list order alone, so a Node/Express card in a
+repo with the marketplace fully installed lands on `laravel:backend-engineer` — a
+worker whose rubric is `laravel-best-practices` + `php-best-practices`, dispatched
+against JavaScript. It does not error; it writes Eloquent-shaped and artisan-shaped
+advice into an Express app, and the run report calls it `resolved`, so the misroute is
+invisible at exactly the moment it is cheapest to catch. An ineligible worker is
+**skipped, not downgraded** — the walk continues to the next entry (for `backend`,
+`web-dev:web-developer`, which is also what `node-backend`'s own review command
+already picks as its apply target). Log the skip with its reason.
+
+This rule lives here in prose and NOT inside the code fence above on purpose: that
+fence is machine-read — `scripts/generate.sh` (`routing_vocab`, `resolve_tag`) parses
+`tag → [worker, …]` to stamp `{{workerChain}}` into every generated review command, and
+takes the first bracket element verbatim. A condition written inside the brackets would
+be parsed as part of an agent name and fail the "worker has an agent file" check at
+generate time.
 
 ## Per-card dispatch procedure
 
 1. **Read the tag.** Take the card's `**Agent:**` value. Missing or not in the closed
    vocabulary → treat as `generic` and log the normalization.
-2. **Resolve the worker.** Walk the tag's preference list; pick the first agent present
-   in the runner's available-agent-types list. If none is reachable, use
+2. **Resolve the worker.** Walk the tag's preference list; pick the first agent that is
+   present in the runner's available-agent-types list **and passes § Stack eligibility**
+   — skip an ineligible specialist and keep walking. If none is reachable, use
    `task-runner:task-executor`. Log any downgrade (requested tag → actual worker) in
-   the run report.
+   the run report, and log an eligibility skip as `skipped <worker> (<stack> not in
+   manifests)` — a silent skip and a correct first-choice resolution look identical.
 3. **Arm scope.** Record the card's declared allowed-files to a per-card artifact,
    e.g. `<cwd>/.claude/task-runner/scope-<cardId>.json` (the runner's own — NOT the
    legacy fixed `scope.json`, which stays the inline path's soft tripwire).

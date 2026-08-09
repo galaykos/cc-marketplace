@@ -53,11 +53,11 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context | + first work-shaped prompt |
 |--------|---------|-------------------|----------------------------|
-| `everything` | 59 | ~12.2k tokens | ~2.4k tokens |
-| `taskmaster-suite` | 30 | ~7.2k tokens | ~2.4k tokens |
+| `everything` | 59 | ~12.3k tokens | ~2.4k tokens |
+| `taskmaster-suite` | 30 | ~7.3k tokens | ~2.4k tokens |
 | `frontend-suite` | 17 | ~3.3k tokens | ~2.4k tokens |
-| `process-suite` | 9 | ~1.9k tokens | ~2.4k tokens |
 | `quality-principles-suite` | 8 | ~1.9k tokens | — |
+| `process-suite` | 9 | ~1.9k tokens | ~2.4k tokens |
 | `quality-suite` | 7 | ~1.1k tokens | ~2.4k tokens |
 | `php-suite` | 6 | ~0.6k tokens | — |
 | `db-suite` | 5 | ~0.5k tokens | — |
@@ -234,7 +234,7 @@ installing this plugin, or the same server is declared twice.
 | **[terse](plugins/terse/README.md)** | Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list (process narration, re-summary of files just written, unchanged inventories) — levels lite/full/ultra, hook-reinforced each turn; never touches code, files, subagent prompts, or how much work a turn does | `/terse:level`, `/terse:check` |
 | **orchestration** | Subagent orchestration: delegation contracts, compressed returns, model tiering, refuter/judge panels, loop-until-dry | `/orchestration:review` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
-| **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer agent + data-privacy (GDPR/CCPA) and api-auth (token/OAuth model) skills | `/security:review` |
+| **[security](plugins/security/README.md)** | OWASP-aligned defensive review: injection, XSS, CSRF, authz, mass assignment, uploads, secrets, dependency audit — PHP/Laravel + JS/Vue specifics + security-engineer worker + security-reviewer (read-only, the agent the task-runner security gate dispatches) + data-privacy (GDPR/CCPA) and api-auth (token/OAuth model) skills | `/security:review` |
 | **[command-guard](plugins/command-guard/README.md)** | PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs: denies irreversible data loss (`migrate:fresh`, `DROP DATABASE`, `rm -rf /`, `git clean -fdx`, `docker compose down -v`, `terraform destroy`, cloud deletes), prompts on scoped ones (`git reset --hard`, `rm -rf ./dir`); reads through quotes, wrappers and heredocs; user-owned allow-file the agent cannot edit; fail-open | `/command-guard:check` |
 | **[secret-scanning](plugins/secret-scanning/README.md)** | PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens) before it hits disk; on-demand repo sweep; fail-open, fixture-safe | `/secret-scanning:scan` |
 | **[payments](plugins/payments/README.md)** | Payments/billing (Stripe/Paddle): PCI-scope minimization, integer-minor-unit money, signature-verified idempotent webhooks, subscription races, dunning/proration, ledger reconciliation | `/payments:review` |

@@ -13,8 +13,11 @@ Four reviewers already run, each condition-gated — all kept:
 1. `code-review:code-reviewer` — **always**, on the diff (baseline correctness + smells).
 2. `ui-ux:ui-ux-reviewer` — **diff-content gate:** when the diff touches UI files.
 3. `code-architecture:architecture-reviewer` — **diff-content gate:** structural diffs.
-4. `security:security-review` — **diff-content gate:** auth / input / dependency diffs
-   (a skill, no agent).
+4. `security:security-reviewer` — **diff-content gate:** auth / input / dependency diffs.
+   Was a skill with no agent until 2026-08-09: the gate fired, but it fired by handing
+   `code-reviewer` a rubric to hold, so the deepest-consequence review on the board was
+   the one run by a generalist. It now dispatches the agent, with
+   `security:security-review` primed as its rubric — same gate, same trigger, an owner.
 
 The diff-content gates fire on their **file conditions regardless of the `Agent:` tag** —
 so a `backend` card that adds an auth check still gets the security gate.
@@ -32,7 +35,7 @@ generic       -> code-review:code-reviewer
 database      -> code-review:code-reviewer + prime {card Skills-to-apply} + database:database-design
 backend       -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:resilience-design
 api           -> code-review:code-reviewer + prime {card Skills-to-apply} + api-design:api-design + resilience:resilience-design
-security      -> code-review:code-reviewer + prime {card Skills-to-apply} + security:security-review
+security      -> security:security-reviewer + prime {card Skills-to-apply} + security:security-review
 testing       -> code-review:code-reviewer + prime {card Skills-to-apply} + testing:testing-best-practices
 performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + performance:performance-tuning
 observability -> code-review:code-reviewer + prime {card Skills-to-apply} + observability:observability-design

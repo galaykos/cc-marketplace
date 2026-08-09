@@ -1,6 +1,6 @@
 {
   "name": "packages",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, and patch/minor/major upgrade lanes. Managing deps already in the project \u2014 whether to add one is build-vs-buy's job.",
   "author": {
     "name": "Ivan-WG",

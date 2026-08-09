@@ -1,7 +1,7 @@
 {
   "name": "security",
-  "version": "0.5.0",
-  "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review and a security-engineer worker agent.",
+  "version": "0.6.0",
+  "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review, a security-engineer worker agent, and a read-only security-reviewer agent.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
