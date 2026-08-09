@@ -13,8 +13,9 @@ it and say so in the report. If neither manifest exists, say so and stop.
 **Dispatch the command runs to a subagent.** `npm audit` on a real lockfile prints
 thousands of lines of advisory JSON-ish prose, and `composer outdated` scales with
 the dependency count; the deliverable is a severity-sorted list plus lane counts.
-Send the audit and outdated runs — and the licence-lane script below — to one Agent
-dispatch, with the `package-hygiene` `SKILL.md` resolved to an absolute path as a
+Send the audit and outdated runs — and the licence-lane script below — to one
+dispatch with the Agent tool, with the `package-hygiene` `SKILL.md` resolved to an
+absolute path as a
 `Read <abs-path>` line (a subagent cannot invoke the skill itself) and the
 `${CLAUDE_PLUGIN_ROOT}` in the licence command expanded to a literal path (the
 variable is not set in a subagent). Require back the per-finding lines, the
