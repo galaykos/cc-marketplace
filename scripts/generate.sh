@@ -174,7 +174,12 @@ render_suite_uninstall() { # obj plugin-dir
 
 render_reminder_hook() { # obj plugin-dir
   local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out"
-  printf '%s' "$obj" > "$dfile"; ensure_engine
+  # budgetShared is derived as the complement of budgetExempt because the
+  # engine's {{#if}} has no else-branch — a manifest sets budgetExempt only;
+  # every other reminder keeps the shared per-prompt lottery unchanged.
+  printf '%s' "$obj" | jq \
+    '. + {budgetShared: ((.budgetExempt // false) == false)}' > "$dfile"
+  ensure_engine
   render_template "$TEMPLATES/reminder-hook.sh.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} remind.sh"
   emit "$rfile" "$pdir/hooks/remind.sh" 1 "$pdir"
 }

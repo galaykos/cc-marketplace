@@ -2,7 +2,7 @@
 
 Meta-bundle: the full clarification-to-execution workflow plus its wired
 companions — taskmaster planning, task-runner execution, engineering
-discipline, the stack-agnostic review/process toolkit, and the ui-ux agents
+discipline, the review and process plugins (code-review, git-workflow, orchestration, approaches, and the rest), and the ui-ux agents
 the pipeline's visual cards route to. Uninstalls cleanly:
 `/taskmaster-suite:uninstall` removes the bundle and prunes the plugins it
 auto-installed.
@@ -72,5 +72,5 @@ hook-heavy and behavior-changing, install it deliberately;
 ## Pairs well with
 
 - **php-suite** — PHP/Laravel/Livewire/Inertia stack specifics the bundle leaves out
-- **frontend-suite** — React/Vue/TS framework specifics plus the design-preview/shadcn-studio fidelity escalations, all left out of this bundle
+- **frontend-suite** — React/Vue/TS framework specifics left out of this bundle; its sibling **craft-suite** carries the design-preview/shadcn-studio fidelity escalations
 - **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

@@ -14,7 +14,7 @@ Three lanes in — when unsure, take the first:
    ```
 
    It scans your project's manifests, suggests stack-matched and always-useful plugins in two tiers, and installs the ones you pick after confirmation. Add `--yes` to auto-install the stack-matched tier without the picker, and `--persist` to write the installed set into the repo's `.claude/settings.json` so teammates get it on clone.
-2. **Bundle:** install the category suite matching your project — `frontend-suite`, `php-suite`, `db-suite`, `quality-suite`, `quality-principles-suite`, `process-suite`, `product-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` exists for zero-setup convenience; it is the most expensive option in the [Bundles](#bundles) table and most setups don't need it.
+2. **Bundle:** install the category suite matching your project — `frontend-suite`, `craft-suite`, `php-suite`, `db-suite`, `quality-suite`, `quality-principles-suite`, `process-suite`, `product-suite` — or `taskmaster-suite` (full taskmaster workflow + stack-agnostic engineering plugins). `everything` exists for zero-setup convenience; it is the most expensive option in the [Bundles](#bundles) table and most setups don't need it.
 3. **Cherry-pick:** browse the grouped plugin tables below and install individually.
 
 ## Installation
@@ -53,12 +53,13 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context | + first work-shaped prompt |
 |--------|---------|-------------------|----------------------------|
-| `everything` | 59 | ~12.2k tokens | ~2.4k tokens |
-| `taskmaster-suite` | 30 | ~7.2k tokens | ~2.4k tokens |
-| `frontend-suite` | 17 | ~3.3k tokens | ~2.4k tokens |
-| `process-suite` | 9 | ~1.9k tokens | ~2.4k tokens |
-| `quality-principles-suite` | 8 | ~1.9k tokens | — |
-| `quality-suite` | 7 | ~1.1k tokens | ~2.4k tokens |
+| `everything` | 59 | ~12.3k tokens | ~2.7k tokens |
+| `taskmaster-suite` | 30 | ~7.3k tokens | ~2.7k tokens |
+| `craft-suite` | 7 | ~2.6k tokens | — |
+| `quality-principles-suite` | 9 | ~2.1k tokens | — |
+| `process-suite` | 9 | ~2.0k tokens | ~2.6k tokens |
+| `frontend-suite` | 12 | ~1.4k tokens | ~2.6k tokens |
+| `quality-suite` | 6 | ~1.0k tokens | ~2.6k tokens |
 | `php-suite` | 6 | ~0.6k tokens | — |
 | `db-suite` | 5 | ~0.5k tokens | — |
 | `product-suite` | 3 | ~0.3k tokens | — |
@@ -74,7 +75,7 @@ against an empty project — a lower bound; chars/4 estimate).
 
 **+ first work-shaped prompt** = what UserPromptSubmit and per-tool hooks inject
 on top, the first time you ask for work in a session (`skill-router` alone
-contributes ~2.4k). This channel was unmeasured until 2026-08-02 and its
+contributes ~2.6k). This channel was unmeasured until 2026-08-02 and its
 omission understated `everything` by about a fifth; both columns are now
 ratcheted by `scripts/context-budget.sh` against committed baselines.
 
@@ -96,10 +97,11 @@ scored as zero.
 /plugin install everything@cc-plugins-marketplace
 
 # Or one category at a time:
-/plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, craft-layer, registry-source (MCP), React, Vue, a11y
+/plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, React, Vue, Next, Nuxt, Vite, a11y, skill-router
+/plugin install craft-suite@cc-plugins-marketplace      # creative-build studio: craft-layer, design-preview, shadcn-studio…
 /plugin install php-suite@cc-plugins-marketplace        # PHP, Laravel, Livewire, Inertia
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
-/plugin install quality-suite@cc-plugins-marketplace    # review, testing, security, resilience, observability…
+/plugin install quality-suite@cc-plugins-marketplace    # review fan-in + the enforcing hooks (comment deny, evidence gate…)
 /plugin install process-suite@cc-plugins-marketplace    # git workflow, approaches, orchestration, task-runner…
 /plugin install product-suite@cc-plugins-marketplace    # payments, i18n, llm-app — product-domain disciplines
 
@@ -112,21 +114,27 @@ Dependencies are resolved and installed automatically; add any framework
 plugin (react, laravel, postgresql, …) individually on top as your stack
 requires.
 
-Uninstall a bundle together with its auto-installed dependencies (plugins you
-installed manually are never touched; requires Claude Code 2.1.121+). Easiest:
-each bundle ships its own cleanup command — run `/taskmaster-suite:uninstall`
-or `/everything:uninstall` from inside Claude Code (confirms, then uninstalls
-the bundle and prunes its dependencies). CLI equivalent:
+Uninstall a bundle together with its dependencies. Easiest: each bundle ships
+its own cleanup command — run `/taskmaster-suite:uninstall` or
+`/everything:uninstall` from inside Claude Code. Since 0.90.0 these commands
+are scope-aware and compute the removal set from the bundle's own manifest:
+they find where the bundle is actually installed (`user`, `project`, or
+`local`), list every bundled dependency installed at that scope minus anything
+another installed bundle still needs, and confirm the exact list before
+removing anything.
+
+Why not just `--prune`: `claude plugin uninstall` defaults to the `user`
+scope while bundles are commonly installed at `project` or `local` scope, and
+install records frequently carry no auto-install markers (installs made before
+dependency tracking, or via the /plugin menu) — so the bare CLI one-liner
+often removes nothing. If you drive the CLI directly, pass the scope and
+expect to remove dependencies explicitly:
 
 ```bash
-claude plugin uninstall taskmaster-suite --prune
-claude plugin uninstall everything --prune
-claude plugin prune --dry-run   # or: preview orphaned auto-deps anytime
+claude plugin list --json               # find the bundle's actual scope(s)
+claude plugin uninstall taskmaster-suite -s project --prune -y
+claude plugin prune --dry-run -s project   # honesty check: usually "nothing to prune"
 ```
-
-Note: uninstalling from the /plugin menu inside Claude Code does NOT prune —
-dependencies stay installed. Run `claude plugin prune` from a terminal
-afterwards to sweep the orphans.
 
 ### MCP servers
 
@@ -144,7 +152,7 @@ nothing to add by hand, no `claude mcp add`. One plugin here does:
 #   /mcp  →  reui  →  Authenticate      (opens a browser sign-in you complete)
 ```
 
-`registry-source` is included in `frontend-suite` and `everything`.
+`registry-source` is included in `craft-suite` and `everything`.
 
 **Why this exists as a server and not as a rule.** Two skills in this
 marketplace already say, in plain words, never to write registry component
@@ -259,13 +267,14 @@ installing this plugin, or the same server is declared twice.
 
 | Plugin | Description | Commands |
 |--------|-------------|----------|
-| **quality-principles-suite** | Meta-bundle: the eight advisory quality disciplines — approaches, security, a11y, debugging, performance, resilience, packages, observability. Split out of quality-suite in 0.7.0; none of them is a gate | `/quality-principles-suite:uninstall` |
+| **quality-principles-suite** | Meta-bundle: the nine advisory quality disciplines — approaches, security, a11y, debugging, performance, resilience, packages, observability, testing. Split out of quality-suite in 0.7.0; none of them is a gate | `/quality-principles-suite:uninstall` |
 | **everything** | Meta-bundle: one install pulls every plugin in this marketplace as a dependency | `/everything:uninstall` |
 | **taskmaster-suite** | Meta-bundle: taskmaster workflow + its wired companions (tasks, engineering discipline, worker agents, ui-ux visual routing) | `/taskmaster-suite:uninstall` |
-| **frontend-suite** | Meta-bundle: frontend category — UI/UX stacks, craft-layer, registry-source (the component-registry MCP servers), design-preview, shadcn-studio, threejs, React, React Native, Vue 3, Vite, Inertia, Livewire, Next, Nuxt, web worker, a11y, skill-router | `/frontend-suite:uninstall` |
+| **frontend-suite** | Meta-bundle: frontend stack category — UI/UX stacks, React, React Native, Vue 3, Vite, Inertia, Livewire, Next, Nuxt, web worker, a11y, skill-router | `/frontend-suite:uninstall` |
+| **craft-suite** | Meta-bundle: the creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source (the component-registry MCP servers), threejs, plus the required companions ui-ux and a11y | `/craft-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
-| **quality-suite** | Meta-bundle: code-quality category — review, architecture, patterns, testing, security, a11y, debugging, performance, resilience (incl. error-handling + concurrency), packages, observability, comment-discipline | `/quality-suite:uninstall` |
+| **quality-suite** | Meta-bundle: the enforcing code-quality half — review fan-in, architecture with the evidence Stop gate, comment-discipline's pre-write deny, command-guard, secret-scanning, skill-router; the advisory nine (incl. testing) live in quality-principles-suite | `/quality-suite:uninstall` |
 | **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches (incl. build-vs-buy, estimation, rollout, pattern-selection), hindsight, api-docs-first, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
 | **product-suite** | Meta-bundle: product-domain disciplines — payments (billing, webhooks, ledgers), i18n (ICU, Intl, RTL), llm-app (evals, RAG, prompt-injection defense) | `/product-suite:uninstall` |
 
@@ -353,12 +362,12 @@ decided; without them those gates report `not checked` rather than guessing. The
 does land in the project is the asset provenance manifest (`ASSETS` / `CREDITS` / `PROVENANCE` /
 `THIRD-PARTY-NOTICES`), which the licence gate globs for.
 
-**What you need installed.** craft-layer orchestrates and writes no build logic itself, so two companions are effectively **required**: **ui-ux** (`/ui-ux:theme` generates the tokens, `/ui-ux:build` builds the components — craft-layer deliberately hand-rolls neither) and **a11y** (the audit delegates the full accessibility pass to `/a11y:audit`). Both ship in the `frontend-suite` bundle alongside craft-layer.
+**What you need installed.** craft-layer orchestrates and writes no build logic itself, so two companions are effectively **required**: **ui-ux** (`/ui-ux:theme` generates the tokens, `/ui-ux:build` builds the components — craft-layer deliberately hand-rolls neither) and **a11y** (the audit delegates the full accessibility pass to `/a11y:audit`). Both ship in the `craft-suite` bundle alongside craft-layer.
 
 Genuinely optional, composed when present: **taskmaster** (`visual-decisions` for mockups, `experience-walkthrough` to walk the assembled page — and a taskmaster spec is consumed, never re-interrogated), **design-preview** / **shadcn-studio** (real-component option previews), **performance** (`/performance:review`, explicitly skipped when absent). Without any of these, guided options become written multiple-choice and every craft gate still runs.
 
 ```bash
-/plugin install frontend-suite@cc-plugins-marketplace   # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 14 more
+/plugin install craft-suite@cc-plugins-marketplace      # craft-layer + ui-ux + a11y + design-preview + shadcn-studio + 2 more
 ```
 
 ## Contributing

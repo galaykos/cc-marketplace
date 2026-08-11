@@ -6,18 +6,18 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.89.0"
+    "version": "0.90.0"
   },
   "plugins": [
     {
       "name": "ui-ux",
       "source": "./plugins/ui-ux",
-      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents. Generic CSS3/Grid/Flexbox/Bootstrap skills proved baseline-redundant and were removed — see rationale/stack-skill-baselines.md."
+      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents."
     },
     {
       "name": "craft-layer",
       "source": "./plugins/craft-layer",
-      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel: /craft-layer:craft chains creative-direction (offer contract + concept-first, anti-sameness), optional guided section-decisions (/craft-layer:sections), design-research, asset-sourcing (build-vs-source-vs-commission + a licence gate), ui-ux:theming-system (concept→coherent token tiers + accent split + light/dark duality), token + component build, and a tiered motion system (Framer, anime.js, Three.js/R3F + webgl-effects, Vector Lottie/Rive, sprites — reduced-motion + reduced-bundle fallbacks), plus scroll-orchestration (Lenis/ScrollTrigger), kinetic-typography, page-transitions, interaction-fx, physics-motion, information-design, and /craft-layer:audit. Reuses ui-ux + threejs. /craft-layer:craft ultra-craft boosts a run: ambition maximal + guided rounds, live dated web research echoed as a reference board before any file is written, escalated concept/review tiers, and a red-team of the shipped tree."
+      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, and ultra-craft escalates a run with live web research and a red-team of the result. Requires ui-ux and a11y; reuses threejs."
     },
     {
       "name": "registry-source",
@@ -27,7 +27,7 @@
     {
       "name": "react",
       "source": "./plugins/react",
-      "description": "React server-state discipline: TanStack Query/SWR/RTK Query for server caches, cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState, avoiding refetch storms. General React idioms (hooks rules, memo, composition) proved baseline-redundant and were removed — see rationale/stack-skill-baselines.md."
+      "description": "React server-state discipline: TanStack Query/SWR/RTK Query for server caches, cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState, avoiding refetch storms."
     },
     {
       "name": "react-native",
@@ -222,7 +222,7 @@
     {
       "name": "brain",
       "source": "./plugins/brain",
-      "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Map-only tracer (Phase 1a); an anchored-notes layer is planned. Nothing outside brain/ is ever modified."
+      "description": "A committed, Obsidian-style codebase map for a project: brain/INDEX.md indexes areas, key files, and notable classes/entrypoints so a fresh Claude session starts oriented. A SessionStart hook injects the compact map (with a staleness hint when it lags HEAD); /brain reads it and /brain index builds/refreshes it. Builds the map only — it never annotates code, and nothing outside brain/ is ever modified."
     },
     {
       "name": "resilience",
@@ -237,7 +237,7 @@
     {
       "name": "orchestration",
       "source": "./plugins/orchestration",
-      "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared apply-fixes contract and the fleet mapping for review-only plugins. Includes /orchestration:review."
+      "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared contract review commands route their fix lists through. Includes /orchestration:review."
     },
     {
       "name": "a11y",
@@ -257,7 +257,12 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Three.js, Inertia, Livewire, the generalist web worker, the craft layer (craft-layer), visual decisions (design-preview), shadcn staging (shadcn-studio), registry sourcing (registry-source), accessibility auditing, and skill auto-routing (skill-router). Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Inertia, Livewire, the generalist web worker, accessibility auditing, and skill auto-routing (skill-router). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "craft-suite",
+      "source": "./plugins/craft-suite",
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components (design-preview), a shadcn staging sandbox (shadcn-studio), live component-registry MCP sourcing (registry-source), and WebGL/Three.js effects (threejs), plus the two companions the studio requires: ui-ux and a11y. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "php-suite",
@@ -277,12 +282,12 @@
     {
       "name": "quality-suite",
       "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality plugins that carry a MECHANISM, in one install — review and code smells, architecture principles with the evidence-at-claim Stop gate, testing, comment discipline (warn-on-write plus a narrow pre-write deny), secret-leak prevention, and file-aware skill auto-routing. The advisory disciplines it used to bundle — security, a11y, debugging, performance, resilience, packages, observability, approaches — moved to quality-principles-suite, so this half can be installed without their always-on context. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine — security, a11y, debugging, performance, resilience, packages, observability, approaches, testing — live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "quality-principles-suite",
       "source": "./plugins/quality-principles-suite",
-      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, and observability. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context. Uninstall cleanly with /quality-principles-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, observability, and test design and coverage review (testing — moved here in 0.2.0; it ships no enforcement hook; the membership rule itself is prose, not script-checked). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context. Uninstall cleanly with /quality-principles-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "process-suite",
@@ -297,12 +302,12 @@
     {
       "name": "taskmaster-suite",
       "source": "./plugins/taskmaster-suite",
-      "description": "Meta-bundle: the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the stack-agnostic review/process toolkit, and the ui-ux agents the pipeline's visual cards route to. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle (30 plugins): the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the review and process plugins (code-review, git-workflow, orchestration, approaches, and the rest), and the ui-ux agents the pipeline's visual cards route to. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "skill-router",
       "source": "./plugins/skill-router",
-      "description": "File-aware skill auto-routing: a PostToolUse hook injects a directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, SQL, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals surface in a SessionEnd digest. Every relevant skill co-fires per edit (a11y alongside ui-ux); fail-open, once per skill per session."
+      "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, plain .ts/.js/.py, SQL and migrations, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session."
     },
     {
       "name": "command-guard",
@@ -347,7 +352,7 @@
     {
       "name": "terse",
       "source": "./plugins/terse",
-      "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker."
+      "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker."
     }
   ]
 }

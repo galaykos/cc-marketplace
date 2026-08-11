@@ -108,6 +108,29 @@ expect "CRLF markered row fires on match" "$out" 'crlf-canary' ''
 out=$(route "$TMP/emptycwd" main.go)
 expect "CRLF markerless row fires (conf survives \\r strip)" "$out" 'crlfplain-canary' ''
 
+# ---- delivery channel: nudges must arrive as ONE PostToolUse additionalContext
+# envelope. Plain stdout with exit 0 from a PostToolUse hook never reaches the
+# executing model (channel doctrine: task-runner/hooks/scope.sh,
+# comment-discipline/hooks/scan.sh) — these assertions exist so a rewrite back
+# to bare printf fails CI instead of silently disconnecting the router.
+out=$(route "$TMP/emptycwd" App.vue)
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse"' >/dev/null 2>&1; then
+  echo "PASS: nudge output is a PostToolUse JSON envelope"
+else
+  echo "FAIL: nudge output is not a PostToolUse envelope — got: ${out:-<empty>}"; rc=1
+fi
+ctx=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+case "$ctx" in
+  *vue3-canary*vue2-canary*|*vue2-canary*vue3-canary*) echo "PASS: both nudges ride one additionalContext payload" ;;
+  *) echo "FAIL: additionalContext missing a nudge — got: ${ctx:-<empty>}"; rc=1 ;;
+esac
+envelopes=$(printf '%s\n' "$out" | grep -c 'hookSpecificOutput' || true)
+if [ "$envelopes" -eq 1 ]; then
+  echo "PASS: exactly one envelope per invocation"
+else
+  echo "FAIL: expected 1 envelope, got $envelopes"; rc=1
+fi
+
 out=$(echo '{}' | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE") && e=$? || e=$?
 if [ "$e" -eq 0 ] && [ -z "$out" ]; then echo "PASS: empty tool_input exits 0 silently"; else echo "FAIL: fail-open on '{}' (exit=$e out=$out)"; rc=1; fi
 out=$(printf '' | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE") && e=$? || e=$?

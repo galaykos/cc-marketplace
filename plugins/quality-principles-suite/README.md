@@ -7,11 +7,12 @@ in this bundle can fail a build, block a write, or hold a turn.
 That is the whole reason it exists separately. `quality-suite` used to carry all
 fourteen quality plugins together, so a project that wanted the enforcing half paid
 for the advisory half's always-on description context whether or not it used it.
-The split lets you take either, or both.
+The split lets you take either, or both. testing joined this side in 0.2.0: it
+ships review skills and no hook, which by the split's own rule makes it advisory.
 
 | | `quality-suite` | this bundle |
 |---|---|---|
-| Plugins | 6 | 8 |
+| Plugins | 6 | 9 |
 | Standing | carries a mechanism — a Stop gate, a pre-write deny, a write-time warn, a router | advisory only |
 | Take it when | you want quality rules that bite | you want the disciplines and will apply them yourself |
 
@@ -32,6 +33,7 @@ The split lets you take either, or both.
 - **resilience** — timeouts, safe retries, degradation paths, plus the merged error-handling (catches, cause chains) and concurrency (races, idempotency, locks) disciplines: `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review`
 - **packages** — composer/npm dependency hygiene and security-audit triage, plus `/packages:audit`
 - **observability** — structured logs, correlation IDs, metrics without cardinality bombs, plus `/observability:review`
+- **testing** — test pyramid, mocking boundaries, flaky-test causes, TDD workflow, plus `/testing:review` and `/testing:flake-hunt`
 
 | Command | What it does |
 |---------|--------------|

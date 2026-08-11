@@ -23,23 +23,26 @@ command -v jq >/dev/null 2>&1 || exit 0
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
-  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
+  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
   printf '%s' "$head" | grep -qF '/taskmaster:task' && exit 0 # own suggestion quoted back = transcript, not intent
-  if printf '%s' "$head" | grep -qiE '\b(build|create|add|implement|develop|rewrite|refactor)\b' && [ "${#prompt}" -lt 200 ]; then
-    # PER-PROMPT BUDGET: at most one reminder line per prompt across every
-    # reminder hook installed. All hooks derive the same key from the prompt;
-    # mkdir is the atomic test-and-set, first hook to claim it speaks. Which
-    # one wins is scheduling order — acceptable for advisory nudges; the
-    # alternative was four competing "do this first" directives on one prompt.
-    # Fail open: with an unwritable TMPDIR the claim fails but no marker
-    # exists, so the reminder still prints. Markers self-clean after a day.
+  if printf '%s' "$head" | grep -qiE '\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\b'; then
+    # PRIORITY DIRECTIVE (budgetExempt): a binding workflow directive, not an
+    # advisory nudge — it prints on every matching prompt and still CLAIMS the
+    # shared per-prompt marker (best-effort) so advisory reminders scheduled
+    # AFTER it yield. Honest limitation: hooks launch in parallel, so an
+    # advisory that ran FIRST may already have spoken — that order can still
+    # stack two lines on one prompt; the accepted trade. Also drops a
+    # session-scoped cc-workprompt marker — a CROSS-PLUGIN signal consumed by
+    # taskmaster's optional clarify gate (PreToolUse, off by default); a
+    # second budgetExempt plugin would arm that gate too. Markers self-clean.
+    # NOTE: budgetShared/budgetExempt are derived complements (generate.sh) —
+    # a direct render must set exactly one or the emitted if/fi goes empty.
     sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
     key=$(printf '%s%s' "$sid" "$prompt" | cksum | cut -d' ' -f1)
-    mark="${TMPDIR:-/tmp}/cc-remind-$key"
-    if mkdir "$mark" 2>/dev/null || [ ! -d "$mark" ]; then
-      printf '%s (%s).\n' 'taskmaster: feature-shaped prompt with thin detail — pin down scope, edge cases, and success criteria before code' '/taskmaster:task'
-    fi
-    find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-remind-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
+    mkdir "${TMPDIR:-/tmp}/cc-remind-$key" 2>/dev/null
+    mkdir "${TMPDIR:-/tmp}/cc-workprompt-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)" 2>/dev/null
+    printf '%s (%s).\n' 'taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it' '/taskmaster:task'
+    find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'cc-remind-*' -o -name 'cc-workprompt-*' \) -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
   fi
 } 2>/dev/null
 exit 0

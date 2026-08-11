@@ -21,6 +21,8 @@ task description first). Do not write implementation code.
 5. Synthesize inline: build the convergence table from the four takes, then
    ONE pick with its kill-trigger — the concrete discovery mid-implementation
    that would flip the choice. One round hard cap, no re-dispatch.
-6. On a structural split (takes disagree on the file-level shape of the plan),
-   do not pick silently — present the competing plans via AskUserQuestion and
-   let the user choose.
+6. Surface the pick — never self-approve it. Aligned or detail-divergent takes:
+   one AskUserQuestion, "Proceed with <pick> (Recommended)" vs the strongest
+   alternative. Structural split (takes disagree on the file-level shape):
+   present the competing plans as the options instead. Proceed without asking
+   only under CC_AUTOPROCEED=on or a hands-off goal run, recording the pick.

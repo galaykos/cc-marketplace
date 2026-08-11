@@ -1,6 +1,6 @@
 {
   "name": "approaches",
-  "version": "0.5.2",
+  "version": "0.6.1",
   "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, S/M/L/XL estimation, rollout planning, and design-pattern selection. Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:size, /approaches:rollout, /approaches:pattern.",
   "author": {
     "name": "Ivan-WG",

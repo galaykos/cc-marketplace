@@ -3,7 +3,7 @@ name: plan-before-code
 description: Use before writing any non-trivial code, AFTER the approach shape is settled — which files change, what each new unit owns, the interfaces, where code lives.
 ---
 
-## The procedure: file map, then interfaces, then code
+## The procedure: file map, then interfaces, then code — Compensation (worker-tier)
 
 Writing code before deciding where it lives is how you end up with a 400-line function that
 does five things, or three files that all half-implement the same responsibility. Do the
@@ -124,9 +124,9 @@ task-orchestration) and tested independently, because neither implementation nee
 other's internals — only the contract. Skipping this step is what produces integration surprises:
 both sides "work" alone and then don't fit together.
 
-## Scale the planning to the change
+## Scale the planning to the change — All models (the skip-clause)
 
-This procedure is a dial, not a binary switch:
+This procedure is a dial, not a binary switch (markers per authoring-skills' model-tier scoping):
 
 - A one-line bug fix in a single function doesn't need a file map — you already know the file
   and the responsibility isn't changing.

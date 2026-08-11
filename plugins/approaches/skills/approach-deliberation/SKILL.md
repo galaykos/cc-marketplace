@@ -1,6 +1,6 @@
 ---
 name: approach-deliberation
-description: Use before starting any non-trivial implementation, FIRST — multi-file changes, new capabilities, two-plus viable shapes: 2-3 structurally different approaches, trade-offs, a pick with kill-trigger. Picks the SHAPE; file-level planning is code-architecture:plan-before-code.
+description: Use before starting any non-trivial implementation, FIRST — multi-file changes, new capabilities, two-plus viable shapes: 2-3 structurally different approaches, trade-offs, a pick with kill-trigger surfaced for one-question approval. One deliberation per task — skips when opinion-round already ran. Picks the SHAPE; file-level planning is code-architecture:plan-before-code.
 ---
 
 The failure mode this kills: first-idea anchoring. The first plausible approach
@@ -39,7 +39,11 @@ Skip it — the first reasonable approach is correct — when:
 3. Build the trade-off table. Columns: effort, risk, reversibility, codebase
    fit, blast radius. Rows filled honestly — if the table only ever justifies
    the first idea, the table is theater.
-4. Pick. One paragraph of reasoning that names what was given up.
+4. Pick — and surface it, never self-approve it. One paragraph of reasoning
+   that names what was given up, then one AskUserQuestion: "Proceed with
+   <pick> (Recommended)" vs the strongest runner-up, one line of trade-off
+   each. Proceed without asking only under CC_AUTOPROCEED=on or a hands-off
+   goal run (ultra-goal / `Goal:` marker), recording the pick and options.
 5. State the kill-trigger: the concrete mid-implementation discovery that
    would flip the choice ("if the API turns out not to support batch, switch
    to approach B"). A pick without a kill-trigger is a hope.
@@ -56,9 +60,9 @@ Force diversity by assigning each candidate a different axis:
 - Performance-first: optimizes the hot path at the cost of flexibility.
 - Reversibility-first: cheapest to undo; feature flags, additive-only steps.
 
-The strategy-catalog skill in this plugin maps named strategies (tracer
-bullet, spike, strangler fig, inversion) to the risk each one beats — consult
-it when a candidate needs a shape.
+references/strategies.md maps named strategies (tracer bullet, spike,
+strangler fig, inversion) to the dominant risk each one beats — read it
+when a candidate needs a shape.
 
 ## Candidate quality bar
 

@@ -14,21 +14,21 @@ it auto-installed.
 
 ## What's included
 
-All current marketplace plugins (57 today) install as dependencies, grouped here by theme:
+All current marketplace plugins (59 today) install as dependencies, grouped here by theme:
 
 - **Stacks** — php, laravel, livewire, inertia, react (server-state), react-native, nextjs, nuxt, vue3, node-backend, vite, web-dev, threejs: framework best-practice skills and reviews
 - **UI & accessibility** — ui-ux, shadcn-studio, design-preview, craft-layer, registry-source, a11y: component build/review, staged visual decisions, crafted animated experiences, registry-sourced components, WCAG auditing
 - **Data** — sql, mysql, mariadb, postgresql, database: engine-specific and engine-agnostic schema and query review
 - **APIs & architecture** — api-design (incl. graphql-grpc skill), api-docs-first (incl. the docs-upkeep drift scan), system-design (incl. event-driven skill), code-architecture: contract, topology, and structure review
 - **Delivery** — taskmaster, task-runner, git-workflow, code-review, testing, debugging, dev-env, devops: spec-to-ship pipeline and its gates
-- **Quality & safety** — security (incl. data-privacy + api-auth skills), secret-scanning, packages, performance, resilience (incl. error-handling + concurrency skills), observability, comment-discipline: audits that catch defects before they ship
+- **Quality & safety** — security (incl. data-privacy + api-auth skills), secret-scanning, command-guard, packages, performance, resilience (incl. error-handling + concurrency skills), observability, comment-discipline: audits and write-time guards that catch defects before they ship
 - **Process** — approaches (incl. build-vs-buy, estimation, rollout, pattern-selection skills), hindsight, fresh-take: decision and learning loops around the work
-- **Claude tooling** — claude-authoring, orchestration, skill-router, brain, plugin-scout, vercel-skills-scout, stack-scan, ultra-deep-research, llm-app: extending and steering Claude Code itself
+- **Claude tooling** — claude-authoring, orchestration, skill-router, terse, brain, plugin-scout, vercel-skills-scout, stack-scan, ultra-deep-research, llm-app: extending and steering Claude Code itself
 - **Domain** — payments, i18n: payment-integration and internationalization review
 
 Prefer a themed slice instead? The focused bundles — php-suite, frontend-suite,
-db-suite, quality-suite, taskmaster-suite, process-suite, product-suite —
-each install one category.
+craft-suite, db-suite, quality-suite, quality-principles-suite,
+taskmaster-suite, process-suite, product-suite — each install one category.
 
 ## Uninstall
 

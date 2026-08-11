@@ -277,7 +277,7 @@ surface, the run needs the registry's actual index in front of it, not its memor
   own indexes, cached 24h, with the source URL, fetch date and a `stale` flag on every
   answer — plus a `heavy` flag naming anything that would pull a 3D/particle runtime. It
   also ships ReUI's own hosted MCP server, which needs a one-time browser sign-in the user
-  completes. It is in `frontend-suite` and `everything`.
+  completes. It is in `craft-suite` and `everything`.
 - **Or the shadcn MCP server**, which works with any shadcn-compatible registry —
   `npx shadcn@latest mcp init --client claude`, with third-party registries declared in
   `components.json` under `registries` (`{"@acme": "https://…/{name}.json"}`).

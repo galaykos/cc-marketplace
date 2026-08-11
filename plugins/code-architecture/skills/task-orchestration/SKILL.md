@@ -1,6 +1,6 @@
 ---
 name: task-orchestration
-description: Use when breaking work into tasks or delegating to subagents — independently verifiable units, dependency sequencing, parallel independent work.
+description: Use when breaking work into tasks — independently verifiable units, dependency sequencing, which work is safe to run in parallel. Decides WHAT to split; phrasing and verifying the dispatch to subagents is orchestration:delegation-contracts.
 ---
 
 ## What counts as a task
@@ -73,24 +73,6 @@ Tasks 2 and 3 both depend only on task 1 (the schema), touch different files, an
 runtime state — safe to dispatch in parallel once task 1's gate passes. Tasks 4 and 5 likewise
 depend on their respective service tasks but not on each other — parallel again. Sequential
 chain is only 1 → {2,3} → {4,5}, not five serial steps.
-
-## Delegating tasks to subagents
-
-The same rules apply, with sharper edges, when tasks are handed to separate subagents rather
-than done sequentially by one worker:
-
-- **Each subagent's prompt should be self-contained**: the task's responsibility, its file
-  footprint, the interfaces it must satisfy (inputs/outputs agreed in the plan), and its
-  success criteria. A subagent can't infer context it wasn't given.
-- **Never dispatch two subagents against the same file concurrently.** Even "small, unrelated"
-  edits to one file will conflict or silently overwrite each other. Split the file's
-  responsibilities first, or sequence the edits.
-- **Give each subagent a narrow, verifiable done-condition**, not "improve X" — an
-  unbounded task can't be gated, and you won't know when to move to the next step.
-- **Collect and gate results before starting dependents.** Don't fire off the next wave of
-  parallel tasks until the previous wave's outputs have been checked against their interfaces
-  and success criteria — a subagent reporting success is itself a claim that needs the
-  evidence discipline from work-verification.
 
 ## Common mistakes
 

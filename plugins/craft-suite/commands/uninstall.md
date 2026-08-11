@@ -1,5 +1,5 @@
 ---
-description: Uninstall the quality-principles-suite bundle AND its bundled dependencies, scope-aware — computes the removal set from the bundle's own manifest (works even when installs carry no auto-install markers), shows the exact list for confirmation first, and never touches plugins you exclude.
+description: Uninstall the craft-suite bundle AND its bundled dependencies, scope-aware — computes the removal set from the bundle's own manifest (works even when installs carry no auto-install markers), shows the exact list for confirmation first, and never touches plugins you exclude.
 ---
 <!-- generated from templates/suite-uninstall.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -11,7 +11,7 @@ scope — the combination silently removes nothing. Compute the removal set
 yourself:
 
 1. Locate the install. Run `claude plugin list --json` and collect every entry
-   whose id starts with `quality-principles-suite@` — note each `scope` and `installPath`.
+   whose id starts with `craft-suite@` — note each `scope` and `installPath`.
    Not installed at any scope → report that plainly and stop. Installed at
    several scopes → handle each scope in turn below.
 2. Build the removal set per scope. Read the bundle's dependency list from its
@@ -38,7 +38,7 @@ yourself:
    dependency, always passing the scope explicitly:
 
    ```bash
-   claude plugin uninstall quality-principles-suite -s <scope> --prune -y
+   claude plugin uninstall craft-suite -s <scope> --prune -y
    claude plugin uninstall <dependency> -s <scope> -y
    ```
 

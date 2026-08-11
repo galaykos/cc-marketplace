@@ -1,6 +1,6 @@
 ---
 name: opinion-round
-description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — four BLIND parallel opinion personas, one pick + kill-trigger, auto-proceeding unless takes split on structural shape.
+description: Use when a prompt asks to refactor, rewrite, restructure, migrate, rework, or redesign existing code — four BLIND parallel opinion personas argue the shape; the pick is surfaced for one-question approval (CC_AUTOPROCEED=on or a hands-off goal run proceeds without asking). One deliberation per task — skips when approach-deliberation already ran; requirements still ambiguous → taskmaster grill first.
 ---
 
 The failure mode this kills: correlated opinions on rework-shaped tasks.
@@ -20,6 +20,10 @@ Fire only when BOTH hold:
 Skip silently — no announcement, no stub round — when the change is
 trivial, mechanical, or single-file: renames, lint sweeps, version
 bumps, a located bugfix.
+
+Requirements still ambiguous — no capability list, no success
+criterion → taskmaster grill first when installed; deliberating an
+ambiguous goal produces confident nonsense.
 
 Manual invocation via `/approaches:opinions` bypasses the size gate —
 the user asked, so argue even a small task — but never the two guards
@@ -114,26 +118,24 @@ If subagents are unavailable, skip the round entirely. There is no
 inline fallback: role-playing the quartet in the main thread reintroduces
 exactly the correlated-opinion failure this skill exists to kill.
 
-## The proceed rule
+## The proceed rule — the pick is surfaced, never self-approved
 
-- **Broadly aligned** — same file-level shape, different emphasis →
-  proceed with the pick immediately. Do not ask permission to start.
-- **Detail divergence** — same shape, disagreement on ordering, test
-  depth, naming → record the divergence with the verdict and proceed.
+- **Broadly aligned / detail divergence** — synthesize the one pick
+  (divergence recorded in the verdict), then one AskUserQuestion:
+  "Proceed with <pick> (Recommended)" vs the strongest alternative.
 - **Structural split** — the plans differ in file-level shape (different
-  modules created, different migration topology), not in detail →
-  AskUserQuestion with the competing plans as options, one line of
-  trade-off each. This is the ONLY case that interrupts the user.
+  modules created, different migration topology) → AskUserQuestion with
+  the competing plans as options, one line of trade-off each.
 
-The bar for "structural" is the deliberation bar: could a reviewer tell
-the resulting diffs apart at a glance? If not, it is detail. Default to
-proceeding; the interrupt exists for forked roads, not for taste.
+The bar for "structural": could a reviewer tell the resulting diffs
+apart at a glance? Proceed without asking — recording the pick and
+options — only under CC_AUTOPROCEED=on or a hands-off goal run
+(ultra-goal / `Goal:` marker), which auto-takes the Recommended option.
 
 ## Companions
 
 - The user explicitly ran `/approaches:compare` → defer entirely to
-  approach-deliberation. That skill owns the full candidate-slate
-  treatment; running both on one task is a double deliberation.
+  approach-deliberation; running both on one task is a double deliberation.
 
 ## Anti-patterns
 

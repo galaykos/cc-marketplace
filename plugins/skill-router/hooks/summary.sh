@@ -1,9 +1,12 @@
 #!/bin/bash
 # Absolute-path shebang (not `/usr/bin/env bash`): the fail-open guarantee must
 # hold even under a stripped/broken PATH.
-# SessionEnd digest. Reads route.sh's per-session state, emits the accumulated
-# low-confidence signals as one quiet line grouped by skill, then removes the
-# state file. Fail-open: any error exits silently.
+# SessionEnd ledger + cleanup. The model-visible surfacing of low-confidence
+# signals happens in route-prompt.sh's next-prompt flush — SessionEnd is an
+# event after which no model turn exists, so the digest line printed here is
+# transcript residue covering only entries the flush never surfaced. The real
+# jobs are the surfaced.jsonl ledger append and removing the state file.
+# Fail-open: any error exits silently.
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -16,7 +19,7 @@
   [ -r "$state_file" ] || exit 0
 
   line=$(jq -r '
-    (.pending_low // [])
+    [ (.pending_low // [])[] | select(.flushed != true) ]
     | group_by(.skill)
     | map(.[0].skill + " (" + (length | tostring) + " file" + (if length == 1 then "" else "s" end) + ")")
     | join(", ")

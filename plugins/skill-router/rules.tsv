@@ -2,6 +2,10 @@
 # co-fire-ok: *.tsx a11y-audit react-server-state
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
 # co-fire-ok: *.blade.php livewire-best-practices laravel-best-practices
+# co-fire-ok: *.ts low-cognitive-load solid-principles
+# co-fire-ok: *.js low-cognitive-load solid-principles
+# co-fire-ok: *.py low-cognitive-load solid-principles
+# co-fire-ok: **/migrations/** sql-best-practices database-design
 # Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
 # These five rows are all `low` confidence: they do NOT emit an inline nudge, they
 # accumulate into one session digest (route.sh:6). Several firing on one file is the
@@ -16,14 +20,23 @@
 # co-fire-ok: content security-review observability-design
 #
 # LIMITATION (honest scope): NOT routed by any rule — mysql/mariadb/postgresql
-# best-practices, database-design, comment-discipline, code-smells, reuse-hygiene and
-# every code-architecture skill. *.sql routes to sql-best-practices only. Plain *.ts /
-# *.js files match NO glob either: only *.tsx/*.jsx, test files (*.test.*, *.spec.*,
-# **/tests/**) and named configs (next/nuxt/vite) route, so an ordinary .ts module edit
-# fires nothing. Adding routing is a separate decision this file does not take; the gap
-# is recorded, not silently filled.
+# best-practices, code-smells, reuse-hygiene, yagni-check, plan-before-code, and
+# the rest of code-architecture beyond the two routed below. comment-discipline is
+# ABSENT here on purpose: its own PreToolUse/PostToolUse hook is the delivery
+# channel, and a routing row would be redundant — do not "fix" that. Plain source
+# edits (*.ts / *.js / *.py) route to low-cognitive-load + solid-principles, once
+# per skill per session; **/migrations/** routes to database-design alongside
+# sql-best-practices (blessed pair above). Other plain extensions (*.go, *.rb,
+# *.rs, …) still fire nothing — that gap is recorded, not silently filled.
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
+glob	**/migrations/**	database-design	database	high
+glob	*.ts	low-cognitive-load	code-architecture	high
+glob	*.ts	solid-principles	code-architecture	high
+glob	*.js	low-cognitive-load	code-architecture	high
+glob	*.js	solid-principles	code-architecture	high
+glob	*.py	low-cognitive-load	code-architecture	high
+glob	*.py	solid-principles	code-architecture	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	*.tsx	a11y-audit	a11y	high
 glob	*.tsx	react-server-state	react	high	!package.json~"react-native"

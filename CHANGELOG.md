@@ -4,6 +4,44 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.90.0] - 2026-08-11
+
+Delivery-layer overhaul from the full marketplace review (D1-D11), plus the
+scope-aware suite uninstall rewrite.
+
+- **New bundle `craft-suite`** — the creative-build studio (craft-layer,
+  design-preview, shadcn-studio, registry-source, threejs + required
+  companions ui-ux, a11y) split out of frontend-suite, which drops from
+  ~3.3k to ~1.4k always-on tokens for ordinary frontend work.
+- **testing moved** from quality-suite to quality-principles-suite; both
+  membership rules now state their tier honestly (prose, not script-checked).
+- **skill-router delivery fixed**: inline nudges ship as one PostToolUse
+  `additionalContext` envelope (previously dead stdout the model never saw);
+  plain `.ts`/`.js`/`.py` edits route to low-cognitive-load +
+  solid-principles; migrations co-fire database-design; low-confidence
+  signals flush on the next prompt instead of SessionEnd; nudges name the
+  SKILL.md path so subagent contexts can act on them.
+- **Clarify-before-code is the default**: taskmaster's reminder became a
+  lottery-exempt priority directive (wider verbs, no length cap), with an
+  opt-in once-per-session PreToolUse clarify gate (`CC_CLARIFY_GATE=block`).
+- **Nothing decided unilaterally**: approaches' opinion-round and
+  approach-deliberation surface their pick via AskUserQuestion by default
+  (`CC_AUTOPROCEED=on` / hands-off goal runs opt out).
+- strategy-catalog demoted to approach-deliberation's
+  `references/strategies.md`; task-orchestration's delegation overlap cut
+  with description discriminators both ways.
+- **Model-tier scoping convention** (authoring-skills): All models vs
+  Compensation (worker-tier) markers + skip-clauses, tiered on the
+  role-floors ladder; worked example in plan-before-code.
+- **Suite `:uninstall` commands rewritten** to work on real machines:
+  scope-aware discovery via `claude plugin list --json`, removal set computed
+  from the bundle's own manifest (auto-install markers are commonly absent,
+  so `--prune` alone removes nothing), explicit confirmation, per-scope
+  uninstalls.
+- Seven plugin descriptions de-jargoned; WARN-tier plugin.json description
+  linter; four-laws glosses in CLAUDE.md; DYNAMIC_CEILING 2600 → 2800
+  (reviewed raise covering the deliberate delivery-channel spends).
+
 ## [0.89.0] - 2026-07-27
 
 **New bundle `product-suite`** (payments, i18n, llm-app): the product-domain

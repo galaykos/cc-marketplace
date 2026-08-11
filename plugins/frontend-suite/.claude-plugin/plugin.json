@@ -1,25 +1,20 @@
 {
   "name": "frontend-suite",
-  "version": "0.7.2",
-  "description": "Meta-bundle: the frontend category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Three.js, Inertia, Livewire, the generalist web worker, the craft layer (craft-layer), visual decisions (design-preview), shadcn staging (shadcn-studio), registry sourcing (registry-source), accessibility auditing, and skill auto-routing (skill-router). Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "version": "0.8.1",
+  "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Inertia, Livewire, the generalist web worker, accessibility auditing, and skill auto-routing (skill-router). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
   },
   "dependencies": [
     "a11y",
-    "craft-layer",
-    "design-preview",
     "inertia",
     "livewire",
     "nextjs",
     "nuxt",
     "react",
     "react-native",
-    "registry-source",
-    "shadcn-studio",
     "skill-router",
-    "threejs",
     "ui-ux",
     "vite",
     "vue3",

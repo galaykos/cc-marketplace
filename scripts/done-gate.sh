@@ -3,8 +3,9 @@
 #
 # WHY: CLAUDE.md is advisory. Across a long session an agent reliably verifies
 # the axes it was last burned on and quietly skips the rest. The gates below are
-# the four cheapest of CI's 18 blocking steps — passing them is necessary, not
-# sufficient (see CLAUDE.md, "Every enforcement surface, by tier").
+# the four cheapest of CI's blocking steps — passing them is necessary, not
+# sufficient. Only CLAUDE.md ("Every enforcement surface, by tier") carries the
+# step COUNT; two files carrying one number is how they drift apart.
 #
 # TRIGGER — all THREE must hold:
 #   1. plugin files changed in the working tree or index, and
