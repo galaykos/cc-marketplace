@@ -183,6 +183,60 @@ for pair in "fixture-register.html:FAIL" "fixture-register-clean.html:PASS" "fix
   fi
 done
 
+# emoji-as-icon: pictographs standing in for the icon system. The pair differs
+# only in icon treatment (emoji vs a decided SVG system); both carry the ™ and
+# © marks every real page ships, which must never fire. The falsepos control's
+# only pictographs sit inside a customer's quoted testimonial plus a ☎︎ the
+# author explicitly rendered text-style — a gate that fires on those grades
+# the customer's voice and the legal line, not the build's icon decision.
+for pair in "fixture-emoji.html:FAIL" "fixture-emoji-clean.html:PASS" "fixture-emoji-falsepos.html:PASS"; do
+  fx=${pair%%:*}; want=${pair##*:}
+  [ -f "$GATES/$fx" ] || { bad "emoji-as-icon fixture missing" "$fx"; continue; }
+  d="$WS/emoji-${fx%%.html}"; mkdir -p "$d"
+  write_tokens "$d"
+  cp "$GATES/$fx" "$d/page.html"
+  out=$(run_divergence "$d")
+  got=$(state_of "$out" emoji-as-icon)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "emoji-as-icon on $fx expected $want, got $got" \
+        "$(printf '%s\n' "$out" | grep -E 'emoji-as-icon' | head -1)"
+  fi
+done
+
+# ...and a waived build must report WAIVED, not FAIL — the new assertions ride
+# the same waiver lane as every other one, and this is the control that proves
+# the lane is actually connected.
+d="$WS/emoji-waived"; mkdir -p "$d/.craft-layer"
+write_tokens "$d"
+cp "$GATES/fixture-emoji.html" "$d/page.html"
+cat > "$d/.craft-layer/waivers.json" <<'JSON'
+[{ "check": "emoji-as-icon", "value": "*", "reason": "the brief reproduces user chat messages verbatim, emoji included" }]
+JSON
+out=$(run_divergence "$d")
+got=$(state_of "$out" emoji-as-icon)
+if [ "$got" = "WAIVED" ]; then ok; else
+  bad "waived emoji-as-icon expected WAIVED, got $got" \
+      "$(printf '%s\n' "$out" | grep -E 'emoji-as-icon' | head -1)"
+fi
+
+# copy-register: the machine-copy lexicon. The pair shares product, facts and
+# prices; only the register differs. The clean control carries "seamless" as a
+# lone adjective on purpose — the check is multi-word phrases only, and firing
+# on a single word would turn it into a vocabulary ban.
+for pair in "fixture-copy.html:FAIL" "fixture-copy-clean.html:PASS"; do
+  fx=${pair%%:*}; want=${pair##*:}
+  [ -f "$GATES/$fx" ] || { bad "copy-register fixture missing" "$fx"; continue; }
+  d="$WS/copy-${fx%%.html}"; mkdir -p "$d"
+  write_tokens "$d"
+  cp "$GATES/$fx" "$d/page.html"
+  out=$(run_divergence "$d")
+  got=$(state_of "$out" copy-register)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "copy-register on $fx expected $want, got $got" \
+        "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
+  fi
+done
+
 # font-anti-corpus must see the family however the project declares it. The two
 # forms below are the ones the check was blind to: Tailwind v4 emits no
 # `font-family` line at all, and `font-family: var(--font-sans)` hides the name

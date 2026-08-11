@@ -47,10 +47,18 @@ random new shadow. Elevation should encode hierarchy (a dropdown sits above a ca
 not decoration.
 
 ### Motion
-Duration and easing are tokens: a few durations (`fast ~150ms`, `base ~250ms`,
-`slow ~400ms`) and a shared easing curve. Micro-interactions use `fast`, entrances
-`base`. Always honor `prefers-reduced-motion` — a token system includes the reduced
-variant, it is not an afterthought.
+Duration and easing are tokens, published as CSS variables so every consumer reads one
+source: `--duration-fast` (~150ms), `--duration-base` (~250ms), `--duration-slow`
+(~400ms), plus `--ease-out` and `--ease-in` as real cubic-bezier curves (e.g.
+`cubic-bezier(0.22, 1, 0.36, 1)` for ease-out, not the flat browser keyword) and
+`--ease-spring` via a `linear()` spring approximation. Tailwind v4 wires these
+through its `--ease-*` / `--animate-*` `@theme` namespaces. Micro-interactions use
+`fast`, entrances `base`, and exits run shorter than their entrances. JS animation
+libraries read the SAME variables — `getComputedStyle` or exported constants — so
+CSS and Motion/GSAP stay one system: two components animated in different sessions
+land on the same curves because the token is the only place a curve lives. Always
+honor `prefers-reduced-motion` — a token system includes the reduced variant, it is
+not an afterthought.
 
 ## Semantic color tiering
 

@@ -29,6 +29,7 @@ Never mirror fetched data into `useState`; that fork is where staleness bugs bre
 | Any real server data in React | TanStack Query (React Query) — the default |
 | Lighter, simpler needs | SWR |
 | Already all-in on Redux Toolkit | RTK Query |
+| App on TanStack Router/Start | Route loader `queryClient.ensureQueryData(queryOptions)` + `useSuspenseQuery` in the component — the loader kills the render-fetch waterfall. TanStack Start is v1 RC; check current docs before scaffolding |
 | Client state that is complex/global | Zustand or Redux — NOT a data-fetching lib |
 
 Do not reach for Redux to hold server data (that is what the query libs solve), and do
@@ -60,9 +61,21 @@ The query key IS the cache identity. Get it right and everything else follows:
 - **Refetch storms** — default `staleTime: 0` refetches on every mount/focus; raise it
   for data that does not change every second.
 - **Waterfalls** — dependent queries that could run in parallel run in series; prefetch
-  or restructure.
+  or restructure — on TanStack Router/Start, the route loader is the fix.
 - **Over-fetching on focus/reconnect** — sensible defaults, but audit them for expensive
   queries.
+
+## Paginated and infinite data
+
+- Page and cursor params belong in the query key — `['todos', { page, filters }]` —
+  each page is its own cache entry.
+- `placeholderData: keepPreviousData` (v5: import `keepPreviousData` from
+  `@tanstack/react-query`) keeps the previous page rendered while the next loads —
+  no skeleton flash or scroll loss on a page flip.
+- Cursor feeds use `useInfiniteQuery` + `getNextPageParam` — never manual
+  page-concat into `useState`, which forks the cache: the exact failure this
+  skill exists to stop.
+- When the next page is cheap, `prefetchQuery` it on pagination hover.
 
 ## The shape, minimally
 

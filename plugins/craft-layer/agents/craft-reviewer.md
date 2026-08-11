@@ -89,6 +89,13 @@ without exception:
       checked one at a time against the shipped source — contradicted entries counted and
       reported, never taken on the record's word. A present-but-hollow record is a finding on
       its own; an absent one is `not checked`.
+- [ ] The shipped copy stays out of the MACHINE-COPY register catalogued in the sameness
+      fingerprint's "Recurring copy register" section
+      (`skills/creative-direction/references/sameness-fingerprint.md`) — `divergence.mjs`'s
+      `copy-register` and `emoji-as-icon` verdicts reported as the scripted half (multi-word
+      phrases and pictograph icons only), plus this agent's own half: the verb family,
+      intensifiers and fragment-headline shapes the mechanical patterns cannot see, graded in
+      rendered copy.
 - [ ] The BANNED VOCABULARY was greped ONCE over the whole tree, not per section and not
       per agent — terms read from `craft/build-task.md`'s `Banned vocabulary:` line (or the
       divergence record's, said out loud), terms-checked reported beside hits, one finding

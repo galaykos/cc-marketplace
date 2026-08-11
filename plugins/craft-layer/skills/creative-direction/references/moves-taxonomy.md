@@ -28,6 +28,11 @@ move is available and when it fits; the concrete move is brief-derived.
   `webgl-effects`, `physics-motion`, `motion-tiers` tier 4).
 - **Layout system** — the spatial logic (asymmetric grid / bento / editorial columns /
   canvas/free / split). When: the structure itself signals the concept.
+- **Arrival choreography** — how the first screen assembles on load (staged reveal /
+  masked build-in / counterweighted preloader / none-by-design). When: the brand's first
+  impression is the load itself. Never at the cost of LCP or the first read, always
+  honouring reduced-motion — and none-by-design is the legitimate default; execution
+  belongs to `motion-tiers` and `kinetic-typography`.
 
 Each category points at the craft skill that OWNS its execution — this taxonomy chooses
 the KIND of move; the tier/engine skills build it.

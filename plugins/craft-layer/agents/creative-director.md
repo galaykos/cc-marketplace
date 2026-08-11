@@ -43,8 +43,8 @@ from — derive a specific move, never pick a named one off a list.
    never wins on its own.
    **Weight usability, do not merely gate it.** The only published award rubric in this
    field scores Design 40% · Usability 30% · Creativity 20% · Content 10% (dated and
-   sourced in the plugin README's *award-grade* section — fix and re-date it there
-   first) — so usability
+   sourced in the plugin README's *Award-grade scoring* note — when the rubric moves, fix
+   and re-date it there first) — so usability
    carries more weight than distinctiveness does, and substance is scored at all. Treated
    as a pass/fail floor alone, a barely-usable concept ties with an excellently usable one
    and distinctiveness silently decides every round. Score usability and substance as

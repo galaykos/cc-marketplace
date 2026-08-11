@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fieldnote — emoji fixture, the passing shape</title>
+    <!--
+      craft-layer emoji fixture — THE CLEAN CONTROL for `fixture-emoji.html`.
+      Same product, same sections, THE SAME COPY: the only difference is the
+      icon treatment. Here the feature icons are a decided system — inline SVG
+      marks drawn to one grid — and the heading carries no pictograph at all.
+
+      It keeps the text-default marks on purpose: the ™ after the product name
+      and the © in the footer are prose every real page ships. If
+      `emoji-as-icon` fires on them it has stopped grading the icon decision
+      and started grading the legal line.
+
+      THIS FIXTURE MUST PASS.
+    -->
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+      section { padding: 3rem 1.5rem; max-width: 44rem; margin: 0 auto; }
+      h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+      svg { width: 1em; height: 1em; vertical-align: -0.1em; }
+    </style>
+  </head>
+  <body>
+    <section id="hero">
+      <p>Fieldnote™</p>
+      <h1>Field reports your crew can file from the truck</h1>
+      <p>
+        Photos, signatures and job notes, captured where the work happens and
+        readable back at the office before the crew is off the site.
+      </p>
+      <p><a href="/signup">Start a trial</a></p>
+    </section>
+
+    <section id="features">
+      <h2>What you get</h2>
+      <ul>
+        <li>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h9M8 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+          Reports file in under a minute, even offline.
+        </li>
+        <li>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" fill="none" stroke="currentColor" stroke-width="2" /><path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+          Every entry is signed and time-stamped on the device.
+        </li>
+        <li>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="4" width="12" height="9" fill="none" stroke="currentColor" stroke-width="2" /><circle cx="8" cy="8.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+          Photos land in the job record, not in a camera roll.
+        </li>
+      </ul>
+    </section>
+
+    <section id="pricing">
+      <h2>Pricing</h2>
+      <p>Crew 29 a month. Fleet 99 a month. Enterprise, on application.</p>
+    </section>
+
+    <footer>
+      <p>© 2026 Fieldnote. All rights reserved.</p>
+    </footer>
+  </body>
+</html>

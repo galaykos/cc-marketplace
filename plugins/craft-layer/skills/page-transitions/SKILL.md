@@ -15,6 +15,11 @@ view-transition primitives and the reduced-motion snippet). This skill owns the
 element persists across it, and how each router commits the DOM so the snapshot is
 correct. Different jobs — pick the API there, pick the transition here.
 
+**Arrival is not a transition:** first-load arrival choreography — how the first screen
+assembles on load — is a creative-direction move (Arrival choreography in
+`../creative-direction/references/moves-taxonomy.md`); this skill owns motion BETWEEN
+documents and routes only.
+
 ## Decide: does a page transition earn its cost?
 
 Answer before adding anything; take the first that fits the navigation:

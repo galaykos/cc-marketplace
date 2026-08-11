@@ -98,6 +98,17 @@ registry "just in case." If you want to pull in upstream fixes later, re-run
 `npx shadcn add <component> --overwrite` deliberately and diff the result — don't silently
 overwrite local customizations.
 
+## Product screens start from the official recipes
+
+Data tables start from shadcn's official Data Table guide
+(https://ui.shadcn.com/docs/components/data-table) — a TanStack Table composition (toolbar
+filtering, column visibility, pagination, row actions) built on v9's API. Check the installed
+`@tanstack/react-table` major before writing table code: v9 changed the hook API, and the usage
+wiring lives in the `react` plugin's `react-data-grid` skill. App shells and dashboards check
+https://ui.shadcn.com/blocks before hand-building — free copy-paste scaffolds (`dashboard-01`
+ships sidebar + charts + data table). Either way the recipe is a starting file you own, so both
+paths then follow this skill's owned-code and CSS-variable rules above.
+
 ## Common mistakes
 
 - Wrapping components in `!important`-laden CSS instead of editing the source file.

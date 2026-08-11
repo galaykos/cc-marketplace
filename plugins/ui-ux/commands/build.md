@@ -40,6 +40,20 @@ convention.
    than shipped in the registry's defaults.
    Layout, responsive breakpoints, spacing rhythm, and element hierarchy are its job.
 
+   Two conditional injections ride the same dispatch — the worker has no Skill tool, so
+   a skill not injected here never reaches it:
+   - **Motion.** When the request or target files carry animation signals — the same list
+     /ui-ux:review step 2 detects (`framer-motion`/`motion`/`gsap`/`animejs` imports,
+     `@keyframes`, `transition-*`/`animate-*` utilities, `animation-timeline`,
+     `@starting-style`, `document.startViewTransition`) — inject the Read path to
+     `skills/motion-best-practices/SKILL.md` plus the matching library digest
+     (`references/motion.md` | `gsap.md` | `animejs.md`).
+   - **Data-dense surfaces.** When the target is a dashboard, data table, admin/CRM
+     screen, or settings surface and the craft-layer plugin is installed, inject the
+     Read path to its `information-design` skill (SKILL.md +
+     `references/dense-ui-patterns.md`); when craft-layer is absent, say so in the
+     result rather than silently building without the dense-UI floor.
+
 4. Keep accessibility in view while building: semantic elements, labels, focus order —
    then recommend `/a11y:audit` on the result for a thorough pass (a11y remediation is
    the a11y plugin's, not this build step's).

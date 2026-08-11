@@ -73,8 +73,8 @@ Reduced-motion fallback:
 
 ## Motion (the library formerly Framer Motion)
 
-The npm package is `motion` (v12 line); React code imports from `motion/react`. The
-`framer-motion` package still mirrors releases but is a legacy alias — new code uses `motion`.
+The npm package is `motion` (v13 line, 2026-08 — v12 recipes and imports carry over unchanged:
+`motion` / `motion/react`). `framer-motion` still mirrors releases but is a legacy alias.
 Prefer the mini `animate()` from `motion/mini` for simple vanilla tweens (smallest bundle);
 reserve full `motion` components for gestures, layout animation, and exit transitions.
 
@@ -132,8 +132,8 @@ branching to `utils.set(target, finalState)` when it matches.
 - Avoid layout thrash in JS: batch DOM reads before writes, drive frames with
   `requestAnimationFrame`, and use the FLIP technique (measure First/Last, Invert with a
   transform, Play) instead of animating layout properties directly.
-- Microinteraction timing: 150–300ms for most UI feedback, `ease-out` for entrances,
-  `ease-in` for exits; durations over 500ms on frequent interactions feel sluggish.
+- Microinteraction durations and easings come from the motion token scale (the `design-tokens`
+  skill) so separate builds land on the same curves; sequencing: `references/choreography.md`.
 
 ## Common mistakes
 

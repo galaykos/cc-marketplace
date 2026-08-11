@@ -1,10 +1,17 @@
 # Motion depth — motion.dev recipes the SKILL body has no room for
 
-> Last verified: 2026-07-22 — https://motion.dev/docs — npm:motion@12
+> Last verified: 2026-08-11 — https://motion.dev/docs — npm:motion@13
 
 Read on demand from motion-best-practices. Everything here assumes the `motion`
-npm package (v12 line); `framer-motion` is a legacy alias — never import it.
+npm package (v13 line); `framer-motion` is a legacy alias — never import it.
 Re-verify version-sensitive literals live at https://motion.dev/docs before use.
+
+v13 (2026-08) carries one breaking change that matters here: the automatic
+`@emotion/is-prop-valid` detection is gone. A CSS-in-JS tree (styled-components,
+Emotion) that relied on it must pass the filter explicitly —
+`<MotionConfig isValidProp={isPropValid}>` — or style props leak onto DOM
+elements as attributes. Imports and recipes are otherwise unchanged from v12;
+everything below applies as written.
 
 ## Packages and imports
 
@@ -12,6 +19,12 @@ Re-verify version-sensitive literals live at https://motion.dev/docs before use.
 - Smallest bundle: `import { animate } from "motion/mini"` — the 2.3kb mini
   `animate()` drives HTML/SVG styles through native browser APIs.
 - React: `import { motion } from "motion/react"` — components, gestures, hooks.
+- React reduced bundle: `import { LazyMotion, domAnimation, m } from "motion/react"` —
+  `m.*` components inside `<LazyMotion features={domAnimation}>` cut the initial
+  cost to ~6KB with the animation features lazy-loaded; `domMax` when drag or
+  layout projection is needed, and `features` accepts an async loader for
+  code-splitting. This is the React bundle path — `motion/mini` is the vanilla
+  `animate()` only and cannot render `m.`/`motion.` components.
 - Mini vs hybrid trade-off: the hybrid `animate` (18kb) adds independent
   transforms (`x`, `rotate`), CSS variables, SVG paths, animation sequences,
   colors/strings/numbers, and plain JS objects on top of mini's style tweens.
@@ -35,6 +48,17 @@ Re-verify version-sensitive literals live at https://motion.dev/docs before use.
 - Springs: `{ type: "spring" }` in options; or import `spring` from `"motion"`
   and pass `{ type: spring, stiffness: 300 }` — this also upgrades the mini
   `animate` to spring easing without pulling in the full hybrid bundle.
+- Which tool for which motion: springs for interactive, gesture-driven work —
+  hover, tap, drag, layout — because a spring retargets smoothly when
+  interrupted mid-flight (a half-finished hover reversing reads continuous,
+  where a bezier restarts); duration + bezier for entrances/exits and
+  scroll-linked motion, where timing is choreographed rather than reactive.
+- Two defaults worth naming: snappy UI response
+  `{ type: "spring", visualDuration: 0.25, bounce: 0.2 }` — Motion's perceptual
+  spring API, sized by how long the motion LOOKS rather than its settle time —
+  and gentle settle `{ stiffness: 170, damping: 26 }` for larger surfaces.
+  anime.js v4 has a perceived form too (`spring({ duration, bounce })`); its
+  own digest covers it.
 
 ## scroll()
 
