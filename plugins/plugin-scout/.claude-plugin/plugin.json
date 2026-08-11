@@ -1,7 +1,7 @@
 {
   "name": "plugin-scout",
-  "version": "0.9.0",
-  "description": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install \u2014 stack-matched tier and always-useful tier \u2014 then install the picked ones after confirmation. Includes /plugin-scout:suggest.",
+  "version": "0.9.1",
+  "description": "Scan the current project's manifests and suggest which cc-plugins-marketplace plugins to install — stack-matched tier and always-useful tier — then install the picked ones after confirmation. Includes /plugin-scout:suggest.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

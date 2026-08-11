@@ -93,8 +93,13 @@ U="$WORK/uninstall.md"
 if render "$TPL/suite-uninstall.md.tmpl" "$SAMPLES/suite-uninstall.json" "$U"; then
   [[ "$(line1 "$U")" == "---" ]] && pass "uninstall: line 1 is ---" || fail "uninstall: line 1 is ---" "got [$(line1 "$U")]"
   expect_has "$U" "<!-- generated from templates/suite-uninstall.md.tmpl" "uninstall: generated header after fence"
-  expect_has "$U" "claude plugin uninstall quality-suite --prune -y" "uninstall: bundle param rendered"
-  expect_absent "$U" "list --json" "uninstall: taskmaster divergence gone"
+  expect_has "$U" "claude plugin uninstall quality-suite -s <scope> --prune -y" "uninstall: bundle param rendered with explicit scope"
+  # list --json was once a per-plugin divergence to keep OUT; since 2026-08-11 it
+  # is the designed discovery step (scope-aware uninstall — bundles are commonly
+  # installed at project/local scope while the CLI defaults to user).
+  expect_has "$U" "claude plugin list --json" "uninstall: scope discovery present"
+  expect_has "$U" '.dependencies[]?' "uninstall: manifest-derived removal set present"
+  expect_has "$U" "prune --dry-run -s <scope>" "uninstall: honesty check scoped"
 fi
 
 # ---- reminder hook: plain -----------------------------------------------------

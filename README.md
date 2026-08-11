@@ -53,8 +53,8 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context | + first work-shaped prompt |
 |--------|---------|-------------------|----------------------------|
-| `everything` | 59 | ~12.3k tokens | ~2.6k tokens |
-| `taskmaster-suite` | 30 | ~7.3k tokens | ~2.6k tokens |
+| `everything` | 59 | ~12.3k tokens | ~2.7k tokens |
+| `taskmaster-suite` | 30 | ~7.3k tokens | ~2.7k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — |
 | `process-suite` | 9 | ~2.0k tokens | ~2.6k tokens |
@@ -75,7 +75,7 @@ against an empty project — a lower bound; chars/4 estimate).
 
 **+ first work-shaped prompt** = what UserPromptSubmit and per-tool hooks inject
 on top, the first time you ask for work in a session (`skill-router` alone
-contributes ~2.4k). This channel was unmeasured until 2026-08-02 and its
+contributes ~2.6k). This channel was unmeasured until 2026-08-02 and its
 omission understated `everything` by about a fifth; both columns are now
 ratcheted by `scripts/context-budget.sh` against committed baselines.
 
@@ -98,6 +98,7 @@ scored as zero.
 
 # Or one category at a time:
 /plugin install frontend-suite@cc-plugins-marketplace   # UI/UX, React, Vue, Next, Nuxt, Vite, a11y, skill-router
+/plugin install craft-suite@cc-plugins-marketplace      # creative-build studio: craft-layer, design-preview, shadcn-studio…
 /plugin install php-suite@cc-plugins-marketplace        # PHP, Laravel, Livewire, Inertia
 /plugin install db-suite@cc-plugins-marketplace         # SQL, MySQL, MariaDB, PostgreSQL, database worker
 /plugin install quality-suite@cc-plugins-marketplace    # review fan-in + the enforcing hooks (comment deny, evidence gate…)
@@ -113,21 +114,27 @@ Dependencies are resolved and installed automatically; add any framework
 plugin (react, laravel, postgresql, …) individually on top as your stack
 requires.
 
-Uninstall a bundle together with its auto-installed dependencies (plugins you
-installed manually are never touched; requires Claude Code 2.1.121+). Easiest:
-each bundle ships its own cleanup command — run `/taskmaster-suite:uninstall`
-or `/everything:uninstall` from inside Claude Code (confirms, then uninstalls
-the bundle and prunes its dependencies). CLI equivalent:
+Uninstall a bundle together with its dependencies. Easiest: each bundle ships
+its own cleanup command — run `/taskmaster-suite:uninstall` or
+`/everything:uninstall` from inside Claude Code. Since 0.90.0 these commands
+are scope-aware and compute the removal set from the bundle's own manifest:
+they find where the bundle is actually installed (`user`, `project`, or
+`local`), list every bundled dependency installed at that scope minus anything
+another installed bundle still needs, and confirm the exact list before
+removing anything.
+
+Why not just `--prune`: `claude plugin uninstall` defaults to the `user`
+scope while bundles are commonly installed at `project` or `local` scope, and
+install records frequently carry no auto-install markers (installs made before
+dependency tracking, or via the /plugin menu) — so the bare CLI one-liner
+often removes nothing. If you drive the CLI directly, pass the scope and
+expect to remove dependencies explicitly:
 
 ```bash
-claude plugin uninstall taskmaster-suite --prune
-claude plugin uninstall everything --prune
-claude plugin prune --dry-run   # or: preview orphaned auto-deps anytime
+claude plugin list --json               # find the bundle's actual scope(s)
+claude plugin uninstall taskmaster-suite -s project --prune -y
+claude plugin prune --dry-run -s project   # honesty check: usually "nothing to prune"
 ```
-
-Note: uninstalling from the /plugin menu inside Claude Code does NOT prune —
-dependencies stay installed. Run `claude plugin prune` from a terminal
-afterwards to sweep the orphans.
 
 ### MCP servers
 

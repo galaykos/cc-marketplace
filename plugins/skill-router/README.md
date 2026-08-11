@@ -23,8 +23,8 @@ Four hooks, all fail-open (any error, or a missing `jq`, exits silently and neve
 
 - **`SessionStart` → `prime.sh`** — sniffs the repo's manifests (composer.json, package.json, Dockerfiles, `*.tsx`/`*.sql` presence) and injects a one-line index of the skills relevant to this stack, filtered to the plugins you actually have installed.
 - **`PostToolUse` (Edit/Write/MultiEdit) → `route.sh`** — after an edit, matches the file against `rules.tsv`. A high-confidence match (path or extension) injects a directive to load the relevant skill and review the change against it — **once per signal per session**, so a run of `.sql` edits nudges you once, not every time.
-- **`SessionEnd` → `summary.sh`** — low-confidence content signals (a file that mentions `password`, uses `async`/locks, is dense with `try/catch`) never interrupt inline; they accumulate and surface once as a quiet end-of-session digest.
-- **`UserPromptSubmit` → `route-prompt.sh`** — on the first work-shaped prompt of a session, injects the catalog of commands actually installed here plus the rules for judging which one fits the ask. The hook does not pick; the model does.
+- **`SessionEnd` → `summary.sh`** — appends the session's surfaced/pending signals to the machine-local ledger and removes the state file; low-confidence signals themselves surface earlier, on the next prompt (below).
+- **`UserPromptSubmit` → `route-prompt.sh`** — first flushes any accumulated low-confidence content signals (a file that mentions `password`, uses `async`/locks, is dense with `try/catch`) as one digest on your next prompt — a channel the model receives in time to act, unlike SessionEnd — then, on the first work-shaped prompt of a session, injects the catalog of commands actually installed here plus the rules for judging which one fits the ask. The hook does not pick; the model does. Exception in the catalog's rule 3: a scope-first reminder on the same prompt outranks tool-fit.
 
 ## The tool-fit check
 
@@ -64,7 +64,7 @@ You: run taskmaster: create a marketing landing page
 
 **Gated — the mechanism.** `scripts/smoke/prompt-route-tests.sh` (its own CI step) asserts the catalog is built, that every entry resolves to a real command file, that it contains only installed plugins, that the directive still carries all six discipline rules, that each guard silences the hook, and that it injects once per session. `scripts/validate.sh` fails the build on a hardcoded slash-command token in the hook, or on a fifth prompt-matching pattern — the signature of a routing table regrowing in shell.
 
-**The cost, plainly:** ~2.3k tokens on the first work-shaped prompt of a session, paid whether or not a better tool exists. A chat-only session pays nothing. `CC_ROUTE=off` disables this check; `CC_REMIND=off` disables every advisory nudge in the marketplace, this one included.
+**The cost, plainly:** ~2.6k dynamic tokens measured for this plugin's hooks on the first work-shaped prompt + first edit of a session (the catalog is most of it), paid whether or not a better tool exists. A chat-only session pays nothing. `CC_ROUTE=off` disables this check; `CC_REMIND=off` disables every advisory nudge in the marketplace, this one included.
 
 It never forces a skill to run — hooks cannot — it injects a directive the model then acts on. It complements the existing description-based skill triggering; it does not replace it.
 
@@ -79,7 +79,7 @@ content       \b(password|jwt)\b      security-review       security        low
 ```
 
 - `signal_type`: `glob` (matched against the edited file path) or `content` (a `grep -E` pattern matched against the file's contents).
-- `confidence`: `high` fires inline once per session; `low` is deferred to the SessionEnd digest.
+- `confidence`: `high` fires inline once per session; `low` accumulates and flushes as one digest on the next prompt (SessionEnd keeps the ledger).
 - A rule only fires if its `owning_plugin` is installed.
 
 ### Stack markers (optional 6th column)

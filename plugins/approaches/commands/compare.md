@@ -14,10 +14,13 @@ description first). Do not write implementation code.
    file-level sketch each. Consult approach-deliberation's references/strategies.md for fits.
 3. Trade-off table: effort, risk, reversibility, codebase fit, blast radius.
    Honest entries — no strawman column built to make a favorite win.
-4. Pick one. One paragraph why. State the kill-trigger: the concrete discovery
-   mid-implementation that would flip this choice.
+4. Pick one — and surface it, never self-approve it. One paragraph why, the
+   kill-trigger (the concrete discovery mid-implementation that would flip the
+   choice), then fold pick approval into the handoff ask below. Proceed without
+   asking only under CC_AUTOPROCEED=on or a hands-off goal run.
 5. Hand off via selectable offer (AskUserQuestion), not typed commands:
-   "Continue to the file-level plan (Recommended)" / "Stop here". Plan =
+   "Proceed with <pick> — continue to the file-level plan (Recommended)" /
+   "Proceed with <runner-up> instead" / "Stop here". Plan =
    plan-before-code (code-architecture) when that plugin is installed, else
    outline the file-level plan inline. If the comparison exposed product-shape
    uncertainty, offer /taskmaster:brainstorm only when taskmaster is installed.

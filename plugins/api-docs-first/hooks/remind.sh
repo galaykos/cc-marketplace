@@ -23,7 +23,7 @@ command -v jq >/dev/null 2>&1 || exit 0
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
-  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
+  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
   printf '%s' "$head" | grep -qF '/api-docs-first:check' && exit 0 # own suggestion quoted back = transcript, not intent
   if printf '%s' "$head" | grep -qiE '\b(sdk|endpoint|integrat\w*|webhook|oauth|graphql)\b' && printf '%s' "$head" | grep -qiE '\b(build|implement|write|creat\w*|add|wire|connect|integrat\w*|call|fetch|use|fix|debug|update)\b'; then
     # PER-PROMPT BUDGET: at most one reminder line per prompt across every

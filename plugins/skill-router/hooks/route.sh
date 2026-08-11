@@ -11,6 +11,11 @@
 # (same channel doctrine as task-runner/hooks/scope.sh and
 # comment-discipline/hooks/scan.sh). Fail-open: any error, or a
 # missing jq, exits silently and never blocks the edit.
+# Honest limitations: (1) state writes are read-modify-write with no lock —
+# two concurrent invocations in one session can drop a pending_low entry
+# (tool calls are serialized in practice; not worth a lock). (2) `fired`
+# dedup is per SESSION while delivery is per CONTEXT — a fresh subagent
+# context can be silently deduped by a nudge the main context already got.
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -88,8 +93,12 @@
   }
 
   nudges=""
-  emit_nudge() { # $1 skill, $2 owning_plugin — accumulates; delivered once below
-    nudges="${nudges}$(printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.' "$base" "$1" "$2")"$'\n'
+  emit_nudge() { # $1 skill, $2 owning_plugin — accumulates; delivered once below.
+    # When the SKILL.md is locatable, name its path: a subagent context has no
+    # Skill tool, so "load the skill" is only actionable there as a Read.
+    local sp=""
+    [ -n "$plugins_dir" ] && [ -f "$plugins_dir/$2/skills/$1/SKILL.md" ] && sp=" — Read $plugins_dir/$2/skills/$1/SKILL.md"
+    nudges="${nudges}$(printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.%s' "$base" "$1" "$2" "$sp")"$'\n'
   }
 
   # ---- high-confidence pass: EVERY surviving, not-yet-fired match nudges ----

@@ -23,11 +23,18 @@ Mark a section of a procedure skill when the difference matters:
   ("what to split is task-orchestration"), repo facts, thresholds, when-NOT
   tables, safety rules. This is the floor; it is most of most skills.
 - **Compensation (worker-tier)** — step-by-step procedure that exists so a
-  weaker or worker-pinned model executes reliably: numbered protocols,
-  fixed output skeletons, checklist expansions of judgment calls. A
-  frontier-class session honoring the skill may compress or skip these when
-  the skill's skip-clause condition holds; a chassis worker agent
-  (model-pinned in its frontmatter) follows them in full.
+  below-frontier model executes reliably: numbered protocols, fixed output
+  skeletons, checklist expansions of judgment calls.
+
+Who is bound, on the role-floors ladder (haiku < sonnet < opus < fable):
+frontier-class means Fable-class; an Opus-class or lower MAIN session follows
+Compensation sections in full, and only a Fable-class session may compress or
+skip them when the skill's skip-clause condition holds. Unmarked sections are
+All models by default. Delivery honesty: a chassis worker agent has no Skill
+tool and no skill auto-loading — Compensation prose reaches a worker only
+when the dispatching prompt injects the skill (a task card's Skills-to-apply
+line, or pasted body). Writing "workers follow this" does not deliver it;
+the dispatch has to.
 
 ## Skip-clauses
 

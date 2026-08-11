@@ -20,7 +20,7 @@
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
-  case "$prompt" in "" | "/"*) exit 0 ;; esac # empty, or slash commands manage their own flow
+  case "$prompt" in "") exit 0 ;; esac
 
   # OFF SWITCHES. CC_REMIND=off silences every advisory nudge in the marketplace
   # (this is one); CC_ROUTE=off silences only this check. Environment is the one
@@ -28,23 +28,16 @@
   case "${CC_REMIND:-on}" in off) exit 0 ;; esac
   case "${CC_ROUTE:-on}" in off) exit 0 ;; esac
 
-  # TRIGGER NARROWING, identical in shape to the reminder hooks': drop fenced and
-  # backticked spans, read only the head, refuse prompts ABOUT this machinery, and
-  # refuse this hook's own output echoed back. LIMITATION (honest scope): heuristic,
-  # not parsing — CC_ROUTE=off is the reliable control, this is the cheap one.
-  scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
-  head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
-  printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
-  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix)[a-z -]{0,40}(plugin|hook|reminder|router|route|trigger|catalog)' && exit 0
-  printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
-
   # ---- pending-signal flush. Low-confidence signals route.sh accumulated are
   # surfaced on the NEXT prompt — a channel the model receives in time to act —
   # instead of only at SessionEnd, an event after which no model turn exists.
   # Each entry surfaces once (marked flushed in the state file); summary.sh's
-  # SessionEnd ledger still records everything. Runs before the work-shaped
-  # gate: "looks good, continue" is exactly the prompt where a pending
-  # security signal must not stay buried.
+  # SessionEnd ledger still records everything. Runs before every later exit —
+  # slash-command prompts included (a /task-runner:run session must still see a
+  # pending security signal), and "looks good, continue" is exactly the prompt
+  # where one must not stay buried. Honest limitation: if the state file is
+  # unwritable the flushed flag cannot persist and entries re-surface next
+  # prompt — fail-open toward repetition, never toward losing a signal.
   sid_f=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
   cwd_f=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   if [ -n "$sid_f" ] && [ -n "$cwd_f" ] && [ -r "$cwd_f/.claude/skill-router/fired-$sid_f.json" ]; then
@@ -61,6 +54,19 @@
         && [ -n "$upd" ] && printf '%s\n' "$upd" > "$state_f" 2>/dev/null
     fi
   fi
+
+  # Slash commands manage their own flow — but only AFTER the flush above ran.
+  case "$prompt" in "/"*) exit 0 ;; esac
+
+  # TRIGGER NARROWING, identical in shape to the reminder hooks': drop fenced and
+  # backticked spans, read only the head, refuse prompts ABOUT this machinery, and
+  # refuse this hook's own output echoed back. LIMITATION (honest scope): heuristic,
+  # not parsing — CC_ROUTE=off is the reliable control, this is the cheap one.
+  scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
+  head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
+  printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
+  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|router|route|trigger|catalog)' && exit 0
+  printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
 
   # WORK-SHAPED GATE. The one pattern left, and deliberately not a routing table:
   # it asks "is this a request to do work?", never "which tool". Everything about

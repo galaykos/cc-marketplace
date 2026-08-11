@@ -54,8 +54,8 @@ restate the table here, or the two drift.
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
 Adopted incrementally as plugins are touched, not in a sweep: explicit
-`Standing:` markers ship in 6 plugins today (claude-authoring,
-code-architecture, orchestration, task-runner, taskmaster,
+`Standing:` markers ship in 7 plugins today (claude-authoring,
+code-architecture, orchestration, task-runner, taskmaster, terse,
 vercel-skills-scout), plus craft-layer's worked table above. **No script
 enforces this** — which puts the convention in its own `recorded` tier, and
 saying so is the point.
@@ -63,8 +63,9 @@ saying so is the point.
 ## Plugin change gates
 
 - `scripts/validate.sh` — structure, frontmatter, SKILL.md 150-line body ceiling (no floor),
-  reference resolution, the description linter (max 500 chars, no "Trigger words:"
-  lists), and the doc-location rule above. It also blocks leaked internal taskmaster
+  reference resolution, the description linter (max 500 chars for frontmatter
+  descriptions, no "Trigger words:" lists; plugin.json descriptions get a
+  WARN-only 700-char clarity guideline), and the doc-location rule above. It also blocks leaked internal taskmaster
   jargon (`card NN` / `Finding #N` / `smoke-test #N` / `the backlog`, plural
   forms like `cards NN` included) in shipped plugin `.md` files —
   `references/` AND the plugin-root docs (`README.md` / `CHANGELOG.md` /
@@ -107,8 +108,9 @@ saying so is the point.
   MCP `tools/list`) and **dynamic** (`context-budget-dynamic-baseline.json` —
   UserPromptSubmit and per-tool hook stdout, measured with a work-shaped prompt
   and a synthetic `Edit`). The dynamic channel was unmetered before that and the
-  omission was load-bearing: skill-router alone injects ~2.4k tokens no baseline
-  saw. Accept intentional growth with `--update-baseline`, never in CI. Still
+  omission was load-bearing: at the time skill-router alone injected ~2.4k
+  tokens no baseline saw (~2.6k as of 2026-08-11). Accept intentional growth
+  with `--update-baseline`, never in CI. Still
   unmetered BY NATURE and reported by name each run rather than scored zero:
   skill BODIES loaded by a routing rule, and remote MCP servers.
 
@@ -178,7 +180,7 @@ skills by the two usage ledgers written since 2026-08-02
 `~/.claude/hindsight/<slug>/skills.jsonl`, what was INVOKED). Always exits 0 and
 never proposes a deletion: zero invocations proves nobody used it HERE, non-zero
 proves it fired and not that it helped, and "never surfaced" mostly measures the
-router's coverage — 102 of 126 skills have no `rules.tsv` row at all. It says
+router's coverage — 99 of 126 skills have no `rules.tsv` row at all. It says
 where a control/treatment run is worth spending, nothing more.
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned

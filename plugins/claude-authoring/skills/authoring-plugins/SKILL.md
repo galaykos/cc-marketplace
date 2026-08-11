@@ -69,8 +69,9 @@ the bundle makes the bundle lie, and no gate flags it:
   be added to its `dependencies`, or the aggregate install silently omits it. (The
   validator's everything-count check catches a missing plugin only via the README
   count — keep both in step.)
-- **`*-suite` bundles** (`quality-suite`, `frontend-suite`, `php-suite`, `db-suite`,
-  `process-suite`, `taskmaster-suite`) depend on a themed subset and drive an
+- **`*-suite` bundles** (`quality-suite`, `frontend-suite`, `craft-suite`,
+  `php-suite`, `db-suite`, `process-suite`, `taskmaster-suite`, … — every plugin
+  with a `dependencies` array) depend on a themed subset and drive an
   uninstall prune list. A new plugin or agent in a suite's domain joins that suite's
   `dependencies` AND its prune list — a suite that claims "all worker agents" must
   actually contain them.

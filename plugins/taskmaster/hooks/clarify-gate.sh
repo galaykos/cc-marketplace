@@ -18,7 +18,10 @@
 # the model should state assumptions instead of asking (see reason text).
 # Pattern: comment-discipline/hooks/scan.sh — the once-per-session bound is
 # recorded BEFORE the deny; a bound that cannot be recorded means no block.
-# Fail-open everywhere; CC_REMIND=off also silences it.
+# Fail-open everywhere; CC_REMIND=off also silences it. Honest limitation:
+# hook input cannot distinguish main-session from subagent edits, so when the
+# main model's first move is to delegate, the one deny can land on a worker's
+# first write instead of the main session's.
 {
   case "${CC_CLARIFY_GATE:-off}" in block) : ;; *) exit 0 ;; esac
   case "${CC_REMIND:-on}" in off) exit 0 ;; esac

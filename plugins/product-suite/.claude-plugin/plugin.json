@@ -1,6 +1,6 @@
 {
   "name": "product-suite",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Meta-bundle: the product-domain disciplines in one install — payments and billing (idempotent webhooks, money handling, ledgers), internationalization (ICU MessageFormat, Intl, RTL), and LLM application engineering (evals, RAG, prompt-injection defense). Uninstall cleanly with /product-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",

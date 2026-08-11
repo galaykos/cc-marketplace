@@ -23,7 +23,7 @@ command -v jq >/dev/null 2>&1 || exit 0
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
-  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
+  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
   printf '%s' "$head" | grep -qF '/approaches:build-vs-buy' && exit 0 # own suggestion quoted back = transcript, not intent
   if printf '%s' "$head" | grep -qiE '\b(build|implement|write|create)\b|roll[[:space:]-]*(my|our|your)?[[:space:]-]*own|from[[:space:]]scratch|hand[[:space:]-]*roll' && printf '%s' "$head" | grep -qiE '(auth(entication|orization)?|login|session|oauth|jwt|password[[:space:]]hash|parser|tokeni[sz]er|date[[:space:]-]*(lib|library|math|parsing)|time[[:space:]]?zone|queue|job[[:space:]]queue|message[[:space:]]broker|cache|rate[[:space:]-]*limit(er|ing)?|state[[:space:]]machine|pdf|csv[[:space:]]parser|email[[:space:]]sending|smtp|payment|billing|encryption|crypto(graphy)?|hashing|search[[:space:]]engine|full[[:space:]-]*text[[:space:]]search|orm|scheduler|cron|websocket|pub[[:space:]-]*sub|i18n|internationali[sz]ation|feature[[:space:]]flag|markdown[[:space:]]parser|diff(ing)?[[:space:]]algorithm|uuid|slug)'; then
     # PER-PROMPT BUDGET: at most one reminder line per prompt across every

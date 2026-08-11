@@ -23,16 +23,20 @@ command -v jq >/dev/null 2>&1 || exit 0
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
-  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
+  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
   printf '%s' "$head" | grep -qF '/taskmaster:task' && exit 0 # own suggestion quoted back = transcript, not intent
   if printf '%s' "$head" | grep -qiE '\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\b'; then
     # PRIORITY DIRECTIVE (budgetExempt): a binding workflow directive, not an
     # advisory nudge — it prints on every matching prompt and still CLAIMS the
-    # shared per-prompt marker (best-effort) so sibling advisory reminders
-    # yield to it instead of stacking a second "do this first" on the same
-    # prompt: explicit priority instead of scheduling-order luck. Also drops a
-    # session-scoped work-prompt marker consumed by the plugin's optional
-    # clarify gate (a PreToolUse hook, off by default). Markers self-clean.
+    # shared per-prompt marker (best-effort) so advisory reminders scheduled
+    # AFTER it yield. Honest limitation: hooks launch in parallel, so an
+    # advisory that ran FIRST may already have spoken — that order can still
+    # stack two lines on one prompt; the accepted trade. Also drops a
+    # session-scoped cc-workprompt marker — a CROSS-PLUGIN signal consumed by
+    # taskmaster's optional clarify gate (PreToolUse, off by default); a
+    # second budgetExempt plugin would arm that gate too. Markers self-clean.
+    # NOTE: budgetShared/budgetExempt are derived complements (generate.sh) —
+    # a direct render must set exactly one or the emitted if/fi goes empty.
     sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
     key=$(printf '%s%s' "$sid" "$prompt" | cksum | cut -d' ' -f1)
     mkdir "${TMPDIR:-/tmp}/cc-remind-$key" 2>/dev/null

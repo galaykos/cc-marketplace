@@ -2,7 +2,7 @@
 
 Meta-bundle: the full clarification-to-execution workflow plus its wired
 companions — taskmaster planning, task-runner execution, engineering
-discipline, the stack-agnostic review/process toolkit, and the ui-ux agents
+discipline, the review and process plugins (code-review, git-workflow, orchestration, approaches, and the rest), and the ui-ux agents
 the pipeline's visual cards route to. Uninstalls cleanly:
 `/taskmaster-suite:uninstall` removes the bundle and prunes the plugins it
 auto-installed.

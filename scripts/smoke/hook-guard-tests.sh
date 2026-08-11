@@ -73,8 +73,9 @@ done
 
 # ---- per-prompt budget: advisory hooks share a lottery; taskmaster is a
 # PRIORITY DIRECTIVE (budgetExempt) — it always speaks AND claims the marker so
-# advisory siblings yield to it, in either scheduling order. Sandboxed TMPDIR
-# so markers never leak between runs.
+# advisory siblings scheduled AFTER it yield. Advisory-first order still stacks
+# two lines (hooks launch in parallel; the first assertions below prove and
+# accept that trade). Sandboxed TMPDIR so markers never leak between runs.
 AD="$ROOT/plugins/api-docs-first/hooks/remind.sh"
 TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
 if [ -f "$AD" ] && [ -f "$TM" ]; then

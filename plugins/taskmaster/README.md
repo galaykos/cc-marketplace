@@ -58,8 +58,14 @@ Without arguments it asks for a description first. The pipeline then:
    it hands the index straight to the task-execution discipline, no manual
    `/task-runner:run` needed (still printed as the fallback if you decline)
 
-A reminder hook also nudges you toward `/taskmaster` when it detects a short,
-feature-shaped prompt (build/add/implement…) with thin detail.
+A priority directive fires on work-shaped prompts
+(build/add/implement/fix/update/change/write…): before the first code edit,
+run one batched clarifying round to zero ambiguity or state in one line why
+the task is trivial. It is exempt from the shared one-reminder-per-prompt
+lottery (advisory reminders yield to it) and silenced by `CC_REMIND=off`.
+Opt-in stricter contract: `CC_CLARIFY_GATE=block` arms a PreToolUse gate that
+denies the FIRST code write of such a session once, forcing one
+clarify-or-declare-trivial turn before code exists. Off by default.
 
 ## Invocation cheat sheet — boost, and the two knobs Claude Code owns
 
@@ -195,4 +201,5 @@ for the full workflow suite.
   (interactive clickable demo of the whole assembled flow), task-cards
   (spec → milestone-grouped single-prompt cards)
 - **Agent**: context-scout — read-only codebase reconnaissance before questioning
-- **Hook**: thin-feature-prompt reminder on UserPromptSubmit
+- **Hooks**: clarify-first priority directive on UserPromptSubmit; opt-in
+  clarify gate on PreToolUse (`CC_CLARIFY_GATE=block`)
