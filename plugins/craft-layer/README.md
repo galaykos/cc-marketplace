@@ -119,6 +119,15 @@ The reasoning behind these gates — why motion is decided before the build, why
 runs no longer look alike, what "award-grade" does and does not mean — is in
 `rationale/craft-layer-design.md`, which does not ship with the plugin.
 
+### Award-grade scoring
+
+The creative-director scores candidates against the only published award rubric in this
+field: **Design 40% · Usability 30% · Creativity 20% · Content 10%** — usability outweighs
+creativity by design, and substance is scored at all. The agent cites this note as its
+source; when the rubric moves, fix and re-date it here first.
+
+> Last verified: 2026-08-11 — https://www.awwwards.com/about-evaluation/
+
 ## Skills
 
 - **creative-direction** — the concept-first anti-sameness layer: generates a divergent

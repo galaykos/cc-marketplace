@@ -1,7 +1,7 @@
 {
   "name": "react",
-  "version": "0.5.2",
-  "description": "React server-state discipline: TanStack Query/SWR/RTK Query for server caches, cache keys and invalidation, mutations and optimistic updates, keeping server data out of useState, avoiding refetch storms.",
+  "version": "0.6.0",
+  "description": "React data-layer discipline across two skills: server state (TanStack Query/SWR/RTK Query — cache keys and invalidation, mutations and optimistic updates, paginated/infinite data, keeping server data out of useState) and data grids (TanStack Table v9/v8 API detection, column defs, controlled table state, server-side pagination, TanStack Virtual, shadcn DataTable composition).",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

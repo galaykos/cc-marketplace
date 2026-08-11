@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fieldnote — emoji fixture, the false-positive control</title>
+    <!--
+      craft-layer emoji fixture — THE FALSE-POSITIVE CONTROL, third of the set
+      beside `fixture-emoji.html` (the failing shape) and
+      `fixture-emoji-clean.html` (the passing shape).
+
+      Every pictograph on this page sits inside a customer's QUOTED voice — a
+      <blockquote> testimonial the content-fidelity gate wants reproduced
+      verbatim, emoji included. A gate that fires on it is grading the
+      customer's register instead of the build's icon decision, and teaches
+      builders to sanitise the very copy they are required to reproduce.
+
+      Second proof: the contact line carries ☎︎ — U+260E with the U+FE0E
+      text-presentation selector — which the author explicitly rendered as
+      text, beside the © and ™ marks every real footer ships. None of those
+      is an icon system.
+
+      THIS FIXTURE MUST PASS.
+    -->
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+      section { padding: 3rem 1.5rem; max-width: 44rem; margin: 0 auto; }
+      h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <section id="hero">
+      <p>Fieldnote™</p>
+      <h1>Field reports your crew can file from the truck</h1>
+      <p>
+        Photos, signatures and job notes, captured where the work happens and
+        readable back at the office before the crew is off the site.
+      </p>
+      <p><a href="/signup">Start a trial</a></p>
+    </section>
+
+    <section id="proof">
+      <h2>Proof</h2>
+      <blockquote>
+        “Filed 40 reports from the road last week 🎉 — the office finally
+        stopped calling me. 🚀” — {{customer_name}}, illustrative sample
+      </blockquote>
+    </section>
+
+    <section id="pricing">
+      <h2>Pricing</h2>
+      <p>Crew 29 a month. Fleet 99 a month. Enterprise, on application.</p>
+    </section>
+
+    <footer>
+      <p>© 2026 Fieldnote · ☎︎ 0800 555 0175</p>
+    </footer>
+  </body>
+</html>

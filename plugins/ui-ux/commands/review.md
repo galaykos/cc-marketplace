@@ -20,6 +20,11 @@ ui-ux plugin skills. Steps:
    `animation:` CSS declarations, `animation-timeline`, `@starting-style`, or
    `document.startViewTransition` — any hit selects the motion-best-practices skill in
    addition to the stack skill(s).
+   A data-dense app surface (dashboard, data table, admin/CRM screen, settings) with the
+   craft-layer plugin installed additionally selects its `information-design` skill —
+   the review then grades signal hierarchy, the four table states, density, and
+   bulk-action affordances, not just stack idioms. craft-layer absent → record
+   `information-design (craft-layer not installed)` under `Not checked:` in step 8.
 3. Invoke the matching *-best-practices skill(s) from this plugin.
 4. Read package.json and its lockfile to pin framework/library versions; findings must
    respect the installed versions — nothing already solved, nothing above them.

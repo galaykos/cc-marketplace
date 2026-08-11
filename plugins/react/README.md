@@ -13,6 +13,16 @@ full strength unaided (the skill actually narrowed review coverage). Evidence:
 `rationale/stack-skill-baselines.md`. Server-state remains because it encodes a
 library-choice discipline, not idioms.
 
+## Skills
+
+| Skill | Use when |
+|-------|----------|
+| `react-server-state` | Fetching, caching, or synchronizing server data — TanStack Query / SWR / RTK Query, cache keys and invalidation, mutations, paginated and infinite data |
+| `react-data-grid` | Building or reviewing data tables/grids — TanStack Table matched to the installed major (v8 vs v9), server-side data, row selection identity, TanStack Virtual, shadcn DataTable composition |
+
+`react-data-grid` extends the same charter: which library, which major, and how
+its state model composes with TanStack Query — not table idioms.
+
 ## Install
 
 ```bash

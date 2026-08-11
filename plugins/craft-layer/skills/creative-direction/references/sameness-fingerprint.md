@@ -35,10 +35,17 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - rotating-word / phrase cross-fade slot
 - magnetic CTA button
 - tilt-on-hover cards
+- the glass-card grid — backdrop-blur translucent cards with hairline white/10 borders as
+  the default card treatment. A category default like the violet gradient (see the
+  category-default note below): it retires on category movement, not on the recency window.
 - logo marquee
 - scroll-driven bento/stat reveal
 - default stock imagery (the generic stock-photo hero — imagery chosen off-the-shelf, not art-directed)
 - default icon set (an untouched off-the-shelf icon pack — no consistency or metaphor choice made)
+- emoji standing in for the icon system — pictographs (🚀 ⚡ 🔒 ✨) as feature and section
+  icons because no icon decision was made at all; the single fastest visual identifier of a
+  generated page. A category default (see the note below), and the vocabulary entry with a
+  mechanical check: the `emoji-as-icon` assertion in `template/craft-gates/divergence.mjs`.
 - oversized-type hero as the default opening — type standing in for a hero image because it
   is the current default, not because the brief earned a typographic hero
 - WebGL floating-objects / cursor-reactive background — an ambient 3D layer that carries no
@@ -81,6 +88,25 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - aubergine + coral/apricot + mint (dark)
 - purple/violet gradient — see the category-default note below
 - (the don't-repeat-recent nudge in `palette-strategy.md` reads this list)
+
+### Recurring copy register (category default)
+
+The copy half of the fingerprint: the machine-copy lexicon a reader identifies as
+generated in one line, the way the violet gradient is identified in one glance.
+Catalogued to DIVERGE from, per the anti-corpus exception above — a build leaning on
+these has authored nothing:
+
+- the supercharge / seamlessly / unlock / elevate / empower / effortless verb family
+- the three-adjective fragment headline — "Effortless. Powerful. Secure."
+- "Take X to the next level"
+- "not just X, it's Y"
+- "game-changing" / "revolutionary" intensifiers
+
+A category default, so it ages on category movement, never the recency window. Standing:
+agent-graded — the craft-reviewer reads shipped copy against this list — and, where the
+phrase list is mechanical, gated: the `copy-register` assertion in
+`template/craft-gates/divergence.mjs` flags the multi-word phrases only, so a lone
+"seamless" in honest copy never fires.
 
 ### Two sources of sameness, and they age differently
 

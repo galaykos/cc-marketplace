@@ -7,7 +7,7 @@
 # co-fire-ok: *.py low-cognitive-load solid-principles
 # co-fire-ok: **/migrations/** sql-best-practices database-design
 # Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
-# These five rows are all `low` confidence: they do NOT emit an inline nudge, they
+# These seven rows are all `low` confidence: they do NOT emit an inline nudge, they
 # accumulate into one session digest (route.sh:6). Several firing on one file is the
 # designed behaviour, not a collision — an ordinary React component with await, catch,
 # fetch( and a token legitimately touches all four concerns. Blessed so that a NEW
@@ -28,6 +28,11 @@
 # per skill per session; **/migrations/** routes to database-design alongside
 # sql-best-practices (blessed pair above). Other plain extensions (*.go, *.rb,
 # *.rs, …) still fire nothing — that gap is recorded, not silently filled.
+# Of the craft-layer family only information-design is routed (**/dashboard/** +
+# **/admin/**); the rest (creative-direction, motion-tiers, …) deliberately reach
+# sessions via /craft-layer:craft and the catalog channel, not per-file rules —
+# their triggers are prompt-shaped, not file-shaped. Motion CODE routes via the
+# motion-best-practices content row below (zero corpus co-fires as of 2026-08-11).
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
 glob	**/migrations/**	database-design	database	high
@@ -38,6 +43,8 @@ glob	*.js	solid-principles	code-architecture	high
 glob	*.py	low-cognitive-load	code-architecture	high
 glob	*.py	solid-principles	code-architecture	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high
+glob	**/dashboard/**	information-design	craft-layer	high
+glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	a11y	high
 glob	*.tsx	react-server-state	react	high	!package.json~"react-native"
 glob	*.jsx	react-server-state	react	high	!package.json~"react-native"
@@ -73,3 +80,5 @@ content	\b(catch|throw|rescue)\b	error-handling-design	resilience	low
 content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
 content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resilience	low
 content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|\bspan\b)\b	observability-design	observability	low
+content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
+content	\b(useTable|useReactTable|createColumnHelper|getCoreRowModel|tableFeatures|useVirtualizer|manualPagination)\b	react-data-grid	react	low

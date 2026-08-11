@@ -561,8 +561,13 @@ const COPY_KEY = /\b(?:title|label|heading|headline|eyebrow|kicker|lede|subhead|
     gate defines rendered content: text between tags, copy attributes, and quoted
     values of copy-bearing keys. CODE IS NOT COPY — an import path, a
     `fetch('/api/…')` argument, a `className` and an `href` never reach this list,
-    which is what keeps a hero with a working signup form out of the findings. */
-function copyChunks(slice) {
+    which is what keeps a hero with a working signup form out of the findings.
+
+    `isCopy` is a PARAMETER with the letter test as its default because the
+    emoji-as-icon assertion below needs the opposite blindness fixed: an
+    icon-only leaf — `<div>🚀</div>` — holds no letter at all, and that is the
+    exact shape an emoji icon ships in. */
+function copyChunks(slice, isCopy = (s) => /\p{L}/u.test(s)) {
   const blank = (m) => ' '.repeat(m.length)
   const s = slice
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, blank)
@@ -589,14 +594,14 @@ function copyChunks(slice) {
      grades JavaScript and ignores the prose. A Hebrew run found exactly that. */
   if (i !== 0) {
     const head = i < 0 ? s : s.slice(0, i)
-    if (/\p{L}/u.test(head)) out.push({ at: 0, text: head.replace(/\{[^{}]*\}/g, ' ') })
+    if (isCopy(head)) out.push({ at: 0, text: head.replace(/\{[^{}]*\}/g, ' ') })
   }
   while (i >= 0) {
     const gt = s.indexOf('>', i)
     if (gt < 0) break
     const nextLt = s.indexOf('<', gt + 1)
     const raw = s.slice(gt + 1, nextLt < 0 ? s.length : nextLt)
-    if (/\p{L}/u.test(raw)) out.push({ at: gt + 1, text: raw.replace(/\{[^{}]*\}/g, ' ') })
+    if (isCopy(raw)) out.push({ at: gt + 1, text: raw.replace(/\{[^{}]*\}/g, ' ') })
     if (nextLt < 0) break
     i = nextLt
   }
@@ -605,7 +610,7 @@ function copyChunks(slice) {
     let m
     while ((m = re.exec(s))) {
       const v = m[1] ?? m[2] ?? m[3] ?? ''
-      if (/\p{L}/u.test(v)) out.push({ at: m.index, text: v })
+      if (isCopy(v)) out.push({ at: m.index, text: v })
     }
   }
   return out
@@ -752,6 +757,146 @@ function compositionShape() {
       + `centred spine is the deliberate answer, waive this check with that reason. `
       + `Reproduce: grep -roh 'class[N]*ame="[^"]*mx-auto[^"]*"' . | grep -oE 'max-w-[a-z0-9]+' | sort | uniq -c`,
     `the page carries spatial structure — ${shape}`)
+}
+
+/* ---------------------------------------------------- copy-half fingerprint */
+
+/* THE COPY HALF OF THE FINGERPRINT — MECHANICAL SUBSET ONLY.
+ *
+ * The sameness registry carries a copy register (sameness-fingerprint.md,
+ * "Recurring copy register"): the machine-copy lexicon a reader identifies as
+ * generated in one line, the way the violet gradient is identified in one
+ * glance. Most of that section is register and cadence — the craft-reviewer's
+ * territory, agent-graded. Two tells are mechanical, and a check a machine can
+ * run is never left to a judgement:
+ *
+ *   emoji-as-icon — pictographs standing in for the icon system. 🚀 in a
+ *       heading means no icon decision was made, and it is the single fastest
+ *       visual identifier of a generated page.
+ *   copy-register — the multi-word machine-copy phrases. MULTI-WORD ON
+ *       PURPOSE: "supercharge your" is a verdict, while "seamless" alone is a
+ *       word honest copy is allowed to use — a single-word list fires on
+ *       correct pages, which is the anti-pattern register-corpus.md names.
+ *
+ * Both read the reader-visible copy the spine-register assertion reads
+ * (copyChunks), across the whole PAGE rather than a mapped region — a
+ * pictograph or a lexicon phrase is a tell wherever it lands. The harness is
+ * excluded the way composition-shape excludes it: a spec asserting a phrase is
+ * banned QUOTES the phrase, and grading the quote fails the test that guards
+ * the page. Both are waivable with a reason, the same lane as every assertion. */
+
+const COPY_LEXICON = {
+  /* The mechanical subset of the registry's copy section — refresh the two
+     together, at release cadence like the anti-corpus snapshot above. */
+  date: '2026-08-11',
+  phrases: [
+    ['supercharge your', String.raw`\bsupercharge\s+your\b`],
+    ['seamlessly integrate', String.raw`\bseamlessly\s+integrat\w*`],
+    ['take your * to the next level', String.raw`\btake\s+your\s+[^<>.!?]{0,60}?to\s+the\s+next\s+level\b`],
+    ['effortless. powerful.', String.raw`\beffortless\.\s*powerful\.`],
+    ['unlock the power', String.raw`\bunlock\s+the\s+power\b`],
+    ['game-changing', String.raw`\bgame-chang(?:ing|ers?)\b`],
+  ],
+}
+
+/* Text-default pictographs prose legitimately carries — the legal marks — plus
+   anything the author explicitly rendered text-style with U+FE0E. Keycap
+   digits (#️⃣, 3️⃣) never match at all: their base characters carry the Emoji
+   property, not Extended_Pictographic, so they need no exclusion row here. */
+const TEXT_MARKS = new Set(['©', '®', '™', '℠', '℗'])
+const PICTO_RE = /\p{Extended_Pictographic}\uFE0E?/gu
+const HAS_PICTO = /\p{Extended_Pictographic}/u
+
+/* A QUOTED VOICE IS NOT THE BUILD'S ICON SYSTEM. An emoji inside a
+   <blockquote> or <q> is the customer's own register — testimonial content the
+   content-fidelity gate wants reproduced verbatim — so quoted subtrees are
+   blanked before extraction. An emoji the BUILD authored into a heading or a
+   feature row is the finding. */
+const QUOTED_RE = /<(blockquote|q)\b[\s\S]*?<\/\1\s*>/gi
+
+/** Shipped page source with its text, harness excluded, one read for both
+    copy-half assertions. */
+function pageCopy() {
+  const out = []
+  for (const f of sourceFiles(process.cwd())) {
+    if (!isPage(f)) continue
+    let src
+    try {
+      if (statSync(f).size > 512 * 1024) continue
+      src = readFileSync(f, 'utf8')
+    } catch { continue }
+    out.push({ file: f, src })
+  }
+  return out
+}
+
+function emojiAsIcon(files) {
+  if (!files.length) return record('emoji-as-icon', 'SKIP', 'no shipped page source found to hold copy')
+  const hits = []
+  for (const { file, src } of files) {
+    const unquoted = src.replace(QUOTED_RE, (m) => ' '.repeat(m.length))
+    for (const c of copyChunks(unquoted, (s) => HAS_PICTO.test(s))) {
+      for (const m of c.text.matchAll(PICTO_RE)) {
+        if (m[0].endsWith('\uFE0E')) continue   // explicit text presentation
+        if (TEXT_MARKS.has(m[0])) continue
+        hits.push({ char: m[0], file: rel(file), line: lineAt(src, c.at) })
+      }
+    }
+  }
+  const seen = new Set()
+  const uniq = hits.filter((h) => {
+    const k = `${h.file}|${h.char}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+  const shown = uniq.slice(0, 6).map((h) => `${h.char} at ${h.file}:${h.line}`).join(', ')
+  settle('emoji-as-icon', uniq.length > 0, uniq[0]?.char ?? '',
+    `pictographs standing in for the icon system — ${shown}${uniq.length > 6 ? ` (+${uniq.length - 6} more)` : ''}. `
+      + 'An emoji in a heading or a feature row means no icon decision was made, and it is the fastest '
+      + 'visual identifier of a generated page (sameness-fingerprint.md, the vocabulary registry). Choose '
+      + 'an icon system — or, when the copy legitimately carries them (a chat product reproducing user '
+      + `messages), waive this with that reason. Reproduce: grep -rn ${JSON.stringify(uniq[0]?.char ?? '')} ${uniq[0]?.file ?? ''}`,
+    `no pictograph stands in for an icon in reader-visible copy across ${files.length} page file(s) `
+      + '(quoted testimonial content and text-style marks excluded by construction)')
+}
+
+function copyRegister(files) {
+  if (!files.length) return record('copy-register', 'SKIP', 'no shipped page source found to hold copy')
+  const compiled = []
+  for (const [label, source] of COPY_LEXICON.phrases) {
+    try { compiled.push({ label, re: new RegExp(source, 'gi') }) } catch (e) {
+      notes.push(`copy lexicon: the '${label}' pattern will not compile (${e.message}) — DROPPED, so that phrase is unchecked`)
+    }
+  }
+  if (!compiled.length) return record('copy-register', 'SKIP', 'the copy lexicon compiled no patterns')
+  const hits = []
+  for (const { file, src } of files) {
+    for (const c of copyChunks(src)) {
+      for (const { label, re } of compiled) {
+        re.lastIndex = 0
+        const m = re.exec(c.text)
+        /* A phrase can span a source line break; collapse it or the one-row
+           reporting shape gains a literal newline. */
+        if (m) hits.push({ label, marker: m[0].trim().replace(/\s+/g, ' '), file: rel(file), line: lineAt(src, c.at) })
+      }
+    }
+  }
+  const seen = new Set()
+  const uniq = hits.filter((h) => {
+    const k = `${h.file}|${h.label}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+  const shown = uniq.slice(0, 6).map((h) => `"${h.marker}" [${h.label}] at ${h.file}:${h.line}`).join('; ')
+  settle('copy-register', uniq.length > 0, uniq[0]?.label ?? '',
+    `machine-copy lexicon in reader-visible copy — ${shown}${uniq.length > 6 ? ` (+${uniq.length - 6} more)` : ''}. `
+      + 'These are the phrases a reader identifies as generated in one line (sameness-fingerprint.md, '
+      + '"Recurring copy register") — a build leaning on them has authored nothing. Write copy with the '
+      + `product's own nouns in it, or waive this with the reason. Reproduce: grep -rni ${JSON.stringify(uniq[0]?.marker ?? '')} ${uniq[0]?.file ?? ''}`,
+    `no multi-word machine-copy phrase from the ${compiled.length}-pattern lexicon (${COPY_LEXICON.date}) appears `
+      + `in reader-visible copy across ${files.length} page file(s); single words ("seamless" alone) are not graded by construction`)
 }
 
 /* ------------------------------------------------------------------ run */
@@ -1001,6 +1146,11 @@ craftStamp()
    resolution below and its verdict survives an exit-2 run. A page whose CSS
    lives somewhere unusual is not a page whose SHAPE goes unmeasured. */
 compositionShape()
+/* The copy-half pair reads SOURCE only too, so it also runs ahead of the token
+   resolution and its verdicts survive an exit-2 run. One walk feeds both. */
+const shippedCopy = pageCopy()
+emojiAsIcon(shippedCopy)
+copyRegister(shippedCopy)
 
 /** Print what IS measured before a not-measured exit, so the register verdict is
     never swallowed by a missing token source. */

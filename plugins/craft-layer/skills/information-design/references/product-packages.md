@@ -1,7 +1,8 @@
 # Product-layer packages — the selector for app surfaces
 
-> **Last verified: 2026-07-25** — the package names and the capability split below.
-> Maintenance status is a FILTER here, not trivia, so re-check before adopting.
+> **Last verified: 2026-08-11** — the package names and the capability split below;
+> @tanstack/react-table v9 is GA as of 2026-08. Maintenance status is a FILTER
+> here, not trivia, so re-check before adopting.
 
 The sibling of `../../motion-tiers/references/tier-budgets.md`, for the other half
 of the work. `motion-tiers` decides how a surface MOVES; this decides what a
@@ -38,14 +39,15 @@ with no constraints is the catalog the kill-trigger forbids.
 
 | Capability | Reach for it when | Candidates | Free accessibility | Skip it when |
 | --- | --- | --- | --- | --- |
-| **Data grid** | rows are sorted, filtered, pinned, resized, or selected in bulk | TanStack Table (headless — you own markup), AG Grid (batteries, heavier, licence tiers) | headless gives you none — pair with primitives; batteries give grid semantics | a static list under ~50 rows with no interaction |
-| **Virtualization** | the row count makes the DOM the bottleneck; measure before assuming | TanStack Virtual | none — you still own semantics, and virtualized rows break find-in-page and `aria-rowcount` if unmanaged | the list fits; virtualization costs correctness |
+| **Data grid** | rows are sorted, filtered, pinned, resized, or selected in bulk | TanStack Table (headless — you own markup), AG Grid (batteries, heavier, licence tiers); usage wiring — column defs, controlled state, server-side pagination — is the `react` plugin's `react-data-grid` skill: this row decides the package, that skill teaches the wiring | headless gives you none — pair with primitives; batteries give grid semantics | a static list under ~50 rows with no interaction |
+| **Virtualization** | the row count makes the DOM the bottleneck; measure before assuming | TanStack Virtual; virtualizer-into-grid wiring lives in the same `react-data-grid` skill | none — you still own semantics, and virtualized rows break find-in-page and `aria-rowcount` if unmanaged | the list fits; virtualization costs correctness |
 | **Accessible primitives** | ANY custom widget: menu, dialog, combobox, tabs, disclosure, tooltip | Base UI (shadcn's default), Radix, React Aria | the whole point — focus trap and return, roving focus, type-ahead, dismissal, ARIA wiring | a native element does the job; `<button>`/`<details>`/`<dialog>` first |
 | **Drag & drop** | reorder, kanban, scheduling boards | dnd-kit (keyboard sensor + live-region announcements built in), Pragmatic DnD | keyboard sensors and screen-reader announcements — the part hand-rolls always miss | a click/tap route is genuinely enough; you owe one anyway (WCAG 2.5.7) |
 | **Command palette** | keyboard-first product, or the action surface outgrew the nav | cmdk, or a combobox from the primitives library | combobox semantics, `aria-activedescendant`, type-ahead | the app has few actions; a palette over eight commands is theatre |
-| **Forms + validation** | more than about three fields, or any cross-field rule | React Hook Form or TanStack Form, with a schema validator | error association (`aria-describedby`), invalid state, focus-to-first-error | one or two fields — native constraint validation is lighter and better |
+| **Forms + validation** | more than about three fields, or any cross-field rule | React Hook Form (ecosystem default, most examples) or TanStack Form (first-party type-safe field API — pick it when the app is already on TanStack Router/Query), with a schema validator; shadcn documents both, so match the project's existing choice before adding a second form stack | error association (`aria-describedby`), invalid state, focus-to-first-error | one or two fields — native constraint validation is lighter and better |
 | **Charts** | `information-design`'s chart-vs-table decision landed on chart | Recharts (composable, common with shadcn), visx/D3 (bespoke, expensive) | almost none — you owe the table alternative and a text summary regardless | a stat tile or table answers it; most "chart" requests are not charts |
 | **Server state** | data is fetched, cached, refetched, or mutated optimistically | TanStack Query, or the framework's own loader/action layer | none directly — but it is what makes the perceived-speed floor reachable | one static payload |
+| **URL / filter state** | filters, sort, tabs, or page must survive reload and be shareable | TanStack Router validated `search` params (typed; Router/Start apps), nuqs (Next.js), or a plain `URLSearchParams` sync | none directly — but back/forward and share-a-view are UX floors | truly ephemeral UI: open menus, hover, drafts |
 | **Date & time** | scheduling, ranges, recurring, or any timezone crosses a boundary | date-fns / Temporal where available | none — pair with a primitives datepicker or a native input | a formatted timestamp; `Intl.DateTimeFormat` is built in |
 
 ## Motion on a data surface is the SAME tiers, a different job
