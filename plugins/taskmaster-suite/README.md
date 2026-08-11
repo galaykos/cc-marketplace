@@ -72,5 +72,5 @@ hook-heavy and behavior-changing, install it deliberately;
 ## Pairs well with
 
 - **php-suite** — PHP/Laravel/Livewire/Inertia stack specifics the bundle leaves out
-- **frontend-suite** — React/Vue/TS framework specifics plus the design-preview/shadcn-studio fidelity escalations, all left out of this bundle
+- **frontend-suite** — React/Vue/TS framework specifics left out of this bundle; its sibling **craft-suite** carries the design-preview/shadcn-studio fidelity escalations
 - **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

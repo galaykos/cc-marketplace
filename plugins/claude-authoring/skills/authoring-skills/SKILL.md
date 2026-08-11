@@ -65,12 +65,10 @@ Scope a skill to a single capability with a single trigger.
 
 ## The 150-line ceiling
 
-A body over 150 lines fails the build. There is **no floor** — a skill that
-says its piece in 60 lines is finished, not thin:
-
-- Link references instead of inlining walls — point to a spec, script, or doc
-  path and state only the rule the reader needs right now.
-- Over 150 lines means two skills, or a doc belonging elsewhere.
+A body over 150 lines fails the build — over the cap means two skills, or a
+doc belonging elsewhere. There is **no floor**: a skill that says its piece
+in 60 lines is finished, not thin. Link references instead of inlining
+walls — point to a path and state only the rule the reader needs right now.
 
 ## Body structure
 
@@ -82,10 +80,8 @@ Order the body the way a reader under time pressure consumes it:
 
 Style:
 
-- Imperative voice throughout: "Start with", "Split when" — never "it is
-  recommended that".
-- No filler: no introduction restating the title, no closing summary, no
-  hedging boilerplate.
+- Imperative voice, no filler: "Start with", "Split when" — never "it is
+  recommended that"; no intro restating the title, no closing summary.
 - Headings carry the skeleton; a reader skimming only headings should still
   reconstruct the skill's argument.
 - Show commands and paths as literal, copyable text, not prose descriptions
@@ -138,6 +134,12 @@ Naming a blind spot is not weakness; calling an agent-graded check a gate is
 the over-claim. A rule that keeps being broken is in the wrong tier — it needs
 a hook, script, or tool, not another paragraph.
 
+Model-tier scoping is the same honesty applied to WHO needs a rule:
+procedure that compensates weaker models over-constrains stronger ones —
+mark **All models** vs **Compensation (worker-tier)** sections, and give
+every procedure skill a skip-clause. Convention and worked example:
+`references/model-tier-scoping.md`; agent MODEL minimums are role-floors.
+
 ## Common failures
 
 - Vague descriptions. "Helps with testing" gives the dispatcher nothing to
@@ -148,7 +150,5 @@ a hook, script, or tool, not another paragraph.
 - Restating general knowledge. The model already knows what a unit test is;
   a body explaining it wastes budget. Spend lines only on what is local:
   this repo's conventions, thresholds, paths, and commands.
-- Name/directory drift. `name:` and the directory must match exactly;
-  validation fails otherwise.
 - Body before description. Author the trigger first — no sharp "Use when …"
   means the capability is not yet a skill.

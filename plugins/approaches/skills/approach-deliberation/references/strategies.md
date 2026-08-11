@@ -1,7 +1,8 @@
----
-name: strategy-catalog
-description: Use when choosing HOW to attack a task — named implementation strategies (tracer bullet, strangler fig, spike-then-rewrite), each mapped to the dominant risk it beats.
----
+The `strategy-catalog` skill was merged into `approach-deliberation` here on 2026-08-11.
+Its description ("Use when choosing HOW to attack a task") and approach-deliberation's
+("Use before starting any non-trivial implementation") claimed the same trigger — choosing
+how to attack a task IS choosing an approach — so the catalog now backs the deliberation
+instead of competing with it at the description layer.
 
 A strategy is a shape for the work, chosen by the dominant risk. Pick the risk
 first, then the strategy that beats it. Every entry: when, how, and how it fails

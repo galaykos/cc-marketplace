@@ -220,7 +220,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 
 ## Install
 
-Ships in the **frontend-suite** bundle alongside `ui-ux`, `threejs`, `design-preview`,
+Ships in the **craft-suite** bundle alongside `ui-ux`, `threejs`, `design-preview`,
 `shadcn-studio`, and `a11y` — which is the recommended install, because two of those are not
 optional in practice:
 

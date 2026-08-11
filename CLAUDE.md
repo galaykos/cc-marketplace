@@ -17,25 +17,26 @@ publishable plugin.
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
   history. If a document truly must be tracked, it goes in **`rationale/`** at
   the repo root — never inside a plugin. (`taskmaster-docs/` and `docs/` are
-  both gitignored, so "move it there" is deletion, not preservation. Until
-  `rationale/` existed this rule named no reachable destination.)
+  both gitignored, so "move it there" is deletion, not preservation.)
 
 `scripts/validate.sh` enforces this: any `.md` under `plugins/` that is not one of
 the functional kinds above fails the build (and CI on every PR).
 
 ## The four laws (convention)
 
-Proportionality, honest limitation, the theater test, admission. Each was
-independently re-derived across this marketplace under a different subject
-heading, by authors who did not know the others had written it. A principle with
-no home gets rewritten every time it is needed. The evidence — which sites, how
-many, in which vocabularies — lives with the doctrine, not here.
+One-clause glosses so a contributor can act without leaving this file:
+
+- **Proportionality** — size the ceremony to the blast radius.
+- **Honest limitation** — a gate names what it does NOT catch; state the residual.
+- **The theater test** — name what a check catches that nothing else catches.
+- **Admission** — an artifact earns existence by carrying a rule nothing else carries.
 
 The home is the `claude-authoring` plugin's `authoring-skills` skill, "The four
 laws", with the derivation in its `references/doctrine.md`. **Cite it; do not
-restate it here** — a fifth copy of a law about not keeping copies would be its
-own counter-example. Same reasoning as the teeth convention below: it lives in a
-plugin because that one SHIPS.
+restate it here** — a gloss is a citation aid, a fifth full copy of a law about
+not keeping copies would be its own counter-example. Same reasoning as the teeth
+convention below: it lives in a plugin because that one SHIPS. (Provenance of
+the laws: `rationale/four-laws-provenance.md`.)
 
 ## Say what has teeth (convention)
 
@@ -87,7 +88,8 @@ saying so is the point.
   one source shared with the smoke fixtures. A **version-leverage stamp gate**
   (also `plugin-checks.sh`) fails any plugin whose description claims version
   leverage while no skill of its carries a `> Last verified: YYYY-MM-DD — <url>`
-  stamp — the input `check-doc-staleness.sh` needs to see that leverage decay.
+  stamp — the stamp is the input `check-doc-staleness.sh` reads to detect that
+  leverage decaying.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
@@ -151,8 +153,9 @@ two until 2026-08-02, which meant a third plugin's fixtures would have sat
 unrun with nothing saying so). Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
 deliberately NOT a CI step: its own header says it needs a live model; it
 stays a local authoring harness.)
-A local four-script pass can still be red on merge: several of those harnesses
-assert **exact gate message strings**, so rewording a gate's error breaks CI.
+CI can still be red after a green local four-script pass: several of those
+harnesses assert **exact gate message strings**, so rewording a gate's error
+breaks CI even when the gate itself still works.
 
 **Warn-only in CI.** `scripts/check-doc-staleness.sh` — its step carries
 `continue-on-error: true` and the script `exit 0`s on every path by contract.

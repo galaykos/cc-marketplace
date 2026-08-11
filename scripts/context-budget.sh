@@ -339,7 +339,13 @@ if [ -n "$dyn_rows" ]; then
   printf '%-20s %8s %10s %10s\n' "plugin (dynamic)" "tokens" "baseline" "delta"
   printf '%s' "$dyn_rows"
   echo "TOTAL DYNAMIC: $leaf_dyn_total tokens (per work-shaped prompt + per Edit, not per session)"
-  DYNAMIC_CEILING=2600
+  # Raised 2600 -> 2800 on 2026-08-11 with the delivery-channel fixes: the
+  # skill-router inline nudges moved to the metered additionalContext envelope
+  # (previously unmetered dead stdout), plain-source routing rows were added,
+  # and taskmaster's clarify directive widened. Those are deliberate spends the
+  # owner chose; the old ceiling would have sat 1 token from failure. The
+  # ceiling still exists to make the NEXT unplanned growth a conversation.
+  DYNAMIC_CEILING=2800
   if [ "$leaf_dyn_total" -gt "$DYNAMIC_CEILING" ]; then
     warn_lines="${warn_lines}FAIL: dynamic total $leaf_dyn_total exceeds the declared ceiling $DYNAMIC_CEILING — same rule as the always-on ceiling
 "

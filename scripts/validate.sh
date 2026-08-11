@@ -93,6 +93,17 @@ for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.
     && err "$f: description carries a 'Trigger words:' list — fold terms into the trigger sentence"
 done
 
+# plugin.json description linter (WARN, not err): the frontmatter cap above never
+# covered plugin manifests, which is how a 1039-char description shipped unseen
+# (craft-layer, trimmed 2026-08-11). Always-on cost is already metered by
+# context-budget.sh, so this warns on the CLARITY smell only — a description too
+# long to be an install decision. Promote to err only after the tail is clean.
+for f in plugins/*/.claude-plugin/plugin.json; do
+  [ -f "$f" ] || continue
+  dlen=$(jq -r '.description // ""' "$f" 2>/dev/null | wc -c | tr -d ' ')
+  [ "$dlen" -le 700 ] || warn "$f: plugin description $dlen chars — over the 700-char clarity guideline; move detail to the README"
+done
+
 # Jargon-leak guard (HARD): internal taskmaster process vocabulary — "card NN" /
 # "cards NN", "Finding #N", "smoke-test #N", "the backlog" — must not leak into
 # shipped plugin prose (today's craft-layer review scrubbed 8 such leaks no gate

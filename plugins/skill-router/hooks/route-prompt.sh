@@ -38,6 +38,30 @@
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix)[a-z -]{0,40}(plugin|hook|reminder|router|route|trigger|catalog)' && exit 0
   printf '%s' "$head" | grep -qF '[skill-router]' && exit 0
 
+  # ---- pending-signal flush. Low-confidence signals route.sh accumulated are
+  # surfaced on the NEXT prompt — a channel the model receives in time to act —
+  # instead of only at SessionEnd, an event after which no model turn exists.
+  # Each entry surfaces once (marked flushed in the state file); summary.sh's
+  # SessionEnd ledger still records everything. Runs before the work-shaped
+  # gate: "looks good, continue" is exactly the prompt where a pending
+  # security signal must not stay buried.
+  sid_f=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+  cwd_f=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  if [ -n "$sid_f" ] && [ -n "$cwd_f" ] && [ -r "$cwd_f/.claude/skill-router/fired-$sid_f.json" ]; then
+    state_f="$cwd_f/.claude/skill-router/fired-$sid_f.json"
+    digest=$(jq -r '
+      [ (.pending_low // [])[] | select(.flushed != true) ]
+      | group_by(.skill)
+      | map(.[0].skill + " (" + ([.[].file | split("/") | last] | unique | join(", ")) + ")")
+      | join("; ")
+    ' "$state_f" 2>/dev/null)
+    if [ -n "$digest" ]; then
+      printf '[skill-router] Signals from recent edits — judge each in one line before continuing, load the skill only if it applies: %s.\n' "$digest"
+      upd=$(jq '(.pending_low // []) |= map(.flushed = true)' "$state_f" 2>/dev/null) \
+        && [ -n "$upd" ] && printf '%s\n' "$upd" > "$state_f" 2>/dev/null
+    fi
+  fi
+
   # WORK-SHAPED GATE. The one pattern left, and deliberately not a routing table:
   # it asks "is this a request to do work?", never "which tool". Everything about
   # WHICH is the model's, downstream. A miss here costs a check, not a wrong route.
@@ -98,6 +122,8 @@ Apply this to work requests for the rest of the session:
      "Proceed with <better-command> (Recommended)" / "Proceed with <what-they-named> as asked"
    Give one line of why the other fits — the deliverable's shape, not a preference.
 3. If no tool was named and one clearly fits, name it in one line and carry on. No picker.
+   Exception: when a scope-first reminder (e.g. taskmaster's clarifying-round directive)
+   fired on the same prompt, satisfy it before carrying on — clarification outranks tool-fit.
 4. Close call, or the named tool IS the best fit: say nothing at all. A tool being
    listed is not a reason to route to it; over-suggesting is the failure mode here.
 5. At most one picker per named tool per session. Declining is durable — a user who

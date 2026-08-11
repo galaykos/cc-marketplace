@@ -11,7 +11,7 @@ description first). Do not write implementation code.
 2. Generate 2–3 approaches that differ STRUCTURALLY (different axis each:
    simplest-possible, incremental/tracer, rework-minimizing, performance-first,
    reversibility-first) — not three variants of one idea. Name each; one-line
-   file-level sketch each. Consult the strategy-catalog skill for fits.
+   file-level sketch each. Consult approach-deliberation's references/strategies.md for fits.
 3. Trade-off table: effort, risk, reversibility, codebase fit, blast radius.
    Honest entries — no strawman column built to make a favorite win.
 4. Pick one. One paragraph why. State the kill-trigger: the concrete discovery

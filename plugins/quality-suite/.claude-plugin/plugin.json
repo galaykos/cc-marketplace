@@ -1,7 +1,7 @@
 {
   "name": "quality-suite",
-  "version": "0.8.0",
-  "description": "Meta-bundle: the code-quality plugins that carry a MECHANISM, in one install — review and code smells, architecture principles with the evidence-at-claim Stop gate, testing, comment discipline (warn-on-write plus a narrow pre-write deny), secret-leak prevention, and file-aware skill auto-routing. The advisory disciplines it used to bundle — security, a11y, debugging, performance, resilience, packages, observability, approaches — moved to quality-principles-suite, so this half can be installed without their always-on context. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "version": "0.9.0",
+  "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine — security, a11y, debugging, performance, resilience, packages, observability, approaches, testing — live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -9,7 +9,6 @@
   "dependencies": [
     "code-review",
     "code-architecture",
-    "testing",
     "comment-discipline",
     "command-guard",
     "secret-scanning",

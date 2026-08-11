@@ -120,6 +120,15 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook-extraguard.json" 
   expect_has "$HE" "build|create|add" "hook(extraGuard): regex substituted"
 fi
 
+# ---- reminder hook: budgetExempt (priority directive) --------------------------
+HX="$WORK/remind-exempt.sh"
+if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook-exempt.json" "$HX"; then
+  expect_has "$HX" 'PRIORITY DIRECTIVE' "hook(exempt): priority branch rendered"
+  expect_has "$HX" 'cc-remind-' "hook(exempt): still claims the shared marker"
+  expect_has "$HX" 'cc-workprompt-' "hook(exempt): drops the work-prompt marker"
+  expect_absent "$HX" 'PER-PROMPT BUDGET' "hook(exempt): lottery branch absent"
+fi
+
 # ---- global invariant: no unrendered {{token}} in any output ------------------
 for f in "$L" "$C" "$W" "$U" "$H" "$HE"; do
   [[ -f "$f" ]] || continue

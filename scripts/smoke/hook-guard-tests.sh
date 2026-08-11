@@ -71,10 +71,10 @@ for hook in "$ROOT"/plugins/*/hooks/remind.sh; do
   assert_silent "$rel [quoted-hook-output]" "$hook" "$QUOTE"
 done
 
-# ---- per-prompt budget: two hooks match one prompt, exactly one line total ------
-# Both api-docs-first (endpoint/webhook nouns + verb guard) and taskmaster
-# (build verb, <200 chars) match this prompt; the marker claimed by the first
-# must silence the second. Sandboxed TMPDIR so markers never leak between runs.
+# ---- per-prompt budget: advisory hooks share a lottery; taskmaster is a
+# PRIORITY DIRECTIVE (budgetExempt) — it always speaks AND claims the marker so
+# advisory siblings yield to it, in either scheduling order. Sandboxed TMPDIR
+# so markers never leak between runs.
 AD="$ROOT/plugins/api-docs-first/hooks/remind.sh"
 TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
 if [ -f "$AD" ] && [ -f "$TM" ]; then
@@ -82,12 +82,14 @@ if [ -f "$AD" ] && [ -f "$TM" ]; then
   FIRE='{"prompt":"build a stripe webhook endpoint integration for our billing service"}'
   out1="$(printf '%s' "$FIRE" | TMPDIR="$BUDGET_TMP" "$BASH_BIN" "$AD" 2>/dev/null)"
   out2="$(printf '%s' "$FIRE" | TMPDIR="$BUDGET_TMP" "$BASH_BIN" "$TM" 2>/dev/null)"
-  if [ -n "$out1" ]; then pass "budget: first matching hook speaks"; else fail "budget: first matching hook speaks" "api-docs-first stayed silent on a real integration prompt"; fi
-  if [ -z "$out2" ]; then pass "budget: second matching hook yields"; else fail "budget: second matching hook yields" "taskmaster spoke despite claimed marker: $out2"; fi
-  # fresh sandbox: same hook alone still fires (marker scoping, not dead hook)
+  if [ -n "$out1" ]; then pass "budget: advisory hook speaks when first"; else fail "budget: advisory hook speaks when first" "api-docs-first stayed silent on a real integration prompt"; fi
+  if [ -n "$out2" ]; then pass "budget: taskmaster directive exempt from the lottery"; else fail "budget: taskmaster directive exempt from the lottery" "taskmaster yielded to a claimed marker despite budgetExempt"; fi
+  # reversed order: taskmaster first claims the marker, advisory sibling yields
   BUDGET_TMP2="$WORK/budget-tmp2"; mkdir -p "$BUDGET_TMP2"
   out3="$(printf '%s' "$FIRE" | TMPDIR="$BUDGET_TMP2" "$BASH_BIN" "$TM" 2>/dev/null)"
-  if [ -n "$out3" ]; then pass "budget: yielded hook fires alone in a fresh prompt"; else fail "budget: yielded hook fires alone in a fresh prompt" "taskmaster silent with no marker present"; fi
+  out4="$(printf '%s' "$FIRE" | TMPDIR="$BUDGET_TMP2" "$BASH_BIN" "$AD" 2>/dev/null)"
+  if [ -n "$out3" ]; then pass "budget: taskmaster fires alone in a fresh sandbox"; else fail "budget: taskmaster fires alone in a fresh sandbox" "taskmaster silent with no marker present"; fi
+  if [ -z "$out4" ]; then pass "budget: advisory sibling yields to the directive's marker"; else fail "budget: advisory sibling yields to the directive's marker" "api-docs-first spoke despite taskmaster's claimed marker: $out4"; fi
 fi
 
 if [ "$found" -eq 0 ]; then

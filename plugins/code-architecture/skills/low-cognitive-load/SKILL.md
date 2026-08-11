@@ -1,6 +1,6 @@
 ---
 name: low-cognitive-load
-description: Use when writing or reviewing for readability — small focused units, few live variables, shallow nesting, meaningful names, no cleverness.
+description: Use when writing or reviewing for readability or simplicity — KISS, DRY, the rule of three, duplication vs over-abstraction, small focused units, few live variables, shallow nesting, meaningful names, no cleverness.
 ---
 
 ## The goal: minimize what a reader has to hold in their head

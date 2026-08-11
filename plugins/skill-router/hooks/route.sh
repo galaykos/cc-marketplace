@@ -4,7 +4,12 @@
 # PostToolUse router. Given the edited file, match rules.tsv and inject one
 # directive to load the relevant skill — high-confidence path/ext matches fire
 # inline once per signal per session; low-confidence content matches accumulate
-# into the session-state digest for SessionEnd. Fail-open: any error, or a
+# into the session-state digest. All inline nudges for one edit are delivered as
+# a SINGLE {"hookSpecificOutput":{"hookEventName":"PostToolUse",
+# "additionalContext":...}} envelope — the one non-blocking channel the
+# executing model actually receives; plain stdout with exit 0 never reaches it
+# (same channel doctrine as task-runner/hooks/scope.sh and
+# comment-discipline/hooks/scan.sh). Fail-open: any error, or a
 # missing jq, exits silently and never blocks the edit.
 {
   input=$(cat)
@@ -82,8 +87,9 @@
     return 0
   }
 
-  emit_nudge() { # $1 skill, $2 owning_plugin
-    printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.\n' "$base" "$1" "$2"
+  nudges=""
+  emit_nudge() { # $1 skill, $2 owning_plugin — accumulates; delivered once below
+    nudges="${nudges}$(printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.' "$base" "$1" "$2")"$'\n'
   }
 
   # ---- high-confidence pass: EVERY surviving, not-yet-fired match nudges ----
@@ -106,6 +112,13 @@
     emitted_now="${emitted_now}${skill}"$'\n'
     fired_now="${fired_now}${skill}"$'\n'
   done < "$rules"
+
+  # ---- deliver: ONE envelope per invocation, before state persistence so an
+  # unwritable state dir cannot swallow a nudge the model should have seen ----
+  if [ -n "$nudges" ]; then
+    jq -cn --arg ctx "${nudges%$'\n'}" \
+      '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+  fi
 
   # ---- low-confidence pass: accumulate content matches (no inline output) ----
   target="$cwd/$file_path"
