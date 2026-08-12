@@ -46,7 +46,7 @@ orchestrator after fan-in**:
 
 ## What has teeth
 
-The plugin was pure judgment with zero enforcement; since 0.14.0 the four
+The plugin was pure judgment with zero enforcement; since 0.14.1 the four
 string-checkable prompt-contract elements (absolute path, scope lock, return shape,
 data-not-prose closer) are checked by `scripts/dispatch-lint.sh` — `/orchestration:review`
 runs it on any prompt available as text, and a fixture harness runs in CI. Whether the

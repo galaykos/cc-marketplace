@@ -15,6 +15,12 @@ the rule that fixes it.
 Reasoning-class agents whose frontmatter tier is a FLOOR, not a ceiling:
 
 ```
+code-review:code-reviewer                 opus
+code-architecture:architecture-reviewer   opus
+system-design:system-design-reviewer      opus
+system-design:system-architect            opus
+taskmaster:spec-adversary                 opus
+ultra-deep-research:verifier              sonnet
 ```
 
 A floor is the agent's own pin, reinterpreted — not a raise. `verifier` floors at `sonnet`
