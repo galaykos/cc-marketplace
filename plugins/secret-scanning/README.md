@@ -14,3 +14,10 @@ Blocks secrets before they reach disk.
 High-confidence by design: it under-flags rather than over-blocks, so pair it with a
 full scanner (gitleaks, trufflehog) in CI. Obvious placeholders and fixtures pass; a
 denial always offers the fixture escape.
+
+Since 0.3.0 the deny path has its own fixture harness (`scripts/__tests__/`,
+CI-globbed) — every pattern proven to deny, fail-open proven to stay open. Writing it
+found and fixed a real regression: the private-key pattern begins with dashes, and
+without `grep -- ` it had been parsed as options and NEVER matched. That deny is live
+for the first time; the harness exists so a silent regression like it cannot ship
+green again.

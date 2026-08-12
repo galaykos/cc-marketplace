@@ -24,7 +24,9 @@
   file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 
   hit=""
-  detect() { [ -z "$hit" ] && printf '%s' "$text" | grep -qE "$2" && hit="$1"; }
+  # `--` is load-bearing: the private-key pattern starts with dashes, and without
+  # it grep parses the pattern as options and the pattern never matches.
+  detect() { [ -z "$hit" ] && printf '%s' "$text" | grep -qE -- "$2" && hit="$1"; }
   detect "AWS access key ID"       'AKIA[0-9A-Z]{16}'
   detect "private key block"       '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----'
   detect "GitHub token"            'gh[pousr]_[A-Za-z0-9]{36,}'

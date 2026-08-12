@@ -6,7 +6,12 @@ argument-hint: [path]
 Invoke the installed-versions skill from this plugin against $ARGUMENTS (or the
 repository root if no argument). Steps:
 
-1. Scan manifests, lockfiles, runtime pins, Dockerfiles/compose files, and CI
+0. Run the mechanical pass FIRST: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/scan.sh
+   <path>` — it emits the node/php/python/docker table rows and the mechanical
+   red flags deterministically. Do not re-derive by hand what it already
+   printed; your job starts where it stops (ecosystems it names as not
+   covered, and interpretation).
+1. Scan whatever scan.sh did not cover — remaining manifests, runtime pins, CI
    configs per the skill's source order; run version binaries (`php -v`,
    `node -v`, `bun -v`) only if available — never install anything.
 2. Output the required-vs-installed table with a source citation per cell.
