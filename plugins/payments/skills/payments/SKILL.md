@@ -30,7 +30,10 @@ a request body, a log, or a database column, that is critical.
 
 ## Webhooks — idempotent and verified
 
-Providers deliver webhooks **at least once, out of order, and sometimes late**. Every
+Providers deliver webhooks **at least once, out of order, and sometimes late**. The
+rules below are provider-neutral; the implementations are not — before writing a
+handler, read `references/providers.md` for the Stripe/Paddle/Braintree divergences
+(headers, algorithms, amount units, merchant-of-record vs gateway ledgers). Every
 handler must:
 
 1. **Verify the signature** on the raw request body before parsing — an unverified

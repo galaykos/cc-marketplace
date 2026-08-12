@@ -77,6 +77,10 @@ Pin advice to the installed version; the useful floors:
 
 ## Galera awareness (when clustered)
 
+Detect first (`SHOW STATUS LIKE 'wsrep_cluster_size'` > 0), then read
+`references/galera.md` before advising — certification failures, flow control,
+SST/IST, quorum, and TOI-vs-RSU DDL each invert single-primary intuition.
+
 - Multi-master means optimistic certification: two nodes writing the same rows
   produce deadlock-style certification failures — treat them as retryable, keep
   transactions small, and route hot-row writers to one node.

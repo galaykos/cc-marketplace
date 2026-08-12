@@ -125,8 +125,8 @@ Advising above the installed version is a finding; confirm boundaries against th
   `middleware.ts`; Cache Components/`'use cache'` available behind `cacheComponents`;
   `revalidateTag(tag, profile)` + `updateTag()`/`refresh()`; React Compiler support
   stable (off by default); parallel route slots require explicit `default.js`; AMP and
-  `next lint` removed; needs React 19.2+/Node 20.9+. 16.1: Turbopack FS caching stable
-  in dev. 16.2: Build Adapters stable; root params usable inside `'use cache'`.
+  `next lint` removed; needs React 19.2+/Node 20.9+. Per-change operational detail
+  (what breaks, escape hatches, 16.1/16.2 minors): read `references/next16.md`.
 
 ## Common mistakes
 
