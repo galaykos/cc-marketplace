@@ -69,6 +69,16 @@ back to ranking raw transcripts from `~/.claude/projects/<slug>/`, which is the 
 path it already used for pre-install history, so the first harvest after upgrading
 still has data to work with. The old directory is safe to delete.
 
+## The loop is now closed (0.5.0)
+
+The ledger always held the data to grade an applied rule and nothing read it back.
+Now: every apply-gate pick is recorded to `applied.jsonl`, and each harvest opens by
+running `scripts/outcome.sh` (fixture harness in CI) — mean friction/errors per
+session, before vs after each applied rule, with a hard ≥3-sessions-per-side floor
+before any number is shown. Standing: the computation is mechanical; the attribution
+is correlational and the script prints that caveat with every table — a "worsened"
+row is a retraction candidate, not a verdict.
+
 ## Contents
 
 - **Hook**: SessionEnd stats collector (`hooks/collect.sh`) — bash + jq,
