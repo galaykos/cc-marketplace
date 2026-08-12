@@ -33,7 +33,7 @@ in taskmaster-suite.
 - **command-guard** — PreToolUse hook that denies irreversible destructive commands and asks on scoped ones, plus `/command-guard:check`
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
-- **comment-discipline** — routes every fact to the artifact that cannot lie about it and spends comments only where nothing else can hold them; a PostToolUse hook warns on all five noise categories and a PreToolUse lane denies the two strictest before the write, plus `/comment-discipline:review`
+- **comment-discipline** — routes every fact to the artifact that cannot lie about it and spends comments only where nothing else can hold them; a PostToolUse hook warns on all six noise categories and a PreToolUse lane denies the two strictest before the write, plus `/comment-discipline:review`
 
 | Command | What it does |
 |---------|--------------|

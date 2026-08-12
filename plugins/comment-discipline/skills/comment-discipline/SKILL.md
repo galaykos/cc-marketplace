@@ -33,8 +33,8 @@ have a slot for it?
 | Units, ownership, lifetime, thrown conditions the signature cannot express | docblock | **yes** |
 | Architecture, specs, decisions | ADRs and project docs | no |
 
-The left column is what people usually comment. The right column is why most of
-those comments should not exist: the fact was already recordable somewhere better.
+The left column is what people usually comment; the right column is why most of
+those comments should not exist — the fact was already recordable somewhere better.
 
 ## Kill-cases
 
@@ -59,8 +59,12 @@ it matters.
 **Docblock tags that restate the signature.** `@param $id The id`, `@return void`
 with nothing else, `:param x: x`. Cue: deleting the tag loses nothing.
 
-**Changelog comments.** `// modified by A. 2024-03-11 — added retry`. Version
-control owns this, and unlike the comment it cannot be forgotten on the next edit.
+**Changelog and change-narration comments.** `// modified by A. 2024-03-11`,
+`// now correctly handles null`, `// updated to use the new API`, `// fix per review`.
+Cue: the comment describes the edit — author, correctness, the review that asked — not
+the code: the diff addressing its reviewer, stale the moment it merges. Version control
+owns history. A constraint that survives the edit is stated as a standing fact
+("setTimeout, not rAF: rAF throttles in background tabs"), never as a change event.
 
 **Comments compensating for a name.** `// list of users who have not paid yet`
 above `const list = ...`. Cue: the comment is a better name than the name.
@@ -92,10 +96,9 @@ intention hides most comfortably. "Settles in either direction", "the server
 renders this fully", "never blocks": each states an invariant the next reader
 now trusts instead of checking.
 
-Before such a comment ships, either the code plainly implements it or a test
-does — and neither becomes optional because the sentence sounds sure. A comment
-describing behavior the code lacks is worse than none: it stops the one reader
-who would have noticed.
+Before such a comment ships, either the code plainly implements it or a test does —
+sounding sure waives neither. A comment describing behavior the code lacks is worse
+than none: it stops the one reader who would have noticed.
 
 ## Refactor instead of commenting
 
@@ -112,10 +115,10 @@ mechanical:
 | labels a region of a file | split the file |
 
 Two guards on this. First, do not rename into a paragraph: `getUsersWhoHaveNotPaidYetAndAreActive`
-is a comment wearing a name's clothes — that is the signal to split the concept,
-not to lengthen the identifier. Second, an extraction that exists only to host a
-comment, called once and never reused, may be worse than the comment; extract
-because it names a coherent step, not to launder prose.
+is a comment wearing a name's clothes — split the concept rather than lengthening it.
+Second, an extraction that exists only to host a comment, called once and never
+reused, may be worse than the comment; extract to name a coherent step, not to
+launder prose.
 
 ## Docblocks
 
@@ -128,18 +131,16 @@ cannot express.** Types beat doc-comment lies — a typed parameter is checked, 
 
 The same test applies to a TSDoc block, a Python docstring, a godoc line, a
 `///` in Rust: strip everything the signature already states, and keep whatever
-survives. Usually that is units, ownership, throw conditions, or an example for a
-genuinely non-obvious call. Often nothing survives — that is a fine outcome, not
-a gap to fill.
+survives — usually units, ownership, throw conditions, or an example for a
+genuinely non-obvious call. Often nothing survives; a fine outcome, not a gap.
 
 Public-API docs generated for external consumers are a product surface with its
 own audience, not a comment; that is a docs decision, not this rule's.
 
 ## Boundaries
 
-- `code-review`'s code-smells owns the one-bullet version ("comment as deodorant")
-  as part of a broader smell sweep; this skill owns comment volume and placement in
-  depth.
+- `code-review`'s code-smells owns the one-bullet version ("comment as deodorant");
+  this skill owns comment volume and placement in depth.
 - the api-docs-first plugin's `docs-upkeep` skill owns comment and doc **staleness** — drift between a doc and the
   code it describes. This skill owns whether the comment should exist at all.
 - Naming, extraction, and file structure as design concerns belong to
@@ -149,6 +150,5 @@ own audience, not a comment; that is a docs decision, not this rule's.
 ## Anti-patterns
 
 - Deleting comments to hit a ratio — the keep-cases are where the real value is.
-- Answering "should this be commented?" without first asking "can this be named,
-  typed, or tested instead?"
+- Asking "should this be commented?" before "can it be named, typed, or tested instead?"
 - A constraint comment with no link, so nobody can ever prove it obsolete.

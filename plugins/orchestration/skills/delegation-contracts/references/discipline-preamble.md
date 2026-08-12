@@ -20,6 +20,10 @@ worker's own default procedure wherever they differ.
 5. Run the project's full check suite at the end, not only the per-card verify.
 6. Defer rule: a mis-specified card (wrong file, impossible criterion, a decision you
    were not given) is **reported, not reinterpreted**.
-7. Final message is data for the orchestrator: a completion table
+7. Code shape: match the surrounding file's naming, idiom, and comment density. A
+   comment states a constraint the code cannot show — never what the next line does or
+   that the fix is now correct (that voice is the diff addressing its reviewer). New
+   behavior no test exercises is **named as untested** in your return.
+8. Final message is data for the orchestrator: a completion table
    (task / status / verify command / evidence line) plus any parked items. No preamble
    prose, no file dumps.

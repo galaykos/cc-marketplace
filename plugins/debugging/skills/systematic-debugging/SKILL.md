@@ -41,6 +41,16 @@ line numbers routinely name the answer that ten minutes of guessing will miss.
 - Quote the exact text in notes and report — a paraphrased error smuggles in
   interpretation.
 
+## State-changing moves need the same diagnosis
+
+A restart, a cache wipe, a reinstall, a config edit: each is a fix attempt wearing
+a chore's clothes, and each destroys evidence — the hung process, the poisoned
+entry — that no rerun recovers. A signal that pattern-matches a known failure
+("this always means the cache") may have a different cause this time. Check that
+the evidence supports THIS action against THIS cause, as Phase 4 demands of a code
+fix; run blind under fire only after recording what it will destroy, and label the
+outcome a symptom fix.
+
 ## Phase 3 — what changed?
 
 Bugs rarely materialize in untouched code. Before theorizing, diff reality:

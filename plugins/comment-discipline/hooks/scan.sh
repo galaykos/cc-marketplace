@@ -16,9 +16,10 @@
 #   PreToolUse — DENY, narrowly. Warning after the write is warning about a file that is
 #   already on disk, and a warning the model may read and walk past is not enforcement.
 #   So the two strictest categories — a comment restating the next line, and commented-out
-#   code — are denied BEFORE the write, and only those. Banners, bare TODOs and dead
-#   docblock tags stay warn-only: they are house-style calls, and a TODO can be a
-#   legitimate mid-task marker.
+#   code — are denied BEFORE the write, and only those. Banners, bare TODOs, dead
+#   docblock tags and change-narration comments stay warn-only: they are house-style
+#   calls, a TODO can be a legitimate mid-task marker, and narration cues are phrase
+#   matches that can catch a legitimate why-comment phrased as a change event.
 #
 # BOUNDED: the deny is ONE-SHOT PER FILE PER SESSION. A second edit to the same file goes
 # through and the PostToolUse lane warns instead, so a false positive costs one extra turn
@@ -165,6 +166,29 @@
     if (b ~ /^[$@]?[A-Za-z_][A-Za-z0-9_]*[ \t]*=[^=]/) return 1
     return 0
   }
+  # The diff addressing its reviewer: a comment describing the EDIT — its author, its
+  # correctness, the review that asked for it — rather than the code. A why-comment
+  # states a standing constraint; a change event ("now handles", "updated to", "fix
+  # per review") is stale the moment the change merges. Phrase cues, so warn-only.
+  # A ticket, issue, or URL rescues the comment outright: a reference to track is the
+  # keep-case form ("Retry cap of 5 as discussed in ADR-12"), same idiom as is_bare_todo.
+  function is_narration(b,   x) {
+    if (b ~ /#[0-9]/ || b ~ /[A-Z][A-Z0-9]+-[0-9]/ || b ~ /https?:\/\//) return 0
+    x = tolower(b)
+    if (x ~ /^now that /) return 0
+    if (x ~ /^(now|it now|this now|we now) /) return 1
+    if (x ~ /(^| )now (correctly|properly) /) return 1
+    if (x ~ /^(this|the) (fix|change|update|patch|refactor) (is|was|also|now|makes|ensures|addresses|fixes|resolves|prevents|handles|corrects|improves|adds|removes) /) return 1
+    if (x ~ /^fix(ed)?(:| for )/) return 1
+    if (x ~ /^(added|removed|renamed|moved|corrected|bugfix|hotfix)[ :]/) return 1
+    if (x ~ /^fixes /) return 1
+    if (x ~ /^no longer /) return 1
+    if (x ~ /as requested|per (the )?review|review feedback|as discussed|addresses (the )?(review|comment|feedback)/) return 1
+    if (x ~ /^(updated|changed|switched|migrated|converted|refactored|rewrote|reworked) (to|from|this|the) /) return 1
+    if (x ~ /^previously,/) return 1
+    if (x ~ /used to (be|return|use)/) return 1
+    return 0
+  }
   function is_bare_todo(b) {
     if (b !~ /TODO|FIXME|XXX|HACK/) return 0
     if (b ~ /#[0-9]/) return 0
@@ -221,7 +245,7 @@
   BEGIN {
     split("the a an to to of for and or is are was were be being been this that these those it its we you i they he she then now here there in on on at by with from as into each all any some if so do does did not no our your their and but when while where which who what how new old up down out off over under again very can will would should could may might must has have had", swl, " ")
     for (i in swl) SW[swl[i]] = 1
-    split("restating the next line|section banner|commented-out code|bare TODO|docblock tag repeating the signature", CATS, "|")
+    split("restating the next line|section banner|commented-out code|bare TODO|docblock tag repeating the signature|change-narration (describes the edit, not the code)", CATS, "|")
   }
   { L[++T] = $0 }
   END {
@@ -232,6 +256,7 @@
       if (is_code(b))         { H[3]++; total++; continue }
       if (is_bare_todo(b))    { H[4]++; total++; continue }
       if (is_dead_tag(b))     { H[5]++; total++; continue }
+      if (is_narration(b))    { H[6]++; total++; continue }
       j = i + 1
       while (j <= T && (L[j] ~ /^[ \t]*$/ || cbody(L[j]) != "")) j++
       if (j <= T && restates(b, L[j])) { H[1]++; total++ }
@@ -241,11 +266,12 @@
     # BLOCKABLE categories (restatement, commented-out code). Those two are the
     # strictest detectors here — restates() requires EVERY content word of the
     # comment to be recoverable from the code line, and is_code() matches syntax,
-    # not prose. Banners, bare TODOs and dead docblock tags stay warn-only: they
-    # are house-style calls, and a TODO can be a legitimate mid-task marker.
+    # not prose. Banners, bare TODOs, dead docblock tags and change-narration
+    # comments stay warn-only: they are house-style calls, a TODO can be a
+    # legitimate mid-task marker, and narration cues are phrase matches.
     printf "%d\n", (1 in H ? H[1] : 0) + (3 in H ? H[3] : 0)
     parts = ""
-    for (k = 1; k <= 5; k++) {
+    for (k = 1; k <= 6; k++) {
       if (!(k in H)) continue
       parts = parts (parts == "" ? "" : ", ") H[k] " " CATS[k]
     }

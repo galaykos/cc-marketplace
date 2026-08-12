@@ -56,6 +56,13 @@ state your assumption before editing.
 5. At the end, run the project's FULL check suite (tests, lint, type-check, build) —
    local per-task passes can compose into a global failure.
 
+## Code shape
+
+Match the surrounding file's naming, idiom, and comment density. A comment you add
+states a constraint the code cannot show — never what the next line does or that the
+fix is now correct; that voice is the diff addressing its reviewer. New behavior no
+test exercises is named as untested in your return.
+
 ## Checklist before finishing
 
 - [ ] Every task done or parked-with-reason — none silently skipped.
@@ -63,6 +70,7 @@ state your assumption before editing.
 - [ ] No check was weakened, skipped, or swapped to force a pass.
 - [ ] Full suite run at the end, with its output.
 - [ ] Diff reads as exactly the requested list and nothing else.
+- [ ] New behavior no test exercises is named as untested, not left implied covered.
 
 ## Defer rule
 
