@@ -44,6 +44,15 @@ rather than on the runner's own diff. Both need **one tree-wide gate, run by the
 orchestrator after fan-in**:
 `skills/delegation-contracts/references/tree-wide-gates.md`.
 
+## What has teeth
+
+The plugin was pure judgment with zero enforcement; since 0.14.0 the four
+string-checkable prompt-contract elements (absolute path, scope lock, return shape,
+data-not-prose closer) are checked by `scripts/dispatch-lint.sh` — `/orchestration:review`
+runs it on any prompt available as text, and a fixture harness runs in CI. Whether the
+scope lock locks the RIGHT scope remains agent-graded; the lint checks presence, not
+quality.
+
 ## Example
 
 ```bash

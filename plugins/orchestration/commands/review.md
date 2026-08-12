@@ -13,7 +13,11 @@ task-card index with parallel groups. If no argument, look for the most recent
 Check each prompt/stage for:
 
 1. Prompt-contract completeness — paths, scope lock, constraints, required return
-   shape, data-not-prose closing instruction.
+   shape, data-not-prose closing instruction. For any prompt available as text,
+   run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-lint.sh <file>` (or pipe via
+   stdin) and fold its output in: the lint settles PRESENCE of the four
+   string-checkable elements mechanically; your judgment covers whether the scope
+   lock locks the right scope and the constraints are the repo's real ones.
 2. Compressed-return format specified, with a length cap.
 3. Evidence requirement present — verify commands travel in the prompt.
 4. Verify stage exists for accuracy-critical output, and is cost-gated (no panel

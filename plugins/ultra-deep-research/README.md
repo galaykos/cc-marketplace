@@ -38,11 +38,17 @@ A report that leads with the answer, carries inline `[n]` citations, states per-
 confidence with reasons, lists sources with their tier and date, keeps a contradiction
 ledger for anything the sources disagree on, and names what it could **not** verify.
 
-## Accuracy discipline (recorded/agent-graded — no script enforces it)
+## Accuracy discipline (agent-graded, with one mechanical gate)
 
 Every load-bearing claim is corroborated by ≥2 independent quality sources, date-stamped,
 and attacked before it is trusted. No fabricated URLs, dates, or figures — an explicit
 "not found" over a confident guess. Time-sensitive answers are stamped "as of <date>".
+
+Since 0.5.0 the verdict FORMAT half has teeth: `scripts/verdict-lint.sh` rejects a
+`confirmed` verdict missing a verbatim quote, retrieval timestamp, or corroborating
+source (the skill demotes it to `contested`), with a fixture harness CI runs. Whether
+the quote is real and the sources independent stays agent-graded — the lint cannot
+know, and saying so is the point.
 
 ## Suite membership
 

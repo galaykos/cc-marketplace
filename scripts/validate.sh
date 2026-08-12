@@ -159,7 +159,10 @@ while IFS=: read -r file ref; do
       || err "$file: reference '$ref' names no plugins/$pname/commands/$cname.md"
   fi
 done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/README.md plugins/*/commands plugins/*/skills plugins/*/agents 2>/dev/null \
-         | grep -v 'https\?:' | sort -u)
+         | grep -v 'https\?:' | grep -v '/preserve:' | sort -u)
+         # /preserve:<name> is the template engine's preserve-block closer
+         # (<!-- /preserve:NAME -->), not a plugin reference — see
+         # scripts/lib/template-engine.sh merge_preserve_blocks.
 
 # hooks.json files must parse and referenced scripts must be executable
 while IFS= read -r f; do

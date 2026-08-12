@@ -69,6 +69,18 @@ return (delegation-contracts § Compressed returns), injected verbatim:
 > summary of the summary; findings past the cap collapse into one final `+N more (minor)`
 > line. Your final message is data for the orchestrator, not prose for a human."
 
+**Card-criteria inject** — every reviewer dispatch ALSO carries the card's own bar,
+right after `RV-CARD`: paste the card's success criteria (or, when the card has none,
+its `Verify:` line) plus this instruction, verbatim:
+
+> "Judge the diff against THESE criteria, not just general quality. Your return must
+> open with one line per criterion — `criterion — met | not met | not checkable from
+> the diff — <one-line reason>` — before any findings. A return of 'no findings'
+> without the per-criterion lines is an unfinished review and will be re-dispatched."
+
+This is what makes a silent reviewer distinguishable from a clean diff: "no findings"
+now asserts "each criterion checked", not "nothing jumped out".
+
 **Bound:** inject the card's `Skills to apply` (deduped) + at most one agnostic domain
 skill from the map. The sentinel `none detected` (or an absent `Skills to apply` line)
 resolves to **zero** priming skills — no log. A named skill that is absent is omitted and

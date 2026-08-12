@@ -25,6 +25,14 @@ and nothing else. It never blocks an action, never gates a run, never writes
 code or files. The brief deliberately omits the session's own leaning, so the
 opinion is formed blind from the code, not anchored to the thread's hypothesis.
 
+## The blind rule's teeth
+
+The brief must not carry the session's conclusion — and the session composing it is
+the party with the anchor, so since 0.3.0 `scripts/brief-lint.sh` (fixture harness in
+CI) rejects conclusion phrasing mechanically; the skill requires a clean exit before
+dispatch. Residual, stated in the lint itself: it catches phrasing, not a hypothesis
+smuggled as a neutral fact — the reread stays on the session.
+
 ## Cost shape
 
 One consultant per consult — never a panel. If you want adversarial voting,
