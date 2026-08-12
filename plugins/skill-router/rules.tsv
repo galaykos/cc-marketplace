@@ -18,6 +18,27 @@
 # co-fire-ok: content error-handling-design security-review
 # co-fire-ok: content error-handling-design observability-design
 # co-fire-ok: content security-review observability-design
+# 2026-08-12 additions (same digest channel, same rationale as the seven above):
+# co-fire-ok: content node-backend-best-practices concurrency-safety
+# co-fire-ok: content node-backend-best-practices error-handling-design
+# co-fire-ok: content node-backend-best-practices security-review
+# co-fire-ok: content node-backend-best-practices observability-design
+# co-fire-ok: content node-backend-best-practices resilience-design
+# co-fire-ok: content payments concurrency-safety
+# co-fire-ok: content payments error-handling-design
+# co-fire-ok: content payments security-review
+# co-fire-ok: content payments observability-design
+# co-fire-ok: content payments resilience-design
+# co-fire-ok: content threejs-best-practices motion-best-practices
+# co-fire-ok: content llm-app resilience-design
+# co-fire-ok: content llm-app error-handling-design
+# co-fire-ok: content llm-app security-review
+# co-fire-ok: **/locales/** i18n low-cognitive-load
+# co-fire-ok: **/locales/** i18n solid-principles
+# co-fire-ok: **/lang/** i18n laravel-best-practices
+# co-fire-ok: **/lang/** i18n php-best-practices
+# co-fire-ok: **/lang/** i18n low-cognitive-load
+# co-fire-ok: **/lang/** i18n solid-principles
 #
 # LIMITATION (honest scope): NOT routed by any rule — mysql/mariadb/postgresql
 # best-practices, code-smells, reuse-hygiene, yagni-check, plan-before-code, and
@@ -82,3 +103,9 @@ content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resili
 content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|\bspan\b)\b	observability-design	observability	low
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
 content	\b(useTable|useReactTable|createColumnHelper|getCoreRowModel|tableFeatures|useVirtualizer|manualPagination)\b	react-data-grid	react	low
+content	(@nestjs/|\bNestFactory\b|\bfastify\(|\bexpress\(\))	node-backend-best-practices	node-backend	low
+content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	payments	payments	low
+content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	threejs	low
+content	(\bmessages\.create\b|\bchat\.completions\b|\bembeddings\.create\b|\bgenerateText\()	llm-app	llm-app	low
+glob	**/locales/**	i18n	i18n	high
+glob	**/lang/**	i18n	i18n	high

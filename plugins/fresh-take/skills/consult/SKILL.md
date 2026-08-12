@@ -55,6 +55,12 @@ discipline the marketplace uses everywhere a second opinion has value
 (spec-adversary, opinion-round): anchoring is removed at composition time,
 because it cannot be removed after.
 
+**Mechanical check (run it, don't self-certify):** write the brief to a scratch
+file and run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/brief-lint.sh <file>`; rewrite
+until it exits 0. The lint catches conclusion PHRASING only — a hypothesis
+smuggled as a neutral fact ("the stale cache layer at src/cache.ts") still
+passes, so a clean lint is necessary, never sufficient; reread for framing.
+
 ## Dispatch
 
 Spawn the `consultant` agent from this plugin with the brief as its prompt.

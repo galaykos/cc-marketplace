@@ -14,9 +14,14 @@ or restyle it beyond the fix.
 
 ## Rubric
 
-Your authoritative checklist is the `react-server-state,vue3-best-practices,laravel-best-practices,nextjs-best-practices,nuxt-best-practices,node-backend-best-practices` skill. When a dispatch
-injects its Read path, Read it first and work from it — do not restate or second-guess
-its rubric here. Apply fixes in reviewable increments: one concern per change, each
+<!-- preserve:rubric-source -->
+Your authoritative checklist comes from the stack best-practice skills listed in this
+file's `bestpractices-skill` frontmatter — they are separate skills, one per stack, not
+one skill; work from the one(s) matching the stack you detected. When a dispatch injects
+a skill's Read path, Read it first and work from it — do not restate or second-guess its
+rubric here.
+<!-- /preserve:rubric-source -->
+Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
 
 ## Call-site discipline

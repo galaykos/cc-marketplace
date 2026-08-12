@@ -13,11 +13,11 @@ Version facts come from the manifests, never from assumption:
 
 ## Per-version leverage (advise at or below the floor)
 
-Recommend the newer idiom only when the floor is at or above the release that shipped it. Verify anything version-sensitive against https://laravel.com/docs before pinning it:
+Recommend the newer idiom only when the floor is at or above the release that shipped it. The expanded per-major map — upgrade posture, the 12-attribution trap, the 11 skeleton split — lives in `references/leverage-map.md`; read it before pinning any version-sensitive claim.
 
-- **Laravel 11** — the slimmed skeleton: `bootstrap/app.php` is the single config surface for routing, middleware, and exceptions, so there is no `Http/Kernel.php` or console kernel and the old middleware files are gone (customize via `->withMiddleware`). Model casts as a `casts()` METHOD, not the `$casts` property, so casts take arguments. Per-second rate limiting (`Limit::perSecond(...)`). Health-check routing (`health: '/up'`). The `once()` helper memoizes a callback for the current request.
-- **Laravel 12** — a maintenance release: upstream dependency updates and new React/Vue/Svelte/Livewire starter kits, with deliberately minimal breaking changes (most apps upgrade without code changes). Do not attribute new idioms to 12 by default — if a capability's introducing version is uncertain, describe it without pinning a version.
-- **Laravel 13** (current, March 2026; requires PHP 8.3+) — first-party AI SDK, JSON:API resources, attribute-first controllers and jobs (`#[Middleware]`, `#[Authorize]`, `#[Tries]`, `#[Backoff]`, `#[Timeout]`), `Queue::route()` for central queue/connection routing, `Cache::touch()` TTL extension, and vector-similarity query clauses. Like 12, breaking changes are minimal — most apps upgrade without code changes.
+- **Laravel 11** — slim skeleton: `bootstrap/app.php` is the single config surface (no `Http/Kernel.php`); casts as a `casts()` method; `Limit::perSecond(...)`, `health: '/up'`, `once()`.
+- **Laravel 12** — a maintenance major (starter kits + dependency updates); never attribute a new idiom to 12 by default — uncertain introductions stay unpinned.
+- **Laravel 13** (current, 2026-03; PHP 8.3+ floor) — attribute-first controllers/jobs (`#[Middleware]`, `#[Tries]`, …), first-party AI SDK and JSON:API resources, `Queue::route()`, `Cache::touch()`; most apps upgrade without code changes.
 
 ## N+1 prevention — eager load, don't lazy load in loops
 

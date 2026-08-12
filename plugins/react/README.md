@@ -23,6 +23,12 @@ library-choice discipline, not idioms.
 `react-data-grid` extends the same charter: which library, which major, and how
 its state model composes with TanStack Query — not table idioms.
 
+## Commands
+
+| Command | What it does |
+|---------|--------------|
+| `/react:review [files-or-diff]` | Review React data-layer code against `react-server-state`, pulling in `react-data-grid` when table/virtual code is in scope — findings pinned to the installed library majors from the lockfile |
+
 ## Install
 
 ```bash

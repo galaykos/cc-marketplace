@@ -33,6 +33,15 @@ Findings are triaged by exploitability × impact, not theoretical purity — a
 `$request->all()` into `update()` on an admin-only route ranks below the same
 pattern on a public endpoint.
 
+## What has teeth
+
+Since 0.6.0 a PostToolUse hook (`hooks/write-scan.sh`, fixture harness in CI) WARNS at
+write time on the five mechanically detectable shapes from the security-review skill:
+empty `$guarded`, unescaped `{!! $ !!}` Blade output, `VITE_`-prefixed secrets,
+variables inside `whereRaw` SQL, and raw HTML sinks. Warn — never deny — because each
+has a legitimate form; `CC_SECURITY_SCAN=off` disables. Everything else (authz logic,
+cross-file flows, dependency audit) stays review-time via `/security:review`.
+
 ## Pairs well with
 
 - **testing** — turn each confirmed finding into a regression test

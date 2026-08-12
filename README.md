@@ -58,7 +58,7 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 | `craft-suite` | 7 | ~2.6k tokens | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — |
 | `process-suite` | 9 | ~2.0k tokens | ~2.6k tokens |
-| `frontend-suite` | 12 | ~1.5k tokens | ~2.6k tokens |
+| `frontend-suite` | 12 | ~1.6k tokens | ~2.6k tokens |
 | `quality-suite` | 6 | ~1.0k tokens | ~2.6k tokens |
 | `php-suite` | 6 | ~0.6k tokens | — |
 | `db-suite` | 5 | ~0.5k tokens | — |

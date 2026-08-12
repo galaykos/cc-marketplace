@@ -97,7 +97,10 @@ Ordered:
 
 1. Kill studio's OWN Vite server first (release file handles) — only if this
    flow started it, identified by the `/__studio` marker.
-2. Delete the scratch dir (a full `node_modules`, not two files).
+2. Delete via `bash ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh <scratch-dir>` —
+   it refuses anything that is not provably a studio tree (components.json +
+   `/__studio` marker, never a git work tree) and aborts if :8124 still serves
+   the marker. Fall back to manual deletion only if the script is unavailable.
 3. Verify by search that nothing remains; in a git host, `git status` is clean.
    In a non-git greenfield dir, verify by search alone (no `git status`).
 4. On delete failure (locked files/permissions): retry once, then report the

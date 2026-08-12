@@ -61,8 +61,13 @@ does not abort the harvest; record the failure and continue.
 
 ## Report
 
-Produce exactly four sections:
+Produce exactly five sections:
 
+0. **Outcome check** — run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/outcome.sh`
+   and include its table verbatim: it grades PREVIOUS harvests' applied rules
+   (mean friction/errors per session, before vs after each apply) from the
+   ledger. Correlational only — the script says so itself; a "worsened" row is
+   a candidate for retracting the rule in this harvest's apply gate.
 1. **Friction stats digest** — sessions mined, total turns, friction
    events, errors, user messages, top friction contexts, plus any
    skipped or failed transcripts.
@@ -98,6 +103,13 @@ category, each proposal a separate option and every question carrying a
 
 Nothing is written without an explicit pick; declining every option is
 a valid outcome and still counts as a completed harvest.
+
+**Record every applied pick** (rules, ideas, warnings alike) so the next
+harvest's outcome check can grade it: append one line per pick to
+`$HOME/.claude/hindsight/<slug>/applied.jsonl` —
+`{"v":1,"ts":"<now, ISO-8601 UTC>","kind":"rule|idea|warning","text":"<the
+applied line>","sessions":[<source session ids>]}`. A pick applied but not
+recorded is invisible to the loop — record at the moment of the write.
 
 ## Mark mined
 

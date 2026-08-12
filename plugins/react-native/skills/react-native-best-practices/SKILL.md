@@ -3,6 +3,22 @@ name: react-native-best-practices
 description: Use when writing or reviewing React Native code — FlatList/FlashList performance, navigation patterns, platform-specific code, native driver animations, image handling.
 ---
 
+> Last verified: 2026-08-12 — https://reactnative.dev/blog
+
+## Version reality — pin to package.json first
+
+- Read `react-native` (and `expo`) from package.json/lockfile before advising; the
+  architecture story is version-gated, not a preference.
+- **0.76** (2024-10) New Architecture default; **0.81 / Expo SDK 54** the last with
+  Legacy Architecture support.
+- **0.82** (2025-10) — New Architecture ONLY: `newArchEnabled=false` and
+  `RCT_NEW_ARCH_ENABLED=0` are ignored; legacy APIs remain present but frozen.
+- **Expo SDK 55** — RN 0.83 + React 19.2; **SDK 56** (current, 2026) — RN 0.85, Expo UI
+  Jetpack Compose/SwiftUI components stable.
+- Expo projects invert several core rules (install via `expo install`, CNG prebuild
+  overwrites native dirs, EAS `runtimeVersion` gates OTA delivery) — read
+  `references/expo.md` before advising an Expo app.
+
 ## List virtualization: keyExtractor, getItemLayout, stable renderItem
 
 `FlatList` only renders what's near the viewport, but needs stable identity and layout info to do
@@ -51,20 +67,9 @@ or two levels at most.
 ## Platform-specific code: Platform.select and file splits
 
 Use `Platform.OS === 'ios'` for small one-off branches. Use `Platform.select` when several values
-differ together. Use `.ios.tsx`/`.android.tsx` file splits once a component's implementation
-diverges enough that branching in one file hurts readability.
-
-```jsx
-// Bad: scattered inline branches for a whole style object
-const shadow = Platform.OS === 'ios'
-  ? { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 }
-  : { elevation: 4 };
-// Good: one declarative call, same shape either way
-const shadow = Platform.select({
-  ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 },
-  android: { elevation: 4 },
-});
-```
+differ together (the classic: iOS `shadow*` keys vs Android `elevation` in one
+`Platform.select` call). Use `.ios.tsx`/`.android.tsx` file splits once a component's
+implementation diverges enough that branching in one file hurts readability.
 
 Don't let `.ios.tsx`/`.android.tsx` pairs drift in exported API — Metro picks one per platform at
 build time, so a shape mismatch is a runtime error on only one platform, not a type error.
@@ -124,16 +129,8 @@ const handler = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffse
 
 ## StyleSheet.create over inline style objects
 
-Prefer `StyleSheet.create` for static styles: it's defined once at module scope instead of
-allocating a new object literal every render, and it validates style keys in development.
-
-```jsx
-// Bad: new object every render
-<View style={{ flex: 1, padding: 16 }} />
-// Good: created once, referenced by id
-const styles = StyleSheet.create({ container: { flex: 1, padding: 16 } });
-<View style={styles.container} />
-```
+Prefer `StyleSheet.create` at module scope for static styles over inline object literals
+re-allocated every render — it also validates style keys in development.
 
 ## Common mistakes
 

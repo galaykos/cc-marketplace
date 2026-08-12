@@ -124,11 +124,18 @@ description: Use when writing or reviewing server-side Node.js code in Express 5
   `await register(...)` (or `after()`) before using a plugin's decorators.
   `reply.raw` bypasses hooks and serialization — last resort only.
 
-## Version reality (verified 2026-07)
+## Version reality — pin to the manifest
 
-- Express 5.2 is stable and production-recommended; 4.x is in maintenance with
-  EOL no sooner than 2026-10 — new code targets 5.
-- NestJS 11 is current (requires Node >= 20); v12 (full ESM) is in prerelease,
-  expected ~Q3 2026.
-- Fastify 5.x is current (requires Node >= 20); 4.x support ended 2025-06.
-- Node 24 is Active LTS, 22 is in maintenance; run production on an LTS line.
+> Last verified: 2026-08-12 — https://endoflife.date/nodejs
+
+- Read package.json/lockfile FIRST: which framework, which major — the rules above are
+  gated on it (Express 4 vs 5 async propagation is the difference between needing
+  `asyncHandler` wrappers and deleting them).
+- Express 5.x is stable and production-default; 4.x is in maintenance with an EOL
+  target no sooner than 2026-10-01 (the TC frames dates as goals, not commitments) —
+  new code targets 5.
+- NestJS 11 is current (Node >= 20); v12 (ESM-only, Standard Schema in route
+  decorators, Vitest/Rspack toolchain) targets Q3 2026 — NOT GA as of 2026-08-12.
+- Fastify 5.x is current (Node >= 20); 4.x support ended 2025-06-30.
+- Node: 24 Active LTS (until 2026-10), 22 Maintenance (to 2027-04), 20 EOL since
+  2026-04; 26 is Current and becomes LTS 2026-10. Run production on 22 or 24.

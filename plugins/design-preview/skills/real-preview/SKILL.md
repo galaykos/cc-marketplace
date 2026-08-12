@@ -122,16 +122,16 @@ pipeline, record the pick as a CLEAR ledger row with
 
 A preview that leaves files behind is a failed run, whatever was picked:
 
-1. Delete `design-preview.html` and `src/__design-preview__/` at the pick, on
-   abort, and on fallback alike. On the Laravel path, also delete the scratch
-   Blade view and remove the marked route block from `routes/web.php`.
-2. Verify: list every path written and confirm absence; a repo-wide search for
-   `__design-preview__` must come back empty. On Laravel, `php artisan route:list`
-   must no longer show the scratch route — file absence alone does not prove a
-   route is gone if the block was left in `routes/web.php`.
+1. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh <project-root>` at the
+   pick, on abort, and on fallback alike — it removes every `__design-preview__`
+   artifact, strips the marker line from `routes/web.php`, and exits non-zero
+   if anything remains. `--verify` is the search-only mode.
+2. On Laravel, ALSO run `php artisan route:list` and confirm the scratch route
+   is gone — the script proves file/marker absence; only artisan proves the
+   route table. (The script keys on the marker — hence no renaming, ever.)
 3. Kill the dev server ONLY if this flow started it (by noted PID).
-4. Stale leftovers from a crashed session: the same search-and-delete is the
-   recovery, run it before starting a new preview.
+4. Stale leftovers from a crashed session: run the same script before starting
+   a new preview — that is the recovery.
 
 ## Fallback — the decision still happens
 

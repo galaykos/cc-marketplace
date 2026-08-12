@@ -46,6 +46,11 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    never `contested` (unreadable is not disagreement). **Capped at 24 verifier
    dispatches per round** (claims × votes): rank by how much the answer leans on each,
    verify down to the cap, carry the rest `unconfirmed`, and name the deferred count.
+   **Lint every verdict before trusting it:** pipe each verifier return through
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh` — a `confirmed` that fails
+   the lint (no verbatim quote, no retrieval timestamp, or empty corroboration) is
+   DEMOTED to `contested`, never patched up on the verifier's behalf. The lint is a
+   format gate only; whether the quote is real stays your judgment.
 5. **Ledger contradictions.** Where sources disagree, never silently average. Record
    the disagreement, then adjudicate by an ordered rule: (1) for volatile facts
    (versions, prices, dates, live status) the more recent of two Tier-1/2 sources wins,
