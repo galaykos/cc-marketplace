@@ -3,6 +3,23 @@ name: livewire-best-practices
 description: Use when writing or reviewing Livewire 3 or 4 code — component granularity, wire:model live/blur/debounce modifiers, computed properties, locked properties, pagination, Alpine interop.
 ---
 
+> Last verified: 2026-08-12 — https://laravel-news.com/everything-new-in-livewire-4
+
+## Know the major before advising
+
+- composer.lock's `livewire/livewire` entry decides the API surface; a ⚡-marked
+  single-file component under `resources/views/` marks a v4 project layout.
+- **v2 → v3** flipped `wire:model` to deferred-by-default and renamed `emit()` to
+  `$dispatch()` — the two habits most often written into the wrong major.
+- **v4** (GA 2026-01-14; strong BC — v3 class components keep working, don't rewrite
+  them unprompted) — single-file components are the `make:livewire` default (`--mfc`
+  for multi-file); islands update page regions independently (lazy, named, append —
+  infinite scroll without parent re-render); `Route::livewire('/posts',
+  'pages::post.index')` routes by component name; `pages::`/`layouts::` namespaces;
+  scoped `<style>`/`<script>` inside the component; slots with `$attributes`
+  forwarding; `wire:sort` drag-and-drop; optimistic-UI directives (`wire:show`,
+  `wire:text`, `$dirty`) for instant feedback without a roundtrip.
+
 ## `wire:model` is deferred by default — opt into `.live` deliberately
 
 Livewire 3 inverted Livewire 2's default (and v4 keeps it): `wire:model` batches input into the
@@ -35,14 +52,6 @@ public function getTotal() { return $this->items->sum('price'); }
 // Good: computed, cached for the request — safe to reference in a loop
 #[Computed]
 public function total() { return $this->items->sum('price'); }
-```
-
-```blade
-{{-- Bad: plain method call per row re-executes the query each time --}}
-@foreach ($rows as $row) {{ $this->getTotal() }} @endforeach
-
-{{-- Good: computed property, cached, reused across the render --}}
-<p>Total: {{ $this->total }}</p>
 ```
 
 ## `#[Locked]` for values the client must not tamper with
@@ -83,22 +92,9 @@ add/remove/reorder.
 
 ## Pagination via `WithPagination`
 
-Use the `WithPagination` trait rather than hand-rolling offset math — it integrates with
-Livewire's query string binding and re-render cycle correctly.
-
-```php
-use Livewire\WithPagination;
-
-class ProductList extends Component
-{
-    use WithPagination;
-
-    public function render()
-    {
-        return view('livewire.product-list', ['products' => Product::paginate(10)]);
-    }
-}
-```
+Use the `WithPagination` trait (`use WithPagination;` on the component, `paginate()` in
+`render()`) rather than hand-rolling offset math — it integrates with Livewire's query
+string binding and re-render cycle correctly.
 
 ## Component communication: events vs props
 
@@ -146,9 +142,5 @@ sources of truth drift out of sync.
 - Duplicating the same state in both an Alpine `x-data` field and a Livewire public property.
 - Hand-rolling pagination instead of using `WithPagination`.
 
-## Verify Against Current Docs
-
-Livewire's defaults and APIs changed materially across majors: v2 → v3 flipped `wire:model`'s
-default and renamed `emit()` to `$dispatch()`; v4 (current since January 2026) keeps both but
-adds single-file components, islands, and `Route::livewire()` routing. Check the current docs:
-https://livewire.laravel.com
+- Writing v3 multi-file scaffolding advice (separate class + view) into a v4 SFC
+  project, or v4 SFC/island idioms against a v3 composer.lock.

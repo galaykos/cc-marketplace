@@ -3,6 +3,8 @@ name: inertia-best-practices
 description: Use when writing or reviewing Inertia.js code in a Laravel app with the Vue, React, or Svelte adapter — prop hygiene, partial reloads, lazy vs deferred props, useForm, shared data, SSR — v1/v2/v3 and adapter advice pinned to the installed packages.
 ---
 
+> Last verified: 2026-08-12 — https://github.com/inertiajs/inertia/releases
+
 ## Know the version before advising
 
 Inertia is two packages that must agree — check both before recommending anything:
@@ -65,11 +67,10 @@ return Inertia::render('Dashboard', [
 ## v3 leverage (only when installed)
 
 v3 (stable March 2026; floors: PHP 8.2+, Laravel 11+, React 19 / Svelte 5 adapters) keeps the
-whole v2 server API. The `@inertiajs/vite` plugin replaces the `createInertiaApp` resolve/setup
-boilerplate and can serve SSR through the dev server with no separate Node process — once SSR is
-turned on, which it is not by default (see below). Axios is gone (built-in XHR client — migrate
-interceptors or add the axios adapter); packages are ESM-only.
-`useHttp` is `useForm`-style state for non-visit requests; `optimistic()` reverts on failure.
+whole v2 server API. The `@inertiajs/vite` plugin replaces `createInertiaApp` resolve/setup
+boilerplate and can serve SSR through the dev server with no separate Node process — once SSR
+is on, which it is not by default (see below). Axios is gone (built-in XHR client; migrate
+interceptors); ESM-only. `useHttp` is `useForm` for non-visit requests; `optimistic()` reverts.
 
 ## Forms: useForm is the default
 
@@ -147,8 +148,7 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
 - Expensive props computed unconditionally instead of behind closures/defer, making every
   partial reload pay full price.
 
-## Verify against current docs
+## Major-version deltas
 
-v1 → v2 renamed `lazy` → `optional` and added deferred props, `usePoll`, prefetching and merge
-props; v3 removed axios, went ESM-only, and moved entry/SSR wiring into `@inertiajs/vite`. Pin
-advice to the lockfiles and check https://inertiajs.com before asserting version-sensitive facts.
+v1 → v2: `lazy` → `optional`, deferred props, `usePoll`, prefetch, merge props. v3 (v3.6
+current; v2.x still maintained): axios removed, ESM-only, entry/SSR wiring in `@inertiajs/vite`.

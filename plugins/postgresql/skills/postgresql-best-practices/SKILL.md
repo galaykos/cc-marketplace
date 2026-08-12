@@ -3,6 +3,8 @@ name: postgresql-best-practices
 description: Use when writing or reviewing PostgreSQL 14+ schemas, queries, or migrations — MVCC/vacuum, timestamptz/jsonb/uuid, the index arsenal (partial, expression, covering, GIN, BRIN, CONCURRENTLY), lock-aware zero-downtime migrations, ON CONFLICT, pooling, version leverage through 17/18. Generic SQL rules live in the sql plugin.
 ---
 
+> Last verified: 2026-08-12 — https://www.postgresql.org/docs/18/release-18.html
+
 ## MVCC and vacuum reality
 
 - Every UPDATE/DELETE leaves a dead tuple; autovacuum reclaims them. A

@@ -3,23 +3,25 @@ name: vue3-best-practices
 description: Use when writing or reviewing Vue 3 code — script setup, composables design, ref vs reactive pitfalls, destructuring reactivity loss, watch vs watchEffect, Pinia stores.
 ---
 
+> Last verified: 2026-08-12 — https://github.com/vuejs/core/releases
+
+## Know the version before advising
+
+- The locked `vue` entry (package-lock.json / pnpm-lock.yaml / yarn.lock / bun.lock)
+  decides which rules apply — a `^3.4` constraint can resolve anywhere in 3.x; only the
+  lock says whether 3.5 semantics are safe to advise.
+- **3.4** — `defineModel` stable for two-way component binding.
+- **3.5** (current stable line, 3.5.41 as of 2026-08) — reactive props destructure
+  compiled and stable; `useTemplateRef`, `useId`; lazy hydration for async components.
+- **3.6** (release candidate as of 2026-08 — NOT stable) — Vapor mode: `<script setup
+  vapor>` compiles to direct DOM operations, opt-in per file; alien-signals reactivity
+  rewrite. Never introduce Vapor unless the project already pins a 3.6 pre-release.
+
 ## `<script setup>` as the default authoring style
 
 Prefer `<script setup>` over the Options API and plain `setup()`: top-level bindings are
 template-visible automatically, imports need no `components:` entry, and there's no
 `return { ... }` boilerplate.
-
-```html
-<!-- Bad: Options API — this-binding indirection -->
-<script>
-export default { data() { return { count: 0 }; }, methods: { inc() { this.count++; } } };
-</script>
-<!-- Good: script setup — template-visible, no return needed -->
-<script setup>
-import { ref } from 'vue';
-const count = ref(0);
-</script>
-```
 
 ## ref vs reactive — prefer ref
 
@@ -62,10 +64,7 @@ const { name } = toRefs(state); // Good: still linked, name.value updates with s
 
 ```js
 export function useCounter() { return reactive({ count: 0 }); } // Bad: breaks on destructure
-export function useCounter() {
-  const count = ref(0);
-  return { count, inc: () => count.value++ }; // Good: refs, safe to destructure
-}
+export function useCounter() { const count = ref(0); return { count }; } // Good: refs
 ```
 
 ## Props: defineProps and the destructure caveat
@@ -145,10 +144,4 @@ const user = inject(UserKey); // Good: typed as Ref<User> | undefined
   when `computed` was all that was needed.
 - Using string keys for `provide`/`inject` in TypeScript instead of an `InjectionKey`.
 - Assuming reactive props destructure works pre-3.5 without checking the Vue version.
-
-## Verify Against Current Docs
-
-Reactive props destructure, `<script setup>` compiler macros, and Pinia's store APIs have
-changed across minor releases. Before relying on memory for version-sensitive behavior,
-check https://vuejs.org and https://pinia.vuejs.org, and confirm against the actual
-`vue`/`pinia` versions in the project's `package.json`.
+- Advising Vapor mode against a 3.5 lockfile, or treating 3.6 RC features as stable.

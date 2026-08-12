@@ -30,8 +30,8 @@ Pin advice to the installed version; the useful floors:
   audit/history for free — query the past with `FOR SYSTEM_TIME AS OF`.
 - **10.5** — `INSERT ... RETURNING` and `DELETE ... RETURNING`: fetch generated
   ids or removed rows in one round trip instead of insert-then-select.
-- **10.6** — `JSON_TABLE`; ignored indexes (test removal safely). EOL July
-  2026 — treat remaining 10.6 deployments as upgrade-pending.
+- **10.6** — `JSON_TABLE`; ignored indexes (test removal safely). EOL reached
+  2026-07 — any remaining 10.6 deployment is unsupported; the upgrade is overdue.
 - **10.7** — native `UUID` type: stores compactly, sorts sanely — use it instead
   of `CHAR(36)`; `INET4`/`INET6` types for addresses.
 - **10.8** — descending index support: `ORDER BY a ASC, b DESC` can finally be

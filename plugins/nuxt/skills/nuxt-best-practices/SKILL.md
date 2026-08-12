@@ -3,13 +3,15 @@ name: nuxt-best-practices
 description: Use when writing or reviewing Nuxt code — Nitro server routes, hybrid rendering via routeRules, useFetch vs useAsyncData vs bare $fetch, payload dedup, useState cross-request pollution, runtimeConfig, useSeoMeta — pinned to the lockfile's nuxt version. Vue component rules live in vue3; raw Vite config in vite.
 ---
 
+> Last verified: 2026-08-12 — https://github.com/nuxt/nuxt/releases
+
 ## Know the version before advising
 
 - The locked `nuxt` entry (package-lock.json / yarn.lock / pnpm-lock.yaml / bun.lock)
   decides every default below — a `^3.17` constraint can resolve anywhere in 3.x; only
   the lock says whether the project runs Nuxt 3 or Nuxt 4 semantics.
-- Nuxt 3 EOL: 2026-07-31; treat a Nuxt 3 lockfile as a migration flag —
-  note it once, then advise within 3.x, never above it.
+- Nuxt 3 is EOL (2026-07-31, security patches only) — treat a Nuxt 3 lockfile as a
+  migration flag: note it once, then advise within 3.x, never above it.
 - Read `nuxt.config.ts` first: `compatibilityVersion`, `future`/`experimental` flags,
   and `routeRules` change which defaults apply regardless of the version number.
 - Verify version-sensitive claims against https://nuxt.com for the locked minor, never
@@ -36,6 +38,9 @@ description: Use when writing or reviewing Nuxt code — Nitro server routes, hy
 - **Nuxt 4.4** (2026-03) — `createUseFetch`/`createUseAsyncData` factories; vue-router
   v5; typed layout props via `definePageMeta`; `payloadExtraction: 'client'`; `refresh`
   option on `useCookie`.
+- **Nuxt 4.5** (2026-07, current) — Vite 8; Rspack 2 via Rsbuild; experimental SSR
+  streaming; stable error codes. No Nuxt 5 release yet — `future.compatibilityVersion: 5`
+  is the opt-in preview.
 
 ## Data fetching — the three tools
 
@@ -145,10 +150,3 @@ export const useUser = () => useState('user', () => null); // Good: per-request,
   function belongs in app.vue, not nuxt.config; `app.head` is static, never reactive.
 - Advising Nuxt 4 semantics (shallow data, `undefined` defaults, `app/` dir) against a
   Nuxt 3 lockfile — or vice versa.
-
-## Verify Against Current Docs
-
-Data-fetching semantics, directory layout, and rendering defaults moved between Nuxt 3
-and 4, and minors keep shipping (4.4 fetch factories, 4.3 `#server`, v5/Nitro v3 ahead).
-Confirm version-sensitive claims against https://nuxt.com for the exact locked version,
-and read `nuxt.config.ts` first so you don't flag what the config already handles.
