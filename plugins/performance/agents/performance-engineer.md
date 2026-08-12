@@ -26,6 +26,15 @@ independently verifiable.
 
 Before changing a shared symbol's signature or behavior, grep its call sites. Update every broken caller inside your allowed scope; a breaking caller OUTSIDE your allowed files is blast radius — flag it with evidence in your return, never edit it. Either way, a caller you didn't look for is a bug you shipped.
 
+## Code shape
+
+Match the surrounding file: its naming, its idioms, its comment density. A comment you
+add states a constraint the code cannot show — why-this-not-the-obvious, an external
+quirk with a link — never what the next line does or that the fix is now correct; that
+voice is the diff addressing its reviewer, and it is noise once merged. New behavior
+you add that no test exercises is named as untested in your return — green checks must
+not imply coverage they do not have.
+
 ## Operating procedure
 
 Your iron rule: measure before optimizing,
