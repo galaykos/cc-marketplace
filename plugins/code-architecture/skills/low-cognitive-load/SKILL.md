@@ -93,6 +93,12 @@ function applyTransaction(user, amount, isWithdrawal) {
 (Note `isWithdrawal` here is still a boolean param smell per above — in real code this would
 likely split into `withdraw(user, amount)` / `deposit(user, amount)`.)
 
+Names also read against their neighbors: match the surrounding file's naming, idiom, and
+comment density rather than importing a house style of your own. A file where one function
+speaks a different dialect makes the reader ask what the difference MEANS — and the answer
+"nothing, different author" is pure load. When the local convention is itself the problem,
+change it deliberately and everywhere, not as a side effect of one edit.
+
 ## Locality of behavior over scattered indirection
 
 Prefer code where the behavior relevant to understanding a line is nearby — in the same

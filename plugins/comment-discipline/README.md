@@ -17,7 +17,7 @@ markers, and contract facts a signature cannot express.
 
 | Command | What it does |
 |---------|--------------|
-| `/comment-discipline:review [path-or-diff]` | Audit comments — restatement of the next line, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, and missing why-comments on non-obvious choices — one line per finding |
+| `/comment-discipline:review [path-or-diff]` | Audit comments — restatement of the next line, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, change-narration comments that describe the edit, and missing why-comments on non-obvious choices — one line per finding |
 
 ## Example
 
@@ -34,9 +34,11 @@ reports findings sorted by severity with a concrete fix each.
 
 One detector inspects the text each `Edit` / `Write` / `MultiEdit` adds, on two lanes.
 
-**`PostToolUse` — warns.** At most one line, for any of the five categories: a comment
-restating the next line, a section banner, commented-out code, a bare `TODO`, or a
-docblock tag that repeats the signature. Never blocks. Silence is the common case.
+**`PostToolUse` — warns.** At most one line, for any of the six categories: a comment
+restating the next line, a section banner, commented-out code, a bare `TODO`, a
+docblock tag that repeats the signature, or a change-narration comment that describes
+the edit rather than the code ("now correctly handles…", "updated to use…", "fix per
+review"). Never blocks. Silence is the common case.
 
 **`PreToolUse` — denies, narrowly.** Warning after the write is warning about a file
 that is already on disk, and a warning the model can walk past is not enforcement. So
@@ -49,11 +51,14 @@ the two strictest categories are refused *before* the write:
 | Section banner | warn | allow |
 | Bare `TODO` | warn | allow |
 | Docblock tag repeating the signature | warn | allow |
+| Change-narration comment | warn | allow |
 
 Only the first two are denied because only those two have detectors strict enough to
 carry a veto: a restatement requires *every* content word of the comment to be
 recoverable from the code line, and commented-out code is matched as syntax, not prose.
-The rest are house-style calls, and a `TODO` can be a legitimate mid-task marker.
+The rest are house-style calls: a `TODO` can be a legitimate mid-task marker, and the
+narration detector is phrase cues, which can catch a why-comment phrased as a change
+event.
 
 The deny is **one-shot per file per session**. A second edit to the same file goes
 through, and the `PostToolUse` lane warns on it instead — so a false positive costs one

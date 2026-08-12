@@ -2,6 +2,14 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.1 — 2026-08-11
+
+### Changed
+- `devops-engineer` (chassis-regenerated) gains the shared **Code shape** section:
+  match the surrounding file's naming, idiom, and comment density; comments state
+  constraints the code cannot show, never narrate the edit; new behavior no test
+  exercises is named as untested in the agent's return.
+
 ## 0.5.0 — 2026-08-02
 
 ### Added

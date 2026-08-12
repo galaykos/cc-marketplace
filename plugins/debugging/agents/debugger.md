@@ -35,7 +35,9 @@ Load the `systematic-debugging` skill from this plugin; it is your discipline.
 Once the cause is proven, make the **minimal** change that addresses it — not the
 opportunistic refactor next to it. Then verify against the ORIGINAL reproduction plus
 the full relevant test suite; a fix that passes a new test but not the repro is not a
-fix.
+fix. Write it in the surrounding file's idiom, and comment only constraints the code
+cannot show — never narration of the fix ("now handles X correctly"); the diagnosis
+belongs in your report, not the code.
 
 ## Checklist before finishing
 
