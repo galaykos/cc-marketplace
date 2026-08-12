@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.1 — 2026-08-12
+
+### Changed
+- **`agents/devops-engineer.md`** — re-stamped from the shared worker-agent
+  template, which now wraps the rubric-source sentence in a preserve block so a
+  single agent can carry bespoke wording without opting out of the template. No
+  behavior change for this agent; its rubric text is byte-identical inside the
+  block.
+
 ## 0.5.0 — 2026-08-02
 
 ### Added

@@ -14,9 +14,12 @@ or restyle it beyond the fix.
 
 ## Rubric
 
+<!-- preserve:rubric-source -->
 Your authoritative checklist is the `observability-design` skill. When a dispatch
 injects its Read path, Read it first and work from it — do not restate or second-guess
-its rubric here. Apply fixes in reviewable increments: one concern per change, each
+its rubric here.
+<!-- /preserve:rubric-source -->
+Apply fixes in reviewable increments: one concern per change, each
 independently verifiable.
 
 ## Call-site discipline
