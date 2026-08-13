@@ -57,6 +57,15 @@ Repeat until no eligible milestone remains:
    `model:` (and `effort:`, valid on this `Workflow` path) as `agent()` options, using the
    tier RESOLVED per task-execution/SKILL.md's rule — never the literal `auto`, which is
    not a model. Prompt item 5 below is an informational echo only; it sets nothing.
+   **The WORKER is a parameter of the same call:** pass
+   `agentType: 'task-runner:task-executor'`. Omitted, the batch spawns generic workflow
+   subagents and the executor's contract — code shape, the untested-behavior
+   admission, the halt rules — never reaches the tracks, though the prompt does and the
+   run looks identical (`task-execution/references/routing.md` step 5).
+   A track worker stays `task-executor` rather than a specialist even when its cards
+   carry specialist tags: it runs mixed cards INLINE as a leaf (§Dispatch item 4), so
+   there is no per-card resolution to bind, and per-card skill priming is what carries
+   the framework knowledge instead.
 4. **Await** the whole batch. Update `00-INDEX.md` statuses (only the orchestrator writes
    it): `running(worktree)` → `merged` / `parked(reason)`.
 5. **Merge greens** (§Merge). A merge unblocks dependent milestones for the next wave.

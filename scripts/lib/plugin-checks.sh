@@ -449,3 +449,70 @@ pc_version_stamp() {
   printf 'unstamped %s\n' "$name"
   return 1
 }
+
+# pc_dispatch_binding <md_path> [plugins_root]
+# A shipped `agent(<args>)` code sample that spawns an agent this marketplace ships
+# must name it with `agentType`. Prints one `dispatch <path> <agent>` line per
+# unbound reference and returns 1; clean returns 0.
+#
+# WHY THIS EXISTS. `Workflow`'s `agent()` spawns the GENERIC workflow subagent unless
+# `agentType` is passed. A recipe that says "spawn one `researcher` per facet" in prose
+# and then shows `agent(researcherPrompt(facet), {schema, phase})` in its code block
+# dispatches something else entirely: the prompt arrives, the agent's own system prompt
+# does not, and the transcript is indistinguishable from a run that bound it correctly.
+# The word `agentType` appeared ZERO times across every plugin in this marketplace when
+# this check was written, while ~10 plugins ship agents and several fan out through
+# `Workflow` — so every one of those agent contracts was decorative on that path. The
+# cost is not theoretical: a 30-card run fanned out with no `agentType`, and
+# `task-executor`'s "match the surrounding file's comment density" never reached a
+# single writing agent (see task-execution/references/routing.md step 5).
+#
+# TWO STRUCTURAL GUARDS, so there is no exclusion list to maintain:
+#   1. A REAL CALL, not an API mention. `agent(` must be followed by something other
+#      than `)`. `dispatch-tiers.md` discusses "the `Workflow` `agent()` path" as a tier
+#      concept and names two agents in a table; it is documentation about dispatch, not
+#      a dispatch, and empty parens are exactly what tells the two apart.
+#   2. The referenced agent must RESOLVE — `<root>/<plugin>/agents/<name>.md` must
+#      exist. A bare backticked token counts only against the file's OWN plugin, so a
+#      common word (`verifier`, `researcher`) cannot match some other plugin's agent by
+#      accident; cross-plugin references use the `plugin:agent` form and are resolved
+#      against it directly.
+#
+# LIMITATION (honest scope — the four laws). CODE SAMPLES ONLY. It cannot read a prose
+# instruction ("dispatch the resolved worker") and confirm an orchestrator obeyed it at
+# runtime, and it cannot see a `Workflow` script the model composes on the fly — which is
+# how the original failure actually happened. It gates the recipes this marketplace
+# SHIPS, which is the part a repo can hold; the runtime half stays `agent-graded` and the
+# run-report line in routing.md step 5 is what makes it visible after the fact.
+#
+# BOUNDARY. `orchestration/scripts/dispatch-lint.sh` checks the CONTENT of a drafted
+# prompt (absolute path, scope lock, return shape, closing data instruction). This checks
+# WHICH AGENT the call binds. A prompt can pass all four of those elements and still be
+# handed to the wrong agent — that is the gap here, and nothing else looks at it.
+#
+# Mark a sample that deliberately wants the generic subagent with <!-- dispatch-ok -->.
+pc_dispatch_binding() {
+  local f="$1" root="${2:-plugins}" bad=0 plug a n tok lhs rhs
+  [ -f "$f" ] || return 0
+  grep -qE 'agent\([^)]' "$f" || return 0          # guard 1: a call, not a mention
+  grep -qF '<!-- dispatch-ok -->' "$f" && return 0
+  grep -qF 'agentType' "$f" && return 0
+
+  plug=${f#"$root"/}; plug=${plug%%/*}
+  if [ -d "$root/$plug/agents" ]; then
+    for a in "$root/$plug/agents"/*.md; do
+      [ -f "$a" ] || continue
+      n=$(basename "$a" .md)
+      grep -qE "\`$n\`|\`$plug:$n\`|\[$plug:$n\]" "$f" || continue
+      printf 'dispatch %s %s\n' "$f" "$plug:$n"; bad=1
+    done
+  fi
+  for tok in $(grep -oE '`[a-z0-9-]+:[a-z0-9-]+`|\[[a-z0-9-]+:[a-z0-9-]+\]' "$f" 2>/dev/null \
+                 | tr -d '`[]' | sort -u); do
+    lhs=${tok%%:*}; rhs=${tok#*:}
+    [ "$lhs" = "$plug" ] && continue              # already covered by the own-plugin pass
+    [ -f "$root/$lhs/agents/$rhs.md" ] || continue
+    printf 'dispatch %s %s\n' "$f" "$tok"; bad=1
+  done
+  return $bad
+}

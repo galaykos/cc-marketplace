@@ -153,4 +153,38 @@ rassert_clean clean-ordinary-english.md        # rollout/concurrency/etc. as pla
 # ESCAPE HATCH — <!-- removed-ok --> suppresses a would-be hit.
 rassert_clean rescued-removed-ok-marker.md
 
+# ---------------------------------------------------------------------------
+# Dispatch-binding gate: both directions, both structural guards, the escape.
+#
+# A `Workflow` agent() sample that spawns a shipped agent without `agentType`
+# dispatches the GENERIC workflow subagent instead — same prompt, no contract, and
+# a transcript that reads identically. `agentType` appeared zero times across this
+# marketplace before the gate existed, so every shipped agent contract was
+# decorative on that path.
+#
+# Fixtures live under a fake plugins root so the own-plugin and cross-plugin
+# resolution arms are both exercised with a real `<root>/<plugin>/agents/<name>.md`
+# probe — the same second argument validate.sh passes.
+# ---------------------------------------------------------------------------
+DFIXD=scripts/smoke/validate-fixtures/dispatch-binding
+DR="$DFIXD/fakeplug/skills/s/references"
+dassert_hit() { # $1 fixture file, $2 expected agent token
+  out_d=$(pc_dispatch_binding "$DR/$1" "$DFIXD"); st=$?
+  if [ "$st" -eq 1 ] && printf '%s' "$out_d" | grep -qF "$2"; then echo "PASS: dispatch-binding hit: $1"
+  else echo "FAIL: dispatch-binding $1 (status=$st hit='$out_d'; want status 1 + '$2')"; rc=1; fi
+}
+dassert_clean() { # $1 fixture file
+  out_d=$(pc_dispatch_binding "$DR/$1" "$DFIXD"); st=$?
+  if [ "$st" -eq 0 ] && [ -z "$out_d" ]; then echo "PASS: dispatch-binding clean: $1"
+  else echo "FAIL: dispatch-binding $1 (status=$st hit='$out_d'; want status 0 + empty)"; rc=1; fi
+}
+
+dassert_hit   violation-own-agent.md    fakeplug:worker    # backticked own-plugin agent
+dassert_hit   violation-cross-plugin.md otherplug:helper   # `plugin:agent` form
+
+dassert_clean clean-agenttype.md      # the binding is present
+dassert_clean clean-api-mention.md    # guard 1: `agent()` empty parens is not a call
+dassert_clean clean-no-agent-ref.md   # guard 2: no shipped agent named -> generic is right
+dassert_clean rescued-dispatch-ok.md  # <!-- dispatch-ok --> suppresses a would-be hit
+
 exit $rc
