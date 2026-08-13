@@ -51,6 +51,8 @@ jobs:
         run: bash scripts/smoke/hook-guard-tests.sh
       - name: Comment-discipline hook smoke tests
         run: bash scripts/smoke/comment-discipline-hook-tests.sh
+      - name: Comment-density + worktree-scoping smoke tests
+        run: bash scripts/smoke/comment-density-tests.sh
       - name: Verbosity hook smoke tests
         run: bash scripts/smoke/verbosity-hook-tests.sh
       - name: Authoring-guard smoke tests
