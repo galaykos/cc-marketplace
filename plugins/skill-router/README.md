@@ -64,7 +64,9 @@ You: run taskmaster: create a marketing landing page
 
 **Gated — the mechanism.** `scripts/smoke/prompt-route-tests.sh` (its own CI step) asserts the catalog is built, that every entry resolves to a real command file, that it contains only installed plugins, that the directive still carries all six discipline rules, that each guard silences the hook, and that it injects once per session. `scripts/validate.sh` fails the build on a hardcoded slash-command token in the hook, or on a fifth prompt-matching pattern — the signature of a routing table regrowing in shell.
 
-**The cost, plainly:** ~2.6k dynamic tokens measured for this plugin's hooks on the first work-shaped prompt + first edit of a session (the catalog is most of it), paid whether or not a better tool exists. A chat-only session pays nothing. `CC_ROUTE=off` disables this check; `CC_REMIND=off` disables every advisory nudge in the marketplace, this one included.
+**Gated — the install layout.** `scripts/smoke/versioned-layout-tests.sh` (its own CI step) runs the firing, suppression, catalog and skill-path assertions twice: once against a flat `<plugins>/<plugin>` layout and once against the versioned `<marketplace>/<plugin>/<version>` cache a real install uses. Both directions matter — the suppression cases fail if a resolution bug is "fixed" by making the installed-filter always fire. Until 0.11.0 the hooks resolved the plugins root as `dirname "$CLAUDE_PLUGIN_ROOT"`, correct only under the flat layout, so on a real install every rule was suppressed and the catalog was empty: the router shipped inert and every harness stayed green, because every harness built the flat layout. That is the gap this step exists to close.
+
+**The cost, plainly:** ~2.6k dynamic tokens measured for this plugin's hooks on the first work-shaped prompt + first edit of a session (the catalog is most of it), paid whether or not a better tool exists. A chat-only session pays nothing. `CC_ROUTE=off` disables this check; `CC_REMIND=off` disables every advisory nudge in the marketplace, this one included. Note the measurement runs against a flat checkout, so it is the cost a working install pays — before 0.11.0 no real install paid it, because nothing was emitted.
 
 It never forces a skill to run — hooks cannot — it injects a directive the model then acts on. It complements the existing description-based skill triggering; it does not replace it.
 
@@ -80,7 +82,7 @@ content       \b(password|jwt)\b      security-review       security        low
 
 - `signal_type`: `glob` (matched against the edited file path) or `content` (a `grep -E` pattern matched against the file's contents).
 - `confidence`: `high` fires inline once per session; `low` accumulates and flushes as one digest on the next prompt (SessionEnd keeps the ledger).
-- A rule only fires if its `owning_plugin` is installed.
+- A rule only fires if its `owning_plugin` is installed. "Installed" is resolved by `hooks/plugins-dir.sh`, which handles both the flat and the versioned-cache layouts; when it cannot recognise the layout it reports *uncertain*, and uncertain fires. A nudge toward a plugin you do not have costs one line — a suppressed nudge costs the whole point of the router.
 
 ### Stack markers (optional 6th column)
 

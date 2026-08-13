@@ -12,12 +12,13 @@
   [ -n "$cwd" ] || exit 0
   [ -d "$cwd" ] || exit 0
 
-  plugins_dir=""
-  [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && plugins_dir="$(dirname "$CLAUDE_PLUGIN_ROOT")"
+  # Both the flat and the versioned-cache layouts — see hooks/plugins-dir.sh.
+  PLUGINS_DIR=""; PLUGIN_LAYOUT="flat"
+  . "$(dirname "$0")/plugins-dir.sh" 2>/dev/null
+  command -v pr_resolve_plugins_dir >/dev/null 2>&1 && pr_resolve_plugins_dir
   installed() { # $1 owning_plugin — include-if-uncertain
-    [ -z "$plugins_dir" ] && return 0
-    [ -d "$plugins_dir/$1" ] && return 0
-    return 1
+    command -v pr_plugin_installed >/dev/null 2>&1 || return 0
+    pr_plugin_installed "$1"
   }
 
   skills=""

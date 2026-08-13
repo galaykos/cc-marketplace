@@ -63,6 +63,8 @@ jobs:
         run: bash scripts/smoke/route-marker-tests.sh
       - name: Prompt-router smoke tests
         run: bash scripts/smoke/prompt-route-tests.sh
+      - name: Router install-layout smoke tests (flat + versioned)
+        run: bash scripts/smoke/versioned-layout-tests.sh
       - name: Behavioral-verification smoke tests
         run: bash scripts/smoke/behavioral-verification-tests.sh
       - name: Completion-gate hook smoke tests
