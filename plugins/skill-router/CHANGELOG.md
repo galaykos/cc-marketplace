@@ -2,6 +2,44 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.12.0
+
+### Added
+
+- **Engine-specific database routing.** `mysql-best-practices`,
+  `mariadb-best-practices` and `postgresql-best-practices` shipped with no
+  file-routing channel at all — they were named in this file's own limitation
+  block as unrouted. Six rows now route them on `*.sql` and `**/migrations/**`,
+  discriminated by a compose-image-first marker chain (compose → `.env.example`
+  `DB_CONNECTION` → composer.json → package.json).
+
+  The last two links are deliberate and invert the router's usual
+  fire-if-uncertain bias, for these rows only: the three engine skills are
+  mutually exclusive and their advice conflicts, so a repo with a composer.json
+  and no database hint gets none of them rather than all three. A bare directory
+  of `.sql` files with no manifests still fires all three — no signal, fail-open,
+  and the one place the conflicting-advice cost is accepted. Three known misses
+  are listed in `rules.tsv` rather than left to be discovered.
+
+- **Plain-source rows for Go, Ruby and Rust** — `*.go`, `*.rb`, `*.rs` route to
+  `low-cognitive-load` + `solid-principles`, matching what `*.ts` / `*.js` /
+  `*.py` already did. The limitation block recorded this gap; it is now closed
+  and the text says so.
+
+- Twelve `# co-fire-ok:` declarations for the new pairs. Generic + engine on one
+  file is intended (portable SQL vs what only that engine does); the engine rows
+  discriminate against each other by distinct markers and need no blessing.
+
+### Notes
+
+- Correction to 0.11.0's note: `*.php` was NOT missing. Lines 78-79 have carried
+  Laravel and plain-PHP rows behind `composer.json` markers all along.
+- Still unrouted, deliberately: `code-smells`, `reuse-hygiene`, `yagni-check`,
+  `plan-before-code`. `comment-discipline` stays absent by design — its own
+  PreToolUse/PostToolUse hook is its delivery channel.
+- No context-budget change: the dynamic channel measures a synthetic edit to
+  `src/example.ts`, which no new row matches.
+
 ## 0.11.0
 
 ### Fixed
