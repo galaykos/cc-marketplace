@@ -74,6 +74,14 @@
   }
 
   # ---- 1. slash commands -------------------------------------------------------
+  # A slash command suppresses § 2 (natural-language SWITCHING) and nothing else.
+  # It used to `exit 0` outright, which also swallowed § 3 — so every slash-command
+  # turn silently lost the budget reminder. That matters most where it is least
+  # visible: an entry command like /code-architecture:coding-task is exactly what
+  # you type at the START of long work, and § 3 is what refreshes the budget after
+  # the SessionStart block has been summarised out of context. The level itself was
+  # never lost (it is session state, set by activate.sh), only its restatement.
+  slash=0
   case "$prompt" in
     /terse:level* | /terse\ * | /terse)
       arg=$(printf '%s' "$prompt" | tr 'A-Z' 'a-z' | awk '{print $2}')
@@ -86,7 +94,7 @@
       esac
       exit 0
       ;;
-    /*) exit 0 ;; # every other slash command manages its own flow
+    /*) slash=1 ;; # manages its own flow — for switching. § 3 still reinforces.
   esac
 
   # ---- 2. natural-language switching -------------------------------------------
@@ -95,7 +103,10 @@
   # deep), and refuse prompts that are ABOUT this machinery rather than using it.
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400 | tr 'A-Z' 'a-z')
-  about=0
+  # A slash command starts here already disqualified: its ARGUMENTS are a task
+  # description, not a request to change the mode, and "/coding-task stop being
+  # terse about the docs" must not switch anything.
+  about=$slash
   printf '%s' "$head" | grep -qE '(delete|remove|uninstall|disable|install|list|which|audit|fix|write|edit|test)[a-z -]{0,40}(plugin|hook|reminder|skill|command)' && about=1
   # This hook's own output, echoed back in a pasted transcript. Every shape it
   # emits must be listed — the confirmation ("TERSE MODE — level: x") and the
