@@ -72,13 +72,22 @@ It never forces a skill to run — hooks cannot — it injects a directive the m
 
 ## Adding a file route
 
-Edit `rules.tsv` — one tab-separated row, no code change (prompt routes go in `prompt-rules.tsv`, above):
+Edit `rules.tsv` — one tab-separated row, no code change:
 
 ```
 signal_type   pattern                 skill                 owning_plugin   confidence
 glob          *.sql                   sql-best-practices    sql             high
 content       \b(password|jwt)\b      security-review       security        low
 ```
+
+**There is no prompt-route table, and adding one is a decided-against design.** Only
+`rules.tsv` ships; routes here are FILE-shaped. Prompt-shaped routing existed once and was
+removed — `hooks/route-prompt.sh` states why in its header: *"a table only ever routes the
+phrasings its author thought of, and every new plugin needed a new row"*. What replaced it
+is the command catalog plus the model's judgment, which reads meaning rather than matching
+strings. An earlier revision of this section pointed at a `prompt-rules.tsv` that has
+never existed in this plugin; if you came here to add a row to it, this paragraph is the
+answer.
 
 - `signal_type`: `glob` (matched against the edited file path) or `content` (a `grep -E` pattern matched against the file's contents).
 - `confidence`: `high` fires inline once per session; `low` accumulates and flushes as one digest on the next prompt (SessionEnd keeps the ledger).

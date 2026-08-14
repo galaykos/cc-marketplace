@@ -2,6 +2,19 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.12.1
+
+### Fixed
+
+- `README.md` § Adding a file route told you to put prompt routes in
+  `prompt-rules.tsv`. **That file has never existed in this plugin.**
+  Prompt-shaped routing was removed deliberately —
+  `hooks/route-prompt.sh`'s header records the reason ("a table only ever routes
+  the phrasings its author thought of, and every new plugin needed a new row")
+  and the command catalog plus model judgment replaced it. The section now says
+  so explicitly, including that adding such a table is a decided-against design,
+  so the next person to look does not go build the file the docs promised.
+
 ## 0.12.0
 
 ### Added
