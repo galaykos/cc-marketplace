@@ -70,7 +70,12 @@ scan() { # extended-regex -> count
 #    misses entirely, because a suppression reads as code rather than as debt.
 P_SUPPRESS='eslint-disable|@ts-ignore|@ts-expect-error|@phpstan-ignore|@psalm-suppress|# *noqa|@SuppressWarnings|#\[allow\(|// *nolint|rubocop:disable|# *type: *ignore|@pragma\('
 # 2. SKIPPED / QUARANTINED TESTS — a test that does not run is a claim nobody checks.
-P_SKIP='\b(it|test|describe|context)\.(skip|todo)\b|\bx(it|describe)\b|@pytest\.mark\.(skip|xfail)|markTestSkipped|markTestIncomplete|t\.Skip\(|@Ignore\b|@Disabled\b|#\[ignore\]'
+#    `->skip(`/`->todo(` is Pest's chained form and its IDIOMATIC one — the PHPUnit
+#    entries below (markTestSkipped) do not cover it, so a Pest suite's quarantined
+#    tests counted zero while the same project's PHPUnit-style skips counted. Pest is
+#    first-class here: this marketplace ships php + laravel plugins, and testing's
+#    flake-hunt runner table lists Pest by name.
+P_SKIP='\b(it|test|describe|context)\.(skip|todo)\b|->(skip|todo)\(|\bx(it|describe)\b|@pytest\.mark\.(skip|xfail)|markTestSkipped|markTestIncomplete|t\.Skip\(|@Ignore\b|@Disabled\b|#\[ignore\]'
 # 3. BARE MARKERS — no owner, no date, no issue link.
 P_TODO='(^|[^[:alnum:]])(TODO|FIXME|HACK|XXX)([^[:alnum:](]|$)'
 # 4. DEPRECATED-SYMBOL REFERENCES — the deprecation was announced; nothing counts
