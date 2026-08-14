@@ -45,7 +45,15 @@
 
   # Generated, vendored, and tooling paths are exempt: their header banners and usage
   # blocks are deliberate, and nobody edits them by hand for readability.
-  case "$fp" in
+  #
+  # Tested against the LOGICAL path — a worktree prefix stripped — because this
+  # marketplace places worktrees at `.claude/worktrees/<branch>`, and `*/.claude/*`
+  # was therefore exempting every source file written by a track run. See
+  # hooks/paths.sh. A missing lib leaves lp = fp, i.e. the old behaviour.
+  lp="$fp"
+  . "$(dirname "$0")/paths.sh" 2>/dev/null
+  command -v cd_logical_path >/dev/null 2>&1 && lp=$(cd_logical_path "$fp")
+  case "$lp" in
     */.claude/*|*/node_modules/*|*/vendor/*|*/dist/*|*/build/*|*/.git/*) exit 0 ;;
     */scripts/*.sh|*/templates/*|*/plugins/*/hooks/*|*/migrations/*) exit 0 ;;
   esac

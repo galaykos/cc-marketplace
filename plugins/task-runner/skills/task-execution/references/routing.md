@@ -52,7 +52,28 @@ and picks the first present in its available-agent-types list.
    proceed silently: print one line in the run output — `degraded: card <id> runs
    framework-blind ("<skill>" not installed; install <plugin> to fix)` — and continue.
    The user must see the degradation, not discover it at review.
-5. **Dispatch** the resolved worker with that prompt.
+5. **Dispatch** the resolved worker with that prompt. **The resolution above binds only
+   if the dispatch names the worker.** On the Agent path that is `subagent_type:
+   <resolved>`; on the `Workflow` path it is the `agentType` option —
+   `agent(prompt, {agentType: 'task-runner:task-executor', …})`. A `Workflow` `agent()`
+   call that omits it spawns the GENERIC workflow subagent: steps 1–2 still run, the
+   prompt still arrives, and the worker's own contract does not. Everything the resolved
+   agent carries in its frontmatter body is then silently absent — including
+   `task-executor`'s *"match the surrounding file's naming, idiom, and comment density"*
+   and its *"new behavior no test exercises is named as untested"* rule. Both were
+   written, shipped, and unreachable on a 30-card run that fanned out through
+   `Workflow` with no `agentType`: the output carried ~2× the repo's comment density
+   and ~8× its tests-per-integration, and every gate passed green.
+
+   Log the dispatch mechanism and the bound agent per card in the run report, next to
+   the worker downgrade line from step 2 — an unbound dispatch is invisible in the diff
+   and reads exactly like a bound one.
+
+   **Standing: agent-graded.** `scripts/validate.sh` fails a shipped `agent(<args>)`
+   code sample that spawns a plugin's own agent without `agentType`, which is what
+   catches a recipe. It cannot read a prose instruction like this one and confirm the
+   orchestrator followed it — that is the residual, and the run-report line above is the
+   only place it becomes visible after the fact.
 6. **Enforce + verify on return.** Run a **diff-vs-declared-files check** (git diff of
    the paths the worker touched vs the declared allowed-files); reclaim/reject a card
    that touched out-of-set files. Then re-run the card's exact verify command yourself

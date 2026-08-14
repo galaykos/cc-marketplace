@@ -147,6 +147,22 @@ done < <(
   } | sort -u
 )
 
+# Dispatch-binding gate (HARD). A shipped `agent(<args>)` sample that spawns an agent
+# this marketplace ships must bind it with `agentType`; without it `Workflow` spawns the
+# generic subagent and the agent's contract silently does not apply. Detector, guards and
+# honest scope live in pc_dispatch_binding (scripts/lib/plugin-checks.sh).
+#
+# Its own loop, NOT the one above: that loop excludes taskmaster and task-runner because
+# those two own the internal jargon the jargon guard hunts. They are also the plugins that
+# fan out the most, so inheriting that exclusion here would blind this gate to its most
+# likely offender.
+while IFS= read -r mdf; do
+  dhit=$(pc_dispatch_binding "$mdf") \
+    || err "$mdf: Workflow agent() sample spawns [$(printf '%s' "$dhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] without agentType — the generic workflow subagent runs instead and the agent's contract never applies; pass agentType, or mark the sample <!-- dispatch-ok -->"
+done < <(
+  find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \) | sort -u
+)
+
 # Every /plugin:command reference in docs must resolve to a listed plugin
 known=$(jq -r '.plugins[].name' "$MP")
 while IFS=: read -r file ref; do

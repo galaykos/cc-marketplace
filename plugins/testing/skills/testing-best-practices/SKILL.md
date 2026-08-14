@@ -1,6 +1,6 @@
 ---
 name: testing-best-practices
-description: Use when writing or reviewing tests in any stack — behavior at public boundaries, pyramid pragmatics, Pest/PHPUnit, Vitest/Jest with testing-library and msw, Playwright/Dusk e2e, mocking at owned boundaries, flaky-test root causes, determinism, coverage traps.
+description: Use when writing or reviewing tests in any stack — behavior at public boundaries, pyramid pragmatics, Pest/PHPUnit, Vitest/Jest with testing-library and msw, Playwright/Dusk e2e, mocking at owned boundaries, flaky-test root causes, determinism, coverage traps, and suite proportionality.
 ---
 
 ## What to test
@@ -11,8 +11,8 @@ which collaborator got called. The contract: a refactor that preserves
 behavior must not break a test. Corollaries:
 
 - One logical assertion focus per test. Several `expect` lines are fine when
-  they describe one outcome (status + payload shape); three unrelated
-  behaviors under one name are three tests hiding a failure each.
+  they describe one outcome (status + payload shape); three unrelated behaviors
+  under one name are three tests hiding a failure each.
 - Test names are specs: `it rejects expired coupons at checkout`, not
   `test_coupon_2`. A red name should say what broke before the body is read.
 - Unhappy paths first in review: validation failures, authorization denials,
@@ -20,14 +20,15 @@ behavior must not break a test. Corollaries:
 
 ## Pyramid pragmatics
 
-Many millisecond unit/feature tests at the bottom, a handful of e2e at the
-top. An e2e test earns its seconds only when integration itself is the risk:
-signup-to-first-value, checkout-and-payment, login/SSO. Everything else
-belongs a layer down, where failure output names the cause instead of
-"element not found". In Laravel the workhorse is the feature test — real HTTP
-kernel, container, and test database; reserve unit tests for pure logic
-(money math, parsers, date rules). Do not unit-test controllers against
-mocked requests: integration is that layer's entire job.
+Many millisecond unit/feature tests at the bottom, a handful of e2e at the top.
+An e2e test earns its seconds only when integration itself is the risk:
+signup-to-first-value, checkout-and-payment, login/SSO. Everything else belongs
+a layer down, where failure output names the cause instead of "element not
+found". In Laravel the workhorse is the feature test — real HTTP kernel,
+container, test database; reserve unit tests for pure logic (money math,
+parsers, date rules). Do not unit-test controllers against mocked requests:
+integration is that layer's entire job. One rule, proved at two layers, is one
+proof and one duplicate — `references/proportionality.md` § duplicate-layer.
 
 ## PHP: Pest / PHPUnit
 
@@ -67,24 +68,22 @@ mocked requests: integration is that layer's entire job.
 
 - Selectors by role/label/text (`getByRole`, `dusk="..."` attributes), never
   CSS chains like `.card > div:nth-child(2)` that break on a class rename.
-- Auto-waiting assertions (`expect(locator).toBeVisible()`, `waitForText`)
-  over sleeps. Every `sleep(2)` is a flake under load and two wasted seconds
-  otherwise; disable animations in the test environment rather than waiting
-  them out.
-- Fresh state per test: new browser context/session, seed through factories
-  or an API call — not by clicking through the UI to arrange preconditions,
-  which makes every test transitively depend on every screen it crosses.
-  Reserve UI-driven setup for the one test whose subject IS that flow.
+- Auto-waiting assertions (`expect(locator).toBeVisible()`, `waitForText`) over
+  sleeps. Every `sleep(2)` is a flake under load and two wasted seconds
+  otherwise; disable animations in the test environment instead.
+- Fresh state per test: new browser context/session, seed through factories or
+  an API call — not by clicking through the UI to arrange preconditions, which
+  makes every test transitively depend on every screen it crosses. Reserve
+  UI-driven setup for the one test whose subject IS that flow.
 
 ## Mocking discipline
 
-Mock at architectural boundaries you own — the payment-gateway port, the
-clock, the outbound HTTP client — and run the real thing everywhere inward.
-Never mock the class under test or its value objects. A test that stubs five
-collaborators to assert a sixth was called verifies wiring, not behavior: it
-passes when the code is wrong and fails when the code is refactored — the
-exact inverse of useful. When a unit needs that many stubs, the design wants
-fewer dependencies, not a better mocking library.
+Mock at architectural boundaries you own — the payment-gateway port, the clock,
+the outbound HTTP client — and run the real thing everywhere inward. Never mock
+the class under test or its value objects. A test that stubs five collaborators
+to assert a sixth was called verifies wiring, not behavior: it passes when the
+code is wrong and fails when it is refactored — the exact inverse of useful.
+When a unit needs that many stubs, the design wants fewer dependencies.
 
 ## Determinism
 
@@ -94,28 +93,31 @@ fewer dependencies, not a better mocking library.
 - Seed randomness: Faker with a fixed seed, seeded RNG where code rolls
   dice. A generator that "sometimes" collides on unique emails is a flake
   on a delay timer.
-- Order independence: every test builds and owns its state. If the suite
-  only passes in file order, shared state is the bug — run shuffled
-  (PHPUnit `--order-by=random`, Vitest `sequence.shuffle`) to keep it honest.
+- Order independence: every test builds and owns its state. If the suite only
+  passes in file order, shared state is the bug — run shuffled (PHPUnit
+  `--order-by=random`, Vitest `sequence.shuffle`) to keep it honest.
 
 ## Flaky tests
 
 Root causes are finite: real time, real network, shared mutable state, order
-dependence, animation and render races. Each has a fix above — frozen clock,
-msw or `Http::fake`, per-test state, shuffled order, auto-waiting assertions.
-Policy: quarantine a flake the day it appears, fix or delete it within the
-sprint. A retried-until-green test is a deleted test with extra steps — it
-still spends CI minutes but can no longer fail, and it teaches the team that
-red does not mean broken.
+dependence, render races — each has its fix above. Quarantine a flake the day
+it appears; fix or delete it within the sprint. A retried-until-green test is a
+deleted test with extra steps: it still spends CI minutes, can no longer fail,
+and teaches the team that red does not mean broken. `/testing:flake-hunt`
+classifies a suite's flakes into order-dependent / non-deterministic / broken.
 
 ## Coverage traps
 
-Line coverage is a floor, not a target: it proves code ran, not that
-anything was checked. Chasing a percentage manufactures assertion-free tests
-that execute code and verify nothing. Watch for untested branches in review
-instead, and spot-check the suite's teeth with mutation testing (Infection,
-Stryker) on core domain modules — a surviving mutant is a missing assertion
-with an address.
+Line coverage is a floor, not a target: it proves code ran, not that anything
+was checked. Chasing a percentage manufactures assertion-free tests that execute
+code and verify nothing. Watch for untested branches in review instead, and
+spot-check the suite's teeth with mutation testing (Infection, Stryker) on core
+domain modules — a surviving mutant is a missing assertion with an address.
+
+Too MUCH suite is the other trap, and nothing measures it: every gate around you
+pushes test count up and none pushes back. `references/proportionality.md` names
+the shapes fat takes, what to protect whatever the ratio says, and why the
+delete list is the owner's call.
 
 ## Assert behavior, never source text
 
@@ -132,14 +134,12 @@ that changed nothing, and its real subject is the file's spelling.
     expect(element.getAnimations()).toHaveLength(0);
 
 The tell: would the assertion still pass if the feature were deleted and
-replaced by a comment containing the same words? Then it tests nothing.
-This is the dominant failure mode when a suite is written to accompany
-work rather than to check it — the tests narrate the diff instead of
-exercising it, and every one of them is green before the feature exists.
-
-Where behavior genuinely cannot be exercised — build config, a
-deploy-only path — assert the OUTPUT of running the thing (the built
-artifact, the process exit code), never the input that describes it.
+replaced by a comment containing the same words? Then it tests nothing. This
+is the dominant failure mode when a suite is written to accompany work rather
+than check it — the tests narrate the diff, and are green before the feature
+exists. Where behavior genuinely cannot be exercised (build config, a
+deploy-only path), assert the OUTPUT of running the thing — the built
+artifact, the process exit code — never the input that describes it.
 
 ## Anti-patterns
 

@@ -30,10 +30,14 @@
   rules="${CLAUDE_PLUGIN_ROOT}/rules.tsv"
   [ -f "$rules" ] || exit 0
 
-  # Sibling plugins directory, for the installed-plugin filter. Empty when
-  # CLAUDE_PLUGIN_ROOT is unset — in that case we fire anyway (bias to surface).
-  plugins_dir=""
-  [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && plugins_dir="$(dirname "$CLAUDE_PLUGIN_ROOT")"
+  # Sibling plugins directory, for the installed-plugin filter. Resolved by
+  # hooks/plugins-dir.sh, which handles both the flat and the versioned-cache
+  # layouts — see that file's header for why dirname alone silently disabled this
+  # hook on every real install. Empty when it cannot be determined, and empty
+  # means fire anyway (bias to surface). A missing lib lands on the same default.
+  PLUGINS_DIR=""; PLUGIN_LAYOUT="flat"
+  . "$(dirname "$0")/plugins-dir.sh" 2>/dev/null
+  command -v pr_resolve_plugins_dir >/dev/null 2>&1 && pr_resolve_plugins_dir
 
   state_dir="$cwd/.claude/skill-router"
   state_file="$state_dir/fired-$session_id.json"
@@ -43,9 +47,8 @@
   base=$(basename "$file_path")
 
   plugin_installed() { # $1 owning_plugin — fire-if-uncertain
-    [ -z "$plugins_dir" ] && return 0
-    [ -d "$plugins_dir/$1" ] && return 0
-    return 1
+    command -v pr_plugin_installed >/dev/null 2>&1 || return 0
+    pr_plugin_installed "$1"
   }
   already_fired() { printf '%s\n' "$fired" | grep -qxF "$1"; }
 
@@ -96,8 +99,11 @@
   emit_nudge() { # $1 skill, $2 owning_plugin — accumulates; delivered once below.
     # When the SKILL.md is locatable, name its path: a subagent context has no
     # Skill tool, so "load the skill" is only actionable there as a Read.
-    local sp=""
-    [ -n "$plugins_dir" ] && [ -f "$plugins_dir/$2/skills/$1/SKILL.md" ] && sp=" — Read $plugins_dir/$2/skills/$1/SKILL.md"
+    # Under a versioned cache the SKILL.md sits one level below the plugin dir, so
+    # the path comes from pr_plugin_root rather than a join onto the plugins root.
+    local sp="" proot=""
+    command -v pr_plugin_root >/dev/null 2>&1 && proot=$(pr_plugin_root "$2")
+    [ -n "$proot" ] && [ -f "$proot/skills/$1/SKILL.md" ] && sp=" — Read $proot/skills/$1/SKILL.md"
     nudges="${nudges}$(printf '[skill-router] This edit touches %s — load the `%s` skill (%s plugin) and review your change against it before continuing.%s' "$base" "$1" "$2" "$sp")"$'\n'
   }
 

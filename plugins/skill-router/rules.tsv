@@ -39,16 +39,55 @@
 # co-fire-ok: **/lang/** i18n php-best-practices
 # co-fire-ok: **/lang/** i18n low-cognitive-load
 # co-fire-ok: **/lang/** i18n solid-principles
+# Engine-specific DB rows co-fire with the generic ones by design: sql-best-practices
+# owns portable SQL, the engine skill owns what only that engine does (MVCC/vacuum,
+# lock-aware migrations, engine-specific index types). Both are wanted on one file;
+# that is not a collision. Engine rows discriminate against EACH OTHER by distinct
+# stack_markers, so only the generic pairs need blessing.
+# co-fire-ok: *.sql sql-best-practices postgresql-best-practices
+# co-fire-ok: *.sql sql-best-practices mysql-best-practices
+# co-fire-ok: *.sql sql-best-practices mariadb-best-practices
+# co-fire-ok: **/migrations/** sql-best-practices postgresql-best-practices
+# co-fire-ok: **/migrations/** sql-best-practices mysql-best-practices
+# co-fire-ok: **/migrations/** sql-best-practices mariadb-best-practices
+# co-fire-ok: **/migrations/** database-design postgresql-best-practices
+# co-fire-ok: **/migrations/** database-design mysql-best-practices
+# co-fire-ok: **/migrations/** database-design mariadb-best-practices
+# co-fire-ok: *.go low-cognitive-load solid-principles
+# co-fire-ok: *.rb low-cognitive-load solid-principles
+# co-fire-ok: *.rs low-cognitive-load solid-principles
 #
-# LIMITATION (honest scope): NOT routed by any rule — mysql/mariadb/postgresql
-# best-practices, code-smells, reuse-hygiene, yagni-check, plan-before-code, and
-# the rest of code-architecture beyond the two routed below. comment-discipline is
-# ABSENT here on purpose: its own PreToolUse/PostToolUse hook is the delivery
-# channel, and a routing row would be redundant — do not "fix" that. Plain source
-# edits (*.ts / *.js / *.py) route to low-cognitive-load + solid-principles, once
-# per skill per session; **/migrations/** routes to database-design alongside
-# sql-best-practices (blessed pair above). Other plain extensions (*.go, *.rb,
-# *.rs, …) still fire nothing — that gap is recorded, not silently filled.
+# LIMITATION (honest scope): NOT routed by any rule — code-smells, reuse-hygiene,
+# yagni-check, plan-before-code, and the rest of code-architecture beyond the two
+# routed below. comment-discipline is ABSENT here on purpose: its own
+# PreToolUse/PostToolUse hook is the delivery channel, and a routing row would be
+# redundant — do not "fix" that. Plain source
+# edits (*.ts / *.js / *.py / *.go / *.rb / *.rs) route to low-cognitive-load +
+# solid-principles, once per skill per session; **/migrations/** routes to
+# database-design alongside sql-best-practices (blessed pair above).
+#
+# ENGINE DETECTION IS BEST-EFFORT. The chain is compose file → `.env.example`
+# `DB_CONNECTION` → composer.json → package.json, and marker_ok takes the FIRST
+# DECISIVE alternative: a manifest that exists and does not name the engine SUPPRESSES,
+# it does not fall through. A container image is the one signal that separates the
+# engines cleanly (`mariadb:11` does not contain `mysql`), which is why compose is
+# first.
+#
+# The last two links exist to make a signal-less repo decisive rather than noisy. These
+# three skills are MUTUALLY EXCLUSIVE and their advice conflicts — Postgres MVCC/vacuum
+# guidance on a MySQL schema is wrong, not merely redundant — so the router's usual
+# fire-if-uncertain bias is the wrong trade here: a repo with a composer.json and no DB
+# hint now gets none of them instead of all three. Verified live: Laravel-only
+# composer.json → `sql-best-practices` alone.
+#
+# Three known misses, in order of likelihood:
+#   1. A repo with no compose file whose `DB_CONNECTION=mysql` actually runs MariaDB —
+#      Laravel used the mysql driver for MariaDB for years. It gets the mysql skill.
+#   2. A database running outside the compose file: the compose file is decisive-no and
+#      suppresses before `DB_CONNECTION` is ever read.
+#   3. No manifests at all (a bare directory of `.sql` files) — nothing is decisive, so
+#      all three fire. That IS the fail-open contract, and it is the one case where the
+#      conflicting-advice cost above is accepted, because there is no signal to act on.
 # Of the craft-layer family only information-design is routed (**/dashboard/** +
 # **/admin/**); the rest (creative-direction, motion-tiers, …) deliberately reach
 # sessions via /craft-layer:craft and the catalog channel, not per-file rules —
@@ -57,12 +96,24 @@
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
 glob	**/migrations/**	database-design	database	high
+glob	*.sql	postgresql-best-practices	postgresql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||.env.example~DB_CONNECTION=pgsql||composer.json~pgsql|postgres||package.json~"pg"|postgres
+glob	*.sql	mysql-best-practices	mysql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||.env.example~DB_CONNECTION=mysql||composer.json~mysql||package.json~mysql
+glob	*.sql	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
+glob	**/migrations/**	postgresql-best-practices	postgresql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||.env.example~DB_CONNECTION=pgsql||composer.json~pgsql|postgres||package.json~"pg"|postgres
+glob	**/migrations/**	mysql-best-practices	mysql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||.env.example~DB_CONNECTION=mysql||composer.json~mysql||package.json~mysql
+glob	**/migrations/**	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
 glob	*.ts	low-cognitive-load	code-architecture	high
 glob	*.ts	solid-principles	code-architecture	high
 glob	*.js	low-cognitive-load	code-architecture	high
 glob	*.js	solid-principles	code-architecture	high
 glob	*.py	low-cognitive-load	code-architecture	high
 glob	*.py	solid-principles	code-architecture	high
+glob	*.go	low-cognitive-load	code-architecture	high
+glob	*.go	solid-principles	code-architecture	high
+glob	*.rb	low-cognitive-load	code-architecture	high
+glob	*.rb	solid-principles	code-architecture	high
+glob	*.rs	low-cognitive-load	code-architecture	high
+glob	*.rs	solid-principles	code-architecture	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high

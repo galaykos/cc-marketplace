@@ -45,12 +45,21 @@ refutation while another is still searching:
 ```
 pipeline(
   facets,
-  facet   => agent(researcherPrompt(facet), {schema: CLAIMS, phase: 'Search'}),
+  facet   => agent(researcherPrompt(facet), {schema: CLAIMS, phase: 'Search',
+                                             agentType: 'ultra-deep-research:researcher'}),
   claims  => parallel(rankByDependence(claims.loadBearing).slice(0, 8).map(c => () =>
                parallel([1, 2, 3].map(() => () =>                 // 3-vote refuter panel per load-bearing claim
-                 agent(refutePrompt(c), {schema: VERDICT, phase: 'Refute'})))
+                 agent(refutePrompt(c), {schema: VERDICT, phase: 'Refute',
+                                         agentType: 'ultra-deep-research:verifier'})))
                  .then(votes => ({...c, verdict: reduceRefutePanel(votes)})))),
 )
+
+// agentType is NOT optional here. Step 2 above says "spawn one `researcher`" and step 5
+// "spawn `verifier` agents" — on the Agent path that resolves to this plugin's shipped
+// agents and their contracts (source tiers, verbatim-quote rule, refute-by-default,
+// never-fabricate-a-URL). A Workflow `agent()` call WITHOUT agentType spawns the generic
+// workflow subagent instead: the prompt still arrives, the agent's own system prompt does
+// not, and the run reads as if the panel ran. The two paths must dispatch the same agent.
 
 // slice(0, 8) x 3 votes = the 24-dispatch/round cap (see Cost discipline). Never a silent
 // truncation: log() the deferred count and carry those claims as `unconfirmed` in the report.

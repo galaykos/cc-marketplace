@@ -84,16 +84,23 @@
   # Only the sibling plugins directory is read, so an uninstalled plugin cannot
   # appear. The description is the command's own frontmatter, already length-linted
   # by scripts/validate.sh; the first clause is the part that says what it is FOR.
-  plugins_dir=""
-  [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && plugins_dir="$(dirname "$CLAUDE_PLUGIN_ROOT")"
-  [ -n "$plugins_dir" ] && [ -d "$plugins_dir" ] || exit 0
+  #
+  # `pr_plugin_roots` yields one content root per plugin under either layout — see
+  # hooks/plugins-dir.sh. The previous `"$plugins_dir"/*/commands/*.md` glob was
+  # one level short on a versioned cache and matched nothing, so this hook printed
+  # no catalog at all on a real install.
+  PLUGINS_DIR=""; PLUGIN_LAYOUT="flat"
+  . "$(dirname "$0")/plugins-dir.sh" 2>/dev/null
+  command -v pr_resolve_plugins_dir >/dev/null 2>&1 || exit 0
+  pr_resolve_plugins_dir
+  [ -n "$PLUGINS_DIR" ] || exit 0
 
   catalog=$(
-    for cmd in "$plugins_dir"/*/commands/*.md; do
-      [ -f "$cmd" ] || continue
-      plug=${cmd#"$plugins_dir"/}; plug=${plug%%/*}
-      name=$(basename "$cmd" .md)
-      desc=$(awk '
+    pr_plugin_roots | while IFS=$'\t' read -r plug proot; do
+      for cmd in "$proot"/commands/*.md; do
+        [ -f "$cmd" ] || continue
+        name=$(basename "$cmd" .md)
+        desc=$(awk '
         /^---[[:space:]]*$/ { f++; next }
         f==1 && /^description:/ {
           sub(/^description:[[:space:]]*/, "")
@@ -107,8 +114,9 @@
           exit
         }
         f>=2 { exit }' "$cmd" 2>/dev/null)
-      [ -n "$desc" ] || continue
-      printf -- '- /%s:%s — %s\n' "$plug" "$name" "$desc"
+        [ -n "$desc" ] || continue
+        printf -- '- /%s:%s — %s\n' "$plug" "$name" "$desc"
+      done
     done
   )
   [ -n "$catalog" ] || exit 0
