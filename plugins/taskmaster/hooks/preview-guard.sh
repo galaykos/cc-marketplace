@@ -14,10 +14,31 @@
 # afterwards (one server start arms it for the life of the checkout).
 #
 #   STRONG — a per-purpose preview basename, or a path under a mockups docroot,
-#            or a mockups docroot present in this project: ask, with the mockup rule.
-#   WEAK   — any other .html artifact: ask to confirm the remote publish is
-#            intended — a note proved ignorable, and a for-you page must not slip out.
+#            or a mockups docroot present in this project: ask EVERY time, with
+#            the mockup rule.
+#   WEAK   — any other .html artifact: ask ONCE PER SESSION to confirm the remote
+#            publish is intended — a note proved ignorable, and a for-you page
+#            must not slip out.
 #   NONE   — not .html (a markdown report is not a mockup): silent.
+#
+# WHY WEAK IS BOUNDED AND STRONG IS NOT. Every Artifact .html is a remote
+# publish, so the weak signal never clears: the tier asked on every HTML
+# artifact for the life of the session, which is a standing veto in the name of
+# a CONVENTION (render it on the local preview server) rather than a blast
+# radius. One deliberate answer is what a convention is worth; the rest is noise
+# the user learns to click through, which costs the STRONG asks their weight
+# too. Bound pattern: comment-discipline/hooks/scan.sh and
+# taskmaster/hooks/clarify-gate.sh, once-per-session for the same reason.
+# STRONG stays unbounded — unreleased design work leaving the machine is blast
+# radius, not convention.
+#
+# HONEST LIMITATION. After the session's first plain-.html publish, the next one
+# goes unasked: a different for-you page, or a retry of the one just denied. The
+# tier buys one deliberate answer per session and is not a standing veto; the
+# population the guard exists for (STRONG) is unaffected. With no session_id in
+# the hook input the bound cannot be recorded, so the tier falls back to asking
+# every time — an ask can never wedge a session, so failing toward the question
+# is safe here, the mirror of a deny gate, which must fail toward allowing.
 #
 # Fails open on any error: a broken guard degrades to a no-op, never to a
 # blocked tool call.
@@ -28,7 +49,9 @@
 # no mechanical guard at all. ${CLAUDE_PLUGIN_ROOT} is per-plugin so the file
 # cannot be shared; change one, change both. With BOTH plugins installed the
 # guard fires twice on the same call — an extra line in one prompt, which is
-# the cheap side of the trade against leaving ui-ux unguarded.
+# the cheap side of the trade against leaving ui-ux unguarded. On the WEAK tier
+# not even that: both copies hash the same session_id to the same marker, so the
+# mkdir race leaves exactly one asker.
 command -v jq >/dev/null 2>&1 || exit 0
 {
   input=$(cat)
@@ -63,6 +86,22 @@ command -v jq >/dev/null 2>&1 || exit 0
     */taskmaster-docs/mockups/*) strong=path ;;
   esac
   [ -n "$strong" ] || { [ -n "$docroot" ] && strong=docroot; }
+
+  # WEAK only: one ask per session (see header). Keyed by session and NOT by
+  # path — the convention is answered once, not once per page. Recording it is
+  # what makes this the session's one weak ask, so the mkdir comes first; a
+  # marker that cannot be recorded at all leaves the old unbounded behaviour.
+  if [ -z "$strong" ]; then
+    sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+    if [ -n "$sid" ]; then
+      marker="${TMPDIR:-/tmp}/cc-preview-weak-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
+      if mkdir "$marker" 2>/dev/null; then
+        find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-preview-weak-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
+      elif [ -d "$marker" ]; then
+        exit 0
+      fi
+    fi
+  fi
 
   # Never interpolate an unvalidated env value into text shown at a permission
   # decision: jq keeps the JSON well-formed, but a crafted PREVIEW_PORT would
