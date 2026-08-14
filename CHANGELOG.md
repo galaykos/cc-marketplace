@@ -4,6 +4,46 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.91.0] - 2026-08-14
+
+Three defects closed from a full 69-plugin audit. Both executable-layer findings
+were invisible to a green run — each lived in a rule whose own harness exercised
+only the shape that already worked.
+
+**secret-scanning 0.4.0 — the generic deny rule was lowercase-only.** The
+`assigned secret literal` tier, the catch-all that exists precisely to cover what
+the six provider patterns miss, matched case-sensitively. `SECRET=`, `API_KEY=`,
+`TOKEN=` and `PASSWORD=` passed while their lowercase twins denied on identical
+values — and environment variables, which is where an assigned literal actually
+lives (`.env`, compose `environment:`, Actions `env:`, k8s, Dockerfile `ENV`), are
+uppercase by convention. Fixing the case exposed a second, independent defect in
+the same rule: the trigger word had to sit immediately before the operator, so the
+canonical `AWS_SECRET_ACCESS_KEY=` missed on the intervening `_ACCESS_KEY`. Both
+are closed — a `detect_i` twin plus a `([_-][A-Za-z0-9]+)*` separator tail scoped
+to env-var naming, so `tokenizerConfig` stays clean. The provider patterns stay
+case-SENSITIVE on purpose: `AKIA` and `AIza` are literal prefixes and `-i` would
+loosen them toward prose. Harness grows 14 → 23 rows, including the camelCase
+rejections that hold the widening.
+
+**code-review 0.11.0 — debt-scan could not see Pest skips.** `P_SKIP` covered
+PHPUnit's `markTestSkipped` but not Pest's chained `->skip()`/`->todo()`, so a Pest
+suite's quarantined tests counted zero while the same project's PHPUnit-style skips
+counted normally. **Upgrade note:** `skipped_tests` will RISE on Pest projects at
+first run, so an existing `.claude/debt-baseline.json` may fail `--check` on a tree
+nobody touched — that is the ratchet reporting debt it previously could not see.
+Re-run `--update-baseline` once to re-level. Seven per-runner skip fixtures added,
+each asserted in an isolated tree, because the aggregate assertion was satisfied by
+one `it.skip` in one TypeScript file — which is exactly how the gap survived.
+
+**craft-layer 0.46.1 —** `motion-tiers` omitted `references/reduced-motion.md` from
+its own `## References` index while six sibling skills cite that file by relative
+path. A reader loading the skill and working from its index never reached the shared
+gate mechanism. Added first in the list; the `gotchas.md` entry was compressed by one
+line to hold the 150-line body ceiling at exactly 150.
+
+Audit scope and method, including what it did NOT establish: `taskmaster-docs/`
+(working area) and the integration simulation's own results file.
+
 ## [0.90.0] - 2026-08-11
 
 Delivery-layer overhaul from the full marketplace review (D1-D11), plus the

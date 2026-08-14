@@ -122,6 +122,7 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
 
 ## References
 
+- `references/reduced-motion.md` — the gate MECHANISM stated once (gate both layers; check `matchMedia` before starting, not inside the loop). Six sibling skills cite it for their own paths.
 - `references/vector.md` — Lottie (timeline) vs Rive (state-machine), the Tier-5
   budget, the `prefers-reduced-motion` poster path, and the reduced-bundle lazy path.
 - `references/tier-budgets.md` — the full per-tier table: when / bundle-KB / runtime /
@@ -132,8 +133,7 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
 - `references/webgl-3d.md` — the 3D lazy-load + static-fallback rules; cites
   `plugins/threejs/skills/threejs-best-practices/SKILL.md` for R3F correctness.
 - `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
-  split text (invisible), whileInView reveals with no fallback, split-text aria,
-  one-writer-per-property, scroll-link contract.
+  split text, whileInView with no fallback, split-text aria, one-writer, scroll-link.
 - `references/rtl-bidi.md` — the RTL/BiDi decision: which effects mirror vs the
   LTR-islands (charts, numerals, code); reuses the i18n plugin's base rules by path.
 

@@ -18,6 +18,17 @@ SLACK="xoxb""-1234567890-abcdef"
 GOOG="AIza""SyA1234567890abcdefghijklmnopqrstuv"
 STRIPE="sk_live""_abcdefghijklmnopqrstuvwx"
 ASSIGNED="$(printf 'api_%s = "%s"' 'key' 'aVeryLongSecretValue1234567890abcd')"
+# UPPERCASE twins. Env-var names are uppercase by convention, so these are the
+# COMMON real shapes for an assigned literal, not edge cases — and every one of
+# them passed the guard until the rule was made case-insensitive. Lowercase-only
+# coverage is what hid that: the rule denied, in the one casing anyone tested.
+LONGVAL='aVeryLongSecretValue1234567890abcd'
+UP_SECRET="$(printf 'SECRET=%s' "$LONGVAL")"
+UP_APIKEY="$(printf 'API_%s=%s' 'KEY' "$LONGVAL")"
+UP_TOKEN="$(printf 'TOKEN=%s' "$LONGVAL")"
+UP_PASSWORD="$(printf 'PASSWORD=%s' "$LONGVAL")"
+UP_MIDNAME="$(printf 'AWS_SECRET_ACCESS_%s=%s' 'KEY' "$LONGVAL")"
+MIXED_CASE="$(printf 'Api%s: %s' 'Key' "$LONGVAL")"
 
 run() { # run <tool> <content>  -> hook stdout
   jq -cn --arg t "$1" --arg c "$2" \
@@ -42,9 +53,23 @@ deny "Slack token"      "SLACK=$SLACK"
 deny "Google key"       "g=$GOOG"
 deny "Stripe live"      "$STRIPE"
 deny "assigned literal" "$ASSIGNED"
+deny "SECRET= (upper)"  "$UP_SECRET"
+deny "API_KEY= (upper)" "$UP_APIKEY"
+deny "TOKEN= (upper)"   "$UP_TOKEN"
+deny "PASSWORD="        "$UP_PASSWORD"
+deny "trigger mid-name" "$UP_MIDNAME"
+deny "mixed case"       "$MIXED_CASE"
 
 allow "clean content"   Write 'const x = 1; // nothing secret here'
 allow "short value"     Write 'pw = "hunter2"'
+# The -i applies to the generic rule ONLY; a lowercased provider prefix must still
+# pass, or the loosening this fix introduces has leaked into the provider tier.
+allow "lowercased AKIA"  Write 'x = "akia""abcdefghijklmnop"'
+allow "lowercased AIza"  Write 'g = "aiza""sya1234567890abcdefghijklmnopqrstuv"'
+# The separator tail must not swallow camelCase: a trigger word that merely PREFIXES
+# a longer identifier is not an assignment of that secret. Guards the widening.
+allow "camelCase prefix" Write 'tokenizerConfig = "aVeryLongConfigValue1234567890"'
+allow "secretive prose"  Write 'const secretiveNote = "aVeryLongCommentValue123456"'
 allow "non-write tool"  Bash  "$AWS"
 allow "empty content"   Write ''
 

@@ -55,6 +55,28 @@ expect "unchanged tree passes --check" 0 --dir "$FX" --baseline "$FX/base.json" 
 echo '// FIXME: another one' >> "$FX/src/a.ts"
 expect "growth fails --check" 2 --dir "$FX" --baseline "$FX/base.json" --check
 
+# PER-RUNNER skip coverage, asserted in ISOLATION. The aggregate check above is
+# satisfied by `it.skip` alone, which is exactly how Pest's chained `->skip()` went
+# uncounted: one JS fixture made skipped_tests non-zero and nothing asked whether a
+# PHP suite's skips were visible at all. Each runner therefore gets its own tree.
+skip_only() { # skip_only <label> <filename> <body>
+  local d; d=$(mktemp -d)
+  printf '%s\n' "$3" > "$d/$2"
+  bash "$SCAN" --dir "$d" --baseline "$d/b.json" --update-baseline >/dev/null 2>&1
+  local n; n=$(jq -r '.skipped_tests // 0' "$d/b.json" 2>/dev/null)
+  if [ "${n:-0}" -gt 0 ] 2>/dev/null; then echo "PASS: skip form detected — $1 ($n)"
+  else echo "FAIL: skip form NOT detected — $1 (got ${n:-0})"; rc=1; fi
+  rm -rf "$d"
+}
+
+skip_only "Pest ->skip()"      t.php  "it('a', function () {})->skip('flaky');"
+skip_only "Pest ->todo()"      u.php  "it('b', function () {})->todo();"
+skip_only "PHPUnit markSkipped" v.php '$this->markTestSkipped("wip");'
+skip_only "vitest it.skip"     w.ts   "it.skip('c', () => {})"
+skip_only "pytest mark"        x.py   '@pytest.mark.skip'
+skip_only "go t.Skip"          y.go   't.Skip("later")'
+skip_only "JUnit @Disabled"    z.java '@Disabled'
+
 expect "update-baseline accepts the growth" 0 --dir "$FX" --baseline "$FX/base.json" --update-baseline
 expect "accepted growth then passes" 0 --dir "$FX" --baseline "$FX/base.json" --check
 
