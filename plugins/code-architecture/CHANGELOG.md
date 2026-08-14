@@ -31,6 +31,17 @@ All notable changes to the code-architecture plugin.
   or `/task-runner:run` accordingly. Without that line, using the command would
   silently cost you a guardrail.
 
+  **Ownership before size.** The triage asks first whether a deeper command already
+  owns the shape of work — `/ui-ux:build` for a component, `/craft-layer:craft` for a
+  whole app, `/craft-layer:sections`, `/ui-ux:theme`, `/debugging:debug`,
+  `/ultra-deep-research:research` — and hands over with a one-line `route:` instead of
+  loading anything. Those commands prime their own skills; `/ui-ux:build` in particular
+  already resolves the stack skill and injects Read paths into its worker
+  (`ui-ux/commands/build.md:43`), which is why a UI sibling of this command was
+  considered and rejected rather than built. Schema and infrastructure work gets no
+  entry command either: by blast radius it lands in the `needs a spec` row, and
+  taskmaster's `erd` skill owns data modelling.
+
   `references/skill-map.md` holds the manifest → skill table. The file → skill
   half is NOT duplicated there; skill-router's `rules.tsv` owns it and fires on
   every write.

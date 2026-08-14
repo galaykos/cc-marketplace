@@ -49,13 +49,34 @@ so does `skill-router/hooks/route-prompt.sh`. So this skill does not run alongsi
 clarify nudge — it replaces it, and must carry the decision itself or the user loses a
 guardrail by using the command.
 
-Emit exactly one line, then act on it:
+**Ask the ownership question first.** A deeper command may already own this shape of
+work, in which case the right move is to hand over, not to size the task. Only when no
+row matches does the size question below apply.
+
+| The ask is | Hand to | Because |
+|---|---|---|
+| one component, layout, or restyle | `/ui-ux:build` | it already resolves the stack skill and injects the Read paths into its worker |
+| a whole app, landing page, CRM, SaaS surface | `/craft-layer:craft` | owns the end-to-end chain |
+| a page decided section by section | `/craft-layer:sections` | owns the batched option rounds |
+| colours, tokens, a theme | `/ui-ux:theme` | owns the live-preview loop |
+| an error, a failing test, a symptom | `/debugging:debug` | owns root-cause-before-fix |
+| "what is the state of X", an unfamiliar library or vendor | `/ultra-deep-research:research` | owns cited, date-stamped findings |
+
+Handing over is not a smaller answer. Those commands prime their own skills and carry
+their own gates; re-implementing any of that here would be the fourth pipeline this
+skill exists to avoid.
+
+When none matches, emit exactly one line and act on it:
 
 | Reading | Line | Then |
 |---|---|---|
 | single file, mechanical, or the change is already decided | `triage: trivial — proceeding inline` | do the work |
 | 3+ files, OR touches auth / data / migrations / concurrency / money, OR the ask has an unresolved unknown | `triage: needs a spec — <the unknown>` | **stop**, hand to `/taskmaster:task` |
 | a spec or cards already exist for this work | `triage: already spec'd` | hand to `/task-runner:run` |
+
+Schema and infrastructure work has no entry command of its own on purpose: a migration or
+a deploy change lands in the second row by blast radius, and `/taskmaster:task` (whose
+`erd` skill owns data modelling) is where it should go anyway.
 
 Ambiguity resolves toward the spec. The cost of one taskmaster round is minutes; the cost
 of the other error is the run that produced 2x this repository's comment density and 8x
@@ -74,6 +95,11 @@ Four lines, then the work or the handoff. No preamble, no restatement of the ask
     loaded: comment-discipline, testing, plan-before-code, low-cognitive-load, code-smells
     primed: laravel-best-practices, inertia-best-practices, react-server-state, a11y-audit
     triage: trivial — proceeding inline
+
+When a work-type row matches, the fourth line is the handover instead, and nothing is
+loaded or primed — the receiving command does its own:
+
+    route: this is a component build → /ui-ux:build <the ask>
 
 ## Boundaries
 

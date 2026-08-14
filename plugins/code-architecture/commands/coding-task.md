@@ -23,6 +23,11 @@ edit.
 4. Print the four-line block from `coding-entry` § Output shape — `stack:`, `loaded:`,
    `primed:`, `triage:` — and nothing else before acting.
 
+   **Check the ownership table first.** When the ask is a component build, a whole
+   crafted app, a page's sections, a theme, a bug, or a research question, a deeper
+   command already owns it: print the one-line `route:` handover instead, skip loading
+   and priming entirely, and stop. Those commands prime their own skills.
+
 5. Act on the triage verdict, without exception:
    - `trivial` → do the work now, applying the loaded skills, reading a primed path when
      the work reaches that surface.
