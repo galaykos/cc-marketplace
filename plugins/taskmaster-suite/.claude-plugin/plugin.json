@@ -1,6 +1,6 @@
 {
   "name": "taskmaster-suite",
-  "version": "0.14.2",
+  "version": "0.15.0",
   "description": "Meta-bundle (30 plugins): the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the review and process plugins (code-review, git-workflow, orchestration, approaches, and the rest), and the ui-ux agents the pipeline's visual cards route to. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -12,6 +12,7 @@
     "stack-scan",
     "plugin-scout",
     "code-architecture",
+    "lean",
     "git-workflow",
     "hindsight",
     "debugging",

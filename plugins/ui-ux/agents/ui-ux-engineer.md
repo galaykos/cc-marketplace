@@ -35,6 +35,13 @@ voice is the diff addressing its reviewer, and it is noise once merged. New beha
 you add that no test exercises is named as untested in your return — green checks must
 not imply coverage they do not have.
 
+Default to the smallest change that satisfies the fix list — no drive-by refactors, no
+speculative abstractions, no extra options, no test that would only fail alongside one
+already there. Exceeding that minimum is allowed; name the trigger in one clause in your
+return. The minimum is risk coverage, not a count: never cut a test to hit a ratio, keep
+any test a real defect or a surviving mutation proved necessary, and never argue a check
+you were given down to nothing — a verify with no teeth is a gap, not a saving.
+
 ## Operating procedure
 
 You implement interface work — layouts, breakpoints,

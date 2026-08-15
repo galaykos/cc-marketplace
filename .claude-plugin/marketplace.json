@@ -255,6 +255,11 @@
       "description": "Stops over-commenting by treating it as an information-routing problem: every fact goes to the artifact that cannot lie about it — a name, a type, a test, an extracted function — and comments are spent only on what has nowhere else to live: why-not-the-obvious-way, external constraints carrying a link or ticket, intentional-silence markers, and contract facts a signature cannot express. Kills restatement comments, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, and change-narration comments that describe the edit rather than the code. One hook, two lanes: PostToolUse warns on every category as code is written, and PreToolUse denies just the two strictest — a comment restating the next line, and commented-out code — once per file per session, so a false positive costs one turn and never wedges a run. A second warn-only hook extends the same routing rule to the terminal: it measures prose-per-tool-call against a calibrated threshold and says so once when a session narrates instead of reporting. Includes /comment-discipline:review."
     },
     {
+      "name": "lean",
+      "source": "./plugins/lean",
+      "description": "Prices every output as a debit and asks how much. Five surfaces, one bar each: code, tests, comments, files, and actions — a tool call, subagent spawn or verify pass whose result cannot change the next step is a paid no-op, and nothing else here prices that. Only four things buy more than the minimum: blast radius, an observed defect, a stated criterion, the user asking; the excess must name which, where it happens. Minimum means risk coverage, not count — never delete a test to hit a ratio."
+    },
+    {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
       "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Inertia, Livewire, the generalist web worker, accessibility auditing, and skill auto-routing (skill-router). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."

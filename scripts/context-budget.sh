@@ -326,7 +326,16 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # Raising it is legitimate and deliberately visible: edit the line below in a commit
 # someone reviews. --update-baseline does NOT move it, which is the point — the
 # per-plugin ratchet is a convenience, this is a budget.
-ALWAYS_ON_CEILING=12600
+# Raised 12600 -> 12800 on 2026-08-15 for the `lean` plugin (73 tokens: one skill
+# description, no command, no agent). The funding question was asked the other way
+# first, and the answer is worth recording: the marketplace's fattest frontmatter
+# description is 435 bytes against a 500-byte cap, so paying for `lean` by deletion
+# meant trimming trigger phrasing out of five or six unrelated skills to buy 0.5% of
+# this budget. Degrading dispatch quality across the catalogue to avoid a 200-token
+# line edit is precisely the ratio-chasing `lean:cost-model` and testing's
+# proportionality.md both reject — the cheaper artifact would have been the more
+# expensive decision. Spending it deliberately and saying so is the honest form.
+ALWAYS_ON_CEILING=12800
 if [ "$leaf_tokens_total" -gt "$ALWAYS_ON_CEILING" ]; then
   warn_lines="${warn_lines}FAIL: always-on total $leaf_tokens_total exceeds the declared ceiling $ALWAYS_ON_CEILING — pay for the new surface with a deletion, or raise ALWAYS_ON_CEILING in scripts/context-budget.sh in a reviewed commit (--update-baseline does not move it)
 "
@@ -345,7 +354,15 @@ if [ -n "$dyn_rows" ]; then
   # and taskmaster's clarify directive widened. Those are deliberate spends the
   # owner chose; the old ceiling would have sat 1 token from failure. The
   # ceiling still exists to make the NEXT unplanned growth a conversation.
-  DYNAMIC_CEILING=2800
+  # Raised 2800 -> 2900 on 2026-08-15. `lean`'s PostToolUse budget hook measures 85
+  # tokens and PASSES the old ceiling — at 2798 of 2800. It is raised anyway, on this
+  # block's own stated reasoning: the 2026-08-11 raise was justified partly because
+  # "the old ceiling would have sat 1 token from failure", and 2 tokens is that case
+  # again. Left alone, the next person to touch ANY hook in this marketplace gets a red
+  # build naming a plugin they did not edit. Note what is NOT being bought: skill-router
+  # alone is 2663 of the 2798 (95%), so this channel remains one plugin's command
+  # catalog plus rounding. That is the number worth attacking next, not this ceiling.
+  DYNAMIC_CEILING=2900
   if [ "$leaf_dyn_total" -gt "$DYNAMIC_CEILING" ]; then
     warn_lines="${warn_lines}FAIL: dynamic total $leaf_dyn_total exceeds the declared ceiling $DYNAMIC_CEILING — same rule as the always-on ceiling
 "

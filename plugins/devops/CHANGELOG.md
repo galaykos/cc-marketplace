@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.4 — 2026-08-15
+
+### Changed
+- **`agents/devops-engineer.md`** — re-stamped from the shared worker-agent template,
+  which gained a cost-discipline paragraph in its `## Code shape` section: default to
+  the smallest change that satisfies the fix list, name the trigger when exceeding it,
+  and never cut a test to hit a ratio. Applies to all ten template-generated workers;
+  no devops-specific behavior change beyond that shared paragraph.
+
 ## 0.5.2 — 2026-08-12
 
 ### Changed
