@@ -135,7 +135,7 @@ single source of truth. Miss-floor: a card touching stack files but naming no sk
 
 ## Portable discipline preamble
 
-Execution discipline (halt / exact-verify / scope / defer / full-suite / evidence / code-shape) is a
+Execution discipline (halt / exact-verify / scope / defer / full-suite / evidence / code-shape / cost) is a
 property of the dispatch, not the worker — a delegated specialist has no `Skill` tool
 and cannot load an execution skill. Canonical text: `references/discipline-preamble.md`;
 the orchestrator Reads it and pastes it **verbatim** into every dispatch, and it

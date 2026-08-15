@@ -2,6 +2,35 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.0
+
+### Changed
+
+- **`coding-entry`'s triage no longer escalates on file count.** The rule was "3+ files
+  → needs a spec", which routed a 20-line change spread over three files into the full
+  spec pipeline. File count is a bad proxy for blast radius: a 3-file rename is not a
+  3-file redesign. The term is now size-and-reversibility. **The risk clause is
+  unchanged** — auth, data, migrations, concurrency and money still force a spec, on one
+  line as readily as on fifty, and an unresolved unknown still does.
+
+- **The tiebreak is honest in both directions.** It previously read "ambiguity resolves
+  toward the spec" and priced only the under-ceremony error (the run at 2x this
+  repository's comment density and 8x its tests-per-integration, every gate green). The
+  over-ceremony error is equally real and is the one now being reported: a spec doc, an
+  index, cards and a review pass per card for a change one edit would have finished.
+  Both costs are stated; the tiebreak is blast radius, not unease.
+
+### Added
+
+- **A fifth output line, `budget:`** — this task's minimum stated *before* any code is
+  written (files, tests, comments), so overshoot is visible and arguable in the
+  transcript instead of discovered at review. Exceeding it is allowed; the trigger gets
+  named where the excess happens. Minimum means risk coverage, not count.
+
+- **`lean:cost-model` joins the loaded discipline set**, sixth of six. It carries the
+  bar per cost surface and the closed trigger list. Standing is unchanged and still
+  **agent-graded**: no script checks the triage call, the size call, or the budget line.
+
 ## 0.12.0
 
 ### Added

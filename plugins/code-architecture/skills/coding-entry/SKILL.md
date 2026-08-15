@@ -16,8 +16,9 @@ owns that), write a spec or cards (taskmaster), or execute a list (task-runner).
 ## Load, then prime — two different things
 
 **Load** means read the body now. Reserved for skills that apply to every line of code
-regardless of stack or surface. Five, ~9.5k tokens:
+regardless of stack or surface. Six, ~11k tokens (43,984 bytes of body):
 
+- `lean:cost-model` — the minimum that clears the bar, per cost surface
 - `comment-discipline:comment-discipline` — where each fact belongs
 - `testing:testing-best-practices` — what to test, and its `proportionality.md` for how much
 - `code-architecture:plan-before-code` — which files change, before they do
@@ -70,34 +71,62 @@ When none matches, emit exactly one line and act on it:
 
 | Reading | Line | Then |
 |---|---|---|
-| single file, mechanical, or the change is already decided | `triage: trivial — proceeding inline` | do the work |
-| 3+ files, OR touches auth / data / migrations / concurrency / money, OR the ask has an unresolved unknown | `triage: needs a spec — <the unknown>` | **stop**, hand to `/taskmaster:task` |
+| small and reversible — mechanical, already decided, or a few lines each across a few files | `triage: trivial — proceeding inline` | do the work |
+| large — a redesign, a new subsystem, wide non-mechanical edits — OR the risk clause below, OR the ask has an unresolved unknown | `triage: needs a spec — <the unknown>` | **stop**, hand to `/taskmaster:task` |
 | a spec or cards already exist for this work | `triage: already spec'd` | hand to `/task-runner:run` |
 
-Schema and infrastructure work has no entry command of its own on purpose: a migration or
-a deploy change lands in the second row by blast radius, and `/taskmaster:task` (whose
-`erd` skill owns data modelling) is where it should go anyway.
+**The risk clause — auth, data, migrations, concurrency, money, PII, or an irreversible
+effect.** Irreversible means the world does not roll back: a mass email or notification, a
+delete or purge, a payment, a third-party write, anything a scheduler will fire
+unattended. It fires on one line as readily as on fifty. It is the same set the
+`code-reviewer` agent and `lean:cost-model`'s blast-radius trigger name, on purpose.
 
-Ambiguity resolves toward the spec. The cost of one taskmaster round is minutes; the cost
-of the other error is the run that produced 2x this repository's comment density and 8x
-its tests-per-integration with every gate green.
+File count is not the term and never was a good proxy: a 3-file rename is not a 3-file
+redesign. Size is lines and non-mechanical spread. Schema and infrastructure work has no
+entry command of its own for the same reason: a migration or a deploy change lands in the
+second row by the risk clause, and `/taskmaster:task` (whose `erd` skill owns data
+modelling) is where it should go anyway.
 
-**Standing: agent-graded.** No script checks that "trivial" was judged honestly. The line
-is mandatory so the judgment is at least visible and arguable in the transcript; that is
-the whole of its enforcement, and pretending otherwise would be the over-claim this
-marketplace's has-teeth convention forbids.
+Both errors are real. Skipping a spec that was needed gave the run with 2x this
+repository's comment density and 8x its tests-per-integration, every gate green. Running
+the pipeline on a small task buys a spec doc, an index, cards, and a review pass per card
+for a change one edit would have finished — the same volume problem seen from the other
+side. Tiebreak on blast radius, not on unease. **Reversible means the effect is
+reversible, not that the commit is** — `git revert` restores code, never a sent email, a
+deleted object, or a charged card; those are the risk clause, whatever the diff size.
+
+**Standing: agent-graded.** No script checks that "trivial" was judged honestly, that the
+size call was, or that the budget line below was met. The lines are mandatory so the
+judgments are at least visible and arguable in the transcript; that is the whole of their
+enforcement, and pretending otherwise would be the over-claim this marketplace's has-teeth
+convention forbids.
 
 ## Output shape
 
-Four lines, then the work or the handoff. No preamble, no restatement of the ask.
+Five lines, then the work or the handoff. No preamble, no restatement of the ask.
 
     stack: laravel 11 · inertia · react 18 · mysql        (or: no manifest recognised)
-    loaded: comment-discipline, testing, plan-before-code, low-cognitive-load, code-smells
+    loaded: cost-model, comment-discipline, testing, plan-before-code, low-cognitive-load, code-smells
     primed: laravel-best-practices, inertia-best-practices, react-server-state, a11y-audit
     triage: trivial — proceeding inline
+    budget: 1 file, 1 test (the boundary case), no comment, no delegation
 
-When a work-type row matches, the fourth line is the handover instead, and nothing is
-loaded or primed — the receiving command does its own:
+`budget:` states this task's minimum BEFORE any code is written — files, tests, comments,
+and actions — so overshoot is visible and arguable in the transcript instead of discovered
+in review. Exceeding it is allowed and often right; name the trigger in the same clause
+where the excess happens (blast radius, an observed defect, a stated criterion the minimum
+misses, or the user asked). Unnamed excess is the failure.
+
+Two floors the budget cannot go under. Minimum means risk coverage, not a count: never
+drop a test that exists because a defect, a mutation, or an incident proved the suite
+missed it. And a budget never argues a gate down — if this work later becomes cards, each
+card's `Verify` must still name a specific test or asserted outcome (`verify-teeth-lint`
+blocks a bare suite pass), and a negative control returning `vacuous` means the check had
+no teeth, which is a coverage gap to fix, never an excess to trim.
+`lean:cost-model` carries the surfaces and the trigger list.
+
+When a work-type row matches, the handover replaces the triage and budget lines, and
+nothing is loaded or primed — the receiving command sets its own:
 
     route: this is a component build → /ui-ux:build <the ask>
 

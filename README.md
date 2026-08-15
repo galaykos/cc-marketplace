@@ -53,18 +53,18 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context | + first work-shaped prompt |
 |--------|---------|-------------------|----------------------------|
-| `everything` | 59 | ~12.6k tokens | ~2.7k tokens |
-| `taskmaster-suite` | 30 | ~7.4k tokens | ~2.7k tokens |
+| `everything` | 60 | ~12.7k tokens | ~2.8k tokens |
+| `taskmaster-suite` | 31 | ~7.5k tokens | ~2.8k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — |
-| `process-suite` | 9 | ~2.0k tokens | ~2.7k tokens |
+| `process-suite` | 10 | ~2.0k tokens | ~2.7k tokens |
 | `frontend-suite` | 12 | ~1.6k tokens | ~2.7k tokens |
-| `quality-suite` | 6 | ~1.1k tokens | ~2.7k tokens |
+| `quality-suite` | 7 | ~1.2k tokens | ~2.7k tokens |
 | `php-suite` | 6 | ~0.6k tokens | — |
 | `db-suite` | 5 | ~0.5k tokens | — |
 | `product-suite` | 3 | ~0.3k tokens | — |
 
-`everything` is all 59 leaf plugins; every other row is a curated subset.
+`everything` is all 60 leaf plugins; every other row is a curated subset.
 
 <!-- end:bundle-table -->
 
@@ -239,6 +239,7 @@ installing this plugin, or the same server is declared twice.
 | **packages** | Composer/npm dependency hygiene — constraints, lockfiles, audit triage, upgrade lanes | `/packages:audit` |
 | **observability** | Structured JSON logs + correlation IDs, log-level semantics, RED/USE metrics without cardinality bombs, trace propagation, symptom-based alerting, honest health checks | `/observability:review` |
 | **[comment-discipline](plugins/comment-discipline/README.md)** | Comments as information routing: facts go to names, types, tests and extracted functions; comments only for why-not-the-obvious-way, constraints with a ticket, intentional-silence markers, and what a signature cannot state — plus a warn-only PostToolUse hook | `/comment-discipline:review` |
+| **[lean](plugins/lean/README.md)** | Cost as a first-class input: every line, test, comment, file and **action** is a debit with one bar per surface — including tool calls, subagent spawns and verify passes, which nothing else here prices. Four named triggers buy more than the minimum (blast radius, an observed defect, a stated criterion, the user asked) and the excess must say which; minimum means risk coverage, not count. Delivered by a warn-only PostToolUse hook that reaches subagents, where the writing actually happens | auto-firing skill |
 | **[terse](plugins/terse/README.md)** | Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list (process narration, re-summary of files just written, unchanged inventories) — levels lite/full/ultra, hook-reinforced each turn; never touches code, files, subagent prompts, or how much work a turn does | `/terse:level`, `/terse:check` |
 | **orchestration** | Subagent orchestration: delegation contracts, compressed returns, model tiering, refuter/judge panels, loop-until-dry | `/orchestration:review` |
 | **[testing](plugins/testing/README.md)** | Test pyramid, Pest/PHPUnit + Vitest/Jest idioms, Playwright/Dusk e2e, factories, mocking boundaries, flaky-test causes, coverage traps + TDD workflow (red-green-refactor, regression proof) + test-engineer agent | `/testing:review` |
@@ -274,8 +275,8 @@ installing this plugin, or the same server is declared twice.
 | **craft-suite** | Meta-bundle: the creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source (the component-registry MCP servers), threejs, plus the required companions ui-ux and a11y | `/craft-suite:uninstall` |
 | **php-suite** | Meta-bundle: PHP category — PHP, Laravel, Livewire, Inertia, web worker | `/php-suite:uninstall` |
 | **db-suite** | Meta-bundle: database category — SQL, MySQL, MariaDB, PostgreSQL, database worker | `/db-suite:uninstall` |
-| **quality-suite** | Meta-bundle: the enforcing code-quality half — review fan-in, architecture with the evidence Stop gate, comment-discipline's pre-write deny, command-guard, secret-scanning, skill-router; the advisory nine (incl. testing) live in quality-principles-suite | `/quality-suite:uninstall` |
-| **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches (incl. build-vs-buy, estimation, rollout, pattern-selection), hindsight, api-docs-first, orchestration, task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
+| **quality-suite** | Meta-bundle: the enforcing code-quality half — review fan-in, architecture with the evidence Stop gate, comment-discipline's pre-write deny, lean's cost budget, command-guard, secret-scanning, skill-router; the advisory nine (incl. testing) live in quality-principles-suite | `/quality-suite:uninstall` |
+| **process-suite** | Meta-bundle: engineering-process category — git workflow, approaches (incl. build-vs-buy, estimation, rollout, pattern-selection), hindsight, api-docs-first, orchestration, lean (the cost budget every delegated worker gets), task-runner, stack-scan, plugin-scout | `/process-suite:uninstall` |
 | **product-suite** | Meta-bundle: product-domain disciplines — payments (billing, webhooks, ledgers), i18n (ICU, Intl, RTL), llm-app (evals, RAG, prompt-injection defense) | `/product-suite:uninstall` |
 
 ## Usage

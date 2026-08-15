@@ -3,6 +3,39 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.12.0 — 2026-08-15
+
+### Changed
+- **`code-reviewer` now triages before the deep read**, on the same thresholds
+  `commands/review.md` already used. The command had the triage; the agent did not — and
+  the agent is the one dispatched automatically, on every task's diff, with no condition
+  (`task-runner`'s execution skill and its reviewer-routing reference both say *always*).
+  It ships `model: opus` / `effort: xhigh`, so a 20-line mechanical change was drawing a
+  full neighbourhood read that the same plugin's command would have answered in one line.
+
+  The short lane is a **conjunction**: single-file AND purely mechanical AND under the
+  thresholds (5 files / 300 changed lines). Any doubt on any clause takes the full pass,
+  and since this agent has no `Bash`, a dispatch naming a path rather than a diff counts
+  as doubt. The full pass is mandatory regardless of size on auth, data, migrations,
+  concurrency, **money, PII, and irreversible operations** — the last three are new here,
+  added so this list, `coding-entry`'s risk clause and `lean:cost-model`'s blast-radius
+  trigger name the same set.
+
+  Two deliberate limits on the saving. The short lane closes with `not reviewed —
+  mechanical, below triage threshold`, never `merge-ready`: a verdict on an unread diff
+  would be a claim the agent did not earn. And it **never** drops the per-criterion lines
+  that `task-runner`'s reviewer dispatch injects — that audit is the review's floor, and
+  a return without it is re-dispatched, which would have cost more than the full pass.
+
+  **Upgrade note.** Automated per-task reviews of mechanical diffs get shorter and now
+  say so explicitly. Thresholds are restated here rather than only referenced, so they
+  can drift from `commands/review.md`; nothing checks that they agree.
+
+### Added
+- One rule: **a finding that would not change what the author does next is not a
+  finding.** Review output is itself a cost, and the marketplace had no statement of that
+  anywhere. This is the theater test applied to findings rather than to gates.
+
 ## 0.11.0 — 2026-08-14
 
 ### Fixed

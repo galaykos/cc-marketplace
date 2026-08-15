@@ -27,3 +27,13 @@ worker's own default procedure wherever they differ.
 8. Final message is data for the orchestrator: a completion table
    (task / status / verify command / evidence line) plus any parked items. No preamble
    prose, no file dumps.
+9. Cost discipline: default to the **smallest change that satisfies the card's
+   acceptance criteria** — code, tests, new files, and actions (a tool call, a spawn, a
+   re-read, an extra verify pass) alike; comment density is clause 7. Exceeding that
+   minimum is allowed, but **name the trigger** at the point of the excess — blast
+   radius, an observed defect, a criterion the minimum does not meet, or the user asked.
+   Unnamed excess is the failure. Two floors: minimum means risk coverage, not count —
+   never cut a test to hit a ratio, and a test a real defect or a surviving mutation
+   proved necessary stays; and this clause never argues a check DOWN. Clause 2's exact
+   Verify command still runs, a card's Verify must still name a real test or asserted
+   outcome, and a control that fails to discriminate is a gap to close, not fat to trim.
