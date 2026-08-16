@@ -289,19 +289,34 @@ printf '%s\n' "$cov" | grep "$PENDING" | sed 's/^/  pending (sibling card): /'
 # empty message or never runs. Plant one real violation, assert the exact FAIL
 # line, restore byte-identically. PRESENCE ONLY, never exit code: validate.sh
 # has other reasons to be red mid-change and this must not read them as a pass.
+# PLANT INTO A COPY, NEVER THE LIVE TREE. An earlier version appended the bad row
+# to the real plugins/testing/lane.tsv and restored it afterwards. That holds only
+# while nothing interrupts: a killed run or two overlapping runs leave the malformed
+# row on disk, and the next validate.sh then fails on a file nobody edited. It
+# happened during this gate's own development. validate.sh cds to its own repo root
+# (validate.sh:4), so running the COPY's copy of it scopes everything to the mirror.
+# .claude-plugin is required — without it validate.sh exits early on
+# "marketplace.json missing" and the assertion below would never fire.
 VT=plugins/testing/lane.tsv
-VB=$(mktemp) || exit 2
-cp "$VT" "$VB" || exit 2
-printf 'testing:test-engineer\tagent\tverify\tno-yields-column\ta checkable condition\n' >> "$VT"
-vout=$(bash scripts/validate.sh 2>&1)
-cp "$VB" "$VT"
-cmp -s "$VB" "$VT" && pass "[wiring] $VT restored byte-identically" || bad "[wiring] $VT not restored"
-rm -f "$VB"
+VLIVE=$(mktemp) || exit 2
+cp "$VT" "$VLIVE" || exit 2
+
+VMIR="$(mktemp -d)" || exit 2
+for _d in plugins scripts templates .claude-plugin; do cp -R "$_d" "$VMIR/" 2>/dev/null; done
+for _f in CLAUDE.md README.md skills-lock.json; do [ -f "$_f" ] && cp "$_f" "$VMIR/" 2>/dev/null; done
+
+printf 'testing:test-engineer\tagent\tverify\tno-yields-column\ta checkable condition\n' >> "$VMIR/$VT"
+vout=$( cd "$VMIR" && bash scripts/validate.sh 2>&1 )
+rm -rf "$VMIR"
+
 if printf '%s\n' "$vout" | grep -qF "FAIL: lane-schema $VT:"; then
   pass "[wiring] validate.sh reports a planted lane-schema violation with its own message"
 else
   bad "[wiring] validate.sh did not report the planted lane-schema violation"
 fi
+cmp -s "$VLIVE" "$VT" && pass "[wiring] the live $VT was never written to" \
+                      || bad "[wiring] the harness mutated the real tree"
+rm -f "$VLIVE"
 
 [ "$rc" -eq 0 ] && echo "All lane-declaration smoke tests passed."
 exit "$rc"

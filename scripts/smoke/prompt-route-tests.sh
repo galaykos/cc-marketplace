@@ -219,21 +219,53 @@ fi
 printf '== half B: validate.sh gates ==\n'
 want_err() { printf '%s\n' "$vout" | grep -qF "$2" && pass "$1" || fail "$1 did not fire" "wanted: $2"; }
 
-printf 'echo /taskmaster:task\n' >> "$HOOK"
-vout=$(bash scripts/validate.sh 2>&1)
-cp "$HB" "$HOOK"
-want_err "literal command token" "carries literal command token(s)"
+# PLANT INTO A COPY, NEVER THE LIVE TREE.
+# These cases need validate.sh to SEE a broken hook, and the previous version appended to
+# the real plugins/skill-router/hooks/route-prompt.sh and restored it with cp. That
+# works exactly as long as nothing interrupts: a killed run, a timeout, or two runs
+# overlapping leaves the plant on disk, and the next gate then fails on a file nobody
+# edited. It also silently reverted a completed feature once, because the restore
+# copied a backup taken before that feature landed. validate.sh cds to its own repo
+# root (validate.sh:4), so running the COPY's validate.sh scopes everything to the
+# copy — the live tree is never written to at all.
+MIRROR="$WORK/mirror"
+mkdir -p "$MIRROR"
+# .claude-plugin is not optional: validate.sh exits early with
+# "marketplace.json missing" without it, so the mirror would report a DIFFERENT
+# failure and every want_err below would silently never fire.
+for d in plugins scripts templates .claude-plugin; do cp -R "$ROOT/$d" "$MIRROR/" 2>/dev/null; done
+for f in CLAUDE.md README.md skills-lock.json; do [ -f "$ROOT/$f" ] && cp "$ROOT/$f" "$MIRROR/" 2>/dev/null; done
+MHOOK="$MIRROR/$SR/hooks/route-prompt.sh"
+mvalidate() { ( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ); }
 
-# a fifth prompt-matching grep = a routing table regrowing in shell
-printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0' >> "$HOOK"
-vout=$(bash scripts/validate.sh 2>&1)
-cp "$HB" "$HOOK"
-want_err "extra prompt pattern" "a fifth is a routing table regrowing in shell"
+if [ -f "$MHOOK" ]; then
+  MHB="$WORK/mirror-route-prompt.bak"; cp "$MHOOK" "$MHB"
 
-vout=$(bash scripts/validate.sh 2>&1)
-printf '%s\n' "$vout" | grep -qF 'route-prompt.sh' \
-  && fail "clean tree is clean" "validate still reports route-prompt problems after restore" \
-  || pass "clean tree is clean"
+  printf 'echo /taskmaster:task\n' >> "$MHOOK"
+  vout=$(mvalidate)
+  cp "$MHB" "$MHOOK"
+  want_err "literal command token" "carries literal command token(s)"
+
+  # a fifth prompt-matching grep = a routing table regrowing in shell
+  printf '%s\n' 'printf '"'"'%s'"'"' "$head" | grep -qiE "landing page" && exit 0' >> "$MHOOK"
+  vout=$(mvalidate)
+  cp "$MHB" "$MHOOK"
+  want_err "extra prompt pattern" "a fifth is a routing table regrowing in shell"
+
+  vout=$(mvalidate)
+  printf '%s\n' "$vout" | grep -qF 'route-prompt.sh' \
+    && fail "clean tree is clean" "validate still reports route-prompt problems after restore" \
+    || pass "clean tree is clean"
+
+  # The live tree must be untouched by any of the above.
+  if cmp -s "$HOOK" "$HB"; then
+    pass "live route-prompt.sh was never written to"
+  else
+    fail "live route-prompt.sh was never written to" "the harness mutated the real tree"
+  fi
+else
+  fail "mirror tree built" "missing $MHOOK"
+fi
 
 # ---- STACK RELEVANCE of the catalog (spec 4.6, card C6) ----------------------
 # The catalog is filtered by repo evidence, not just installed-ness: a Laravel repo

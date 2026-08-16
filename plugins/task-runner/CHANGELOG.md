@@ -2,6 +2,23 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.28.1
+
+### Added
+- **`lane.tsv`** — declares the territory and phase of `task-executor` and the
+  completion-gate Stop hook, so no sibling can silently claim the same job.
+
+### Changed
+- **`/task-runner:run` writes `.claude/cc-phase.json`** (`phase: build`) alongside the
+  existing `active-run.json`, and clears both at step 9. The two are deliberately
+  separate: `active-run.json` registers a RUN for this plugin's own Stop gate, while
+  `cc-phase.json` declares a PHASE that every installed reminder hook reads — including
+  in installs that have neither task-runner nor taskmaster. It is what stops a
+  "clarify before your first code edit" nudge firing on turn 40 of an executing run.
+- **`completion-gate` is declared `phase: any`**, not `verify`: a Stop gate has to fire
+  whenever a turn tries to end, and scoping it to one arc phase would have let a turn
+  ending during `build` escape it entirely.
+
 ## 0.28.0
 
 ### Fixed

@@ -2,6 +2,13 @@
 
 All notable changes to the ultra-deep-research plugin.
 
+## 0.6.1
+
+### Added
+- **`lane.tsv`** — declares territory and phase for this plugin's researcher and
+  verifier agents, so `pc_lanes_territory` can prove neither collides with another
+  plugin's reviewer on the same job.
+
 ## 0.6.0
 
 ### Fixed
