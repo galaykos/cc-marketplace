@@ -167,12 +167,12 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **27 named steps;
-26 can fail the build**, and on a push to `master` only **25** run
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **28 named steps;
+27 can fail the build**, and on a push to `master` only **26** run
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
-Beyond the four scripts above: 17 harnesses under `scripts/smoke/`
+Beyond the four scripts above: 18 harnesses under `scripts/smoke/`
 (template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
-guard, rules-overlap, route-marker, prompt-route, lanes, behavioral-verification,
+guard, rules-overlap, route-marker, prompt-route, lanes, prime-map, behavioral-verification,
 completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
 verbosity-hook, preview-guard, `validate-fixtures/parity-check.sh`),
 `scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time

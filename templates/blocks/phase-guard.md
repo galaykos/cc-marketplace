@@ -95,7 +95,25 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   want=$(awk -F'\t' -v a="$1" '$1==a {print $3; exit}' "$lane" 2>/dev/null)
   [ -n "$want" ] || return 0
   [ "$want" = any ] && return 0
-  [ "$want" = "$have" ] && return 0
-  return 1
+
+  # ORDERED, not equal. Exact equality was the first cut and it was a global mute: the
+  # phases COMMANDS write (shape, build, ship) and the phases ADVISORIES declare
+  # (understand, decide) are disjoint sets, so `want = have` was unreachable and every
+  # phase-owning voice stood down whenever any sentinel existed. Only `any` lanes spoke.
+  # The two vocabularies are disjoint for a real reason — "what phase is this command"
+  # and "what phase does this advice belong to" are different questions — so the fix is
+  # to compare position, not string.
+  #
+  # An advisory speaks while the arc is AT or BEFORE its phase, and stands down once the
+  # arc has moved PAST it. Clarify-the-requirements is useful at understand and shape; on
+  # turn 40 of an executing build it is the defect this guard exists to kill.
+  cc_phase_ix() { case "$1" in
+    understand) echo 1 ;; shape) echo 2 ;; decide) echo 3 ;; plan) echo 4 ;;
+    build) echo 5 ;; verify) echo 6 ;; review) echo 7 ;; ship) echo 8 ;; *) echo 0 ;;
+  esac; }
+  local wi hi; wi=$(cc_phase_ix "$want"); hi=$(cc_phase_ix "$have")
+  { [ "$wi" = 0 ] || [ "$hi" = 0 ]; } && return 0
+  [ "$hi" -gt "$wi" ] && return 1
+  return 0
 }
 # --- end phase guard ---------------------------------------------------------

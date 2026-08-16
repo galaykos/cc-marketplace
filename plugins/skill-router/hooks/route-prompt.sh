@@ -149,39 +149,72 @@
   # Cost: bounded by the once-per-session marker claimed above — this walk runs at
   # most once per session, never per prompt. Fail open: any error keeps the row.
   RULES="$(dirname "$0")/../rules.tsv"
-  sr_repo_has() { # $1 owning plugin. 0 = keep the plugin's commands.
+  # SCOPE. This filter may drop a stack review command and nothing else. rules.tsv globs
+  # were authored to route a SKILL to files that already exist, so reusing them as a
+  # relevance test for EVERY command was a category error: it hid the commands whose whole
+  # job is to create the thing the glob looks for. Measured on a Laravel repo, the earlier
+  # form hid dev-env init from any repo without a Dockerfile, craft-layer craft from every
+  # greenfield repo, and the a11y audit from anything without a .tsx at depth four, since
+  # a11y ships one glob row and it is .tsx alone. The original motivation was narrow: a
+  # Laravel repo should not be offered the nextjs review, so the filter is narrow now.
+  #
+  # PRUNED AND MEMOISED. Unpruned walks measured 2.86s at 4515 entries and 20.26s at 35014,
+  # linear, and a real node_modules is often past 100k. That is dead air on the first
+  # work-shaped prompt of a session. Worse, the once-per-session marker is claimed about 65
+  # lines above this point, so a hook killed on timeout leaves the marker behind and the
+  # catalog never prints again for that session. Pruning the vendor trees bounds the walk
+  # and the per-plugin memo stops the same answer being recomputed for every row.
+  SR_SEEN=""
+  sr_find() {
+    find "$cwd_f" \( -name node_modules -o -name vendor -o -name .git -o -name dist \) -prune \
+      -o -maxdepth 4 "$@" -print -quit 2>/dev/null
+  }
+  sr_repo_has() {
     [ -r "$RULES" ] || return 0
     [ -n "$cwd_f" ] || return 0
+    case " $SR_SEEN " in *" keep:$1 "*) return 0 ;; *" drop:$1 "*) return 1 ;; esac
     local pat kind owner hit=1 globs=0 mid
     while IFS=$'\t' read -r kind pat _skill owner _conf _mark; do
       case "$kind" in '#'*|'') continue ;; esac
       [ "$owner" = "$1" ] || continue
       case "$kind" in
+          # Only a FILE-shaped glob can justify HIDING a review; a directory-shaped one cannot.
+          # A directory row marks something the repo has already ADOPTED. i18n ships only
+          # lang and locales rows, testing only tests, database only migrations, so treating a
+          # miss there as absence-of-stack hid the review from exactly the repo that needed it:
+          # the i18n review finds hardcoded strings, and a repo with no lang directory is the
+          # one that has the most of them. A file row such as a blade template or a next config
+          # marks the stack's own sources, which is the question this filter actually asks. A
+          # directory row still counts as a HIT when it matches, since that is evidence the
+          # stack is present; it simply never votes for absence.
         glob)
-          globs=1
           case "$pat" in
             '**/'*'/**')
               mid=${pat#**/}; mid=${mid%/**}
-              [ -n "$(find "$cwd_f" -maxdepth 4 -type d -name "$mid" -print -quit 2>/dev/null)" ] && hit=0
+              [ -n "$(sr_find -type d -name "$mid")" ] && hit=0
               ;;
             *)
-              [ -n "$(find "$cwd_f" -maxdepth 4 -name "$pat" -print -quit 2>/dev/null)" ] && hit=0
+              globs=1
+              [ -n "$(sr_find -name "$pat")" ] && hit=0
               ;;
           esac
           ;;
       esac
       [ "$hit" = 0 ] && break
     done < "$RULES"
-    [ "$globs" = 0 ] && return 0
+    [ "$globs" = 0 ] && hit=0
+    if [ "$hit" = 0 ]; then SR_SEEN="$SR_SEEN keep:$1"; else SR_SEEN="$SR_SEEN drop:$1"; fi
     return $hit
   }
 
   catalog=$(
     pr_plugin_roots | while IFS=$'\t' read -r plug proot; do
-      sr_repo_has "$plug" || continue
       for cmd in "$proot"/commands/*.md; do
         [ -f "$cmd" ] || continue
         name=$(basename "$cmd" .md)
+        # A command that creates or audits is most needed where its artifact does not
+        # exist yet, so only a stack review is ever filtered on repo evidence.
+        [ "$name" = review ] && ! sr_repo_has "$plug" && continue
         desc=$(awk '
         /^---[[:space:]]*$/ { f++; next }
         f==1 && /^description:/ {

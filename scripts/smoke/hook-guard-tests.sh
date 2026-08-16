@@ -261,6 +261,58 @@ if [ -f "$TM" ] && [ -f "$FT" ]; then
     "$(ph_fire "$ROOT/plugins/fresh-take" "$FT" 'rm -rf node_modules')"
 fi
 
+# ---- THE ARC ACTUALLY ADVANCES ----------------------------------------------
+# Drives the REAL reminder hooks against phases REAL commands write, and asserts a
+# phase-owning voice still gets its turn. The first cut of the guard compared the
+# lane and the sentinel for string equality, and the two vocabularies are disjoint —
+# commands write shape/build/ship, advisories declared understand/decide — so `want =
+# have` was unreachable and ANY sentinel muted every phase-owning hook, leaving only
+# `any` lanes. That is a global mute wearing the name turn-taking, and the earlier
+# fixtures could not see it because they fed `understand` and `decide`, values nothing
+# in the tree ever writes. Fixtures must use values the shipped writers actually emit.
+ARC_PL="$ROOT/plugins"
+if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -d "$ARC_PL/fresh-take/hooks" ]; then
+  ARC_P='implement a rate limiter for our billing api, the docs integration is still failing, rm -rf node_modules'
+  arc_speaks() { # $1 phase ("" = no sentinel) -> space-joined plugin names that spoke
+    local ph="$1" d out spoke=""
+    d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.claude"
+    [ -n "$ph" ] && printf '{"phase":"%s","owner":"x","session_id":"ARC","started_at":"z"}' "$ph" \
+      > "$d/.claude/cc-phase.json"
+    for pl in taskmaster approaches api-docs-first debugging fresh-take; do
+      [ -f "$ARC_PL/$pl/hooks/remind.sh" ] || continue
+      out=$(printf '{"prompt":"%s","session_id":"ARC","cwd":"%s"}' "$ARC_P" "$d" \
+        | CLAUDE_PLUGIN_ROOT="$ARC_PL/$pl" TMPDIR="$(mktemp -d "$WORK/at.XXXXXX")" \
+          "$BASH_BIN" "$ARC_PL/$pl/hooks/remind.sh" 2>/dev/null)
+      [ -n "$out" ] && spoke="$spoke $pl"
+    done
+    printf '%s' "$spoke"
+  }
+
+  arc_none=$(arc_speaks "")
+  arc_build=$(arc_speaks build)
+  arc_ship=$(arc_speaks ship)
+
+  case "$arc_none" in *taskmaster*) pass "arc: no sentinel leaves every voice eligible" ;;
+    *) fail "arc: no sentinel leaves every voice eligible" "taskmaster silent with no sentinel: [$arc_none]" ;; esac
+
+  # The defect this guard exists to kill: clarify-the-requirements on turn 40 of a build.
+  case "$arc_build" in *taskmaster*) fail "arc: phase=build mutes the clarify directive" "taskmaster spoke at build: [$arc_build]" ;;
+    *) pass "arc: phase=build mutes the clarify directive" ;; esac
+
+  # And the half that proves it is turn-taking rather than a global mute.
+  case "$arc_build" in *api-docs-first*) pass "arc: phase=build still lets a build-phase voice speak" ;;
+    *) fail "arc: phase=build still lets a build-phase voice speak" "nothing but guards spoke at build: [$arc_build] — the arc is a mute, not a rota" ;; esac
+
+  case "$arc_ship" in *fresh-take*) pass "arc: an any-lane guard speaks at every phase" ;;
+    *) fail "arc: an any-lane guard speaks at every phase" "guards silent at ship: [$arc_ship]" ;; esac
+
+  if [ "$arc_none" = "$arc_build" ]; then
+    fail "arc: advancing the phase changes who speaks" "identical at no-sentinel and build: [$arc_build]"
+  else
+    pass "arc: advancing the phase changes who speaks"
+  fi
+fi
+
 if [ "$rc" -eq 0 ]; then
   printf '\nAll %d reminder hooks passed guard cases (slash / empty / no-jq); %d boost hooks passed trigger cases.\n' "$found" "$boost_found"
 else

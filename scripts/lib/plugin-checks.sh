@@ -545,6 +545,12 @@ pc_lanes_schema() {
       if ($3 !~ /^(understand|shape|decide|plan|build|verify|review|ship|any)$/) {
         printf "lane-schema %s:%d unknown phase %s\n", file, FNR, $3; bad=1
       }
+      if ($4 ~ /^[[:space:]]*$/) {
+        printf "lane-schema %s:%d empty owns\n", file, FNR; bad=1
+      }
+      if ($5 ~ /^[[:space:]]*$/) {
+        printf "lane-schema %s:%d empty definite_trigger\n", file, FNR; bad=1
+      }
       k = $1 SUBSEP $4
       if (k in seen) {
         printf "lane-schema %s:%d duplicate artifact+owns %s %s\n", file, FNR, $1, $4; bad=1
@@ -554,6 +560,17 @@ pc_lanes_schema() {
     END { exit bad+0 }' "$f"
 }
 
+# RESIDUAL, stated because the gate reads stronger than it is. pc_lanes_territory
+# compares owns and phase as STRINGS, so it fires only on an exact collision. Two
+# artifacts doing one job still pass by choosing different nouns for it — security-review
+# against security-audit, with identical triggers — or by declaring different phases for
+# the same noun. 45 of the 47 shipped rows already carry a unique owns, so on today's
+# tree this gate fires on nothing; the two rows it would catch are the pair the authors
+# deliberately wrote identically. What it genuinely prevents is a FUTURE unblessed
+# duplicate, and the empty-field checks above close the hole where a row satisfied the
+# coverage gate while declaring no territory and no trigger at all. Judging whether two
+# different nouns name one job needs a reader, not a string compare: agent-graded.
+#
 # pc_lanes_authority <lane_tsv>
 # A plugin may declare only its OWN artifacts. Prints one
 # `lane-authority <file>:<line> <artifact> not owned by <plugin>` per violation

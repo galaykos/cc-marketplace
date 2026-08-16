@@ -3,4 +3,4 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-api-docs-first:remind	hook	understand	third-party-api-doc-verification	prompt head carries an integration noun (sdk|endpoint|integration|webhook|oauth|graphql) AND a making or calling verb	-
+api-docs-first:remind	hook	build	third-party-api-doc-verification	prompt head carries an integration noun (sdk|endpoint|integration|webhook|oauth|graphql) AND a making or calling verb	-
