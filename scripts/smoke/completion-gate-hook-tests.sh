@@ -89,6 +89,11 @@ check "stale gate-pass head (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J
 # ("guards against loop", expecting exit 0) pinned that defect in CI. The loop bound is
 # the per-HEAD nudge, which sat unreachable beneath the early exit.
 rm -f "$GP" "$NUDGE" 2>/dev/null
+# Backdate the sentinel. The nudge bounds this gate only while it is NEWER than the
+# run sentinel, and ":74" says a same-tick tie "fails toward blocking, never toward
+# silence". A harness that registers the run and stops in the same second exercises
+# that tie, not the bound — which made this assertion flaky rather than wrong.
+touch -t 202601010000 "$SENT"
 check_keep "stop_hook_active does not spend this gate (still blocks)" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 2 "registered run"
 
 # 6b) The bound is the marker: a second stop at the SAME HEAD does not BLOCK. It still

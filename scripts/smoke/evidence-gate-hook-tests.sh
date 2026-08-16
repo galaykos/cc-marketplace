@@ -19,6 +19,10 @@ pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 CWD="$WS/proj"; mkdir -p "$CWD"
 MARKER="$CWD/.claude/evidence-gate-last"
+# The namespaced-disarm record. A blocking case WRITES it, so it must be cleared
+# between cases — otherwise a later case inherits the previous one's block and reads
+# as that gate's own continuation, which is test pollution wearing a PASS.
+CLAIMED="$CWD/.claude/evidence-gate-blocked"
 
 # Transcript builders: one JSONL line per entry.
 text_entry() { jq -cn --arg t "$1" '{type:"assistant",message:{content:[{type:"text",text:$t}]}}'; }
@@ -30,7 +34,7 @@ payload() { jq -cn --arg tp "$1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd
 
 # check <desc> <env> <transcript-file> <exp_rc> <exp_substr|__NONE__>
 # Marker cleared per case; check_keep preserves it (tests the one-shot bound).
-check() { rm -f "$MARKER"; check_keep "$@"; }
+check() { rm -f "$MARKER" "$CLAIMED"; check_keep "$@"; }
 check_keep() {
   local desc="$1" envv="$2" tfile="$3" exp_rc="$4" exp_sub="$5" err rc ok=1
   err=$(payload "$tfile" | env $envv bash "$HOOK" 2>&1 >/dev/null); rc=$?
@@ -92,13 +96,15 @@ check "off mode is silent"                          "CC_EVIDENCE_GATE=off" "$T1"
 # The previous assertion here pinned that behaviour (stop_hook_active -> allow), so the
 # defect was CI-certified. What replaces it: the gate still evaluates and blocks, and
 # its OWN per-text marker is what bounds the loop.
-rm -f "$MARKER"
+rm -f "$MARKER" "$CLAIMED"
 sha_pay=$(jq -cn --arg tp "$T1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}')
 err=$(printf '%s' "$sha_pay" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
 if [ "$rc" -eq 2 ]; then pass=$((pass+1)); printf 'PASS  stop_hook_active does not spend this gate (still blocks)\n'
 else fail=$((fail+1)); printf 'FAIL  stop_hook_active still short-circuits (rc=%s)\n' "$rc"; fi
 
-# 10b. The loop bound is the marker, not the flag: an IDENTICAL second stop passes.
+# 10b. The gate's OWN continuation releases the turn: the record written by 10's block
+# is present, so the shared flag is honoured. A sibling's block leaves no record and
+# therefore cannot disarm this gate — that is the namespacing, and 10 asserts it.
 err=$(printf '%s' "$sha_pay" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
 if [ "$rc" -eq 0 ] && [ -z "$err" ]; then pass=$((pass+1)); printf 'PASS  own marker bounds the loop on a repeat stop\n'
 else fail=$((fail+1)); printf 'FAIL  would loop — marker did not bound it (rc=%s)\n' "$rc"; fi
