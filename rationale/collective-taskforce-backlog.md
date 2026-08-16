@@ -53,11 +53,26 @@ decisions rather than as omissions.
    adopt the fix. Gate it (`pc_context_key`) rather than patching six files, because the
    next hook someone writes will make the same choice.
 
-4. **Fan-in visibility for the 33 `review` commands.** 26 are chassis-generated, 7 are
-   hand-written. `code-review/commands/review.md:36-39` states it is the fan-in for
-   overlapping review surfaces, but the catalog trims descriptions to 85 characters, so
-   that clause is invisible at exactly the surface where the choice is made. The lane
-   rows now record the deference; the *catalog row* still does not show it.
+4. ~~**Fan-in visibility for the 33 `review` commands.**~~ **DONE**, and this entry was
+   wrong twice — recorded because both errors are instructive.
+
+   *Wrong mechanism.* The claim was lost to the 85-char trim. It was not:
+   `route-prompt.sh:190` does `split($0, a, / — |\. |: /)` and renders clause **one**,
+   so anything after the first `—`, `. ` or `: ` never reaches the catalog at any
+   length. A fix aimed at the trim would have changed nothing. General rule for
+   authors: the load-bearing claim must sit in the FIRST clause of a `description:`.
+
+   *Wrong scope.* The entry called for hand-up clauses in the 7 bespoke commands too.
+   That would have been a deference cycle. `code-review/commands/review.md:60-74`
+   defines the fan-in on **two axes**: it aggregates on the STACK axis (the 26
+   generated stack reviews), and on the CONCERN axis it *defers* — to `resilience`,
+   `observability`, `comment-discipline`, `code-architecture` and `security`. The
+   bespoke commands are concern-axis; code-review already yields to them, and its
+   `lane.tsv` row records exactly that. Nothing to change there.
+
+   Shipped: the hand-up clause lives in `templates/blocks/triage.md`, so all 26
+   generated stack reviews carry it from one edit, and code-review's description now
+   leads with "fanning in every installed stack review" (76 chars, clause one).
 
 5. **Stop-gate cross-disarm.** `evidence-gate.sh:67` and `completion-gate.sh:40` both
    `exit 0` unconditionally on `stop_hook_active`, and completion-gate's per-HEAD nudge

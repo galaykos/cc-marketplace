@@ -1,5 +1,5 @@
 ---
-description: Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings; loads every installed matching stack skill in one pass.
+description: Review any diff for bugs and smells, fanning in every installed stack review — severity-sorted one-line findings; never run the per-stack commands separately.
 ---
 
 Review the code change in $ARGUMENTS. Resolve scope in this order:

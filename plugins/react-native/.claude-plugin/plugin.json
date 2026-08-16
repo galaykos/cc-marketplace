@@ -1,6 +1,6 @@
 {
   "name": "react-native",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "React Native best practices: list performance, navigation, platform-specific code, animations.",
   "author": {
     "name": "Ivan-WG",

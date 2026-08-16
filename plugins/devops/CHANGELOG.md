@@ -2,6 +2,17 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.6
+
+### Changed
+- **`/devops:review` hands the whole scope to `/code-review:review`** when the resolved
+  scope reaches outside this plugin's stack surface and that plugin is installed.
+  `code-review` already declared itself the fan-in for overlapping review surfaces, but
+  only the aggregator knew it — entering through a stack command left the other stacks
+  in a multi-stack diff unreviewed, or produced the duplicate findings the fan-in exists
+  to prevent. The clause lives in `templates/blocks/triage.md`, shared by all 26
+  generated stack reviews.
+
 ## 0.5.5 — 2026-08-16
 
 ### Added
