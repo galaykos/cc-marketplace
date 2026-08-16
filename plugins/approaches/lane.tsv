@@ -5,3 +5,12 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 approaches:opinion-lens	agent	decide	persona-opinion-shard	dispatched by the opinion-round skill, four in parallel, one persona each	-
 approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)	-
+#
+# THE TWO DELIBERATION SKILLS SHARE ONE TERRITORY ON PURPOSE. Both decide the SHAPE of
+# a change and both say "skip if the other already ran" — that mutual exclusion is the
+# point, so a yields_to edge would misdescribe it (neither outranks the other; whichever
+# fires first owns the task). Blessed as a co-fire, with the marker below as the
+# mechanism that makes the exclusion checkable instead of remembered.
+# lane-cofire-ok: approaches:approach-deliberation approaches:opinion-round
+approaches:approach-deliberation	skill	decide	change-shape-deliberation	user-initiated structural deliberation on a non-trivial change AND no deliberation marker exists for this task	-
+approaches:opinion-round	skill	decide	change-shape-deliberation	prompt asks to refactor/rewrite/restructure/migrate/redesign existing code AND no deliberation marker exists for this task	-
