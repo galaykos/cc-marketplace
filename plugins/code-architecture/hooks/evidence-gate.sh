@@ -64,7 +64,15 @@ case "${CC_EVIDENCE_GATE:-block}" in off) exit 0 ;; esac
 command -v jq >/dev/null 2>&1 || { echo "[code-architecture] evidence-gate: jq not found — gate not enforced" >&2; exit 0; }
 
 # Never re-trigger from our own continuation.
-[ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)" = "true" ] && exit 0
+# stop_hook_active is READ here and honoured only as a fallback further down — it is
+# NOT an early exit any more. It is a SHARED flag: Claude Code sets it on the
+# continuation that follows ANY blocking Stop hook, so a sibling gate's block used to
+# spend this gate's enforcement. Two Stop gates ship in this marketplace
+# (task-runner's completion-gate is the other) and a registered run could end clean,
+# with cards unexecuted, because this hook blocked first and the sibling's bare exit
+# fired on the continuation. Each gate bounds its own loop with its own marker — the
+# per-text one below — so the shared flag is not needed for that job.
+sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
 
 tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
 [ -n "$tp" ] && [ -r "$tp" ] || exit 0
@@ -135,7 +143,14 @@ state=$(printf '%s' "$said" | (command -v shasum >/dev/null 2>&1 && shasum | cut
 if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
   exit 0
 fi
-mkdir -p "$cwd/.claude" 2>/dev/null && printf '%s' "$state" > "$marker" 2>/dev/null
+if ! { mkdir -p "$cwd/.claude" 2>/dev/null && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
+  # The marker could not be written, so the per-text bound does not exist this turn.
+  # THIS is where the shared flag earns its keep: without a marker and without it, a
+  # gate that blocks on unwritable state would block the same turn forever. Honouring
+  # it only here costs at most one unenforced stop on an already-degraded setup,
+  # instead of surrendering every stop that follows any sibling gate's block.
+  [ "$sha_active" = "true" ] && exit 0
+fi
 
 printf '[code-architecture] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
 printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2

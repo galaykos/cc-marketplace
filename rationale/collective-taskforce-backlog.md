@@ -30,7 +30,9 @@ decisions rather than as omissions.
    `worker-agent` and dies on anything else, so this needs a render function, a
    template, a manifest and a `--check` path. Spec criterion S6 is unmet; S5 is met.
 
-2. **Three smoke harnesses mutate real shipped files and rely on cleanup.** This bit
+2. ~~**Three smoke harnesses mutate real shipped files.**~~ **DONE** — each now copies
+   the tree and runs the COPY's `validate.sh`, and each asserts the live file was never
+   written. Kept below because the failure mode is worth remembering. This bit
    the implementation run three separate times, including once where a harness restored
    `route-prompt.sh` from its own backup and silently reverted a completed feature.
    - `scripts/smoke/prompt-route-tests.sh:228` appends a 5th grep to the real
@@ -45,7 +47,10 @@ decisions rather than as omissions.
    `pc_lanes_coverage` gates agents, a leaked `_rf_scratch_*.md` demands a lane row
    that will never exist. **Fix: plant into a copied tree, not the live one.**
 
-3. **`transcript_path` keying for PostToolUse one-shots.** Six hooks key their one-shot
+3. ~~**`transcript_path` keying for PostToolUse one-shots.**~~ **DONE** — five hooks
+   re-keyed, `pc_context_key` gates it, and `hindsight:skill-use` carries an explicit
+   `# context-key-ok:` because it records session_id as a ledger field rather than a
+   dedup key. Originally: six hooks key their one-shot
    markers on `session_id`, so a subagent context is deduped by nudges the parent
    already received — and PostToolUse is the only hook channel that reaches subagents
    at all. `plugins/lean/hooks/budget.sh:10-15` discovered, documented and fixed this;
@@ -74,12 +79,23 @@ decisions rather than as omissions.
    generated stack reviews carry it from one edit, and code-review's description now
    leads with "fanning in every installed stack review" (76 chars, clause one).
 
-5. **Stop-gate cross-disarm.** `evidence-gate.sh:67` and `completion-gate.sh:40` both
+5. ~~**Stop-gate cross-disarm.**~~ **DONE** — the shared flag is honoured only when a
+   gate cannot write its own marker; otherwise each bounds itself. Proven by execution:
+   with the flag set the first stop still blocks and an identical second does not. The
+   harness assertions that pinned the old behaviour were replaced. Originally:
+   `evidence-gate.sh:67` and `completion-gate.sh:40` both
    `exit 0` unconditionally on `stop_hook_active`, and completion-gate's per-HEAD nudge
    marker sits below that exit, unreachable on a continuation. The fix (each gate bounds
    itself with its own existing marker) is correct under every plausible reading of the
    flag. Deferred only because the *impact* depends on harness semantics no artifact in
    this repo establishes.
+
+5b. ~~**Stateless skill-to-skill dedup.**~~ **DONE** — `opinion-round` and
+   `approach-deliberation` each claimed "skip when the other already ran" with nothing
+   recording that either had, so a subagent or compacted session re-litigated a decided
+   shape. Both now read/write `.claude/approaches/deliberated.json`, and `lane.tsv`
+   declares them a CO-FIRE rather than a `yields_to` edge: neither outranks the other,
+   whichever fires first owns the task. The marker read stays agent-graded.
 
 6. **Compaction behaviour is unverified**, and two shipped mechanisms now rest on it:
    the rank marker key is `cksum(sid + prompt + phase)` and the sentinel checks

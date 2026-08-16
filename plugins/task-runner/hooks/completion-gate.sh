@@ -37,7 +37,14 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -n "$cwd" ] || exit 0
 
 # Never re-trigger from our own continuation.
-[ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)" = "true" ] && exit 0
+# stop_hook_active is READ here and honoured only inside gate_exit's fallback — it is
+# NOT an early exit any more. The flag is SHARED across every Stop hook: Claude Code
+# sets it on the continuation following ANY blocking one, so code-architecture's
+# evidence-gate blocking first used to spend this gate's enforcement, and a registered
+# run could end clean with cards unexecuted — the exact outcome this hook exists to
+# prevent. The per-HEAD nudge below is this gate's own bound and sat unreachable
+# beneath that exit.
+sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
 
 sentinel="$cwd/.claude/task-runner/active-run.json"
 [ -r "$sentinel" ] || exit 0                     # no registered run → nothing to enforce
@@ -80,7 +87,14 @@ gate_exit() {
   if [ -r "$nudge" ] && [ "$nudge" -nt "$sentinel" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$head" ]; then
     exit 0
   fi
-  printf '%s' "$head" > "$nudge" 2>/dev/null
+  if ! printf '%s' "$head" > "$nudge" 2>/dev/null; then
+    # The nudge could not be written, so the per-HEAD bound does not exist this turn.
+    # THIS is the only place the shared flag is still needed: without a marker and
+    # without it, an unwritable state dir would block the same stop forever. Cost is
+    # one unenforced stop on an already-degraded setup, rather than surrendering every
+    # stop that follows a sibling gate's block.
+    [ "$sha_active" = "true" ] && exit 0
+  fi
   exit 2
 }
 

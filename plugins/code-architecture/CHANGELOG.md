@@ -2,6 +2,19 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.2
+
+### Fixed
+- **A sibling Stop gate's block no longer spends this one's enforcement.**
+  `stop_hook_active` is a SHARED flag — Claude Code sets it on the continuation after
+  ANY blocking Stop hook — and this gate exited on it unconditionally, before its own
+  loop-bounding marker was ever reached. Two Stop gates ship in this marketplace, so
+  one blocking first disarmed the other for that continuation. The gate now evaluates
+  normally and bounds itself with its own marker; the shared flag is honoured only when
+  that marker cannot be written, which is the one case where nothing else bounds the
+  loop. Verified: with the flag set, the first stop still blocks and an identical second
+  stop does not.
+
 ## 0.13.1 — 2026-08-16
 
 ### Added
