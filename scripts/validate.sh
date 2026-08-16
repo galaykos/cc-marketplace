@@ -673,6 +673,19 @@ phase_gap=$(pc_phase_guard plugins) || true
 ctx_gap=$(pc_context_key plugins) || true
 [ -n "$ctx_gap" ] && lane_err "$ctx_gap" "a PostToolUse one-shot must key on transcript_path (falling back to session_id) — or carry '# context-key-ok: <why>' when session scope is genuinely correct"
 
+# Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
+# claims — the densest ownership statements the marketplace ships, and the only ones a
+# USER reads before installing. They were the one surface pc_handoff_refs never scanned,
+# so a rename could orphan a user-facing deference claim silently.
+# Only this check, not the three siblings in the loop above: pc_removed_refs and
+# pc_host_overlap read prose intent and would misfire on a description that legitimately
+# names a removed plugin or a host skill.
+for pj in plugins/*/.claude-plugin/plugin.json; do
+  [ -f "$pj" ] || continue
+  pjhit=$(pc_handoff_refs "$pj") \
+    || err "$pj: description names an unresolved handoff [$(printf '%s' "$pjhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] — a deference claim a user reads before installing must point at something that exists"
+done
+
 # ---- Role-floor registry gate ------------------------------------------------
 # role-floors.md rows must agree with agent frontmatter, and every agent pinning a
 # real tier must be CLASSIFIED: either a registry row (floored) or `floor: none`

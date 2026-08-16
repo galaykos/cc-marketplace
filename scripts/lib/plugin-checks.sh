@@ -404,8 +404,14 @@ pc_handoff_refs() {
     [ -f "$root/$lhs/commands/$rhs.md" ] && continue
     printf 'handoff %s %s\n' "$f" "$tok"
     bad=1
+  # `sort -u` on the WHOLE line, not `-t: -k1,1 -k2,2`. That key was (line, plugin), so
+  # two handoffs sharing a plugin prefix ON ONE LINE collapsed to the first and the
+  # second was never checked. Verified: `code-architecture:yagni-check and
+  # code-architecture:no-such-thing` on one line passed clean, while the same pair on two
+  # lines failed correctly. Prose wraps, so this mostly hid; a plugin.json description is
+  # a single long line, which is where it bites every time.
   done < <(grep -nEo '(^|[^/`<[:alnum:]_-])[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' "$f" 2>/dev/null \
-    | sed -E 's/^([0-9]+):[^a-z]*/\1:/' | sort -u -t: -k1,1 -k2,2)
+    | sed -E 's/^([0-9]+):[^a-z]*/\1:/' | sort -u)
   return $bad
 }
 
