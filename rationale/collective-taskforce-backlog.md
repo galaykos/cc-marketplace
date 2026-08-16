@@ -116,6 +116,27 @@ decisions rather than as omissions.
    "Defers X to Y" statements. The lane rows were reconciled against them by hand;
    `pc_handoff_refs` does not read `plugin.json`, so the next edit can diverge silently.
 
+## The limit that matters most
+
+**Turn-taking engages on the pipeline path, not everywhere.** Four commands write a
+sentinel — `taskmaster:task` (shape), `task-runner:run` (build), `git-workflow:finish`
+(ship), and `code-architecture:coding-task` on its `trivial` verdict (build). A **bare
+prompt writes none**. So on the plain-prompt path, which §1 of the spec calls the
+overwhelming case, no phase exists, every voice stays eligible, and what arbitrates is
+the rank tiebreak. That is collision-avoidance, not turn-taking.
+
+This was found by asking how often the sentinel actually exists, rather than by reading
+the design — 3 writers against 5 readers at the time, all three writers being pipeline
+commands. `coding-task` was added as the fourth afterwards, which covers ad-hoc work
+that enters through a command; it does not cover a bare prompt, and nothing can. Nothing
+observes "the arc" unless something declares it, and inferring a phase from prompt text
+would rebuild the routing table in shell that `route-prompt.sh`'s own header refuses.
+
+The claim to make is therefore the narrow one. The rank protocol is what most sessions
+actually get, and it is a real improvement on a `mkdir` race — but it is not the mission
+verb, and describing the marketplace as "taking turns everywhere" would be the tier
+over-claim this repo's own convention exists to stop.
+
 ## Two limits worth restating
 
 **Single-voice is not guaranteed** on the prompt channel — monotonic precedence is.

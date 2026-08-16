@@ -38,6 +38,21 @@ command -v jq >/dev/null 2>&1 || exit 0
 # fires when it maybe should not); expiring late mutes a real channel. Those costs
 # are not symmetric, so this errs toward speaking.
 #
+# HOW OFTEN THIS ACTUALLY ENGAGES — state it plainly, because the answer is "less
+# often than the word turn-taking suggests". Four commands write a sentinel:
+# taskmaster:task (shape), task-runner:run (build), git-workflow:finish (ship), and
+# code-architecture:coding-task on its `trivial` verdict (build). A BARE PROMPT writes
+# none. So on the plain-prompt path — which this design's own notes call the
+# overwhelming case — no phase exists, every voice stays eligible, and what arbitrates
+# is the rank tiebreak, not the arc. That is collision-avoidance, not turn-taking.
+# Turn-taking engages once work enters through a command that declares a phase.
+#
+# This is a real limit, not a defect to route around: nothing can observe "the arc"
+# without something declaring it, and inferring a phase from prompt text would be the
+# routing-table-in-shell that route-prompt.sh's own header refuses. The honest claim is
+# the narrow one — say the guard engages on the pipeline path, never that the
+# marketplace takes turns everywhere.
+#
 # Standing: the GATE (pc_phase_guard) proves a hook READS the sentinel. No gate
 # can prove an artifact HONOURS it in every branch — that half is agent-graded.
 #
