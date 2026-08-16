@@ -29,7 +29,12 @@
     ] | join("\n")' 2>/dev/null) || exit 0
   [ -n "$text" ] || exit 0
   file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // "unknown"' 2>/dev/null)
-  sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
+  # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
+  # subagents at all, and a subagent shares its parent's session_id while getting its
+  # own transcript. Keying a one-shot on session_id therefore dedups the worker against
+  # nudges only the PARENT ever saw, so the context where most fan-out code is written
+  # is the one context this never speaks in. Pattern and rationale: lean/hooks/budget.sh:10.
+  sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
 
   hits=""
   detect() { # detect <slug> <ERE> <one-line advice>

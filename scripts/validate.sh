@@ -668,6 +668,11 @@ lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
 phase_gap=$(pc_phase_guard plugins) || true
 [ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read .claude/cc-phase.json — declare the lane 'any' if it is a guard that must fire in every phase"
 
+# PostToolUse is the only channel that reaches subagents; a one-shot keyed on
+# session_id is deduped by the parent's history and never speaks in the worker.
+ctx_gap=$(pc_context_key plugins) || true
+[ -n "$ctx_gap" ] && lane_err "$ctx_gap" "a PostToolUse one-shot must key on transcript_path (falling back to session_id) — or carry '# context-key-ok: <why>' when session scope is genuinely correct"
+
 # ---- Role-floor registry gate ------------------------------------------------
 # role-floors.md rows must agree with agent frontmatter, and every agent pinning a
 # real tier must be CLASSIFIED: either a registry row (floored) or `floor: none`

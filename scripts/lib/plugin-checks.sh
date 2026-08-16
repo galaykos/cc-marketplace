@@ -859,3 +859,46 @@ $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sor
 EOF
   return $bad
 }
+
+# pc_context_key <plugins-root> — subagent delivery, backlog item 3.
+# A PostToolUse hook that derives a ONE-SHOT marker from session_id is structurally
+# silent in exactly the context where most fan-out code is written. PostToolUse is
+# the only hook channel that reaches subagents at all (SessionStart and
+# UserPromptSubmit do not run for them), and a subagent shares its parent's
+# session_id while getting its own transcript — so a session-keyed marker the parent
+# already claimed dedups the worker's nudge away. lean/hooks/budget.sh:10-15
+# discovered and documented this; skill-router/hooks/route.sh:16-18 documented the
+# identical hole and did not adopt the fix, which is why this is a gate rather than
+# six patches: the next hook someone writes would make the same choice.
+#
+# EXEMPTION, by marker comment: a hook that RECORDS session_id as data — a ledger
+# field, an audit row — is legitimately session-scoped and must not be rewritten.
+# hindsight/hooks/skill-use.sh is the worked example: it writes session_id into a
+# JSONL row and never keys a marker on it. Mark such a hook with
+# `# context-key-ok: <why>` on any line.
+#
+# Prints `context-keyed-on-session <plugin>:<script>` per offender; returns 1 if any.
+pc_context_key() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      rel=$(basename "$sh")
+      grep -q 'session_id' "$sh" 2>/dev/null || continue
+      grep -q 'transcript_path' "$sh" 2>/dev/null && continue
+      grep -q 'context-key-ok:' "$sh" 2>/dev/null && continue
+      printf 'context-keyed-on-session %s:%s\n' "$p" "$rel"
+      bad=1
+    done <<EOF
+$(jq -r '(.hooks.PostToolUse // []) | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}

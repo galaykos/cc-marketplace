@@ -34,6 +34,10 @@
   command -v jq >/dev/null 2>&1 || exit 0
   case "${CC_SKILL_LOG:-on}" in off) exit 0 ;; esac
 
+  # context-key-ok: session_id is RECORDED as a ledger field, never used to key a
+  # one-shot marker. The harvest reads these rows to group what a session invoked, so
+  # session scope is the correct scope here — rewriting it to transcript_path would
+  # split one session's ledger across every subagent that ran in it.
   session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null) || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] || exit 0
