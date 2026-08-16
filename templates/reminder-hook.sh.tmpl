@@ -3,6 +3,7 @@
 # Fail open: never block the prompt. Print a reminder only when the prompt reads
 # like the work it nudges about — a mere mention of the words stays silent.
 command -v jq >/dev/null 2>&1 || exit 0
+{{> phase-guard}}
 {
   input=$(cat)
   prompt=$(printf '%s' "$input" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
@@ -25,38 +26,46 @@ command -v jq >/dev/null 2>&1 || exit 0
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
   printf '%s' "$head" | grep -qF '{{command}}' && exit 0 # own suggestion quoted back = transcript, not intent
+  # TURN-TAKING (spec §4.3). Evaluated only after the prompt already matched this
+  # hook's own trigger, so an out-of-phase artifact costs one lane.tsv read and
+  # nothing else. sid is needed by the guard's session check, so resolve it first.
+  sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
+  cc_phase_guard '{{artifact}}' || exit 0
   if printf '%s' "$head" | grep -qiE '{{regex}}'{{#if extraGuard}} && {{extraGuard}}{{/if}}; then
-{{#if budgetShared}}    # PER-PROMPT BUDGET: at most one reminder line per prompt across every
-    # reminder hook installed. All hooks derive the same key from the prompt;
-    # mkdir is the atomic test-and-set, first hook to claim it speaks. Which
-    # one wins is scheduling order — acceptable for advisory nudges; the
-    # alternative was four competing "do this first" directives on one prompt.
-    # Fail open: with an unwritable TMPDIR the claim fails but no marker
-    # exists, so the reminder still prints. Markers self-clean after a day.
-    sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
-    key=$(printf '%s%s' "$sid" "$prompt" | cksum | cut -d' ' -f1)
-    mark="${TMPDIR:-/tmp}/cc-remind-$key"
-    if mkdir "$mark" 2>/dev/null || [ ! -d "$mark" ]; then
+    # MONOTONIC PRECEDENCE (spec §4.4). Rank arbitrates only between hooks that
+    # share a phase; the phase sentinel does the real turn-taking. Guaranteed:
+    # among hooks eligible THIS TURN, the best rank always speaks, in every
+    # invocation order. NOT guaranteed: exactly one line — a worse-ranked sibling
+    # that reads before its better-ranked peer claims will also print. Output is
+    # bounded at one line per eligible hook. Claiming determinism here would be an
+    # over-claim; hooks launch in parallel and single-voice needs a settle window,
+    # which would cost latency on every prompt.
+    #
+    # Markers are FLAT (cc-remind-<key>-rank-<NN>), never nested under a per-key
+    # directory. Nested claims fail ENOENT without an -p, so no hook would ever
+    # yield and ALL would print; and the shipped sweep below uses rmdir with
+    # -maxdepth 1, which can neither remove a non-empty directory nor descend into
+    # it, so every prompt would leak a marker forever and each leak is a permanent
+    # gag. Flat markers are cleaned by that same sweep unchanged.
+    #
+    # The key carries the PHASE, so a voice that stood down earlier gets a fresh
+    # claim namespace when its own phase arrives instead of meeting a stale claim.
+    key=$(printf '%s%s%s' "$sid" "$prompt" "$cc_phase_now" | cksum | cut -d' ' -f1)
+{{#if armsClarifyGate}}    # CROSS-PLUGIN SIGNAL, deliberately outside the yield decision. This marker is
+    # the sole producer for taskmaster's optional clarify gate (PreToolUse, off by
+    # default); it must be dropped whenever this hook's trigger matched, even if a
+    # better-ranked sibling speaks instead, or retiring the old budgetExempt branch
+    # would silently disarm that gate for everyone who set CC_CLARIFY_GATE=block.
+    # Gated on an explicit manifest flag, not on rank, so exactly one plugin arms
+    # it — making it unconditional would widen a deny gate's trigger to five hooks.
+    mkdir "${TMPDIR:-/tmp}/cc-workprompt-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)" 2>/dev/null
+{{/if}}    mkdir "${TMPDIR:-/tmp}/cc-remind-$key-rank-{{arcRank}}" 2>/dev/null
+    best=$(ls -d "${TMPDIR:-/tmp}/cc-remind-$key-rank-"* 2>/dev/null \
+             | sed 's/.*-rank-//' | sort -n | head -1)
+    if [ -z "$best" ] || [ "$best" = '{{arcRank}}' ]; then
       printf '%s (%s).\n' '{{message}}' '{{command}}'
     fi
-    find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-remind-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
-{{/if}}{{#if budgetExempt}}    # PRIORITY DIRECTIVE (budgetExempt): a binding workflow directive, not an
-    # advisory nudge — it prints on every matching prompt and still CLAIMS the
-    # shared per-prompt marker (best-effort) so advisory reminders scheduled
-    # AFTER it yield. Honest limitation: hooks launch in parallel, so an
-    # advisory that ran FIRST may already have spoken — that order can still
-    # stack two lines on one prompt; the accepted trade. Also drops a
-    # session-scoped cc-workprompt marker — a CROSS-PLUGIN signal consumed by
-    # taskmaster's optional clarify gate (PreToolUse, off by default); a
-    # second budgetExempt plugin would arm that gate too. Markers self-clean.
-    # NOTE: budgetShared/budgetExempt are derived complements (generate.sh) —
-    # a direct render must set exactly one or the emitted if/fi goes empty.
-    sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
-    key=$(printf '%s%s' "$sid" "$prompt" | cksum | cut -d' ' -f1)
-    mkdir "${TMPDIR:-/tmp}/cc-remind-$key" 2>/dev/null
-    mkdir "${TMPDIR:-/tmp}/cc-workprompt-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)" 2>/dev/null
-    printf '%s (%s).\n' '{{message}}' '{{command}}'
     find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'cc-remind-*' -o -name 'cc-workprompt-*' \) -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
-{{/if}}  fi
+  fi
 } 2>/dev/null
 exit 0

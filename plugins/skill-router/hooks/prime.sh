@@ -32,13 +32,46 @@
   has()     { find "$cwd" -maxdepth 3 -name "$1" -print -quit 2>/dev/null | grep -q . ; }
   has_dir() { find "$cwd" -maxdepth 3 -type d -name "$1" -print -quit 2>/dev/null | grep -q . ; }
 
+  # Rows below mirror coding-entry/references/skill-map.md, which is the documented
+  # manifest-shaped map. Keep the two in step; skill-map.md's own header warns that
+  # "two copies of one matcher guarantees that one goes stale", and this file WAS the
+  # unacknowledged third copy. Generating this table from that file is the follow-up
+  # (it needs a fifth chassis type — scripts/generate.sh:216-221 dispatches four and
+  # dies on anything else), so until then the comment is the only thing holding them
+  # together, which is a `recorded` tier and stated as such.
+  dep() { # $1 manifest, $2 ERE — a dependency-name match, not a substring anywhere
+    [ -f "$cwd/$1" ] && grep -qE "$2" "$cwd/$1" 2>/dev/null
+  }
+
   [ -f "$cwd/composer.json" ] && add package-hygiene packages
   [ -f "$cwd/package.json" ]  && add package-hygiene packages
   if has '*.sql' || has_dir migrations; then add sql-best-practices sql; fi
   if has '*.tsx' || has '*.jsx'; then add a11y-audit a11y; fi
-  if [ -f "$cwd/package.json" ] && grep -qE '"(react|vue|@?tailwind)' "$cwd/package.json" 2>/dev/null; then
+
+  # PHP side. laravel and plain php are stack-EXCLUSIVE per skill-map.md — a Laravel
+  # repo primes laravel-best-practices and not php-best-practices, the same rule
+  # rules.tsv applies via its `!composer.json~laravel/framework` markers.
+  if dep composer.json '"laravel/framework"'; then add laravel-best-practices laravel
+  elif [ -f "$cwd/composer.json" ]; then add php-best-practices php
+  fi
+  dep composer.json '"livewire/livewire"' && add livewire-best-practices livewire
+  { dep composer.json '"inertiajs/inertia-laravel"' || dep package.json '"@inertiajs/'; } \
+    && add inertia-best-practices inertia
+
+  # JS side. react-native and react are exclusive the same way.
+  if dep package.json '"react-native"'; then add react-native-best-practices react-native
+  elif dep package.json '"react"'; then add react-server-state react
+  fi
+
+  # Tailwind requires an actual Tailwind signal. This line previously read
+  # grep -qE '"(react|vue|@?tailwind)' — so ANY React or Vue dependency asserted
+  # tailwind-best-practices on a repo with no Tailwind in it. That is the falsehood
+  # this card exists to remove: it was emitted in the session's FIRST line, and every
+  # blocking gate passed it, because no gate reads this map.
+  if dep package.json '"tailwindcss"' || has 'tailwind.config.*'; then
     add tailwind-best-practices ui-ux
   fi
+  [ -f "$cwd/components.json" ] && add shadcn-best-practices ui-ux
   if has 'Dockerfile*' || has 'docker-compose*.yml' || has 'compose*.yml'; then add docker-best-practices dev-env; fi
   if has_dir tests || has '*.test.*' || has '*.spec.*'; then add testing-best-practices testing; fi
 

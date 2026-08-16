@@ -1,0 +1,11 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# route-prompt offers WHICH tool; the reminder hooks nudge about WHAT to do — different jobs,
+# so no shared territory. The yield is not invented here: the charter this hook injects already
+# says "clarification outranks tool-fit" (hooks/route-prompt.sh, rule 3), so the row records a
+# deference the plugin already ships. prime.sh (SessionStart), route.sh (PostToolUse) and
+# summary.sh (SessionEnd) are outside the gated channel and carry no row this run.
+skill-router:route-prompt	hook	any	tool-fit-catalog	prompt head passes the work-shaped gate (a making verb, or a symptom token bound by a state verb) AND no catalog marker exists for this session	taskmaster:remind

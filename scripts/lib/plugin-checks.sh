@@ -450,6 +450,296 @@ pc_version_stamp() {
   return 1
 }
 
+# ---- Lane declarations (plugins/<name>/lane.tsv) -----------------------------
+#
+# THE FORMAT, mirrored in every shipped lane.tsv header. Six TAB-separated
+# fields, one row per artifact:
+#
+#   artifact  kind  phase  owns  definite_trigger  yields_to
+#
+#   artifact          <plugin>:<name> — taskmaster:task, code-review:code-reviewer
+#   kind              command | hook | agent | skill
+#   phase             understand|shape|decide|plan|build|verify|review|ship|any
+#   owns              the territory noun (requirements-clarification, ...)
+#   definite_trigger  a checkable condition, not prose
+#   yields_to         comma-list of artifacts that outrank this one, or `-`
+#
+# Lines starting with `#` are comments. One comment shape is read by the gates:
+#   # lane-cofire-ok: <artifact-a> <artifact-b>
+# blesses one PAIR that shares a territory. It may sit in EITHER participant's
+# file — pc_lanes_territory collects every blessing from every file before it
+# evaluates anything, so neither side of a cross-plugin pair is privileged.
+#
+# `yields_to` IS TERRITORY-SCOPED: it names artifacts that outrank this one ON
+# THEIR OWN `owns`, which is why a mutual pair between two DIFFERENT territories
+# is coherent rather than a cycle — devops owns infra-layer wiring and yields
+# in-code instrumentation to observability, which yields infra wiring back. Both
+# statements ship in those plugins' descriptions today; the columns record them
+# without inventing a winner neither plugin claims.
+#
+# WHY PER-PLUGIN AND NOT A CENTRAL REGISTRY. skill-router ships in 5 of 10
+# bundles, so a registry under it would leave five bundles' artifacts with no
+# lane at runtime. Collision detection needs every claim visible at once and
+# runs HERE, at author time, over the repo — where every plugin is present
+# regardless of what any user installed. Turn-taking needs only the artifact's
+# OWN lane and reads `${CLAUDE_PLUGIN_ROOT}/lane.tsv` at runtime. Separating the
+# two jobs is what removes the partial-install failure.
+#
+# LIMITATION (honest scope), shared by all five functions below: these gate what
+# a plugin DECLARES, never what it does. Nothing here proves an agent confines
+# itself to its `owns`, that a `definite_trigger` describes the code that fires,
+# or that a `yields_to` edge is honoured at runtime — those stay agent-graded.
+# What the gates convert is "two artifacts silently claim one job and nobody
+# finds out" into "two artifacts claim one job and the build says so".
+
+# _pc_lane_rows <lane_tsv>
+# Emits "artifact<TAB>kind" for each well-formed data row. Private helper.
+_pc_lane_rows() {
+  [ -f "$1" ] || return 0
+  awk -F'\t' '{ sub(/\r$/, "") } /^#/ { next } NF==6 { print $1 "\t" $2 }' "$1"
+}
+
+# _pc_lane_resolves <plugins_root> <plugin:name> <kind|any>
+# True when the token names a real artifact of the declared kind. Private helper.
+_pc_lane_resolves() {
+  local root="$1" tok="$2" kind="${3:-any}" p n
+  case "$tok" in *:*) ;; *) return 1 ;; esac
+  p="${tok%%:*}"; n="${tok##*:}"
+  [ -n "$p" ] && [ -n "$n" ] || return 1
+  case "$kind" in
+    agent)   [ -f "$root/$p/agents/$n.md" ] ;;
+    command) [ -f "$root/$p/commands/$n.md" ] ;;
+    skill)   [ -f "$root/$p/skills/$n/SKILL.md" ] ;;
+    hook)    [ -f "$root/$p/hooks/$n.sh" ] ;;
+    *)       [ -f "$root/$p/agents/$n.md" ] || [ -f "$root/$p/commands/$n.md" ] \
+             || [ -f "$root/$p/skills/$n/SKILL.md" ] || [ -f "$root/$p/hooks/$n.sh" ] ;;
+  esac
+}
+
+# pc_lanes_schema <lane_tsv>
+# Prints one `lane-schema <file>:<line> <reason>` per malformed row and returns
+# 1; clean or missing file returns 0. Four reasons: a row without exactly 6
+# tab-separated fields, an unknown `kind`, an unknown `phase`, and a duplicate
+# artifact+owns pair within one file (the same artifact claiming one territory
+# twice is a merge artifact, not a declaration).
+pc_lanes_schema() {
+  local f="$1"
+  [ -f "$f" ] || return 0
+  awk -F'\t' -v file="$f" '
+    { sub(/\r$/, "") }
+    /^#/ { next }
+    /^[[:space:]]*$/ { next }
+    {
+      if (NF != 6) {
+        printf "lane-schema %s:%d %d fields (want 6)\n", file, FNR, NF; bad=1; next
+      }
+      if ($2 !~ /^(command|hook|agent|skill)$/) {
+        printf "lane-schema %s:%d unknown kind %s\n", file, FNR, $2; bad=1
+      }
+      if ($3 !~ /^(understand|shape|decide|plan|build|verify|review|ship|any)$/) {
+        printf "lane-schema %s:%d unknown phase %s\n", file, FNR, $3; bad=1
+      }
+      k = $1 SUBSEP $4
+      if (k in seen) {
+        printf "lane-schema %s:%d duplicate artifact+owns %s %s\n", file, FNR, $1, $4; bad=1
+      }
+      seen[k] = 1
+    }
+    END { exit bad+0 }' "$f"
+}
+
+# pc_lanes_authority <lane_tsv>
+# A plugin may declare only its OWN artifacts. Prints one
+# `lane-authority <file>:<line> <artifact> not owned by <plugin>` per violation
+# and returns 1; clean or missing file returns 0.
+#
+# WHY IT EXISTS. Per-plugin files opened an authority hole the central-registry
+# design did not have: nothing otherwise stopped plugins/foo/lane.tsv from
+# declaring bar:baz's territory, or from writing bar a `yields_to` edge that
+# makes bar stand down in foo's favour. The plugin directory name is the
+# authority, so a row whose artifact is malformed (no `plugin:name` shape) is
+# not owned by anyone and fails here too. Blessings are comments and are
+# deliberately NOT checked: a blessing names two parties by design, and
+# requiring it to sit in one specific file would privilege one side.
+pc_lanes_authority() {
+  local f="$1" plug
+  [ -f "$f" ] || return 0
+  plug=$(basename "$(dirname "$f")")
+  awk -F'\t' -v file="$f" -v plug="$plug" '
+    { sub(/\r$/, "") }
+    /^#/ { next }
+    /^[[:space:]]*$/ { next }
+    NF != 6 { next }
+    {
+      lhs = $1; sub(/:.*$/, "", lhs)
+      if ($1 !~ /^[a-z0-9-]+:[a-z0-9._-]+$/ || lhs != plug) {
+        printf "lane-authority %s:%d %s not owned by %s\n", file, FNR, $1, plug; bad=1
+      }
+    }
+    END { exit bad+0 }' "$f"
+}
+
+# pc_lanes_resolve <lane_tsv> [plugins_root]
+# Every declared artifact must exist as its declared kind, and every `yields_to`
+# token must name a real artifact of some kind. Prints one
+# `lane-resolve <file>:<line> …` per dangling reference and returns 1.
+#
+# A lane row is the only place in this marketplace where one plugin names
+# another as its better on a shared territory; a name that resolves to nothing
+# is a deference to an artifact that cannot arrive, and it fails silently at
+# runtime exactly the way a bad handoff does (pc_handoff_refs, same class,
+# different file type — that one reads prose and cannot see a .tsv).
+pc_lanes_resolve() {
+  local f="$1" root="${2:-plugins}" bad=0 lineno=0 art kind ph owns trig yields tok
+  [ -f "$f" ] || return 0
+  while IFS=$'\t' read -r art kind ph owns trig yields || [ -n "$art" ]; do
+    lineno=$((lineno + 1))
+    case "$art" in '#'*|'') continue ;; esac
+    _pc_lane_resolves "$root" "$art" "$kind" \
+      || { printf 'lane-resolve %s:%d %s names no %s in the tree\n' "$f" "$lineno" "$art" "$kind"; bad=1; }
+    case "$yields" in ''|'-') continue ;; esac
+    for tok in $(printf '%s' "$yields" | tr ',' ' '); do
+      _pc_lane_resolves "$root" "$tok" any \
+        || { printf 'lane-resolve %s:%d yields_to %s resolves to nothing\n' "$f" "$lineno" "$tok"; bad=1; }
+    done
+  done < "$f"
+  return $bad
+}
+
+# pc_lanes_territory <lane_tsv> [lane_tsv …]
+# THE GATE THAT CARRIES THE MISSION. Two artifacts must not silently claim the
+# same job: any two rows sharing `owns` + `phase` fail unless one names the
+# other in `yields_to`, or a `# lane-cofire-ok:` blessing names both. Prints one
+# `lane-territory <owns> <phase> <artifact-a> <artifact-b>` per unresolved pair
+# and returns 1.
+#
+# ALL FILES AT ONCE, deliberately. The collisions that matter are cross-plugin —
+# 8 reviewer-class agents in 8 different plugins collide on ROLE while their
+# filenames are distinct, so every other gate in this repo sees eight unrelated
+# files. Same-file pairs are checked too: a plugin's own worker and reviewer
+# claiming one territory is the same defect at shorter range.
+#
+# Blessings are collected from every file BEFORE any pair is evaluated, so
+# either participant may carry it and neither side is privileged.
+pc_lanes_territory() {
+  local f had=0
+  for f in "$@"; do [ -f "$f" ] && had=1; done
+  [ "$had" -eq 1 ] || return 0
+  awk -F'\t' '
+    function yields(list, target,   m, parts, k) {
+      if (list == "" || list == "-") return 0
+      m = split(list, parts, ",")
+      for (k = 1; k <= m; k++) {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", parts[k])
+        if (parts[k] == target) return 1
+      }
+      return 0
+    }
+    { sub(/\r$/, "") }
+    /^#[[:space:]]*lane-cofire-ok:/ {
+      line = $0
+      sub(/^#[[:space:]]*lane-cofire-ok:[[:space:]]*/, "", line)
+      n = split(line, t, /[[:space:]]+/)
+      if (n >= 2) { ok[t[1] SUBSEP t[2]] = 1; ok[t[2] SUBSEP t[1]] = 1 }
+      next
+    }
+    /^#/ { next }
+    NF != 6 { next }
+    { i = ++cnt; A[i] = $1; PH[i] = $3; OW[i] = $4; Y[i] = $6 }
+    END {
+      bad = 0
+      for (i = 1; i <= cnt; i++)
+        for (j = i + 1; j <= cnt; j++) {
+          if (OW[i] != OW[j] || PH[i] != PH[j]) continue
+          if (A[i] == A[j]) continue
+          if (yields(Y[i], A[j]) || yields(Y[j], A[i])) continue
+          if (ok[A[i] SUBSEP A[j]]) continue
+          printf "lane-territory %s %s %s %s\n", OW[i], PH[i], A[i], A[j]
+          bad = 1
+        }
+      exit bad
+    }' "$@"
+}
+
+# pc_lanes_coverage [plugins_root]
+# Every agent, and every UserPromptSubmit/Stop hook script, must carry a row in
+# its own plugin's lane.tsv — those are the GATE tier. Commands and skills are
+# WARN this run. Prints `lane-missing agent|hook <plugin>:<name>` (gate) and
+# `lane-warn command|skill <plugin>:<name>` (advisory), and returns 1 only when
+# something at gate tier is missing.
+#
+# WHY THOSE TWO ARE THE TEETH. Agents are the surface where ownership is
+# contested by the MODEL rather than by a script: 8 of the 32 are reviewer-class
+# with distinct filenames, and the model picks between them from descriptions
+# alone. Prompt-channel and Stop hooks are the surface where two plugins speak
+# on one turn and the winner is decided by scheduling order. Gating all 99
+# commands instead would have forced ~66 version bumps in one change for rows
+# nothing yet arbitrates.
+#
+# LIMITATION (honest scope), three residuals:
+#   1. The hook half reads hooks.json with jq and understands one command shape,
+#      `${CLAUDE_PLUGIN_ROOT}/hooks/<name>.sh`. A hook invoked any other way is
+#      not counted — it draws no failure and no warning.
+#   2. Coverage is existence, not agreement: a row may name the wrong phase or a
+#      territory the agent does not work in, and this passes.
+#   3. A scratch agent planted by another harness (role-floors-check.sh writes
+#      three) is a real agent file with no row, so it draws a lane-missing line
+#      during that harness's runs. Those harnesses assert by string presence and
+#      never on exit code, so it costs nothing — but a future harness that
+#      asserts "no FAILs" would trip on it.
+pc_lanes_coverage() {
+  local root="${1:-plugins}" bad=0 d p lane rows a n hj cmd TAB NL
+  TAB=$(printf '\t'); NL='
+'
+  # find, not a glob, for the same reason pc_version_stamp uses it: an unmatched
+  # glob is a literal path under bash and a hard error under zsh, and this file
+  # is sourced by validate.sh and by a hook.
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    p=$(basename "$d")
+    lane="$d/lane.tsv"
+    rows=$(_pc_lane_rows "$lane")
+    while IFS= read -r a; do
+      [ -n "$a" ] || continue
+      n=$(basename "$a" .md)
+      case "$NL$rows$NL" in
+        *"$NL$p:$n${TAB}agent$NL"*) ;;
+        *) printf 'lane-missing agent %s:%s\n' "$p" "$n"; bad=1 ;;
+      esac
+    done < <(find "$d/agents" -maxdepth 1 -type f -name '*.md' 2>/dev/null | sort)
+    hj="$d/hooks/hooks.json"
+    if [ -f "$hj" ] && command -v jq >/dev/null 2>&1; then
+      while IFS= read -r cmd; do
+        case "$cmd" in '${CLAUDE_PLUGIN_ROOT}/hooks/'*.sh) ;; *) continue ;; esac
+        n=$(basename "$cmd" .sh)
+        case "$NL$rows$NL" in
+          *"$NL$p:$n${TAB}hook$NL"*) ;;
+          *) printf 'lane-missing hook %s:%s\n' "$p" "$n"; bad=1 ;;
+        esac
+      done < <(jq -r '.hooks | to_entries[]
+                      | select(.key=="UserPromptSubmit" or .key=="Stop")
+                      | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
+    fi
+    while IFS= read -r a; do
+      [ -n "$a" ] || continue
+      n=$(basename "$a" .md)
+      case "$NL$rows$NL" in
+        *"$NL$p:$n${TAB}command$NL"*) ;;
+        *) printf 'lane-warn command %s:%s\n' "$p" "$n" ;;
+      esac
+    done < <(find "$d/commands" -maxdepth 1 -type f -name '*.md' 2>/dev/null | sort)
+    while IFS= read -r a; do
+      [ -n "$a" ] || continue
+      n=$(basename "$(dirname "$a")")
+      case "$NL$rows$NL" in
+        *"$NL$p:$n${TAB}skill$NL"*) ;;
+        *) printf 'lane-warn skill %s:%s\n' "$p" "$n" ;;
+      esac
+    done < <(find "$d/skills" -maxdepth 2 -type f -name 'SKILL.md' 2>/dev/null | sort)
+  done < <(find "$root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+  return $bad
+}
+
 # pc_dispatch_binding <md_path> [plugins_root]
 # A shipped `agent(<args>)` code sample that spawns an agent this marketplace ships
 # must name it with `agentType`. Prints one `dispatch <path> <agent>` line per
@@ -514,5 +804,58 @@ pc_dispatch_binding() {
     [ -f "$root/$lhs/agents/$rhs.md" ] || continue
     printf 'dispatch %s %s\n' "$f" "$tok"; bad=1
   done
+  return $bad
+}
+
+# pc_phase_guard <plugins-root> — spec §4.3, C4.
+# A script wired to UserPromptSubmit or Stop must READ the phase sentinel, or it
+# cannot take turns: it speaks in every phase forever, which is the defect the
+# sentinel exists to fix (taskmaster's "before the first code edit" directive
+# firing on turn 40 of a registered execution run).
+#
+# Scope is per SCRIPT, not per plugin. An earlier cut keyed on "this plugin has a
+# prompt hook somewhere" and flagged 16 scripts, most of them PostToolUse or
+# PreToolUse (skill-router:route.sh, taskmaster:preview-guard.sh) with no business
+# reading a prompt-phase sentinel. jq walks the two events and resolves only their
+# own commands.
+#
+# HONEST LIMITATION: this proves the sentinel PATH appears in the script. It cannot
+# prove the script honours the verdict on every branch — a hook could read it and
+# ignore it. Gate on the read; the behaviour half is agent-graded. Claiming
+# otherwise would be the tier over-claim CLAUDE.md's has-teeth convention forbids.
+#
+# Prints `phase-unguarded <plugin>:<script>` per offender; returns 1 if any.
+pc_phase_guard() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel lane_phase
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      rel=$(basename "$sh")
+      grep -qF 'cc-phase.json' "$sh" 2>/dev/null && continue
+      # EXEMPTION, tied to the declaration rather than to a hand-kept list: an
+      # artifact whose lane says `any` is a guard, not a phase step, and guards
+      # must fire in every phase. The boost hooks (ultra, ultra-craft,
+      # ultra-assess) answer an explicit user keyword and terse:mode is an
+      # output-shape contract — none of them takes a turn, so demanding a
+      # sentinel read would be ceremony that catches nothing. An artifact with no
+      # row at all is pc_lanes_coverage's problem, not this gate's.
+      lane_phase=$(awk -F'\t' -v a="$p:${rel%.sh}" '$1==a {print $3; exit}' \
+                    "$d/lane.tsv" 2>/dev/null)
+      [ -z "$lane_phase" ] && continue
+      [ "$lane_phase" = any ] && continue
+      printf 'phase-unguarded %s:%s\n' "$p" "$rel"
+      bad=1
+    done <<EOF
+$(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // []))
+         | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
   return $bad
 }

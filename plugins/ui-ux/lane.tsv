@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+ui-ux:ui-ux-engineer	agent	build	ui-implementation	work changes layout, breakpoints, spacing, colour, hierarchy, or component placement	-
+ui-ux:ui-ux-reviewer	agent	review	markup-and-style-review	diff touches markup or styles only (class attributes, CSS/SCSS, theme or tailwind config) and no component logic	-

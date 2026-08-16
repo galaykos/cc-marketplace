@@ -2,6 +2,19 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.1 — 2026-08-16
+
+### Added
+- **`lane.tsv`** — declares the territory, phase and definite trigger for this plugin's
+  agent and Stop hook, so `pc_lanes_territory` can prove no sibling silently claims the
+  same job. `architecture-reviewer` owns `code-structure-review` and yields to
+  `system-design:system-design-reviewer` on system topology.
+
+### Changed
+- **`evidence-gate` is declared `phase: any`**, not `verify`. A Stop gate has to fire
+  whenever a turn tries to end; scoping it to one arc phase would have let a turn ending
+  during `build` escape the gate entirely.
+
 ## 0.13.0
 
 ### Changed

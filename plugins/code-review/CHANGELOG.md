@@ -3,6 +3,14 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.12.1 — 2026-08-16
+
+### Added
+- **`lane.tsv`** — `code-reviewer` declares `stack-agnostic-diff-review` and the
+  deference edges it already documented in prose (architecture, security, frontend and
+  UI reviewers). `terse:terse-reviewer` declares the same territory and yields to this
+  one, so the two no longer both claim a diff with nothing arbitrating.
+
 ## 0.12.0 — 2026-08-15
 
 ### Changed

@@ -4,5 +4,7 @@
   "message": "adspower: this prompt touches the AdsPower Local API — its port and endpoint paths change across versions; resolve the current endpoints from live docs before writing automation code",
   "command": "/adspower:check",
   "extraGuard": null,
-  "budgetShared": true
+  "budgetShared": true,
+  "artifact": "sample:remind",
+  "arcRank": 50
 }

@@ -34,10 +34,19 @@ that skill.
 first when none is labeled Recommended); the handoff auto-selects "Run now" and
 runs through execution to a green suite; branch-finish/merge/PR stay manual.
 
-1. If the stack-scan plugin is installed (the installed-versions skill or
-   /stack-scan:report is available), run its inventory first and hand the
+1. Write the arc phase sentinel `.claude/cc-phase.json` —
+   `{"phase":"shape","owner":"taskmaster:task","session_id":"<this session id>",`
+   `"started_at":"<ISO-8601 UTC>"}`. This is what makes the prompt channel take
+   turns: reminder hooks that own a later phase stand down while requirements are
+   still being shaped, instead of all four talking over one prompt. **Remove it when
+   this command finishes** — on the hand-off to `/task-runner:run` (which writes its
+   own `build` sentinel), and equally on an abandoned or interrupted run. A stale
+   sentinel is bounded by a TTL rather than trusted, but the clear is still yours.
+
+   Then, if the stack-scan plugin is installed (the installed-versions skill or
+   /stack-scan:report is available), run its inventory and hand the
    required-vs-installed table to context-scout as hard constraints. If it is not
-   installed, skip this — context-scout falls back to reading manifests itself.
+   installed, skip that — context-scout falls back to reading manifests itself.
 2. Invoke the grill skill from this plugin. Dispatch the context-scout agent on the
    task description and fold its report into the ambiguity ledger BEFORE asking the
    user anything. Then, after that fold and before the question rounds, derive the

@@ -4,7 +4,9 @@
     "regex": "\\b(sdk|endpoint|integrat\\w*|webhook|oauth|graphql)\\b",
     "message": "api-docs-first: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file",
     "command": "/api-docs-first:check",
-    "extraGuard": "printf '%s' \"$head\" | grep -qiE '\\b(build|implement|write|creat\\w*|add|wire|connect|integrat\\w*|call|fetch|use|fix|debug|update)\\b'"
+    "extraGuard": "printf '%s' \"$head\" | grep -qiE '\\b(build|implement|write|creat\\w*|add|wire|connect|integrat\\w*|call|fetch|use|fix|debug|update)\\b'",
+    "artifact": "api-docs-first:remind",
+    "arcRank": 40
   },
   {
     "chassis": "optout",

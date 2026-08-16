@@ -1,0 +1,10 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# The stuck-loop phrases (still failing|same error|didn.?t work) moved to debugging:remind;
+# what is left is a guard, not a phase step — an irreversible command can be proposed at any
+# arc position, which is what phase=any is for.
+fresh-take:consultant	agent	decide	unanchored-second-opinion	dispatched by /fresh-take:consult with a facts-only brief that omits the session hypothesis; read-only tools, never writes	-
+fresh-take:remind	hook	any	irreversible-command-or-repeated-attempt	prompt head matches (tried everything|third time) OR an irreversible command token (rm -rf|reset --hard|drop table|migrate:fresh|delete all|force.push)	-

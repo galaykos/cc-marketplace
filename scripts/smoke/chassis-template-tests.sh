@@ -125,13 +125,27 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook-extraguard.json" 
   expect_has "$HE" "build|create|add" "hook(extraGuard): regex substituted"
 fi
 
-# ---- reminder hook: budgetExempt (priority directive) --------------------------
+# ---- reminder hook: armsClarifyGate (the cross-plugin signal) -------------------
+# budgetExempt is RETIRED. It marked a privileged branch that always spoke while
+# siblings ran a first-come mkdir lottery; both are replaced by one ranked path where
+# a hook yields to any better arcRank sharing its phase. What had to survive the
+# retirement is budgetExempt's SIDE EFFECT: the cc-workprompt marker, sole producer
+# for taskmaster/hooks/clarify-gate.sh, a PreToolUse DENY gate when the user sets
+# CC_CLARIFY_GATE=block. Losing it would have disarmed that gate silently and forever,
+# so it now hangs off an explicit armsClarifyGate flag instead of off the branch.
 HX="$WORK/remind-exempt.sh"
 if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook-exempt.json" "$HX"; then
-  expect_has "$HX" 'PRIORITY DIRECTIVE' "hook(exempt): priority branch rendered"
-  expect_has "$HX" 'cc-remind-' "hook(exempt): still claims the shared marker"
-  expect_has "$HX" 'cc-workprompt-' "hook(exempt): drops the work-prompt marker"
-  expect_absent "$HX" 'PER-PROMPT BUDGET' "hook(exempt): lottery branch absent"
+  expect_has "$HX" 'cc-workprompt-' "hook(arms): drops the work-prompt marker"
+  expect_has "$HX" 'cc-remind-' "hook(arms): claims a ranked marker"
+  expect_has "$HX" '-rank-' "hook(arms): marker is flat, not nested"
+  expect_absent "$HX" 'PRIORITY DIRECTIVE' "hook(arms): retired privileged branch is gone"
+  expect_absent "$HX" 'PER-PROMPT BUDGET' "hook(arms): retired lottery branch is gone"
+fi
+
+# A manifest without the flag must not produce that marker: arming it unconditionally
+# would widen a PreToolUse deny gate's trigger to every reminder hook installed.
+if [ -f "$H" ]; then
+  expect_absent "$H" 'cc-workprompt-$(' "hook(plain): does NOT arm the clarify gate"
 fi
 
 # ---- global invariant: no unrendered {{token}} in any output ------------------

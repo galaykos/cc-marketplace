@@ -15,6 +15,10 @@
 #
 # Half B covers the two validate.sh gates that keep the mechanism honest: no literal
 # command token in the hook, and no second routing pattern growing back in shell.
+#
+# Half C is the reminder hooks, not this one, and is here because it is the other
+# half of a single change: the work-shaped gate was widened to let symptom phrasing
+# through, and a moment nothing owns is not worth reaching.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${CHASSIS_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
@@ -79,8 +83,37 @@ want_fires "work-shaped: fix"      "fix the crash on checkout submit"
 want_fires "work-shaped: review"   "review my diff before I push"
 want_fires "names a tool"          "run taskmaster: create a marketing landing page"
 
+# SYMPTOM PHRASING. Nine realistic incident prompts were run against the gate as it
+# stood; these seven were dropped and only `fix …` / `debug …` got through. Asserted
+# one by one, not as a batch: a batch that goes red names none of the phrasings that
+# regressed, and each of these is a different shape (question, state, status code,
+# comparative, past tense, imperative, adverb-tailed).
+want_fires "symptom: why is … broken" "why is the checkout page broken"
+want_fires "symptom: is down"         "production is down"
+want_fires "symptom: 500s"            "users are seeing 500s on login"
+want_fires "symptom: got slow"        "this query got really slow after the last release"
+want_fires "symptom: regressed"       "something regressed in the cart total"
+want_fires "symptom: investigate"     "investigate the memory leak"
+want_fires "symptom: keeps failing"   "the payment webhook keeps failing intermittently"
+# The weak tier must still reach real symptoms after the state-verb bound below.
+want_fires "weak tier: are failing"   "the tests are failing on CI"
+want_fires "weak tier: went down"     "the site went down after the deploy"
+want_fires "weak tier: am stuck"      "i am stuck on this migration"
+
 printf '== half A: guards ==\n'
 want_silent "not work-shaped"     "what time does the standup start"
+# THE OTHER DIRECTION, and the reason it exists: the symptom tier above was first
+# written with `down`, `slow`, `broken`, `leak` and `stuck` matching bare, which
+# made `scroll down and tell me what you see` and `the meeting ran slow today`
+# work-shaped. A regex matching everything passes every want_fires above, so a
+# gate asserted in one direction only is half-asserted. These pin the state-verb
+# bound: each carries a weak token with NO state verb in front of it.
+want_silent "weak tier: scroll down"  "scroll down and tell me what you see"
+want_silent "weak tier: ran slow"     "the meeting ran slow today"
+want_silent "weak tier: slow down"    "lets slow down and talk about scope first"
+want_silent "chat: acknowledgement"   "thanks, that looks good"
+want_silent "chat: question about code" "what does this function do"
+want_silent "chat: question about history" "who wrote this file"
 want_silent "slash prompt"        "/taskmaster:task build a landing page"
 want_silent "meta: about the hook" "disable the router hook that injects the catalog"
 want_silent "own output echoed"   "[skill-router] Tool-fit check (once this session)."
@@ -140,6 +173,49 @@ else
   fail "catalog is installed-scoped" "$solo_lines entries, $foreign from uninstalled plugins"
 fi
 
+printf '== half C: the incident moment has an owner ==\n'
+# These four cases exercise plugins/*/hooks/remind.sh, not the hook this file is
+# named for. Each hook gets its OWN TMPDIR: reminder hooks share one per-prompt
+# mkdir marker, so a shared sandbox would measure scheduling order instead of the
+# trigger, which is the exact confusion this split was made to remove.
+DBG="$ROOT/plugins/debugging/hooks/remind.sh"
+FT="$ROOT/plugins/fresh-take/hooks/remind.sh"
+
+run_remind() { # run_remind <hook> <prompt> -> hook stdout
+  local hook="$1" prompt="$2"
+  local n; n=$(( $(cat "$COUNTER") + 1 )); printf '%s' "$n" > "$COUNTER"
+  local box="$WORK/rbox-$n"; mkdir -p "$box"
+  printf '%s' "$prompt" | jq -Rs --arg s "rsess-$n" '{prompt:., session_id:$s}' \
+    | env TMPDIR="$box" "$BASH_BIN" "$hook" 2>/dev/null
+}
+
+if [ -f "$DBG" ] && [ -f "$FT" ]; then
+  STUCK="the login test is still failing"
+  out="$(run_remind "$DBG" "$STUCK")"
+  printf '%s' "$out" | grep -qF '/debugging:debug' \
+    && pass "debugging fires on the stuck moment and names its command" \
+    || fail "debugging fires on the stuck moment" "wanted /debugging:debug, got: ${out:-<silence>}"
+  out="$(run_remind "$FT" "$STUCK")"
+  [ -z "$out" ] && pass "fresh-take yields the stuck moment to debugging" \
+    || fail "fresh-take yields the stuck moment" "both plugins still claim it: $out"
+
+  # The destructive branch is KEPT, deliberately. command-guard is PreToolUse and so
+  # fires only once the model has already composed the call; this is the only signal
+  # that reaches the user before the proposal exists. Its MESSAGE moved, not its
+  # trigger — deleting the branch would have been the cheaper edit and the wrong one.
+  out="$(run_remind "$FT" "rm -rf node_modules")"
+  if [ -n "$out" ]; then
+    pass "fresh-take still fires on a destructive token"
+    printf '%s' "$out" | grep -qF 'stronger-model' \
+      && fail "destructive line is re-pointed" "still sells a stronger-model take: $out" \
+      || pass "destructive line no longer sells a stronger-model take"
+  else
+    fail "fresh-take still fires on a destructive token" "the sole pre-proposal signal is gone"
+  fi
+else
+  fail "incident-moment hooks present" "missing $DBG or $FT"
+fi
+
 printf '== half B: validate.sh gates ==\n'
 want_err() { printf '%s\n' "$vout" | grep -qF "$2" && pass "$1" || fail "$1 did not fire" "wanted: $2"; }
 
@@ -158,6 +234,55 @@ vout=$(bash scripts/validate.sh 2>&1)
 printf '%s\n' "$vout" | grep -qF 'route-prompt.sh' \
   && fail "clean tree is clean" "validate still reports route-prompt problems after restore" \
   || pass "clean tree is clean"
+
+# ---- STACK RELEVANCE of the catalog (spec 4.6, card C6) ----------------------
+# The catalog is filtered by repo evidence, not just installed-ness: a Laravel repo
+# should not be offered /nextjs:review. Asserted in BOTH directions plus the trap
+# that a glob-only predicate would fall into.
+#
+# THE TRAP: seven plugins own ONLY content rows in rules.tsv (llm-app,
+# node-backend, observability, payments, resilience, security, threejs). A
+# predicate that asked "does any GLOB row match" would find nothing for them in
+# any repository, and would therefore delete /security:review from every repo on
+# earth. The empty-repo case below is what catches that, and it is the reason a
+# plugin with no rows — or no glob rows — is defined as stack-neutral and kept.
+CAT_HOOK="$ROOT/plugins/skill-router/hooks/route-prompt.sh"
+if [ -f "$CAT_HOOK" ]; then
+  cat_for() { # $1 project dir, $2 session tag
+    printf '{"prompt":"refactor the checkout module","session_id":"cat-%s","cwd":"%s"}' "$2" "$1" \
+      | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/skill-router" \
+        TMPDIR="$(mktemp -d "$WORK/cat.XXXXXX")" "$BASH_BIN" "$CAT_HOOK" 2>/dev/null
+  }
+  cat_expect() { # $1 desc, $2 output, $3 needle, $4 present|absent
+    local got=absent
+    case "$2" in *"$3"*) got=present ;; esac
+    [ "$got" = "$4" ] && pass "catalog: $1" || fail "catalog: $1" "$3 is $got, wanted $4"
+  }
+
+  CL="$WORK/cat-laravel"; mkdir -p "$CL"
+  printf '{"require":{"laravel/framework":"^11"}}' > "$CL/composer.json"; : > "$CL/app.php"
+  OL=$(cat_for "$CL" laravel)
+  cat_expect "a Laravel repo is not offered /nextjs:review" "$OL" "/nextjs:review" absent
+  cat_expect "a Laravel repo keeps /laravel:review"         "$OL" "/laravel:review" present
+  cat_expect "stack-neutral /code-review:review always kept" "$OL" "/code-review:review" present
+
+  CN="$WORK/cat-next"; mkdir -p "$CN"
+  printf '{"dependencies":{"next":"^14"}}' > "$CN/package.json"; : > "$CN/next.config.js"
+  ON=$(cat_for "$CN" next)
+  cat_expect "a Next.js repo keeps /nextjs:review"      "$ON" "/nextjs:review" present
+  cat_expect "a Next.js repo is not offered /laravel:review" "$ON" "/laravel:review" absent
+
+  CE="$WORK/cat-empty"; mkdir -p "$CE"
+  OE=$(cat_for "$CE" empty)
+  cat_expect "content-only /security:review survives an empty repo"     "$OE" "/security:review" present
+  cat_expect "content-only /resilience:review survives an empty repo"   "$OE" "/resilience:review" present
+  cat_expect "content-only /observability:review survives an empty repo" "$OE" "/observability:review" present
+
+  # A filter that dropped everything would pass every "absent" assertion above.
+  ln_l=$(printf '%s' "$OL" | grep -c '^- /')
+  [ "$ln_l" -gt 30 ] && pass "catalog: the filter narrows without emptying ($ln_l rows on Laravel)" \
+    || fail "catalog: the filter narrows without emptying" "only $ln_l rows survived — over-filtering"
+fi
 
 if [ "$rc" -eq 0 ]; then
   printf '\nAll tool-fit check cases passed (mechanism only — the routing verdict is agent-graded).\n'

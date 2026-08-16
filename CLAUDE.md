@@ -124,6 +124,34 @@ saying so is the point.
   bundle's `plugin.json` dependencies plus both context-budget baselines — edit
   them by hand and `--check` fails).
 
+## Lanes: who owns what, and when (convention + gate)
+
+Every plugin declares its artifacts' territory in its own `plugins/<name>/lane.tsv`
+— six tab-separated fields, `artifact kind phase owns definite_trigger yields_to`.
+The file is **per-plugin and shipped**, not a central registry, because the two jobs
+separate cleanly: collision detection happens at author time, where `validate.sh`
+reads the whole repo, while turn-taking happens at runtime, where an artifact must
+resolve its OWN lane from `${CLAUDE_PLUGIN_ROOT}/lane.tsv` even when its plugin is
+installed alone. A central file would have privileged `skill-router`, which ships in
+only 5 of 10 bundles.
+
+`phase` is the arc: `understand shape decide plan build verify review ship`, or
+**`any`** for a guard that must fire at every point (a Stop gate, an irreversible-
+command warning). Declaring `any` is a real claim, not an escape hatch — it exempts
+the artifact from the phase sentinel.
+
+**Standing: `gate` for agents and for plugins shipping a `UserPromptSubmit`/`Stop`
+hook; `WARN` for commands and skills** (99 commands and 129 skills are not yet
+declared — adopting them is incremental, not a sweep). Five checks in
+`scripts/lib/plugin-checks.sh`: `pc_lanes_schema`, `pc_lanes_authority` (a plugin
+may declare only its OWN artifacts), `pc_lanes_resolve`, `pc_lanes_territory` (two
+artifacts must not claim one `owns` in one `phase` without a `yields_to` edge or a
+`# lane-cofire-ok:` blessing in either file), and `pc_lanes_coverage`. Plus
+`pc_phase_guard`: a hook whose lane names a specific phase must read
+`.claude/cc-phase.json`. That last one gates the READ only — no gate can prove an
+artifact honours the verdict on every branch, so the behaviour half is
+**agent-graded**, and saying so is the point.
+
 Run all four before pushing:
 
 ```bash
@@ -139,12 +167,12 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **23 named steps;
-22 can fail the build**, and on a push to `master` only **21** run
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **27 named steps;
+26 can fail the build**, and on a push to `master` only **25** run
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
-Beyond the four scripts above: 16 harnesses under `scripts/smoke/`
+Beyond the four scripts above: 17 harnesses under `scripts/smoke/`
 (template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
-guard, rules-overlap, route-marker, prompt-route, behavioral-verification,
+guard, rules-overlap, route-marker, prompt-route, lanes, behavioral-verification,
 completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
 verbosity-hook, preview-guard, `validate-fixtures/parity-check.sh`),
 `scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
@@ -180,7 +208,10 @@ skills by the two usage ledgers written since 2026-08-02
 `~/.claude/hindsight/<slug>/skills.jsonl`, what was INVOKED). Always exits 0 and
 never proposes a deletion: zero invocations proves nobody used it HERE, non-zero
 proves it fired and not that it helped, and "never surfaced" mostly measures the
-router's coverage — 99 of 126 skills have no `rules.tsv` row at all. It says
+router's coverage — **91 of 129** skills have no `rules.tsv` row at all (recounted
+2026-08-16; the previous "99 of 126" was stale, and a recorded-tier number in the
+conventions file getting trusted as a measurement is exactly what this file warns
+about — recount it, do not copy it). It says
 where a control/treatment run is worth spending, nothing more.
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned

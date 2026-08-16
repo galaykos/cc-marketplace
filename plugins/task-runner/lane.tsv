@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+task-runner:task-executor	agent	build	decided-fix-list-application	a fix list or card list exists whose changes are already decided, plus a scope lock	-
+task-runner:completion-gate	hook	any	registered-run-gate-pass	Stop while .claude/task-runner/active-run.json exists and gate-pass.json records no PASS for the current HEAD	-
