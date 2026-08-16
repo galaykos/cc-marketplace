@@ -908,3 +908,41 @@ $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sor
 EOF
   return $bad
 }
+
+# pc_prime_coverage [plugins-root] — the session-open index, backlog item 1.
+# skill-router/hooks/prime.sh emits the SessionStart "repo-relevant skills" line from a
+# hand-written table. coding-entry/references/skill-map.md is the DOCUMENTED
+# manifest-shaped map and says of itself that "two copies of one matcher guarantees that
+# one goes stale" — while being unaware prime.sh is a third copy. It went stale exactly
+# as predicted: prime.sh asserted tailwind-best-practices on any React or Vue dependency,
+# in the first line of every session, and all four blocking gates passed it because none
+# of them reads this map.
+#
+# Generating prime.sh from skill-map.md needs a FIFTH chassis type (generate.sh:216-221
+# dispatches four and dies otherwise) — a render function, a template and a --check path.
+# This gate buys the protection that generation would buy, at a fraction of it: it fails
+# when prime.sh names a skill the documented map does not. Proportionality, not laziness;
+# the generation entry stays open and this makes its absence survivable.
+#
+# ONE DIRECTION ONLY, deliberately. prime.sh is a cheap SessionStart probe and is meant
+# to be a SUBSET — skill-map.md carrying rows prime.sh does not is correct, not drift.
+# The failure that matters is prime.sh claiming something the map never sanctioned.
+#
+# Prints `prime-unmapped <skill>` per offender; returns 1 if any.
+pc_prime_coverage() {
+  local root="${1:-plugins}" bad=0 sk
+  local prime="$root/skill-router/hooks/prime.sh"
+  local map="$root/code-architecture/skills/coding-entry/references/skill-map.md"
+  [ -f "$prime" ] || return 0
+  [ -f "$map" ] || return 0
+  while IFS= read -r sk; do
+    [ -n "$sk" ] || continue
+    grep -qF ":$sk\`" "$map" 2>/dev/null && continue
+    grep -qF "prime-ok: $sk" "$prime" 2>/dev/null && continue
+    printf 'prime-unmapped %s\n' "$sk"
+    bad=1
+  done <<EOF
+$(grep -oE '(^|[;&[:space:]])add [a-z0-9-]+' "$prime" 2>/dev/null | awk '{print $NF}' | sort -u)
+EOF
+  return $bad
+}

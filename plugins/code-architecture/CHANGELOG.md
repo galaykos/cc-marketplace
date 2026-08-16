@@ -2,6 +2,15 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.3
+
+### Added
+- **`skill-map.md` gains a "Stack-neutral" section** — `packages:package-hygiene` and
+  `testing:testing-best-practices`. Both were already emitted by
+  `skill-router/hooks/prime.sh` and absent from this map, which is precisely the drift
+  this file's own header warns about ("two copies of one matcher guarantees that one goes
+  stale"). It was found by the new `pc_prime_coverage` gate, not by reading.
+
 ## 0.13.2
 
 ### Fixed

@@ -673,6 +673,11 @@ phase_gap=$(pc_phase_guard plugins) || true
 ctx_gap=$(pc_context_key plugins) || true
 [ -n "$ctx_gap" ] && lane_err "$ctx_gap" "a PostToolUse one-shot must key on transcript_path (falling back to session_id) — or carry '# context-key-ok: <why>' when session scope is genuinely correct"
 
+# The SessionStart index must not claim a skill the documented manifest map never
+# sanctioned — that is how prime.sh came to assert tailwind on any React dependency.
+prime_gap=$(pc_prime_coverage plugins) || true
+[ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
+
 # Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
 # claims — the densest ownership statements the marketplace ships, and the only ones a
 # USER reads before installing. They were the one surface pc_handoff_refs never scanned,
