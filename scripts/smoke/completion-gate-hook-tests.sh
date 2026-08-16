@@ -81,9 +81,25 @@ check "gate-pass matches HEAD (block) -> allow, silent" "TASK_RUNNER_STOP_GATE=b
 printf '{"head":"deadbeefdeadbeef"}' > "$GP"
 check "stale gate-pass head (block) -> exit 2" "TASK_RUNNER_STOP_GATE=block" "$J" 2 "completion-gate"
 
-# 6) stop_hook_active=true -> never re-trigger, silent (even registered + block)
-rm -f "$GP"
-check "stop_hook_active guards against loop" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 0 __NONE__
+# 6) stop_hook_active NO LONGER short-circuits this gate.
+# The flag is SHARED across every Stop hook — Claude Code sets it on the continuation
+# after ANY blocking one — so code-architecture's evidence-gate blocking first used to
+# spend this gate's enforcement, and a registered run could end clean with cards
+# unexecuted: precisely the outcome this hook exists to prevent. The old assertion here
+# ("guards against loop", expecting exit 0) pinned that defect in CI. The loop bound is
+# the per-HEAD nudge, which sat unreachable beneath the early exit.
+rm -f "$GP" "$NUDGE" 2>/dev/null
+# Backdate the sentinel. The nudge bounds this gate only while it is NEWER than the
+# run sentinel, and ":74" says a same-tick tie "fails toward blocking, never toward
+# silence". A harness that registers the run and stops in the same second exercises
+# that tie, not the bound — which made this assertion flaky rather than wrong.
+touch -t 202601010000 "$SENT"
+check_keep "stop_hook_active does not spend this gate (still blocks)" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 2 "registered run"
+
+# 6b) The bound is the marker: a second stop at the SAME HEAD does not BLOCK. It still
+# prints — one block per HEAD, then print-only, per this hook's own design (":62-66").
+# Asserting silence here would be asserting the wrong contract.
+check_keep "per-HEAD nudge bounds the loop on a repeat stop" "TASK_RUNNER_STOP_GATE=block" "$JACTIVE" 0 "registered run"
 
 # 7) malformed sentinel -> fail-open exit 0 with a warning
 printf '{not valid json' > "$SENT"

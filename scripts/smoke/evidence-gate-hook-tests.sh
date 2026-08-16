@@ -19,6 +19,10 @@ pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 CWD="$WS/proj"; mkdir -p "$CWD"
 MARKER="$CWD/.claude/evidence-gate-last"
+# The namespaced-disarm record. A blocking case WRITES it, so it must be cleared
+# between cases — otherwise a later case inherits the previous one's block and reads
+# as that gate's own continuation, which is test pollution wearing a PASS.
+CLAIMED="$CWD/.claude/evidence-gate-blocked"
 
 # Transcript builders: one JSONL line per entry.
 text_entry() { jq -cn --arg t "$1" '{type:"assistant",message:{content:[{type:"text",text:$t}]}}'; }
@@ -30,7 +34,7 @@ payload() { jq -cn --arg tp "$1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd
 
 # check <desc> <env> <transcript-file> <exp_rc> <exp_substr|__NONE__>
 # Marker cleared per case; check_keep preserves it (tests the one-shot bound).
-check() { rm -f "$MARKER"; check_keep "$@"; }
+check() { rm -f "$MARKER" "$CLAIMED"; check_keep "$@"; }
 check_keep() {
   local desc="$1" envv="$2" tfile="$3" exp_rc="$4" exp_sub="$5" err rc ok=1
   err=$(payload "$tfile" | env $envv bash "$HOOK" 2>&1 >/dev/null); rc=$?
@@ -85,12 +89,34 @@ check "warn mode prints without blocking"           "CC_EVIDENCE_GATE=warn" "$T1
 # 9. off mode: silent allow.
 check "off mode is silent"                          "CC_EVIDENCE_GATE=off" "$T1" 0 "__NONE__"
 
-# 10. stop_hook_active true -> allow (no re-entry).
-rm -f "$MARKER"
-err=$(jq -cn --arg tp "$T1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}' \
+# 10. stop_hook_active NO LONGER short-circuits this gate.
+# It is a SHARED flag: Claude Code sets it on the continuation after ANY blocking Stop
+# hook, so task-runner's completion-gate blocking first used to spend this gate's
+# enforcement, and vice versa — a registered run could end clean with cards unexecuted.
+# The previous assertion here pinned that behaviour (stop_hook_active -> allow), so the
+# defect was CI-certified. What replaces it: the gate still evaluates and blocks, and
+# its OWN per-text marker is what bounds the loop.
+rm -f "$MARKER" "$CLAIMED"
+sha_pay=$(jq -cn --arg tp "$T1" --arg cwd "$CWD" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}')
+err=$(printf '%s' "$sha_pay" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+if [ "$rc" -eq 2 ]; then pass=$((pass+1)); printf 'PASS  stop_hook_active does not spend this gate (still blocks)\n'
+else fail=$((fail+1)); printf 'FAIL  stop_hook_active still short-circuits (rc=%s)\n' "$rc"; fi
+
+# 10b. The gate's OWN continuation releases the turn: the record written by 10's block
+# is present, so the shared flag is honoured. A sibling's block leaves no record and
+# therefore cannot disarm this gate — that is the namespacing, and 10 asserts it.
+err=$(printf '%s' "$sha_pay" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+if [ "$rc" -eq 0 ] && [ -z "$err" ]; then pass=$((pass+1)); printf 'PASS  own marker bounds the loop on a repeat stop\n'
+else fail=$((fail+1)); printf 'FAIL  would loop — marker did not bound it (rc=%s)\n' "$rc"; fi
+
+# 10c. Fallback: with no writable marker the gate has no bound of its own, so the
+# shared flag is honoured rather than blocking the same turn forever.
+UNW="$WS/unwritable"; mkdir -p "$UNW/.claude"; cp "$T1" "$UNW/t.jsonl"; chmod 500 "$UNW/.claude"
+err=$(jq -cn --arg tp "$UNW/t.jsonl" --arg cwd "$UNW" '{transcript_path:$tp,cwd:$cwd,stop_hook_active:true}' \
       | bash "$HOOK" 2>&1 >/dev/null); rc=$?
-if [ "$rc" -eq 0 ] && [ -z "$err" ]; then pass=$((pass+1)); printf 'PASS  stop_hook_active passes\n'
-else fail=$((fail+1)); printf 'FAIL  stop_hook_active (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+chmod 700 "$UNW/.claude" 2>/dev/null
+if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  falls back to the shared flag when it cannot write a marker\n'
+else fail=$((fail+1)); printf 'FAIL  blocks forever on unwritable state (rc=%s)\n' "$rc"; fi
 
 # 11. Missing transcript -> fail open.
 check "missing transcript fails open"               "" "$WS/nope.jsonl" 0 "__NONE__"

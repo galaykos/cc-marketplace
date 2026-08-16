@@ -4,5 +4,7 @@
   "message": "taskmaster: feature-shaped prompt with thin detail — pin scope, edge cases, and success criteria before code",
   "command": "/taskmaster:task",
   "extraGuard": "[ \"${#prompt}\" -lt 200 ]",
-  "budgetShared": true
+  "budgetShared": true,
+  "artifact": "sample:remind",
+  "arcRank": 50
 }

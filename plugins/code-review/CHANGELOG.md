@@ -3,6 +3,24 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.12.2
+
+### Fixed
+- **One-shot markers now key on `transcript_path`, falling back to `session_id`.**
+  PostToolUse is the only hook channel that reaches subagents at all, and a subagent
+  shares its parent's `session_id` while getting its own transcript — so a
+  session-keyed marker the parent already claimed deduped the worker's nudge away.
+  The advisory was structurally silent in the one context where most fan-out code is
+  written. `scripts/lib/plugin-checks.sh`'s new `pc_context_key` gates it.
+
+## 0.12.1 — 2026-08-16
+
+### Added
+- **`lane.tsv`** — `code-reviewer` declares `stack-agnostic-diff-review` and the
+  deference edges it already documented in prose (architecture, security, frontend and
+  UI reviewers). `terse:terse-reviewer` declares the same territory and yields to this
+  one, so the two no longer both claim a diff with nothing arbitrating.
+
 ## 0.12.0 — 2026-08-15
 
 ### Changed

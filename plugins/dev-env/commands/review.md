@@ -18,6 +18,14 @@ Before reporting, read the project manifests (composer.json, package.json, .env.
    more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full length as
    changed).
 
+   **Hand up when the scope is not this stack's alone.** If the resolved scope contains
+   files outside this plugin's surface and `/code-review:review` is installed, hand the
+   WHOLE scope to it and stop. It is the fan-in for overlapping review surfaces and
+   loads every matching stack skill in one pass; running the per-stack commands
+   separately is what produces the duplicate findings the fan-in exists to prevent, and
+   leaves the stacks nobody happened to invoke unreviewed. Deferring is not a smaller
+   answer — the aggregator reaches this plugin's rubric too.
+
 3. Invoke the `docker-best-practices` skill from this plugin and apply its checklist across the
    scope — cite the skill's rubric, do not restate it here.
 

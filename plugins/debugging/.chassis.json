@@ -1,0 +1,9 @@
+{
+  "chassis": "reminder-hook",
+  "regex": "(still failing|same error|didn.?t work|not working|keeps failing)",
+  "message": "ℹ debugging: a fix that did not hold is a hypothesis that was never tested — reproduce first, read the actual error, isolate one variable, and stop guessing after three failed attempts",
+  "command": "/debugging:debug",
+  "extraGuard": null,
+  "artifact": "debugging:remind",
+  "arcRank": 20
+}

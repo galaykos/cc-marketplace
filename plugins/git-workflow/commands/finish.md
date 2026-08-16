@@ -8,6 +8,14 @@ is given) using the branch-completion skill from this plugin. Invoke the skill
 first. If a branch was named and is not checked out, switch to it (or its
 worktree) before doing anything else.
 
+Write the arc phase sentinel `.claude/cc-phase.json` first —
+`{"phase":"ship","owner":"git-workflow:finish","session_id":"<this session id>",`
+`"started_at":"<ISO-8601 UTC>"}` — so prompt-channel reminder hooks that own an
+earlier phase stand down while the branch is being finished; a clarify-the-
+requirements nudge on a merge decision is noise. **Remove it before this command
+returns, on every path including discard and the red-suite stop below.** A TTL
+bounds a leaked sentinel, but the clear is this command's responsibility.
+
 Run the project's full check suite as the gate — a red suite stops here with
 the failures reported; no destination options for broken work.
 

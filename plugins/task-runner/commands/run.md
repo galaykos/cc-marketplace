@@ -89,7 +89,16 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>",`
    `"branch":"<git rev-parse --abbrev-ref HEAD>"}`; for a taskmaster-index run also
    include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
-   the gate pass) so the hook can enforce that a behavioral-gate pass is recorded before
+   the gate pass). In the same step write the **arc phase sentinel**
+   `.claude/cc-phase.json` — `{"phase":"build","owner":"task-runner:run",`
+   `"session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}` — which is what
+   tells the prompt-channel reminder hooks the arc has reached `build`, so the ones
+   that own an earlier phase stand down instead of nagging about clarification on
+   turn 40 of a run that is already executing. It is a different file from
+   `active-run.json` on purpose: that one registers a RUN for the Stop gate, this one
+   declares a PHASE for every installed reminder hook, and a plugin that has neither
+   task-runner nor taskmaster installed still reads it. Both are cleared at step 9.
+   Registering the run lets the hook enforce that a behavioral-gate pass is recorded before
    the run stops clean. `branch` scopes enforcement to the run's own branch, so a
    sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/`, `rt/`, `bg/` and `reductions/` in the same
    step: reviewer-coverage, red-team-panel and behavioral-gate-evidence enforcement are
@@ -121,7 +130,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
    the index bookkeeping (JSON integers, all three counts together — never a second
    write that would clobber `head`) — and only THEN, with every card done or parked
-   and the counts recorded, remove `active-run.json` (removing it earlier, or with a
+   and the counts recorded, remove `active-run.json` **and `.claude/cc-phase.json`**
+   (removing `active-run.json` earlier, or with a
    card unaccounted for, is what the Stop hook exists to catch — the sentinel stays
    until the counts prove completeness), then print the
    completion report table (task / status / verify command / evidence), parked tasks

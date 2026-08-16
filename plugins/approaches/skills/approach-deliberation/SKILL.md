@@ -23,9 +23,15 @@ Skip it — the first reasonable approach is correct — when:
 - Bugfix with a located cause, mechanical rename/sweep, config tweak.
 - One obvious continuation of an existing pattern (third handler in a file
   of handlers).
-- The opinion-round skill already ran for this task: approach-deliberation is
-  the user-initiated structural deliberation, opinion-round the description-routed
-  blind persona round — each skips when the other already ran for the task.
+- `.claude/approaches/deliberated.json` exists and names this task. Read it FIRST —
+  `{"task": "<short slug>", "by": "opinion-round|approach-deliberation", "at": "<ISO-8601>"}`
+  — and on completion, write it. approach-deliberation is the user-initiated structural
+  deliberation, opinion-round the description-routed blind persona round; each skips
+  when the other already ran. That was prose on both sides with nothing recording that
+  either HAD run, so a subagent, a compacted session, or a session resumed after a
+  break re-litigated a decided shape. The marker is what makes the exclusion checkable
+  rather than remembered. **Standing: agent-graded** — `pc_lanes_territory` proves the
+  shared territory is declared and blessed; no gate proves this skill reads the file.
 - A prior deliberation or spec already made this call; do not re-litigate.
 
 ## The protocol

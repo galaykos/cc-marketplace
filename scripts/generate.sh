@@ -174,11 +174,16 @@ render_suite_uninstall() { # obj plugin-dir
 
 render_reminder_hook() { # obj plugin-dir
   local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out"
-  # budgetShared is derived as the complement of budgetExempt because the
-  # engine's {{#if}} has no else-branch — a manifest sets budgetExempt only;
-  # every other reminder keeps the shared per-prompt lottery unchanged.
+  # budgetShared/budgetExempt are GONE. They were derived complements standing in
+  # for a two-branch template: one branch ran a first-come mkdir lottery, the other
+  # was a privileged directive exempt from it. Both are replaced by a single ranked
+  # path — a hook declares `arcRank` and yields to any better rank sharing its phase,
+  # so no plugin is privileged and the protocol still works when the old exempt
+  # plugin is not installed (process-suite ships two reminder hooks and no taskmaster).
+  # armsClarifyGate replaces budgetExempt's SIDE EFFECT only: dropping the
+  # cross-plugin cc-workprompt marker. Defaults keep a bare manifest renderable.
   printf '%s' "$obj" | jq \
-    '. + {budgetShared: ((.budgetExempt // false) == false)}' > "$dfile"
+    '{arcRank: 50, armsClarifyGate: false} + .' > "$dfile"
   ensure_engine
   render_template "$TEMPLATES/reminder-hook.sh.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} remind.sh"
   emit "$rfile" "$pdir/hooks/remind.sh" 1 "$pdir"

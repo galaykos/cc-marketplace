@@ -2,6 +2,41 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.3
+
+### Added
+- **`skill-map.md` gains a "Stack-neutral" section** — `packages:package-hygiene` and
+  `testing:testing-best-practices`. Both were already emitted by
+  `skill-router/hooks/prime.sh` and absent from this map, which is precisely the drift
+  this file's own header warns about ("two copies of one matcher guarantees that one goes
+  stale"). It was found by the new `pc_prime_coverage` gate, not by reading.
+
+## 0.13.2
+
+### Fixed
+- **A sibling Stop gate's block no longer spends this one's enforcement.**
+  `stop_hook_active` is a SHARED flag — Claude Code sets it on the continuation after
+  ANY blocking Stop hook — and this gate exited on it unconditionally, before its own
+  loop-bounding marker was ever reached. Two Stop gates ship in this marketplace, so
+  one blocking first disarmed the other for that continuation. The gate now evaluates
+  normally and bounds itself with its own marker; the shared flag is honoured only when
+  that marker cannot be written, which is the one case where nothing else bounds the
+  loop. Verified: with the flag set, the first stop still blocks and an identical second
+  stop does not.
+
+## 0.13.1 — 2026-08-16
+
+### Added
+- **`lane.tsv`** — declares the territory, phase and definite trigger for this plugin's
+  agent and Stop hook, so `pc_lanes_territory` can prove no sibling silently claims the
+  same job. `architecture-reviewer` owns `code-structure-review` and yields to
+  `system-design:system-design-reviewer` on system topology.
+
+### Changed
+- **`evidence-gate` is declared `phase: any`**, not `verify`. A Stop gate has to fire
+  whenever a turn tries to end; scoping it to one arc phase would have let a turn ending
+  during `build` escape the gate entirely.
+
 ## 0.13.0
 
 ### Changed

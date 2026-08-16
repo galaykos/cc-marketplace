@@ -1,7 +1,9 @@
 {
   "chassis": "reminder-hook",
-  "regex": "(still failing|same error|didn.?t work|tried everything|third time|drop table|force.push|rm -rf|reset --hard|migrate:fresh|delete all)",
-  "message": "ℹ fresh-take: sounds like a key moment — a fresh stronger-model take is one command away",
+  "regex": "(tried everything|third time|drop table|force.push|rm -rf|reset --hard|migrate:fresh|delete all)",
+  "message": "ℹ fresh-take: an irreversible command, or an attempt that has already been made more than once — stop and get a second opinion before you run it",
   "command": "/fresh-take:consult",
-  "extraGuard": null
+  "extraGuard": null,
+  "artifact": "fresh-take:remind",
+  "arcRank": 10
 }

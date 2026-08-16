@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+code-architecture:architecture-reviewer	agent	review	code-structure-review	diff adds or moves a module, an interface, or a public unit boundary	system-design:system-design-reviewer
+code-architecture:evidence-gate	hook	any	completion-claim-evidence	Stop with a completion claim in the assistant tail, files mutated this session, and no execution tool run after the last mutation	-

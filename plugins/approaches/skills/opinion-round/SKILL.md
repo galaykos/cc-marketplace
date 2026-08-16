@@ -31,9 +31,10 @@ below.
 
 ## Double-run guard
 
-approach-deliberation already ran for this task, or a prior opinion
-round did → skip. One deliberation per task; a second is re-litigation.
-The manual command does not bypass this guard.
+One deliberation per task; a second is re-litigation, and the manual command does not
+bypass it. Check the MARKER, never memory — `.claude/approaches/deliberated.json`
+(`{"task","by","at"}`): read first, skip if it names this task, write on completion.
+Agent-graded; the why is in approach-deliberation's skip list.
 
 ## Defer rule
 

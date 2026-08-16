@@ -12,7 +12,25 @@
 # cannot be both unclassified (string 6) and carry `floor: none` (string 7), and
 # an emptied registry (string 5) precludes any row check.
 set -u
-cd "$(dirname "$0")/../../.." || exit 2   # repo root
+LIVE="$(cd "$(dirname "$0")/../../.." && pwd)" || exit 2
+
+# RUN AGAINST A MIRROR, NEVER THE LIVE TREE.
+# This fixture rewrites role-floors.md and code-reviewer.md and writes three fake
+# agent files into a REAL shipped plugin directory, relying on a trap to undo it.
+# A trap does not survive SIGKILL, a harness timeout, or two runs overlapping, and
+# all three happened while the lane gates were being built — leaving _rf_scratch_*.md
+# inside plugins/debugging/agents/. That is worse now than it used to be: since
+# pc_lanes_coverage gates agents, a leaked scratch agent demands a lane row that will
+# never exist, so an interrupted test run turns into a build failure in a file nobody
+# edited. Copying first makes the blast radius a temp directory.
+MIRROR="$(mktemp -d)" || exit 2
+for _d in plugins scripts templates .claude-plugin; do
+  [ -e "$LIVE/$_d" ] && cp -R "$LIVE/$_d" "$MIRROR/" 2>/dev/null
+done
+for _f in CLAUDE.md README.md skills-lock.json; do
+  [ -f "$LIVE/$_f" ] && cp "$LIVE/$_f" "$MIRROR/" 2>/dev/null
+done
+cd "$MIRROR" || exit 2
 
 RF=plugins/orchestration/skills/delegation-contracts/references/role-floors.md
 CR=plugins/code-review/agents/code-reviewer.md
@@ -26,18 +44,18 @@ cp "$RF" "$BAK/rf" || exit 2
 cp "$CR" "$BAK/cr" || exit 2
 
 cleanup() {
-  rm -f "$SX" "$SY" "$SZ"
-  [ -f "$BAK/rf" ] && cp "$BAK/rf" "$RF"
-  [ -f "$CR" ] && [ -f "$BAK/cr" ] && cp "$BAK/cr" "$CR"
-  # integrity: only the paths this fixture touches, never the whole tree — a
-  # developer running mid-edit must not go red for unrelated work.
+  # Everything this fixture wrote lives under $MIRROR, so removal is the whole of
+  # the restore — nothing to put back, nothing that can be half-restored. The
+  # integrity assertions below check the LIVE tree instead: they are what proves the
+  # mirror indirection actually holds, and they would have caught the leaked scratch
+  # agents that motivated it.
   bad=0
-  cmp -s "$BAK/rf" "$RF" || { echo "FAIL: $RF not restored"; bad=1; }
-  cmp -s "$BAK/cr" "$CR" || { echo "FAIL: $CR not restored"; bad=1; }
-  for f in "$SX" "$SY" "$SZ"; do
-    [ -e "$f" ] && { echo "FAIL: scratch $f survived"; bad=1; }
+  for f in _rf_scratch_x _rf_scratch_y _rf_scratch_z; do
+    [ -e "$LIVE/plugins/debugging/agents/$f.md" ] && {
+      echo "FAIL: scratch $f.md leaked into the live tree"; bad=1; }
   done
-  rm -rf "$BAK"
+  cd / 2>/dev/null || true
+  rm -rf "$MIRROR" "$BAK"
   [ "$bad" -eq 0 ] || exit 1
 }
 trap cleanup EXIT INT TERM HUP

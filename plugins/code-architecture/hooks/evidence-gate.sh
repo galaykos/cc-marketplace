@@ -63,13 +63,35 @@ case "${CC_EVIDENCE_GATE:-block}" in off) exit 0 ;; esac
 
 command -v jq >/dev/null 2>&1 || { echo "[code-architecture] evidence-gate: jq not found — gate not enforced" >&2; exit 0; }
 
-# Never re-trigger from our own continuation.
-[ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)" = "true" ] && exit 0
+# NAMESPACED DISARM. stop_hook_active is SHARED: Claude Code sets it on the continuation
+# after ANY blocking Stop hook, so a bare exit on it let task-runner's completion-gate
+# spend this gate's enforcement and vice versa. But simply DELETING the exit wedges the
+# session, because this gate's other bound does not survive a continuation: it is a sha of
+# the assistant's last 30 lines (:150), and a continuation is new prose BY CONSTRUCTION,
+# so the sha differs every turn and never matches. The two gates are not symmetric —
+# completion-gate bounds on `git rev-parse HEAD`, which IS stable across turns.
+# Measured, four consecutive stops with evolving text: removing the exit gave 2 2 2 2
+# where the previous behaviour gave 2 0 0 0. That is a session that cannot end.
+#
+# So the flag is namespaced rather than removed: this hook records that IT blocked, and
+# honours the flag only when its own record is present. A sibling's block leaves no such
+# record, so the flag no longer disarms this gate — which was the whole point — while the
+# gate's own continuation still releases the turn.
+sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
 
 tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
 [ -n "$tp" ] && [ -r "$tp" ] || exit 0
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -n "$cwd" ] || cwd="."
+
+# The namespaced disarm described above, evaluated as soon as cwd is known. Present
+# record + shared flag = this gate's OWN continuation, so release the turn and clear it.
+# Flag with no record = a sibling gate blocked, and this gate keeps its enforcement.
+claimed="$cwd/.claude/evidence-gate-blocked"
+if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
+  rm -f "$claimed" 2>/dev/null
+  exit 0
+fi
 
 tail_jsonl=$(tail -n 4000 "$tp" 2>/dev/null)
 [ -n "$tail_jsonl" ] || exit 0
@@ -135,8 +157,16 @@ state=$(printf '%s' "$said" | (command -v shasum >/dev/null 2>&1 && shasum | cut
 if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
   exit 0
 fi
-mkdir -p "$cwd/.claude" 2>/dev/null && printf '%s' "$state" > "$marker" 2>/dev/null
+if ! { mkdir -p "$cwd/.claude" 2>/dev/null && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
+  # The marker could not be written, so the per-text bound does not exist this turn.
+  # THIS is where the shared flag earns its keep: without a marker and without it, a
+  # gate that blocks on unwritable state would block the same turn forever. Honouring
+  # it only here costs at most one unenforced stop on an already-degraded setup,
+  # instead of surrendering every stop that follows any sibling gate's block.
+  [ "$sha_active" = "true" ] && exit 0
+fi
 
+mkdir -p "$cwd/.claude" 2>/dev/null && : > "$claimed" 2>/dev/null
 printf '[code-architecture] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
 printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2
 printf '  the changed code) and show its output — or restate honestly: what changed, what was NOT\n' >&2

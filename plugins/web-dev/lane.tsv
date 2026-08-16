@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+web-dev:frontend-reviewer	agent	review	component-logic-review	diff changes component or view LOGIC (state, effects, keys, data fetching) in a JS/TS framework file	-
+web-dev:web-developer	agent	build	stack-neutral-web-implementation	web work whose stack has no per-framework plugin matching the repo manifests	-

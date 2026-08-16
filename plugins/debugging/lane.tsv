@@ -1,0 +1,12 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# debugging owns the incident moment: it had no prompt-time voice at all, while
+# coding-entry already routed errors here. The three artifacts hold three
+# separate territories on purpose — the hook is the signal, the command is the
+# diagnosis, the agent is the long loop — so none of them can gag another.
+debugging:remind	hook	any	stuck-loop-signal	UserPromptSubmit prompt head matches (still failing|same error|didn.?t work|not working|keeps failing)	-
+debugging:debug	command	understand	incident-diagnosis	invoked, or a reported symptom has no recorded root cause yet	-
+debugging:debugger	agent	understand	reproduce-and-bisect-investigation	dispatched by /debugging:debug when the reproduce-bisect loop outlives one turn	-

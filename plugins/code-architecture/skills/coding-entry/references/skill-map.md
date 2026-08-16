@@ -34,6 +34,17 @@ body load; § Priming in the skill body has the form.
 | `components.json` present (shadcn/ReUI registry) | `ui-ux:shadcn-best-practices` |
 | any `*.tsx` / `*.jsx` / `*.vue` / `*.blade.php` in the tree | `a11y:a11y-audit` |
 
+## Stack-neutral
+
+Signals that say nothing about the stack, only that the surface exists. Both rows were
+already emitted by `skill-router/hooks/prime.sh` and missing here — the drift this map's
+own header warns about, found by `pc_prime_coverage` rather than by reading.
+
+| Signal | Prime |
+|---|---|
+| any `composer.json` or `package.json` | `packages:package-hygiene` |
+| a `tests/` directory, or any `*.test.*` / `*.spec.*` | `testing:testing-best-practices` |
+
 ## Data
 
 | Signal | Prime |

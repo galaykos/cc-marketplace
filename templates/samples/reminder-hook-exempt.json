@@ -3,6 +3,8 @@
   "regex": "\\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\\b",
   "message": "taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it",
   "command": "/taskmaster:task",
-  "budgetExempt": true,
-  "budgetShared": false
+  "budgetShared": false,
+  "artifact": "sample:remind",
+  "arcRank": 50,
+  "armsClarifyGate": true
 }

@@ -71,7 +71,41 @@
   # WORK-SHAPED GATE. The one pattern left, and deliberately not a routing table:
   # it asks "is this a request to do work?", never "which tool". Everything about
   # WHICH is the model's, downstream. A miss here costs a check, not a wrong route.
-  printf '%s' "$head" | grep -qiE '\b(build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate)\b' || exit 0
+  #
+  # ONE grep, three tiers: validate.sh budgets four prompt-matching greps here and
+  # calls a fifth a routing table regrowing in shell, so the tiers are alternations
+  # inside this pattern rather than lines of their own.
+  #
+  #   MAKING VERBS — build, refactor, deploy … : match bare. Unchanged.
+  #   STRONG symptom — error, crash, 500s, regressed, why is, investigate, not
+  #     working: match bare. A prompt carrying one of these is about a defect
+  #     whatever the surrounding grammar.
+  #   WEAK symptom — down, slow, broken, failing, fails, leak, stuck: match ONLY
+  #     after a state verb (is/are/went/keeps/got/…), with at most one word
+  #     between. These are ordinary English before they are incident vocabulary.
+  #
+  # WHY THE WEAK TIER IS BOUND AND THE STRONG ONE IS NOT. Symptom phrasing was
+  # added because `production is down` and `why is the checkout page broken`
+  # reached this gate and were dropped, while `fix …` sailed through — an incident
+  # is reported by its effect, not by a verb, so the one moment where tool choice
+  # matters most was the moment the catalog never reached. But bare `down` also
+  # matches `scroll down and tell me what you see`, and bare `slow` matches `the
+  # meeting ran slow today`. Each false positive injects the ~2.6k-token catalog
+  # into a session that would otherwise pay nothing, and no gate can see it:
+  # context-budget.sh measures one fixed making-verb prompt in an empty sandbox,
+  # so this cost is real and structurally unmeasurable. The state verb is what
+  # separates a system in a bad state from an ordinary sentence. Bound pattern:
+  # taskmaster/hooks/preview-guard.sh, whose weak .html tier is bounded for the
+  # same reason — a weak signal that never clears is noise wearing a gate's name.
+  #
+  # HONEST LIMITATION. The bound is grammatical, not semantic. A symptom phrased
+  # without a state verb — `payment failures spiking`, `memory leak in the worker`
+  # — is missed, and a chat sentence that happens to carry one (`the build is slow
+  # to watch`) still fires. It trades recall on the weak tier for the silence of
+  # the plain-prompt path, which §1 calls the overwhelming case; the STRONG tier
+  # is what carries recall, and it is unbounded. A miss here costs a check, never
+  # a wrong route.
+  printf '%s' "$head" | grep -qiE '\b(build|create|make|add|implement|develop|write|rewrite|refactor|migrate|port|fix|debug|review|audit|design|redesign|restyle|theme|style|test|deploy|ship|optimi[sz]e|speed up|scaffold|set ?up|plan|spec|integrate|automate|error|errors|crash|crashing|500s?|regress(ed|ion)?|not working|why is|investigate)\b|\b(is|are|was|were|been|went|going|get(s|ting)?|got|keeps?|kept|still|now|seems?|looks?|am)\b[[:space:]]+([a-z]+[[:space:]]+)?\b(down|slow(er)?|broken|failing|fails|leak(s|ing)?|stuck)\b' || exit 0
 
   # ONCE PER SESSION. The catalog stays in context after the first injection, so a
   # second copy buys nothing and costs the same tokens again.
@@ -95,11 +129,92 @@
   pr_resolve_plugins_dir
   [ -n "$PLUGINS_DIR" ] || exit 0
 
+  # ---- stack relevance (spec 4.6) ---------------------------------------------
+  # The catalog used to list every installed plugin's commands, filtered only by
+  # installed-ness, so a Laravel repo was offered /nextjs:review. A command whose
+  # stack is demonstrably absent is noise at the exact surface where the model
+  # picks a tool, and it is the largest line item in this hook's output.
+  #
+  # PREDICATE: drop a plugin's commands only when it OWNS rules.tsv rows AND none
+  # of them can match anything in this repo. Two corrections the design needed:
+  #   * NOT the stack_marker column. It is populated on 15 of 67 data rows and is
+  #     absent on exactly nextjs, nuxt, vite and threejs — the plugins the filter
+  #     is FOR. A stack_marker predicate would silently do nothing for them.
+  #   * NOT glob rows alone. Seven plugins ship ONLY content rows (llm-app,
+  #     node-backend, observability, payments, resilience, security, threejs), so a
+  #     glob-only predicate matches nothing for them in ANY repo and would delete
+  #     /security:review from every repository on earth. A plugin with no rows, or
+  #     with no glob rows, is stack-NEUTRAL and always kept.
+  #
+  # Cost: bounded by the once-per-session marker claimed above — this walk runs at
+  # most once per session, never per prompt. Fail open: any error keeps the row.
+  RULES="$(dirname "$0")/../rules.tsv"
+  # SCOPE. This filter may drop a stack review command and nothing else. rules.tsv globs
+  # were authored to route a SKILL to files that already exist, so reusing them as a
+  # relevance test for EVERY command was a category error: it hid the commands whose whole
+  # job is to create the thing the glob looks for. Measured on a Laravel repo, the earlier
+  # form hid dev-env init from any repo without a Dockerfile, craft-layer craft from every
+  # greenfield repo, and the a11y audit from anything without a .tsx at depth four, since
+  # a11y ships one glob row and it is .tsx alone. The original motivation was narrow: a
+  # Laravel repo should not be offered the nextjs review, so the filter is narrow now.
+  #
+  # PRUNED AND MEMOISED. Unpruned walks measured 2.86s at 4515 entries and 20.26s at 35014,
+  # linear, and a real node_modules is often past 100k. That is dead air on the first
+  # work-shaped prompt of a session. Worse, the once-per-session marker is claimed about 65
+  # lines above this point, so a hook killed on timeout leaves the marker behind and the
+  # catalog never prints again for that session. Pruning the vendor trees bounds the walk
+  # and the per-plugin memo stops the same answer being recomputed for every row.
+  SR_SEEN=""
+  sr_find() {
+    find "$cwd_f" \( -name node_modules -o -name vendor -o -name .git -o -name dist \) -prune \
+      -o -maxdepth 4 "$@" -print -quit 2>/dev/null
+  }
+  sr_repo_has() {
+    [ -r "$RULES" ] || return 0
+    [ -n "$cwd_f" ] || return 0
+    case " $SR_SEEN " in *" keep:$1 "*) return 0 ;; *" drop:$1 "*) return 1 ;; esac
+    local pat kind owner hit=1 globs=0 mid
+    while IFS=$'\t' read -r kind pat _skill owner _conf _mark; do
+      case "$kind" in '#'*|'') continue ;; esac
+      [ "$owner" = "$1" ] || continue
+      case "$kind" in
+          # Only a FILE-shaped glob can justify HIDING a review; a directory-shaped one cannot.
+          # A directory row marks something the repo has already ADOPTED. i18n ships only
+          # lang and locales rows, testing only tests, database only migrations, so treating a
+          # miss there as absence-of-stack hid the review from exactly the repo that needed it:
+          # the i18n review finds hardcoded strings, and a repo with no lang directory is the
+          # one that has the most of them. A file row such as a blade template or a next config
+          # marks the stack's own sources, which is the question this filter actually asks. A
+          # directory row still counts as a HIT when it matches, since that is evidence the
+          # stack is present; it simply never votes for absence.
+        glob)
+          case "$pat" in
+            '**/'*'/**')
+              mid=${pat#**/}; mid=${mid%/**}
+              [ -n "$(sr_find -type d -name "$mid")" ] && hit=0
+              ;;
+            *)
+              globs=1
+              [ -n "$(sr_find -name "$pat")" ] && hit=0
+              ;;
+          esac
+          ;;
+      esac
+      [ "$hit" = 0 ] && break
+    done < "$RULES"
+    [ "$globs" = 0 ] && hit=0
+    if [ "$hit" = 0 ]; then SR_SEEN="$SR_SEEN keep:$1"; else SR_SEEN="$SR_SEEN drop:$1"; fi
+    return $hit
+  }
+
   catalog=$(
     pr_plugin_roots | while IFS=$'\t' read -r plug proot; do
       for cmd in "$proot"/commands/*.md; do
         [ -f "$cmd" ] || continue
         name=$(basename "$cmd" .md)
+        # A command that creates or audits is most needed where its artifact does not
+        # exist yet, so only a stack review is ever filtered on repo evidence.
+        [ "$name" = review ] && ! sr_repo_has "$plug" && continue
         desc=$(awk '
         /^---[[:space:]]*$/ { f++; next }
         f==1 && /^description:/ {
@@ -136,8 +251,10 @@ Apply this to work requests for the rest of the session:
      "Proceed with <better-command> (Recommended)" / "Proceed with <what-they-named> as asked"
    Give one line of why the other fits — the deliverable's shape, not a preference.
 3. If no tool was named and one clearly fits, name it in one line and carry on. No picker.
-   Exception: when a scope-first reminder (e.g. taskmaster's clarifying-round directive)
-   fired on the same prompt, satisfy it before carrying on — clarification outranks tool-fit.
+   Exception: when a scope-first reminder fired on the same prompt, satisfy it before
+   carrying on — scoping the work outranks tool-fit. Which reminder that is varies by
+   phase and rank, not by plugin: it may be the clarifying-round directive, a
+   build-vs-buy check, a docs check, or a stuck-loop nudge. Obey whichever one spoke.
 4. Close call, or the named tool IS the best fit: say nothing at all. A tool being
    listed is not a reason to route to it; over-suggesting is the failure mode here.
 5. At most one picker per named tool per session. Declining is durable — a user who
