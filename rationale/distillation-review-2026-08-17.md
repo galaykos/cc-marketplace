@@ -53,14 +53,22 @@ Measured against that rule, this run's process knowledge went to the two worst
 places available: `taskmaster-docs/` (gitignored — so "written down" means deleted
 on clone) and `CLAUDE.md` (repo-local — invisible to anyone installing a plugin).
 
-**The sharpest instance:** `plugins/claude-authoring/skills/authoring-hooks/SKILL.md`
-is the shipped artifact whose job is teaching people to write hooks. Measured:
+**The sharpest instance — since CLOSED, see §7 item 1.**
+`plugins/claude-authoring/skills/authoring-hooks/SKILL.md` is the shipped artifact
+whose job is teaching people to write hooks. As measured on the morning of
+2026-08-17:
 
 - mentions of `transcript_path` or the context key: **0**
 - mentions of proving a gate fails / demonstrated-failing fixtures: **0**
 
-The lesson that cost three simultaneous live defects is absent from the artifact
-that exists to teach exactly that.
+The lesson that cost three simultaneous live defects was absent from the artifact
+that exists to teach exactly that. It now carries a `## One-shot state` section
+and a worked-case reference. Note what that cost and what it did NOT buy: +18
+always-on tokens, and the rule is still **agent-graded** outside this repo —
+nothing there runs `pc_marker_key`, so the skill is a checklist a reader chooses
+to apply. Inside this repo the same three rules are gates. Same words, two
+different standings, and conflating them would be the tier over-claim this
+marketplace's own convention forbids.
 
 ## 5. Measured conditions that make recurrence likely
 
@@ -102,9 +110,16 @@ agent-graded measures as a result.
 
 Ordered by leverage, smallest first. None of these is built yet.
 
-1. **Move the context-key lesson into `authoring-hooks`** (a shipped skill). It is
-   the one artifact that reaches hook authors outside this repo, and it is silent
-   on the failure that cost three defects.
+1. ~~**Move the context-key lesson into `authoring-hooks`**~~ — **DONE
+   2026-08-17.** A `## One-shot state` section (four rules) plus
+   `references/one-shot-state.md` carrying the worked case: the exact marker path
+   that could not be written, why a failed write turns a *blocking* gate off, the
+   same line's three different symptoms, and why the suite stayed green. The
+   skill's description now names one-shot state and payload testing so it routes
+   on the failure it teaches. This is the only item here that reaches anyone
+   outside this repo. Cost, paid deliberately: **+18 always-on tokens** and the
+   SKILL body at exactly 150/150 against its ceiling — which is why the worked
+   case is a reference and not prose in the body.
 2. ~~**`pc_harness_payload`**~~ — **DONE 2026-08-17.** Fails a harness that
    exercises a context-keyed hook while sending only `session_id`. Scoped by
    resolving each harness to the hooks it actually exercises, so the 7 harnesses

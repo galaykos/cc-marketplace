@@ -3,6 +3,19 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.12.3
+
+### Changed
+- No behaviour change. `conventions.sh` was already correct — it hashes the
+  context key through `cksum` before that key becomes a filename, which is what
+  keeps its one-shot working when the host sends a `transcript_path` (an
+  absolute path). Nothing had ever tested that: every case in its harness sent
+  `session_id` only, so the branch that runs in production never executed. Three
+  sibling hooks in this marketplace lacked the same hashing and shipped broken
+  behind an equally green suite. The harness now proves the hook still speaks and
+  still bounds its one-shot under a path-shaped key, and `pc_harness_payload`
+  fails the build if that coverage is ever removed.
+
 ## 0.12.2
 
 ### Fixed
