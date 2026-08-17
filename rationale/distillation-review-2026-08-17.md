@@ -131,9 +131,21 @@ Ordered by leverage, smallest first. None of these is built yet.
    content matching none of that hook's five patterns, so the hook was correct to
    stay silent and the test was wrong — and a sibling assertion (`find` for any
    lock dir) passed on locks left by earlier cases, proving nothing. Both fixed.
-3. **Reachability decision for `divergence.mjs`.** Section 6 is the evidence: the
-   gate cannot catch what it never runs on, and `/ui-ux:build` is by ui-ux's own
-   `build.md:75` the most reachable UI entry point here.
+3. ~~**Reachability decision for `divergence.mjs`**~~ — **DONE 2026-08-17**,
+   `plugins/ui-ux/hooks/palette-default.sh`. §6 is the evidence and it decided the
+   design: the failure happened on a *bare prompt*, not a slash command, so adding
+   a step to `/ui-ux:build` would not have caught it either. Only a PostToolUse
+   hook reaches that path. Placed in ui-ux (10 bundles vs craft-layer's 4).
+
+   Advisory, not a gate, and the reason is structural rather than cautious:
+   craft-layer's `utility-palette` can demand a written waiver because a craft run
+   has a contract to record one in; a bare edit has nowhere to record consent, so
+   blocking would punish a legitimate violet brand with no way to say so.
+
+   The cost is real and was accepted, not hidden: craft-layer shipped no
+   PostToolUse hook, and this opens a dynamic channel that `context-budget.sh`
+   scores at **0** because it probes with a synthetic `Edit` that is not a UI file.
+   The one-shot-per-session bound is what stands in for a meter.
 4. ~~**A harness-coverage report for `pc_*` checks**~~ — **DONE 2026-08-17**,
    `scripts/gate-coverage.sh`. Maintainer path, always exits 0. Running it
    immediately falsified this review's own "~14" (see §5) — which is the argument
