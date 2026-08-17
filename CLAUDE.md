@@ -90,7 +90,14 @@ saying so is the point.
   (also `plugin-checks.sh`) fails any plugin whose description claims version
   leverage while no skill of its carries a `> Last verified: YYYY-MM-DD — <url>`
   stamp — the stamp is the input `check-doc-staleness.sh` reads to detect that
-  leverage decaying.
+  leverage decaying. Two paired checks guard hook **one-shot state**:
+  `pc_context_key` fails a PostToolUse hook that keys on `session_id` (a subagent
+  shares its parent's, so the worker gets deduped against nudges it never saw),
+  and `pc_marker_key` fails a hook that then interpolates that key **raw into a
+  filesystem path** — `transcript_path` is an absolute path, so the marker lands
+  nowhere and the bound it records silently stops existing. The first gates the
+  read, the second gates that the value is usable; neither can see the other's
+  failure. Bless with `# context-key-ok:` / `# marker-key-ok: <why>`.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
@@ -168,19 +175,25 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 per the has-teeth convention above:
 
 **Blocking — fails CI.** `.github/workflows/validate.yml` has **28 named steps;
-27 can fail the build**, and on a push to `master` only **26** run
-(`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
-Beyond the four scripts above: 18 harnesses under `scripts/smoke/`
+27 can fail the build**, and on a push to `master` only **26** can fail
+(`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`, so
+27 of the 28 run). Recounted 2026-08-17 — the previous figures were stale in
+both directions, which is the same trap this file names for the retirement-queue
+number below: **recount these, do not copy them.**
+Beyond the four scripts above: 20 harnesses under `scripts/smoke/`
 (template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
 guard, rules-overlap, route-marker, prompt-route, lanes, prime-map, behavioral-verification,
 completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
-verbosity-hook, preview-guard, `validate-fixtures/parity-check.sh`),
+verbosity-hook, preview-guard, versioned-layout, marker-key,
+`validate-fixtures/parity-check.sh`),
 `scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
 lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
-ANY plugin shipping a harness is enforced the moment it lands (taskmaster and
-task-runner are the two that do today; the glob was hardcoded to exactly those
-two until 2026-08-02, which meant a third plugin's fixtures would have sat
-unrun with nothing saying so). Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
+ANY plugin shipping a harness is enforced the moment it lands (**20 plugins ship
+28 harness files** as of 2026-08-17; the glob was hardcoded to exactly taskmaster
+and task-runner until 2026-08-02, which meant a third plugin's fixtures would
+have sat unrun with nothing saying so — and this sentence still said "the two
+that do today" long after 18 more had landed, which is why the glob was the right
+fix and a counted list here is not). Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
 deliberately NOT a CI step: its own header says it needs a live model; it
 stays a local authoring harness.)
 CI can still be red after a green local four-script pass: several of those

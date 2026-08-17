@@ -673,6 +673,13 @@ phase_gap=$(pc_phase_guard plugins) || true
 ctx_gap=$(pc_context_key plugins) || true
 [ -n "$ctx_gap" ] && lane_err "$ctx_gap" "a PostToolUse one-shot must key on transcript_path (falling back to session_id) — or carry '# context-key-ok: <why>' when session scope is genuinely correct"
 
+# Reading the context key is half the job; the value is normally an absolute PATH, so a
+# hook that pastes it into a filename writes to parents that do not exist and loses the
+# bound it claims to keep. pc_context_key cannot see the difference — both hooks mention
+# transcript_path. This is the half that can.
+marker_gap=$(pc_marker_key plugins) || true
+[ -n "$marker_gap" ] && lane_err "$marker_gap" "a context key reaching a filesystem path must be hashed first (cksum/shasum, as in code-review/hooks/conventions.sh:59) — or carry '# marker-key-ok: <why>'"
+
 # The SessionStart index must not claim a skill the documented manifest map never
 # sanctioned — that is how prime.sh came to assert tailwind on any React dependency.
 prime_gap=$(pc_prime_coverage plugins) || true

@@ -108,6 +108,31 @@ expect "CRLF markered row fires on match" "$out" 'crlf-canary' ''
 out=$(route "$TMP/emptycwd" main.go)
 expect "CRLF markerless row fires (conf survives \\r strip)" "$out" 'crlfplain-canary' ''
 
+# ---- the dedup ledger, on the payload the host actually sends -------------------
+# `route()` above deliberately uses a fresh session id per call AND wipes .claude, so
+# nothing in this harness ever exercised the `fired` ledger — the property at route.sh:118
+# that the same skill is not re-nudged on a later edit. That mattered: route.sh reads
+# `.transcript_path // .session_id`, transcript_path is an absolute PATH, and
+# `fired-$session_id.json` named a nested file whose parents are never created. Every
+# write failed, `fired` was empty on every call, and every edit re-injected directives the
+# model already had — unmetered repeat tokens, with this harness green.
+sticky() { # $1 cwd, $2 file — one fixed context, state PRESERVED between calls
+  jq -n --arg fp "$2" --arg cwd "$1" \
+    '{session_id:"11111111-2222-3333-4444-555555555555",
+      transcript_path:"/Users/x/.claude/projects/-Users-x-proj/abcdef01-2345-6789.jsonl",
+      cwd:$cwd,tool_input:{file_path:$fp}}' \
+    | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE"
+}
+mkdir -p "$TMP/dedupcwd"; echo '{"dependencies":{"vue":"^3.2.4"}}' > "$TMP/dedupcwd/package.json"
+first=$(sticky "$TMP/dedupcwd" App.vue)
+expect "transcript_path: first edit nudges" "$first" 'vue3-canary' ''
+second=$(sticky "$TMP/dedupcwd" App.vue)
+expect "transcript_path: the same skill is not re-nudged on a later edit" "$second" '' 'vue3-canary'
+if [ -n "$(find "$TMP/dedupcwd/.claude/skill-router" -name 'fired-*.json' -type f 2>/dev/null)" ]
+then echo "PASS: transcript_path: the fired ledger actually landed on disk"
+else echo "FAIL: transcript_path: the fired ledger actually landed on disk — none written"; rc=1; fi
+rm -rf "$TMP/dedupcwd/.claude"
+
 # ---- delivery channel: nudges must arrive as ONE PostToolUse additionalContext
 # envelope. Plain stdout with exit 0 from a PostToolUse hook never reaches the
 # executing model (channel doctrine: task-runner/hooks/scope.sh,

@@ -317,6 +317,41 @@ if [ -z "$nosid_out" ]; then pass "no session_id: cannot bound the one-shot, so 
 else fail "no session_id: cannot bound the one-shot, so no deny" "got: $nosid_out"; fi
 rm -rf "$STATE_DIR"
 
+# ---- 6. THE REAL PAYLOAD SHAPE: transcript_path present -------------------------------
+# Every case above sends session_id and no transcript_path, so they only ever exercised
+# the FALLBACK branch of the context key. The hook reads `.transcript_path // .session_id`,
+# and the host normally sends transcript_path — an absolute PATH. Interpolated raw into the
+# marker name it built `…/blocked-/Users/x/y.jsonl-<key>`, whose parents are never created;
+# the write failed, the withhold above fired, and the deny was silently absent in every
+# real session while these tests stayed green. That is why these two cases exist: the
+# harness must send what the host sends, or it grades a branch nobody runs.
+TP_DIR="$(mktemp -d)"
+tp() { # file_path  added-text  -> stdout
+  envelope Write "$1" "$2" \
+    | python3 -c 'import json,sys
+d=json.load(sys.stdin); d["hook_event_name"]="PreToolUse"
+d["session_id"]="11111111-2222-3333-4444-555555555555"; d["cwd"]=sys.argv[1]
+d["transcript_path"]="/Users/x/.claude/projects/-Users-x-proj/abcdef01-2345-6789.jsonl"
+print(json.dumps(d))' "$TP_DIR" \
+    | "$BASH_BIN" "$HOOK" 2>/dev/null
+}
+tp1="$(tp /tmp/proj/tp.js '// increment the counter
+counter++;')"
+if printf '%s' "$tp1" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1
+then pass "transcript_path present: the deny still fires"
+else fail "transcript_path present: the deny still fires" "wanted deny, got: $tp1"; fi
+
+tp2="$(tp /tmp/proj/tp.js '// increment the counter
+counter++;')"
+if [ -z "$tp2" ]; then pass "transcript_path present: second edit of the same file is bounded"
+else fail "transcript_path present: second edit of the same file is bounded" "fired twice: $tp2"; fi
+
+# The bound must be a real file, not an accident of the deny path failing earlier.
+if [ -n "$(find "$TP_DIR/.claude/comment-discipline" -name 'blocked-*' -type f 2>/dev/null)" ]
+then pass "transcript_path present: the marker actually landed on disk"
+else fail "transcript_path present: the marker actually landed on disk" "no marker under $TP_DIR"; fi
+rm -rf "$TP_DIR"
+
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'comment-discipline-hook-tests: all cases passed\n' \
                || printf 'comment-discipline-hook-tests: FAILURES above\n'

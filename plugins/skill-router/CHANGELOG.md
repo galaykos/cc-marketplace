@@ -2,6 +2,22 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.13.2
+
+### Fixed
+- **The `fired` ledger never persisted, so every edit re-injected directives the model
+  already had.** 0.13.1 keyed the marker on `transcript_path` falling back to
+  `session_id`, then interpolated the value raw into `fired-$session_id.json`. An
+  absolute transcript path makes that a nested filename whose parents are never created,
+  so the write failed on every call and `fired` was empty every time — the property that
+  the same skill is not re-nudged on a later edit did not hold. Cost was paid in the
+  dynamic context channel, repeatedly, per edit. The key is now hashed with `cksum`, the
+  idiom `code-review/hooks/conventions.sh` and `lean/hooks/budget.sh` already used.
+- **`route-marker-tests.sh` could not have caught it**: its helper used a fresh session
+  id per call and wiped `.claude` between calls, so the dedup ledger was never exercised
+  at all. It now has a case that holds one context across two edits, sends a path-shaped
+  `transcript_path`, and asserts both the suppression and that the ledger file lands.
+
 ## 0.13.1
 
 ### Fixed

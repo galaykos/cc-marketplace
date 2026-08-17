@@ -926,6 +926,82 @@ EOF
   return $bad
 }
 
+# pc_marker_key [plugins-root] — the other half of pc_context_key.
+#
+# pc_context_key gates that a one-shot READS the context key. It cannot gate that the
+# value is USABLE, because it is a string-presence check: every hook that mentions
+# `transcript_path` passes it identically, whether the value is hashed or pasted into a
+# filename. That gap shipped three live defects at once in commit 6c8c306 —
+# comment-discipline/hooks/scan.sh, comment-discipline/hooks/density.sh and
+# skill-router/hooks/route.sh each built `<dir>/<prefix>-$sid` from a key that is normally
+# an ABSOLUTE PATH. The parents of `…/blocked-/Users/x/y.jsonl-<hash>` are never created,
+# so every state write failed silently. Effect: scan.sh's PreToolUse deny was withheld on
+# every edit (its own rule — a bound that cannot be recorded means no block at all), and
+# density.sh's warning cap, per-file dedup and self-output filter all disengaged. Four
+# local scripts and 18 smoke harnesses stayed green, because the harnesses send
+# `session_id` and no `transcript_path` and so only ever exercise the fallback branch.
+#
+# THIS IS THE RULE NOTHING ELSE CARRIES: a context key that reaches a filesystem path must
+# be hashed first. Passes a use that is piped straight into cksum/shasum/md5/sha1sum, that
+# strips slashes with `${var//\/…}`, or that is followed within three lines by
+# `mkdir -p "$(dirname …)"` (which genuinely does create the nested parents —
+# plugins/security/hooks/write-scan.sh relies on exactly that). Bless a deliberate
+# exception with `# marker-key-ok: <why>` on any line of the script.
+#
+# Scans EVERY event's hooks, not just PostToolUse: the defect is about filenames, and a
+# PreToolUse or Stop hook keying a marker has the identical failure.
+#
+# HONEST LIMITATION: this proves the NAME is safe, nothing more. A hashed key written to a
+# directory the host wipes between calls, or a read-only mount, still fails silently, and
+# only a harness feeding the real payload shape can see that — which is why the smoke
+# fixtures now send transcript_path. It is a grep over shell, so a path built through
+# printf into a variable, an array, or eval passes unseen.
+#
+# Prints `marker-key-unhashed <plugin>:<script>:<line>` per offender; returns 1 if any.
+pc_marker_key() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel v line no body
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      rel=$(basename "$sh")
+      grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
+
+      # Variables assigned from a jq read that mentions transcript_path.
+      while IFS= read -r v; do
+        [ -n "$v" ] || continue
+        # Lines assigning a path-shaped string (contains a slash) that interpolates it.
+        while IFS=: read -r no body; do
+          [ -n "$no" ] || continue
+          # Piped to a hash on this line, or slashes expanded away → safe.
+          printf '%s' "$body" | grep -qE "\\\$\{?$v\}?\"?[[:space:]]*\|[[:space:]]*(cksum|shasum|md5|sha1sum)" && continue
+          printf '%s' "$body" | grep -qE "(cksum|shasum|md5|sha1sum)" && continue
+          printf '%s' "$body" | grep -qE "\\\$\{$v//" && continue
+          # `mkdir -p "$(dirname …)"` within three lines creates the nested parents.
+          sed -n "$((no + 1)),$((no + 3))p" "$sh" 2>/dev/null \
+            | grep -qE 'mkdir[[:space:]]+-p[[:space:]]+"\$\(dirname' && continue
+          printf 'marker-key-unhashed %s:%s:%s\n' "$p" "$rel" "$no"
+          bad=1
+        done <<EOF
+$(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=\"[^\"]*/[^\"]*\\\$\{?$v\}?" "$sh" 2>/dev/null)
+EOF
+      done <<EOF
+$(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^=]*jq[^;]*transcript_path' "$sh" 2>/dev/null \
+   | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/' | sort -u)
+EOF
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}
+
 # pc_prime_coverage [plugins-root] — the session-open index, backlog item 1.
 # skill-router/hooks/prime.sh emits the SessionStart "repo-relevant skills" line from a
 # hand-written table. coding-entry/references/skill-map.md is the DOCUMENTED

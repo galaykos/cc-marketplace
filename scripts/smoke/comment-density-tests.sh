@@ -96,6 +96,38 @@ fire "$R2" "$R2/app/Svc/New/F1.php" "$S6" >/dev/null
 expect "same file re-written in one session does not re-warn" \
   "$(fire "$R2" "$R2/app/Svc/New/F1.php" "$S6")" ""
 
+# ---- 6b. THE SAME TWO BOUNDS, ON THE PAYLOAD THE HOST ACTUALLY SENDS ------------
+# Cases 5 and 6 send session_id and nothing else, so they only ever exercised the
+# FALLBACK branch of `.transcript_path // .session_id`. With transcript_path present —
+# which is the normal case — the key is an absolute PATH, `density-$sid` named a nested
+# file whose parents are never created, every state write failed, and MAX_WARN plus the
+# per-file dedup both disengaged: the hook warned on every edit forever. Both bounds
+# above stayed green throughout. Re-assert them with the real payload shape.
+fire_tp() { # $1 cwd, $2 file — session_id AND a path-shaped transcript_path
+  jq -n --arg fp "$2" --arg cwd "$1" \
+    '{hook_event_name:"PostToolUse",tool_name:"Write",
+      session_id:"11111111-2222-3333-4444-555555555555",
+      transcript_path:"/Users/x/.claude/projects/-Users-x-proj/abcdef01-2345-6789.jsonl",
+      cwd:$cwd,tool_input:{file_path:$fp}}' \
+    | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+}
+R2B="$TMP/r2b"; mkdir -p "$R2B/app/Svc"
+for n in A B C D; do house "$R2B/app/Svc/$n.php"; done
+git -C "$R2B" init -q; git -C "$R2B" add -A
+git -C "$R2B" -c user.email=t@t -c user.name=t commit -qm base
+mkdir -p "$R2B/app/Svc/New"; for n in G1 G2 G3 G4 G5; do dense "$R2B/app/Svc/New/$n.php"; done
+expect "transcript_path: first dense file fires" \
+  "$(fire_tp "$R2B" "$R2B/app/Svc/New/G1.php")" "comment-to-code"
+expect "transcript_path: same file re-written does not re-warn (per-file dedup)" \
+  "$(fire_tp "$R2B" "$R2B/app/Svc/New/G1.php")" ""
+fire_tp "$R2B" "$R2B/app/Svc/New/G2.php" >/dev/null
+fire_tp "$R2B" "$R2B/app/Svc/New/G3.php" >/dev/null
+expect "transcript_path: 4th dense file is silent (MAX_WARN engages)" \
+  "$(fire_tp "$R2B" "$R2B/app/Svc/New/G4.php")" ""
+if [ -n "$(find "$R2B/.claude/comment-discipline" -name 'density-*' -type f 2>/dev/null)" ]
+then echo "PASS: transcript_path: the state file actually landed on disk"
+else echo "FAIL: transcript_path: the state file actually landed on disk — none under $R2B"; rc=1; fi
+
 # ---- 7. too few tracked siblings -> silent, never a guess -----------------------
 R3="$TMP/r3"; mkdir -p "$R3/app"; git -C "$R3" init -q
 dense "$R3/app/Only.php"

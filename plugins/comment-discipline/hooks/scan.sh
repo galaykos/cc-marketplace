@@ -336,7 +336,16 @@
   [ -n "$cwd" ] || exit 0                     # no cwd → nowhere to record the bound
   key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
   [ -n "$key" ] || exit 0
-  marker="$cwd/.claude/comment-discipline/blocked-$sid-$key"
+  # THE KEY IS A PATH, SO IT MUST BE HASHED BEFORE IT CAN BE A FILENAME. `.transcript_path`
+  # is an absolute path; interpolating it raw builds `…/blocked-/Users/…/x.jsonl-<key>`,
+  # whose parents `mkdir -p "$cwd/.claude/comment-discipline"` never creates. Every write
+  # then fails, the withhold below fires, and the deny is silently absent on every edit of
+  # every file — the tooth reads as present in this file and is gone in every real session.
+  # Hashed with the same cksum idiom as code-review/hooks/conventions.sh:59 and
+  # lean/hooks/budget.sh:64, which were the two that got this right.
+  ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
+  [ -n "$ctx" ] || exit 0
+  marker="$cwd/.claude/comment-discipline/blocked-$ctx-$key"
   [ -e "$marker" ] && exit 0
   mkdir -p "$cwd/.claude/comment-discipline" 2>/dev/null || exit 0
   : > "$marker" 2>/dev/null || exit 0
