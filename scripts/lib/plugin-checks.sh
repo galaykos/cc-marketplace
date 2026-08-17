@@ -1002,6 +1002,72 @@ EOF
   return $bad
 }
 
+# pc_harness_payload — the CONDITION behind pc_marker_key, not another instance of it.
+#
+# pc_marker_key fails a hook that misuses the context key. It cannot fail the reason
+# nobody noticed for a whole release: every harness testing those hooks sent `session_id`
+# and no `transcript_path`, so 40+ cases graded the FALLBACK branch while the branch the
+# host actually takes was never executed once. Three hooks shipped broken with a green
+# suite. A gate on the hooks alone leaves that intact — the next harness can still test a
+# payload shape no host produces, and the next defect hides exactly as this one did.
+#
+# THE RULE: if a harness builds a hook payload, and any hook it exercises reads
+# `transcript_path`, the harness must send `transcript_path` somewhere.
+#
+# Deliberately narrow. A harness whose hook never reads the context key does not need the
+# field, and demanding it there would be ceremony on 7 harnesses to catch 2 — which is the
+# proportionality law, and also the difference between a gate people keep and one they
+# route around. Measured when written: 15 harnesses build payloads, 6 already comply,
+# 7 exercise hooks with no context key at all, and exactly 2 were real offenders.
+#
+# Bless with `# harness-payload-ok: <why>` (e.g. a harness deliberately pinning the
+# no-transcript_path fallback path itself).
+#
+# HONEST LIMITATION: it checks that the STRING appears, not that a case meaningfully
+# exercises it — a harness could send `transcript_path` in one unused fixture and pass.
+# It resolves the harness→hook link by grepping for hook paths in the harness text, so a
+# harness that reaches its hook through a variable this regex cannot follow is invisible.
+# And it says nothing about the payload's other fields.
+#
+# Prints `harness-payload-fallback-only <harness>:<hook>` per offender; returns 1 if any.
+pc_harness_payload() {
+  local root="${1:-.}" bad=0 f plug h hooks b
+
+  _hp_hooks() { # $1 harness -> hook paths it exercises
+    local f=$1 plug="" out="" b
+    case "$f" in */plugins/*|plugins/*) plug=$(printf '%s' "${f#$root/}" | sed -n 's|^plugins/\([a-z0-9-]*\)/.*|\1|p') ;;
+    esac
+    out=$(grep -ohE 'plugins/[a-z0-9-]+/hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | sed "s|^|$root/|" | sort -u)
+    for b in $(grep -ohE '(^|[^a-z/])hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | grep -oE 'hooks/[a-z0-9_-]+\.sh' | sort -u); do
+      if [ -n "$plug" ] && [ -f "$root/plugins/$plug/$b" ]; then out="$out
+$root/plugins/$plug/$b"
+      else out="$out
+$(ls "$root"/plugins/*/"$b" 2>/dev/null)"; fi
+    done
+    printf '%s\n' "$out" | sort -u | grep -v '^$'
+  }
+
+  while IFS= read -r f; do
+    [ -n "$f" ] && [ -f "$f" ] || continue
+    case "$f" in *canary.sh) continue ;; esac
+    grep -q 'harness-payload-ok:' "$f" 2>/dev/null && continue
+    grep -qE 'hook_event_name|"session_id"|session_id"?[:=]' "$f" 2>/dev/null || continue
+    grep -q 'transcript_path' "$f" 2>/dev/null && continue
+    while IFS= read -r h; do
+      [ -n "$h" ] && [ -f "$h" ] || continue
+      grep -q 'transcript_path' "$h" 2>/dev/null || continue
+      printf 'harness-payload-fallback-only %s:%s\n' "${f#$root/}" "$(basename "$h")"
+      bad=1
+    done <<EOF
+$(_hp_hooks "$f")
+EOF
+  done <<EOF
+$(ls "$root"/scripts/smoke/*.sh "$root"/plugins/*/scripts/__tests__/*.test.sh 2>/dev/null)
+EOF
+  unset -f _hp_hooks
+  return $bad
+}
+
 # pc_prime_coverage [plugins-root] — the session-open index, backlog item 1.
 # skill-router/hooks/prime.sh emits the SessionStart "repo-relevant skills" line from a
 # hand-written table. coding-entry/references/skill-map.md is the DOCUMENTED

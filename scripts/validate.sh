@@ -680,6 +680,12 @@ ctx_gap=$(pc_context_key plugins) || true
 marker_gap=$(pc_marker_key plugins) || true
 [ -n "$marker_gap" ] && lane_err "$marker_gap" "a context key reaching a filesystem path must be hashed first (cksum/shasum, as in code-review/hooks/conventions.sh:59) — or carry '# marker-key-ok: <why>'"
 
+# And the condition that let the above hide for a release: a harness that only ever sends
+# session_id grades the fallback branch, so the branch the host actually takes is never
+# executed. pc_marker_key gates the hook; this gates the test that would have caught it.
+harness_gap=$(pc_harness_payload .) || true
+[ -n "$harness_gap" ] && lane_err "$harness_gap" "this harness exercises a hook that reads transcript_path but never sends one — add a case with a path-shaped transcript_path, or carry '# harness-payload-ok: <why>'"
+
 # The SessionStart index must not claim a skill the documented manifest map never
 # sanctioned — that is how prime.sh came to assert tailwind on any React dependency.
 prime_gap=$(pc_prime_coverage plugins) || true

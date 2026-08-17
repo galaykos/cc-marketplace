@@ -97,7 +97,12 @@ saying so is the point.
   filesystem path** — `transcript_path` is an absolute path, so the marker lands
   nowhere and the bound it records silently stops existing. The first gates the
   read, the second gates that the value is usable; neither can see the other's
-  failure. Bless with `# context-key-ok:` / `# marker-key-ok: <why>`.
+  failure. A third, `pc_harness_payload`, closes the CONDITION rather than the
+  instance: a smoke or `__tests__` harness that exercises a context-keyed hook
+  must send a `transcript_path`, because a harness sending only `session_id`
+  grades the fallback branch and that is the sole reason three broken hooks
+  shipped behind a green suite. Bless with `# context-key-ok:` /
+  `# marker-key-ok:` / `# harness-payload-ok: <why>`.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /

@@ -92,6 +92,51 @@ else
   fail "validate.sh calls pc_marker_key" "no call found — the check would never run"
 fi
 
+# ---- pc_harness_payload: the CONDITION, not another instance -----------------------------
+# pc_marker_key fails a hook that misuses the key. This one fails the TEST that would have
+# noticed — a harness sending only session_id grades the fallback branch, which is the sole
+# reason three broken hooks shipped behind a green suite.
+HP="$(mktemp -d)"; trap 'rm -rf "$TMP" "$HP"' EXIT
+mkdir -p "$HP/scripts/smoke" "$HP/plugins/keyed/hooks" "$HP/plugins/keyless/hooks"
+printf 'sid=$(jq -r ".transcript_path // .session_id")\nk=$(printf "%%s" "$sid" | cksum)\n' \
+  > "$HP/plugins/keyed/hooks/h.sh"
+printf 'sid=$(jq -r ".session_id")\n' > "$HP/plugins/keyless/hooks/h.sh"
+
+# Offender: exercises a context-keyed hook, sends session_id only.
+printf '#!/usr/bin/env bash\nHOOK=plugins/keyed/hooks/h.sh\njq -n %s{session_id:"s1",hook_event_name:"PostToolUse"}%s | bash "$HOOK"\n' "'" "'" \
+  > "$HP/scripts/smoke/bad-tests.sh"
+# Compliant: same hook, sends a path-shaped transcript_path too.
+printf '#!/usr/bin/env bash\nHOOK=plugins/keyed/hooks/h.sh\njq -n %s{session_id:"s1",transcript_path:"/U/x/a.jsonl"}%s | bash "$HOOK"\n' "'" "'" \
+  > "$HP/scripts/smoke/good-tests.sh"
+# Out of scope: the hook it exercises never reads the key, so the field would be ceremony.
+printf '#!/usr/bin/env bash\nHOOK=plugins/keyless/hooks/h.sh\njq -n %s{session_id:"s1"}%s | bash "$HOOK"\n' "'" "'" \
+  > "$HP/scripts/smoke/keyless-tests.sh"
+# Blessed: deliberately pins the no-transcript_path fallback.
+printf '#!/usr/bin/env bash\n# harness-payload-ok: this file exists to pin the fallback branch\nHOOK=plugins/keyed/hooks/h.sh\njq -n %s{session_id:"s1"}%s | bash "$HOOK"\n' "'" "'" \
+  > "$HP/scripts/smoke/blessed-tests.sh"
+
+hp_out="$(pc_harness_payload "$HP")"; hp_rc=$?
+case "$hp_out" in *bad-tests.sh*) pass "flags a harness that grades only the fallback branch" ;;
+  *) fail "flags a harness that grades only the fallback branch" "got: ${hp_out:-<none>}" ;; esac
+[ "$hp_rc" -eq 1 ] && pass "pc_harness_payload returns 1 on an offender" \
+  || fail "pc_harness_payload returns 1 on an offender" "got exit $hp_rc"
+case "$hp_out" in *good-tests.sh*) fail "no false positive on a compliant harness" "flagged: $hp_out" ;;
+  *) pass "no false positive on a compliant harness" ;; esac
+case "$hp_out" in *keyless-tests.sh*) fail "hook without a context key is out of scope" "flagged: $hp_out" ;;
+  *) pass "hook without a context key is out of scope" ;; esac
+case "$hp_out" in *blessed-tests.sh*) fail "# harness-payload-ok: exempts the harness" "flagged: $hp_out" ;;
+  *) pass "# harness-payload-ok: exempts the harness" ;; esac
+
+ship_hp="$(pc_harness_payload "$ROOT")"
+if [ -z "$ship_hp" ]; then pass "the shipped harnesses all exercise the real payload"
+else fail "the shipped harnesses all exercise the real payload" "$ship_hp"; fi
+
+if grep -q 'pc_harness_payload' "$ROOT/scripts/validate.sh"; then
+  pass "validate.sh calls pc_harness_payload"
+else
+  fail "validate.sh calls pc_harness_payload" "no call found — the check would never run"
+fi
+
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'marker-key-tests: all cases passed\n' \
                || printf 'marker-key-tests: FAILURES above\n'

@@ -71,7 +71,7 @@ Not opinions — counts taken 2026-08-17 on this branch:
 | `pc_*` author-time checks defined | **20** | |
 | …that any harness exercises | **2** (`lanes` covers 5, `marker-key` covers 1) | ~14 checks have never been watched fail. Each is indistinguishable from `return 0`. |
 | Smoke harnesses under `scripts/smoke/` | **20** | |
-| …that send `transcript_path` | **7** | 13 still exercise only the fallback branch — the exact hole that hid this bug for a whole release |
+| …that send `transcript_path` | **7 → 9** | **CLOSED 2026-08-17 by `pc_harness_payload`** (§7 item 2). Of 15 payload-building harnesses, 6 already complied, 7 exercise hooks with no context key so the field would be ceremony, and exactly **2 were real offenders** — `code-review/conventions-hook.test.sh` and `security/write-scan.test.sh`. Both fixed rather than blessed. |
 | Plugin hooks shipped | **38** | |
 | …stating a LIMITATION or Standing | **20** | |
 | …checks enforcing that they do | **0** | the has-teeth convention is itself in the `recorded` tier |
@@ -105,9 +105,17 @@ Ordered by leverage, smallest first. None of these is built yet.
 1. **Move the context-key lesson into `authoring-hooks`** (a shipped skill). It is
    the one artifact that reaches hook authors outside this repo, and it is silent
    on the failure that cost three defects.
-2. **`pc_harness_payload`** — fail a smoke harness that builds a hook payload with
-   `session_id` and no `transcript_path`, unless blessed. This closes the
-   *condition*, where `pc_marker_key` only closed the instance.
+2. ~~**`pc_harness_payload`**~~ — **DONE 2026-08-17.** Fails a harness that
+   exercises a context-keyed hook while sending only `session_id`. Scoped by
+   resolving each harness to the hooks it actually exercises, so the 7 harnesses
+   whose hooks never read the key are out of scope rather than blessed — a gate
+   that must be waived seven times to catch two is one people route around.
+   Both real offenders were fixed, not blessed. 6 fixture cases in
+   `marker-key-tests.sh`, including the false-positive and out-of-scope guards.
+   Writing it surfaced a bug in its own test: the first `write-scan` fixture used
+   content matching none of that hook's five patterns, so the hook was correct to
+   stay silent and the test was wrong — and a sibling assertion (`find` for any
+   lock dir) passed on locks left by earlier cases, proving nothing. Both fixed.
 3. **Reachability decision for `divergence.mjs`.** Section 6 is the evidence: the
    gate cannot catch what it never runs on, and `/ui-ux:build` is by ui-ux's own
    `build.md:75` the most reachable UI entry point here.

@@ -51,5 +51,35 @@ out=$(printf 'not json' | bash "$HOOK"); rc=$?
 if [[ $rc -eq 0 && -z "$out" ]]; then pass=$((pass+1));
 else echo "FAIL fail-open: rc=$rc out=$out"; fail=$((fail+1)); fi
 
+# ---- the payload the host actually sends ---------------------------------------------
+# Every case above sends session_id only, so they graded the FALLBACK branch of
+# `.transcript_path // .session_id`. This hook puts that value in the lock path as a
+# DIRECTORY component, and an absolute transcript path is only survivable there because
+# of the `mkdir -p "$(dirname "$lock")"` on the next line. That one line is the whole
+# safety margin and nothing exercised it. Three sibling hooks that lacked the equivalent
+# shipped broken behind a green suite. Gated by pc_harness_payload.
+TP='/Users/x/.claude/projects/-Users-x-proj/abcdef01-2345-6789.jsonl'
+tprun() { # tprun <content>
+  jq -cn --arg c "$1" --arg t "$TP" \
+    '{tool_name:"Write", session_id:"11111111-2222-3333-4444-555555555555", transcript_path:$t,
+      tool_input:{file_path:"/tmp/tp.php", content:$c}}' | bash "$HOOK"
+}
+DIRTY='<?php class M extends Model { protected $guarded = []; }'
+out=$(tprun "$DIRTY")
+if grep -q 'mass-assignment-open' <<<"$out"; then pass=$((pass+1)); echo "PASS transcript_path: the hook still warns"
+else echo "FAIL transcript_path: went silent — the lock path swallowed the key. got: ${out:-<empty>}"; fail=$((fail+1)); fi
+
+out2=$(tprun "$DIRTY")
+if [ -z "$out2" ]; then pass=$((pass+1)); echo "PASS transcript_path: dedup still holds on the second write"
+else echo "FAIL transcript_path: warned twice, dedup dead: $out2"; fail=$((fail+1)); fi
+
+# Scoped to THIS run's key, not any lock dir: the transcript path is absolute, so if the
+# mkdir -p rescue works the path's own leading segments appear under cc-security-scan.
+# A bare `find -name '*_*'` would have passed on locks left by the session_id cases above,
+# which is a green assertion that proves nothing.
+if [ -d "$TMPDIR/cc-security-scan/Users/x/.claude/projects" ]; then
+  pass=$((pass+1)); echo "PASS transcript_path: mkdir -p \$(dirname) rescued the nested path"
+else echo "FAIL transcript_path: nested lock path never created"; fail=$((fail+1)); fi
+
 echo "write-scan tests: $pass passed, $fail failed"
 exit $((fail > 0))
