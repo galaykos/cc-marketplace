@@ -899,6 +899,195 @@ function copyRegister(files) {
       + `in reader-visible copy across ${files.length} page file(s); single words ("seamless" alone) are not graded by construction`)
 }
 
+/* ------------------------------------------------ utility-layer fingerprint */
+
+/* THE HALF OF THE FINGERPRINT THAT NEVER REACHES THE STYLESHEET.
+ *
+ * Standing: GATE. Both assertions below FAIL the run (exit 1) and both are
+ * waivable through `.craft-layer/waivers.json` with a reason — the same lane
+ * every other assertion in this file rides.
+ *
+ * `accent-default-band` decides the category-default hue by reading CSS custom
+ * properties and nothing else (readAccents, above), and `font-anti-corpus` reads
+ * families out of the token stylesheet plus its siblings. On a Tailwind/JSX build
+ * neither the palette nor the type passes through either input: the hue arrives
+ * as `from-indigo-500 via-purple-500 to-violet-600` inside a `className`, and the
+ * family arrives as `import { Inter } from 'next/font/google'`. So both
+ * assertions returned green on a page that IS the fingerprint — a violet gradient
+ * hero set in Inter, over a `src/index.css` whose cleanly derived accent token no
+ * element ever referenced — and the terminator printed "OK: the build clears the
+ * N divergence assertion(s) that could be graded". That is the has-teeth
+ * over-claim this repo's convention forbids, printed by the file that calls
+ * itself the teeth.
+ *
+ * These read SOURCE only, so like the register / shape / copy assertions they run
+ * BEFORE the token resolution and their verdicts survive an exit-2 run. That
+ * ordering is load-bearing rather than tidy here: the build most likely to ship
+ * its palette in class strings is the same build least likely to have a token
+ * stylesheet this gate can find.
+ *
+ * WHAT THESE DO NOT CATCH — named, not implied:
+ *
+ *  - THEY NEVER RUN ON `/ui-ux:build`. divergence.mjs is invoked by
+ *    `/craft-layer:audit` step 4 and `/craft-layer:craft` step 7 and nowhere
+ *    else, while ui-ux's `build.md:75` calls itself the most reachable UI entry
+ *    point in this marketplace. The most-used way into a UI is the one path this
+ *    gate has never been on.
+ *  - THEY COUNT A HUE AND A FAMILY, NOT A COMPOSITION. Three equal cards, the
+ *    ribbon on the middle one, the centred hero: all uncounted. `text-center` is
+ *    read here as context and never as a finding, and `composition-shape` above
+ *    grades a measure rather than an arrangement.
+ *  - THEY CANNOT TELL A CHOICE FROM A DEFAULT. A legitimately violet brand and a
+ *    third-party logo's own hex are indistinguishable from a hue reached for by
+ *    not choosing. That is what the waiver REASON is for.
+ *  - THEY SAY NOTHING ABOUT COPY DEPTH OR PROP VALIDITY. Prop validity is a
+ *    compiler's job — `tsc --noEmit` for a typed registry, `validate_usage` for
+ *    ReUI — and copy depth is the craft-reviewer's, agent-graded.
+ *  - A CLASS STRING THIS FILE CANNOT SEE IS NOT GRADED. CLASS_RE reads literal
+ *    `class`/`className` values only; a list assembled in a variable or inside
+ *    `cn(...)`, and a colour arriving through a component prop, are invisible.
+ *  - THE HEX PATH IS READ IN THE VALUE'S OWN SPACE, exactly as
+ *    `accent-default-band` has always read it (see DEFAULT_BAND's note above) —
+ *    and the two spaces DISAGREE about this band. Measured: Tailwind's own
+ *    indigo/violet/purple hexes read 238.7° (#6366f1), 258.3° (#8b5cf6) and
+ *    270.7° (#a855f7) in sRGB, all BELOW the 275° floor, while the same swatches
+ *    are 277.1/292.7/303.9 in oklch. So the hex path fires only where the two
+ *    readings agree (fuchsia/magenta-side values such as #d946ef at 292.2°); the
+ *    named-utility path below is what catches an indigo hex literal's swatch.
+ *    Re-spacing the band or converting hex to oklch would change
+ *    `accent-default-band`'s verdicts for every existing build, so it is stated
+ *    here rather than done quietly.
+ *  - `utility-font` matches the anti-corpus TEXT only. The per-script Noto
+ *    pattern (NOTO_DEFAULT, further down) belongs to `font-anti-corpus` and reads
+ *    the stylesheet, so `font-['Noto_Sans_Hebrew']` reaching the page through a
+ *    class string is not caught here.
+ */
+
+/* WHY EXACTLY indigo / violet / purple — DERIVED FROM DEFAULT_BAND, NOT PICKED.
+   Tailwind's own oklch hue angles put indigo-500 at ~277.1°, violet-500 at
+   ~292.7° and purple-500 at ~303.9°, all three inside the 275-315° band declared
+   above, while the immediate neighbours fall outside it: blue-500 at ~259.8°
+   below and fuchsia-500 at ~322.1° above. The list is therefore auditable
+   against the band rather than against taste. If DEFAULT_BAND ever moves,
+   RE-DERIVE this list from the ramp's oklch angles — never extend it by feel. */
+const UTIL_PROP = 'bg|text|border|from|via|to|ring|shadow|decoration|outline|fill|stroke'
+const UTIL_FAMILY = 'indigo|violet|purple'
+const UTIL_COLOR_RE = new RegExp(`\\b(?:${UTIL_PROP})-(?:${UTIL_FAMILY})-\\d{2,3}\\b`, 'g')
+const CLASS_HEX_RE = /\[#([0-9a-fA-F]{6})\]/g
+const STYLE_RE = /\bstyle\s*=\s*(?:\{\{([\s\S]*?)\}\}|"([^"]*)"|'([^']*)')/g
+const HEX_RE = /#([0-9a-fA-F]{6})\b/g
+
+const inBand = (h) => h !== null && h >= DEFAULT_BAND[0] && h <= DEFAULT_BAND[1]
+
+function utilityPalette(files) {
+  if (!files.length) return record('utility-palette', 'SKIP', 'no shipped page source found to carry class strings')
+  const hits = []
+  let classStrings = 0
+  for (const { file, src } of files) {
+    for (const m of src.matchAll(CLASS_RE)) {
+      const cls = m[1] ?? m[2] ?? m[3] ?? ''
+      classStrings++
+      const at = lineAt(src, m.index)
+      for (const u of cls.matchAll(UTIL_COLOR_RE)) {
+        hits.push({ how: 'named utility', marker: u[0], file: rel(file), line: at })
+      }
+      /* A hex literal inside a class attribute is BY CONSTRUCTION not a token —
+         the token layer is where a derived accent lives, and an arbitrary value
+         is the shape of skipping it. Band-gated all the same: firing on EVERY
+         hex would fire on a chart series and on a third-party mark's own colour,
+         which is the anti-pattern register-corpus.md names. */
+      for (const h of cls.matchAll(CLASS_HEX_RE)) {
+        const hue = toHue(`#${h[1]}`)
+        if (inBand(hue)) hits.push({ how: `arbitrary value, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: h[0], file: rel(file), line: at })
+      }
+    }
+    for (const s of src.matchAll(STYLE_RE)) {
+      const decl = s[1] ?? s[2] ?? s[3] ?? ''
+      const at = lineAt(src, s.index)
+      for (const h of decl.matchAll(HEX_RE)) {
+        const hue = toHue(`#${h[1]}`)
+        if (inBand(hue)) hits.push({ how: `inline style, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: `#${h[1]}`, file: rel(file), line: at })
+      }
+    }
+  }
+  const seen = new Set()
+  const uniq = hits.filter((h) => {
+    const k = `${h.file}|${h.marker}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+  const shown = uniq.slice(0, 6).map((h) => `${h.marker} [${h.how}] at ${h.file}:${h.line}`).join('; ')
+  settle('utility-palette', uniq.length > 0, uniq[0]?.marker ?? '',
+    `the category-default hue reaches the page through the utility layer — ${shown}`
+      + `${uniq.length > 6 ? ` (+${uniq.length - 6} more)` : ''}. indigo/violet/purple utilities and in-band `
+      + `arbitrary hex are the ${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° category default (sameness-fingerprint.md, `
+      + `"Recent palette hues" and the category-default note) arriving where accent-default-band cannot see it: `
+      + `that assertion reads CSS custom properties only, so a cleanly derived accent token NO ELEMENT REFERENCES `
+      + `still clears it. Derive the accent and then use it — or, when the brand genuinely is violet or a `
+      + `third-party mark owns that hex, waive this with that reason. `
+      + `Reproduce: grep -rn ${JSON.stringify(uniq[0]?.marker ?? '')} ${uniq[0]?.file ?? ''}`,
+    `no indigo/violet/purple utility and no in-band arbitrary hex across ${classStrings} class string(s) in `
+      + `${files.length} page file(s); families derived from the ${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° band, not listed by taste`)
+}
+
+/* The three ways a family reaches a Tailwind/JSX page without ever touching the
+   token stylesheet `font-anti-corpus` reads. Underscores are Tailwind's escape
+   for a space inside an arbitrary value, so `font-['Playfair_Display']` is the
+   family "Playfair Display"; `+` plays that role in a Google Fonts query. */
+const FONT_ARBITRARY_RE = /\bfont-\[\s*['"]?([\w ]+)['"]?\s*\]/g
+const NEXT_FONT_RE = /import\s*\{([^}]*)\}\s*from\s*['"]next\/font\/google['"]/g
+const GOOGLE_FAMILY_RE = /fonts\.googleapis\.com\/css2\?[^"'`\s>]*/g
+const FAMILY_PARAM_RE = /family=([^&:"'`\s>]+)/g
+
+function utilityFont(files, corpus) {
+  if (!files.length) return record('utility-font', 'SKIP', 'no shipped page source found to declare a family')
+  const found = []
+  const add = (name, file, line, how) => {
+    const n = name.replace(/[_+]/g, ' ').trim()
+    if (n.length < 3 || !/[A-Za-z]/.test(n) || SYSTEM_STACK.has(n.toLowerCase())) return
+    found.push({ name: n, file: rel(file), line, how })
+  }
+  for (const { file, src } of files) {
+    for (const m of src.matchAll(CLASS_RE)) {
+      const cls = m[1] ?? m[2] ?? m[3] ?? ''
+      for (const f of cls.matchAll(FONT_ARBITRARY_RE)) add(f[1], file, lineAt(src, m.index), 'arbitrary font utility')
+    }
+    for (const m of src.matchAll(NEXT_FONT_RE)) {
+      for (const spec of m[1].split(',')) {
+        add(spec.trim().split(/\s+as\s+/)[0].trim(), file, lineAt(src, m.index), 'next/font/google import')
+      }
+    }
+    for (const m of src.matchAll(GOOGLE_FAMILY_RE)) {
+      for (const f of m[0].matchAll(FAMILY_PARAM_RE)) add(f[1], file, lineAt(src, m.index), 'Google Fonts link')
+    }
+  }
+  if (!found.length) {
+    return record('utility-font', 'SKIP',
+      'no family named by an arbitrary `font-[…]` utility, a next/font/google import or a fonts.googleapis.com '
+      + `link across ${files.length} page file(s) — nothing to grade at the utility layer`)
+  }
+  const hits = found.filter((f) =>
+    new RegExp(`(^|[^A-Za-z])${esc(f.name)}([^A-Za-z]|$)`, 'i').test(corpus.familyText))
+  const seen = new Set()
+  const uniq = hits.filter((h) => {
+    const k = `${h.file}|${h.name.toLowerCase()}`
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+  const names = [...new Set(found.map((f) => f.name))]
+  const shown = uniq.slice(0, 6).map((h) => `"${h.name}" [${h.how}] at ${h.file}:${h.line}`).join('; ')
+  settle('utility-font', uniq.length > 0, uniq[0]?.name ?? '',
+    `${shown}${uniq.length > 6 ? ` (+${uniq.length - 6} more)` : ''} — an anti-corpus family in the `
+      + `${corpus.kind} (${corpus.date}), the category default rather than a derived spec. It never reaches the `
+      + `stylesheet, so font-anti-corpus records "no non-generic font declared" and the type gate has no teeth on `
+      + `exactly the stack this plugin ships guidance for. Pick a face with an argument behind it, or waive this `
+      + `with the reason. Reproduce: grep -rn ${JSON.stringify(uniq[0]?.name ?? '')} ${uniq[0]?.file ?? ''}`,
+    `families reaching the page through the utility layer [${names.join(', ')}] are not anti-corpus entries in the `
+      + `${corpus.kind} (${corpus.date})`)
+}
+
 /* ------------------------------------------------------------------ run */
 
 const notes = []
@@ -1151,6 +1340,11 @@ compositionShape()
 const shippedCopy = pageCopy()
 emojiAsIcon(shippedCopy)
 copyRegister(shippedCopy)
+/* Same walk, same reason: the utility-layer pair reads SOURCE only, so its
+   verdicts survive the exit-2 path below. A build that ships its palette in
+   class strings is the one most likely to have no token stylesheet at all. */
+utilityPalette(shippedCopy)
+utilityFont(shippedCopy, anti)
 
 /** Print what IS measured before a not-measured exit, so the register verdict is
     never swallowed by a missing token source. */
