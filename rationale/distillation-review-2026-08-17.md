@@ -76,8 +76,8 @@ Not opinions — counts taken 2026-08-17 on this branch:
 
 | Condition | Count | Why it matters |
 | --- | --- | --- |
-| `pc_*` author-time checks defined | **20** | |
-| …that any harness exercises | **2** (`lanes` covers 5, `marker-key` covers 1) | ~14 checks have never been watched fail. Each is indistinguishable from `return 0`. |
+| `pc_*` author-time checks defined | **21** | |
+| …that any harness exercises | **18** | **CORRECTED 2026-08-17.** This row first read "2 harnesses, so ~14 never watched fail" — arrived at by counting harness FILES rather than tracing which checks each file exercises. `rules-overlap-tests.sh` alone covers six. The real figure is **3 uncovered**: `pc_doc_location`, `pc_phase_guard`, `pc_version_stamp`. Recount with `scripts/gate-coverage.sh`; do not copy this number either. |
 | Smoke harnesses under `scripts/smoke/` | **20** | |
 | …that send `transcript_path` | **7 → 9** | **CLOSED 2026-08-17 by `pc_harness_payload`** (§7 item 2). Of 15 payload-building harnesses, 6 already complied, 7 exercise hooks with no context key so the field would be ceremony, and exactly **2 were real offenders** — `code-review/conventions-hook.test.sh` and `security/write-scan.test.sh`. Both fixed rather than blessed. |
 | Plugin hooks shipped | **38** | |
@@ -134,8 +134,20 @@ Ordered by leverage, smallest first. None of these is built yet.
 3. **Reachability decision for `divergence.mjs`.** Section 6 is the evidence: the
    gate cannot catch what it never runs on, and `/ui-ux:build` is by ui-ux's own
    `build.md:75` the most reachable UI entry point here.
-4. **A harness-coverage report for `pc_*` checks** — name the ~14 with no fixture.
-   Report, not gate: some are structural and a fixture would be ceremony.
+4. ~~**A harness-coverage report for `pc_*` checks**~~ — **DONE 2026-08-17**,
+   `scripts/gate-coverage.sh`. Maintainer path, always exits 0. Running it
+   immediately falsified this review's own "~14" (see §5) — which is the argument
+   for shipping a script instead of a number: a recorded count is a measurement
+   someone will trust and nobody will recompute. It over-reports by design —
+   "covered" means a harness names the function, not that any assertion watches it
+   fail — so a NONE is certain and a hit is only probable.
+
+   **The three with NONE are left uncovered deliberately, not overlooked.**
+   `pc_phase_guard` has a natural home (`lanes-tests.sh`, its documented family)
+   and is the one worth doing next. `pc_doc_location` and `pc_version_stamp` have
+   no topical harness, and forcing them into an ill-fitting one buys a green tick
+   rather than a caught defect. Naming which three, and why each is where it is,
+   is the deliverable — not driving the number to zero.
 
 ## 8. Honest limitation of this review
 
