@@ -67,6 +67,8 @@ jobs:
         run: bash scripts/smoke/prime-map-tests.sh
       - name: Route marker smoke tests
         run: bash scripts/smoke/route-marker-tests.sh
+      - name: Marker-key gate smoke tests
+        run: bash scripts/smoke/marker-key-tests.sh
       - name: Prompt-router smoke tests
         run: bash scripts/smoke/prompt-route-tests.sh
       - name: Router install-layout smoke tests (flat + versioned)

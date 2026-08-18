@@ -57,6 +57,22 @@ that looks great as a swatch can fail hard as a button.
   aceternity-best-practices, astryx-best-practices, tailwind-best-practices,
   design-tokens, theming-system, motion-best-practices
 - **Agents**: ui-ux-reviewer, ui-ux-engineer
+- **Hooks**: `preview-guard` (PreToolUse on `Artifact` — pushes a visual decision
+  to a real preview URL instead of an artifact); `palette-default` (PostToolUse on
+  a written UI file — names the indigo/violet/purple category default when it
+  arrives through Tailwind class strings or a literal default swatch, once per
+  session). **Both advisory.** A violet brand is a legitimate answer; the only
+  thing separating "chose it" from "reached for the default" is intent, which no
+  script reads — so `palette-default` says so once and never blocks. Silence it
+  with `CC_PALETTE=off`, or `CC_REMIND=off` for every advisory in this
+  marketplace.
+
+  It exists because craft-layer's stricter equivalent (`utility-palette`, a gate
+  with a waiver lane) runs only inside `/craft-layer:craft` and
+  `/craft-layer:audit`. A plain "build me an app" turn runs neither: in a measured
+  run on 2026-08-17 a Laravel build shipped 23 indigo utilities across 5 views
+  with every gate green. This is the reach half of a rule craft-layer owns the
+  depth of.
 
 ## Pairs well with
 

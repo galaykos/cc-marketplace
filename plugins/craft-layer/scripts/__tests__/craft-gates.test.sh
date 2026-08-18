@@ -273,6 +273,132 @@ out=$(run_divergence "$d")
   bad "undeclared typeface should SKIP font-anti-corpus, not grade it" \
       "$(printf '%s\n' "$out" | grep -E 'font-anti-corpus' | head -1)"
 
+# utility-palette / utility-font: the Tailwind/JSX blind spot. The palette and
+# the type reach the page through `className` strings and a font import, so the
+# two token-reading assertions never see them. The defective fixture below is the
+# case that used to print "OK: the build clears the N divergence assertion(s)
+# that could be graded" — which is why this control also asserts that
+# accent-default-band still PASSes and font-anti-corpus still SKIPs on it. If a
+# later change makes those two catch this page, this block should be revisited,
+# not deleted: two assertions reporting the same finding twice is its own defect.
+d="$WS/util-defective"; mkdir -p "$d/src"
+write_tokens "$d"   # a cleanly derived green accent token no element references
+cat > "$d/src/page.tsx" <<'TSX'
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export default function Page() {
+  return (
+    <main className={inter.className}>
+      <section className="mx-auto max-w-5xl text-center py-24">
+        <h1 className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-600 bg-clip-text text-transparent">
+          Ship the thing
+        </h1>
+        <a className="bg-[#6366f1] rounded-lg px-6 py-3 text-white" href="/signup">Start free</a>
+      </section>
+    </main>
+  )
+}
+TSX
+out=$(run_divergence "$d")
+for want in "utility-palette:FAIL" "utility-font:FAIL" "accent-default-band:PASS" "font-anti-corpus:SKIP"; do
+  chk=${want%%:*}; exp=${want##*:}; got=$(state_of "$out" "$chk")
+  if [ "$got" = "$exp" ]; then ok; else
+    bad "defective utility fixture: $chk expected $exp, got $got" \
+        "$(printf '%s\n' "$out" | grep -E "$chk" | head -1)"
+  fi
+done
+if printf '%s\n' "$out" | grep -q 'EXIT=1'; then ok; else
+  bad "defective utility fixture did not exit 1" "$(printf '%s\n' "$out" | tail -3)"
+fi
+
+# The clean twin: same page, same sections, same shape — a derived green applied
+# through arbitrary values and a family with an argument behind it. The chart
+# hexes are the false-positive control on the hue path: legitimate colour outside
+# the band must never register.
+d="$WS/util-clean"; mkdir -p "$d/src"
+write_tokens "$d"
+cat > "$d/src/page.tsx" <<'TSX'
+import { Fraunces } from 'next/font/google'
+
+const display = Fraunces({ subsets: ['latin'] })
+
+export default function Page() {
+  return (
+    <main className={display.className}>
+      <section className="mx-auto max-w-5xl py-24">
+        <h1 className="font-['Fraunces'] text-[#166534]">Ship the thing</h1>
+        <a className="bg-[#166534] rounded-lg px-6 py-3 text-white" href="/signup">Start free</a>
+        <svg><rect style={{ fill: '#22c55e' }} /><rect style={{ fill: '#0ea5e9' }} /></svg>
+      </section>
+    </main>
+  )
+}
+TSX
+out=$(run_divergence "$d")
+for want in "utility-palette:PASS" "utility-font:PASS"; do
+  chk=${want%%:*}; exp=${want##*:}; got=$(state_of "$out" "$chk")
+  if [ "$got" = "$exp" ]; then ok; else
+    bad "clean utility fixture: $chk expected $exp, got $got" \
+        "$(printf '%s\n' "$out" | grep -E "$chk" | head -1)"
+  fi
+done
+
+# The false-positive guard: a brand that genuinely IS violet, says so in a
+# waiver, and ships a chart series carrying legitimate hex. It must come out
+# WAIVED rather than FAIL, and the run must still exit 0 — a gate that cannot be
+# waived by a build with a reason is a gate that gets switched off.
+d="$WS/util-falsepos"; mkdir -p "$d/src" "$d/.craft-layer"
+write_tokens "$d" 'oklch(0.55 0.22 295)'
+cat > "$d/src/page.tsx" <<'TSX'
+export default function Page() {
+  return (
+    <main className="font-['Fraunces']">
+      <section className="mx-auto max-w-5xl py-24">
+        <h1 className="text-violet-700">Aubergine Coffee Roasters</h1>
+        <a className="bg-violet-600 rounded-lg px-6 py-3 text-white" href="/shop">Buy beans</a>
+        <svg><rect style={{ fill: '#22c55e' }} /><rect style={{ fill: '#0ea5e9' }} /></svg>
+      </section>
+    </main>
+  )
+}
+TSX
+cat > "$d/.craft-layer/waivers.json" <<'JSON'
+[
+  { "check": "utility-palette", "value": "*", "reason": "the brand mark has been aubergine since 1998; the offer contract records it as a brand echo" },
+  { "check": "accent-default-band", "value": "*", "reason": "same brand echo — the accent token is derived FROM the mark, not reached for" }
+]
+JSON
+out=$(run_divergence "$d")
+got=$(state_of "$out" utility-palette)
+if [ "$got" = "WAIVED" ]; then ok; else
+  bad "violet-brand false-positive guard expected WAIVED, got $got" \
+      "$(printf '%s\n' "$out" | grep -E 'utility-palette' | head -1)"
+fi
+if printf '%s\n' "$out" | grep -q 'EXIT=0'; then ok; else
+  bad "waived violet-brand build did not exit 0" "$(printf '%s\n' "$out" | tail -3)"
+fi
+
+# The hex path, on its own, with no named utility to carry the verdict. It fires
+# only where sRGB and oklch agree about the band — Tailwind's indigo/violet/purple
+# hexes read 238.7-270.7 in their OWN space, below the 275 floor, so #d946ef is
+# what proves this path is wired. That gap is stated in divergence.mjs's residuals
+# rather than papered over here.
+d="$WS/util-hex"; mkdir -p "$d/src"
+write_tokens "$d"
+cat > "$d/src/page.tsx" <<'TSX'
+export default function Page() {
+  return <main><h1 className="bg-[#d946ef]" style={{ color: '#c026d3' }}>Ship the thing</h1></main>
+}
+TSX
+out=$(run_divergence "$d")
+got=$(state_of "$out" utility-palette)
+if [ "$got" = "FAIL" ]; then ok; else
+  bad "arbitrary-value + inline-style hex path expected FAIL, got $got" \
+      "$(printf '%s\n' "$out" | grep -E 'utility-palette' | head -1)"
+fi
+
 # ---------------------------------------------------------------------------
 # 2. COVERAGE HONESTY
 # ---------------------------------------------------------------------------

@@ -45,7 +45,14 @@
   command -v pr_resolve_plugins_dir >/dev/null 2>&1 && pr_resolve_plugins_dir
 
   state_dir="$cwd/.claude/skill-router"
-  state_file="$state_dir/fired-$session_id.json"
+  # Hashed, not raw: line 28 reads `.transcript_path` first and that is an absolute path,
+  # so `fired-$session_id.json` names a nested file whose parents are never created. The
+  # write fails, `fired` is empty on every call, and the "same skill is not re-nudged on
+  # later edits" property at :118 never holds — every edit re-injects directives the model
+  # already has. Same idiom as code-review/hooks/conventions.sh:59, lean/hooks/budget.sh:64.
+  ctx=$(printf '%s' "$session_id" | cksum 2>/dev/null | cut -d' ' -f1)
+  [ -n "$ctx" ] || exit 0
+  state_file="$state_dir/fired-$ctx.json"
   fired=""
   [ -r "$state_file" ] && fired=$(jq -r '.fired[]? // empty' "$state_file" 2>/dev/null)
 

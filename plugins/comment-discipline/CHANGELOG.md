@@ -2,6 +2,45 @@
 
 All notable changes to the comment-discipline plugin.
 
+## 0.6.4
+
+### Added
+- **Build files are now governed: `Dockerfile`, `Dockerfile.*`, `Containerfile`,
+  `Makefile`, `GNUmakefile`, `*.dockerfile`, `*.mk`.** A Dockerfile is an imperative
+  step list, not a document — `# copy src to app` above `COPY src /app` restates its
+  next line exactly the way `// increment the counter` does above `counter++`, and
+  `*.sh` has been governed for that reason since the start. Extensionless names are
+  matched by basename.
+
+### Unchanged, deliberately
+- **YAML stays out.** `docker-compose.yml`, CI workflows and k8s manifests use
+  comments for navigation (`# the web service` above a service block), which this
+  rule explicitly does not govern. The exclusion is now stated in the source rather
+  than implied by the absence of an extension.
+
+## 0.6.3
+
+### Fixed
+- **The PreToolUse deny was silently absent in every real session, and the density
+  warning had no bounds.** 0.6.2's context-key change read `.transcript_path //
+  .session_id` — correct — and then interpolated the value straight into a filename.
+  `transcript_path` is an absolute path, so `scan.sh` built
+  `…/blocked-/Users/…/x.jsonl-<key>` and `density.sh` built `…/density-/Users/…/x.jsonl`,
+  whose parent directories are never created. Every state write failed. Because
+  `scan.sh` correctly withholds the deny when its marker cannot land — a bound that
+  cannot be recorded is not a bound — the effect was that the plugin's only blocking
+  tooth stopped firing entirely, with nothing in the transcript saying so. In
+  `density.sh` the failure went the other way: `warned` was always 0, so the 3-warning
+  cap, the per-file dedup, and the filter that keeps a run's own output out of its own
+  baseline all disengaged, and a track run could raise the sibling median to match the
+  dense code it had just written. Both keys are now hashed with the same `cksum` idiom
+  `code-review/hooks/conventions.sh` and `lean/hooks/budget.sh` already used.
+- **The smoke harnesses could not see it.** `comment-discipline-hook-tests.sh` and
+  `comment-density-tests.sh` sent `session_id` and no `transcript_path`, so 40+ cases
+  only ever exercised the fallback branch and stayed green throughout. Both now assert
+  the real payload shape: the deny fires, the second edit of one file is bounded, the
+  cap engages, and the state file actually lands on disk.
+
 ## 0.6.2
 
 ### Changed

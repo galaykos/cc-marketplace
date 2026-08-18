@@ -59,14 +59,28 @@
   esac
 
   # Code only. Config and prose formats use comments for navigation, which this rule
-  # does not govern.
+  # does not govern — so YAML stays OUT deliberately, including docker-compose.yml,
+  # CI workflows and k8s manifests, where a `# the web service` header is a real
+  # navigation aid rather than a restatement.
+  #
+  # BUILD FILES ARE CODE, and that is why they are in. A Dockerfile and a Makefile are
+  # imperative step lists, not documents: `# install dependencies` above
+  # `RUN apt-get install -y …` restates its next line exactly the way `// increment the
+  # counter` does above `counter++`, and *.sh has always been governed for that reason.
+  # Extensionless names are matched by basename, so the worktree-stripped path is not
+  # enough on its own — see the `base` case below.
   case "$fp" in
     *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte) ;;
     *.php|*.py|*.rb|*.go|*.rs|*.java|*.kt|*.kts|*.swift|*.scala|*.dart) ;;
     *.c|*.h|*.cpp|*.hpp|*.cc|*.cs|*.m|*.mm) ;;
     *.sh|*.bash|*.zsh|*.pl|*.lua|*.ex|*.exs|*.jl|*.r|*.groovy) ;;
     *.sql|*.css|*.scss|*.less|*.graphql|*.tf) ;;
-    *) exit 0 ;;
+    *.dockerfile|*.mk) ;;
+    *)
+      case "$(basename "$fp")" in
+        Dockerfile|Dockerfile.*|Containerfile|Containerfile.*|Makefile|GNUmakefile) ;;
+        *) exit 0 ;;
+      esac ;;
   esac
 
   added=$(printf '%s' "$input" | jq -r '
@@ -336,7 +350,16 @@
   [ -n "$cwd" ] || exit 0                     # no cwd → nowhere to record the bound
   key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
   [ -n "$key" ] || exit 0
-  marker="$cwd/.claude/comment-discipline/blocked-$sid-$key"
+  # THE KEY IS A PATH, SO IT MUST BE HASHED BEFORE IT CAN BE A FILENAME. `.transcript_path`
+  # is an absolute path; interpolating it raw builds `…/blocked-/Users/…/x.jsonl-<key>`,
+  # whose parents `mkdir -p "$cwd/.claude/comment-discipline"` never creates. Every write
+  # then fails, the withhold below fires, and the deny is silently absent on every edit of
+  # every file — the tooth reads as present in this file and is gone in every real session.
+  # Hashed with the same cksum idiom as code-review/hooks/conventions.sh:59 and
+  # lean/hooks/budget.sh:64, which were the two that got this right.
+  ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
+  [ -n "$ctx" ] || exit 0
+  marker="$cwd/.claude/comment-discipline/blocked-$ctx-$key"
   [ -e "$marker" ] && exit 0
   mkdir -p "$cwd/.claude/comment-discipline" 2>/dev/null || exit 0
   : > "$marker" 2>/dev/null || exit 0

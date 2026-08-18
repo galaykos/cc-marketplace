@@ -1,6 +1,6 @@
 ---
 name: authoring-hooks
-description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, Pre/PostToolUse, Stop), matchers, ${CLAUDE_PLUGIN_ROOT}, when NOT to hook.
+description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, Pre/PostToolUse, Stop), matchers, ${CLAUDE_PLUGIN_ROOT}, one-shot state and marker files, testing a hook against the real payload, when NOT to hook.
 ---
 
 ## Anatomy
@@ -106,6 +106,25 @@ event and your script. Design for that:
   clock-dependent branches, nothing that makes firings unreproducible.
 - Fail open. Wrap the body, swallow stderr, exit 0 on any error. A
   buggy hook must degrade to a no-op, never block the user.
+
+## One-shot state
+
+A hook firing once per file or context remembers with a marker file.
+Four rules; ignoring the first three shipped three broken hooks here at
+once, and ignoring the fourth is why no test noticed.
+
+- **Key on the context, not the session** — a subagent shares its
+  parent's `session_id` but has its own transcript, and PostToolUse is
+  the only channel reaching subagents: `.transcript_path // .session_id`.
+- **Hash it before it becomes a filename** — that value is an absolute
+  path, so raw interpolation names a file whose parents never existed
+  and every write fails silently. Pipe through `cksum`.
+- **Decide what a failed write means** — withholding is usually right,
+  and it means a broken marker turns the gate off with nothing saying so.
+- **Test the payload the host really sends** — a harness supplying only
+  `session_id` never runs the production branch.
+
+Worked case: `references/one-shot-state.md`.
 
 ## When NOT to hook
 

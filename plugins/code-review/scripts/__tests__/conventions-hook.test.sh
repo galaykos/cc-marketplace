@@ -79,5 +79,25 @@ if printf 'not json' | bash "$H" >/dev/null 2>&1; then
   echo "PASS: garbage input exits 0 (fail-open)"
 else echo "FAIL: garbage input did not exit 0"; rc=1; fi
 
+# ---- the payload the host actually sends -------------------------------------------
+# Every case above sends session_id and no transcript_path, so they graded the FALLBACK
+# branch of `.transcript_path // .session_id`. conventions.sh hashes that value through
+# cksum before it becomes a filename, which is what makes it safe — but that is exactly
+# the property nothing here exercised. Three sibling hooks shipped broken behind a green
+# suite for want of these two cases. Gated by pc_harness_payload.
+TP='/Users/x/.claude/projects/-Users-x-proj/abcdef01-2345-6789.jsonl'
+tpfire() { # file cwd -> additionalContext
+  jq -nc --arg f "$1" --arg c "$2" --arg t "$TP" \
+    '{tool_name:"Edit",session_id:"11111111-2222-3333-4444-555555555555",transcript_path:$t,cwd:$c,tool_input:{file_path:$f}}' \
+    | bash "$H" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+}
+first=$(tpfire "$FX/repo/src/tp1.ts" "$FX/repo")
+if [ -n "$first" ]; then echo "PASS: transcript_path present — the hook still speaks"
+else echo "FAIL: transcript_path present — the hook went silent"; rc=1; fi
+
+second=$(tpfire "$FX/repo/src/tp2.ts" "$FX/repo")
+if [ -z "$second" ]; then echo "PASS: transcript_path present — the one-shot still bounds the context"
+else echo "FAIL: transcript_path present — fired twice in one context: $second"; rc=1; fi
+
 [ "$rc" -eq 0 ] && echo "All conventions-hook fixtures passed."
 exit "$rc"

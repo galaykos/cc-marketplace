@@ -7,6 +7,14 @@
           { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh" }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/palette-default.sh" }
+        ]
+      }
     ]
   }
 }

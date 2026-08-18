@@ -81,8 +81,14 @@ build_versioned() { # $1 marketplace dir → echoes CLAUDE_PLUGIN_ROOT (newest v
 }
 
 route() { # $1 plugin_root, $2 cwd, $3 file
-  printf '{"hook_event_name":"PostToolUse","tool_name":"Write","session_id":"s%s","cwd":"%s","tool_input":{"file_path":"%s","content":"x"}}' \
-    "$RANDOM$RANDOM" "$2" "$3" | CLAUDE_PLUGIN_ROOT="$1" bash "$1/hooks/route.sh"
+  # transcript_path is the field route.sh reads FIRST, so a payload without one
+  # exercises only the fallback branch — the omission that hid a dead dedup ledger
+  # through a whole release. It varies per call for the same reason session_id
+  # does: this harness is about layout resolution, and a constant context key
+  # would let the one-shot suppress later cases. Required by pc_harness_payload.
+  local _k="$RANDOM$RANDOM"
+  printf '{"hook_event_name":"PostToolUse","tool_name":"Write","session_id":"s%s","transcript_path":"/Users/x/.claude/projects/-vl/%s.jsonl","cwd":"%s","tool_input":{"file_path":"%s","content":"x"}}' \
+    "$_k" "$_k" "$2" "$3" | CLAUDE_PLUGIN_ROOT="$1" bash "$1/hooks/route.sh"
   rm -rf "$2/.claude"
 }
 
@@ -149,7 +155,7 @@ expect "missing plugins-dir.sh fires anyway (fail-open, both rows)" "$out" 'vl-a
 # ---- unset CLAUDE_PLUGIN_ROOT -----------------------------------------------
 # No root at all is the original fire-if-uncertain path and must be unchanged.
 ucwd="$TMP/unset"; mkdir -p "$ucwd"
-out=$(printf '{"hook_event_name":"PostToolUse","tool_name":"Write","session_id":"u1","cwd":"%s","tool_input":{"file_path":"%s","content":"x"}}' \
+out=$(printf '{"hook_event_name":"PostToolUse","tool_name":"Write","session_id":"u1","transcript_path":"/Users/x/.claude/projects/-vl/u1.jsonl","cwd":"%s","tool_input":{"file_path":"%s","content":"x"}}' \
   "$ucwd" "$ucwd/app.tsx" | env -u CLAUDE_PLUGIN_ROOT bash "$TMP/flat/skill-router/hooks/route.sh" 2>/dev/null || true)
 expect "unset CLAUDE_PLUGIN_ROOT stays silent (no rules.tsv to read)" "$out" '' 'vl-present-canary'
 

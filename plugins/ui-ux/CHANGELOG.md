@@ -1,0 +1,44 @@
+# Changelog — ui-ux
+
+Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
+added this plugin's first PostToolUse hook; earlier versions have no entries
+rather than invented ones.
+
+## 0.18.0
+
+### Added
+- **`hooks/palette-default.sh`** — a `PostToolUse` advisory that names the
+  indigo/violet/purple category default when it reaches a UI file through Tailwind
+  class strings (`bg-indigo-600`, `from-violet-500`) or a literal default swatch
+  (`#6366f1`). One nudge per session, never per file.
+
+  **Standing: advisory. It cannot block and will not.** A violet brand is a
+  legitimate answer, and the only thing separating "chose it" from "reached for the
+  default" is intent, which no script reads. craft-layer's stricter equivalent
+  (`utility-palette`) can demand a written waiver because a craft run has a
+  contract to record one in; a bare edit has nowhere to record consent, so blocking
+  here would punish the legitimate case with no way to say so.
+
+  **Why it exists:** craft-layer's gate runs only inside `/craft-layer:craft` step 7
+  and `/craft-layer:audit` step 4. A plain "build me an app" turn runs neither. In a
+  measured control/treatment run on 2026-08-17, a Laravel build shipped **23 indigo
+  utilities across 5 Blade views** with every gate in this marketplace green,
+  because none of them was on that path. ui-ux ships in 10 bundles to craft-layer's
+  4, so this is the reach half of a rule craft-layer owns the depth of.
+
+  Silence with `CC_PALETTE=off`, or `CC_REMIND=off` for every advisory nudge here.
+
+  Known gaps, stated in the hook header: it counts a hue, never a composition
+  (three equal cards, a ribbon on the middle one, a centred hero are the rest of
+  the fingerprint and go undetected); it reads literal class strings only, so a
+  palette behind `cn(...)` or a component prop is invisible; the hex list is the
+  default swatches **by value**, because reading hue from hex is wrong at this band
+  — sRGB puts `#6366f1` at 238.7°, far below the 275–315° those same swatches
+  occupy in oklch; and its token cost is unmetered, because `context-budget.sh`
+  probes the dynamic channel with a synthetic `Edit` that is not a UI file.
+
+- **`scripts/__tests__/palette-default.test.sh`** — 10 cases. The first is the
+  observed Blade regression verbatim: if it stops firing, the hook has lost the
+  only failure it is known to catch. Four are silence cases, including hues just
+  outside the band (`blue-500`, `fuchsia-500`) — without those the family list
+  would be taste rather than a derivation from craft-layer's 275–315° band.

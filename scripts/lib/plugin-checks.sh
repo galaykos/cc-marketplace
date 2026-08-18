@@ -926,6 +926,189 @@ EOF
   return $bad
 }
 
+# pc_marker_key [plugins-root] — the other half of pc_context_key.
+#
+# pc_context_key gates that a one-shot READS the context key. It cannot gate that the
+# value is USABLE, because it is a string-presence check: every hook that mentions
+# `transcript_path` passes it identically, whether the value is hashed or pasted into a
+# filename. That gap shipped three live defects at once in commit 6c8c306 —
+# comment-discipline/hooks/scan.sh, comment-discipline/hooks/density.sh and
+# skill-router/hooks/route.sh each built `<dir>/<prefix>-$sid` from a key that is normally
+# an ABSOLUTE PATH. The parents of `…/blocked-/Users/x/y.jsonl-<hash>` are never created,
+# so every state write failed silently. Effect: scan.sh's PreToolUse deny was withheld on
+# every edit (its own rule — a bound that cannot be recorded means no block at all), and
+# density.sh's warning cap, per-file dedup and self-output filter all disengaged. Four
+# local scripts and 18 smoke harnesses stayed green, because the harnesses send
+# `session_id` and no `transcript_path` and so only ever exercise the fallback branch.
+#
+# THIS IS THE RULE NOTHING ELSE CARRIES: a context key that reaches a filesystem path must
+# be hashed first. Passes a use that is piped straight into cksum/shasum/md5/sha1sum, that
+# strips slashes with `${var//\/…}`, or that is followed within three lines by
+# `mkdir -p "$(dirname …)"` (which genuinely does create the nested parents —
+# plugins/security/hooks/write-scan.sh relies on exactly that). Bless a deliberate
+# exception with `# marker-key-ok: <why>` on any line of the script.
+#
+# Scans EVERY event's hooks, not just PostToolUse: the defect is about filenames, and a
+# PreToolUse or Stop hook keying a marker has the identical failure.
+#
+# HONEST LIMITATION: this proves the NAME is safe, nothing more. A hashed key written to a
+# directory the host wipes between calls, or a read-only mount, still fails silently, and
+# only a harness feeding the real payload shape can see that — which is why the smoke
+# fixtures now send transcript_path. It is a grep over shell, so a path built through
+# printf into a variable, an array, or eval passes unseen.
+#
+# Prints `marker-key-unhashed <plugin>:<script>:<line>` per offender; returns 1 if any.
+pc_marker_key() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel v line no body seeds tainted round newly
+
+  # TAINT, not one syntactic form. The first version matched only
+  # `marker="$dir/x-$sid"` — one-step, double-quoted. An adversarial audit on
+  # 2026-08-18 shipped the identical defect past it three ways: unquoted
+  # (`marker=$dir/x-$sid`), two-step (`pre="x-$sid"; marker="$dir/$pre"`), and
+  # `printf -v`. A gate that only catches the exact syntax of the instance that
+  # created it is a gate against that commit, not against the defect. So: seed
+  # from the jq read, propagate through assignments, and treat a hash or a
+  # slash-strip as the thing that CLEARS taint.
+  _mk_tainted() { # $1 file -> tainted var names
+    local f=$1 seeds tainted round newly v
+    seeds=$(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^=]*jq[^;]*transcript_path' "$f" 2>/dev/null \
+             | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/' | sort -u)
+    tainted="$seeds"
+    for round in 1 2; do
+      newly=""
+      for v in $tainted; do
+        # A var assigned FROM a tainted var inherits the taint, unless that same
+        # line hashes it or strips the slashes — those are the cures, and a cured
+        # value is exactly what we want people to use.
+        newly="$newly $(grep -E "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=.*\\\$\{?$v\}?" "$f" 2>/dev/null \
+          | grep -vE 'cksum|shasum|md5|sha1sum' \
+          | grep -vE "\\\$\{$v//" \
+          | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/')"
+      done
+      tainted=$(printf '%s %s' "$tainted" "$newly" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' ')
+    done
+    printf '%s' "$tainted"
+  }
+
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      rel=$(basename "$sh")
+      grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
+
+      for v in $(_mk_tainted "$sh"); do
+        [ -n "$v" ] || continue
+        # Path-shaped assignment using the tainted var: quoted or bare, but the
+        # right-hand side must contain a slash — that is what makes it a path
+        # rather than a plain value.
+        while IFS=: read -r no body; do
+          [ -n "$no" ] || continue
+          printf '%s' "$body" | grep -qE '(cksum|shasum|md5|sha1sum)' && continue
+          printf '%s' "$body" | grep -qE "\\\$\{$v//" && continue
+          sed -n "$((no + 1)),$((no + 3))p" "$sh" 2>/dev/null \
+            | grep -qE 'mkdir[[:space:]]+-p[[:space:]]+"\$\(dirname' && continue
+          printf 'marker-key-unhashed %s:%s:%s\n' "$p" "$rel" "$no"
+          bad=1
+        done <<EOF
+$(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?[^\"']*/[^\"']*\\\$\{?$v\}?|^[[:space:]]*printf[[:space:]]+-v[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[^|]*/[^|]*\\\$\{?$v\}?" "$sh" 2>/dev/null)
+EOF
+      done
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  unset -f _mk_tainted
+  return $bad
+}
+
+# pc_harness_payload — the CONDITION behind pc_marker_key, not another instance of it.
+#
+# pc_marker_key fails a hook that misuses the context key. It cannot fail the reason
+# nobody noticed for a whole release: every harness testing those hooks sent `session_id`
+# and no `transcript_path`, so 40+ cases graded the FALLBACK branch while the branch the
+# host actually takes was never executed once. Three hooks shipped broken with a green
+# suite. A gate on the hooks alone leaves that intact — the next harness can still test a
+# payload shape no host produces, and the next defect hides exactly as this one did.
+#
+# THE RULE: if a harness builds a hook payload, and any hook it exercises reads
+# `transcript_path`, the harness must send `transcript_path` somewhere.
+#
+# Deliberately narrow. A harness whose hook never reads the context key does not need the
+# field, and demanding it there would be ceremony on 7 harnesses to catch 2 — which is the
+# proportionality law, and also the difference between a gate people keep and one they
+# route around. Measured when written: 15 harnesses build payloads, 6 already comply,
+# 7 exercise hooks with no context key at all, and exactly 2 were real offenders.
+#
+# Bless with `# harness-payload-ok: <why>` (e.g. a harness deliberately pinning the
+# no-transcript_path fallback path itself).
+#
+# HONEST LIMITATION: it checks that the STRING appears, not that a case meaningfully
+# exercises it — a harness could send `transcript_path` in one unused fixture and pass.
+# It resolves the harness→hook link by grepping for hook paths in the harness text, so a
+# harness that reaches its hook through a variable this regex cannot follow is invisible.
+# And it says nothing about the payload's other fields.
+#
+# Prints `harness-payload-fallback-only <harness>:<hook>` per offender; returns 1 if any.
+pc_harness_payload() {
+  local root="${1:-.}" bad=0 f plug h hooks b
+
+  _hp_hooks() { # $1 harness -> hook paths it exercises
+    local f=$1 plug="" out="" b
+    case "$f" in */plugins/*|plugins/*) plug=$(printf '%s' "${f#$root/}" | sed -n 's|^plugins/\([a-z0-9-]*\)/.*|\1|p') ;;
+    esac
+    out=$(grep -ohE 'plugins/[a-z0-9-]+/hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | sed "s|^|$root/|" | sort -u)
+    # Match `hooks/x.sh` ANYWHERE, including after a slash. The first version
+    # excluded a preceding `/`, so a harness reaching its hook through a variable
+    # — `bash "$1/hooks/route.sh"`, which is how versioned-layout-tests.sh does it
+    # — was invisible, and that harness was a real unblessed offender the check
+    # reported as out of scope.
+    for b in $(grep -ohE 'hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | sort -u); do
+      if [ -n "$plug" ] && [ -f "$root/plugins/$plug/$b" ]; then out="$out
+$root/plugins/$plug/$b"
+      else
+        # Resolve a bare `hooks/x.sh` across plugins ONLY when exactly one plugin owns
+        # that filename. `remind.sh` lives in five plugins, so a harness naming it would
+        # otherwise be charged with exercising all five — an ambiguity that manufactures
+        # false positives rather than finding defects. Unique names (route.sh) still
+        # resolve, which is what catches the variable-path case.
+        _cand=$(ls "$root"/plugins/*/"$b" 2>/dev/null)
+        [ "$(printf '%s\n' "$_cand" | grep -c .)" -eq 1 ] && out="$out
+$_cand"
+      fi
+    done
+    printf '%s\n' "$out" | sort -u | grep -v '^$'
+  }
+
+  while IFS= read -r f; do
+    [ -n "$f" ] && [ -f "$f" ] || continue
+    case "$f" in *canary.sh) continue ;; esac
+    grep -q 'harness-payload-ok:' "$f" 2>/dev/null && continue
+    grep -qE 'hook_event_name|"session_id"|session_id"?[:=]' "$f" 2>/dev/null || continue
+    # A COMMENT mentioning transcript_path does not exercise anything. Strip
+    # comment-only lines before deciding the harness complies.
+    grep -vE '^[[:space:]]*#' "$f" 2>/dev/null | grep -q 'transcript_path' && continue
+    while IFS= read -r h; do
+      [ -n "$h" ] && [ -f "$h" ] || continue
+      grep -q 'transcript_path' "$h" 2>/dev/null || continue
+      printf 'harness-payload-fallback-only %s:%s\n' "${f#$root/}" "$(basename "$h")"
+      bad=1
+    done <<EOF
+$(_hp_hooks "$f")
+EOF
+  done <<EOF
+$(ls "$root"/scripts/smoke/*.sh "$root"/plugins/*/scripts/__tests__/*.test.sh 2>/dev/null)
+EOF
+  unset -f _hp_hooks
+  return $bad
+}
+
 # pc_prime_coverage [plugins-root] — the session-open index, backlog item 1.
 # skill-router/hooks/prime.sh emits the SessionStart "repo-relevant skills" line from a
 # hand-written table. coding-entry/references/skill-map.md is the DOCUMENTED

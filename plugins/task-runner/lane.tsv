@@ -5,3 +5,4 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 task-runner:task-executor	agent	build	decided-fix-list-application	a fix list or card list exists whose changes are already decided, plus a scope lock	-
 task-runner:completion-gate	hook	any	registered-run-gate-pass	Stop while .claude/task-runner/active-run.json exists and gate-pass.json records no PASS for the current HEAD	-
+task-runner:drift	hook	any	ad-hoc-breadth-question	PostToolUse with no scope.json, >=12 distinct files edited since the last typed request, no breadth marker in it, and half of them unnamed	-

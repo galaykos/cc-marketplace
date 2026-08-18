@@ -2,6 +2,39 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.0
+
+### Added
+- **`hooks/drift.sh`** — the ad-hoc complement to `scope.sh`. **Standing: advisory.**
+
+  `scope.sh` compares each edit against a card's declared file list, and its first
+  line is `[ -r "$scope" ] || exit 0` — so on a one-line request typed straight into
+  a session, which is most turns, nothing watched whether the work stayed near what
+  was asked. This is the marketplace's only **stack-agnostic** discipline surface:
+  it counts files against a request, so a Dockerfile turn, a SQL turn and a React
+  turn are read identically.
+
+  It asks one question, once per request, when all four hold: no declared scope, at
+  least **12** distinct files edited since the last typed message, no breadth marker
+  in that message (`everywhere`, `rename`, `migrate`, `all the files`, …), and at
+  least half those files unnamed in it.
+
+  **The threshold is measured, not chosen.** 400 local transcripts, 169 turns that
+  edited a file: p50=2, p75=5, **p90=12**, p95=21, p99=40, max=157. An earlier draft
+  of this idea proposed 4 — which would have fired on roughly a third of all turns,
+  and is why it was refused the first time rather than shipped with a guess.
+  Re-derive from your own transcripts before changing it.
+
+  **Known limits, stated in the hook:** it counts **breadth only, never depth** — an
+  unasked refactor inside the one file you named is invisible, and that is probably
+  the commoner way to stray. A legitimately wide request phrased in words the marker
+  list does not know is a false positive. It reads only the last typed message, so a
+  request built over three turns is scored against its final sentence. And whether a
+  given extra file was necessary needs a reader, which is why the message ends in a
+  question rather than a verdict.
+
+  Silence with `CC_DRIFT=off`, or `CC_REMIND=off` for every advisory here.
+
 ## 0.28.2
 
 ### Fixed

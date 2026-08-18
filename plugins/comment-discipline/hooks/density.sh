@@ -104,7 +104,15 @@
   MAX_WARN=3
 
   dir="$cwd/.claude/comment-discipline"
-  state="$dir/density-$sid"
+  # Hashed, not raw: `.transcript_path` is an absolute path, so `density-$sid` names a
+  # nested file whose parents are never created. Every state write then fails silently,
+  # `warned` stays 0, MAX_WARN never engages, the per-file dedup never engages, and the
+  # self-output filter below never engages — so a track run raises the sibling median to
+  # match its own dense output and certifies the drift it just wrote. Same idiom as
+  # code-review/hooks/conventions.sh:59 and lean/hooks/budget.sh:64.
+  ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
+  [ -n "$ctx" ] || exit 0
+  state="$dir/density-$ctx"
   # Same rule as scan.sh's deny lane and verbosity.sh: a bound that cannot be recorded
   # is not a bound. Unwritable state means this hook does nothing at all, rather than
   # warning on every single edit for the rest of the session.
