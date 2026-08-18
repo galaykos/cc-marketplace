@@ -953,7 +953,9 @@ function copyRegister(files) {
  *    270.7° (#a855f7) in sRGB, all BELOW the 275° floor, while the same swatches
  *    are 277.1/292.7/303.9 in oklch. So the hex path fires only where the two
  *    readings agree (fuchsia/magenta-side values such as #d946ef at 292.2°); the
- *    named-utility path below is what catches an indigo hex literal's swatch.
+ *    named-utility path catches the NAMES; the DEFAULT_SWATCHES set below catches
+ *    those same colours written as hex. Any OTHER in-band hex is still only seen
+ *    where the two colour spaces agree, and that residual is real.
  *    Re-spacing the band or converting hex to oklch would change
  *    `accent-default-band`'s verdicts for every existing build, so it is stated
  *    here rather than done quietly.
@@ -979,6 +981,22 @@ const HEX_RE = /#([0-9a-fA-F]{6})\b/g
 
 const inBand = (h) => h !== null && h >= DEFAULT_BAND[0] && h <= DEFAULT_BAND[1]
 
+/* THE HUE TEST ALONE CANNOT SEE A DEFAULT SWATCH WRITTEN AS HEX, so it is paired with a
+   literal set. toHue reads a hex in sRGB, where Tailwind's indigo-500 (#6366f1) is 238.7
+   degrees — far BELOW this band's 275 floor — while the same swatch is 277.1 in oklch,
+   inside it. An adversarial audit on 2026-08-18 shipped `bg-[#6366f1]` straight through
+   this assertion while the PASS line asserted "no in-band arbitrary hex": a gate making a
+   false affirmative claim, and worse, missing what the ui-ux ADVISORY catches by list.
+   Re-spacing the band would flip accent-default-band's verdicts for every existing build,
+   so the fix is to name the swatches whose two readings disagree. Steps 400/500/600 of the
+   three in-band families. */
+const DEFAULT_SWATCHES = new Set([
+  '6366f1', '818cf8', '4f46e5',   // indigo 500 / 400 / 600
+  '8b5cf6', 'a78bfa', '7c3aed',   // violet
+  'a855f7', 'c084fc', '9333ea',   // purple
+])
+const isDefaultSwatch = (hex) => DEFAULT_SWATCHES.has(String(hex).toLowerCase())
+
 function utilityPalette(files) {
   if (!files.length) return record('utility-palette', 'SKIP', 'no shipped page source found to carry class strings')
   const hits = []
@@ -997,6 +1015,10 @@ function utilityPalette(files) {
          hex would fire on a chart series and on a third-party mark's own colour,
          which is the anti-pattern register-corpus.md names. */
       for (const h of cls.matchAll(CLASS_HEX_RE)) {
+        if (isDefaultSwatch(h[1])) {
+          hits.push({ how: 'default swatch as hex', marker: `#${h[1]}`, file: rel(file), line: at })
+          continue
+        }
         const hue = toHue(`#${h[1]}`)
         if (inBand(hue)) hits.push({ how: `arbitrary value, ${hue.toFixed(1)}° ${hueFamily(hue)}, not a token`, marker: h[0], file: rel(file), line: at })
       }
@@ -1027,7 +1049,7 @@ function utilityPalette(files) {
       + `still clears it. Derive the accent and then use it — or, when the brand genuinely is violet or a `
       + `third-party mark owns that hex, waive this with that reason. `
       + `Reproduce: grep -rn ${JSON.stringify(uniq[0]?.marker ?? '')} ${uniq[0]?.file ?? ''}`,
-    `no indigo/violet/purple utility and no in-band arbitrary hex across ${classStrings} class string(s) in `
+    `no indigo/violet/purple utility, no default swatch and no in-band arbitrary hex across ${classStrings} class string(s) in `
       + `${files.length} page file(s); families derived from the ${DEFAULT_BAND[0]}-${DEFAULT_BAND[1]}° band, not listed by taste`)
 }
 

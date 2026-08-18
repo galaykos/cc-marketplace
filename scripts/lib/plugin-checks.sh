@@ -959,7 +959,37 @@ EOF
 #
 # Prints `marker-key-unhashed <plugin>:<script>:<line>` per offender; returns 1 if any.
 pc_marker_key() {
-  local root="${1:-plugins}" bad=0 hj d p sh rel v line no body
+  local root="${1:-plugins}" bad=0 hj d p sh rel v line no body seeds tainted round newly
+
+  # TAINT, not one syntactic form. The first version matched only
+  # `marker="$dir/x-$sid"` — one-step, double-quoted. An adversarial audit on
+  # 2026-08-18 shipped the identical defect past it three ways: unquoted
+  # (`marker=$dir/x-$sid`), two-step (`pre="x-$sid"; marker="$dir/$pre"`), and
+  # `printf -v`. A gate that only catches the exact syntax of the instance that
+  # created it is a gate against that commit, not against the defect. So: seed
+  # from the jq read, propagate through assignments, and treat a hash or a
+  # slash-strip as the thing that CLEARS taint.
+  _mk_tainted() { # $1 file -> tainted var names
+    local f=$1 seeds tainted round newly v
+    seeds=$(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^=]*jq[^;]*transcript_path' "$f" 2>/dev/null \
+             | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/' | sort -u)
+    tainted="$seeds"
+    for round in 1 2; do
+      newly=""
+      for v in $tainted; do
+        # A var assigned FROM a tainted var inherits the taint, unless that same
+        # line hashes it or strips the slashes — those are the cures, and a cured
+        # value is exactly what we want people to use.
+        newly="$newly $(grep -E "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=.*\\\$\{?$v\}?" "$f" 2>/dev/null \
+          | grep -vE 'cksum|shasum|md5|sha1sum' \
+          | grep -vE "\\\$\{$v//" \
+          | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/')"
+      done
+      tainted=$(printf '%s %s' "$tainted" "$newly" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' ')
+    done
+    printf '%s' "$tainted"
+  }
+
   command -v jq >/dev/null 2>&1 || return 0
   while IFS= read -r hj; do
     [ -n "$hj" ] || continue
@@ -971,34 +1001,30 @@ pc_marker_key() {
       rel=$(basename "$sh")
       grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
 
-      # Variables assigned from a jq read that mentions transcript_path.
-      while IFS= read -r v; do
+      for v in $(_mk_tainted "$sh"); do
         [ -n "$v" ] || continue
-        # Lines assigning a path-shaped string (contains a slash) that interpolates it.
+        # Path-shaped assignment using the tainted var: quoted or bare, but the
+        # right-hand side must contain a slash — that is what makes it a path
+        # rather than a plain value.
         while IFS=: read -r no body; do
           [ -n "$no" ] || continue
-          # Piped to a hash on this line, or slashes expanded away → safe.
-          printf '%s' "$body" | grep -qE "\\\$\{?$v\}?\"?[[:space:]]*\|[[:space:]]*(cksum|shasum|md5|sha1sum)" && continue
-          printf '%s' "$body" | grep -qE "(cksum|shasum|md5|sha1sum)" && continue
+          printf '%s' "$body" | grep -qE '(cksum|shasum|md5|sha1sum)' && continue
           printf '%s' "$body" | grep -qE "\\\$\{$v//" && continue
-          # `mkdir -p "$(dirname …)"` within three lines creates the nested parents.
           sed -n "$((no + 1)),$((no + 3))p" "$sh" 2>/dev/null \
             | grep -qE 'mkdir[[:space:]]+-p[[:space:]]+"\$\(dirname' && continue
           printf 'marker-key-unhashed %s:%s:%s\n' "$p" "$rel" "$no"
           bad=1
         done <<EOF
-$(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=\"[^\"]*/[^\"]*\\\$\{?$v\}?" "$sh" 2>/dev/null)
+$(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?[^\"']*/[^\"']*\\\$\{?$v\}?|^[[:space:]]*printf[[:space:]]+-v[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[^|]*/[^|]*\\\$\{?$v\}?" "$sh" 2>/dev/null)
 EOF
-      done <<EOF
-$(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^=]*jq[^;]*transcript_path' "$sh" 2>/dev/null \
-   | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/' | sort -u)
-EOF
+      done
     done <<EOF
 $(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
 EOF
+  unset -f _mk_tainted
   return $bad
 }
 
@@ -1038,11 +1064,24 @@ pc_harness_payload() {
     case "$f" in */plugins/*|plugins/*) plug=$(printf '%s' "${f#$root/}" | sed -n 's|^plugins/\([a-z0-9-]*\)/.*|\1|p') ;;
     esac
     out=$(grep -ohE 'plugins/[a-z0-9-]+/hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | sed "s|^|$root/|" | sort -u)
-    for b in $(grep -ohE '(^|[^a-z/])hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | grep -oE 'hooks/[a-z0-9_-]+\.sh' | sort -u); do
+    # Match `hooks/x.sh` ANYWHERE, including after a slash. The first version
+    # excluded a preceding `/`, so a harness reaching its hook through a variable
+    # — `bash "$1/hooks/route.sh"`, which is how versioned-layout-tests.sh does it
+    # — was invisible, and that harness was a real unblessed offender the check
+    # reported as out of scope.
+    for b in $(grep -ohE 'hooks/[a-z0-9_-]+\.sh' "$f" 2>/dev/null | sort -u); do
       if [ -n "$plug" ] && [ -f "$root/plugins/$plug/$b" ]; then out="$out
 $root/plugins/$plug/$b"
-      else out="$out
-$(ls "$root"/plugins/*/"$b" 2>/dev/null)"; fi
+      else
+        # Resolve a bare `hooks/x.sh` across plugins ONLY when exactly one plugin owns
+        # that filename. `remind.sh` lives in five plugins, so a harness naming it would
+        # otherwise be charged with exercising all five — an ambiguity that manufactures
+        # false positives rather than finding defects. Unique names (route.sh) still
+        # resolve, which is what catches the variable-path case.
+        _cand=$(ls "$root"/plugins/*/"$b" 2>/dev/null)
+        [ "$(printf '%s\n' "$_cand" | grep -c .)" -eq 1 ] && out="$out
+$_cand"
+      fi
     done
     printf '%s\n' "$out" | sort -u | grep -v '^$'
   }
@@ -1052,7 +1091,9 @@ $(ls "$root"/plugins/*/"$b" 2>/dev/null)"; fi
     case "$f" in *canary.sh) continue ;; esac
     grep -q 'harness-payload-ok:' "$f" 2>/dev/null && continue
     grep -qE 'hook_event_name|"session_id"|session_id"?[:=]' "$f" 2>/dev/null || continue
-    grep -q 'transcript_path' "$f" 2>/dev/null && continue
+    # A COMMENT mentioning transcript_path does not exercise anything. Strip
+    # comment-only lines before deciding the harness complies.
+    grep -vE '^[[:space:]]*#' "$f" 2>/dev/null | grep -q 'transcript_path' && continue
     while IFS= read -r h; do
       [ -n "$h" ] && [ -f "$h" ] || continue
       grep -q 'transcript_path' "$h" 2>/dev/null || continue

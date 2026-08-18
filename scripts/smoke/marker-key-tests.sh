@@ -57,6 +57,21 @@ plug stripped 'sid=$(printf "%s" "$input" | jq -r ".transcript_path // .session_
 flat="${sid//\//_}"
 state="$cwd/.claude/z/s-$flat"'
 
+# THE SAME DEFECT IN OTHER SHELL DIALECTS. The first version matched only the one-step
+# double-quoted form, and an adversarial audit on 2026-08-18 walked the identical bug past
+# it three ways. A gate that catches only the syntax of the commit that created it is a
+# gate against that commit, not against the defect.
+plug unquoted 'sid=$(printf "%s" "$input" | jq -r ".transcript_path // .session_id")
+marker=$cwd/.claude/x/blocked-$sid
+: > "$marker"'
+plug twostep 'sid=$(printf "%s" "$input" | jq -r ".transcript_path // .session_id")
+pre="blocked-$sid"
+marker="$cwd/.claude/x/$pre-k"
+: > "$marker"'
+plug printfv 'sid=$(printf "%s" "$input" | jq -r ".transcript_path // .session_id")
+printf -v marker "%s" "$cwd/.claude/x/blocked-$sid"
+: > "$marker"'
+
 out="$(pc_marker_key "$TMP")"; gate_rc=$?
 
 case "$out" in *offender:h.sh*) pass "flags a raw context key interpolated into a marker path" ;;
@@ -74,8 +89,13 @@ case "$out" in *"blessed:h.sh"*) fail "# marker-key-ok: exempts the script" "fla
 case "$out" in *"stripped:h.sh"*) fail "no false positive on \${var//\\/} slash-stripping" "flagged: $out" ;;
   *) pass "no false positive on \${var//\\/} slash-stripping" ;; esac
 
+for variant in unquoted twostep printfv; do
+  case "$out" in *"$variant:h.sh"*) pass "catches the defect written as: $variant" ;;
+    *) fail "catches the defect written as: $variant" "missed it — got: ${out:-<none>}" ;; esac
+done
+
 # A tree with no offenders must return 0 and print nothing, or the gate cannot be wired.
-rm -rf "$TMP/offender"
+rm -rf "$TMP/offender" "$TMP/unquoted" "$TMP/twostep" "$TMP/printfv"
 clean_out="$(pc_marker_key "$TMP")"; clean_rc=$?
 if [ -z "$clean_out" ] && [ "$clean_rc" -eq 0 ]; then pass "silent and exit 0 on a clean tree"
 else fail "silent and exit 0 on a clean tree" "exit $clean_rc, out: $clean_out"; fi

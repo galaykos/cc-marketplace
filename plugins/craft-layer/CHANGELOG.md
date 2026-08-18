@@ -7,6 +7,21 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.1
+
+### Fixed
+- **`utility-palette` passed the exact default swatch written as an arbitrary hex
+  class.** `bg-[#6366f1]` scored 238.7° in sRGB against a band calibrated in oklch
+  (275–315°, where that same swatch is 277.1°), so the assertion returned PASS —
+  while its PASS message affirmatively claimed "no in-band arbitrary hex". A gate
+  making a false negative claim, and an inverted tier: it missed what the ui-ux
+  **advisory** catches by literal list. Found by an adversarial audit on 2026-08-18.
+  A `DEFAULT_SWATCHES` set now catches those nine values by name; the PASS message
+  no longer asserts more than it checked; and the in-file limitation that claimed
+  "the named-utility path catches an indigo hex literal's swatch" is corrected —
+  names are not hexes. Any *other* in-band hex is still seen only where the two
+  colour spaces agree, and that residual is now stated accurately.
+
 ## 0.47.0
 
 ### Added

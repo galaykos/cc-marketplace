@@ -6,6 +6,18 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.8.1
+
+### Fixed
+- **The assertion vocabulary missed whole dialects**, so correct tests were reported
+  as "no assertion: the block runs code and proves nothing" — chai should-style
+  (`user.name.should.equal(...)`) and ava/tape/node:test (`t.is`, `t.throws`). The
+  hook's own LIMITATION admitted only the narrower project-helper case, so the
+  residual as written was smaller than the real one. Found by an adversarial audit
+  on 2026-08-18. Both dialects added, two silence fixtures pin them, and the
+  limitation now says plainly that a dialect absent from the list reads as
+  assertion-free and the fix is to add it — not to widen to any function call.
+
 ## 0.8.0
 
 ### Added

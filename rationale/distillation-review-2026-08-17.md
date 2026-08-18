@@ -80,8 +80,8 @@ Not opinions — counts taken 2026-08-17 on this branch:
 | …that any harness exercises | **18** | **CORRECTED 2026-08-17.** This row first read "2 harnesses, so ~14 never watched fail" — arrived at by counting harness FILES rather than tracing which checks each file exercises. `rules-overlap-tests.sh` alone covers six. The real figure is **3 uncovered**: `pc_doc_location`, `pc_phase_guard`, `pc_version_stamp`. Recount with `scripts/gate-coverage.sh`; do not copy this number either. |
 | Smoke harnesses under `scripts/smoke/` | **20** | |
 | …that send `transcript_path` | **7 → 9** | **CLOSED 2026-08-17 by `pc_harness_payload`** (§7 item 2). Of 15 payload-building harnesses, 6 already complied, 7 exercise hooks with no context key so the field would be ceremony, and exactly **2 were real offenders** — `code-review/conventions-hook.test.sh` and `security/write-scan.test.sh`. Both fixed rather than blessed. |
-| Plugin hooks shipped | **38** | |
-| …stating a LIMITATION or Standing | **20** | |
+| Plugin hooks shipped | **39** (recount: `ls plugins/*/hooks/*.sh \| wc -l`) | |
+| …stating a LIMITATION or Standing | **21** | |
 | …checks enforcing that they do | **0** | the has-teeth convention is itself in the `recorded` tier |
 
 `pc_marker_key` closed the specific defect. Nothing closed the condition that
@@ -94,8 +94,12 @@ Control vs distilled, one run per cell, four fixtures. **Not a demonstrated
 improvement**, and the plan said in advance not to read a 1-run delta on
 agent-graded measures as a result.
 
-- Mechanism demonstrably fires: 7 comment-discipline denies and 3 `test-shape`
-  reports on `laravel-app`, 0 in every control run.
+- Mechanism demonstrably fires: **4 blocking denies** plus 3 warn-lane firings from
+  comment-discipline, and 3 `test-shape` reports, on `laravel-app` — 0 in every control
+  run. (An earlier draft said "7 denies": that was the count of `looks like noise`
+  messages across BOTH lanes, which inflated the blocking count by 75% in the one
+  paragraph arguing the blocking mechanism fires. Recount:
+  `grep -c 'permissionDecision\":\"deny' <debug.log>`.)
 - Where it fired hardest, the intended effect appeared: laravel comment lines
   77 → 36.
 - Measures otherwise moved both directions (tests −64% on react, +364% on
@@ -170,3 +174,38 @@ per cell was not decisive. Two of the four habits in section 3 may also simply b
 model behaviour rather than anything this marketplace can install; distinguishing
 those needs a run where the same model works with and without the artifact, which
 has not been done.
+
+---
+
+## 9. Adversarial audit, 2026-08-18 — what a clean reviewer found
+
+A fresh Fable agent at xhigh effort, with none of this session's context, was asked
+to **refute** this work. It ran the neuter-and-confirm-red test itself on four
+checks and re-derived the simulation numbers. Its verdicts: **distilled — partial**;
+**improvement — yes on the enforcement layer, unproven on generated output**. Both
+match §1 and §6, which it called "accurate and mildly generous to itself."
+
+It found seven defects. All were real. The three that mattered:
+
+| Defect | Why it mattered | Fixed |
+| --- | --- | --- |
+| `pc_marker_key` caught only the one-step double-quoted form | It shipped the identical bug past the gate three ways — unquoted, two-step, `printf -v`. A gate against the *syntax of the commit that created it* is not a gate against the defect. | Rewritten as **taint tracking**: seed from the jq read, propagate through assignments, treat a hash or slash-strip as what CLEARS taint. All four forms now caught; 3 fixtures added. |
+| `scripts/smoke/versioned-layout-tests.sh` was a live unblessed offender | It pipes `session_id`-only payloads into `route.sh` via `bash "$1/hooks/route.sh"`. `pc_harness_payload` could not follow a hook path through a variable — so **the very condition it was built to close was still open in the repo**, and §5's "exactly 2 offenders, derivation not convenience" was falsified. | Resolution widened to follow variable paths (then constrained to *unambiguous* hook filenames, because the first widening cross-matched `remind.sh` across five plugins and produced a false positive). Harness fixed. |
+| `utility-palette` — a **gate** — passed `bg-[#6366f1]` while its PASS message asserted "no in-band arbitrary hex" | An inverted tier: the gate missed what the ui-ux **advisory** catches by literal list, and the in-file limitation claimed the named-utility path covered it, which is untrue — names are not hexes. | `DEFAULT_SWATCHES` set added; the false claim corrected; the PASS message no longer asserts more than it checked. |
+
+Four lower-severity findings, all fixed: `test-shape.sh` flagged chai `should`-style
+and ava/tape as assertion-free (whole correct dialects reported as proving nothing);
+`pc_harness_payload` was satisfied by `transcript_path` appearing in a *comment*;
+this review said "7 denies" where the log holds **4 denies + 3 warn-lane firings**,
+inflating the blocking count 75% in the one paragraph arguing blocking works.
+
+**And the finding that indicts this document.** §3 lists "recount recorded numbers,
+never copy them" as a habit that did not distill. The auditor showed it did not
+distill *here either*: CLAUDE.md's "20 plugins ship 28 harness files" was recounted
+and accurate in this branch's **first** commit, then invalidated by this branch's
+**own later commits** (now 21 / 30), and §5's hook counts had gone stale the same
+way. The fix is not a third recount — it is that CLAUDE.md now carries the recount
+*command* instead of the number, and this table cites `gate-coverage.sh`.
+
+That is the honest summary of the whole exercise: **every mechanism held up under
+adversarial execution; every prose number did not.**

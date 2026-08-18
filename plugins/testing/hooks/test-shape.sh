@@ -41,7 +41,12 @@
 #     something real.
 #   - An assertion inside a project helper whose name carries neither `assert` nor
 #     `expect` (`verifyOrder($o)`) reads as assertion-free. A false positive, accepted
-#     rather than widening the vocabulary into noise.
+#     rather than widening the vocabulary into noise. The vocabulary covers Pest/PHPUnit,
+#     Vitest/Jest, chai should-style and ava/tape/node:test — an adversarial audit on
+#     2026-08-18 found the last two missing, which meant flagging whole correct dialects
+#     while the limitation admitted only the helper case. A dialect absent from that list
+#     will read as assertion-free, and the honest fix is to add it, not to widen to any
+#     function call.
 #   - It does not judge whether a flagged near-duplicate group is bloat or a boundary
 #     sweep, and does not detect a test that merely restates the spec.
 #   - ITS COST IS UNMETERED, and not because nobody looked. `scripts/context-budget.sh`
@@ -137,7 +142,11 @@
              (b ~ /->[[:space:]]*throws[[:space:]]*\(/) ||
              (b ~ /(^|[^[:alnum:]_])assert[[:space:]]*[\(\.]/) ||
              (b ~ /assert(DatabaseHas|DatabaseMissing|SoftDeleted|Queued|Pushed|Dispatched|Sent|NothingSent)/) ||
-             (b ~ /expectException|expectExceptionMessage|expectError/)
+             (b ~ /expectException|expectExceptionMessage|expectError/) ||
+             # chai should-style: `user.name.should.equal("Ann")` carries no `expect`.
+             (b ~ /\.should[[:space:]]*[\.\(]/) || (b ~ /\.should\.(not|be|have|eql|equal|deep)/) ||
+             # ava / tape / node:test: the assertion IS the test callback argument.
+             (b ~ /(^|[^[:alnum:]_.])t[[:space:]]*\.[[:space:]]*(is|not|deepEqual|notDeepEqual|true|false|truthy|falsy|throws|throwsAsync|notThrows|regex|like|snapshot|pass|fail|plan|end)[[:space:]]*\(/)
     }
     function reaches_private(b) {
       return (b ~ /setAccessible/) ||

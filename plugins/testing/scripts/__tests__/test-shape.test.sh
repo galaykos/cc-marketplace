@@ -106,6 +106,28 @@ TS
 out=$(fire "$f"); [ -z "$out" ] && pass "silent on it.skip / it.todo" \
   || fail "silent on it.skip / it.todo" "flagged: $out"
 
+# ---- 5b. SILENCE: assertion dialects that carry no `expect` --------------------------
+# An adversarial audit on 2026-08-18 found the vocabulary flagged chai should-style and
+# ava/tape as assertion-free — entire correct dialects reported as proving nothing, while
+# the hook's LIMITATION admitted only the narrower project-helper case.
+f=$(mk src/chai.spec.js <<'JS'
+describe('user', () => {
+  it('has a name', () => { user.name.should.equal('Ann') })
+  it('is active', () => { user.active.should.be.true })
+})
+JS
+)
+out=$(fire "$f"); [ -z "$out" ] && pass "silent on chai should-style assertions" \
+  || fail "silent on chai should-style assertions" "flagged: $out"
+
+f=$(mk src/ava.test.js <<'JS'
+test('adds', t => { t.is(add(1, 2), 3) })
+test('rejects null', t => { t.throws(() => add(null)) })
+JS
+)
+out=$(fire "$f"); [ -z "$out" ] && pass "silent on ava/tape assertions" \
+  || fail "silent on ava/tape assertions" "flagged: $out"
+
 # ---- 6. SILENCE: not a test file ---------------------------------------------------------
 f=$(mk src/plain.ts <<'TS'
 export const add = (a: number, b: number) => a + b

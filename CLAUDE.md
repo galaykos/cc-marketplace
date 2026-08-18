@@ -193,12 +193,15 @@ verbosity-hook, preview-guard, versioned-layout, marker-key,
 `validate-fixtures/parity-check.sh`),
 `scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
 lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
-ANY plugin shipping a harness is enforced the moment it lands (**20 plugins ship
-28 harness files** as of 2026-08-17; the glob was hardcoded to exactly taskmaster
-and task-runner until 2026-08-02, which meant a third plugin's fixtures would
-have sat unrun with nothing saying so — and this sentence still said "the two
-that do today" long after 18 more had landed, which is why the glob was the right
-fix and a counted list here is not). Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
+ANY plugin shipping a harness is enforced the moment it lands. **Do not record the
+count here.** This sentence has now been wrong twice: it said "taskmaster and
+task-runner are the two" long after 18 more had landed, and its replacement — a
+fresh recount, accurate the hour it was written on 2026-08-17 — was invalidated by
+two later commits *on the same branch*. Recount instead:
+`ls plugins/*/scripts/__tests__/*.test.sh | wc -l`, and
+`bash scripts/gate-coverage.sh` for which author-time checks a harness actually
+exercises. The glob is the right fix precisely because a counted list here is not.
+Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
 deliberately NOT a CI step: its own header says it needs a live model; it
 stays a local authoring harness.)
 CI can still be red after a green local four-script pass: several of those
