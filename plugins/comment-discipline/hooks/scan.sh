@@ -59,14 +59,28 @@
   esac
 
   # Code only. Config and prose formats use comments for navigation, which this rule
-  # does not govern.
+  # does not govern — so YAML stays OUT deliberately, including docker-compose.yml,
+  # CI workflows and k8s manifests, where a `# the web service` header is a real
+  # navigation aid rather than a restatement.
+  #
+  # BUILD FILES ARE CODE, and that is why they are in. A Dockerfile and a Makefile are
+  # imperative step lists, not documents: `# install dependencies` above
+  # `RUN apt-get install -y …` restates its next line exactly the way `// increment the
+  # counter` does above `counter++`, and *.sh has always been governed for that reason.
+  # Extensionless names are matched by basename, so the worktree-stripped path is not
+  # enough on its own — see the `base` case below.
   case "$fp" in
     *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte) ;;
     *.php|*.py|*.rb|*.go|*.rs|*.java|*.kt|*.kts|*.swift|*.scala|*.dart) ;;
     *.c|*.h|*.cpp|*.hpp|*.cc|*.cs|*.m|*.mm) ;;
     *.sh|*.bash|*.zsh|*.pl|*.lua|*.ex|*.exs|*.jl|*.r|*.groovy) ;;
     *.sql|*.css|*.scss|*.less|*.graphql|*.tf) ;;
-    *) exit 0 ;;
+    *.dockerfile|*.mk) ;;
+    *)
+      case "$(basename "$fp")" in
+        Dockerfile|Dockerfile.*|Containerfile|Containerfile.*|Makefile|GNUmakefile) ;;
+        *) exit 0 ;;
+      esac ;;
   esac
 
   added=$(printf '%s' "$input" | jq -r '

@@ -52,6 +52,16 @@ Status lives in the task index and the conversation — no HTML dashboards.
 HTML/preview artifacts are reserved for content that needs them: mockups,
 interactive walkthroughs, demos.
 
+## Staying near the ask when there is no card
+
+`scope.sh` enforces a card's declared file list. Most turns have no card, and there
+its first line exits — so `drift.sh` asks one question, once per request, when a
+narrow ask has produced a wide change: **12+** files edited (p90 of 169 measured
+local edit-turns), no breadth word in the request, half of them never named in it.
+
+Advisory, and it counts **breadth only**: an unasked refactor inside a file you did
+name is invisible to it. `CC_DRIFT=off` silences it.
+
 ## The run cannot end by narration
 
 A run registers itself at start, and a Stop hook refuses to let it end while the

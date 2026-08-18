@@ -2,6 +2,22 @@
 
 All notable changes to the comment-discipline plugin.
 
+## 0.6.4
+
+### Added
+- **Build files are now governed: `Dockerfile`, `Dockerfile.*`, `Containerfile`,
+  `Makefile`, `GNUmakefile`, `*.dockerfile`, `*.mk`.** A Dockerfile is an imperative
+  step list, not a document — `# copy src to app` above `COPY src /app` restates its
+  next line exactly the way `// increment the counter` does above `counter++`, and
+  `*.sh` has been governed for that reason since the start. Extensionless names are
+  matched by basename.
+
+### Unchanged, deliberately
+- **YAML stays out.** `docker-compose.yml`, CI workflows and k8s manifests use
+  comments for navigation (`# the web service` above a service block), which this
+  rule explicitly does not govern. The exclusion is now stated in the source rather
+  than implied by the absence of an extension.
+
 ## 0.6.3
 
 ### Fixed
