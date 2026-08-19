@@ -4,6 +4,79 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.92.0] - 2026-08-18
+
+**New plugin: `candor` 0.1.0 — candour as a mechanism, not a pep talk.**
+
+A plugin that only said *do not hallucinate, do not flatter, do not fold under
+pressure* would be the shape this marketplace has already measured at zero
+(`rationale/measured-zero-shapes.md`, shape 2: canonical-doctrine checklists — the
+treatment's findings were a strict subset of a blind control's, and the control
+additionally caught a real logic bug). So `candor` ships the two clauses a script
+can prove and is explicit that everything else is measured, not enforced.
+
+`hooks/gate.sh` is a blocking `Stop` hook with two clauses. **Fabricated citation:**
+the final assistant message cites `path/file.ext:NNN` that resolves to no file under
+`cwd`, or to a line past the file's end — a `file:line` reference asserts "I read
+this", and when it resolves to nothing that assertion is false on disk.
+**Unevidenced reversal:** the last user message is challenge-shaped pushback
+carrying no correction of its own, the final message retracts, and no tool ran in
+between — sycophancy with the evidence step skipped, decidable from transcript
+order rather than tone. Modes `CC_CANDOR_GATE=block|warn|off`; fails open on
+missing `jq`, an unreadable transcript, or empty text; one block per distinct final
+message. Both clauses judge the final message ALONE — the sibling gate in
+`code-architecture` documents a measured window-bleed defect from matching a claim
+and its escape over a rolling window in both directions, and a single-message
+window cannot bleed.
+
+What it does NOT carry, stated because a gate reads stronger than it is: only
+`file:line` is checked and never a bare path (a bare path is routinely a file the
+turn proposes to create), so an invented API, package or flag is caught by nothing
+here — only an invented location. Any tool call counts as re-checking, so a `git
+status` satisfies clause 2. Pushback detection is a regex over one message, and a
+user message carrying its own evidence disarms the clause on purpose: agreeing with
+a correction that arrived with evidence is reading, not sycophancy.
+
+`/candor:check` runs `scripts/candor-scan.sh` over the session transcript and prints
+six counts — the two gated axes plus flattery openers, apologies, defensive
+phrasing and emotional intensifiers — and always exits 0. Those four are ungated
+deliberately: no regex separates "you're right" said because it is true from the
+same words said to please, and a gate that cannot tell them apart trains the model
+to drop the phrase rather than the behaviour. Standing: **recorded**.
+
+The `straight-talk` skill is six orderings rather than sentiments — evidence before
+claim, the disagreement before the concession, a reversal treated as a finding
+needing its own evidence, "I don't know" shipped with the command that settles it,
+scope honesty stated when decided rather than in a footnote, correction without
+performance — and carries its own standing table naming which two have teeth and
+which four do not. Completion-claim territory is yielded to
+`code-architecture:evidence-gate` in `lane.tsv` rather than duplicated.
+
+64 author-time cases across three harnesses (`plugins/candor/scripts/__tests__/`),
+run in CI through the shared `plugins/*/scripts/__tests__/*.test.sh` step. The
+third, `install.test.sh`, carries the install shape nothing else here tests: it
+copies the plugin to a temp directory, resolves the hook by expanding
+`${CLAUDE_PLUGIN_ROOT}` from `hooks/hooks.json` the way the host does, fails if
+that path resolves back inside this repository, and drives it against a consumer
+project that is not a git repository with full-shape transcript entries.
+
+Two false-positive classes were found by running the scan over 47 real session
+transcripts (~3.8k assistant messages) and were closed before release. The
+citation resolver gained a basename fallback, because the common real shape is an
+ABBREVIATED path (`craft-layer/asset-sourcing/SKILL.md` for a file at
+`plugins/craft-layer/skills/asset-sourcing/SKILL.md`), not an invented one — so
+only a basename existing nowhere counts as fabrication, and a real filename under
+a wrong directory now passes silently. The `defensive` axis dropped the bare
+`you asked for` pattern, which produced 4 hits on one 719-message transcript and
+every one was a neutral back-reference. The scan also resolves citations against
+the transcript's own recorded `cwd` rather than the shell's, and prints that root:
+pointing it at a session that ran elsewhere previously reported 78 real paths as
+missing.
+
+**everything 0.25.0, quality-suite 0.11.0 —** both gain `candor` as a dependency;
+`quality-suite`'s description names it, since a bundle that claims a set must
+contain it.
+
 ## [0.91.0] - 2026-08-14
 
 Three defects closed from a full 69-plugin audit. Both executable-layer findings
