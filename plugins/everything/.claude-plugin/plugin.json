@@ -1,6 +1,6 @@
 {
   "name": "everything",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -12,6 +12,7 @@
     "api-docs-first",
     "approaches",
     "brain",
+    "candor",
     "claude-authoring",
     "code-architecture",
     "code-review",

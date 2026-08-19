@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.91.0"
+    "version": "0.92.0"
   },
   "plugins": [
     {
@@ -255,6 +255,11 @@
       "description": "Stops over-commenting by treating it as an information-routing problem: every fact goes to the artifact that cannot lie about it — a name, a type, a test, an extracted function — and comments are spent only on what has nowhere else to live: why-not-the-obvious-way, external constraints carrying a link or ticket, intentional-silence markers, and contract facts a signature cannot express. Kills restatement comments, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, and change-narration comments that describe the edit rather than the code. One hook, two lanes: PostToolUse warns on every category as code is written, and PreToolUse denies just the two strictest — a comment restating the next line, and commented-out code — once per file per session, so a false positive costs one turn and never wedges a run. A second warn-only hook extends the same routing rule to the terminal: it measures prose-per-tool-call against a calibrated threshold and says so once when a session narrates instead of reporting. Includes /comment-discipline:review."
     },
     {
+      "name": "candor",
+      "source": "./plugins/candor",
+      "description": "Candour as a mechanism, not a pep talk. A blocking Stop gate carries the two dishonesty shapes a script can prove: a file:line citation resolving to no file under cwd or to a line past the file's end, and a position retracted after challenge-shaped pushback with no tool call in between. Flattery openers, apologies, defensive phrasing and emotional intensifiers are counted by /candor:check and blocked by nothing, on purpose. Ships the straight-talk skill: six orderings, not sentiments. Completion claims stay with code-architecture."
+    },
+    {
       "name": "lean",
       "source": "./plugins/lean",
       "description": "Prices every output as a debit and asks how much. Five surfaces, one bar each: code, tests, comments, files, and actions — a tool call, subagent spawn or verify pass whose result cannot change the next step is a paid no-op, and nothing else here prices that. Only four things buy more than the minimum: blast radius, an observed defect, a stated criterion, the user asking; the excess must name which, where it happens. Minimum means risk coverage, not count — never delete a test to hit a ratio."
@@ -287,7 +292,7 @@
     {
       "name": "quality-suite",
       "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine — security, a11y, debugging, performance, resilience, packages, observability, approaches, testing — live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, candor's citation-and-reversal Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine — security, a11y, debugging, performance, resilience, packages, observability, approaches, testing — live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "quality-principles-suite",

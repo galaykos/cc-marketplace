@@ -1,0 +1,5 @@
+{
+  "chassis": "optout",
+  "file": "commands/check.md",
+  "reason": "Not the chassis check command (which verifies a docs/config surface before work begins). This one runs scripts/candor-scan.sh over the current session transcript and prints six candour axis counts with their standing — a measurement report that always exits 0, with no docs surface, no review, no fix list and no skill dispatch."
+}
