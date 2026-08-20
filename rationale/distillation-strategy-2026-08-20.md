@@ -246,6 +246,10 @@ a whole plugin.
 | D6 | 11 sites in 9 files, listed in §8d | Commit `3c8e6d7` ("prose strip — net -76 lines, **no capability removed**") deleted wrapped continuation lines and **severed sentences that ship today** — e.g. `scroll-orchestration/SKILL.md:8-9`, `webgl-effects/SKILL.md:8-9`, `information-design/SKILL.md` ending mid-sentence at "Cite the" | The clause naming what a skill decides is gone from five skills; no gate in this repo can distinguish deleting a redundant line from deleting half a sentence |
 | D7 | `plugins/craft-layer/template/craft-gates/contrast.mjs` | 183 lines with **zero runnable invocation sites**, while `template/craft-gates/gates.spec.ts:143-151` disables axe's `color-contrast` rule and names `contrast.mjs` "the gate of record" | Contrast is checked by nothing on any path. Same inverted-tier shape as the `utility-palette` finding in the 2026-08-17 review |
 
+| D8 | `plugins/everything/README.md:17`, `plugins/quality-suite/README.md`, `plugins/process-suite/README.md`, `plugins/taskmaster-suite/README.md` | Bundle READMEs do not list their own members: **`candor` missing from 2, `lean` missing from all 4** (word-boundary verified), and `everything/README.md:17` claims "(59 today)" against **61** dependencies | `lean` ships in three bundles and is documented in none of them. `remove-plugin.sh:144` maintains that `(N today)` string only on REMOVAL — nothing updates it when a plugin is ADDED, which is how it went stale |
+| D9 | `scripts/context-budget.sh:104` | The dynamic channel probes UserPromptSubmit with **one fixed string** — "refactor the auth module, add tests and review the diff". `api-docs-first/hooks/remind.sh` matches on `(sdk\|endpoint\|integrat\w*\|webhook\|oauth\|graphql)`, none of which appear in it, so it is baselined at **0** while emitting **206 B ≈ 52 tok** on a real prompt | Any hook whose trigger vocabulary misses that one sentence is scored zero forever and its growth is unmetered. Fix: a small probe corpus scored on max, or an explicit `unmetered:` line naming every UserPromptSubmit hook that measured 0 — the honesty pattern the script already uses for remote MCP |
+| D10 | `plugins/skill-router/hooks/summary.sh:56` → `scripts/retirement-queue.sh:106` | `summary.sh` writes `pending_low` after dropping the `flushed` flag `route-prompt.sh:53` sets; `retirement-queue.sh` then reads `fired` and `pending_low` as one stream | The retirement ledger cannot distinguish "accumulated but never shown to the model" from "surfaced". Across 17 local sessions, `security-review` (14), `error-handling-design` (12), `concurrency-safety` (11), `observability-design` (10) appear only in `pending_low` — so "never surfaced" is unproven for exactly the skills a retirement queue would rank first |
+
 Plus one contradiction worth a clause: `opinion-round:41-45` says the round steps
 back when "a grill ledger is open", and `grill:46-52` writes exactly that ledger
 before invoking the round at `grill:117-124`. Standing: agent-graded, currently
@@ -266,14 +270,21 @@ Recorded because a distillation that only reports confirmations is not measuring
 | "The domain plugins overlap (security/secret-scanning, devops/dev-env, observability/performance/resilience)" | Each ships an explicit `Defer rule` / `Boundaries` section and honours it | read the boundary sections |
 | "Compress the 33 near-identical `commands/review.md` files" | They are chassis output from one template, gated byte-identical by `generate.sh --check`, and commands cost only their description | `diff plugins/vue3/commands/review.md plugins/nuxt/commands/review.md` = 3 lines of 54 |
 | "`claude plugin eval` doesn't exist" (the web research concluded this from docs) | It exists in the installed CLI with `--ablation with-without`, `--judge-model`, `--json`. The docs the researcher read do not list it | `claude plugin eval --help` |
+| "10 bundles is too much shelf — merge the contained ones" | A bundle's own marginal always-on cost is **−10 to 0 tokens**; it costs exactly its members. Merging `quality-principles-suite` into its 100%-container costs a target user **+5,396 tokens** | measured per bundle, §8e |
+| "The single-skill plugins are shells" | 6 of them ship a real mechanism (a deny hook, a scanner script, an MCP server, dispatched agents), and the bundle mechanism already delivers packaging at zero token cost — merging only spends install granularity | §8e |
+| "`remove-plugin.sh` leaves the bundle table drifting, ungated" — **CLAUDE.md's own claim** | Refuted by running it: `validate.sh` exits 1 with five hard FAILs (2 dangling bundle deps, a dangling `rules.tsv` row, 2 dangling command refs) and `context-budget.sh` blocks on `−124`. The table is gated by inheritance. CLAUDE.md should be corrected, or someone will build a redundant check | simulation in a full copy |
+| "craft-layer is 13 skills sliced from one capability" | 7 of the 8 motion skills are ordered first-fit decision procedures on *different axes* — `measured-zero-shapes.md:87-91`'s not-zero shape. The merge yields the measured-zero shape at ~800 lines against a 150 ceiling | §8d |
+| "The 150-line ceiling is a growth attractor everywhere" | True in workflow (+31% bytes at a frozen 154), **false in craft-layer** (worst +4.7%) and **false in infra** (bytes-per-line flat in all six pinned skills). The craft failure mode is the opposite — deletion | §8d, §8e |
 
 ---
 
 ## 7. What this run did NOT cover
 
-- **Design/UI and infra/bundle clusters**: their audits are appended in §8 when
-  they return; see `taskmaster-docs/distill-2026-08-20-retry-queue.md` for the
-  spawn failures that delayed them.
+- **Nothing was changed in `plugins/`.** This run measured and recorded; every
+  proposal above is still a proposal. The two spawn failures that delayed the
+  design and infra audits are recorded in
+  `taskmaster-docs/distill-2026-08-20-retry-queue.md` (cause: a per-session agent
+  pane budget, not a system limit — stopping finished agents freed the slots).
 - **Whether any skill has ever helped a real user.** `retirement-queue.sh` reports
   **127 of 130 skills** with zero surfaced and zero invoked in the local ledgers,
   and 92 of 130 have no `rules.tsv` row at all — so "never surfaced" mostly
@@ -440,7 +451,61 @@ one genuinely dead reference, `scroll-orchestration/references/lenis-substrate.m
 its `> Last verified:` stamp must move into the body first or
 `check-doc-staleness.sh` loses its only lenis input.
 
-### 8e. Infra / bundles
+### 8e. Infra / quality domains + all 10 bundles
 
-Pending — the audit was still running when this section was written. See
-`taskmaster-docs/distill-2026-08-20-retry-queue.md` for its status.
+**This audit's most useful output is what it refused to cut.** It proposed
+**zero skill/command/agent/reference deletions and zero merges**, and each
+refusal carries a measurement.
+
+**Bundles: keep all 10, and the containment numbers argue FOR the split.**
+A bundle's own marginal always-on cost measured between **−10 and 0 tokens** —
+it costs exactly its members. So merging `quality-principles-suite` (9 members,
+100% contained in taskmaster-suite) into its container would force anyone who
+wanted those 9 to take 31: a **+5,396 always-on token regression** for that user.
+Deleting `product-suite` (277 tok, 100% contained in `everything`) saves **zero
+tokens from anyone** and removes a curated install path. The negative deltas
+scale as ~n/6 and are floor-rounding, not a real dedupe.
+
+**Four boundary-overlap hypotheses tested and killed, with reciprocal quotes.**
+security/secret-scanning (measured: on a 32-char `VITE_API_SECRET` secret-scanning
+**denies at PreToolUse** so security's PostToolUse never runs — no double report;
+on the short form secret-scanning correctly allows and security's detector fires
+alone), devops/dev-env, observability/performance/resilience
+(`observability-design:146-148` — "it owns whether the catch should EXIST, this
+owns what a kept one EMITS. One finding, one owner", reciprocated at
+`error-handling-design:142-144`), system-design/api-design. **The boundaries hold.**
+
+**A CLAUDE.md claim is stale and should be corrected.** CLAUDE.md says of
+`scripts/remove-plugin.sh`: *"those suites' member counts get a WARN, not an edit
+— so the bundle table at README.md drifts on exactly the removal the script is
+for. Nothing gates that table."* Refuted by simulation (`remove-plugin.sh packages
+--apply` in a full copy): `validate.sh` exits 1 with **five hard FAILs** — two
+dangling bundle dependencies caught by the all-bundle gate at `validate.sh:449-462`
+(verified present), a dangling `rules.tsv` skill row, and two dangling command
+references — and `context-budget.sh` blocks on `taskmaster-suite −124`. The table
+is gated, by inheritance. The two residuals worth recording instead: (1) the table
+is not *self*-gating — immediately post-removal it shows stale counts while
+`generate.sh --check` reports no drift, because it is consistent with a manifest
+`validate.sh` has already condemned; (2) `remove-plugin.sh:131-134` hand-`sed`s
+the generated `everything` row whose own header says "do not edit these rows by
+hand" — two writers, one region.
+
+**All four cluster hooks use a channel the model actually receives** — the two
+PreToolUse denies emit `permissionDecision` JSON (415 B / 744 B measured on hit,
+0 B clean), `security/hooks/write-scan.sh` correctly uses
+`hookSpecificOutput.additionalContext` rather than PostToolUse stdout (which the
+model never sees), and `api-docs-first/hooks/remind.sh` uses UserPromptSubmit
+stdout, which does reach the model. **No defect.** Under `everything`,
+**16 Pre/PostToolUse hook invocations fire on every Write/Edit** across 13 plugins.
+
+The ceiling growth-attractor signature from §8b **does not reproduce here**:
+bytes-per-line is flat across every commit of all six ceiling-pinned cluster
+skills, and lines over 110 chars is 1 in every file at every revision.
+
+At stake but deliberately not cut: **23 `## Anti-patterns` sections, 248 lines /
+~3,145 on-invoke tokens.** Hand-checking `observability-design` found 5 of 6
+bullets restating the body — and the sixth carrying the ownership split with
+`resilience` that exists nowhere else. `measured-zero-shapes.md:46-52` records a
+checklist *narrowing* a review (treatment findings a strict subset of control).
+That is the risk, and it makes one control/treatment run on a single stripped
+section the cheapest decisive experiment in the cluster.
