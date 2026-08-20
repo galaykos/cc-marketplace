@@ -29,7 +29,7 @@ frontend      -> web-dev:frontend-reviewer + prime {card Skills-to-apply} + a11y
 ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply} + a11y:a11y-audit
 devops        -> devops:devops-reviewer + prime {card Skills-to-apply} + devops:devops-practices
 generic       -> code-review:code-reviewer
-database      -> code-review:code-reviewer + prime {card Skills-to-apply} + database:database-design
+database      -> code-review:code-reviewer + prime {card Skills-to-apply} + sql:sql-best-practices
 backend       -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:resilience-design
 api           -> code-review:code-reviewer + prime {card Skills-to-apply} + api-design:api-design + resilience:resilience-design
 security      -> code-review:code-reviewer + prime {card Skills-to-apply} + security:security-review

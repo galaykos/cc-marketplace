@@ -171,8 +171,17 @@ while IFS=: read -r file ref; do
     err "$file: reference '$ref' names unknown plugin '$pname'"
   else
     cname="${ref##*:}"
-    [ -f "plugins/$pname/commands/$cname.md" ] \
-      || err "$file: reference '$ref' names no plugins/$pname/commands/$cname.md"
+    # A `/plugin:name` reference resolves to a command file OR a same-named
+    # skill. Claude Code merged custom commands into skills — "A file at
+    # .claude/commands/deploy.md and a skill at .claude/skills/deploy/SKILL.md
+    # both create /deploy and work the same way"
+    # (https://code.claude.com/docs/en/skills) — so a plugin that ships only the
+    # skill still answers the slash command. Before 2026-08-20 this gate knew
+    # only about commands/, which is why deleting three commands that merely
+    # restated their identically-named skill produced 12 FAILs about references
+    # that had never stopped working.
+    [ -f "plugins/$pname/commands/$cname.md" ] || [ -f "plugins/$pname/skills/$cname/SKILL.md" ] \
+      || err "$file: reference '$ref' resolves to neither plugins/$pname/commands/$cname.md nor plugins/$pname/skills/$cname/SKILL.md"
   fi
 done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/README.md plugins/*/commands plugins/*/skills plugins/*/agents 2>/dev/null \
          | grep -v 'https\?:' | grep -v '/preserve:' | sort -u)

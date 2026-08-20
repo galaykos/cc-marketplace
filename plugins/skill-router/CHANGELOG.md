@@ -2,6 +2,15 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.13.4
+
+### Changed
+- `**/migrations/**` now routes to `sql-best-practices` alone. The <!-- removed-ok -->
+  `database-design` row and its three co-fire blessings are gone with the skill: <!-- removed-ok -->
+  a migration file in a MySQL project used to load `sql` + `database-design` + <!-- removed-ok -->
+  `mysql` at once, 4,333 tokens of bodies, with "index every foreign key" stated
+  in six places across the family.
+
 ## 0.13.3
 
 ### Fixed

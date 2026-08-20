@@ -110,7 +110,12 @@ pc_removed_refs() {
   [ -f "$f" ] || return 0
   b='[^[:alnum:]-]'
   plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency'
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog'
+  # database-design added 2026-08-20: merged into sql-best-practices, which already
+  # stated four of its rules (constraints in the schema, index every FK, additive
+  # migrations, short transactions) at the same level of generality while the file
+  # claimed to defer where both could speak. The `database` PLUGIN survives — it
+  # ships the destructive-SQL PreToolUse guard and the database-engineer worker.
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design'
   shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? plugins?($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)($skills)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:

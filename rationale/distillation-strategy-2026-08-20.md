@@ -175,6 +175,26 @@ baseline arm, scores with graders, and writes JSON.
 
 ### W3 — Cut artifacts, not prose (the only cut that touches always-on cost)
 
+> **STATUS 2026-08-20: partially done, and the blocked half has one cause.**
+> Landed: three of the four name collisions (`approaches:build-vs-buy`,
+> `fresh-take:consult`, `hindsight:harvest` — each command was a restatement of
+> its identically-named skill, which the host says wins the name anyway), and the
+> `database-design` → `sql-best-practices` merge. Measured: `everything` 12,779 →
+> **12,649 always-on tokens (−130, ≈−200 at the host's 1.54x)**.
+> **`taskmaster:brainstorm` was NOT resolved**: its command is one of the four
+> whose boost preamble `validate.sh:569-610` gates byte-identical, so deleting it
+> fails the build and renaming the skill is a user-visible break.
+> **Both remaining merges are blocked by the 150-line ceiling**, not by doubt:
+> `approach-deliberation` (121) + `opinion-round` (150) and
+> `task-orchestration` (90) + `plan-before-code` (150, already AT the cap) cannot
+> be one skill without displacing content. **W4 unblocks W3** — that dependency
+> was not visible when this document was written.
+> One gate defect found while doing it: the `/plugin:command` reference check
+> resolved only to `commands/<name>.md`, so deleting a command whose skill still
+> answers the same slash command produced 12 FAILs about references that had
+> never stopped working. It now accepts either file.
+
+
 Compressing a body saves on-invoke tokens; only removing or merging an ARTIFACT
 removes its description from the listing. Ranked candidates with measured evidence:
 

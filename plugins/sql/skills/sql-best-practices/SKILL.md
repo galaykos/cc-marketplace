@@ -1,6 +1,6 @@
 ---
 name: sql-best-practices
-description: Use when writing or reviewing SQL STATEMENTS on any engine — sargable predicates, join correctness, composite indexes, NULL three-valued traps, isolation, keyset pagination, additive migrations, parameterized queries. Engine-specific rules → mysql/mariadb/postgresql; schema-level design → database.
+description: Use when writing or reviewing SQL on any engine, statement or schema — sargable predicates, join correctness, composite indexes, NULL three-valued traps, isolation, keyset pagination, parameterized queries, plus the design floor: normalization, expand-migrate-contract migrations with a rollback path, index choice from observed queries, and connection-pool sizing. Engine-specific rules → mysql/mariadb/postgresql; measuring a slow query → performance.
 ---
 
 ## Sargable predicates
@@ -91,6 +91,40 @@ An index is used only when the column stands alone on its side of the comparison
   reader disappeared, never in the same deploy.
 - Batch backfills (bounded UPDATE ... LIMIT loops or ranged by PK); one giant
   UPDATE locks the table and bloats logs/undo.
+- Every migration states its rollback path, even when that path is "irreversible —
+  requires restore from backup". A migration with no rollback answer is not ready,
+  and a destructive one without a confirmed backup is not runnable.
+- Go through the project's migration tool (Alembic, Flyway, Prisma, Rails, Knex,
+  golang-migrate). Raw ad-hoc DDL where a migration system exists is a bug.
+
+> Worked example — rename `users.name` to `full_name` with zero downtime:
+> **expand** (add `full_name` nullable, deploy; old code still writes `name`) →
+> **migrate** (backfill, dual-write both in app code) → **contract** (switch reads,
+> stop writing `name`, drop it a deploy later). A one-step `RENAME COLUMN` breaks
+> every running old instance the instant it lands.
+
+## Schema design
+
+- Normalized by default — third normal form until a *measured* read pattern says
+  otherwise. Denormalization carries a written justification naming the query it
+  speeds and the number it improved; a duplicated column is a consistency bug you
+  have chosen to maintain forever.
+- One meaning per column. No nullable-boolean-as-tristate, no comma-joined lists,
+  no `status` that means five things by convention.
+- Detect engine AND version before writing any DDL — configs, DSNs, compose files,
+  manifests. A `.sql` file alone proves no dialect.
+- Index choice is a design decision driven by queries you have SEEN. An index on
+  the wrong column is write cost with no read benefit, and removing a "redundant"
+  one without checking what reads it is how a report query falls to a full scan.
+
+## Connection pooling
+
+- Size the pool from the workload and the server's ceiling, never a copied default:
+  `pool_size × app_instances ≤ db_max_connections − headroom`. A 20-connection pool
+  across 8 pods is 160 connections against a Postgres defaulting to 100 — over the
+  cliff before load. Leave headroom for migrations, admin sessions, replicas.
+- Too large starves the database, too small serializes the app; both look like
+  "the database is slow".
 
 ## Parameterization
 

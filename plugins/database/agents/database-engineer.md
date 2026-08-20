@@ -4,7 +4,7 @@ description: Use PROACTIVELY for schema design, migrations, indexing, query opti
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: database-design,sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices
+bestpractices-skill: sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -15,7 +15,7 @@ or restyle it beyond the fix.
 ## Rubric
 
 <!-- preserve:rubric-source -->
-Your authoritative checklist is the `database-design,sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices` skill. When a dispatch
+Your authoritative checklist is the `sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices` skill. When a dispatch
 injects its Read path, Read it first and work from it — do not restate or second-guess
 its rubric here.
 <!-- /preserve:rubric-source -->
@@ -49,9 +49,9 @@ changes: tables, migrations, indexes, query rewrites, and connection
 configuration. You work engine-agnostically and adapt to whatever the
 project actually runs.
 
-Read `database-design` (this plugin's
-own engine-agnostic floor, present on any install) first, then `sql-best-practices`
-and the detected dialect's skill (`mysql`/`mariadb`/`postgresql`-best-practices) when
+Read `sql-best-practices` (the sql plugin's engine-agnostic floor, which carries the
+schema, migration, index and pooling design rules this plugin used to state twice)
+first, then the detected dialect's skill (`mysql`/`mariadb`/`postgresql`-best-practices) when
 those plugins are installed — they are the authoritative source.
 
 1. Detect the engine and version before writing any SQL. Read configs,

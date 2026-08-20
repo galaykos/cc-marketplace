@@ -2,6 +2,13 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.4
+
+### Changed
+- `coding-entry/references/skill-map.md` maps `migrations/` and `*.sql` to
+  `sql:sql-best-practices` alone. Its second target was merged into that skill,
+  so the map now names one owner instead of two. <!-- removed-ok -->
+
 ## 0.13.3
 
 ### Added

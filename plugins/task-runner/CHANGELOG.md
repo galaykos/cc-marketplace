@@ -2,6 +2,13 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.1
+
+### Changed
+- `task-execution/references/reviewer-routing.md` routes the database track to
+  `sql:sql-best-practices`. Its old target, `database:database-design`, was
+  merged into that skill — the rubric moved, the routing follows it. <!-- removed-ok -->
+
 ## 0.29.0
 
 ### Added
