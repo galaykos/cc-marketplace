@@ -109,6 +109,19 @@ Each names its standing and what it does **not** fix.
 
 ### W1 — Put an eval loop under the doctrine (highest leverage, lowest risk)
 
+> **STATUS 2026-08-20: started, and it already returned a result.** Four suites
+> are authored (`plugins/{php,nextjs,i18n,resilience}/evals/`) and the first
+> ablation is recorded in `rationale/eval-ablation-2026-08-20.md`:
+> **zero delta, control 3/3 vs treatment 3/3, on both php and nextjs, across two
+> fixture designs** — including the manifest-on-disk case that
+> `stack-skill-baselines.md:50-53` admits was never exercised. Every control run
+> opened `composer.json` unprompted and respected `config.platform`. One caveat
+> that matters more than the result: the scorer's first version manufactured a
+> treatment win and was corrected. Also: `claude plugin eval` is **early-access
+> gated** on this account, so the runs were done with blind subagents and the
+> four suites are unverified against the official runner.
+
+
 The repo's entire retirement/measurement doctrine (`rationale/measured-zero-shapes.md`,
 `scripts/retirement-queue.sh`, `authoring-skills`' "baseline a NEW behavioral skill")
 is `recorded`: nothing runs it. Meanwhile `claude plugin eval --ablation with-without`

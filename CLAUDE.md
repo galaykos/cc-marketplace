@@ -13,6 +13,10 @@ publishable plugin.
   - `README.md` (and optionally `CHANGELOG.md` / `ROADMAP.md`) at the plugin root
   - `skills/<name>/SKILL.md` (+ a `references/` dir for material the skill reads)
   - `commands/*.md`, `agents/*.md`, `hooks/`
+  - `evals/<case>/prompt.md` + `evals/<case>/graders/*.md` — prose, but functional:
+    `claude plugin eval` reads them as the case definition. Allowed since
+    2026-08-20; a design doc parked under `evals/` is still a violation in spirit
+    and no script can tell the two apart.
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
   history. If a document truly must be tracked, it goes in **`rationale/`** at

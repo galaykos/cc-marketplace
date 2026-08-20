@@ -193,8 +193,13 @@ done < <(find plugins -path '*/hooks/hooks.json')
 # Plugins ship ONLY functional files. Task documentation, specs, and design/task
 # history live in taskmaster-docs/ (or a repo-level location outside plugins/) —
 # never inside a plugin. Allowed .md: README/CHANGELOG/ROADMAP at a plugin root,
-# a skill's SKILL.md and its references/, commands/, and agents/.
-allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$'
+# a skill's SKILL.md and its references/, commands/, and agents/ — plus evals/,
+# which is functional despite being prose: `claude plugin eval` reads
+# `<plugin>/evals/**/prompt.md` and `graders/*.md` as the case definition, the same
+# way a skill reads references/. Added 2026-08-20 with the first four suites; a
+# design doc parked under evals/ is still a doc-location violation in spirit, and
+# nothing here can tell the two apart.
+allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$|^evals/.+\.md$'
 while IFS= read -r mdf; do
   pc_doc_location "$mdf" "$allow_md" >/dev/null \
     || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
