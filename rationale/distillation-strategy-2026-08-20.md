@@ -144,6 +144,23 @@ baseline arm, scores with graders, and writes JSON.
 
 ### W2 — Fix the meter, then set the target against the real budget
 
+> **STATUS 2026-08-20: done.** Three fixes landed, each demonstrated: (1) a third
+> **activated** channel measures the always-on surface with the state its hooks
+> wait for — `everything` reads 13,996 against 12,789, +1,217 tokens no baseline
+> saw, and the gate was neutered and watched fail (+30 tok caught at tolerance 2
+> while the always-on column stayed flat, which is precisely what the old meter
+> could not see); (2) `--reconcile` / `--update-official` compare against
+> `claude plugin details`, recording the **1.54x** gap in
+> `scripts/context-budget-official.json` — local and WARN-only, because `details`
+> resolves by installed name and CI has nothing installed; (3) the README bundle
+> table now carries the activated column AND states the budget it is measured
+> against — 1% of the context window, with the eviction consequence named.
+> **Not done, deliberately:** no per-bundle ceiling was introduced. Four bundles
+> already exceed 1% of a 200k window, so a gate set there would be a red build
+> with no fix available, and inventing a threshold to avoid saying that is the
+> habit `rationale/distillation-review-2026-08-17.md` §3 records as not sticking.
+
+
 - **Do:** teach `scripts/context-budget.sh` to reconcile against
   `claude plugin details` (either replace the bytes÷4 estimate or add a second
   column and fail on divergence >15%). Re-baseline both channels afterwards.

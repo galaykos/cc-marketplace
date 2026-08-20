@@ -119,16 +119,30 @@ saying so is the point.
   history. Adding the file opts a plugin in; `code-review` and `devops` ship the
   worked examples.
 - `scripts/context-budget.sh` — BLOCKING token gate vs committed baselines (own
-  CI step), across **two** channels since 2026-08-02: **always-on**
+  CI step), across **three** channels: **always-on**
   (`context-budget-baseline.json` — descriptions + SessionStart stdout + local
-  MCP `tools/list`) and **dynamic** (`context-budget-dynamic-baseline.json` —
-  UserPromptSubmit and per-tool hook stdout, measured with a work-shaped prompt
-  and a synthetic `Edit`). The dynamic channel was unmetered before that and the
-  omission was load-bearing: at the time skill-router alone injected ~2.4k
-  tokens no baseline saw (~2.6k as of 2026-08-11). Accept intentional growth
-  with `--update-baseline`, never in CI. Still
+  MCP `tools/list`), **dynamic** (`context-budget-dynamic-baseline.json` —
+  UserPromptSubmit and per-tool hook stdout, measured with a **four-prompt
+  corpus** summed per prompt and scored MAX, plus a synthetic `Edit`), and
+  **activated** (`context-budget-activated-baseline.json`, added 2026-08-20 —
+  the always-on surface re-measured with the state its hooks WAIT for: a terse
+  level set, a `brain/INDEX.md` present, manifests to sniff). Each omission was
+  load-bearing when it existed: the dynamic channel missed ~2.4k tokens of
+  skill-router before 2026-08-02; the always-on pass meters the OFF state, so
+  terse read 886 while a switched-on install pays 1,928, and the activated
+  channel is +1.2k tokens on `everything` that no baseline saw. The dynamic probe
+  was ONE fixed prompt until 2026-08-20 — a hook whose trigger vocabulary missed
+  that sentence baselined at 0 forever (api-docs-first did, at a real 52 tokens).
+  Accept intentional growth with `--update-baseline`, never in CI.
+  `--reconcile` / `--update-official` compare against `claude plugin details`,
+  the host's own meter, which reads **1.54x higher** than our bytes/4 estimate
+  (12,789 vs 19,667 over the 61 leaves, 2026-08-20,
+  `scripts/context-budget-official.json`) because the host charges a
+  per-component floor. That mode is **local and WARN-only, not a CI step**:
+  `details` resolves by installed name, so a fresh checkout cannot run it. Still
   unmetered BY NATURE and reported by name each run rather than scored zero:
-  skill BODIES loaded by a routing rule, and remote MCP servers.
+  skill BODIES loaded by a routing rule, remote MCP servers, and any hook waiting
+  for state the activated fixture does not know to create.
 
 - `scripts/generate.sh --check` — BLOCKING chassis-drift gate (own CI step): every
   chassis-generated file (review commands, worker agents, suite uninstalls,
