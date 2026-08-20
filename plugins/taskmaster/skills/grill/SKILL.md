@@ -113,14 +113,14 @@ onboarding funnel, a multi-view feature), one flat ledger explodes by round 2:
 Stop when every row is CLEAR, or ASSUMED with the user having seen and accepted the
 assumption list, or the user says "enough". Then:
 
-1. Decide the implementation approach when the settled requirements admit two or
-   more structurally different implementations (new module vs extend, sync vs
-   async, rewrite vs strangler) and the task is not mechanical. approaches plugin
-   installed → run its opinion-round: dispatch the four blind `opinion-lens`
-   personas (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist,
-   Skeptic-Investigator) on the requirements per that skill's blind-dispatch
-   contract, then synthesize one pick + kill-trigger. Absent → propose 2–3
-   approaches inline and pick. Skip for single-approach or mechanical tasks, or
+1. Decide the implementation approach when the settled requirements admit two or more
+   structurally different implementations (new module vs extend, sync vs async, rewrite vs
+   strangler) and the task is not mechanical. approaches plugin installed → run its opinion-round: dispatch the four blind `opinion-lens` personas
+   (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) per
+   that skill's blind-dispatch contract, synthesize one pick + kill-trigger, then WRITE its
+   marker `.claude/approaches/deliberated.json` (`{"task","by":"opinion-round","at"}`) —
+   unwritten, the double-run guard is unarmed and `/approaches:opinions` re-litigates the
+   settled pick. Absent → 2–3 inline and pick. Skip mechanical or single-approach tasks, or
    when an upstream brainstorm design already recorded the approach.
 2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
    goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected

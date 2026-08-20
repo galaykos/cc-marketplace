@@ -104,7 +104,6 @@ only genuinely open questions preview.
 
 ## Reuse map
 
-
 | Concern | Owned by |
 | --- | --- |
 | Token scales (spacing/type/radius/elevation/motion) | `plugins/ui-ux/skills/design-tokens/SKILL.md` |

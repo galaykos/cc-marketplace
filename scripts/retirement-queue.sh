@@ -103,7 +103,16 @@ done | sort -u > "$TMP/skills"
 
 printf '%s' "$invoked" | jq -r '.skill // empty' 2>/dev/null \
   | sed 's/^.*://' | sort | uniq -c | awk '{print $2"\t"$1}' | sort > "$TMP/inv"
-printf '%s' "$surfaced" | jq -r '(.fired // [])[], (.pending_low // [])[]' 2>/dev/null \
+# SURFACED means the model saw it. `fired` is an inline nudge; `pending_low_flushed`
+# is a low-confidence signal route-prompt.sh actually printed on a later prompt.
+# A bare `pending_low` entry is neither — it accumulated and may never have been
+# shown, so counting it as surfaced overstated exactly the skills this queue is
+# for. Older ledger lines carry no split field: they fall back to `pending_low`,
+# which keeps the historical count readable rather than silently zeroing it.
+printf '%s' "$surfaced" | jq -r '
+    (.fired // [])[],
+    (if has("pending_low_flushed") then (.pending_low_flushed // [])[] else (.pending_low // [])[] end)
+  ' 2>/dev/null \
   | sort | uniq -c | awk '{print $2"\t"$1}' | sort > "$TMP/srf"
 
 printf '%-34s %-22s %10s %10s\n' "skill" "plugin" "surfaced" "invoked"

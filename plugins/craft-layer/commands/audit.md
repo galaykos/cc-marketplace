@@ -78,8 +78,18 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
      CRAFT_BUILD_TASK=<…/craft/build-task.md> CRAFT_CONTENT_SOURCE=<…/craft/content-source.md> \
      CRAFT_TOKEN_SOURCE=<the CSS holding the tokens> \
      node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/divergence.mjs
+   cd <project> && CRAFT_TOKEN_SOURCE=<the CSS holding the tokens> \
+     node ${CLAUDE_PLUGIN_ROOT}/template/craft-gates/contrast.mjs
    BASE_URL=<the dev server> CRAFT_EXPECT_TITLE=<the contract's product name> npx playwright test
    ```
+
+   **`contrast.mjs` is not optional and it is not covered by the Playwright suite.**
+   `gates.spec.ts` disables axe's `color-contrast` rule (axe cannot parse `oklch()`
+   and false-positives on every modern-colour build) and names this script as the
+   gate of record in its place. Until this run executes it, contrast is graded by
+   nothing — the suite's disabled rule plus an unrun script is a hole, not a
+   division of labour. Exit 1 is a FINDING; exit 2 (`not measured`, no token
+   source found) is a FAILURE here by the script's own contract, not a skip.
 
    Pass the paths step 3 resolved: `divergence.mjs` resolves `craft/…` relative to the PROJECT ROOT while
    the craft flow persists to the run's working area — the session scratch on a project with no

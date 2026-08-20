@@ -65,16 +65,30 @@
   already_fired() { printf '%s\n' "$fired" | grep -qxF "$1"; }
 
   match_glob() { # $1 pattern
-    local pat="$1"
+    # DIRECTORY SEGMENTS MATCH CASE-INSENSITIVELY, on purpose. The same framework
+    # directory ships under two casings depending on the scaffolder that made it:
+    # Laravel's current Inertia starter kits generate `resources/js/pages/` while
+    # the older convention (and rules.tsv) says `Pages`. A case-SENSITIVE test
+    # meant `**/resources/js/Pages/**` — inertia's ONLY routing row — fired on
+    # zero files in every lowercase project, so the plugin routed nothing there
+    # and `/inertia:review` had to be typed by hand. `**/Livewire/**` had the same
+    # exposure, masked only because livewire has a second row (`*.blade.php`).
+    #
+    # LIMITATION: case is checkable, a wrong directory NAME is not. A row naming a
+    # directory the framework does not use still matches nothing, and no gate here
+    # can see that.
+    local pat="$1" rc=1 nocase_was_off=1
+    shopt -q nocasematch && nocase_was_off=0
+    shopt -s nocasematch
     case "$pat" in
       '**/'*'/**')
         local mid="${pat#**/}"; mid="${mid%/**}"
-        case "/$file_path" in *"/$mid/"*) return 0 ;; esac
-        return 1 ;;
+        case "/$file_path" in *"/$mid/"*) rc=0 ;; esac ;;
       *)
-        case "$base" in $pat) return 0 ;; esac
-        return 1 ;;
+        case "$base" in $pat) rc=0 ;; esac ;;
     esac
+    [ "$nocase_was_off" -eq 1 ] && shopt -u nocasematch
+    return "$rc"
   }
 
   marker_ok() { # $1 stack_marker — 0 = fire, 1 = suppress. `||`-separated

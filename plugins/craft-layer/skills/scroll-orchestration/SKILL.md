@@ -6,9 +6,10 @@ description: Use when adding smooth scroll, scroll-linked reveals, scrub, pin, o
 ## What this decides
 
 This skill decides WHETHER a surface needs orchestrated scroll motion and WHICH
+engine drives it — then pins the contract and the budget. It does not re-teach the
 ScrollTrigger API: scrub, pin, parallax, one-trigger-per-scene, `.refresh()`,
 cleanup, and `gsap.matchMedia()` already live in
-`plugins/ui-ux/skills/motion-best-practices/references/gsap.md` — reference by path,
+`plugins/ui-ux/skills/motion-best-practices/references/gsap.md` — reference it by path.
 
 **GSAP reconciliation:** GSAP is NOT a motion tier. Element and UI animation is a
 tier choice in `plugins/craft-layer/skills/motion-tiers/SKILL.md`. GSAP — via
@@ -82,6 +83,7 @@ breaking anchor links and keyboard scroll.
 
 - **Lenis + ScrollTrigger** — scrub, pin, parallax, choreographed scroll scenes.
   Budget: Lenis ≈ 3KB + GSAP/ScrollTrigger (sized in gsap.md); a JS scroll loop on
+  the main thread. Its mechanics are in gsap.md.
 - **Native CSS scroll-driven** — `animation-timeline: scroll()` / `view()` runs the
   animation off the main thread with zero JS. The reduced-bundle path; degrades to a
   static final state where unsupported. Detail: `references/css-scroll-driven.md`.

@@ -6,6 +6,7 @@ description: Use when a surface needs real 2D physics — objects that fall, col
 ## What this decides
 
 This skill decides WHETHER a surface needs a real 2D physics simulation (versus a spring
+or tween) and HOW to run one within budget. It does not re-teach spring/tween motion —
 Framer/Motion springs and gesture drag live in
 `plugins/ui-ux/skills/motion-best-practices/SKILL.md` — and it honours the one-writer trap
 in `plugins/craft-layer/skills/motion-tiers/references/gotchas.md`. Reference both by path.

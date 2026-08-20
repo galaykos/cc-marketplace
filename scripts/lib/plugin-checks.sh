@@ -256,9 +256,9 @@ pc_rules_overlap() {
 # <pattern> <skill>` line per dead row and returns 1; clean or missing file
 # returns 0.
 #
-# WHY THIS EXISTS. skill-router's match_glob (plugins/skill-router/hooks/route.sh:42-53)
-# understands exactly one multi-segment form, `**/dir/**`, which it tests against
-# the full path. EVERY other pattern is matched against the BASENAME — so a
+# WHY THIS EXISTS. skill-router's match_glob (plugins/skill-router/hooks/route.sh,
+# `match_glob()`) understands exactly one multi-segment form, `**/dir/**`, which it
+# tests against the full path — case-insensitively since 0.13.3. EVERY other pattern is matched against the BASENAME — so a
 # pattern containing a `/` outside that one form is compared to a string that can
 # never contain a `/`, and cannot match any file, ever. `**/routes/api.php`
 # shipped in that state and routed api-design zero times for months. The three
@@ -1144,5 +1144,49 @@ pc_prime_coverage() {
   done <<EOF
 $(grep -oE '(^|[;&[:space:]])add [a-z0-9-]+' "$prime" 2>/dev/null | awk '{print $NF}' | sort -u)
 EOF
+  return $bad
+}
+
+# pc_bundle_readme_members <plugins_root>
+#
+# A bundle's README must name every plugin in its own plugin.json `dependencies`.
+#
+# WHY THIS EXISTS. Two commits (`6d0a9d0` candor, `582dc81` lean) added a
+# dependency to four bundles and updated zero bundle READMEs, and `validate.sh`
+# exited 0 on all of it for weeks. Measured 2026-08-20 before the fix: `candor`
+# missing from everything + quality-suite, `lean` missing from all four. `lean`
+# was a plugin you installed in three bundles and could read about in none of
+# them. The all-bundle dependency gate above proves a dep RESOLVES; nothing
+# proved a human could find out it was there.
+#
+# LIMITATION — this gates the PRESENCE OF A NAME and nothing about truth. A
+# member listed with a wrong description, under the wrong theme heading, or
+# describing capability the plugin no longer ships all pass. Standing: gate for
+# presence, unenforceable for accuracy, and saying so is the point.
+#
+# Prints `bundle-readme <bundle> <missing…>` per offender; returns 1 if any.
+pc_bundle_readme_members() {
+  local root="${1:-plugins}" bad=0 pj bname readme dep missing
+  for pj in "$root"/*/.claude-plugin/plugin.json; do
+    [ -f "$pj" ] || continue
+    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
+    bname=$(jq -r .name "$pj")
+    readme="${pj%/.claude-plugin/plugin.json}/README.md"
+    [ -f "$readme" ] || continue
+    missing=""
+    while IFS= read -r dep; do
+      [ -n "$dep" ] || continue
+      # `-wF`, not a bracket-class regex: a bare substring test passes `lean` on
+      # the word "clean" — the exact reason this drift stayed invisible to a
+      # grep — while the obvious `(^|[^A-Za-z0-9_-])` guard silently matches
+      # NOTHING under BSD grep on a line carrying an em dash. Verified both ways
+      # on plugins/quality-suite/README.md before this line was kept.
+      grep -qwF "$dep" "$readme" 2>/dev/null || missing="$missing $dep"
+    done < <(jq -r '.dependencies[]?' "$pj")
+    if [ -n "$missing" ]; then
+      printf 'bundle-readme %s%s\n' "$bname" "$missing"
+      bad=1
+    fi
+  done
   return $bad
 }

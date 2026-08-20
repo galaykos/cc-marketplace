@@ -4,7 +4,7 @@ description: Use PROACTIVELY after changing React/Vue/Inertia/Livewire/TypeScrip
 tools: Read, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: react-server-state,react-native-best-practices,vue3-best-practices,inertia-best-practices,livewire-best-practices,vite-best-practices,nextjs-best-practices,nuxt-best-practices
+bestpractices-skill: react-server-state,react-data-grid,react-native-best-practices,vue3-best-practices,inertia-best-practices,livewire-best-practices,vite-best-practices,nextjs-best-practices,nuxt-best-practices
 ---
 
 You are a frontend reviewer. You audit component and view code and report; you never
@@ -18,12 +18,10 @@ rubric only where component logic actually changed.
 
 ## Rubric
 
-Your authoritative checklist is the `react-server-state,react-native-best-practices,vue3-best-practices,inertia-best-practices,livewire-best-practices,vite-best-practices,nextjs-best-practices,nuxt-best-practices` skill set. When a dispatch injects a skill's Read path, Read it first and work from it — it is authoritative; do not restate or second-guess its rubric here.
+Your authoritative checklist is the skill set named in this file's `bestpractices-skill:` frontmatter — one list, stated once, so a skill added there cannot go missing here. When a dispatch injects a skill's Read path, Read it first and work from it — it is authoritative; do not restate or second-guess its rubric here.
 
-Detect the framework from the files and imports, then load the matching skill as your
-authority — from the set
-`react-server-state,react-native-best-practices,vue3-best-practices,inertia-best-practices,livewire-best-practices,vite-best-practices,nextjs-best-practices,nuxt-best-practices`
-— whichever the diff touches.
+Detect the framework from the files and imports, then load the matching skill from that
+same frontmatter set — whichever the diff touches.
 Skip silently if a skill's plugin is not installed.
 
 ## What you check

@@ -46,6 +46,7 @@ auto-installed.
 - **observability** — logging, correlation-ID, and silent-catch audits
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
 - **brain** — committed codebase map injected at session start
+- **lean** — prices every line, test, comment, and file as a debit, so a card ships the smallest change that satisfies it
 
 ## What's excluded, and why
 

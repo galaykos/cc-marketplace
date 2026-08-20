@@ -53,8 +53,8 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context | + first work-shaped prompt |
 |--------|---------|-------------------|----------------------------|
-| `everything` | 61 | ~12.8k tokens | ~2.5k tokens |
-| `taskmaster-suite` | 31 | ~7.5k tokens | ~2.5k tokens |
+| `everything` | 61 | ~12.8k tokens | ~2.6k tokens |
+| `taskmaster-suite` | 31 | ~7.5k tokens | ~2.6k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — |
 | `process-suite` | 10 | ~2.0k tokens | ~2.5k tokens |

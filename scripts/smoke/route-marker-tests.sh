@@ -29,6 +29,9 @@ printf 'glob\t*.svelte\tchain2-canary\tmisc\thigh\tnode_modules/svelte/package.j
 # CRLF-terminated rows: markered and markerless, both must behave as LF rows
 printf 'glob\t*.rs\tcrlf-canary\tmisc\thigh\tpackage.json~"crlfdep"\r\n' >> "$PR/rules.tsv"
 printf 'glob\t*.go\tcrlfplain-canary\tmisc\thigh\r\n' >> "$PR/rules.tsv"
+# Uppercase directory glob: the casing rules.tsv actually ships for inertia
+# (`**/resources/js/Pages/**`). Both casings of the real directory must fire.
+printf 'glob\t**/Pages/**\tcase-canary\tmisc\thigh\n' >> "$PR/rules.tsv"
 
 mkdir -p "$TMP/vue3cwd" "$TMP/vue2cwd" "$TMP/emptycwd" "$TMP/laravelcwd"
 echo '{"dependencies":{"vue":"^3.2.4"}}'   > "$TMP/vue3cwd/package.json"
@@ -161,5 +164,19 @@ if [ "$e" -eq 0 ] && [ -z "$out" ]; then echo "PASS: empty tool_input exits 0 si
 out=$(printf '' | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE") && e=$? || e=$?
 if [ "$e" -eq 0 ] && [ -z "$out" ]; then echo "PASS: empty stdin exits 0 silently"; else echo "FAIL: fail-open on empty stdin (exit=$e out=$out)"; rc=1; fi
 
+# Case-insensitive directory match. `**/Pages/**` is inertia's ONLY routing row,
+# and Laravel's current starter kits scaffold `resources/js/pages/` lowercase —
+# under the case-SENSITIVE test this shipped with, that project routed nothing.
+# Both assertions must hold: the lowercase path is the regression, the uppercase
+# path proves the fix did not trade one casing for the other.
+mkdir -p "$TMP/casecwd"
+out=$(route "$TMP/casecwd" "resources/js/pages/Users/Show.vue")
+expect "lowercase dir matches an uppercase **/Dir/** glob" "$out" 'case-canary' ''
+out=$(route "$TMP/casecwd" "resources/js/Pages/Users/Show.vue")
+expect "uppercase dir still matches" "$out" 'case-canary' ''
+out=$(route "$TMP/casecwd" "src/components/Widget.vue")
+expect "unrelated dir does not match" "$out" '' 'case-canary'
+
 [ "$rc" -eq 0 ] && echo "All route-marker smoke tests passed."
+
 exit "$rc"

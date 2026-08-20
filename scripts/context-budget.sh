@@ -86,7 +86,7 @@ plugin_sessionstart_bytes() {
 # and would understate the channel by ~2.4k tokens). Pre/PostToolUse get a
 # synthetic Edit payload, the hottest path in the product.
 plugin_dynamic_hook_bytes() {
-  local pdir="$1" total=0 cmd resolved out bytes ev payload sid tmp
+  local pdir="$1" total=0 cmd resolved out bytes ev payload sid tmp prompt ptmp ups_max=0 ups_sum=0
   local hj="$pdir/hooks/hooks.json"
   [ -f "$hj" ] || { printf '0'; return; }
   # A FRESH session id and a FRESH TMPDIR per measurement. Several hooks are
@@ -97,11 +97,49 @@ plugin_dynamic_hook_bytes() {
   # command substitution, so a shell variable incremented here never survives.
   tmp=$(mktemp -d "$HOOK_SANDBOX/dyn.XXXXXX" 2>/dev/null) || { printf '0'; return; }
   sid="ctx-budget-$(basename "$tmp")"
-  for ev in UserPromptSubmit PreToolUse PostToolUse; do
+  # UserPromptSubmit is measured against a CORPUS, scored MAX, not one string.
+  #
+  # WHY. This used to send exactly one prompt — "refactor the auth module, add
+  # tests and review the diff". api-docs-first's remind.sh gates on
+  # (sdk|endpoint|integrat\w*|webhook|oauth|graphql); none of those words is in
+  # that sentence, so the hook baselined at 0 while emitting 206 bytes (~52 tok)
+  # on a real integration prompt. A hook whose trigger vocabulary misses the one
+  # probe is unmetered forever, and its growth with it. MAX rather than SUM
+  # because a user sends one prompt, not four; the corpus asks "what is the worst
+  # single prompt", which is the number the budget is about.
+  #
+  # LIMITATION: a hook whose trigger appears in no corpus entry still reads 0,
+  # and that 0 is indistinguishable from "never fires". Extend the corpus when a
+  # new trigger vocabulary ships; nothing here can detect that for you.
+  for prompt in \
+    "refactor the auth module, add tests and review the diff" \
+    "implement a webhook endpoint that integrates the Stripe SDK" \
+    "the deploy pipeline is failing and the container will not start" \
+    "design the schema and write the migration for the orders table"; do
+    # Fresh sid + TMPDIR per corpus entry: several prompt hooks are once-per
+    # session behind a marker, so a reused id would score every entry after the
+    # first at 0 and turn the corpus back into the single probe it replaces.
+    ptmp=$(mktemp -d "$HOOK_SANDBOX/dynp.XXXXXX" 2>/dev/null) || continue
+    payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg sid "ctx-budget-$(basename "$ptmp")" --arg p "$prompt" \
+      '{hook_event_name:"UserPromptSubmit",prompt:$p,session_id:$sid,cwd:$cwd}')
+    [ -n "$payload" ] || continue
+    ups_sum=0
+    while IFS= read -r cmd; do
+      [ -n "$cmd" ] || continue
+      out=$(printf '%s' "$payload" \
+        | CLAUDE_PLUGIN_ROOT="$pdir" CLAUDE_PROJECT_DIR="$HOOK_SANDBOX" HOME="$HOOK_SANDBOX" TMPDIR="$ptmp" \
+          $TIMEOUT_CMD bash -c "${cmd//'${CLAUDE_PLUGIN_ROOT}'/$pdir}" 2>/dev/null) || true
+      bytes=$(printf '%s' "$out" | wc -c | tr -d ' ')
+      # SUM across this plugin's prompt hooks — a prompt that trips two of them
+      # pays both — then MAX across prompts.
+      ups_sum=$((ups_sum + bytes))
+    done < <(jq -r '.hooks.UserPromptSubmit[]?.hooks[]?.command // empty' "$hj" 2>/dev/null)
+    [ "$ups_sum" -gt "$ups_max" ] && ups_max=$ups_sum
+  done
+  total=$((total + ups_max))
+
+  for ev in PreToolUse PostToolUse; do
     case "$ev" in
-      UserPromptSubmit)
-        payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg sid "$sid" \
-          '{hook_event_name:"UserPromptSubmit",prompt:"refactor the auth module, add tests and review the diff",session_id:$sid,cwd:$cwd}') ;;
       *)
         payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg ev "$ev" --arg sid "$sid" --arg f "$HOOK_SANDBOX/src/example.ts" \
           '{hook_event_name:$ev,tool_name:"Edit",session_id:$sid,cwd:$cwd,

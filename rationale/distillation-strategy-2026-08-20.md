@@ -235,6 +235,15 @@ a whole plugin.
 
 ## 5. Live defects found during this audit
 
+**All ten are FIXED on this branch** (see the commit that follows this document).
+Two carry new enforcement so they cannot recur silently: `pc_bundle_readme_members`
+in `scripts/lib/plugin-checks.sh` (D8) and a case-matching regression case in
+`scripts/smoke/route-marker-tests.sh` (D1), each demonstrated failing against the
+unfixed artifact before it was kept. D6 has **no** gate — the proposed
+`pc_dangling_prose` catches 5 of its 11 shapes and the other 6 need a grammar
+model, so claiming a gate there would be the tier over-claim this repo forbids.
+
+
 | # | Location | Defect | Impact |
 | --- | --- | --- | --- |
 | D1 | `plugins/skill-router/hooks/route.sh:68-73` + `rules.tsv:127` | `match_glob` compares with `case "/$file_path" in *"/$mid/"*` — **case-sensitive**. `**/resources/js/Pages/**` is inertia's ONLY routing row | On a project scaffolded with lowercase `resources/js/pages/` (Laravel's current starter kits), the inertia plugin routes **nothing**; its 2,134-token skill never loads. `rules.tsv:125` `**/Livewire/**` has the same exposure, mitigated by a second row |

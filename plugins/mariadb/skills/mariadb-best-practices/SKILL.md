@@ -3,7 +3,7 @@ name: mariadb-best-practices
 description: Use when writing or reviewing MariaDB 10.6+ schemas, queries, or migrations — MariaDB-vs-MySQL divergences, RETURNING, sequences, system-versioned tables, native UUID, vector search, JSON-as-LONGTEXT, Galera awareness. Generic SQL lives in sql; MySQL rules in mysql.
 ---
 
-> Last verified: 2026-08-02 — https://endoflife.date/mariadb
+> Last verified: 2026-08-20 — https://endoflife.date/mariadb (checked: series EOL dates)
 
 ## MariaDB is not MySQL
 
@@ -30,8 +30,8 @@ Pin advice to the installed version; the useful floors:
   audit/history for free — query the past with `FOR SYSTEM_TIME AS OF`.
 - **10.5** — `INSERT ... RETURNING` and `DELETE ... RETURNING`: fetch generated
   ids or removed rows in one round trip instead of insert-then-select.
-- **10.6** — `JSON_TABLE`; ignored indexes (test removal safely). EOL reached
-  2026-07 — any remaining 10.6 deployment is unsupported; the upgrade is overdue.
+- **10.6** — `JSON_TABLE`; ignored indexes (test removal safely). Community EOL
+  2026-07-06 — a remaining 10.6 deployment is unsupported unless on enterprise.
 - **10.7** — native `UUID` type: stores compactly, sorts sanely — use it instead
   of `CHAR(36)`; `INET4`/`INET6` types for addresses.
 - **10.8** — descending index support: `ORDER BY a ASC, b DESC` can finally be

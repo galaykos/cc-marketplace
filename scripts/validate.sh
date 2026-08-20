@@ -691,6 +691,13 @@ harness_gap=$(pc_harness_payload .) || true
 prime_gap=$(pc_prime_coverage plugins) || true
 [ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
 
+# A bundle's README must name every plugin it installs. Two commits added a
+# dependency to four bundles and updated zero READMEs; the all-bundle dependency
+# gate above proved the deps RESOLVED and said nothing about whether a user could
+# discover them. Presence only — nothing here gates that the description is true.
+bundle_readme_gap=$(pc_bundle_readme_members plugins) || true
+[ -n "$bundle_readme_gap" ] && lane_err "$bundle_readme_gap" "bundle README does not name a plugin its plugin.json installs — add a line for each name listed"
+
 # Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
 # claims — the densest ownership statements the marketplace ships, and the only ones a
 # USER reads before installing. They were the one surface pc_handoff_refs never scanned,

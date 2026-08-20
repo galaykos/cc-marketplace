@@ -38,11 +38,11 @@ Agent-graded; the why is in approach-deliberation's skip list.
 
 ## Defer rule
 
-The taskmaster pipeline is active on the same task — a grill ledger is
-open, a brainstorm dialogue is running, or task cards are executing →
-the round steps back. Taskmaster now runs its own blind
-persona round (these four briefs) at its design and spec step; a second
-round here would only re-litigate that settled one.
+The taskmaster pipeline is active on the same task — a grill ledger is open, a
+brainstorm dialogue is running, or task cards are executing → the round steps
+back, UNLESS taskmaster itself dispatched it: grill and brainstorm run these four
+briefs at their design/spec step and a ledger is open at that moment, so reading
+the ledger as a stop signal there would cancel the round taskmaster just asked for.
 
 ## The personas — fixed, non-configurable
 

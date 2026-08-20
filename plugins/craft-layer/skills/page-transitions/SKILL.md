@@ -6,8 +6,10 @@ description: Use when adding motion between routes or pages — a shared element
 ## What this decides
 
 This skill decides WHETHER a route or page change earns a transition and HOW to
+choreograph it across the frameworks craft-layer targets. It does not re-teach the View
 Transitions API — `document.startViewTransition`, the `@view-transition { navigation }`
 at-rule, feature-detection, and Motion's `animateView` already live in
+`plugins/ui-ux/skills/motion-best-practices/SKILL.md` — reference them by path.
 
 **Reconciliation:** motion-best-practices owns the *API* (how to call the browser's
 view-transition primitives and the reduced-motion snippet). This skill owns the

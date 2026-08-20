@@ -132,7 +132,8 @@ run — so a stale corpus is visible rather than assumed.
 ## Part 3 — The assertion
 
 **Scripted.** `template/craft-gates/divergence.mjs`, check name `spine-register`, run by
-`/craft-layer:audit` step 1 and `/craft-layer:craft` step 7 as `node scripts/divergence.mjs`.
+`/craft-layer:audit` step 4 — the one call site; a `/craft-layer:craft` run reaches it only
+because craft step 7 calls that command.
 It is a script and not another prose rule on purpose: the check it sits beside — the
 plain-what line against the concept's metaphor vocabulary — is itself agent-graded prose, and
 mirroring prose with prose reproduces the very defect this gate exists to end.
