@@ -32,6 +32,7 @@ tail**, and the repo has been steering by an instrument that under-reads by half
 | --- | --- | --- | --- |
 | `scripts/context-budget.sh` | `everything` = 12,789 always-on tokens | `claude plugin details` summed over the 61 leaves = **19,667** | gate, measuring low by 1.54× |
 | Same | Method: description bytes ÷ 4 (`:226`) | Host charges a per-component floor (~60–130 tok even for a one-line description) plus counts commands as skills | — |
+| Same, second independent under-read | SessionStart hooks measured in a sandbox with empty `HOME` and no env (`:66-79`) | It meters the **OFF state**. `terse/hooks/activate.sh` emits **4,171 B ≈ 1,043 tok** when a level is set (re-verified this session) and 0 in the sandbox; `brain/hooks/inject.sh` emits ~2,104 B with an `INDEX.md` present, baseline 89; `terse/hooks/mode.sh` adds ~174 tok per prompt, dynamic baseline 0. **≈1,569 always-on + 174/prompt invisible in the config a user runs** | gate, blind to its own subject |
 | CLAUDE.md, "Every enforcement surface" | four scripts + 20 smoke harnesses | Accurate, but **no official check runs**: `claude plugin validate --strict`, `claude plugin details`, `claude plugin eval` appear in zero scripts and zero CI steps (`grep -rn 'plugin details\|plugin validate\|plugin eval' scripts/ .github/`) | gap |
 | `claude plugin validate --strict`, measured before recommending it | would catch schema drift | **All 71 plugins pass today**, so adopting it finds nothing now — it is a regression guard, not a discovery. And it is weaker than the docs imply: pointed at a skills dir it accepted a SKILL.md whose frontmatter carried an invented `bogusfield:` key. It validates manifests, not skill-frontmatter typos, in this build | worth adopting, worth not over-claiming |
 | `rationale/distillation-review-2026-08-17.md` §7 | control/treatment runs are expensive and hand-rolled | **`claude plugin eval --ablation with-without` ships in the installed CLI today** and runs the with/without arm automatically | superseded |
@@ -150,7 +151,7 @@ removes its description from the listing. Ranked candidates with measured eviden
 | Action | Evidence | Always-on saved |
 | --- | --- | --- |
 | Resolve 4 skill/command NAME COLLISIONS (`approaches:build-vs-buy`, `fresh-take:consult`, `hindsight:harvest`, `taskmaster:brainstorm` each exist as both) — the host lists both entries | `claude plugin details approaches` shows `build-vs-buy` twice | ~4 × 60–130 tok |
-| `disable-model-invocation: true` on skills that only ever fire because a command names them explicitly — e.g. craft-layer's 8 flow-only skills (webgl-effects, section-decisions, scroll-orchestration, physics-motion, page-transitions, motion-tiers, kinetic-typography, interaction-fx), which no other plugin names and no `rules.tsv` row routes | 1,876 description chars ≈ 469 tok by our meter, more by the host's | up to ~470 tok, at the cost of direct-invocation discovery |
+| ~~`disable-model-invocation: true` on craft-layer's 8 flow-only skills~~ — **withdrawn, see §8d**: their triggers are prompt-shaped, and the description is the only channel a prompt-shaped trigger has | 1,876 description chars ≈ 469 tok | 0 — the proposal was wrong, not the lever |
 | Merge `database-design` into `sql-best-practices` | 7 ideas duplicated across sql/database/mysql/mariadb/postgresql, incl. "index every FK" in **6** places; a migration file in a MySQL project loads 4,333 tokens of bodies at once | ~120 tok always-on, ~1,120 on-invoke per co-fire |
 | Merge `approach-deliberation` + `opinion-round` | `plugins/approaches/lane.tsv:12-16` already blesses them as ONE territory; `opinion-round:107` concedes "approach-deliberation's output shape, so downstream handling is identical" | ~100 tok always-on, ~3k on-invoke |
 | Fold `code-architecture:task-orchestration` into `plan-before-code` | its parallel-safety rule is stated in 4 places; 0 router rows, 0 lane rows, 0 invocations | ~90 tok always-on, ~1.5k on-invoke |
@@ -213,8 +214,13 @@ path-triggered skill activation, which the host documents as a frontmatter field
   move the 67 `rules.tsv` rows that are pure path globs onto the skills
   themselves and measure what remains of skill-router's dynamic cost;
   (3) set `disable-model-invocation: true` on skills only ever reached by a
-  command that names them (craft-layer's 8 flow-only skills are the clear set),
-  which removes their descriptions from the listing entirely.
+  command that names them — **but not on craft-layer's 8 flow-only skills, which
+  is where this document first pointed it.** The design audit (§8d) killed that
+  target: `plugins/skill-router/rules.tsv:91-95` records that those skills
+  "deliberately reach sessions via `/craft-layer:craft` and the catalog channel,
+  not per-file rules — their triggers are prompt-shaped, not file-shaped", and
+  the flag deletes the description, which IS the prompt-shaped channel. The lever
+  is real; find a target whose only caller is a command.
 - **Standing:** `recorded` until tested; the test is one install and one prompt.
 - **Does NOT fix:** the marketplace's own routing intelligence — `route-prompt.sh`
   also does prompt-text matching and rank arbitration, which `paths:` does not do.
@@ -236,6 +242,9 @@ a whole plugin.
 | D3 | `plugins/react/skills/react-server-state/SKILL.md:32,72-73` | Version claims ("TanStack Start is v1 RC", "v5: import `keepPreviousData`") with **no stamp**; passes the version-leverage gate only because a sibling skill carries one | The gate is plugin-scoped; the decay is file-scoped |
 | D4 | `plugins/web-dev/agents/frontend-reviewer.md:7,21,25` | Names 8 skills, three times in 19 lines, and omits `react-data-grid` although `react` and `web-dev` ship in the same bundle | A TanStack Table file reviewed by this agent gets zero data-grid rubric, including the index-keyed `rowSelection` bug that silently bulk-deletes the wrong rows |
 | D5 | `opinion-round:32-37` / `grill:118-120` / `brainstorm:94` | The double-deliberation guard reads `.claude/approaches/deliberated.json`, but neither taskmaster path that runs a round WRITES it | The guard is unarmed on the two paths that most often run a round |
+
+| D6 | 11 sites in 9 files, listed in §8d | Commit `3c8e6d7` ("prose strip — net -76 lines, **no capability removed**") deleted wrapped continuation lines and **severed sentences that ship today** — e.g. `scroll-orchestration/SKILL.md:8-9`, `webgl-effects/SKILL.md:8-9`, `information-design/SKILL.md` ending mid-sentence at "Cite the" | The clause naming what a skill decides is gone from five skills; no gate in this repo can distinguish deleting a redundant line from deleting half a sentence |
+| D7 | `plugins/craft-layer/template/craft-gates/contrast.mjs` | 183 lines with **zero runnable invocation sites**, while `template/craft-gates/gates.spec.ts:143-151` disables axe's `color-contrast` rule and names `contrast.mjs` "the gate of record" | Contrast is checked by nothing on any path. Same inverted-tier shape as the `utility-palette` finding in the 2026-08-17 review |
 
 Plus one contradiction worth a clause: `opinion-round:41-45` says the round steps
 back when "a grill ledger is open", and `grill:46-52` writes exactly that ledger
@@ -276,4 +285,162 @@ Recorded because a distillation that only reports confirmations is not measuring
 
 ## 8. Cluster findings
 
-Appended per cluster as each audit lands.
+Five Fable-xhigh audits, one per cluster, each read-only and each required to
+report the proposals it KILLED. Condensed here; the numbers are theirs, spot-checked
+by re-running the load-bearing ones.
+
+### 8a. Meta / session-shaping (claude-authoring, skill-router, plugin-scout, vercel-skills-scout, registry-source, brain, hindsight, terse, candor, lean, fresh-take, orchestration)
+
+**The meter reads the OFF state.** `context-budget.sh:66-79` runs SessionStart
+hooks in a sandbox with an empty `HOME` and no env, so state-gated hooks emit
+nothing and score ~0. Re-measured in the ON state:
+
+| Hook | Gate reads | ON state | Verified |
+| --- | --- | --- | --- |
+| `plugins/terse/hooks/activate.sh` | 0 (886 tok of descriptions only) | **4,171 B ≈ 1,043 tok** with `CC_TERSE=ultra` and `CLAUDE_PLUGIN_ROOT` set | re-ran it — 4,171 |
+| `plugins/terse/hooks/mode.sh:176` | 0 dynamic | **697 B ≈ 174 tok per prompt** (its own header claims "~120 tokens… measured: 476 chars", +46% stale) | agent-measured |
+| `plugins/brain/hooks/inject.sh:63-66` | 89 | **2,104 B ≈ 526 tok** with a 60-line `brain/INDEX.md` (clamped by `head -c 2048`) | agent-measured |
+
+**≈1,569 always-on tokens plus 174/prompt are invisible to the gate in exactly
+the configuration a user runs.** This is the second independent reason our meter
+under-reads, on top of the per-component floor in §2.
+
+Other findings: `plugin-scout/scripts/pick.sh` and `vercel-skills-scout/scripts/pick.sh`
+are **byte-identical** (44 lines, `diff` = 0) and their reference prose differs by
+2 lines — the prose merges, the scripts must not (independent installs).
+`orchestration/skills/ultra-assess/SKILL.md:51-75` claims to quote the hook
+"verbatim"; the hook injects 1,092 chars, the block is 1,740 and they diverge
+after 90. `plugins/brain/ROADMAP.md` ships 93 lines of maintainer planning to
+installers, including a literal `/taskmaster:task` prompt and a pointer into
+gitignored `taskmaster-docs/`. `prime.sh:35-41` **under-claims** its own standing
+("the comment is the only thing holding them together, a `recorded` tier") —
+false since `pc_prime_coverage` landed, and an under-claim erodes the has-teeth
+convention exactly as fast as an over-claim.
+
+### 8b. Workflow / process (taskmaster, task-runner, code-architecture, approaches, testing, code-review, git-workflow, comment-discipline, command-guard, debugging)
+
+**The 150-line ceiling stopped measuring.** Verified independently:
+`task-runner/skills/task-execution/SKILL.md` sat at **exactly 154 lines across 20
+commits (2026-07-17 → 08-02)** while bytes went **9,288 → 12,193 (+31%)** and lines
+over 110 chars went **2 → 29**. `task-cards/SKILL.md`: 105 lines/4,550 B →
+154/9,318 — lines +47%, bytes **+105%**, with one line (`:123`) at **1,526 chars
+≈ 380 tokens** carrying four separate rules. Content accretes until the gate bites,
+then goes onto an existing line.
+
+**What one medium feature costs**: `/taskmaster:task` on a medium feature loads
+21 mandatory artifacts ≈ **37.3k tokens**, plus ~13.8k for the conditional set a
+medium feature actually trips — **~51k tokens of instruction text**, on top of the
+always-on listing. Hook stdout is NOT the cost problem here: on a synthetic `Edit`
+all seven PostToolUse hooks in the cluster emitted 0 bytes; `taskmaster/hooks/remind.sh`
+emits 199 chars on a work-shaped prompt.
+
+Merge candidates with the plugin's own words as evidence: `approach-deliberation`
++ `opinion-round` (`plugins/approaches/lane.tsv:12-16` already declares them ONE
+territory; `opinion-round:107` concedes the output shapes are identical) ≈ 3k
+on-invoke; `code-architecture:task-orchestration` → `plan-before-code` (its
+parallel-safety rule is stated in **four** places; 0 router rows, 0 lane rows).
+`taskmaster/commands/task.md:14-31` is an 18-line boost preamble byte-duplicated
+into three sibling commands and gated for parity by `validate.sh:569-610` —
+72 lines / ~1,600 tokens shipped for one rule that `skills/ultra/SKILL.md:17-36`
+already owns.
+
+### 8c. Stack / language (18 plugins)
+
+**The strongest untested claim in the marketplace, found inside our own records.**
+`rationale/stack-skill-baselines.md:39-44` kept every stack plugin on the theory
+that they "encode version leverage maps and lockfile-pinning behavior, not
+idioms" — and `rationale/measured-zero-shapes.md:23-34` records that per-version
+idiom maps **measured 0 delta twice and were deleted**, with the blind control
+finding defects the treatment missed. The half that saved them is the half that
+scored zero; the surviving justification (manifest/lockfile reading) was never
+exercised because "fixtures had no manifests".
+
+Leverage ratio by line, four skills classified rule by rule:
+`nextjs` **69%** (13 version-pinned rules, and they are *inversions* — "Since
+Next.js 15, `fetch` defaults to `no-store`… the Next 14 cached-by-default mental
+model is inverted"), `vue3` 57%, `sql` 56%, `php` **27%** (100 of 141 body lines
+are language idiom).
+
+Duplication is concentrated in the DB family: "index every foreign key" appears
+in **6** places, "read the plan before optimizing" in 5, "batch backfills" in 5.
+A migration file in a MySQL project co-fires `sql` + `database-design` + `mysql`
+= **4,333 tokens** of bodies at once, and `database-design:16-20` states the seam
+it then breaks twice in the same file. **Merge `database-design` into
+`sql-best-practices`; keep `plugins/database` for its PreToolUse destructive-SQL
+guard and its agent** — a mechanism is the one thing that has never measured zero.
+
+**Rejected on evidence:** merging `mysql` + `mariadb`, despite 5 duplicated
+ideas. `mariadb:8-22` is *inverted* advice against the MySQL answer ("No
+`utf8mb4_0900_*` collations", "JSON is an alias for LONGTEXT"). Merging puts the
+answer and its negation in one body.
+
+19 compressions were identified totalling **181 lines / 2,771 tokens**, of which
+a **zero-argument subset — 44 lines / 668 tokens** — is second recaps in files
+that already ship one, plus closing summaries that `authoring-skills:84` already
+forbids ("no closing summary").
+
+### 8d. Design / UI / craft (craft-layer, ui-ux, shadcn-studio, design-preview, a11y, i18n)
+
+**A previous distillation silently corrupted shipped prose, and it is still
+shipping.** Commit `3c8e6d7` (2026-07-27), message *"craft-layer prose strip —
+net -76 lines, no capability removed"*, deleted wrapped **continuation** lines,
+severing sentences. **11 corruption sites in 9 files are on `HEAD` today.**
+Verified three by hand:
+
+- `scroll-orchestration/SKILL.md:8-9` now reads "…needs orchestrated scroll motion
+  and WHICH / ScrollTrigger API:" — the deleted line was "engine drives it — then
+  pins the contract and the budget. It does not re-teach the", i.e. the clause
+  naming what the skill decides. `git show 3c8e6d7^:…` shows it intact. The
+  commit message's "no capability removed" is false.
+- `webgl-effects/SKILL.md:8-9`: "…earns the GPU cost and / Three.js: the renderer…"
+- `information-design/SKILL.md` **ends mid-sentence**: "Cite the"
+
+The gate that would catch it does not exist, and the proposed byte ceiling and
+300-char lint in W4 would fire on **zero** craft-layer skills while these 11 ship.
+The audit proposes `pc_dangling_prose` — column-0 prose line ending in a comma or
+a function word, followed by a blank line — measured at **5 hits, 5 true
+positives, 0 false positives** repo-wide, and states its own residual honestly:
+**6 of the 11 sites are mid-paragraph and uncatchable by that regex.**
+
+**`contrast.mjs` is invoked by nothing** — 183 lines, 3 test fixtures, and zero
+runnable call sites (verified: every hit is prose or its own header), while
+`gates.spec.ts:143-148` **disables axe's `color-contrast` rule** and cites
+`contrast.mjs` as "the gate of record". An automated check switched off in favour
+of a stronger one that never runs. One line in `commands/audit.md:80` closes it.
+Correction to `rationale/distillation-review-2026-08-17.md:109-111`: `divergence.mjs`
+is invoked from **one** site, not two — `commands/craft.md:180-182` explicitly
+forbids running the audit's gates from the craft step.
+
+**craft-layer is not 13 skills sliced from one capability**, and the merge was
+tested rather than assumed: 7 of the 8 motion-family skills open with an ordered
+`Decide: does X earn its cost?` procedure keyed on a *different axis*, each
+terminating in "don't" — `measured-zero-shapes.md:87-91`'s not-zero shape ("the
+order is the content"). Merging them yields either a 7-branch router or an
+unordered catalogue, which is the measured-zero shape, at ~800 lines against a
+150 ceiling. **Killed.** The distillation there is horizontal: 41 of 45
+`## References` bibliography entries re-gloss a file the body already cites at a
+decision point — **89 lines / ~1,552 tokens**, and cutting them returns ~7 lines
+of headroom per skill, which is the pressure that produced the truncations.
+
+**This audit also killed a proposal from §4 of this document.** W5 suggested
+`disable-model-invocation: true` on craft-layer's 8 flow-only skills (~470
+always-on tokens). `plugins/skill-router/rules.tsv:91-95` gives the reason it is
+wrong: those skills "deliberately reach sessions via `/craft-layer:craft` and the
+catalog channel, not per-file rules — **their triggers are prompt-shaped, not
+file-shaped**". The flag deletes the description, which IS the prompt-shaped
+channel. All 8 descriptions were checked for one a bare prompt could not express;
+none. **W5's third bullet is withdrawn for those 8** — the lever stands, the
+target was wrong.
+
+Two more gate candidates, both measured: a **sibling-as-child reference path**
+check (`references/X.md` cited from inside `references/`, resolving to
+`references/references/X.md`) — **7 repo-wide, 0 possible false positives**; and
+one genuinely dead reference, `scroll-orchestration/references/lenis-substrate.md`
+(73 lines), whose five rules are already in the body — with the honest catch that
+its `> Last verified:` stamp must move into the body first or
+`check-doc-staleness.sh` loses its only lenis input.
+
+### 8e. Infra / bundles
+
+Pending — the audit was still running when this section was written. See
+`taskmaster-docs/distill-2026-08-20-retry-queue.md` for its status.
