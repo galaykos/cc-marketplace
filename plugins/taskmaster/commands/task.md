@@ -71,7 +71,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
 5. Write the spec per the grill skill's Stopping section — grill OWNS the
    spec-write sequence (approach decision → spec → lint); this step summarizes it,
    never run a stage twice. Decide the approach first when structurally different
-   implementations exist (opinion-round per grill Stopping §1; skip for mechanical
+   implementations exist (the blind panel per grill Stopping §1; skip for mechanical
    tasks). Then write `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: a header with
    the raw + upgraded statement pair (under the `**Raw prompt:**` /
    `**Upgraded statement:**` labels), goal, decisions with sources, accepted

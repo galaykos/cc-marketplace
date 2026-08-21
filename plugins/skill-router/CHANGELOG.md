@@ -2,6 +2,14 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.13.5
+
+### Changed
+- Catalog text follows two merges: `opinion-round` is now <!-- removed-ok -->
+  approach-deliberation's blind-panel mechanism and `task-orchestration` is <!-- removed-ok -->
+  plan-before-code's "Split into tasks". No routing rows changed — neither skill
+  had one.
+
 ## 0.13.4
 
 ### Changed

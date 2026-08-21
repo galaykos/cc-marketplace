@@ -1,6 +1,6 @@
 ---
 name: opinion-lens
-description: Spawned by the opinion-round skill, four in parallel — argues one persona's take on the approach, blind to the others.
+description: Spawned by approach-deliberation's blind panel, four in parallel — argues one persona's take on the approach, blind to the others.
 tools: Read, Grep, Glob
 model: sonnet
 effort: low

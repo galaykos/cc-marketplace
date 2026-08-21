@@ -53,13 +53,13 @@ Meta-plugins that pull in a whole set via dependencies — one install, no picki
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `everything` | 61 | ~12.6k tokens | ~1.2k tokens | ~2.5k tokens |
-| `taskmaster-suite` | 31 | ~7.4k tokens | ~175 tokens | ~2.5k tokens |
+| `everything` | 61 | ~12.5k tokens | ~1.2k tokens | ~2.5k tokens |
+| `taskmaster-suite` | 31 | ~7.3k tokens | ~174 tokens | ~2.5k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
-| `quality-principles-suite` | 9 | ~2.1k tokens | — | — |
-| `process-suite` | 10 | ~2.0k tokens | ~37 tokens | ~2.5k tokens |
+| `quality-principles-suite` | 9 | ~2.0k tokens | — | — |
+| `process-suite` | 10 | ~1.9k tokens | ~37 tokens | ~2.5k tokens |
 | `frontend-suite` | 12 | ~1.6k tokens | ~37 tokens | ~2.3k tokens |
-| `quality-suite` | 8 | ~1.3k tokens | ~37 tokens | ~2.4k tokens |
+| `quality-suite` | 8 | ~1.2k tokens | ~37 tokens | ~2.4k tokens |
 | `php-suite` | 6 | ~569 tokens | — | — |
 | `db-suite` | 5 | ~439 tokens | — | — |
 | `product-suite` | 3 | ~277 tokens | — | — |

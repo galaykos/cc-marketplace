@@ -117,10 +117,10 @@ assumption list, or the user says "enough". Then:
 
 1. Decide the implementation approach when the settled requirements admit two or more
    structurally different implementations (new module vs extend, sync vs async, rewrite vs
-   strangler) and the task is not mechanical. approaches plugin installed → run its opinion-round: dispatch the four blind `opinion-lens` personas
+   strangler) and the task is not mechanical. approaches plugin installed → run its blind panel: dispatch the four `opinion-lens` personas
    (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) per
    that skill's blind-dispatch contract, synthesize one pick + kill-trigger, then WRITE its
-   marker `.claude/approaches/deliberated.json` (`{"task","by":"opinion-round","at"}`) —
+   marker `.claude/approaches/deliberated.json` (`{"task","by","at"}`) —
    unwritten, the double-run guard is unarmed and `/approaches:opinions` re-litigates the
    settled pick. Absent → 2–3 inline and pick. Skip mechanical or single-approach tasks, or
    when an upstream brainstorm design already recorded the approach.

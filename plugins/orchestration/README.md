@@ -64,5 +64,5 @@ quality.
 
 - **task-runner** — the parallelize-or-inline verdict and execution loop these contracts feed
 - **taskmaster** — produces the card indices with parallel groups that the review command audits
-- **code-architecture** — task-orchestration decomposes the work these contracts then dispatch
+- **code-architecture** — plan-before-code decomposes the work these contracts then dispatch
 - **claude-authoring** — owns agent authoring: the naming taxonomy and PROACTIVE-trigger arbitration live in its `authoring-agents` skill

@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.3
+
+### Changed
+- `parallel-planning`'s boundary sentence names plan-before-code as the owner of
+  task decomposition; the skill it named was merged there. <!-- removed-ok -->
+
 ## 0.29.2
 
 ### Changed

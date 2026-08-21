@@ -153,12 +153,20 @@ pc_removed_refs() {
   [ -f "$f" ] || return 0
   b='[^[:alnum:]-]'
   plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency'
+  # task-orchestration added 2026-08-21: merged into plan-before-code, which
+  # already produced the file map its dependency edges were derived from. Its
+  # parallel-safety rule was stated in four places across three plugins; the
+  # worked table, the one thing nothing else had, is now that skill's reference.
+  # opinion-round added 2026-08-21: merged into approach-deliberation, whose own
+  # lane.tsv had already declared the two as ONE territory. The blind panel is now
+  # that skill's second mechanism (references/blind-panel.md), not a second skill
+  # with its own copy of the marker, defer rule, proceed rule and kill-trigger.
   # database-design added 2026-08-20: merged into sql-best-practices, which already
   # stated four of its rules (constraints in the schema, index every FK, additive
   # migrations, short transactions) at the same level of generality while the file
   # claimed to defer where both could speak. The `database` PLUGIN survives — it
   # ships the destructive-SQL PreToolUse guard and the database-engineer worker.
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design'
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration'
   shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? plugins?($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)($skills)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:

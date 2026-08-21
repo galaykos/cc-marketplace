@@ -94,7 +94,7 @@ design shapes are viable, do not generate them from one voice — that anchors e
 `opinion-lens` personas (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist,
 Skeptic-Investigator) on the design question, synthesize alternatives + recommendation from
 their takes, then WRITE the round's marker `.claude/approaches/deliberated.json`
-(`{"task","by":"opinion-round","at"}`): unwritten, the double-run guard is unarmed and the
+(`{"task","by","at"}`): unwritten, the double-run guard is unarmed and the
 question is re-litigated downstream. Absent → propose 2–3 yourself, recommendation first
 and argued. If only one approach exists, say so — "alternatives considered: none viable
 because X" is a legitimate answer; silence is not. YAGNI applies at design level: strike

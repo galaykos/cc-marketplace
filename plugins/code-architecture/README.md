@@ -30,7 +30,7 @@ plugin.
 ## Skills & agent
 
 Best-practice skills auto-trigger by context — `plan-before-code`,
-`low-cognitive-load`, `solid-principles`, `yagni-check`, `task-orchestration`,
+`low-cognitive-load`, `solid-principles`, `yagni-check`,
 `work-verification`, and `drift-review`. The `architecture-reviewer` agent reviews
 structural changes for boundaries, cohesion, and cognitive load.
 

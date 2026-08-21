@@ -2,6 +2,20 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.5
+
+### Changed
+- **`task-orchestration` merged into `plan-before-code`.** Its dependency edges
+  were always derived from the file map plan-before-code produces, and its
+  parallel-safety rule ("neither reads a still-changing output of the other, and
+  neither writes shared state") was stated in four places across three plugins.
+  The body gains a "Split into tasks" section carrying the task definition,
+  dependency ordering, the parallel rule and the review gate; the worked
+  decomposition table — the one thing nothing else stated — is
+  `references/task-decomposition.md`. plan-before-code's own 38-line worked
+  example moved to `references/worked-example.md` to make room, so no rule was
+  displaced by the merge. <!-- removed-ok -->
+
 ## 0.13.4
 
 ### Changed

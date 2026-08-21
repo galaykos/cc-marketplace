@@ -3,6 +3,13 @@
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.2
+
+### Changed
+- `model-tier-scoping.md` points at the surviving owners after two merges:
+  what-to-split is plan-before-code, and the skip-clause example is the
+  deliberation panel's. <!-- removed-ok -->
+
 ## 0.12.1
 
 ### Added

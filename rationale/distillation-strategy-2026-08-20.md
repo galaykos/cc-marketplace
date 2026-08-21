@@ -189,6 +189,14 @@ baseline arm, scores with graders, and writes JSON.
 > `task-orchestration` (90) + `plan-before-code` (150, already AT the cap) cannot
 > be one skill without displacing content. **W4 unblocks W3** — that dependency
 > was not visible when this document was written.
+> **CLOSED 2026-08-21: both merges landed.** The unblock was not the ceiling
+> moving — 150 lines still stands — but the technique W4 forced on five files:
+> offload the demonstration to `references/` and cite it at the decision point.
+> `opinion-round` → `approach-deliberation` (the blind panel becomes its second
+> mechanism, `references/blind-panel.md`); `task-orchestration` →
+> `plan-before-code` ("Split into tasks", plus `references/task-decomposition.md`).
+> Measured: `everything` 12,649 → **12,510 always-on tokens**; W3 in total moved
+> it 12,779 → 12,510, **−269 tokens (≈−410 at the host's 1.54x)**.
 > One gate defect found while doing it: the `/plugin:command` reference check
 > resolved only to `commands/<name>.md`, so deleting a command whose skill still
 > answers the same slash command produced 12 FAILs about references that had
