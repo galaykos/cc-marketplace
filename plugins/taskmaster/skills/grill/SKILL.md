@@ -15,8 +15,10 @@ what gets built — if any answer leads to the same code, delete the question.
 
 ## Step 0 — scout before asking
 
-Dispatch the `context-scout` agent with the raw task description before asking the
-user anything; then, once its report is folded into the ledger (below), derive an upgraded task statement from the raw prompt plus that scout report per `references/prompt-upgrade.md` (mode-agnostic — sharpen the objective, name implied constraints, never reinterpret scope). Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE — a mechanical role, so no model override — with recon lenses sized to blast radius per that skill's `references/dispatch-tiers.md`, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native. Fold its report into the ledger:
+Dispatch `context-scout` with the raw task description before asking the user anything. Fold its
+report into the ledger, then derive an upgraded task statement from the raw prompt plus that report
+per `references/prompt-upgrade.md` — sharpen the objective, name implied constraints, never
+reinterpret scope. Boosted runs bind this step differently: `../ultra/references/dispatch-tiers.md`.
 
 - "Already answered by code" entries become CLEAR rows with evidence. Never ask the
   user something the codebase answers — it burns trust and attention.
@@ -144,10 +146,8 @@ output so the user can veto any of them afterward.
 
 ## Anti-patterns
 
-- Asking what the codebase already answers — that is what the scout is for.
 - Double-barreled questions ("should it paginate and cache?") — one topic each.
 - Generic template questions detached from this task or this repo.
-- Re-asking anything already CLEAR — the ledger exists so you never re-litigate.
 - Accepting a vague answer on a scope-critical row: respond with 2–3 concrete
   options or examples instead of repeating the question louder.
 - Padding rounds to look thorough. The measure of a good interrogation is how much

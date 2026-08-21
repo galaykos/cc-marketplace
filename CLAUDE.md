@@ -66,7 +66,12 @@ saying so is the point.
 
 ## Plugin change gates
 
-- `scripts/validate.sh` — structure, frontmatter, SKILL.md 150-line body ceiling (no floor),
+- `scripts/validate.sh` — structure, frontmatter, the SKILL.md body budget — **150 lines,
+  10,000 bytes, and 300 characters per line** (no floor; the byte and line-length
+  measures were added 2026-08-20 because the line count had stopped measuring: one
+  skill sat at a frozen 154 lines across 20 commits while its bytes grew 31% and its
+  >110-char lines went 2 → 29. Frontmatter, fenced code and table rows are exempt from
+  the line-length check, by construction and stated in the check),
   reference resolution, the description linter (max 500 chars for frontmatter
   descriptions, no "Trigger words:" lists; plugin.json descriptions get a
   WARN-only 700-char clarity guideline), and the doc-location rule above. It also blocks leaked internal taskmaster

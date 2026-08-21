@@ -4,30 +4,73 @@
 # close over no caller globals (no err/fail/allow_md), and take all inputs as args.
 
 # pc_skill_budget <skill_md_path>
-# On a body-length violation: prints "budget <path> <n>" and returns 1.
+# On a violation: prints "budget <path> <kind> <n>" and returns 1, where kind is
+# `lines`, `bytes`, or `line-length` (the last also prints `:<lineno>`).
 # Clean or missing file: prints nothing, returns 0.
 #
-# CEILING ONLY (2026-07-27). The former 100-line FLOOR was removed: it failed the
-# build for a skill that said its piece in 60 lines, so bodies were padded up to
-# clear it — 58 of 139 skills sat pinned to a budget edge (35 at 100-109, 5 at
-# exactly 100, 23 at exactly 150). The floor manufactured the bloat the ceiling
-# exists to stop.
+# THREE MEASURES, because one stopped measuring. The 150-LINE ceiling is the
+# original. It was demonstrably no longer a budget by 2026-08-20:
+# task-runner/skills/task-execution/SKILL.md sat at exactly 154 total lines
+# across 20 commits while its bytes grew 9,288 -> 12,193 (+31%) and its lines
+# over 110 chars went 2 -> 29. taskmaster/skills/task-cards went 105 lines /
+# 4,550 bytes -> 154 / 9,318: lines +47%, bytes +105%, with one line of 1,526
+# characters carrying four separate rules. Content accreted until the line gate
+# bit, then went onto an existing line. A ceiling that a file can grow 31% under
+# is a ceiling in name.
 #
-# LIMITATION (honest scope), two residuals:
-#   1. Nothing replaces the floor as a stub guard. validate.sh's description
-#      check reads the frontmatter `description:` line only and constrains body
-#      length in no way, so a 3-line body with a trigger sentence now passes
-#      every gate in this repo. Accepted, not covered.
-#   2. n=0 (missing or unterminated frontmatter — the `c>=2` awk emits nothing)
-#      now returns 0 instead of failing. This function is authoring-guard.sh's
-#      ONLY SKILL.md check, so a malformed SKILL.md draws no in-session warning;
-#      validate.sh's frontmatter-opener/terminator checks still catch it at CI.
+# THE NUMBERS ARE FROM THE DISTRIBUTION, NOT FROM TASTE. Measured over the 129
+# shipped skill bodies on 2026-08-20: median 6,795 B, p75 7,951, p90 8,560,
+# p95 9,051, max 11,777.
+#   - BYTES 10,000 (~2,500 tokens) fails exactly one file today, the one whose
+#     growth curve is the reason this check exists. 12,000 would fail zero — a
+#     ceiling that permits today's worst case is theater. The median would fail
+#     65 of 129, which is why "cap at the median" is the wrong instinct.
+#     Anthropic's own guidance is "under 5k tokens" for a body
+#     (https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices);
+#     this is stricter, and deliberately so, because ours load in bundles.
+#   - LINE LENGTH 300 fails five files, every one of them prose that a reflow
+#     fixes without losing a word. Prose in this repo wraps at ~90; 300 is three
+#     times that, so it flags a jammed subsection rather than a long sentence.
+#
+# LIMITATION (honest scope), four residuals:
+#   1. Frontmatter is exempt from the line check by construction — a
+#      `description:` MUST stay on one line (context-budget.sh parses it that
+#      way, and a YAML block scalar would silently undercount the always-on bill).
+#      A 900-char description is therefore invisible here; validate.sh's own
+#      500-char description linter is what covers that surface.
+#   2. Fenced code blocks and markdown table rows are exempt from the line check.
+#      Neither can be wrapped without changing meaning, and a table row is the
+#      one shape where 300+ characters is ordinary.
+#   3. Bytes measure VOLUME, not value. A dense, useless 9,000-byte body passes;
+#      only a reader catches that. This gate makes growth visible, not good.
+#   4. The old floor is still gone and still unreplaced — a 3-line body passes
+#      every gate in this repo, and neither new measure changes that.
 pc_skill_budget() {
-  local f="$1" n
+  local f="$1" n bytes maxlen maxline
   [ -f "$f" ] || return 0
   n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
   if [ "$n" -gt 150 ]; then
-    printf 'budget %s %s\n' "$f" "$n"
+    printf 'budget %s lines %s\n' "$f" "$n"
+    return 1
+  fi
+  bytes=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -c | tr -d ' ')
+  if [ "$bytes" -gt 10000 ]; then
+    printf 'budget %s bytes %s\n' "$f" "$bytes"
+    return 1
+  fi
+  # Longest BODY line outside fenced code and table rows, with its line number.
+  maxline=$(awk '
+    /^---$/ { c++; next }
+    c < 2   { next }
+    /^[[:space:]]*```/ { fence = !fence; next }
+    fence   { next }
+    /^[[:space:]]*\|/ { next }
+    { if (length($0) > len) { len = length($0); ln = NR } }
+    END { if (len > 0) print len " " ln }
+  ' "$f")
+  maxlen=${maxline%% *}
+  if [ -n "$maxlen" ] && [ "$maxlen" -gt 300 ]; then
+    printf 'budget %s line-length %s :%s\n' "$f" "$maxlen" "${maxline##* }"
     return 1
   fi
   return 0

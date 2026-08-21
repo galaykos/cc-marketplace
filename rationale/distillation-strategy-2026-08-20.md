@@ -213,6 +213,22 @@ removes its description from the listing. Ranked candidates with measured eviden
 
 ### W4 — Replace the line ceiling with a metric that still measures
 
+> **STATUS 2026-08-21: done.** `pc_skill_budget` now measures three things —
+> 150 lines, **10,000 body bytes**, **300 characters per body line** — with
+> frontmatter, fenced code and table rows exempt from the last, each residual
+> stated in the check. Thresholds came from the distribution (n=129: median
+> 6,795 B, p90 8,560, p95 9,051, max 11,777), not from taste: 10,000 fails
+> exactly the one file whose growth curve motivated the check, and 12,000 would
+> have failed zero. Five offenders fixed, none by deletion of a rule:
+> `task-execution` 11,918 → 9,907 B (boost block and role-tier floor moved to
+> references), `task-cards`' 1,542-character line → `references/index-markers.md`,
+> `grill`'s 632-character line split with its boost branch moved to ultra's
+> dispatch-tiers reference, `laravel` reflowed with its queue example moved to a
+> reference, `vite` reflowed with a closing section that restated its own stamp
+> deleted. Three new harness cases in `guard-tests.sh`, including one proving a
+> 400-character TABLE ROW is exempt.
+
+
 The 150-line body ceiling has stopped constraining content. Measured:
 `task-runner/skills/task-execution/SKILL.md` sat at exactly **154 lines across 20
 commits** while its bytes went **9,288 → 12,193 (+31%)** and its lines over 110

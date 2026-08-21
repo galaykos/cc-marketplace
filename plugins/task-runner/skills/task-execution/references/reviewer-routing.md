@@ -148,3 +148,17 @@ main runner, which then processes each member per-card. So the main runner runs 
 augmented reviewer pass (baseline `code-reviewer` + diff-content gates + tag route) on
 **each batched card's diff** on return — a batched S-card receives exactly the review its
 inline counterpart would. Batching moves where the code is written, never the review it gets.
+
+## Role-tier floor
+
+Moved out of the SKILL body on 2026-08-20, where it was a 400-character line.
+
+**Role-tier floor — applies boosted or NOT:** an agent with a row in delegation-contracts
+`references/role-floors.md` dispatches at `max(marker tier if present ELSE the session model,
+its floor)` — never below the session model; agents with no row are unfloored and unchanged
+(omit `model:`). A registry miss → omit `model:` and log `role-floors.md unresolved — floors
+not applied` in the run report.
+
+The floor is a MINIMUM, not an override: an agent already dispatching above its
+floor keeps its tier. Unfloored agents are the common case and stay untouched, so
+a registry miss degrades to today's behaviour rather than to a guess.

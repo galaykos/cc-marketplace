@@ -55,7 +55,18 @@ for d in plugins/*/skills/*/; do
   [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
   echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during)"
-  if lines=$(pc_skill_budget "$f"); then :; else err "$f: body is ${lines##* } lines, over the 150-line ceiling"; fi
+  if bud=$(pc_skill_budget "$f"); then :; else
+    # "budget <path> <kind> <n> [:line]" -> one sentence naming the measure that
+    # bit, since there are now three and "over the ceiling" no longer says which.
+    bkind=$(printf '%s' "$bud" | awk '{print $3}')
+    bval=$(printf '%s' "$bud" | awk '{print $4}')
+    bwhere=$(printf '%s' "$bud" | awk '{print $5}')
+    case "$bkind" in
+      lines)       err "$f: body is $bval lines, over the 150-line ceiling" ;;
+      bytes)       err "$f: body is $bval bytes, over the 10,000-byte ceiling — the line count stopped measuring growth, this is the replacement; move a section to references/" ;;
+      line-length) err "$f: body line $bwhere is $bval characters, over the 300-char ceiling — reflow it; a jammed subsection is how content grows under a frozen line count" ;;
+    esac
+  fi
 done
 
 # Commands need frontmatter with description:; agents additionally need name:
