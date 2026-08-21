@@ -263,6 +263,24 @@ other direction.
 
 ### W5 — Use the host's own levers before building more of our own
 
+> **STATUS 2026-08-21: probed, and the plan changed.** Full measurements in
+> `rationale/host-lever-probes-2026-08-21.md`. Three findings, none of them from
+> the docs: (1) `paths:` fires on an **edit** to a matching file — not a read,
+> not the file merely existing; (2) on a **plugin** skill it does **not** remove
+> the description from the listing (verified in a clean tree with no matching
+> file), so it buys **zero** always-on tokens for a marketplace — which kills
+> step 2, the rules.tsv migration, as a token play; (3)
+> `disable-model-invocation: true` DOES remove it while the slash command still
+> works — a real lever with **no safe target here**, because every candidate's
+> trigger is prompt-shaped and the description is the only channel it has.
+> Also a correction to W2: `claude plugin details` charged the hidden skill ~60
+> always-on tokens for a description the listing does not contain, so the host
+> meter is a static file estimate, not ground truth. The durable half of this
+> now ships in `claude-authoring/skills/authoring-skills` +
+> `references/activation-fields.md` rather than living only here — the same rule
+> this repo applies to every other convention.
+
+
 Measured: **all 130 skills use exactly two frontmatter keys — `name` and
 `description`.** Zero use `paths`, `disable-model-invocation`, `user-invocable`,
 `allowed-tools`, `model`, or `effort`. (The 32 agents already use `model` and

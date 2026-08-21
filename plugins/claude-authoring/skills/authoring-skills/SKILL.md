@@ -9,8 +9,8 @@ One skill is one directory holding one file:
 
     plugins/<plugin>/skills/<skill-name>/SKILL.md
 
-The file opens with YAML frontmatter delimited by dash-fence lines, then a
-body — the instructions loaded when the skill fires:
+YAML frontmatter between dash-fence lines, then the body — the instructions
+loaded when the skill fires:
 
     ---
     name: <skill-name>
@@ -18,17 +18,11 @@ body — the instructions loaded when the skill fires:
     ---
     <body>
 
-This marketplace's validator (scripts/validate.sh) enforces, for every
-skills/<name>/SKILL.md:
+`scripts/validate.sh` enforces: line 1 is exactly `---` with a closing `---`;
+`name:` present and equal to the directory name; `description:` present; and the
+body within the budget below. Measure it before committing:
 
-- Line 1 is exactly `---` and a closing `---` terminates the frontmatter.
-- `name:` is present and equals the skill's directory name exactly.
-- `description:` is present.
-- The body — every line after the closing `---` — is at most 150 lines.
-
-Count the body before you commit:
-
-    awk '/^---$/{c++; next} c>=2' SKILL.md | wc -l
+    awk '/^---$/{c++; next} c>=2' SKILL.md | wc -l   # and | wc -c
 
 ## The description is the trigger
 
@@ -53,22 +47,32 @@ not a summary.
   failure — none means the skill restates what the model already does. Loop in
   `references/behavioral-testing.md` (RUNNER: the host `skill-creator`, not ours). Check `rationale/measured-zero-shapes.md` first — four shapes measured at zero. Recorded: no script runs it. <!-- host-ok -->
 
+## Activation fields — measured, not assumed
+
+`paths:` fires on an EDIT to a matching file — not a read, not mere existence —
+and on a PLUGIN skill it does NOT drop the description from the listing, so it
+buys reach, never budget. `disable-model-invocation: true` does drop it, at the
+cost of the skill's only automatic channel: right for a command's implementation,
+wrong for a prompt-shaped trigger. Measured on 2.1.237, with the meter's own
+error: `references/activation-fields.md`.
+
 ## One capability per skill
 
 Scope a skill to a single capability with a single trigger.
 
 - The test: state what the skill does in one sentence without "and". If you
   cannot, it is two skills.
-- Split when the body needs headings for unrelated behaviors — if a reader
-  who came for section A never needs section B, they are two skills
-  fighting over one trigger. Two narrow triggers beat one vague umbrella.
+- Split when the body needs headings for unrelated behaviors: a reader who came
+  for section A and never needs section B is two skills fighting one trigger.
 
-## The 150-line ceiling
+## The body budget — three measures, no floor
 
-A body over 150 lines fails the build — over the cap means two skills, or a
-doc belonging elsewhere. There is **no floor**: a skill that says its piece
-in 60 lines is finished, not thin. Link references instead of inlining
-walls — point to a path and state only the rule the reader needs right now.
+A body fails the build over **150 lines, 10,000 bytes, or 300 characters on one
+line**. The last two were added after a skill sat at a frozen 154 lines for 20
+commits while its bytes grew 31%: content stops adding lines and starts jamming
+them. There is **no floor** — 60 lines that say their piece is finished, not
+thin. Over any measure means two skills, or a `references/` file: point to a
+path and state only the rule the reader needs right now.
 
 ## Body structure
 
@@ -96,9 +100,8 @@ command (run the cards, apply the fixes, review the diff):
   (Recommended)" / "Skip — I'll run it later". The user picks; nobody types.
 - Print the bare command as text ONLY in headless runs where selection UI
   is unavailable — and print it exactly, copy-paste ready.
-- Never auto-run the next step silently; the offer IS the consent gate.
-- One offer per handoff moment — a completion that spawns three questions
-  is a quiz, not a handoff.
+- Never auto-run the next step silently; the offer IS the consent gate, and one
+  offer per moment — a completion that spawns three questions is a quiz.
 
 ## The four laws
 
@@ -134,21 +137,18 @@ Naming a blind spot is not weakness; calling an agent-graded check a gate is
 the over-claim. A rule that keeps being broken is in the wrong tier — it needs
 a hook, script, or tool, not another paragraph.
 
-Model-tier scoping is the same honesty applied to WHO needs a rule:
-procedure that compensates weaker models over-constrains stronger ones —
-mark **All models** vs **Compensation (worker-tier)** sections, and give
-every procedure skill a skip-clause. Convention and worked example:
+Model-tier scoping applies the same honesty to WHO needs a rule: procedure that
+compensates weaker models over-constrains stronger ones. Mark **All models** vs
+**Compensation (worker-tier)**, give every procedure skill a skip-clause —
 `references/model-tier-scoping.md`; agent MODEL minimums are role-floors.
 
 ## Common failures
 
-- Vague descriptions. "Helps with testing" gives the dispatcher nothing to
-  match on. Name the trigger: "Use when writing pytest fixtures — …".
-- Overlapping skills. Two skills whose descriptions both plausibly match
-  the same request fire unpredictably. Merge them, or sharpen both
-  descriptions until requests partition cleanly between them.
-- Restating general knowledge. The model already knows what a unit test is;
-  a body explaining it wastes budget. Spend lines only on what is local:
-  this repo's conventions, thresholds, paths, and commands.
+- Vague descriptions. "Helps with testing" gives the dispatcher nothing to match
+  on. Name the trigger: "Use when writing pytest fixtures — …".
+- Overlapping skills. Two descriptions that both plausibly match one request
+  fire unpredictably — merge, or sharpen until requests partition cleanly.
+- Restating general knowledge. The model knows what a unit test is; spend lines
+  only on what is local — conventions, thresholds, paths, commands.
 - Body before description. Author the trigger first — no sharp "Use when …"
   means the capability is not yet a skill.

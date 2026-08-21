@@ -3,6 +3,22 @@
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.1
+
+### Added
+- `authoring-skills` § Activation fields + `references/activation-fields.md` —
+  what `paths:` and `disable-model-invocation:` actually do, measured against
+  Claude Code 2.1.237 rather than read off the docs. `paths:` fires on an EDIT
+  (not a read, not mere presence) and does NOT hide a PLUGIN skill's description
+  from the listing, so it buys reach and no budget; `disable-model-invocation`
+  does hide it, at the cost of the skill's only automatic channel. Includes the
+  case where `claude plugin details` disagrees with the harness and is wrong.
+
+### Changed
+- The body-budget section now states all three measures (150 lines, 10,000
+  bytes, 300 characters per line) instead of the line count alone, which stopped
+  measuring growth. Four restating passages were compressed to make room.
+
 ## 0.12.0
 
 ### Added

@@ -543,7 +543,14 @@ fi
 # tokens against our 12,789 — a factor of 1.54, and the gap scales with COMPONENT
 # COUNT, which is exactly what a distillation is supposed to reduce. A meter that
 # under-reads in proportion to the thing it exists to control is worth
-# reconciling against ground truth.
+# reconciling against.
+#
+# IT IS NOT GROUND TRUTH, measured 2026-08-21. `details` is a static estimate over
+# the FILES: it charged a `disable-model-invocation: true` skill ~60 always-on
+# tokens for a description the session listing provably does not contain (probes
+# in rationale/host-lever-probes-2026-08-21.md). Read the gap it reports as a
+# better model of the host's per-component floor, not as a measurement of what
+# the harness actually loads.
 #
 # STANDING: local, WARN-only, NOT a CI step, and this comment is the reason.
 # `claude plugin details` resolves a plugin by INSTALLED NAME — it rejects a path
