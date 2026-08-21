@@ -88,7 +88,7 @@ not "does it today".
 ## Defer rule
 
 - Visual/RTL layout mechanics (logical properties, flip testing) also touch `/ui-ux:review`.
-- Locale-aware data storage (collation, timezone columns) → `database-design`.
+- Locale-aware data storage (collation, timezone columns) → `sql-best-practices`.
 - `lang`/`dir` attributes and reading order are ALSO accessibility facts — a
   wrong `lang` breaks screen-reader pronunciation. `/a11y:audit` checks them
   from that side; RTL work here should not undo what it asserts.

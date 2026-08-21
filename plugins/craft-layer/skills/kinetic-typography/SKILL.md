@@ -6,6 +6,7 @@ description: Use when animating type — kinetic or variable-font headlines, wei
 ## What this decides
 
 This skill decides WHEN type should move and animates the two net-new kinetic
+patterns — variable-font axes and rotating phrases. It does not re-teach how to
 split text into lines/words/chars, and it does NOT re-bake the invisibility and
 screen-reader traps; both live elsewhere and are referenced by path:
 

@@ -53,7 +53,17 @@
             ts: (now | todate),
             session_id: $sid,
             fired: ((.fired // []) | unique),
-            pending_low: ((.pending_low // []) | map(.skill) | unique)
+            # SPLIT ON `flushed`, not one bucket. route-prompt.sh marks an entry
+            # flushed only when it actually printed the digest to the model, so
+            # collapsing both states into `pending_low` made "accumulated but
+            # never shown" indistinguishable from "surfaced" — and that is the
+            # exact number retirement-queue.sh ranks skills by. Measured before
+            # this fix: four skills read 47 pending_low across 17 local sessions
+            # with 0 fired, and nothing could say whether any reached the model.
+            # `pending_low` is kept as the union so an older reader keeps working.
+            pending_low: ((.pending_low // []) | map(.skill) | unique),
+            pending_low_flushed: ((.pending_low // []) | map(select(.flushed == true) | .skill) | unique),
+            pending_low_unflushed: ((.pending_low // []) | map(select(.flushed != true) | .skill) | unique)
           }' "$state_file" >> "$dir/surfaced.jsonl" 2>/dev/null
         fi
       fi ;;

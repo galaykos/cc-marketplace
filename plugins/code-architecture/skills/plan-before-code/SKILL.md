@@ -18,48 +18,48 @@ expensive to change five files after the fact.
    shape of data crossing a boundary, which side owns validation, what errors can cross the
    boundary and how. This is the contract implementation must satisfy.
 4. **Sequence the work**: which files have no dependencies on the others (write/test first),
-   which depend on those. This becomes your task order (see task-orchestration).
+   which depend on those. This becomes your task order — see Split into tasks.
 5. **Only then write code**, file by file, against the interfaces you defined. If reality forces
    an interface change mid-implementation, stop and update the map — don't let the map silently
    go stale.
 
-## Worked mini-example
+## Split into tasks
 
-Feature request: "Add a `/export` endpoint that lets a user download their notes as Markdown."
+A task is the **smallest unit of work that can be independently verified** — a
+done-condition someone can check without the rest of the work being finished.
+"Refactor the auth module" is a project; "extract `hashPassword` into
+`lib/crypto.ts` with a unit test covering empty-string and unicode input" is a
+task. If you cannot state how you would verify it without referring to other
+unfinished tasks, it is too large or too entangled.
 
-**File map:**
+Order them from the file map you just built:
 
-| file | responsibility |
-|---|---|
-| `routes/export.ts` | HTTP route: parse request, call service, stream response |
-| `services/noteExporter.ts` | Turn a user's notes into a single Markdown string |
-| `services/noteExporter.test.ts` | Unit tests for the Markdown conversion |
+1. Task B depends on task A when B needs an interface, type, or file A creates or
+   changes. **Shared writes count** — two tasks editing one file is a dependency,
+   or a signal to split that file's responsibilities.
+2. Tasks with no incoming edges start immediately; the rest wait for their
+   dependencies to clear review.
+3. Re-check the graph when a task's scope changes. A dependency discovered
+   mid-task updates the plan; it is not silently absorbed.
 
-Nothing else changes. No new database table, no new config, no shared "exporter framework" —
-one format is requested, so one function handles it.
+**Parallel only when neither task reads a still-changing output of the other and
+neither writes shared state** — including the database a test assumes. When in
+doubt, sequence: a wrong "independent" costs a merge conflict or a flaky test, a
+wrong "sequential" costs wall-clock time only.
 
-**Interfaces defined before code:**
+**Gate between waves.** Run a task's own success criteria before marking it done
+(see work-verification), and for anything with dependents confirm the produced
+INTERFACE matches what was planned — a passing suite does not prove the signature
+is what the next task expects. A failed gate stops its dependents rather than
+letting them build on it.
 
-```ts
-// routes/export.ts calls:
-function exportNotesAsMarkdown(notes: Note[]): string
+Worth doing whenever the work is larger than one sitting or is about to be
+dispatched to several workers; the moment you say "and also" while describing a
+task is the seam. Worked decomposition: `references/task-decomposition.md`.
+Phrasing and verifying the dispatch is orchestration:delegation-contracts;
+pricing the parallelism is task-runner:parallel-planning.
 
-// Note shape (already exists in models/note.ts, just confirming the fields we need):
-type Note = { id: string; title: string; body: string; createdAt: Date }
-```
-
-Decisions locked in at this step, not discovered mid-coding:
-- The route owns fetching notes from the DB and authorization; the service is pure
-  (`Note[] -> string`) and has no knowledge of HTTP or the database. That's what makes it
-  unit-testable without mocking a request.
-- Errors: `exportNotesAsMarkdown` never throws for empty input — it returns an empty document.
-  The route is responsible for 404 if the user doesn't exist.
-
-**Task sequence:** write `noteExporter.ts` + its test first (no dependencies), then wire
-`routes/export.ts` against the now-verified function.
-
-With this map in hand, writing the actual code is close to mechanical — the hard decisions
-(what owns what, what crosses the boundary) are already made.
+Worked file map, before/after: `references/worked-example.md`.
 
 ## Before / after
 
@@ -120,7 +120,7 @@ across a boundary, write down, before either side has a body:
 - Whether the boundary is synchronous or async, and whether it can partially fail.
 
 Two units built against an agreed interface can be written in parallel (see
-task-orchestration) and tested independently, because neither implementation needs to see the
+Split into tasks) and tested independently, because neither implementation needs to see the
 other's internals — only the contract. Skipping this step is what produces integration surprises:
 both sides "work" alone and then don't fit together.
 

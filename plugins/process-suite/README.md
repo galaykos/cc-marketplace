@@ -35,6 +35,8 @@ it auto-installed.
   vs manifests, plus `/stack-scan:report`
 - **plugin-scout** — stack-matched marketplace plugin suggestions, plus
   `/plugin-scout:suggest`
+- **lean** — prices every line, test, comment, and file as a debit, so the
+  smallest change that satisfies the requirement is the one that ships
 - **skill-router** — hook that auto-loads the matching best-practice skill on
   edit
 

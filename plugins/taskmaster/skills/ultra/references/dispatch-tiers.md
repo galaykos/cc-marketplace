@@ -115,3 +115,16 @@ two compatible:
 - The `Ultra: true (model=…, effort=…)` marker still carries the boost tier into
   execution verbatim; workers there tier the same way (executor reasoning-tier,
   its scouts native).
+
+## Per-stage bindings — grill
+
+Moved out of `../../grill/SKILL.md` on 2026-08-20: it was the second half of a
+632-character line, inert on every standard run, and the line-count ceiling could
+not see it growing there.
+
+Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), dispatch context-scout NATIVE — a mechanical role, so no model override — with recon lenses sized to blast radius per that skill's `references/dispatch-tiers.md`, run extra question rounds, and make spec-redteam + coverage-check mandatory; opinion-lens stays native.
+
+`opinion-lens stays native` is the load-bearing half: the personas are a blind
+panel, and giving them a stronger model than the run's own would make the panel's
+disagreement an artefact of tiering rather than of persona.
+

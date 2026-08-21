@@ -16,7 +16,8 @@ description: Use when writing or reviewing Vite config or a Vite-built app — V
 - Read `vite.config.{js,ts}` (and the mode-specific `.env` files it loads) before
   advising — half of this skill is config, and advice the config enforces is noise.
 - Verify version-sensitive claims against https://vite.dev/ for the locked minor,
-  never from memory. Recommend nothing above the locked version; flag no workaround
+  never from memory — `build.target` defaults, `resolve.conditions`, the Environment
+  API, the Node floor and Rolldown status all shift across majors. Recommend nothing above the locked version; flag no workaround
   the locked version has not yet killed.
 
 ## Per-version leverage (advise at or below the floor)
@@ -146,7 +147,3 @@ Advising above the locked version is a finding; confirm boundaries against the d
   change-frequency at route boundaries. - `define` values without `JSON.stringify` — raw substitution injects
   a bare identifier and breaks the build or the value. - Assuming `build.target` follows `.browserslistrc` —
   Vite does not read it.
-
-## Verify Against Current Docs
-
-Config surface and defaults shift across majors. Confirm any version-sensitive option — `build.target` defaults, `resolve.conditions`, the Environment API, Node floor, Rolldown status — against https://vite.dev/ for the exact vite version in the lockfile, and read `vite.config.{js,ts}` before advising so you don't flag what the config already handles.

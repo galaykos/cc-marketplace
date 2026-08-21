@@ -10,7 +10,7 @@ questions — but the user and the model share blind spots, so a requirement nei
 questioned reaches the spec unchallenged. This pass attacks the frozen spec itself,
 with fresh eyes, before it hardens into cards. It is distinct from coverage-check
 (which checks cards against the spec's criteria, assuming those criteria are right)
-and from opinion-round (which argues the approach, not the requirements).
+and from approach-deliberation (which argues the approach, not the requirements).
 
 ## How this differs from its neighbors
 
@@ -22,7 +22,7 @@ Several passes cluster around spec-freeze; keep them distinct:
 - **coverage-check** (later, at the tail of task-cards) checks that the cards cover
   the spec's success criteria. It assumes those criteria are themselves correct and
   complete — which is exactly what this pass questions.
-- **opinion-round** argues which approach to take. This pass is indifferent to
+- **approach-deliberation** argues which approach to take. This pass is indifferent to
   approach; a spec hole is a hole whichever way the spec is built.
 - **grill** surfaced ambiguity the user could answer. This surfaces what neither the
   user nor the model thought to ask.

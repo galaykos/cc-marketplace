@@ -31,13 +31,31 @@ CLEANSK="plugins/debugging/skills/_guardclean"; mkdir -p "$CLEANSK"
 # 100-line floor. At its old 110 lines it sat above the floor, so re-adding
 # `-lt 100` to pc_skill_budget would have kept every smoke test green.
 { echo '---'; echo 'name: _guardclean'; echo 'description: Use when testing the guard with a short body that stays clean.'; echo '---'; echo; for i in $(seq 1 40); do echo "l$i"; done; } > "$CLEANSK/SKILL.md"
+# Byte-ceiling fixture: 120 lines, comfortably under the LINE ceiling, ~12 kB —
+# the exact shape the line count stopped measuring (task-execution sat at a frozen
+# 154 lines while its bytes grew 31%).
+BYTESK="plugins/debugging/skills/_guardbytes"; mkdir -p "$BYTESK"
+{ echo '---'; echo 'name: _guardbytes'; echo 'description: Use when testing the guard byte path with a fat but short body.'; echo '---'; echo
+  for i in $(seq 1 120); do printf 'l%s %s\n' "$i" "$(head -c 95 < /dev/zero | tr '\0' 'x')"; done; } > "$BYTESK/SKILL.md"
+# Line-length fixture: 20 short lines and one 400-character prose line.
+LONGSK="plugins/debugging/skills/_guardlong"; mkdir -p "$LONGSK"
+{ echo '---'; echo 'name: _guardlong'; echo 'description: Use when testing the guard line-length path with one jammed line.'; echo '---'; echo
+  for i in $(seq 1 20); do echo "l$i"; done; head -c 400 < /dev/zero | tr '\0' 'y'; echo; } > "$LONGSK/SKILL.md"
+# Exemption fixture: the same 400 characters as a TABLE ROW, which cannot wrap and
+# must NOT fail — the residual this check declares rather than pretends away.
+TABLESK="plugins/debugging/skills/_guardtable"; mkdir -p "$TABLESK"
+{ echo '---'; echo 'name: _guardtable'; echo 'description: Use when testing that a long table row is exempt from the line check.'; echo '---'; echo
+  echo '| a | b |'; echo '|---|---|'; printf '| %s |\n' "$(head -c 400 < /dev/zero | tr '\0' 'z')"; } > "$TABLESK/SKILL.md"
 STRAY="plugins/debugging/_guardstray.md"; echo "# stray" > "$STRAY"
-cleanup() { rm -rf "$TMPSK" "$CLEANSK" "$STRAY"; }
+cleanup() { rm -rf "$TMPSK" "$CLEANSK" "$BYTESK" "$LONGSK" "$TABLESK" "$STRAY"; }
 trap cleanup EXIT
 
-check "over-budget SKILL" "$ROOT/$TMPSK/SKILL.md"                                   ceiling
+check "over-lines SKILL"  "$ROOT/$TMPSK/SKILL.md"                                   lines
 check "stray plugin .md"  "$ROOT/$STRAY"                                            Non-functional
 check "clean SKILL"       "$ROOT/$CLEANSK/SKILL.md"                                 none
+check "over-bytes SKILL"  "$ROOT/$BYTESK/SKILL.md"                                  bytes
+check "jammed line SKILL" "$ROOT/$LONGSK/SKILL.md"                                  line-length
+check "long table row"    "$ROOT/$TABLESK/SKILL.md"                                 none
 check "non-plugin edit"   "$ROOT/src/app.ts"                                        none
 check "absolute README"   "$ROOT/plugins/debugging/README.md"                       none
 check "worktree path"     "$ROOT/.claude/worktrees/foo/plugins/x/skills/y/SKILL.md" none

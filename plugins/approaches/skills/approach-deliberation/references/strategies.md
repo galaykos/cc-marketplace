@@ -108,3 +108,21 @@ Neighbors: red-green-refactor lives in the testing plugin (TDD workflow);
 hypothesis-and-bisect debugging lives in the debugging plugin; deciding
 BETWEEN candidate approaches is the approach-deliberation skill here — this
 catalog supplies the shapes those candidates take.
+
+## Worked micro-example — a slate, end to end
+
+Task: add export-to-CSV for a large report.
+
+- A "Stream it" (simplest): controller streams rows straight to the response.
+  Sketch: one controller method. Limits: ties up a worker on huge exports.
+- B "Queue it" (rework-minimizing): job writes to storage, user gets a link.
+  Sketch: job class + notification + storage path.
+- C "Paginate the API" (reversibility): client-side assembly via paged JSON.
+  Sketch: API param + small frontend loop.
+
+Pick: A — current maximum report is 20k rows, streams in under two seconds.
+Kill-trigger: if product confirms the 500k-row tenant migrates in, switch to B.
+
+Moved out of the SKILL body on 2026-08-21 when the blind panel merged in: the
+body kept the rules, and one 14-line example is exactly the shape that belongs
+next to the strategies it illustrates.

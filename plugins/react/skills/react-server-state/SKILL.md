@@ -5,6 +5,10 @@ description: Use when fetching, caching, or synchronizing server data in React �
 
 # React server state
 
+> Last verified: 2026-08-20 — https://tanstack.com/start/latest ·
+> https://tanstack.com/query/latest/docs/framework/react/guides/paginated-queries
+> (checked: Start still RC, `keepPreviousData` import + `placeholderData` shape)
+
 The single most common React data bug is treating **server state** — data that lives on
 a backend and is shared, cached, and asynchronously stale — like **client state** —
 data your app owns (form inputs, toggles, wizard step). They have opposite rules.

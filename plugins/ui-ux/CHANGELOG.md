@@ -4,6 +4,17 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.18.1
+
+### Fixed
+- **`theming-system`'s opening sentence ended mid-clause** — "…or ship a theme.
+  Those" followed by a blank line. Inherited from craft-layer's 2026-07-27 prose
+  strip when the skill moved here, and shipped on every load since.
+- **`hooks/palette-default.sh` recorded the wrong reach for the gate it stands in
+  for.** It said `divergence.mjs` is "invoked only by `/craft-layer:craft` step 7
+  and `/craft-layer:audit` step 4" — one call site described as two. The hook's
+  own argument for existing is unchanged and still holds.
+
 ## 0.18.0
 
 ### Added

@@ -6,6 +6,7 @@ description: Use when adding a pointer micro-interaction — a custom cursor, ma
 ## What this decides
 
 This skill decides WHETHER a pointer effect aids affordance or is decoration, and WHICH
+pattern to use — then pins the accessibility rules and the budget. It does not re-teach
 the animation primitives: Framer / Motion springs, gestures, and `useSpring` live in
 `plugins/ui-ux/skills/motion-best-practices/SKILL.md` (+ `plugins/ui-ux/skills/motion-best-practices/references/motion.md`) — and the
 one-writer-per-property trap lives in

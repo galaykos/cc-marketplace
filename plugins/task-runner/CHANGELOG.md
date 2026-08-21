@@ -2,6 +2,29 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.3
+
+### Changed
+- `parallel-planning`'s boundary sentence names plan-before-code as the owner of
+  task decomposition; the skill it named was merged there. <!-- removed-ok -->
+
+## 0.29.2
+
+### Changed
+- `task-execution`'s body is 9,907 bytes, down from 11,918. The Extreme Boost
+  block (~1.9 kB, inert on every standard run) moved to
+  `references/boost-execution.md` and the role-tier floor's resolution rules to
+  `references/reviewer-routing.md`; both are cited at the decision point. No rule
+  was deleted — the body had grown 31% under a frozen 154-line count, which is
+  the growth the new byte ceiling exists to make visible.
+
+## 0.29.1
+
+### Changed
+- `task-execution/references/reviewer-routing.md` routes the database track to
+  `sql:sql-best-practices`. Its old target, `database:database-design`, was
+  merged into that skill — the rubric moved, the routing follows it. <!-- removed-ok -->
+
 ## 0.29.0
 
 ### Added

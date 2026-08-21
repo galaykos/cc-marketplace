@@ -6,10 +6,11 @@ description: Use when adding a postprocessing pass or custom shader to a Three.j
 ## What this decides
 
 This skill decides WHETHER a postprocessing pass or custom shader earns the GPU cost and
+WHICH effect layer to add — then pins the pipeline and budget. It does not re-teach
 Three.js: the renderer (WebGPU-default), TSL shader authoring (`three/tsl`), disposal,
 and the render loop live in `plugins/threejs/skills/threejs-best-practices/SKILL.md`; the
 lazy-load contract, the two-render static fallback, and capability gating live in
-`plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md` — reference both by
+`plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md` — reference both by path.
 
 **Reconciliation with motion-tiers Tier 3:** Tier 3
 (`plugins/craft-layer/skills/motion-tiers/SKILL.md`) decides whether to be 3D at all and

@@ -26,7 +26,7 @@ toward `/approaches:build-vs-buy`. Nothing was dropped in the merge.
 | Command | What it does |
 |---------|--------------|
 | `/approaches:compare [task]` | Compare 2-3 structurally different approaches to a task — trade-off table, pick, kill-trigger — before any implementation |
-| `/approaches:opinions [task]` | Run an opinion-round on a task — four parallel blind opinion-lens personas argue the approach, synthesized inline to one pick + kill-trigger — before any implementation |
+| `/approaches:opinions [task]` | Deliberate a task's shape as a blind panel — four parallel opinion-lens personas argue it, synthesized inline to one pick + kill-trigger — before any implementation |
 | `/approaches:build-vs-buy [capability]` | Build-vs-buy check before implementing a capability — existing-solution search, health table, take/wrap/write verdict |
 | `/approaches:size [task-or-list]` | S/M/L/XL sizing per item with anchor comparison, uncertainty flag, and split recommendation for anything L+ |
 | `/approaches:rollout [feature-description]` | Rollout plan for a feature about to ship — flag strategy, compatibility window, exposure stages, rollback trigger and path |

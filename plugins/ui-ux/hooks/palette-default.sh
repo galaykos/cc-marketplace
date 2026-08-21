@@ -8,7 +8,8 @@
 #
 # WHY THIS EXISTS AND WHY HERE. craft-layer's `divergence.mjs` already grades this, and
 # grades it harder: `utility-palette` there is a GATE with a waiver lane. But that file is
-# invoked only by `/craft-layer:craft` step 7 and `/craft-layer:audit` step 4. A plain
+# invoked only by `/craft-layer:audit` step 4 — a `/craft-layer:craft` run reaches it only
+# because craft step 7 calls that command, which is one call site, not two. A plain
 # "build me an app" turn runs neither. Measured, not assumed: in a control/treatment run
 # on 2026-08-17, a Laravel build shipped 23 indigo utilities across 5 Blade views with
 # every gate green, because none of them was on that path. ui-ux ships in 10 bundles to

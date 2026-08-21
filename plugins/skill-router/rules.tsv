@@ -5,7 +5,6 @@
 # co-fire-ok: *.ts low-cognitive-load solid-principles
 # co-fire-ok: *.js low-cognitive-load solid-principles
 # co-fire-ok: *.py low-cognitive-load solid-principles
-# co-fire-ok: **/migrations/** sql-best-practices database-design
 # Content-row co-fires, verified against scripts/smoke/router-corpus (pc_rules_cofire).
 # These seven rows are all `low` confidence: they do NOT emit an inline nudge, they
 # accumulate into one session digest (route.sh:6). Several firing on one file is the
@@ -50,9 +49,6 @@
 # co-fire-ok: **/migrations/** sql-best-practices postgresql-best-practices
 # co-fire-ok: **/migrations/** sql-best-practices mysql-best-practices
 # co-fire-ok: **/migrations/** sql-best-practices mariadb-best-practices
-# co-fire-ok: **/migrations/** database-design postgresql-best-practices
-# co-fire-ok: **/migrations/** database-design mysql-best-practices
-# co-fire-ok: **/migrations/** database-design mariadb-best-practices
 # co-fire-ok: *.go low-cognitive-load solid-principles
 # co-fire-ok: *.rb low-cognitive-load solid-principles
 # co-fire-ok: *.rs low-cognitive-load solid-principles
@@ -64,7 +60,7 @@
 # redundant — do not "fix" that. Plain source
 # edits (*.ts / *.js / *.py / *.go / *.rb / *.rs) route to low-cognitive-load +
 # solid-principles, once per skill per session; **/migrations/** routes to
-# database-design alongside sql-best-practices (blessed pair above).
+# sql-best-practices plus the detected engine skill (blessed pairs above).
 #
 # ENGINE DETECTION IS BEST-EFFORT. The chain is compose file → `.env.example`
 # `DB_CONNECTION` → composer.json → package.json, and marker_ok takes the FIRST
@@ -95,7 +91,6 @@
 # motion-best-practices content row below (zero corpus co-fires as of 2026-08-11).
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
-glob	**/migrations/**	database-design	database	high
 glob	*.sql	postgresql-best-practices	postgresql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||.env.example~DB_CONNECTION=pgsql||composer.json~pgsql|postgres||package.json~"pg"|postgres
 glob	*.sql	mysql-best-practices	mysql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||.env.example~DB_CONNECTION=mysql||composer.json~mysql||package.json~mysql
 glob	*.sql	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb

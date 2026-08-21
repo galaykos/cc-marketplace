@@ -49,7 +49,7 @@ own header warns about, found by `pc_prime_coverage` rather than by reading.
 
 | Signal | Prime |
 |---|---|
-| a `migrations/` directory, or any `*.sql` | `sql:sql-best-practices`, `database:database-design` |
+| a `migrations/` directory, or any `*.sql` | `sql:sql-best-practices` |
 | compose file ~ `image: *postgres*` | `postgresql:postgresql-best-practices` |
 | compose file ~ `image: *mysql*` | `mysql:mysql-best-practices` |
 | compose file ~ `image: *mariadb*` | `mariadb:mariadb-best-practices` |

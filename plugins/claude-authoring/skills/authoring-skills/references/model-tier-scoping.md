@@ -20,7 +20,7 @@ over-constraint for a Fable-class session.
 Mark a section of a procedure skill when the difference matters:
 
 - **All models** — judgment content that no tier should skip: boundaries
-  ("what to split is task-orchestration"), repo facts, thresholds, when-NOT
+  ("what to split is plan-before-code"), repo facts, thresholds, when-NOT
   tables, safety rules. This is the floor; it is most of most skills.
 - **Compensation (worker-tier)** — step-by-step procedure that exists so a
   below-frontier model executes reliably: numbered protocols, fixed output
@@ -42,7 +42,7 @@ Every procedure skill states when NOT to run its ceremony, in its body, near
 the trigger. The canonical shape is Anthropic's own planning rule: "If you
 could describe the diff in one sentence, skip the plan." In-repo worked
 shapes already exist — approach-deliberation's "Skip it — the first
-reasonable approach is correct — when:" list and opinion-round's "Skip
+reasonable approach is correct — when:" list and its panel's "Skip
 silently" gate. A skill whose ceremony can never be skipped should say WHY
 (proportionality law: size ceremony to blast radius).
 

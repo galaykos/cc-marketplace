@@ -11,7 +11,8 @@ and still have to be read in one glance. Craft without information design is
 decoration; a dashboard where everything shouts says nothing.
 
 Scope: hierarchy, density, and the chart/table/stat-tile decision. Out of scope:
-it), design tokens (`plugins/ui-ux/skills/design-tokens`), and motion detail
+chart form and colour (the `dataviz` skill owns those), design tokens
+(`plugins/ui-ux/skills/design-tokens`), and motion detail
 (`../motion-tiers/SKILL.md`). Full layout recipes live in
 `references/dense-ui-patterns.md`.
 
@@ -145,3 +146,4 @@ this rule is in `references/app-craft-floors.md`.
 - **Right-shouting metadata.** Timestamps and IDs at primary weight, drowning the
   value that matters. Push tertiary content to hover or a drawer.
 - **Duplicating dataviz.** Restating chart-type or color rules here. Cite the
+  `dataviz` skill and link out.

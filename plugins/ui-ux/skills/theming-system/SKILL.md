@@ -9,6 +9,7 @@ This skill owns HOW a concept becomes a coherent token SYSTEM — the surface/in
 tiers, the three-role accent split (display · fill · text/mark), a reserved status palette, a chart palette
 tied to the theme, and a light/dark duality — derived as ROLES and rules that are correct
 by construction. It does NOT generate the values, re-teach a ramp, or ship a theme. Those
+jobs belong to neighbours:
 
 - `/ui-ux:theme` — generates the token VALUES and the live preview from the theme brief
   this skill fills; it owns value generation, this skill owns the coherent direction.

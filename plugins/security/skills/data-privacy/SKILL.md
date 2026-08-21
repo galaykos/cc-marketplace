@@ -92,7 +92,7 @@ harder than designing them in.
 - Code-level security (injection, authz enforcement, encryption in transit/at rest) →
   `/security:review`; this skill owns the regulatory data-handling, not the exploit.
 - Secret/credential handling → `secret-scanning`.
-- Where deletion touches schema and cascade design → `database-design`.
+- Where deletion touches schema and cascade design → `sql-best-practices`.
 
 ## Anti-patterns
 

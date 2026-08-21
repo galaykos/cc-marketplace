@@ -2,6 +2,44 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.13.5
+
+### Changed
+- Catalog text follows two merges: `opinion-round` is now <!-- removed-ok -->
+  approach-deliberation's blind-panel mechanism and `task-orchestration` is <!-- removed-ok -->
+  plan-before-code's "Split into tasks". No routing rows changed — neither skill
+  had one.
+
+## 0.13.4
+
+### Changed
+- `**/migrations/**` now routes to `sql-best-practices` alone. The <!-- removed-ok -->
+  `database-design` row and its three co-fire blessings are gone with the skill: <!-- removed-ok -->
+  a migration file in a MySQL project used to load `sql` + `database-design` + <!-- removed-ok -->
+  `mysql` at once, 4,333 tokens of bodies, with "index every foreign key" stated
+  in six places across the family.
+
+## 0.13.3
+
+### Fixed
+- **Directory globs matched case-sensitively, which silently disabled a whole
+  plugin.** `match_glob` tested `**/dir/**` with a case-SENSITIVE substring
+  comparison, and `**/resources/js/Pages/**` is inertia's ONLY routing row. On a
+  project scaffolded by Laravel's current starter kits — which generate
+  `resources/js/pages/` — the router matched nothing, the 2,134-token skill never
+  loaded, and `/inertia:review` had to be typed by hand. `**/Livewire/**` had the
+  same exposure, masked only by livewire's second row. Directory segments now
+  match case-insensitively; the `nocasematch` shell option is saved and restored
+  rather than left on. Residual, stated in the code: case is checkable, a wrong
+  directory NAME is not.
+- **The surfaced ledger could not tell "shown to the model" from "accumulated".**
+  `summary.sh` wrote `pending_low` after dropping the `flushed` flag that
+  `route-prompt.sh` sets when it actually prints the digest, so
+  `scripts/retirement-queue.sh` counted both states as surfacing — for exactly
+  the skills a retirement queue ranks first. The ledger line now carries
+  `pending_low_flushed` and `pending_low_unflushed`; `pending_low` stays as the
+  union so an older reader keeps working.
+
 ## 0.13.2
 
 ### Fixed

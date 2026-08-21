@@ -13,6 +13,10 @@ publishable plugin.
   - `README.md` (and optionally `CHANGELOG.md` / `ROADMAP.md`) at the plugin root
   - `skills/<name>/SKILL.md` (+ a `references/` dir for material the skill reads)
   - `commands/*.md`, `agents/*.md`, `hooks/`
+  - `evals/<case>/prompt.md` + `evals/<case>/graders/*.md` — prose, but functional:
+    `claude plugin eval` reads them as the case definition. Allowed since
+    2026-08-20; a design doc parked under `evals/` is still a violation in spirit
+    and no script can tell the two apart.
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
   history. If a document truly must be tracked, it goes in **`rationale/`** at
@@ -62,7 +66,12 @@ saying so is the point.
 
 ## Plugin change gates
 
-- `scripts/validate.sh` — structure, frontmatter, SKILL.md 150-line body ceiling (no floor),
+- `scripts/validate.sh` — structure, frontmatter, the SKILL.md body budget — **150 lines,
+  10,000 bytes, and 300 characters per line** (no floor; the byte and line-length
+  measures were added 2026-08-20 because the line count had stopped measuring: one
+  skill sat at a frozen 154 lines across 20 commits while its bytes grew 31% and its
+  >110-char lines went 2 → 29. Frontmatter, fenced code and table rows are exempt from
+  the line-length check, by construction and stated in the check),
   reference resolution, the description linter (max 500 chars for frontmatter
   descriptions, no "Trigger words:" lists; plugin.json descriptions get a
   WARN-only 700-char clarity guideline), and the doc-location rule above. It also blocks leaked internal taskmaster
@@ -115,16 +124,30 @@ saying so is the point.
   history. Adding the file opts a plugin in; `code-review` and `devops` ship the
   worked examples.
 - `scripts/context-budget.sh` — BLOCKING token gate vs committed baselines (own
-  CI step), across **two** channels since 2026-08-02: **always-on**
+  CI step), across **three** channels: **always-on**
   (`context-budget-baseline.json` — descriptions + SessionStart stdout + local
-  MCP `tools/list`) and **dynamic** (`context-budget-dynamic-baseline.json` —
-  UserPromptSubmit and per-tool hook stdout, measured with a work-shaped prompt
-  and a synthetic `Edit`). The dynamic channel was unmetered before that and the
-  omission was load-bearing: at the time skill-router alone injected ~2.4k
-  tokens no baseline saw (~2.6k as of 2026-08-11). Accept intentional growth
-  with `--update-baseline`, never in CI. Still
+  MCP `tools/list`), **dynamic** (`context-budget-dynamic-baseline.json` —
+  UserPromptSubmit and per-tool hook stdout, measured with a **four-prompt
+  corpus** summed per prompt and scored MAX, plus a synthetic `Edit`), and
+  **activated** (`context-budget-activated-baseline.json`, added 2026-08-20 —
+  the always-on surface re-measured with the state its hooks WAIT for: a terse
+  level set, a `brain/INDEX.md` present, manifests to sniff). Each omission was
+  load-bearing when it existed: the dynamic channel missed ~2.4k tokens of
+  skill-router before 2026-08-02; the always-on pass meters the OFF state, so
+  terse read 886 while a switched-on install pays 1,928, and the activated
+  channel is +1.2k tokens on `everything` that no baseline saw. The dynamic probe
+  was ONE fixed prompt until 2026-08-20 — a hook whose trigger vocabulary missed
+  that sentence baselined at 0 forever (api-docs-first did, at a real 52 tokens).
+  Accept intentional growth with `--update-baseline`, never in CI.
+  `--reconcile` / `--update-official` compare against `claude plugin details`,
+  the host's own meter, which reads **1.54x higher** than our bytes/4 estimate
+  (12,789 vs 19,667 over the 61 leaves, 2026-08-20,
+  `scripts/context-budget-official.json`) because the host charges a
+  per-component floor. That mode is **local and WARN-only, not a CI step**:
+  `details` resolves by installed name, so a fresh checkout cannot run it. Still
   unmetered BY NATURE and reported by name each run rather than scored zero:
-  skill BODIES loaded by a routing rule, and remote MCP servers.
+  skill BODIES loaded by a routing rule, remote MCP servers, and any hook waiting
+  for state the activated fixture does not know to create.
 
 - `scripts/generate.sh --check` — BLOCKING chassis-drift gate (own CI step): every
   chassis-generated file (review commands, worker agents, suite uninstalls,

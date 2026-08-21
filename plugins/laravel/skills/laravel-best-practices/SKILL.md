@@ -13,15 +13,21 @@ Version facts come from the manifests, never from assumption:
 
 ## Per-version leverage (advise at or below the floor)
 
-Recommend the newer idiom only when the floor is at or above the release that shipped it. The expanded per-major map — upgrade posture, the 12-attribution trap, the 11 skeleton split — lives in `references/leverage-map.md`; read it before pinning any version-sensitive claim.
-
-- **Laravel 11** — slim skeleton: `bootstrap/app.php` is the single config surface (no `Http/Kernel.php`); casts as a `casts()` method; `Limit::perSecond(...)`, `health: '/up'`, `once()`.
-- **Laravel 12** — a maintenance major (starter kits + dependency updates); never attribute a new idiom to 12 by default — uncertain introductions stay unpinned.
-- **Laravel 13** (current, 2026-03; PHP 8.3+ floor) — attribute-first controllers/jobs (`#[Middleware]`, `#[Tries]`, …), first-party AI SDK and JSON:API resources, `Queue::route()`, `Cache::touch()`; most apps upgrade without code changes.
+Recommend the newer idiom only when the floor is at or above the release that
+shipped it. The per-major map — 11's slim skeleton, 12's maintenance-major status,
+13's attribute-first APIs, plus upgrade posture — is
+`references/leverage-map.md`; read it before pinning any version-sensitive claim.
+The trap it exists for: when memory is unsure WHICH version shipped a feature, 12
+is the wrong guess almost always — an uncertain introduction stays unpinned.
 
 ## N+1 prevention — eager load, don't lazy load in loops
 
-Accessing a relationship inside a loop fires one query per iteration. Eager load with `with()` before the loop, or `loadMissing()` when a collection may already have some relations loaded (skips ones already present). In dev/CI, call `Model::preventLazyLoading(! app()->isProduction())` in `AppServiceProvider::boot()` so a missed eager load throws in tests/local dev instead of silently degrading production — staying off in production so an unexpected access degrades rather than 500s for real users.
+Accessing a relationship inside a loop fires one query per iteration. Eager load with `with()`
+before the loop, or `loadMissing()` when a collection may already have some relations loaded
+(skips ones already present). In dev/CI, call `Model::preventLazyLoading(!
+app()->isProduction())` in `AppServiceProvider::boot()` so a missed eager load throws in
+tests/local dev instead of silently degrading production — staying off in production so an
+unexpected access degrades rather than 500s for real users.
 
 ```php
 // Bad: N+1 — one query per post to fetch its author
@@ -82,7 +88,11 @@ class UpdatePostRequest extends FormRequest {
 
 ## Mass assignment — guard model input
 
-Every model needs an explicit allowlist. Prefer `$fillable` (allowlist) over `$guarded` (denylist) — a denylist silently opens every column you forget to add. Passing raw input into an unguarded model is the OWASP mass-assignment bug: `Model::create($request->all())` lets an attacker set columns you never intended (`role`, `is_admin`, `user_id`). Feed models validated data from the FormRequest, backed by a real `$fillable`.
+Every model needs an explicit allowlist. Prefer `$fillable` (allowlist) over `$guarded`
+(denylist) — a denylist silently opens every column you forget to add. Passing raw input into
+an unguarded model is the OWASP mass-assignment bug: `Model::create($request->all())` lets an
+attacker set columns you never intended (`role`, `is_admin`, `user_id`). Feed models validated
+data from the FormRequest, backed by a real `$fillable`.
 
 ```php
 // Bad: raw input into an unguarded model — attacker POSTs "is_admin": true
@@ -93,33 +103,30 @@ class User extends Model { protected $fillable = ['name', 'email']; }
 User::create($request->validated()); // FormRequest already dropped unknown keys
 ```
 
-Type attributes with the `casts()` method (Laravel 11+) or the `$casts` property so `is_admin` is a real `bool`, not a string that compares wrong. Shape API output through an API Resource (`JsonResource`) rather than returning the model directly — returning `$model` leaks every attribute (password hashes, internal flags) and couples clients to column names.
+Type attributes with the `casts()` method (Laravel 11+) or the `$casts` property so `is_admin`
+is a real `bool`, not a string that compares wrong. Shape API output through an API Resource
+(`JsonResource`) rather than returning the model directly — returning `$model` leaks every
+attribute (password hashes, internal flags) and couples clients to column names.
 
 ## Queue slow work — small, idempotent payloads
 
-Dispatch anything slow (email, exports, external API calls) to a queued job instead of blocking the request. Pass IDs, not hydrated models: `SerializesModels` re-fetches a fresh copy on execution, so dispatch-time attributes are discarded — don't rely on stale state. The real bloat/fragility risk is loaded relations (serialized recursively, re-fetched too) and appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write `handle()` so it's safe to run twice.
+Dispatch anything slow (email, exports, external API calls) to a queued job instead of blocking
+the request. Pass IDs, not hydrated models: `SerializesModels` re-fetches a fresh copy on
+execution, so dispatch-time attributes are discarded — don't rely on stale state. The real
+bloat/fragility risk is loaded relations (serialized recursively, re-fetched too) and
+appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write
+`handle()` so it's safe to run twice.
 
-```php
-// Bad: hydrated model in the constructor, non-idempotent charge
-class ChargeOrder implements ShouldQueue {
-    public function __construct(public Order $order) {}
-    public function handle(): void { Payment::charge($this->order); } // charges again on retry
-}
-
-// Good: pass the id, guard against duplicate execution
-class ChargeOrder implements ShouldQueue {
-    public function __construct(public int $orderId) {}
-    public function handle(): void {
-        $order = Order::findOrFail($this->orderId);
-        if ($order->isPaid()) return;
-        Payment::charge($order);
-    }
-}
-```
+The worked bad/good pair — hydrated model plus non-idempotent `handle()`, and the
+id-plus-guard version — is `references/queue-payloads.md`.
 
 ## Config/env discipline — `config()`, not `env()`, outside config files
 
-Only read `env()` inside `config/*.php` files. Once `php artisan config:cache` runs (every production deploy should), Laravel loads the cached config array and `env()` calls outside config files return `null` — the raw `.env` file is no longer consulted. Read values via `config('services.stripe.key')` everywhere else so cached and uncached environments behave the same.
+Only read `env()` inside `config/*.php` files. Once `php artisan config:cache` runs (every
+production deploy should), Laravel loads the cached config array and `env()` calls outside
+config files return `null` — the raw `.env` file is no longer consulted. Read values via
+`config('services.stripe.key')` everywhere else so cached and uncached environments behave the
+same.
 
 ```php
 // Bad: works locally, returns null once config is cached in production
@@ -130,7 +137,11 @@ $key = config('services.stripe.key'); // config/services.php: 'key' => env('STRI
 
 ## Migrations — additive-first, honest `down()`, never edit shipped ones
 
-Prefer additive migrations (new column, new table) over destructive ones on tables with data; drop/rename later once code no longer depends on the old shape. Write a `down()` that actually reverses `up()` — an empty or wrong `down()` makes rollback silently lose data or fail. Once a migration ships to any shared environment, don't edit it: add a new migration instead, since editing history breaks anyone who already ran it.
+Prefer additive migrations (new column, new table) over destructive ones on tables with data;
+drop/rename later once code no longer depends on the old shape. Write a `down()` that actually
+reverses `up()` — an empty or wrong `down()` makes rollback silently lose data or fail. Once a
+migration ships to any shared environment, don't edit it: add a new migration instead, since
+editing history breaks anyone who already ran it.
 
 ```php
 // Bad: down() doesn't reverse up() — rollback leaves the column behind
@@ -139,16 +150,3 @@ public function down(): void { /* forgot to drop the column */ }
 // Good: down() mirrors up()
 public function down(): void { Schema::table('users', fn ($t) => $t->dropColumn('phone')); }
 ```
-
-## Common mistakes
-
-- Looping over a relationship without eager loading, or eager loading a relation never used. - Validating in the controller instead of a
-  `FormRequest`, and fat controllers reaching into multiple models/services directly instead of delegating. - Relying on `@can` in Blade as the only
-  authorization check, leaving the route open. - Mass assignment via an unguarded model fed `$request->all()`; use a real `$fillable` plus
-  `$request->validated()`. - Returning a full Eloquent model to the client instead of an API Resource, leaking internal attributes. - Passing whole
-  Eloquent models into queued job constructors instead of IDs, or writing `handle()` methods that aren't safe to run twice. - Calling `env()` outside
-  `config/*.php` (breaks after `config:cache`), editing a migration that already ran, or leaving `down()` empty/incorrect.
-
-## Verify Against Current Docs
-
-Eloquent eager-loading APIs, the `preventLazyLoading`/strict-mode toggles, queue configuration, and policy/gate registration have changed across Laravel major versions. Before relying on memory for version-sensitive APIs, check https://laravel.com/docs against the actual `laravel/framework` version in the project's `composer.json`.

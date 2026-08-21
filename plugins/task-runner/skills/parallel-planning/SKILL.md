@@ -146,7 +146,7 @@ the unit is a whole milestone, matching the `track-orchestration` skill's eligib
 
 ## Boundaries
 
-- Decomposing work INTO tasks is code-architecture's task-orchestration
+- Decomposing work INTO tasks is code-architecture's plan-before-code
   skill; this skill takes the decomposition as given and prices execution.
 - Execution discipline (scope lock, bounded fix loops, evidence) is the
   task-execution skill — the plan feeds it, never replaces it.

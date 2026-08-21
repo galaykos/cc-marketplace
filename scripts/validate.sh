@@ -55,7 +55,18 @@ for d in plugins/*/skills/*/; do
   [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
   echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during)"
-  if lines=$(pc_skill_budget "$f"); then :; else err "$f: body is ${lines##* } lines, over the 150-line ceiling"; fi
+  if bud=$(pc_skill_budget "$f"); then :; else
+    # "budget <path> <kind> <n> [:line]" -> one sentence naming the measure that
+    # bit, since there are now three and "over the ceiling" no longer says which.
+    bkind=$(printf '%s' "$bud" | awk '{print $3}')
+    bval=$(printf '%s' "$bud" | awk '{print $4}')
+    bwhere=$(printf '%s' "$bud" | awk '{print $5}')
+    case "$bkind" in
+      lines)       err "$f: body is $bval lines, over the 150-line ceiling" ;;
+      bytes)       err "$f: body is $bval bytes, over the 10,000-byte ceiling — the line count stopped measuring growth, this is the replacement; move a section to references/" ;;
+      line-length) err "$f: body line $bwhere is $bval characters, over the 300-char ceiling — reflow it; a jammed subsection is how content grows under a frozen line count" ;;
+    esac
+  fi
 done
 
 # Commands need frontmatter with description:; agents additionally need name:
@@ -171,8 +182,17 @@ while IFS=: read -r file ref; do
     err "$file: reference '$ref' names unknown plugin '$pname'"
   else
     cname="${ref##*:}"
-    [ -f "plugins/$pname/commands/$cname.md" ] \
-      || err "$file: reference '$ref' names no plugins/$pname/commands/$cname.md"
+    # A `/plugin:name` reference resolves to a command file OR a same-named
+    # skill. Claude Code merged custom commands into skills — "A file at
+    # .claude/commands/deploy.md and a skill at .claude/skills/deploy/SKILL.md
+    # both create /deploy and work the same way"
+    # (https://code.claude.com/docs/en/skills) — so a plugin that ships only the
+    # skill still answers the slash command. Before 2026-08-20 this gate knew
+    # only about commands/, which is why deleting three commands that merely
+    # restated their identically-named skill produced 12 FAILs about references
+    # that had never stopped working.
+    [ -f "plugins/$pname/commands/$cname.md" ] || [ -f "plugins/$pname/skills/$cname/SKILL.md" ] \
+      || err "$file: reference '$ref' resolves to neither plugins/$pname/commands/$cname.md nor plugins/$pname/skills/$cname/SKILL.md"
   fi
 done < <(grep -roEH '/[a-z][a-z0-9-]*:[a-z][a-z0-9-]*' README.md plugins/*/README.md plugins/*/commands plugins/*/skills plugins/*/agents 2>/dev/null \
          | grep -v 'https\?:' | grep -v '/preserve:' | sort -u)
@@ -193,8 +213,13 @@ done < <(find plugins -path '*/hooks/hooks.json')
 # Plugins ship ONLY functional files. Task documentation, specs, and design/task
 # history live in taskmaster-docs/ (or a repo-level location outside plugins/) —
 # never inside a plugin. Allowed .md: README/CHANGELOG/ROADMAP at a plugin root,
-# a skill's SKILL.md and its references/, commands/, and agents/.
-allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$'
+# a skill's SKILL.md and its references/, commands/, and agents/ — plus evals/,
+# which is functional despite being prose: `claude plugin eval` reads
+# `<plugin>/evals/**/prompt.md` and `graders/*.md` as the case definition, the same
+# way a skill reads references/. Added 2026-08-20 with the first four suites; a
+# design doc parked under evals/ is still a doc-location violation in spirit, and
+# nothing here can tell the two apart.
+allow_md='^(README|CHANGELOG|ROADMAP)\.md$|^skills/[^/]+/SKILL\.md$|^skills/[^/]+/references/.+\.md$|^commands/[^/]+\.md$|^agents/[^/]+\.md$|^evals/.+\.md$'
 while IFS= read -r mdf; do
   pc_doc_location "$mdf" "$allow_md" >/dev/null \
     || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
@@ -690,6 +715,13 @@ harness_gap=$(pc_harness_payload .) || true
 # sanctioned — that is how prime.sh came to assert tailwind on any React dependency.
 prime_gap=$(pc_prime_coverage plugins) || true
 [ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
+
+# A bundle's README must name every plugin it installs. Two commits added a
+# dependency to four bundles and updated zero READMEs; the all-bundle dependency
+# gate above proved the deps RESOLVED and said nothing about whether a user could
+# discover them. Presence only — nothing here gates that the description is true.
+bundle_readme_gap=$(pc_bundle_readme_members plugins) || true
+[ -n "$bundle_readme_gap" ] && lane_err "$bundle_readme_gap" "bundle README does not name a plugin its plugin.json installs — add a line for each name listed"
 
 # Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
 # claims — the densest ownership statements the marketplace ships, and the only ones a

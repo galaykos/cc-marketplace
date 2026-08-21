@@ -113,7 +113,7 @@ cron, or the opt-in gate cannot be satisfied — every fan-out phase falls back 
 single inline agent at the selected model: one inline scout+reader pass, one inline
 red-team, one inline completeness sweep. The run completes with less parallelism,
 never an error. But the fallback surrenders independence — one model re-examining
-itself (the correlated-opinion caveat opinion-round names) — so the words "panel",
+itself (the correlated-opinion caveat approach-deliberation names) — so the words "panel",
 "refuters", and "verified" are off-limits for it: every section the fallback produced
 is headed **"inline heuristic pass — single model, uncorroborated"**, and the run
 summary states which phases ran degraded. Verdict language must let the reader

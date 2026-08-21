@@ -928,9 +928,10 @@ function copyRegister(files) {
  *
  * WHAT THESE DO NOT CATCH — named, not implied:
  *
- *  - THEY NEVER RUN ON `/ui-ux:build`. divergence.mjs is invoked by
- *    `/craft-layer:audit` step 4 and `/craft-layer:craft` step 7 and nowhere
- *    else, while ui-ux's `build.md:75` calls itself the most reachable UI entry
+ *  - THEY NEVER RUN ON `/ui-ux:build`. divergence.mjs has exactly ONE call
+ *    site: `/craft-layer:audit` step 4. A `/craft-layer:craft` run reaches it
+ *    only by calling that command at its step 7, which explicitly forbids
+ *    running the gates itself. Meanwhile ui-ux's `build.md:75` calls itself the most reachable UI entry
  *    point in this marketplace. The most-used way into a UI is the one path this
  *    gate has never been on.
  *  - THEY COUNT A HUE AND A FAMILY, NOT A COMPOSITION. Three equal cards, the

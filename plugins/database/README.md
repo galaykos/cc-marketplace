@@ -2,7 +2,7 @@
 
 Database design and implementation, engine-agnostic: schema normalization,
 expand→contract migrations, indexing, query shape, and connection-pool
-discipline. Ships the `database-design` skill, a `/database:review` command, a
+discipline. Ships a `/database:review` command, a
 `database-engineer` worker agent, and a PreToolUse guard that asks for
 confirmation before a destructive statement lands. Dialect statement audits are
 deferred to the sql/mysql/mariadb/postgresql plugins.
@@ -18,7 +18,7 @@ deferred to the sql/mysql/mariadb/postgresql plugins.
 
 | Command | What it does |
 |---------|--------------|
-| `/database:review [path-migration-or-schema]` | Review schema, migrations, indexes, and pooling against database-design (engine-agnostic) |
+| `/database:review [path-migration-or-schema]` | Review schema, migrations, indexes, and pooling against sql-best-practices (engine-agnostic) |
 
 ## Example
 
@@ -29,7 +29,7 @@ deferred to the sql/mysql/mariadb/postgresql plugins.
 
 The review detects the engine and version first (configs, DSNs, compose files,
 manifests — never assumed from a `.sql` file), then applies the
-`database-design` checklist and reports one finding per line, severity-sorted,
+`sql-best-practices` checklist and reports one finding per line, severity-sorted,
 with a coverage inventory. Implementation work — new tables, migrations,
 indexes, query rewrites — goes to the `database-engineer` agent, which works
 through the project's migration tooling rather than raw ad-hoc DDL.

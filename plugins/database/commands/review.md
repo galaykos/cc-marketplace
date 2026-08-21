@@ -1,5 +1,5 @@
 ---
-description: Review schema, migrations, indexes, and pooling against database-design (engine-agnostic)
+description: Review schema, migrations, indexes, and pooling against sql-best-practices (engine-agnostic)
 argument-hint: [path-migration-or-schema]
 ---
 <!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
@@ -26,7 +26,7 @@ Detect the engine and version first — from configs, DSNs, compose files, or de
    leaves the stacks nobody happened to invoke unreviewed. Deferring is not a smaller
    answer — the aggregator reaches this plugin's rubric too.
 
-3. Invoke the `database-design` skill from this plugin and apply its checklist across the
+3. Invoke the `sql-best-practices` skill from this plugin and apply its checklist across the
    scope — cite the skill's rubric, do not restate it here.
 
 4. Report findings one line each, sorted by severity (critical, high, medium, low):

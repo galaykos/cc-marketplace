@@ -52,7 +52,7 @@ leading framing ("I think it's the cache — check the cache"), or ranked
 options. Attempts already made are facts and belong in the brief; the
 conclusion drawn from them does not. This is the same blind-dispatch
 discipline the marketplace uses everywhere a second opinion has value
-(spec-adversary, opinion-round): anchoring is removed at composition time,
+(spec-adversary, the deliberation panel): anchoring is removed at composition time,
 because it cannot be removed after.
 
 **Mechanical check (run it, don't self-certify):** write the brief to a scratch

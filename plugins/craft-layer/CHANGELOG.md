@@ -7,6 +7,31 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.2
+
+### Fixed
+- **Eleven severed sentences, shipping since 2026-07-27.** Commit `3c8e6d7`
+  ("prose strip — net -76 lines, no capability removed") deleted hard-wrapped
+  CONTINUATION lines, which ends a sentence mid-clause. Nine of this plugin's
+  files carried the damage on every load since: `scroll-orchestration` lost
+  "engine drives it — then pins the contract and the budget", the clause naming
+  what the skill decides; `webgl-effects` read "earns the GPU cost and" straight
+  into "Three.js:"; `information-design` ended mid-sentence at "Cite the". Each
+  sentence is repaired in the strip's own spirit — the author-facing "never
+  restate" nagging stays deleted, the reader-facing scope claim is back. The
+  commit message's "no capability removed" was false, and no gate here could
+  tell a redundant line from the second half of a sentence.
+- **`contrast.mjs` was invoked by nothing.** 183 lines and three test fixtures,
+  with zero runnable call sites, while `template/craft-gates/gates.spec.ts`
+  disables axe's `color-contrast` rule and names this script "the gate of record"
+  in its place. Contrast was graded by nothing on every path. `/craft-layer:audit`
+  step 4 now runs it beside `divergence.mjs`, and says why exit 2 is a failure
+  rather than a skip.
+- **Corrected the recorded call sites of `divergence.mjs`.** Three documents said
+  it is invoked by "`/craft-layer:craft` step 7 and `/craft-layer:audit` step 4",
+  which reads as two independent call sites. There is one: craft step 7 calls the
+  audit COMMAND, and explicitly forbids running its gates itself.
+
 ## 0.47.1
 
 ### Fixed
