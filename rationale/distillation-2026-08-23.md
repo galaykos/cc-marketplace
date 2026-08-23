@@ -289,3 +289,15 @@ exist); craft-layer's changelog vs the craft-ui findings (disjoint).
   are not the same resource. This run had a great deal of the first and, until it
   was asked for explicitly, none of the second — and every round of review after
   that found something the round before had shipped.
+
+  **Where the chain was stopped, and on what test.** Each review round found
+  something, so "review until clean" has no natural end. The stopping rule used
+  was the repo's own first law, proportionality, applied to a measurement rather
+  than a feeling: the final commit changes tests, a doc table, a changelog and a
+  version — **zero guard logic** — and the guard now differs from its
+  pre-`ea7243c` state by 33 lines that are *all comments*, 0 non-comment changes,
+  with verdicts identical across the full classification corpus. The
+  security-relevant surface is therefore back where it started, and what remains
+  unreviewed is test coverage and prose. Residual, stated rather than implied:
+  that last commit is unreviewed, and on this run's own evidence an unreviewed
+  commit from this session has roughly even odds of containing something.
