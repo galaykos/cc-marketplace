@@ -361,9 +361,29 @@ classify() {
       # A segment naming this script WITHOUT --check still falls through and is
       # classified normally, so `bash destructive-guard.sh --allow-everything` is
       # not exempt.
-      case "$segn_lc" in
-        *" bash "*destructive-guard.sh*" --check "*|*" sh "*destructive-guard.sh*" --check "*)
-          continue ;;
+      #
+      # POSITIONAL, NOT SUBSTRING — and that distinction is a fixed vulnerability,
+      # not a style note. The first version of this exemption matched the three
+      # tokens ANYWHERE in the segment:
+      #     *" bash "*destructive-guard.sh*" --check "*
+      # `bash -c PAYLOAD name arg…` runs PAYLOAD and makes everything after it
+      # $0/$1/…, so appending the literal words `destructive-guard.sh --check y`
+      # to a `bash -c "<destructive>"` call satisfied all three substrings while
+      # the shell still executed the payload. That re-opened the exact `bash -c`
+      # wrapper hole this guard's own deny text warns models not to try. Matching
+      # by POSITION closes it: `-c` lands in word 2, where only the guard's own
+      # path is accepted.
+      gw1=$(printf '%s' "$segn_lc" | awk '{print $1}')
+      gw2=$(printf '%s' "$segn_lc" | awk '{print $2}')
+      gw3=$(printf '%s' "$segn_lc" | awk '{print $3}')
+      case "$gw1" in
+        bash|sh)
+          if [ "$gw3" = "--check" ]; then
+            case "$gw2" in
+              */hooks/destructive-guard.sh|hooks/destructive-guard.sh|destructive-guard.sh)
+                continue ;;
+            esac
+          fi ;;
       esac
       if is_reader "$lead"; then continue; fi
       if [ "$lead" = "git" ]; then

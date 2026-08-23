@@ -72,13 +72,19 @@ authority to edit it.
    Second run in a row this happened (see the php ablation above); the pattern is
    the finding.
 
-   **And there IS a live defect underneath it that nobody found, in eleven agents
-   plus two critic rounds:** `scripts/remove-plugin.sh:131-135` hand-`sed`s the
-   `everything` row — which sits INSIDE the `<!-- generated:bundle-table -->`
+   **A live defect underneath it:** `scripts/remove-plugin.sh:131-135` hand-`sed`s
+   the `everything` row — which sits INSIDE the `<!-- generated:bundle-table -->`
    region whose own header (README.md:35) reads "do not edit these rows by hand".
-   Two writers, one generated region. Verified: the regex matches the current row.
-   `generate.sh --write` and `remove-plugin.sh` will fight over that line, and
-   whichever runs last wins silently.
+   Two writers, one generated region; whichever runs last wins silently.
+
+   An earlier draft of this paragraph called that defect newly found, "in eleven
+   agents plus two critic rounds". **That was false, and the correction belongs
+   here rather than in a quiet edit.** `rationale/distillation-strategy-2026-08-20.md:590-592`
+   records it in near-identical words — same file, same line range, "two writers,
+   one region" — three days earlier. It is the FOURTH re-derivation in this run
+   (the php ablation, the CLAUDE.md sentence, this, and the sql ratio), and it
+   happened inside the paragraph diagnosing that exact failure. A run can name its
+   own failure mode and commit it in the same breath; naming it is not immunity.
 2. **CLAUDE.md's has-teeth section** — "explicit `Standing:` markers ship in 7
    plugins today". Recount: **13** in shipped `.md`, **17** including hook scripts.
    The recorded-number-trusted-as-measurement trap the file names twice, live in
@@ -105,9 +111,16 @@ measurement first, which is why it is a backlog and not a commit.
    restate it — and the bundle does not include i18n.** Measured deps:
    a11y, craft-layer, design-preview, registry-source, shadcn-studio, threejs,
    ui-ux. `validate.sh` resolves references repo-wide, so no gate can see an
-   install-set absence. Same class as `database/commands/review.md:29` (fixed
-   below) and, per critic round 1, the same class as **204 cross-plugin references
-   across 50 plugins with zero leaf dependencies declared anywhere**.
+   install-set absence. Same class as `database/commands/review.md:29` (backlog
+   item 3), and the same class as a mesh of cross-plugin references that no leaf
+   `plugin.json` declares — **0 of 61 leaves declare any dependency**, which does
+   reproduce. An earlier draft put that mesh at "204 references across 50
+   plugins"; **that number does not survive recount** (explicit `plugins/<dst>`
+   path references from a different plugin: 73, across 5 source plugins in `.md`).
+   It came from a session-local method that was never stated. Corrected here
+   rather than deleted, because `distillation-review-2026-08-17.md:210-211`
+   already recorded the verdict this instantiates: every mechanism in these runs
+   held up under adversarial execution, and every prose number did not.
 3. **`database/commands/review.md` is 90.6% identical to `sql/commands/review.md`**,
    both chassis-generated over the same rubric skill, and db-suite ships both;
    its line 29 says "from this plugin" about a skill in `plugins/sql`. Deleting it
@@ -223,11 +236,23 @@ exist); craft-layer's changelog vs the craft-ui findings (disjoint).
   direct measurement that exists (php) came from a doc, not from this run.
 - The SHRINK family was not applied. It deletes shipped prose on judgment calls.
 - No plugin was removed. `remove-plugin.sh` has a documented README-table gap.
-- **The completeness-critic stop condition was never reached.** The contract is
-  two consecutive dry rounds, cap 3. Round 1 found 3 gaps (one overturned a
-  conclusion). Round 2 found 9 (three corrected this document after it was
-  committed). Neither round was dry, so a round 3 is owed and was not run. On the
-  evidence of rounds 1 and 2 — both of which found things eleven prior agents
-  missed, mostly by reading `rationale/` and `git log` rather than the plugins —
-  a round 3 would probably find more. Saying so is cheaper than implying the
-  well ran dry.
+- **The completeness-critic ran its full cap of 3 rounds and never went dry.**
+  Round 1: 3 gaps, one overturning a conclusion. Round 2: 9 gaps, three
+  correcting this document after it was committed. Round 3: 2 gaps plus a
+  security regression in the fixes this run itself landed. The stop condition —
+  two consecutive dry rounds — was never met; the cap stopped the loop, not the
+  evidence. Almost every gap came from reading `rationale/` and `git log` rather
+  than the plugins.
+
+- **This run shipped a vulnerability and then caught it.** `ea7243c`'s
+  command-guard self-exemption matched its tokens anywhere in the segment. But
+  `bash -c PAYLOAD name arg...` runs PAYLOAD and demotes the rest to positional
+  arguments, so appending the magic words to a destructive `bash -c` call
+  unlocked it — re-opening the wrapper hole the guard's own deny text warns
+  against. Four vectors confirmed, including a `bash -lc` filesystem wipe. Fixed
+  in command-guard 0.2.1 by matching on POSITION, with seven bypass vectors now
+  in the harness. The lesson is narrow and worth stating plainly: the fix's
+  comment reasoned carefully about the wrong threat (a different FLAG) and never
+  considered that `-c` decouples what executes from what a substring sees. An
+  eight-agent audit found the original defect; no agent reviewed the patch.
+  **A fix written by a panel still needs a reviewer.**

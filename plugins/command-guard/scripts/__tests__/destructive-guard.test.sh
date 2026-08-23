@@ -288,6 +288,26 @@ for target in 'php artisan migrate:fresh' 'terraform destroy' 'psql -c "DROP TAB
   expect deny "$target"
 done
 
+# BYPASS VECTORS. The first version of the exemption matched its three tokens
+# anywhere in the segment, so appending `destructive-guard.sh --check y` to a
+# `bash -c "<destructive>"` call satisfied all three while the shell still ran
+# the payload — a hole in a security gate, opened by the fix for the defect
+# above. `-c` decouples what executes from what a substring match sees. These
+# assertions fail against that version and pass against the positional one.
+expect deny 'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
+expect deny 'sh -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
+expect deny 'bash -c "php artisan migrate:fresh" /opt/hooks/destructive-guard.sh --check y'
+expect deny 'eval "php artisan migrate:fresh" destructive-guard.sh --check y'
+expect deny 'bash -lc "rm -rf /" destructive-guard.sh --check y'
+# control: the same payload without the magic tail must also deny (proves the
+# tail is what was unlocking it, not something else in the string)
+expect deny 'bash -c "php artisan migrate:fresh"'
+# and the legitimate positional form must still be exempt
+out=$(printf '%s' "$(bash_json "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fresh'")" \
+  | "$BASH_BIN" "$GUARD" 2>/dev/null)
+d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+[ -z "$d" ] && ok || bad "positional --check form must stay exempt" "decision=$d"
+
 # The exemption is keyed on --check, the one flag that classifies without
 # executing. A segment naming the script with any OTHER flag falls through to
 # normal classification, so a destructive sibling in the same command still dies.

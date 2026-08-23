@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.1
+
+### Security
+- **Fixes a bypass introduced by 0.2.0.** That release's self-exemption matched
+  its three tokens anywhere in the command segment. But `bash -c PAYLOAD name arg...`
+  executes PAYLOAD and turns everything after it into `$0`/`$1`/..., so appending
+  the literal words `destructive-guard.sh --check y` to a `bash -c "<destructive>"`
+  call satisfied all three substrings while the shell still ran the payload --
+  re-opening the exact `bash -c` wrapper hole this guard's own deny text warns
+  models not to attempt. Four vectors confirmed allowed, including a `bash -lc`
+  filesystem wipe with the magic tail appended.
+- The exemption now matches by POSITION: word 1 must be `bash`/`sh`, word 2 must
+  be the guard's own path, word 3 must be `--check`. `-c` lands in word 2, where
+  only that path is accepted. Seven bypass vectors plus a control are asserted in
+  the harness and fail against 0.2.0.
+
 ## 0.2.0
 
 ### Fixed
