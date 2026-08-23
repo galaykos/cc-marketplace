@@ -40,7 +40,14 @@ they have teeth.
 | 6 | `pc_version_stamp`'s header declared itself "recorded, NOT gate" with a promotion work-queue, 21 days after `validate.sh:559` already fed it to `err` | nothing pairs a check's wiring with its standing line |
 
 Regenerating the README bundle table after (4) was `generate.sh --check` catching
-drift that `CLAUDE.md:263-265` says nothing gates — the gate demonstrating itself.
+drift, and the first draft of this document called that "the gate demonstrating
+itself" against `CLAUDE.md:263-265`. **That conflated two scenarios and is
+withdrawn.** What `--check` caught was *baseline-change* drift. The sentence in
+CLAUDE.md is about *removal* drift, and on that scenario the 2026-08-20 record
+measured `--check` staying green — the table stays consistent with an
+already-condemned manifest, and the gate that actually fires is `validate.sh`'s
+bundle-dependency inheritance. The sentence is still wrong (item 1 below), but
+not for the reason that draft gave.
 
 ## Needs your call — two false statements in CLAUDE.md
 
@@ -57,6 +64,21 @@ authority to edit it.
    the leaf hard-fails `validate.sh:474-488`. Measured: zero drift in all 10 rows.
    True residual worth keeping: `remove-plugin.sh` WARNs rather than edits, so the
    failure is a red CI run, not silent drift.
+
+   **Not new, and that is its own finding.** `rationale/distillation-strategy-2026-08-20.md:376`
+   already recorded this exact sentence with the verdict "CLAUDE.md should be
+   corrected, or someone will build a redundant check", and §8e already measured
+   the removal case. Three days later an eight-agent panel re-derived it as novel.
+   Second run in a row this happened (see the php ablation above); the pattern is
+   the finding.
+
+   **And there IS a live defect underneath it that nobody found, in eleven agents
+   plus two critic rounds:** `scripts/remove-plugin.sh:131-135` hand-`sed`s the
+   `everything` row — which sits INSIDE the `<!-- generated:bundle-table -->`
+   region whose own header (README.md:35) reads "do not edit these rows by hand".
+   Two writers, one generated region. Verified: the regex matches the current row.
+   `generate.sh --write` and `remove-plugin.sh` will fight over that line, and
+   whichever runs last wins silently.
 2. **CLAUDE.md's has-teeth section** — "explicit `Standing:` markers ship in 7
    plugins today". Recount: **13** in shipped `.md`, **17** including hook scripts.
    The recorded-number-trusted-as-measurement trap the file names twice, live in
@@ -93,13 +115,23 @@ measurement first, which is why it is a backlog and not a commit.
    in no generated block.
 4. **`resilience/commands/{error,concurrency}-review.md`** — byte-identical hand
    copies of the chassis review, already missing the 8-line hand-up block their
-   own generated sibling carries. `.chassis.json` declares only `review.md`, so
-   `--check` is structurally blind. Declare them or fold them.
+   own generated sibling carries. **Corrected by critic round 2:** "declare them
+   in `.chassis.json`" is not available. Commit `93b6ca4` records the copies as a
+   deliberate decision with a named blocker — "the stack-review chassis hardcodes
+   `commands/review.md`, so a host can carry only one generated review command" —
+   and `resilience/.chassis.json` is a single-object schema with no command list.
+   The missing triage block is real; the remedy is a chassis multi-command
+   extension or a fold into `review.md`, not a declaration.
 5. **The 15-line TRIGGER-NARROWING block is byte-identical (md5 `a268a9da`) across
-   three plugins' boost hooks**, hand-maintained, with `dispatch-tier.md:63-65`
-   admitting nothing checks they agree — and `skill-router/route-prompt.sh` and
-   `terse/mode.sh` already carry drifted variants. `templates/reminder-hook.sh.tmpl`
-   proves the hook chassis type is precedented.
+   three plugins' boost hooks.** **Downgraded by critic round 2:** the panel called
+   this ungated; in fact `scripts/smoke/hook-guard-tests.sh:164-199` pins the
+   BEHAVIOUR of exactly those three hooks with 28 assertions in a blocking CI
+   step, and `dispatch-tier.md:63-65`'s admission is about tier STRINGS, a
+   different property. What survives: `skill-router/route-prompt.sh` and
+   `terse/mode.sh` carry drifted variants that sit outside that harness. Chassis
+   templating is still defensible for single-sourcing, but it is not closing an
+   open hole, and any `boost-hook.sh.tmpl` must reconcile with the "cite
+   `dispatch-tier.md`, do not restate" decision in `8899d48`/`b971a5a`.
 6. **`verify-teeth` and `visual-contract` pay always-on description cost (~59 tok
    each) for pipeline-internal bodies.** Sole-caller verified for both by an
    independent grep. Move to `references/` of their caller. Two traps found:
@@ -150,13 +182,52 @@ measurement first, which is why it is a backlog and not a commit.
 | extend the generic-ratio shrink to the SQL engines | 2–13% generic, not php's 64% — measured with a three-bucket method; flattening the engine-undated bucket would have manufactured it. The one that DOES match is `sql` itself at 66%, and its own auditor says eval-first, not blind cut. |
 | the 9 quality/security hooks and task-runner's 5 vs the three documented failure shapes | all pass, harness payloads checked file by file. |
 
+## Critic round 2 — what a second pass still found
+
+Round 2 was not dry either. Beyond the three corrections folded in above:
+
+- **`sql`'s 66% generic ratio is partly an artifact of a 3-day-old merge.** The
+  2026-08-20 strategy classified `sql` at 56% version-pinned leverage on its
+  pre-merge 105-line body; `c919d83` then poured `database-design`'s
+  engine-generic content in (105 → 139 lines). Trimming per class H would
+  partially re-delete content deliberately relocated there — by the same commit
+  whose other half this document flags in backlog item 3.
+- **C2 has a second instance already recorded as accepted on 2026-08-17.**
+  `ui-ux/hooks/palette-default.sh` is path-gated on `*.tsx|*.jsx|*.vue`, so the
+  synthetic `src/example.ts` never matches it. The honesty note added in `ea7243c`
+  names only testing's matcher; ui-ux ships in 10 bundles. The note should name
+  both, or name the class.
+- **`rationale/host-lever-probes-2026-08-21.md:84`** says a skill written purely
+  as a command's implementation "is the shape that would qualify [for
+  `disable-model-invocation`], and none exists here". Backlog item 6 names two:
+  `verify-teeth` and `visual-contract`. Whichever remedy lands, that line needs
+  updating or the next reader inherits a false empty set.
+- **The vite jamming predates the gate that was calibrated on the same file.**
+  It entered in `6487412` (2026-08-02) and `d0623e7` — the commit that ADDED the
+  300-char lint, message "vite reflowed" — edited this file and left all 5 jammed
+  lines as diff context. The proven remedy is that commit's own technique:
+  offload to `references/`.
+- **terse's three agents were recorded as zero-external-referrer orphans on
+  2026-08-02** and still are: the only reference outside `plugins/terse/` is a
+  lane note in `code-review/CHANGELOG.md:34`. The three-cluster convergence on
+  their descriptions is understated, not wrong.
+
+Round 2 declared clean: all 13 plugin changelogs for done-and-reverted proposals
+(zero reverts); the terse "third the tokens" stat (no measurement anywhere, so
+that attack survives); local `registry-source/mcp/server.mjs` instructions (none
+exist); craft-layer's changelog vs the craft-ui findings (disjoint).
+
 ## What this run did not do
 
 - No behavioral measurement. Every generic-ratio verdict is a proxy; the one
   direct measurement that exists (php) came from a doc, not from this run.
 - The SHRINK family was not applied. It deletes shipped prose on judgment calls.
 - No plugin was removed. `remove-plugin.sh` has a documented README-table gap.
-- Completeness-critic ran 2 rounds, not to two consecutive dry rounds. Round 1
-  found 3 gaps, one of which overturned a conclusion; round 2's result is recorded
-  wherever this document's git history says it landed. The contract's stop
-  condition was not reached — stated here rather than implied.
+- **The completeness-critic stop condition was never reached.** The contract is
+  two consecutive dry rounds, cap 3. Round 1 found 3 gaps (one overturned a
+  conclusion). Round 2 found 9 (three corrected this document after it was
+  committed). Neither round was dry, so a round 3 is owed and was not run. On the
+  evidence of rounds 1 and 2 — both of which found things eleven prior agents
+  missed, mostly by reading `rationale/` and `git log` rather than the plugins —
+  a round 3 would probably find more. Saying so is cheaper than implying the
+  well ran dry.
