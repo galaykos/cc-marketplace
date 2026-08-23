@@ -57,12 +57,15 @@ restate the table here, or the two drift.
 
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
-Adopted incrementally as plugins are touched, not in a sweep: explicit
-`Standing:` markers ship in 7 plugins today (claude-authoring,
-code-architecture, orchestration, task-runner, taskmaster, terse,
-vercel-skills-scout), plus craft-layer's worked table above. **No script
-enforces this** — which puts the convention in its own `recorded` tier, and
-saying so is the point.
+Adopted incrementally as plugins are touched, not in a sweep. **Do not copy a
+count from this paragraph — recount it**, the way the retirement-queue and CI-step
+numbers below say to, and for the same reason: this sentence said "7 plugins" from
+2026-07 until 2026-08-23, by which point it was 13. Recount with
+`grep -rl "Standing:" --include='*.md' plugins/ | cut -d/ -f2 | sort -u | wc -l`
+(drop `--include` to count hook scripts too). As of 2026-08-23 that is **13** in
+shipped `.md` and **17** including hook scripts, plus craft-layer's worked table
+above. **No script enforces the convention** — which puts it in its own
+`recorded` tier, and saying so is the point.
 
 ## Plugin change gates
 
@@ -261,5 +264,28 @@ where a control/treatment run is worth spending, nothing more.
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned
 plugin-removal script. It rewrites leaf-derived numbers only. Removing a *leaf*
 changes every suite that listed it, and those suites' member counts get a `WARN`,
-not an edit — so the bundle table at `README.md` drifts on exactly the removal
-the script is for. Nothing gates that table.
+not an edit.
+
+This paragraph used to end "so the bundle table at `README.md` drifts on exactly
+the removal the script is for. Nothing gates that table." **That was false, and
+had been since 2026-08-02** — the `generate.sh --check` paragraph above says the
+opposite about the same table, so this file contradicted itself for three weeks.
+The table IS gated, by inheritance: `remove-plugin.sh` deletes the
+`marketplace.json` entry, so a suite still listing the removed leaf hard-fails
+`validate.sh`'s all-bundle dependency gate; fixing that dep changes the member
+count, which `generate.sh --check` then forces into the table.
+
+Two residuals are real and worth keeping. **(1)** The table is not *self*-gating:
+immediately post-removal it shows stale counts while `--check` reports no drift,
+because it is consistent with a manifest `validate.sh` has already condemned. So
+the failure surfaces as a red build, not as table drift — which is why the WARN
+above matters. **(2)** `remove-plugin.sh` hand-`sed`s the `everything` row, which
+lives *inside* the `<!-- generated:bundle-table -->` region whose own header says
+not to edit those rows by hand. Two writers, one generated region; last writer
+wins silently. Nothing gates *that*.
+
+The correction is itself the lesson this section teaches, running backwards: a
+gate can be mis-tiered as toothless as easily as a habit can be mis-tiered as a
+gate, and the toothless direction is more expensive — it makes someone build what
+already exists. `pc_version_stamp` carried the same inversion in its own header
+for 21 days after it started blocking.
