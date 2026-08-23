@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.3.1
+
+### Fixed
+- `commands/check.md` claimed "ask- and allow-tier targets run fine" after 0.3.0
+  removed the self-exemption. Measured: false for **ask**. With no exemption the
+  check invocation is itself classified, so checking an ask-tier target draws a
+  confirmation prompt worded as though something will be destroyed — for a
+  command that only classifies. Allow-tier is genuinely silent. The doc now
+  carries a measured tier-by-tier table instead of a claim.
+
+### Added
+- **Hook-mode assertions in the `no self-exemption` harness section.** Every
+  assertion added in 0.3.0 drove CLI mode (`--check`), which reaches `classify()`
+  directly. A reviewer planted the 0.2.0 substring bug one layer up — a `case` on
+  the raw command string in the HOOK path, before `classify()` is called — and
+  the whole section passed 141/0 with the hole live. That is the same
+  CLI-mode/hook-mode composition gap that let the original defect ship,
+  reappearing in the tests written to close it. Four vectors now drive the real
+  `PreToolUse` entry point; verified against the planted hole, which they fail.
+
+### Changed
+- Removed two byte-identical duplicate assertions. The section asserts 9 distinct
+  vectors, not the 10 the 0.3.0 changelog claimed. Of the 8 non-control CLI
+  assertions, 5 discriminate against a 0.2.1-style exemption and 3 (the `eval`
+  form and the two `-c` wrapper forms) deny regardless — kept as regression
+  coverage for a re-added 0.2.0-style exemption, which is what they do catch.
+
 ## 0.3.0
 
 ### Security

@@ -280,8 +280,6 @@ expect deny "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fre
 expect deny "sh destructive-guard.sh --check 'php artisan migrate:fresh'"
 expect deny 'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
 expect deny 'sh -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
-expect deny 'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
-expect deny 'sh -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
 expect deny 'bash -c "php artisan migrate:fresh" /opt/hooks/destructive-guard.sh --check y'
 expect deny 'eval "php artisan migrate:fresh" destructive-guard.sh --check y'
 
@@ -295,6 +293,24 @@ expect deny 'bash /x/hooks/destructive-guard.sh --check foo > /dev/sda'
 # Controls: the same payloads with no exemption-shaped tail must also deny.
 expect deny 'php artisan migrate:fresh'
 expect deny 'bash -c "php artisan migrate:fresh"'
+
+# HOOK MODE, not just CLI mode. Everything above drives `--check`, which reaches
+# classify() directly. An exemption added in the HOOK path instead — a `case` on
+# the raw command string before classify() is ever called — is invisible to all
+# of it: a reviewer built exactly that (the 0.2.0 substring bug, relocated one
+# layer up) and this section still passed clean while the hole was live. That is
+# the same CLI-mode/hook-mode composition gap that let the original defect ship,
+# reappearing in the tests written to close it. These drive the real PreToolUse
+# entry point, so a third exemption is caught wherever it is placed.
+for v in \
+  "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fresh'" \
+  'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y' \
+  'bash "/x/hooks/destructive-guard.sh" --check "$(php artisan migrate:fresh)"' \
+  "bash /x/hooks/destructive-guard.sh --check foo > /dev/sda"; do
+  out=$(printf '%s' "$(bash_json "$v")" | "$BASH_BIN" "$GUARD" 2>/dev/null)
+  d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  [ "$d" = "deny" ] && ok || bad "hook mode must deny an exemption-shaped payload" "verdict=${d:-<silent>} cmd=$v"
+done
 
 # ---------------------------------------------------------------------------
 SNAP_AFTER=$(git_snap)

@@ -267,12 +267,25 @@ exist); craft-layer's changelog vs the craft-ui findings (disjoint).
   to engineer around its own gate. Ten vectors plus two controls are pinned as
   DENY in the harness; they fail against both prior releases.
 
-  Three lessons, in ascending order of generality. The narrow one: an exemption
+  A review of the REMOVAL then found the removal's own tests were weak: every
+  assertion drove the CLI path, so a reviewer planted the original substring bug
+  one layer up — in the hook path, before `classify()` runs — and the section
+  written to stop a third exemption passed 141/0 with the hole live. The
+  CLI-mode/hook-mode composition gap that let the original defect ship had
+  reappeared inside the tests written to close it. Fixed in 0.3.1 with hook-mode
+  assertions, verified against the planted hole. That review also caught a doc
+  claim ("ask- and allow-tier targets run fine") that measurement contradicted for
+  ask-tier.
+
+  Four lessons, in ascending order of generality. The narrow one: an exemption
   keyed on what a command LOOKS like cannot be safe while the shell will evaluate
-  parts of that same string on its own terms. The middle one: each patch was
-  reasoned carefully about the threat the previous round had shown, and blind to
-  the class next door — 0.2.1's comment argues confidently about a different FLAG.
-  The general one: **fourteen agents found the original defect and none of them
-  reviewed the fix.** Audit capacity and review capacity are not the same
-  resource, and this run had a great deal of the first and, until it was asked
-  for explicitly, none of the second.
+  parts of that same string on its own terms. The second: each patch was reasoned
+  carefully about the threat the previous round had shown and blind to the class
+  next door — 0.2.1's comment argues confidently about a different FLAG. The
+  third: a test written to prevent a defect's return inherits the blind spot that
+  let it ship, unless someone attacks the test itself; here the same gap recurred
+  one layer up, twice. The general one: **fourteen agents found the original
+  defect and none of them reviewed the fix.** Audit capacity and review capacity
+  are not the same resource. This run had a great deal of the first and, until it
+  was asked for explicitly, none of the second — and every round of review after
+  that found something the round before had shipped.

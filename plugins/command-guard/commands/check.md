@@ -40,8 +40,22 @@ Classify `$ARGUMENTS` without executing anything.
    different quoting, a wrapper, or a script file — the guard reads those too, and
    the answer is already known: it is `deny`. Skip step 2 and go straight to step
    3, reporting the verdict as `deny` and reading the reason out of
-   `skills/destructive-commands/references/rules.md`, which lists every deny rule
-   and its rationale. `ask`- and `allow`-tier targets run fine.
+   `skills/destructive-commands/references/rules.md`, which documents every deny
+   family and its rationale. (That file carries family-level reasons, not each
+   guard's exact one-line message — quote it as the rationale, not as the guard's
+   output.)
+
+   **Tier by tier, measured, because "the rest is fine" was wrong once already:**
+
+   | target tier | what happens to the check invocation | what to do |
+   | --- | --- | --- |
+   | `allow` | silent — the hook returns no decision | run step 2 normally |
+   | `ask` | **the invocation itself draws a confirmation prompt**, worded as though something will be destroyed | either approve it (nothing is destroyed — `--check` only classifies) or skip step 2 and report `ask` from `rules.md` |
+   | `deny` | the invocation is blocked | skip step 2, report from `rules.md` |
+
+   The `ask` row is the awkward one: the user sees a prompt about discarding
+   uncommitted changes for a command that discards nothing. Say so when it
+   happens rather than letting the prompt speak for itself.
 
 3. Report, in this shape:
 
