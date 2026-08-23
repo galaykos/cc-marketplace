@@ -341,50 +341,39 @@ classify() {
     [ "$VERDICT" = "deny" ] && break
 
     if [ "$pipe_to_shell" -eq 0 ]; then
-      # SELF-EXEMPTION — this guard's own `--check` CLI is a classifier, not a
-      # runner. Without this, the plugin denied the exact command its own
-      # /command-guard:check tells the model to type, for exactly the deny-tier
-      # targets that command exists to explain — and the deny text then says "Do
-      # NOT retry", so the model abandoned the check. Reproduced live before the
-      # fix; the harness never caught it because it exercises CLI mode and hook
-      # mode separately and never sends the hook a Bash payload whose command IS
-      # the check invocation (the grade-the-branch-the-host-never-takes shape
-      # `pc_harness_payload` closes for harnesses).
+      # NO SELF-EXEMPTION. THIS IS DELIBERATE, AND IT WAS TRIED TWICE.
       #
-      # NARROW BY CONSTRUCTION, and every clause is load-bearing:
-      #   - lead word must be bash/sh (not `eval`, not a pipe-to-shell: this whole
-      #     branch is already gated on pipe_to_shell=0 above),
-      #   - the script path must END in hooks/destructive-guard.sh,
-      #   - `--check` must be present — the ONE flag that classifies and exits
-      #     without executing its argument (see the CLI-mode block: it calls
-      #     classify(), prints, and exits; it never runs "$2").
-      # A segment naming this script WITHOUT --check still falls through and is
-      # classified normally, so `bash destructive-guard.sh --allow-everything` is
-      # not exempt.
+      # The problem it tried to solve is real: this guard denies the exact command
+      # its own /command-guard:check tells the model to type, because that command
+      # carries the deny-tier target as an argument and arrives through the Bash
+      # tool. See commands/check.md, which now states the limitation instead.
       #
-      # POSITIONAL, NOT SUBSTRING — and that distinction is a fixed vulnerability,
-      # not a style note. The first version of this exemption matched the three
-      # tokens ANYWHERE in the segment:
-      #     *" bash "*destructive-guard.sh*" --check "*
-      # `bash -c PAYLOAD name arg…` runs PAYLOAD and makes everything after it
-      # $0/$1/…, so appending the literal words `destructive-guard.sh --check y`
-      # to a `bash -c "<destructive>"` call satisfied all three substrings while
-      # the shell still executed the payload. That re-opened the exact `bash -c`
-      # wrapper hole this guard's own deny text warns models not to try. Matching
-      # by POSITION closes it: `-c` lands in word 2, where only the guard's own
-      # path is accepted.
-      gw1=$(printf '%s' "$segn_lc" | awk '{print $1}')
-      gw2=$(printf '%s' "$segn_lc" | awk '{print $2}')
-      gw3=$(printf '%s' "$segn_lc" | awk '{print $3}')
-      case "$gw1" in
-        bash|sh)
-          if [ "$gw3" = "--check" ]; then
-            case "$gw2" in
-              */hooks/destructive-guard.sh|hooks/destructive-guard.sh|destructive-guard.sh)
-                continue ;;
-            esac
-          fi ;;
-      esac
+      # Attempt 1 (0.2.0) matched `bash … destructive-guard.sh … --check` as
+      # substrings anywhere in the segment. Bypassed by `bash -c PAYLOAD name arg…`,
+      # which runs PAYLOAD and demotes the appended magic words to $0/$1.
+      #
+      # Attempt 2 (0.2.1) matched by ARGV POSITION — word 1 bash/sh, word 2 the
+      # guard's own path, word 3 --check. That closed the arg-shifting wrapper and
+      # was still bypassed three ways, because the exemption's `continue` skips
+      # classification of the WHOLE segment while a shell segment carries side
+      # effects the shell evaluates independently of argv:
+      #     …guard.sh --check "$( <destructive> )"    command substitution
+      #     …guard.sh --check ` <destructive> `       backticks
+      #     …guard.sh --check foo > /dev/<rawdisk>    redirection
+      # In each, the payload runs before or beside the classifier that argv says
+      # is all that happens.
+      #
+      # The lesson generalises past this plugin: an exemption keyed on what a
+      # command LOOKS like cannot be safe when the shell will evaluate parts of
+      # that same string on its own terms. Any third attempt has to classify the
+      # segment anyway and suppress only the verdict arising from the --check
+      # ARGUMENT — which means parsing shell grammar, which this guard
+      # deliberately does not do. A convenience command is not worth a hole in a
+      # deny gate, so the convenience loses.
+      #
+      # The bypass vectors are pinned as DENY assertions in
+      # scripts/__tests__/destructive-guard.test.sh § self-exemption. If someone
+      # adds an exemption again, those assertions are what should stop it.
       if is_reader "$lead"; then continue; fi
       if [ "$lead" = "git" ]; then
         sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')

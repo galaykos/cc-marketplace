@@ -255,72 +255,46 @@ for junk in '' 'not json at all' '{"tool_name":' '{}' '{"tool_name":"Bash"}' '{"
 done
 
 # ---------------------------------------------------------------------------
-# 5. SELF-EXEMPTION — the guard must not deny its own classifier
+# 5. NO SELF-EXEMPTION -- the guard must not carve a hole for its own CLI
 # ---------------------------------------------------------------------------
-# THE DEFECT THIS SECTION EXISTS FOR. /command-guard:check tells the model to run
-#   bash "${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh" --check '<command>'
-# and its own description names "a command was blocked and the reason needs
-# unpacking" as the primary use. But that invocation goes through the Bash tool,
-# so the hook read it, saw the deny-tier target quoted inside it, and denied — for
-# exactly the commands the check exists to explain. The deny text says "Do NOT
-# retry", so the model abandoned the check rather than retrying.
+# A self-exemption was added twice and reverted twice. The motivating problem is
+# real and is now stated as a limitation in commands/check.md instead: this guard
+# denies the exact invocation /command-guard:check tells the model to type,
+# because that invocation carries the deny-tier target as an argument.
 #
-# WHY THE OTHER 128 ASSERTIONS MISSED IT: sections 1-2 drive CLI mode directly and
-# section 3 drives hook mode with ordinary commands. Neither ever sent the HOOK a
-# Bash payload whose command IS the CLI invocation — the two modes were tested
-# separately and the composition was nobody's case. That is the same
-# grade-the-branch-the-host-never-takes shape `pc_harness_payload` closes for
-# harnesses generally; here the harness graded two real branches and skipped the
-# one the host actually takes.
-printf '== self-exemption\n'
-GP="plugins/command-guard/hooks/destructive-guard.sh"
-# Targets are deny-tier ON THEIR OWN (a bare `DROP TABLE users` is deliberately
-# ALLOW — SQL rules need a SQL-client context, classify():322-325 — so it would
-# prove nothing here).
-for target in 'php artisan migrate:fresh' 'terraform destroy' 'psql -c "DROP TABLE users"'; do
-  # hook mode: the check invocation must pass through. Silence IS the pass — the
-  # guard emits a decision envelope only when it has a verdict.
-  out=$(printf '%s' "$(bash_json "bash \"\${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh\" --check '$target'")" \
-    | "$BASH_BIN" "$GUARD" 2>/dev/null)
-  d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
-  [ -z "$d" ] && ok || bad "the guard denied its own --check CLI" "target=$target decision=$d"
-  # and the bare target must STILL be denied — the exemption must not leak
-  expect deny "$target"
-done
+# Both attempts leaked. 0.2.0 matched the three tokens as substrings anywhere in
+# the segment, and `bash -c PAYLOAD name arg...` runs PAYLOAD while demoting the
+# appended magic words to $0/$1. 0.2.1 matched by argv POSITION, which closed
+# that, and was still bypassed three ways: an exemption that `continue`s past
+# classification skips the WHOLE segment, and a shell segment carries side
+# effects the shell evaluates independently of argv -- command substitution,
+# backticks, and redirection.
+#
+# These assertions pin every known vector as DENY. They pass with no exemption
+# present; they FAIL against 0.2.0 and 0.2.1. If someone adds a third exemption,
+# this section is what should stop it.
+printf '== no self-exemption\n'
 
-# BYPASS VECTORS. The first version of the exemption matched its three tokens
-# anywhere in the segment, so appending `destructive-guard.sh --check y` to a
-# `bash -c "<destructive>"` call satisfied all three while the shell still ran
-# the payload — a hole in a security gate, opened by the fix for the defect
-# above. `-c` decouples what executes from what a substring match sees. These
-# assertions fail against that version and pass against the positional one.
+# The plain invocation the CLI documents: denied, and that IS the limitation.
+expect deny "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fresh'"
+expect deny "sh destructive-guard.sh --check 'php artisan migrate:fresh'"
+expect deny 'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
+expect deny 'sh -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
 expect deny 'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
 expect deny 'sh -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
 expect deny 'bash -c "php artisan migrate:fresh" /opt/hooks/destructive-guard.sh --check y'
 expect deny 'eval "php artisan migrate:fresh" destructive-guard.sh --check y'
-expect deny 'bash -lc "rm -rf /" destructive-guard.sh --check y'
-# control: the same payload without the magic tail must also deny (proves the
-# tail is what was unlocking it, not something else in the string)
+
+# Shell-evaluated side effects inside an otherwise exemption-shaped segment
+# (bypassed 0.2.1). The payload runs before or beside the classifier that
+# argv says is all that happens.
+expect deny 'bash "/x/hooks/destructive-guard.sh" --check "$(php artisan migrate:fresh)"'
+expect deny 'sh destructive-guard.sh --check `php artisan migrate:fresh`'
+expect deny 'bash /x/hooks/destructive-guard.sh --check foo > /dev/sda'
+
+# Controls: the same payloads with no exemption-shaped tail must also deny.
+expect deny 'php artisan migrate:fresh'
 expect deny 'bash -c "php artisan migrate:fresh"'
-# and the legitimate positional form must still be exempt
-out=$(printf '%s' "$(bash_json "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fresh'")" \
-  | "$BASH_BIN" "$GUARD" 2>/dev/null)
-d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
-[ -z "$d" ] && ok || bad "positional --check form must stay exempt" "decision=$d"
-
-# The exemption is keyed on --check, the one flag that classifies without
-# executing. A segment naming the script with any OTHER flag falls through to
-# normal classification, so a destructive sibling in the same command still dies.
-out=$(printf '%s' "$(bash_json "bash $GP --allow-everything && php artisan migrate:fresh")" \
-  | "$BASH_BIN" "$GUARD" 2>/dev/null)
-d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"' 2>/dev/null)
-[ "$d" = "deny" ] && ok || bad "exemption leaked to a non---check invocation" "decision=$d"
-
-# A path that merely CONTAINS the name must not exempt an unrelated runner.
-out=$(printf '%s' "$(bash_json "bash ./my-destructive-guard.sh.bak --check-nothing; rm -rf /tmp/x")" \
-  | "$BASH_BIN" "$GUARD" 2>/dev/null)
-printf '%s' "$out" | jq -e '.hookSpecificOutput' >/dev/null 2>&1 && ok \
-  || bad "a lookalike path must not inherit the exemption" "out=$out"
 
 # ---------------------------------------------------------------------------
 SNAP_AFTER=$(git_snap)

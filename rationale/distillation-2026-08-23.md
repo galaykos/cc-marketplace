@@ -244,15 +244,35 @@ exist); craft-layer's changelog vs the craft-ui findings (disjoint).
   evidence. Almost every gap came from reading `rationale/` and `git log` rather
   than the plugins.
 
-- **This run shipped a vulnerability and then caught it.** `ea7243c`'s
-  command-guard self-exemption matched its tokens anywhere in the segment. But
-  `bash -c PAYLOAD name arg...` runs PAYLOAD and demotes the rest to positional
-  arguments, so appending the magic words to a destructive `bash -c` call
-  unlocked it — re-opening the wrapper hole the guard's own deny text warns
-  against. Four vectors confirmed, including a `bash -lc` filesystem wipe. Fixed
-  in command-guard 0.2.1 by matching on POSITION, with seven bypass vectors now
-  in the harness. The lesson is narrow and worth stating plainly: the fix's
-  comment reasoned carefully about the wrong threat (a different FLAG) and never
-  considered that `-c` decouples what executes from what a substring sees. An
-  eight-agent audit found the original defect; no agent reviewed the patch.
-  **A fix written by a panel still needs a reviewer.**
+- **This run shipped a vulnerability twice, and the second time is the one worth
+  reading.** `ea7243c` added a command-guard self-exemption so the plugin would
+  stop denying its own `/command-guard:check` CLI. It matched its tokens anywhere
+  in the segment, and `bash -c PAYLOAD name arg…` runs PAYLOAD while demoting the
+  appended words to `$0`/`$1` — four vectors confirmed, including a `bash -lc`
+  filesystem wipe. `465b587` rewrote it to match by argv POSITION and declared the
+  hole closed.
+
+  It was not. A reviewer spawned specifically because that commit's own message
+  said "a fix written by a panel still needs a reviewer" found three more:
+  command substitution, backticks, and redirection to a raw disk. The exemption
+  `continue`s past classification, which skips the WHOLE segment — and a shell
+  segment carries side effects the shell evaluates independently of argv. The
+  payload runs before or beside the classifier that argv claims is all that
+  happens. Two of the three were also open in `ea7243c`, so the "positional fix
+  closes the wrapper hole" claim was wrong when it was written.
+
+  **Resolved by removing the exemption, not by patching it a third time**
+  (command-guard 0.3.0). `commands/check.md` now states the limitation — for a
+  deny-tier target the check CLI is itself denied — instead of the plugin trying
+  to engineer around its own gate. Ten vectors plus two controls are pinned as
+  DENY in the harness; they fail against both prior releases.
+
+  Three lessons, in ascending order of generality. The narrow one: an exemption
+  keyed on what a command LOOKS like cannot be safe while the shell will evaluate
+  parts of that same string on its own terms. The middle one: each patch was
+  reasoned carefully about the threat the previous round had shown, and blind to
+  the class next door — 0.2.1's comment argues confidently about a different FLAG.
+  The general one: **fourteen agents found the original defect and none of them
+  reviewed the fix.** Audit capacity and review capacity are not the same
+  resource, and this run had a great deal of the first and, until it was asked
+  for explicitly, none of the second.

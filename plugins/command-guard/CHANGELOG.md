@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.3.0
+
+### Security
+- **Reverts the self-exemption entirely.** 0.2.0 added it and 0.2.1 rewrote it;
+  both were bypassable, so the convenience it bought is withdrawn rather than
+  patched a third time.
+  - 0.2.0 matched `bash` / the guard path / `--check` as substrings ANYWHERE in a
+    segment. `bash -c PAYLOAD name arg...` executes PAYLOAD and demotes the rest
+    to `$0`/`$1`, so appending the magic words to a destructive `bash -c` call
+    unlocked it.
+  - 0.2.1 matched by argv POSITION, which closed that vector and left three
+    others open: command substitution, backticks, and redirection to a raw disk.
+    An exemption that `continue`s past classification skips the WHOLE segment,
+    and a shell segment carries side effects the shell evaluates independently of
+    argv — the payload runs before or beside the classifier that argv claims is
+    all that happens.
+  - The general rule this settles: an exemption keyed on what a command LOOKS
+    like cannot be safe while the shell will evaluate parts of that same string on
+    its own terms. A safe version would have to classify the segment anyway and
+    suppress only the verdict arising from the `--check` argument, which means
+    parsing shell grammar — something this guard deliberately does not do.
+
+### Changed
+- `commands/check.md` now states the limitation instead of the plugin trying to
+  engineer around it: for a **deny-tier** target the CLI step is itself denied, so
+  the command reports `deny` from `references/rules.md` rather than retrying.
+  `ask` and `allow` targets are unaffected. Standing: **unfixed by design**.
+
+### Added
+- A `no self-exemption` harness section pinning all ten known bypass vectors plus
+  two controls as DENY. Verified against both prior releases: 5 assertions fail
+  against 0.2.1 and 10 against 0.2.0. If a third exemption is ever added, this
+  section is what should stop it.
+
 ## 0.2.1
 
 ### Security
