@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.2.0
+
+### Fixed
+- The guard denied its own `/command-guard:check` CLI. That command's stated
+  primary use is unpacking why a command was blocked, so it was broken for
+  exactly the deny-tier targets it exists to explain — and because the deny text
+  says "Do NOT retry", the model abandoned the check rather than working around
+  it. `bash <path>/hooks/destructive-guard.sh --check '<cmd>'` is now exempt, on
+  three clauses: bash/sh lead word, a path ending in `hooks/destructive-guard.sh`,
+  and `--check` present. `--check` classifies and exits without ever executing
+  its argument; any other flag still falls through to normal classification.
+
+### Added
+- A `self-exemption` section in the harness. The previous 128 assertions drove
+  CLI mode and hook mode separately and never sent the HOOK a Bash payload whose
+  command IS the CLI invocation, so the composition was nobody's case. The new
+  section also asserts the exemption does not leak: the bare targets are still
+  denied, a non-`--check` flag on the same script is still denied, and a
+  lookalike path does not inherit it. Verified against the old code: 3 of the new
+  assertions fail on it.
+
+### Known limitation
+- The guard still cannot distinguish MENTIONING a destructive command from
+  RUNNING one. A heredoc that writes a file quoting `terraform destroy` is denied
+  like the real thing (a reader-led quoted write such as `printf ... >> notes.md`
+  passes, so the blast radius is heredoc-shaped and multi-line writes). This is
+  unfixed: narrowing it means reasoning about whether written text is later
+  executed, which this classifier deliberately does not attempt. Documentation
+  and audit records must redact the string or use a non-shell write path.
+
 ## 0.1.0 — 2026-08-02
 
 First release.

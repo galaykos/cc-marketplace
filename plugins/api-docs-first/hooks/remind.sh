@@ -150,7 +150,7 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   # nothing else. sid is needed by the guard's session check, so resolve it first.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
   cc_phase_guard 'api-docs-first:remind' || exit 0
-  if printf '%s' "$head" | grep -qiE '\b(sdk|endpoint|integrat\w*|webhook|oauth|graphql)\b' && printf '%s' "$head" | grep -qiE '\b(build|implement|write|creat\w*|add|wire|connect|integrat\w*|call|fetch|use|fix|debug|update)\b'; then
+  if printf '%s' "$head" | grep -qiE '\b(api|librar\w*|sdk|endpoint|integrat\w*|webhook|oauth|graphql)\b' && printf '%s' "$head" | grep -qiE '\b(build|implement|write|creat\w*|add|wire|connect|integrat\w*|call|fetch|use|fix|debug|update)\b'; then
     # MONOTONIC PRECEDENCE (spec §4.4). Rank arbitrates only between hooks that
     # share a phase; the phase sentinel does the real turn-taking. Guaranteed:
     # among hooks eligible THIS TURN, the best rank always speaks, in every

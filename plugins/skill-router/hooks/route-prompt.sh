@@ -38,10 +38,16 @@
   # where one must not stay buried. Honest limitation: if the state file is
   # unwritable the flushed flag cannot persist and entries re-surface next
   # prompt — fail-open toward repetition, never toward losing a signal.
-  sid_f=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
+  # CONTEXT KEY — must match route.sh:28-55 exactly, field order included: read
+  # `.transcript_path // .session_id`, then hash. Reading the raw `.session_id` here
+  # named a file route.sh never writes, so this flush found nothing on every prompt
+  # and the whole low-confidence channel was dead. The cksum applies to the fallback
+  # branch too, so no payload shape makes the two spellings coincide.
+  sid_f=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   cwd_f=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  if [ -n "$sid_f" ] && [ -n "$cwd_f" ] && [ -r "$cwd_f/.claude/skill-router/fired-$sid_f.json" ]; then
-    state_f="$cwd_f/.claude/skill-router/fired-$sid_f.json"
+  ctx_f=$(printf '%s' "$sid_f" | cksum 2>/dev/null | cut -d' ' -f1)
+  if [ -n "$sid_f" ] && [ -n "$cwd_f" ] && [ -n "$ctx_f" ] && [ -r "$cwd_f/.claude/skill-router/fired-$ctx_f.json" ]; then
+    state_f="$cwd_f/.claude/skill-router/fired-$ctx_f.json"
     digest=$(jq -r '
       [ (.pending_low // [])[] | select(.flushed != true) ]
       | group_by(.skill)

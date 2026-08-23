@@ -2,6 +2,30 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.13.6
+
+### Fixed
+- The low-confidence signal channel was dead. `route.sh` writes its state file as
+  `fired-<cksum(transcript_path // session_id)>.json`, but `summary.sh` and
+  `route-prompt.sh` both read `fired-<raw session_id>.json` — spellings that can
+  never agree, because the cksum is applied to the fallback branch too. Since
+  2026-08-16 that meant: the 11 low-confidence content rules accumulated signals
+  no model turn ever saw, the `surfaced.jsonl` ledger got no rows from a HEAD
+  install (freezing the denominator `scripts/retirement-queue.sh` ranks by), and
+  the state files were never cleaned up. Both readers now derive the same key.
+  `session_id` stays the raw value where it is a recorded ledger FIELD rather
+  than an address.
+- `summary.sh`'s comment claimed `/hindsight:harvest` reads `surfaced.jsonl`.
+  It never has; the only reader is `scripts/retirement-queue.sh:63`.
+
+### Added
+- A cross-hook round-trip case in `scripts/smoke/route-marker-tests.sh`: it runs
+  `route.sh` → `route-prompt.sh` → `summary.sh` on one host-shaped payload and
+  asserts the digest and the ledger row. Every prior assertion drove one hook
+  alone, and the existing state-file check was name-agnostic (`find -name
+  'fired-*.json'`), which is why the suite stayed green through the break.
+  Verified against the old code: the new case fails on it.
+
 ## 0.13.5
 
 ### Changed

@@ -171,6 +171,11 @@ plugin_dynamic_hook_bytes() {
   # command substitution, so a shell variable incremented here never survives.
   tmp=$(mktemp -d "$HOOK_SANDBOX/dyn.XXXXXX" 2>/dev/null) || { printf '0'; return; }
   sid="ctx-budget-$(basename "$tmp")"
+  # A real transcript file, not just a path: hooks split two ways on this field —
+  # most hash it as a context key, but some (hindsight/hooks/collect.sh) OPEN it.
+  # An unreadable path would meter the second kind on its error branch, which is
+  # the same defect one level down from the one sending the field at all fixes.
+  : > "$HOOK_SANDBOX/transcript-$sid.jsonl" 2>/dev/null || true
   # UserPromptSubmit is measured against a CORPUS, scored MAX, not one string.
   #
   # WHY. This used to send exactly one prompt — "refactor the auth module, add
@@ -189,7 +194,8 @@ plugin_dynamic_hook_bytes() {
     "refactor the auth module, add tests and review the diff" \
     "implement a webhook endpoint that integrates the Stripe SDK" \
     "the deploy pipeline is failing and the container will not start" \
-    "design the schema and write the migration for the orders table"; do
+    "design the schema and write the migration for the orders table" \
+    "write code to call the GitHub API using their client library"; do
     # Fresh sid + TMPDIR per corpus entry: several prompt hooks are once-per
     # session behind a marker, so a reused id would score every entry after the
     # first at 0 and turn the corpus back into the single probe it replaces.
@@ -215,8 +221,19 @@ plugin_dynamic_hook_bytes() {
   for ev in PreToolUse PostToolUse; do
     case "$ev" in
       *)
-        payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg ev "$ev" --arg sid "$sid" --arg f "$HOOK_SANDBOX/src/example.ts" \
-          '{hook_event_name:$ev,tool_name:"Edit",session_id:$sid,cwd:$cwd,
+        # transcript_path IS SENT, and that is load-bearing. Every context-keyed hook
+        # in this marketplace reads `.transcript_path // .session_id` (a subagent
+        # shares its parent's session_id, so keying on it dedups the worker against
+        # nudges it never saw). A payload carrying only session_id therefore meters
+        # every one of those hooks on its FALLBACK branch — the same
+        # grade-the-branch-the-host-never-takes shape `pc_harness_payload` closes for
+        # test harnesses, which scans only scripts/smoke/ and plugins/*/scripts/
+        # __tests__/ and so never saw this meter. Measured when it was missing:
+        # testing/hooks/test-shape.sh emitted 0 bytes here and ~585 on a real test
+        # write, and baselined 0 forever.
+        payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg ev "$ev" --arg sid "$sid" \
+          --arg tp "$HOOK_SANDBOX/transcript-$sid.jsonl" --arg f "$HOOK_SANDBOX/src/example.ts" \
+          '{hook_event_name:$ev,tool_name:"Edit",session_id:$sid,transcript_path:$tp,cwd:$cwd,
             tool_input:{file_path:$f,old_string:"const a = 1",new_string:"const a = 2"},
             tool_response:{filePath:$f,success:true}}' 2>/dev/null) ;;
     esac
@@ -323,10 +340,17 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   [ -n "$bname" ] || continue
 
   if jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1; then
-    # Bundle: sum member plugins' always-on and dynamic bytes.
-    total_bytes=0
+    # Bundle: sum member plugins' always-on and dynamic bytes, PLUS the bundle's
+    # own surface. That last clause was missing and it is not a rounding error: a
+    # bundle ships its own `commands/uninstall.md`, whose description loads like
+    # any other command's. Ten bundles × ~69 tok were metered in no channel at
+    # all — 0.6% of `everything`, but 25% of product-suite, 16% of db-suite,
+    # 12% of php-suite. The script's own closing notes name three unmetered
+    # surfaces by name; this one was not among them, so the residual was not
+    # stated anywhere either.
+    total_bytes=$(plugin_desc_bytes "plugins/$bname")
     dyn_bytes=0
-    act_bytes=0
+    act_bytes=$(plugin_desc_bytes "plugins/$bname")
     while IFS= read -r member; do
       [ -n "$member" ] || continue
       mdir="plugins/$member"
@@ -625,6 +649,23 @@ done | sort | tr '\n' ' ')
 # order of magnitude above its description and depends on the user's files.
 echo "note: skill BODIES loaded by skill-router rules are not metered in any channel"
 echo "note: the activated channel turns on what THIS fixture knows (terse level, brain/INDEX.md, manifests); a hook waiting for other state still reads its OFF value"
+# EVENT AND TOOL SHAPE. The dynamic channel executes UserPromptSubmit and
+# Pre/PostToolUse-as-Edit, and nothing else. Two whole categories therefore read
+# 0, and a 0 here is indistinguishable from "emits nothing" — the same failure
+# the corpus comment above names for prompt vocabulary, one level up:
+#   - Stop hooks. Three plugins ship one (candor, code-architecture, task-runner)
+#     and their block reasons are model-visible text, measured at roughly
+#     211 / 127 / 742 tokens upper bound across branches. Never executed here.
+#   - PreToolUse matched on Bash. command-guard's deny reason is ~175 tokens per
+#     denied call and its dynamic baseline reads 0.
+# Naming it is the honest floor; metering it means teaching this loop the other
+# event and tool shapes, which is a real change and not one this note makes.
+echo "note: Stop hooks and Bash-matched PreToolUse are never executed by the dynamic probe (candor, code-architecture, task-runner, command-guard read 0 for that reason, not because they are silent)"
+# FILE SHAPE. The synthetic Edit targets src/example.ts, so a hook gated on a
+# path pattern it does not match scores 0 for a reason that has nothing to do
+# with its size — testing/hooks/test-shape.sh emits ~146 tokens on a real test
+# file and baselines 0 here.
+echo "note: the synthetic Edit targets src/example.ts only; a hook gated on a different path shape (e.g. testing's test-file matcher) reads 0 regardless of what it would emit"
 
 [ "$no_baseline" -eq 1 ] && echo "WARN: no baseline" >&2
 [ "$no_dyn_baseline" -eq 1 ] && echo "WARN: no dynamic baseline" >&2

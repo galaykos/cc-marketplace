@@ -477,22 +477,30 @@ pc_handoff_refs() {
 # check-doc-staleness.sh can see it decay. Prints `unstamped <plugin>` and returns
 # 1 when the claim exists and no stamp does; returns 0 otherwise.
 #
-# STANDING: recorded, NOT gate — and the distinction is the point, per CLAUDE.md's
-# has-teeth convention. validate.sh prints this as a WARN and never fails on it.
+# STANDING: gate — validate.sh:559-561 feeds this straight to `err`, so a plugin
+# claiming version leverage with no stamp FAILS the build. Promoted in 6487412
+# (2026-08-02, "put teeth behind the stamp") after the verification pass below was
+# actually run and the claimants were actually stamped.
 #
-# WHY IT IS NOT BLOCKING YET. rationale/stack-skill-baselines.md exempts ~20
-# tier-1 stack plugins from the baseline-redundancy loop on the explicit promise
-# that they encode version leverage rather than idioms. Ten of them make that
-# claim in their own description and none carries a stamp. Making this blocking
-# today would force a stamp onto each — and a stamp is a claim that a human or a
-# fetch actually verified the content on that date against that URL. Writing ten
-# of those without doing the verification would be a fabricated provenance record
-# in the one file whose entire purpose is provenance: the honest-limitation law
-# forbids it more clearly than almost anything else in this repo.
+# THIS HEADER SAID THE OPPOSITE FOR 21 DAYS. It read "STANDING: recorded, NOT gate
+# — validate.sh prints this as a WARN and never fails on it", plus a "WHY IT IS NOT
+# BLOCKING YET" rationale and a "TO PROMOTE IT TO `gate`" work queue, all of which
+# described a promotion that had already happened three weeks earlier. That is the
+# INVERSE of the over-claim CLAUDE.md's has-teeth convention was written to catch:
+# not a rule pretending to be enforced, but a gate documenting itself as toothless.
+# It is the more expensive direction — a maintainer reading this header would have
+# budgeted work to build a gate that already existed, or trusted that a missing
+# stamp only warns. Kept as a comment rather than deleted because the failure mode
+# is the reusable part: when you change a check's wiring in validate.sh, the
+# standing line in THIS file is the second edit, and nothing enforces that pairing.
 #
-# TO PROMOTE IT TO `gate`: run one real verification pass per claimant, stamp what
-# was actually checked, then change validate.sh's warn to err. The list this
-# prints IS the work queue for that pass.
+# WHY IT WAS ONCE WARN (kept for provenance): rationale/stack-skill-baselines.md
+# exempts ~20 tier-1 stack plugins from the baseline-redundancy loop on the promise
+# that they encode version leverage rather than idioms. Ten made that claim with no
+# stamp. Blocking before the verification pass would have forced ten fabricated
+# provenance records into the one file whose purpose is provenance — the
+# honest-limitation law forbids that more clearly than almost anything here. The
+# pass was run; the stamps are real; the gate is now safe to block on.
 pc_version_stamp() {
   local pdir="$1" pj="$1/.claude-plugin/plugin.json" desc name
   [ -f "$pj" ] || return 0

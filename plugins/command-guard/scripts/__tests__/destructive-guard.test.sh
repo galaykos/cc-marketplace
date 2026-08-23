@@ -255,6 +255,54 @@ for junk in '' 'not json at all' '{"tool_name":' '{}' '{"tool_name":"Bash"}' '{"
 done
 
 # ---------------------------------------------------------------------------
+# 5. SELF-EXEMPTION — the guard must not deny its own classifier
+# ---------------------------------------------------------------------------
+# THE DEFECT THIS SECTION EXISTS FOR. /command-guard:check tells the model to run
+#   bash "${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh" --check '<command>'
+# and its own description names "a command was blocked and the reason needs
+# unpacking" as the primary use. But that invocation goes through the Bash tool,
+# so the hook read it, saw the deny-tier target quoted inside it, and denied — for
+# exactly the commands the check exists to explain. The deny text says "Do NOT
+# retry", so the model abandoned the check rather than retrying.
+#
+# WHY THE OTHER 128 ASSERTIONS MISSED IT: sections 1-2 drive CLI mode directly and
+# section 3 drives hook mode with ordinary commands. Neither ever sent the HOOK a
+# Bash payload whose command IS the CLI invocation — the two modes were tested
+# separately and the composition was nobody's case. That is the same
+# grade-the-branch-the-host-never-takes shape `pc_harness_payload` closes for
+# harnesses generally; here the harness graded two real branches and skipped the
+# one the host actually takes.
+printf '== self-exemption\n'
+GP="plugins/command-guard/hooks/destructive-guard.sh"
+# Targets are deny-tier ON THEIR OWN (a bare `DROP TABLE users` is deliberately
+# ALLOW — SQL rules need a SQL-client context, classify():322-325 — so it would
+# prove nothing here).
+for target in 'php artisan migrate:fresh' 'terraform destroy' 'psql -c "DROP TABLE users"'; do
+  # hook mode: the check invocation must pass through. Silence IS the pass — the
+  # guard emits a decision envelope only when it has a verdict.
+  out=$(printf '%s' "$(bash_json "bash \"\${CLAUDE_PLUGIN_ROOT}/hooks/destructive-guard.sh\" --check '$target'")" \
+    | "$BASH_BIN" "$GUARD" 2>/dev/null)
+  d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  [ -z "$d" ] && ok || bad "the guard denied its own --check CLI" "target=$target decision=$d"
+  # and the bare target must STILL be denied — the exemption must not leak
+  expect deny "$target"
+done
+
+# The exemption is keyed on --check, the one flag that classifies without
+# executing. A segment naming the script with any OTHER flag falls through to
+# normal classification, so a destructive sibling in the same command still dies.
+out=$(printf '%s' "$(bash_json "bash $GP --allow-everything && php artisan migrate:fresh")" \
+  | "$BASH_BIN" "$GUARD" 2>/dev/null)
+d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"' 2>/dev/null)
+[ "$d" = "deny" ] && ok || bad "exemption leaked to a non---check invocation" "decision=$d"
+
+# A path that merely CONTAINS the name must not exempt an unrelated runner.
+out=$(printf '%s' "$(bash_json "bash ./my-destructive-guard.sh.bak --check-nothing; rm -rf /tmp/x")" \
+  | "$BASH_BIN" "$GUARD" 2>/dev/null)
+printf '%s' "$out" | jq -e '.hookSpecificOutput' >/dev/null 2>&1 && ok \
+  || bad "a lookalike path must not inherit the exemption" "out=$out"
+
+# ---------------------------------------------------------------------------
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated the working tree" "git status changed"
 

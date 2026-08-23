@@ -341,6 +341,30 @@ classify() {
     [ "$VERDICT" = "deny" ] && break
 
     if [ "$pipe_to_shell" -eq 0 ]; then
+      # SELF-EXEMPTION — this guard's own `--check` CLI is a classifier, not a
+      # runner. Without this, the plugin denied the exact command its own
+      # /command-guard:check tells the model to type, for exactly the deny-tier
+      # targets that command exists to explain — and the deny text then says "Do
+      # NOT retry", so the model abandoned the check. Reproduced live before the
+      # fix; the harness never caught it because it exercises CLI mode and hook
+      # mode separately and never sends the hook a Bash payload whose command IS
+      # the check invocation (the grade-the-branch-the-host-never-takes shape
+      # `pc_harness_payload` closes for harnesses).
+      #
+      # NARROW BY CONSTRUCTION, and every clause is load-bearing:
+      #   - lead word must be bash/sh (not `eval`, not a pipe-to-shell: this whole
+      #     branch is already gated on pipe_to_shell=0 above),
+      #   - the script path must END in hooks/destructive-guard.sh,
+      #   - `--check` must be present — the ONE flag that classifies and exits
+      #     without executing its argument (see the CLI-mode block: it calls
+      #     classify(), prints, and exits; it never runs "$2").
+      # A segment naming this script WITHOUT --check still falls through and is
+      # classified normally, so `bash destructive-guard.sh --allow-everything` is
+      # not exempt.
+      case "$segn_lc" in
+        *" bash "*destructive-guard.sh*" --check "*|*" sh "*destructive-guard.sh*" --check "*)
+          continue ;;
+      esac
       if is_reader "$lead"; then continue; fi
       if [ "$lead" = "git" ]; then
         sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
