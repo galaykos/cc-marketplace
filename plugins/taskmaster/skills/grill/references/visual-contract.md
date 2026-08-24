@@ -1,7 +1,14 @@
----
-name: visual-contract
-description: Use during spec writing, after visual/creative options were staged (brainstorm or grill's visual-decisions) — binds the picks into a `## Visual contract` spec section the cards must conform to. Fires only on a staged pick.
----
+# Visual contract — binding staged picks into the spec
+
+Invoked from `grill/SKILL.md` step 2 when visual or creative options were staged
+and a pick was made. Was a top-level skill until 2026-08-24; demoted to a
+reference because `grill` was its only caller in the entire marketplace, so its
+frontmatter description was paying an always-on token cost in every session to
+advertise a trigger only one other file could pull. The rules are unchanged.
+
+Original description, kept because it states the firing condition precisely:
+> Use during spec writing, after visual/creative options were staged (brainstorm or grill's visual-decisions) — binds the picks into a `## Visual contract` spec section the cards must conform to. Fires only on a staged pick.
+
 
 ## Where this sits
 
