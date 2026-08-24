@@ -7,6 +7,21 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.4
+
+### Changed
+- WCAG SC 2.5.7 was stated in full three times — `physics-motion`,
+  `interaction-fx`, and `a11y:a11y-audit`, which owns it. The two craft-layer
+  satellites now state the rule in one line and name the owner. Deliberately
+  still STATE it rather than only pointing: craft-layer installs standalone, so a
+  bare pointer would leave a legal accessibility criterion unreachable.
+- `motion-tiers/references/reduced-motion.md` was titled "The reduced-motion gate
+  — stated once". That was false: `ui-ux:motion-best-practices` also states it and
+  owns the WHY, the CSS kill-switch and the subscription mechanism —
+  `motion-tiers/SKILL.md` assigns that mechanism to it by name. Retitled and
+  scoped to craft-layer. A file whose job is preventing restatement, claiming a
+  uniqueness it did not have, was the sharpest form of its own problem.
+
 ## 0.47.3
 
 ### Fixed
