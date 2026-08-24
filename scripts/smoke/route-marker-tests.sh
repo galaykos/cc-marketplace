@@ -195,7 +195,10 @@ printf 'a file whose body contains ROUNDTRIP-CANARY\n' > "$TMP/rtcwd/note.txt"
 payload=$(printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s","tool_input":{"file_path":"note.txt"}}' "$tp" "$TMP/rtcwd")
 printf '%s' "$payload" | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" >/dev/null 2>&1 || true
 
-statefiles=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ')
+# `find` exits 1 on an absent dir and `pipefail` propagates it — without `|| true`
+# `set -e` kills the assignment before the FAIL below can print, on precisely the
+# broken-code path this section was written to diagnose.
+statefiles=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
 if [ "$statefiles" = "1" ]; then
   echo "PASS: round trip — route.sh wrote exactly one state file"
 else
@@ -218,7 +221,7 @@ HOME_WAS_SET=${HOME+yes}; HOME_BAK="${HOME:-}"
 export HOME="$TMP/fakehome"; mkdir -p "$HOME"
 printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s"}' "$tp" "$TMP/rtcwd" \
   | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROOT/plugins/skill-router/hooks/summary.sh" >/dev/null 2>&1 || true
-ledger=$(find "$HOME/.claude/skill-router" -name 'surfaced.jsonl' 2>/dev/null | head -1)
+ledger=$(find "$HOME/.claude/skill-router" -name 'surfaced.jsonl' 2>/dev/null | head -1 || true)
 left=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ')
 if [ -n "$ledger" ] && grep -q 'roundtrip-canary' "$ledger" 2>/dev/null && [ "$left" = "0" ]; then
   echo "PASS: round trip — summary.sh wrote the ledger row and removed the state file"

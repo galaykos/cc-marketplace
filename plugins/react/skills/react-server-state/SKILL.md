@@ -123,7 +123,8 @@ is the cache.
   `nuxt-best-practices`, same boundary. This skill governs
   **client** components — `'use client'` boundaries, interactive/user-specific data,
   anything that must refetch or mutate in the browser. The router fires this skill
-  on every `.tsx`, including Server Components, so read the boundary before
+  on every `.tsx` outside a react-native project, Server Components included, so
+  read the boundary before
   applying the table: server-fetched data flowing without a query lib is CORRECT,
   not a finding. Recording the edge here because both skills co-ship in
   `frontend-suite` and `everything` and both used to state a default.

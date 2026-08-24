@@ -8,7 +8,7 @@ description: Use when writing or reviewing Next.js App Router code — server vs
 ## Server Components by default — place client boundaries deliberately
 
 **Boundary with `react:react-server-state`** (it co-ships in `frontend-suite` and
-`everything`, and its router row fires on every `.tsx`): server-side fetching in
+`everything`, and its router row fires on every `.tsx` in a non-react-native repo): server-side fetching in
 Server Components is this skill's, and needs no client cache library. That skill
 owns data behind a `'use client'` boundary — interactive, user-specific, or
 refetching/mutating in the browser. Neither default overrides the other; the
