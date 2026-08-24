@@ -290,6 +290,40 @@ The audit also found this document advertising the CLAUDE.md corrections as "Not
 applied. Needs your call" several commits after the same branch applied them —
 recorded above, at the section itself, rather than quietly fixed.
 
+## Backlog — worked 2026-08-24, all nine closed
+
+Every item below is now either fixed, closed as not-a-defect, or closed at half
+with the reason recorded. None is left silently pending.
+
+| # | item | outcome |
+|---|---|---|
+| 1 | motion-tiers contradicted its own SOURCE OF TRUTH | **fixed**, plus `pc_source_of_truth` gate so the mirror is no longer unchecked |
+| 2 | craft-suite shipped rtl-bidi citing an uninstalled i18n | **fixed** — inline four-rule floor; measured the class first (7 cross-bundle citations, 6 benign, no gate added because it would be 5 parts noise) |
+| 3 | database/review.md claimed its skill was "from this plugin" | **fixed at the generator** — `skillHome` resolves the owning plugin; 30 commands correctly unchanged, 1 corrected |
+| 4 | resilience's two hand-copied review commands | **fixed at the chassis** — `outfile` support; all three now generated and gated, proven by negative control |
+| 5 | drifted TRIGGER-NARROWING variants | **not a defect** — both self-declare as shape-variants; the byte-identical trio is already pinned by 28 assertions |
+| 6 | verify-teeth + visual-contract paying always-on cost | **half** — visual-contract demoted (−56 tok); verify-teeth KEPT because task-runner names it cross-plugin as layer 1 of a three-layer contract |
+| 7 | the restatement family | **fixed** — including two copies of one map that had drifted into naming *different mechanisms for the same numbered layers* |
+| 8 | vite's jammed anti-patterns | **fixed** — and the original "gaming the gate" framing corrected: the body had headroom the whole time |
+| 9 | the eval surface | **standing stated, not papered over** — see below |
+
+**Item 9 deserves its own paragraph, because "fixed" would be a lie.** 4 of 71
+plugins ship an eval, none defines a control arm, and `claude plugin eval` is
+early-access gated on this account — so no shipped suite has ever been run. The
+tempting action was to author eval cases for the untested skills. That would have
+produced artifacts nobody can execute, graded against a schema nobody can check,
+in a repo whose own doctrine says an unverifiable claim is worse than an absent
+one. What shipped instead is the standing, in `CLAUDE.md`: the eval surface is
+`recorded`, not verified, and a passing grader proves nothing about a skill
+without a control arm — the one time that WAS measured, the skill scored zero
+delta in every arm.
+
+The general shape of this pass, worth keeping: **five of the eight fixes were made
+at the generator, the chassis, or a gate rather than at the instance.** Fixing
+`database/review.md` by hand would have left the template able to emit the same
+false sentence forever; fixing resilience's two copies by hand would have left
+them ungated. The instance is the symptom.
+
 ## What this run did not do
 
 - No behavioral measurement. Every generic-ratio verdict is a proxy; the one

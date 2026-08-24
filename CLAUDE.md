@@ -17,6 +17,18 @@ publishable plugin.
     `claude plugin eval` reads them as the case definition. Allowed since
     2026-08-20; a design doc parked under `evals/` is still a violation in spirit
     and no script can tell the two apart.
+
+    **Standing of the eval surface itself: `recorded`, not verified** — measured
+    2026-08-24. **4 of 71** plugins ship an eval (i18n, nextjs, php, resilience),
+    **none** defines a control arm, and `claude plugin eval` is early-access gated
+    on this account, so no shipped suite has been run against the runner's schema.
+    "Functional" above describes the intended contract, not a checked one. The
+    consequence that matters: a grader passing proves nothing about the SKILL
+    unless a control arm shows the base model failing the same prompt — and the
+    one time that was actually measured
+    (`rationale/eval-ablation-2026-08-20.md`), the skill under test scored **zero
+    delta in every arm**. Recount before trusting any of these numbers:
+    `ls -d plugins/*/evals/*/ | wc -l`.
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
   history. If a document truly must be tracked, it goes in **`rationale/`** at
