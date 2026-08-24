@@ -147,7 +147,11 @@ if printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse
 else
   echo "FAIL: nudge output is not a PostToolUse envelope — got: ${out:-<empty>}"; rc=1
 fi
-ctx=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+# `|| true`: jq parse-errors on non-JSON, pipefail propagates, and set -e would
+# kill this assignment before the envelope diagnostics below can print — on
+# exactly the bare-printf regression this section exists to report. Same class
+# guarded for `find` in the round-trip section; this instance predates that fix.
+ctx=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null || true)
 case "$ctx" in
   *vue3-canary*vue2-canary*|*vue2-canary*vue3-canary*) echo "PASS: both nudges ride one additionalContext payload" ;;
   *) echo "FAIL: additionalContext missing a nudge — got: ${ctx:-<empty>}"; rc=1 ;;

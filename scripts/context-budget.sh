@@ -228,9 +228,17 @@ plugin_dynamic_hook_bytes() {
         # every one of those hooks on its FALLBACK branch — the same
         # grade-the-branch-the-host-never-takes shape `pc_harness_payload` closes for
         # test harnesses, which scans only scripts/smoke/ and plugins/*/scripts/
-        # __tests__/ and so never saw this meter. Measured when it was missing:
-        # testing/hooks/test-shape.sh emitted 0 bytes here and ~585 on a real test
-        # write, and baselined 0 forever.
+        # __tests__/ and so never saw this meter.
+        #
+        # NO BASELINE MOVED when this landed, and that is the honest result: this
+        # fixes WHICH BRANCH is metered, not any number. Hooks that merely hash the
+        # field emit the same bytes either way; the ones this reaches are the ones
+        # that OPEN it (hindsight/hooks/collect.sh), previously metered on their
+        # error branch. An earlier version of this comment cited
+        # testing/hooks/test-shape.sh's 0 as the evidence — wrong cause: that hook's
+        # path gate (:81-84) exits before it ever reads a context key at :95, so it
+        # reads 0 on `src/example.ts` with or without this field. That is the FILE
+        # SHAPE gap, named separately in the closing notes at the bottom of this file.
         payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg ev "$ev" --arg sid "$sid" \
           --arg tp "$HOOK_SANDBOX/transcript-$sid.jsonl" --arg f "$HOOK_SANDBOX/src/example.ts" \
           '{hook_event_name:$ev,tool_name:"Edit",session_id:$sid,transcript_path:$tp,cwd:$cwd,
