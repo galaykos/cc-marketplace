@@ -243,6 +243,43 @@ Round 2 declared clean: all 13 plugin changelogs for done-and-reverted proposals
 that attack survives); local `registry-source/mcp/server.mjs` instructions (none
 exist); craft-layer's changelog vs the craft-ui findings (disjoint).
 
+## Conflict audit — 2026-08-24, one agent
+
+A separate question from distillation: not "what is redundant" but **"does this
+marketplace tell the model contradictory things?"** One fable/xhigh auditor, all
+71 plugins, eight hunting grounds. Result: **2 MED, 2 LOW, 9 areas probed clean.**
+
+Both MED conflicts shared a shape worth naming: **the correct boundary already
+existed, on a surface that never loads at decision time.**
+
+- **Panel width.** `verification-panels` (2 refuters for a small radius, "sizing
+  authority for every consumer", consumers may not invent their own N) vs
+  `code-redteam` ("reuse it wholesale" … "spawn exactly three") vs
+  `completion-gate.sh` (hard-blocks below 3 lenses). A proportionally sized panel
+  could not stop except by filing a `reduction-record` asserting a degradation
+  that did not happen. Neither side was wrong — code-redteam's N is a lens count,
+  not a radius call — but that reasoning was written down nowhere. Fixed by
+  recording the exception on both sides.
+- **Data fetching.** `react-server-state` ("any real server data in React →
+  TanStack Query") vs `nextjs-best-practices` (fetch in Server Components), both
+  firing on every `.tsx` via a router row that excludes only react-native, both in
+  `frontend-suite` and `everything`. Correct RSC code was flagged as a defect. The
+  partition existed in `plugins/nextjs/README.md:34` — a README, which is exactly
+  the artifact never in context when the decision is made. Lifted into both SKILL
+  bodies.
+
+**The generalisable finding:** a boundary stated in a README, a CHANGELOG, or a
+commit body is not a boundary. Two skills that co-ship will be in context together
+with only their own bodies and descriptions to arbitrate between them. This
+marketplace's ownership mesh is mostly excellent — nine areas probed clean,
+including the Stop-hook family, the phase sentinel, review territory, TDD,
+worktree lifecycle, N+1, and the theming/dataviz hierarchy — and both failures
+were in the same blind spot rather than anywhere the design is weak.
+
+The audit also found this document advertising the CLAUDE.md corrections as "Not
+applied. Needs your call" several commits after the same branch applied them —
+recorded above, at the section itself, rather than quietly fixed.
+
 ## What this run did not do
 
 - No behavioral measurement. Every generic-ratio verdict is a proxy; the one
