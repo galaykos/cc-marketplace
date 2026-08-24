@@ -140,10 +140,13 @@ Advising above the locked version is a finding; confirm boundaries against the d
 
 ## Anti-patterns
 
-- Secrets behind `VITE_` vars, or `process.env.SECRET` in client code — both ship to the browser. Server
-  secrets never touch the client bundle. - Missing `base` on a sub-path deploy — assets 404 the moment it's
-  not at root. - `optimizeDeps` include/exclude hacks that mask a broken dep export, committed instead of
-  fixing the dep. - One unsplit vendor chunk (or hundreds of micro-chunks) instead of splitting by
-  change-frequency at route boundaries. - `define` values without `JSON.stringify` — raw substitution injects
-  a bare identifier and breaks the build or the value. - Assuming `build.target` follows `.browserslistrc` —
-  Vite does not read it.
+Names only — each rule is stated once above, in the section that owns it. (These
+six used to be restated here in full, jammed onto shared lines with mid-line ` - `
+separators, which markdown renders as one paragraph.)
+
+- Secrets behind `VITE_` vars, or `process.env.SECRET` in client code — see Env.
+- Missing `base` on a sub-path deploy — see Base and deploy paths.
+- `optimizeDeps` include/exclude hacks masking a broken dep export — see Deps.
+- One unsplit vendor chunk, or hundreds of micro-chunks — see Chunking.
+- `define` values without `JSON.stringify` — see Define.
+- Assuming `build.target` follows `.browserslistrc`; Vite does not read it.
