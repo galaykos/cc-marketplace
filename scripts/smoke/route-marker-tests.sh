@@ -211,7 +211,11 @@ case "$flush" in
 esac
 
 # SessionEnd must find the same file, append one ledger row, and remove it.
-HOME_BAK="${HOME:-}"; export HOME="$TMP/fakehome"; mkdir -p "$HOME"
+# Record whether HOME was set at all, not just its value: restoring an unset HOME
+# as "" is not a restore, and an empty HOME makes later `$HOME/...` paths resolve
+# to the filesystem root.
+HOME_WAS_SET=${HOME+yes}; HOME_BAK="${HOME:-}"
+export HOME="$TMP/fakehome"; mkdir -p "$HOME"
 printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s"}' "$tp" "$TMP/rtcwd" \
   | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROOT/plugins/skill-router/hooks/summary.sh" >/dev/null 2>&1 || true
 ledger=$(find "$HOME/.claude/skill-router" -name 'surfaced.jsonl' 2>/dev/null | head -1)
@@ -221,7 +225,7 @@ if [ -n "$ledger" ] && grep -q 'roundtrip-canary' "$ledger" 2>/dev/null && [ "$l
 else
   echo "FAIL: round trip — ledger='$ledger' rows_match=$(grep -c 'roundtrip-canary' "${ledger:-/dev/null}" 2>/dev/null || echo 0) leftover_state=$left"; rc=1
 fi
-export HOME="$HOME_BAK"
+if [ -n "${HOME_WAS_SET:-}" ]; then export HOME="$HOME_BAK"; else unset HOME; fi
 
 [ "$rc" -eq 0 ] && echo "All route-marker smoke tests passed."
 
