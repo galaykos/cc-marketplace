@@ -708,6 +708,14 @@ marker_gap=$(pc_marker_key plugins) || true
 # And the condition that let the above hide for a release: a harness that only ever sends
 # session_id grades the fallback branch, so the branch the host actually takes is never
 # executed. pc_marker_key gates the hook; this gates the test that would have caught it.
+# A SKILL that names a reference as SOURCE OF TRUTH for its figures must not
+# carry a figure that reference lacks. Converts a mirror the skill itself
+# declared "recorded — no gate checks the two agree" into one that is checked.
+# Honest scope: figures only. Prose that contradicts without changing a number
+# stays agent-graded, and the drift that motivated this was exactly that shape.
+sot_gap=$(pc_source_of_truth plugins) || true
+[ -n "$sot_gap" ] && err "$sot_gap"
+
 harness_gap=$(pc_harness_payload .) || true
 [ -n "$harness_gap" ] && lane_err "$harness_gap" "this harness exercises a hook that reads transcript_path but never sends one — add a case with a path-shaped transcript_path, or carry '# harness-payload-ok: <why>'"
 

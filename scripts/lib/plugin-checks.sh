@@ -1022,6 +1022,58 @@ EOF
 # printf into a variable, an array, or eval passes unseen.
 #
 # Prints `marker-key-unhashed <plugin>:<script>:<line>` per offender; returns 1 if any.
+# pc_source_of_truth: a SKILL that names a reference as SOURCE OF TRUTH for its
+# figures must not carry a figure that reference does not.
+#
+# WHY THIS EXISTS. craft-layer's motion-tiers/SKILL.md declares
+# `references/tier-budgets.md` "SOURCE OF TRUTH for every KB figure below" and
+# then states, in its own words, "Standing **recorded** — the mirror is manual and
+# no gate checks the two agree." It had already rotted: the SKILL told a React
+# reader to reach for `motion/mini` as the Tier-1 reduced-bundle path while the
+# reference reserved `motion/mini` for VANILLA tweens and named `LazyMotion`+`m.*`
+# as the React path. Two files, opposite advice, one of them labelled the truth.
+#
+# WHAT THIS CATCHES, precisely: a numeric figure (KB / ms / px / a bare integer
+# with a unit) present in the SKILL body but absent from the cited reference.
+# That is the drift shape a manual mirror produces — someone edits the summary and
+# not the source, or the source and not the summary.
+#
+# WHAT IT DOES NOT CATCH, and this is the honest limit: prose that contradicts
+# without changing a number. The `motion/mini` rot above is exactly that shape, so
+# this gate would NOT have caught the defect that motivated it. It catches the
+# cheaper half — figures — and leaves the prose half agent-graded. Saying so is
+# the point; a gate that implies more coverage than it has is the defect this
+# repo's has-teeth convention exists to name.
+#
+# Standing: gate. validate.sh feeds it to `err`.
+pc_source_of_truth() {
+  local root="${1:-plugins}" bad=0 f dir ref refpath body figs missing
+
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    grep -q 'SOURCE OF TRUTH' "$f" 2>/dev/null || continue
+    dir=$(dirname "$f")
+    # the reference named on (or just before) the SOURCE OF TRUTH line
+    ref=$(grep -B1 -A0 'SOURCE OF TRUTH' "$f" 2>/dev/null           | grep -oE 'references/[A-Za-z0-9._-]+\.md' | head -1)
+    [ -n "$ref" ] || continue
+    refpath="$dir/$ref"
+    [ -f "$refpath" ] || { printf 'source-of-truth %s names %s which does not exist\n' "$f" "$ref"; bad=1; continue; }
+
+    body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
+    figs=$(printf '%s' "$body" | grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' | sort -u)
+    [ -n "$figs" ] || continue
+    missing=$(comm -23 <(printf '%s\n' "$figs") \
+                       <(grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' "$refpath" 2>/dev/null | sort -u))
+    if [ -n "$missing" ]; then
+      printf 'source-of-truth %s carries figures absent from its declared source %s: %s\n' \
+        "$f" "$ref" "$(printf '%s' "$missing" | tr '\n' ' ')"
+      bad=1
+    fi
+  done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
+
+  return "$bad"
+}
+
 pc_marker_key() {
   local root="${1:-plugins}" bad=0 hj d p sh rel v line no body seeds tainted round newly
 

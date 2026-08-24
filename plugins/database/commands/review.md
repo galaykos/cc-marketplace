@@ -26,7 +26,7 @@ Detect the engine and version first — from configs, DSNs, compose files, or de
    leaves the stacks nobody happened to invoke unreviewed. Deferring is not a smaller
    answer — the aggregator reaches this plugin's rubric too.
 
-3. Invoke the `sql-best-practices` skill from this plugin and apply its checklist across the
+3. Invoke the `sql-best-practices` skill from the `sql` plugin (install it alongside this one; it is not bundled here) and apply its checklist across the
    scope — cite the skill's rubric, do not restate it here.
 
 4. Report findings one line each, sorted by severity (critical, high, medium, low):
