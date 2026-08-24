@@ -10,14 +10,6 @@
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
-  # CONTEXT KEY — must match route.sh:28-55 exactly, field order included. route.sh
-  # reads `.transcript_path // .session_id` and hashes it; a reader that reads only
-  # `.session_id`, or hashes nothing, names a file the writer never creates. That was
-  # the defect here: this hook read the raw session_id, so it never found the state
-  # file, the ledger below never got a row, and the `rm -f` never ran — the cksum is
-  # applied to the fallback branch too, so there is no payload shape where the two
-  # spellings coincide. Change one side and you must change all three (route.sh,
-  # route-prompt.sh, here).
   # TWO VALUES, TWO JOBS — do not collapse them.
   #  ctx_src   addresses the state FILE and must match route.sh:28-55 exactly, field
   #            order included. route.sh reads `.transcript_path // .session_id` and

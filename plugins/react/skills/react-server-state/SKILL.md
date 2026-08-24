@@ -116,9 +116,10 @@ is the cache.
 ## Defer rule
 
 - **Server-side fetching in an RSC framework → that framework's skill, not this
-  one.** In Next.js App Router (and Nuxt), data fetched in a Server Component
-  belongs to `nextjs-best-practices` / `nuxt-best-practices`: `fetch` with
-  `revalidate`/tags is correct there and needs no client cache. This skill governs
+  one.** In Next.js App Router, data fetched in a Server Component belongs to
+  `nextjs-best-practices`: `fetch` with `revalidate`/tags is correct there and needs
+  no client cache. Nuxt has no Server Components — its server-side fetching is
+  `useFetch`/`useAsyncData`, owned by `nuxt-best-practices`, same boundary. This skill governs
   **client** components — `'use client'` boundaries, interactive/user-specific data,
   anything that must refetch or mutate in the browser. The router fires this skill
   on every `.tsx`, including Server Components, so read the boundary before

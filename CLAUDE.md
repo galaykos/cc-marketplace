@@ -62,9 +62,11 @@ count from this paragraph — recount it**, the way the retirement-queue and CI-
 numbers below say to, and for the same reason: this sentence said "7 plugins" from
 2026-07 until 2026-08-23, by which point it was 13. Recount with
 `grep -rl "Standing:" --include='*.md' plugins/ | cut -d/ -f2 | sort -u | wc -l`
-(drop `--include` to count hook scripts too). As of 2026-08-23 that is **13** in
-shipped `.md` and **17** including hook scripts, plus craft-layer's worked table
-above. **No script enforces the convention** — which puts it in its own
+(drop `--include` to count hook scripts too). As of 2026-08-24 that is **14** in
+shipped `.md` and **18** including hook scripts, plus craft-layer's worked table
+above — and the first figures written here, 13/17, were already stale when they
+were committed, because a later commit on the same branch added command-guard's
+marker. Two days, two stale counts: run the command. **No script enforces the convention** — which puts it in its own
 `recorded` tier, and saying so is the point.
 
 ## Plugin change gates

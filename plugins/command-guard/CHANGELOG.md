@@ -22,10 +22,13 @@
 
 ### Changed
 - Removed two byte-identical duplicate assertions. The section asserts 9 distinct
-  vectors, not the 10 the 0.3.0 changelog claimed. Of the 8 non-control CLI
-  assertions, 5 discriminate against a 0.2.1-style exemption and 3 (the `eval`
-  form and the two `-c` wrapper forms) deny regardless — kept as regression
-  coverage for a re-added 0.2.0-style exemption, which is what they do catch.
+  vectors, not the 10 the 0.3.0 changelog claimed. Measured against the real
+  historical guards, those 9 split three ways: **5** discriminate against a
+  0.2.1-style positional exemption; **3** (the `-c` wrapper forms) fail only
+  against a 0.2.0-style substring exemption; **1** (the `eval` form) catches
+  NEITHER prior release, because both required a `bash`/`sh` lead word — it pins a
+  hypothetical looser exemption only. Kept deliberately, and labelled rather than
+  counted as coverage it does not provide.
 
 ## 0.3.0
 
