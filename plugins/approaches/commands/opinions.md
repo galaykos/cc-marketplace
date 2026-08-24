@@ -13,16 +13,12 @@ one-paragraph task description first. Do not write implementation code.
 3. The taskmaster defer rule still applies: if a taskmaster pipeline
    (grill/brainstorm/cards) is active on the same task, step back and let it
    finish.
-4. Dispatch four parallel BLIND `opinion-lens` subagents, one fixed persona
-   each (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist,
-   Skeptic-Investigator). Each dispatch carries the task description, the repo
-   path, and its own persona brief ONLY — never sibling takes, never a
-   main-thread draft plan. If subagents are unavailable, fall back to the skill's inline
-   slate — never role-play the four personas in one thread.
-5. Synthesize inline: build the convergence table from the four takes, then
-   ONE pick with its kill-trigger — the concrete discovery mid-implementation
-   that would flip the choice. One round hard cap, no re-dispatch.
-6. Surface the pick — never self-approve it. Aligned or detail-divergent takes:
+4. Run the panel exactly as `references/blind-panel.md` specifies — the persona
+   roster, the blind-dispatch contract, the convergence table, the kill-trigger and
+   the one-round cap are all owned there and already in context from line 5 above.
+   Do not restate them here: the four persona names appear in several files, and a
+   rename that misses one produces a panel with three personas and a typo.
+5. Surface the pick — never self-approve it. Aligned or detail-divergent takes:
    one AskUserQuestion, "Proceed with <pick> (Recommended)" vs the strongest
    alternative. Structural split (takes disagree on the file-level shape):
    present the competing plans as the options instead. Proceed without asking
