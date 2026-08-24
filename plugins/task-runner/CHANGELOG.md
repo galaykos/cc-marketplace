@@ -2,6 +2,20 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.4
+
+### Changed
+- `code-redteam` now says WHY its N=3 is fixed while `orchestration:verification-panels`
+  sizes N to blast radius. A conflict audit found the two shipped opposite verdicts on
+  the same number: that skill declares itself "the sizing authority for every consumer"
+  with 2 refuters for a small radius and forbids a consumer inventing its own N, while
+  this one said "spawn exactly three" directly under "reuse it wholesale" — and
+  `completion-gate.sh` hard-blocks a boosted run below 3 lenses. A proportionally sized
+  2-refuter panel was therefore unstoppable except by filing a `reduction-record` that
+  claims a degradation which did not happen. N here is the lens count, not a radius
+  call, so the fix is to record the exception on both sides rather than change either
+  number. `verification-panels` now carries it as a table row.
+
 ## 0.29.3
 
 ### Changed

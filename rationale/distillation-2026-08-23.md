@@ -49,10 +49,23 @@ already-condemned manifest, and the gate that actually fires is `validate.sh`'s
 bundle-dependency inheritance. The sentence is still wrong (item 1 below), but
 not for the reason that draft gave.
 
-## Needs your call — two false statements in CLAUDE.md
+## Two false statements in CLAUDE.md — APPLIED in 23556fd
 
-Not applied. CLAUDE.md is project instruction, and a subagent finding is not
-authority to edit it.
+**Status: both corrected on this branch**, on the maintainer's explicit approval,
+two commits after this section was first written. The section below is kept for
+the evidence, not as a pending decision.
+
+That staleness was itself found by a later audit, and it is worth leaving the
+scar visible: this document's own headline lesson is "read the last result
+first", and for several commits it advertised a decision as open that the same
+branch had already closed. A reader obeying the lesson would have inherited a
+false pending item — the fifth instance of the re-derivation class this document
+names four of. A finding and its resolution have to move together or the record
+becomes the next run's bad input.
+
+Originally recorded as: not applied, because CLAUDE.md is project instruction and
+a subagent finding is not authority to edit it. That reasoning still stands for
+how it was handled — it was surfaced and approved, not edited unilaterally.
 
 1. **`CLAUDE.md:263-265`** — "the bundle table at `README.md` drifts on exactly the
    removal the script is for. Nothing gates that table." False on two counts, and
