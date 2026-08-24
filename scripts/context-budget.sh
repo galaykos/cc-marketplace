@@ -172,7 +172,8 @@ plugin_dynamic_hook_bytes() {
   tmp=$(mktemp -d "$HOOK_SANDBOX/dyn.XXXXXX" 2>/dev/null) || { printf '0'; return; }
   sid="ctx-budget-$(basename "$tmp")"
   # A real transcript file, not just a path: hooks split two ways on this field —
-  # most hash it as a context key, but some (hindsight/hooks/collect.sh) OPEN it.
+  # most hash it as a context key, but some OPEN it — task-runner/hooks/drift.sh
+  # (:61 readability guard, :73 `tail`) and comment-discipline/hooks/verbosity.sh.
   # An unreadable path would meter the second kind on its error branch, which is
   # the same defect one level down from the one sending the field at all fixes.
   : > "$HOOK_SANDBOX/transcript-$sid.jsonl" 2>/dev/null || true
@@ -232,9 +233,15 @@ plugin_dynamic_hook_bytes() {
         #
         # NO BASELINE MOVED when this landed, and that is the honest result: this
         # fixes WHICH BRANCH is metered, not any number. Hooks that merely hash the
-        # field emit the same bytes either way; the ones this reaches are the ones
-        # that OPEN it (hindsight/hooks/collect.sh), previously metered on their
-        # error branch. An earlier version of this comment cited
+        # field emit the same bytes either way; the ones this re-branches are the two
+        # the probe runs that OPEN the transcript — comment-discipline's verbosity.sh
+        # and task-runner's drift.sh, both of which exited at a no-transcript guard
+        # under the old payload and now read the file. Both emit 0 bytes either way,
+        # which is why no number moved. (NOT hindsight/hooks/collect.sh, which two
+        # earlier drafts of this comment named: it is wired to SessionEnd, and this
+        # meter executes only SessionStart, UserPromptSubmit and Pre/PostToolUse — so
+        # it is not metered on any branch, error or otherwise.) An earlier version
+        # of this comment also cited
         # testing/hooks/test-shape.sh's 0 as the evidence — wrong cause: that hook's
         # path gate (:81-84) exits before it ever reads a context key at :95, so it
         # reads 0 on `src/example.ts` with or without this field. That is the FILE
