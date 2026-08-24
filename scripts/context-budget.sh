@@ -184,7 +184,7 @@ plugin_dynamic_hook_bytes() {
   # that sentence, so the hook baselined at 0 while emitting 206 bytes (~52 tok)
   # on a real integration prompt. A hook whose trigger vocabulary misses the one
   # probe is unmetered forever, and its growth with it. MAX rather than SUM
-  # because a user sends one prompt, not four; the corpus asks "what is the worst
+  # because a user sends one prompt, not five; the corpus asks "what is the worst
   # single prompt", which is the number the budget is about.
   #
   # LIMITATION: a hook whose trigger appears in no corpus entry still reads 0,

@@ -132,8 +132,9 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
   CI step), across **three** channels: **always-on**
   (`context-budget-baseline.json` — descriptions + SessionStart stdout + local
   MCP `tools/list`), **dynamic** (`context-budget-dynamic-baseline.json` —
-  UserPromptSubmit and per-tool hook stdout, measured with a **four-prompt
-  corpus** summed per prompt and scored MAX, plus a synthetic `Edit`), and
+  UserPromptSubmit and per-tool hook stdout, measured with a **five-prompt
+  corpus** (it was four until 2026-08-23; count the strings in the script rather
+  than trusting this number) summed per prompt and scored MAX, plus a synthetic `Edit`), and
   **activated** (`context-budget-activated-baseline.json`, added 2026-08-20 —
   the always-on surface re-measured with the state its hooks WAIT for: a terse
   level set, a `brain/INDEX.md` present, manifests to sniff). Each omission was

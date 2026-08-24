@@ -222,11 +222,11 @@ export HOME="$TMP/fakehome"; mkdir -p "$HOME"
 printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s"}' "$tp" "$TMP/rtcwd" \
   | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROOT/plugins/skill-router/hooks/summary.sh" >/dev/null 2>&1 || true
 ledger=$(find "$HOME/.claude/skill-router" -name 'surfaced.jsonl' 2>/dev/null | head -1 || true)
-left=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ')
+left=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
 if [ -n "$ledger" ] && grep -q 'roundtrip-canary' "$ledger" 2>/dev/null && [ "$left" = "0" ]; then
   echo "PASS: round trip — summary.sh wrote the ledger row and removed the state file"
 else
-  echo "FAIL: round trip — ledger='$ledger' rows_match=$(grep -c 'roundtrip-canary' "${ledger:-/dev/null}" 2>/dev/null || echo 0) leftover_state=$left"; rc=1
+  echo "FAIL: round trip — ledger='$ledger' rows_match=$(grep -c 'roundtrip-canary' "${ledger:-/dev/null}" 2>/dev/null | head -1) leftover_state=$left"; rc=1
 fi
 if [ -n "${HOME_WAS_SET:-}" ]; then export HOME="$HOME_BAK"; else unset HOME; fi
 
