@@ -1,10 +1,34 @@
-{
-  "chassis": "stack-review",
-  "variant": "concern",
-  "skill": "resilience-design",
-  "tag": "generic",
-  "worker": null,
-  "applyExtra": [],
-  "description": "Review code or a design for failure-mode gaps — missing timeouts, unsafe retries, absent degradation paths — one line per finding.",
-  "argumentHint": "[path-diff-or-design-doc]"
-}
+[
+  {
+    "chassis": "stack-review",
+    "variant": "concern",
+    "skill": "resilience-design",
+    "tag": "generic",
+    "worker": null,
+    "applyExtra": [],
+    "description": "Review code or a design for failure-mode gaps — missing timeouts, unsafe retries, absent degradation paths — one line per finding.",
+    "argumentHint": "[path-diff-or-design-doc]"
+  },
+  {
+    "chassis": "stack-review",
+    "variant": "concern",
+    "skill": "error-handling-design",
+    "tag": "generic",
+    "worker": null,
+    "applyExtra": [],
+    "outfile": "commands/error-review.md",
+    "description": "Audit error handling — empty or over-broad catches, swallowed exceptions, message-string branching, missing cause chains, internals leaking to users — one line per finding.",
+    "argumentHint": "[path-diff-or-design-doc]"
+  },
+  {
+    "chassis": "stack-review",
+    "variant": "concern",
+    "skill": "concurrency-safety",
+    "tag": "generic",
+    "worker": null,
+    "applyExtra": [],
+    "outfile": "commands/concurrency-review.md",
+    "description": "Audit code for concurrency hazards — check-then-act races, missing idempotency on retried paths, unguarded parallel writes, locks without TTL or fencing — one line per finding.",
+    "argumentHint": "[path-diff-or-design-doc]"
+  }
+]

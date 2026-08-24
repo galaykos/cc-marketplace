@@ -7,6 +7,27 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.3
+
+### Fixed
+- `motion-tiers/SKILL.md` told a React reader the Tier-1 reduced-bundle path is
+  `animate()` from `motion/mini`. Its own declared SOURCE OF TRUTH,
+  `references/tier-budgets.md`, reserves `motion/mini` for **vanilla** element
+  tweens and names `LazyMotion` + `m.*` as the React path. Two files, opposite
+  advice, one of them labelled the truth. The SKILL now matches the reference.
+- `motion-tiers/references/rtl-bidi.md` pointed at `plugins/i18n` for the general
+  RTL rules and said "do not re-teach them here" — but `craft-suite` does not ship
+  i18n, so a craft-suite reader got a pointer to nothing. The file now carries a
+  four-rule floor (logical properties, `dir`, which icons mirror, LTR runs inside
+  RTL) and defers to i18n when it IS installed.
+
+### Note
+- The manual SKILL↔reference mirror that produced the first defect is no longer
+  unchecked: `pc_source_of_truth` in `scripts/lib/plugin-checks.sh` now fails any
+  SKILL naming a reference as SOURCE OF TRUTH that carries a figure the reference
+  lacks. Its honest limit: figures only — prose contradiction, which is what this
+  defect actually was, stays agent-graded.
+
 ## 0.47.2
 
 ### Fixed

@@ -130,7 +130,7 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 # --- per-chassis renderers --------------------------------------------------------
 render_stack_review() { # obj plugin-dir
   local obj="$1" pdir="$2" rel="${2#$ROOT/}"
-  local tag worker resolved wplugin wname workerChain aeb dfile rfile
+  local tag worker resolved wplugin wname workerChain aeb dfile rfile outfile skname skhome skowner
   tag="$(printf '%s' "$obj" | jq -r '.tag // ""')"
   worker="$(printf '%s' "$obj" | jq -r 'if (.worker // null)==null then "" else .worker end')"
   if [ -n "$worker" ]; then
@@ -177,7 +177,15 @@ render_stack_review() { # obj plugin-dir
     '. + {lang:(.variant=="lang"), concern:(.variant=="concern"), workerChain:$wc, applyExtraBlock:$aeb, skillHome:$sh, divergencePreamble:((.divergence // {}).preamble // "")}' > "$dfile"
   ensure_engine
   render_template "$TEMPLATES/review-command.md.tmpl" "$dfile" > "$rfile" || die "render failed: $rel review.md"
-  emit "$rfile" "$pdir/commands/review.md" 0 "$pdir"
+  # OUTFILE, optional. The stack-review chassis emitted only commands/review.md,
+  # so a plugin needing a second concern-scoped review command had to hand-copy the
+  # generated file — which resilience did for error-review and concurrency-review.
+  # Both then drifted: they are missing the 8-line "Hand up when the scope is not
+  # this stack's alone" block their own generated sibling carries, and `--check`
+  # was structurally blind to it because .chassis.json declared only review.md.
+  # An ungated copy of a gated file is the drift the chassis exists to prevent.
+  outfile="$(printf '%s' "$obj" | jq -r '.outfile // "commands/review.md"')"
+  emit "$rfile" "$pdir/$outfile" 0 "$pdir"
 }
 
 render_suite_uninstall() { # obj plugin-dir
