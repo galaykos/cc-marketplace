@@ -99,7 +99,10 @@ how it was handled — it was surfaced and approved, not edited unilaterally.
    happened inside the paragraph diagnosing that exact failure. A run can name its
    own failure mode and commit it in the same breath; naming it is not immunity.
 2. **CLAUDE.md's has-teeth section** — "explicit `Standing:` markers ship in 7
-   plugins today". Recount: **13** in shipped `.md`, **17** including hook scripts.
+   plugins today". Recount: **13** in shipped `.md`, **17** including hook scripts
+   — and by the end of this branch **14/18**, because a later commit added
+   command-guard's first marker. Applied and re-corrected in `042cf7a`; recount
+   rather than copying either pair.
    The recorded-number-trusted-as-measurement trap the file names twice, live in
    its own text.
 
@@ -129,8 +132,15 @@ measurement first, which is why it is a backlog and not a commit.
    `plugin.json` declares — **0 of 61 leaves declare any dependency**, which does
    reproduce. An earlier draft put that mesh at "204 references across 50
    plugins"; **that number does not survive recount** (explicit `plugins/<dst>`
-   path references from a different plugin: 73, across 5 source plugins in `.md`).
-   It came from a session-local method that was never stated. Corrected here
+   path references from a different plugin: **69 across 4 source plugins**, and
+   craft-layer alone is 64 of them). Method, since the sin being corrected was an
+   unstated one: `git ls-files 'plugins/*.md'`, extract `plugins/<name>`, drop
+   self-references, drop targets that are not real plugin directories. Without that
+   last filter it reads 73 across 6, and the 4 extra are false positives —
+   `~/.claude/plugins/cache`, `src/plugins/auth.ts`, a `plugins/x` placeholder. A
+   first correction here printed "73 across 5", which is neither figure: it paired
+   the raw count with the filtered source count, in the sentence condemning an
+   unstated method. Corrected again, with the method, here
    rather than deleted, because `distillation-review-2026-08-17.md:210-211`
    already recorded the verdict this instantiates: every mechanism in these runs
    held up under adversarial execution, and every prose number did not.
@@ -161,7 +171,7 @@ measurement first, which is why it is a backlog and not a commit.
 6. **`verify-teeth` and `visual-contract` pay always-on description cost (~59 tok
    each) for pipeline-internal bodies.** Sole-caller verified for both by an
    independent grep. Move to `references/` of their caller. Two traps found:
-   `task-runner/CHANGELOG.md:131` names `verify-teeth` and needs a
+   `task-runner/CHANGELOG.md` names `verify-teeth` (grep it; the line moved from 131 to 145 on this branch) and needs a
    `<!-- removed-ok -->` marker (rewriting a changelog is invented history), and
    `coding-entry:123` cites `verify-teeth-lint`, which the guard's boundary class
    can never match — that repoint is unnecessary.
@@ -219,7 +229,7 @@ Round 2 was not dry either. Beyond the three corrections folded in above:
   partially re-delete content deliberately relocated there — by the same commit
   whose other half this document flags in backlog item 3.
 - **C2 has a second instance already recorded as accepted on 2026-08-17.**
-  `ui-ux/hooks/palette-default.sh` is path-gated on `*.tsx|*.jsx|*.vue`, so the
+  `ui-ux/hooks/palette-default.sh` is path-gated on 9 UI-file patterns (`*.tsx|*.jsx|*.vue|…`), so the
   synthetic `src/example.ts` never matches it. The honesty note added in `ea7243c`
   names only testing's matcher; ui-ux ships in 10 bundles. The note should name
   both, or name the class.
