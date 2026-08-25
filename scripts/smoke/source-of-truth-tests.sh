@@ -85,5 +85,19 @@ mk_claim "Standing: KB figures are gate; prose stays recorded."
 pc_false_standing "$WORK/plugins" >/dev/null 2>&1
 [ "$?" = "0" ] && ok "marker + accurate standing passes" || bad "marker + accurate standing passes" "false positive"
 
+# second trigger: a version-leverage claim is gated by pc_version_stamp
+mk_ver() { # $1 extra body line
+  local d="$WORK/plugins/t/skills/s"
+  rm -rf "$WORK/plugins"; mkdir -p "$d/references"
+  printf -- '---\nname: s\ndescription: d\n---\n\nThis skill is version-aware.\n%s\n' "$1" > "$d/SKILL.md"
+  printf '# r\n' > "$d/references/r.md"
+}
+mk_ver "Standing recorded — nothing checks them."
+pc_false_standing "$WORK/plugins" >/dev/null 2>&1
+[ "$?" = "1" ] && ok "version-leverage claim + no-gate claim is caught" || bad "version-leverage claim + no-gate claim is caught" "gate stayed silent"
+mk_ver "Standing: gate — pc_version_stamp requires a Last verified stamp."
+pc_false_standing "$WORK/plugins" >/dev/null 2>&1
+[ "$?" = "0" ] && ok "version-leverage claim + accurate standing passes" || bad "version-leverage claim + accurate standing passes" "false positive"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

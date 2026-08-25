@@ -1113,31 +1113,41 @@ pc_source_of_truth() {
 # The general defect is that ADDING a gate silently falsifies standing claims
 # elsewhere, and nothing looked for that. This is the narrow, mechanical half.
 #
-# WHAT THIS CATCHES, precisely: a SKILL body containing BOTH the literal string
-# `SOURCE OF TRUTH` (pc_source_of_truth's trigger) and a phrase asserting the
-# absence of a gate over it. Nothing else.
+# WHAT THIS CATCHES, precisely: a SKILL body containing BOTH a gate's literal
+# trigger string AND a phrase asserting the absence of a gate over it. Two pairs
+# are encoded — `SOURCE OF TRUTH` (pc_source_of_truth) and a version-leverage
+# claim (pc_version_stamp, which then requires a `> Last verified:` stamp).
 #
-# WHAT IT DOES NOT CATCH, and the limit is large enough to state twice: every
-# other check in this file. Their triggers are structural — a lane.tsv row, a
-# hooks.json event, a plugin.json field — not a text marker, so "does this artifact
-# trip that check" cannot be answered by grep, and a general version would need a
-# per-check trigger predicate that does not exist as data. If you add a check whose
-# trigger IS a literal marker, add it to MARKERS below; otherwise this will not see
-# it. The class stays agent-graded outside the one pair encoded here.
+# WHAT IT DOES NOT CATCH, and the limit is still larger than the catch: every
+# check whose trigger is STRUCTURAL rather than a literal string — a lane.tsv row,
+# a hooks.json event, a plugin.json field. For those, "does this artifact trip that
+# check" is not a grep question, and a general version needs a per-check trigger
+# predicate that does not exist as data. Two of this file's 24 checks are encoded
+# here. Add a pair to TRIGGERS below only when the trigger is a literal string
+# findable in the same file; otherwise the class stays agent-graded, as it does for
+# the other 22.
 #
 # Standing: gate. validate.sh feeds it to `err`.
 pc_false_standing() {
-  local root="${1:-plugins}" bad=0 f body
-  # trigger-marker -> the gate that keys on it. Extend deliberately; see above.
-  local MARKERS='SOURCE OF TRUTH'
-  local DENIALS='no gate (checks|reads|enforces)|nothing (checks|enforces|gates) (it|this|that|the two)|the mirror is manual and no gate'
+  local root="${1:-plugins}" bad=0 f body trig name
+  # TRIGGER -> GATE, one pair per line. Extend deliberately: a pair belongs here
+  # only when the gate's trigger is a literal string findable in the same file.
+  #   SOURCE OF TRUTH                       -> pc_source_of_truth
+  #   a version-leverage claim in the body  -> pc_version_stamp (needs a stamp)
+  local TRIGGERS='SOURCE OF TRUTH|version-aware|version leverage|version-leverage'
+  local DENIALS='no gate (checks|reads|enforces)|nothing (checks|enforces|gates) (it|this|that|the two|them)|the mirror is manual and no gate|not (gated|enforced|checked) by (any|a) (script|gate)'
 
   while IFS= read -r f; do
     [ -f "$f" ] || continue
     body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
-    printf '%s' "$body" | grep -qF "$MARKERS" || continue
+    trig=$(printf '%s' "$body" | grep -oiE "$TRIGGERS" | head -1)
+    [ -n "$trig" ] || continue
+    case "$trig" in
+      [Ss][Oo][Uu][Rr][Cc][Ee]*) name=pc_source_of_truth ;;
+      *)                          name=pc_version_stamp ;;
+    esac
     if printf '%s' "$body" | grep -qiE "$DENIALS"; then
-      printf 'false-standing %s carries the `%s` marker (which pc_source_of_truth gates) and also claims nothing gates it\n' "$f" "$MARKERS"
+      printf 'false-standing %s trips %s (via "%s") and also claims nothing gates it\n' "$f" "$name" "$trig"
       bad=1
     fi
   done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
