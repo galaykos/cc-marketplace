@@ -113,5 +113,26 @@ pc_false_standing "$WORK/plugins" >/dev/null 2>&1
 [ "$?" = "0" ] && ok "trigger and unrelated denial in different paragraphs pass" \
   || bad "trigger and unrelated denial in different paragraphs pass" "false positive: fires across paragraphs"
 
+printf '== CASE: matching mirrors each gate it stands for\n'
+mk_case() { # $1 whole body paragraph
+  local d="$WORK/plugins/t/skills/s"
+  rm -rf "$WORK/plugins"; mkdir -p "$d/references"
+  printf -- '---\nname: s\ndescription: d\n---\n\n%s\n' "$1" > "$d/SKILL.md"
+  printf '# r\n' > "$d/references/r.md"
+}
+case_expect() { # want-rc  body  desc
+  mk_case "$2"; pc_false_standing "$WORK/plugins" >/dev/null 2>&1; local got=$?
+  [ "$got" = "$1" ] && ok "$3" || bad "$3" "want rc=$1, got rc=$got"
+}
+# BSD awk ignores IGNORECASE, so an earlier version matched case-sensitively and
+# missed a denial at the start of a sentence — the common form.
+case_expect 1 "See refs — SOURCE OF TRUTH here. No gate checks it." "capitalised denial is caught"
+case_expect 1 "See refs — SOURCE OF TRUTH here. no gate checks it." "lowercase denial is caught"
+# pc_source_of_truth greps its marker case-SENSITIVELY, so prose "source of truth"
+# does not trip it and must not trip this gate either.
+case_expect 0 "See refs — source of truth here. No gate checks it." "lowercase marker does not fire (mirrors grep -q)"
+# pc_version_stamp uses grep -qiE, so its trigger is case-insensitive here too.
+case_expect 1 "This skill is VERSION-AWARE. Nothing checks them." "uppercase version trigger is caught (mirrors grep -qiE)"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

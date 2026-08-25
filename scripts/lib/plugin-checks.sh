@@ -1134,7 +1134,9 @@ pc_false_standing() {
   # only when the gate's trigger is a literal string findable in the same file.
   #   SOURCE OF TRUTH                       -> pc_source_of_truth
   #   a version-leverage claim in the body  -> pc_version_stamp (needs a stamp)
-  local TRIGGERS='SOURCE OF TRUTH|version-aware|version leverage|version-leverage'
+  local TRIG_SENSITIVE='SOURCE OF TRUTH'
+  local TRIG_INSENSITIVE='version-aware|version leverage|version-leverage'
+  local TRIGGERS="$TRIG_SENSITIVE|$TRIG_INSENSITIVE"
   local DENIALS='no gate (checks|reads|enforces)|nothing (checks|enforces|gates) (it|this|that|the two|them)|the mirror is manual and no gate|not (gated|enforced|checked) by (any|a) (script|gate)'
 
   while IFS= read -r f; do
@@ -1148,9 +1150,22 @@ pc_false_standing() {
     # only contradicts the gate when it is about the same subject; the closest
     # mechanical proxy for that is the same paragraph. Verified: all three
     # unrelated-subject probes fired before this change and pass after it.
-    hit=$(printf '%s' "$body" | awk -v trig="$TRIGGERS" -v deny="$DENIALS" '
-      BEGIN { RS = ""; IGNORECASE = 1 }
-      $0 ~ trig && $0 ~ deny { print; exit }
+    # tolower() rather than IGNORECASE: the latter is a gawk extension and this
+    # repo runs BSD awk (20200816), where it is silently ignored — so the first
+    # version matched case-SENSITIVELY and missed "No gate checks it" at the start
+    # of a sentence while catching the same words mid-sentence. The true-positive
+    # tests passed only because they happened to use lowercase.
+    #
+    # Case handling mirrors each gate it stands for, deliberately:
+    #   SOURCE OF TRUTH — pc_source_of_truth greps it case-SENSITIVELY (`grep -q`),
+    #     so a skill writing "source of truth" in prose does NOT trip that gate and
+    #     must not trip this one either.
+    #   version-leverage claims — pc_version_stamp uses `grep -qiE`, case-insensitive.
+    # Denial phrases are always case-insensitive: they are ordinary sentences.
+    hit=$(printf '%s' "$body" | awk -v sot="$TRIG_SENSITIVE" -v ver="$TRIG_INSENSITIVE" -v deny="$DENIALS" '
+      BEGIN { RS = "" }
+      { low = tolower($0) }
+      ($0 ~ sot || low ~ tolower(ver)) && low ~ tolower(deny) { print; exit }
     ')
     [ -n "$hit" ] || continue
     trig=$(printf '%s' "$hit" | grep -oiE "$TRIGGERS" | head -1)
