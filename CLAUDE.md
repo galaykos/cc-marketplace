@@ -214,6 +214,34 @@ bash scripts/context-budget.sh
 bash scripts/generate.sh --check
 ```
 
+**The four are not sufficient, and here is the case that proves it.** On
+2026-08-25 a change added a `{{skillHome}}` key to
+`templates/review-command.md.tmpl` and did not update
+`templates/samples/*.json`. All four scripts passed. `scripts/smoke/chassis-template-tests.sh`
+— an unguarded CI step — went red, and the branch was pushed that way.
+
+The reason is structural, not carelessness: `generate.sh --check` renders the REAL
+`.chassis.json` objects, every one of which carried the key already; the harness
+renders the FROZEN sample fixtures, which did not. **The gate you run and the gate
+that breaks can read different inputs.** So:
+
+- Touched anything under `templates/` or a `.chassis.json`? Also run
+  `bash scripts/smoke/chassis-template-tests.sh`.
+- Touched a hook, or a script a harness drives? Run that harness. `bash scripts/gate-coverage.sh`
+  maps checks to the harnesses that exercise them.
+- Changed a gate's error STRING? Several harnesses assert exact messages — run the smoke set.
+- Not sure? Run the lot; it is minutes, and CI red after a green local pass is the
+  failure this note exists to prevent:
+
+```bash
+for t in scripts/smoke/*.sh; do [ "$(basename "$t")" = canary.sh ] && continue; bash "$t" >/dev/null || echo "FAIL $t"; done
+for t in plugins/*/scripts/__tests__/*.test.sh; do bash "$t" >/dev/null || echo "FAIL $t"; done
+```
+
+One measured caveat on running them together: `context-budget.sh` failed once and
+passed on re-run while the smoke suite ran concurrently — both mutate scratch
+state. Run the budget gate on its own before trusting a red from it.
+
 ## Every enforcement surface, by tier
 
 Those four are the ones you invoke. They are **not** all the enforcement, and
