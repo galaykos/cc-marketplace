@@ -231,7 +231,7 @@ Round 2 was not dry either. Beyond the three corrections folded in above:
 - **C2 has a second instance already recorded as accepted on 2026-08-17.**
   `ui-ux/hooks/palette-default.sh` is path-gated on 9 UI-file patterns (`*.tsx|*.jsx|*.vue|…`), so the
   synthetic `src/example.ts` never matches it. The honesty note added in `ea7243c`
-  names only testing's matcher; ui-ux ships in 10 bundles. The note should name
+  names only testing's matcher; ui-ux ships in 4 bundles (3 excluding `everything`). The note should name
   both, or name the class.
 - **`rationale/host-lever-probes-2026-08-21.md:84`** says a skill written purely
   as a command's implementation "is the shape that would qualify [for

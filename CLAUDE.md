@@ -28,7 +28,7 @@ publishable plugin.
     one time that was actually measured
     (`rationale/eval-ablation-2026-08-20.md`), the skill under test scored **zero
     delta in every arm**. Recount before trusting any of these numbers:
-    `ls -d plugins/*/evals/*/ | wc -l`.
+    `ls -d plugins/*/evals | wc -l`.
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
   history. If a document truly must be tracked, it goes in **`rationale/`** at
@@ -228,13 +228,14 @@ that breaks can read different inputs.** So:
 - Touched anything under `templates/` or a `.chassis.json`? Also run
   `bash scripts/smoke/chassis-template-tests.sh`.
 - Touched a hook, or a script a harness drives? Run that harness. `bash scripts/gate-coverage.sh`
-  maps checks to the harnesses that exercise them.
+  maps checks to harnesses that MENTION them by name — its own header says a hit
+  is a mention, not proof of exercise, so it over-reports.
 - Changed a gate's error STRING? Several harnesses assert exact messages — run the smoke set.
 - Not sure? Run the lot; it is minutes, and CI red after a green local pass is the
   failure this note exists to prevent:
 
 ```bash
-for t in scripts/smoke/*.sh; do [ "$(basename "$t")" = canary.sh ] && continue; bash "$t" >/dev/null || echo "FAIL $t"; done
+for t in scripts/smoke/*.sh scripts/smoke/validate-fixtures/*.sh; do [ "$(basename "$t")" = canary.sh ] && continue; bash "$t" >/dev/null || echo "FAIL $t"; done
 for t in plugins/*/scripts/__tests__/*.test.sh; do bash "$t" >/dev/null || echo "FAIL $t"; done
 ```
 

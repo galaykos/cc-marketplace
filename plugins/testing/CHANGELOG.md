@@ -6,6 +6,17 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.8.3
+
+### Fixed
+- The `/testing:flake-hunt` row added to the README in 0.8.2 described a command
+  that does not exist: it advertised `[files-or-diff]` when the script takes
+  `[--runs N] [--shuffle "<flag>"] [--baseline FILE]` and exits 3 on a bare path,
+  and it invented a four-class taxonomy ("order dependence, shared state, timing,
+  isolation-halt") where the command classifies into three (order-dependent /
+  non-deterministic / broken). "isolation-halt" appeared nowhere else in the
+  plugin. A user following that row got exit 3 and never saw the listed classes.
+
 ## 0.8.2
 
 ### Fixed

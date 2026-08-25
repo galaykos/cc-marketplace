@@ -1022,6 +1022,76 @@ EOF
 # printf into a variable, an array, or eval passes unseen.
 #
 # Prints `marker-key-unhashed <plugin>:<script>:<line>` per offender; returns 1 if any.
+pc_marker_key() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel v line no body seeds tainted round newly
+
+  # TAINT, not one syntactic form. The first version matched only
+  # `marker="$dir/x-$sid"` — one-step, double-quoted. An adversarial audit on
+  # 2026-08-18 shipped the identical defect past it three ways: unquoted
+  # (`marker=$dir/x-$sid`), two-step (`pre="x-$sid"; marker="$dir/$pre"`), and
+  # `printf -v`. A gate that only catches the exact syntax of the instance that
+  # created it is a gate against that commit, not against the defect. So: seed
+  # from the jq read, propagate through assignments, and treat a hash or a
+  # slash-strip as the thing that CLEARS taint.
+  _mk_tainted() { # $1 file -> tainted var names
+    local f=$1 seeds tainted round newly v
+    seeds=$(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^=]*jq[^;]*transcript_path' "$f" 2>/dev/null \
+             | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/' | sort -u)
+    tainted="$seeds"
+    for round in 1 2; do
+      newly=""
+      for v in $tainted; do
+        # A var assigned FROM a tainted var inherits the taint, unless that same
+        # line hashes it or strips the slashes — those are the cures, and a cured
+        # value is exactly what we want people to use.
+        newly="$newly $(grep -E "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=.*\\\$\{?$v\}?" "$f" 2>/dev/null \
+          | grep -vE 'cksum|shasum|md5|sha1sum' \
+          | grep -vE "\\\$\{$v//" \
+          | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/')"
+      done
+      tainted=$(printf '%s %s' "$tainted" "$newly" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' ')
+    done
+    printf '%s' "$tainted"
+  }
+
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      rel=$(basename "$sh")
+      grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
+
+      for v in $(_mk_tainted "$sh"); do
+        [ -n "$v" ] || continue
+        # Path-shaped assignment using the tainted var: quoted or bare, but the
+        # right-hand side must contain a slash — that is what makes it a path
+        # rather than a plain value.
+        while IFS=: read -r no body; do
+          [ -n "$no" ] || continue
+          printf '%s' "$body" | grep -qE '(cksum|shasum|md5|sha1sum)' && continue
+          printf '%s' "$body" | grep -qE "\\\$\{$v//" && continue
+          sed -n "$((no + 1)),$((no + 3))p" "$sh" 2>/dev/null \
+            | grep -qE 'mkdir[[:space:]]+-p[[:space:]]+"\$\(dirname' && continue
+          printf 'marker-key-unhashed %s:%s:%s\n' "$p" "$rel" "$no"
+          bad=1
+        done <<EOF
+$(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?[^\"']*/[^\"']*\\\$\{?$v\}?|^[[:space:]]*printf[[:space:]]+-v[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[^|]*/[^|]*\\\$\{?$v\}?" "$sh" 2>/dev/null)
+EOF
+      done
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  unset -f _mk_tainted
+  return $bad
+}
+
 # pc_source_of_truth: a SKILL that names a reference as SOURCE OF TRUTH for its
 # figures must not carry a figure that reference does not.
 #
@@ -1183,76 +1253,6 @@ pc_false_standing() {
   done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
 
   return "$bad"
-}
-
-pc_marker_key() {
-  local root="${1:-plugins}" bad=0 hj d p sh rel v line no body seeds tainted round newly
-
-  # TAINT, not one syntactic form. The first version matched only
-  # `marker="$dir/x-$sid"` — one-step, double-quoted. An adversarial audit on
-  # 2026-08-18 shipped the identical defect past it three ways: unquoted
-  # (`marker=$dir/x-$sid`), two-step (`pre="x-$sid"; marker="$dir/$pre"`), and
-  # `printf -v`. A gate that only catches the exact syntax of the instance that
-  # created it is a gate against that commit, not against the defect. So: seed
-  # from the jq read, propagate through assignments, and treat a hash or a
-  # slash-strip as the thing that CLEARS taint.
-  _mk_tainted() { # $1 file -> tainted var names
-    local f=$1 seeds tainted round newly v
-    seeds=$(grep -oE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[^=]*jq[^;]*transcript_path' "$f" 2>/dev/null \
-             | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/' | sort -u)
-    tainted="$seeds"
-    for round in 1 2; do
-      newly=""
-      for v in $tainted; do
-        # A var assigned FROM a tainted var inherits the taint, unless that same
-        # line hashes it or strips the slashes — those are the cures, and a cured
-        # value is exactly what we want people to use.
-        newly="$newly $(grep -E "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=.*\\\$\{?$v\}?" "$f" 2>/dev/null \
-          | grep -vE 'cksum|shasum|md5|sha1sum' \
-          | grep -vE "\\\$\{$v//" \
-          | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/')"
-      done
-      tainted=$(printf '%s %s' "$tainted" "$newly" | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' ')
-    done
-    printf '%s' "$tainted"
-  }
-
-  command -v jq >/dev/null 2>&1 || return 0
-  while IFS= read -r hj; do
-    [ -n "$hj" ] || continue
-    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
-    while IFS= read -r sh; do
-      [ -n "$sh" ] || continue
-      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
-      [ -f "$sh" ] || continue
-      rel=$(basename "$sh")
-      grep -q 'marker-key-ok:' "$sh" 2>/dev/null && continue
-
-      for v in $(_mk_tainted "$sh"); do
-        [ -n "$v" ] || continue
-        # Path-shaped assignment using the tainted var: quoted or bare, but the
-        # right-hand side must contain a slash — that is what makes it a path
-        # rather than a plain value.
-        while IFS=: read -r no body; do
-          [ -n "$no" ] || continue
-          printf '%s' "$body" | grep -qE '(cksum|shasum|md5|sha1sum)' && continue
-          printf '%s' "$body" | grep -qE "\\\$\{$v//" && continue
-          sed -n "$((no + 1)),$((no + 3))p" "$sh" 2>/dev/null \
-            | grep -qE 'mkdir[[:space:]]+-p[[:space:]]+"\$\(dirname' && continue
-          printf 'marker-key-unhashed %s:%s:%s\n' "$p" "$rel" "$no"
-          bad=1
-        done <<EOF
-$(grep -nE "^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=[\"']?[^\"']*/[^\"']*\\\$\{?$v\}?|^[[:space:]]*printf[[:space:]]+-v[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[^|]*/[^|]*\\\$\{?$v\}?" "$sh" 2>/dev/null)
-EOF
-      done
-    done <<EOF
-$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
-EOF
-  done <<EOF
-$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
-EOF
-  unset -f _mk_tainted
-  return $bad
 }
 
 # pc_harness_payload — the CONDITION behind pc_marker_key, not another instance of it.

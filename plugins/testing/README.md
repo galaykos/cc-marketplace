@@ -16,7 +16,7 @@ mocking boundaries, flaky-test causes, coverage traps.
 | Command | What it does |
 |---------|--------------|
 | `/testing:review [files-or-diff]` | Review tests (and untested production changes) against the testing-best-practices skill; findings as `path:line — problem — fix` by severity |
-| `/testing:flake-hunt [files-or-diff]` | Hunt flaky tests — classifies each by root cause (order dependence, shared state, timing, isolation-halt) and reports the fix per class |
+| `/testing:flake-hunt [--runs N] [--shuffle "<flag>"] [--baseline FILE]` | Hunt and classify flaky tests — repeated runs in fixed and randomized order, set-diffed into order-dependent / non-deterministic / broken, each with its fix lane |
 
 ## Hook
 
