@@ -260,16 +260,18 @@ command, so the next reader does not have to invent it:
 ```bash
 python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"
 ```
-Beyond the four scripts above: 20 harnesses under `scripts/smoke/`
-(template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
-guard, rules-overlap, route-marker, prompt-route, lanes, prime-map, behavioral-verification,
-completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
-verbosity-hook, preview-guard, versioned-layout, marker-key,
-`validate-fixtures/parity-check.sh`),
-`scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
-lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
+Beyond the four scripts above: the harnesses under `scripts/smoke/`, each its own
+named CI step, and the author-time lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
 ANY plugin shipping a harness is enforced the moment it lands. **Do not record the
-count here.** This sentence has now been wrong twice: it said "taskmaster and
+count here** — this paragraph used to name 20 and list them, which was stale within
+two commits of being written and contradicted the very sentence you are reading.
+Recount instead:
+
+```bash
+grep -c 'run: bash scripts/smoke/' .github/workflows/validate.yml   # smoke steps
+ls plugins/*/scripts/__tests__/*.test.sh | wc -l                    # plugin harnesses
+```
+ This sentence has now been wrong twice: it said "taskmaster and
 task-runner are the two" long after 18 more had landed, and its replacement — a
 fresh recount, accurate the hour it was written on 2026-08-17 — was invalidated by
 two later commits *on the same branch*. Recount instead:

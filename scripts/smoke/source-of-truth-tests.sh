@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # Smoke tests for pc_source_of_truth (scripts/lib/plugin-checks.sh).
 #
-# WHY THIS FILE EXISTS. The check's header states four behavioural claims — what
-# it catches, what it misses, and one direction in which it FALSELY fails. Those
-# claims were verified by planting fixtures by hand, twice, and the header said
-# "a planted fixture reproduces it" while `scripts/gate-coverage.sh` reported the
-# check's harness coverage as NONE. A behavioural claim with no harness is a
-# recorded claim wearing a gate's clothes, which is the exact tier confusion this
-# repo's has-teeth convention exists to name. Now the fixtures are checked in and
-# a regression in any of the four flips this red.
+# WHY THIS FILE EXISTS. The check's behavioural claims were verified by planting
+# fixtures by hand, twice, while its header said "a planted fixture reproduces it"
+# and `scripts/gate-coverage.sh` reported its harness coverage as NONE. A
+# behavioural claim with no harness is a recorded claim wearing a gate's clothes —
+# the tier confusion this repo's has-teeth convention exists to name.
+#
+# WHAT IS PINNED IS THE ASSERTION LIST BELOW, and nothing else. This header
+# deliberately does NOT enumerate the check's claims: it used to, the enumeration
+# drifted out of step with the check's own header within one commit, and the pair
+# then contradicted each other. Two copies of one claim is the defect this whole
+# branch keeps re-finding. Read `pc_source_of_truth`'s header for what the check
+# does and does not catch; read the `printf '== ...'` section names below for what
+# is actually enforced. If those two ever disagree, the assertions win — they run.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck disable=SC1091
