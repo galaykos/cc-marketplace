@@ -6,6 +6,14 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.8.2
+
+### Fixed
+- The README Commands table and the plugin.json description both omitted
+  `/testing:flake-hunt`, which has shipped since 2026-08-02 with its own script
+  and CI harness. A user reading either surface could not discover it. Both now
+  name it.
+
 ## 0.8.1
 
 ### Fixed

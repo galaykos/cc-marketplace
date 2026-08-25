@@ -2,6 +2,15 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.1.1
+
+### Fixed
+- One measurement, two numbers: `CHANGELOG.md` said ~3.8k assistant messages
+  across 47 transcripts, `hooks/gate.sh:148` said ~3.3k across the same 47 with
+  the same two-step resolver. Aligned on the figure in the code comment nearest
+  the script that produced it. Recorded as a judgment, not a re-measurement — the
+  original run is not reproducible from here.
+
 ## 0.1.0 — 2026-08-18
 
 Initial release.

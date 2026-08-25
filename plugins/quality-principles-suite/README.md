@@ -12,7 +12,7 @@ ships review skills and no hook, which by the split's own rule makes it advisory
 
 | | `quality-suite` | this bundle |
 |---|---|---|
-| Plugins | 6 | 9 |
+| Plugins | 8 | 9 |
 | Standing | carries a mechanism — a Stop gate, a pre-write deny, a write-time warn, a router | advisory only |
 | Take it when | you want quality rules that bite | you want the disciplines and will apply them yourself |
 

@@ -11,7 +11,7 @@ auto-installed.
 
 The nine advisory disciplines this bundle used to carry — security, a11y,
 debugging, performance, resilience, packages, observability, approaches in 0.7.0,
-and testing in 0.9.0 (it ships no hook) — moved to **quality-principles-suite**.
+and testing in 0.9.0 (it ships no ENFORCEMENT hook — its PostToolUse hook is advisory) — moved to **quality-principles-suite**.
 They were never gates, and bundling them here meant a project wanting enforcement
 paid for their always-on description context too. Install both if you want what
 the old bundle was; the split exists so that is a choice. Deliberate design
