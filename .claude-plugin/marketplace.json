@@ -232,7 +232,7 @@
     {
       "name": "packages",
       "source": "./plugins/packages",
-      "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, and patch/minor/major upgrade lanes. Managing deps already in the project — whether to add one is build-vs-buy's job."
+      "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, dependency-licence checks against the project's distribution mode, and patch/minor/major upgrade lanes. Managing deps already in the project — whether to add one is build-vs-buy's job."
     },
     {
       "name": "orchestration",

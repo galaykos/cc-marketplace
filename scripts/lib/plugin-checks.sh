@@ -1033,13 +1033,20 @@ EOF
 # reference reserved `motion/mini` for VANILLA tweens and named `LazyMotion`+`m.*`
 # as the React path. Two files, opposite advice, one of them labelled the truth.
 #
-# WHAT THIS CATCHES, precisely: a numeric figure (KB / ms / px / a bare integer
-# with a unit) present in the SKILL body but absent from the cited reference.
+# WHAT THIS CATCHES, precisely: a figure matching `[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)`
+# with the unit ADJACENT to the number, present in the SKILL body but absent from
+# the cited reference. Not px. Not a spaced unit (`34 KB`). Not a bare integer.
+# An earlier draft of this comment claimed px and "a bare integer with a unit",
+# which the regex never matched — a gate whose header overstates its catch-scope is
+# the same over-claim this check exists to prevent, committed in the check itself.
 # That is the drift shape a manual mirror produces — someone edits the summary and
 # not the source, or the source and not the summary.
 #
 # WHAT IT DOES NOT CATCH, and this is the honest limit: prose that contradicts
-# without changing a number. The `motion/mini` rot above is exactly that shape, so
+# without changing a number; a unit outside the four above; and a figure written
+# with a space before its unit on one side and not the other, which would also
+# produce a FALSE fail — no in-repo instance today, since motion-tiers is the only
+# user of the marker, but it is a real brittleness and not a hypothetical one. The `motion/mini` rot above is exactly that shape, so
 # this gate would NOT have caught the defect that motivated it. It catches the
 # cheaper half — figures — and leaves the prose half agent-graded. Saying so is
 # the point; a gate that implies more coverage than it has is the defect this

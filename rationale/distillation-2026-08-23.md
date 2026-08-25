@@ -318,11 +318,19 @@ one. What shipped instead is the standing, in `CLAUDE.md`: the eval surface is
 without a control arm — the one time that WAS measured, the skill scored zero
 delta in every arm.
 
-The general shape of this pass, worth keeping: **five of the eight fixes were made
-at the generator, the chassis, or a gate rather than at the instance.** Fixing
+The general shape of this pass, worth keeping: **three of the seven fixes were made
+at the generator, the chassis, or a gate rather than at the instance** — item 1
+(the `pc_source_of_truth` gate), item 3 (the generator's `skillHome`), item 4 (the
+chassis `outfile`). Items 2, 6, 7 and 8 were instance-level, and item 2 explicitly
+records that no gate was added because it would have been mostly noise. Fixing
 `database/review.md` by hand would have left the template able to emit the same
 false sentence forever; fixing resilience's two copies by hand would have left
 them ungated. The instance is the symptom.
+
+(An earlier version of this paragraph said "five of the eight". Neither number
+recomputes: there were seven fixes, three of them structural, and the same commit's
+own message said seven. A recorded count that fails recount, in the document class
+CLAUDE.md warns about twice — caught by a reviewer, not by me.)
 
 ## What this run did not do
 

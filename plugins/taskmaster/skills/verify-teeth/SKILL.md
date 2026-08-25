@@ -19,7 +19,7 @@ catching the obvious weak forms the moment a card is written, before any code
 exists. Fast and free, and shallow by construction — text cannot see behaviour.
 
 Layers 2 and 3 run during execution and live in `task-runner`, which owns and
-states the full map: `task-runner:behavioral-gate` "the three-part defense".
+states the full map: `task-runner:behavioral-gate` § "The three-gate defense".
 Read it there when installed; do not re-derive the ordering here.
 
 That deferral is the fix for a real defect, not tidiness. This section used to

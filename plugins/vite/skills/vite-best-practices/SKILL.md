@@ -149,4 +149,4 @@ separators, which markdown renders as one paragraph.)
 - `optimizeDeps` include/exclude hacks masking a broken dep export — see Dep pre-bundling.
 - One unsplit vendor chunk, or hundreds of micro-chunks — see Code splitting.
 - `define` values without `JSON.stringify` — see define pitfalls.
-- Assuming `build.target` follows `.browserslistrc`; Vite does not read it.
+- Assuming `build.target` follows `.browserslistrc` — see build.target and browserslist.
