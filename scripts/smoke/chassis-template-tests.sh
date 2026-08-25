@@ -60,6 +60,19 @@ if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-lang.json" "$L"; 
   expect_has "$L" "https://laravel.com/docs" "lang: docsUrl rendered (lang block kept)"
   expect_has "$L" "backend-engineer → task-runner:task-executor if installed → inline" "lang: workerChain stamped"
   expect_absent "$L" "design-doc review" "lang: concern affordance dropped"
+  expect_has "$L" "skill from this plugin" "lang: local skillHome branch rendered"
+fi
+
+# ---- review command: skill owned by ANOTHER plugin -----------------------------
+# The generator resolves where the rubric skill actually lives and emits either
+# "from this plugin" or the owning plugin's name. Only the first branch had a
+# fixture, so the second — the one added because database/review.md claimed a skill
+# from plugins/sql was local — was rendered by nothing and asserted by nothing.
+F="$WORK/review-foreign.md"
+if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-foreign-skill.json" "$F"; then
+  expect_has "$F" "from the \`sql\` plugin" "foreign: names the owning plugin"
+  expect_absent "$F" "skill from this plugin" "foreign: does NOT claim the skill is local"
+  expect_has "$F" "sql-best-practices" "foreign: skill name still rendered"
 fi
 
 # ---- review command: concern variant ------------------------------------------

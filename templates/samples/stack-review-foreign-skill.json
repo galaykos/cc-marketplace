@@ -1,0 +1,15 @@
+{
+  "chassis": "stack-review",
+  "variant": "concern",
+  "lang": false,
+  "concern": true,
+  "skill": "sql-best-practices",
+  "skillHome": "from the `sql` plugin (install it alongside this one; it is not bundled here)",
+  "tag": "observability",
+  "worker": null,
+  "description": "Review schema, migrations, indexes, and pooling against sql-best-practices (engine-agnostic)",
+  "argumentHint": "[path-diff-or-design-doc]",
+  "applyExtra": [],
+  "applyExtraBlock": "",
+  "workerChain": "observability-engineer → task-runner:task-executor if installed → inline"
+}
