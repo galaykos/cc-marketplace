@@ -1100,80 +1100,79 @@ pc_source_of_truth() {
   return "$bad"
 }
 
-# pc_false_standing: an artifact that trips a gate's trigger must not also claim
-# nothing gates it.
+# pc_false_standing: a SKILL that ACTUALLY trips pc_source_of_truth must not also
+# claim nothing gates it.
 #
-# WHY THIS EXISTS. On 2026-08-25 this branch added `pc_source_of_truth`, whose
-# trigger is the literal marker `SOURCE OF TRUTH` in a SKILL body. The one skill
-# carrying that marker — craft-layer's motion-tiers — went on saying "Standing
-# **recorded** — the mirror is manual and no gate checks the two agree", which had
-# been true when written and was false the moment the gate landed. A model loading
-# that skill was told the wrong enforcement tier about the skill it was reading.
+# WHY THIS EXISTS. On 2026-08-25 this branch added `pc_source_of_truth`. The one
+# skill it engages — craft-layer's motion-tiers — went on saying "Standing
+# **recorded** — the mirror is manual and no gate checks the two agree", true when
+# written and false the moment the gate landed. A model loading that skill was told
+# the wrong enforcement tier about the skill it was reading.
 #
-# The general defect is that ADDING a gate silently falsifies standing claims
-# elsewhere, and nothing looked for that. This is the narrow, mechanical half.
+# ENGAGEMENT, NOT KEYWORDS — and this is the correction that matters. Earlier
+# versions fired on the mere PRESENCE of a trigger string. That produced false
+# positives whose error message was itself false: a body saying "treat package.json
+# as the SOURCE OF TRUTH — no gate checks it here" trips nothing, because
+# pc_source_of_truth also requires a `references/*.md` named beside the marker
+# (see its `[ -n "$ref" ] || continue`). The denial was TRUE and the gate called it
+# a lie. So this check now reproduces pc_source_of_truth's own precondition —
+# marker AND a resolvable reference — and fires only when that gate really would.
 #
-# WHAT THIS CATCHES, precisely: a SKILL body containing BOTH a gate's literal
-# trigger string AND a phrase asserting the absence of a gate over it. Two pairs
-# are encoded — `SOURCE OF TRUTH` (pc_source_of_truth) and a version-leverage
-# claim (pc_version_stamp, which then requires a `> Last verified:` stamp).
+# THE VERSION PAIR WAS DROPPED for the same reason, after being encoded and shipped:
+# pc_version_stamp reads a plugin's `description` in plugin.json; this check reads a
+# SKILL BODY. Different surfaces. A body-only "version-aware" sentence genuinely has
+# no gate over it, so a skill saying so is correct and blocking it was wrong. Two
+# shipped skills (nuxt, stack-scan) sit in exactly that position. A pair belongs
+# here only when this check can evaluate the OTHER gate's real predicate on the
+# SAME artifact; that was true for pc_source_of_truth and false for pc_version_stamp.
 #
-# WHAT IT DOES NOT CATCH, and the limit is still larger than the catch: every
-# check whose trigger is STRUCTURAL rather than a literal string — a lane.tsv row,
-# a hooks.json event, a plugin.json field. For those, "does this artifact trip that
-# check" is not a grep question, and a general version needs a per-check trigger
-# predicate that does not exist as data. Two of this file's 24 checks are encoded
-# here. Add a pair to TRIGGERS below only when the trigger is a literal string
-# findable in the same file; otherwise the class stays agent-graded, as it does for
-# the other 22.
+# WHAT THIS CATCHES, precisely: a SKILL that (a) carries `SOURCE OF TRUTH`, (b)
+# names a `references/*.md` on or just before that line which exists on disk — so
+# pc_source_of_truth engages — and (c) denies being gated, in the same paragraph as
+# the marker.
+#
+# FALSE POSITIVES REMAIN POSSIBLE and have an escape hatch. Paragraph proximity is a
+# proxy for "the denial is about the marker", and `RS=""` treats a contiguous bullet
+# list or markdown table as ONE paragraph — which is the idiom the has-teeth
+# convention prescribes for standing tables. A row saying "lane rows: convention —
+# nothing checks them" beside a row about the SOURCE OF TRUTH reference will fire.
+# Mark it `<!-- false-standing-ok: <why> -->` in that paragraph, as with jargon-ok
+# and removed-ok. A gate with no escape hatch for a proxy it cannot make exact is a
+# gate that gets switched off.
+#
+# WHAT IT DOES NOT CATCH: the other 23 checks in this file. Their triggers are
+# structural or live on a different artifact than the claim, and "does this file
+# trip that check" is then not answerable here. Add a pair only when this check can
+# evaluate the other gate's real predicate on the same file.
 #
 # Standing: gate. validate.sh feeds it to `err`.
 pc_false_standing() {
-  local root="${1:-plugins}" bad=0 f body trig name hit
-  # TRIGGER -> GATE, one pair per line. Extend deliberately: a pair belongs here
-  # only when the gate's trigger is a literal string findable in the same file.
-  #   SOURCE OF TRUTH                       -> pc_source_of_truth
-  #   a version-leverage claim in the body  -> pc_version_stamp (needs a stamp)
-  local TRIG_SENSITIVE='SOURCE OF TRUTH'
-  local TRIG_INSENSITIVE='version-aware|version leverage|version-leverage'
-  local TRIGGERS="$TRIG_SENSITIVE|$TRIG_INSENSITIVE"
+  local root="${1:-plugins}" bad=0 f dir body ref refpath hit
   local DENIALS='no gate (checks|reads|enforces)|nothing (checks|enforces|gates) (it|this|that|the two|them)|the mirror is manual and no gate|not (gated|enforced|checked) by (any|a) (script|gate)'
 
   while IFS= read -r f; do
     [ -f "$f" ] || continue
+    # pc_source_of_truth's own preconditions, in its order. Case-sensitive, because
+    # that gate greps the marker with a plain `grep -q`.
+    grep -q 'SOURCE OF TRUTH' "$f" 2>/dev/null || continue
+    dir=$(dirname "$f")
+    ref=$(grep -B1 -A0 'SOURCE OF TRUTH' "$f" 2>/dev/null \
+          | grep -oE 'references/[A-Za-z0-9._-]+\.md' | head -1)
+    [ -n "$ref" ] || continue
+    refpath="$dir/$ref"
+    [ -f "$refpath" ] || continue
+
     body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
-    # PROXIMITY, not co-occurrence. The first version fired when a trigger and a
-    # denial appeared ANYWHERE in one body. That is wrong twice: 19 of 126 shipped
-    # skills carry a trigger string, and a denial 60 lines away is almost always
-    # about something else — a version-aware skill saying "lane rows are a
-    # convention: nothing checks them" is CORRECT, and was being blocked. A claim
-    # only contradicts the gate when it is about the same subject; the closest
-    # mechanical proxy for that is the same paragraph. Verified: all three
-    # unrelated-subject probes fired before this change and pass after it.
-    # tolower() rather than IGNORECASE: the latter is a gawk extension and this
-    # repo runs BSD awk (20200816), where it is silently ignored — so the first
-    # version matched case-SENSITIVELY and missed "No gate checks it" at the start
-    # of a sentence while catching the same words mid-sentence. The true-positive
-    # tests passed only because they happened to use lowercase.
-    #
-    # Case handling mirrors each gate it stands for, deliberately:
-    #   SOURCE OF TRUTH — pc_source_of_truth greps it case-SENSITIVELY (`grep -q`),
-    #     so a skill writing "source of truth" in prose does NOT trip that gate and
-    #     must not trip this one either.
-    #   version-leverage claims — pc_version_stamp uses `grep -qiE`, case-insensitive.
-    # Denial phrases are always case-insensitive: they are ordinary sentences.
-    hit=$(printf '%s' "$body" | awk -v sot="$TRIG_SENSITIVE" -v ver="$TRIG_INSENSITIVE" -v deny="$DENIALS" '
+    # tolower() not IGNORECASE: the latter is a gawk extension BSD awk ignores
+    # silently, which made an earlier version miss a sentence-initial "No gate...".
+    hit=$(printf '%s' "$body" | awk -v deny="$DENIALS" '
       BEGIN { RS = "" }
-      { low = tolower($0) }
-      ($0 ~ sot || low ~ tolower(ver)) && low ~ tolower(deny) { print; exit }
+      /SOURCE OF TRUTH/ && tolower($0) ~ tolower(deny) { print; exit }
     ')
     [ -n "$hit" ] || continue
-    trig=$(printf '%s' "$hit" | grep -oiE "$TRIGGERS" | head -1)
-    case "$trig" in
-      [Ss][Oo][Uu][Rr][Cc][Ee]*) name=pc_source_of_truth ;;
-      *)                          name=pc_version_stamp ;;
-    esac
-    printf 'false-standing %s trips %s (via "%s") and denies being gated in the same paragraph\n' "$f" "$name" "$trig"
+    printf '%s' "$hit" | grep -qF '<!-- false-standing-ok:' && continue
+
+    printf 'false-standing %s engages pc_source_of_truth (marker + %s) and denies being gated in the same paragraph\n' "$f" "$ref"
     bad=1
   done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
 

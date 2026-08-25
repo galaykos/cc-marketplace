@@ -71,68 +71,56 @@ pc_source_of_truth "$WORK/plugins" >/dev/null 2>&1
 [ "$?" = "0" ] && ok "no SOURCE OF TRUTH marker: skill ignored despite a mismatch" \
   || bad "no SOURCE OF TRUTH marker: skill ignored despite a mismatch" "gate fired on an undeclared skill"
 
-printf '== FALSE STANDING: the marker and a no-gate claim cannot coexist\n'
-mk_claim() { # $1 extra-line appended to the body
-  local d="$WORK/plugins/t/skills/s"
-  rm -rf "$WORK/plugins"; mkdir -p "$d/references"
-  # same paragraph as the marker, matching the real defect: motion-tiers carried
-  # "SOURCE OF TRUTH …" and "no gate checks the two agree" in one paragraph.
-  printf -- '---\nname: s\ndescription: d\n---\n\nSee `references/r.md` — SOURCE OF TRUTH for every figure below. %s\n\n- budget 34KB\n' "$1" > "$d/SKILL.md"
-  printf '# r\n\n- budget 34KB\n' > "$d/references/r.md"
-}
-mk_claim "Standing recorded — no gate checks the two agree."
-pc_false_standing "$WORK/plugins" >/dev/null 2>&1
-[ "$?" = "1" ] && ok "marker + no-gate claim is caught" || bad "marker + no-gate claim is caught" "gate stayed silent"
-mk_claim "Standing: KB figures are gate; prose stays recorded."
-pc_false_standing "$WORK/plugins" >/dev/null 2>&1
-[ "$?" = "0" ] && ok "marker + accurate standing passes" || bad "marker + accurate standing passes" "false positive"
-
-# second trigger: a version-leverage claim is gated by pc_version_stamp
-mk_ver() { # $1 extra body line
-  local d="$WORK/plugins/t/skills/s"
-  rm -rf "$WORK/plugins"; mkdir -p "$d/references"
-  printf -- '---\nname: s\ndescription: d\n---\n\nThis skill is version-aware. %s\n' "$1" > "$d/SKILL.md"
-  printf '# r\n' > "$d/references/r.md"
-}
-mk_ver "Standing recorded — nothing checks them."
-pc_false_standing "$WORK/plugins" >/dev/null 2>&1
-[ "$?" = "1" ] && ok "version-leverage claim + no-gate claim is caught" || bad "version-leverage claim + no-gate claim is caught" "gate stayed silent"
-mk_ver "Standing: gate — pc_version_stamp requires a Last verified stamp."
-pc_false_standing "$WORK/plugins" >/dev/null 2>&1
-[ "$?" = "0" ] && ok "version-leverage claim + accurate standing passes" || bad "version-leverage claim + accurate standing passes" "false positive"
-
-printf '== PROXIMITY: a denial about a DIFFERENT subject must not fire\n'
-mk_far() {
-  local d="$WORK/plugins/t/skills/s"
-  rm -rf "$WORK/plugins"; mkdir -p "$d/references"
-  printf -- '---\nname: s\ndescription: d\n---\n\nThis skill is version-aware.\n\nLane rows are a convention: nothing checks them.\n' > "$d/SKILL.md"
-  printf '# r\n' > "$d/references/r.md"
-}
-mk_far
-pc_false_standing "$WORK/plugins" >/dev/null 2>&1
-[ "$?" = "0" ] && ok "trigger and unrelated denial in different paragraphs pass" \
-  || bad "trigger and unrelated denial in different paragraphs pass" "false positive: fires across paragraphs"
-
-printf '== CASE: matching mirrors each gate it stands for\n'
-mk_case() { # $1 whole body paragraph
+printf '== FALSE STANDING: engagement, not keywords\n'
+# MUTATION COVERAGE, measured rather than assumed. Breaking the ref-EXISTS
+# precondition or the blessing each fails exactly 1 assertion below. Breaking the
+# ref-NAMED or marker preconditions fails none — not because those assertions are
+# theater, but because the awk match repeats `/SOURCE OF TRUTH/` and the fixtures
+# name a reference that exists, so removing either upstream guard changes no
+# behaviour. Double-guarded, like pc_source_of_truth itself. Stated so the next
+# reader does not mistake "no assertion flipped" for "the assertion is weak".
+# pc_false_standing fires only when pc_source_of_truth ACTUALLY engages: marker
+# PLUS a references/*.md named beside it that exists. Earlier versions fired on the
+# marker alone, which blocked skills whose denial was TRUE (nothing gated them) with
+# a message asserting it was false.
+mk_fs() { # $1 body paragraph  $2 "ref" to create references/r.md, "" to omit
   local d="$WORK/plugins/t/skills/s"
   rm -rf "$WORK/plugins"; mkdir -p "$d/references"
   printf -- '---\nname: s\ndescription: d\n---\n\n%s\n' "$1" > "$d/SKILL.md"
-  printf '# r\n' > "$d/references/r.md"
+  [ "$2" = "ref" ] && printf '# r\n\n- budget 34KB\n' > "$d/references/r.md"
 }
-case_expect() { # want-rc  body  desc
-  mk_case "$2"; pc_false_standing "$WORK/plugins" >/dev/null 2>&1; local got=$?
-  [ "$got" = "$1" ] && ok "$3" || bad "$3" "want rc=$1, got rc=$got"
+fs_expect() { # want-rc  body  ref|noref  desc
+  mk_fs "$2" "$3"; pc_false_standing "$WORK/plugins" >/dev/null 2>&1; local got=$?
+  [ "$got" = "$1" ] && ok "$4" || bad "$4" "want rc=$1, got rc=$got"
 }
-# BSD awk ignores IGNORECASE, so an earlier version matched case-sensitively and
-# missed a denial at the start of a sentence — the common form.
-case_expect 1 "See refs — SOURCE OF TRUTH here. No gate checks it." "capitalised denial is caught"
-case_expect 1 "See refs — SOURCE OF TRUTH here. no gate checks it." "lowercase denial is caught"
-# pc_source_of_truth greps its marker case-SENSITIVELY, so prose "source of truth"
-# does not trip it and must not trip this gate either.
-case_expect 0 "See refs — source of truth here. No gate checks it." "lowercase marker does not fire (mirrors grep -q)"
-# pc_version_stamp uses grep -qiE, so its trigger is case-insensitive here too.
-case_expect 1 "This skill is VERSION-AWARE. Nothing checks them." "uppercase version trigger is caught (mirrors grep -qiE)"
+
+# the real defect: marker + resolvable reference + denial, one paragraph
+fs_expect 1 'See `references/r.md` — SOURCE OF TRUTH for the figures. Standing recorded — no gate checks the two agree.' ref \
+  "engaged gate + denial is caught"
+fs_expect 1 'See `references/r.md` — SOURCE OF TRUTH for the figures. No gate checks it.' ref \
+  "capitalised denial is caught (BSD awk ignores the gawk case flag)"
+
+# NOT engaged: the denial is true, so the gate must stay silent
+fs_expect 0 'Treat package.json as the SOURCE OF TRUTH for versions — no gate checks it here.' noref \
+  "marker with no reference: denial is TRUE, must not fire"
+fs_expect 0 'See `references/r.md` — SOURCE OF TRUTH for the figures. No gate checks it.' noref \
+  "reference named but missing on disk: must not fire"
+fs_expect 0 'This skill is version-aware and nothing checks it against the installed major.' noref \
+  "body-only version claim: pc_version_stamp reads plugin.json, so this is TRUE"
+
+# scoping and case, mirroring pc_source_of_truth's own grep
+fs_expect 0 'See `references/r.md` — source of truth for the figures. No gate checks it.' ref \
+  "lowercase marker does not engage (that gate greps case-sensitively)"
+fs_expect 0 'See `references/r.md` — SOURCE OF TRUTH for the figures.
+
+Separately: lane rows are a convention and nothing checks them.' ref \
+  "denial in a different paragraph does not fire"
+
+# the escape hatch for the proxy this cannot make exact
+fs_expect 0 'See `references/r.md` — SOURCE OF TRUTH for the figures. Lane rows: nothing checks them. <!-- false-standing-ok: denial is about lanes -->' ref \
+  "blessed false positive is skipped"
+fs_expect 1 'See `references/r.md` — SOURCE OF TRUTH for the figures. Lane rows: nothing checks them.' ref \
+  "the same paragraph unblessed still fires"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
