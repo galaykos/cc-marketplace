@@ -1100,6 +1100,51 @@ pc_source_of_truth() {
   return "$bad"
 }
 
+# pc_false_standing: an artifact that trips a gate's trigger must not also claim
+# nothing gates it.
+#
+# WHY THIS EXISTS. On 2026-08-25 this branch added `pc_source_of_truth`, whose
+# trigger is the literal marker `SOURCE OF TRUTH` in a SKILL body. The one skill
+# carrying that marker — craft-layer's motion-tiers — went on saying "Standing
+# **recorded** — the mirror is manual and no gate checks the two agree", which had
+# been true when written and was false the moment the gate landed. A model loading
+# that skill was told the wrong enforcement tier about the skill it was reading.
+#
+# The general defect is that ADDING a gate silently falsifies standing claims
+# elsewhere, and nothing looked for that. This is the narrow, mechanical half.
+#
+# WHAT THIS CATCHES, precisely: a SKILL body containing BOTH the literal string
+# `SOURCE OF TRUTH` (pc_source_of_truth's trigger) and a phrase asserting the
+# absence of a gate over it. Nothing else.
+#
+# WHAT IT DOES NOT CATCH, and the limit is large enough to state twice: every
+# other check in this file. Their triggers are structural — a lane.tsv row, a
+# hooks.json event, a plugin.json field — not a text marker, so "does this artifact
+# trip that check" cannot be answered by grep, and a general version would need a
+# per-check trigger predicate that does not exist as data. If you add a check whose
+# trigger IS a literal marker, add it to MARKERS below; otherwise this will not see
+# it. The class stays agent-graded outside the one pair encoded here.
+#
+# Standing: gate. validate.sh feeds it to `err`.
+pc_false_standing() {
+  local root="${1:-plugins}" bad=0 f body
+  # trigger-marker -> the gate that keys on it. Extend deliberately; see above.
+  local MARKERS='SOURCE OF TRUTH'
+  local DENIALS='no gate (checks|reads|enforces)|nothing (checks|enforces|gates) (it|this|that|the two)|the mirror is manual and no gate'
+
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
+    printf '%s' "$body" | grep -qF "$MARKERS" || continue
+    if printf '%s' "$body" | grep -qiE "$DENIALS"; then
+      printf 'false-standing %s carries the `%s` marker (which pc_source_of_truth gates) and also claims nothing gates it\n' "$f" "$MARKERS"
+      bad=1
+    fi
+  done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
+
+  return "$bad"
+}
+
 pc_marker_key() {
   local root="${1:-plugins}" bad=0 hj d p sh rel v line no body seeds tainted round newly
 

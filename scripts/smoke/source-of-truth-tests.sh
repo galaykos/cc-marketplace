@@ -71,5 +71,19 @@ pc_source_of_truth "$WORK/plugins" >/dev/null 2>&1
 [ "$?" = "0" ] && ok "no SOURCE OF TRUTH marker: skill ignored despite a mismatch" \
   || bad "no SOURCE OF TRUTH marker: skill ignored despite a mismatch" "gate fired on an undeclared skill"
 
+printf '== FALSE STANDING: the marker and a no-gate claim cannot coexist\n'
+mk_claim() { # $1 extra-line appended to the body
+  local d="$WORK/plugins/t/skills/s"
+  rm -rf "$WORK/plugins"; mkdir -p "$d/references"
+  printf -- '---\nname: s\ndescription: d\n---\n\nSee `references/r.md` — SOURCE OF TRUTH for every figure below.\n\n- budget 34KB\n%s\n' "$1" > "$d/SKILL.md"
+  printf '# r\n\n- budget 34KB\n' > "$d/references/r.md"
+}
+mk_claim "Standing recorded — no gate checks the two agree."
+pc_false_standing "$WORK/plugins" >/dev/null 2>&1
+[ "$?" = "1" ] && ok "marker + no-gate claim is caught" || bad "marker + no-gate claim is caught" "gate stayed silent"
+mk_claim "Standing: KB figures are gate; prose stays recorded."
+pc_false_standing "$WORK/plugins" >/dev/null 2>&1
+[ "$?" = "0" ] && ok "marker + accurate standing passes" || bad "marker + accurate standing passes" "false positive"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
