@@ -1056,7 +1056,8 @@ EOF
 # invisible; and a figure spaced on the REFERENCE side but not the skill side
 # (`34KB` vs `34 KB`) produces a FALSE fail. No in-repo instance today — motion-tiers
 # is the only user of the marker — but it is a measured brittleness, not a
-# hypothetical: a planted fixture reproduces it.
+# hypothetical: scripts/smoke/source-of-truth-tests.sh pins all four behaviours
+# above, including this false-fail direction, so a regression in any of them is red.
 #
 # It catches the cheaper half — figures — and leaves the prose half agent-graded. Saying so is
 # the point; a gate that implies more coverage than it has is the defect this

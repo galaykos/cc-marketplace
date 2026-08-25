@@ -162,7 +162,7 @@ if [ -f "$H" ]; then
 fi
 
 # ---- global invariant: no unrendered {{token}} in any output ------------------
-for f in "$L" "$C" "$F" "$W" "$U" "$H" "$HE"; do
+for f in "$L" "$C" "$F" "$W" "$U" "$H" "$HE" "$HX"; do
   [[ -f "$f" ]] || continue
   if grep -q '{{' "$f"; then fail "no unrendered token in $(basename "$f")" "$(grep -n '{{' "$f")"; else pass "no unrendered token in $(basename "$f")"; fi
 done
