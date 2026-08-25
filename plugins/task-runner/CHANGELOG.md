@@ -2,6 +2,15 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.5
+
+### Fixed
+- `task-execution/SKILL.md:66` cited "`references/role-floors.md`" unqualified,
+  which reads as this skill's own `references/` dir — where no such file exists.
+  The registry lives in `orchestration:delegation-contracts`. Every sibling
+  mention (`task-executor.md:25`, `routing.md:127`) already qualified it; this one
+  did not, so a reader following it found nothing.
+
 ## 0.29.4
 
 ### Changed

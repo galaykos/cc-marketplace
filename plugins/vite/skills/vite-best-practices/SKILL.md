@@ -144,9 +144,9 @@ Names only — each rule is stated once above, in the section that owns it. (The
 six used to be restated here in full, jammed onto shared lines with mid-line ` - `
 separators, which markdown renders as one paragraph.)
 
-- Secrets behind `VITE_` vars, or `process.env.SECRET` in client code — see Env.
-- Missing `base` on a sub-path deploy — see Base and deploy paths.
-- `optimizeDeps` include/exclude hacks masking a broken dep export — see Deps.
-- One unsplit vendor chunk, or hundreds of micro-chunks — see Chunking.
-- `define` values without `JSON.stringify` — see Define.
+- Secrets behind `VITE_` vars, or `process.env.SECRET` in client code — see Env security.
+- Missing `base` on a sub-path deploy — see base and dev server.proxy.
+- `optimizeDeps` include/exclude hacks masking a broken dep export — see Dep pre-bundling.
+- One unsplit vendor chunk, or hundreds of micro-chunks — see Code splitting.
+- `define` values without `JSON.stringify` — see define pitfalls.
 - Assuming `build.target` follows `.browserslistrc`; Vite does not read it.

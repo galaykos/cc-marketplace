@@ -15,7 +15,7 @@ one-paragraph task description first. Do not write implementation code.
    finish.
 4. Run the panel exactly as `references/blind-panel.md` specifies — the persona
    roster, the blind-dispatch contract, the convergence table, the kill-trigger and
-   the one-round cap are all owned there and already in context from line 5 above.
+   the one-round cap are all owned there and already in context from the opening instruction above.
    Do not restate them here: the four persona names appear in several files, and a
    rename that misses one produces a panel with three personas and a typo.
 5. Surface the pick — never self-approve it. Aligned or detail-divergent takes:
