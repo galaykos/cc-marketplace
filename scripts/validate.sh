@@ -716,9 +716,11 @@ marker_gap=$(pc_marker_key plugins) || true
 # by scripts/smoke/source-of-truth-tests.sh. Deliberately not restated here: this
 # call site used to carry its own summary, which made three copies of one claim
 # across three files, and that duplication drifted six times before it was deleted.
-# Adding a gate silently falsifies standing claims elsewhere. This catches the one
-# mechanically checkable case: a SKILL carrying pc_source_of_truth's trigger marker
-# while also claiming nothing gates it. Scope and limits: pc_false_standing's header.
+# Adding a gate silently falsifies standing claims elsewhere. Scope, preconditions
+# and limits are stated ONCE, in pc_false_standing's header. Not restated here: an
+# earlier version of this comment summarised them, went stale when the check moved
+# from keyword-matching to engagement-matching, and was the third copy of a claim
+# whose duplication had already drifted six times.
 fs_gap=$(pc_false_standing plugins) || true
 [ -n "$fs_gap" ] && err "$fs_gap"
 
