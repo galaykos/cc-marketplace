@@ -709,10 +709,13 @@ marker_gap=$(pc_marker_key plugins) || true
 # session_id grades the fallback branch, so the branch the host actually takes is never
 # executed. pc_marker_key gates the hook; this gates the test that would have caught it.
 # A SKILL that names a reference as SOURCE OF TRUTH for its figures must not
-# carry a figure that reference lacks. Converts a mirror the skill itself
-# declared "recorded — no gate checks the two agree" into one that is checked.
-# Honest scope: figures only. Prose that contradicts without changing a number
-# stays agent-graded, and the drift that motivated this was exactly that shape.
+# carry a figure that reference lacks. Converts a mirror the skill itself declared
+# "recorded — no gate checks the two agree" into one that is checked.
+#
+# Scope and limits are stated ONCE, in pc_source_of_truth's own header, and pinned
+# by scripts/smoke/source-of-truth-tests.sh. Deliberately not restated here: this
+# call site used to carry its own summary, which made three copies of one claim
+# across two files, and that duplication drifted six times before it was deleted.
 sot_gap=$(pc_source_of_truth plugins) || true
 [ -n "$sot_gap" ] && err "$sot_gap"
 
