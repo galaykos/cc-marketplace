@@ -1052,19 +1052,24 @@ EOF
 # without changing a number. The `motion/mini` rot above is exactly that prose
 # shape, so this gate would NOT have caught the defect that motivated it.
 #
-# Two further limits, distinct from that one: a unit outside the four above is
-# invisible; and a figure spaced on the REFERENCE side but not the skill side
-# (`34KB` vs `34 KB`) produces a FALSE fail. No in-repo instance today — motion-tiers
-# is the only user of the marker — but it is a measured brittleness, not a
-# hypothetical: scripts/smoke/source-of-truth-tests.sh pins the FIGURE-level
-# behaviours — what is caught, the three misses, this false-fail direction, and the
-# marker scoping — as a CI step, so a regression in any of them is red. It does NOT
-# pin the prose limit above: every fixture is figure-only, so if this check ever
-# started catching prose the harness would stay green. That limit remains prose.
+# Two further limits, distinct from that one. A unit outside the four above is
+# invisible. And a figure spaced on the REFERENCE side but not the skill side
+# (`34KB` vs `34 KB`) produces a FALSE fail — no in-repo instance today, since
+# motion-tiers is the only user of the marker, but a measured brittleness rather
+# than a hypothetical one.
 #
-# It catches the cheaper half — figures — and leaves the prose half agent-graded. Saying so is
-# the point; a gate that implies more coverage than it has is the defect this
-# repo's has-teeth convention exists to name.
+# WHAT IS PINNED, and by what. `scripts/smoke/source-of-truth-tests.sh` is a named
+# CI step covering the FIGURE-level behaviours: what is caught, the three misses
+# (px, spaced-on-the-skill-side, bare integer), the false-fail direction above, and
+# the marker scoping. A regression in any of those is red.
+#
+# It does NOT pin the prose limit. Every fixture is figure-only, so if this check
+# ever started catching prose the harness would stay green. That limit is prose,
+# and stays agent-graded.
+#
+# So: it catches the cheaper half and leaves the other half to a reader. Saying
+# which is which is the point — a gate that implies more coverage than it has is
+# the defect this repo's has-teeth convention exists to name.
 #
 # Standing: gate. validate.sh feeds it to `err`.
 pc_source_of_truth() {
