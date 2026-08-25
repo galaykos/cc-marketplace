@@ -1035,12 +1035,18 @@ EOF
 #
 # WHAT THIS CATCHES, precisely: a figure matching `[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)`
 # with the unit ADJACENT to the number, present in the SKILL body but absent from
-# the cited reference. Not px. Not a spaced unit (`34 KB`). Not a bare integer.
-# An earlier draft of this comment claimed px and "a bare integer with a unit",
+# the cited reference. That mismatch is the drift shape a manual mirror produces —
+# someone edits the summary and not the source, or the source and not the summary.
+# Not px. Not a spaced unit (`34 KB`). Not a bare integer.
+#
+# (An earlier draft of this comment claimed px and "a bare integer with a unit",
 # which the regex never matched — a gate whose header overstates its catch-scope is
-# the same over-claim this check exists to prevent, committed in the check itself.
-# That is the drift shape a manual mirror produces — someone edits the summary and
-# not the source, or the source and not the summary.
+# the same over-claim this check exists to prevent, committed inside the check. A
+# later fix then inserted that correction BETWEEN the catch-description and the
+# sentence explaining it, so "That is the drift shape" briefly pointed at the
+# over-claim instead of the mismatch. Corrections to this block keep breaking the
+# antecedent of whatever sentence they land in front of; put them in parentheses at
+# the end, as here, rather than mid-paragraph.)
 #
 # WHAT IT DOES NOT CATCH, and this is the honest limit: prose that contradicts
 # without changing a number. The `motion/mini` rot above is exactly that prose
