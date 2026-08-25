@@ -1,6 +1,6 @@
 # design-preview
 
-Real-component visual decisions for Vite + React projects: renders 2–3
+Real-component visual decisions for Vite (React or Vue/Nuxt) and Laravel Blade/Livewire projects: renders 2–3
 candidate variants with the project's OWN components on its own dev server,
 via a scratch HTML entry that touches zero existing files. The escalation tier
 above static shell mockups — for when token-mimicry isn't enough and the
@@ -21,7 +21,7 @@ decision needs the real design system.
 
 ## How it works
 
-1. Detection, never assumption: `vite.config.*`, `@vitejs/plugin-react`, a dev
+1. Detection, never assumption: `vite.config.*`, `@vitejs/plugin-react` **or** `@vitejs/plugin-vue`, a dev
    script, and component paths must all be present — otherwise it falls back.
 2. Strict consent before any write into the source tree: the exact scratch
    files and the dev-server command are named up front.
