@@ -1129,7 +1129,7 @@ pc_source_of_truth() {
 #
 # Standing: gate. validate.sh feeds it to `err`.
 pc_false_standing() {
-  local root="${1:-plugins}" bad=0 f body trig name
+  local root="${1:-plugins}" bad=0 f body trig name hit
   # TRIGGER -> GATE, one pair per line. Extend deliberately: a pair belongs here
   # only when the gate's trigger is a literal string findable in the same file.
   #   SOURCE OF TRUTH                       -> pc_source_of_truth
@@ -1140,16 +1140,26 @@ pc_false_standing() {
   while IFS= read -r f; do
     [ -f "$f" ] || continue
     body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
-    trig=$(printf '%s' "$body" | grep -oiE "$TRIGGERS" | head -1)
-    [ -n "$trig" ] || continue
+    # PROXIMITY, not co-occurrence. The first version fired when a trigger and a
+    # denial appeared ANYWHERE in one body. That is wrong twice: 19 of 126 shipped
+    # skills carry a trigger string, and a denial 60 lines away is almost always
+    # about something else — a version-aware skill saying "lane rows are a
+    # convention: nothing checks them" is CORRECT, and was being blocked. A claim
+    # only contradicts the gate when it is about the same subject; the closest
+    # mechanical proxy for that is the same paragraph. Verified: all three
+    # unrelated-subject probes fired before this change and pass after it.
+    hit=$(printf '%s' "$body" | awk -v trig="$TRIGGERS" -v deny="$DENIALS" '
+      BEGIN { RS = ""; IGNORECASE = 1 }
+      $0 ~ trig && $0 ~ deny { print; exit }
+    ')
+    [ -n "$hit" ] || continue
+    trig=$(printf '%s' "$hit" | grep -oiE "$TRIGGERS" | head -1)
     case "$trig" in
       [Ss][Oo][Uu][Rr][Cc][Ee]*) name=pc_source_of_truth ;;
       *)                          name=pc_version_stamp ;;
     esac
-    if printf '%s' "$body" | grep -qiE "$DENIALS"; then
-      printf 'false-standing %s trips %s (via "%s") and also claims nothing gates it\n' "$f" "$name" "$trig"
-      bad=1
-    fi
+    printf 'false-standing %s trips %s (via "%s") and denies being gated in the same paragraph\n' "$f" "$name" "$trig"
+    bad=1
   done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
 
   return "$bad"

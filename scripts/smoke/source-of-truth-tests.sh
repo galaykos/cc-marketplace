@@ -75,7 +75,9 @@ printf '== FALSE STANDING: the marker and a no-gate claim cannot coexist\n'
 mk_claim() { # $1 extra-line appended to the body
   local d="$WORK/plugins/t/skills/s"
   rm -rf "$WORK/plugins"; mkdir -p "$d/references"
-  printf -- '---\nname: s\ndescription: d\n---\n\nSee `references/r.md` — SOURCE OF TRUTH for every figure below.\n\n- budget 34KB\n%s\n' "$1" > "$d/SKILL.md"
+  # same paragraph as the marker, matching the real defect: motion-tiers carried
+  # "SOURCE OF TRUTH …" and "no gate checks the two agree" in one paragraph.
+  printf -- '---\nname: s\ndescription: d\n---\n\nSee `references/r.md` — SOURCE OF TRUTH for every figure below. %s\n\n- budget 34KB\n' "$1" > "$d/SKILL.md"
   printf '# r\n\n- budget 34KB\n' > "$d/references/r.md"
 }
 mk_claim "Standing recorded — no gate checks the two agree."
@@ -89,7 +91,7 @@ pc_false_standing "$WORK/plugins" >/dev/null 2>&1
 mk_ver() { # $1 extra body line
   local d="$WORK/plugins/t/skills/s"
   rm -rf "$WORK/plugins"; mkdir -p "$d/references"
-  printf -- '---\nname: s\ndescription: d\n---\n\nThis skill is version-aware.\n%s\n' "$1" > "$d/SKILL.md"
+  printf -- '---\nname: s\ndescription: d\n---\n\nThis skill is version-aware. %s\n' "$1" > "$d/SKILL.md"
   printf '# r\n' > "$d/references/r.md"
 }
 mk_ver "Standing recorded — nothing checks them."
@@ -98,6 +100,18 @@ pc_false_standing "$WORK/plugins" >/dev/null 2>&1
 mk_ver "Standing: gate — pc_version_stamp requires a Last verified stamp."
 pc_false_standing "$WORK/plugins" >/dev/null 2>&1
 [ "$?" = "0" ] && ok "version-leverage claim + accurate standing passes" || bad "version-leverage claim + accurate standing passes" "false positive"
+
+printf '== PROXIMITY: a denial about a DIFFERENT subject must not fire\n'
+mk_far() {
+  local d="$WORK/plugins/t/skills/s"
+  rm -rf "$WORK/plugins"; mkdir -p "$d/references"
+  printf -- '---\nname: s\ndescription: d\n---\n\nThis skill is version-aware.\n\nLane rows are a convention: nothing checks them.\n' > "$d/SKILL.md"
+  printf '# r\n' > "$d/references/r.md"
+}
+mk_far
+pc_false_standing "$WORK/plugins" >/dev/null 2>&1
+[ "$?" = "0" ] && ok "trigger and unrelated denial in different paragraphs pass" \
+  || bad "trigger and unrelated denial in different paragraphs pass" "false positive: fires across paragraphs"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1
