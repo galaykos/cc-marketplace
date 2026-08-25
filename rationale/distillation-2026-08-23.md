@@ -298,7 +298,7 @@ with the reason recorded. None is left silently pending.
 | # | item | outcome |
 |---|---|---|
 | 1 | motion-tiers contradicted its own SOURCE OF TRUTH | **fixed**, plus `pc_source_of_truth` gate so the mirror is no longer unchecked |
-| 2 | craft-suite shipped rtl-bidi citing an uninstalled i18n | **fixed** — inline four-rule floor; measured the class first (7 cross-bundle citations, 6 benign, no gate added because it would be 5 parts noise) |
+| 2 | craft-suite shipped rtl-bidi citing an uninstalled i18n | **fixed** — inline four-rule floor; measured the class first (7 cross-bundle citations, 6 benign, no gate added because it would be 6 parts noise to 1) |
 | 3 | database/review.md claimed its skill was "from this plugin" | **fixed at the generator** — `skillHome` resolves the owning plugin; 30 commands correctly unchanged, 1 corrected |
 | 4 | resilience's two hand-copied review commands | **fixed at the chassis** — `outfile` support; all three now generated and gated, proven by negative control |
 | 5 | drifted TRIGGER-NARROWING variants | **not a defect** — both self-declare as shape-variants; the byte-identical trio is already pinned by 28 assertions |

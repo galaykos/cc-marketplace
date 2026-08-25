@@ -1043,12 +1043,16 @@ EOF
 # not the source, or the source and not the summary.
 #
 # WHAT IT DOES NOT CATCH, and this is the honest limit: prose that contradicts
-# without changing a number; a unit outside the four above; and a figure written
-# with a space before its unit on one side and not the other, which would also
-# produce a FALSE fail — no in-repo instance today, since motion-tiers is the only
-# user of the marker, but it is a real brittleness and not a hypothetical one. The `motion/mini` rot above is exactly that shape, so
-# this gate would NOT have caught the defect that motivated it. It catches the
-# cheaper half — figures — and leaves the prose half agent-graded. Saying so is
+# without changing a number. The `motion/mini` rot above is exactly that prose
+# shape, so this gate would NOT have caught the defect that motivated it.
+#
+# Two further limits, distinct from that one: a unit outside the four above is
+# invisible; and a figure spaced on the REFERENCE side but not the skill side
+# (`34KB` vs `34 KB`) produces a FALSE fail. No in-repo instance today — motion-tiers
+# is the only user of the marker — but it is a measured brittleness, not a
+# hypothetical: a planted fixture reproduces it.
+#
+# It catches the cheaper half — figures — and leaves the prose half agent-graded. Saying so is
 # the point; a gate that implies more coverage than it has is the defect this
 # repo's has-teeth convention exists to name.
 #
