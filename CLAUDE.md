@@ -194,7 +194,7 @@ command warning). Declaring `any` is a real claim, not an escape hatch — it ex
 the artifact from the phase sentinel.
 
 **Standing: `gate` for agents and for plugins shipping a `UserPromptSubmit`/`Stop`
-hook; `WARN` for commands and skills** (99 commands and 129 skills are not yet
+hook; `WARN` for commands and skills** (most commands and skills are not yet
 declared — adopting them is incremental, not a sweep). Five checks in
 `scripts/lib/plugin-checks.sh`: `pc_lanes_schema`, `pc_lanes_authority` (a plugin
 may declare only its OWN artifacts), `pc_lanes_resolve`, `pc_lanes_territory` (two
@@ -248,12 +248,18 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **28 named steps;
-27 can fail the build**, and on a push to `master` only **26** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **29 named steps;
+28 can fail the build**, and on a push to `master` only **27** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`, so
-27 of the 28 run). Recounted 2026-08-17 — the previous figures were stale in
-both directions, which is the same trap this file names for the retirement-queue
-number below: **recount these, do not copy them.**
+28 of the 29 run). Recounted 2026-08-25, when adding the source-of-truth harness
+step moved every one of them. The figures before that were 28/27/26, recounted
+2026-08-17, and stale in both directions before THAT — which is why this file
+says, of these numbers specifically: **recount them, do not copy them.** The
+command, so the next reader does not have to invent it:
+
+```bash
+python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"
+```
 Beyond the four scripts above: 20 harnesses under `scripts/smoke/`
 (template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
 guard, rules-overlap, route-marker, prompt-route, lanes, prime-map, behavioral-verification,

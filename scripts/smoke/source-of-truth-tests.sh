@@ -13,7 +13,6 @@ set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck disable=SC1091
 . "$ROOT/scripts/lib/plugin-checks.sh" 2>/dev/null || { echo "FAIL: cannot source plugin-checks.sh"; exit 1; }
-command -v comm >/dev/null 2>&1 || { echo "SKIP: comm not available"; exit 0; }
 
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 pass=0; fail=0
@@ -50,10 +49,12 @@ printf '== the declared FALSE-fail direction\n'
 expect 1 "34KB"  "34 KB" "reference-side spacing falsely fails (documented brittleness)"
 
 printf '== SCOPE: a SKILL that does not declare the marker is untouched\n'
-# Without this, removing the `SOURCE OF TRUTH` grep from the check flips NO
-# assertion — the gate would start firing on all 126 skills in the repo and this
-# harness would stay green. Found by breaking the check five ways and recording
-# which assertions caught which; this was the one break nothing caught.
+# What this pins: the marker gating as a WHOLE. The check has two guards — the
+# `SOURCE OF TRUTH` grep and the reference-path extraction, which greps the same
+# line — so removing either alone is a no-op and correctly flips nothing. Remove
+# BOTH and the gate starts firing on all 126 skills in the repo; without this
+# assertion that blast passed green. Verified both directions: single break → 10/10
+# pass (nothing to catch), double break → this assertion reds.
 mk_unmarked() { # $1 skill-figure  $2 reference-figure
   local d="$WORK/plugins/t/skills/s"
   rm -rf "$WORK/plugins"; mkdir -p "$d/references"
