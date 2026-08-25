@@ -7,6 +7,17 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.5
+
+### Fixed
+- `motion-tiers/SKILL.md` shipped "Standing **recorded** — the mirror is manual and
+  no gate checks the two agree" after this same branch added the gate that checks
+  it. `pc_source_of_truth` fails CI when a KB figure in the SKILL is absent from
+  `references/tier-budgets.md`. The marker now says what is true: KB figures are
+  **gate**, prose agreement is **recorded** — nothing reads meaning. A skill telling
+  a model the wrong enforcement tier about itself is the has-teeth defect this
+  marketplace publishes a convention against.
+
 ## 0.47.4
 
 ### Changed

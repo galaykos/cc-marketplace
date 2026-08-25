@@ -57,7 +57,7 @@ printf '== SCOPE: a SKILL that does not declare the marker is untouched\n'
 # What this pins: the marker gating as a WHOLE. The check has two guards — the
 # `SOURCE OF TRUTH` grep and the reference-path extraction, which greps the same
 # line — so removing either alone is a no-op and correctly flips nothing. Remove
-# BOTH and the gate starts firing on all 126 skills in the repo; without this
+# BOTH and the gate starts firing on every skill in the repo; without this
 # assertion that blast passed green. Verified both directions: single break → 10/10
 # pass (nothing to catch), double break → this assertion reds.
 mk_unmarked() { # $1 skill-figure  $2 reference-figure

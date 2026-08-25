@@ -270,15 +270,14 @@ Recount instead:
 ```bash
 grep -c 'run: bash scripts/smoke/' .github/workflows/validate.yml   # smoke steps
 ls plugins/*/scripts/__tests__/*.test.sh | wc -l                    # plugin harnesses
+bash scripts/gate-coverage.sh   # which author-time checks a harness exercises
 ```
- This sentence has now been wrong twice: it said "taskmaster and
-task-runner are the two" long after 18 more had landed, and its replacement — a
-fresh recount, accurate the hour it was written on 2026-08-17 — was invalidated by
-two later commits *on the same branch*. Recount instead:
-`ls plugins/*/scripts/__tests__/*.test.sh | wc -l`, and
-`bash scripts/gate-coverage.sh` for which author-time checks a harness actually
-exercises. The glob is the right fix precisely because a counted list here is not.
-Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
+
+The glob is the right fix precisely because a counted list here is not: this
+paragraph has carried a wrong count three times — "taskmaster and task-runner are
+the two" long after 18 more had landed, a 2026-08-17 recount invalidated by two
+later commits on the same branch, and a 20-item list that was 23 within two
+commits. Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
 deliberately NOT a CI step: its own header says it needs a live model; it
 stays a local authoring harness.)
 CI can still be red after a green local four-script pass: several of those
@@ -306,10 +305,15 @@ skills by the two usage ledgers written since 2026-08-02
 `~/.claude/hindsight/<slug>/skills.jsonl`, what was INVOKED). Always exits 0 and
 never proposes a deletion: zero invocations proves nobody used it HERE, non-zero
 proves it fired and not that it helped, and "never surfaced" mostly measures the
-router's coverage — **91 of 129** skills have no `rules.tsv` row at all (recounted
-2026-08-16; the previous "99 of 126" was stale, and a recorded-tier number in the
-conventions file getting trusted as a measurement is exactly what this file warns
-about — recount it, do not copy it). It says
+router's coverage — most skills have no `rules.tsv` row at all. That figure has now
+been recorded stale three times ("99 of 126", then "91 of 129", both trusted as
+measurements), so it is not recorded here a fourth. Recount:
+
+```bash
+python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s),'unrouted')"
+```
+
+It says
 where a control/treatment run is worth spending, nothing more.
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned

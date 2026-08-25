@@ -715,7 +715,7 @@ marker_gap=$(pc_marker_key plugins) || true
 # Scope and limits are stated ONCE, in pc_source_of_truth's own header, and pinned
 # by scripts/smoke/source-of-truth-tests.sh. Deliberately not restated here: this
 # call site used to carry its own summary, which made three copies of one claim
-# across two files, and that duplication drifted six times before it was deleted.
+# across three files, and that duplication drifted six times before it was deleted.
 sot_gap=$(pc_source_of_truth plugins) || true
 [ -n "$sot_gap" ] && err "$sot_gap"
 

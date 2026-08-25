@@ -39,8 +39,8 @@ Cheapest-that-fits is right for ordinary surfaces, wrong for the ONE carrying th
 SIGNATURE interaction — that surface is picked by what the MOVE needs, not by what is cheapest.
 One writer per property per element: never point two tiers at the same `transform`.
 Full table: `references/tier-budgets.md` — SOURCE OF TRUTH for every KB figure below and
-the `Last verified:` date; fix drift there, then mirror here. Standing **recorded** — the
-mirror is manual and no gate checks the two agree.
+the `Last verified:` date; fix drift there, then mirror here. Standing: KB figures
+are **gate** (`pc_source_of_truth`); prose agreement is **recorded** — nothing reads meaning.
 
 ## The five tiers (one line each)
 
