@@ -1140,6 +1140,12 @@ pc_source_of_truth() {
 # and removed-ok. A gate with no escape hatch for a proxy it cannot make exact is a
 # gate that gets switched off.
 #
+# THE DENIAL LIST IS ENUMERATIVE, NOT SEMANTIC. `DENIALS` is a fixed set of phrasings
+# ("no gate checks", "nothing checks it", …). A skill writing "nothing checks these"
+# or "no script verifies it" says the same thing and is not matched. That is a known
+# miss, not a surprise: the alternative is meaning-matching, which a grep cannot do.
+# Widen the list when a real miss appears; do not pretend it is exhaustive.
+#
 # WHAT IT DOES NOT CATCH: the other 23 checks in this file. Their triggers are
 # structural or live on a different artifact than the claim, and "does this file
 # trip that check" is then not answerable here. Add a pair only when this check can
