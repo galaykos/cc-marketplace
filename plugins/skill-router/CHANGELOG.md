@@ -2,6 +2,27 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.0
+
+### Removed
+- All routing surface for the nine stack plugins removed from the marketplace
+  in 0.93.0 (see the root CHANGELOG and
+  `rationale/marketplace-necessity-review-2026-08-26.md`): 32 `rules.tsv` lines
+  — glob/content rows and their co-fire blessings — for `php-best-practices`,
+  `vue3-best-practices`, `nuxt-best-practices`, `node-backend-best-practices`,
+  `livewire-best-practices`, `mysql-best-practices`, `postgresql-best-practices`,
+  `react-server-state`, `react-data-grid`, and `i18n`. <!-- removed-ok -->
+- `hooks/prime.sh` no longer primes those skills: the plain-PHP branch, the
+  Livewire branch, and the React server-state branch are gone; the Laravel and
+  react-native exclusivity branches remain. `scripts/smoke/prime-map-tests.sh`
+  now asserts the removed skills are OMITTED, so a stale priming line cannot
+  return silently.
+
+### Changed
+- README example rows swapped to surviving skills (`mariadb-best-practices`,
+  `laravel-best-practices`) so the documented `stack_marker` format no longer
+  demonstrates rows that cannot resolve.
+
 ## 0.13.7
 
 ### Fixed
