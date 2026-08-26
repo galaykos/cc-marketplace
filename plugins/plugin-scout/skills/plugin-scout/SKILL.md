@@ -71,7 +71,7 @@ cross-engine floor referenced by the per-dialect skills, not a stack pick.
 Before falling through to tier 2, read `references/signals.md` — evidence-bearing signals
 for plugins this table cannot see (CI, compose, OpenAPI, payment keys, locales, LLM keys,
 otel) plus rows for stacks this marketplace does NOT cover. Without it a repo with no
-composer.json and no package.json scores zero and drops to the undifferentiated remainder (46 today = 71 rows less 14 tier-1, 10 bundles, and plugin-scout itself; recount rather than trust it).
+composer.json and no package.json scores zero and drops to the undifferentiated remainder (46 today = 72 rows less 14 tier-1, 11 bundles, and plugin-scout itself; recount rather than trust it).
 
 ## Universal set (tier 2)
 
