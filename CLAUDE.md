@@ -220,9 +220,12 @@ bash scripts/generate.sh --check
 `templates/samples/*.json`. All four scripts passed. `scripts/smoke/chassis-template-tests.sh`
 — an unguarded CI step — went red, and the branch was pushed that way.
 
-The reason is structural, not carelessness: `generate.sh --check` renders the REAL
-`.chassis.json` objects, every one of which carried the key already; the harness
-renders the FROZEN sample fixtures, which did not. **The gate you run and the gate
+The reason is structural, not carelessness: `generate.sh` ENRICHES every chassis
+manifest before rendering — `skillHome` is computed and injected by the script
+(`generate.sh:167-178`), so `--check` never sees a manifest missing it, and no
+`.chassis.json` on disk contains the key at all. The harness feeds the FROZEN
+sample fixtures to the template engine raw, so those must carry every key
+literally, and did not. **The gate you run and the gate
 that breaks can read different inputs.** So:
 
 - Touched anything under `templates/` or a `.chassis.json`? Also run
