@@ -688,6 +688,28 @@ echo "note: the synthetic Edit targets src/example.ts only; a hook gated on a di
 
 if [ "$update" -eq 1 ]; then
   # Updating IS the remedy — suppress the FAIL/remedy lines on this path.
+  # But an unmeasurable MCP plugin must not have its zero WRITTEN: the delta
+  # check above exempts it, so a baseline zeroed here passes locally and then
+  # fails CI by the full tool-surface amount (+475 on registry-source,
+  # 2026-08-26, written by an --update-baseline run on a node-less machine).
+  # Preserve the old value for the plugin and add the deficit back into every
+  # bundle that sums it, in both the always-on and activated channels.
+  for mu in $MCP_UNMEASURABLE; do
+    old_val=$(jq -r --arg p "$mu" '.[$p] // empty' "$BASELINE" 2>/dev/null)
+    new_val=$(printf '%s\n' "$new_baseline" | jq -r --arg p "$mu" '.[$p] // empty')
+    [ -n "$old_val" ] && [ -n "$new_val" ] && [ "$old_val" -gt "$new_val" ] 2>/dev/null || continue
+    deficit=$((old_val - new_val))
+    echo "WARN: --update-baseline keeping '$mu' at $old_val (measured $new_val without its MCP runtime; +$deficit restored to containing bundles)" >&2
+    new_baseline=$(printf '%s\n' "$new_baseline" | jq --arg p "$mu" --argjson v "$old_val" '.[$p] = $v')
+    for bj in plugins/*/.claude-plugin/plugin.json; do
+      jq -e --arg p "$mu" '(.dependencies // []) | index($p)' "$bj" >/dev/null 2>&1 || continue
+      bnm=$(basename "$(dirname "$(dirname "$bj")")")
+      new_baseline=$(printf '%s\n' "$new_baseline" | jq --arg b "$bnm" --argjson d "$deficit" \
+        'if has($b) then .[$b] += $d else . end')
+      new_act_baseline=$(printf '%s\n' "$new_act_baseline" | jq --arg b "$bnm" --argjson d "$deficit" \
+        'if has($b) then .[$b] += $d else . end')
+    done
+  done
   printf '%s\n' "$new_baseline" | jq '.' > "$BASELINE" 2>/dev/null
   printf '%s\n' "$new_dyn_baseline" | jq '.' > "$DYN_BASELINE" 2>/dev/null
   printf '%s\n' "$new_act_baseline" | jq '.' > "$ACT_BASELINE" 2>/dev/null

@@ -36,9 +36,9 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `everything` | 52 | ~11.2k tokens | ~1.2k tokens | ~2.5k tokens |
+| `everything` | 52 | ~11.7k tokens | ~1.2k tokens | ~2.5k tokens |
 | `taskmaster-suite` | 31 | ~7.3k tokens | ~169 tokens | ~2.5k tokens |
-| `craft-suite` | 7 | ~2.2k tokens | — | — |
+| `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | — |
 | `process-suite` | 10 | ~1.9k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
