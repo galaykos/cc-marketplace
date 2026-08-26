@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **61 leaf plugins** and **10 bundles** covering
+A Claude Code plugin marketplace: **52 leaf plugins** and **10 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -36,18 +36,18 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `everything` | 61 | ~12.5k tokens | ~1.2k tokens | ~2.5k tokens |
-| `taskmaster-suite` | 31 | ~7.3k tokens | ~174 tokens | ~2.5k tokens |
-| `craft-suite` | 7 | ~2.6k tokens | — | — |
+| `everything` | 52 | ~11.2k tokens | ~1.2k tokens | ~2.5k tokens |
+| `taskmaster-suite` | 31 | ~7.3k tokens | ~169 tokens | ~2.5k tokens |
+| `craft-suite` | 7 | ~2.1k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.0k tokens | — | — |
-| `process-suite` | 10 | ~1.9k tokens | ~37 tokens | ~2.5k tokens |
-| `frontend-suite` | 12 | ~1.6k tokens | ~37 tokens | ~2.3k tokens |
-| `quality-suite` | 8 | ~1.2k tokens | ~37 tokens | ~2.4k tokens |
-| `php-suite` | 6 | ~569 tokens | — | — |
-| `db-suite` | 5 | ~439 tokens | — | — |
-| `product-suite` | 3 | ~277 tokens | — | — |
+| `process-suite` | 10 | ~1.9k tokens | ~32 tokens | ~2.4k tokens |
+| `quality-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
+| `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
+| `php-suite` | 4 | ~427 tokens | — | — |
+| `db-suite` | 3 | ~261 tokens | — | — |
+| `product-suite` | 2 | ~185 tokens | — | — |
 
-`everything` is all 61 leaf plugins; every other row is a curated subset.
+`everything` is all 52 leaf plugins; every other row is a curated subset.
 
 The budget these are measured against is **1% of the model context window** for the
 skill listing ([docs](https://code.claude.com/docs/en/skills)) — ~2k tokens at 200k, ~10k at 1M —
@@ -64,7 +64,7 @@ per-component floor this table's estimate does not.
 | **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline and its wired companions. |
 | **[frontend-suite](plugins/frontend-suite)** | React/Vue/Next/Nuxt/Inertia/Livewire app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
-| **[php-suite](plugins/php-suite)** | A Laravel codebase: PHP, Laravel, Livewire, Inertia, Vite. |
+| **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, Vite, plus the shared web-dev worker. |
 | **[db-suite](plugins/db-suite)** | Schema and query work across MySQL / MariaDB / PostgreSQL. |
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
@@ -119,24 +119,18 @@ early:
 
 ## Stacks and frameworks
 
-Each of these ships a best-practice skill plus a review command (`/laravel:review`, `/vue3:review`, and so on). The
+Each of these ships a best-practice skill plus a review command (`/laravel:review`, `/nextjs:review`, and so on). The
 skill is what Claude applies while writing; the command is what you run over a
 diff, a path, or a branch. All of them pin their advice to the version in your
 lockfile rather than to the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[php](plugins/php)** | strict types, `===`, PSR-4/12, an 8.1–8.5 leverage map pinned to the `composer.json` floor, DateTimeImmutable, prepared statements | Any plain-PHP work, especially in a repo whose floor is older than the newest syntax you remember |
 | **[laravel](plugins/laravel)** | Eloquent N+1 and eager loading, FormRequests, thin controllers, queued jobs, policies, the Laravel 11/12/13 map | Controllers, models, jobs, migrations — the daily Laravel surface |
-| **[livewire](plugins/livewire)** | component granularity, `wire:model` modifiers, computed and locked properties, Alpine interop | Livewire 3/4 components, especially ones that re-render more than they should |
 | **[inertia](plugins/inertia)** | prop hygiene, partial reloads, deferred vs lazy props, `useForm`, shared data, the silent-SSR trap | A Laravel + Vue/React/Svelte app on Inertia v1/v2/v3 |
-| **[vue3](plugins/vue3)** | `script setup`, composables, `ref` vs `reactive`, destructuring reactivity loss, Pinia | Vue 3 components and stores |
-| **[react](plugins/react)** | server-state discipline (TanStack Query/SWR/RTK Query) and data grids (TanStack Table v8/v9, Virtual, shadcn DataTable) | Fetching, caching, or tabulating server data in React |
 | **[react-native](plugins/react-native)** | FlatList/FlashList performance, navigation, platform splits, native-driver animation | React Native screens and lists |
 | **[nextjs](plugins/nextjs)** | server/client boundaries, opt-in caching, server actions as public endpoints, streaming, `next/image` and `next/font`, versions 14→16 | App Router work — and any time someone repeats the Next 14 caching mental model |
-| **[nuxt](plugins/nuxt)** | Nitro routes, `routeRules` hybrid rendering, `useFetch` vs `useAsyncData`, `useState` cross-request pollution, `runtimeConfig` | Nuxt apps, especially SSR state bugs |
 | **[vite](plugins/vite)** | `VITE_` env security, `optimizeDeps`, `manualChunks`, `base` for sub-path deploys, `server.proxy`, `define` stringify traps | Touching `vite.config.*` or debugging a build that only breaks in production |
-| **[node-backend](plugins/node-backend)** | Express 5 / NestJS 11 / Fastify 5 — async error propagation, boundary validation, streaming and backpressure, graceful shutdown | Server-side Node, especially an Express 4→5 migration |
 | **[threejs](plugins/threejs)** | WebGPU-first with WebGL2 fallback, TSL shaders, r3f/drei, glTF/Draco/KTX2, disposal discipline | 3D scenes, and any leak that only shows after ten route changes |
 | **[web-dev](plugins/web-dev)** | a generalist `web-developer` worker and a `frontend-reviewer` that audits against whichever framework skill matches | Cross-cutting web work no single framework plugin owns |
 
@@ -144,7 +138,7 @@ lockfile rather than to the version the model happens to remember.
 
 1. Just work. With `skill-router` installed, editing `app/Models/Order.php`
    loads the Laravel skill on its own.
-2. Review a change: `/laravel:review`, `/vue3:review`, `/nextjs:review` — each
+2. Review a change: `/laravel:review`, `/nextjs:review`, `/vite:review` — each
    takes an optional path or diff reference and returns severity-sorted
    one-line findings with fixes.
 3. Review a change that spans stacks: `/code-review:review` is the fan-in. It
@@ -166,13 +160,11 @@ lockfile rather than to the version the model happens to remember.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[sql](plugins/sql)** | sargable predicates, join correctness, NULL three-valued logic, composite index order, keyset pagination, parameterization — **plus the design floor**: normalization, expand-migrate-contract migrations with a rollback path, index choice from observed queries, connection-pool sizing | Any SQL on any engine, and any schema or migration decision |
-| **[mysql](plugins/mysql)** | InnoDB clustered-PK design, `utf8mb4`, strict `sql_mode`, online DDL and metadata locks, gap locking, leverage through 9.7 LTS | MySQL-specific schema or query work |
 | **[mariadb](plugins/mariadb)** | the MariaDB-is-not-MySQL divergences: no `utf8mb4_0900_*`, JSON as LONGTEXT, `RETURNING`, sequences, system-versioned tables, Galera | MariaDB — where copying a MySQL 8 answer is the most common bug |
-| **[postgresql](plugins/postgresql)** | MVCC and vacuum reality, `timestamptz`/`jsonb`/`uuid`, the index arsenal (partial, expression, covering, GIN, BRIN, `CONCURRENTLY`), lock-aware migrations | PostgreSQL schemas, and any migration that must not take an exclusive lock |
 | **[database](plugins/database)** | a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | You want the work applied, or you want a seatbelt on destructive SQL |
 
 **Using them.** `/sql:review` for the engine-agnostic pass; add the engine
-command — `/mysql:review`, `/mariadb:review`, `/postgresql:review` — when the
+command — `/mariadb:review` — when the
 dialect matters. `/database:review` when the question is the shape that
 persists rather than the statement.
 
@@ -180,7 +172,7 @@ persists rather than the statement.
 
 ```
 /sql:review database/migrations/2026_08_21_add_status.php
-/postgresql:review              # lock-aware DDL: is this ACCESS EXCLUSIVE?
+/mariadb:review                 # RETURNING, sequences, the not-MySQL divergences
 ```
 
 The expand → migrate → contract sequence, the rollback-path rule, and the
@@ -198,7 +190,6 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | **[shadcn-studio](plugins/shadcn-studio)** | a self-contained shadcn + Vite sandbox for interactive variants outside the work tree | Same decision, but the project is greenfield or not React |
 | **[registry-source](plugins/registry-source)** | MCP servers reading Aceternity / shadcn / Magic UI / ReUI registries live,every answer carrying its source URL, fetch date, stale flag | Installing a registry component — so the API comes from the registry, not from memory |
 | **[a11y](plugins/a11y)** | a WCAG 2.2 AA checklist (semantics, contrast, keyboard, focus, forms, media, ARIA) plus an `a11y-engineer` that applies fixes tagged with their criterion | Any markup change, and before any accessibility claim |
-| **[i18n](plugins/i18n)** | ICU MessageFormat plurals, catalog and key hygiene, `Intl` date/number/currency, RTL with logical properties, fallback chains | The product ships in more than one language |
 
 **Using them.**
 
@@ -212,7 +203,6 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
 /design-preview:preview       # variants rendered with your real components
 /shadcn-studio:stage          # variants in a throwaway shadcn sandbox
-/i18n:review                  # hardcoded strings, plurals, formatting, RTL
 ```
 
 **Worked example — a landing page that must not look templated:**
@@ -344,7 +334,6 @@ grant stays granted on your terms.
 |--------|-----------------|-------------------|
 | **[payments](plugins/payments)** | PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, an append-only ledger with reconciliation | Stripe / Paddle / Braintree work. The failure class here is double-charges and revenue leaks |
 | **[llm-app](plugins/llm-app)** | eval harnesses and regression gates, RAG (chunking, embeddings, retrieval quality, re-ranking, grounding and citation), prompt versioning, prompt-injection defence, token-cost control | Building an LLM feature — where "it looked right in the demo" is not a test |
-| **[i18n](plugins/i18n)** | (also listed above) ICU plurals, `Intl` formatting, RTL, fallback chains | Shipping in more than one locale |
 
 ```bash
 /payments:review        # webhook idempotency, money representation, subscription races
@@ -429,7 +418,7 @@ bill you did not agree to.
 
 ```
 /stack-scan:report        # PHP 8.3 / Laravel 12 / MariaDB 11.4 / Node 22 + pnpm
-/plugin-scout:suggest     # → suggests php, laravel, mariadb, vite, …
+/plugin-scout:suggest     # → suggests laravel, mariadb, vite, …
 /dev-env:init             # → compose file pinned to those exact versions
 ```
 

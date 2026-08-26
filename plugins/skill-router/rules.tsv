@@ -1,7 +1,5 @@
 # signal_type	pattern	skill	owning_plugin	confidence	stack_marker
-# co-fire-ok: *.tsx a11y-audit react-server-state
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
-# co-fire-ok: *.blade.php livewire-best-practices laravel-best-practices
 # co-fire-ok: *.ts low-cognitive-load solid-principles
 # co-fire-ok: *.js low-cognitive-load solid-principles
 # co-fire-ok: *.py low-cognitive-load solid-principles
@@ -18,11 +16,6 @@
 # co-fire-ok: content error-handling-design observability-design
 # co-fire-ok: content security-review observability-design
 # 2026-08-12 additions (same digest channel, same rationale as the seven above):
-# co-fire-ok: content node-backend-best-practices concurrency-safety
-# co-fire-ok: content node-backend-best-practices error-handling-design
-# co-fire-ok: content node-backend-best-practices security-review
-# co-fire-ok: content node-backend-best-practices observability-design
-# co-fire-ok: content node-backend-best-practices resilience-design
 # co-fire-ok: content payments concurrency-safety
 # co-fire-ok: content payments error-handling-design
 # co-fire-ok: content payments security-review
@@ -32,22 +25,12 @@
 # co-fire-ok: content llm-app resilience-design
 # co-fire-ok: content llm-app error-handling-design
 # co-fire-ok: content llm-app security-review
-# co-fire-ok: **/locales/** i18n low-cognitive-load
-# co-fire-ok: **/locales/** i18n solid-principles
-# co-fire-ok: **/lang/** i18n laravel-best-practices
-# co-fire-ok: **/lang/** i18n php-best-practices
-# co-fire-ok: **/lang/** i18n low-cognitive-load
-# co-fire-ok: **/lang/** i18n solid-principles
 # Engine-specific DB rows co-fire with the generic ones by design: sql-best-practices
 # owns portable SQL, the engine skill owns what only that engine does (MVCC/vacuum,
 # lock-aware migrations, engine-specific index types). Both are wanted on one file;
 # that is not a collision. Engine rows discriminate against EACH OTHER by distinct
 # stack_markers, so only the generic pairs need blessing.
-# co-fire-ok: *.sql sql-best-practices postgresql-best-practices
-# co-fire-ok: *.sql sql-best-practices mysql-best-practices
 # co-fire-ok: *.sql sql-best-practices mariadb-best-practices
-# co-fire-ok: **/migrations/** sql-best-practices postgresql-best-practices
-# co-fire-ok: **/migrations/** sql-best-practices mysql-best-practices
 # co-fire-ok: **/migrations/** sql-best-practices mariadb-best-practices
 # co-fire-ok: *.go low-cognitive-load solid-principles
 # co-fire-ok: *.rb low-cognitive-load solid-principles
@@ -91,11 +74,7 @@
 # motion-best-practices content row below (zero corpus co-fires as of 2026-08-11).
 glob	*.sql	sql-best-practices	sql	high
 glob	**/migrations/**	sql-best-practices	sql	high
-glob	*.sql	postgresql-best-practices	postgresql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||.env.example~DB_CONNECTION=pgsql||composer.json~pgsql|postgres||package.json~"pg"|postgres
-glob	*.sql	mysql-best-practices	mysql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||.env.example~DB_CONNECTION=mysql||composer.json~mysql||package.json~mysql
 glob	*.sql	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
-glob	**/migrations/**	postgresql-best-practices	postgresql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*postgres||.env.example~DB_CONNECTION=pgsql||composer.json~pgsql|postgres||package.json~"pg"|postgres
-glob	**/migrations/**	mysql-best-practices	mysql	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mysql||.env.example~DB_CONNECTION=mysql||composer.json~mysql||package.json~mysql
 glob	**/migrations/**	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
 glob	*.ts	low-cognitive-load	code-architecture	high
 glob	*.ts	solid-principles	code-architecture	high
@@ -113,16 +92,10 @@ glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	a11y	high
-glob	*.tsx	react-server-state	react	high	!package.json~"react-native"
-glob	*.jsx	react-server-state	react	high	!package.json~"react-native"
 glob	*.tsx	react-native-best-practices	react-native	high	package.json~"react-native"
-glob	*.vue	vue3-best-practices	vue3	high	node_modules/vue/package.json~"version"[[:space:]]*:[[:space:]]*"3[."]||package.json~"vue"[[:space:]]*:[[:space:]]*"[~^>=v ]*3[."]
-glob	**/Livewire/**	livewire-best-practices	livewire	high
-glob	*.blade.php	livewire-best-practices	livewire	high	composer.json~livewire/livewire
 glob	**/resources/js/Pages/**	inertia-best-practices	inertia	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework
-glob	*.php	php-best-practices	php	high	!composer.json~laravel/framework
 glob	api.php	api-design	api-design	high
 glob	openapi*.yml	api-design	api-design	high
 glob	openapi*.yaml	api-design	api-design	high
@@ -135,7 +108,6 @@ glob	compose*.yml	docker-best-practices	dev-env	high
 glob	package.json	package-hygiene	packages	high
 glob	composer.json	package-hygiene	packages	high
 glob	next.config.*	nextjs-best-practices	nextjs	high
-glob	nuxt.config.*	nuxt-best-practices	nuxt	high
 glob	vite.config.*	vite-best-practices	vite	high
 glob	app.config.*	react-native-best-practices	react-native	high	package.json~"expo"
 glob	eas.json	react-native-best-practices	react-native	high	package.json~"expo"
@@ -148,10 +120,6 @@ content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review
 content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resilience	low
 content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|\bspan\b)\b	observability-design	observability	low
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
-content	\b(useTable|useReactTable|createColumnHelper|getCoreRowModel|tableFeatures|useVirtualizer|manualPagination)\b	react-data-grid	react	low
-content	(@nestjs/|\bNestFactory\b|\bfastify\(|\bexpress\(\))	node-backend-best-practices	node-backend	low
 content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	payments	payments	low
 content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	threejs	low
 content	(\bmessages\.create\b|\bchat\.completions\b|\bembeddings\.create\b|\bgenerateText\()	llm-app	llm-app	low
-glob	**/locales/**	i18n	i18n	high
-glob	**/lang/**	i18n	i18n	high

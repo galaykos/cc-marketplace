@@ -18,20 +18,14 @@ prunes the plugins it auto-installed.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (12):
+One bullet per bundled plugin, in dependency order (8):
 
 - **a11y** — WCAG 2.2 AA audit with a concrete fix per violation, via
   `/a11y:audit`
 - **inertia** — partial reloads, deferred props, useForm flow, SSR across
   adapters, plus `/inertia:review`
-- **livewire** — Livewire 3/4 conventions, wire:model modifiers, Alpine
-  interop, plus `/livewire:review`
 - **nextjs** — App Router server/client boundaries, opt-in caching, server
   actions, route handlers, streaming, metadata API, plus `/nextjs:review`
-- **nuxt** — Nitro server routes, hybrid rendering route rules,
-  useFetch/useAsyncData, SSR-safe state, auto-imports discipline, plus
-  `/nuxt:review`
-- **react** — server-state caching discipline (TanStack Query/SWR/RTK Query)
 - **react-native** — list performance, navigation, platform-specific code,
   animations, plus `/react-native:review`
 - **skill-router** — file-aware skill auto-routing: hooks load the matching
@@ -40,8 +34,6 @@ One bullet per bundled plugin, in dependency order (12):
   plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
 - **vite** — env security, code splitting, base for sub-path deploys, dev
   proxy, plus `/vite:review`
-- **vue3** — script setup, composables, ref/reactive pitfalls, Pinia, plus
-  `/vue3:review`
 - **web-dev** — the generalist web-developer worker and frontend-reviewer
   agents (no commands)
 

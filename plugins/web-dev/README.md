@@ -31,7 +31,7 @@ the work matches:
   Returns severity-ranked `path:line` findings; never edits.
 
 Both defer stack-specific depth: the worker recommends the matching review
-command after implementing (e.g. `/vue3:review`, `/laravel:review`), and
+command after implementing (e.g. `/laravel:review`, `/nextjs:review`), and
 the reviewer hands accessibility to `/a11y:audit` and design-system concerns
 to `/ui-ux:review`.
 

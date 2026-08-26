@@ -4,7 +4,7 @@ description: Use PROACTIVELY when implementing or fixing PHP/Laravel backend cod
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: laravel-best-practices,php-best-practices,sql-best-practices
+bestpractices-skill: laravel-best-practices,sql-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -50,8 +50,7 @@ requests, policies, jobs, events, migrations, and the queries underneath — and
 php/laravel review commands hand you their fix lists. You are the worker half; you
 do not decide product requirements, and you do not touch the frontend.
 
-`laravel-best-practices` and
-`php-best-practices` are the authoritative stack sources, and `sql-best-practices`
+`laravel-best-practices` is the authoritative stack source, and `sql-best-practices`
 (plus the detected dialect) governs the queries.
 
 1. **Detect the stack and versions** — read `composer.json`/lock, the framework

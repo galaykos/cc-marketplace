@@ -363,3 +363,48 @@ Verdict impact: none on the tiers; it further weakens any plan that trims
 descriptions to "fit" the budget — at 38 plugins the margin flickers, so fitting
 is not a stable state. The only stable states are well under the budget or
 hook/command-routed.
+
+---
+
+## Execution record — 2026-08-26, same branch
+
+Recommendations 1–2 were executed with one scope change and one further
+correction; 3–4 remain open.
+
+**Scope change (user decision): `everything` stays installable.** The bundle
+was retained at the user's request; its dependency list shrank 61 → 52 and the
+`validate.sh` completeness gate continues to hold over it. The §6 argument
+against it (a single install that guarantees listing eviction) still stands and
+now reads as advice about *using* it, not a removal.
+
+**Fourth cut-list correction, same class as `sql`: `threejs` kept.** It is a
+`craft-suite` dependency and referenced from `craft-layer`'s manifest,
+description and skills — cutting it orphans a Tier-2 keep. The executed cut is
+therefore **nine** leaves: php, postgresql, vue3, nuxt, node-backend, livewire,
+mysql, i18n, react.
+
+**What the removal actually touched**, as a record of what "cut a leaf" costs
+here: 9 plugin trees deleted; marketplace.json −9 entries (0.92.0 → 0.93.0 with
+a root CHANGELOG entry); 5 bundle manifests shrunk and bumped; `database`'s
+worker chassis re-pointed to `sql`+`mariadb`; `laravel`'s worker and both
+`web-dev` agents re-pointed to surviving skills; `performance`'s bespoke review
+command re-pointed; `skill-router` lost 32 rules/blessing lines and three
+manifest-priming branches, its README example rows swapped to surviving skills;
+four suite READMEs and the root README pruned; all three context-budget
+baselines re-measured; the bundle table and plugin-scout catalog regenerated;
+and `scripts/smoke/prime-map-tests.sh` re-pointed — its cases asserted the
+hook DOES prime the removed skills, so the cut turned the harness red exactly
+as CLAUDE.md's "exact gate message strings" warning predicts, and the
+expectations now assert omission.
+
+**Measured result:** always-on 12,510 → **11,203 tokens** (−1,307 by the
+repo's meter; ≈ −2,000 at the host's 1.54×). Gates at completion: validate.sh,
+context-budget.sh, generate.sh --check all exit 0; check-version-bumps runs
+against committed state in CI.
+
+**Open:** §6.3 (demote `claude-authoring`, thin `code-review`/`security`) is
+deliberately not executed — `claude-authoring` is where CLAUDE.md's four-laws
+and has-teeth conventions canonically live "because that one SHIPS", so
+demoting it is entangled with the stop-shipping-publicly posture decision that
+is the user's alone. §6.4 (ablate Tier 2) stays blocked on `claude plugin
+eval` account access.

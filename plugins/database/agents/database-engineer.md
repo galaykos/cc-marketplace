@@ -4,7 +4,7 @@ description: Use PROACTIVELY for schema design, migrations, indexing, query opti
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: sql-best-practices,mysql-best-practices,mariadb-best-practices,postgresql-best-practices
+bestpractices-skill: sql-best-practices,mariadb-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -51,8 +51,8 @@ project actually runs.
 
 Read `sql-best-practices` (the sql plugin's engine-agnostic floor, which carries the
 schema, migration, index and pooling design rules this plugin used to state twice)
-first, then the detected dialect's skill (`mysql`/`mariadb`/`postgresql`-best-practices) when
-those plugins are installed — they are the authoritative source.
+first, then the detected dialect's skill (`mariadb-best-practices`) when
+that plugin is installed — they are the authoritative source.
 
 1. Detect the engine and version before writing any SQL. Read configs,
    DSNs/connection strings, docker-compose files, and dependency manifests.
@@ -97,8 +97,8 @@ confirmed, stop and ask.
 
 Dialect-specific review is owned by the review plugins.
 When SQL needs a dialect-level audit, recommend the matching command —
-`/sql:review`, `/mysql:review`, `/mariadb:review`, or
-`/postgresql:review` — rather than restating their content yourself.
+`/sql:review`, or `/mariadb:review` on MariaDB — rather than restating
+their content yourself.
 
 ## Kill-trigger (three strikes)
 

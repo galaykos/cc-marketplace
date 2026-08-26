@@ -3,4 +3,4 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-database:database-engineer	agent	build	relational-schema-and-query-implementation	work names a schema, migration, index, query shape, or connection pool in a relational store	sql:review,mysql:review,mariadb:review,postgresql:review
+database:database-engineer	agent	build	relational-schema-and-query-implementation	work names a schema, migration, index, query shape, or connection pool in a relational store	sql:review,mariadb:review

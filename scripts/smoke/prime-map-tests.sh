@@ -33,16 +33,17 @@ omits()   { case "$2" in *"$3"*) fail=$((fail+1)); printf 'FAIL  %s wrongly name
                         *) pass=$((pass+1)); printf 'PASS  %s omits %s\n' "$1" "$3" ;; esac; }
 
 # A: the regression itself. React present, Tailwind absent — the emitted line must not
-# claim Tailwind. Laravel and Livewire are present and must be named; php must NOT be,
-# because skill-map.md declares laravel and plain-php stack-exclusive.
+# claim Tailwind. Laravel is present and must be named. livewire-best-practices,
+# react-server-state and php-best-practices were removed from the marketplace on
+# 2026-08-26 — prime must not point a session at a skill that no longer exists.
 A="$WS/a"; mkdir -p "$A"
 printf '{"require":{"php":"^8.2","laravel/framework":"^11.0","livewire/livewire":"^3.0"}}' > "$A/composer.json"
 printf '{"dependencies":{"react":"^18.2.0","styled-components":"^6.1.0"}}' > "$A/package.json"
 OA="$(emit "$A")"
 omits "laravel+react, no tailwind:" "$OA" "tailwind-best-practices"
 names "laravel+react, no tailwind:" "$OA" "laravel-best-practices"
-names "laravel+react, no tailwind:" "$OA" "livewire-best-practices"
-names "laravel+react, no tailwind:" "$OA" "react-server-state"
+omits "laravel+react, no tailwind:" "$OA" "livewire-best-practices"
+omits "laravel+react, no tailwind:" "$OA" "react-server-state"
 omits "laravel+react, no tailwind:" "$OA" "php-best-practices"
 
 # B: positive control. Without it, a hook that emits nothing passes every case above.
@@ -50,13 +51,14 @@ B="$WS/b"; mkdir -p "$B"
 printf '{"devDependencies":{"tailwindcss":"^3.4.0"},"dependencies":{"react":"^18.2.0"}}' > "$B/package.json"
 OB="$(emit "$B")"
 names "real tailwind present:" "$OB" "tailwind-best-practices"
-names "real tailwind present:" "$OB" "react-server-state"
+omits "real tailwind present:" "$OB" "react-server-state"
 
-# C: the stack-exclusive rule in the other direction — php WITHOUT laravel.
+# C: php WITHOUT laravel primes nothing PHP-side — php-best-practices is removed,
+# and laravel must not fire without laravel/framework in the manifest.
 C="$WS/c"; mkdir -p "$C"
 printf '{"require":{"php":"^8.2","symfony/console":"^7.0"}}' > "$C/composer.json"
 OC="$(emit "$C")"
-names "php without laravel:" "$OC" "php-best-practices"
+omits "php without laravel:" "$OC" "php-best-practices"
 omits "php without laravel:" "$OC" "laravel-best-practices"
 
 # D: an empty repo must not assert a stack at all.

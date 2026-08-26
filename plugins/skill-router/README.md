@@ -95,11 +95,11 @@ answer.
 
 ### Stack markers (optional 6th column)
 
-When two stacks claim the same file pattern (vue2 vs vue3 on `*.vue`, php vs laravel on `*.php`), an optional `stack_marker` column discriminates by sniffing a manifest at the repo root:
+When two stacks claim the same file pattern (one engine vs another on `*.sql`, plain PHP vs Laravel on `*.php`), an optional `stack_marker` column discriminates by sniffing a manifest at the repo root:
 
 ```
-glob   *.vue   vue3-best-practices   vue3   high   package.json~"vue"[[:space:]]*:[[:space:]]*"[~^>=v ]*3[."]
-glob   *.php   php-best-practices    php    high   !composer.json~laravel/framework
+glob   *.sql            mariadb-best-practices   mariadb   high   docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb
+glob   *.blade.php      laravel-best-practices   laravel   high   composer.json~laravel/framework
 ```
 
 - Format: `<manifest>~<ERE>`, split on the **first** `~` — the manifest name cannot contain `~`, but the regex may. Prefix `!` negates the match verdict. `-` or empty means no marker.

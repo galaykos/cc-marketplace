@@ -4,6 +4,35 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.93.0] - 2026-08-26
+
+**Nine measured-zero stack plugins removed: php, postgresql, vue3, nuxt,
+node-backend, livewire, mysql, i18n, react.**
+
+Executes the conclusion `rationale/marketplace-necessity-review-2026-08-26.md`
+drew from evidence already on record: per-version idiom maps ablated to zero
+delta twice (`rationale/measured-zero-shapes.md`), and the surviving defence —
+manifest/lockfile-reading behaviour — ablated to zero on 2026-08-20
+(`rationale/eval-ablation-2026-08-20.md`), with every blind control reading
+`composer.json` unprompted. The nine cost ~1,700 always-on tokens against a
+host skill-listing budget the catalogue overshoots several-fold; the necessity
+review's addendum records the listing being evicted live, nondeterministically,
+in an ordinary session.
+
+Kept deliberately, each with its reason on record: `nextjs`, `react-native`,
+`mariadb` (inverted-advice survivors), `threejs` (load-bearing for
+`craft-layer`/`craft-suite`), `sql` (the engine-agnostic floor `database`'s
+chassis binds to), `laravel`, `inertia`, `vite`, `packages` (ships a real
+licence-scan mechanism). The `everything` bundle stays installable at 52
+leaves.
+
+Fallout, all gated: bundle memberships shrank (`everything` 61→52, `php-suite`
+6→4, `db-suite` 5→3, `frontend-suite` 12→8, `product-suite` 3→2, each bumped);
+`database`'s worker re-pointed to `sql`+`mariadb`; `web-dev`'s agents and
+`laravel`'s worker re-pointed to surviving skills; `skill-router` lost 32
+rules/blessing lines and its manifest-priming branches for the removed skills;
+READMEs and the catalog regenerated.
+
 ## [0.92.0] - 2026-08-18
 
 **New plugin: `candor` 0.1.0 — candour as a mechanism, not a pep talk.**

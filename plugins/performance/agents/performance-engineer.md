@@ -96,7 +96,7 @@ Load testing:
 - SQL-shape review (query structure, indexing idioms) belongs to
   `/sql:review` — recommend it instead of duplicating it.
 - Framework-idiom review belongs to the matching installed stack review
-  command (e.g. `/laravel:review`, `/vue3:review`) — recommend it instead
+  command (e.g. `/laravel:review`, `/nextjs:review`) — recommend it instead
   of duplicating it.
 
 ## Kill-trigger (three strikes)
