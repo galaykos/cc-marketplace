@@ -3,14 +3,15 @@
 The SKILL's tier-1 signal table reads `composer.json`, `package.json`, `.env`
 DSNs and docker images. That covers the PHP and JS/TS surface and nothing else,
 so a Python, Go, Rust, Terraform or infra-shaped repo produces **zero** tier-1
-hits and falls through to tier 2 — which is "every catalog plugin except tier-1,
-the bundles and itself", ~43 rows all carrying the literal evidence string
-`universal`. That is the no-evidence path the SKILL's own rule forbids, and at 16
-options per AskUserQuestion it is three paged calls of undifferentiated noise.
+hits and falls through past the core set to tier 3 — the universal remainder,
+dozens of rows all carrying the literal evidence string `universal`. That is
+the no-evidence path the SKILL's own rule forbids, and at 16 options per
+AskUserQuestion it is several paged calls of undifferentiated noise.
 
-The rows below are evidence-bearing signals for plugins currently stranded in
-that tier. Same rule as tier 1: **cite the file and the line/key that matched**,
-never suggest without one.
+The rows below are evidence-bearing signals for plugins otherwise stranded in
+that remainder — a hit lifts the plugin into tier 1, same evidence rule and
+same `--yes` auto-install eligibility: **cite the file and the line/key that
+matched**, never suggest without one.
 
 Four of these are already encoded as skill-router glob rows and are lifted here
 rather than re-derived — the mechanism differs (suggest-at-install vs
@@ -33,9 +34,12 @@ route-at-edit) but the manifest→plugin mapping must not fork. Where a row says
 
 ## The last two rows are the point
 
-A scout that returns "here are 43 universally useful plugins" to a Django repo is
-worse than one that says "this marketplace does not cover Django; here is where
-to look". The second answer is short, true, and actionable. Prefer it.
+A scout that opens with "here are dozens of universally useful plugins" to a
+Django repo is worse than one that says "this marketplace does not cover
+Django; here is where to look". The second answer is short, true, and
+actionable — lead with it. The completeness sweep of tier 3 still follows (the
+report iterates the whole catalog by contract), but it is the appendix, never
+the headline.
 
 ## Standing
 

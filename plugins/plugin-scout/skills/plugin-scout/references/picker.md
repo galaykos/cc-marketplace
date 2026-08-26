@@ -28,8 +28,12 @@ non-suggestion. Two rules close that failure mode:
 - **Tier-1 signal-backed picks are the recommended set**: they open the
   first page, each option's description citing its evidence (e.g.
   "laravel — composer.json: laravel/framework ^11"). They never wait for
-  a later page. Tier-2 has no recommended framing (consistent with
-  `--yes` never touching tier-2; see `references/flags.md`).
+  a later page. Tier-2 core rows follow directly, described as
+  "any-project core" (`references/any-core.md`). Tier-3 has no
+  recommended framing (consistent with `--yes` never touching tier-3;
+  see `references/flags.md`) — but full coverage still applies to it:
+  the paging ends only when every tier-3 row, including "no signal
+  detected" completeness rows, has been offered or the user stopped.
 - Reserve exactly one option slot per call: **"Stop — skip remaining"**
   on the last question. Picking it ends the picker; rows already selected
   on any page still install. Selecting nothing on a page just advances.
@@ -85,7 +89,8 @@ shortcut, never a default:
   (eligibility filters them out) and dedupe against individual picks of
   the same members.
 - `--yes` never auto-installs a suite — the auto-select set stays
-  tier-1 leaves only; a mass install must be a human pick.
+  tier-1 and tier-2 core leaves only; a mass install of anything else
+  must be a human pick.
 
 ## TTY picker escape hatch
 
