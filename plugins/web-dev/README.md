@@ -2,8 +2,9 @@
 
 Generalist web development pair: a **web-developer** worker for routing,
 REST/API integration, forms, state management, and SSR/CSR decisions, plus a
-**frontend-reviewer** that audits React/Vue/Inertia/Livewire/TypeScript (and
-react-native/vite) code against the matching per-framework skill.
+**frontend-reviewer** that audits component and view logic — against the matching
+per-framework skill where one ships (react-native, inertia, vite, nextjs), and
+generically for any other JS/TS framework.
 Stack-agnostic — stack idioms are deferred to the per-framework plugins.
 
 ## Install
@@ -37,7 +38,6 @@ to `/ui-ux:review`.
 
 ## Pairs well with
 
-- **vue3** / **nextjs** / **nuxt** — per-framework idioms both agents load and defer to
-- **react** — server-state caching discipline the reviewer loads for React data fetching
+- **nextjs** — per-framework idioms both agents load and defer to
 - **ui-ux** — visual and design-system review the frontend-reviewer defers to
 - **a11y** — full WCAG audit; the agents only enforce a semantic baseline

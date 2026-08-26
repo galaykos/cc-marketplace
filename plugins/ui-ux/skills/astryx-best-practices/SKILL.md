@@ -98,8 +98,8 @@ the digest. Before writing any Astryx code:
 
 ## Defer rule
 
-- General React correctness (state, effects, keys) → the react plugin.
-- Tailwind/CSS mechanics of overrides → tailwind/css3 skills (this plugin).
+- General React correctness (state, effects, keys) → web-dev's `frontend-reviewer`.
+- Tailwind/CSS mechanics of overrides → the tailwind skill (this plugin); plain CSS is baseline.
 - Full WCAG audit → the a11y plugin.
 - shadcn/ReUI/Aceternity surfaces → their sibling skills (this plugin).
 

@@ -57,6 +57,22 @@ printf 'env CC_TERSE=%s\nfile %s: %s\n' "${CC_TERSE:-unset}" \
 `CC_TERSE` wins over the file when both are set. The level is machine-local and
 persists across sessions until changed.
 
+Then print the reference card (display only, change nothing):
+
+| Command | What it does |
+|---|---|
+| `/terse:level [name\|status]` | Set or report the level; persists across sessions |
+| `/terse:check [--last N] [--tokens]` | Measure turn-final messages against the budget |
+| `/terse:commit` | Conventional Commits message from the staged diff |
+| `/terse:compress <file>` | Compress one prose markdown file, with backup |
+
+Reports use one skeleton: verdict → artifacts → ≤5 findings → skipped (`none` when
+nothing was) → blocker → next. Tables, code blocks and trees are free. `wenyan`
+alone is an alias for `wenyan-full`. Crew: `terse-investigator` returns `path:line`
+rows · `terse-builder` edits at most 2 decided files, returns a receipt ·
+`terse-reviewer` returns `path:line: severity: problem. fix.` — routing in the
+`terse-crew` skill.
+
 ## Never
 
 Do not confuse this with doing less work. Every level compresses the message only:

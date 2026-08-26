@@ -6,7 +6,7 @@ argument-hint: [files-or-diff]
 
 Review the target in $ARGUMENTS against this plugin's rubric — audit it, do not rewrite it.
 
-Keep findings engine-agnostic; defer engine-specific rules to the mysql/mariadb/postgresql plugins when the engine is identifiable.
+Keep findings engine-agnostic; defer MariaDB-specific rules to the mariadb plugin when that engine is identifiable — other engines have no dialect plugin here, so their dialect concerns stay in this review, named as such.
 
 1. Determine scope from $ARGUMENTS — a file, directory, diff/branch reference, or
    design document. If empty, default to recent changes (`git diff` against the merge

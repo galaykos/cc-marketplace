@@ -28,10 +28,8 @@ Advice pins to the installed `laravel/framework` version, so APIs are only
 suggested when your release actually ships them.
 
 Also ships the shared `backend-engineer` worker agent (PHP/Laravel) that the
-php/laravel review commands route their fixes to.
+laravel review command routes its fixes to.
 
 ## Pairs well with
 
-- **php** — the underlying PHP layer these framework rules sit on
-- **livewire** — full-stack component review for Livewire 3/4 in the same app
 - **inertia** — backend side of Inertia pages that laravel:review pairs with

@@ -1,5 +1,7 @@
 # signal_type	pattern	skill	owning_plugin	confidence	stack_marker
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
+# co-fire-ok: *.tsx a11y-audit nextjs-best-practices
+# co-fire-ok: *.tsx nextjs-best-practices react-native-best-practices
 # co-fire-ok: *.ts low-cognitive-load solid-principles
 # co-fire-ok: *.js low-cognitive-load solid-principles
 # co-fire-ok: *.py low-cognitive-load solid-principles
@@ -52,21 +54,19 @@
 # engines cleanly (`mariadb:11` does not contain `mysql`), which is why compose is
 # first.
 #
-# The last two links exist to make a signal-less repo decisive rather than noisy. These
-# three skills are MUTUALLY EXCLUSIVE and their advice conflicts — Postgres MVCC/vacuum
-# guidance on a MySQL schema is wrong, not merely redundant — so the router's usual
-# fire-if-uncertain bias is the wrong trade here: a repo with a composer.json and no DB
-# hint now gets none of them instead of all three. Verified live: Laravel-only
-# composer.json → `sql-best-practices` alone.
+# The last two links exist to make a signal-less repo decisive rather than noisy.
+# Engine advice conflicts across engines — MariaDB divergence guidance on a true-MySQL
+# schema is wrong, not merely redundant — so the router's usual fire-if-uncertain bias
+# is the wrong trade here: a repo with a composer.json and no DB hint gets the
+# engine-agnostic skill alone. Verified live: Laravel-only composer.json →
+# `sql-best-practices` alone. mariadb is the ONLY dialect skill left; other engines
+# ride sql-best-practices.
 #
-# Three known misses, in order of likelihood:
+# Two known misses, in order of likelihood:
 #   1. A repo with no compose file whose `DB_CONNECTION=mysql` actually runs MariaDB —
-#      Laravel used the mysql driver for MariaDB for years. It gets the mysql skill.
+#      Laravel used the mysql driver for MariaDB for years. It misses the mariadb skill.
 #   2. A database running outside the compose file: the compose file is decisive-no and
 #      suppresses before `DB_CONNECTION` is ever read.
-#   3. No manifests at all (a bare directory of `.sql` files) — nothing is decisive, so
-#      all three fire. That IS the fail-open contract, and it is the one case where the
-#      conflicting-advice cost above is accepted, because there is no signal to act on.
 # Of the craft-layer family only information-design is routed (**/dashboard/** +
 # **/admin/**); the rest (creative-direction, motion-tiers, …) deliberately reach
 # sessions via /craft-layer:craft and the catalog channel, not per-file rules —
@@ -93,6 +93,7 @@ glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	a11y	high
 glob	*.tsx	react-native-best-practices	react-native	high	package.json~"react-native"
+glob	*.tsx	nextjs-best-practices	nextjs	high	package.json~"next"
 glob	**/resources/js/Pages/**	inertia-best-practices	inertia	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework

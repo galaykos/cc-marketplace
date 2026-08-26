@@ -2,6 +2,14 @@
 
 All notable changes to the ultra-deep-research plugin.
 
+## 0.6.2
+
+### Changed
+- **The verification loop states its structural limitation**: refutation is
+  one-directional — the researcher never sees or answers a refutation, so a
+  claim killed on a misread source dies undefended. The majority-vote panel is
+  named as the mitigation, not a cure.
+
 ## 0.6.1
 
 ### Added

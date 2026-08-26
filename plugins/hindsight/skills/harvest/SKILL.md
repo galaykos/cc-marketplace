@@ -54,6 +54,12 @@ does not abort the harvest; record the failure and continue.
   and abandoned twice — each cluster keeps its source session ids.
 - Recurrence gate: propose a CLAUDE.md rule or a skill/plugin idea only
   when the cluster has evidence from ≥2 distinct sessions.
+- Existing-coverage check, before any proposal reaches the report: grep
+  the project's CLAUDE.md and the installed skills' descriptions for the
+  rule the candidate states. Already covered → report it as a routing or
+  compliance gap ("the rule exists at X and was not followed"), never as
+  a new rule — the approving user otherwise sees evidence FOR the rule
+  and no evidence it already exists, which is how duplicates accumulate.
 - Single-session patterns are parked, not proposed: record each in the
   ledger as a candidate entry. When a later harvest finds corroborating
   evidence in another session, auto-promote the candidate to a full

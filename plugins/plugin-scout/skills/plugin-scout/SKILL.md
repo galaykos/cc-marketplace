@@ -48,16 +48,10 @@ Fourteen plugins, each earned by one signal:
 | composer.json require laravel/framework | laravel |
 | composer.json require livewire/livewire | livewire |
 | composer.json require inertiajs/inertia-laravel OR package.json @inertiajs/* | inertia |
-| package.json dep react (and NOT react-native) | react |
 | package.json dep react-native | react-native |
-| package.json dep vue ^3 (lockfile counts as evidence) | vue3 |
 | package.json dep next | nextjs |
-| package.json dep nuxt | nuxt |
-| package.json dep express OR fastify OR @nestjs/core | node-backend |
 | package.json dep vite (devDependencies counts) | vite |
-| .env DB_CONNECTION=mysql OR mysql docker image | mysql |
 | mariadb docker image or DSN | mariadb |
-| pgsql/postgres DSN or docker image | postgresql |
 
 Vue 2, plain JavaScript, and TypeScript map to no plugin — those plugins were
 removed after baseline testing (rationale/stack-skill-baselines.md). On a vue

@@ -152,7 +152,14 @@ pc_removed_refs() {
   local f="$1" b plug skills shapes rescue hit capi
   [ -f "$f" ] || return 0
   b='[^[:alnum:]-]'
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency'
+  # Nine stack plugins removed 2026-08-26 (cfef9c1, marketplace-necessity-review):
+  # react, php, mysql, postgresql, vue3, nuxt, livewire, node-backend, i18n. All
+  # are safe here BECAUSE plugin names match only in reference shapes (below):
+  # react-native survives via the hyphen boundary, "php -S" and docker image tags
+  # match no shape, TitleCase prose (React, MySQL) is skipped by design. The
+  # removal shipped a day of dangling references precisely because this list was
+  # not fed — extend it in the SAME commit as any future removal.
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n'
   # task-orchestration added 2026-08-21: merged into plan-before-code, which
   # already produced the file map its dependency edges were derived from. Its
   # parallel-safety rule was stated in four places across three plugins; the
@@ -166,7 +173,12 @@ pc_removed_refs() {
   # migrations, short transactions) at the same level of generality while the file
   # claimed to defer where both could speak. The `database` PLUGIN survives — it
   # ships the destructive-SQL PreToolUse guard and the database-engineer worker.
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration'
+  # 2026-08-26 skill names ride the same removal. The i18n plugin's skill was
+  # also named bare "i18n" — deliberately NOT listed: word-bounded "i18n" is
+  # ordinary technical English everywhere, so its coverage rides the plugin
+  # shapes only. That residual is real: a doc naming the removed SKILL as bare
+  # "i18n" outside a reference shape slips through.
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid'
   shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? plugins?($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)($skills)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:

@@ -7,11 +7,11 @@
   "applyExtra": [
     {
       "label": "Run the engine-specific review now",
-      "description": "The engine is identifiable and its dialect plugin (mysql/mariadb/postgresql) is installed — hand off to the engine-specific review for dialect findings."
+      "description": "The engine is MariaDB and the mariadb plugin is installed — hand off to /mariadb:review for dialect findings. No other engine has a dialect plugin in this marketplace."
     }
   ],
   "divergence": {
-    "preamble": "Keep findings engine-agnostic; defer engine-specific rules to the mysql/mariadb/postgresql plugins when the engine is identifiable."
+    "preamble": "Keep findings engine-agnostic; defer MariaDB-specific rules to the mariadb plugin when that engine is identifiable — other engines have no dialect plugin here, so their dialect concerns stay in this review, named as such."
   },
   "description": "Review sql code against sql-best-practices",
   "argumentHint": "[files-or-diff]"

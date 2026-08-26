@@ -36,15 +36,15 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `everything` | 52 | ~11.7k tokens | ~1.2k tokens | ~2.5k tokens |
+| `everything` | 52 | ~11.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `taskmaster-suite` | 31 | ~7.3k tokens | ~169 tokens | ~2.5k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | — |
 | `process-suite` | 10 | ~1.9k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
-| `php-suite` | 4 | ~495 tokens | — | — |
-| `db-suite` | 3 | ~329 tokens | — | — |
+| `php-suite` | 4 | ~497 tokens | — | — |
+| `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
 `everything` is all 52 leaf plugins; every other row is a curated subset.
@@ -62,14 +62,14 @@ per-component floor this table's estimate does not.
 |--------|--------------|
 | **[everything](plugins/everything)** | You want the lot and have context to spare. Read the number above first. |
 | **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline and its wired companions. |
-| **[frontend-suite](plugins/frontend-suite)** | React/Vue/Next/Nuxt/Inertia/Livewire app work, without the design-studio weight. |
+| **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
 | **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, Vite, plus the shared web-dev worker. |
-| **[db-suite](plugins/db-suite)** | Schema and query work across MySQL / MariaDB / PostgreSQL. |
+| **[db-suite](plugins/db-suite)** | Schema and query work — engine-agnostic SQL plus MariaDB dialect depth. |
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
 | **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
-| **[product-suite](plugins/product-suite)** | Payments, i18n, LLM-application engineering. |
+| **[product-suite](plugins/product-suite)** | Payments and LLM-application engineering. |
 
 Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
 `/db-suite:uninstall`, and so on — which removes the bundle **and** prunes the
@@ -163,12 +163,12 @@ lockfile rather than to the version the model happens to remember.
 | **[mariadb](plugins/mariadb)** | the MariaDB-is-not-MySQL divergences: no `utf8mb4_0900_*`, JSON as LONGTEXT, `RETURNING`, sequences, system-versioned tables, Galera | MariaDB — where copying a MySQL 8 answer is the most common bug |
 | **[database](plugins/database)** | a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | You want the work applied, or you want a seatbelt on destructive SQL |
 
-**Using them.** `/sql:review` for the engine-agnostic pass; add the engine
-command — `/mariadb:review` — when the
-dialect matters. `/database:review` when the question is the shape that
-persists rather than the statement.
+**Using them.** `/sql:review` for the engine-agnostic pass — statements and
+the shape that persists both; add the engine command — `/mariadb:review` —
+when the dialect matters. The database plugin contributes the worker and the
+destructive-SQL guard, not a review command.
 
-**Worked example.** Adding a column to a hot table on Postgres:
+**Worked example.** Adding a column to a hot table on MariaDB:
 
 ```
 /sql:review database/migrations/2026_08_21_add_status.php
@@ -438,7 +438,7 @@ bill you did not agree to.
 
 ```bash
 /terse:level ultra          # set brevity; /terse:level off to stop
-/terse:help                 # levels, budgets, commands, what it never touches
+/terse:level status         # active level + reference card: budgets, commands, what it never touches
 /terse:check                # measure this session against the active budget
 /terse:commit               # a Conventional Commits message from the staged diff
 /terse:compress <file>      # shrink a prose memory file, backed up first

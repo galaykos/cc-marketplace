@@ -60,7 +60,11 @@ convention.
 
 5. Return the changed files with a one-line rationale each, and note any visual decision
    that was assumed rather than specified — surface it for confirmation rather than
-   silently choosing.
+   silently choosing. Then offer the reviewer twin as a selectable choice
+   (AskUserQuestion): "Run /ui-ux:review on the result now (Recommended)" / "Skip" —
+   a standalone build otherwise ships self-graded, and the reviewer's adversarial
+   pass plus Checked/Not-checked inventory is a check the builder never runs on
+   itself. Headless: skip the question and name the review as not run.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to the staging path

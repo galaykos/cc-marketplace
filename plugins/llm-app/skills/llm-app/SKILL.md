@@ -60,8 +60,8 @@ instructions and…"). Treat all non-system content as untrusted:
 Injection defense is one face of the app's security posture: auth around the
 LLM endpoint, secret handling, and data privacy belong to the security
 plugin's skills (`api-auth`, `data-privacy`, threat-modeling) — run
-`/security:review` on the integration when the security plugin is installed (product-suite
-ships this skill without it), not just this checklist.
+`/security:review` on the integration when the security plugin is installed,
+not just this checklist.
 
 ## Cost and latency
 

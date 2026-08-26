@@ -19,7 +19,7 @@ same result would be expensive to reproduce in Framer Motion / anime.js.
 | Choose when | Hero loops, illustrative icons, onboarding sequences, decorative motion that just plays | Cursor / hover / scroll / data-driven motion, toggles, characters that respond to inputs |
 
 Rule of thumb: if the motion only ever **plays**, use Lottie; if the motion must
-**react** to state or user input, use Rive's state-machine. Do not build a Rive
+**respond** to state or user input, use Rive's state-machine. Do not build a Rive
 state-machine for motion that a Lottie timeline covers — it costs bundle and authoring
 time for no interaction.
 

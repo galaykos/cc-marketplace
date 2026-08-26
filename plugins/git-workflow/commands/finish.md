@@ -37,18 +37,13 @@ on the record — record the waiver text in the report, not just the choice.
 
 Then gather the state evidence the skill specifies (diffstat against the base,
 ahead/behind counts, commit list, suite output tail), present it together with
-the review results, and use AskUserQuestion. The default branch is PR-only: when the branch's base is the
-repo's default branch (resolve it via `git symbolic-ref refs/remotes/origin/HEAD`,
-falling back to whichever of main/master exists), drop "merge locally" and offer
-three options — push and open a PR, keep the branch open, discard the work. When
-the base is a non-default branch, offer all four (merge locally added). If HEAD
-IS the default branch with commits ahead (no feature branch), do not offer a
-destination — stop and route the user to move the commits onto a new branch and
-open a PR. If a PR is impossible (base is the default branch but no remote or
-`gh`), stop rather than local-merging onto the default. Execute the chosen
-protocol from the skill end to end, including post-merge re-verification,
-worktree removal, and branch deletion where the protocol calls for them —
-discard only after the user types the branch name back.
+the review results, and use AskUserQuestion. Which destinations to offer — and
+the default-branch-is-PR-only rule that removes "merge locally" when the base is
+the default branch — comes from the skill's destination protocol: apply it from
+there, do not re-derive it here. Execute the chosen protocol from the skill end
+to end, including post-merge re-verification, worktree removal, and branch
+deletion where the protocol calls for them — discard only after the user types
+the branch name back.
 
 Headless fallback: if AskUserQuestion is unavailable or the session is
 non-interactive, report the verification result, the state evidence, and the

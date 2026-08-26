@@ -6,6 +6,14 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.8.4
+
+### Changed
+- **`test-engineer` regenerated from the shared worker template**: reviewer
+  findings are now confirmed against the code before any change lands — the
+  template previously forbade re-opening the review without distinguishing
+  verification of the finding from re-litigation of it.
+
 ## 0.8.3
 
 ### Fixed

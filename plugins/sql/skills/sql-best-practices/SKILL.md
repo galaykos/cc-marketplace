@@ -1,6 +1,6 @@
 ---
 name: sql-best-practices
-description: Use when writing or reviewing SQL on any engine, statement or schema — sargable predicates, join correctness, composite indexes, NULL three-valued traps, isolation, keyset pagination, parameterized queries, plus the design floor: normalization, expand-migrate-contract migrations with a rollback path, index choice from observed queries, and connection-pool sizing. Engine-specific rules → mysql/mariadb/postgresql; measuring a slow query → performance.
+description: Use when writing or reviewing SQL on any engine, statement or schema — sargable predicates, join correctness, composite indexes, NULL three-valued traps, isolation, keyset pagination, parameterized queries, plus the design floor: normalization, expand-migrate-contract migrations with a rollback path, index choice from observed queries, and connection-pool sizing. MariaDB-specific rules → mariadb; measuring a slow query → performance.
 ---
 
 ## Sargable predicates

@@ -66,7 +66,7 @@ The rest is on demand, and none of it needs the mode to be on:
 ```bash
 /terse:commit                # message from the staged diff, full English
 /terse:compress CLAUDE.md    # shrink one prose file, with backup + verification
-/terse:help                  # the reference card
+/terse:level status          # active level + the reference card
 ```
 
 Delegating work? Ask for a crew agent by name when you want the finding rather
@@ -90,7 +90,6 @@ Two things worth knowing early:
 | `/terse:check [--last N] [--tokens] [--all] [--since Nd] [--session-file PATH]` | Measure turn-final messages against the active budget — one session or every session in the project. Report-only |
 | `/terse:commit [--amend | extra context]` | Conventional Commits message from the staged diff — full English, no noise |
 | `/terse:compress <file>` | Compress one named prose markdown file in place, with a backup and five mechanical checks |
-| `/terse:help` | The reference card |
 
 ## Budgets
 

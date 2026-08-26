@@ -28,6 +28,13 @@ route→request→resource mapping by hand.
    so the spec-to-code correspondence is auditable, plus any spec gap that blocked
    generation (an operation with no response schema).
 
+   Then round-trip the validation before offering to write: re-derive the accepted
+   input shape from each generated FormRequest's rules and diff it against the
+   spec's request schema — every `required`, `enum`, `format`, and type constraint
+   must appear on both sides. A silently dropped constraint is a contract violation
+   later reviews miss because the generated code is internally valid; report each
+   mismatch as a blocking finding, never paper over it.
+
 5. Offer via AskUserQuestion: "Write the scaffolding now (Recommended)" / "Show the plan
    only". On write, dispatch the mapping down the static chain `backend-engineer`
    (laravel) if installed → `task-runner:task-executor` if installed → inline — never

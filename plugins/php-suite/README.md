@@ -1,7 +1,7 @@
 # php-suite
 
-Meta-bundle: the PHP category in one install — PHP and Laravel best practices,
-Livewire, Inertia, Vite (Laravel's default asset bundler), and the generalist
+Meta-bundle: the PHP category in one install — Laravel best practices,
+Inertia, Vite (Laravel's default asset bundler), and the generalist
 web worker. Uninstall cleanly with `/php-suite:uninstall` — removes the bundle
 and prunes its auto-installed plugins.
 

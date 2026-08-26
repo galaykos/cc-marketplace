@@ -2,15 +2,30 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.1
+
+### Added
+- **`*.tsx` routing for `nextjs-best-practices`** (marker
+  `package.json~"next"`), with co-fire blessings against the a11y and
+  react-native rows. When 0.14.0 removed react-server-state's `*.tsx` row, <!-- removed-ok -->
+  Next.js app-code edits stopped firing anything from the router — coverage had
+  regressed to `next.config.*` only. This row is new coverage, not a restore:
+  nextjs-best-practices was never `*.tsx`-routed itself. <!-- removed-ok -->
+
+### Fixed
+- Engine-detection comments in `rules.tsv` no longer describe the removed
+  mysql/postgresql skills as live routing targets; mariadb is named as the only
+  dialect skill left.
+
 ## 0.14.0
 
 ### Removed
 - All routing surface for the nine stack plugins removed from the marketplace
   in 0.93.0 (see the root CHANGELOG and
   `rationale/marketplace-necessity-review-2026-08-26.md`): 32 `rules.tsv` lines
-  — glob/content rows and their co-fire blessings — for `php-best-practices`,
-  `vue3-best-practices`, `nuxt-best-practices`, `node-backend-best-practices`,
-  `livewire-best-practices`, `mysql-best-practices`, `postgresql-best-practices`,
+  — glob/content rows and their co-fire blessings — for `php-best-practices`, <!-- removed-ok -->
+  `vue3-best-practices`, `nuxt-best-practices`, `node-backend-best-practices`, <!-- removed-ok -->
+  `livewire-best-practices`, `mysql-best-practices`, `postgresql-best-practices`, <!-- removed-ok -->
   `react-server-state`, `react-data-grid`, and `i18n`. <!-- removed-ok -->
 - `hooks/prime.sh` no longer primes those skills: the plain-PHP branch, the
   Livewire branch, and the React server-state branch are gone; the Laravel and
@@ -227,8 +242,8 @@ All notable changes to the skill-router plugin.
 
 ### Added
 
-- **Engine-specific database routing.** `mysql-best-practices`,
-  `mariadb-best-practices` and `postgresql-best-practices` shipped with no
+- **Engine-specific database routing.** `mysql-best-practices`, <!-- removed-ok -->
+  `mariadb-best-practices` and `postgresql-best-practices` shipped with no <!-- removed-ok -->
   file-routing channel at all — they were named in this file's own limitation
   block as unrouted. Six rows now route them on `*.sql` and `**/migrations/**`,
   discriminated by a compose-image-first marker chain (compose → `.env.example`

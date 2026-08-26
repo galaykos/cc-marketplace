@@ -1,18 +1,5 @@
 [
   {
-    "chassis": "stack-review",
-    "variant": "concern",
-    "skill": "sql-best-practices",
-    "tag": "database",
-    "worker": null,
-    "applyExtra": [],
-    "divergence": {
-      "preamble": "Detect the engine and version first — from configs, DSNs, compose files, or dependency manifests — never assume a dialect. You audit the design, not run DDL."
-    },
-    "description": "Review schema, migrations, indexes, and pooling against sql-best-practices (engine-agnostic)",
-    "argumentHint": "[path-migration-or-schema]"
-  },
-  {
     "chassis": "worker-agent",
     "agentFile": "agents/database-engineer.md",
     "name": "database-engineer",

@@ -1,7 +1,7 @@
 # db-suite
 
 Meta-bundle: the database category in one install — engine-agnostic SQL
-discipline, MySQL, MariaDB, and PostgreSQL best practices, and the database
+discipline, MariaDB best practices, and the database
 worker agent. Uninstalls cleanly: `/db-suite:uninstall` removes the bundle and
 prunes the plugins it auto-installed.
 
@@ -18,9 +18,9 @@ prunes the plugins it auto-installed.
   correctness, NULL logic, safe migrations, plus `/sql:review`
 - **mariadb** — MariaDB 10.6+ divergences from MySQL: RETURNING, sequences,
   system-versioned tables, Galera awareness, plus `/mariadb:review`
-- **database** — engine-agnostic schema/migration/indexing design, the
-  database-engineer worker, a destructive-statement PreToolUse guard, plus
-  `/database:review`
+- **database** — the database-engineer worker that applies
+  schema/migration/indexing work, plus a destructive-statement PreToolUse
+  guard; reviewing rides `/sql:review`
 
 | Command | What it does |
 |---------|--------------|

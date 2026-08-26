@@ -21,6 +21,11 @@ two years, 3 of them in payments" is a decision. If no baseline exists, say that
 `--update-baseline` starts the ratchet and that the first run only establishes a
 line to hold — do not present the initial numbers as findings.
 
+Standing of the ratchet: `unenforceable` as a gate against the model itself —
+`--update-baseline` is runnable by any session, so the line can be reset by the
+same session that crossed it. Never run `--update-baseline` to make a red debt
+report green; growth is accepted by the user, not by the reviewer that caused it.
+
 Triage before the deep read: a trivial, single-file, or purely mechanical change
 earns a one-line verdict — state it and stop. Take the full pass below when the change
 touches correctness-sensitive code (auth, data, migrations, concurrency), OR spans
@@ -28,12 +33,12 @@ more than 5 files, OR exceeds 300 changed lines (a NEW file counts its full leng
 changed).
 
 Stack fan-in — one pass, no duplicate reviews: from the changed files' types and
-manifests, list every matching best-practice skill (`.ts`/`.tsx` → no language
-plugin, the baseline covers language-level review; `.tsx`/`.jsx` with react in
-the manifest → react (server-state only); markup/utility classes touched → the
-matching ui-ux stack skill + a11y-audit; `.php`/`.blade.php` → php, plus
-laravel/livewire per composer.json; `.vue` → vue3; `.sql`/migrations → sql + the
-engine skill). Load each skill whose plugin IS installed and apply it inside the
+manifests, list every matching best-practice skill (`.ts`/`.tsx`/`.jsx`/`.vue` →
+no language plugin, the baseline covers language-level review; react-native per
+its manifest marker; markup/utility classes touched → the matching ui-ux stack
+skill + a11y-audit; `.php`/`.blade.php` → laravel per composer.json;
+`next.config.*`/`app/` routes → nextjs; `.sql`/migrations → sql + mariadb when
+that engine is detected). Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name
 relevant-but-uninstalled plugins in one closing line instead.

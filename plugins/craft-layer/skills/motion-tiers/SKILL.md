@@ -135,7 +135,7 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
 - `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
   split text, whileInView with no fallback, split-text aria, one-writer, scroll-link.
 - `references/rtl-bidi.md` — the RTL/BiDi decision: which effects mirror vs the
-  LTR-islands (charts, numerals, code); reuses the i18n plugin's base rules by path.
+  LTR-islands (charts, numerals, code); states the four-rule base floor itself.
 
 ## Anti-patterns
 

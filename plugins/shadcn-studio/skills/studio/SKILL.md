@@ -27,7 +27,7 @@ Decide the route BEFORE any consent or write:
 
 | Condition | Route |
 |-----------|-------|
-| Runnable Vite+React host (`vite.config.*`, react plugin, `scripts.dev`, components present) | Defer to `design-preview:real-preview` |
+| Runnable Vite+React host (`vite.config.*`, `@vitejs/plugin-react`, `scripts.dev`, components present) | Defer to `design-preview:real-preview` |
 | Node absent, or below `20.19` (the Vite 8 floor) | Static-shell fallback (before any write) |
 | Empty/greenfield dir, or a non-React stack | shadcn-studio (this skill) |
 

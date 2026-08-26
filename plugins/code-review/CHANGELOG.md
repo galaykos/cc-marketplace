@@ -3,6 +3,18 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.12.4
+
+### Changed
+- **The debt ratchet names its standing**: `unenforceable` against the model
+  itself — `--update-baseline` is runnable by any session, so the command now
+  states the line can be reset by the session that crossed it, and forbids
+  running it to green a red report. The gate that would block that write does
+  not exist yet.
+- **Stack fan-in routing** no longer names removed plugins (react, php, vue3,
+  livewire); `.tsx`/`.jsx`/`.vue` now fall to the baseline pass, laravel rides
+  composer.json, and the sql lane pairs with mariadb only.
+
 ## 0.12.3
 
 ### Changed
