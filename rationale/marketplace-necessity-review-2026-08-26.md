@@ -247,3 +247,80 @@ counter-example.
 `scripts/remove-plugin.sh`; its Tier-2 claim is a proposal for `claude plugin
 eval` and is explicitly **not** a measurement. Nothing in `plugins/` was changed
 by this review.
+
+---
+
+## Addendum — same-day re-scan on Fable 5
+
+The scan above ran on Opus 5. This addendum is the same review re-run on
+Fable 5 in the same session, with the honest caveat that it is a
+**re-examination, not a blind replication** — this pass carries the first
+pass's context. What it adds is one piece of live evidence the first pass
+could only cite from web sources, and three corrections found by
+hand-verifying claims the first pass took on trust.
+
+### A. The eviction is no longer a prediction — it happened in this session
+
+Between the two passes the maintainer's own dogfood set was reloaded into the
+live session: 38 plugins, 144 skills, 43 hooks. The resulting skill listing
+arrived with **~31 marketplace skills name-only — descriptions stripped by the
+host** — plus two of the host's own built-ins (`init`, `security-review`).
+All ten spot-checked victims carry a `description:` in their SKILL.md; the
+host dropped them. §2's claim is now observed, not sourced.
+
+Three details sharpen it:
+
+1. **A 1M-context session did not save the listing.** Descriptions alone
+   across the 86 loaded skills total ~19,949 chars, and the tail was stripped
+   anyway — consistent with the ~15k-char absolute default binding before the
+   1% fraction does. Buying a bigger window does not buy back the catalogue.
+2. **The stripped set includes Tier-1 and Tier-2 trigger vocabulary:**
+   `secret-scanning`, `approach-deliberation`, `lean:cost-model`,
+   `candor:straight-talk`, every `resilience`/`system-design`/`observability`
+   body skill. On a fresh machine "least-invoked first" collapses to listing
+   order, exactly as §2 predicted.
+3. **Hooks are eviction-proof; descriptions are not.** All 43 hooks loaded
+   regardless. The mechanism/prose split in §4 is therefore not just a value
+   argument but a *survival* argument: a plugin whose worth is a PreToolUse
+   deny loses nothing to the budget; a plugin whose worth is trigger wording
+   loses precisely that, silently. `secret-scanning` demonstrated both halves
+   at once — its skill description was evicted, its hook was not.
+
+### B. Corrections to the first pass
+
+1. **`packages` does not belong on the Tier-3 cut list.** Its
+   `licence-scan.sh` is a genuine mechanism with an argued transitivity case
+   (12 transitive MPL-2.0 entries invisible in `package.json`, the
+   lockfileVersion-1 silent-false-PASS trap reported via exit 3). The first
+   pass's own §4 classification even filed it under mechanism leaves, then
+   contradicted itself in the cut list. Move to Tier 1.
+2. **`sql` cannot be cut as listed.** `database` — a Tier-1 keep — binds to
+   `sql-best-practices` in its `.chassis.json`, its agent, and its review
+   command, and W3 merged `database-design` *into* it, making it the
+   engine-agnostic floor of the whole DB family. Cutting it orphans a
+   mechanism plugin and fails `validate.sh` on dangling references. Either
+   keep it or re-point the chassis first; the revised cut list is ten leaves
+   (php, postgresql, vue3, nuxt, node-backend, threejs, livewire, mysql,
+   i18n, react), ~1,700 tokens.
+3. **Recommendation 5 was already satisfied when written.** The 11
+   craft-layer corruption sites were repaired by `f38ad65a` ("close the ten
+   defects the 2026-08-20 audit measured"), inside the same PR that merged
+   the audit. All three named sites verified intact on HEAD by hand this
+   pass — `information-design` ends with a complete sentence. The first pass
+   repeated the audit's "still shipping" without checking HEAD; strike
+   recommendation 5.
+
+### C. What survives unchanged
+
+The verdict. Retire `everything`; cut the measured-zero stack prose (as
+revised above); demote `claude-authoring`; spend the eval budget on the seven
+expensive Tier-2 workflow plugins; stop maintaining this as a public
+marketplace. One model-transfer note the ablations already flag: they ran on
+Sonnet, and this pass runs on a stronger model — the direction of that
+asymmetry (a stronger model needs restated idiom *less*) leans further toward
+the Tier-3 cut, though that is reasoning, not a measurement.
+
+**Standing of this addendum: recorded**, same as the document it extends —
+except §A, which is a live observation of the installed host (Claude Code,
+this machine, 2026-08-26) and should be re-checked against any later build
+before being cited as current behavior.
