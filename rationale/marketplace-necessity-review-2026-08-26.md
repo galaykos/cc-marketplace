@@ -324,3 +324,42 @@ the Tier-3 cut, though that is reasoning, not a measurement.
 except §A, which is a live observation of the installed host (Claude Code,
 this machine, 2026-08-26) and should be re-checked against any later build
 before being cited as current behavior.
+
+### D. Third pass, second reload — the evicted set is not even stable
+
+A second `/reload-plugins` of the **identical tree** (verified: no plugin file
+changed between passes) produced a different listing:
+
+| Skill | Reload 2 | Reload 3 | On disk |
+| --- | --- | --- | --- |
+| `ui-ux:design-tokens` | name-only | description restored | 223-ch description |
+| `ui-ux:reui-best-practices` | name-only | description restored | 182-ch description |
+| `ui-ux:shadcn-best-practices` | description present | name-only | 153-ch description |
+| `taskmaster:visual-contract` | loaded | **absent from the load entirely** (banner: 144 → 143 skills) | 237-ch description |
+
+The reload banners themselves disagreed across the sequence — 39/144/43 →
+38/144/36 → 38/143/36 (plugins/skills/hooks), with "1 error during load" on the
+first. The deep tail (approaches, resilience, orchestration, observability,
+secret-scanning, lean, candor, …) stayed stripped in every reload; the flicker
+sits at the **margin**, consistent with a budget cutoff whose exact position
+shifts run to run.
+
+What this adds to §A: near the budget edge, a skill's trigger vocabulary is not
+merely evicted — it is **nondeterministically present**, and in at least one
+reload a skill vanished from the load with its name. Any behavior that depends
+on a listing entry near the edge is a coin flip per session. The
+`visual-contract` disappearance is attributed by diffing the two listings and
+corroborated by the banner count; a load error, not eviction, may explain that
+one case — either way it is availability the plugin author cannot rely on.
+
+Separately observed live this pass: `skill-router`'s UserPromptSubmit tool-fit
+directive fired and reached the model in full — the dynamic channel working as
+designed, unaffected by listing eviction, consistent with the README's
+"~2.5k tokens on the first work-shaped prompt" figure. The same asymmetry as
+§A.3: what the marketplace injects itself arrives intact; what it asks the host
+to list does not.
+
+Verdict impact: none on the tiers; it further weakens any plan that trims
+descriptions to "fit" the budget — at 38 plugins the margin flickers, so fitting
+is not a stable state. The only stable states are well under the budget or
+hook/command-routed.
