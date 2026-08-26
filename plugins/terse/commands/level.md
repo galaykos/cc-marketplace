@@ -1,6 +1,6 @@
 ---
-description: Set or report the terse output level — lite, full, ultra, off — a chat-message shape contract that never touches code, files, or how much work the turn does.
-argument-hint: "[lite | full | ultra | off | status]"
+description: Set or report the terse output level — lite, full, ultra, wenyan-*, off — a chat-message shape contract that never touches code, files, or how much work the turn does.
+argument-hint: "[lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra | off | status]"
 ---
 
 # /terse:level
@@ -18,7 +18,7 @@ cat "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode" 2>/dev/null || echo none
 
 Parse the first token of `$ARGUMENTS`:
 
-## `lite` / `full` / `ultra`
+## `lite` / `full` / `ultra` (and the `wenyan-*` variants)
 
 The hook wrote the level and re-injected the contract. Confirm in **one line**:
 name the level and its two budget numbers (answer / work-done report, in prose
@@ -29,6 +29,13 @@ lines of ~100 rendered characters each).
 | lite | 10 | 18 | full sentences, filler dropped |
 | full | 6 | 12 | articles and filler dropped, fragments fine |
 | ultra | 3 | 6 | plus abbreviated prose nouns and causal arrows |
+
+The three `wenyan-lite` / `wenyan-full` / `wenyan-ultra` levels are the SAME rows
+of that table — identical prose-line budgets — with the word layer swapped for a
+classical-Chinese register (`terse-output`'s `references/wenyan.md`). `hooks/mode.sh`
+has always accepted them; this doc did not branch on them until 2026-08-25, so a
+`wenyan-full` argument fell through every case here while the hook wrote the level.
+Confirm one of them the same way, naming the register alongside the budgets.
 
 Then apply it from your very next message. Load the `terse-output` skill if the
 contract is not already in context.

@@ -39,13 +39,13 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `everything` | 61 | ~12.5k tokens | ~1.2k tokens | ~2.5k tokens |
 | `taskmaster-suite` | 31 | ~7.3k tokens | ~174 tokens | ~2.5k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
-| `quality-principles-suite` | 9 | ~2.0k tokens | — | — |
+| `quality-principles-suite` | 9 | ~2.1k tokens | — | — |
 | `process-suite` | 10 | ~1.9k tokens | ~37 tokens | ~2.5k tokens |
 | `frontend-suite` | 12 | ~1.6k tokens | ~37 tokens | ~2.3k tokens |
-| `quality-suite` | 8 | ~1.2k tokens | ~37 tokens | ~2.4k tokens |
-| `php-suite` | 6 | ~569 tokens | — | — |
-| `db-suite` | 5 | ~439 tokens | — | — |
-| `product-suite` | 3 | ~277 tokens | — | — |
+| `quality-suite` | 8 | ~1.3k tokens | ~37 tokens | ~2.4k tokens |
+| `php-suite` | 6 | ~638 tokens | — | — |
+| `db-suite` | 5 | ~507 tokens | — | — |
+| `product-suite` | 3 | ~346 tokens | — | — |
 
 `everything` is all 61 leaf plugins; every other row is a curated subset.
 

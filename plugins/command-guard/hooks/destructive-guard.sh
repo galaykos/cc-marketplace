@@ -341,6 +341,39 @@ classify() {
     [ "$VERDICT" = "deny" ] && break
 
     if [ "$pipe_to_shell" -eq 0 ]; then
+      # NO SELF-EXEMPTION. THIS IS DELIBERATE, AND IT WAS TRIED TWICE.
+      #
+      # The problem it tried to solve is real: this guard denies the exact command
+      # its own /command-guard:check tells the model to type, because that command
+      # carries the deny-tier target as an argument and arrives through the Bash
+      # tool. See commands/check.md, which now states the limitation instead.
+      #
+      # Attempt 1 (0.2.0) matched `bash … destructive-guard.sh … --check` as
+      # substrings anywhere in the segment. Bypassed by `bash -c PAYLOAD name arg…`,
+      # which runs PAYLOAD and demotes the appended magic words to $0/$1.
+      #
+      # Attempt 2 (0.2.1) matched by ARGV POSITION — word 1 bash/sh, word 2 the
+      # guard's own path, word 3 --check. That closed the arg-shifting wrapper and
+      # was still bypassed three ways, because the exemption's `continue` skips
+      # classification of the WHOLE segment while a shell segment carries side
+      # effects the shell evaluates independently of argv:
+      #     …guard.sh --check "$( <destructive> )"    command substitution
+      #     …guard.sh --check ` <destructive> `       backticks
+      #     …guard.sh --check foo > /dev/<rawdisk>    redirection
+      # In each, the payload runs before or beside the classifier that argv says
+      # is all that happens.
+      #
+      # The lesson generalises past this plugin: an exemption keyed on what a
+      # command LOOKS like cannot be safe when the shell will evaluate parts of
+      # that same string on its own terms. Any third attempt has to classify the
+      # segment anyway and suppress only the verdict arising from the --check
+      # ARGUMENT — which means parsing shell grammar, which this guard
+      # deliberately does not do. A convenience command is not worth a hole in a
+      # deny gate, so the convenience loses.
+      #
+      # The bypass vectors are pinned as DENY assertions in
+      # scripts/__tests__/destructive-guard.test.sh § self-exemption. If someone
+      # adds an exemption again, those assertions are what should stop it.
       if is_reader "$lead"; then continue; fi
       if [ "$lead" = "git" ]; then
         sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')

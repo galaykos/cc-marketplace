@@ -23,8 +23,7 @@ Read `orchestration:verification-panels` and reuse it wholesale:
 - **Loop-until-dry** — repeat rounds until two consecutive rounds surface nothing new, capped at 3 rounds whichever comes first (the cap is owned by that skill, not re-derived here).
 
 Do NOT re-derive the voting, independence, or dedup discipline here. If you find yourself
-writing panel logic, stop — it already exists in that skill and this one only wires it to
-the produced code.
+writing panel logic, stop — it exists in that skill; this one only wires it to the code.
 
 ## The target: the produced code diff
 
@@ -49,6 +48,11 @@ deliverable the input-side red-team skipped.
 
 Spawn exactly three blind refuters over the diff, independent (no refuter sees another's
 verdict), each handed the same diff but a DIFFERENT attack lens.
+
+**N is fixed** while `verification-panels` sizes N to radius — that skill's one blessed
+exception, not an invention: N is the lens count, so 2 deletes a lens, and a small diff
+still hides what that lens alone hunts. `reduction-record.sh --kind redteam` records a
+degraded run (no `Workflow`), never a sized-down panel.
 
 **Coverage markers.** Each refuter's prompt opens with `RT-LENS: <lens>`, the critic's
 with `RT-CRITIC: <ref>`. `hooks/rv-observe.sh` records those dispatches; `completion-gate.sh`

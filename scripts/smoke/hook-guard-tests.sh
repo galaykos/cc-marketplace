@@ -49,6 +49,17 @@ assert_silent() { # desc  hook  json  [path-override]
   pass "$desc"
 }
 
+# The mirror of assert_silent. A guard that only ever proves silence cannot
+# distinguish "correctly narrowed" from "broken and mute", so every narrowing
+# change needs at least one case asserting the hook still SPEAKS.
+assert_speaks() { # desc  hook  json
+  local desc="$1" hook="$2" json="$3" out rc_
+  out="$(printf '%s' "$json" | "$BASH_BIN" "$hook" 2>/dev/null)"; rc_=$?
+  if [ "$rc_" -ne 0 ]; then fail "$desc" "exit $rc_ (want 0)"; return; fi
+  if [ -z "$out" ]; then fail "$desc" "wanted a reminder, got silence"; return; fi
+  pass "$desc"
+}
+
 # a keyword-dense prompt: WOULD trigger a reminder if jq worked, so no-jq proves fail-open
 LOUD='{"prompt":"adspower scrape build create api endpoint webhook fingerprint camoufox kameleo puppeteer playwright facebook"}'
 # Misfire regression fixtures (live transcripts, 2026-07-27): keyword-dense text that
@@ -56,6 +67,13 @@ LOUD='{"prompt":"adspower scrape build create api endpoint webhook fingerprint c
 NOTIF='{"prompt":"[SYSTEM NOTIFICATION - NOT USER INPUT] task-notification: agent finished, mentions sdk endpoint webhook oauth build create refactor migrate still failing"}'
 META='{"prompt":"we should delete the puppeteer plugin and fix the keyword trigger of the reminder hook, it fires on oauth session cache endpoint refactor still failing mentions"}'
 QUOTE='{"prompt":"UserPromptSubmit hook success: build-vs-buy: weigh take vs wrap vs write — why did that fire on my oauth session endpoint refactor prompt?"}'
+# Question-shaped misfires (live transcript, 2026-08-25). Each carries a trigger
+# keyword inside a clause that ASKS about the work rather than requesting it. The
+# third is the one a first-clause-only rule misses: it opens declaratively and the
+# interrogative arrives at the end.
+ASKCAN='{"prompt":"Are you able to build a tool based on Claude Code CLI, a different type of harness?"}'
+ASKIDEA='{"prompt":"do we also have a plugin that will auto create advisors? is this a good idea? should we write our own or use the built-in oauth endpoint sdk one?"}'
+ASKTAIL='{"prompt":"we already got a plugin marketplace, but it feels like too much no? we got a lot of plugins, do we REALLY need this much? if we needed to build from scratch, what would you do?"}'
 
 found=0
 for hook in "$ROOT"/plugins/*/hooks/remind.sh; do
@@ -69,7 +87,24 @@ for hook in "$ROOT"/plugins/*/hooks/remind.sh; do
   assert_silent "$rel [notification-paste]" "$hook" "$NOTIF"
   assert_silent "$rel [meta-request]"       "$hook" "$META"
   assert_silent "$rel [quoted-hook-output]" "$hook" "$QUOTE"
+  assert_silent "$rel [question-modal]"     "$hook" "$ASKCAN"
+  assert_silent "$rel [question-advice]"    "$hook" "$ASKIDEA"
+  assert_silent "$rel [question-tail]"      "$hook" "$ASKTAIL"
 done
+
+# The interrogative guard must NARROW, not mute. A prompt that asks something AND
+# requests work still speaks — otherwise the guard would trade one misfire class
+# for a silent hook, which is the failure mode the fail-open bias exists to avoid.
+# taskmaster carries the broadest trigger (bare work verbs), so it is the probe.
+TMR="$ROOT/plugins/taskmaster/hooks/remind.sh"
+if [ -f "$TMR" ]; then
+  assert_speaks "taskmaster [imperative after question]" "$TMR" \
+    '{"prompt":"should we use redis? add the cache layer to UserRepository now"}'
+  assert_speaks "taskmaster [imperative after statement]" "$TMR" \
+    '{"prompt":"that looks wrong. fix the parser"}'
+  assert_speaks "taskmaster [plain imperative]" "$TMR" \
+    '{"prompt":"add a caching layer to the user repository and refactor the service"}'
+fi
 
 # ---- MONOTONIC PRECEDENCE (spec §4.4, card C5) -------------------------------
 # These assertions REPLACE the old per-prompt-budget block, which asserted that the

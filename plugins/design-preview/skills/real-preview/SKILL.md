@@ -79,8 +79,8 @@ run `vite` against the app directory, or fall back.
 **Laravel Blade / Livewire: the trick does NOT transfer.** PHP owns routing, so
 there is no extra-HTML-entry mechanism to borrow — assuming there is, and adding
 an entry Vite never serves, is the failure this section exists to prevent. The
-path is instead: a scratch route file (`routes/__design-preview__.php`, required
-from nothing) or one closure added to `routes/web.php` behind a clearly marked
+path is instead: a scratch route file (`routes/__design-preview__.php`, loaded by one
+marker-carrying `require` line in `routes/web.php` — nothing loads it on its own) or one closure added to `routes/web.php` behind a clearly marked
 block, plus a scratch Blade view carrying `@vite` and the variants. Because that
 touches `routes/web.php` in the one case where a separate file cannot be loaded
 without registering it, name that file explicitly in the consent prompt, and

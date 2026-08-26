@@ -34,7 +34,7 @@ rollForward selects a different SDK than `dotnet --version` prints, `uv.lock`
 carries a stricter `requires-python` than `pyproject.toml`, the JVM toolchain
 block outranks `JAVA_HOME`, and a pnpm `catalog:` specifier is an alias rather
 than a version. Read `references/ecosystems.md` before reporting a version for
-Python, Go, Rust, .NET, JVM, Ruby, or any pnpm workspace — it lists only the
+Python, Go, Rust, .NET, JVM, or any pnpm workspace — it lists only the
 conflicts, not the filenames.
 
 ## Reading the JS lockfile without drowning
@@ -105,7 +105,7 @@ input for other work — advice pinning, upgrade planning — not an essay.
 ## Feeding the other plugins
 
 This inventory is the version input the review commands and version-aware skills
-(php, mysql, mariadb, postgresql, react, vue) pin against, and what taskmaster's
+(php, mysql, mariadb, postgresql, react, vue3) pin against, and what taskmaster's
 context-scout cites as hard constraints. Run it once per session in an unfamiliar
 repo; cite `installed (source)` values, never bare version numbers from memory.
 

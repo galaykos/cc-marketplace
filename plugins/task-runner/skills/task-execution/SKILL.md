@@ -63,7 +63,7 @@ inline security-review skill runs after the batch joins (`references/reviewer-ro
 `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate
 it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
-**Role-tier floor:** an agent with a row in `references/role-floors.md` dispatches at
+**Role-tier floor:** an agent with a row in delegation-contracts' `references/role-floors.md` dispatches at
 its floor or the session model, whichever is higher — never below. Resolution rules and
 the registry-miss path: `references/reviewer-routing.md` § Role-tier floor.
 

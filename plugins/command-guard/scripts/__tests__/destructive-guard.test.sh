@@ -255,6 +255,64 @@ for junk in '' 'not json at all' '{"tool_name":' '{}' '{"tool_name":"Bash"}' '{"
 done
 
 # ---------------------------------------------------------------------------
+# 5. NO SELF-EXEMPTION -- the guard must not carve a hole for its own CLI
+# ---------------------------------------------------------------------------
+# A self-exemption was added twice and reverted twice. The motivating problem is
+# real and is now stated as a limitation in commands/check.md instead: this guard
+# denies the exact invocation /command-guard:check tells the model to type,
+# because that invocation carries the deny-tier target as an argument.
+#
+# Both attempts leaked. 0.2.0 matched the three tokens as substrings anywhere in
+# the segment, and `bash -c PAYLOAD name arg...` runs PAYLOAD while demoting the
+# appended magic words to $0/$1. 0.2.1 matched by argv POSITION, which closed
+# that, and was still bypassed three ways: an exemption that `continue`s past
+# classification skips the WHOLE segment, and a shell segment carries side
+# effects the shell evaluates independently of argv -- command substitution,
+# backticks, and redirection.
+#
+# These assertions pin every known vector as DENY. They pass with no exemption
+# present; they FAIL against 0.2.0 and 0.2.1. If someone adds a third exemption,
+# this section is what should stop it.
+printf '== no self-exemption\n'
+
+# The plain invocation the CLI documents: denied, and that IS the limitation.
+expect deny "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fresh'"
+expect deny "sh destructive-guard.sh --check 'php artisan migrate:fresh'"
+expect deny 'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
+expect deny 'sh -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y'
+expect deny 'bash -c "php artisan migrate:fresh" /opt/hooks/destructive-guard.sh --check y'
+expect deny 'eval "php artisan migrate:fresh" destructive-guard.sh --check y'
+
+# Shell-evaluated side effects inside an otherwise exemption-shaped segment
+# (bypassed 0.2.1). The payload runs before or beside the classifier that
+# argv says is all that happens.
+expect deny 'bash "/x/hooks/destructive-guard.sh" --check "$(php artisan migrate:fresh)"'
+expect deny 'sh destructive-guard.sh --check `php artisan migrate:fresh`'
+expect deny 'bash /x/hooks/destructive-guard.sh --check foo > /dev/sda'
+
+# Controls: the same payloads with no exemption-shaped tail must also deny.
+expect deny 'php artisan migrate:fresh'
+expect deny 'bash -c "php artisan migrate:fresh"'
+
+# HOOK MODE, not just CLI mode. Everything above drives `--check`, which reaches
+# classify() directly. An exemption added in the HOOK path instead — a `case` on
+# the raw command string before classify() is ever called — is invisible to all
+# of it: a reviewer built exactly that (the 0.2.0 substring bug, relocated one
+# layer up) and this section still passed clean while the hole was live. That is
+# the same CLI-mode/hook-mode composition gap that let the original defect ship,
+# reappearing in the tests written to close it. These drive the real PreToolUse
+# entry point, so a third exemption is caught wherever it is placed.
+for v in \
+  "bash /x/hooks/destructive-guard.sh --check 'php artisan migrate:fresh'" \
+  'bash -c "php artisan migrate:fresh" hooks/destructive-guard.sh --check y' \
+  'bash "/x/hooks/destructive-guard.sh" --check "$(php artisan migrate:fresh)"' \
+  "bash /x/hooks/destructive-guard.sh --check foo > /dev/sda"; do
+  out=$(printf '%s' "$(bash_json "$v")" | "$BASH_BIN" "$GUARD" 2>/dev/null)
+  d=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)
+  [ "$d" = "deny" ] && ok || bad "hook mode must deny an exemption-shaped payload" "verdict=${d:-<silent>} cmd=$v"
+done
+
+# ---------------------------------------------------------------------------
 SNAP_AFTER=$(git_snap)
 [ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated the working tree" "git status changed"
 

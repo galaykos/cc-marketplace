@@ -128,8 +128,8 @@ assumption list, or the user says "enough". Then:
    goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected
    alternatives and kill-trigger, non-goals, success criteria, and the converged ledger embedded
    as `## Ambiguity ledger (final)`; run `${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh --spec <file>` (blocks
-   UNKNOWN/missing/empty ledger) until exit 0. Staged visual/creative picks → invoke the
-   `visual-contract` skill to bind them as `## Visual contract`.
+   UNKNOWN/missing/empty ledger) until exit 0. Staged visual/creative picks → follow
+   `references/visual-contract.md` to bind them as `## Visual contract`.
 3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
    attack the frozen spec for holes and resolve each before cards; trivial specs skip.
 4. Invoke the `task-cards` skill from this plugin to split the spec into single-prompt task cards.

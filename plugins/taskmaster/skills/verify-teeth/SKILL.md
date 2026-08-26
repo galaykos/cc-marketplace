@@ -12,22 +12,22 @@ done. That is the root cause behind untested, non-combat-ready output: the gate 
 supposed to prove the work is itself hollow. This skill makes the Verify line earn its green
 at authoring time, before a single line of implementation is written.
 
-## Where it sits — the three-layer defense
+## Where it sits — layer 1 of the three-layer defense
 
-verify-teeth is the cheap author-time first layer of a three-layer teeth defense; it never
-claims to be the whole thing:
+**This skill owns layer 1 only:** a syntactic denylist over the Verify *line text*,
+catching the obvious weak forms the moment a card is written, before any code
+exists. Fast and free, and shallow by construction — text cannot see behaviour.
 
-1. **Author-time (this skill).** A syntactic denylist over the Verify *line text*. Catches
-   the obvious weak forms the moment a card is written — no code needs to exist yet.
-2. **Run-time empty-suite (task-runner behavioral-gate).** At run completion, fails a
-   code-producing run whose own test suite collects zero tests — the thing text alone
-   cannot see.
-3. **Run-time red-before-green (task-runner negative-control).** Before each card flips
-   done, proves the verify goes RED against a targeted disabling of the feature — the proof
-   that the check discriminates working code from broken code.
+Layers 2 and 3 run during execution and live in `task-runner`, which owns and
+states the full map: `task-runner:behavioral-gate` § "The three-gate defense".
+Read it there when installed; do not re-derive the ordering here.
 
-Layer 1 is fast and free but shallow; layers 2 and 3 are deep but only run during execution.
-Together they close the "green proves nothing" gap. This skill owns layer 1 only.
+That deferral is the fix for a real defect, not tidiness. This section used to
+restate all three layers, and the two copies had drifted into DISAGREEMENT: this
+file called layer 2 the empty-suite gate and layer 3 the negative control, while
+behavioral-gate called layer 2 the negative control and layer 3 itself. Same
+numbers, different mechanisms. One owner, cited rather than mirrored, is the only
+shape that cannot drift again.
 
 ## When it runs
 

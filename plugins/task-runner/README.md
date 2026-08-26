@@ -15,7 +15,7 @@ full-suite completion gate.
 
 | Command | What it does |
 |---------|--------------|
-| `/task-runner:run [tasks-dir-index-or-list]` | Execute a task list — a taskmaster `00-INDEX.md`, a plan's task sequence, or an inline list |
+| `/task-runner:run [tasks-dir-index-or-list] [--tracks[=N]] [--crew] [--sweep]` | Execute a task list — a taskmaster `00-INDEX.md`, a plan's task sequence, or an inline list |
 
 ## Which model runs your cards
 

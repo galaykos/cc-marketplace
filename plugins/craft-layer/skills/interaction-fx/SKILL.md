@@ -51,10 +51,9 @@ as a toy and fights the click target underneath.
   parent and `perspective` on the container; larger angles nauseate rather than delight.
 - **Drag affordance** — a grabbable handle or carousel using Framer drag with inertia and
   constraints, with a visible grab cursor, a keyboard/scroll equivalent, AND a
-  single-pointer non-dragging path (tap targets, prev/next, a click-to-position control).
-  WCAG 2.2 SC 2.5.7 (AA) requires the non-dragging pointer route specifically — keyboard
-  access does not satisfy it, because it is pointer users who cannot drag that the
-  criterion protects. Mechanics + the shared pointer loop: `references/pointer-patterns.md`.
+  single-pointer non-dragging path (tap targets, prev/next, a click-to-position control)
+  — keyboard access does not satisfy this one (SC 2.5.7; `a11y:a11y-audit` owns it).
+  Mechanics + the shared pointer loop: `references/pointer-patterns.md`.
 
 ## Accessibility (non-negotiable)
 

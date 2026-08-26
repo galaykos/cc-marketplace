@@ -63,7 +63,16 @@ run_hook() { # run_hook <prompt> <root> [env...] -> hook stdout
   local prompt="$1" root="$2"; shift 2
   local n; n=$(( $(cat "$COUNTER") + 1 )); printf '%s' "$n" > "$COUNTER"
   local box="$WORK/box-$n"; mkdir -p "$box"
-  printf '%s' "$prompt" | jq -Rs --arg s "sess-$n" '{prompt:., session_id:$s}' \
+  # HOST-SHAPED PAYLOAD: transcript_path is sent, and it is load-bearing.
+  # route-prompt.sh keys its pending-signal flush on `.transcript_path //
+  # .session_id` — the same key route.sh writes — so a payload carrying only
+  # session_id grades the FALLBACK branch and this harness would report green on
+  # a hook that never finds its state file. That is exactly how the writer/reader
+  # key mismatch shipped: every assertion here passed while the flush was dead.
+  # `pc_harness_payload` fails this file if the field goes away again.
+  local tp="$box/transcript-sess-$n.jsonl"; : > "$tp"
+  printf '%s' "$prompt" | jq -Rs --arg s "sess-$n" --arg tp "$tp" \
+      '{prompt:., session_id:$s, transcript_path:$tp}' \
     | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$root" "$@" "$BASH_BIN" "$HOOK" 2>/dev/null
 }
 
@@ -185,7 +194,9 @@ run_remind() { # run_remind <hook> <prompt> -> hook stdout
   local hook="$1" prompt="$2"
   local n; n=$(( $(cat "$COUNTER") + 1 )); printf '%s' "$n" > "$COUNTER"
   local box="$WORK/rbox-$n"; mkdir -p "$box"
-  printf '%s' "$prompt" | jq -Rs --arg s "rsess-$n" '{prompt:., session_id:$s}' \
+  local tp="$box/transcript-rsess-$n.jsonl"; : > "$tp"
+  printf '%s' "$prompt" | jq -Rs --arg s "rsess-$n" --arg tp "$tp" \
+      '{prompt:., session_id:$s, transcript_path:$tp}' \
     | env TMPDIR="$box" "$BASH_BIN" "$hook" 2>/dev/null
 }
 

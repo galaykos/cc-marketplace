@@ -16,7 +16,7 @@ job.
 
 | Command | What it does |
 |---------|--------------|
-| `/packages:audit` | Audit composer/npm dependencies — vulnerabilities and outdated packages, severity-sorted with a fix lane per finding; report-only |
+| `/packages:audit` | Audit composer/npm dependencies — vulnerabilities, outdated packages, and dependency licences against the project's distribution mode, severity-sorted with a fix lane per finding; report-only |
 
 ## Example
 

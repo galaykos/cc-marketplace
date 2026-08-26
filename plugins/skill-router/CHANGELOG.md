@@ -2,6 +2,76 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.13.7
+
+### Fixed
+- The command catalog advertised commands that cannot be invoked. `pr_plugin_roots`
+  walks every directory under the resolved plugins root; on a real install that
+  root is the versioned CACHE, which keeps every plugin ever installed — including
+  plugins later dropped from the marketplace and bundles the user switched off.
+  Version dedup ran over that list and the stack filter ran over it, but
+  enablement never did. Measured on a HEAD install: 82 plugins and 108 commands
+  offered, of which 17 commands belonged to plugins that are not enabled, 16 of
+  them owned by plugins absent from `marketplace.json` entirely. Those rows landed
+  at the exact surface where the model picks a tool, so the cost was not only the
+  ~400 tokens — it was pointing the model at `/estimation:size` and <!-- removed-ok -->
+  `/design-patterns:suggest`, which resolve to nothing. Naming them here is the <!-- removed-ok -->
+  point: both are exactly the removed artifacts the catalog was still offering. The same install now
+  resolves 65 plugins and 91 commands.
+- `pr_plugin_installed` had the same blind spot and is filtered on the same rule,
+  so a rule can no longer nudge toward a plugin the user has turned off.
+
+### Added
+- `pr_load_enabled` / `pr_is_enabled` in `hooks/plugins-dir.sh`. The enabled set is
+  the UNION of `enabledPlugins` across `<config>/settings.json`, the project's
+  `.claude/settings.json` and `.claude/settings.local.json`, so a plugin enabled at
+  any layer counts as enabled.
+- `scripts/smoke/enablement-filter-tests.sh` (14 assertions), registered in
+  `.github/workflows/validate.yml`. It asserts BOTH directions — suppression and
+  fail-open — under both install layouts. Asserting only one direction proves
+  nothing: a filter that always suppresses passes the suppression cases, and the
+  previous behaviour passes the fail-open ones.
+
+### Notes on scope, stated rather than implied
+- Fail open is preserved everywhere it already existed. No jq, no settings file, no
+  `enabledPlugins` key, or unparseable JSON all yield an empty set, and an empty
+  set filters nothing — byte-for-byte the previous behaviour.
+- A SCOPE GUARD limits the enabled set to trees under the config dir. `enabledPlugins`
+  describes the user's own install; a smoke fixture, a vendored checkout or a second
+  marketplace is not governed by it. This was found the hard way — the first version
+  shipped without the guard and turned `versioned-layout-tests.sh` and
+  `route-marker-tests.sh` red, because both build scratch roots under `$TMPDIR` while
+  the ambient `~/.claude/settings.json` named entirely different plugins. A
+  name-overlap heuristic was tried first and rejected: a scratch tree containing one
+  real plugin name would activate the filter and suppress every fixture-only sibling.
+- Managed-policy settings are not read. On a fleet that enables plugins ONLY through
+  managed policy, those plugins would be filtered out whenever another layer lists
+  anything at all. That is the one case where this can suppress a live plugin.
+
+## 0.13.6
+
+### Fixed
+- The low-confidence signal channel was dead. `route.sh` writes its state file as
+  `fired-<cksum(transcript_path // session_id)>.json`, but `summary.sh` and
+  `route-prompt.sh` both read `fired-<raw session_id>.json` — spellings that can
+  never agree, because the cksum is applied to the fallback branch too. Since
+  2026-08-16 that meant: the 11 low-confidence content rules accumulated signals
+  no model turn ever saw, the `surfaced.jsonl` ledger got no rows from a HEAD
+  install (freezing the denominator `scripts/retirement-queue.sh` ranks by), and
+  the state files were never cleaned up. Both readers now derive the same key.
+  `session_id` stays the raw value where it is a recorded ledger FIELD rather
+  than an address.
+- `summary.sh`'s comment claimed `/hindsight:harvest` reads `surfaced.jsonl`.
+  It never has; the only reader is `scripts/retirement-queue.sh:63`.
+
+### Added
+- A cross-hook round-trip case in `scripts/smoke/route-marker-tests.sh`: it runs
+  `route.sh` → `route-prompt.sh` → `summary.sh` on one host-shaped payload and
+  asserts the digest and the ledger row. Every prior assertion drove one hook
+  alone, and the existing state-file check was name-agnostic (`find -name
+  'fired-*.json'`), which is why the suite stayed green through the break.
+  Verified against the old code: the new case fails on it.
+
 ## 0.13.5
 
 ### Changed
