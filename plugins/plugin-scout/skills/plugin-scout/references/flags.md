@@ -1,22 +1,27 @@
-# Flags: --yes and --persist
+# Flags: --yes, --persist, --global
 
-Full semantics for the two `/plugin-scout:suggest` flags. `SKILL.md` Flags
+Full semantics for the three `/plugin-scout:suggest` flags. `SKILL.md` Flags
 section is the short pointer; this file is the source of truth a reviewer
 checks against.
 
 ## `--yes`
 
-Bypasses ONLY the AskUserQuestion install picker in the Install section — every
-other step (Preflight, Detection, Report) runs unchanged, and the full report
-table always prints before any install happens.
+The auto-installer. Bypasses ONLY the AskUserQuestion install picker in the
+Install section — every other step (Preflight, Detection, Report) runs
+unchanged, and the full report table always prints before any install happens.
 
-- Auto-select set: every tier-1 suggestion that (a) has a detection signal
-  with cited evidence and (b) is not already installed. Tier-2 ("universal")
-  suggestions are never auto-installed, under any flag combination — that
-  floor is absolute.
-- Zero tier-1 picks (nothing signal-backed and not-yet-installed): print the
-  report only, run no picker, and add a hint line to rerun without `--yes` to
-  pick from the tier-2 set manually.
+- Auto-select set, two parts, both filtered to not-already-installed:
+  1. every tier-1 suggestion with a detection signal and cited evidence —
+     the SKILL's stack table AND the `references/signals.md` rows alike;
+  2. every tier-2 core row from `references/any-core.md` — the curated
+     any-project set installs on every run because its usefulness does not
+     depend on a signal.
+- Tier-3 ("universal" / "no signal detected") suggestions are never
+  auto-installed, under any flag combination — that floor is absolute. A mass
+  install of the remainder must be a human pick through the picker.
+- Zero auto-installable picks (nothing in either part not yet installed):
+  print the report only, run no picker, and add a hint line to rerun without
+  `--yes` to pick from the tier-3 set manually.
 - Ambiguous Vue major (see Stack signals): `--yes` does not resolve the
   ambiguity. Suggest nothing for vue and keep the report's ambiguous-
   constraint line — an ambiguous signal is not a signal-backed pick. (There
@@ -29,19 +34,22 @@ table always prints before any install happens.
   to already be registered in headless mode. Do not fall back to
   command-printing mode here — that would silently skip the trust decision
   `--yes` is not allowed to skip.
-- Headless without `--yes`: behavior is unchanged from today — print install
-  commands instead of running them, then stop.
+- Headless without `--yes`: behavior is unchanged — print install commands
+  instead of running them, then stop.
 - Headless with `--yes` and the marketplace present: installs proceed for
   real (that is the point of the flag).
 - Docs note: plugins installed via `--yes` may ship hooks (SessionStart,
   UserPromptSubmit, etc.) that activate in later sessions once installed —
   this is no different from a manual install, but is worth surfacing because
-  the user did not see an install picker for these specific picks.
+  the user did not see an install picker for these specific picks. The core
+  set makes this more likely (secret-scanning and comment-discipline ship
+  write-time hooks), so the summary line must name it.
 
 ## `--persist`
 
 Changes the Install section's scope and adds a settings step afterwards; it
-covers only what actually got installed this run.
+covers only what actually got installed this run. Mutually exclusive with
+`--global` — see below.
 
 - Install scope: with `--persist`, every `claude plugin install` this run uses
   `--scope project` instead of the default `--scope local` — the CLI itself
@@ -50,9 +58,9 @@ covers only what actually got installed this run.
   the point of `--persist` is that teammates who clone the repo get the same
   set without rerunning plugin-scout).
 - Written set: exactly the plugins actually installed this run — the picker's
-  picks, or the `--yes` tier-1 auto-set. Never the full detected set and never
-  plugins that were already installed before this run (they need no new
-  entry). This mirrors the explicit-pick invariant the rest of the skill
+  picks, or the `--yes` auto-set (tier 1 + core). Never the full detected set
+  and never plugins that were already installed before this run (they need no
+  new entry). This mirrors the explicit-pick invariant the rest of the skill
   holds to.
 - Settings step, after installs finish: verify `.claude/settings.json` carries
   both keys, merging in with `jq` whatever the CLI did not write itself —
@@ -79,19 +87,41 @@ covers only what actually got installed this run.
   directly.
 - Running `--persist` inside the cc-marketplace repo itself is accepted and
   out of scope for special-casing — the self-reference is harmless.
-- Combinable with `--yes`: run Install (auto-installing the tier-1 set), then
+- Combinable with `--yes`: run Install (auto-installing tier 1 + core), then
   persist that same set.
+
+## `--global`
+
+Changes the Install section's scope to the machine-wide user scope; no
+settings step of its own — the CLI writes the user's own settings.
+
+- Install scope: with `--global`, every `claude plugin install` this run uses
+  `--scope user` — the user's `~/.claude/settings.json`, which enables each
+  plugin in **every repo on this machine**, not just this project.
+- Required notice: before the first install (in the report, and again in the
+  summary line), print one line stating that user scope is machine-wide —
+  these plugins will be active in every project the user opens.
+- No project-settings step: `--global` writes nothing into the repo — no
+  `.claude/settings.json`, no `.claude/settings.local.json` entries. The CLI
+  owns the user-settings write; do not hand-merge `~/.claude` files.
+- Mutually exclusive with `--persist`: the two name different owners for the
+  same install (team-shared repo file vs personal machine-wide file). Both
+  flags at once: abort before Preflight with one line naming the conflict and
+  asking for exactly one of them. Nothing installs on the aborted run.
+- Combinable with `--yes`: the auto-set (tier 1 + core) installs at user
+  scope. This is the intended one-shot "set up my machine" path; the
+  machine-wide notice above still prints — `--yes` never silences it.
+- Headless: same rules as the other flags — without `--yes`, print the
+  `--scope user` install commands and stop; with `--yes` and the marketplace
+  registered, install for real.
 
 ## Scope model
 
-Every install this skill runs is repo-scoped — never the CLI's `user` default,
-which would enable the plugin globally across every repo on the machine:
+Three modes, one flag surface — every install this run uses exactly one scope:
 
 - Default: `--scope local` — this project's `.claude/settings.local.json`,
   gitignored, personal. Repo-only with zero commit surface.
 - With `--persist`: `--scope project` — this project's `.claude/settings.json`,
   team-shared, committed.
-
-No separate `--scope` flag is exposed: the two-mode mapping above is the whole
-scope surface, and a user who wants a global install can run
-`claude plugin install` themselves.
+- With `--global`: `--scope user` — the user's `~/.claude/settings.json`,
+  machine-wide, every repo.

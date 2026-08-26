@@ -1,21 +1,26 @@
 # plugin-scout
 
 Scan the current project's manifests — composer.json, package.json,
-tsconfig.json, .env, Dockerfile/docker-compose — and suggest which
-cc-plugins-marketplace plugins to install, in two tiers: stack-matched (with the
-evidence file cited per suggestion) and the universal always-useful set. Already
+tsconfig.json, .env, Dockerfile/docker-compose — and suggest **every**
+cc-plugins-marketplace plugin, in three tiers: stack-matched (with the evidence
+file cited per suggestion), the curated any-project core (useful regardless of
+stack — `skills/plugin-scout/references/any-core.md`), and the universal
+remainder, paged list by list until the whole catalog has been offered. Already
 installed plugins are marked and skipped. Picked suggestions are installed via
 `claude plugin install <name>@cc-plugins-marketplace --scope local` after an
-explicit confirm — always repo-scoped, never the user's global scope
-(`--persist` upgrades the scope to `project` for team sharing).
+explicit confirm — repo-scoped by default (`--persist` upgrades the scope to
+`project` for team sharing, `--global` to `user` for machine-wide).
 
 Doctrine: suggestions cite evidence — every stack-matched row names the manifest
-line that earned it, and nothing installs without your pick.
+line that earned it, and without `--yes` nothing installs without your pick.
 
-Flags: `--yes` auto-installs tier-1 signal-backed, not-yet-installed picks
-(skips the picker; tier-2 never auto-installs); `--persist` writes the
-installed set into the project's `.claude/settings.json`. Combinable. Full
-semantics: `skills/plugin-scout/references/flags.md`.
+Flags: `--yes` is the auto-installer — installs tier-1 signal-backed plus the
+tier-2 any-project core, not-yet-installed only (skips the picker; tier-3 never
+auto-installs); `--persist` installs at project scope and writes the installed
+set into the project's `.claude/settings.json`; `--global` installs at user
+scope (every repo on the machine — mutually exclusive with `--persist`).
+`--yes` combines with either. Full semantics:
+`skills/plugin-scout/references/flags.md`.
 
 ## Install
 
@@ -28,7 +33,7 @@ semantics: `skills/plugin-scout/references/flags.md`.
 
 | Command | What it does |
 |---------|--------------|
-| `/plugin-scout:suggest [path] [--yes] [--persist]` | Detect the stack, print the two-tier suggestion table (plugin, tier, evidence, installed), then offer to install the plugins you pick — or auto-install tier-1 picks (`--yes`) and/or persist the installed set to project settings (`--persist`) |
+| `/plugin-scout:suggest [path] [--yes] [--persist \| --global]` | Detect the stack, print the three-tier suggestion table covering every marketplace plugin (plugin, tier, evidence, installed), then offer to install the plugins you pick page by page — or auto-install tier-1 + core picks (`--yes`), persist the installed set to project settings (`--persist`), or install machine-wide at user scope (`--global`) |
 
 ## Example
 
@@ -36,10 +41,11 @@ semantics: `skills/plugin-scout/references/flags.md`.
 /plugin-scout:suggest
 ```
 
-In a Laravel + Vue 3 repo this suggests php, laravel, vue3 (tier 1, each with
-its composer.json/package.json evidence) plus the universal tier — debugging,
-git-workflow, testing, security, code-review, and the rest — minus whatever is
-already installed.
+In a Laravel + Inertia repo this suggests laravel and inertia (tier 1, each
+with its composer.json/package.json evidence), then the any-project core —
+code-review, debugging, testing, git-workflow, and the rest of
+`references/any-core.md` — then pages through the entire remaining catalog
+(tier 3), minus whatever is already installed.
 
 ## Pairs well with
 
