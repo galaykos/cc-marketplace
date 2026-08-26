@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **52 leaf plugins** and **10 bundles** covering
+A Claude Code plugin marketplace: **52 leaf plugins** and **11 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -43,6 +43,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `process-suite` | 10 | ~1.9k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
+| `always-on-suite` | 8 | ~910 tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 4 | ~497 tokens | — | — |
 | `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
@@ -70,6 +71,7 @@ per-component floor this table's estimate does not.
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
 | **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
 | **[product-suite](plugins/product-suite)** | Payments and LLM-application engineering. |
+| **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, lean, routing, git discipline — on in every repo. |
 
 Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
 `/db-suite:uninstall`, and so on — which removes the bundle **and** prunes the
@@ -465,6 +467,7 @@ description and the body budget already applied.
 | If you… | Install |
 |---------|---------|
 | just cloned an unfamiliar repo | `plugin-scout`, then whatever it suggests |
+| want a global baseline in every repo | `always-on-suite`, at user scope |
 | write Laravel every day | `php-suite` + `db-suite` |
 | write React/Vue apps | `frontend-suite` |
 | are building something design-led | `craft-suite` |

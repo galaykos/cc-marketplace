@@ -275,6 +275,11 @@
       "description": "Meta-bundle (31 plugins): the full clarification-to-execution workflow plus its wired companions — taskmaster, task-runner, stack-scan, code-architecture, the review and process plugins (code-review, git-workflow, orchestration, approaches, and the rest), and the ui-ux agents the pipeline's visual cards route to. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
+      "name": "always-on-suite",
+      "source": "./plugins/always-on-suite",
+      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on in every repo. Two write-time guards (command-guard's destructive-command deny, secret-scanning's secret block), candor's honesty Stop gate, lean's output pricing, file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and plugin-scout to suggest the per-project plugins this bundle deliberately leaves out. The membership rule is prose, not script-checked. Uninstall cleanly with /always-on-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
       "name": "skill-router",
       "source": "./plugins/skill-router",
       "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations with engine-aware MySQL/MariaDB/PostgreSQL rows, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session."
