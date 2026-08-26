@@ -171,7 +171,7 @@ measurement first, which is why it is a backlog and not a commit.
 6. **`verify-teeth` and `visual-contract` pay always-on description cost (~59 tok
    each) for pipeline-internal bodies.** Sole-caller verified for both by an
    independent grep. Move to `references/` of their caller. Two traps found:
-   `task-runner/CHANGELOG.md` names `verify-teeth` (grep it; the line moved from 131 to 145 on this branch) and needs a
+   `task-runner/CHANGELOG.md` names `verify-teeth` (grep it — the line moves as the file grows, which is why no number is recorded here) and needs a
    `<!-- removed-ok -->` marker (rewriting a changelog is invented history), and
    `coding-entry:123` cites `verify-teeth-lint`, which the guard's boundary class
    can never match — that repoint is unnecessary.
@@ -207,7 +207,7 @@ measurement first, which is why it is a backlog and not a commit.
 |---|---|
 | consolidate the 10 bundles | only 2 non-trivial containments exist (process-suite ⊂ taskmaster-suite, quality-principles-suite ⊂ taskmaster-suite); both keep. *Corrected:* the "+5,411 tok" framing prices a migration nobody is forced to make — a bundle row ≈ the sum of its members, so installing the leaves directly costs the same. The real reason is availability: the uninstall command must exist iff its bundle is installed. |
 | trim descriptions to shrink `everything` | cost is artifact-COUNT-driven: mean 205 tok/leaf, median 122; only 2 skill descriptions repo-wide ≥430 chars against the 500 gate, both trigger vocabulary. *Corrected:* the "0.8%" had no derivation; measured bounds are 2.8% at a 300-char cap, 17% at 200. Direction holds, magnitude was invented. |
-| one parameterized `/review <domain>` | 26 of 33 are already chassis-generated from one template and the runtime fan-in already dedups. *Caveat from critic round 1:* the "would need a universal dependency" argument is weaker than it looks — `task-runner:task-executor` is already named from 41 plugins in prose. |
+| one parameterized `/review <domain>` | 26 of 33 are already chassis-generated from one template and the runtime fan-in already dedups. *Caveat from critic round 1:* the "would need a universal dependency" argument is weaker than it looks — `task-runner:task-executor` is already named from 36 plugins (47 files) in prose. |
 | merge the 10 uninstall commands | 9 of 10 md5-identical after name-normalizing, and it still dies: the command must exist iff its bundle is installed. |
 | merge mysql + mariadb | 7 of 97 mariadb lines >70% similar to any mysql line; all 17 shared rules carry an engine delta. *Corrected:* the "4.9% char similarity" was a difflib autojunk artifact (0.283 with `autojunk=False`, vs 0.15 for unrelated pairs). Cite the line-level number. |
 | merge the 7 craft-layer motion skills | each carries a distinct engine contract; shared material is already citation-form. |
@@ -299,7 +299,7 @@ with the reason recorded. None is left silently pending.
 |---|---|---|
 | 1 | motion-tiers contradicted its own SOURCE OF TRUTH | **fixed**, plus `pc_source_of_truth` gate so the mirror is no longer unchecked |
 | 2 | craft-suite shipped rtl-bidi citing an uninstalled i18n | **fixed** — inline four-rule floor; measured the class first (7 cross-bundle citations, 6 benign, no gate added because it would be 6 parts noise to 1) |
-| 3 | database/review.md claimed its skill was "from this plugin" | **fixed at the generator** — `skillHome` resolves the owning plugin; 30 commands correctly unchanged, 1 corrected |
+| 3 | database/review.md claimed its skill was "from this plugin" | **fixed at the generator** — `skillHome` resolves the owning plugin; of 28 rendered review commands, 27 were correctly unchanged and 1 corrected |
 | 4 | resilience's two hand-copied review commands | **fixed at the chassis** — `outfile` support; all three now generated and gated, proven by negative control |
 | 5 | drifted TRIGGER-NARROWING variants | **not a defect** — both self-declare as shape-variants; the byte-identical trio is already pinned by 28 assertions |
 | 6 | verify-teeth + visual-contract paying always-on cost | **half** — visual-contract demoted (−56 tok); verify-teeth KEPT because task-runner names it cross-plugin as layer 1 of a three-layer contract |

@@ -82,7 +82,7 @@ Total across 61 leaves: **12468 tokens** always-on.
 
 ## What the distribution says
 
-- **The top 10 leaves are 47% of the always-on bill** (5966 of 12468).
+- **The top 10 leaves are 48% of the always-on bill** (5966 of 12468).
   Any material reduction comes from here or nowhere.
 - **The bottom 30 are 21%** (2631 tokens). Cutting all thirty removes
   roughly half the marketplace's surface area to save ~2k tokens. That is the
@@ -106,5 +106,10 @@ Two cut strategies already measured and refuted, in
 - **Trimming descriptions.** Cost is artifact-COUNT-driven; capping every description
   at 300 characters saves ~2.8%.
 - **Consolidating bundles.** `process-suite` and `quality-principles-suite` are strict
-  subsets of `taskmaster-suite`, but cutting them charges their users +5,411 and
-  +5,271 tokens. The subsets exist precisely to be cheaper.
+  subsets of `taskmaster-suite`, and both keep — but NOT on cost grounds. The
+  "+5,411 tok" framing this file first carried was withdrawn by its own source
+  (`distillation-2026-08-23.md`, the `consolidate the 10 bundles` row): it prices a
+  migration nobody is forced to make, and a bundle row is roughly the sum of its
+  members, so installing those leaves directly costs the same. The real reason is
+  **availability** — a suite's uninstall command must exist iff that suite is
+  installed.

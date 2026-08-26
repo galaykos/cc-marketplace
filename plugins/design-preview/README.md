@@ -1,8 +1,8 @@
 # design-preview
 
-Real-component visual decisions for Vite (React or Vue/Nuxt) and Laravel Blade/Livewire projects: renders 2–3
-candidate variants with the project's OWN components on its own dev server,
-via a scratch HTML entry that touches zero existing files. The escalation tier
+Real-component visual decisions for Vite (React or Vue/Nuxt) and Laravel
+Blade/Livewire projects: renders 2–3 candidate variants with the project's OWN components on its own dev server,
+on a scratch surface it removes afterwards. The escalation tier
 above static shell mockups — for when token-mimicry isn't enough and the
 decision needs the real design system.
 
@@ -17,17 +17,27 @@ decision needs the real design system.
 
 | Command | What it does |
 |---------|--------------|
-| `/design-preview:preview <decision>` | Detect Vite/React, consent-gate, render real-component variants at `/design-preview.html`, collect the pick, clean up |
+| `/design-preview:preview <decision>` | Detect the stack (Vite or Laravel), consent-gate, render real-component variants, collect the pick, clean up |
 
 ## How it works
 
-1. Detection, never assumption: `vite.config.*`, `@vitejs/plugin-react` **or** `@vitejs/plugin-vue`, a dev
-   script, and component paths must all be present — otherwise it falls back.
+1. Detection, never assumption — two separate paths, and a miss on both falls back
+   to static mockups rather than guessing:
+   - **Vite** — `vite.config.*`, `@vitejs/plugin-react` **or** `@vitejs/plugin-vue`, a
+     dev script, and component paths must all be present.
+   - **Laravel (Blade/Livewire)** — `artisan`, `composer.json` requiring
+     `laravel/framework`, and `@vite` in a Blade layout.
 2. Strict consent before any write into the source tree: the exact scratch
    files and the dev-server command are named up front.
-3. Scratch surface: `design-preview.html` (root) + `src/__design-preview__/` —
-   Vite serves extra HTML entries with their own module graph, so no router or
-   config edits happen, ever.
+3. Scratch surface, and it differs by path — the Vite trick does NOT transfer to
+   Laravel, because PHP owns routing:
+   - **Vite** — `design-preview.html` (root) + `src/__design-preview__/`. Vite serves
+     extra HTML entries with their own module graph, so no router or config edit
+     happens on this path, and no existing file is touched.
+   - **Laravel** — a scratch route file plus a scratch Blade view, reached by one
+     clearly marked, marker-carrying line added to `routes/web.php`. That is an edit
+     to an existing file, it is named in the consent gate before it happens, and it
+     is reverted at cleanup.
 4. The page renders 2–3 variants on ONE axis using the project's own components
    through its aliases, with realistic data; iteration is in-place via HMR.
 5. Guaranteed cleanup: both scratch paths deleted and verified by search; the
