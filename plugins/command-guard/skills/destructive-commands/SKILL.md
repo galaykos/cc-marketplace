@@ -52,9 +52,11 @@ Then wait. Suggesting the command is your job; running it is theirs.
 
 The deny is a decision, not an obstacle:
 
-- **Do not rephrase it.** Different quoting, `bash -c`, `eval`, a heredoc, a
-  script file, splitting it across two calls — the guard reads all of those, and
-  routing around a safety gate is never the task you were given.
+- **Do not rephrase it.** Different quoting, `bash -c`, `eval`, a heredoc — the
+  guard reads through all of those. Putting the command in a **script file**, or
+  splitting it across two calls, does defeat the guard; that makes it an evasion
+  you chose, not a check you passed. Routing around a safety gate is never the
+  task you were given.
 - **Do not disable the guard**, edit its allow-file, or suggest the user do
   either as a first move. The allow-file is theirs; propose a line for it only
   after they have asked twice for the same blocked command.

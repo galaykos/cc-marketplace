@@ -20,6 +20,13 @@ that classifies the command string itself.
 | `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir`, `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh` | the user gets a permission prompt naming what is lost |
 | `allow` | everything else, including `rm -rf node_modules`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
 
+`rm -rf` on a relative path is decided by **recoverability, not spelling**: if the
+path is absent, or tracked by git with nothing untracked, modified or ignored
+under it, deleting it is not a loss and there is no prompt. Ignored content
+counts as a loss — git has no copy of a `.gitignore`d `.env`. The check is
+dropped whenever the command contains `cd`/`pushd`, since the hook's working
+directory is then not the one the `rm` resolves against.
+
 It reads through the usual disguises — quotes (`artisan "migrate:fresh"`),
 wrappers (`bash -c`, `eval`, `docker compose exec`), extra whitespace, `&&`
 chains, heredocs — and skips read-only commands, so searching for a string is
@@ -60,8 +67,36 @@ string cannot reach the hook's environment, so
 | Value | Effect |
 |---|---|
 | unset (default) | deny + ask tiers as above |
+| `CLAUDE_DESTRUCTIVE_GUARD=deny-only` | the hard stops only; the ask tier goes silent |
 | `CLAUDE_DESTRUCTIVE_GUARD=ask` | every deny becomes a prompt instead of a block |
 | `CLAUDE_DESTRUCTIVE_GUARD=off` | guard disabled |
+
+### Why you might want `deny-only`
+
+The two tiers cost you very different things. The deny tier is free: it never
+prompts, it returns instantly, and it is where the framework knowledge lives
+(`migrate:fresh`, `doctrine:fixtures:load`, `flyway clean` — shapes a general
+safety check has no particular reason to know). The ask tier is the one that
+interrupts, and it is mostly `rm -rf` and `git reset --hard`, which any
+general-purpose command-risk check already covers.
+
+It matters more than "one is noisier". Where the host decides permissions with a
+classifier of its own, a `PreToolUse` **`ask` overrides that classifier** — so
+the ask tier does not add a check, it *replaces a silent judgement with a human
+click*. `deny-only` hands that tier back.
+
+Set it wherever your host passes environment to hooks — in Claude Code, the
+`env` block of `settings.json`:
+
+```json
+{ "env": { "CLAUDE_DESTRUCTIVE_GUARD": "deny-only" } }
+```
+
+**The trade is real and it is yours to make.** Outside a host that classifies
+commands, nothing replaces the ask tier: `git reset --hard`, `find … -delete`
+and `kubectl delete pod` stop being announced. Prefer the allow-file below if
+only a few specific commands are noisy — it is narrower than switching a tier
+off.
 
 ## Checking a command without running it
 
@@ -85,7 +120,8 @@ plugin's `authoring-skills` skill).
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit` and on shell redirects/`sed -i` |
-| the classification rules themselves | **gate**, tested | 128 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
+| the classification rules themselves | **gate**, tested | 158 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
+| `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |
 | coverage of destructive shapes | **unenforceable** | the rule table matches known shapes; a command inside a script, a Makefile target, an npm script, or application code is invisible to it |
 
