@@ -54,12 +54,13 @@
     "observability@cc-plugins-marketplace": true,
     "skill-router@cc-plugins-marketplace": true,
     "brain@cc-plugins-marketplace": true,
-    "quality-suite@cc-plugins-marketplace": true,
     "secret-scanning@cc-plugins-marketplace": true,
     "comment-discipline@cc-plugins-marketplace": true,
     "process-suite@cc-plugins-marketplace": true,
     "fresh-take@cc-plugins-marketplace": true,
-    "ultra-deep-research@cc-plugins-marketplace": true
+    "ultra-deep-research@cc-plugins-marketplace": true,
+    "lean@cc-plugins-marketplace": true,
+    "candor@cc-plugins-marketplace": true
   },
   "extraKnownMarketplaces": {
     "cc-plugins-marketplace": {

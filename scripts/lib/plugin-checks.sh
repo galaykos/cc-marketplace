@@ -1156,10 +1156,14 @@ pc_source_of_truth() {
     [ -f "$refpath" ] || { printf 'source-of-truth %s names %s which does not exist\n' "$f" "$ref"; bad=1; continue; }
 
     body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
-    figs=$(printf '%s' "$body" | grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' | sort -u)
+    # LC_ALL=C on sort AND comm: under a UTF-8 locale their collations can
+    # disagree on strings like "2.6KB" (dot-ignoring strcoll vs byte order),
+    # making comm report figures present in both files — a false FAIL that
+    # only shows on machines whose locale differs from CI's.
+    figs=$(printf '%s' "$body" | grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' | LC_ALL=C sort -u)
     [ -n "$figs" ] || continue
-    missing=$(comm -23 <(printf '%s\n' "$figs") \
-                       <(grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' "$refpath" 2>/dev/null | sort -u))
+    missing=$(LC_ALL=C comm -23 <(printf '%s\n' "$figs") \
+                       <(grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' "$refpath" 2>/dev/null | LC_ALL=C sort -u))
     if [ -n "$missing" ]; then
       printf 'source-of-truth %s carries figures absent from its declared source %s: %s\n' \
         "$f" "$ref" "$(printf '%s' "$missing" | tr '\n' ' ')"

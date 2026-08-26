@@ -49,18 +49,14 @@
   if has '*.tsx' || has '*.jsx'; then add a11y-audit a11y; fi
 
   # PHP side. laravel and plain php are stack-EXCLUSIVE per skill-map.md — a Laravel
-  # repo primes laravel-best-practices and not php-best-practices, the same rule
   # rules.tsv applies via its `!composer.json~laravel/framework` markers.
   if dep composer.json '"laravel/framework"'; then add laravel-best-practices laravel
-  elif [ -f "$cwd/composer.json" ]; then add php-best-practices php
   fi
-  dep composer.json '"livewire/livewire"' && add livewire-best-practices livewire
   { dep composer.json '"inertiajs/inertia-laravel"' || dep package.json '"@inertiajs/'; } \
     && add inertia-best-practices inertia
 
   # JS side. react-native and react are exclusive the same way.
   if dep package.json '"react-native"'; then add react-native-best-practices react-native
-  elif dep package.json '"react"'; then add react-server-state react
   fi
 
   # Tailwind requires an actual Tailwind signal. This line previously read

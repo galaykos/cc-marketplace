@@ -20,9 +20,6 @@ bundle and prunes the plugins it auto-installed.
   tokenized PCI scope, integer-minor-unit money, signature-verified idempotent
   webhooks, subscription state machines, append-only ledger, plus
   `/payments:review`
-- **i18n** — internationalization and localization: semantic translation keys,
-  ICU MessageFormat pluralization, locale-aware Intl formatting, RTL layout,
-  fallback chains, plus `/i18n:review`
 - **llm-app** — LLM application engineering: eval harnesses and regression
   gates, RAG pipelines, prompt versioning, prompt-injection defense,
   token-cost control, plus `/llm-app:review`

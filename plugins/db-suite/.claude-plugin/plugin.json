@@ -1,6 +1,6 @@
 {
   "name": "db-suite",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Meta-bundle: the database category in one install — engine-agnostic SQL discipline, MySQL, MariaDB, PostgreSQL best practices, and the database worker agent. Uninstall cleanly with /db-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
@@ -8,9 +8,7 @@
   },
   "dependencies": [
     "sql",
-    "mysql",
     "mariadb",
-    "postgresql",
     "database"
   ],
   "keywords": [

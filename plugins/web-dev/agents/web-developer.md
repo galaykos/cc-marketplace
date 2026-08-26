@@ -4,7 +4,7 @@ description: Use PROACTIVELY for general web implementation work — routing, RE
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: react-server-state,vue3-best-practices,laravel-best-practices,nextjs-best-practices,nuxt-best-practices,node-backend-best-practices
+bestpractices-skill: laravel-best-practices,nextjs-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -95,8 +95,8 @@ SSR/CSR, a11y) that no single framework skill owns; keep applying it.
 
 Stack-specific review is owned by the framework plugins. Do
 not restate their content — after implementing, recommend the matching
-installed stack review command instead: `/vue3:review`, `/laravel:review`,
-`/nextjs:review`, `/nuxt:review` (and `/security:review` when
+installed stack review command instead: `/laravel:review`,
+`/nextjs:review` (and `/security:review` when
 the change touches auth, sessions, or user input handling).
 
 ## Kill-trigger (three strikes)
