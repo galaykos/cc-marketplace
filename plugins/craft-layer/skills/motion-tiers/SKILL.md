@@ -39,8 +39,8 @@ Cheapest-that-fits is right for ordinary surfaces, wrong for the ONE carrying th
 SIGNATURE interaction — that surface is picked by what the MOVE needs, not by what is cheapest.
 One writer per property per element: never point two tiers at the same `transform`.
 Full table: `references/tier-budgets.md` — SOURCE OF TRUTH for every KB figure below and
-the `Last verified:` date; fix drift there, then mirror here. Standing **recorded** — the
-mirror is manual and no gate checks the two agree.
+the `Last verified:` date; fix drift there, then mirror here. Standing: KB figures
+are **gate** (`pc_source_of_truth`); prose agreement is **recorded** — nothing reads meaning.
 
 ## The five tiers (one line each)
 
@@ -48,7 +48,7 @@ mirror is manual and no gate checks the two agree.
   state, layout, gestures, exit. Budget ≈ 34KB gzip full or ~2.6KB `motion/mini`;
   compositor-only (transform + opacity), FLIP for layout. reduced-motion:
   `<MotionConfig reducedMotion="user">` or `useReducedMotion()` crossfade.
-  reduced-bundle: `animate()` from `motion/mini`, or plain CSS for simple tweens.
+  reduced-bundle: `LazyMotion`+`m.*` in React; `motion/mini` is for vanilla tweens.
 - **Tier 2 — Timeline / SVG** (anime.js v4, `animejs` ESM): imperative timelines, SVG
   draw/morph, staggered hero sequences; framework-neutral. Budget ≈ 10–15KB gzip
   tree-shaken; main-thread JS (use `waapi.animate` for off-thread). reduced-motion:

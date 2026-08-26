@@ -2,6 +2,15 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.1.1
+
+### Fixed
+- One measurement, two numbers: `CHANGELOG.md` said ~3.8k assistant messages
+  across 47 transcripts, `hooks/gate.sh:148` said ~3.3k across the same 47 with
+  the same two-step resolver. Aligned on the figure in the code comment nearest
+  the script that produced it. Recorded as a judgment, not a re-measurement — the
+  original run is not reproducible from here.
+
 ## 0.1.0 — 2026-08-18
 
 Initial release.
@@ -19,7 +28,7 @@ Initial release.
   message.
 - Citation resolver ladder, forced by measurement rather than theory: cwd-relative,
   then a full-suffix match, then the basename. Only a basename that exists
-  **nowhere** counts as fabrication. Over 47 real transcripts (~3.8k assistant
+  **nowhere** counts as fabrication. Over 47 real transcripts (~3.3k assistant
   messages) a two-step version flagged mostly ABBREVIATED paths —
   `craft-layer/asset-sourcing/SKILL.md` for a file that really lives at
   `plugins/craft-layer/skills/asset-sourcing/SKILL.md` — which is the

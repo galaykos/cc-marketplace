@@ -73,6 +73,8 @@ jobs:
         run: bash scripts/smoke/prompt-route-tests.sh
       - name: Router install-layout smoke tests (flat + versioned)
         run: bash scripts/smoke/versioned-layout-tests.sh
+      - name: Router enablement-filter smoke tests
+        run: bash scripts/smoke/enablement-filter-tests.sh
       - name: Behavioral-verification smoke tests
         run: bash scripts/smoke/behavioral-verification-tests.sh
       - name: Completion-gate hook smoke tests
@@ -98,6 +100,8 @@ jobs:
         run: bash scripts/smoke/validate-fixtures/role-floors-check.sh
       - name: preview-guard twin + tier smoke tests
         run: bash scripts/smoke/preview-guard-tests.sh
+      - name: source-of-truth gate smoke tests
+        run: bash scripts/smoke/source-of-truth-tests.sh
       - name: doc staleness (warn-only)
         continue-on-error: true
         run: bash scripts/check-doc-staleness.sh

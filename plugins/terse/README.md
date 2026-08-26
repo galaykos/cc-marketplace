@@ -87,8 +87,8 @@ Two things worth knowing early:
 | Command | What it does |
 |---------|--------------|
 | `/terse:level [lite\|full\|ultra\|wenyan-*\|off\|status]` | Set or report the level; the hook writes it, machine-local, persists across sessions |
-| `/terse:check [--last N] [--tokens] [--all] [--since Nd]` | Measure turn-final messages against the active budget — one session or every session in the project. Report-only |
-| `/terse:commit` | Conventional Commits message from the staged diff — full English, no noise |
+| `/terse:check [--last N] [--tokens] [--all] [--since Nd] [--session-file PATH]` | Measure turn-final messages against the active budget — one session or every session in the project. Report-only |
+| `/terse:commit [--amend | extra context]` | Conventional Commits message from the staged diff — full English, no noise |
 | `/terse:compress <file>` | Compress one named prose markdown file in place, with a backup and five mechanical checks |
 | `/terse:help` | The reference card |
 

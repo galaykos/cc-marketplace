@@ -107,8 +107,16 @@ off.
 or directly, which is also how the test harness drives it:
 
 ```bash
-bash hooks/destructive-guard.sh --check 'docker compose down -v'   # exit 2 = deny
+bash hooks/destructive-guard.sh --check 'git reset --hard'   # exit 1 = ask
 ```
+
+**That direct form does not work from inside an agent session for a deny-tier
+target.** The invocation carries the target as an argument and arrives through
+the Bash tool, so the guard reads it and denies it — there is no self-exemption,
+because both attempts at one were bypassable (see `commands/check.md` for the
+tier-by-tier table and the reasoning). From your own terminal it works for every
+tier; the harness drives it as a plain script, which is why the tests are
+unaffected.
 
 ## What has teeth
 
@@ -120,7 +128,7 @@ plugin's `authoring-skills` skill).
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit` and on shell redirects/`sed -i` |
-| the classification rules themselves | **gate**, tested | 158 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
+| the classification rules themselves | **gate**, tested | 173 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
 | `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |
 | coverage of destructive shapes | **unenforceable** | the rule table matches known shapes; a command inside a script, a Makefile target, an npm script, or application code is invisible to it |

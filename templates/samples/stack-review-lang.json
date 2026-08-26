@@ -4,6 +4,7 @@
   "lang": true,
   "concern": false,
   "skill": "laravel-best-practices",
+  "skillHome": "from this plugin",
   "docsUrl": "https://laravel.com/docs",
   "tag": "backend",
   "worker": null,

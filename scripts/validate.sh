@@ -705,9 +705,23 @@ ctx_gap=$(pc_context_key plugins) || true
 marker_gap=$(pc_marker_key plugins) || true
 [ -n "$marker_gap" ] && lane_err "$marker_gap" "a context key reaching a filesystem path must be hashed first (cksum/shasum, as in code-review/hooks/conventions.sh:59) — or carry '# marker-key-ok: <why>'"
 
-# And the condition that let the above hide for a release: a harness that only ever sends
-# session_id grades the fallback branch, so the branch the host actually takes is never
-# executed. pc_marker_key gates the hook; this gates the test that would have caught it.
+# A SKILL that names a reference as SOURCE OF TRUTH for its figures must not carry
+# a figure that reference lacks. Converts a mirror the skill itself declared
+# "recorded — no gate checks the two agree" into one that is checked. Scope and
+# limits are stated ONCE, in pc_source_of_truth's own header, and pinned by
+# scripts/smoke/source-of-truth-tests.sh.
+sot_gap=$(pc_source_of_truth plugins) || true
+[ -n "$sot_gap" ] && err "$sot_gap"
+
+# Adding a gate silently falsifies standing claims elsewhere. Scope, preconditions
+# and limits are stated ONCE, in pc_false_standing's header.
+fs_gap=$(pc_false_standing plugins) || true
+[ -n "$fs_gap" ] && err "$fs_gap"
+
+# And the condition that let pc_marker_key's defect hide for a release: a harness
+# that only ever sends session_id grades the fallback branch, so the branch the host
+# actually takes is never executed. pc_marker_key gates the hook; this gates the
+# test that would have caught it.
 harness_gap=$(pc_harness_payload .) || true
 [ -n "$harness_gap" ] && lane_err "$harness_gap" "this harness exercises a hook that reads transcript_path but never sends one — add a case with a path-shaped transcript_path, or carry '# harness-payload-ok: <why>'"
 

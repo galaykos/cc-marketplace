@@ -30,7 +30,7 @@ Never mirror fetched data into `useState`; that fork is where staleness bugs bre
 
 | Situation | Reach for |
 |---|---|
-| Any real server data in React | TanStack Query (React Query) — the default |
+| Any real server data in a **client** component | TanStack Query (React Query) — the default |
 | Lighter, simpler needs | SWR |
 | Already all-in on Redux Toolkit | RTK Query |
 | App on TanStack Router/Start | Route loader `queryClient.ensureQueryData(queryOptions)` + `useSuspenseQuery` in the component — the loader kills the render-fetch waterfall. TanStack Start is v1 RC; check current docs before scaffolding |
@@ -104,7 +104,10 @@ is the cache.
 
 ## Reviewing server-state code
 
-- Server data flows through a query lib, not `useState` + `useEffect`.
+- In a client component, server data flows through a query lib, not `useState` +
+  `useEffect`. Do NOT raise this against a Server Component that fetches directly —
+  that is the correct pattern there, and flagging it is the one false positive this
+  checklist is prone to.
 - Fetched data is never copied into local state.
 - Query keys include every variable that changes the result.
 - Mutations invalidate affected keys; optimistic updates have rollback.
@@ -112,6 +115,19 @@ is the cache.
 
 ## Defer rule
 
+- **Server-side fetching in an RSC framework → that framework's skill, not this
+  one.** In Next.js App Router, data fetched in a Server Component belongs to
+  `nextjs-best-practices`: `fetch` with `revalidate`/tags is correct there and needs
+  no client cache. Nuxt has no RSC-style model (its islands/`.server.vue` are
+  experimental) — server-side fetching there is `useFetch`/`useAsyncData`, owned by
+  `nuxt-best-practices`, same boundary. This skill governs
+  **client** components — `'use client'` boundaries, interactive/user-specific data,
+  anything that must refetch or mutate in the browser. The router fires this skill
+  on every `.tsx` outside a react-native project, Server Components included, so
+  read the boundary before
+  applying the table: server-fetched data flowing without a query lib is CORRECT,
+  not a finding. Recording the edge here because both skills co-ship in
+  `frontend-suite` and `everything` and both used to state a default.
 - General React idioms (effects, keys, memoization) — no defer target: the
   `react-best-practices` sibling skill is removed. <!-- removed-ok -->
   Baseline testing showed the base model covers general idioms unaided
