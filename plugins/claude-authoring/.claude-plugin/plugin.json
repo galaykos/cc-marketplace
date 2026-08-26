@@ -1,6 +1,6 @@
 {
   "name": "claude-authoring",
-  "version": "0.12.2",
+  "version": "0.12.3",
   "description": "Authoring guides for Claude Code artifacts \u2014 skills, agents, commands, hooks, plugins \u2014 plus a routine-detector that suggests scaffolding a project skill when work turns repetitive, a project-skill-suggester that proactively offers one when a task's cards share uncovered repository-specific knowledge, and /claude-authoring:new-skill|new-agent|new-command|new-hook|new-plugin scaffold commands.",
   "author": {
     "name": "Ivan-WG",

@@ -218,7 +218,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | View Transitions API (page-transitions references it) | `plugins/ui-ux/skills/motion-best-practices` |
 | Three.js / R3F correctness (webgl-effects references it) | `plugins/threejs/skills/threejs-best-practices` |
 | One-writer-per-property (physics-motion references) | `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` |
-| RTL / BiDi base rules (rtl-bidi.md references, adds only the motion decisions + LTR-islands) | `plugins/i18n/skills/i18n/SKILL.md` |
+| RTL / BiDi base rules (the four-rule floor plus the motion decisions + LTR-islands) | `plugins/craft-layer/skills/motion-tiers/references/rtl-bidi.md` |
 | Option staging for guided builds — consent gate, ASCII + shell HTML mockups (section-decisions decides WHAT to ask, never how to draw it) | `plugins/taskmaster/skills/visual-decisions` |
 | Real-component option previews on a live server | `/design-preview:preview`, `/shadcn-studio:stage` |
 | Validating the ASSEMBLED page after the section picks | `plugins/taskmaster/skills/experience-walkthrough` |

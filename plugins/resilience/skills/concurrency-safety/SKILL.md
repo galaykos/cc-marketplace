@@ -133,8 +133,8 @@ do the excluding; the transaction makes the result all-or-nothing.
 ## Boundaries
 
 - Engine-specific lock mechanics — gap locks, `SKIP LOCKED`, advisory
-  locks, isolation-level quirks — belong to the mysql/mariadb/
-  postgresql plugins; this skill picks the strategy, they supply the
+  locks, isolation-level quirks — belong to the sql and mariadb
+  plugins; this skill picks the strategy, they supply the
   syntax and semantics.
 - Retry and backoff policy for the conflicts and failures this skill
   surfaces is the resilience plugin's territory (/resilience:review);

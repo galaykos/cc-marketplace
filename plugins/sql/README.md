@@ -16,7 +16,7 @@ parameterized queries.
 
 | Command | What it does |
 |---------|--------------|
-| `/sql:review [files-or-diff]` | Review queries and migrations against the engine-agnostic skill; engine-specific rules live in the mysql/mariadb/postgresql plugins |
+| `/sql:review [files-or-diff]` | Review queries and migrations against the engine-agnostic skill; MariaDB-specific rules live in the mariadb plugin |
 
 ## Example
 
@@ -27,5 +27,5 @@ parameterized queries.
 
 ## Pairs well with
 
-- **postgresql / mysql / mariadb** — engine-specific rules on top of these generic ones
+- **mariadb** — engine-specific rules on top of these generic ones
 - **database** — schema, indexing, and query-optimization workflows

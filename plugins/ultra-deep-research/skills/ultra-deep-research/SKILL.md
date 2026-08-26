@@ -50,7 +50,10 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    `bash ${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh` — a `confirmed` that fails
    the lint (no verbatim quote, no retrieval timestamp, or empty corroboration) is
    DEMOTED to `contested`, never patched up on the verifier's behalf. The lint is a
-   format gate only; whether the quote is real stays your judgment.
+   format gate only; whether the quote is real stays your judgment. Stated limitation:
+   verification is one-directional — the researcher never sees or answers a
+   refutation, so a claim killed on a misread source dies undefended. The
+   majority-vote panel is the mitigation, not a cure.
 5. **Ledger contradictions.** Where sources disagree, never silently average. Record
    the disagreement, then adjudicate by an ordered rule: (1) for volatile facts
    (versions, prices, dates, live status) the more recent of two Tier-1/2 sources wins,

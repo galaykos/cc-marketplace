@@ -2,6 +2,16 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.7
+
+### Changed
+- **`devops-reviewer` names the standing of its PROACTIVELY clause**: `recorded`
+  — nothing dispatches the reviewer automatically after engineer output; the
+  host heuristic and an explicit `/devops:review` are the only paths. Config
+  shipped without the audit was not reviewed, and the agent now says so.
+- Worker agents regenerated from the shared template: findings are confirmed
+  against the code before any change (see the marketplace-wide template change).
+
 ## 0.5.6
 
 ### Changed

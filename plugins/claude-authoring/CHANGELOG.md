@@ -3,6 +3,14 @@
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.3
+
+### Changed
+- **`/new-skill`'s measured-zero-shapes check moved from step 6 to step 2** — it
+  now runs BEFORE the scaffold is written. A refuter applied to a sunk cost
+  approves; the check's own wording said "before writing a line" while sitting
+  three steps after the write.
+
 ## 0.12.2
 
 ### Changed

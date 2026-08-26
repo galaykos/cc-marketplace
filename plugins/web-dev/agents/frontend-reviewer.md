@@ -1,6 +1,6 @@
 ---
 name: frontend-reviewer
-description: Use PROACTIVELY after changing React/Vue/Inertia/Livewire/TypeScript component or view LOGIC — framework correctness (state, effects, keys, data fetching); also react-native and vite. Read-only counterpart to web-developer. Styles-only diffs → ui-ux-reviewer.
+description: Use PROACTIVELY after changing component or view LOGIC in any JS/TS framework — framework correctness (state, effects, keys, data fetching); per-framework skills for react-native, inertia, vite, nextjs. Read-only counterpart to web-developer. Styles-only diffs → ui-ux-reviewer.
 tools: Read, Grep, Glob
 model: inherit
 effort: xhigh

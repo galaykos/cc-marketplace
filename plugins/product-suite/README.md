@@ -1,9 +1,9 @@
 # product-suite
 
 Meta-bundle: the product-domain disciplines in one install — payments and
-billing, internationalization, and LLM application engineering. Each member is
+billing, and LLM application engineering. Each member is
 a domain skill plus a review command; the failure classes they guard
-(double-charges, broken locales, unevaluated prompts) sit in product code, not
+(double-charges, unevaluated prompts) sit in product code, not
 in any one stack. Uninstalls cleanly: `/product-suite:uninstall` removes the
 bundle and prunes the plugins it auto-installed.
 

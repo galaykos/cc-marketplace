@@ -37,7 +37,7 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), and mass-assignment security — plus the shared backend-engineer worker (PHP/Laravel) the php/laravel review commands route their fixes to."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), and mass-assignment security — plus the backend-engineer worker (PHP/Laravel) the laravel review command routes its fixes to."
     },
     {
       "name": "sql",
@@ -137,7 +137,7 @@
     {
       "name": "web-dev",
       "source": "./plugins/web-dev",
-      "description": "Generalist web development pair: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR) and a frontend-reviewer that audits React/Vue/Inertia/Livewire/TS + react-native/vite against the matching per-framework skill. Stack-agnostic; defers stack idioms to the per-framework plugins."
+      "description": "Generalist web development pair: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR) and a frontend-reviewer that audits component and view logic — per-framework skills for react-native/inertia/vite/nextjs, generic for other JS/TS frameworks. Stack-agnostic; defers stack idioms to the per-framework plugins."
     },
     {
       "name": "system-design",
@@ -152,7 +152,7 @@
     {
       "name": "database",
       "source": "./plugins/database",
-      "description": "Database implementation and safety for relational stores: a /database:review command, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks for confirmation before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands. The design and statement rubric itself lives in the sql plugin's sql-best-practices skill; dialect audits in mysql/mariadb/postgresql."
+      "description": "Database implementation and safety for relational stores: a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks for confirmation before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands. Reviewing is /sql:review's job (install sql alongside); the rubric lives in its sql-best-practices skill; dialect audits in mariadb."
     },
     {
       "name": "performance",
@@ -227,7 +227,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, React, React Native, Vue 3, Next.js, Nuxt, Vite, Inertia, Livewire, the generalist web worker, accessibility auditing, and skill auto-routing (skill-router). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, React Native, Next.js, Vite, Inertia, the generalist web worker, accessibility auditing, and skill auto-routing (skill-router). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "craft-suite",
@@ -237,17 +237,17 @@
     {
       "name": "php-suite",
       "source": "./plugins/php-suite",
-      "description": "Meta-bundle: the PHP category in one install — PHP and Laravel best practices, Livewire, Inertia, Vite (Laravel's default asset bundler), and the generalist web worker. Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the PHP category in one install — Laravel best practices, Inertia, Vite (Laravel's default asset bundler), and the generalist web worker. Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "db-suite",
       "source": "./plugins/db-suite",
-      "description": "Meta-bundle: the database category in one install — engine-agnostic SQL discipline, MySQL, MariaDB, PostgreSQL best practices, and the database worker agent. Uninstall cleanly with /db-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the database category in one install — engine-agnostic SQL discipline, MariaDB best practices, and the database worker agent. Uninstall cleanly with /db-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "product-suite",
       "source": "./plugins/product-suite",
-      "description": "Meta-bundle: the product-domain disciplines in one install — payments and billing (idempotent webhooks, money handling, ledgers), internationalization (ICU MessageFormat, Intl, RTL), and LLM application engineering (evals, RAG, prompt-injection defense). Uninstall cleanly with /product-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the product-domain disciplines in one install — payments and billing (idempotent webhooks, money handling, ledgers) and LLM application engineering (evals, RAG, prompt-injection defense). Uninstall cleanly with /product-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "quality-suite",

@@ -14,21 +14,15 @@ body load; § Priming in the skill body has the form.
 
 | Signal | Prime |
 |---|---|
-| `composer.json` exists | `php:php-best-practices` |
-| `composer.json` ~ `laravel/framework` | `laravel:laravel-best-practices` (and NOT the plain php row — they are stack-exclusive, same rule `rules.tsv` applies) |
-| `composer.json` ~ `livewire/livewire` | `livewire:livewire-best-practices` |
+| `composer.json` ~ `laravel/framework` | `laravel:laravel-best-practices` |
 | `composer.json` ~ `inertiajs/inertia-laravel`, or `package.json` ~ `@inertiajs/` | `inertia:inertia-best-practices` |
-| `package.json` ~ `"express"`/`"fastify"`/`@nestjs/` | `node-backend:node-backend-best-practices` |
 
 ## Frontend
 
 | Signal | Prime |
 |---|---|
-| `package.json` ~ `"react"`, no `"react-native"` | `react:react-server-state` |
 | `package.json` ~ `"react-native"` | `react-native:react-native-best-practices` |
-| `package.json` ~ `"vue"` at 3.x | `vue3:vue3-best-practices` |
 | `package.json` ~ `"next"` | `nextjs:nextjs-best-practices` |
-| `package.json` ~ `"nuxt"` | `nuxt:nuxt-best-practices` |
 | `package.json` ~ `"vite"` | `vite:vite-best-practices` |
 | `package.json` ~ `"tailwindcss"` | `ui-ux:tailwind-best-practices` |
 | `components.json` present (shadcn/ReUI registry) | `ui-ux:shadcn-best-practices` |
@@ -50,12 +44,11 @@ own header warns about, found by `pc_prime_coverage` rather than by reading.
 | Signal | Prime |
 |---|---|
 | a `migrations/` directory, or any `*.sql` | `sql:sql-best-practices` |
-| compose file ~ `image: *postgres*` | `postgresql:postgresql-best-practices` |
-| compose file ~ `image: *mysql*` | `mysql:mysql-best-practices` |
 | compose file ~ `image: *mariadb*` | `mariadb:mariadb-best-practices` |
 
 Engine detection mirrors `rules.tsv`'s chain and inherits its stated misses — compose
 image first, because it is the one signal that separates MySQL from MariaDB cleanly.
+Engines without a dialect plugin (MySQL, PostgreSQL, …) prime only the sql row.
 
 ## Infrastructure and cross-cutting
 

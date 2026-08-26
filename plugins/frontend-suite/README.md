@@ -1,9 +1,8 @@
 # frontend-suite
 
 Meta-bundle: the frontend stack category in one install — UI/UX stacks,
-React, React Native, Vue 3, Next.js, Nuxt, Vite, Inertia, Livewire, the
-generalist web worker, file-aware skill auto-routing, and accessibility
-auditing. The creative-build studio (craft-layer, design-preview,
+React Native, Next.js, Vite, Inertia, the generalist web worker, file-aware
+skill auto-routing, and accessibility auditing. The creative-build studio (craft-layer, design-preview,
 shadcn-studio, registry-source, threejs) moved to the craft-suite bundle, so
 ordinary frontend app work does not pay the studio's always-on context.
 Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and
@@ -46,6 +45,6 @@ One bullet per bundled plugin, in dependency order (8):
 - **craft-suite** — the creative-build studio half: craft-layer's design
   pipeline and motion catalog, design-preview, shadcn-studio,
   registry-source, threejs
-- **laravel** — the backend that Inertia and Livewire frontends sit on
+- **laravel** — the backend that Inertia frontends sit on
 - **performance** — hotspot and cache-correctness review beyond the UI layer
 - **testing** — test review for the components these stacks produce

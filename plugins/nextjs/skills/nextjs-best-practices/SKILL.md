@@ -7,12 +7,9 @@ description: Use when writing or reviewing Next.js App Router code — server vs
 
 ## Server Components by default — place client boundaries deliberately
 
-**Boundary with `react:react-server-state`** (it co-ships in `frontend-suite` and
-`everything`, and its router row fires on every `.tsx` in a non-react-native repo): server-side fetching in
-Server Components is this skill's, and needs no client cache library. That skill
-owns data behind a `'use client'` boundary — interactive, user-specific, or
-refetching/mutating in the browser. Neither default overrides the other; the
-`'use client'` line is the switch.
+Server-side fetching in Server Components needs no client cache library; a client
+cache (TanStack Query/SWR) belongs only behind a `'use client'` boundary — data that
+is interactive, user-specific, or refetching/mutating in the browser.
 
 Everything under `app/` is a Server Component until a module says `'use client'`. The
 directive marks a module-graph boundary, not a single file: everything a client module

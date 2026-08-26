@@ -7,6 +7,23 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.6
+
+### Added
+- **`/craft-layer:audit` re-runs its script gates after an "Apply now" pick** —
+  divergence, contrast, and the gate suite re-check the changed scope before the
+  run reports done; a fix that cannot be gate-checked is named unverified. On
+  unboosted runs fixes were previously taken on the fixer's word.
+
+### Fixed
+- **Removal fallout (i18n, react):** `rtl-bidi.md` now states its four-rule
+  floor as the only shipped base rules rather than deferring to the removed <!-- removed-ok -->
+  i18n plugin; the README reuse-map row points at that reference; <!-- removed-ok -->
+  `product-packages.md` routes data-grid wiring to the chosen library's docs
+  instead of the removed `react-data-grid` skill; a bolded react-verb line in <!-- removed-ok -->
+  `vector.md` was reworded so the removed-artifact guard can hold the
+  line without a marker.
+
 ## 0.47.5
 
 ### Fixed
@@ -41,7 +58,7 @@ than an honest starting point.
   `references/tier-budgets.md`, reserves `motion/mini` for **vanilla** element
   tweens and names `LazyMotion` + `m.*` as the React path. Two files, opposite
   advice, one of them labelled the truth. The SKILL now matches the reference.
-- `motion-tiers/references/rtl-bidi.md` pointed at `plugins/i18n` for the general
+- `motion-tiers/references/rtl-bidi.md` pointed at `plugins/i18n` for the general <!-- removed-ok -->
   RTL rules and said "do not re-teach them here" — but `craft-suite` does not ship
   i18n, so a craft-suite reader got a pointer to nothing. The file now carries a
   four-rule floor (logical properties, `dir`, which icons mirror, LTR runs inside

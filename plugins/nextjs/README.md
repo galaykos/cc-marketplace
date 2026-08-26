@@ -31,5 +31,4 @@ defaults and APIs your release actually ships — the 14 → 15 → 16 flips mat
 
 ## Pairs well with
 
-- **react** — server-state caching discipline for the client components in these routes
 - **performance** — bundle size and Core Web Vitals beyond the framework defaults

@@ -1,7 +1,7 @@
 [
   {
     "chassis": "reminder-hook",
-    "regex": "\\b(api|librar\\w*|sdk|endpoint|integrat\\w*|webhook|oauth|graphql)\\b",
+    "regex": "\\b(librar\\w*|sdk|integrat\\w*|webhook|oauth|graphql|(external|third[- ]party|public|vendor) api|api (client|key|token|docs?|reference))\\b",
     "message": "api-docs-first: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file",
     "command": "/api-docs-first:check",
     "extraGuard": "printf '%s' \"$head\" | grep -qiE '\\b(build|implement|write|creat\\w*|add|wire|connect|integrat\\w*|call|fetch|use|fix|debug|update)\\b'",

@@ -39,5 +39,4 @@ also apply when writing or reviewing UI markup outside the command.
 
 - **ui-ux** — build and restyle components that the a11y audit then verifies
 - **design-preview** — render the fixed component in a live preview to check focus order by hand
-- **i18n** — locale-aware text handling alongside accessible markup
 - **code-review** — general correctness review to run beside the accessibility pass

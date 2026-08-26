@@ -1,7 +1,7 @@
 {
   "name": "web-dev",
-  "version": "0.5.1",
-  "description": "Generalist web development pair: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR) and a frontend-reviewer that audits React/Vue/Inertia/Livewire/TS + react-native/vite against the matching per-framework skill. Stack-agnostic; defers stack idioms to the per-framework plugins.",
+  "version": "0.5.3",
+  "description": "Generalist web development pair: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR) and a frontend-reviewer that audits component and view logic — per-framework skills for react-native/inertia/vite/nextjs, generic for other JS/TS frameworks. Stack-agnostic; defers stack idioms to the per-framework plugins.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

@@ -103,8 +103,8 @@ overwrite local customizations.
 Data tables start from shadcn's official Data Table guide
 (https://ui.shadcn.com/docs/components/data-table) — a TanStack Table composition (toolbar
 filtering, column visibility, pagination, row actions) built on v9's API. Check the installed
-`@tanstack/react-table` major before writing table code: v9 changed the hook API, and the usage
-wiring lives in the `react` plugin's `react-data-grid` skill. App shells and dashboards check
+`@tanstack/react-table` major before writing table code: v9 changed the hook API — consult the
+TanStack Table docs for the installed major before wiring columns or state. App shells and dashboards check
 https://ui.shadcn.com/blocks before hand-building — free copy-paste scaffolds (`dashboard-01`
 ships sidebar + charts + data table). Either way the recipe is a starting file you own, so both
 paths then follow this skill's owned-code and CSS-variable rules above.

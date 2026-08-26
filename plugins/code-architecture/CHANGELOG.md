@@ -2,6 +2,15 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.6
+
+### Fixed
+- **`coding-entry`'s detection map dropped its rows for removed plugins** (php,
+  livewire, node-backend, react, vue3, nuxt, mysql, postgresql — removed from
+  the marketplace 2026-08-26); the map now notes that engines without a dialect
+  plugin prime only the sql row. The output-shape example no longer primes a
+  removed skill.
+
 ## 0.13.5
 
 ### Changed

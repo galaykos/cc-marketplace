@@ -44,6 +44,10 @@ built: <short-hash> · <N> areas · <M> files
 `<short-hash>` = `git rev-parse --short HEAD`, or `(no git)` if not a git worktree. `<N>` =
 area count; `<M>` = total distinct files across detail files. This MUST fit the inject bound —
 one line per area with the ~8–12 cap fits easily; if you ever exceed it, drop to bare names.
+Check it before returning: `wc -c < brain/INDEX.md` must be ≤ 2048 and `wc -l` ≤ 30 —
+over-bound is a FAILURE to report, not a formatting choice, because the inject hook
+truncates silently (`head -c 2048 | head -n 30`) and hides the tail of the map from
+every session forever.
 
 **`brain/<area>.md`** — the depth (loaded on demand, unbounded):
 

@@ -70,9 +70,9 @@ that silently does nothing.
 - Express the brand as `primary` in oklch: pick hue, then set lightness ~0.55–0.65
   (light mode) so white foreground passes contrast; `ring` follows primary.
 - Chroma ≤ 0.03 binds dense data surfaces; a hero ground follows the brief instead.
-- Contrast gates are hard: 4.5:1 for body-size text on its surface, 3:1 for
-  large text and UI boundaries (border on background). Check every pair you
-  emit — both modes — before showing anything.
+- Contrast floors: 4.5:1 for body text on its surface, 3:1 for large text and UI
+  boundaries — check every pair, both modes, before showing anything. Standing:
+  agent-graded here; the only script checker is craft-layer's `/craft-layer:audit`.
 
 ## Dark mode is a second design, not an inversion
 

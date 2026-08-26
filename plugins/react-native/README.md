@@ -28,11 +28,6 @@ crossings, and `StyleSheet.create`.
 Advice pins to the installed React Native version, so guidance matches the APIs
 your release actually ships.
 
-## Pairs well with
-
-- **react** — server-state discipline (TanStack Query/SWR, cache keys,
-  invalidation) for the data layer under RN screens
-
 ## Expo / EAS
 
 `skills/react-native-best-practices/references/expo.md` carries the Expo facts
@@ -48,9 +43,6 @@ not a second best-practices body:
 - An EAS Update published against a mismatched `runtimeVersion` is never
   delivered, with no error anywhere.
 
-`/react-native:review` reads it automatically when `expo` is in the manifest, and
+`/react-native:review` reads it automatically when `expo` is in the manifest,
 `skill-router` routes this skill on `app.config.*` and `eas.json` edits in an Expo
-project. **Honest limitation:** the SKILL.md body does not point at it, because
-that body sits exactly at the 150-line ceiling and nothing in it was redundant
-enough to delete for the pointer. So the reference is reachable from the review
-command and from here, not from the skill body itself.
+project, and the skill body points at it before advising an Expo app.

@@ -31,5 +31,4 @@ catches.
 ## Pairs well with
 
 - **sql** — the engine-agnostic rules underneath this MariaDB-specific layer
-- **mysql** — the diverged cousin; same protocol, different engine
 - **database** — schema, indexing, and query-optimization workflows

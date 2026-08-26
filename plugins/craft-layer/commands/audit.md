@@ -192,3 +192,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
     for markup/style/component work, else apply inline. Findings owned by a delegate go to that
     delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Headless: report only,
     and print the exact `/a11y:audit` and `/performance:review` commands to rerun.
+
+    After an "Apply now" pick lands, re-run the step-4 script gates (divergence, contrast, the gate
+    suite) on the changed scope before reporting done — a fix is verified by the gate that failed,
+    never by the fixer's word. A fix that cannot be gate-checked (prose, copy) is named as unverified.

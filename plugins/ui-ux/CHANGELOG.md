@@ -4,6 +4,22 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.18.3
+
+### Added
+- **`/ui-ux:build` offers its reviewer twin** after returning changed files —
+  "Run /ui-ux:review on the result now (Recommended)" / "Skip". A standalone
+  build previously shipped self-graded even though the reviewer existed.
+
+### Fixed
+- **`shadcn-theming`'s "contrast gates are hard" claim names its standing**:
+  agent-graded on the theme path — no script computes ratios there; the only
+  mechanical checker is craft-layer's `contrast.mjs` under `/craft-layer:audit`.
+- **Ghost-skill pointers removed** (css-grid/flexbox/css3 — removed 2026-08-20,
+  still named by the generated engineer's procedure and astryx's defer rule);
+  plain CSS is stated as baseline. astryx and shadcn skills no longer route to
+  the removed react plugin's skills. <!-- removed-ok -->
+
 ## 0.18.1
 
 ### Fixed

@@ -23,9 +23,17 @@ When lockfiles are present, run `composer audit` / `npm audit` and fold known ad
 into the findings — unless a `/packages:audit` report already exists in this session:
 cite its findings instead of re-running the same commands blind to it (the packages
 plugin owns dependency-audit DEPTH — outdated lanes, transitive chains; this review
-folds advisories into diff context). Report findings as `path:line — problem — fix`, ordered by severity
+folds advisories into diff context). On a full audit, when the secret-scanning plugin
+is installed, also run `/secret-scanning:scan` over the scope and fold its hits in —
+its write-time hook cannot see secrets already committed, and this review's Secrets
+section is the one place that looks back. Report findings as `path:line — problem — fix`, ordered by severity
 (critical, high, medium, low), each with a one-line note on who can exploit it and how.
 Skip theoretical issues with no reachable input path unless nothing else is found.
+
+When the scope includes a design doc or threat model, audit its dispositions: every
+threat marked Accept must name who accepted it and why — an acceptance with no owner
+is acceptance-by-omission, the exact failure the threat-modeling skill names as an
+anti-pattern, and nothing else reads dispositions back.
 
 Close with a coverage inventory and a self-refute pass: state `Checked: …` and
 `Not checked: … (why)` so it is explicit what was covered, what was clean, and what was

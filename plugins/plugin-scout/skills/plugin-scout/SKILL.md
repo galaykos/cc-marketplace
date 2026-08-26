@@ -40,24 +40,16 @@ signal table below. Rules:
 
 ## Stack signals (tier 1)
 
-Fourteen plugins, each earned by one signal:
+Six plugins, each earned by one signal:
 
 | Signal (evidence file) | Plugin |
 |---|---|
-| composer.json exists | php |
 | composer.json require laravel/framework | laravel |
-| composer.json require livewire/livewire | livewire |
 | composer.json require inertiajs/inertia-laravel OR package.json @inertiajs/* | inertia |
-| package.json dep react (and NOT react-native) | react |
 | package.json dep react-native | react-native |
-| package.json dep vue ^3 (lockfile counts as evidence) | vue3 |
 | package.json dep next | nextjs |
-| package.json dep nuxt | nuxt |
-| package.json dep express OR fastify OR @nestjs/core | node-backend |
 | package.json dep vite (devDependencies counts) | vite |
-| .env DB_CONNECTION=mysql OR mysql docker image | mysql |
 | mariadb docker image or DSN | mariadb |
-| pgsql/postgres DSN or docker image | postgresql |
 
 Vue 2, plain JavaScript, and TypeScript map to no plugin — those plugins were
 removed after baseline testing (rationale/stack-skill-baselines.md). On a vue
@@ -71,7 +63,7 @@ cross-engine floor referenced by the per-dialect skills, not a stack pick.
 Before falling through to tier 2, read `references/signals.md` — evidence-bearing signals
 for plugins this table cannot see (CI, compose, OpenAPI, payment keys, locales, LLM keys,
 otel) plus rows for stacks this marketplace does NOT cover. Without it a repo with no
-composer.json and no package.json scores zero and drops to the undifferentiated remainder (46 today = 72 rows less 14 tier-1, 11 bundles, and plugin-scout itself; recount rather than trust it).
+composer.json and no package.json scores zero and drops to the undifferentiated remainder (45 today = 63 catalog rows less 6 tier-1, 11 bundles, and plugin-scout itself; recount rather than trust it).
 
 ## Universal set (tier 2)
 
