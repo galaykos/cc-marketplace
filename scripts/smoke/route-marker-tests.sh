@@ -147,7 +147,11 @@ if printf '%s' "$out" | jq -e '.hookSpecificOutput.hookEventName == "PostToolUse
 else
   echo "FAIL: nudge output is not a PostToolUse envelope — got: ${out:-<empty>}"; rc=1
 fi
-ctx=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+# `|| true`: jq parse-errors on non-JSON, pipefail propagates, and set -e would
+# kill this assignment before the envelope diagnostics below can print — on
+# exactly the bare-printf regression this section exists to report. Same class
+# guarded for `find` in the round-trip section; this instance predates that fix.
+ctx=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null || true)
 case "$ctx" in
   *vue3-canary*vue2-canary*|*vue2-canary*vue3-canary*) echo "PASS: both nudges ride one additionalContext payload" ;;
   *) echo "FAIL: additionalContext missing a nudge — got: ${ctx:-<empty>}"; rc=1 ;;
@@ -176,6 +180,59 @@ out=$(route "$TMP/casecwd" "resources/js/Pages/Users/Show.vue")
 expect "uppercase dir still matches" "$out" 'case-canary' ''
 out=$(route "$TMP/casecwd" "src/components/Widget.vue")
 expect "unrelated dir does not match" "$out" '' 'case-canary'
+
+# ---- CROSS-HOOK ROUND TRIP (the check nothing else performs) --------------
+# route.sh WRITES the state file, route-prompt.sh and summary.sh READ it. Every
+# other assertion in this file exercises one hook alone, and `find -name
+# 'fired-*.json'` is name-agnostic — so when route.sh changed its state-file key
+# to a cksum and the two readers kept reading `fired-<raw session_id>.json`, the
+# entire low-confidence channel died and this suite stayed green for a week.
+# These three assertions fail if the writer and either reader ever disagree
+# again. Payload is HOST-SHAPED: it carries transcript_path, because that is the
+# field route.sh reads first and a payload without it grades the fallback branch.
+tp="$TMP/transcripts/sess-roundtrip.jsonl"
+mkdir -p "$(dirname "$tp")"; : > "$tp"
+mkdir -p "$TMP/rtcwd"
+printf 'content\tROUNDTRIP-CANARY\troundtrip-canary\tmisc\tlow\n' >> "$PR/rules.tsv"
+printf 'a file whose body contains ROUNDTRIP-CANARY\n' > "$TMP/rtcwd/note.txt"
+
+payload=$(printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s","tool_input":{"file_path":"note.txt"}}' "$tp" "$TMP/rtcwd")
+printf '%s' "$payload" | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" >/dev/null 2>&1 || true
+
+# `find` exits 1 on an absent dir and `pipefail` propagates it — without `|| true`
+# `set -e` kills the assignment before the FAIL below can print, on precisely the
+# broken-code path this section was written to diagnose.
+statefiles=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
+if [ "$statefiles" = "1" ]; then
+  echo "PASS: round trip — route.sh wrote exactly one state file"
+else
+  echo "FAIL: round trip — route.sh wrote $statefiles state files, expected 1"; rc=1
+fi
+
+# The reader must FIND that file. Same payload shape, UserPromptSubmit fields.
+flush=$(printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s","prompt":"keep going"}' "$tp" "$TMP/rtcwd" \
+  | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROOT/plugins/skill-router/hooks/route-prompt.sh" 2>/dev/null || true)
+case "$flush" in
+  *roundtrip-canary*) echo "PASS: round trip — route-prompt.sh flushed the digest route.sh wrote" ;;
+  *) echo "FAIL: round trip — route-prompt.sh found no digest (writer/reader key mismatch); got: $flush"; rc=1 ;;
+esac
+
+# SessionEnd must find the same file, append one ledger row, and remove it.
+# Record whether HOME was set at all, not just its value: restoring an unset HOME
+# as "" is not a restore, and an empty HOME makes later `$HOME/...` paths resolve
+# to the filesystem root.
+HOME_WAS_SET=${HOME+yes}; HOME_BAK="${HOME:-}"
+export HOME="$TMP/fakehome"; mkdir -p "$HOME"
+printf '{"session_id":"sess-roundtrip","transcript_path":"%s","cwd":"%s"}' "$tp" "$TMP/rtcwd" \
+  | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROOT/plugins/skill-router/hooks/summary.sh" >/dev/null 2>&1 || true
+ledger=$(find "$HOME/.claude/skill-router" -name 'surfaced.jsonl' 2>/dev/null | head -1 || true)
+left=$(find "$TMP/rtcwd/.claude/skill-router" -name 'fired-*.json' 2>/dev/null | wc -l | tr -d ' ' || true)
+if [ -n "$ledger" ] && grep -q 'roundtrip-canary' "$ledger" 2>/dev/null && [ "$left" = "0" ]; then
+  echo "PASS: round trip — summary.sh wrote the ledger row and removed the state file"
+else
+  echo "FAIL: round trip — ledger='$ledger' rows_match=$(grep -c 'roundtrip-canary' "${ledger:-/dev/null}" 2>/dev/null | head -1) leftover_state=$left"; rc=1
+fi
+if [ -n "${HOME_WAS_SET:-}" ]; then export HOME="$HOME_BAK"; else unset HOME; fi
 
 [ "$rc" -eq 0 ] && echo "All route-marker smoke tests passed."
 

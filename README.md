@@ -38,14 +38,14 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 |--------|---------|-------------------|--------------------|----------------------------|
 | `everything` | 52 | ~11.2k tokens | ~1.2k tokens | ~2.5k tokens |
 | `taskmaster-suite` | 31 | ~7.3k tokens | ~169 tokens | ~2.5k tokens |
-| `craft-suite` | 7 | ~2.1k tokens | — | — |
-| `quality-principles-suite` | 9 | ~2.0k tokens | — | — |
+| `craft-suite` | 7 | ~2.2k tokens | — | — |
+| `quality-principles-suite` | 9 | ~2.1k tokens | — | — |
 | `process-suite` | 10 | ~1.9k tokens | ~32 tokens | ~2.4k tokens |
-| `quality-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
+| `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
-| `php-suite` | 4 | ~427 tokens | — | — |
-| `db-suite` | 3 | ~261 tokens | — | — |
-| `product-suite` | 2 | ~185 tokens | — | — |
+| `php-suite` | 4 | ~495 tokens | — | — |
+| `db-suite` | 3 | ~329 tokens | — | — |
+| `product-suite` | 2 | ~254 tokens | — | — |
 
 `everything` is all 52 leaf plugins; every other row is a curated subset.
 

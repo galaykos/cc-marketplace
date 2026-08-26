@@ -7,6 +7,13 @@ description: Use when writing or reviewing Next.js App Router code — server vs
 
 ## Server Components by default — place client boundaries deliberately
 
+**Boundary with `react:react-server-state`** (it co-ships in `frontend-suite` and
+`everything`, and its router row fires on every `.tsx` in a non-react-native repo): server-side fetching in
+Server Components is this skill's, and needs no client cache library. That skill
+owns data behind a `'use client'` boundary — interactive, user-specific, or
+refetching/mutating in the browser. Neither default overrides the other; the
+`'use client'` line is the switch.
+
 Everything under `app/` is a Server Component until a module says `'use client'`. The
 directive marks a module-graph boundary, not a single file: everything a client module
 imports becomes client code too. Push boundaries to the leaves (the button, the form),
@@ -142,9 +149,6 @@ Advising above the installed version is a finding; confirm boundaries against th
 - Sync `params`/`searchParams` access left in after a 16 upgrade — it throws.
 - Missing `default.js` in a parallel route slot — a build failure on 16.
 
-## Verify Against Current Docs
-
-Caching defaults, request-API asynchrony, and the `use cache`/`cacheComponents` status
-have all shifted across 14 → 15 → 16 and within 16.x minors. Before relying on memory
-for version-sensitive behavior, check https://nextjs.org/docs and pin advice to the
-`next` version actually installed in `package.json`/the lockfile.
+Caching defaults, request-API asynchrony, and `use cache`/`cacheComponents` shifted
+across 14 → 15 → 16 **and within 16.x minors** — check https://nextjs.org/docs before
+relying on memory for version-sensitive behavior.

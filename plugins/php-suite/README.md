@@ -30,5 +30,5 @@ Installing the bundle pulls in every plugin below as a dependency.
 ## Pairs well with
 
 - **db-suite** — the database category bundle for the persistence side of a PHP app
-- **quality-suite** — the code-quality category bundle (review, testing, security, and more) on top of the stack rules
+- **quality-suite** — the enforcing-mechanism bundle (review, comment discipline, command guard, secret scanning, and more; testing and security now live in **quality-principles-suite**) on top of the stack rules
 - **dev-env** — docker-compose scaffolding and Docker review for the services a PHP app runs against

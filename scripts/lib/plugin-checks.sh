@@ -477,22 +477,30 @@ pc_handoff_refs() {
 # check-doc-staleness.sh can see it decay. Prints `unstamped <plugin>` and returns
 # 1 when the claim exists and no stamp does; returns 0 otherwise.
 #
-# STANDING: recorded, NOT gate — and the distinction is the point, per CLAUDE.md's
-# has-teeth convention. validate.sh prints this as a WARN and never fails on it.
+# STANDING: gate — validate.sh:559-561 feeds this straight to `err`, so a plugin
+# claiming version leverage with no stamp FAILS the build. Promoted in 6487412
+# (2026-08-02, "put teeth behind the stamp") after the verification pass below was
+# actually run and the claimants were actually stamped.
 #
-# WHY IT IS NOT BLOCKING YET. rationale/stack-skill-baselines.md exempts ~20
-# tier-1 stack plugins from the baseline-redundancy loop on the explicit promise
-# that they encode version leverage rather than idioms. Ten of them make that
-# claim in their own description and none carries a stamp. Making this blocking
-# today would force a stamp onto each — and a stamp is a claim that a human or a
-# fetch actually verified the content on that date against that URL. Writing ten
-# of those without doing the verification would be a fabricated provenance record
-# in the one file whose entire purpose is provenance: the honest-limitation law
-# forbids it more clearly than almost anything else in this repo.
+# THIS HEADER SAID THE OPPOSITE FOR 21 DAYS. It read "STANDING: recorded, NOT gate
+# — validate.sh prints this as a WARN and never fails on it", plus a "WHY IT IS NOT
+# BLOCKING YET" rationale and a "TO PROMOTE IT TO `gate`" work queue, all of which
+# described a promotion that had already happened three weeks earlier. That is the
+# INVERSE of the over-claim CLAUDE.md's has-teeth convention was written to catch:
+# not a rule pretending to be enforced, but a gate documenting itself as toothless.
+# It is the more expensive direction — a maintainer reading this header would have
+# budgeted work to build a gate that already existed, or trusted that a missing
+# stamp only warns. Kept as a comment rather than deleted because the failure mode
+# is the reusable part: when you change a check's wiring in validate.sh, the
+# standing line in THIS file is the second edit, and nothing enforces that pairing.
 #
-# TO PROMOTE IT TO `gate`: run one real verification pass per claimant, stamp what
-# was actually checked, then change validate.sh's warn to err. The list this
-# prints IS the work queue for that pass.
+# WHY IT WAS ONCE WARN (kept for provenance): rationale/stack-skill-baselines.md
+# exempts ~20 tier-1 stack plugins from the baseline-redundancy loop on the promise
+# that they encode version leverage rather than idioms. Ten made that claim with no
+# stamp. Blocking before the verification pass would have forced ten fabricated
+# provenance records into the one file whose purpose is provenance — the
+# honest-limitation law forbids that more clearly than almost anything here. The
+# pass was run; the stamps are real; the gate is now safe to block on.
 pc_version_stamp() {
   local pdir="$1" pj="$1/.claude-plugin/plugin.json" desc name
   [ -f "$pj" ] || return 0
@@ -1082,6 +1090,179 @@ $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sor
 EOF
   unset -f _mk_tainted
   return $bad
+}
+
+# pc_source_of_truth: a SKILL that names a reference as SOURCE OF TRUTH for its
+# figures must not carry a figure that reference does not.
+#
+# WHY THIS EXISTS. craft-layer's motion-tiers/SKILL.md declares
+# `references/tier-budgets.md` "SOURCE OF TRUTH for every KB figure below" and
+# then states, in its own words, "Standing **recorded** — the mirror is manual and
+# no gate checks the two agree." It had already rotted: the SKILL told a React
+# reader to reach for `motion/mini` as the Tier-1 reduced-bundle path while the
+# reference reserved `motion/mini` for VANILLA tweens and named `LazyMotion`+`m.*`
+# as the React path. Two files, opposite advice, one of them labelled the truth.
+#
+# WHAT THIS CATCHES, precisely: a figure matching `[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)`
+# with the unit ADJACENT to the number, present in the SKILL body but absent from
+# the cited reference. That mismatch is the drift shape a manual mirror produces —
+# someone edits the summary and not the source, or the source and not the summary.
+# Not px. Not a spaced unit (`34 KB`). Not a bare integer.
+#
+# (An earlier draft of this comment claimed px and "a bare integer with a unit",
+# which the regex never matched — a gate whose header overstates its catch-scope is
+# the same over-claim this check exists to prevent, committed inside the check. A
+# later fix then inserted that correction BETWEEN the catch-description and the
+# sentence explaining it, so "That is the drift shape" briefly pointed at the
+# over-claim instead of the mismatch. Corrections to this block keep breaking the
+# antecedent of whatever sentence they land in front of; put them in parentheses at
+# the end, as here, rather than mid-paragraph.)
+#
+# WHAT IT DOES NOT CATCH, and this is the honest limit: prose that contradicts
+# without changing a number. The `motion/mini` rot above is exactly that prose
+# shape, so this gate would NOT have caught the defect that motivated it.
+#
+# Two further limits, distinct from that one. A unit outside the four above is
+# invisible. And a figure spaced on the REFERENCE side but not the skill side
+# (`34KB` vs `34 KB`) produces a FALSE fail — no in-repo instance today, since
+# motion-tiers is the only user of the marker, but a measured brittleness rather
+# than a hypothetical one.
+#
+# WHAT IS PINNED, and by what. `scripts/smoke/source-of-truth-tests.sh` is a named
+# CI step covering the FIGURE-level behaviours: what is caught, the three misses
+# (px, spaced-on-the-skill-side, bare integer), the false-fail direction above, and
+# the marker scoping. A regression in any of those is red.
+#
+# It does NOT pin the prose limit. Every fixture is figure-only, so if this check
+# ever started catching prose the harness would stay green. That limit is prose,
+# and stays agent-graded.
+#
+# So: it catches the cheaper half and leaves the other half to a reader. Saying
+# which is which is the point — a gate that implies more coverage than it has is
+# the defect this repo's has-teeth convention exists to name.
+#
+# Standing: gate. validate.sh feeds it to `err`.
+pc_source_of_truth() {
+  local root="${1:-plugins}" bad=0 f dir ref refpath body figs missing
+
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    grep -q 'SOURCE OF TRUTH' "$f" 2>/dev/null || continue
+    dir=$(dirname "$f")
+    # the reference named on (or just before) the SOURCE OF TRUTH line
+    ref=$(grep -B1 -A0 'SOURCE OF TRUTH' "$f" 2>/dev/null           | grep -oE 'references/[A-Za-z0-9._-]+\.md' | head -1)
+    [ -n "$ref" ] || continue
+    refpath="$dir/$ref"
+    [ -f "$refpath" ] || { printf 'source-of-truth %s names %s which does not exist\n' "$f" "$ref"; bad=1; continue; }
+
+    body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
+    # LC_ALL=C on sort AND comm: under a UTF-8 locale their collations can
+    # disagree on strings like "2.6KB" (dot-ignoring strcoll vs byte order),
+    # making comm report figures present in both files — a false FAIL that
+    # only shows on machines whose locale differs from CI's.
+    figs=$(printf '%s' "$body" | grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' | LC_ALL=C sort -u)
+    [ -n "$figs" ] || continue
+    missing=$(LC_ALL=C comm -23 <(printf '%s\n' "$figs") \
+                       <(grep -oE '[0-9]+(\.[0-9]+)?(KB|MB|ms|fps)' "$refpath" 2>/dev/null | LC_ALL=C sort -u))
+    if [ -n "$missing" ]; then
+      printf 'source-of-truth %s carries figures absent from its declared source %s: %s\n' \
+        "$f" "$ref" "$(printf '%s' "$missing" | tr '\n' ' ')"
+      bad=1
+    fi
+  done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
+
+  return "$bad"
+}
+
+# pc_false_standing: a SKILL that ACTUALLY trips pc_source_of_truth must not also
+# claim nothing gates it.
+#
+# WHY THIS EXISTS. On 2026-08-25 this branch added `pc_source_of_truth`. The one
+# skill it engages — craft-layer's motion-tiers — went on saying "Standing
+# **recorded** — the mirror is manual and no gate checks the two agree", true when
+# written and false the moment the gate landed. A model loading that skill was told
+# the wrong enforcement tier about the skill it was reading.
+#
+# ENGAGEMENT, NOT KEYWORDS — and this is the correction that matters. Earlier
+# versions fired on the mere PRESENCE of a trigger string. That produced false
+# positives whose error message was itself false: a body saying "treat package.json
+# as the SOURCE OF TRUTH — no gate checks it here" trips nothing, because
+# pc_source_of_truth also requires a `references/*.md` named beside the marker
+# (see its `[ -n "$ref" ] || continue`). The denial was TRUE and the gate called it
+# a lie. So this check now reproduces pc_source_of_truth's own precondition —
+# marker AND a resolvable reference — and fires only when that gate really would.
+#
+# THE VERSION PAIR WAS DROPPED for the same reason, after being encoded and shipped:
+# pc_version_stamp reads a plugin's `description` in plugin.json; this check reads a
+# SKILL BODY. Different surfaces. A body-only "version-aware" sentence genuinely has
+# no gate over it, so a skill saying so is correct and blocking it was wrong. Two
+# shipped skills (nuxt, stack-scan) sit in exactly that position. A pair belongs
+# here only when this check can evaluate the OTHER gate's real predicate on the
+# SAME artifact; that was true for pc_source_of_truth and false for pc_version_stamp.
+#
+# WHAT THIS CATCHES, precisely: a SKILL that (a) carries `SOURCE OF TRUTH`, (b)
+# names a `references/*.md` on or just before that line which exists on disk — so
+# pc_source_of_truth engages — and (c) denies being gated, in the same paragraph as
+# the marker.
+#
+# FALSE POSITIVES REMAIN POSSIBLE and have an escape hatch. Paragraph proximity is a
+# proxy for "the denial is about the marker", and `RS=""` treats a contiguous bullet
+# list or markdown table as ONE paragraph — which is the idiom the has-teeth
+# convention prescribes for standing tables. A row saying "lane rows: convention —
+# nothing checks them" beside a row about the SOURCE OF TRUTH reference will fire.
+# Mark it `<!-- false-standing-ok: <why> -->` in that paragraph, as with jargon-ok
+# and removed-ok. A gate with no escape hatch for a proxy it cannot make exact is a
+# gate that gets switched off.
+#
+# THE DENIAL LIST IS ENUMERATIVE, NOT SEMANTIC. `DENIALS` is a fixed set of phrasings
+# ("no gate checks", "nothing checks it", …). A skill writing "nothing checks these"
+# or "no script verifies it" says the same thing and is not matched. That is a known
+# miss, not a surprise: the alternative is meaning-matching, which a grep cannot do.
+# Widen the list when a real miss appears; do not pretend it is exhaustive.
+#
+# WHAT IT DOES NOT CATCH: the other 23 checks in this file. Their triggers are
+# structural or live on a different artifact than the claim, and "does this file
+# trip that check" is then not answerable here. Add a pair only when this check can
+# evaluate the other gate's real predicate on the same file.
+#
+# Standing: gate. validate.sh feeds it to `err`.
+pc_false_standing() {
+  local root="${1:-plugins}" bad=0 f dir body ref refpath hit
+  local DENIALS='no gate (checks|reads|enforces)|nothing (checks|enforces|gates) (it|this|that|the two|them)|the mirror is manual and no gate|not (gated|enforced|checked) by (any|a) (script|gate)'
+
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    # pc_source_of_truth's own preconditions, in its order. Case-sensitive, because
+    # that gate greps the marker with a plain `grep -q`.
+    grep -q 'SOURCE OF TRUTH' "$f" 2>/dev/null || continue
+    dir=$(dirname "$f")
+    ref=$(grep -B1 -A0 'SOURCE OF TRUTH' "$f" 2>/dev/null \
+          | grep -oE 'references/[A-Za-z0-9._-]+\.md' | head -1)
+    [ -n "$ref" ] || continue
+    refpath="$dir/$ref"
+    [ -f "$refpath" ] || continue
+
+    body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
+    # tolower() not IGNORECASE: the latter is a gawk extension BSD awk ignores
+    # silently, which made an earlier version miss a sentence-initial "No gate...".
+    # The blessing test lives INSIDE awk, per paragraph. It used to sit in the
+    # shell after `print; exit`: awk stopped at the FIRST engaging paragraph, and
+    # a blessing there made the shell `continue` the whole FILE — so a blessed
+    # paragraph hid every later unblessed denial in the same skill. Reported and
+    # reproduced 2026-08-26. Now each paragraph is judged on its own and only an
+    # unblessed one can stop the scan.
+    hit=$(printf '%s' "$body" | awk -v deny="$DENIALS" '
+      BEGIN { RS = "" }
+      /SOURCE OF TRUTH/ && tolower($0) ~ tolower(deny) &&
+        index($0, "<!-- false-standing-ok:") == 0 { print; exit }
+    ')
+    [ -n "$hit" ] || continue
+
+    printf 'false-standing %s engages pc_source_of_truth (marker + %s) and denies being gated in the same paragraph\n' "$f" "$ref"
+    bad=1
+  done < <(find "$root" -path '*/skills/*/SKILL.md' -type f 2>/dev/null | sort)
+
+  return "$bad"
 }
 
 # pc_harness_payload — the CONDITION behind pc_marker_key, not another instance of it.

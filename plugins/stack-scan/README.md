@@ -27,7 +27,7 @@ beats lock, and every version claim cites its source.
 ```
 
 Run it once per session in an unfamiliar repo. The inventory feeds the
-version-aware review plugins (php, mysql, mariadb, postgresql, react, vue),
+version-aware review plugins (php, mysql, mariadb, postgresql, react, vue3),
 taskmaster's context-scout, and dev-env's compose generator.
 
 ## Pairs well with

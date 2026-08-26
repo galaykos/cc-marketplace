@@ -145,6 +145,29 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
   printf '%s' "$head" | grep -qF '/debugging:debug' && exit 0 # own suggestion quoted back = transcript, not intent
+  # QUESTION-SHAPED PROMPTS (misfire regression, live transcript 2026-08-25). The
+  # trigger is a bare verb list matched anywhere in the head, so "can I BUILD a
+  # tool on Claude Code?" and "if we needed to BUILD from scratch, what would you
+  # do?" both scored as work-shaped. Asking WHETHER to do the work is not asking
+  # for it, and a clarify nudge on a question is pure noise: the deliverable is
+  # prose, and there is no edit for the nudge to sit in front of.
+  #
+  # CLAUSE-LEVEL, not prompt-level, because one prompt can do both ("that looks
+  # wrong. fix the parser"). Split the head into clauses, keep only those actually
+  # carrying the trigger, and stand down only when EVERY one of them is
+  # interrogative — a clause counts as interrogative when it ended in `?` or opens
+  # with a question word. A single imperative trigger clause is enough to speak.
+  #
+  # LIMITATION (honest scope): heuristic, not parsing. "how do I add caching?" is
+  # refused even though the user may well want it built; the nudge returns on their
+  # next, imperative, prompt. A delayed nudge is the cheaper error than a false one,
+  # and CC_REMIND=off remains the reliable control.
+  clauses=$(printf '%s' "$head" | awk '{gsub(/\?/," __Q__\n"); gsub(/\. /,"\n"); print}')
+  if printf '%s\n' "$clauses" | grep -qiE '(still failing|same error|didn.?t work|not working|keeps failing)'; then
+    printf '%s\n' "$clauses" | grep -iE '(still failing|same error|didn.?t work|not working|keeps failing)' \
+      | grep -qvE '(__Q__|^[[:space:]]*(can|could|should|would|shall|is|are|was|were|do|does|did|am|will|what|why|how|when|where|which|who|whether)[^a-z])' \
+      || exit 0
+  fi
   # TURN-TAKING (spec §4.3). Evaluated only after the prompt already matched this
   # hook's own trigger, so an out-of-phase artifact costs one lane.tsv read and
   # nothing else. sid is needed by the guard's session check, so resolve it first.

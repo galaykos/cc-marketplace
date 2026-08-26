@@ -1,4 +1,12 @@
-# The reduced-motion gate — stated once
+# The reduced-motion gate — stated once FOR CRAFT-LAYER
+
+Scope, because the earlier title said plainly "stated once" and that was false:
+`ui-ux:motion-best-practices` also states the rule, and owns the WHY (vestibular
+harm), the CSS kill-switch, and the runtime subscription mechanism —
+`motion-tiers/SKILL.md` itself assigns that mechanism to it. This file is the
+single statement of the gate **across craft-layer's motion skills**, not across
+the marketplace. A file whose job is preventing restatement claiming a uniqueness
+it does not have was the sharpest version of the problem it exists to solve.
 
 Every craft-layer motion skill answers `prefers-reduced-motion` or it does not
 ship. What each skill owns is its **path**: which of its effects stop, and what

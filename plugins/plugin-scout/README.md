@@ -28,7 +28,7 @@ semantics: `skills/plugin-scout/references/flags.md`.
 
 | Command | What it does |
 |---------|--------------|
-| `/plugin-scout:suggest [--yes] [--persist]` | Detect the stack, print the two-tier suggestion table (plugin, tier, evidence, installed), then offer to install the plugins you pick — or auto-install tier-1 picks (`--yes`) and/or persist the installed set to project settings (`--persist`) |
+| `/plugin-scout:suggest [path] [--yes] [--persist]` | Detect the stack, print the two-tier suggestion table (plugin, tier, evidence, installed), then offer to install the plugins you pick — or auto-install tier-1 picks (`--yes`) and/or persist the installed set to project settings (`--persist`) |
 
 ## Example
 

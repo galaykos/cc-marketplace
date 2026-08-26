@@ -17,6 +17,18 @@ publishable plugin.
     `claude plugin eval` reads them as the case definition. Allowed since
     2026-08-20; a design doc parked under `evals/` is still a violation in spirit
     and no script can tell the two apart.
+
+    **Standing of the eval surface itself: `recorded`, not verified** — measured
+    2026-08-24. **4 of 71** plugins ship an eval (i18n, nextjs, php, resilience),
+    **none** defines a control arm, and `claude plugin eval` is early-access gated
+    on this account, so no shipped suite has been run against the runner's schema.
+    "Functional" above describes the intended contract, not a checked one. The
+    consequence that matters: a grader passing proves nothing about the SKILL
+    unless a control arm shows the base model failing the same prompt — and the
+    one time that was actually measured
+    (`rationale/eval-ablation-2026-08-20.md`), the skill under test scored **zero
+    delta in every arm**. Recount before trusting any of these numbers:
+    `ls -d plugins/*/evals | wc -l`.
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
   history. If a document truly must be tracked, it goes in **`rationale/`** at
@@ -57,12 +69,17 @@ restate the table here, or the two drift.
 
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
-Adopted incrementally as plugins are touched, not in a sweep: explicit
-`Standing:` markers ship in 7 plugins today (claude-authoring,
-code-architecture, orchestration, task-runner, taskmaster, terse,
-vercel-skills-scout), plus craft-layer's worked table above. **No script
-enforces this** — which puts the convention in its own `recorded` tier, and
-saying so is the point.
+Adopted incrementally as plugins are touched, not in a sweep. **Do not copy a
+count from this paragraph — recount it**, the way the retirement-queue and CI-step
+numbers below say to, and for the same reason: this sentence said "7 plugins" from
+2026-07 until 2026-08-23, by which point it was 13. Recount with
+`grep -rl "Standing:" --include='*.md' plugins/ | cut -d/ -f2 | sort -u | wc -l`
+(drop `--include` to count hook scripts too). As of 2026-08-24 that is **14** in
+shipped `.md` and **18** including hook scripts, plus craft-layer's worked table
+above — and the first figures written here, 13/17, were already stale when they
+were committed, because a later commit on the same branch added command-guard's
+marker. Two days, two stale counts: run the command. **No script enforces the convention** — which puts it in its own
+`recorded` tier, and saying so is the point.
 
 ## Plugin change gates
 
@@ -127,8 +144,9 @@ saying so is the point.
   CI step), across **three** channels: **always-on**
   (`context-budget-baseline.json` — descriptions + SessionStart stdout + local
   MCP `tools/list`), **dynamic** (`context-budget-dynamic-baseline.json` —
-  UserPromptSubmit and per-tool hook stdout, measured with a **four-prompt
-  corpus** summed per prompt and scored MAX, plus a synthetic `Edit`), and
+  UserPromptSubmit and per-tool hook stdout, measured with a **five-prompt
+  corpus** (it was four until 2026-08-23; count the strings in the script rather
+  than trusting this number) summed per prompt and scored MAX, plus a synthetic `Edit`), and
   **activated** (`context-budget-activated-baseline.json`, added 2026-08-20 —
   the always-on surface re-measured with the state its hooks WAIT for: a terse
   level set, a `brain/INDEX.md` present, manifests to sniff). Each omission was
@@ -176,7 +194,7 @@ command warning). Declaring `any` is a real claim, not an escape hatch — it ex
 the artifact from the phase sentinel.
 
 **Standing: `gate` for agents and for plugins shipping a `UserPromptSubmit`/`Stop`
-hook; `WARN` for commands and skills** (99 commands and 129 skills are not yet
+hook; `WARN` for commands and skills** (most commands and skills are not yet
 declared — adopting them is incremental, not a sweep). Five checks in
 `scripts/lib/plugin-checks.sh`: `pc_lanes_schema`, `pc_lanes_authority` (a plugin
 may declare only its OWN artifacts), `pc_lanes_resolve`, `pc_lanes_territory` (two
@@ -196,35 +214,74 @@ bash scripts/context-budget.sh
 bash scripts/generate.sh --check
 ```
 
+**The four are not sufficient, and here is the case that proves it.** On
+2026-08-25 a change added a `{{skillHome}}` key to
+`templates/review-command.md.tmpl` and did not update
+`templates/samples/*.json`. All four scripts passed. `scripts/smoke/chassis-template-tests.sh`
+— an unguarded CI step — went red, and the branch was pushed that way.
+
+The reason is structural, not carelessness: `generate.sh` ENRICHES every chassis
+manifest before rendering — `skillHome` is computed and injected by the script
+(`generate.sh:167-178`), so `--check` never sees a manifest missing it, and no
+`.chassis.json` on disk contains the key at all. The harness feeds the FROZEN
+sample fixtures to the template engine raw, so those must carry every key
+literally, and did not. **The gate you run and the gate
+that breaks can read different inputs.** So:
+
+- Touched anything under `templates/` or a `.chassis.json`? Also run
+  `bash scripts/smoke/chassis-template-tests.sh`.
+- Touched a hook, or a script a harness drives? Run that harness. `bash scripts/gate-coverage.sh`
+  maps checks to harnesses that MENTION them by name — its own header says a hit
+  is a mention, not proof of exercise, so it over-reports.
+- Changed a gate's error STRING? Several harnesses assert exact messages — run the smoke set.
+- Not sure? Run the lot; it is minutes, and CI red after a green local pass is the
+  failure this note exists to prevent:
+
+```bash
+for t in scripts/smoke/*.sh scripts/smoke/validate-fixtures/*.sh; do [ "$(basename "$t")" = canary.sh ] && continue; bash "$t" >/dev/null || echo "FAIL $t"; done
+for t in plugins/*/scripts/__tests__/*.test.sh; do bash "$t" >/dev/null || echo "FAIL $t"; done
+```
+
+One measured caveat on running them together: `context-budget.sh` failed once and
+passed on re-run while the smoke suite ran concurrently — both mutate scratch
+state. Run the budget gate on its own before trusting a red from it.
+
 ## Every enforcement surface, by tier
 
 Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **28 named steps;
-27 can fail the build**, and on a push to `master` only **26** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **29 named steps;
+28 can fail the build**, and on a push to `master` only **27** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`, so
-27 of the 28 run). Recounted 2026-08-17 — the previous figures were stale in
-both directions, which is the same trap this file names for the retirement-queue
-number below: **recount these, do not copy them.**
-Beyond the four scripts above: 20 harnesses under `scripts/smoke/`
-(template-engine, chassis-template, preserve-block, hook-guard, hook-syntax,
-guard, rules-overlap, route-marker, prompt-route, lanes, prime-map, behavioral-verification,
-completion-gate-hook, evidence-gate-hook, comment-discipline-hook,
-verbosity-hook, preview-guard, versioned-layout, marker-key,
-`validate-fixtures/parity-check.sh`),
-`scripts/smoke/validate-fixtures/role-floors-check.sh`, and the author-time
-lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
+28 of the 29 run). Recounted 2026-08-25, when adding the source-of-truth harness
+step moved every one of them. The figures before that were 28/27/26, recounted
+2026-08-17, and stale in both directions before THAT — which is why this file
+says, of these numbers specifically: **recount them, do not copy them.** The
+command, so the next reader does not have to invent it:
+
+```bash
+python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"
+```
+Beyond the four scripts above: the harnesses under `scripts/smoke/`, each its own
+named CI step, and the author-time lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
 ANY plugin shipping a harness is enforced the moment it lands. **Do not record the
-count here.** This sentence has now been wrong twice: it said "taskmaster and
-task-runner are the two" long after 18 more had landed, and its replacement — a
-fresh recount, accurate the hour it was written on 2026-08-17 — was invalidated by
-two later commits *on the same branch*. Recount instead:
-`ls plugins/*/scripts/__tests__/*.test.sh | wc -l`, and
-`bash scripts/gate-coverage.sh` for which author-time checks a harness actually
-exercises. The glob is the right fix precisely because a counted list here is not.
-Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
+count here** — this paragraph used to name 20 and list them, which was stale within
+two commits of being written and contradicted the very sentence you are reading.
+Recount instead:
+
+```bash
+grep -c 'run: bash scripts/smoke/' .github/workflows/validate.yml   # smoke steps
+ls plugins/*/scripts/__tests__/*.test.sh | wc -l                    # plugin harnesses
+bash scripts/gate-coverage.sh   # which author-time checks a harness exercises
+```
+
+The glob is the right fix precisely because a counted list here is not: this
+paragraph has carried a wrong count three times — "taskmaster and task-runner are
+the two" long after 18 more had landed, a 2026-08-17 recount invalidated by two
+later commits on the same branch, and a 20-item list that was 23 within two
+commits. Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
 deliberately NOT a CI step: its own header says it needs a live model; it
 stays a local authoring harness.)
 CI can still be red after a green local four-script pass: several of those
@@ -252,14 +309,42 @@ skills by the two usage ledgers written since 2026-08-02
 `~/.claude/hindsight/<slug>/skills.jsonl`, what was INVOKED). Always exits 0 and
 never proposes a deletion: zero invocations proves nobody used it HERE, non-zero
 proves it fired and not that it helped, and "never surfaced" mostly measures the
-router's coverage — **91 of 129** skills have no `rules.tsv` row at all (recounted
-2026-08-16; the previous "99 of 126" was stale, and a recorded-tier number in the
-conventions file getting trusted as a measurement is exactly what this file warns
-about — recount it, do not copy it). It says
+router's coverage — most skills have no `rules.tsv` row at all. That figure has now
+been recorded stale three times ("99 of 126", then "91 of 129", both trusted as
+measurements), so it is not recorded here a fourth. Recount:
+
+```bash
+python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s),'unrouted')"
+```
+
+It says
 where a control/treatment run is worth spending, nothing more.
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned
 plugin-removal script. It rewrites leaf-derived numbers only. Removing a *leaf*
 changes every suite that listed it, and those suites' member counts get a `WARN`,
-not an edit — so the bundle table at `README.md` drifts on exactly the removal
-the script is for. Nothing gates that table.
+not an edit.
+
+This paragraph used to end "so the bundle table at `README.md` drifts on exactly
+the removal the script is for. Nothing gates that table." **That was false, and
+had been since 2026-08-02** — the `generate.sh --check` paragraph above says the
+opposite about the same table, so this file contradicted itself for three weeks.
+The table IS gated, by inheritance: `remove-plugin.sh` deletes the
+`marketplace.json` entry, so a suite still listing the removed leaf hard-fails
+`validate.sh`'s all-bundle dependency gate; fixing that dep changes the member
+count, which `generate.sh --check` then forces into the table.
+
+Two residuals are real and worth keeping. **(1)** The table is not *self*-gating:
+immediately post-removal it shows stale counts while `--check` reports no drift,
+because it is consistent with a manifest `validate.sh` has already condemned. So
+the failure surfaces as a red build, not as table drift — which is why the WARN
+above matters. **(2)** `remove-plugin.sh` hand-`sed`s the `everything` row, which
+lives *inside* the `<!-- generated:bundle-table -->` region whose own header says
+not to edit those rows by hand. Two writers, one generated region; last writer
+wins silently. Nothing gates *that*.
+
+The correction is itself the lesson this section teaches, running backwards: a
+gate can be mis-tiered as toothless as easily as a habit can be mis-tiered as a
+gate, and the toothless direction is more expensive — it makes someone build what
+already exists. `pc_version_stamp` carried the same inversion in its own header
+for 21 days after it started blocking.

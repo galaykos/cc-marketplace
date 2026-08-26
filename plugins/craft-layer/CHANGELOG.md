@@ -7,6 +7,53 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.5
+
+### Fixed
+- `motion-tiers/SKILL.md` shipped "Standing **recorded** — the mirror is manual and
+  no gate checks the two agree" after this same branch added the gate that checks
+  it. `pc_source_of_truth` fails CI when a KB figure in the SKILL is absent from
+  `references/tier-budgets.md`. The marker now says what is true: KB figures are
+  **gate**, prose agreement is **recorded** — nothing reads meaning. A skill telling
+  a model the wrong enforcement tier about itself is the has-teeth defect this
+  marketplace publishes a convention against.
+
+## 0.47.4
+
+### Changed
+- WCAG SC 2.5.7 was stated in full three times — `physics-motion`,
+  `interaction-fx`, and `a11y:a11y-audit`, which owns it. The two craft-layer
+  satellites now state the rule in one line and name the owner. Deliberately
+  still STATE it rather than only pointing: craft-layer installs standalone, so a
+  bare pointer would leave a legal accessibility criterion unreachable.
+- `motion-tiers/references/reduced-motion.md` was titled "The reduced-motion gate
+  — stated once". That was false: `ui-ux:motion-best-practices` also states it and
+  owns the WHY, the CSS kill-switch and the subscription mechanism —
+  `motion-tiers/SKILL.md` assigns that mechanism to it by name. Retitled and
+  scoped to craft-layer. A file whose job is preventing restatement, claiming a
+  uniqueness it did not have, was the sharpest form of its own problem.
+
+## 0.47.3
+
+### Fixed
+- `motion-tiers/SKILL.md` told a React reader the Tier-1 reduced-bundle path is
+  `animate()` from `motion/mini`. Its own declared SOURCE OF TRUTH,
+  `references/tier-budgets.md`, reserves `motion/mini` for **vanilla** element
+  tweens and names `LazyMotion` + `m.*` as the React path. Two files, opposite
+  advice, one of them labelled the truth. The SKILL now matches the reference.
+- `motion-tiers/references/rtl-bidi.md` pointed at `plugins/i18n` for the general
+  RTL rules and said "do not re-teach them here" — but `craft-suite` does not ship
+  i18n, so a craft-suite reader got a pointer to nothing. The file now carries a
+  four-rule floor (logical properties, `dir`, which icons mirror, LTR runs inside
+  RTL) and defers to i18n when it IS installed.
+
+### Note
+- The manual SKILL↔reference mirror that produced the first defect is no longer
+  unchecked: `pc_source_of_truth` in `scripts/lib/plugin-checks.sh` now fails any
+  SKILL naming a reference as SOURCE OF TRUTH that carries a figure the reference
+  lacks. Its honest limit: figures only — prose contradiction, which is what this
+  defect actually was, stays agent-graded.
+
 ## 0.47.2
 
 ### Fixed

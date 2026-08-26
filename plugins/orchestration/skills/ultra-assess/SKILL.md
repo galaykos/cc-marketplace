@@ -50,7 +50,10 @@ The resolution rule is owned by `orchestration:verification-panels` § Panel wid
 
 ## The escalation contract (`ULTRA-ASSESS ACTIVE`)
 
-This is the verbatim block the hook injects. Honor every line:
+The hook injects a ONE-LINE directive naming this skill; the block below is the
+contract that directive stands for, and is what you honor. It is not the hook's
+text verbatim — an earlier version of this line claimed it was, which sent anyone
+diffing the two hunting a discrepancy that was never there. Honor every line:
 
 ```
 ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this assessment run.

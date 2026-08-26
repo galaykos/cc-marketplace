@@ -7,8 +7,24 @@ the craft DECISION for right-to-left / bidirectional targets — not the base RT
 
 The general RTL rules — logical CSS properties (`margin-inline`, `inset-inline`), `dir`,
 mirrored directional icons, the reviewing checklist — live in the i18n plugin:
-`plugins/i18n/skills/i18n/SKILL.md`. Apply them; do not re-teach them here. This file adds
+`plugins/i18n/skills/i18n/SKILL.md`. Apply them when it is installed. This file adds
 only the MOTION + creative decisions i18n does not cover.
+
+**Floor when i18n is NOT installed**, which is the common case here: `craft-suite`
+ships craft-layer, ui-ux, a11y, shadcn-studio, design-preview, threejs and
+registry-source — **not i18n**. An earlier version of this paragraph said "do not
+re-teach them here", which left a craft-suite reader with a pointer to nothing. The
+four rules you cannot skip, stated once so that reader is not empty-handed:
+
+- Use logical properties (`margin-inline-start`, `inset-inline`, `padding-block`),
+  never `left`/`right`, for anything that must mirror.
+- Set `dir="rtl"` on the document or subtree; do not fake it with `transform: scaleX(-1)`,
+  which mirrors glyphs and images too.
+- Mirror directional icons (arrows, chevrons, progress) — but NOT logos, clocks,
+  media play buttons, or anything representing a physical object.
+- Numbers, code, and phone numbers stay LTR inside RTL text.
+
+If i18n IS installed it owns the full rule set and this floor defers to it.
 
 ## Mirror these effects on RTL
 
