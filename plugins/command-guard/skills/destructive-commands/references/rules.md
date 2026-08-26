@@ -76,7 +76,16 @@ shapes. It cannot see:
 - work on a **remote host** through an interactive SSH session, or anything run
   inside a REPL the agent has already opened;
 - a **shape nobody has written a rule for** — a new framework's reset command,
-  a CLI released next month.
+  a CLI released next month;
+- **which database a connection points at** — `DROP TABLE` through an MCP SQL
+  tool is gated the same whether the session is on localhost or production.
+
+Two limits are deliberate rather than accidental. `rm -rf` on a relative path is
+judged by asking git whether the path is restorable, so its verdict depends on
+**working-tree state, not just the string** — the same command can be silent in
+a clean repo and ask in a dirty one, and it always asks when the command moves
+directory. And under `CLAUDE_DESTRUCTIVE_GUARD=deny-only` the ask tier does not
+run at all; the hard stops are then the entire guard.
 
 A silent pass therefore means "no known destructive shape matched", never "this
 command is safe". The guard raises the cost of an accident; it does not make
