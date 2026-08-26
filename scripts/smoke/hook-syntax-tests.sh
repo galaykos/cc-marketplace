@@ -3,8 +3,17 @@
 #
 # Runs `bash -n` (parse-only, no execution) over every shell script the repo
 # ships — plugin hooks plus all repo scripts — so a syntax error can never reach
-# a live hook or a CI gate unnoticed. Globs:
-#   plugins/*/hooks/*.sh   scripts/*.sh   scripts/smoke/*.sh   scripts/lib/*.sh
+# a live hook or a CI gate unnoticed. FILE SET: `git ls-files '*.sh'` — every
+# tracked shell script, enumerated rather than globbed.
+#
+# WHY ENUMERATED. This read four globs until 2026-08-26
+# (plugins/*/hooks/*.sh scripts/*.sh scripts/smoke/*.sh scripts/lib/*.sh) while
+# its header claimed "every shell script the repo ships". That was 76 of 142
+# tracked scripts; the 67 it missed included 15 awk users under
+# plugins/*/scripts/. The gawk-ism check below was added to "close the class" of
+# a silent BSD-awk bug — and could not fire on the largest population where the
+# class recurs. A glob list must be re-widened every time a directory is added;
+# `git ls-files` cannot fall out of date, which is the point.
 # scripts/lib/*.sh is sourced by validate.sh / authoring-guard.sh and would
 # escape a narrower glob, so it is checked explicitly. Exits non-zero if any
 # script fails to parse.
@@ -15,7 +24,7 @@ cd "$ROOT" || exit 2
 
 rc=0
 checked=0
-for f in plugins/*/hooks/*.sh scripts/*.sh scripts/smoke/*.sh scripts/lib/*.sh; do
+for f in $(git ls-files '*.sh' 2>/dev/null || find plugins scripts -name '*.sh' -type f); do
   [ -f "$f" ] || continue
   checked=$((checked + 1))
   if msg=$(bash -n "$f" 2>&1); then
@@ -46,7 +55,7 @@ fi
 # only the ones that quietly do nothing.
 printf '\n== gawk-only constructs that fail silently on BSD awk\n'
 gawkisms=0
-for f in plugins/*/hooks/*.sh scripts/*.sh scripts/smoke/*.sh scripts/lib/*.sh; do
+for f in $(git ls-files '*.sh' 2>/dev/null || find plugins scripts -name '*.sh' -type f); do
   [ -f "$f" ] || continue
   # strip comment lines first: this file and plugin-checks.sh both DISCUSS
   # IGNORECASE in prose explaining why not to use it.

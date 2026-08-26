@@ -122,5 +122,17 @@ fs_expect 0 'See `references/r.md` — SOURCE OF TRUTH for the figures. Lane row
 fs_expect 1 'See `references/r.md` — SOURCE OF TRUTH for the figures. Lane rows: nothing checks them.' ref \
   "the same paragraph unblessed still fires"
 
+# A BLESSED paragraph must not suppress a LATER unblessed one in the same file.
+# The check exited at the first engaging paragraph and blessed the whole file in
+# the shell, so this returned 0 until 2026-08-26. Both directions pinned.
+fs_expect 1 'See `references/r.md` — SOURCE OF TRUTH here. Nothing checks it. <!-- false-standing-ok: first is blessed -->
+
+A second block, also SOURCE OF TRUTH per `references/r.md`. No gate enforces it.' ref \
+  "blessed first paragraph must not hide an unblessed later one"
+fs_expect 0 'See `references/r.md` — SOURCE OF TRUTH here. Nothing checks it. <!-- false-standing-ok: one -->
+
+A second block, also SOURCE OF TRUTH per `references/r.md`. No gate enforces it. <!-- false-standing-ok: two -->' ref \
+  "every engaging paragraph blessed: still silent"
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

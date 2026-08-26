@@ -1241,12 +1241,18 @@ pc_false_standing() {
     body=$(awk '/^---$/{c++; next} c>=2' "$f" 2>/dev/null)
     # tolower() not IGNORECASE: the latter is a gawk extension BSD awk ignores
     # silently, which made an earlier version miss a sentence-initial "No gate...".
+    # The blessing test lives INSIDE awk, per paragraph. It used to sit in the
+    # shell after `print; exit`: awk stopped at the FIRST engaging paragraph, and
+    # a blessing there made the shell `continue` the whole FILE — so a blessed
+    # paragraph hid every later unblessed denial in the same skill. Reported and
+    # reproduced 2026-08-26. Now each paragraph is judged on its own and only an
+    # unblessed one can stop the scan.
     hit=$(printf '%s' "$body" | awk -v deny="$DENIALS" '
       BEGIN { RS = "" }
-      /SOURCE OF TRUTH/ && tolower($0) ~ tolower(deny) { print; exit }
+      /SOURCE OF TRUTH/ && tolower($0) ~ tolower(deny) &&
+        index($0, "<!-- false-standing-ok:") == 0 { print; exit }
     ')
     [ -n "$hit" ] || continue
-    printf '%s' "$hit" | grep -qF '<!-- false-standing-ok:' && continue
 
     printf 'false-standing %s engages pc_source_of_truth (marker + %s) and denies being gated in the same paragraph\n' "$f" "$ref"
     bad=1
