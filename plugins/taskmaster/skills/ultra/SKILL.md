@@ -52,7 +52,8 @@ goal banners in one response.
 
 `model=auto, effort=xhigh`, always. What `auto` resolves to, the escalate-never-downgrade
 ladder, and why `effort` binds only on the Workflow `agent()` path are owned by
-`orchestration:verification-panels` § Panel width — cited, not restated. Taskmaster adds two
+`orchestration:verification-panels` `references/dispatch-tier.md` — cited, not
+restated (§ Panel width owns panel width N and states none of the three). Taskmaster adds two
 rules of its own: the resolution is a FLOOR (`max(marker, frontmatter)`), so it never lowers
 an agent below its shipped tier; and never edit agent frontmatter to achieve it — the boost
 is a dispatch-time override. (The old per-token `-<model>`/`-<effort>` suffix grammar is

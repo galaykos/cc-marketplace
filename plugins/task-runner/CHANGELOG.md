@@ -2,6 +2,17 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.7
+
+### Fixed
+- **The run-start tier announcement is reachable again.** It is unconditional — every
+  run announces its worker tier, boosted or not — but it had been displaced into
+  `references/boost-execution.md`, whose own header reads "Read this when `00-INDEX.md`
+  carries an `Ultra: true` or `Goal: true` marker. **On a standard run none of it
+  applies.**" A rule for standard runs sat inside the one file that declares itself
+  inapplicable to them, so a plain `/task-runner:run` had no reachable instruction to
+  announce its tier while all four taskmaster commands carry their own.
+
 ## 0.29.6
 
 ### Changed

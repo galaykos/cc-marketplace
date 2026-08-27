@@ -51,7 +51,9 @@ response — output-level only, see the residual at the end.
 `auto` resolves at dispatch to the session model or opus, whichever is higher on
 `haiku < sonnet < opus < fable`: **escalate, never downgrade**. `effort` is settable
 ONLY on the Workflow `agent()` path — inline Agent dispatch escalates model only.
-It is a FLOOR, so it never lowers an agent below its shipped frontmatter. Never edit agent
+It is a FLOOR, so it never lowers an agent below its shipped frontmatter. Stated
+here rather than cited because craft-layer does not depend on orchestration; the
+owning copy is `orchestration:verification-panels` `references/dispatch-tier.md`. Never edit agent
 frontmatter to achieve this — the boost is a dispatch-time override.
 
 REASONING roles escalate: `creative-director` (concept divergence) and `craft-reviewer` (the

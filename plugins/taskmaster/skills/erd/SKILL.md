@@ -16,8 +16,10 @@ entities and a relation, so it fires; "add a bio field to users" does not.
 
 ## Consent gate — shared with visual-decisions
 
-The visual-decisions skill owns the session's fidelity consent question
-(Full mockups / Quick ASCII only / No mockups). One answer governs both skills:
+The visual-decisions skill owns the WORDING of the fidelity consent question
+(Full mockups / Quick ASCII only / No mockups); whichever skill reaches the gate
+first is the one that ASKS it — in a brainstorm-led run that is brainstorm, at its
+first staged decision. One answer governs all three:
 
 - Already answered this session? Reuse it. Never re-ask — the answer holds all
   session regardless of which skill triggered the gate first.
@@ -124,7 +126,9 @@ erDiagram
 - ORDER — owned by checkout; created at purchase, never deleted.
 ````
 
-State it in the spec: this section is a **binding contract**. Implementation
+State it in the spec: this section is a **binding contract**. Standing:
+**recorded** — no lint reads `## Data Model` or compares a card against it, so the
+contract binds by convention and review, not by a gate. Implementation
 task cards that touch persistence must conform to the approved erDiagram; a
 deviation discovered mid-card goes back through model re-approval, never into
 silent schema drift.

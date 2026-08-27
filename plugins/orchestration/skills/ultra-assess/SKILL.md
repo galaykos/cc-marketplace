@@ -45,7 +45,8 @@ e.g. `fable`, never the word `auto`). Print it once per run, not once per phase.
 
 `model=auto, effort=xhigh`, always — the bare `ultra-assess` token carries no tier
 suffix (the old `-<model>[-<effort>]` grammar is REMOVED, mirroring `ultra-task`).
-The resolution rule is owned by `orchestration:verification-panels` § Panel width, in this plugin; the hook injects
+The resolution rule is owned by `verification-panels` `references/dispatch-tier.md`,
+in this plugin (§ Panel width owns N, not the tier); the hook injects
 `(model=auto, effort=xhigh)` and every rule below reads those values.
 
 ## The escalation contract (`ULTRA-ASSESS ACTIVE`)

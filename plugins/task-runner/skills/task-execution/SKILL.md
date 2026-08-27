@@ -63,6 +63,11 @@ inline security-review skill runs after the batch joins (`references/reviewer-ro
 `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate
 it subsumes, e.g. security); the opt-in `--crew` flag additionally runs a sequential test-only `test-engineer` authoring pass per `references/crew.md`.
 
+**Announce the tier once at run start, boosted or not.** Standard:
+`▷ Standard run — workers inherit the session model (<model>) · effort: <effort>`.
+The boosted form and its marker parsing are `references/boost-execution.md` — which
+by its own header does not apply to a standard run, which is why this line lives here.
+
 **Role-tier floor:** an agent with a row in delegation-contracts' `references/role-floors.md` dispatches at
 its floor or the session model, whichever is higher — never below. Resolution rules and
 the registry-miss path: `references/reviewer-routing.md` § Role-tier floor.
