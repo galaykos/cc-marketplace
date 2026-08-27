@@ -66,7 +66,10 @@ Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
    rounds**, or the budget is spent — then say what was left uncovered rather than
    implying full coverage. The cap is the enforceable ceiling; two-dry is the quality
    exit and the budget check is advisory, so a run that keeps finding gaps still ends.
-**Local corpus, one authoritative source.** When the subject is a document rather
+
+## Local corpus, one authoritative source
+
+When the subject is a document rather
 than a question — a contract, an RFP, a standard, a filing, a long PDF — read
 `references/local-corpus.md` FIRST and swap the corroboration engine for a coverage
 engine. Refuting a clause against the open web is a category error: there is one
@@ -76,6 +79,8 @@ claim, page/clause anchors on everything load-bearing, and "the document does no
 say X" kept strictly apart from "the document says the opposite". Note the harness
 cap while planning: `Read` takes at most 20 PDF pages per request, so one naive
 call returns a prefix and reports it as the whole.
+
+## The loop, continued
 
 7. **Synthesize.** Write the report per `references/report-template.md`: direct answer
    first, per-section confidence, inline `[n]` citations, contradiction ledger, tiered

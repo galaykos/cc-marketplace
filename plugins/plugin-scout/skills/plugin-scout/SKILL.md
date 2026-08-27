@@ -114,7 +114,9 @@ rows follow; one slot per call is
 "Stop — skip remaining"; Other accepts numbers/names/ranges. Full contract:
 `references/picker.md`. Headless: print install commands for every not-installed
 suggestion instead, then stop. With `--yes`: skip this picker — see Flags below for the
-auto-select set. 2. For each pick, run via Bash:
+auto-select set.
+
+2. For each pick, run via Bash:
 
    ```bash
    claude plugin install <name>@cc-plugins-marketplace --scope local
@@ -122,10 +124,13 @@ auto-select set. 2. For each pick, run via Bash:
 
 That is the only install command form — no bundles here. `--scope local` keeps installs
 repo-only (`.claude/settings.local.json`, gitignored); `--persist` → `--scope project`,
-`--global` → `--scope user` (Flags below). 3. Report per-plugin success or failure as
-each finishes (a failure does not abort the rest); one summary line: installed n,
-failed m, skipped k (already installed). 4. With `--persist`, write what actually
-installed this run into the project's settings — see Flags below.
+`--global` → `--scope user` (Flags below).
+
+3. Report per-plugin success or failure as each finishes (a failure does not abort
+   the rest); one summary line: installed n, failed m, skipped k (already installed).
+
+4. With `--persist`, write what actually installed this run into the project's
+   settings — see Flags below.
 
 ## Flags
 

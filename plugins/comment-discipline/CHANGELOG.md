@@ -2,6 +2,21 @@
 
 All notable changes to the comment-discipline plugin.
 
+## 0.6.6
+
+### Added
+- **"What is enforced, and what is advice" — the skill now names its own teeth.**
+  It shipped a `PreToolUse` **deny** and never mentioned it: zero occurrences of
+  `hook`, `deny`, `PreToolUse` or `density` in the body. Two of the seven kill-cases
+  (restatement of the next line, commented-out code) are gates; the other five are
+  warnings; the skill presented all seven at one standing. The accurate description
+  existed only in README.md, which the model never loads.
+- **The "deleting comments to hit a ratio" anti-pattern is reconciled with
+  `hooks/density.sh`**, which measures exactly a ratio. Measuring one to find a file
+  worth reading is not acting on the number instead of the comments — the hook's own
+  header said so and the skill did not, so a model that loaded this skill and then
+  got a density warning had been told the warning was the anti-pattern.
+
 ## 0.6.5
 
 ### Changed

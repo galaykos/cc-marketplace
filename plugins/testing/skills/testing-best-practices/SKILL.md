@@ -70,7 +70,7 @@ proof and one duplicate — `references/proportionality.md` § duplicate-layer.
   CSS chains like `.card > div:nth-child(2)` that break on a class rename.
 - Auto-waiting assertions (`expect(locator).toBeVisible()`, `waitForText`) over
   sleeps. Every `sleep(2)` is a flake under load and two wasted seconds
-  otherwise; disable animations in the test environment instead.
+  otherwise; disable animations in the test environment rather than waiting them out.
 - Fresh state per test: new browser context/session, seed through factories or
   an API call — not by clicking through the UI to arrange preconditions, which
   makes every test transitively depend on every screen it crosses. Reserve
@@ -83,7 +83,8 @@ the outbound HTTP client — and run the real thing everywhere inward. Never moc
 the class under test or its value objects. A test that stubs five collaborators
 to assert a sixth was called verifies wiring, not behavior: it passes when the
 code is wrong and fails when it is refactored — the exact inverse of useful.
-When a unit needs that many stubs, the design wants fewer dependencies.
+When a unit needs that many stubs, the design wants fewer dependencies, not a
+better mocking library.
 
 ## Determinism
 
@@ -100,7 +101,8 @@ When a unit needs that many stubs, the design wants fewer dependencies.
 ## Flaky tests
 
 Root causes are finite: real time, real network, shared mutable state, order
-dependence, render races — each has its fix above. Quarantine a flake the day
+dependence, animation and render races. Each has a fix above — frozen clock, msw or
+`Http::fake`, per-test state, shuffled order, auto-waiting assertions. Quarantine a flake the day
 it appears; fix or delete it within the sprint. A retried-until-green test is a
 deleted test with extra steps: it still spends CI minutes, can no longer fail,
 and teaches the team that red does not mean broken. `/testing:flake-hunt`

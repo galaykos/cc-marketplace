@@ -3,6 +3,25 @@
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.4
+
+### Fixed
+- **Both canonical `hooks.json` examples in `authoring-hooks` now carry `timeout`.**
+  `pc_hook_timeout` gates that key; the examples taught a shape that fails the
+  build, so a reader following them verbatim got a red CI run.
+- **The body-budget numbers now read 200 lines / 14,000 bytes**, here and at four
+  sibling sites (`authoring-plugins`, `/new-skill` frontmatter and body, README,
+  `references/doctrine.md`). The cap moved on 2026-08-27; these said 150/10,000.
+
+### Added
+- **`authoring-hooks` names the standing of its four one-shot-state rules** — three
+  are gates (`pc_context_key`, `pc_marker_key`, `pc_harness_payload`), one is
+  agent-graded. Omitting that in the plugin that DEFINES the has-teeth convention
+  was the convention contradicting itself.
+- **`authoring-skills` regains the two real cases** deleted at `484a2a1` — the
+  evidence for "a rule that keeps being broken is in the wrong tier". They survived
+  nowhere else in the repo. The 210-char four-claim line at `:48` is also unjammed.
+
 ## 0.12.3
 
 ### Changed

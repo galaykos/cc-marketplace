@@ -87,12 +87,24 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
 
 ## Plugin change gates
 
-- `scripts/validate.sh` — structure, frontmatter, the SKILL.md body budget — **150 lines,
-  10,000 bytes, and 300 characters per line** (no floor; the byte and line-length
+- `scripts/validate.sh` — structure, frontmatter, the SKILL.md body budget — **200 lines,
+  14,000 bytes, and 300 characters per line** (no floor; the byte and line-length
   measures were added 2026-08-20 because the line count had stopped measuring: one
   skill sat at a frozen 154 lines across 20 commits while its bytes grew 31% and its
   >110-char lines went 2 → 29. Frontmatter, fenced code and table rows are exempt from
-  the line-length check, by construction and stated in the check),
+  the line-length check, by construction and stated in the check. **Raised from
+  150/10,000 on 2026-08-27**, and the raise reverses an argument the gate's own
+  header used to make — "a ceiling that permits today's worst case is theater" —
+  so read `pc_skill_budget`'s header for why the narrower claim is now the honest
+  one. The short version: 24 of 116 bodies sat at EXACTLY 150 lines, a quarter of
+  the corpus written TO the ceiling rather than under it, so the cap was shaping
+  content rather than bounding it; the two numbers move together because at the
+  old 10,000 bytes the byte measure capped every body near 185 lines, making a
+  line-only raise to 200 *or* 250 worth an identical median 35 usable lines. The
+  300-char line-length check is deliberately NOT raised: jamming was the old
+  cap's symptom, and relaxing the symptom check alongside the cap would destroy
+  the evidence. Pressure moved to `pc_budget_crowding`, re-seeded to 0 at the new
+  ceiling — the first body written to 200 fails immediately),
   reference resolution, the description linter (max 500 chars for frontmatter
   descriptions, no "Trigger words:" lists; plugin.json descriptions get a
   WARN-only 700-char clarity guideline), and the doc-location rule above. It also blocks leaked internal taskmaster
@@ -143,7 +155,12 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
   150). The number may fall, never rise. It exists because a per-file ceiling is
   structurally blind to authors writing TO it — the same failure that retired the
   line count as a measure in 2026-08, one iteration later and visible only in the
-  aggregate. Both are exercised by `scripts/smoke/hook-budget-tests.sh`.
+  aggregate. Also added: `pc_pick_parity`, asserting the two scout plugins' `pick.sh`
+  stay byte-identical — `${CLAUDE_PLUGIN_ROOT}` is per-plugin, so neither can read the
+  other's copy and either may be installed alone; the duplication is required by the
+  plugin boundary and a checksum is the only available discipline. It gates the SCRIPT
+  only: the two prose descriptions of that picker have already drifted and nothing
+  checks those. All three are exercised by `scripts/smoke/hook-budget-tests.sh`.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /

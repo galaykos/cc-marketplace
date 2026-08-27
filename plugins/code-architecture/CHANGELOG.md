@@ -2,6 +2,17 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.8
+
+### Added
+- **`plan-before-code` regains its worked example** — the file map, the interface
+  block, and the locked-in decisions. It was moved to `references/worked-example.md`
+  at `22c3239`, a commit titled "merge the two skill pairs the line ceiling had
+  blocked", and the reference file's own opening said "Moved out … to make room".
+  The skill instructs "define the interfaces between units before writing bodies"
+  and then showed none; the Before/after narrative referenced an example the body no
+  longer contained. Task sequencing and the longer narrative stay in the reference.
+
 ## 0.13.7
 
 ### Changed

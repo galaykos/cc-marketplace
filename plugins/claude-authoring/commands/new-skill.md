@@ -1,5 +1,5 @@
 ---
-description: Scaffold a SKILL.md — trigger-rich description, 150-line body cap.
+description: Scaffold a SKILL.md — trigger-rich description, 200-line body cap.
 argument-hint: [skill-name] [purpose]
 ---
 
@@ -49,7 +49,7 @@ Scaffold a new skill from $ARGUMENTS. Steps:
    ```
 
    Line-budget guidance: inside this marketplace the validator caps the body
-   (every line after the closing `---`) at 150 lines. There is no minimum —
+   (every line after the closing `---`) at 200 lines. There is no minimum —
    stop when the rules are stated. If a section still needs depth, add real
    guidance — more rules, worked examples, edge cases, verification — never
    filler prose or blank-line padding. Project skills created elsewhere have

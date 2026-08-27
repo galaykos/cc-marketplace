@@ -1,6 +1,7 @@
 {
-  "_comment": "Skill bodies within 3 lines of the 150-line ceiling (>=148). A RATCHET: this number may fall, never rise. Read by pc_budget_crowding in scripts/lib/plugin-checks.sh, which explains why a flat threshold would have been theater. Lower it when skills are actually cut; never raise it to make a build pass.",
+  "_comment": "Skill bodies within 3 lines of the LINE ceiling (>=198 against a 200-line cap). A RATCHET: this number may fall, never rise. Read by pc_budget_crowding in scripts/lib/plugin-checks.sh, whose header explains why this check \u2014 not the cap \u2014 is what now resists growth. Re-seeded 2026-08-27 when the cap moved 150->200; it read 31 against the old ceiling. Never raise it to make a build pass.",
   "measured": "2026-08-27",
+  "line_cap": 200,
   "skills_total": 116,
-  "within_3_of_line_cap": 31
+  "within_3_of_line_cap": 0
 }

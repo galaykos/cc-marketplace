@@ -147,8 +147,28 @@ own audience, not a comment; that is a docs decision, not this rule's.
   `code-architecture`; this skill only points at them as the destination a comment's
   content should move to.
 
+## What is enforced, and what is advice
+
+Not all seven kill-cases carry the same standing. This plugin ships hooks:
+
+- **gate** — a comment restating the next line, and commented-out code, are
+  **denied before the write** by the `PreToolUse` lane of `hooks/scan.sh`. Bounded:
+  one deny per file per session, so a false positive costs one turn and never
+  wedges a run.
+- **agent-graded** — the other five (banners, bare TODOs, signature-repeating
+  docblock tags, change-narration, missing why-comments) are `PostToolUse` warnings.
+  They are house-style calls a reviewer judges; a TODO can be a legitimate mid-task
+  marker.
+- **recorded** — everything else here. Nothing reads it back.
+
+`hooks/density.sh` separately warns when a file's comment ratio is far from its
+neighbours'. That is **not** in tension with the anti-pattern below: measuring a
+ratio to find a file worth reading is not deleting comments to hit one.
+
 ## Anti-patterns
 
 - Deleting comments to hit a ratio — the keep-cases are where the real value is.
+  (Measuring the ratio is fine, and `hooks/density.sh` does; acting on the number
+  instead of the comments is the anti-pattern.)
 - Asking "should this be commented?" before "can it be named, typed, or tested instead?"
 - A constraint comment with no link, so nobody can ever prove it obsolete.

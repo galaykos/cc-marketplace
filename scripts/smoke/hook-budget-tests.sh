@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke tests for the two checks added 2026-08-27 to scripts/lib/plugin-checks.sh:
 # pc_hook_timeout (every hooks.json entry declares a timeout) and
-# pc_budget_crowding (the ratchet on SKILL bodies written to the 150-line cap).
+# pc_budget_crowding (the ratchet on SKILL bodies written to the 200-line cap).
 #
 # BOTH ARE DEMONSTRATED FAILING ON PURPOSE, for the reason lanes-tests.sh states:
 # a gate nobody has watched fail is indistinguishable from one that returns 0
@@ -76,15 +76,15 @@ mkskill() { # mkskill <dir> <body_lines>
 base() { printf '{"within_3_of_line_cap": %s}\n' "$1" > "$FIX/base.json"; }
 
 mkskill short 40
-mkskill crowded 149
+mkskill crowded 199
 base 1
 run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
 clean "count equal to baseline — passes"
 
-mkskill crowded2 150
+mkskill crowded2 200
 run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
 fails "count above baseline — fails" "crowding 2 > 1"
-printf '%s\n' "$out" | grep -qF 'crowded2/SKILL.md (150)' \
+printf '%s\n' "$out" | grep -qF 'crowded2/SKILL.md (200)' \
   && pass "names the crowded files" || bad "crowded file not named: $out"
 
 # Directional half: the ratchet must stay silent when the number FALLS.
@@ -94,22 +94,39 @@ clean "count below baseline — passes (ratchet, not equality)"
 
 # 147 is under the 3-line window and must not count.
 rm -rf "$FIX/bc/p/skills/crowded" "$FIX/bc/p/skills/crowded2"
-mkskill edge 147
+mkskill edge 197
 base 0
 run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
-clean "147-line body is outside the window"
+clean "197-line body is outside the window"
 
-mkskill edge2 148
+mkskill edge2 198
 run pc_budget_crowding "$FIX/bc" "$FIX/base.json"
-fails "148-line body is inside the window" "crowding 1 > 0"
+fails "198-line body is inside the window" "crowding 1 > 0"
 
 run pc_budget_crowding "$FIX/bc" "$FIX/does-not-exist.json"
 clean "missing baseline file is not a violation"
+
+# ------------------------------------------------------------------ pc_pick_parity
+mkdir -p "$FIX/pp/plugin-scout/scripts" "$FIX/pp/vercel-skills-scout/scripts"
+printf 'same\n' > "$FIX/pp/plugin-scout/scripts/pick.sh"
+printf 'same\n' > "$FIX/pp/vercel-skills-scout/scripts/pick.sh"
+run pc_pick_parity "$FIX/pp"
+clean "identical pickers — passes"
+
+printf 'same\n# drift\n' > "$FIX/pp/vercel-skills-scout/scripts/pick.sh"
+run pc_pick_parity "$FIX/pp"
+fails "diverged pickers — fails" "pick-parity"
+
+rm -f "$FIX/pp/vercel-skills-scout/scripts/pick.sh"
+run pc_pick_parity "$FIX/pp"
+clean "one picker absent is not a violation"
 
 # ------------------------------------------------------------------ live tree
 run pc_hook_timeout plugins
 clean "shipped tree: every hook entry declares a timeout"
 run pc_budget_crowding plugins scripts/skill-crowding-baseline.json
 clean "shipped tree: crowding at or below the committed baseline"
+run pc_pick_parity plugins
+clean "shipped tree: the two scout pickers are byte-identical"
 
 exit $rc

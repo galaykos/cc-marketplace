@@ -137,18 +137,22 @@ branching to `utils.set(target, finalState)` when it matches.
 
 ## Common mistakes
 
+- Shipping any motion with no `prefers-reduced-motion` path — an accessibility
+  failure, not a style choice.
 - Animating layout properties (`width`, `top`, `margin`) instead of `transform`.
-- Permanent `will-change` on many elements "for performance"; infinite or autoplaying
-  decorative loops with no pause affordance.
+- Permanent `will-change` on many elements "for performance".
+- Infinite or autoplaying decorative loops with no pause affordance.
 - JS scroll listeners restyling per scroll event where `animation-timeline` or an
   `IntersectionObserver` toggle would do.
 - Importing `framer-motion` in new code instead of `motion` / `motion/react`; calling
   anime.js v4 with v3's `anime({ targets })` style or `easing:` param.
 - Treating View Transitions as required — no feature detection, broken without
-  `startViewTransition`. Assuming GSAP plugins still need a Club licence (free since 3.13).
+  `startViewTransition`.
+- Assuming GSAP plugins still need a Club licence — they have been free since 3.13.
 
 ## Verify Against Current Docs
 
 Digest-first: Read `references/motion.md`, `references/animejs.md`, `references/gsap.md` — most
-API questions are answered there. Live fetch stays REQUIRED for version-sensitive literals:
+API questions are answered there. Live fetch stays REQUIRED for version-sensitive literals (method names, options,
+version numbers):
 motion.dev/docs, animejs.com/documentation, gsap.com/docs; browser support live-only (caniuse, MDN).

@@ -2,6 +2,14 @@
 
 All notable changes to the ultra-deep-research plugin.
 
+## 0.6.3
+
+### Fixed
+- **"Local corpus, one authoritative source" is a section again.** It was inserted
+  between steps 6 and 7 of the numbered loop with no heading or blank line, so an entire
+  alternate operating mode rendered as a continuation of list item 6. Not caused by the
+  line cap — it landed 34 lines under it.
+
 ## 0.6.2
 
 ### Changed

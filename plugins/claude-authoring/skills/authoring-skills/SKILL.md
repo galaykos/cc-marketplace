@@ -45,7 +45,9 @@ not a summary.
   against every other installed skill?
 - Baseline a NEW behavioral skill: run the scenario WITHOUT it and record the
   failure — none means the skill restates what the model already does. Loop in
-  `references/behavioral-testing.md` (RUNNER: the host `skill-creator`, not ours). Check `rationale/measured-zero-shapes.md` first — four shapes measured at zero. Recorded: no script runs it. <!-- host-ok -->
+  `references/behavioral-testing.md` (RUNNER: the host `skill-creator`, not
+  ours). <!-- host-ok --> Check `rationale/measured-zero-shapes.md` first — four
+  shapes measured at zero. Standing: **recorded** — no script runs the baseline.
 
 ## Activation fields — measured, not assumed
 
@@ -67,10 +69,14 @@ Scope a skill to a single capability with a single trigger.
 
 ## The body budget — three measures, no floor
 
-A body fails the build over **150 lines, 10,000 bytes, or 300 characters on one
+A body fails the build over **200 lines, 14,000 bytes, or 300 characters on one
 line**. The last two were added after a skill sat at a frozen 154 lines for 20
 commits while its bytes grew 31%: content stops adding lines and starts jamming
-them. There is **no floor** — 60 lines that say their piece is finished, not
+them. Lines and bytes were raised from 150/10,000 on 2026-08-27 because the
+ceiling had become a target — 24 of 116 bodies sat at EXACTLY 150. The
+line-length measure was deliberately NOT raised: jamming is the symptom, and
+relaxing the symptom check would have hidden the evidence. Pressure now sits in
+`pc_budget_crowding`, a ratchet at the new ceiling (**gate**). There is **no floor** — 60 lines that say their piece is finished, not
 thin. Over any measure means two skills, or a `references/` file: point to a
 path and state only the rule the reader needs right now.
 
@@ -135,7 +141,9 @@ tell which from the sentence. Name a rule's standing where it is stated:
 
 Naming a blind spot is not weakness; calling an agent-graded check a gate is
 the over-claim. A rule that keeps being broken is in the wrong tier — it needs
-a hook, script, or tool, not another paragraph.
+a hook, script, or tool, not another paragraph. Real cases: a "never write
+component APIs from memory" line broken three times in one session by the model
+that had it loaded; a design axis chosen every run and checked by no assertion.
 
 Model-tier scoping applies the same honesty to WHO needs a rule: procedure that
 compensates weaker models over-constrains stronger ones. Mark **All models** vs

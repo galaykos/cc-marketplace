@@ -1,6 +1,6 @@
 {
   "name": "comment-discipline",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "Stops over-commenting by routing every fact to the artifact that cannot lie about it — a name, a type, a test, an extracted function — and spending comments only on what has nowhere else to live: why-not-the-obvious-way, external constraints with a link, intentional-silence markers, and contract facts a signature cannot express. Kills restatement comments, section banners, commented-out code, bare TODOs, signature-repeating docblock tags, and change-narration. One hook, two lanes: PostToolUse warns, PreToolUse denies just the two strictest once per file per session. A second warn-only hook applies the same rule to terminal prose. Includes /comment-discipline:review.",
   "author": {
     "name": "Ivan-WG",

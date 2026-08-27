@@ -6,6 +6,17 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.8.6
+
+### Fixed
+- **The flaky-cause → fix mapping is restored.** `d69678a` compressed six sections
+  to stay at the 150-line ceiling and its message claimed "no rule was dropped";
+  four things went, and this was the substantive one — the only text pairing each of
+  the five root causes with its remedy (frozen clock, msw or `Http::fake`, per-test
+  state, shuffled order, auto-waiting assertions). Also restored: "animation and"
+  render races in the cause list, "not a better mocking library" as the rebuttal to
+  the obvious wrong response, and "rather than waiting them out".
+
 ## 0.8.5
 
 ### Changed

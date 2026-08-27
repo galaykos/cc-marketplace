@@ -152,3 +152,7 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
 
 v1 → v2: `lazy` → `optional`, deferred props, `usePoll`, prefetch, merge props. v3 (v3.6
 current; v2.x still maintained): axios removed, ESM-only, entry/SSR wiring in `@inertiajs/vite`.
+
+Pin advice to the lockfiles and check https://inertiajs.com before asserting any
+version-sensitive fact — the stamp above records what the author checked, not what
+your project has installed.

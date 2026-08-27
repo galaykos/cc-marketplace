@@ -20,7 +20,8 @@ each group holds a "hooks" array of command entries:
             "matcher": "<optional tool-name pattern>",
             "hooks": [
               { "type": "command",
-                "command": "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh" }
+                "command": "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.sh",
+                "timeout": <seconds> }
             ]
           }
         ]
@@ -67,12 +68,21 @@ among them — share this exact hooks.json shape:
           {
             "hooks": [
               { "type": "command",
-                "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh" }
+                "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh",
+                "timeout": 10 }
             ]
           }
         ]
       }
     }
+
+`timeout` is required — `pc_hook_timeout` fails the build without it
+(**gate**). Size it to what the script does rather than to a house
+default: 5s for a jq-only classifier, 10s for git or find work, 15s
+where it shells out to the network, a package manager or node. A hook
+runs inside the user's turn, so the number is your claim about how long
+you may hold it. What a KILLED hook does is not gated and varies by
+event — decide it, and say so.
 
 Their scripts share a discipline worth copying — fail open, filter
 hard, print at most one short line:
@@ -111,7 +121,11 @@ event and your script. Design for that:
 
 A hook firing once per file or context remembers with a marker file.
 Four rules; ignoring the first three shipped three broken hooks here at
-once, and ignoring the fourth is why no test noticed.
+once, and ignoring the fourth is why no test noticed. Rules 1, 2 and 4
+are **gates** — `pc_context_key`, `pc_marker_key` and
+`pc_harness_payload` in `scripts/lib/plugin-checks.sh`, each wired
+blocking in `validate.sh`. Rule 3 is **agent-graded**: no script can see
+which branch a failed write should take.
 
 - **Key on the context, not the session** — a subagent shares its
   parent's `session_id` but has its own transcript, and PostToolUse is

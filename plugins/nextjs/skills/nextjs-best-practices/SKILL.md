@@ -146,6 +146,9 @@ Advising above the installed version is a finding; confirm boundaries against th
 - Sync `params`/`searchParams` access left in after a 16 upgrade — it throws.
 - Missing `default.js` in a parallel route slot — a build failure on 16.
 
+## Verify against current docs
+
 Caching defaults, request-API asynchrony, and `use cache`/`cacheComponents` shifted
 across 14 → 15 → 16 **and within 16.x minors** — check https://nextjs.org/docs before
-relying on memory for version-sensitive behavior.
+relying on memory for version-sensitive behavior, and pin advice to the `next` version
+actually installed in `package.json` and the lockfile, not to the newest release.

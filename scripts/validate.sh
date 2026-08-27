@@ -42,7 +42,7 @@ jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
   || err "$MP: owner must be an object with a string .name"
 
 # Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
-# name: + description:, and a body within the 150-line ceiling (no floor)
+# name: + description:, and a body within the 200-line ceiling (no floor)
 for d in plugins/*/skills/*/; do
   [ -d "$d" ] || continue
   f="${d}SKILL.md"
@@ -62,8 +62,8 @@ for d in plugins/*/skills/*/; do
     bval=$(printf '%s' "$bud" | awk '{print $4}')
     bwhere=$(printf '%s' "$bud" | awk '{print $5}')
     case "$bkind" in
-      lines)       err "$f: body is $bval lines, over the 150-line ceiling" ;;
-      bytes)       err "$f: body is $bval bytes, over the 10,000-byte ceiling — the line count stopped measuring growth, this is the replacement; move a section to references/" ;;
+      lines)       err "$f: body is $bval lines, over the 200-line ceiling" ;;
+      bytes)       err "$f: body is $bval bytes, over the 14,000-byte ceiling — the line count stopped measuring growth, this is the replacement; move a section to references/" ;;
       line-length) err "$f: body line $bwhere is $bval characters, over the 300-char ceiling — reflow it; a jammed subsection is how content grows under a frozen line count" ;;
     esac
   fi
@@ -730,6 +730,13 @@ harness_gap=$(pc_harness_payload .) || true
 prime_gap=$(pc_prime_coverage plugins) || true
 [ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
 
+# The two scout plugins must ship the same picker script: `${CLAUDE_PLUGIN_ROOT}` is
+# per-plugin, so the duplication is required by the plugin boundary and a checksum is
+# the only available discipline. Gates the script only — the prose copies have already
+# drifted and nothing checks those.
+pick_gap=$(pc_pick_parity plugins) || true
+[ -n "$pick_gap" ] && lane_err "$pick_gap" "the scout plugins' pick.sh files have diverged — they must stay byte-identical; neither can read the other's copy at runtime"
+
 # A hook runs inside the user's turn, so the plugin must say how long it may hold
 # it. Gates that a number EXISTS, not that it is right, and says nothing about
 # what a killed hook does — both residuals are stated in pc_hook_timeout's header.
@@ -740,7 +747,7 @@ hook_to_gap=$(pc_hook_timeout plugins) || true
 # stops being a ceiling, and no per-file check can see that. Ratchet, not
 # threshold — the reasoning is in pc_budget_crowding's header.
 crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || true
-[ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 150-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
+[ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 200-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
 
 # A bundle's README must name every plugin it installs. Two commits added a
 # dependency to four bundles and updated zero READMEs; the all-bundle dependency

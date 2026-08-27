@@ -1,8 +1,11 @@
 # Plan-before-code — the worked example
 
 Moved out of the SKILL body on 2026-08-21 to make room for the task-split rules
-merged in from the `task-orchestration` skill. <!-- removed-ok --> The body carries the procedure; this file is
-the demonstration, read when the shape of a good file map is unclear.
+merged in from the `task-orchestration` skill. <!-- removed-ok --> **The file map and
+interfaces were returned to the body on 2026-08-27** when the line ceiling rose to
+200 — the skill instructs "define the interfaces before writing bodies" and could not
+be applied without them. What stays here is the task sequencing and the longer
+narrative: depth a reader chooses, not the demonstration the procedure depends on.
 
 ## Worked mini-example
 
