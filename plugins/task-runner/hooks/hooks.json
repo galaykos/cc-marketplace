@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scope.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scope.sh",
+            "timeout": 5
           }
         ]
       },
@@ -15,7 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rv-observe.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rv-observe.sh",
+            "timeout": 5
           }
         ]
       },
@@ -24,7 +26,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/drift.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/drift.sh",
+            "timeout": 5
           }
         ]
       }
@@ -34,7 +37,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/completion-gate.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/completion-gate.sh",
+            "timeout": 15
           }
         ]
       }
@@ -45,7 +49,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rv-consent.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rv-consent.sh",
+            "timeout": 10
           }
         ]
       }

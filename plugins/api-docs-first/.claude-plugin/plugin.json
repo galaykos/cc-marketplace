@@ -1,6 +1,6 @@
 {
   "name": "api-docs-first",
-  "version": "0.4.11",
+  "version": "0.4.12",
   "description": "Docs before claims, both directions: verify current official API/SDK docs before writing integration code (UserPromptSubmit reminder + /api-docs-first:check), and keep your own docs true after a change with the merged docs-upkeep drift scan — README claims, changelog gaps, stale examples, dead links (/api-docs-first:drift).",
   "author": {
     "name": "Ivan-WG",

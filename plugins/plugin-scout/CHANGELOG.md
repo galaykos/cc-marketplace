@@ -3,6 +3,16 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.11.1
+
+### Changed
+- **Regenerated `catalog.md`** after three marketplace descriptions were shortened
+  (comment-discipline, quality-suite, quality-principles-suite). The catalog is a
+  chassis-generated view of every plugin's manifest description, so a description
+  edit anywhere in the marketplace drifts this file until `scripts/generate.sh
+  --write` runs. No behaviour change; the rows the scout ranks are unchanged, only
+  their wording.
+
 ## 0.11.0
 
 ### Changed

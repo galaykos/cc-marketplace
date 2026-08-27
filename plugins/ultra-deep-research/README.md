@@ -8,6 +8,13 @@ synthesizes a cited report — inline and saved to `research/<topic>-<date>.md`.
 Built to beat research's core failure mode: a plausible claim echoed across low-quality
 pages that all copied one unverified origin.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install ultra-deep-research@cc-plugins-marketplace
+```
+
 ## Trigger it
 
 - Say **`ultra-deep-research <topic>`** — or "deep research", "research this

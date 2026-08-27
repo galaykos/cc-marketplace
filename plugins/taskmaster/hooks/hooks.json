@@ -3,8 +3,16 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh" },
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra.sh",
+            "timeout": 5
+          }
         ]
       }
     ],
@@ -12,13 +20,21 @@
       {
         "matcher": "Artifact",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh",
+            "timeout": 10
+          }
         ]
       },
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/clarify-gate.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/clarify-gate.sh",
+            "timeout": 10
+          }
         ]
       }
     ]

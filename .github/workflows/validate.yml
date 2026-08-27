@@ -63,6 +63,8 @@ jobs:
         run: bash scripts/smoke/rules-overlap-tests.sh
       - name: Lane-declaration gate smoke tests
         run: bash scripts/smoke/lanes-tests.sh
+      - name: Hook-timeout and skill-crowding gate smoke tests
+        run: bash scripts/smoke/hook-budget-tests.sh
       - name: SessionStart prime-map behavioural tests
         run: bash scripts/smoke/prime-map-tests.sh
       - name: Route marker smoke tests

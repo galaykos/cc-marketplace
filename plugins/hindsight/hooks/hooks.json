@@ -3,7 +3,11 @@
     "SessionEnd": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/collect.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/collect.sh",
+            "timeout": 5
+          }
         ]
       }
     ],
@@ -11,7 +15,11 @@
       {
         "matcher": "Skill",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-use.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-use.sh",
+            "timeout": 5
+          }
         ]
       }
     ]

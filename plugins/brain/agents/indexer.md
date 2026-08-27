@@ -1,6 +1,7 @@
 ---
 name: indexer
 description: Spawned by /brain index to scan the codebase and (re)build the project brain map — brain/INDEX.md plus per-area brain/<area>.md. Incremental by default; never modifies anything outside brain/.
+tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 effort: high
 floor: none

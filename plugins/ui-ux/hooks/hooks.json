@@ -4,7 +4,11 @@
       {
         "matcher": "Artifact",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/preview-guard.sh",
+            "timeout": 10
+          }
         ]
       }
     ],
@@ -12,7 +16,11 @@
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/palette-default.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/palette-default.sh",
+            "timeout": 5
+          }
         ]
       }
     ]

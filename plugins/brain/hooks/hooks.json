@@ -3,7 +3,11 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/inject.sh",
+            "timeout": 10
+          }
         ]
       }
     ]

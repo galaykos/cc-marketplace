@@ -4,6 +4,17 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.18.4
+
+### Changed
+- **Every hook entry now declares a `timeout`.** `palette-default.sh` 5s, `preview-guard.sh` 10s. Before this release the
+  plugin expressed no opinion about how long its own hook may hold a turn and
+  relied entirely on the host default; a hook that blocks — a slow network mount,
+  a large transcript — stalled the user with no per-hook ceiling. Sizes are per
+  script, not one house number: 5s for a jq-only classifier, 10s for git/find
+  work, 15s where the script shells out to the network, a package manager or
+  node. No hook logic changed.
+
 ## 0.18.3
 
 ### Added

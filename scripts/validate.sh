@@ -730,6 +730,18 @@ harness_gap=$(pc_harness_payload .) || true
 prime_gap=$(pc_prime_coverage plugins) || true
 [ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
 
+# A hook runs inside the user's turn, so the plugin must say how long it may hold
+# it. Gates that a number EXISTS, not that it is right, and says nothing about
+# what a killed hook does — both residuals are stated in pc_hook_timeout's header.
+hook_to_gap=$(pc_hook_timeout plugins) || true
+[ -n "$hook_to_gap" ] && lane_err "$hook_to_gap" "every hook entry in hooks.json must declare a timeout (seconds) — size it to what the script does, not to a house default"
+
+# Corpus-level companion to the per-file SKILL budget: a ceiling authors write TO
+# stops being a ceiling, and no per-file check can see that. Ratchet, not
+# threshold — the reasoning is in pc_budget_crowding's header.
+crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || true
+[ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 150-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
+
 # A bundle's README must name every plugin it installs. Two commits added a
 # dependency to four bundles and updated zero READMEs; the all-bundle dependency
 # gate above proved the deps RESOLVED and said nothing about whether a user could

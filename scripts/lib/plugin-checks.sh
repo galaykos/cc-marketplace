@@ -76,6 +76,105 @@ pc_skill_budget() {
   return 0
 }
 
+# pc_hook_timeout <plugins_root>
+# Every hook entry in every plugins/*/hooks/hooks.json must declare a `timeout`.
+# Prints one "hook-timeout <plugin>:<event>:<script>" line per undeclared entry
+# and returns 1; clean returns 0 having printed nothing.
+#
+# WHY. A hook runs inside the user's turn. Without a per-entry timeout the plugin
+# has expressed no opinion about how long its own script may hold that turn and
+# inherits whatever the host defaults to — so a script that blocks (a slow network
+# mount, a large transcript, an npm probe) stalls the session, and the author who
+# could have bounded it never had to think about the bound. All 41 entries in this
+# marketplace were undeclared until 2026-08-27; the check exists so the next one
+# is a decision rather than an omission.
+#
+# LIMITATION (honest scope), three residuals, and they matter:
+#   1. This gates that a NUMBER EXISTS, not that it is right. A 900s timeout
+#      passes. Nothing here measures how long a hook actually takes — that needs
+#      a runtime harness with a realistic payload, which no gate in this repo has.
+#   2. It says nothing about what happens ON timeout. A killed PreToolUse deny
+#      guard fails open on most hosts, which is correct for secret-scanning (whose
+#      own header declares fail-open) and would be wrong for a guard meant to
+#      block. That behaviour is agent-graded, per plugin, and saying so is the point.
+#   3. jq-dependent, like its siblings here. No jq, no check — it returns 0.
+pc_hook_timeout() {
+  local root="${1:-plugins}" bad=0 d p hj
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    p=$(basename "$d")
+    hj="$d/hooks/hooks.json"
+    [ -f "$hj" ] || continue
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      printf 'hook-timeout %s:%s\n' "$p" "$line"
+      bad=1
+    done < <(jq -r '.hooks | to_entries[] as $e
+                    | $e.value[].hooks[]
+                    | select(has("timeout") | not)
+                    | "\($e.key):\(.command | split("/") | last)"' "$hj" 2>/dev/null)
+  done < <(find "$root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+  return $bad
+}
+
+# pc_budget_crowding <plugins_root> <baseline_file>
+# Corpus-level companion to pc_skill_budget. Counts skill bodies within 3 lines
+# of the 150-line ceiling and fails if that count EXCEEDS the committed baseline.
+# Prints "crowding <count> > <baseline>" plus one line per crowded file, returns 1.
+#
+# WHY A DISTRIBUTION CHECK AT ALL. pc_skill_budget is per-file and therefore
+# structurally blind to the thing that killed the line measure once already: a
+# ceiling authors write TO rather than under. Its own header records that
+# task-execution sat at a frozen 154 lines for 20 commits while its bytes grew
+# 31%. On 2026-08-27, one iteration later, the same shape is visible in the
+# aggregate — 24 of 116 bodies at EXACTLY 150 and 31 within three lines of it.
+# No per-file check can see that, because every one of those files passes.
+#
+# WHY A RATCHET AND NOT A THRESHOLD. A flat "no more than N% crowded" set at
+# today's honest number would fail the build on the commit that introduces it,
+# and set anywhere above it would bless the current state as acceptable. The
+# baseline is the same instrument context-budget.sh uses: the number may fall
+# freely and may not rise. Lower it when skills are actually cut; never raise it
+# to make a build pass.
+#
+# LIMITATION (honest scope), three residuals:
+#   1. It measures CROWDING, not quality. Thirty-one skills sitting under a cap
+#      they were written to fit is the signal; whether any given one deserves its
+#      length is a judgement no counter makes.
+#   2. Ratchets only detect the direction of travel. A commit that cuts one skill
+#      to 120 lines and pushes another from 140 to 150 nets zero and passes.
+#   3. The 3-line window is a choice, not a measurement. It catches "written to
+#      the cap"; a body parked at 144 is equally suspicious and invisible here.
+# The find depth is 4 (<root>/<plugin>/skills/<name>/SKILL.md) and was 3 in the
+# first draft, which matched nothing: the check counted zero, compared it to a
+# baseline of 31, and passed on every input including a deliberately crowded
+# fixture. Caught by scripts/smoke/hook-budget-tests.sh on the commit that added
+# both — which is the whole argument for writing the failing case first.
+pc_budget_crowding() {
+  local root="${1:-plugins}" base_file="${2:-scripts/skill-crowding-baseline.json}"
+  local baseline count f n crowded=""
+  [ -f "$base_file" ] || return 0
+  baseline=$(sed -n 's/.*"within_3_of_line_cap"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' "$base_file")
+  case "$baseline" in ''|*[!0-9]*) return 0 ;; esac
+  count=0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
+    if [ "$n" -ge 148 ]; then
+      count=$((count + 1))
+      crowded="$crowded  $f ($n)
+"
+    fi
+  done < <(find "$root" -mindepth 4 -maxdepth 4 -type f -name 'SKILL.md' 2>/dev/null | sort)
+  if [ "$count" -gt "$baseline" ]; then
+    printf 'crowding %s > %s\n' "$count" "$baseline"
+    printf '%s' "$crowded"
+    return 1
+  fi
+  return 0
+}
+
 # pc_jargon <md_path>
 # Internal-taskmaster-vocabulary denylist with an ordinary-English rescue list.
 # On a hit: prints the comma-joined matches and returns 1. Clean: prints nothing,
