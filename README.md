@@ -23,7 +23,7 @@ Not sure what you need? Install one plugin and let it tell you:
 ```bash
 /plugin install plugin-scout@cc-plugins-marketplace
 /plugin-scout:suggest              # scans your manifests, suggests a set
-/plugin-scout:suggest --yes        # installs the stack-matched tier without asking
+/plugin-scout:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
 ```
 
 Or take a whole category with a bundle — one install, dependencies pulled in.
@@ -43,7 +43,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
-| `always-on-suite` | 8 | ~925 tokens | ~32 tokens | ~2.4k tokens |
+| `always-on-suite` | 8 | ~943 tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 4 | ~497 tokens | — | — |
 | `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
@@ -434,7 +434,7 @@ bill you did not agree to.
 | **[terse](plugins/terse)** | chat-message brevity as a shape contract: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list. Levels `lite` / `full` / `ultra`, plus classical-Chinese novelty variants | Long sessions where the narration costs more than the work |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[claude-authoring](plugins/claude-authoring)** | how to write skills, agents, commands, hooks and plugins — including the measured behaviour of `paths:` and `disable-model-invocation:` — plus scaffold commands and a routine-detector that offers to capture a repeating chore | You are writing a plugin, a project skill, or a hook |
-| **[plugin-scout](plugins/plugin-scout)** | scans your manifests and suggests plugins from this marketplace in two tiers, then installs the picks | First session in a repo |
+| **[plugin-scout](plugins/plugin-scout)** | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks | First session in a repo |
 | **[vercel-skills-scout](plugins/vercel-skills-scout)** | searches skills.sh — Vercel's open agent-skills directory — for third-party skills matching your stack, with provenance, previewing each before it lands | This marketplace has no plugin for what you need |
 | **[registry-source](plugins/registry-source)** | (also listed above) live component-registry MCP access | Installing registry components |
 

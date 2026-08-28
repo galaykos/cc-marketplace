@@ -291,12 +291,13 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **31 named steps;
-30 can fail the build**, and on a push to `master` only **29** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **32 named steps;
+31 can fail the build**, and on a push to `master` only **30** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`, so
-30 of the 31 run). Recounted 2026-08-27 — twice on that day, because the audit
-that corrected the figure to 30/29/28 then added a step and moved it again. The
-figures before that were 29/28/27
+31 of the 32 run). Recounted 2026-08-28, when the scout-name gate harness added a
+step. The figures before that were 31/30/29 — recounted 2026-08-27, twice on that
+day, because the audit that corrected the figure to 30/29/28 then added a step and
+moved it again. The figures before that were 29/28/27
 (recounted 2026-08-25, when the source-of-truth harness step moved every one of
 them) and 28/27/26 (2026-08-17), and stale in both directions before THAT —
 which is why this file says, of these numbers specifically: **recount them, do

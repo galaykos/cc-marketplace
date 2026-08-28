@@ -1,7 +1,7 @@
 {
   "name": "plugin-scout",
-  "version": "0.11.3",
-  "description": "Scan the current project's manifests and suggest every cc-plugins-marketplace plugin in three tiers — stack-matched, the curated any-project core, and the universal remainder — then install the picked ones after confirmation; --yes auto-installs the first two tiers, --persist/--global choose project or user scope. Includes /plugin-scout:suggest.",
+  "version": "0.12.0",
+  "description": "Scan the current project's manifests and suggest every cc-plugins-marketplace plugin in three tiers — stack-matched, the curated any-project core, and the universal remainder — then install the picked ones after confirmation; --yes auto-installs the first two tiers, --all offers every row explicitly, --persist/--global choose scope. Includes /plugin-scout:suggest.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

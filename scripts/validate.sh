@@ -756,6 +756,13 @@ crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || 
 bundle_readme_gap=$(pc_bundle_readme_members plugins) || true
 [ -n "$bundle_readme_gap" ] && lane_err "$bundle_readme_gap" "bundle README does not name a plugin its plugin.json installs — add a line for each name listed"
 
+# plugin-scout's suggestion tables are hand-written and feed `--yes`, which INSTALLS
+# what they name — so a name that outlived its plugin is an install command against
+# nothing. Repo root, not `plugins`: the live set comes from marketplace.json.
+# Column-scoped and liveness-only; both residuals are in pc_scout_names' header.
+scout_name_gap=$(pc_scout_names .) || true
+[ -n "$scout_name_gap" ] && lane_err "$scout_name_gap" "plugin-scout suggests a plugin marketplace.json does not list — retarget the row, use the '—' no-plugin idiom, or mark the line '<!-- scout-name-ok: <why> -->'"
+
 # Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
 # claims — the densest ownership statements the marketplace ships, and the only ones a
 # USER reads before installing. They were the one surface pc_handoff_refs never scanned,
