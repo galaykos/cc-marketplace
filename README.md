@@ -519,4 +519,7 @@ above, is in [rationale/](rationale).
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). **It covers every plugin in this repository.**
+No `plugins/*/.claude-plugin/plugin.json` carries a `license` field: each plugin
+is a directory of this repo, not a separately licensed artifact, and 63 manifests
+restating one licence is 63 places for it to drift. Stated once, here.

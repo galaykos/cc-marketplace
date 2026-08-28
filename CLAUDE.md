@@ -18,16 +18,20 @@ publishable plugin.
     2026-08-20; a design doc parked under `evals/` is still a violation in spirit
     and no script can tell the two apart.
 
-    **Standing of the eval surface itself: `recorded`, not verified** — measured
-    2026-08-24. **4 of 71** plugins ship an eval (i18n, nextjs, php, resilience),
-    **none** defines a control arm, and `claude plugin eval` is early-access gated
+    **Standing of the eval surface itself: `recorded`, not verified** — recounted
+    2026-08-27. **2 of 63** plugins ship an eval (nextjs, resilience), **none**
+    defines a control arm, and `claude plugin eval` is early-access gated
     on this account, so no shipped suite has been run against the runner's schema.
     "Functional" above describes the intended contract, not a checked one. The
     consequence that matters: a grader passing proves nothing about the SKILL
     unless a control arm shows the base model failing the same prompt — and the
     one time that was actually measured
     (`rationale/eval-ablation-2026-08-20.md`), the skill under test scored **zero
-    delta in every arm**. Recount before trusting any of these numbers:
+    delta in every arm**. This paragraph read "4 of 71 … (i18n, nextjs, php,
+    resilience)" until 2026-08-27, three days after it was written: `cfef9c1`
+    deleted nine plugins, two of them the eval-shipping ones it named, so a
+    reader following the sentence went looking for directories that do not
+    exist. Recount before trusting any of these numbers:
     `ls -d plugins/*/evals | wc -l`.
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
@@ -83,12 +87,24 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
 
 ## Plugin change gates
 
-- `scripts/validate.sh` — structure, frontmatter, the SKILL.md body budget — **150 lines,
-  10,000 bytes, and 300 characters per line** (no floor; the byte and line-length
+- `scripts/validate.sh` — structure, frontmatter, the SKILL.md body budget — **200 lines,
+  14,000 bytes, and 300 characters per line** (no floor; the byte and line-length
   measures were added 2026-08-20 because the line count had stopped measuring: one
   skill sat at a frozen 154 lines across 20 commits while its bytes grew 31% and its
   >110-char lines went 2 → 29. Frontmatter, fenced code and table rows are exempt from
-  the line-length check, by construction and stated in the check),
+  the line-length check, by construction and stated in the check. **Raised from
+  150/10,000 on 2026-08-27**, and the raise reverses an argument the gate's own
+  header used to make — "a ceiling that permits today's worst case is theater" —
+  so read `pc_skill_budget`'s header for why the narrower claim is now the honest
+  one. The short version: 24 of 116 bodies sat at EXACTLY 150 lines, a quarter of
+  the corpus written TO the ceiling rather than under it, so the cap was shaping
+  content rather than bounding it; the two numbers move together because at the
+  old 10,000 bytes the byte measure capped every body near 185 lines, making a
+  line-only raise to 200 *or* 250 worth an identical median 35 usable lines. The
+  300-char line-length check is deliberately NOT raised: jamming was the old
+  cap's symptom, and relaxing the symptom check alongside the cap would destroy
+  the evidence. Pressure moved to `pc_budget_crowding`, re-seeded to 0 at the new
+  ceiling — the first body written to 200 fails immediately),
   reference resolution, the description linter (max 500 chars for frontmatter
   descriptions, no "Trigger words:" lists; plugin.json descriptions get a
   WARN-only 700-char clarity guideline), and the doc-location rule above. It also blocks leaked internal taskmaster
@@ -128,7 +144,23 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
   must send a `transcript_path`, because a harness sending only `session_id`
   grades the fallback branch and that is the sole reason three broken hooks
   shipped behind a green suite. Bless with `# context-key-ok:` /
-  `# marker-key-ok:` / `# harness-payload-ok: <why>`.
+  `# marker-key-ok:` / `# harness-payload-ok: <why>`. Added 2026-08-27:
+  `pc_hook_timeout` fails any `hooks.json` entry with no `timeout` — a hook runs
+  inside the user's turn, and all 41 shipped entries had left that bound to the
+  host default; it gates that a NUMBER EXISTS, not that it is right, and says
+  nothing about what a killed hook does. And `pc_budget_crowding`, the
+  corpus-level companion to the per-file SKILL budget: a **ratchet** over
+  `scripts/skill-crowding-baseline.json` counting bodies within 3 lines of the
+  150-line ceiling (31 of 116 on the day it was seeded, 24 of them at *exactly*
+  150). The number may fall, never rise. It exists because a per-file ceiling is
+  structurally blind to authors writing TO it — the same failure that retired the
+  line count as a measure in 2026-08, one iteration later and visible only in the
+  aggregate. Also added: `pc_pick_parity`, asserting the two scout plugins' `pick.sh`
+  stay byte-identical — `${CLAUDE_PLUGIN_ROOT}` is per-plugin, so neither can read the
+  other's copy and either may be installed alone; the duplication is required by the
+  plugin boundary and a checksum is the only available discipline. It gates the SCRIPT
+  only: the two prose descriptions of that picker have already drifted and nothing
+  checks those. All three are exercised by `scripts/smoke/hook-budget-tests.sh`.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
@@ -136,8 +168,9 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
   also checks **changelog coverage**, and the tier is split on purpose: a plugin
   that HAS a `CHANGELOG.md` must carry an entry for the version it just bumped to
   (`gate`), and one that has none draws a `WARN` naming the consumer's problem. It
-  is not hard for everyone because that would demand ~58 backfilled changelogs
-  describing releases nobody recorded — invented history in the file whose job is
+  is not hard for everyone because that would demand ~49 backfilled changelogs
+  (63 plugins, 14 with the file — recounted 2026-08-27 with
+  `ls plugins/*/CHANGELOG.md | wc -l`) describing releases nobody recorded — invented history in the file whose job is
   history. Adding the file opts a plugin in; `code-review` and `devops` ship the
   worked examples.
 - `scripts/context-budget.sh` — BLOCKING token gate vs committed baselines (own
@@ -159,10 +192,16 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
   Accept intentional growth with `--update-baseline`, never in CI.
   `--reconcile` / `--update-official` compare against `claude plugin details`,
   the host's own meter, which reads **1.54x higher** than our bytes/4 estimate
-  (12,789 vs 19,667 over the 61 leaves, 2026-08-20,
-  `scripts/context-budget-official.json`) because the host charges a
-  per-component floor. That mode is **local and WARN-only, not a CI step**:
-  `details` resolves by installed name, so a fresh checkout cannot run it. Still
+  (12,789 vs 19,667, 2026-08-20, `scripts/context-budget-official.json`) because
+  the host charges a per-component floor. **That snapshot's population is stale
+  and the ratio inherits it**: it holds 61 entries measured before `cfef9c1`,
+  including nine plugins since deleted (i18n, livewire, mysql, node-backend,
+  nuxt, php, postgresql, react, vue3) and none of the 11 bundles. Today's tree is
+  52 leaves. Re-measuring needs an install — `details` resolves by installed name
+  — so the 1.54x is carried forward as a **historical** figure, not a current
+  one; treat it as an order-of-magnitude correction, not a coefficient. That
+  mode is **local and WARN-only, not a CI step**: `details` resolves by installed
+  name, so a fresh checkout cannot run it. Still
   unmetered BY NATURE and reported by name each run rather than scored zero:
   skill BODIES loaded by a routing rule, remote MCP servers, and any hook waiting
   for state the activated fixture does not know to create.
@@ -252,13 +291,16 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **29 named steps;
-28 can fail the build**, and on a push to `master` only **27** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **31 named steps;
+30 can fail the build**, and on a push to `master` only **29** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`, so
-28 of the 29 run). Recounted 2026-08-25, when adding the source-of-truth harness
-step moved every one of them. The figures before that were 28/27/26, recounted
-2026-08-17, and stale in both directions before THAT — which is why this file
-says, of these numbers specifically: **recount them, do not copy them.** The
+30 of the 31 run). Recounted 2026-08-27 — twice on that day, because the audit
+that corrected the figure to 30/29/28 then added a step and moved it again. The
+figures before that were 29/28/27
+(recounted 2026-08-25, when the source-of-truth harness step moved every one of
+them) and 28/27/26 (2026-08-17), and stale in both directions before THAT —
+which is why this file says, of these numbers specifically: **recount them, do
+not copy them.** The
 command, so the next reader does not have to invent it:
 
 ```bash

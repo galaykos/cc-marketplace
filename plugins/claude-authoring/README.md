@@ -17,7 +17,7 @@ scaffold commands that turn those suggestions into files.
 
 | Command | What it does |
 |---------|--------------|
-| `/claude-authoring:new-skill [skill-name] [purpose]` | Scaffold a SKILL.md with a trigger-rich description and a body inside the 150-line ceiling |
+| `/claude-authoring:new-skill [skill-name] [purpose]` | Scaffold a SKILL.md with a trigger-rich description and a body inside the 200-line ceiling |
 | `/claude-authoring:new-agent [agent-name] [purpose]` | Scaffold a subagent .md with name/description/tools/model/effort frontmatter and a role-procedure-checklist body |
 | `/claude-authoring:new-command [command-name] [what-it-does]` | Scaffold a slash-command .md with description/argument-hint frontmatter and a numbered $ARGUMENTS-driven body |
 | `/claude-authoring:new-hook [hook-name] [purpose]` | Scaffold hooks/hooks.json plus an executable hook script for a chosen event |

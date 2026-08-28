@@ -31,7 +31,7 @@ mkdir -p "$SK"
   echo '---'; echo
   echo "Resolve card 07 before continuing."
   echo "Then install the vue2 plugin for the legacy apps."
-  for i in $(seq 3 170); do echo "line $i"; done
+  for i in $(seq 3 220); do echo "line $i"; done
 } > "$SK/SKILL.md"
 echo "# stray" > "$DOC"
 # Plugin-root docs joined the jargon/removed-artifact scan (they escaped it
@@ -44,7 +44,7 @@ echo "# stray" > "$DOC"
 
 out=$(bash scripts/validate.sh 2>&1)
 rc=0
-printf '%s\n' "$out" | grep -qF "$SK/SKILL.md: body is 171 lines, over the 150-line ceiling" \
+printf '%s\n' "$out" | grep -qF "$SK/SKILL.md: body is 221 lines, over the 200-line ceiling" \
   && echo "PASS: budget FAIL fires" || { echo "FAIL: budget check did not fire"; rc=1; }
 printf '%s\n' "$out" | grep -qF "$DOC: non-functional doc inside a plugin" \
   && echo "PASS: doc-location FAIL fires" || { echo "FAIL: doc-location check did not fire"; rc=1; }

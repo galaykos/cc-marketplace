@@ -145,7 +145,7 @@ invisible in aggregate below it.
 
 Deliberate omissions, so their absence is not read as an oversight:
 
-- **How much a skill should explain.** Judgment; the 150-line ceiling is the
+- **How much a skill should explain.** Judgment; the 200-line ceiling is the
   only mechanical part, and it bounds size, not quality.
 - **When to split a plugin versus a skill.** `authoring-plugins` covers it
   better as concrete heuristics than a law would as an abstraction.

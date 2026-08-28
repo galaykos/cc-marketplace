@@ -10,6 +10,13 @@ for what this marketplace does not cover. Same detection discipline
 (manifest signals with cited evidence), deliberately stricter install
 discipline — see the trust model below.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install vercel-skills-scout@cc-plugins-marketplace
+```
+
 ## Usage
 
 ```

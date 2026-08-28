@@ -2,6 +2,28 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.8
+
+### Added
+- **`plan-before-code` regains its worked example** — the file map, the interface
+  block, and the locked-in decisions. It was moved to `references/worked-example.md`
+  at `22c3239`, a commit titled "merge the two skill pairs the line ceiling had
+  blocked", and the reference file's own opening said "Moved out … to make room".
+  The skill instructs "define the interfaces between units before writing bodies"
+  and then showed none; the Before/after narrative referenced an example the body no
+  longer contained. Task sequencing and the longer narrative stay in the reference.
+
+## 0.13.7
+
+### Changed
+- **Every hook entry now declares a `timeout`.** `evidence-gate.sh` 10s. Before this release the
+  plugin expressed no opinion about how long its own hook may hold a turn and
+  relied entirely on the host default; a hook that blocks — a slow network mount,
+  a large transcript — stalled the user with no per-hook ceiling. Sizes are per
+  script, not one house number: 5s for a jq-only classifier, 10s for git/find
+  work, 15s where the script shells out to the network, a package manager or
+  node. No hook logic changed.
+
 ## 0.13.6
 
 ### Fixed

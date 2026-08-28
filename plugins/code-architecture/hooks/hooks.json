@@ -3,7 +3,11 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/evidence-gate.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/evidence-gate.sh",
+            "timeout": 10
+          }
         ]
       }
     ]

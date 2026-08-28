@@ -58,9 +58,13 @@ Options with a surface get STAGED, not described. Keyed on context-scout's
 Visual surface: `None` → skip; unknown (no scout) → a skippable offer; otherwise
 staging is mandatory, floor included.
 
-Brainstorm owns ONE session fidelity consent, asked once on the first staged
-decision via AskUserQuestion, with NO dormant/none option — the floor is
-describe-only, which still RECORDS a decision. It never delegates that choice:
+ONE fidelity consent per session, and in a brainstorm-led run brainstorm is the
+skill that asks it — once, on the first staged decision, via AskUserQuestion, with
+NO dormant/none option, because the floor here is describe-only which still RECORDS
+a decision. The question's wording and its option set are owned by
+`visual-decisions`; whichever skill reaches the gate first asks it and the answer
+then holds all session, so erd and visual-decisions reuse it and never re-ask.
+Brainstorm does not hand the ASKING off mid-run:
 visual-decisions is a rendering backend only, its first-use gate treated as
 already answered (shell = "Full mockups", ASCII = "Quick ASCII only", never
 "No mockups"). Route fidelity by decision kind and host (consent may downgrade):

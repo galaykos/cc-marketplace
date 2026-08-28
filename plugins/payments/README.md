@@ -2,6 +2,15 @@
 
 Payments and billing where a bug is a double-charged customer, not a stack trace.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install payments@cc-plugins-marketplace
+```
+
+## What's included
+
 - **`payments` skill** — stay out of PCI scope (tokenization, never touch raw card
   data), integer-minor-unit money, signature-verified idempotent webhooks, subscription
   state and the activation race, dunning and proration, and reconciliation against an

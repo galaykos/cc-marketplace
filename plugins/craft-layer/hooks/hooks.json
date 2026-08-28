@@ -3,7 +3,11 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra-craft.sh" }
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra-craft.sh",
+            "timeout": 5
+          }
         ]
       }
     ]

@@ -2,6 +2,15 @@
 
 Blocks secrets before they reach disk.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install secret-scanning@cc-plugins-marketplace
+```
+
+## What's included
+
 - **PreToolUse hook** (`hooks/scan.sh`) — denies any `Write`/`Edit`/`MultiEdit` whose
   incoming text carries a high-confidence secret (cloud keys, private-key blocks,
   provider tokens, assigned secret literals). Fail-open: any error or a missing `jq`

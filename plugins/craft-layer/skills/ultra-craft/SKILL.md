@@ -40,15 +40,20 @@ First visible line of the response, once per run (not per phase), plain markdown
 
     ⚡ ULTRA-CRAFT — maximal + live research + guided + <model>/xhigh + red-team
 
-Substitute `<model>` with the RESOLVED tier, never the word `auto`; follow it with the
+Substitute `<model>` with the RESOLVED tier (see Fixed tier), never the word `auto`; follow it with the
 one-line cost disclosure below. Never print this banner and another boost's in the same
 response — output-level only, see the residual at the end.
 
 ## Fixed tier
 
-`model=auto, effort=xhigh`, always — the bare token carries no tier suffix. The resolution
-rule is owned by `orchestration:verification-panels` § Panel width and is not restated here;
-it is a FLOOR, so it never lowers an agent below its shipped frontmatter. Never edit agent
+`model=auto, effort=xhigh`, always — the bare token carries no tier suffix.
+
+`auto` resolves at dispatch to the session model or opus, whichever is higher on
+`haiku < sonnet < opus < fable`: **escalate, never downgrade**. `effort` is settable
+ONLY on the Workflow `agent()` path — inline Agent dispatch escalates model only.
+It is a FLOOR, so it never lowers an agent below its shipped frontmatter. Stated
+here rather than cited because craft-layer does not depend on orchestration; the
+owning copy is `orchestration:verification-panels` `references/dispatch-tier.md`. Never edit agent
 frontmatter to achieve this — the boost is a dispatch-time override.
 
 REASONING roles escalate: `creative-director` (concept divergence) and `craft-reviewer` (the

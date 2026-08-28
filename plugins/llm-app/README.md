@@ -2,6 +2,15 @@
 
 Building LLM-backed features — the failure surface ordinary app testing does not cover.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install llm-app@cc-plugins-marketplace
+```
+
+## What's included
+
 - **`llm-app` skill** — evals as the test suite (regression-gate prompt/model changes),
   RAG where retrieval quality is the product (chunking, embeddings, re-ranking, grounded
   citation, recall@k), prompts as versioned artifacts, prompt-injection as the new input

@@ -25,18 +25,24 @@ check() { # $1 desc  $2 file_path  $3 want: ceiling|doc-location|none
 }
 
 TMPSK="plugins/debugging/skills/_guardtest"; mkdir -p "$TMPSK"
-{ echo '---'; echo 'name: _guardtest'; echo 'description: Use when testing the guard budget path with an over-length body.'; echo '---'; echo; for i in $(seq 1 170); do echo "l$i"; done; } > "$TMPSK/SKILL.md"
+{ echo '---'; echo 'name: _guardtest'; echo 'description: Use when testing the guard budget path with an over-length body.'; echo '---'; echo; for i in $(seq 1 220); do echo "l$i"; done; } > "$TMPSK/SKILL.md"
 CLEANSK="plugins/debugging/skills/_guardclean"; mkdir -p "$CLEANSK"
 # 40 lines, DELIBERATELY: this fixture is the regression guard for the removed
 # 100-line floor. At its old 110 lines it sat above the floor, so re-adding
 # `-lt 100` to pc_skill_budget would have kept every smoke test green.
 { echo '---'; echo 'name: _guardclean'; echo 'description: Use when testing the guard with a short body that stays clean.'; echo '---'; echo; for i in $(seq 1 40); do echo "l$i"; done; } > "$CLEANSK/SKILL.md"
-# Byte-ceiling fixture: 120 lines, comfortably under the LINE ceiling, ~12 kB —
+# Byte-ceiling fixture: 160 lines, comfortably under the 200-line ceiling, ~16 kB —
 # the exact shape the line count stopped measuring (task-execution sat at a frozen
-# 154 lines while its bytes grew 31%).
+# 154 lines while its bytes grew 31%). Both numbers were raised with the caps on
+# 2026-08-27: at the old 120 lines / ~12 kB the fixture no longer exceeded the
+# 14,000-byte ceiling. It failed LOUDLY when it stopped ("wanted bytes warning,
+# got:"), which is the property worth keeping — every cap-sized fixture in this
+# repo asserts the check FIRES, so moving a cap breaks the suite rather than
+# silently retiring the test. Keep it that way: a fixture that merely runs the
+# check without asserting on its output would go quiet instead.
 BYTESK="plugins/debugging/skills/_guardbytes"; mkdir -p "$BYTESK"
 { echo '---'; echo 'name: _guardbytes'; echo 'description: Use when testing the guard byte path with a fat but short body.'; echo '---'; echo
-  for i in $(seq 1 120); do printf 'l%s %s\n' "$i" "$(head -c 95 < /dev/zero | tr '\0' 'x')"; done; } > "$BYTESK/SKILL.md"
+  for i in $(seq 1 160); do printf 'l%s %s\n' "$i" "$(head -c 95 < /dev/zero | tr '\0' 'x')"; done; } > "$BYTESK/SKILL.md"
 # Line-length fixture: 20 short lines and one 400-character prose line.
 LONGSK="plugins/debugging/skills/_guardlong"; mkdir -p "$LONGSK"
 { echo '---'; echo 'name: _guardlong'; echo 'description: Use when testing the guard line-length path with one jammed line.'; echo '---'; echo

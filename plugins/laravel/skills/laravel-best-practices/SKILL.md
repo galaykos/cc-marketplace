@@ -14,9 +14,14 @@ Version facts come from the manifests, never from assumption:
 ## Per-version leverage (advise at or below the floor)
 
 Recommend the newer idiom only when the floor is at or above the release that
-shipped it. The per-major map — 11's slim skeleton, 12's maintenance-major status,
-13's attribute-first APIs, plus upgrade posture — is
-`references/leverage-map.md`; read it before pinning any version-sensitive claim.
+shipped it.
+
+- **11** — slim skeleton: no `Kernel.php`, middleware and scheduling in `bootstrap/app.php`.
+- **12** — maintenance major: no new required idioms; treat as 11 plus fixes.
+- **13** — attribute-first APIs; the newest idioms land here, so pin before advising.
+
+Full map with upgrade posture: `references/leverage-map.md`; read it before pinning
+any version-sensitive claim.
 The trap it exists for: when memory is unsure WHICH version shipped a feature, 12
 is the wrong guess almost always — an uncertain introduction stays unpinned.
 
@@ -117,8 +122,25 @@ bloat/fragility risk is loaded relations (serialized recursively, re-fetched too
 appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write
 `handle()` so it's safe to run twice.
 
-The worked bad/good pair — hydrated model plus non-idempotent `handle()`, and the
-id-plus-guard version — is `references/queue-payloads.md`.
+```php
+// Bad: hydrated model in the constructor, non-idempotent charge
+class ChargeOrder implements ShouldQueue {
+    public function __construct(public Order $order) {}
+    public function handle(): void { Payment::charge($this->order); } // charges again on retry
+}
+
+// Good: pass the id, guard against duplicate execution
+class ChargeOrder implements ShouldQueue {
+    public function __construct(public int $orderId) {}
+    public function handle(): void {
+        $order = Order::findOrFail($this->orderId);
+        if ($order->isPaid()) return;
+        Payment::charge($order);
+    }
+}
+```
+
+Serialization edge cases and the retry/backoff matrix: `references/queue-payloads.md`.
 
 ## Config/env discipline — `config()`, not `env()`, outside config files
 

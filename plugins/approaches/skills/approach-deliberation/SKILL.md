@@ -110,6 +110,21 @@ first) · rework-minimizing (builds the end-state structure now) · performance-
 `references/strategies.md` maps named strategies — tracer bullet, spike, strangler
 fig, inversion — to the dominant risk each beats.
 
+A slate, end to end. Task: add export-to-CSV for a large report.
+
+- A "Stream it" (simplest): controller streams rows straight to the response.
+  Sketch: one controller method. Limits: ties up a worker on huge exports.
+- B "Queue it" (rework-minimizing): job writes to storage, user gets a link.
+  Sketch: job class + notification + storage path.
+- C "Paginate the API" (reversibility): client-side assembly via paged JSON.
+  Sketch: API param + small frontend loop.
+
+Pick: A — current maximum report is 20k rows, streams in under two seconds.
+Kill-trigger: if product confirms the 500k-row tenant migrates in, switch to B.
+
+Three variants of one idea would be one candidate wearing costumes; these differ in
+which risk they accept.
+
 ## Kill-trigger discipline
 
 Mid-implementation, when reality contradicts the pick's assumptions:

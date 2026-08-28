@@ -30,12 +30,22 @@ pattern — chosen so real secrets trip it and placeholders do not:
 - **Slack token** — `xoxb-`/`xoxp-`/`xoxa-`/`xoxr-`/`xoxs-` + body.
 - **Google API key** — `AIza` + 35 chars.
 - **Stripe live secret** — `sk_live_` + 24+ chars.
-- **Assigned secret literal** — `api_key`/`secret`/`token`/`password` set to a 24+
-  char base64-ish value.
+- **Assigned secret literal** — `api_key`/`secret`/`token`/`passwd`/`password` set
+  to a 24+ char base64-ish value. Matched **case-insensitively**, and the key name
+  may carry `_`- or `-`-separated suffixes: `AWS_SECRET_ACCESS_KEY=…` matches on
+  `SECRET`, even though `SECRET` is not the word adjacent to the `=`.
 
-It deliberately does **not** flag short values, obvious placeholders
-(`sk_live_xxx`, `your-token-here`), or values already in the file — only new secrets
-of a shape that is almost never a false positive.
+It deliberately does **not** flag values below the length floor, which is what
+carries most placeholders (`sk_live_xxx`, `your-token-here` — too short to match).
+Two limits on that sentence, both verified by running the hook:
+
+- **A placeholder of the right SHAPE is still denied.** Matching is shape-only
+  (see step 2 below), so `AKIAIOSFODNN7EXAMPLE` — AWS's own canonical
+  documentation key — is denied. This is the guard's commonest false positive; the
+  fixture escape below is the intended answer to it.
+- **"Already in the file" holds for `Edit`/`MultiEdit` only.** Those pass just
+  `new_string`, so untouched lines are never seen. A `Write` passes the WHOLE file
+  as `content`, so re-emitting a file that already contains a secret **is** denied.
 
 ## When the guard fires
 

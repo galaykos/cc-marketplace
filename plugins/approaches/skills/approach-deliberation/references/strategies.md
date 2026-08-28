@@ -123,6 +123,9 @@ Task: add export-to-CSV for a large report.
 Pick: A — current maximum report is 20k rows, streams in under two seconds.
 Kill-trigger: if product confirms the 500k-row tenant migrates in, switch to B.
 
-Moved out of the SKILL body on 2026-08-21 when the blind panel merged in: the
-body kept the rules, and one 14-line example is exactly the shape that belongs
-next to the strategies it illustrates.
+Moved out of the SKILL body on 2026-08-21 when the blind panel merged in, and
+**returned to the body on 2026-08-27** when the line ceiling rose to 200. The body
+cites this file for NAMED STRATEGIES, so a reader executing "three variants of one
+idea is one candidate wearing costumes" had no reason to open it — which put the
+one demonstration of a non-costume slate out of reach exactly when it was needed.
+The copy here is kept as the worked companion to the strategy catalog below.

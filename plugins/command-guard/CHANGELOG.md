@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.1
+
+### Changed
+- **Every hook entry now declares a `timeout`.** `destructive-guard.sh` 15s. Before this release the
+  plugin expressed no opinion about how long its own hook may hold a turn and
+  relied entirely on the host default; a hook that blocks — a slow network mount,
+  a large transcript — stalled the user with no per-hook ceiling. Sizes are per
+  script, not one house number: 5s for a jq-only classifier, 10s for git/find
+  work, 15s where the script shells out to the network, a package manager or
+  node. No hook logic changed.
+
 ## 0.4.0 — 2026-08-26
 
 Cuts the interruptions the ask tier was causing and closes three holes found by

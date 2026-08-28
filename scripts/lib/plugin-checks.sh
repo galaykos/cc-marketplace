@@ -8,29 +8,58 @@
 # `lines`, `bytes`, or `line-length` (the last also prints `:<lineno>`).
 # Clean or missing file: prints nothing, returns 0.
 #
-# THREE MEASURES, because one stopped measuring. The 150-LINE ceiling is the
-# original. It was demonstrably no longer a budget by 2026-08-20:
-# task-runner/skills/task-execution/SKILL.md sat at exactly 154 total lines
-# across 20 commits while its bytes grew 9,288 -> 12,193 (+31%) and its lines
-# over 110 chars went 2 -> 29. taskmaster/skills/task-cards went 105 lines /
+# THREE MEASURES, because one stopped measuring. The line ceiling was 150 and the
+# byte ceiling 10,000 until 2026-08-27; they are now 200 and 14,000. Both the
+# original numbers and the raise are recorded here, because the RAISE REVERSES AN
+# ARGUMENT THIS HEADER USED TO MAKE and a silent reversal would be the worse sin.
+#
+# WHY 150/10,000 EXISTED. The line ceiling was demonstrably no longer a budget by
+# 2026-08-20: task-runner/skills/task-execution/SKILL.md sat at exactly 154 total
+# lines across 20 commits while its bytes grew 9,288 -> 12,193 (+31%) and its
+# lines over 110 chars went 2 -> 29. taskmaster/skills/task-cards went 105 lines /
 # 4,550 bytes -> 154 / 9,318: lines +47%, bytes +105%, with one line of 1,526
 # characters carrying four separate rules. Content accreted until the line gate
-# bit, then went onto an existing line. A ceiling that a file can grow 31% under
-# is a ceiling in name.
+# bit, then went onto an existing line. Bytes were added to catch exactly that.
 #
-# THE NUMBERS ARE FROM THE DISTRIBUTION, NOT FROM TASTE. Measured over the 129
-# shipped skill bodies on 2026-08-20: median 6,795 B, p75 7,951, p90 8,560,
-# p95 9,051, max 11,777.
-#   - BYTES 10,000 (~2,500 tokens) fails exactly one file today, the one whose
-#     growth curve is the reason this check exists. 12,000 would fail zero — a
-#     ceiling that permits today's worst case is theater. The median would fail
-#     65 of 129, which is why "cap at the median" is the wrong instinct.
+# WHY THEY MOVED. The line cap did not stop the accretion; it redirected it. By
+# 2026-08-27, 24 of 116 bodies sat at EXACTLY 150 lines and 31 within three of it
+# — a quarter of the corpus written TO the ceiling rather than under it, which is
+# the same pathology one iteration later and visible only in aggregate. Raising
+# the ceiling does not by itself fix that. What fixes it is that the PRESSURE
+# MOVED: pc_budget_crowding (below) is now the instrument that resists growth,
+# and this function is a bound on the worst case rather than a squeeze on the
+# median. Read the two together or neither makes sense.
+#
+# THE ARGUMENT THIS REVERSES, stated plainly. The old header said "12,000 would
+# fail zero — a ceiling that permits today's worst case is theater." 14,000 fails
+# zero today by construction (worst case is 9,929 B). By that sentence's own
+# standard this measure is now theater, and it WOULD be, if it were still the
+# only instrument. It is not: the ratchet fails on the first body that grows into
+# the new room. The claim being made is narrower than the old one — this gate
+# bounds catastrophe, the ratchet bounds drift — and stating the narrower claim
+# is the point of saying it here.
+#
+# THE NUMBERS ARE FROM THE DISTRIBUTION, NOT FROM TASTE. Re-measured over the 116
+# shipped skill bodies on 2026-08-27: median 6,893 B, p75 8,025, p90 8,580,
+# max 9,929; lines median 135, p75 148, p90 150, max 150 (the line quantiles are
+# themselves evidence of the ceiling-as-target effect).
+#   - BYTES 14,000 (~3,500 tokens) is the binding pair to 200 lines: at this
+#     corpus's median 54 bytes/line, 14,000 B permits ~259 lines, so the LINE cap
+#     binds first and 200 is a real number rather than a decorative one. At the
+#     old 10,000 the byte cap allowed only ~185 lines, which is why raising lines
+#     alone to 200 or 250 would have changed nothing — both were measured at a
+#     median 35 usable extra lines, identical.
 #     Anthropic's own guidance is "under 5k tokens" for a body
 #     (https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices);
-#     this is stricter, and deliberately so, because ours load in bundles.
-#   - LINE LENGTH 300 fails five files, every one of them prose that a reflow
-#     fixes without losing a word. Prose in this repo wraps at ~90; 300 is three
-#     times that, so it flags a jammed subsection rather than a long sentence.
+#     14,000 B is still stricter than that, deliberately, because ours load in
+#     bundles. Skill BODIES are not always-on — they load on invocation — so the
+#     cost of this raise is paid per fire, not per session.
+#   - LINE LENGTH 300 is unchanged. It fails five files, every one of them prose
+#     that a reflow fixes without losing a word. Prose in this repo wraps at ~90;
+#     300 is three times that, so it flags a jammed subsection rather than a long
+#     sentence. It is NOT raised with the others on purpose: jamming was the
+#     old cap's symptom, and relaxing the symptom check alongside the cap would
+#     have removed the evidence that the cap was distorting content.
 #
 # LIMITATION (honest scope), four residuals:
 #   1. Frontmatter is exempt from the line check by construction — a
@@ -49,12 +78,12 @@ pc_skill_budget() {
   local f="$1" n bytes maxlen maxline
   [ -f "$f" ] || return 0
   n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
-  if [ "$n" -gt 150 ]; then
+  if [ "$n" -gt 200 ]; then
     printf 'budget %s lines %s\n' "$f" "$n"
     return 1
   fi
   bytes=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -c | tr -d ' ')
-  if [ "$bytes" -gt 10000 ]; then
+  if [ "$bytes" -gt 14000 ]; then
     printf 'budget %s bytes %s\n' "$f" "$bytes"
     return 1
   fi
@@ -71,6 +100,159 @@ pc_skill_budget() {
   maxlen=${maxline%% *}
   if [ -n "$maxlen" ] && [ "$maxlen" -gt 300 ]; then
     printf 'budget %s line-length %s :%s\n' "$f" "$maxlen" "${maxline##* }"
+    return 1
+  fi
+  return 0
+}
+
+# pc_hook_timeout <plugins_root>
+# Every hook entry in every plugins/*/hooks/hooks.json must declare a `timeout`.
+# Prints one "hook-timeout <plugin>:<event>:<script>" line per undeclared entry
+# and returns 1; clean returns 0 having printed nothing.
+#
+# WHY. A hook runs inside the user's turn. Without a per-entry timeout the plugin
+# has expressed no opinion about how long its own script may hold that turn and
+# inherits whatever the host defaults to — so a script that blocks (a slow network
+# mount, a large transcript, an npm probe) stalls the session, and the author who
+# could have bounded it never had to think about the bound. All 41 entries in this
+# marketplace were undeclared until 2026-08-27; the check exists so the next one
+# is a decision rather than an omission.
+#
+# LIMITATION (honest scope), three residuals, and they matter:
+#   1. This gates that a NUMBER EXISTS, not that it is right. A 900s timeout
+#      passes. Nothing here measures how long a hook actually takes — that needs
+#      a runtime harness with a realistic payload, which no gate in this repo has.
+#   2. It says nothing about what happens ON timeout. A killed PreToolUse deny
+#      guard fails open on most hosts, which is correct for secret-scanning (whose
+#      own header declares fail-open) and would be wrong for a guard meant to
+#      block. That behaviour is agent-graded, per plugin, and saying so is the point.
+#   3. jq-dependent, like its siblings here. No jq, no check — it returns 0.
+pc_hook_timeout() {
+  local root="${1:-plugins}" bad=0 d p hj
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    p=$(basename "$d")
+    hj="$d/hooks/hooks.json"
+    [ -f "$hj" ] || continue
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      printf 'hook-timeout %s:%s\n' "$p" "$line"
+      bad=1
+    done < <(jq -r '.hooks | to_entries[] as $e
+                    | $e.value[].hooks[]
+                    | select(has("timeout") | not)
+                    | "\($e.key):\(.command | split("/") | last)"' "$hj" 2>/dev/null)
+  done < <(find "$root" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+  return $bad
+}
+
+# pc_budget_crowding <plugins_root> <baseline_file>
+# Corpus-level companion to pc_skill_budget. Counts skill bodies within 3 lines
+# of the LINE ceiling (200 since 2026-08-27, so >=198) and fails if that count
+# EXCEEDS the committed baseline.
+# Prints "crowding <count> > <baseline>" plus one line per crowded file, returns 1.
+#
+# WHY A DISTRIBUTION CHECK AT ALL. pc_skill_budget is per-file and therefore
+# structurally blind to the thing that killed the line measure once already: a
+# ceiling authors write TO rather than under. Its own header records that
+# task-execution sat at a frozen 154 lines for 20 commits while its bytes grew
+# 31%. On 2026-08-27, one iteration later, the same shape is visible in the
+# aggregate — 24 of 116 bodies at EXACTLY 150 and 31 within three lines of it.
+# No per-file check can see that, because every one of those files passes.
+#
+# WHY A RATCHET AND NOT A THRESHOLD. A flat "no more than N% crowded" set at
+# today's honest number would fail the build on the commit that introduces it,
+# and set anywhere above it would bless the current state as acceptable. The
+# baseline is the same instrument context-budget.sh uses: the number may fall
+# freely and may not rise. Lower it when skills are actually cut; never raise it
+# to make a build pass.
+#
+# THIS CHECK NOW CARRIES THE PRESSURE. When the ceiling was 150 the cap itself
+# squeezed the median and this ratchet merely watched. At 200 the cap fails
+# nothing (the longest body is 150 lines against a 200 ceiling), so
+# pc_skill_budget bounds catastrophe and THIS bounds drift. The baseline was
+# re-seeded to 0 on 2026-08-27 for that reason: not because crowding was solved,
+# but because the window moved to a ceiling nothing is near, so the FIRST body
+# written to 200 fails immediately instead of joining a tolerated crowd of 31.
+# If this file ever reads a non-zero baseline again, someone accepted a body at
+# the new ceiling — which may be right, but should be an argued commit, not a
+# quiet edit.
+#
+# LIMITATION (honest scope), three residuals:
+#   1. It measures CROWDING, not quality. Thirty-one skills sitting under a cap
+#      they were written to fit is the signal; whether any given one deserves its
+#      length is a judgement no counter makes.
+#   2. Ratchets only detect the direction of travel. A commit that cuts one skill
+#      to 120 lines and pushes another from 140 to 150 nets zero and passes.
+#   3. The 3-line window is a choice, not a measurement. It catches "written to
+#      the cap"; a body parked at 194 is equally suspicious and invisible here.
+#   4. LINES ONLY. Nothing ratchets the byte dimension, and that direction is
+#      demonstrably live: on 2026-08-27 seven bodies sat above 9,000 B against
+#      the then-10,000 cap, one of them (task-runner/task-execution, 9,929 B at
+#      147 lines) with lines to spare — byte crowding without line crowding, the
+#      exact shape this check cannot see. Adding a byte window was considered and
+#      declined when the cap moved; if bodies start clustering near 14,000 B
+#      while staying short, this residual is where to look first.
+# The find depth is 4 (<root>/<plugin>/skills/<name>/SKILL.md) and was 3 in the
+# first draft, which matched nothing: the check counted zero, compared it to a
+# baseline of 31, and passed on every input including a deliberately crowded
+# fixture. Caught by scripts/smoke/hook-budget-tests.sh on the commit that added
+# both — which is the whole argument for writing the failing case first.
+pc_budget_crowding() {
+  local root="${1:-plugins}" base_file="${2:-scripts/skill-crowding-baseline.json}"
+  local baseline count f n crowded=""
+  [ -f "$base_file" ] || return 0
+  baseline=$(sed -n 's/.*"within_3_of_line_cap"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' "$base_file")
+  case "$baseline" in ''|*[!0-9]*) return 0 ;; esac
+  count=0
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    n=$(awk '/^---$/{c++; next} c>=2' "$f" | wc -l | tr -d ' ')
+    if [ "$n" -ge 198 ]; then
+      count=$((count + 1))
+      crowded="$crowded  $f ($n)
+"
+    fi
+  done < <(find "$root" -mindepth 4 -maxdepth 4 -type f -name 'SKILL.md' 2>/dev/null | sort)
+  if [ "$count" -gt "$baseline" ]; then
+    printf 'crowding %s > %s\n' "$count" "$baseline"
+    printf '%s' "$crowded"
+    return 1
+  fi
+  return 0
+}
+
+# pc_pick_parity <plugins_root>
+# The two scout plugins ship a byte-identical picker script. Fails if they diverge.
+# Prints "pick-parity <a> != <b>" and returns 1; identical or either missing returns 0.
+#
+# WHY THE DUPLICATION IS CORRECT, and therefore why it needs a gate. plugin-scout and
+# vercel-skills-scout both resolve their scripts from `${CLAUDE_PLUGIN_ROOT}`, which is
+# per-plugin: neither can read the other's file, and either may be installed alone. A
+# shared copy would privilege whichever plugin happened to be present — the same
+# reasoning CLAUDE.md gives for keeping lane.tsv per-plugin rather than central. So the
+# duplication is required by the plugin boundary, not an oversight, and the only
+# available discipline is asserting the copies stay in step.
+#
+# THE DRIFT IS NOT HYPOTHETICAL. Measured 2026-08-27: the two PROSE descriptions of this
+# picker have already diverged — plugin-scout's references/picker.md carries an "under the
+# same rules as Other" clause that vercel-skills-scout's references/mechanics.md dropped.
+# The scripts were still identical at that point. This gate catches the half that changes
+# behaviour before it goes the same way.
+#
+# LIMITATION (honest scope), two residuals:
+#   1. It gates the SCRIPT only. The prose copies that have already drifted are not
+#      checked here and are not checked anywhere — comparing prose for meaning is not a
+#      thing a checksum does, and a byte-compare of prose would fire on every reword.
+#   2. It gates SAMENESS, not correctness. Two identically wrong pickers pass.
+pc_pick_parity() {
+  local root="${1:-plugins}" a b
+  a="$root/plugin-scout/scripts/pick.sh"
+  b="$root/vercel-skills-scout/scripts/pick.sh"
+  [ -f "$a" ] && [ -f "$b" ] || return 0
+  if ! cmp -s "$a" "$b"; then
+    printf 'pick-parity %s != %s\n' "$a" "$b"
     return 1
   fi
   return 0

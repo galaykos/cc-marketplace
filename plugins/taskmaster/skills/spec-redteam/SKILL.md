@@ -89,6 +89,11 @@ The agent returns a structured holes list grouped by lens, each hole tagged
 
 ## Present and resolve — blocking
 
+Standing: **agent-graded** — no script gates the spec→cards boundary on red-team
+resolution. `spec-ledger-lint.sh` checks only open UNKNOWN rows, and task-runner's
+completion gate is execution-side. "The handoff waits" is a rule the model holds
+itself to, not one a build enforces.
+
 Present the holes grouped by lens. Then resolve each before task-cards runs; the
 handoff waits. Per hole, offer a choice (AskUserQuestion; bare options when
 headless):

@@ -4,6 +4,33 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.18.5
+
+### Fixed
+- **"Shipping any motion with no `prefers-reduced-motion` path" is back in
+  `motion-best-practices` § Common mistakes**, deleted at `dfe8fcf`. The skill opens
+  by arguing this is a hard accessibility rule because vestibular disorders make
+  large motion physically harmful, and Common mistakes is the list a reviewer scans
+  against a diff — the rule the skill opens with was absent from it. Six craft-layer
+  skills cite this file as the owner of the reduced-motion mechanism.
+- **Two double-loaded bullets split**: permanent `will-change` vs autoplaying loops,
+  and View Transitions feature detection vs the GSAP Club-licence correction (free
+  since 3.13). The licence item is a fact correction about the world, invisible
+  appended to an unrelated bullet.
+- **"(method names, options, version numbers)" restored** to the definition of a
+  version-sensitive literal — the test deciding when the model must fetch live.
+
+## 0.18.4
+
+### Changed
+- **Every hook entry now declares a `timeout`.** `palette-default.sh` 5s, `preview-guard.sh` 10s. Before this release the
+  plugin expressed no opinion about how long its own hook may hold a turn and
+  relied entirely on the host default; a hook that blocks — a slow network mount,
+  a large transcript — stalled the user with no per-hook ceiling. Sizes are per
+  script, not one house number: 5s for a jq-only classifier, 10s for git/find
+  work, 15s where the script shells out to the network, a package manager or
+  node. No hook logic changed.
+
 ## 0.18.3
 
 ### Added

@@ -88,6 +88,7 @@ breaking anchor links and keyboard scroll.
   animation off the main thread with zero JS. The reduced-bundle path; degrades to a
   static final state where unsupported. Detail: `references/css-scroll-driven.md`.
 
+## Reveal with fallback (do not re-bake)
 
 Any scroll reveal MUST stay readable with the animation stripped out — no-JS,
 prerender, print, a full-page screenshot, or an observer that never fires. The

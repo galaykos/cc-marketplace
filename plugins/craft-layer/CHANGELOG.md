@@ -7,6 +7,49 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.9
+
+### Changed
+- **`ultra-craft` names the owning copy of the dispatch-tier rule.** The rule is
+  restored inline (0.47.8) because craft-layer does not depend on orchestration and the
+  hook that carries it exits on slash prompts; this adds the provenance line pointing at
+  `orchestration:verification-panels` `references/dispatch-tier.md`, which is where the
+  marketplace states it once. The original citation named § Panel width, which owns
+  panel width N and states none of it.
+
+## 0.47.8
+
+### Fixed
+- **`ultra-craft` regains the `auto` model-resolution rule** — `haiku < sonnet <
+  opus < fable`, escalate never downgrade, `effort` settable only on the Workflow
+  `agent()` path. Deleted at `8899d48` ("would not fit twice under the 150-line
+  ceiling") and replaced by a pointer to `orchestration:verification-panels` §
+  Panel width. **That pointer never resolved**: the named section owns panel width
+  N and contains no mention of `haiku`, `auto` or downgrading. Meanwhile the body
+  at `:43` orders "substitute `<model>` with the RESOLVED tier, never the word
+  `auto`" — unexecutable from this file. The hook carries the rule but exits early
+  on slash prompts, and orchestration is not a declared craft-layer dependency, so
+  on the documented `/craft-layer:craft ultra` path the rule reached the model from
+  nowhere at all.
+- **`scroll-orchestration` regains the `## Reveal with fallback` heading**, orphaned
+  at `3c8e6d7`; its paragraph had been sitting under `## Choose the engine` behind a
+  stray double blank, making a shipping requirement read as a caveat about CSS
+  scroll-driven animation.
+- **`creative-direction` no longer hard-codes a line number.** The router rule said
+  "within 150 lines" and had already been edited once to track the gate; it now
+  names the constraint by kind, so it stops going stale every time the cap moves.
+
+## 0.47.7
+
+### Changed
+- **Every hook entry now declares a `timeout`.** `ultra-craft.sh` 5s. Before this release the
+  plugin expressed no opinion about how long its own hook may hold a turn and
+  relied entirely on the host default; a hook that blocks — a slow network mount,
+  a large transcript — stalled the user with no per-hook ceiling. Sizes are per
+  script, not one house number: 5s for a jq-only classifier, 10s for git/find
+  work, 15s where the script shells out to the network, a package manager or
+  node. No hook logic changed.
+
 ## 0.47.6
 
 ### Added

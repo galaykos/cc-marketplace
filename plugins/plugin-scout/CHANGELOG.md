@@ -3,6 +3,26 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.11.2
+
+### Fixed
+- **The Install section renders as a list again.** Items 2, 3 and 4 began mid-line, so
+  markdown folded the whole four-step install procedure into item 1 and it read as one
+  run-on paragraph. The jam first appears at `879a4f3`, at a body of exactly 150 lines
+  — lines for a new Detection paragraph were clawed back by unwrapping the list. Same
+  failure `24879ad` had already fixed in vite, which survived only because vite had two
+  lines of slack and this had none.
+
+## 0.11.1
+
+### Changed
+- **Regenerated `catalog.md`** after three marketplace descriptions were shortened
+  (comment-discipline, quality-suite, quality-principles-suite). The catalog is a
+  chassis-generated view of every plugin's manifest description, so a description
+  edit anywhere in the marketplace drifts this file until `scripts/generate.sh
+  --write` runs. No behaviour change; the rows the scout ranks are unchanged, only
+  their wording.
+
 ## 0.11.0
 
 ### Changed

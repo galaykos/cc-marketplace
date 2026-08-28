@@ -2,6 +2,42 @@
 
 All notable changes to the comment-discipline plugin.
 
+## 0.6.6
+
+### Added
+- **"What is enforced, and what is advice" — the skill now names its own teeth.**
+  It shipped a `PreToolUse` **deny** and never mentioned it: zero occurrences of
+  `hook`, `deny`, `PreToolUse` or `density` in the body. Two of the seven kill-cases
+  (restatement of the next line, commented-out code) are gates; the other five are
+  warnings; the skill presented all seven at one standing. The accurate description
+  existed only in README.md, which the model never loads.
+- **The "deleting comments to hit a ratio" anti-pattern is reconciled with
+  `hooks/density.sh`**, which measures exactly a ratio. Measuring one to find a file
+  worth reading is not acting on the number instead of the comments — the hook's own
+  header said so and the skill did not, so a model that loaded this skill and then
+  got a density warning had been told the warning was the anti-pattern.
+
+## 0.6.5
+
+### Changed
+- **Manifest description cut from 1,086 to 674 characters.** It was the longest in
+  the marketplace and the only one over `validate.sh`'s 700-char clarity guideline
+  by more than 300. The description is the marketplace listing line — what a user
+  reads before installing — and the guideline is about clarity, not token cost:
+  `context-budget.sh` meters FRONTMATTER descriptions on skills, commands and
+  agents, and does not count this one, so this release saves no measured context.
+  The detail it carried — the six noise categories, the two hook lanes, the
+  terminal-prose hook — was already in this plugin's README, so nothing was lost,
+  only de-duplicated. Behaviour unchanged: no skill, hook or command was touched.
+
+- **Every hook entry now declares a `timeout`.** `density.sh` 10s, `scan.sh` 15s, `verbosity.sh` 5s, `scan.sh` 15s. Before this release the
+  plugin expressed no opinion about how long its own hook may hold a turn and
+  relied entirely on the host default; a hook that blocks — a slow network mount,
+  a large transcript — stalled the user with no per-hook ceiling. Sizes are per
+  script, not one house number: 5s for a jq-only classifier, 10s for git/find
+  work, 15s where the script shells out to the network, a package manager or
+  node. No hook logic changed.
+
 ## 0.6.4
 
 ### Added

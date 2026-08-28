@@ -3,6 +3,13 @@
 An `/advisor`-style "fresh take" for key moments: an independent, stronger-model
 second opinion you can pull into a session exactly when it matters.
 
+## Install
+
+```bash
+/plugin marketplace add galaykos/cc-marketplace
+/plugin install fresh-take@cc-plugins-marketplace
+```
+
 ## The two moments
 
 - **Stuck debugging** — the same fix has failed repeatedly and the session is

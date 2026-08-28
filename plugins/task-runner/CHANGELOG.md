@@ -2,6 +2,28 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.29.7
+
+### Fixed
+- **The run-start tier announcement is reachable again.** It is unconditional — every
+  run announces its worker tier, boosted or not — but it had been displaced into
+  `references/boost-execution.md`, whose own header reads "Read this when `00-INDEX.md`
+  carries an `Ultra: true` or `Goal: true` marker. **On a standard run none of it
+  applies.**" A rule for standard runs sat inside the one file that declares itself
+  inapplicable to them, so a plain `/task-runner:run` had no reachable instruction to
+  announce its tier while all four taskmaster commands carry their own.
+
+## 0.29.6
+
+### Changed
+- **Every hook entry now declares a `timeout`.** `drift.sh` 5s, `rv-observe.sh` 5s, `scope.sh` 5s, `rv-consent.sh` 10s, `completion-gate.sh` 15s. Before this release the
+  plugin expressed no opinion about how long its own hook may hold a turn and
+  relied entirely on the host default; a hook that blocks — a slow network mount,
+  a large transcript — stalled the user with no per-hook ceiling. Sizes are per
+  script, not one house number: 5s for a jq-only classifier, 10s for git/find
+  work, 15s where the script shells out to the network, a package manager or
+  node. No hook logic changed.
+
 ## 0.29.5
 
 ### Fixed

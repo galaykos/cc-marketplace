@@ -30,7 +30,7 @@
   case "$rel" in
     plugins/*/skills/*/SKILL.md)
       v=$(pc_skill_budget "$abs" 2>/dev/null) || \
-        warns="SKILL body over budget: $(printf '%s' "$v" | awk '{print $3" "$4}') ($rel) — 150 lines / 10,000 bytes / 300 chars per line"
+        warns="SKILL body over budget: $(printf '%s' "$v" | awk '{print $3" "$4}') ($rel) — 200 lines / 14,000 bytes / 300 chars per line"
       ;;
   esac
   case "$rel" in
