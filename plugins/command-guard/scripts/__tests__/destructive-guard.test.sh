@@ -214,6 +214,34 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 1c. OS TEMP DIRECTORY — scratch by definition, so deleting a path inside it is
+# not a loss. The PAIRS are what matter here, not the singles: a path under the
+# root must be silent while the root itself stays denied, or "inside /tmp"
+# becomes just another way to spell /tmp.
+# ---------------------------------------------------------------------------
+printf '== temp directory\n'
+expect allow 'rm -rf /tmp/pintcheck && echo cleaned'    # the false positive this exists for
+expect allow 'rm -rf /tmp/build-1/*'                    # a glob INSIDE the scratch dir
+expect allow 'rm -rf /private/tmp/x'                    # macOS spelling of the same dir
+expect allow 'rm -rf /var/tmp/scratch'
+expect allow 'rm -rf /var/folders/k1/abc123xyz/T/foo'   # macOS per-user TMPDIR
+expect deny  'rm -rf /tmp'                              # the root: other processes' state
+expect deny  'rm -rf /tmp/'
+expect deny  'rm -rf /tmp/*'                            # the root, spelled as a glob
+expect deny  'rm -rf /private/tmp'
+expect deny  'rm -rf /var/tmp'
+expect ask   'rm -rf /tmp/../etc'                       # .. walks back out of the root
+expect ask   'rm -rf /var/folders/k1/abc123xyz/T'       # the per-user root, not a path in it
+
+# $TMPDIR is resolved from the hook's OWN environment and only from there: unset
+# means `rm -rf $TMPDIR/build` is `rm -rf /build`, which must not go silent.
+tier_tmpdir() { ( export TMPDIR="$1"; "$BASH_BIN" "$GUARD" --check "$2" >/dev/null 2>&1; case $? in 0) echo allow ;; 1) echo ask ;; 2) echo deny ;; *) echo error ;; esac ); }
+t=$(tier_tmpdir /var/folders/k1/abc123xyz/T/ 'rm -rf $TMPDIR/build')
+[ "$t" = allow ] && ok || bad "want allow, got $t (TMPDIR set to a temp root)" 'rm -rf $TMPDIR/build'
+env -u TMPDIR "$BASH_BIN" "$GUARD" --check 'rm -rf $TMPDIR/build' >/dev/null 2>&1
+[ $? -eq 1 ] && ok || bad "want ask, got a different tier (TMPDIR unset)" 'rm -rf $TMPDIR/build'
+
+# ---------------------------------------------------------------------------
 # 2. EVASION — same command, different clothes. Each must stay deny.
 # ---------------------------------------------------------------------------
 printf '== evasion\n'

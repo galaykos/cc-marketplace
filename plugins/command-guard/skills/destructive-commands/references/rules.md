@@ -31,8 +31,10 @@ so the guard does not try; the user runs it or it does not run.
 Families: framework schema resets (Laravel, Rails, Django, Prisma, Sequelize,
 TypeORM, Knex, Alembic, Doctrine, Flyway, Liquibase, Supabase, WP-CLI) ·
 executed `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, `dropdb`, `FLUSHALL`,
-`dropDatabase()`, `deleteMany({})` · `rm -rf` on `/`, `~`, `$HOME`, `.`, or a
-top-level system directory · `rm` of `.env` · `git clean -fdx`, `push --force`,
+`dropDatabase()`, `deleteMany({})` · `rm -rf` on `/`, `~`, `$HOME`, `.`, a
+top-level system directory, or a temp ROOT (`/tmp`, `/private/tmp`, `/var/tmp`,
+and their `/*` spellings — those hold every other process's scratch state, not
+just this session's) · `rm` of `.env` · `git clean -fdx`, `push --force`,
 `push --delete`, `filter-branch`, `reflog expire`, `gc --prune=now`,
 `update-ref -d` · `docker compose down -v`, `docker volume rm/prune`,
 `system prune -a|--volumes` · `kubectl delete namespace|pvc|statefulset` ·
@@ -57,6 +59,15 @@ from a variable · `kubectl delete <pod>`, `helm uninstall`, `terraform apply
 `bootstrap/cache`). Prompting on those trains the user to click through prompts,
 which costs more than it saves.
 
+Also `rm -rf` on a path **inside** the OS temp directory — under `/tmp`,
+`/private/tmp`, `/var/tmp`, macOS's `/var/folders/<ab>/<hash>/T/`, or a resolved
+`$TMPDIR`/`$TMP`. The system clears that directory on boot and every `mktemp -d`
+on the machine lands there, so a scratch dir under it is regenerable by the same
+argument `node_modules` is. **Inside** is the whole rule: the roots themselves
+stay on the deny tier above, a `..` anywhere in the path drops it back to `ask`
+because the prefix then stops proving containment, and `/tmp/*` is read as the
+root rather than as a path in it.
+
 SQL text rules only fire when something in the command speaks SQL (a client
 binary, an ORM CLI, `tinker`). Otherwise `git commit -m "remove the drop table
 step"` reads as executed SQL.
@@ -80,7 +91,14 @@ shapes. It cannot see:
 - **which database a connection points at** — `DROP TABLE` through an MCP SQL
   tool is gated the same whether the session is on localhost or production.
 
-Two limits are deliberate rather than accidental. `rm -rf` on a relative path is
+Three limits are deliberate rather than accidental. `$TMPDIR` is read from the
+**hook's own environment**, so `rm -rf $TMPDIR/build` is silent when that
+variable is set there and asks when it is not — unset, that command is
+`rm -rf /build`, which is no temp path at all. The braced spelling
+`${TMPDIR}/build` always asks: the segment splitter cuts on `{` and `}` before
+the token is ever assembled, and loosening it to read braces would weaken a
+splitter whose job is `{ cmd; }` groups and the fork bomb. Asking is the
+fail-closed side of that trade. `rm -rf` on a relative path is
 judged by asking git whether the path is restorable, so its verdict depends on
 **working-tree state, not just the string** — the same command can be silent in
 a clean repo and ask in a dirty one, and it always asks when the command moves
