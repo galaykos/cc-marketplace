@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.5.0
+
+### Changed
+- **`rm -rf` on a path inside the OS temp directory no longer asks.** Reported
+  case: `rm -rf /tmp/pintcheck && echo cleaned` drew a permission prompt. Every
+  absolute path was classified "outside the project" and sent to the ask tier,
+  so the guard interrupted on the one directory the operating system itself
+  clears on boot and every `mktemp -d` on the machine writes into. Recognised
+  roots: `/tmp`, `/private/tmp`, `/var/tmp` (and their `/private` prefixes),
+  macOS's `/var/folders/<ab>/<hash>/<T|C>/`, and `$TMPDIR`/`$TMP` resolved from
+  the hook's own environment.
+
+  Three boundaries are deliberate, and each is a paired assertion in the harness
+  so that loosening one shows up as a failing test rather than as a wider
+  exemption:
+  - **The roots stay denied.** `rm -rf /tmp`, `/tmp/`, `/tmp/*`, `/private/tmp`
+    and `/var/tmp` are hard stops — emptying the shared temp directory destroys
+    other processes' state, not just this session's. `/private/tmp` and
+    `/var/tmp` are new denies; they are multi-component spellings of the same
+    directories that the single-component system-directory rule never reached.
+  - **`..` disqualifies the path.** `/tmp/../etc` asks, because a prefix stops
+    proving containment once the path can walk back out of it.
+  - **An unresolvable variable asks.** `$TMPDIR/build` is silent when `TMPDIR`
+    is set in the hook's environment and asks when it is not, since unset makes
+    that command `rm -rf /build`. The braced `${TMPDIR}/build` always asks: the
+    segment splitter cuts on `{`/`}` before the token forms, and it is not worth
+    weakening a splitter that exists for `{ cmd; }` groups and the fork bomb.
+
+  No other tier moved: the rule table, the recoverability check for relative
+  paths, and the evasion and fail-open behaviour are untouched.
+
 ## 0.4.1
 
 ### Changed

@@ -36,7 +36,7 @@
 # tier, including an ask that deny-only would suppress:
 #   destructive-guard.sh --check '<command>'   exit 0 allow | 1 ask | 2 deny
 
-GUARD_VERSION=0.4.0
+GUARD_VERSION=0.5.0
 
 # ---------------------------------------------------------------------------
 # Normalisation. Every rule matches against a canonical form, because the raw
@@ -237,6 +237,59 @@ set_verdict() { # tier what alt match
 # and prompting on it would train the user to click through the prompt.
 ARTIFACT_RE='^(\./)?(node_modules|vendor|dist|build|out|target|coverage|\.next|\.nuxt|\.turbo|\.cache|\.parcel-cache|__pycache__|\.pytest_cache|\.venv|venv|tmp|temp|\.tmp|storage/framework/(cache|views|sessions)|bootstrap/cache)/?\*?$'
 
+# The OS temp directory. A path INSIDE it is scratch by definition — the system
+# clears it on boot and every `mktemp -d` on the machine lands there — so
+# deleting one is ordinary work, the same call ARTIFACT_RE already makes for
+# node_modules. Before this, every absolute path was "outside the project" and
+# asked; a prompt the user always clicks through is a prompt they stop reading,
+# which costs the prompts that matter.
+#
+# INSIDE is the whole rule. The roots themselves stay denied, because emptying
+# /tmp destroys state belonging to every other process on the machine and not
+# just this session's. So a token must name a root PLUS a component under it.
+#
+# Prints what sits under the temp root; prints nothing when the path is not one.
+temp_remainder() { # lowercased token
+  local p="$1"
+  case "$p" in /private/*) p="${p#/private}" ;; esac   # macOS: /private/tmp IS /tmp
+  case "$p" in
+    /tmp/*)     printf '%s' "${p#/tmp/}" ;;
+    /var/tmp/*) printf '%s' "${p#/var/tmp/}" ;;
+    # macOS per-user temp: /var/folders/<ab>/<hash>/<T|C>/… — the three
+    # components under /var/folders ARE the root, so anything shallower than
+    # that is the root itself or a sibling, not a path inside it.
+    /var/folders/*)
+      printf '%s' "$p" | awk -F/ '{ if (NF >= 7 && $7 != "") { s = $7; for (i = 8; i <= NF; i++) s = s "/" $i; print s } }' ;;
+  esac
+}
+
+is_temp_path() { # lowercased token -> 0 scratch, 1 not
+  local p="$1" root="" rest="" first
+  # `..` can walk back out of the root, so the prefix stops proving containment.
+  case "$p" in *..*) return 1 ;; esac
+  # $TMPDIR / $TMP are read from the HOOK's own environment — the environment
+  # the Bash tool's shell inherits, same process tree — so this is the real
+  # value, not a guess. Unset means unresolvable and returns 1, dropping the
+  # token to the variable-collapse ask below: `rm -rf $TMPDIR/build` with
+  # TMPDIR unset is `rm -rf /build`, which is not a temp path at all.
+  case "$p" in
+    '$tmpdir/'*|'${tmpdir}/'*) root="${TMPDIR:-}"; rest="${p#*/}" ;;
+    '$tmp/'*|'${tmp}/'*)       root="${TMP:-}";    rest="${p#*/}" ;;
+  esac
+  if [ -n "$rest" ]; then
+    [ -n "$root" ] || return 1
+    p=$(printf '%s/%s' "${root%/}" "$rest" | tr '[:upper:]' '[:lower:]')
+  fi
+  case "$p" in *'$'*) return 1 ;; esac   # any other variable: expansion unknown
+  rest=$(temp_remainder "$p")
+  [ -n "$rest" ] || return 1
+  # A glob may sit inside the scratch directory, but it must not BE the first
+  # component: `/tmp/*` is the root emptied under a different spelling.
+  first="${rest%%/*}"
+  case "$first" in ''|'*'|'?'|'.'|'..') return 1 ;; esac
+  return 0
+}
+
 # Can git hand this path back? Either it is not there (deleting it is a no-op)
 # or every byte under it is committed and `git restore` returns it. Deleting
 # such a path is not a loss, and prompting on it is how a user learns to click
@@ -295,6 +348,16 @@ check_rm() { # normalised segment (lowercased, padded)
         "work inside the project directory" "$seg"
       return 0
     fi
+    # The temp roots in their multi-component spellings. `/tmp` is already a deny
+    # by the rule above; these name the same directories and must agree with it,
+    # or the exemption below becomes the way to spell the root.
+    case "$tok" in
+      /private/tmp|/private/tmp/|/private/tmp/\*|/var/tmp|/var/tmp/|/var/tmp/\*|/private/var/tmp|/private/var/tmp/|/private/var/tmp/\*)
+        set_verdict deny "recursively deletes ${tok}, the machine's shared temp directory, which holds other processes' state" \
+          "delete the specific scratch directory this task created" "$seg"
+        return 0 ;;
+    esac
+    is_temp_path "$tok" && continue   # inside the OS temp dir: scratch, not a loss
     # unexpanded variable: if it is unset or empty, the path collapses to / or to cwd
     case "$tok" in
       *'$'*)

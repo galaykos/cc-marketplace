@@ -18,7 +18,15 @@ that classifies the command string itself.
 |---|---|---|
 | `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env`, `git clean -fdx`, `git push --force`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gcloud … delete` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
 | `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir`, `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh` | the user gets a permission prompt naming what is lost |
-| `allow` | everything else, including `rm -rf node_modules`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
+| `allow` | everything else, including `rm -rf node_modules`, `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
+
+`rm -rf` **inside the OS temp directory** is silent — under `/tmp`,
+`/private/tmp`, `/var/tmp`, macOS's `/var/folders/…/T/`, or a `$TMPDIR` the hook
+can resolve from its own environment. The system clears that directory on boot,
+so a scratch dir under it is regenerable in the same sense `node_modules` is.
+The roots themselves stay on the deny tier: `rm -rf /tmp` empties every other
+process's scratch state, not just this session's. A `..` in the path, or the
+braced `${TMPDIR}` spelling, falls back to `ask`.
 
 `rm -rf` on a relative path is decided by **recoverability, not spelling**: if the
 path is absent, or tracked by git with nothing untracked, modified or ignored
@@ -128,7 +136,7 @@ plugin's `authoring-skills` skill).
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit` and on shell redirects/`sed -i` |
-| the classification rules themselves | **gate**, tested | 173 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
+| the classification rules themselves | **gate**, tested | 187 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
 | `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |
 | coverage of destructive shapes | **unenforceable** | the rule table matches known shapes; a command inside a script, a Makefile target, an npm script, or application code is invisible to it |
