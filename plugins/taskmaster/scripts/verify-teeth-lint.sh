@@ -24,7 +24,13 @@
 #                     nothing. `tsc -b` is the check that runs. Printed as a
 #                     non-blocking NOTE (below), never as a block: this lint
 #                     reads line text and cannot know which config a build uses.
-#   bare-suite-pass : a test runner (npm test / pytest / jest / go test ...) with
+#   migration-run-only : a migration command (artisan migrate / alembic upgrade /
+#                     db:migrate / flyway / goose / prisma migrate deploy) whose whole
+#                     check is that it ran. Proves the DDL parsed, not that the schema
+#                     is right. Blocked separately from bare-suite-pass because a
+#                     migration runner is not a test runner.
+#   bare-suite-pass : a test runner (npm test / pytest / jest / go test / pest /
+#                     phpunit / php artisan test / composer test ...) with
 #                     NO named test/assertion token (no -k/-t/named file) AND no
 #                     trailing `asserts <x>` / `including <x>` clause
 # Anything else (a line naming a specific new test / assertion / observable)
@@ -140,11 +146,21 @@ if has 'python[0-9]?[[:space:]]+-c' && has '(^|[^._a-z])import[[:space:]]' && ! 
 fi
 
 # 5) bare-suite-pass — a test runner with no named test and no assertion clause.
-runner_re='npm[[:space:]]+(run[[:space:]]+)?test|yarn[[:space:]]+test|pnpm[[:space:]]+(run[[:space:]]+)?test|(^|[^a-z])pytest|(^|[^a-z])jest|(^|[^a-z])vitest|(^|[^a-z])mocha|go[[:space:]]+test|rspec|cargo[[:space:]]+test|mvn[[:space:]]+test|gradle[[:space:]]+test'
-named_re='-k[[:space:]]|-t[[:space:]]|-g[[:space:]]|--grep|-run[[:space:]]|-run=|::[a-z_]|_test\.|\.test\.|\.spec\.|test_[a-z]|-e[[:space:]]+["'\'']?[a-z]'
+runner_re='npm[[:space:]]+(run[[:space:]]+)?test|yarn[[:space:]]+test|pnpm[[:space:]]+(run[[:space:]]+)?test|(^|[^a-z])pytest|(^|[^a-z])jest|(^|[^a-z])vitest|(^|[^a-z])mocha|go[[:space:]]+test|rspec|cargo[[:space:]]+test|mvn[[:space:]]+test|gradle[[:space:]]+test|php[[:space:]]+artisan[[:space:]]+test|(^|[^a-z])pest|(^|[^a-z])phpunit|composer[[:space:]]+test'
+named_re='-k[[:space:]]|-t[[:space:]]|-g[[:space:]]|--grep|--filter[[:space:]=]|-run[[:space:]]|-run=|::[a-z_]|_test\.|\.test\.|\.spec\.|test_[a-z]|-e[[:space:]]+["'\'']?[a-z]'
 clause_re='assert|including|expects?[[:space:]]|verif(y|ies|ying)|observ'
 if has "$runner_re" && ! has "$named_re" && ! has "$clause_re"; then
   weak "bare-suite-pass: test runner with no named test (-k/-t/file) or asserts/including clause"
+fi
+
+# 6) migration-run-only — a migration command whose whole check is that it ran.
+# Distinct from bare-suite-pass: a migration runner is not a test runner, so the
+# suite-pass reason would misname it. "The migration applied" proves the DDL parsed
+# and nothing about whether the resulting schema is correct; the honest verify is a
+# round-trip assertion against the migrated database.
+migrate_re='artisan[[:space:]]+migrate|alembic[[:space:]]+upgrade|db:migrate|migrate[[:space:]]+up|goose[[:space:]]+up|flyway[[:space:]]+migrate|knex[[:space:]]+migrate|prisma[[:space:]]+migrate[[:space:]]+deploy'
+if has "$migrate_re" && ! has "$named_re" && ! has "$clause_re"; then
+  weak "migration-run-only: migration command with no assertion about the resulting schema or data"
 fi
 
 # No known-weak form matched: the line names something specific enough to pass.

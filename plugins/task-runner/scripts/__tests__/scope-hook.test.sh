@@ -69,6 +69,21 @@ run_case "in-scope exact match -> silent" \
 run_case "in-scope dir-prefix match -> silent" \
   "$(stdin_for "$CWD/lib/deep/nested.js")" 0 silent
 
+# 3b) PATH BOUNDARY: an allow entry must not admit a sibling that merely shares
+#     its text prefix. Before the boundary fix a raw startswith allowed all three.
+printf '{"allow":["src/util.ts","app/Models"],"task":"card 07"}' > "$SCOPE"
+run_case "sibling extension not admitted (util.ts vs util.tsx)" \
+  "$(stdin_for "$CWD/src/util.tsx")" 0 envelope "src/util.tsx"
+run_case "prefix sibling dir not admitted (Models vs ModelsBackup)" \
+  "$(stdin_for "$CWD/app/ModelsBackup/X.php")" 0 envelope "app/ModelsBackup/X.php"
+run_case "exact file entry still allowed" \
+  "$(stdin_for "$CWD/src/util.ts")" 0 silent
+run_case "dir entry without trailing slash still allows its children" \
+  "$(stdin_for "$CWD/app/Models/Order.php")" 0 silent
+
+# restore the fixture the later cases expect
+printf '{"allow":["src/allowed.js","lib/"],"task":"card 07"}' > "$SCOPE"
+
 # 4) editing scope.json itself is never in scope but always ignored
 run_case "edit to scope.json itself -> silent" \
   "$(stdin_for "$CWD/.claude/task-runner/scope.json")" 0 silent
