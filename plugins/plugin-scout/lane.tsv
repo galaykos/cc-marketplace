@@ -1,0 +1,13 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# The command is a dispatcher — commands/suggest.md invokes this skill and every semantic
+# lives in the skill — so both rows claim ONE territory and the command yields to the skill
+# rather than inventing a second noun for the same job.
+# The skill's two yields are deferences it already ships: it takes stack-scan's inventory as
+# version truth, and routes a stack this marketplace does not cover to vercel-skills-scout
+# instead of padding tier 3.
+plugin-scout:suggest	command	understand	marketplace-plugin-suggestion	invoked as /plugin-scout:suggest	plugin-scout:plugin-scout
+plugin-scout:plugin-scout	skill	understand	marketplace-plugin-suggestion	the user asks which marketplace plugins fit this repo, or a session starts in a project with no cc-plugins-marketplace plugin installed	stack-scan:installed-versions,vercel-skills-scout:vercel-skills-scout

@@ -1621,3 +1621,118 @@ pc_bundle_readme_members() {
   done
   return $bad
 }
+
+# pc_scout_names <repo_root>
+#
+# Every plugin name in the plugin-scout skill's three HAND-WRITTEN suggestion
+# lists — the tier-1 signal table in SKILL.md, the Suggest column of
+# references/signals.md, the Plugin column of references/any-core.md — must be a
+# live entry in .claude-plugin/marketplace.json.
+#
+# WHY THIS EXISTS. `cfef9c1` deleted nine plugins. signals.md kept the row
+#   | `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | `i18n` | |
+# and the SKILL counts a signals.md row as a tier-1 signal that JOINS THE `--yes`
+# AUTO-INSTALL SET. So `/plugin-scout --yes` in any repo with a `lang/` directory
+# — every Laravel app — ran `claude plugin install i18n@cc-plugins-marketplace`
+# against a plugin that no longer exists. pc_removed_refs returns 0 on that file
+# and its own header predicts the miss: plugin names match only in REFERENCE
+# SHAPES (`**name**`, "`name` plugin", `plugins/name`, `name@`, `→ name`,
+# `/name:`), and a bare backticked table cell is none of them. Extending that
+# denylist would not fix the class either — it is a list someone must remember to
+# feed on the same commit as a removal. This check derives the live set from the
+# manifest, so a removal it has never heard of still fails it.
+#
+# THE COLUMN, NOT THE LINE. Only the `Plugin` / `Suggest` cell is read. The
+# signal-pattern column legitimately holds `` `locales/` `` and `` `i18n` dep `` —
+# globs and dependency names, not plugin names, and no line-scoped matcher can
+# tell those from the target cell. A cell with no alphanumerics (`—`, `-`, empty)
+# is the deliberate "no plugin covers this" idiom signals.md uses for its
+# terraform row, and PASSES. A cell containing backticks yields its backticked
+# tokens ONLY, which is how `also `vercel-skills-scout`` resolves to one name
+# rather than two without a stopword list.
+#
+# LIMITATION (honest scope), four residuals:
+#   1. It validates the NAME COLUMN and nothing else. Whether the signal pattern
+#      is correct, and whether that plugin is the right SUGGESTION for it, are
+#      both invisible here: `| Gemfile | laravel |` passes clean.
+#   2. Liveness, not fitness. A name that exists but is wrong — a bundle in the
+#      tier-1 table, a plugin whose capability moved elsewhere — passes.
+#   3. Tables only, and only tables whose header carries a `Plugin`/`Suggest`
+#      cell. A plugin named in prose (any-core.md's "Deliberate exclusions"
+#      bullets, the SKILL's Boundaries section) is out of scope. Conversely it
+#      reads EVERY such table in those files, not only the three lists — an
+#      illustrative one (SKILL.md carried a sample report table until 2026-08-28)
+#      is covered too, so a placeholder row there needs the blessing. Fenced
+#      blocks are not tracked either, so a `|`-shaped table INSIDE one would be
+#      read as a real table; none exists today, and the blessing is the recourse.
+#   4. plugin-scout-specific by construction. vercel-skills-scout ships its own
+#      hand-written lists and nothing here reads them — those name third-party
+#      skills, for which marketplace.json is not ground truth.
+#
+# Bless a line with `scout-name-ok: <why>`, written as an HTML comment
+# (`<!-- scout-name-ok: … -->`) so it does not render inside the table.
+#
+# Prints `scout-name <file>:<line> <name>` per offender, or
+# `scout-name-unparsed <file>:<line> <cell>` for a bare cell that is not
+# name-shaped (backtick the name, or bless the line); returns 1 if any.
+pc_scout_names() {
+  local root="${1:-.}" bad=0 mp live skill f ln kind val
+  mp="$root/.claude-plugin/marketplace.json"
+  [ -f "$mp" ] || return 0
+  live=$(jq -r '.plugins[].name' "$mp" 2>/dev/null) || return 0
+  [ -n "$live" ] || return 0
+  skill="$root/plugins/plugin-scout/skills/plugin-scout"
+  for f in "$skill/SKILL.md" "$skill/references/signals.md" "$skill/references/any-core.md"; do
+    [ -f "$f" ] || continue
+    while IFS=$'\t' read -r ln kind val; do
+      [ -n "$ln" ] || continue
+      if [ "$kind" = name ]; then
+        printf '%s\n' "$live" | grep -qxF "$val" && continue
+        printf 'scout-name %s:%s %s\n' "${f#$root/}" "$ln" "$val"
+      else
+        printf 'scout-name-unparsed %s:%s %s\n' "${f#$root/}" "$ln" "$val"
+      fi
+      bad=1
+    done <<EOF
+$(awk -F'|' '
+function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+function emit(tok, cellv) {
+  if (tok ~ /^[a-z0-9][a-z0-9-]*$/) print NR "\tname\t" tok
+  else print NR "\tunparsed\t" cellv
+}
+{
+  # Leaving the table resets the column: each table resolves its own header.
+  if ($0 !~ /^[ \t]*\|/) { col = 0; next }
+  if ($0 ~ /scout-name-ok:/) next
+  # A row normally ends with `|`, making the last field empty; tolerate one that
+  # does not rather than dropping its final cell.
+  last = (trim($NF) == "") ? NF - 1 : NF
+  if (col == 0) {
+    for (i = 2; i <= last; i++) {
+      c = tolower(trim($i))
+      if (c == "plugin" || c == "suggest") { col = i; break }
+    }
+    next
+  }
+  isdelim = 1
+  for (i = 2; i <= last; i++) if (trim($i) !~ /^:?-+:?$/) { isdelim = 0; break }
+  if (isdelim) next
+  if (col > last) next
+  cell = trim($col)
+  # No alphanumerics at all is the "no plugin covers this" idiom, in whichever
+  # dash the author reached for. Byte-matching em/en dashes would miss the next one.
+  if (cell !~ /[A-Za-z0-9]/) next
+  if (index(cell, "`") > 0) {
+    s = cell
+    while (match(s, /`[^`]*`/)) {
+      tok = trim(substr(s, RSTART + 1, RLENGTH - 2))
+      s = substr(s, RSTART + RLENGTH)
+      if (tok != "") emit(tok, cell)
+    }
+  } else emit(cell, cell)
+}
+' "$f")
+EOF
+  done
+  return $bad
+}

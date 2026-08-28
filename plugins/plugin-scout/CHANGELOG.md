@@ -1,7 +1,108 @@
 # Changelog — plugin-scout
 
-Consumer-facing changes only. A version bump with nothing here is a number; this
-file is what makes an upgrade readable. Newest first.
+Consumer-facing changes only, with one structural exception:
+`references/catalog.md` is generated from every other plugin's description, so a
+description edit anywhere in the marketplace forces a version bump here and an
+entry below. Those entries say "regenerated catalog" and carry no behaviour
+change — skip them on an upgrade. A version bump with nothing here is a number;
+this file is what makes an upgrade readable. Newest first.
+
+## 0.12.0
+
+### Fixed
+- **The scout no longer suggests installing `i18n`, which does not exist.** That
+  plugin was removed from the marketplace on 2026-08-26, but a second-tier signal
+  row still mapped `lang/` and `locales/` to it — and since those rows join the
+  `--yes` auto-install set, **every Laravel app ships `lang/`**, so `--yes` ran an
+  install that could only fail. The row now says no plugin covers i18n and routes
+  to vercel-skills-scout. A new `pc_scout_names` build gate fails any plugin name
+  in this skill's three hand-written lists that is not a live marketplace entry;
+  the existing removed-artifact check could not see this one, because a bare
+  table cell matches none of its reference shapes.
+- **The installed column and the picker filter were reading the wrong machine.**
+  `claude plugin list` reports every plugin installed in *any* project on the
+  machine. A plugin you installed in an unrelated repo was therefore marked
+  installed here and silently dropped from the picker — never offered, never
+  installed. Detection now filters `--json` output by project path and scope, and
+  unions it with the settings files, which also makes `--persist` idempotent
+  (a project-scope entry the CLI wrote is not always reported as an install, so
+  re-runs used to re-offer and re-install the same set).
+- **`--persist` no longer hand-writes `enabledPlugins`.** The CLI writes those
+  entries itself at `--scope project`; the skill now verifies them and reports a
+  missing one instead of authoring it. Authoring the key after a failed install
+  produced a committed repo whose settings enable a plugin nobody has.
+- **The uninstall note now names the scope.** `claude plugin uninstall` defaults
+  to `--scope user`, so the bare command against a `--persist` install fails with
+  "not installed at scope user" — the described failure was never reached.
+- Headless + `--yes` with the marketplace absent: SKILL.md said continue,
+  flags.md said stop. It stops — the marketplace-add trust decision is not
+  skippable. "Headless" is now defined once (AskUserQuestion unavailable; a
+  subagent is not headless) instead of being branched on six times undefined.
+- `--persist` + `--global` now aborts before Preflight, so the conflict is caught
+  before the marketplace-add prompt can fire rather than merely before installs.
+- Detection reads `.env.example`, not only `.env` — the latter is gitignored in
+  every Laravel and Next scaffold, so on this skill's headline case (a fresh
+  clone) the DSN half of the mariadb signal never fired.
+- Dependency signals are exact keys, not substrings: `next-auth` is no longer
+  read as `next`, `react-native-web` no longer as `react-native`.
+
+### Changed
+- **The picker is one call instead of five.** Offering all ~51 rows as explicit
+  checkboxes cost 5 AskUserQuestion calls and 20 blocking questions on every run —
+  including a Django repo being paged through `laravel` and `mariadb`. The default
+  is now one call: three questions of signal-backed and core rows, and a fourth
+  that is a door into the remainder (browse / print commands / just these / stop).
+  Every row still prints in the numbered inventory first and stays pickable by
+  number, name or range, or via `scripts/pick.sh`. **`--all` restores the old
+  exhaustive paging.**
+- **The report is grouped, not tabulated.** The 51-row five-column table carried a
+  constant in its evidence column for ~45 rows and a constant installed column;
+  it is now a header line plus per-tier blocks with tier 3 grouped by keyword.
+- **Overlap deprioritization now uses named pairs.** It compared catalog keywords,
+  and `review` alone appears on 26 of 63 rows — so once `code-review` was
+  installed (which `--yes` does on run one) 30 of 51 rows were flagged as
+  conflicts, including the signal-backed `laravel` and `nextjs` recommendations.
+  Tier-1 rows are never annotated as overlapping anything.
+- **stack-scan is a supplement, not a replacement.** The skill used to hand
+  detection over entirely when that plugin was installed; it probes nine
+  dependency names, never reads `.env`, and does not know `react-native`, so an
+  installed stack-scan strictly degraded detection. Its offer to fix red flags is
+  now explicitly declined — accepting it deleted a lockfile inside a step this
+  skill declares read-only.
+- **`packages` moved out of the any-project core** into a signal-earned row: its
+  own rubric is Composer/npm-specific, so a Python or Go repo was auto-installing
+  a plugin about two manifests it does not have.
+- **`command-guard` joined the any-project core.** Its destructive-command deny
+  hook is the pair to secret-scanning's secret block, and the old exclusion rule
+  ("member of always-on-suite") already contradicted itself by including
+  secret-scanning and git-workflow, which are also members.
+- The install summary now names the exit-code success criterion and prints the
+  `/reload-plugins` line — nothing installed during a run is active until then,
+  which nothing previously said.
+- Detection resolves the `[path]` argument and scans workspace members one level
+  deep. A Turborepo whose apps hold every framework used to report "no stack
+  signals found".
+
+### Added
+- **`--all` flag** — offers every eligible row as an explicit picker option
+  (the pre-0.12 default). Picker-only; no effect under `--yes`.
+- **Eleven new detection signals** in `references/signals.md`: `threejs`,
+  `ui-ux`, `registry-source`, `a11y`, `sql`, `security`, `packages`, plus
+  dependency evidence for `payments`. Detection covered 6 of 52 leaf plugins;
+  these are the cheap high-precision manifest signals the marketplace already
+  trusts elsewhere.
+- `lane.tsv` — the plugin declares its territory (`understand` phase,
+  `marketplace-plugin-suggestion`), yielding to stack-scan for version truth and
+  to vercel-skills-scout for stacks this marketplace does not cover.
+- `scripts/__tests__/pick.test.sh` — the TTY picker's parser had never been
+  tested. It lost its `PICKED:` line entirely on every abort path (fzf ESC, no
+  match, Ctrl-D), leaving the caller with a bare non-zero exit and no contract;
+  it leaked raw bash errors on `-2` and `2-`, silently no-opped on `3-1`, and
+  accepted plugin names only when `fzf` happened to be installed.
+- Standing sections on `SKILL.md` and `references/flags.md`, naming which of
+  their rules are gated and which are agent-graded. The files carrying the
+  absolute-sounding promises ("that floor is absolute", "never silent", "every
+  unrelated existing key is preserved") were the ones declaring no standing.
 
 ## 0.11.3
 

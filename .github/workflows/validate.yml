@@ -104,6 +104,8 @@ jobs:
         run: bash scripts/smoke/preview-guard-tests.sh
       - name: source-of-truth gate smoke tests
         run: bash scripts/smoke/source-of-truth-tests.sh
+      - name: scout-name gate smoke tests (a dead plugin name fails the build)
+        run: bash scripts/smoke/scout-names-tests.sh
       - name: doc staleness (warn-only)
         continue-on-error: true
         run: bash scripts/check-doc-staleness.sh
