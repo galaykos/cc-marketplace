@@ -65,6 +65,20 @@ run_case "require-only: require().toString()" 2 "require-only" --line 'node -e "
 run_case "strong: require().toBeTruthy() matcher" 0 ""        --line 'node -e "require(\"./x\").val.toBeTruthy()"'
 run_case "usage: no args"                 3 "usage"
 
+# --- PHP runners: bare forms blocked, --filter named forms pass ---
+run_case "weak: php artisan test bare"    2 "bare-suite-pass"    --line 'php artisan test'
+run_case "weak: pest bare"                2 "bare-suite-pass"    --line 'pest'
+run_case "weak: phpunit bare"             2 "bare-suite-pass"    --line 'phpunit'
+run_case "weak: composer test bare"       2 "bare-suite-pass"    --line 'composer test'
+run_case "strong: pest --filter="         0 ""                   --line 'pest --filter=RefundTest'
+run_case "strong: phpunit --filter space" 0 ""                   --line 'phpunit --filter OrderTest'
+
+# --- migration-run-only: the command ran proves the DDL parsed, not the schema ---
+run_case "weak: artisan migrate only"     2 "migration-run-only" --line 'php artisan migrate — exits 0'
+run_case "weak: alembic upgrade only"     2 "migration-run-only" --line 'alembic upgrade head'
+run_case "weak: rails db:migrate only"    2 "migration-run-only" --line 'rails db:migrate runs cleanly'
+run_case "strong: migrate + assertion"    0 ""                   --line 'php artisan migrate then assert orders.refund_id is NOT NULL'
+
 # --- --card extraction: weak and strong Verify lines from a markdown card ---
 tmp_weak=$(mktemp)
 tmp_strong=$(mktemp)

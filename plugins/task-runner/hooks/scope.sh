@@ -38,9 +38,13 @@ exec 3>&2
   # The scope.json is never itself in scope; ignore edits to it.
   case "$rel" in .claude/task-runner/scope.json) exit 0 ;; esac
 
-  # Allowed if the edited path equals or sits under any allow entry (prefix match).
+  # Allowed if the edited path equals an allow entry, or sits under it as a
+  # DIRECTORY. The boundary matters: a raw startswith made every entry a prefix of
+  # unrelated siblings — "src/util.ts" admitted "src/util.tsx", "app/Models"
+  # admitted "app/ModelsBackup/X.php" — so the lock leaked silently on the exact
+  # near-miss paths a drifting edit produces.
   allowed=$(jq -r --arg f "$rel" \
-    'if ((.allow // []) | any(. as $a | ($f | startswith($a)) or ($a == $f))) then "y" else "n" end' \
+    'if ((.allow // []) | any(. as $a | $a == $f or ($f | startswith(if ($a | endswith("/")) then $a else $a + "/" end)))) then "y" else "n" end' \
     "$scope" 2>/dev/null)
   [ "$allowed" = "n" ] || exit 0
 

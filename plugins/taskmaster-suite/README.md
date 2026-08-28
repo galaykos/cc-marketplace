@@ -38,6 +38,7 @@ auto-installed.
 - **performance** — hotspot and cache-correctness review
 - **claude-authoring** — scaffolds new skills, commands, agents, hooks, plugins
 - **code-review** — severity-sorted correctness and smell review of diffs
+- **comment-discipline** — keeps comment volume down at write time: routes every fact to the artifact that cannot lie about it, and denies restatement comments and commented-out code as they are typed
 - **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
 - **resilience** — failure-mode gap review: timeouts, retries, degradation, plus the merged error-handling and concurrency audits
 - **a11y** — WCAG 2.2 AA audits of UI code
@@ -72,6 +73,6 @@ hook-heavy and behavior-changing, install it deliberately;
 
 ## Pairs well with
 
-- **php-suite** — PHP/Laravel/Livewire/Inertia stack specifics the bundle leaves out
+- **php-suite** — PHP/Laravel/Inertia stack specifics the bundle leaves out
 - **frontend-suite** — React/Vue/TS framework specifics left out of this bundle; its sibling **craft-suite** carries the design-preview/shadcn-studio fidelity escalations
 - **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

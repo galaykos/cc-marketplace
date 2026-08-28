@@ -75,6 +75,12 @@ named SKILL.md before implementing — e.g. laravel-best-practices; or "none det
   manifests when stack-scan is absent). delegation-contracts § Skill priming
   resolves each named skill's installed SKILL.md and injects a Read-by-path into
   the implementer dispatch — a delegate cannot self-load skills.
+- On a card that CREATES a unit (new module, class, service, or boundary) rather
+  than editing one, also stamp `approaches:pattern-selection`. A card-scoped
+  executor picks a shape by default whenever it makes a new unit; stamping makes
+  that pick deliberate and reviewable instead of incidental. Do not stamp it on
+  edit-in-place cards — pattern-selection is a decision aid, not a checklist to
+  run over every card.
 
 ## Acceptance criteria rules
 

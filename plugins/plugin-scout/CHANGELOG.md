@@ -3,6 +3,13 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.11.3
+
+### Changed
+- Regenerated `catalog.md`: `taskmaster-suite` now reads "Meta-bundle (32 plugins)"
+  after `comment-discipline` joined it. Catalog text is generated from each
+  plugin's own description, so a scout suggestion quotes the live member count.
+
 ## 0.11.2
 
 ### Fixed

@@ -2,6 +2,18 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.30.0
+
+### Fixed
+- **The scope lock no longer admits siblings that merely share a text prefix.** The
+  allow-match was a raw `startswith`, so an entry was a prefix of arbitrarily many
+  unrelated paths: `src/util.ts` admitted `src/util.tsx`, `src/api` admitted
+  `src/apikeys.ts`, and a directory entry like `app/Models` admitted an entire
+  parallel tree at `app/ModelsBackup/`. The lock reported nothing in every one of
+  those cases — the near-miss paths a drifting edit actually produces. Matching is
+  now equality or a true directory boundary (`$a + "/"`), with four boundary cases
+  added to `scripts/__tests__/scope-hook.test.sh` (10 -> 14).
+
 ## 0.29.7
 
 ### Fixed
