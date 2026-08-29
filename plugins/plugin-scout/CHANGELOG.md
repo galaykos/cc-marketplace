@@ -7,6 +7,13 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.12.1
+
+### Changed
+- **Regenerated catalog**, no behaviour change — skip on upgrade. always-on-suite
+  0.2.0 rewrote its description (dropped command-guard, added terse), and that row
+  is one of the ones `references/catalog.md` carries.
+
 ## 0.12.0
 
 ### Fixed
