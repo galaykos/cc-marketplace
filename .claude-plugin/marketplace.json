@@ -277,7 +277,7 @@
     {
       "name": "always-on-suite",
       "source": "./plugins/always-on-suite",
-      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on in every repo. Two write-time guards (command-guard's destructive-command deny, secret-scanning's secret block), candor's honesty Stop gate, lean's output pricing, file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and plugin-scout to suggest the per-project plugins this bundle deliberately leaves out. The membership rule is prose, not script-checked. Uninstall cleanly with /always-on-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on in every repo. secret-scanning's write-time secret block, candor's honesty Stop gate, lean's output pricing, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and plugin-scout for the per-project plugins this bundle leaves out — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, not script-checked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
     },
     {
       "name": "skill-router",
