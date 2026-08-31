@@ -438,12 +438,22 @@ with a "~15,000-char absolute default binds first" claim that is simply false, o
 the strength of a live observation I had not reconciled against a formula I had
 not read. Reverted; the generator now emits the formula.
 
-**The 2026-08-26 observation does not fit and is left unresolved.** ~19,949 chars
-stripped in a session described as 1M-context should not happen against a
-30,000-char budget. Either that session was not on the 1M tier, or the count
-included agents (excluded here, and whether they share this budget is
-**unverified**), or the described window was wrong. Recorded as a discrepancy
-rather than explained away.
+**Agents are NOT in this budget — checked, no longer assumed.** The CLI carries no
+agent equivalent of `skillListingBudgetFraction` or `skillListingMaxDescChars`, and
+`agent_listing_delta` appears in a set of system-prompt SECTION names alongside
+`environment`, `model` and `session_context` — a separate surface with separate
+accounting. Excluding agents from the listing channel is correct. (What agents cost
+in their own section is still unmetered by anything here.)
+
+**The 2026-08-26 observation still does not fit, and the most likely explanation is
+that its own framing was wrong.** ~19,949 chars stripped in a session described as
+1M-context is impossible against a 30,000-char budget, and agents cannot account for
+it. But at 200k the budget is 6,000-8,000 chars, and 19,949 would be stripped
+heavily — exactly what was seen. The 1M tier is a selected mode, not a default, so
+the likeliest reading is that the session was not on it and the review's claim that
+"a 1M-context session did not save the listing" was an inference, not a measurement.
+Stated as the leading hypothesis; the session predates the local transcript window,
+so it cannot be checked here.
 
 **The lever nobody knew existed:** `skillListingBudgetFraction` is a settings key.
 Raising it to `0.02` doubles the listing budget for anyone willing to pay the
