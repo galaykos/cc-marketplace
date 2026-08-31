@@ -2,6 +2,7 @@
 # Turn cost: what a plugin's WORKFLOW costs, as opposed to what its bytes weigh.
 #
 #   turn-cost.sh [--project PATH] [--min-blocks N] [--since DAYS] [--json]
+#   turn-cost.sh --skills [--project PATH] [--since DAYS]
 #
 # --since filters RECORDS by their own timestamp, not files by modification time,
 # so a months-old session appended to yesterday contributes only its recent turns.
@@ -57,12 +58,14 @@
 # subagents (above); anything on another machine; sessions whose transcripts have
 # been deleted; and whether a turn was useful. It reports a per-plugin ratio only
 # once that plugin has --min-blocks turn blocks (default 10), because a $/block
-# figure at n=3 is noise wearing a table — the same failure retirement-queue.sh's
-# header warns about. Below the threshold it prints the raw count and withholds
+# figure at n=3 is noise wearing a table — the failure the retirement queue's
+# doctrine (now the --skills mode below) warns about. Below the threshold it prints the raw count and withholds
 # the ratio.
 #
-# WHY IT DEFAULTS TO ALL PROJECTS, unlike retirement-queue.sh: a plugin's turn
-# cost appears where the plugin is USED, which is essentially never this repo.
+# WHY IT DEFAULTS TO ALL PROJECTS: a plugin's turn cost appears where the plugin
+# is USED, which is essentially never this repo. (retirement-queue.sh, folded into
+# --skills here on 2026-08-31, defaulted to the current project and answered with
+# an empty table on every machine anyone ran it on.)
 # Scoped to the marketplace checkout it would measure authoring sessions and
 # report nothing about any plugin. Use --project to narrow.
 set -u
@@ -70,6 +73,7 @@ set -u
 min_blocks=10
 since_days=0
 as_json=0
+skills_mode=0
 project=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -85,6 +89,7 @@ while [ $# -gt 0 ]; do
         --since)      case "$2" in ''|*[!0-9.]*|.|*.*.*) printf 'turn-cost: --since needs a number of days, got %s\n' "$2" >&2; exit 0 ;; esac; since_days="$2" ;;
       esac; shift 2 ;;
     --json)        as_json=1; shift ;;
+    --skills)      skills_mode=1; shift ;;
     # Only the header block is documentation; '^#' alone also dumped the price
     # table and schema-drift internals living further down the file.
     -h|--help)     awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"; exit 0 ;;
@@ -97,12 +102,15 @@ done
 command -v python3 >/dev/null 2>&1 || { echo "turn-cost: python3 not found, skipping"; exit 0; }
 
 TC_MIN_BLOCKS="$min_blocks" TC_SINCE="$since_days" TC_JSON="$as_json" \
+TC_SKILLS="$skills_mode" TC_ROOT="$(cd "$(dirname "$0")/.." && pwd)" \
 TC_PROJECT="$project" python3 - <<'PY'
 import json, glob, os, sys, statistics, collections, time, datetime
 
 MIN_BLOCKS = int(os.environ.get("TC_MIN_BLOCKS") or 10)
 SINCE      = float(os.environ.get("TC_SINCE") or 0)
 AS_JSON    = os.environ.get("TC_JSON") == "1"
+SKILLS     = os.environ.get("TC_SKILLS") == "1"
+ROOT       = os.environ.get("TC_ROOT") or "."
 PROJECT    = os.environ.get("TC_PROJECT") or ""
 
 # $/MTok (input, output). Source: the claude-api skill's model table, cached
@@ -189,6 +197,7 @@ def too_old(o):
 blocks = []                                   # (requests, dollars, plugins_seen)
 per_plugin = collections.defaultdict(lambda: {"blocks": 0, "reqs": 0, "usd": 0.0})
 ver_reqs, ver_att = collections.Counter(), collections.Counter()
+skill_att = collections.Counter()
 sidechain = 0
 sessions = 0
 scanned = 0
@@ -245,6 +254,8 @@ for f in files:
         if o.get("attributionPlugin"):
             att = o["attributionPlugin"]
             ver_att[ver] += 1
+        if o.get("attributionSkill"):
+            skill_att[o["attributionSkill"]] += 1
         if o.get("isSidechain"):
             sidechain += 1
         msg = o.get("message") or {}
@@ -273,6 +284,72 @@ for f in files:
         per_plugin[key]["reqs"] += 1
         per_plugin[key]["usd"] += d
     close_block()
+
+# ---- SKILLS MODE: the retirement queue, folded in from scripts/retirement-queue.sh
+# (deleted 2026-08-31). That script read two ledgers — skill-router's surfaced.jsonl
+# (what the router OFFERED, SessionEnd) and hindsight's skills.jsonl (what was
+# INVOKED) — and on the machine it was folded on, BOTH were empty in every project:
+# a reader without writers that ever fired. Transcript attributionSkill records are
+# the data that actually exists, so this mode joins shipped skills against all
+# THREE sources and names which ones had data. Ledger semantics preserved from the
+# original: `fired` and `pending_low_flushed` count as surfaced; a bare
+# `pending_low` does not (it accumulated and may never have been shown); old lines
+# without the split field fall back to pending_low.
+if SKILLS:
+    import glob as _g
+    shipped = []
+    for f in sorted(_g.glob(os.path.join(ROOT, "plugins/*/skills/*/SKILL.md"))):
+        parts = f.split(os.sep)
+        shipped.append((parts[-2], parts[parts.index("plugins") + 1]))
+    surfaced, invoked = collections.Counter(), collections.Counter()
+    led_srf = led_inv = 0
+    for f in _g.glob(os.path.expanduser("~/.claude/skill-router/*/surfaced.jsonl")):
+        for line in open(f, encoding="utf-8", errors="replace"):
+            try: o = json.loads(line)
+            except Exception: continue
+            led_srf += 1
+            for k in (o.get("fired") or []): surfaced[k] += 1
+            flushed = o.get("pending_low_flushed") if "pending_low_flushed" in o else o.get("pending_low")
+            for k in (flushed or []): surfaced[k] += 1
+    for f in _g.glob(os.path.expanduser("~/.claude/hindsight/*/skills.jsonl")):
+        for line in open(f, encoding="utf-8", errors="replace"):
+            try: o = json.loads(line)
+            except Exception: continue
+            led_inv += 1
+            k = (o.get("skill") or "").split(":")[-1]
+            if k: invoked[k] += 1
+    tr = collections.Counter()
+    for k, v in skill_att.items():
+        tr[k.split(":")[-1]] += v
+    print("skill usage — retirement queue (folded from retirement-queue.sh)")
+    print(f"sources: router ledger {led_srf} record(s), hindsight ledger {led_inv} record(s), "
+          f"transcripts {sum(skill_att.values())} attribution record(s) "
+          f"({(100.0*attributed_reqs/total_reqs if total_reqs else 0):.0f}% of requests carry attribution)\n")
+    rows = sorted(((surfaced[n], invoked[n], tr[n], n, p) for n, p in shipped))
+    print(f"{'skill':34} {'plugin':22} {'surfaced':>8} {'invoked':>8} {'transcript':>10}")
+    never = 0
+    for sc, ic, tc, n, p in rows:
+        if sc == 0 and ic == 0 and tc == 0: never += 1
+        print(f"{n:34} {p:22} {sc:8} {ic:8} {tc:10}")
+    print(f"\n{never} of {len(shipped)} shipped skills show no recorded use in ANY source.")
+    print("""
+WHAT TO DO WITH THAT, in order:
+  1. Ask whether the skill's stack is even present in the sampled projects. A
+     Laravel skill reading zero in a Go repo is the system working, not a candidate.
+  2. For a survivor that SHOULD have fired and did not, the defect is usually
+     ROUTING, not the skill — check plugins/skill-router/rules.tsv; most skills
+     have no routing row, so "never surfaced" mostly measures the router's coverage.
+  3. Only then does a skill enter the control/treatment queue; the doctrine and
+     the shapes that already measured zero are in rationale/stack-skill-baselines.md
+     and rationale/measured-zero-shapes.md.
+
+This is a queue, not a verdict. Zero here proves nobody used it in THIS sample;
+non-zero proves it fired, never that it helped. Half the transcript sample carries
+no attribution at all (see the coverage table in the default report), so every
+count is a floor. The skill inventory is read from the LIVE tree: a concurrently
+running smoke harness can inject a scratch fixture into it for the duration of a
+test — the same concurrency caveat CLAUDE.md records for context-budget.sh.""")
+    sys.exit(0)
 
 # ---- schema-drift check. This script always exits 0, so a schema change would
 # otherwise surface as a confident table of zeros. Say it loudly instead; that is

@@ -52,7 +52,7 @@
   #
   # It records what the router OFFERED, not what the model loaded — hence
   # `surfaced`, never `usage`. Nothing reads it automatically; the one reader in
-  # this repo is `scripts/retirement-queue.sh:63`, a maintainer path that ranks
+  # this repo is `scripts/turn-cost.sh --skills`, a maintainer path that ranks
   # skills and never proposes a deletion. (This comment used to name
   # /hindsight:harvest; grep of plugins/hindsight/ finds zero references to this
   # ledger — that command has never read it.)
@@ -75,7 +75,7 @@
             # flushed only when it actually printed the digest to the model, so
             # collapsing both states into `pending_low` made "accumulated but
             # never shown" indistinguishable from "surfaced" — and that is the
-            # exact number retirement-queue.sh ranks skills by. Measured before
+            # exact number the turn-cost --skills queue ranks skills by. Measured before
             # this fix: four skills read 47 pending_low across 17 local sessions
             # with 0 fired, and nothing could say whether any reached the model.
             # `pending_low` is kept as the union so an older reader keeps working.

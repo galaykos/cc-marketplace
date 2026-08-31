@@ -282,26 +282,26 @@ on every `Edit`/`Write`, fail-open by its own declaration (`:2-3`). It warns; it
 cannot stop anything. Counting it as enforcement is the tier over-claim this
 file's own convention forbids.
 
-**Maintainer path, not a gate.** `scripts/retirement-queue.sh` — ranks shipped
-skills by the two local usage ledgers, so a removal argument can be made from
-data instead of taste. Always exits 0 and never proposes a deletion; its header
-explains why each direction of the evidence is weak (zero invocations proves
-nobody used it HERE; non-zero proves it fired, not that it helped; "never
-surfaced" mostly measures the router's coverage). It says where a
-control/treatment run is worth spending, nothing more. The unrouted count is not
-recorded here — it was recorded stale three times — recount:
-
-```bash
-python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s),'unrouted')"
-```
-
 **Maintainer path, not a gate.** `scripts/turn-cost.sh` — the only instrument
 here that meters something other than bytes: **turn blocks**, one human
 instruction and the model requests it took. Always exits 0; withholds any
 per-plugin ratio below `--min-blocks`; prints its own attribution coverage and
-its blind spots (subagent turns are invisible and are billed). Why this channel
-and not the byte ones, and what it measured: `rationale/2026-08-31-token-cost-review.md`.
-Cite it; do not restate its numbers here.
+its blind spots (subagent turns are invisible and are billed). **`--skills` is
+the retirement queue** — it absorbed `scripts/retirement-queue.sh` (deleted
+2026-08-31: both ledgers that script read were empty in every project on the
+machine it was folded on, a reader whose writers never fired). The mode joins
+shipped skills against the router ledger, the hindsight ledger AND transcript
+`attributionSkill` records, names which sources had data, and keeps the original
+doctrine: zero proves nobody used it HERE, non-zero proves it fired and not that
+it helped, and it says where a control/treatment run is worth spending — nothing
+more. Why this channel and not the byte ones, and what it measured:
+`rationale/2026-08-31-token-cost-review.md`. Cite it; do not restate its numbers
+here. The unrouted count is not recorded here — it was recorded stale three
+times — recount:
+
+```bash
+python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s),'unrouted')"
+```
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned
 plugin-removal script; dry-run by default, edits with `--apply`. It rewrites

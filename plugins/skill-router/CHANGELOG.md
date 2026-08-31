@@ -21,6 +21,9 @@ All notable changes to the skill-router plugin.
   the fail-open branch fires only when the path is genuinely vacant. Third case
   asserted in the same harness.
 - README: dropped the removed `everything` bundle from the install line. <!-- removed-ok -->
+- `hooks/summary.sh`'s comments now name `scripts/turn-cost.sh --skills` as the
+  ledger's reader — `scripts/retirement-queue.sh` was folded into it (the ledger
+  format and surfaced/invoked semantics are unchanged).
 
 ## 0.14.2
 
