@@ -4,6 +4,37 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.95.0] - 2026-08-31
+
+**`taskmaster-suite` cut from 32 members to 10**, and the listing channel that
+measures it corrected to count the unit it claims to.
+
+The bundle was 156 description-bearing artifacts and 29,100 chars against a
+~15,000-char skill listing — 2.0x — so roughly half of it arrived name-only, the
+surviving half varying between identical reloads, and the pipeline core was as
+exposed as anything else. It now ships the pipeline and only what it dispatches
+into: taskmaster, task-runner, orchestration, code-architecture, approaches,
+stack-scan, skill-router, ui-ux, testing, security. The other 22 are still
+shipped and still work — install them directly.
+See `plugins/taskmaster-suite/CHANGELOG.md` for the full list and the reasoning.
+
+**A measurement bug found at the margin, worth more than the cut.**
+`context-budget.sh`'s listing channel compared `wc -c` **bytes** against a cap
+documented in **chars**. On this em-dash-heavy corpus that is a ~3% inflation:
+the trimmed suite read 15,016 bytes — OVER — against 14,581 chars, under. The
+channel now counts characters, the unit the host's own docs state.
+
+It also stops claiming precision it does not have. Which unit the host counts is
+**unverified**, so an install within 3% of the cap now reports **`NEAR (N% of
+cap, no headroom)`** instead of a verdict. The trimmed suite lands there at
+**99%** — it fits today, and one new skill in any member puts it over. Reporting
+that is the point; a cut that looked clean and was one commit from stale would
+have been the same failure this marketplace keeps writing about.
+
+Also: an `OVER` status now says on every run that it is a **reachability**
+warning and never a cost one — the host drops the overflow, so it is never
+charged, and the fix is fewer artifacts rather than shorter descriptions.
+
 ## [0.94.0] - 2026-08-31
 
 **The `everything` meta-bundle removed.** It advertised all 52 leaf plugins in

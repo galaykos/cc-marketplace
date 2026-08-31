@@ -81,6 +81,30 @@ plugin_desc_bytes() {
   printf '%s' "$total"
 }
 
+# Same walk, counting CHARACTERS instead of bytes (`wc -m`). The listing channel
+# needs this and the token channels do not: a token estimate is bytes/4, but the
+# listing cap is documented in CHARS and this corpus is em-dash heavy, so the two
+# diverge by ~3%. Measured 2026-08-31 on taskmaster-suite: 15,016 bytes against
+# 14,581 chars — 435 bytes of multi-byte punctuation, enough to report a bundle
+# OVER a cap it is 419 chars UNDER. That is the whole reason this function exists.
+#
+# HONEST LIMITATION, and it is the important half: nobody here has verified which
+# unit the HOST counts. Chars is the unit its documentation states, so chars is
+# what this compares — but an install within ~3% of the cap cannot be called under
+# or over with confidence on either measure, and the channel says so when it lands
+# in that band rather than printing a verdict it has not earned.
+plugin_desc_chars() {
+  local pdir="$1" total=0 f desc chars
+  for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md "$pdir"/agents/*.md; do
+    [ -f "$f" ] || continue
+    desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
+      | sed -n 's/^description:[[:space:]]*//p' | head -1)
+    chars=$(printf '%s' "$desc" | wc -m | tr -d ' ')
+    total=$((total + chars))
+  done
+  printf '%s' "$total"
+}
+
 # Stdout bytes a plugin's SessionStart hooks inject each session, measured by
 # executing them in a throwaway sandbox (empty CLAUDE_PROJECT_DIR/HOME, minimal
 # SessionStart JSON on stdin, fail-open per hook). Deterministic lower bound.
@@ -431,7 +455,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     total_bytes=$(plugin_desc_bytes "plugins/$bname")
     dyn_bytes=0
     act_bytes=$(plugin_desc_bytes "plugins/$bname")
-    listing_bytes=$(plugin_desc_bytes "plugins/$bname")
+    listing_chars=$(plugin_desc_chars "plugins/$bname")
     while IFS= read -r member; do
       [ -n "$member" ] || continue
       mdir="plugins/$member"
@@ -440,7 +464,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       total_bytes=$((total_bytes + bytes))
       dyn_bytes=$((dyn_bytes + $(plugin_dynamic_hook_bytes "$mdir") ))
       act_bytes=$((act_bytes + $(plugin_desc_bytes "$mdir") + $(plugin_sessionstart_activated_bytes "$mdir") + $(plugin_mcp_bytes "$mdir") ))
-      listing_bytes=$((listing_bytes + $(plugin_desc_bytes "$mdir") ))
+      listing_chars=$((listing_chars + $(plugin_desc_chars "$mdir") ))
     done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
     is_leaf=0
     members=$(jq -r '.dependencies | length' "$pj" 2>/dev/null || echo 1)
@@ -450,7 +474,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
     dyn_bytes=$(plugin_dynamic_hook_bytes "$pdir")
     act_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_activated_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
-    listing_bytes=$(plugin_desc_bytes "$pdir")
+    listing_chars=$(plugin_desc_chars "$pdir")
     is_leaf=1
     members=1
   fi
@@ -462,8 +486,18 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   # SessionStart hook's stdout and an MCP tools/list are injected by other
   # means and survive the listing budget, which is the whole distinction this
   # channel exists to draw. Hooks are eviction-proof; descriptions are not.
-  if [ "$listing_bytes" -gt "$LISTING_CAP" ]; then
-    listing_rows="${listing_rows}$(printf '%-24s %9s  OVER (%sx)' "$bname" "$listing_bytes" "$(awk -v a="$listing_bytes" -v c="$LISTING_CAP" 'BEGIN{printf "%.1f", a/c}')")
+  # NEAR band: within 3% of the cap either way. The unit the host counts is
+  # unverified (chars is what its docs state, and what this measures), and
+  # bytes-vs-chars diverges ~3% on this corpus — so inside that band neither
+  # "under" nor "over" is a claim this channel has earned. It says NEAR instead
+  # of picking one, which is the honest verdict and also the useful one: a bundle
+  # with no headroom is over again the next time a member adds a skill.
+  near_lo=$((LISTING_CAP * 97 / 100))
+  if [ "$listing_chars" -gt "$LISTING_CAP" ]; then
+    listing_rows="${listing_rows}$(printf '%-24s %9s  OVER (%sx)' "$bname" "$listing_chars" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP" 'BEGIN{printf "%.1f", a/c}')")
+"
+  elif [ "$listing_chars" -ge "$near_lo" ]; then
+    listing_rows="${listing_rows}$(printf '%-24s %9s  NEAR (%s%% of cap, no headroom)' "$bname" "$listing_chars" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP" 'BEGIN{printf "%.0f", 100*a/c}')")
 "
   fi
   # TOTAL sums leaves only — bundles would double-count their members.

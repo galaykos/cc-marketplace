@@ -36,7 +36,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 32 | ~7.4k tokens | ~169 tokens | ~2.7k tokens |
+| `taskmaster-suite` | 10 | ~3.8k tokens | ~32 tokens | ~2.6k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
 | `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
@@ -63,7 +63,7 @@ adds a per-component floor this table's estimate does not.
 
 | Bundle | Take it when |
 |--------|--------------|
-| **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline and its wired companions. |
+| **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline. Ten members, trimmed from 32 to fit the host's skill listing; install other plugins alongside it. |
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
 | **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, Vite, plus the shared web-dev worker. |

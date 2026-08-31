@@ -1,9 +1,11 @@
 # taskmaster-suite
 
-Meta-bundle: the full clarification-to-execution workflow plus its wired
-companions — taskmaster planning, task-runner execution, engineering
-discipline, the review and process plugins (code-review, git-workflow, orchestration, approaches, and the rest), and the ui-ux agents
-the pipeline's visual cards route to. Uninstalls cleanly:
+Meta-bundle: the clarification-to-execution pipeline and only what it dispatches
+into — taskmaster planning, task-runner execution, orchestration,
+code-architecture, approaches, stack-scan and skill-router, plus the ui-ux,
+testing and security lanes its cards route to. Trimmed from 32 members to 10 on
+2026-08-31 so the bundle fits the host's skill-listing budget; see "What's
+excluded, and why". Uninstalls cleanly:
 `/taskmaster-suite:uninstall` removes the bundle and prunes the plugins it
 auto-installed.
 
@@ -18,52 +20,50 @@ auto-installed.
 
 - **taskmaster** — clarification-to-spec pipeline: grill, brainstorm, red-team, coverage, task cards (`/taskmaster:task`)
 - **task-runner** — executes task lists with scope lock and bounded verify-fix loops (`/task-runner:run`)
-- **stack-scan** — inventories what is actually installed before version-dependent advice
-- **plugin-scout** — suggests marketplace plugins matched to the project's manifests
+- **orchestration** — delegation contracts and verification panels for fan-outs
 - **code-architecture** — plan-before-code, SOLID/YAGNI audits, work verification
-- **git-workflow** — branch completion, worktree isolation, review exchange
-- **hindsight** — mines session transcripts for cross-session friction fixes
-- **debugging** — systematic root-cause-with-evidence before any fix
+- **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
+- **stack-scan** — inventories what is actually installed before version-dependent advice
+- **skill-router** — hook that auto-loads the matching best-practice skill on edit
+- **ui-ux** — ui-ux engineer + reviewer agents and `/ui-ux:theme` that the pipeline's visual cards route to
 - **testing** — TDD discipline and test review against testing best practices
 - **security** — security review and threat modeling
-- **api-design** — API contract review and spec-first scaffolding
-- **api-docs-first** — checks current API docs back the integration code; also owns the merged docs-upkeep drift scan
-- **sql** — engine-agnostic SQL discipline and review
-- **dev-env** — docker-compose generation and Docker best-practice audits
-- **web-dev** — generalist web-developer worker and frontend-reviewer agents
-- **ui-ux** — ui-ux engineer + reviewer agents and `/ui-ux:theme` that the pipeline's visual cards route to
-- **system-design** — system design and domain-modeling review
-- **devops** — CI/CD, Kubernetes, and deploy/secret config review
-- **database** — engine-agnostic schema, migration, and indexing review
-- **performance** — hotspot and cache-correctness review
-- **claude-authoring** — scaffolds new skills, commands, agents, hooks, plugins
-- **code-review** — severity-sorted correctness and smell review of diffs
-- **comment-discipline** — keeps comment volume down at write time: routes every fact to the artifact that cannot lie about it, and denies restatement comments and commented-out code as they are typed
-- **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
-- **resilience** — failure-mode gap review: timeouts, retries, degradation, plus the merged error-handling and concurrency audits
-- **a11y** — WCAG 2.2 AA audits of UI code
-- **packages** — dependency vulnerability and outdated-package audit
-- **orchestration** — delegation contracts and verification panels for fan-outs
-- **observability** — logging, correlation-ID, and silent-catch audits
-- **skill-router** — hook that auto-loads the matching best-practice skill on edit
-- **brain** — committed codebase map injected at session start
-- **lean** — prices every line, test, comment, and file as a debit, so a card ships the smallest change that satisfies it
 
 ## What's excluded, and why
 
-Inclusion test: a plugin joins this bundle when the pipeline hard-wires it into
-the default flow — ui-ux is in for exactly that reason (the closed agent-tag
-set routes visual cards to its engineer/reviewer agents, and specs bind
-`/ui-ux:theme`); without it those cards degrade to generic routing. Notable
-exclusions: **design-preview** and **shadcn-studio** — the two optional
-full-fidelity escalations above taskmaster's built-in mockup preview; both are
-"when installed" upgrades, stack-specific (design-preview: existing Vite+React
-projects, renders real components via the project's own dev server;
-shadcn-studio: greenfield/non-React, stands up its own dev server);
-**laravel** and the other stack plugins — stack-specific;
-**secret-scanning** —
-hook-heavy and behavior-changing, install it deliberately;
-**ultra-deep-research** — heavy research harness, opt-in.
+**The bundle was cut from 32 members to 10 on 2026-08-31, and the reason is a
+ceiling that is not ours.** Claude Code allocates a budget for the skill listing
+— a ~15,000-char absolute default binds before the documented 1%-of-context
+fraction — and past it the host **drops descriptions, leaving names only**, with
+the surviving set varying between identical reloads
+(observed live: `rationale/marketplace-necessity-review-2026-08-26.md`). At 32
+members this bundle carried 156 description-bearing artifacts and 29,100 chars,
+**2.0x the cap**. The overflow was not a token cost — dropped text is never sent
+and never charged — it was **reachability**, and it was paid by every member,
+including the pipeline core. Ten members and 14,581 chars fit. The measurement
+and the cost model are in `rationale/2026-08-31-token-cost-review.md`.
+
+Inclusion test, in that order of precedence: a plugin stays when the pipeline
+hard-wires it into the default flow. ui-ux is in for exactly that reason — the
+closed agent-tag set routes visual cards to its engineer/reviewer agents, and
+specs bind `/ui-ux:theme`; without it those cards degrade to generic routing.
+testing and security stay because task cards dispatch into both.
+
+**Everything cut is still shipped and still works — install it directly.** The
+22 removed: a11y, api-design, api-docs-first, brain, claude-authoring,
+code-review, comment-discipline, database, debugging, dev-env, devops,
+git-workflow, hindsight, lean, observability, packages, performance,
+plugin-scout, resilience, sql, system-design, web-dev. Several are excellent and
+several are near-core — `code-review` and `git-workflow` especially — but a
+bundle that cannot surface its own members' descriptions is not doing them a
+favour by listing them. Take the ones your work actually needs.
+
+Still excluded for the older reasons: **design-preview** and **shadcn-studio**
+— the two optional full-fidelity escalations above taskmaster's built-in mockup
+preview, both "when installed" upgrades and stack-specific; **laravel** and the
+other stack plugins — stack-specific; **secret-scanning** — hook-heavy and
+behavior-changing, install it deliberately; **ultra-deep-research** — heavy
+research harness, opt-in.
 
 ## Uninstall
 
