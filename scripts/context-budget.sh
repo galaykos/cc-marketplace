@@ -723,6 +723,17 @@ fi
 # under-reads in proportion to the thing it exists to control is worth
 # reconciling against.
 #
+# THAT SNAPSHOT'S POPULATION IS STALE AND THE RATIO INHERITS IT. The 61 leaves it
+# sums were measured before `cfef9c1`, and include nine plugins since deleted
+# (i18n, livewire, mysql, node-backend, nuxt, php, postgresql, react, vue3) and
+# none of the bundles. Today's tree is 52 leaves. Re-measuring needs an install,
+# because `details` resolves by installed name — so 1.54 is carried forward as a
+# HISTORICAL figure, not a current one. Treat it as an order-of-magnitude
+# correction, never as a coefficient to multiply today's numbers by. (This
+# paragraph lived in CLAUDE.md until 2026-08-31 and was deleted there on the
+# premise that this header carried it. It did not. Verifying that claim per fact,
+# rather than per file, is the only reason it is here.)
+#
 # IT IS NOT GROUND TRUTH, measured 2026-08-21. `details` is a static estimate over
 # the FILES: it charged a `disable-model-invocation: true` skill ~60 always-on
 # tokens for a description the session listing provably does not contain (probes
