@@ -364,18 +364,12 @@ It says
 where a control/treatment run is worth spending, nothing more.
 
 **Maintainer path, not a gate.** `scripts/turn-cost.sh` — the only instrument
-here that meters something other than bytes. Reads the local transcripts and
-reports **turn blocks** (one human instruction and the model requests it took),
-per-plugin cost as an upper bound, and its own attribution coverage. Always exits
-0. Every other cost check in this repo — the three context-budget channels,
-`pc_skill_budget`, `pc_budget_crowding`, the description linter — meters a surface
-`rationale/2026-08-31-token-cost-review.md` measured at ~1% of a session's spend,
-against 61.8% for cache reads. Three limits it prints rather than hides: subagent
-turns are invisible and are billed; attribution is missing entirely from some
-Claude Code versions; and it measures **cost, never value** — a plugin that spends
-turns may be earning them, and nothing here can tell the difference. It withholds
-any per-plugin ratio below `--min-blocks` (default 10) rather than publish a
-number from single-digit n.
+here that meters something other than bytes: **turn blocks**, one human
+instruction and the model requests it took. Always exits 0; withholds any
+per-plugin ratio below `--min-blocks`; prints its own attribution coverage and
+its blind spots (subagent turns are invisible and are billed). Why this channel
+and not the byte ones, and what it measured: `rationale/2026-08-31-token-cost-review.md`.
+Cite it; do not restate its numbers here.
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned
 plugin-removal script. It rewrites leaf-derived numbers only. Removing a *leaf*

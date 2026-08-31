@@ -3,6 +3,9 @@
 #
 #   turn-cost.sh [--project PATH] [--min-blocks N] [--since DAYS] [--json]
 #
+# --since filters RECORDS by their own timestamp, not files by modification time,
+# so a months-old session appended to yesterday contributes only its recent turns.
+#
 # MAINTAINER PATH, NOT A GATE. Always exits 0. It reports; it never fails a build
 # and it never proposes a change by itself.
 #
@@ -85,7 +88,7 @@ command -v python3 >/dev/null 2>&1 || { echo "turn-cost: python3 not found, skip
 
 TC_MIN_BLOCKS="$min_blocks" TC_SINCE="$since_days" TC_JSON="$as_json" \
 TC_PROJECT="$project" python3 - <<'PY'
-import json, glob, os, sys, statistics, collections, time
+import json, glob, os, sys, statistics, collections, time, datetime
 
 MIN_BLOCKS = int(os.environ.get("TC_MIN_BLOCKS") or 10)
 SINCE      = float(os.environ.get("TC_SINCE") or 0)
@@ -151,6 +154,27 @@ def is_human_turn(o):
 base = os.path.expanduser("~/.claude/projects/")
 files = sorted(glob.glob(base + "*/*.jsonl"))
 cutoff = time.time() - SINCE * 86400 if SINCE else 0
+undated = 0
+
+def too_old(o):
+    """--since filters RECORDS by their own `timestamp`, not files by mtime.
+    A long-running session appended to yesterday would otherwise drag five weeks
+    of its own history into a --since 7 window, in full. Every user and
+    usage-bearing record carries an ISO-8601 timestamp; a record without one is
+    KEPT and counted in `undated`, because dropping unstamped records would
+    silently shrink the sample."""
+    if not cutoff:
+        return False
+    ts = o.get("timestamp")
+    if not ts:
+        global undated
+        undated += 1
+        return False
+    try:
+        return datetime.datetime.fromisoformat(
+            ts.replace("Z", "+00:00")).timestamp() < cutoff
+    except Exception:
+        return False
 
 blocks = []                                   # (requests, dollars, plugins_seen)
 per_plugin = collections.defaultdict(lambda: {"blocks": 0, "reqs": 0, "usd": 0.0})
@@ -165,6 +189,9 @@ contexts = []
 projects = collections.Counter()
 
 for f in files:
+    # Pure optimisation, safe because a file's mtime is >= its newest record:
+    # a file untouched since the cutoff cannot hold a record after it. The real
+    # --since filter is per-record, in too_old().
     if cutoff and os.path.getmtime(f) < cutoff:
         continue
     recs = []
@@ -196,6 +223,8 @@ for f in files:
                 per_plugin[p]["blocks"] += 1
 
     for o in recs:
+        if too_old(o):
+            continue
         ver = o.get("version") or ver
         if is_human_turn(o):
             close_block()
@@ -331,6 +360,12 @@ if under:
           f"under --min-blocks {MIN_BLOCKS}: {', '.join(sorted(under))}.")
     print("    A $/block figure at single-digit n is noise wearing a table. Collect")
     print("    more sessions, or lower the threshold deliberately and say you did.")
+print("  - the (unattributed) row is a SEPARATE POPULATION, not a peer. It is mostly")
+print("    whole sessions from a Claude Code version that emits no attribution at all")
+print("    (see the coverage table); reading down the column compares different work.")
+print("  - $/block also tracks WHERE in a session a block landed — context grows and")
+print("    compaction only halves it periodically — so that column ranks session")
+print("    position as much as it ranks workflow.")
 print(f"  - subagent turns are INVISIBLE here ({sidechain} isSidechain records seen). "
       "They are billed.")
 print("    Orchestration-heavy plugins are under-counted by an unknown amount.")
@@ -340,6 +375,8 @@ if unknown_models:
           f"{', '.join(sorted(unknown_models))}")
 print("  - this measures COST, NOT VALUE. A plugin that spends turns may be earning")
 print("    them. Nothing here can tell the difference; see the header.")
+if SINCE and undated:
+    print(f"  - {undated} record(s) carried no timestamp and were KEPT despite --since.")
 if projects and not PROJECT:
     print(f"  - {len(projects)} project(s) in scope; --project PATH narrows it.")
 PY
