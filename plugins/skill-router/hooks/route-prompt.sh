@@ -115,9 +115,28 @@
 
   # ONCE PER SESSION. The catalog stays in context after the first injection, so a
   # second copy buys nothing and costs the same tokens again.
+  #
+  # `.session_id` RAW is correct here and is NOT the pc_context_key defect. That gate
+  # exists because a subagent shares its parent's session_id, so a one-shot keyed on it
+  # dedups the worker against a nudge only the parent saw — but UserPromptSubmit never
+  # fires in a subagent at all (route.sh:23, lean/hooks/budget.sh:14,
+  # testing/hooks/test-shape.sh:90 all state PostToolUse is the only channel that
+  # reaches one). There is no second context to starve. The flush block at :46 keys on
+  # `.transcript_path // .session_id` for a different reason: it READS the state file
+  # route.sh writes, so it must spell the key exactly as route.sh does.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-route-catalog-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
-  mkdir "$seen" 2>/dev/null || exit 0
+  # FAIL OPEN on an unwritable TMPDIR. `mkdir || exit 0` conflated two causes with
+  # opposite correct responses: the marker already exists (fired this session —
+  # suppress, the whole point), or TMPDIR is not writable so the marker can never
+  # exist (suppressing costs the catalog on EVERY prompt of EVERY session, silently).
+  # route.sh:156 states this plugin's doctrine for exactly this case — "an unwritable
+  # state dir cannot swallow a nudge the model should have seen" — and delivers before
+  # persisting. This is the same rule on the bigger payload. mkdir stays the atomic
+  # first attempt; the -d test only runs once it has already failed.
+  if ! mkdir "$seen" 2>/dev/null; then
+    [ -d "$seen" ] && exit 0
+  fi
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-route-catalog-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
 
   # ---- catalog: every installed plugin's commands, one line each ---------------

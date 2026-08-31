@@ -2,6 +2,19 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.3
+
+### Fixed
+- **The command catalog is no longer lost when `TMPDIR` is unwritable.** The
+  once-per-session marker was written with `mkdir "$seen" || exit 0`, which answers
+  two opposite situations the same way: the marker already exists (suppress — the
+  point of the marker) and the marker *cannot* exist (suppress — wrong, and the
+  catalog is then silently dropped on every prompt of every session). The failed
+  `mkdir` now distinguishes them, matching this plugin's own doctrine at
+  `hooks/route.sh:156`: an unwritable state dir must not swallow a payload the model
+  should have seen. Both outcomes are asserted in `scripts/smoke/prompt-route-tests.sh`
+  — the dedup case alone passes on the broken version, so only the pair pins it.
+
 ## 0.14.2
 
 ### Changed
