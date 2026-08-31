@@ -350,7 +350,7 @@ render_bundle_table() {
       [ -f "$lp" ] || continue
       jq -e 'has("dependencies")' "$lp" >/dev/null 2>&1 || nonsuite=$((nonsuite+1))
     done
-    printf '\n`everything` is all %s leaf plugins; every other row is a curated subset.\n' "$nonsuite"
+    printf '\nEvery row is a curated subset. The marketplace ships all %s leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.\n' "$nonsuite"
     # The budget these numbers are measured AGAINST, stated once, with its source.
     # Claude Code budgets the skill listing at 1%% of the model context window and,
     # on overflow, drops descriptions starting with the skills you invoke least —
@@ -359,7 +359,7 @@ render_bundle_table() {
     # history. Our figures also read LOW: `claude plugin details` charges a
     # per-component floor our bytes/4 estimate does not, measured at 1.54x across
     # the 61 leaves on 2026-08-20 (scripts/context-budget-official.json).
-    printf '\nThe budget these are measured against is **1%% of the model context window** for the\nskill listing ([docs](https://code.claude.com/docs/en/skills)) — ~2k tokens at 200k, ~10k at 1M —\nand on overflow Claude Code drops the descriptions of the skills you invoke least, which\ncosts those skills their trigger words rather than raising an error. Multiply the column\nabove by ~1.5 for what the host actually charges: `claude plugin details` adds a\nper-component floor this table'"'"'s estimate does not.\n'
+    printf '\nThe budget these are measured against is the host'"'"'s skill listing, documented as **1%% of\nthe context window** ([docs](https://code.claude.com/docs/en/skills)) — but a **~15,000-char\nabsolute default binds first**, and a 1M-context session does not buy the catalogue back:\nmeasured live 2026-08-26, ~19,949 chars across 86 loaded skills still had its tail stripped\n(`rationale/marketplace-necessity-review-2026-08-26.md`). On overflow Claude Code drops the\ndescriptions of the skills you invoke least — name-only, and nondeterministic across reloads —\nrather than raising an error. That is what retired the all-in bundle, not its token count.\nMultiply the column above by ~1.5 for what the host actually charges: `claude plugin details`\nadds a per-component floor this table'"'"'s estimate does not.\n'
     printf '\n%s\n' '<!-- end:bundle-table -->'
   } > "$block"
 

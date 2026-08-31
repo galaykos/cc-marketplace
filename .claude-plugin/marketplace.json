@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.93.0"
+    "version": "0.94.0"
   },
   "plugins": [
     {
@@ -263,11 +263,6 @@
       "name": "process-suite",
       "source": "./plugins/process-suite",
       "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (with the build-vs-buy, estimation, rollout, and pattern-selection disciplines folded into approaches), hindsight mining, docs upkeep, subagent orchestration, task execution, stack scanning, plugin scouting, a token-cost warn hook (lean), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
-    },
-    {
-      "name": "everything",
-      "source": "./plugins/everything",
-      "description": "Meta-bundle: installs every plugin in this marketplace as a dependency — all stacks, all workflows, all agents. One install, full suite. Uninstall cleanly with /everything:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "taskmaster-suite",

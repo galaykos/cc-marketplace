@@ -4,6 +4,44 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.94.0] - 2026-08-31
+
+**The `everything` meta-bundle removed.** It advertised all 52 leaf plugins in
+one install and could not deliver them: 224 description-bearing artifacts,
+43,936 chars of description, against a host skill listing whose **~15,000-char
+absolute default binds before the documented 1%-of-context fraction**. About
+three quarters of its catalogue arrived name-only, and *which* three quarters
+varied between identical reloads.
+
+The removal is argued on **reachability, not cost**.
+`rationale/2026-08-31-token-cost-review.md` measured the always-on surface at
+**~1% of a session's spend** against **61.8% for cache reads**, and showed that
+description text above the listing cap is *dropped by the host and therefore not
+charged* — so trimming it saves approximately nothing, and a bundle that
+overshoots the cap is a dispatch defect wearing a cost defect's clothes. The
+prior run had already measured description-trimming at 1.8–2.8%; the only route
+under the cap was ever fewer artifacts.
+
+Consequences worth knowing:
+
+- **A gate was rehomed, not lost.** `validate.sh`'s README leaf-count check lived
+  inside `if [ -f "$EV" ]` and would have died silently with the bundle. It is now
+  unconditional. Removing an artifact can remove a gate riding on it, and nothing
+  warns you — that is the transferable lesson.
+- **What is genuinely gone:** nothing now asserts that a new leaf plugin joins
+  *any* bundle. There is no aggregate install to omit it from, so the old failure
+  mode is retired rather than unguarded, but a leaf that belongs in a themed suite
+  and is left out is now a WARN nobody writes.
+- **`everything` joined the removed-artifact denylist** (`pc_removed_refs`), which
+  matches reference shapes only — bare "everything" is ordinary English and appears
+  ~200 times in shipped prose. Watched fail before shipping.
+- **The README's cap figure was wrong and is corrected.** It claimed ~10k tokens at
+  1M context; this repo's own live observation
+  (`marketplace-necessity-review-2026-08-26.md`) recorded ~19,949 chars stripped at
+  1M. A bigger window does not buy the catalogue back.
+
+Install a themed `*-suite`, or the leaves you want.
+
 ## [0.93.0] - 2026-08-26
 
 **Nine measured-zero stack plugins removed: php, postgresql, vue3, nuxt,

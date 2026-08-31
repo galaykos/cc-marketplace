@@ -36,7 +36,6 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `everything` | 52 | ~11.6k tokens | ~1.2k tokens | ~2.7k tokens |
 | `taskmaster-suite` | 32 | ~7.4k tokens | ~169 tokens | ~2.7k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
@@ -48,20 +47,22 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-`everything` is all 52 leaf plugins; every other row is a curated subset.
+Every row is a curated subset. The marketplace ships all 52 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
-The budget these are measured against is **1% of the model context window** for the
-skill listing ([docs](https://code.claude.com/docs/en/skills)) — ~2k tokens at 200k, ~10k at 1M —
-and on overflow Claude Code drops the descriptions of the skills you invoke least, which
-costs those skills their trigger words rather than raising an error. Multiply the column
-above by ~1.5 for what the host actually charges: `claude plugin details` adds a
-per-component floor this table's estimate does not.
+The budget these are measured against is the host's skill listing, documented as **1% of
+the context window** ([docs](https://code.claude.com/docs/en/skills)) — but a **~15,000-char
+absolute default binds first**, and a 1M-context session does not buy the catalogue back:
+measured live 2026-08-26, ~19,949 chars across 86 loaded skills still had its tail stripped
+(`rationale/marketplace-necessity-review-2026-08-26.md`). On overflow Claude Code drops the
+descriptions of the skills you invoke least — name-only, and nondeterministic across reloads —
+rather than raising an error. That is what retired the all-in bundle, not its token count.
+Multiply the column above by ~1.5 for what the host actually charges: `claude plugin details`
+adds a per-component floor this table's estimate does not.
 
 <!-- end:bundle-table -->
 
 | Bundle | Take it when |
 |--------|--------------|
-| **[everything](plugins/everything)** | You want the lot and have context to spare. Read the number above first. |
 | **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline and its wired companions. |
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
@@ -490,8 +491,10 @@ advertisement:
   control-vs-treatment run on two stack skills measured exactly that
   (`rationale/eval-ablation-2026-08-20.md`).
 - **Skills cost context whether or not they fire.** Their descriptions are
-  always loaded. That is why the bundle table above prints tokens, and why
-  taking `everything` is a real decision rather than a default.
+  always loaded. That is why the bundle table above prints tokens — and why the
+  all-in bundle was removed rather than repriced: past the host's listing budget
+  the descriptions are dropped name-only, so the tokens stop being the problem
+  and reachability starts.
 - **Most rules are agent-graded, not enforced.** A handful are gates that block
   a turn — `command-guard`, `secret-scanning`, `comment-discipline`'s narrow
   deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s

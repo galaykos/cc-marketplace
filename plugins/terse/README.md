@@ -154,7 +154,8 @@ switches are the level itself and `CC_TERSE=off`.
 
 Always-on cost of the plugin itself: **886 tokens** of command, skill and agent
 descriptions, paid every session whether the mode is on or off — the price of the
-full command set, and `everything` bundle users pay it by default.
+full command set. It is a member of `always-on-suite`, whose README prices the
+whole bundle.
 
 ## Optional, wire them yourself
 

@@ -341,7 +341,14 @@ pc_removed_refs() {
   # match no shape, TitleCase prose (React, MySQL) is skipped by design. The
   # removal shipped a day of dangling references precisely because this list was
   # not fed — extend it in the SAME commit as any future removal.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n'
+  # `everything` added 2026-08-31 (the all-in bundle, removed). Bare "everything"
+  # is ordinary English and appears ~200 times in shipped prose — it is SAFE here
+  # only because $shapes matches reference forms (`**everything**`, `everything@`,
+  # `plugins/everything`, `/everything:`, "everything plugin"), never the bare
+  # word. Verified at removal: every shape-match in plugins/ was inside the
+  # deleted directory or the generated catalog. Do not move it to $skills, which
+  # word-matches.
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything'
   # task-orchestration added 2026-08-21: merged into plan-before-code, which
   # already produced the file map its dependency edges were derived from. Its
   # parallel-safety rule was stated in four places across three plugins; the

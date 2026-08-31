@@ -65,10 +65,11 @@ A new plugin — and a new **agent** inside an existing plugin — is not done w
 files pass validation. Bundles advertise a set; adding to the set without updating
 the bundle makes the bundle lie, and no gate flags it:
 
-- **`everything`** depends on every non-suite (leaf) plugin. A new leaf plugin must
-  be added to its `dependencies`, or the aggregate install silently omits it. (The
-  validator's everything-count check catches a missing plugin only via the README
-  count — keep both in step.)
+- **There is no all-in bundle.** The one that existed was removed: at 224
+  description-bearing artifacts against the host's ~15k-char skill listing, two
+  thirds of it arrived name-only and which two thirds varied per reload. A new
+  leaf plugin therefore joins a THEMED bundle or none — but the README's leaf
+  count is still gated, so keep it in step.
 - **`*-suite` bundles** (`quality-suite`, `frontend-suite`, `craft-suite`,
   `php-suite`, `db-suite`, `process-suite`, `taskmaster-suite`, … — every plugin
   with a `dependencies` array) depend on a themed subset and drive an

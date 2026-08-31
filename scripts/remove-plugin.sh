@@ -25,6 +25,11 @@ while [ $# -gt 0 ]; do
 done
 
 MP=.claude-plugin/marketplace.json
+# The all-in bundle was REMOVED 2026-08-31 (rationale/2026-08-31-token-cost-review.md).
+# Every branch below that touches it is `[ -f ]`-guarded or matches nothing, so this
+# script still runs correctly with no such bundle present — the branches are INERT,
+# not broken, and stay only so that reintroducing an aggregate bundle does not need
+# them rewritten. If you are sure that will never happen, they are safe to delete.
 EV=plugins/everything/.claude-plugin/plugin.json
 CAT=plugins/plugin-scout/skills/plugin-scout/references/catalog.md
 BASELINE=scripts/context-budget-baseline.json

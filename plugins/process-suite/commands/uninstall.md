@@ -23,7 +23,7 @@ yourself:
 
    A dependency is a removal candidate when it is installed at the same scope.
    KEEP a candidate — and say why — when another installed bundle at that
-   scope (another `*-suite`, or `everything`) also lists it in ITS manifest's
+   scope (another `*-suite`) also lists it in ITS manifest's
    dependencies.
 3. Honesty check: run `claude plugin prune --dry-run -s <scope>`. If it says
    "nothing to prune" while candidates exist, the installs carry no

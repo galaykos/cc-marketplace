@@ -125,10 +125,13 @@ v0.86.0 retired three plugins with **no deprecation window** ("HARD DELETE, and
 it will break installs"), re-homing the two surviving capabilities as skills in
 the plugin that already owned the adjacent seam.
 
-There is deliberately **no number** — no cap on plugin count, no ceiling on the
-`everything` bundle's always-on tokens. The mechanism is the per-plugin ratchet
-in `scripts/context-budget.sh`, which makes growth visible and deliberate.
-A number nobody chose on evidence would be theater by law 3.
+There is deliberately **no number** — no cap on plugin count, no ceiling on a
+bundle's always-on tokens. The mechanism is the per-plugin ratchet in
+`scripts/context-budget.sh`, which makes growth visible and deliberate.
+A number nobody chose on evidence would be theater by law 3. The one ceiling that
+does bind is not ours: the host's skill listing evicts descriptions past ~15k
+chars, name-only and nondeterministically, which is what retired the all-in
+bundle rather than any cap chosen here.
 
 Applying law 2 to that mechanism, since it is the one place this file leans on a
 gate: the ratchet allows 2 tokens per leaf (`2 * members` for a bundle) before it

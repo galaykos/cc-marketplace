@@ -1,6 +1,6 @@
 {
   "name": "frontend-suite",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, React Native, Next.js, Vite, Inertia, the generalist web worker, accessibility auditing, and skill auto-routing (skill-router). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
