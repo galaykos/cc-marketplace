@@ -753,6 +753,14 @@ hook_to_gap=$(pc_hook_timeout plugins) || true
 crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || true
 [ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 200-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
 
+# A bundle that overflows the FLOOR skill-listing budget (200k window, 3 B/tok,
+# 1% = 6,000 chars) must tell the installer, because the failure is silent on
+# their machine and invisible on a 1M maintainer's. Gates that the declaration
+# STRING exists, not that its numbers are right — pc_listing_declaration's header
+# carries the formula and the residuals.
+listing_decl_gap=$(pc_listing_declaration plugins) || true
+[ -n "$listing_decl_gap" ] && lane_err "$listing_decl_gap" "bundle overflows the 6,000-char floor listing budget without declaring it — mention skillListingBudgetFraction in its README (or bless with <!-- listing-floor-ok: why -->)"
+
 # A bundle's README must name every plugin it installs. Two commits added a
 # dependency to four bundles and updated zero READMEs; the all-bundle dependency
 # gate above proved the deps RESOLVED and said nothing about whether a user could

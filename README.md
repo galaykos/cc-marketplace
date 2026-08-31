@@ -55,6 +55,10 @@ not a constant — read out of the shipped CLI (2.1.251), not from documentation
     budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction
 
 `skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.
+If you install a bundle flagged over the 200k floor, set it to the value that bundle's README
+names (0.02-0.03) in the settings.json of the PROJECT where you use it — the fraction is a
+ceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the
+descriptions being evicted.
 `bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including
 opus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,
 **30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single

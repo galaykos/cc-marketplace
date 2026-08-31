@@ -16,6 +16,32 @@ auto-installed.
 /plugin install taskmaster-suite@cc-plugins-marketplace
 ```
 
+## Context-window requirement (read before installing)
+
+**Standing: `gate` for the declaration's presence, `recorded` for its numbers** —
+`pc_listing_declaration` fails the build if this section disappears while the
+bundle still overflows; nothing checks the figures below, so recompute them with
+`bash scripts/context-budget.sh` before trusting them.
+
+Claude Code budgets the skill listing it sends the model at
+`contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
+fraction 0.01). On the default 200k window with a current-tokenizer model that is
+**6,000 chars**, and this bundle's listing costs **~15,366 chars** — over
+budget, the host reduces entries to name-only in priority order, silently, so
+skills stop being reachable without any error.
+
+On the 1M-context tier (30,000 chars) this bundle fits with room to spare. If you
+run the default 200k window, add to the `settings.json` of the project where you
+use this bundle:
+
+```json
+{ "skillListingBudgetFraction": 0.03 }
+```
+
+That raises the listing budget to 18,000 chars at 200k. The cost is real but
+small: the fraction is a ceiling, not a purchase — it only admits description
+text that was previously being evicted.
+
 ## What's included
 
 - **taskmaster** — clarification-to-spec pipeline: grill, brainstorm, red-team, coverage, task cards (`/taskmaster:task`)

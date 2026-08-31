@@ -3,6 +3,17 @@
 Consumer-facing changes only. Newest first. Started at 0.17.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.17.1
+
+### Added
+- **Context-window requirement declared, and gated.** On the default 200k window
+  this bundle's skill listing (~15,366 entry-chars) overflows the host's 6,000-char
+  budget and descriptions are silently dropped; on the 1M tier it fits. The README
+  now says so and names the fix — `skillListingBudgetFraction: 0.03` in the
+  project's settings.json — and `pc_listing_declaration` fails the build if the
+  declaration disappears while the bundle still overflows. The declared numbers
+  themselves are `recorded`, not checked.
+
 ## 0.17.0
 
 ### Removed

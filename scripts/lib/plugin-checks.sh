@@ -1743,3 +1743,61 @@ EOF
   done
   return $bad
 }
+
+# pc_listing_declaration [plugins-root] — a bundle that overflows the FLOOR skill-listing
+# budget must say so where an installer will read it.
+#
+# THE FLOOR: Claude Code budgets its skill listing at contextWindowTokens x bytesPerToken
+# x skillListingBudgetFraction (defaults 0.01; read out of CLI 2.1.251, not docs). The
+# worst realistic case is a 3-bytes-per-token model at the default 200k window: 6,000
+# chars. Over budget the CLI reduces entries to name-only and buys descriptions back in
+# priority order — no error, no log; skills silently stop being reachable. Four shipped
+# bundles overflow that floor while fitting comfortably at 1M, so whether an install is
+# broken depends on which tier the USER runs — a fact only the bundle can warn about,
+# and on 2026-08-31 none did.
+#
+# THE RULE: a bundle whose entry cost (name + 4 + min(desc,1536) per skill/command,
+# members + the bundle's own, plus separators) exceeds 6,000 chars must mention
+# `skillListingBudgetFraction` in its README — the settings.json lever that fixes it —
+# or carry `<!-- listing-floor-ok: <why> -->`.
+#
+# HONEST LIMITATION: gates that the STRING appears, not that the declared numbers are
+# right — a README recommending 0.02 where the bundle needs 0.03 passes identically.
+# The floor constant is duplicated from context-budget.sh's LISTING_* defaults by value,
+# not by include; if the CLI changes its formula, both go stale together and this
+# comment is the only pointer. Descriptions are counted with wc -m (chars, like the CLI),
+# and agents are excluded because they render in a separate system-prompt section.
+pc_listing_declaration() {
+  local root="${1:-plugins}" floor=6000 maxdesc=1536 bad=0
+  local pj bname mdir total n f name desc dl readme
+  for pj in "$root"/*/.claude-plugin/plugin.json; do
+    [ -f "$pj" ] || continue
+    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
+    bname=$(jq -r '.name' "$pj" 2>/dev/null); [ -n "$bname" ] || continue
+    total=0; n=0
+    while IFS= read -r mdir; do
+      [ -d "$mdir" ] || continue
+      local plug; plug=$(basename "$mdir")
+      for f in "$mdir"/skills/*/SKILL.md "$mdir"/commands/*.md; do
+        [ -f "$f" ] || continue
+        case "$f" in
+          */skills/*) name="$plug:$(basename "$(dirname "$f")")" ;;
+          *)          name="$plug:$(basename "$f" .md)" ;;
+        esac
+        desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
+          | sed -n 's/^description:[[:space:]]*//p' | head -1)
+        dl=$(printf '%s' "$desc" | wc -m | tr -d ' ')
+        [ "$dl" -gt "$maxdesc" ] && dl=$maxdesc
+        total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
+      done
+    done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null | sed "s|^|$root/|; s|@.*||"; printf '%s\n' "$root/$bname")
+    [ "$n" -gt 1 ] && total=$(( total + n - 1 ))
+    [ "$total" -le "$floor" ] && continue
+    readme="$root/$bname/README.md"
+    grep -q 'listing-floor-ok:' "$readme" 2>/dev/null && continue
+    grep -q 'skillListingBudgetFraction' "$readme" 2>/dev/null && continue
+    printf 'listing-floor-undeclared %s (%s chars > %s floor)\n' "$bname" "$total" "$floor"
+    bad=1
+  done
+  return $bad
+}

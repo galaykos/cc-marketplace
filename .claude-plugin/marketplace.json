@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.95.0"
+    "version": "0.96.0"
   },
   "plugins": [
     {
@@ -232,7 +232,7 @@
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
-      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components (design-preview), a shadcn staging sandbox (shadcn-studio), live component-registry MCP sourcing (registry-source), and WebGL/Three.js effects (threejs), plus the two companions the studio requires: ui-ux and a11y. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components (design-preview), a shadcn staging sandbox (shadcn-studio), live component-registry MCP sourcing (registry-source), and WebGL/Three.js effects (threejs), plus the two companions the studio requires: ui-ux and a11y. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "php-suite",
@@ -257,17 +257,17 @@
     {
       "name": "quality-principles-suite",
       "source": "./plugins/quality-principles-suite",
-      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, observability, and test design and coverage review. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall."
+      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, observability, and test design and coverage review. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (with the build-vs-buy, estimation, rollout, and pattern-selection disciplines folded into approaches), hindsight mining, docs upkeep, subagent orchestration, task execution, stack scanning, plugin scouting, a token-cost warn hook (lean), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (with the build-vs-buy, estimation, rollout, and pattern-selection disciplines folded into approaches), hindsight mining, docs upkeep, subagent orchestration, task execution, stack scanning, plugin scouting, a token-cost warn hook (lean), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "taskmaster-suite",
       "source": "./plugins/taskmaster-suite",
-      "description": "Meta-bundle (10 plugins): the clarification-to-execution pipeline and only what it dispatches into — taskmaster planning, task-runner execution, orchestration, code-architecture, approaches, stack-scan, skill-router, plus the ui-ux, testing and security lanes its cards route to. Trimmed from 32 on 2026-08-31 to fit the host's skill-listing budget: over that cap the host drops descriptions name-only and the surviving set varies per reload, so the extra members cost reachability for every member. Install the rest individually. Uninstall cleanly with /taskmaster-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle (10 plugins): the clarification-to-execution pipeline and only what it dispatches into — taskmaster planning, task-runner execution, orchestration, code-architecture, approaches, stack-scan, skill-router, plus the ui-ux, testing and security lanes its cards route to. Trimmed from 32 on 2026-08-31 to fit the host's skill-listing budget: over that cap the host drops descriptions name-only and the surviving set varies per reload, so the extra members cost reachability for every member. Install the rest individually. Uninstall cleanly with /taskmaster-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "always-on-suite",

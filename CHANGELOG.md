@@ -4,6 +4,34 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.96.0] - 2026-08-31
+
+**The listing cap measured, and the four over-floor bundles made to say so.**
+
+The skill-listing budget is not the ~15,000-char constant this marketplace had
+been designing against — it is a formula, read out of CLI 2.1.251:
+`contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
+0.01; 3 bytes/token on current models). That is **6,000 chars on the default
+200k window and 30,000 on the 1M tier** — the same install can be broken on one
+and fine on the other, and only the bundle can warn the user.
+
+- Four bundles overflow the 200k floor: `taskmaster-suite` (~15.4k),
+  `craft-suite` (~8.7k), `process-suite` (~8.3k), `quality-principles-suite`
+  (~7.9k). Each now declares the requirement in its README and names the fix:
+  `skillListingBudgetFraction` 0.02 (0.03 for taskmaster-suite) in the
+  project's settings.json, or the 1M tier. The fraction is a ceiling, not a
+  purchase — under budget it changes nothing.
+- **New gate `pc_listing_declaration`**: a bundle over the 6,000-char floor
+  without that declaration fails the build. Watched fail on all four before the
+  declarations were written. It gates the string's presence, not its numbers.
+- `context-budget.sh`'s listing channel now computes the real formula (both
+  budgets printed per row), costs entries the way the CLI does
+  (`name + 4 + min(desc,1536)`), and no longer compares bytes to a char cap.
+- No members were cut and no leaves were touched: all 52 leaf plugins fit the
+  200k floor individually — the overflow is a property of bundling, so the
+  honest fix is declaration plus the host's own lever, not deleting a third of
+  each bundle.
+
 ## [0.95.0] - 2026-08-31
 
 **`taskmaster-suite` cut from 32 members to 10**, and the listing channel that

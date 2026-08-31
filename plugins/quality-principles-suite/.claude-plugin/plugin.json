@@ -1,7 +1,7 @@
 {
   "name": "quality-principles-suite",
-  "version": "0.2.3",
-  "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, observability, and test design and coverage review. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall.",
+  "version": "0.2.4",
+  "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, observability, and test design and coverage review. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

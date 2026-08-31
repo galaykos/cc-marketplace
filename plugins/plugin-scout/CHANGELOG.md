@@ -7,6 +7,13 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.12.4
+
+### Changed
+
+- Regenerated catalog: four bundle descriptions now carry a 200k-window
+  context requirement pointer. No behaviour change — skip on upgrade.
+
 ## 0.12.3
 
 ### Changed
