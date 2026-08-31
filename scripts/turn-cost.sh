@@ -73,11 +73,21 @@ as_json=0
 project=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --project)     project="${2:-}"; shift 2 ;;
-    --min-blocks)  min_blocks="${2:-10}"; shift 2 ;;
-    --since)       since_days="${2:-0}"; shift 2 ;;
+    # Value-taking flags demand their value: `shift 2` with $#=1 does NOT shift in
+    # bash — the loop re-read the same flag forever (100% CPU) when a flag was the
+    # last argument. Checked, reported, exit 0: this script never fails a build,
+    # and a hang is worse than either.
+    --project|--min-blocks|--since)
+      [ $# -ge 2 ] || { printf 'turn-cost: %s needs a value\n' "$1" >&2; exit 0; }
+      case "$1" in
+        --project)    project="$2" ;;
+        --min-blocks) case "$2" in ''|*[!0-9]*) printf 'turn-cost: --min-blocks needs an integer, got %s\n' "$2" >&2; exit 0 ;; esac; min_blocks="$2" ;;
+        --since)      case "$2" in ''|*[!0-9.]*|.|*.*.*) printf 'turn-cost: --since needs a number of days, got %s\n' "$2" >&2; exit 0 ;; esac; since_days="$2" ;;
+      esac; shift 2 ;;
     --json)        as_json=1; shift ;;
-    -h|--help)     grep -E '^#' "$0" | sed 's/^#!.*//; s/^# \{0,1\}//'; exit 0 ;;
+    # Only the header block is documentation; '^#' alone also dumped the price
+    # table and schema-drift internals living further down the file.
+    -h|--help)     awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"; exit 0 ;;
     *) printf 'turn-cost: unknown argument %s\n' "$1" >&2; exit 0 ;;
   esac
 done
@@ -204,8 +214,11 @@ for f in files:
     # never reconstructed from the directory name: `-Users-me-Work-a-b` is
     # ambiguous about where the dashes were path separators.
     cwd = next((o["cwd"] for o in recs if o.get("cwd")), None)
-    if PROJECT and (not cwd or not cwd.startswith(PROJECT)):
-        continue
+    # Path-boundary match, not string prefix: '/a/proj' must not admit '/a/proj2'.
+    if PROJECT:
+        proot = PROJECT.rstrip("/")
+        if not cwd or not (cwd == proot or cwd.startswith(proot + "/")):
+            continue
     scanned += 1
     if not any((o.get("message") or {}).get("usage") for o in recs):
         continue
@@ -281,12 +294,20 @@ elif attributed_reqs == 0:
 def pct(a, b):
     return (100.0 * a / b) if b else 0.0
 
+def pctl(vals, q):
+    """Nearest-rank percentile. The naive vals[int(n*q)] returns MAX for every
+    n <= 1/(1-q) — at n=10 the 'p90' was just the maximum, silently."""
+    v = sorted(vals)
+    import math
+    return v[max(0, math.ceil(q * len(v)) - 1)]
+
 if AS_JSON:
     out = {
         "sessions": sessions, "requests": total_reqs, "usd": round(total_usd, 4),
         "turn_blocks": len(blocks),
         "requests_per_block": {
             "median": statistics.median([b[0] for b in blocks]) if blocks else 0,
+            "p90": pctl([b[0] for b in blocks], 0.9) if blocks else 0,
             "mean": round(sum(b[0] for b in blocks) / len(blocks), 1) if blocks else 0,
             "max": max((b[0] for b in blocks), default=0),
         },
@@ -329,9 +350,9 @@ if blocks:
     r = sorted(b[0] for b in blocks)
     d = sorted(b[1] for b in blocks)
     print(f"\nTURN BLOCKS (one human instruction -> the requests it took)  n={len(r)}")
-    print(f"  requests/block   median {r[len(r)//2]}   mean {sum(r)/len(r):.1f}   "
-          f"p90 {r[int(len(r)*0.9)]}   max {r[-1]}")
-    print(f"  $/block          median ${d[len(d)//2]:.2f}   mean ${sum(d)/len(d):.2f}   "
+    print(f"  requests/block   median {statistics.median(r)}   mean {sum(r)/len(r):.1f}   "
+          f"p90 {pctl(r, 0.9)}   max {r[-1]}")
+    print(f"  $/block          median ${statistics.median(d):.2f}   mean ${sum(d)/len(d):.2f}   "
           f"max ${d[-1]:.2f}")
 
 print(f"\nATTRIBUTION COVERAGE  {attributed_reqs:,}/{total_reqs:,} requests "

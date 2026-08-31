@@ -4,6 +4,36 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.96.1] - 2026-08-31
+
+**Fifteen review findings fixed** — a high-effort review of the day's branch
+confirmed 15 defects; all are addressed here. The substantive ones:
+
+- `scripts/turn-cost.sh` no longer hangs on a flag missing its value, bounds
+  `--project` at a path boundary, computes a real p90 (the old index equalled
+  MAX for n≤10), uses one median in both output modes, rejects non-numeric
+  values instead of crash-then-exit-0, and `--help` prints the header only.
+- `skill-router` 0.14.3: a plain FILE squatting the once-per-session marker no
+  longer re-injects the ~9 KB catalog on every prompt; squat case harnessed.
+- `context-budget.sh`: the documented `LISTING_FRACTION` override now works and
+  takes the CLI's own unit (0.01/0.02/0.03 — the old integer-percent variable
+  crashed on exactly the values the bundle READMEs teach); the NEAR band covers
+  both sides of the cap (100–103% no longer prints a confident OVER); and the
+  entry-cost walk is ONE shared helper (`pc_listing_entry_cost`) used by both
+  the gate and the channel — the two by-value copies disagreed by their
+  separator models, so every bundle README's "recompute" step failed.
+- `pc_listing_declaration` is now harnessed (watched fail, clear, bless, and
+  pass-under-floor in `hook-budget-tests.sh`) and counts with pinned `LC_ALL=C`
+  — deterministic bytes, ~1% above the CLI's chars, conservative for a floor.
+- The removed-artifact guard learns the backtick-name + "bundle(s)" shape that
+  let six shipped docs keep offering the deleted `everything` bundle; all six
+  rerouted, historical changelog lines blessed.
+- Superseded-cap prose swept: taskmaster-suite README/CHANGELOG, plugin-scout's
+  "installs most of the universal tier" claim (now 2 of 8 core picks, and says
+  so), claude-authoring's two docs, CLAUDE.md's channel table, the bundle
+  table's mixed 4-vs-3 bytes/token conversion, and the rationale doc's
+  subagent-starvation claim (wrong; superseded in place with the evidence).
+
 ## [0.96.0] - 2026-08-31
 
 **The listing cap measured, and the four over-floor bundles made to say so.**

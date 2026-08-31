@@ -133,9 +133,17 @@
   # route.sh:156 states this plugin's doctrine for exactly this case — "an unwritable
   # state dir cannot swallow a nudge the model should have seen" — and delivers before
   # persisting. This is the same rule on the bigger payload. mkdir stays the atomic
-  # first attempt; the -d test only runs once it has already failed.
+  # first attempt; the existence test only runs once it has already failed.
+  #
+  # `-e`, not `-d`: the first version of this fix tested for a DIRECTORY, so a plain
+  # FILE squatting the marker path fell through both branches and the ~9 KB catalog
+  # injected on every prompt of the session — a worse failure than the one being
+  # fixed. Anything at the path means the marker state is either "fired" or unusable;
+  # suppressing is right in both (one lost catalog beats 9 KB per prompt), and the
+  # fail-open branch stays reachable only when the path is genuinely vacant, i.e. the
+  # parent is unwritable.
   if ! mkdir "$seen" 2>/dev/null; then
-    [ -d "$seen" ] && exit 0
+    [ -e "$seen" ] && exit 0
   fi
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-route-catalog-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
 

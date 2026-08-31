@@ -67,8 +67,11 @@ never binds. Over budget the CLI reduces entries to name-only and buys descripti
 priority order — text past the budget is never sent, so it costs reachability, never tokens.
 The cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that
 is the mechanical reason fewer artifacts beats shorter descriptions.
-Multiply the column above by ~1.5 for what the host actually charges: `claude plugin details`
-adds a per-component floor this table's estimate does not.
+Unit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token
+models this paragraph calls current, add ~33%. The host also charges a per-component floor
+this estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat
+that as an order-of-magnitude correction, never as a coefficient
+(`scripts/context-budget-official.json` header has the derivation and the staleness).
 
 <!-- end:bundle-table -->
 

@@ -43,3 +43,9 @@ have no entries rather than invented ones.
   headroom**. It fits today. One new skill in any member puts it over again, and
   `scripts/context-budget.sh` now reports that band as `NEAR` rather than
   claiming it is safely under.
+
+  *Superseded by 0.17.1:* the "~15,000-char cap" this entry measured against was
+  a mis-derived constant. The real budget is a formula — 6,000 chars at the
+  default 200k window, 30,000 at 1M — so this bundle is not at "99% of the cap":
+  it is over the 200k floor (declare the settings fix) and comfortably under at
+  1M. The 32→10 cut itself stands.

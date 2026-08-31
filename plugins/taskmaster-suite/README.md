@@ -26,7 +26,7 @@ bundle still overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **~15,366 chars** — over
+**6,000 chars**, and this bundle's listing costs **~15,500 chars** (LC_ALL=C bytes — the marketplace's deterministic measure, ~1% above what the CLI counts) — over
 budget, the host reduces entries to name-only in priority order, silently, so
 skills stop being reachable without any error.
 
@@ -58,15 +58,18 @@ text that was previously being evicted.
 ## What's excluded, and why
 
 **The bundle was cut from 32 members to 10 on 2026-08-31, and the reason is a
-ceiling that is not ours.** Claude Code allocates a budget for the skill listing
-— a ~15,000-char absolute default binds before the documented 1%-of-context
-fraction — and past it the host **drops descriptions, leaving names only**, with
-the surviving set varying between identical reloads
-(observed live: `rationale/marketplace-necessity-review-2026-08-26.md`). At 32
-members this bundle carried 156 description-bearing artifacts and 29,100 chars,
-**2.0x the cap**. The overflow was not a token cost — dropped text is never sent
+ceiling that is not ours.** Claude Code budgets its skill listing by the formula
+in the "Context-window requirement" section above — **6,000 chars on the default
+200k window, 30,000 at 1M** — and past it the host **drops descriptions, leaving
+names only**, with the surviving set varying between identical reloads. At 32
+members this bundle cost ~32,700 entry-chars: over even the 1M budget, and 5.4x
+the 200k floor. The overflow was not a token cost — dropped text is never sent
 and never charged — it was **reachability**, and it was paid by every member,
-including the pipeline core. Ten members and 14,581 chars fit. The measurement
+including the pipeline core. At 10 members (~15,500 entry-chars) it fits at 1M
+outright and at 200k with the settings line above. (An earlier revision of this
+section claimed a "~15,000-char absolute default" and that "14,581 chars fit" —
+both derived from a cap that turned out not to exist; superseded by the measured
+formula, `rationale/2026-08-31-token-cost-review.md` addendum.) The measurement
 and the cost model are in `rationale/2026-08-31-token-cost-review.md`.
 
 Inclusion test, in that order of precedence: a plugin stays when the pipeline

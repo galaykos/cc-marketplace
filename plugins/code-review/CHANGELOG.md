@@ -107,7 +107,7 @@ file is what makes an upgrade readable. Newest first.
   `markTestSkipped`/`markTestIncomplete` but not Pest's chained `->skip()` /
   `->todo()`, which is the idiomatic form in Pest — so a Pest suite's quarantined
   tests counted **zero** while the same project's PHPUnit-style skips counted
-  normally. Pest is not fringe in this marketplace: it ships `php` and `laravel`
+  normally. Pest is not fringe in this marketplace: it ships `php` and `laravel` <!-- removed-ok -->
   plugins, and `testing`'s flake-hunt runner table lists Pest by name.
 
   **Upgrade note.** `skipped_tests` will RISE on any Pest project the first time

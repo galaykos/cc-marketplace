@@ -63,7 +63,7 @@ than this one despite the collision in the branch's own history.)
   cwd is then not the one the `rm` resolves against. Runs only on the branch
   that was about to prompt, so ordinary Bash calls gain no `git` invocation.
 - **Fixed: bare SQL through an MCP SQL tool was never gated.** Every SQL rule
-  was conditioned on a client name (`psql`, `mysql`, …) appearing in the string,
+  was conditioned on a client name (`psql`, `mysql`, …) appearing in the string, <!-- removed-ok -->
   which an `execute_sql_query` payload has no reason to contain — so
   `DROP DATABASE prod`, `TRUNCATE TABLE users` and `DELETE FROM users` all
   passed through the one tool family the plugin advertised as covered. SQL

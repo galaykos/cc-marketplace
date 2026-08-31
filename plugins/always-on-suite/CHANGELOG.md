@@ -4,7 +4,7 @@
 
 ### Changed
 - Regenerated `/always-on-suite:uninstall` from the shared template: it no longer
-  names the `everything` meta-bundle as a scope that might also list a member,
+  names the `everything` meta-bundle as a scope that might also list a member, <!-- removed-ok -->
   because that bundle was removed from the marketplace. Membership and behaviour
   are unchanged.
 

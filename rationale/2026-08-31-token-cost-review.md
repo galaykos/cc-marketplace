@@ -347,14 +347,14 @@ Two hypotheses died on measurement before the ones above survived:
 - **"Hooks re-inject their catalogue on every prompt, so dynamic cost compounds."**
   False. `route-prompt.sh:116-120` claims a once-per-session marker and
   `route.sh:28-55` dedups per skill. The 2,731-token dynamic channel is
-  essentially once-per-session. (One real observation in passing, filed as a
-  correctness note and not a cost one: the catalogue marker at
-  `route-prompt.sh:118` keys on raw `.session_id` while the flush block at `:46`
-  keys on `.transcript_path // .session_id`. That is the exact split
-  `pc_context_key` exists to catch, but that gate scans only
-  `.hooks.PostToolUse` and this is `UserPromptSubmit`, so it is out of scope. The
-  effect is a subagent being deduped against a catalogue it never received —
-  cheaper, and wrong.)
+  essentially once-per-session. (A correctness note made in passing here was
+  **wrong, and is superseded**: this document originally claimed the catalogue
+  marker's raw `.session_id` key starves subagents. Verified later the same day —
+  `route-prompt.sh:119-126`, citing `route.sh:23`, `lean/hooks/budget.sh:14` and
+  `testing/hooks/test-shape.sh:90` — UserPromptSubmit never fires in a subagent
+  at all, so there is no second context to starve and the raw key is correct.
+  The hook comment is the evidence-backed claim; this parenthetical is kept only
+  so the two texts cannot be read as a live disagreement.)
 
 - **"Bodies are 202k tokens and descriptions 47k chars, so the repo meters the
   small channel."** False, and it compares the wrong quantity. Prefix bytes carry

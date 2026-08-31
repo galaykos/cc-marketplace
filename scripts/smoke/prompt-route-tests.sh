@@ -162,6 +162,18 @@ else
 fi
 chmod 700 "$ro" 2>/dev/null
 
+# A plain FILE squatting the marker path must SUPPRESS, not inject-forever: with
+# `[ -d ]` it fell through both branches and 9 KB re-injected on every prompt.
+# Suppression (not injection) is asserted because the state is unusable — one
+# lost catalog beats a per-prompt payload — and the fail-open case above already
+# pins the genuinely-vacant-path behaviour.
+sq="$WORK/squat"; mkdir -p "$sq"
+sqj='{"prompt":"build a landing page","session_id":"squat"}'
+touch "$sq/cc-route-catalog-$(printf '%s' squat | cksum | cut -d' ' -f1)"
+osq=$(printf '%s' "$sqj" | env TMPDIR="$sq" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_BIN" "$HOOK" 2>/dev/null)
+[ -z "$osq" ] && pass "file squatting the marker suppresses (no per-prompt re-injection)" \
+  || fail "file squatting the marker suppresses" "injected ${#osq} bytes past a squatted marker"
+
 printf '== half A: catalog content ==\n'
 cat_out="$(run_hook "build a landing page for a B2B marketing agency" "$ROOT/$SR")"
 lines=$(printf '%s' "$cat_out" | grep -c '^- /' || true)

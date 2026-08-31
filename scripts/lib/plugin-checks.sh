@@ -368,7 +368,11 @@ pc_removed_refs() {
   # shapes only. That residual is real: a doc naming the removed SKILL as bare
   # "i18n" outside a reference shape slips through.
   skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid'
-  shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? plugins?($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)($skills)($b|\$)"
+  # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
+  # references in the form "`everything` bundle(s)" / "`craft-suite` and
+  # `everything`" that no existing shape matched — the guard was extended for that
+  # removal and then verified against shapes, not against references.
+  shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)
@@ -1744,6 +1748,40 @@ EOF
   return $bad
 }
 
+# pc_listing_entry_cost <plugin-dir> — the CLI's per-plugin skill-listing entry cost,
+# THE single implementation. Prints "<chars> <entries>": sum over skills/*/SKILL.md and
+# commands/*.md of `name + 4 + min(desc, 1536)` with NO separator term — the caller owns
+# separators (one per entry minus one per install, matching the CLI's join). Two callers:
+# pc_listing_declaration below and context-budget.sh's listing channel. They previously
+# carried the walk twice by value and disagreed by the separator model (9 chars on
+# taskmaster-suite), so every bundle README's "recompute with context-budget.sh" step
+# failed its own verification. One function ends the class.
+#
+# LC_ALL=C is pinned: `wc -m` is locale-dependent (chars under UTF-8, bytes under C) and
+# the verdict near a floor must not depend on the machine's locale. C counts BYTES — a
+# deterministic ~1% OVERcount of what the CLI (JS string length) sees on this em-dash
+# corpus. Conservative in the safe direction for a floor warning, and stated rather than
+# hidden. Folded (`>-`) description scalars would be miscounted, but validate.sh's
+# frontmatter gates already force single-line descriptions, so the shape cannot occur in
+# a tree that passes the rest of this file.
+pc_listing_entry_cost() {
+  local pdir="$1" plug total=0 n=0 f name desc dl
+  plug=$(basename "$pdir")
+  for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md; do
+    [ -f "$f" ] || continue
+    case "$f" in
+      */skills/*) name="$plug:$(basename "$(dirname "$f")")" ;;
+      *)          name="$plug:$(basename "$f" .md)" ;;
+    esac
+    desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
+      | sed -n 's/^description:[[:space:]]*//p' | head -1)
+    dl=$(printf '%s' "$desc" | LC_ALL=C wc -c | tr -d ' ')
+    [ "$dl" -gt 1536 ] && dl=1536
+    total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
+  done
+  printf '%s %s' "$total" "$n"
+}
+
 # pc_listing_declaration [plugins-root] — a bundle that overflows the FLOOR skill-listing
 # budget must say so where an installer will read it.
 #
@@ -1763,33 +1801,27 @@ EOF
 #
 # HONEST LIMITATION: gates that the STRING appears, not that the declared numbers are
 # right — a README recommending 0.02 where the bundle needs 0.03 passes identically.
-# The floor constant is duplicated from context-budget.sh's LISTING_* defaults by value,
-# not by include; if the CLI changes its formula, both go stale together and this
-# comment is the only pointer. Descriptions are counted with wc -m (chars, like the CLI),
-# and agents are excluded because they render in a separate system-prompt section.
+# The entry-cost walk is pc_listing_entry_cost above — ONE implementation shared with
+# context-budget.sh's listing channel, so the figures agree by construction. The floor
+# CONSTANT (6000) still duplicates context-budget.sh's 200k default by value; if the CLI
+# changes its formula both go stale together and this comment is the pointer. Agents are
+# excluded because they render in a separate system-prompt section.
 pc_listing_declaration() {
-  local root="${1:-plugins}" floor=6000 maxdesc=1536 bad=0
-  local pj bname mdir total n f name desc dl readme
+  local root="${1:-plugins}" floor=6000 bad=0
+  local pj bname mdir total n readme
   for pj in "$root"/*/.claude-plugin/plugin.json; do
     [ -f "$pj" ] || continue
     jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
     bname=$(jq -r '.name' "$pj" 2>/dev/null); [ -n "$bname" ] || continue
     total=0; n=0
     while IFS= read -r mdir; do
+      # A dangling dependency is skipped SILENTLY here, and that is safe only
+      # because validate.sh's all-bundle dependency gate already hard-fails any
+      # dep that is not a marketplace plugin name — in CI the undercount can
+      # never be the only symptom.
       [ -d "$mdir" ] || continue
-      local plug; plug=$(basename "$mdir")
-      for f in "$mdir"/skills/*/SKILL.md "$mdir"/commands/*.md; do
-        [ -f "$f" ] || continue
-        case "$f" in
-          */skills/*) name="$plug:$(basename "$(dirname "$f")")" ;;
-          *)          name="$plug:$(basename "$f" .md)" ;;
-        esac
-        desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
-          | sed -n 's/^description:[[:space:]]*//p' | head -1)
-        dl=$(printf '%s' "$desc" | wc -m | tr -d ' ')
-        [ "$dl" -gt "$maxdesc" ] && dl=$maxdesc
-        total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
-      done
+      set -- $(pc_listing_entry_cost "$mdir")
+      total=$(( total + $1 )); n=$(( n + $2 ))
     done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null | sed "s|^|$root/|; s|@.*||"; printf '%s\n' "$root/$bname")
     [ "$n" -gt 1 ] && total=$(( total + n - 1 ))
     [ "$total" -le "$floor" ] && continue

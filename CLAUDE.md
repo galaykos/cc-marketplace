@@ -137,7 +137,7 @@ convention. What follows is only what you need in hand while editing.
   | always-on | `context-budget-baseline.json` | descriptions + SessionStart stdout + local MCP `tools/list` |
   | dynamic | `context-budget-dynamic-baseline.json` | UserPromptSubmit + per-tool hook stdout, MAX across a prompt corpus and five file shapes |
   | activated | `context-budget-activated-baseline.json` | the always-on surface with the state its hooks WAIT for |
-  | listing (report-only) | — | description **chars** vs the host's ~15,000-char skill listing |
+  | listing (report-only) | — | CLI entry cost (`name + 4 + capped desc`) vs the formula budget: 6,000 chars at the default 200k window, 30,000 at 1M — derivation in the script's `LISTING_*` header |
 
   Accept intentional growth with `--update-baseline`, **never in CI**, and never
   blanket — a blanket run has moved baselines it should not have (`5192047a`).

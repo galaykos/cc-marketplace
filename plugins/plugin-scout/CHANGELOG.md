@@ -13,6 +13,10 @@ this file is what makes an upgrade readable. Newest first.
 
 - Regenerated catalog: four bundle descriptions now carry a 200k-window
   context requirement pointer. No behaviour change — skip on upgrade.
+- **README and skill no longer oversell `taskmaster-suite`.** It was described
+  as "installs most of the universal tier"; since that bundle's 32→10 trim it
+  covers 2 of the 8 any-project-core picks, and the docs now say so. `/suggest`
+  and the picker reference also stop special-casing the removed all-in bundle.
 
 ## 0.12.3
 

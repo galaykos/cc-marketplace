@@ -7,7 +7,7 @@ have no entries rather than invented ones.
 
 ### Changed
 - **`authoring-plugins` no longer teaches the all-in-bundle rule.** It told authors
-  a new leaf plugin must be added to the `everything` bundle's `dependencies` or the
+  a new leaf plugin must be added to the `everything` bundle's `dependencies` or the <!-- removed-ok -->
   aggregate install would silently omit it. That bundle was removed on 2026-08-31 —
   at 224 description-bearing artifacts it overshot the host's ~15,000-char skill
   listing and about three quarters of it arrived name-only, nondeterministically.
@@ -16,6 +16,10 @@ have no entries rather than invented ones.
 - **`authoring-skills`' `references/doctrine.md` drops the same reference.** Its
   "no number" argument stands unchanged; it now also names the one ceiling that
   does bind and is not ours — the host's listing eviction.
+- **Both docs now teach the listing budget as the formula it is** (contextWindow
+  x bytesPerToken x fraction — 6,000 chars at a default 200k window), replacing
+  a "~15k-char" constant that turned out not to exist, and the eviction figure
+  is corrected from two thirds to about three quarters.
 
 ## 0.12.4
 

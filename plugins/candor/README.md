@@ -84,7 +84,7 @@ Stated because a gate reads stronger than it is:
 /plugin install candor@cc-plugins-marketplace
 ```
 
-Also arrives with `quality-suite` and `everything`.
+Also arrives with `quality-suite`.
 
 ## Author-time checks
 

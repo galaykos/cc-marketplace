@@ -65,11 +65,14 @@ A new plugin — and a new **agent** inside an existing plugin — is not done w
 files pass validation. Bundles advertise a set; adding to the set without updating
 the bundle makes the bundle lie, and no gate flags it:
 
-- **There is no all-in bundle.** The one that existed was removed: at 224
-  description-bearing artifacts against the host's ~15k-char skill listing, two
-  thirds of it arrived name-only and which two thirds varied per reload. A new
-  leaf plugin therefore joins a THEMED bundle or none — but the README's leaf
-  count is still gated, so keep it in step.
+- **There is no all-in bundle.** The one that existed was removed: the host
+  budgets its skill listing at contextWindow x bytesPerToken x 1% (6,000 chars on
+  a default 200k window, 30,000 at 1M — a formula, not a constant), and at 224
+  description-bearing artifacts about three quarters of that bundle arrived
+  name-only, varying per reload. A new leaf plugin therefore joins a THEMED
+  bundle or none — and a bundle over the 6,000-char floor must declare it
+  (`pc_listing_declaration` gates the declaration). The README's leaf count is
+  still gated; keep it in step.
 - **`*-suite` bundles** (`quality-suite`, `frontend-suite`, `craft-suite`,
   `php-suite`, `db-suite`, `process-suite`, `taskmaster-suite`, … — every plugin
   with a `dependencies` array) depend on a themed subset and drive an
