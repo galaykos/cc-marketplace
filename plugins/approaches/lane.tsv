@@ -12,3 +12,4 @@ approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making v
 # fires first owns the task). Blessed as a co-fire, with the marker below as the
 # mechanism that makes the exclusion checkable instead of remembered.
 approaches:approach-deliberation	skill	decide	change-shape-deliberation	a non-trivial change with two-plus viable shapes, or a refactor/rewrite/migrate request, AND no deliberation marker exists for this task	-
+approaches:compact-recovery	hook	any	post-compaction-decision-recall	SessionStart fires with source=compact AND .claude/approaches/deliberated.json exists	-
