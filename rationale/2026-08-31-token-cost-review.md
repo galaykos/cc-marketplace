@@ -253,12 +253,29 @@ prefix rates. The 11 KB work-repo files are the same lever with 3x the aggregate
 and someone else's judgement to apply.
 
 **R3 — Build the turns instrument, then stop building byte instruments.**
-Minimum viable: a `SessionEnd` reader over the transcript that records requests,
-cumulative context, and `attributionSkill` spans per session, so a plugin can be
-scored on **cost per completed task**. Everything needed is already in
-`~/.claude/projects/*/*.jsonl`; this review is a one-off version of it. Standing
-would be `recorded` — it informs, it cannot gate, because a high-turn plugin may
-be earning its turns.
+**Done: `scripts/turn-cost.sh`** (maintainer path, always exits 0). It reads
+`~/.claude/projects/*/*.jsonl` and reports **turn blocks** — one real human
+instruction and every model request that followed it before the next one. That is
+the closest thing a transcript can witness to "cost per completed task";
+completion is not recorded anywhere, so it measures cost per *instruction* and
+says so. Built as an on-demand script rather than the `SessionEnd` hook this
+paragraph originally proposed, for two reasons: a hook would charge every session
+to measure cost, and it could only ever see forward, while the script scores the
+whole existing history retroactively.
+
+First run over this sample: **median 24 model requests per human instruction**,
+mean 53, p90 119, max 491; median $3.98 per instruction, max $111.64. And it
+refuses to score a single marketplace plugin — every one has fewer than 10 turn
+blocks (task-runner 7, taskmaster 6, ui-ux 5, stack-scan 1, code-architecture 1),
+so the ratios are withheld by default. **That refusal is the instrument working.**
+The honest state of this question is "not enough sessions yet", and a table that
+had produced a confident ranking from n=1 would have been the noise-wearing-a-table
+failure `retirement-queue.sh`'s header warns about.
+
+Its own biggest hole, printed on every run: **subagent turns are invisible** —
+zero `isSidechain` records exist in any transcript here, and subagent requests are
+billed. It under-counts precisely the orchestration-heavy plugins it was built to
+look at.
 
 **R4 — Add one line to `context-budget.sh`'s listing channel**: above the cap,
 the overflow is dropped and therefore *not charged*, so an OVER status is a
