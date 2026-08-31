@@ -92,19 +92,30 @@ budget on cost grounds.
 
 Per session (198 requests, the measured median), at Opus rates:
 
-| item | tokens | $/session | share of the $35.75 session |
-|---|---|---|---|
-| this repo's `CLAUDE.md` | 6,357 | **$0.70** | 2.0% |
-| `everything` skill listing, **as charged** (capped) | ~3,750 | $0.41 | 1.1% |
-| `craft-suite` listing (8,318 chars) | 2,080 | $0.23 | 0.6% |
-| `always-on-suite` listing (6,221 chars) | 1,555 | $0.17 | 0.5% |
-| one skill body invocation | 1,741 | $0.05 | 0.1% |
+**Two populations, and the table below mixes them — read the `who pays` column
+before comparing any two rows.** This is a *marketplace*. A plugin's description
+surface is paid by **everyone who installs it**. `CLAUDE.md` is not shipped, is
+not in any plugin, and reaches **no installer at all** — it is paid only by
+sessions working in this checkout, which this sample shows is the smallest
+bucket in it (81 of 3,038 requests, $12.20 of $544). Putting them in one table is
+useful for sizing prefix items against each other; it is not a like-for-like cost
+comparison, and an earlier draft of this section made exactly that mistake.
 
-**This repo's own `CLAUDE.md` costs more per session than the entire 52-plugin
-catalogue it governs.** It is 25,427 bytes, it is in the prefix, and it is
-re-read on every one of a session's requests. It is not a plugin, so no channel
-in `context-budget.sh` has ever seen it. In aggregate across the whole sample it
-is still only ~$3.20 (0.6%, R2) — which is the point of this table, not an
+| item | who pays | tokens | $/session |
+|---|---|---|---|
+| this repo's `CLAUDE.md` | **maintainers here only — never an installer** | 6,357 | **$0.70** |
+| `everything` skill listing, **as charged** (capped) | every installer | ~3,750 | $0.41 |
+| `craft-suite` listing (8,318 chars) | every installer | 2,080 | $0.23 |
+| `always-on-suite` listing (6,221 chars) | every installer | 1,555 | $0.17 |
+| one skill body invocation | the installer, on invocation | 1,741 | $0.05 |
+
+**Per session in this checkout, `CLAUDE.md` outweighs the whole 52-plugin
+catalogue — but those are different sessions and different people.** It is 25,427
+bytes of prefix re-read on every request of a maintainer session, and no channel
+in `context-budget.sh` has ever seen it because it is not a plugin. It is
+therefore a **maintainer cost, not a product cost**, and no reason to touch it is
+a reason that reaches a user. In aggregate across the whole sample it is ~$3.20
+(0.6%, R2) — which is the point of this table, not an
 exception to it: **nothing in the prefix is worth much.**
 
 The whole always-on surface is **~1% of a session's cost.** The uplift run was
@@ -252,7 +263,9 @@ not a preference. Cost is not the reason to act; a bundle that silently drops
 two-thirds of itself is.
 
 **R2 — `CLAUDE.md` is an unmetered prefix item in every repo, and this one is the
-worst offender.** **Done 2026-08-31: 25,427 → 18,971 bytes (−25%).** Not by
+worst offender. It is a MAINTAINER cost only: this is a marketplace, `CLAUDE.md`
+ships in no plugin and reaches no installer, so nothing in this recommendation
+improves anything for a user of these plugins.** **Done 2026-08-31: 25,427 → 18,971 bytes (−25%).** Not by
 hitting the ~8,000-byte target this section originally named — that number was
 invented here with nothing measuring it, and cutting to reach it would have
 deleted operative text. The cut applied this repo's own rule instead: every `pc_*`
