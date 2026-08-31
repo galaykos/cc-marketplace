@@ -18,21 +18,16 @@ publishable plugin.
     2026-08-20; a design doc parked under `evals/` is still a violation in spirit
     and no script can tell the two apart.
 
-    **Standing of the eval surface itself: `recorded`, not verified** — recounted
-    2026-08-31. **2 of 62** plugins ship an eval (nextjs, resilience), **none**
-    defines a control arm, and `claude plugin eval` is early-access gated
-    on this account, so no shipped suite has been run against the runner's schema.
-    "Functional" above describes the intended contract, not a checked one. The
-    consequence that matters: a grader passing proves nothing about the SKILL
-    unless a control arm shows the base model failing the same prompt — and the
-    one time that was actually measured
+    **Standing of the eval surface itself: `recorded`, not verified.** Almost no
+    plugin ships an eval, none defines a control arm, and `claude plugin eval` is
+    early-access gated on this account, so no shipped suite has been run against
+    the runner's schema. "Functional" above describes the intended contract, not a
+    checked one. The consequence that matters: a grader passing proves nothing
+    about the SKILL unless a control arm shows the base model failing the same
+    prompt — and the one time that was measured
     (`rationale/eval-ablation-2026-08-20.md`), the skill under test scored **zero
-    delta in every arm**. This paragraph read "4 of 71 … (i18n, nextjs, php,
-    resilience)" until 2026-08-27, three days after it was written: `cfef9c1`
-    deleted nine plugins, two of them the eval-shipping ones it named, so a
-    reader following the sentence went looking for directories that do not
-    exist. Recount before trusting any of these numbers:
-    `ls -d plugins/*/evals | wc -l`.
+    delta in every arm**. Count it, don't quote a count:
+    `ls -d plugins/*/evals 2>/dev/null | wc -l`.
   - any code the plugin needs to run (e.g. a `template/`)
 - Do **not** put a `design/`, `docs/`, or spec dir inside a plugin to "preserve"
   history. If a document truly must be tracked, it goes in **`rationale/`** at
@@ -73,148 +68,97 @@ restate the table here, or the two drift.
 
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
-Adopted incrementally as plugins are touched, not in a sweep. **Do not copy a
-count from this paragraph — recount it**, the way the retirement-queue and CI-step
-numbers below say to, and for the same reason: this sentence said "7 plugins" from
-2026-07 until 2026-08-23, by which point it was 13. Recount with
-`grep -rl "Standing:" --include='*.md' plugins/ | cut -d/ -f2 | sort -u | wc -l`
-(drop `--include` to count hook scripts too). As of 2026-08-24 that is **14** in
-shipped `.md` and **18** including hook scripts, plus craft-layer's worked table
-above — and the first figures written here, 13/17, were already stale when they
-were committed, because a later commit on the same branch added command-guard's
-marker. Two days, two stale counts: run the command. **No script enforces the convention** — which puts it in its own
-`recorded` tier, and saying so is the point.
+Adopted incrementally as plugins are touched, not in a sweep. **This paragraph
+carries no count on purpose** — the one it used to carry was wrong twice in two
+days, once within the same branch that wrote it. Run:
+
+```bash
+grep -rl "Standing:" --include='*.md' plugins/ | cut -d/ -f2 | sort -u | wc -l
+```
+
+**No script enforces the convention** — which puts it in its own `recorded` tier,
+and saying so is the point.
 
 ## Plugin change gates
 
-- `scripts/validate.sh` — structure, frontmatter, the SKILL.md body budget — **200 lines,
-  14,000 bytes, and 300 characters per line** (no floor; the byte and line-length
-  measures were added 2026-08-20 because the line count had stopped measuring: one
-  skill sat at a frozen 154 lines across 20 commits while its bytes grew 31% and its
-  >110-char lines went 2 → 29. Frontmatter, fenced code and table rows are exempt from
-  the line-length check, by construction and stated in the check. **Raised from
-  150/10,000 on 2026-08-27**, and the raise reverses an argument the gate's own
-  header used to make — "a ceiling that permits today's worst case is theater" —
-  so read `pc_skill_budget`'s header for why the narrower claim is now the honest
-  one. The short version: 24 of 116 bodies sat at EXACTLY 150 lines, a quarter of
-  the corpus written TO the ceiling rather than under it, so the cap was shaping
-  content rather than bounding it; the two numbers move together because at the
-  old 10,000 bytes the byte measure capped every body near 185 lines, making a
-  line-only raise to 200 *or* 250 worth an identical median 35 usable lines. The
-  300-char line-length check is deliberately NOT raised: jamming was the old
-  cap's symptom, and relaxing the symptom check alongside the cap would destroy
-  the evidence. Pressure moved to `pc_budget_crowding`, re-seeded to 0 at the new
-  ceiling — the first body written to 200 fails immediately),
-  reference resolution, the description linter (max 500 chars for frontmatter
-  descriptions, no "Trigger words:" lists; plugin.json descriptions get a
-  WARN-only 700-char clarity guideline), and the doc-location rule above. It also blocks leaked internal taskmaster
-  jargon (`card NN` / `Finding #N` / `smoke-test #N` / `the backlog`, plural
-  forms like `cards NN` included) in shipped plugin `.md` files —
-  `references/` AND the plugin-root docs (`README.md` / `CHANGELOG.md` /
-  `ROADMAP.md`) are scanned — excluding the taskmaster + task-runner plugins;
-  mark a line legitimately quoting the vocab with `<!-- jargon-ok -->`. Same
-  file set, same script: a **removed-artifact guard** fails any reference to a
-  plugin or skill removed or merged away from this marketplace (typescript,
-  vue2, rollout, react-best-practices, the css-family skills, …) unless the
-  line discusses the removal itself or carries `<!-- removed-ok -->`;
-  `claude-api` must be described as Claude Code's built-in skill, never as a
-  marketplace artifact. Same file set: a **host-overlap guard** fails any plugin
-  SKILL whose directory name equals a skill Claude Code itself ships (`dataviz`,
-  `skill-creator`, `artifact-design`, `claude-api`, `simplify`, …) unless the
-  line carries `<!-- host-ok -->` — commands are out of scope, being namespaced
-  at the call site. It also gates **routing reachability**: every
-  `plugins/skill-router/rules.tsv` glob row must be able to fire under
-  `route.sh`'s `match_glob`, which understands only the `**/dir/**` form and
-  basename-matches everything else, and README structure (a `###` heading with a
-  table header and zero rows fails; a plugin needs a real table ROW, not a prose
-  mention). Patterns and rescue lists live in `scripts/lib/plugin-checks.sh`,
-  one source shared with the smoke fixtures. A **version-leverage stamp gate**
-  (also `plugin-checks.sh`) fails any plugin whose description claims version
-  leverage while no skill of its carries a `> Last verified: YYYY-MM-DD — <url>`
-  stamp — the stamp is the input `check-doc-staleness.sh` reads to detect that
-  leverage decaying. Two paired checks guard hook **one-shot state**:
-  `pc_context_key` fails a PostToolUse hook that keys on `session_id` (a subagent
-  shares its parent's, so the worker gets deduped against nudges it never saw),
-  and `pc_marker_key` fails a hook that then interpolates that key **raw into a
-  filesystem path** — `transcript_path` is an absolute path, so the marker lands
-  nowhere and the bound it records silently stops existing. The first gates the
-  read, the second gates that the value is usable; neither can see the other's
-  failure. A third, `pc_harness_payload`, closes the CONDITION rather than the
-  instance: a smoke or `__tests__` harness that exercises a context-keyed hook
-  must send a `transcript_path`, because a harness sending only `session_id`
-  grades the fallback branch and that is the sole reason three broken hooks
-  shipped behind a green suite. Bless with `# context-key-ok:` /
-  `# marker-key-ok:` / `# harness-payload-ok: <why>`. Added 2026-08-27:
-  `pc_hook_timeout` fails any `hooks.json` entry with no `timeout` — a hook runs
-  inside the user's turn, and all 41 shipped entries had left that bound to the
-  host default; it gates that a NUMBER EXISTS, not that it is right, and says
-  nothing about what a killed hook does. And `pc_budget_crowding`, the
-  corpus-level companion to the per-file SKILL budget: a **ratchet** over
-  `scripts/skill-crowding-baseline.json` counting bodies within 3 lines of the
-  150-line ceiling (31 of 116 on the day it was seeded, 24 of them at *exactly*
-  150). The number may fall, never rise. It exists because a per-file ceiling is
-  structurally blind to authors writing TO it — the same failure that retired the
-  line count as a measure in 2026-08, one iteration later and visible only in the
-  aggregate. Also added: `pc_pick_parity`, asserting the two scout plugins' `pick.sh`
-  stay byte-identical — `${CLAUDE_PLUGIN_ROOT}` is per-plugin, so neither can read the
-  other's copy and either may be installed alone; the duplication is required by the
-  plugin boundary and a checksum is the only available discipline. It gates the SCRIPT
-  only: the two prose descriptions of that picker have already drifted and nothing
-  checks those. All three are exercised by `scripts/smoke/hook-budget-tests.sh`.
-- `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
-  vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
-  so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /
-  `ROADMAP.md` — a typo fix there does not demand a semver bump. Since 2026-08-02 it
-  also checks **changelog coverage**, and the tier is split on purpose: a plugin
-  that HAS a `CHANGELOG.md` must carry an entry for the version it just bumped to
-  (`gate`), and one that has none draws a `WARN` naming the consumer's problem. It
-  is not hard for everyone because that would demand ~47 backfilled changelogs
-  (62 plugins, 15 with the file — recounted 2026-08-31 with
-  `ls plugins/*/CHANGELOG.md | wc -l`) describing releases nobody recorded — invented history in the file whose job is
-  history. Adding the file opts a plugin in; `code-review` and `devops` ship the
-  worked examples.
-- `scripts/context-budget.sh` — BLOCKING token gate vs committed baselines (own
-  CI step), across **three** channels: **always-on**
-  (`context-budget-baseline.json` — descriptions + SessionStart stdout + local
-  MCP `tools/list`), **dynamic** (`context-budget-dynamic-baseline.json` —
-  UserPromptSubmit and per-tool hook stdout, measured with a **five-prompt
-  corpus** (it was four until 2026-08-23; count the strings in the script rather
-  than trusting this number) summed per prompt and scored MAX, plus a synthetic `Edit`), and
-  **activated** (`context-budget-activated-baseline.json`, added 2026-08-20 —
-  the always-on surface re-measured with the state its hooks WAIT for: a terse
-  level set, a `brain/INDEX.md` present, manifests to sniff). Each omission was
-  load-bearing when it existed: the dynamic channel missed ~2.4k tokens of
-  skill-router before 2026-08-02; the always-on pass meters the OFF state, so
-  terse read 886 while a switched-on install pays 1,928, and the activated
-  channel is +1.2k tokens on `everything` that no baseline saw. The dynamic probe
-  was ONE fixed prompt until 2026-08-20 — a hook whose trigger vocabulary missed
-  that sentence baselined at 0 forever (api-docs-first did, at a real 52 tokens).
-  Accept intentional growth with `--update-baseline`, never in CI.
-  `--reconcile` / `--update-official` compare against `claude plugin details`,
-  the host's own meter, which reads **1.54x higher** than our bytes/4 estimate
-  (12,789 vs 19,667, 2026-08-20, `scripts/context-budget-official.json`) because
-  the host charges a per-component floor. **That snapshot's population is stale
-  and the ratio inherits it**: it holds 61 entries measured before `cfef9c1`,
-  including nine plugins since deleted (i18n, livewire, mysql, node-backend,
-  nuxt, php, postgresql, react, vue3) and none of the 11 bundles. Today's tree is
-  52 leaves. Re-measuring needs an install — `details` resolves by installed name
-  — so the 1.54x is carried forward as a **historical** figure, not a current
-  one; treat it as an order-of-magnitude correction, not a coefficient. That
-  mode is **local and WARN-only, not a CI step**: `details` resolves by installed
-  name, so a fresh checkout cannot run it. Still
-  unmetered BY NATURE and reported by name each run rather than scored zero:
-  skill BODIES loaded by a routing rule, remote MCP servers, and any hook waiting
-  for state the activated fixture does not know to create.
+Four scripts. **Every derivation below lives in the check's own header** — each
+`pc_*` function in `scripts/lib/plugin-checks.sh` carries 9-29 lines explaining
+what it catches, what it does not, and what shipped that made it exist. This
+section used to restate them, which put the same argument in two files and let
+the copy here go stale: it described `pc_budget_crowding`'s ceiling as 150 lines
+four days after it moved to 200. **Cite them; do not restate them here** — the
+same rule this file already applies to the four laws and the has-teeth
+convention. What follows is only what you need in hand while editing.
 
-- `scripts/generate.sh --check` — BLOCKING chassis-drift gate (own CI step): every
+- **`scripts/validate.sh`** — structure, frontmatter, reference resolution, README
+  structure, routing reachability, the doc-location rule above, and the `pc_*`
+  battery in `scripts/lib/plugin-checks.sh` (one source shared with the smoke
+  fixtures).
+
+  Numbers you need while writing: **SKILL.md body ≤ 200 lines, ≤ 14,000 bytes,
+  ≤ 300 chars per line** (no floor; frontmatter, fenced code and table rows are
+  exempt from the line-length check). Frontmatter `description:` **≤ 500 chars**,
+  no "Trigger words:" lists; `plugin.json` descriptions draw a WARN-only 700-char
+  guideline.
+
+  Escape hatches, when a check is wrong about your line — each needs a reason,
+  and the check's header says what a good one looks like:
+
+  | marker | silences |
+  |---|---|
+  | `<!-- jargon-ok -->` | leaked taskmaster vocabulary (`card NN`, `Finding #N`, `the backlog`) |
+  | `<!-- removed-ok -->` | a reference to a plugin/skill removed from this marketplace |
+  | `<!-- host-ok -->` | a skill dir whose name collides with one Claude Code ships |
+  | `# context-key-ok:` | a PostToolUse one-shot deliberately keyed on `session_id` |
+  | `# marker-key-ok:` | a context key deliberately used raw in a path |
+  | `# harness-payload-ok:` | a harness deliberately sending no `transcript_path` |
+  | `# lane-cofire-ok:` | two artifacts deliberately sharing one `owns` in one phase |
+
+  `claude-api` must be described as Claude Code's built-in skill, never as a
+  marketplace artifact.
+
+- **`scripts/check-version-bumps.sh`** — a plugin whose **functional** files
+  changed vs the base ref must bump `plugin.json`. New plugins are exempt; so are
+  doc-only edits to a plugin's root `README.md` / `CHANGELOG.md` / `ROADMAP.md`.
+  Changelog coverage is split by tier on purpose: a plugin that HAS a
+  `CHANGELOG.md` must carry an entry for the version it just bumped to (**gate**);
+  one that has none draws a **WARN** naming the consumer's problem. Adding the file
+  opts a plugin in permanently — `code-review` and `devops` are the worked
+  examples. It is not hard for everyone because that would demand backfilled
+  changelogs describing releases nobody recorded: invented history in the file
+  whose job is history. (Recount the split rather than quoting one:
+  `ls plugins/*/CHANGELOG.md | wc -l` against `ls -d plugins/*/ | wc -l`.)
+
+- **`scripts/context-budget.sh`** — BLOCKING token gate vs committed baselines,
+  three metered channels plus one report-only:
+
+  | channel | baseline | measures |
+  |---|---|---|
+  | always-on | `context-budget-baseline.json` | descriptions + SessionStart stdout + local MCP `tools/list` |
+  | dynamic | `context-budget-dynamic-baseline.json` | UserPromptSubmit + per-tool hook stdout, MAX across a prompt corpus and five file shapes |
+  | activated | `context-budget-activated-baseline.json` | the always-on surface with the state its hooks WAIT for |
+  | listing (report-only) | — | description **chars** vs the host's ~15,000-char skill listing |
+
+  Accept intentional growth with `--update-baseline`, **never in CI**, and never
+  blanket — a blanket run has moved baselines it should not have (`5192047a`).
+  `--reconcile` is local and WARN-only: `claude plugin details` resolves by
+  installed name, so a fresh checkout cannot run it.
+
+  Two things it reports rather than scores, and the script names both every run:
+  what is unmetered by nature (skill BODIES loaded by a routing rule, remote MCP
+  servers, hooks waiting for state the fixture does not create), and why an
+  `OVER`/`NEAR` listing status is a **reachability** warning and never a cost one.
+  The cost model behind that distinction — and the measurement showing the
+  always-on surface is ~1% of a session's spend against 61.8% for cache reads — is
+  `rationale/2026-08-31-token-cost-review.md`.
+
+- **`scripts/generate.sh --check`** — BLOCKING chassis-drift gate: every
   chassis-generated file (review commands, worker agents, suite uninstalls,
-  reminder hooks) must byte-match its template output; regenerate with
-  `--write` after editing templates or `.chassis.json`. Two repo-level steps ride
-  the same gate and are NOT chassis files: plugin-scout's `catalog.md`, and the
-  README **bundle table** between `<!-- generated:bundle-table -->` and
-  `<!-- end:bundle-table -->` (rows and the leaf-count sentence come from each
-  bundle's `plugin.json` dependencies plus both context-budget baselines — edit
-  them by hand and `--check` fails).
+  reminder hooks) must byte-match its template output. Regenerate with `--write`
+  after editing anything under `templates/` or a `.chassis.json`. Two repo-level
+  steps ride the same gate and are NOT chassis files: plugin-scout's `catalog.md`,
+  and the README **bundle table** between `<!-- generated:bundle-table -->` and
+  `<!-- end:bundle-table -->` — edit those rows by hand and `--check` fails.
 
 ## Lanes: who owns what, and when (convention + gate)
 
@@ -293,16 +237,11 @@ per the has-teeth convention above:
 
 **Blocking — fails CI.** `.github/workflows/validate.yml` has **32 named steps;
 31 can fail the build**, and on a push to `master` only **30** can fail
-(`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`, so
-31 of the 32 run). Recounted 2026-08-28, when the scout-name gate harness added a
-step. The figures before that were 31/30/29 — recounted 2026-08-27, twice on that
-day, because the audit that corrected the figure to 30/29/28 then added a step and
-moved it again. The figures before that were 29/28/27
-(recounted 2026-08-25, when the source-of-truth harness step moved every one of
-them) and 28/27/26 (2026-08-17), and stale in both directions before THAT —
-which is why this file says, of these numbers specifically: **recount them, do
-not copy them.** The
-command, so the next reader does not have to invent it:
+(`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
+This is the one count deliberately carried here and nowhere else —
+`scripts/done-gate.sh:7` says why: two files carrying one number is how they
+drift apart. It has still been stale in both directions five times, so
+**recount it, do not copy it**:
 
 ```bash
 python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"
@@ -320,13 +259,10 @@ ls plugins/*/scripts/__tests__/*.test.sh | wc -l                    # plugin har
 bash scripts/gate-coverage.sh   # which author-time checks a harness exercises
 ```
 
-The glob is the right fix precisely because a counted list here is not: this
-paragraph has carried a wrong count three times — "taskmaster and task-runner are
-the two" long after 18 more had landed, a 2026-08-17 recount invalidated by two
-later commits on the same branch, and a 20-item list that was 23 within two
-commits. Not under `scripts/smoke/`. (`scripts/smoke/canary.sh` is
-deliberately NOT a CI step: its own header says it needs a live model; it
-stays a local authoring harness.)
+The glob is the right fix precisely because a counted list here is not — this
+paragraph carried a wrong count three times before it stopped carrying one.
+(`scripts/smoke/canary.sh` is deliberately NOT a CI step: its own header says it
+needs a live model; it stays a local authoring harness.)
 CI can still be red after a green local four-script pass: several of those
 harnesses assert **exact gate message strings**, so rewording a gate's error
 breaks CI even when the gate itself still works.
@@ -347,21 +283,17 @@ cannot stop anything. Counting it as enforcement is the tier over-claim this
 file's own convention forbids.
 
 **Maintainer path, not a gate.** `scripts/retirement-queue.sh` — ranks shipped
-skills by the two usage ledgers written since 2026-08-02
-(`~/.claude/skill-router/<slug>/surfaced.jsonl`, what the router OFFERED;
-`~/.claude/hindsight/<slug>/skills.jsonl`, what was INVOKED). Always exits 0 and
-never proposes a deletion: zero invocations proves nobody used it HERE, non-zero
-proves it fired and not that it helped, and "never surfaced" mostly measures the
-router's coverage — most skills have no `rules.tsv` row at all. That figure has now
-been recorded stale three times ("99 of 126", then "91 of 129", both trusted as
-measurements), so it is not recorded here a fourth. Recount:
+skills by the two local usage ledgers, so a removal argument can be made from
+data instead of taste. Always exits 0 and never proposes a deletion; its header
+explains why each direction of the evidence is weak (zero invocations proves
+nobody used it HERE; non-zero proves it fired, not that it helped; "never
+surfaced" mostly measures the router's coverage). It says where a
+control/treatment run is worth spending, nothing more. The unrouted count is not
+recorded here — it was recorded stale three times — recount:
 
 ```bash
 python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s),'unrouted')"
 ```
-
-It says
-where a control/treatment run is worth spending, nothing more.
 
 **Maintainer path, not a gate.** `scripts/turn-cost.sh` — the only instrument
 here that meters something other than bytes: **turn blocks**, one human
@@ -372,30 +304,23 @@ and not the byte ones, and what it measured: `rationale/2026-08-31-token-cost-re
 Cite it; do not restate its numbers here.
 
 **Maintainer path, not a gate.** `scripts/remove-plugin.sh` — the sanctioned
-plugin-removal script. It rewrites leaf-derived numbers only. Removing a *leaf*
-changes every suite that listed it, and those suites' member counts get a `WARN`,
-not an edit.
+plugin-removal script; dry-run by default, edits with `--apply`. It rewrites
+leaf-derived numbers only. Removing a *leaf* changes every suite that listed it,
+and those suites' member counts get a `WARN`, not an edit.
 
-This paragraph used to end "so the bundle table at `README.md` drifts on exactly
-the removal the script is for. Nothing gates that table." **That was false, and
-had been since 2026-08-02** — the `generate.sh --check` paragraph above says the
-opposite about the same table, so this file contradicted itself for three weeks.
-The table IS gated, by inheritance: `remove-plugin.sh` deletes the
-`marketplace.json` entry, so a suite still listing the removed leaf hard-fails
-`validate.sh`'s all-bundle dependency gate; fixing that dep changes the member
-count, which `generate.sh --check` then forces into the table.
+The README bundle table **is** gated, by inheritance rather than directly:
+`remove-plugin.sh` deletes the `marketplace.json` entry, so a suite still listing
+the removed leaf hard-fails `validate.sh`'s all-bundle dependency gate; fixing
+that dep changes the member count, which `generate.sh --check` then forces into
+the table. One residual is real: the table is not *self*-gating, so immediately
+post-removal it shows stale counts while `--check` reports no drift — the failure
+surfaces as a red build rather than as table drift, which is why the WARN above
+matters.
 
-Two residuals are real and worth keeping. **(1)** The table is not *self*-gating:
-immediately post-removal it shows stale counts while `--check` reports no drift,
-because it is consistent with a manifest `validate.sh` has already condemned. So
-the failure surfaces as a red build, not as table drift — which is why the WARN
-above matters. **(2)** `remove-plugin.sh` hand-`sed`s the `everything` row, which
-lives *inside* the `<!-- generated:bundle-table -->` region whose own header says
-not to edit those rows by hand. Two writers, one generated region; last writer
-wins silently. Nothing gates *that*.
-
-The correction is itself the lesson this section teaches, running backwards: a
-gate can be mis-tiered as toothless as easily as a habit can be mis-tiered as a
-gate, and the toothless direction is more expensive — it makes someone build what
-already exists. `pc_version_stamp` carried the same inversion in its own header
-for 21 days after it started blocking.
+This paragraph used to assert the opposite ("nothing gates that table"), which
+contradicted the `generate.sh --check` paragraph above for three weeks. The
+correction is the lesson this section teaches, running backwards: a gate can be
+mis-tiered as toothless as easily as a habit can be mis-tiered as a gate, and the
+toothless direction is more expensive — it makes someone build what already
+exists. `pc_version_stamp` carried the same inversion in its own header for 21
+days after it started blocking.

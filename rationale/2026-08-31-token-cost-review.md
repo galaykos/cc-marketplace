@@ -252,7 +252,19 @@ not a preference. Cost is not the reason to act; a bundle that silently drops
 two-thirds of itself is.
 
 **R2 — `CLAUDE.md` is an unmetered prefix item in every repo, and this one is the
-worst offender.** It is the largest single controllable item in the prefix and no
+worst offender.** **Done 2026-08-31: 25,427 → 18,971 bytes (−25%).** Not by
+hitting the ~8,000-byte target this section originally named — that number was
+invented here with nothing measuring it, and cutting to reach it would have
+deleted operative text. The cut applied this repo's own rule instead: every `pc_*`
+check carries 9–29 lines of its own header, so the gate section restated
+arguments that already had a home, and one copy had drifted (it described
+`pc_budget_crowding`'s ceiling as 150 lines four days after it moved to 200).
+Counts were replaced by the command that recomputes them, which removes the
+staleness class rather than resetting it — except the CI step count, which
+`scripts/done-gate.sh:7` deliberately sole-carries here. Every rule, limit and
+blessing marker survives; verified by grep, not by eye.
+
+ It is the largest single controllable item in the prefix and no
 channel has ever seen it. Sized across the sample:
 
 | repo | `CLAUDE.md` | requests | cache-read cost in sample |
