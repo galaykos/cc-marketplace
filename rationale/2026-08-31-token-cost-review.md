@@ -24,6 +24,13 @@ is high, and no amount of further trimming will change that.
   attribution-bearing record. It **over-attributes** — a plugin gets charged for
   turns after its skill stopped being the active thing. Treat the per-plugin
   table as an upper bound.
+- **Attribution is missing from half the sample.** `attributionSkill`/`attributionPlugin`
+  records appear on CC **2.1.202** (574 recs / 853 requests), **2.1.217** (263 / 630)
+  and **2.1.251** (9 / 73) — but **2.1.222 emits none at all across 1,444 requests
+  and 9 sessions**, 48.6% of the sample. Every utilization figure below is therefore
+  a **lower bound on what fired**, and the unattributed $303 bucket is mostly that
+  version rather than genuinely plugin-free work. Do not use these counts to justify
+  a deletion.
 - `~/.claude/hindsight/*/skills.jsonl` and `~/.claude/skill-router/*/surfaced.jsonl`
   are **empty on this machine**, so the ledgers `retirement-queue.sh` reads have
   nothing in them. Utilization below comes from transcript attribution instead.
@@ -65,7 +72,10 @@ Measured here: **28 compactions across 15 sessions, every one a ~50% drop, media
 39 requests apart** (min 3, mean 74, max 269). Effective multiplier ≈
 `2 + 39x0.1` = **~5.9x**.
 
-**So a byte in the prefix costs ~3.7x a byte in the conversation.**
+**So a byte in the prefix costs several times what a byte in the conversation
+costs** — call it order-of-magnitude 3-4x rather than a constant, since 5.9x
+assumes a body loads right after a compaction (median load position gives ~4x)
+and summarized content partly survives.
 `context-budget.sh` meters the prefix. **It is metering the right channel, and
 the uplift doc's defence of it was correct** — but for a reason neither document
 states: not because always-on is "what every session pays", but because the
@@ -93,7 +103,9 @@ Per session (198 requests, the measured median), at Opus rates:
 **This repo's own `CLAUDE.md` costs more per session than the entire 52-plugin
 catalogue it governs.** It is 25,427 bytes, it is in the prefix, and it is
 re-read on every one of a session's requests. It is not a plugin, so no channel
-in `context-budget.sh` has ever seen it.
+in `context-budget.sh` has ever seen it. In aggregate across the whole sample it
+is still only ~$3.20 (0.6%, R2) — which is the point of this table, not an
+exception to it: **nothing in the prefix is worth much.**
 
 The whole always-on surface is **~1% of a session's cost.** The uplift run was
 right to refuse to trade dispatch quality for it, and right that trimming buys
@@ -109,10 +121,14 @@ margin). Dropped text is not sent, so it is **not charged**.
 
 Two consequences the uplift doc's listing channel implies but does not say:
 
-1. **The always-on figure for those two installs is not a cost.** `everything`'s
-   11,648-token entry is a catalogue weight; the charged prefix is pinned at the
-   cap, the same as any install that reaches it. Trimming descriptions there
-   saves **$0.00** until the total drops under 15,000 chars.
+1. **The always-on figure for those two installs is almost entirely not a cost.**
+   `everything`'s 11,648-token entry is a catalogue weight; the charged
+   description text is pinned at the cap. Not *exactly* zero: eviction drops
+   description bodies with **names surviving**, so an over-cap install still pays
+   for every artifact's name and owning plugin — `everything` carries 224 of those
+   against a 76-artifact install's 76. That residue is tens of tokens per artifact,
+   not hundreds. Trimming description *text* above the cap saves approximately
+   nothing until the total drops under 15,000 chars.
 2. **What is lost is reachability, and it is nondeterministic.** `everything`
    ships 224 description-bearing artifacts. At the measured 196-char average, the
    cap holds about **76**. Roughly two-thirds of the bundle's skills cannot be
@@ -133,10 +149,14 @@ Every skill that ever fired in the sample:
 | code-architecture | plan-before-code, plan | $2.04 | 0.4% |
 | *(caveman — a different marketplace)* | caveman | $81.82 | 15.3% |
 
-**58 of 63 marketplace plugins and 102 of 116 skills never fired once.** On this machine, in
-this history. That is not proof they are dead — most are stack-specific and this
-sample has no Vue or Three.js work in it — but it does mean the corpus this repo
-gates, ratchets and budgets is, empirically, ~13% exercised.
+**58 of 63 marketplace plugins and 102 of 116 skills show no recorded invocation.**
+That is a floor, not a count: 48.6% of the sample runs a CC version that emits no
+attribution at all (see bounds), most of these plugins are stack-specific and this
+history has no Vue or Three.js work in it. What survives the caveat is the shape,
+not the number — a small, stable core of workflow plugins carries the observable
+traffic, and the corpus this repo gates, ratchets and budgets is exercised far
+more narrowly than it is measured. **This is not evidence for deleting anything**;
+the uplift run already established that the deletion lever is void on evidence.
 
 ## The lever nothing here measures: turns
 
@@ -204,12 +224,33 @@ uplift doc left, and my answer is: the reachability argument makes it a defect,
 not a preference. Cost is not the reason to act; a bundle that silently drops
 two-thirds of itself is.
 
-**R2 — Cut this repo's `CLAUDE.md`.** 25,427 bytes, ~$0.70/session, the single
-largest controllable item in the prefix, larger than the whole plugin catalogue.
-Most of its length is recount narrative and correction history — genuinely
-valuable, and it belongs in `rationale/` where it is read on demand. Leave the
-four gates, the doc-location rule, the lane schema, and pointers. Target ~8,000
-bytes. Nothing gates this file's size today.
+**R2 — `CLAUDE.md` is an unmetered prefix item in every repo, and this one is the
+worst offender.** It is the largest single controllable item in the prefix and no
+channel has ever seen it. Sized across the sample:
+
+| repo | `CLAUDE.md` | requests | cache-read cost in sample |
+|---|---|---|---|
+| cc-marketplace | **25,427 B** (~6,357 tok) | 81 | $0.26 |
+| dominium (+2 worktrees) | 11,011 B | 1,055 | $1.45 |
+| lynx-market | 11,069 B | 475 | $0.66 |
+| link-catalyst (+worktree) | 11,011 B | 373 | $0.51 |
+| traffic-hub-app | 11,011 B | 236 | $0.32 |
+
+**Aggregate ≈ $3.20 of $536.20 — 0.6%.** Per *session* it is the biggest prefix
+line item (~$0.70 in a 198-request session at cc-marketplace's size, ~$0.13 in
+the 40-request sessions this repo actually runs), and in aggregate it is still
+under one percent. Both facts are true and the second one is the one that should
+govern effort.
+
+Do it because it is cheap and safe, not because it is large. **Verified safe:**
+`grep -rn "CLAUDE.md" scripts/ .github/ templates/` returns only prose citations
+plus three smoke harnesses that copy the file into a mirror fixture with
+`[ -f ] && cp` — permissive, no content assertion. Cutting it does not break CI.
+Target ~8,000 bytes: keep the four gates, the doc-location rule, the lane schema
+and the tier table; move the recount narratives and correction history to
+`rationale/`, where they are read on demand at conversation rates rather than
+prefix rates. The 11 KB work-repo files are the same lever with 3x the aggregate
+and someone else's judgement to apply.
 
 **R3 — Build the turns instrument, then stop building byte instruments.**
 Minimum viable: a `SessionEnd` reader over the transcript that records requests,
