@@ -380,3 +380,71 @@ find plugins -path '*/references/*' -name '*.md' | xargs wc -c | tail -1
 wc -c CLAUDE.md
 bash scripts/context-budget.sh                                # all three channels + listing
 ```
+
+---
+
+## Addendum — the listing cap, measured (2026-08-31, later same day)
+
+Everything above treats the skill-listing cap as **~15,000 chars**, and flags that
+figure as "a documented default, not a constant measured on this account." It was
+worse than unmeasured: **it does not exist.** Read out of the shipped CLI
+(`2.1.251`, `skillListingBudgetFraction` / `skillListingMaxDescChars` /
+`hSe()` / `Kft()`):
+
+```
+budget_chars = contextWindowTokens × bytesPerToken × skillListingBudgetFraction
+```
+
+- `skillListingBudgetFraction` defaults to **0.01**, and is a `settings.json` key.
+- `bytesPerToken` is **4** for the older tokenizer set (through `opus-4-6` /
+  `sonnet-4-6` / `haiku-4-5`) and **3** for everything newer — `claude-opus-5`
+  included, verified against the CLI's own model set.
+- A second, independent cap truncates any single description past
+  `skillListingMaxDescChars`, default **1,536**. This repo lints at 500, so it never binds.
+
+| model | @200k | @1M |
+|---|---|---|
+| opus-5 (3 B/tok) | **6,000 chars** | **30,000 chars** |
+| opus-4-6 (4 B/tok) | 8,000 chars | 40,000 chars |
+
+**Two further corrections to the model, both mechanical:**
+
+1. **The unit is not description text.** The CLI costs each entry as
+   `name + 4 + min(desc, 1536)`, joined by one separator each. The artifact NAME
+   and a 4-char delimiter are charged **per artifact**, so artifact count is in
+   the measure directly. "Fewer artifacts beats shorter descriptions" was argued
+   here empirically from two trimming measurements; it is actually mechanical.
+2. **Overflow is not tail-dropping.** The CLI reduces every non-protected entry to
+   name-only, then buys descriptions back in **priority** order until the budget
+   is spent. Bundled-prompt skills are protected outright.
+
+### What this does to the decisions already taken
+
+**Removing `everything`: still right, magnitude overstated.** ~48,600 entry-chars
+against 30,000 at 1M is **1.6x**, not the 2.9x this document claimed, and ~8x on a
+200k model. Over at every plausible budget, so the conclusion survives its
+arithmetic.
+
+**Cutting `taskmaster-suite` 32 → 10: justified for 200k users, near-marginal at
+1M, and I gave the owner a number that was wrong by ~2x.** At 32 members it was
+~32,700 entry-chars: **5.4x over at 200k, 1.09x at 1M**. It was presented as "2.0x
+over" against a cap that does not exist. The decision was taken on that figure.
+Trimmed, it is 15,357 — 2.6x at 200k, **0.51x at 1M**.
+
+**The README paragraph I "corrected" earlier today was correct before I touched
+it.** It read "~2k tokens at 200k, ~10k at 1M" — which is exactly
+`200,000 × 4 × 0.01` and `1,000,000 × 4 × 0.01` for a 4-byte model. I replaced it
+with a "~15,000-char absolute default binds first" claim that is simply false, on
+the strength of a live observation I had not reconciled against a formula I had
+not read. Reverted; the generator now emits the formula.
+
+**The 2026-08-26 observation does not fit and is left unresolved.** ~19,949 chars
+stripped in a session described as 1M-context should not happen against a
+30,000-char budget. Either that session was not on the 1M tier, or the count
+included agents (excluded here, and whether they share this budget is
+**unverified**), or the described window was wrong. Recorded as a discrepancy
+rather than explained away.
+
+**The lever nobody knew existed:** `skillListingBudgetFraction` is a settings key.
+Raising it to `0.02` doubles the listing budget for anyone willing to pay the
+per-turn context. That option was available for every removal argued on this cap.

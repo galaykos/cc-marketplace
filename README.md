@@ -49,13 +49,20 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 Every row is a curated subset. The marketplace ships all 52 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
-The budget these are measured against is the host's skill listing, documented as **1% of
-the context window** ([docs](https://code.claude.com/docs/en/skills)) — but a **~15,000-char
-absolute default binds first**, and a 1M-context session does not buy the catalogue back:
-measured live 2026-08-26, ~19,949 chars across 86 loaded skills still had its tail stripped
-(`rationale/marketplace-necessity-review-2026-08-26.md`). On overflow Claude Code drops the
-descriptions of the skills you invoke least — name-only, and nondeterministic across reloads —
-rather than raising an error. That is what retired the all-in bundle, not its token count.
+The budget these are measured against is the host's skill listing, and it is a FORMULA,
+not a constant — read out of the shipped CLI (2.1.251), not from documentation:
+
+    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction
+
+`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.
+`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including
+opus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,
+**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single
+description past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it
+never binds. Over budget the CLI reduces entries to name-only and buys descriptions back in
+priority order — text past the budget is never sent, so it costs reachability, never tokens.
+The cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that
+is the mechanical reason fewer artifacts beats shorter descriptions.
 Multiply the column above by ~1.5 for what the host actually charges: `claude plugin details`
 adds a per-component floor this table's estimate does not.
 
