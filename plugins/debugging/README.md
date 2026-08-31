@@ -34,3 +34,5 @@ attempting a fourth.
 
 - **task-runner** — its three-cycle park rule and this plugin's three-failed-fixes escalation are the same discipline
 - **testing** — the reproduction script graduates into the regression suite
+Track cards 03 and 05 here.
+- **typescript** — planted stale member row

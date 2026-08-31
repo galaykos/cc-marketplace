@@ -105,7 +105,7 @@ never actioned.
 | Dead `spec §` citations purged from 5 shipped `remind.sh` | recorded | 0 remain anywhere in `plugins/`; fixed at the template + block, regenerated |
 | `brain/ROADMAP.md` deleted | recorded | file and README reference gone |
 | Two stale cost docs recounted | recorded | 61 → 52 leaves, 12,468 → 11,585 tokens, 48% → **51.1%** top-10 share |
-| Meta-prose compressed across shipped skills | recorded | see the run report for the final corpus figure |
+| Meta-prose compressed across shipped skills (partial) | recorded | meta-prose 4,529 → 3,104 words across 34 files; corpus 124,332 → 123,357 net (card 05 added text to `verify-teeth` in the same run). No skill orphaned — re-scanned. |
 
 ## Not done, and why — the part worth keeping
 
@@ -140,6 +140,29 @@ rather than quietly dropped:
 - **The reminder-hook stdout trim was rejected on measurement.** The template
   emits one line. The messages are 144–228 B of per-plugin directive; trimming
   them buys ~50 B each at the cost of the nudge's specificity.
+
+## What the numbers did, honestly
+
+| channel | before | after | direction |
+|---|---|---|---|
+| always-on (leaf total) | 11,585 | **11,585** | flat |
+| dynamic (leaf total) | 2,501 | **2,731** | **up, and that is the win** |
+| activated (leaf total) | 12,798 | 12,798 | flat |
+| `everything` listing | — | 44,752 chars | newly visible |
+| `taskmaster-suite` listing | — | 29,699 chars | newly visible |
+
+**Always-on did not fall, and it was not supposed to.** The only lever that moves
+it is trimming descriptions, which this run rejected on measurement twice — once
+catalogue-wide (already refuted at 2.8%) and once for `taskmaster-suite`
+specifically (1.8%). A run that reported an always-on reduction here would have
+bought it by degrading dispatch.
+
+**Dynamic went UP by 230 tokens, and that is the result, not a regression.** The
+channel was under-reported because its probe fired one synthetic Edit at one
+path. It now drives five file shapes with guard-tripping content, so the figure
+reflects what an edit can actually cost. You cannot reduce a channel you cannot
+see; making it visible was the prerequisite, and it is still under the 2,900
+ceiling.
 
 ## What this run could not measure
 
