@@ -1101,11 +1101,42 @@ li.vd-hl { outline-offset: 0; }
 }
 [dir="rtl"] .vd-replay { float: left; }
 @media (prefers-reduced-motion: reduce) {
-  /* Also nulls the .vd-card/.vd-row/.vd-kpi hover-lift transitions (declared in
-     "Content primitives"), so NO transition or animation runs anywhere in the
-     shell under reduced motion — not just the motion-kit classes. */
-  .vd-anim, .vd-m-hover-lift, .vd-m-hover-glow, .vd-m-press,
-  .vd-card, .vd-row, .vd-kpi { animation: none; transition: none; }
+  /* TRANSITIONS. Every one of these is declared at 0-1-0 ("Content primitives"
+     and the motion kit), so an equal-specificity reset at later source order
+     wins the tie. Covers the .vd-card/.vd-row/.vd-kpi hover-lift as well as the
+     motion-kit classes. */
+  .vd-m-hover-lift, .vd-m-hover-glow, .vd-m-press,
+  .vd-card, .vd-row, .vd-kpi { transition: none; }
+
+  /* ANIMATIONS. A bare `.vd-anim` is 0-1-0 and CANNOT null these: every
+     vd-m-* modifier sets animation-name from a COMPOUND selector at 0-2-0, and
+     the two [dir="rtl"] aliases re-point it at 0-3-0. Specificity beats source
+     order, so the one-line reset this block used to carry left all ten enter
+     animations running for a user who explicitly asked for none — while its
+     comment claimed the opposite. Enumerated at matching specificity, exactly
+     as `@media print` below does, and for the same reason; that block is the
+     worked precedent. Adding a modifier means adding it in BOTH places.
+     `opacity`/`transform` are reset too so an element caught mid-keyframe lands
+     in its final state rather than its from-state. */
+  .vd-anim,
+  .vd-anim.vd-m-fade,
+  .vd-anim.vd-m-slide-up,
+  .vd-anim.vd-m-slide-down,
+  .vd-anim.vd-m-slide-left,
+  .vd-anim.vd-m-slide-right,
+  .vd-anim.vd-m-slide-start,
+  .vd-anim.vd-m-slide-end,
+  .vd-anim.vd-m-scale,
+  .vd-anim.vd-m-spring,
+  .vd-anim.vd-m-fast,
+  .vd-anim.vd-m-slow,
+  [dir="rtl"] .vd-anim.vd-m-slide-start,
+  [dir="rtl"] .vd-anim.vd-m-slide-end {
+    animation: none;
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ---- Compare modes ---------------------------------------------------- */

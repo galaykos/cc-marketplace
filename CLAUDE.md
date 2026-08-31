@@ -155,12 +155,25 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
   150). The number may fall, never rise. It exists because a per-file ceiling is
   structurally blind to authors writing TO it — the same failure that retired the
   line count as a measure in 2026-08, one iteration later and visible only in the
-  aggregate. Also added: `pc_pick_parity`, asserting the two scout plugins' `pick.sh`
+  aggregate. Added 2026-08-31: `pc_plugin_corpus`, the third budget instrument. `pc_skill_budget`
+  bounds one FILE and `pc_budget_crowding` bounds the distribution of file LENGTHS;
+  neither can see a plugin that passes both while shipping a 100k-token prose corpus
+  across a dozen skills — the channel CLAUDE.md already admits is "unmetered BY
+  NATURE" two paragraphs down. A **ratchet** over `scripts/plugin-corpus-baseline.json`
+  counting plugins whose `.md` under `skills/` exceeds 160,000 B (~40k tokens): **1 of
+  24** on the day it was seeded (craft-layer, ~105.8k tok, 2.9x the next plugin).
+  Generated `.md` is excluded, or adding a plugin to the marketplace would fail the
+  gate inside plugin-scout via its generated `catalog.md`; **non-`.md` runtime assets
+  are excluded too** — an earlier draft summed every file and read taskmaster at
+  70,664 tokens against a real prose cost of 36,037, because 34.6k of it is a mockup
+  shell and the Python that serves it, code the plugin RUNS and the model never reads.
+  A budget check that cannot tell prose from program punishes shipping working
+  software. Also added: `pc_pick_parity`, asserting the two scout plugins' `pick.sh`
   stay byte-identical — `${CLAUDE_PLUGIN_ROOT}` is per-plugin, so neither can read the
   other's copy and either may be installed alone; the duplication is required by the
   plugin boundary and a checksum is the only available discipline. It gates the SCRIPT
   only: the two prose descriptions of that picker have already drifted and nothing
-  checks those. All three are exercised by `scripts/smoke/hook-budget-tests.sh`.
+  checks those. All four are exercised by `scripts/smoke/hook-budget-tests.sh`.
 - `scripts/check-version-bumps.sh` — a plugin whose **functional** files changed
   vs the base ref must bump its `plugin.json` version. New plugins are exempt, and
   so are doc-only changes to a plugin's root `README.md` / `CHANGELOG.md` /

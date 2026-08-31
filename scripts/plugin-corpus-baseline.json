@@ -1,0 +1,7 @@
+{
+  "_comment": "Plugins whose ON-INVOKE corpus (.md under skills/, bodies + references, EXCLUDING generated .md; runtime assets like .html/.py are NOT counted) exceeds 160,000 bytes (~40k tokens). A RATCHET: this number may fall, never rise. Read by pc_plugin_corpus in scripts/lib/plugin-checks.sh, whose header explains why the generated exclusion is load-bearing and why a flat ceiling was rejected. Seeded 2026-08-31 against the PROSE measure (.md only): craft-layer ~423k B (~105.8k tok) is the sole plugin over cap; taskmaster is next at ~144k B (~36.0k tok), then ui-ux ~118k B. An earlier draft counted every file and read 2 over cap, because taskmaster ships 34.6k tok of runtime HTML/py the model never reads. Never raise it to make a build pass.",
+  "measured": "2026-08-31",
+  "corpus_cap_bytes": 160000,
+  "plugins_measured": 24,
+  "plugins_over_cap": 1
+}

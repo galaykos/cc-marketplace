@@ -223,6 +223,92 @@ pc_budget_crowding() {
   return 0
 }
 
+# pc_plugin_corpus <plugins_root> <baseline_file>
+# Counts plugins whose ON-INVOKE PROSE corpus — .md under skills/, bodies plus
+# references — exceeds CORPUS_CAP bytes, and fails if that count EXCEEDS the
+# committed baseline. Prints "corpus <count> > <baseline>" plus one line per
+# offender, returns 1.
+#
+# WHY A THIRD BUDGET CHECK. pc_skill_budget bounds one FILE; pc_budget_crowding
+# bounds the distribution of file LENGTHS. Neither can see a plugin that stays
+# under both while shipping thirteen skills and eighty thousand tokens of
+# references, because every individual file passes. That channel is not small and
+# it is not metered anywhere else: context-budget.sh gates three channels and
+# CLAUDE.md states plainly that skill bodies loaded by a routing rule are
+# "unmetered BY NATURE". Measured 2026-08-31, the two ends of the corpus are
+# craft-layer at ~105.8k tokens and taskmaster at ~70.7k, against a marketplace
+# median plugin under 3k. A boosted taskmaster+task-runner run was measured
+# loading ~28k tokens of bodies alone — more than the whole always-on floor of a
+# 40-plugin install. This check is the only thing that watches that number.
+#
+# WHY GENERATED FILES ARE EXCLUDED. plugins/plugin-scout/skills/plugin-scout/
+# references/catalog.md is emitted by scripts/generate.sh with one row per
+# marketplace plugin, and generate.sh --check byte-gates it. Counting it would
+# convert "someone added a plugin to the marketplace" into a CI failure inside an
+# unrelated plugin — a gate that fires on growth it cannot be fixed by. Any .md
+# whose first 400 bytes say "generated" is skipped for the same reason; that is
+# 4.7k tokens in craft-layer and 7.3k in plugin-scout, and plugin-scout drops
+# from ~18.1k to ~10.9k once excluded, which is the point.
+#
+# WHY A RATCHET AND NOT A CEILING. A flat cap set at today's honest number fails
+# the build on the commit that introduces it; set above craft-layer it blesses
+# 105k tokens as acceptable. Same instrument as pc_budget_crowding and
+# context-budget.sh: the number may fall freely and may not rise. Seeded at 2
+# (craft-layer, taskmaster) on 2026-08-31. Lowering it requires actually cutting
+# a plugin's corpus. Never raise it to make a build pass.
+#
+# WHY .md ONLY, AND NOT EVERY FILE UNDER skills/. The first draft summed every
+# file and was wrong by half on the second-largest plugin. taskmaster ships
+# 34,627 tokens of NON-prose under skills/: visual-decisions/assets/shell.html
+# (21,465) and serve.py (6,256) are a mockup shell and the server that serves it
+# — copied to disk and executed, never read into a context window — plus 5,645
+# of starter HTML the shell loads at runtime. Counting them reported 70,664
+# against a real prose cost of 36,037. A budget check that cannot tell prose the
+# model READS from code the plugin RUNS punishes plugins for shipping working
+# software, which is the opposite of the intent.
+#
+# LIMITATION (honest scope), four residuals:
+#   1. It counts BYTES ON DISK, not tokens charged. A reference is charged only
+#      when a body actually routes the model to read it, and nothing here proves
+#      any given file is ever read. Over-reports by construction.
+#   2. It gates the AGGREGATE, so a plugin may grow 40% and stay under the cap
+#      while contributing every token of that growth to real sessions.
+#   3. It is blind to the CHAIN, which is the shape that actually costs: thirteen
+#      skills across four plugins, each plugin individually fine. That is
+#      context-budget.sh's fourth channel, not this one.
+#   4. CORPUS_CAP (160,000 B, ~40k tokens) is a choice, not a measurement. It was
+#      picked against the prose measure to isolate craft-layer (~105.8k tok),
+#      which is 2.9x the next plugin (taskmaster, ~36.0k). If a plugin parks at
+#      39k it is equally heavy and invisible here.
+pc_plugin_corpus() {
+  local root="${1:-plugins}" base_file="${2:-scripts/plugin-corpus-baseline.json}"
+  local cap=160000
+  local baseline count d pl bytes over=""
+  [ -f "$base_file" ] || return 0
+  baseline=$(sed -n 's/.*"plugins_over_cap"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' "$base_file")
+  case "$baseline" in ''|*[!0-9]*) return 0 ;; esac
+  count=0
+  while IFS= read -r d; do
+    [ -n "$d" ] || continue
+    pl=$(basename "$(dirname "$d")")
+    bytes=$(find "$d" -type f -name '*.md' 2>/dev/null | while IFS= read -r f; do
+      head -c 400 "$f" 2>/dev/null | grep -qi 'generated' && continue
+      wc -c < "$f" 2>/dev/null
+    done | awk '{s+=$1} END {printf "%d", s+0}')
+    if [ "$bytes" -gt "$cap" ]; then
+      count=$((count + 1))
+      over="$over  $pl ($bytes B, ~$((bytes / 4)) tok)
+"
+    fi
+  done < <(find "$root" -mindepth 2 -maxdepth 2 -type d -name skills 2>/dev/null | sort)
+  if [ "$count" -gt "$baseline" ]; then
+    printf 'corpus %s > %s (cap %s B/plugin)\n' "$count" "$baseline" "$cap"
+    printf '%s' "$over"
+    return 1
+  fi
+  return 0
+}
+
 # pc_pick_parity <plugins_root>
 # The two scout plugins ship a byte-identical picker script. Fails if they diverge.
 # Prints "pick-parity <a> != <b>" and returns 1; identical or either missing returns 0.

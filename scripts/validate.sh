@@ -749,6 +749,16 @@ hook_to_gap=$(pc_hook_timeout plugins) || true
 crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || true
 [ -n "$crowd_gap" ] && lane_err "$crowd_gap" "more SKILL bodies are now within 3 lines of the 200-line ceiling than the committed baseline — cut a body, do not raise scripts/skill-crowding-baseline.json"
 
+# The third budget instrument: pc_skill_budget bounds one FILE, pc_budget_crowding
+# bounds the distribution of file lengths, and NEITHER can see a plugin that stays
+# under both while shipping a 100k-token prose corpus across a dozen skills. That
+# channel is unmetered everywhere else — context-budget.sh gates three channels and
+# CLAUDE.md says bodies loaded by a routing rule are "unmetered BY NATURE". Prose
+# only (.md, generated files excluded): counting runtime assets read taskmaster at
+# 70,664 against a real 36,037. Ratchet, not ceiling — reasoning in the header.
+corpus_gap=$(pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json) || true
+[ -n "$corpus_gap" ] && lane_err "$corpus_gap" "more plugins now exceed the per-plugin on-invoke prose corpus cap than the committed baseline — cut or split a plugin's skills, do not raise scripts/plugin-corpus-baseline.json"
+
 # A bundle's README must name every plugin it installs. Two commits added a
 # dependency to four bundles and updated zero READMEs; the all-bundle dependency
 # gate above proved the deps RESOLVED and said nothing about whether a user could
