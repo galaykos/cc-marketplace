@@ -372,7 +372,12 @@ pc_removed_refs() {
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that
   # removal and then verified against shapes, not against references.
-  shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)"
+  # NB the final two alternatives: `\`($plug)\`` is the 2026-08-31 bundle-reference
+  # addition, and `($skills)` is the removed-SKILL-name clause that predates it —
+  # the first version of that addition REPLACED the skills clause instead of
+  # appending, silently un-guarding every removed skill name; parity-check.sh's
+  # violation-skill-name fixture is what caught it.
+  shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)
