@@ -45,12 +45,26 @@
 #   3  usage error (Honest limitation law: claude-authoring/skills/authoring-skills/SKILL.md "The four laws".)
 set -euo pipefail
 
+# RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —
+# a card set could reach execution with none of the three invoked and every check in
+# the repo green. `record_run` appends one line per invocation beside the card; the
+# reader is hooks/card-lint-observe.sh. Written on BOTH outcomes: the record says the
+# lint ran and what it said, never that the card is good.
+_cardlint_target=""
+. "$(dirname "$0")/card-lint-record.sh" 2>/dev/null || true
+record_run() { # $1 = verdict. No-op in --line mode: no file to key the record on.
+  [ -n "$_cardlint_target" ] || return 0
+  command -v cardlint_write >/dev/null 2>&1 || return 0
+  cardlint_write verify-teeth "$_cardlint_target" "$1"
+}
+
 die_usage() {
   printf 'verify-teeth: usage error: %s\n' "$1" >&2
   exit 3
 }
 
 weak() {
+  record_run block
   printf 'verify-teeth: %s\n' "$1" >&2
   exit 2
 }
@@ -77,6 +91,7 @@ done
 
 if [ "$mode" = "card" ]; then
   [ -f "$value" ] || die_usage "card file not found: $value"
+  _cardlint_target="$value"
   raw=$(grep -E -m1 '\*\*Verify:\*\*' "$value" 2>/dev/null || true)
   [ -n "$raw" ] || die_usage "no **Verify:** line in card: $value"
   line=${raw#*\*\*Verify:\*\*}
@@ -164,4 +179,5 @@ if has "$migrate_re" && ! has "$named_re" && ! has "$clause_re"; then
 fi
 
 # No known-weak form matched: the line names something specific enough to pass.
+record_run pass
 exit 0

@@ -7,6 +7,12 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.12.2
+
+### Changed
+- **Meta-prose compressed to a one-line standing tag.** No change to detection,
+  tiering, or the picker.
+
 ## 0.12.1
 
 ### Changed

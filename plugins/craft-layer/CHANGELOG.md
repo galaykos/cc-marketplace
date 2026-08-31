@@ -7,6 +7,16 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.47.10
+
+### Changed
+- **Meta-prose compressed to a one-line standing tag.** Sections narrating this
+  skill's relationship to its siblings — boundary tours, "what this is NOT" lists,
+  and in places the repository's own drift history — are replaced by a `Standing:`
+  line on the rule they qualify. No actionable rule changed, and every named
+  cross-skill reference was preserved: those names are what make the skills they
+  point at reachable, and a re-scan confirmed none was orphaned.
+
 ## 0.47.9
 
 ### Changed

@@ -21,9 +21,22 @@
 #   3  usage
 set -euo pipefail
 
+# RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —
+# a card set could reach execution with none of the three invoked and every check in
+# the repo green. `record_run` appends one line per invocation beside the card; the
+# reader is hooks/card-lint-observe.sh. Written on BOTH outcomes: the record says the
+# lint ran and what it said, never that the card is good.
+_cardlint_target=""
+. "$(dirname "$0")/card-lint-record.sh" 2>/dev/null || true
+record_run() { # $1 = verdict. No-op in --line mode: no file to key the record on.
+  [ -n "$_cardlint_target" ] || return 0
+  command -v cardlint_write >/dev/null 2>&1 || return 0
+  cardlint_write skills-stamp "$_cardlint_target" "$1"
+}
+
 PROG=skills-stamp
 usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
-fail()  { printf '%s: %s\n' "$PROG" "$1" >&2; exit 2; }
+fail()  { record_run block; printf '%s: %s\n' "$PROG" "$1" >&2; exit 2; }
 
 mode=""; card=""; line=""; files=""
 while [ $# -gt 0 ]; do
@@ -38,6 +51,7 @@ done
 
 if [ "$mode" = card ]; then
   [ -f "$card" ] || usage "card file not found: $card"
+  _cardlint_target="$card"
   raw=$(grep -E -m1 '\*\*Skills to apply:\*\*' "$card" 2>/dev/null || true)
   [ -n "$raw" ] || fail "missing-stamp: card has no **Skills to apply:** line"
   line=${raw#*\*\*Skills to apply:\*\*}
@@ -75,4 +89,5 @@ if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}/.." ]; then
     [ "$found" = 1 ] || printf '%s: warn unreachable-skill: "%s" is stamped but no installed sibling plugin ships skills/%s/SKILL.md — the card will run framework-blind unless that plugin is installed\n' "$PROG" "$tok" "$tok" >&2
   done
 fi
+record_run pass
 exit 0

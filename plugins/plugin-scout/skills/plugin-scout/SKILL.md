@@ -181,19 +181,17 @@ Full rules and the required machine-wide notice: `references/flags.md`.
 
 ## Boundaries
 
-- Suggests and installs only cc-plugins-marketplace plugins; it does not audit,
-  configure, or uninstall anything.
-- Detection never mutates the project — no lockfile writes, no installs, no
-  package-manager invocations, no delegated fix prompts.
-- If every suggestion is already installed, say so and stop.
+Standing: recorded — suggests and installs only cc-plugins-marketplace plugins; it
+does not audit, configure, or uninstall. Detection never mutates the project: no
+lockfile writes, installs, package-manager invocations, or delegated fix prompts. If
+every suggestion is already installed, say so and stop.
 
 ## Standing
 
 **Agent-graded.** No script checks that a tier-1 row cited its evidence, that the
-completeness sweep ran, that detection stayed read-only, or that the picker offered
-the door. Gated by name: catalog freshness (`generate.sh --check`), the plugin names
-in this skill's three hand-written lists (`pc_scout_names` — the name only, never
-whether the signal is right), `scripts/pick.sh` parity (`pc_pick_parity`) and its
-parser (`scripts/__tests__/pick.test.sh`), this body's budget (`pc_skill_budget`),
-and token cost (`context-budget.sh`). Tier 3's `universal` string is not evidence
-and is not claimed to be — the evidence rule binds tier 1 only.
+sweep ran, that detection stayed read-only, or that the picker offered the door.
+Gated by name only: catalog freshness (`generate.sh --check`), the plugin names in
+this skill's three lists (`pc_scout_names`), `scripts/pick.sh` parity
+(`pc_pick_parity`) and its parser (`scripts/__tests__/pick.test.sh`), body budget
+(`pc_skill_budget`), token cost (`context-budget.sh`). The evidence rule binds tier 1
+only.

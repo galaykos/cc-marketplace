@@ -1,4 +1,4 @@
-# --- phase guard (spec §4.3) -------------------------------------------------
+# --- phase guard -------------------------------------------------------------
 # NOTE ON THE EXTENSION: this block is shell, not markdown. It is named .md because
 # template-engine.sh:50 hardcodes `<blocksdir>/<name>.md` for every include directive.
 # Teaching the engine other extensions is a change to a gated shared component and
@@ -52,7 +52,7 @@
 # can prove an artifact HONOURS it in every branch — that half is agent-graded.
 #
 # Also publishes cc_phase_now — the phase in force, or empty. The rank marker key
-# includes it (spec §4.4), which is what lets a voice that stood down at one phase
+# includes it, which is what lets a voice that stood down at one phase
 # claim a FRESH key and speak when its own phase arrives. Without it a rank claim
 # written on turn 1 outlives the eligibility that produced it and permanently gags
 # whichever hook is later the highest ELIGIBLE one.

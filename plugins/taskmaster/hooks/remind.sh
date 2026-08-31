@@ -3,7 +3,7 @@
 # Fail open: never block the prompt. Print a reminder only when the prompt reads
 # like the work it nudges about — a mere mention of the words stays silent.
 command -v jq >/dev/null 2>&1 || exit 0
-# --- phase guard (spec §4.3) -------------------------------------------------
+# --- phase guard -------------------------------------------------------------
 # NOTE ON THE EXTENSION: this block is shell, not markdown. It is named .md because
 # template-engine.sh:50 hardcodes `<blocksdir>/<name>.md` for every include directive.
 # Teaching the engine other extensions is a change to a gated shared component and
@@ -57,7 +57,7 @@ command -v jq >/dev/null 2>&1 || exit 0
 # can prove an artifact HONOURS it in every branch — that half is agent-graded.
 #
 # Also publishes cc_phase_now — the phase in force, or empty. The rank marker key
-# includes it (spec §4.4), which is what lets a voice that stood down at one phase
+# includes it, which is what lets a voice that stood down at one phase
 # claim a FRESH key and speak when its own phase arrives. Without it a rank claim
 # written on turn 1 outlives the eligibility that produced it and permanently gags
 # whichever hook is later the highest ELIGIBLE one.
@@ -168,13 +168,13 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
       | grep -qvE '(__Q__|^[[:space:]]*(can|could|should|would|shall|is|are|was|were|do|does|did|am|will|what|why|how|when|where|which|who|whether)[^a-z])' \
       || exit 0
   fi
-  # TURN-TAKING (spec §4.3). Evaluated only after the prompt already matched this
+  # TURN-TAKING. Evaluated only after the prompt already matched this
   # hook's own trigger, so an out-of-phase artifact costs one lane.tsv read and
   # nothing else. sid is needed by the guard's session check, so resolve it first.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
   cc_phase_guard 'taskmaster:remind' || exit 0
   if printf '%s' "$head" | grep -qiE '\b(build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)\b'; then
-    # MONOTONIC PRECEDENCE (spec §4.4). Rank arbitrates only between hooks that
+    # MONOTONIC PRECEDENCE. Rank arbitrates only between hooks that
     # share a phase; the phase sentinel does the real turn-taking. Guaranteed:
     # among hooks eligible THIS TURN, the best rank always speaks, in every
     # invocation order. NOT guaranteed: exactly one line — a worse-ranked sibling

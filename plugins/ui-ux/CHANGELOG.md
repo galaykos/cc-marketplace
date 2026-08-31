@@ -4,6 +4,16 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.18.6
+
+### Changed
+- **Meta-prose compressed to a one-line standing tag.** Sections narrating this
+  skill's relationship to its siblings — boundary tours, "what this is NOT" lists,
+  and in places the repository's own drift history — are replaced by a `Standing:`
+  line on the rule they qualify. No actionable rule changed, and every named
+  cross-skill reference was preserved: those names are what make the skills they
+  point at reachable, and a re-scan confirmed none was orphaned.
+
 ## 0.18.5
 
 ### Fixed

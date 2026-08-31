@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.30.1
+
+### Changed
+- **Meta-prose compressed to a one-line standing tag** (part of a marketplace-wide
+  pass). No actionable rule changed; named cross-skill references preserved.
+
 ## 0.30.0
 
 ### Fixed

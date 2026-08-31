@@ -136,12 +136,9 @@ internal log entry carries the same id plus everything else.
 
 ## Boundaries
 
-- Retry, timeout, and circuit-breaker policy at integration points is
-  the resilience plugin's territory (/resilience:review); this skill
-  decides how the resulting errors are typed, propagated, and reported.
-- Which error events become logs and metrics, and their shape, belongs
-  to the observability plugin; this skill fixes where reporting happens
-  (once, at the boundary), not the telemetry pipeline.
+Standing: recorded — owns how errors are typed, propagated, and reported once at
+the boundary. Retry, timeout and circuit-breaker policy is `/resilience:review`;
+log and metric shape is the observability plugin.
 
 ## Anti-patterns
 

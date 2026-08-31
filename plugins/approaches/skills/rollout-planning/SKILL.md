@@ -113,18 +113,17 @@ itself against v1 on real traffic.
 
 ## Boundaries
 
-- Pipeline and deploy mechanics (CI gates, canary infra, blue-green) belong to
-  the devops plugin's devops-engineer agent.
-- Dialect-level migration DDL (locks, `ALGORITHM=INPLACE`, concurrent indexes)
-  belongs to the database plugins.
-- This skill owns the per-feature plan: flags, compatibility window, stages,
-  rollback. At each handoff offer the next step as a selectable choice, one
-  offer per moment, bare commands only when headless: step list ready —
-  "Execute with the task runner now (Recommended)" / "Skip" (as
-  /task-runner:run would, when task-runner is installed, else run the cards
-  inline); auth, money, or PII touched — "Run the security review before stage
-  1 (Recommended)" / "Skip" (as /security:review would when the security plugin
-  is installed; else inline a short auth/money/PII checklist).
+Standing: recorded — owns the per-feature plan: flags, compatibility window, stages,
+rollback. Pipeline and deploy mechanics (CI gates, canary infra, blue-green) are the
+devops plugin's devops-engineer agent; dialect-level migration DDL (locks,
+`ALGORITHM=INPLACE`, concurrent indexes) is the database plugins.
+
+At each handoff offer the next step as a selectable choice, one offer per moment,
+bare commands only when headless: step list ready — "Execute with the task runner
+now (Recommended)" / "Skip" (as /task-runner:run would, when task-runner is
+installed, else run the cards inline); auth, money, or PII touched — "Run the
+security review before stage 1 (Recommended)" / "Skip" (as /security:review would
+when the security plugin is installed; else inline a short auth/money/PII checklist).
 
 ## Anti-patterns
 

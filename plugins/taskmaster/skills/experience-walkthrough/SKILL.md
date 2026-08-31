@@ -100,13 +100,10 @@ experience will be used on mobile:
 
 ## Boundaries
 
-- No framework, no build step, no real network calls, no persistence. The
-  moment the demo needs npm, it stopped being a demo.
-- Not a substitute for per-screen decisions — variants still get decided in
-  visual-decisions first; the walkthrough assembles winners, it does not
-  audition candidates.
-- Not usability research at scale — one user, the requester, deciding their
-  own product. Findings are requirements, not statistics.
+Standing: recorded — no framework, build step, network calls, or persistence; the
+moment the demo needs npm it stopped being a demo. Per-screen variants are still
+decided in `visual-decisions` first — the walkthrough assembles winners, it does not
+audition them. One user, the requester: findings are requirements, not statistics.
 
 ## Anti-patterns
 

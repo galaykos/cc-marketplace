@@ -36,14 +36,14 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `everything` | 52 | ~11.6k tokens | ~1.2k tokens | ~2.5k tokens |
-| `taskmaster-suite` | 32 | ~7.4k tokens | ~169 tokens | ~2.5k tokens |
+| `everything` | 52 | ~11.6k tokens | ~1.2k tokens | ~2.7k tokens |
+| `taskmaster-suite` | 32 | ~7.4k tokens | ~169 tokens | ~2.7k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
-| `quality-principles-suite` | 9 | ~2.1k tokens | — | — |
-| `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.4k tokens |
-| `always-on-suite` | 8 | ~1.6k tokens | ~1.1k tokens | ~2.4k tokens |
-| `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
-| `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
+| `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
+| `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
+| `always-on-suite` | 8 | ~1.6k tokens | ~1.1k tokens | ~2.5k tokens |
+| `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
+| `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 4 | ~497 tokens | — | — |
 | `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |

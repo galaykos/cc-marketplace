@@ -14,7 +14,15 @@ higher, because it charges a per-component floor. `dynamic` is stdout injected
 per work-shaped prompt and per tool call — it is NOT paid unless the hook fires,
 and it is the column the always-on figure most understates.
 
-Total across 61 leaves: **12468 tokens** always-on.
+Total across 52 leaves: **11585 tokens** always-on.
+
+> **Recounted 2026-08-31.** This file said "61 leaves / 12468 tokens" from 2026-08-25
+> until then, and listed nine plugins (react, vue3, nuxt, mysql, postgresql, i18n,
+> node-backend, livewire, php) that `cfef9c1` deleted on 2026-08-26 — so it argued
+> for keeping things that no longer existed, in a file whose own opening rule is
+> "recount rather than copy". Its rows below are the 2026-08-25 measurement and are
+> kept as a dated snapshot, not as current state. Recount before citing:
+> `bash scripts/context-budget.sh`.
 
 | plugin | always-on | dynamic | in bundles (excl. everything) |
 |---|---:|---:|---:|
@@ -82,7 +90,10 @@ Total across 61 leaves: **12468 tokens** always-on.
 
 ## What the distribution says
 
-- **The top 10 leaves are 48% of the always-on bill** (5966 of 12468).
+- **The top 10 leaves are 51.1% of the always-on bill** (5925 of 11585, recounted 2026-08-31).
+  The 48% this line carried was computed against the pre-`cfef9c1` 61-leaf population
+  and understated the concentration; the figure rose because the deleted leaves were
+  all small, which is the same reason cutting them saved little.
   Any material reduction comes from here or nowhere.
 - **The bottom 30 are 21%** (2631 tokens). Cutting all thirty removes
   roughly half the marketplace's surface area to save ~2k tokens. That is the

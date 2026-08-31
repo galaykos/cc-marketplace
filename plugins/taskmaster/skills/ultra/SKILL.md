@@ -124,9 +124,9 @@ auto-approved contracts as the checkpoint; a post-hoc veto of a ledger line re-r
 ## Degradation, and the half the harness owns
 
 Never hard-fails. Without a usable `Workflow` path every fan-out phase falls back to its
-inline single-agent form, still model-escalated — and per `orchestration:verification-panels`,
-that fallback is reported as **"inline heuristic pass — single model, uncorroborated"**, never
-as a panel or adversary count. Auto-take, ledger, and markers operate identically inline.
+inline single-agent form, still model-escalated, and per `orchestration:verification-panels`
+that fallback is reported as **"inline heuristic pass — single model, uncorroborated"**,
+never as a panel or adversary count. Auto-take, ledger, and markers operate identically inline.
 
 `Workflow` needs the user's own opt-in and `effort` binds only there, so an unpaired boost
 buys model escalation only: say once that **`ultracode` is the half this plugin cannot
@@ -149,7 +149,7 @@ ceiling: `orchestration:verification-panels` `references/dispatch-tier.md` § Na
 
 ## Residual: no cross-plugin activation guard
 
-Two boost tokens in one prompt inject two directives and nothing can stop it — three
-independently-installed plugins share no writable state. Standing **unenforceable**; the off
-switch (`CC_BOOST=off`, or `TASKMASTER_BOOST=off`) is what IS implementable. Full statement,
-with the trigger-narrowing limits: `orchestration:verification-panels` `references/dispatch-tier.md`.
+Standing: unenforceable — three independently-installed plugins share no writable state, so
+two boost tokens inject two directives. The off switch (`CC_BOOST=off`, or `TASKMASTER_BOOST=off`)
+is what IS implementable; full statement with the trigger-narrowing limits:
+`orchestration:verification-panels` `references/dispatch-tier.md`.

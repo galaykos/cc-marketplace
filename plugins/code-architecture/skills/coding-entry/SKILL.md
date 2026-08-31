@@ -132,11 +132,9 @@ nothing is loaded or primed — the receiving command sets its own:
 
 ## Boundaries
 
-- Requirements clarification, ambiguity ledgers, specs, cards, red-teams → `taskmaster`.
-- Executing a defined list, scope lock, verify loops, completion gate → `task-runner`.
-- Per-file skill routing after an edit → `skill-router`, which keeps working normally.
-- Which files change and what each unit owns → `plan-before-code`, loaded above; this
-  skill decides whether to plan at all, never what the plan says.
+Standing: recorded — specs, cards and red-teams are `taskmaster`; scope lock and
+verify loops are `task-runner`; per-file routing stays `skill-router`; what the
+plan says is `plan-before-code`. This skill decides only whether to plan at all.
 
 ## Anti-patterns
 

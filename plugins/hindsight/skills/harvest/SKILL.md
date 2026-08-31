@@ -129,13 +129,9 @@ recorded is invisible to the loop — record at the moment of the write.
 
 ## Boundaries
 
-- Current project only — never mine other projects' slug directories or
-  cross-project ledgers.
-- Never edits application code: outputs are CLAUDE.md lines, files under
-  `$HOME/.claude/hindsight/<slug>/`, the project's
-  `.claude/hindsight/anti-patterns.md`, and claude-authoring handoffs,
-  nothing else.
-- No auto-apply — every write passes the apply gate above.
-- Transcript JSONL format is officially unstable; read defensively —
-  skip malformed lines, tolerate missing fields, never hard-fail on
-  format drift.
+Standing: recorded — current project only, never another slug's ledgers. Never edits
+application code: outputs are CLAUDE.md lines, files under
+`$HOME/.claude/hindsight/<slug>/`, the project's `.claude/hindsight/anti-patterns.md`,
+and claude-authoring handoffs. No auto-apply — every write passes the apply gate
+above. Transcript JSONL is officially unstable: skip malformed lines, tolerate
+missing fields, never hard-fail on format drift.

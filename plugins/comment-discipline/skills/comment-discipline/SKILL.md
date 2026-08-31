@@ -139,13 +139,10 @@ own audience, not a comment; that is a docs decision, not this rule's.
 
 ## Boundaries
 
-- `code-review`'s code-smells owns the one-bullet version ("comment as deodorant");
-  this skill owns comment volume and placement in depth.
-- the api-docs-first plugin's `docs-upkeep` skill owns comment and doc **staleness** — drift between a doc and the
-  code it describes. This skill owns whether the comment should exist at all.
-- Naming, extraction, and file structure as design concerns belong to
-  `code-architecture`; this skill only points at them as the destination a comment's
-  content should move to.
+Standing: recorded — owns comment volume and placement. The one-bullet version is
+`code-review`'s code-smells; doc/comment staleness is api-docs-first's
+`docs-upkeep`; naming and extraction are `code-architecture`, the destination a
+comment's content moves to.
 
 ## What is enforced, and what is advice
 

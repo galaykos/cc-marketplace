@@ -5,27 +5,13 @@ description: Use after grill writes a spec and before task-cards, when blast rad
 
 ## Where this sits
 
-Between spec-freeze and task-cards. grill removes ambiguity by asking the user
-questions — but the user and the model share blind spots, so a requirement neither
-questioned reaches the spec unchallenged. This pass attacks the frozen spec itself,
-with fresh eyes, before it hardens into cards. It is distinct from coverage-check
-(which checks cards against the spec's criteria, assuming those criteria are right)
-and from approach-deliberation (which argues the approach, not the requirements).
-
-## How this differs from its neighbors
-
-Several passes cluster around spec-freeze; keep them distinct:
-
-- **plan-before-code** (code-architecture) checks the file-level plan — which files
-  change, unit ownership, interfaces. It assumes the requirements are right. Run the
-  red-team BEFORE it: attack the requirements, then plan the files that satisfy them.
-- **coverage-check** (later, at the tail of task-cards) checks that the cards cover
-  the spec's success criteria. It assumes those criteria are themselves correct and
-  complete — which is exactly what this pass questions.
-- **approach-deliberation** argues which approach to take. This pass is indifferent to
-  approach; a spec hole is a hole whichever way the spec is built.
-- **grill** surfaced ambiguity the user could answer. This surfaces what neither the
-  user nor the model thought to ask.
+Standing: recorded — between spec-freeze and `task-cards`. `grill` removes the
+ambiguity the user could answer; this attacks the frozen spec itself for what neither
+user nor model thought to ask. Distinct from its neighbours: `plan-before-code`
+(code-architecture) checks the file-level plan assuming the requirements are right, so
+run this BEFORE it; `coverage-check` checks cards against the spec's criteria assuming
+those criteria are correct — exactly what this questions; `approach-deliberation`
+argues the approach, and a spec hole is a hole whichever way the spec is built.
 
 ## The blast-radius gate
 

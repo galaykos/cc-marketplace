@@ -129,12 +129,9 @@ web server can write bytes while every real request fails behind it.
 
 ## Boundaries
 
-- Deploy-pipeline and infra observability — node metrics, ingress
-  logs, pipeline dashboards — belong to the devops plugin. This skill
-  owns what application code emits.
-- Designing the failure paths that telemetry reports on is
-  /resilience:review territory; this skill makes those paths visible.
-- Secrets handling beyond keep-it-out-of-logs goes to /security:review.
+Standing: recorded — owns what application code emits. Node, ingress and pipeline
+telemetry is the devops plugin; designing the failure paths is `/resilience:review`;
+secrets beyond keep-it-out-of-logs is `/security:review`.
 
 ## Anti-patterns
 

@@ -141,8 +141,8 @@ half. Rules, including the workflow-size ceiling and the interactive-phase rule:
 
 ## Residual: no cross-plugin activation guard
 
-Two boost tokens in one prompt inject two directives and nothing can stop it — three
-independently-installed plugins share no writable state. Standing **unenforceable**;
-the off switch (`CC_BOOST=off`, or `ORCHESTRATION_BOOST=off`) is what IS implementable. Full
-statement, with the trigger-narrowing limits:
-`orchestration:verification-panels` `references/dispatch-tier.md`.
+Standing: unenforceable — three independently-installed plugins share no writable
+state, so two boost tokens inject two directives. The off switch (`CC_BOOST=off`, or
+`ORCHESTRATION_BOOST=off`) is what IS implementable; full statement with the
+trigger-narrowing limits: `orchestration:verification-panels`
+`references/dispatch-tier.md`.

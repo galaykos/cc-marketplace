@@ -122,15 +122,9 @@ docstrings; zero hits means the rename is complete.
 
 ## Boundaries
 
-Writing NEW documentation from scratch is authoring, not upkeep — it is
-a deliberate task with its own scope, not something to smuggle into an
-unrelated diff. This skill keeps existing docs true; it does not decide
-what deserves to be documented in the first place.
-
-When the same kind of drift keeps recurring (every release the changelog
-is reconstructed, every rename misses the README), that is a process
-finding — name the missing gate so the workflow gets fixed, not just the
-instance.
+Standing: recorded — owns keeping existing docs true, not deciding what deserves
+documenting (that is authoring, its own task). Recurring drift is a process
+finding: name the missing gate, not just the instance.
 
 ## Anti-patterns
 

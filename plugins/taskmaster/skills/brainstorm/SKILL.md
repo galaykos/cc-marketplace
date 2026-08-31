@@ -5,11 +5,10 @@ description: Use when the request is still an idea rather than a task — no con
 
 ## Where this sits in the pipeline
 
-grill extracts requirements for a task the user can already name. This skill
-runs EARLIER: the idea is fuzzy, the shape is undecided, and interrogating for
-edge cases would be premature — you would be sharpening details of a thing that
-might not survive its first alternative. Brainstorm converges idea → design;
-grill converges design → requirements; task-cards converge requirements → work.
+Standing: recorded — brainstorm converges idea → design, `grill` design →
+requirements, `task-cards` requirements → work. Run this while the shape is undecided,
+where interrogating for edge cases would sharpen a thing that may not survive its
+first alternative.
 
 Hard gate, no exceptions: no implementation code, no scaffolding, no file
 creation beyond the design doc until the design is approved. "Too simple to

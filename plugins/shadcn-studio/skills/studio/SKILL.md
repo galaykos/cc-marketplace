@@ -5,21 +5,13 @@ description: Use when a visual or UI decision needs REAL interactive components 
 
 ## Where this sits
 
-This is the interactive vehicle for visual decisions that a static mockup cannot
-carry, at the moment the codebase cannot host one itself. It renders real,
-clicking shadcn components — not token-mimicking HTML — from a sandbox the
-plugin ships, so it works with zero project scaffolding.
-
-- Cheaper rungs first: layout structure, density, and flow feel stay in the
-  taskmaster `visual-decisions` shell. Do not stand up a dev server for a choice
-  ASCII or the shell already settles.
-- Real components on an EXISTING app: that is `design-preview:real-preview`.
-  shadcn-studio is its greenfield / non-React sibling, not a replacement.
-
-The engine renders whatever JSX the authoring agent writes, so a layout variant
-and a copy/concept variant are both just variants — it does not distinguish
-them. Formal lanes, depth, and charts are a separate concern; this skill only
-proves and serves the interactive vehicle.
+Standing: recorded — the interactive vehicle for visual decisions a static mockup
+cannot carry: real, clicking shadcn components from a sandbox the plugin ships, zero
+project scaffolding. Cheaper rungs first — layout, density, and flow feel stay in the
+taskmaster `visual-decisions` shell. Real components on an EXISTING app is
+`design-preview:real-preview`; this is its greenfield / non-React sibling. The engine
+renders whatever JSX the authoring agent writes, so layout and copy variants are both
+just variants; lanes, depth, and charts are a separate concern.
 
 ## Detection and routing — lock beats memory
 

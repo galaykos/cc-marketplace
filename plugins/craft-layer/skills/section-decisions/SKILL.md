@@ -100,11 +100,10 @@ and dropped.
 
 ## Boundary against taskmaster
 
-taskmaster clarifies REQUIREMENTS into a spec and cards; this decides SECTION
-TREATMENT for a page whose scope the offer contract already pinned. When a
-taskmaster spec or a `## Visual contract` section exists, CONSUME it — treat its
-decisions as already-made ledger entries and ask only about what it left open.
-Re-interrogating settled requirements is the duplication to avoid.
+Standing: recorded — taskmaster clarifies REQUIREMENTS; this decides SECTION TREATMENT
+for a scope the offer contract already pinned. When a taskmaster spec or a `## Visual
+contract` section exists, CONSUME it: treat its decisions as settled and ask only about
+what it left open.
 
 ## Reuse — never duplicate
 

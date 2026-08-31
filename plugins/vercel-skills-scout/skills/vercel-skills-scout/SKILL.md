@@ -134,18 +134,13 @@ Print one numbered table, all queries merged, deduplicated by
 
 ## Boundaries
 
-- Discovers and installs skills.sh skills only; it does not audit, update,
-  or remove them (`npx skills remove` / `update` exist for that), and it
-  never touches `.claude/settings.json` — skills.sh tracks installs in its
-  own `skills-lock.json`.
-- No curation claim: suggestions are ranked by installs, and this skill
-  vouches for none of them — the provenance columns exist so the user can
-  judge the source.
-- Detection never mutates the project; the only network calls are the
-  skills.sh search API and the SKILL.md previews.
-- Everything above is recorded/agent-graded — no script in this repo gates
-  any of it (see the authoring-skills "say what has teeth" convention in
-  the claude-authoring plugin).
+Standing: recorded/agent-graded — nothing in this repo gates any of it (the
+authoring-skills "say what has teeth" convention, claude-authoring plugin). Discovers
+and installs skills.sh skills only: no audit, update, or removal (`npx skills remove`
+/ `update` exist for that), and never touches `.claude/settings.json` — skills.sh
+tracks installs in `skills-lock.json`. No curation claim: suggestions rank by installs
+and the provenance columns exist so the user can judge. Detection never mutates the
+project; the only network calls are the search API and SKILL.md previews.
 
 Mechanics detail — API response shape, URL formats, CLI flags, preview
 fallback order: `references/mechanics.md`.
