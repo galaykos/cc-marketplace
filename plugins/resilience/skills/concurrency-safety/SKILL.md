@@ -132,13 +132,9 @@ do the excluding; the transaction makes the result all-or-nothing.
 
 ## Boundaries
 
-- Engine-specific lock mechanics — gap locks, `SKIP LOCKED`, advisory
-  locks, isolation-level quirks — belong to the sql and mariadb
-  plugins; this skill picks the strategy, they supply the
-  syntax and semantics.
-- Retry and backoff policy for the conflicts and failures this skill
-  surfaces is the resilience plugin's territory (/resilience:review);
-  this skill makes retries safe, that one makes them polite.
+Standing: recorded — owns the concurrency strategy. Engine lock mechanics (gap
+locks, `SKIP LOCKED`, advisory locks, isolation quirks) are the sql and mariadb
+plugins; retry and backoff policy is `/resilience:review`.
 
 ## Anti-patterns
 

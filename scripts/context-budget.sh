@@ -85,6 +85,31 @@ plugin_desc_bytes() {
 # executing them in a throwaway sandbox (empty CLAUDE_PROJECT_DIR/HOME, minimal
 # SessionStart JSON on stdin, fail-open per hook). Deterministic lower bound.
 HOOK_SANDBOX=$(mktemp -d)
+# File-shape fixtures for the per-tool probe live in their OWN sandbox, never in
+# HOOK_SANDBOX. The always-on channel measures SessionStart stdout against an
+# EMPTY project — put a src/ and a migrations/ next to it and the stack-sniffing
+# SessionStart hooks find a project to describe, which moves the always-on figure
+# for a reason that has nothing to do with always-on cost. First attempt did
+# exactly that: +36 tokens on four bundles, pure fixture contamination.
+EDIT_SANDBOX=$(mktemp -d)
+mkdir -p "$EDIT_SANDBOX/src/components" "$EDIT_SANDBOX/src/styles" \
+         "$EDIT_SANDBOX/tests" "$EDIT_SANDBOX/database/migrations" 2>/dev/null
+# The fixture CONTENT trips the hooks on purpose. A clean file measures a hook
+# that fired and found nothing, which is not what a real edit costs — the point
+# of the channel is what an edit that DOES trip a guard pays. Clean fixtures
+# under-report by construction: `testing` read 0 on a well-formed test and 509
+# bytes on one asserting internals, and both are "the hook ran".
+printf 'export const a = 2\nexport const b = a\n' > "$EDIT_SANDBOX/src/example.ts"
+printf 'export const W = () => <div style={{color:"#3366ff"}} onClick={()=>{}} />\n' \
+  > "$EDIT_SANDBOX/src/components/Widget.tsx"
+{ printf 'test("a", () => { expect(svc._internal).toBe(1); expect(svc._cache.size).toBe(0) })\n'
+  printf 'test("b", () => { expect(svc._internal).toBe(1); expect(svc._cache.size).toBe(0) })\n'
+  printf 'test("c", () => { expect(svc._internal).toBe(1); expect(svc._cache.size).toBe(0) })\n'
+} > "$EDIT_SANDBOX/tests/example.test.ts"
+printf '.btn { color: #3366ff; margin: 13px; }\n.card { color: #3366ff; padding: 7px; }\n' \
+  > "$EDIT_SANDBOX/src/styles/theme.css"
+printf '<?php return new class extends Migration { public function up(): void { Schema::create("orders", fn($t) => $t->id()); } };\n' \
+  > "$EDIT_SANDBOX/database/migrations/2026_01_01_000000_create_orders_table.php"
 TIMEOUT_CMD=""
 command -v timeout >/dev/null 2>&1 && TIMEOUT_CMD="timeout 10"
 
@@ -116,7 +141,7 @@ plugin_sessionstart_bytes() {
 #   package.json + composer.json + a src tree
 #                            → skill-router/hooks/prime.sh, which sniffs manifests
 ACT_SANDBOX=$(mktemp -d)
-trap 'rm -rf "$HOOK_SANDBOX" "$ACT_SANDBOX"' EXIT
+trap 'rm -rf "$HOOK_SANDBOX" "$ACT_SANDBOX" "$EDIT_SANDBOX"' EXIT
 mkdir -p "$ACT_SANDBOX/brain" "$ACT_SANDBOX/src" "$ACT_SANDBOX/app"
 cat > "$ACT_SANDBOX/brain/INDEX.md" <<'ACTEOF'
 # Project brain map
@@ -246,22 +271,46 @@ plugin_dynamic_hook_bytes() {
         # path gate (:81-84) exits before it ever reads a context key at :95, so it
         # reads 0 on `src/example.ts` with or without this field. That is the FILE
         # SHAPE gap, named separately in the closing notes at the bottom of this file.
-        payload=$(jq -nc --arg cwd "$HOOK_SANDBOX" --arg ev "$ev" --arg sid "$sid" \
-          --arg tp "$HOOK_SANDBOX/transcript-$sid.jsonl" --arg f "$HOOK_SANDBOX/src/example.ts" \
-          '{hook_event_name:$ev,tool_name:"Edit",session_id:$sid,transcript_path:$tp,cwd:$cwd,
-            tool_input:{file_path:$f,old_string:"const a = 1",new_string:"const a = 2"},
-            tool_response:{filePath:$f,success:true}}' 2>/dev/null) ;;
+        : ;;
     esac
-    [ -n "$payload" ] || continue
-    while IFS= read -r cmd; do
-      [ -n "$cmd" ] || continue
-      resolved=${cmd//'${CLAUDE_PLUGIN_ROOT}'/$pdir}
-      out=$(printf '%s' "$payload" \
-        | CLAUDE_PLUGIN_ROOT="$pdir" CLAUDE_PROJECT_DIR="$HOOK_SANDBOX" HOME="$HOOK_SANDBOX" TMPDIR="$tmp" \
-          $TIMEOUT_CMD bash -c "$resolved" 2>/dev/null) || true
-      bytes=$(printf '%s' "$out" | wc -c | tr -d ' ')
-      total=$((total + bytes))
-    done < <(jq -r --arg ev "$ev" '.hooks[$ev][]?.hooks[]?.command // empty' "$hj" 2>/dev/null)
+    # FILE-SHAPE CORPUS. One synthetic Edit at one path used to be the whole probe,
+    # and the closing notes named the consequence: a hook gated on any other path
+    # shape read 0 "regardless of what it would emit". Six of the nine per-edit
+    # hooks in this marketplace scored 0 for exactly that reason, not for silence —
+    # testing's matcher wants a test file, comment-discipline has a CSS branch,
+    # ui-ux's palette hook wants a stylesheet, database's guard wants a migration.
+    # A channel that cannot see a hook fire cannot be reduced on purpose.
+    #
+    # Aggregation mirrors the prompt corpus deliberately: SUM across a plugin's
+    # hooks for one shape (an edit that trips two of them pays both), MAX across
+    # shapes (report the worst single edit, not a fictional session that edits
+    # five files at once). The figure is what ONE edit can cost.
+    shape_max=0
+    for shape in \
+      "src/example.ts" \
+      "src/components/Widget.tsx" \
+      "tests/example.test.ts" \
+      "src/styles/theme.css" \
+      "database/migrations/2026_01_01_000000_create_orders_table.php"; do
+      payload=$(jq -nc --arg cwd "$EDIT_SANDBOX" --arg ev "$ev" --arg sid "$sid" \
+        --arg tp "$HOOK_SANDBOX/transcript-$sid.jsonl" --arg f "$EDIT_SANDBOX/$shape" \
+        '{hook_event_name:$ev,tool_name:"Edit",session_id:$sid,transcript_path:$tp,cwd:$cwd,
+          tool_input:{file_path:$f,old_string:"const a = 1",new_string:"const a = 2"},
+          tool_response:{filePath:$f,success:true}}' 2>/dev/null)
+      [ -n "$payload" ] || continue
+      shape_sum=0
+      while IFS= read -r cmd; do
+        [ -n "$cmd" ] || continue
+        resolved=${cmd//'${CLAUDE_PLUGIN_ROOT}'/$pdir}
+        out=$(printf '%s' "$payload" \
+          | CLAUDE_PLUGIN_ROOT="$pdir" CLAUDE_PROJECT_DIR="$EDIT_SANDBOX" HOME="$HOOK_SANDBOX" TMPDIR="$tmp" \
+            $TIMEOUT_CMD bash -c "$resolved" 2>/dev/null) || true
+        bytes=$(printf '%s' "$out" | wc -c | tr -d ' ')
+        shape_sum=$((shape_sum + bytes))
+      done < <(jq -r --arg ev "$ev" '.hooks[$ev][]?.hooks[]?.command // empty' "$hj" 2>/dev/null)
+      [ "$shape_sum" -gt "$shape_max" ] && shape_max=$shape_sum
+    done
+    total=$((total + shape_max))
   done
   printf '%s' "$total"
 }
@@ -345,6 +394,22 @@ warn_lines=""
 dyn_rows=""
 act_rows=""
 fail=0
+# LISTING CAP. Claude Code allocates a budget for the skill listing and drops
+# descriptions past it, least-invoked-first, names surviving. One source
+# documents the default as ~15,000 chars; the eviction was observed live on
+# 2026-08-26 (rationale/marketplace-necessity-review-2026-08-26.md:262-287),
+# where ~31 marketplace descriptions arrived stripped and the stripped set was
+# nondeterministic at the margin across identical reloads.
+#
+# Standing: recorded, report-only. This is a DOCUMENTED DEFAULT, not a constant
+# measured on this account, and it is configurable in settings.json — so this
+# channel names a risk, it does not fail a build. What it buys: the always-on
+# token total says what the catalogue weighs, and says nothing about what the
+# host will actually load. An install 3x over this cap does not pay 3x; it
+# silently loses the tail, and a lost description is a skill that can no longer
+# be triggered.
+LISTING_CAP=15000
+listing_rows=""
 leaf_tokens_total=0
 leaf_dyn_total=0
 leaf_act_total=0
@@ -366,6 +431,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     total_bytes=$(plugin_desc_bytes "plugins/$bname")
     dyn_bytes=0
     act_bytes=$(plugin_desc_bytes "plugins/$bname")
+    listing_bytes=$(plugin_desc_bytes "plugins/$bname")
     while IFS= read -r member; do
       [ -n "$member" ] || continue
       mdir="plugins/$member"
@@ -374,6 +440,7 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       total_bytes=$((total_bytes + bytes))
       dyn_bytes=$((dyn_bytes + $(plugin_dynamic_hook_bytes "$mdir") ))
       act_bytes=$((act_bytes + $(plugin_desc_bytes "$mdir") + $(plugin_sessionstart_activated_bytes "$mdir") + $(plugin_mcp_bytes "$mdir") ))
+      listing_bytes=$((listing_bytes + $(plugin_desc_bytes "$mdir") ))
     done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
     is_leaf=0
     members=$(jq -r '.dependencies | length' "$pj" 2>/dev/null || echo 1)
@@ -383,12 +450,22 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
     dyn_bytes=$(plugin_dynamic_hook_bytes "$pdir")
     act_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_activated_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
+    listing_bytes=$(plugin_desc_bytes "$pdir")
     is_leaf=1
     members=1
   fi
   tokens=$(( (total_bytes + 2) / 4 ))
   dyn_tokens=$(( (dyn_bytes + 2) / 4 ))
   act_tokens=$(( (act_bytes + 2) / 4 ))
+  # LISTING CHANNEL (report-only). Descriptions ONLY — deliberately not the
+  # always-on sum. The host's skill listing is built from description text; a
+  # SessionStart hook's stdout and an MCP tools/list are injected by other
+  # means and survive the listing budget, which is the whole distinction this
+  # channel exists to draw. Hooks are eviction-proof; descriptions are not.
+  if [ "$listing_bytes" -gt "$LISTING_CAP" ]; then
+    listing_rows="${listing_rows}$(printf '%-24s %9s  OVER (%sx)' "$bname" "$listing_bytes" "$(awk -v a="$listing_bytes" -v c="$LISTING_CAP" 'BEGIN{printf "%.1f", a/c}')")
+"
+  fi
   # TOTAL sums leaves only — bundles would double-count their members.
   [ "$is_leaf" -eq 1 ] && leaf_tokens_total=$((leaf_tokens_total + tokens))
   [ "$is_leaf" -eq 1 ] && leaf_dyn_total=$((leaf_dyn_total + dyn_tokens))
@@ -506,6 +583,19 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
 done
 
 echo "TOTAL: $leaf_tokens_total tokens"
+
+# Emit the listing channel. Report-only by construction: no `fail=1`, no ceiling
+# comparison that can red a build. It answers a question the token table cannot —
+# not "what does the catalogue weigh" but "what will the host actually load".
+echo
+echo "listing channel (description text only, vs the host's ~${LISTING_CAP}-char skill-listing budget):"
+if [ -n "$listing_rows" ]; then
+  printf '%-24s %9s  %s\n' "install" "chars" "status"
+  printf '%s' "$listing_rows"
+  echo "  every install not listed above is under the cap and loses nothing to eviction"
+else
+  echo "  no install exceeds the cap"
+fi
 
 # AGGREGATE CEILING. The per-plugin ratchet above says of itself, at :127-131, that
 # it "does NOT bound aggregate drift" — every leaf may drift its full +2 and no run
@@ -663,6 +753,8 @@ done | sort | tr '\n' ' ')
 # Still unmetered by nature: a routing rule fires a skill BODY, which is an
 # order of magnitude above its description and depends on the user's files.
 echo "note: skill BODIES loaded by skill-router rules are not metered in any channel"
+echo "note: the listing cap is a DOCUMENTED DEFAULT (~${LISTING_CAP} chars), not a constant measured on this account, and it is configurable in settings.json; the channel is report-only and never fails the build"
+echo "note: the listing channel counts description text only — SessionStart stdout and MCP tools/list are always-on but not part of the skill listing, so they are eviction-proof and excluded here"
 echo "note: the activated channel turns on what THIS fixture knows (terse level, brain/INDEX.md, manifests); a hook waiting for other state still reads its OFF value"
 # EVENT AND TOOL SHAPE. The dynamic channel executes UserPromptSubmit and
 # Pre/PostToolUse-as-Edit, and nothing else. Two whole categories therefore read
@@ -680,7 +772,8 @@ echo "note: Stop hooks and Bash-matched PreToolUse are never executed by the dyn
 # path pattern it does not match scores 0 for a reason that has nothing to do
 # with its size — testing/hooks/test-shape.sh emits ~146 tokens on a real test
 # file and baselines 0 here.
-echo "note: the synthetic Edit targets src/example.ts only; a hook gated on a different path shape (e.g. testing's test-file matcher) reads 0 regardless of what it would emit"
+echo "note: the per-tool probe now drives five file shapes (source, component, test, stylesheet, migration) with content chosen to trip the guards; MAX across shapes, SUM across a plugin's hooks for one shape"
+echo "note: a per-edit hook still reading 0 is NOT necessarily silent, and the cause is no longer path shape. Measured 2026-08-31: of six plugins reading 0, the file-shape corpus moved ONE (testing, 0 -> 127). The rest are gated on state this probe does not create (an active task-runner run), on a Bash matcher the probe never fires, or on content narrower than a generic fixture (a secret-shaped string, a comment body, a project theme file). Widening the fixture until every guard trips would measure a worst case no real edit reaches."
 
 [ "$no_baseline" -eq 1 ] && echo "WARN: no baseline" >&2
 [ "$no_dyn_baseline" -eq 1 ] && echo "WARN: no dynamic baseline" >&2

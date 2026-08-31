@@ -14,20 +14,10 @@ at authoring time, before a single line of implementation is written.
 
 ## Where it sits — layer 1 of the three-layer defense
 
-**This skill owns layer 1 only:** a syntactic denylist over the Verify *line text*,
-catching the obvious weak forms the moment a card is written, before any code
-exists. Fast and free, and shallow by construction — text cannot see behaviour.
-
-Layers 2 and 3 run during execution and live in `task-runner`, which owns and
-states the full map: `task-runner:behavioral-gate` § "The three-gate defense".
-Read it there when installed; do not re-derive the ordering here.
-
-That deferral is the fix for a real defect, not tidiness. This section used to
-restate all three layers, and the two copies had drifted into DISAGREEMENT: this
-file called layer 2 the empty-suite gate and layer 3 the negative control, while
-behavioral-gate called layer 2 the negative control and layer 3 itself. Same
-numbers, different mechanisms. One owner, cited rather than mirrored, is the only
-shape that cannot drift again.
+Standing: recorded — owns layer 1 only: a syntactic denylist over the Verify *line
+text*, before any code exists. Layers 2 and 3 run during execution and belong to
+`task-runner`, which owns the full map: `task-runner:behavioral-gate` § "The
+three-gate defense".
 
 ## When it runs
 
@@ -112,11 +102,10 @@ Now the line names the assertion that fails if the guard is absent. Re-run: exit
 
 ## What it is NOT (stated limits)
 
-This is a **denylist** of known-weak *syntactic* forms read from the line text. It cannot
-prove a novel verify is non-vacuous (a `grep -q TODO file.js` slips through the pattern set),
-and it does not detect an empty suite or a semantically hollow assertion — those are runtime
-properties owned by layers 2 and 3 above. verify-teeth is the first line, not the last; it
-never claims to be the whole defense, and a green from it is necessary, not sufficient.
+Standing: unenforceable beyond syntax — it cannot prove a novel verify non-vacuous
+(`grep -q TODO file.js` slips through) and sees neither an empty suite nor a hollow
+assertion: those are runtime, layers 2 and 3. A green here is necessary, not
+sufficient.
 
 ## Under ultra-goal (hands-off)
 
@@ -135,10 +124,10 @@ observation — the card is not yet a task — halt with evidence rather than lo
 
 ## What enforces this
 
-The lint itself is a **gate when it runs**: `scripts/verify-teeth-lint.sh` exits non-zero
-on a toothless Verify line. Whether it runs at all is **recorded** — this skill says to run
-it per card, and nothing observes that it did. Unlike the execution-side passes (reviewer,
-red-team, behavioral gate), card authoring ends before any run registers, so there is no
-Stop gate positioned to count records. Naming the gap is the honest option; claiming the
-lint's tier for its invocation would be the over-claim this marketplace's has-teeth
-convention forbids.
+Standing: gate when it runs — `scripts/verify-teeth-lint.sh` exits non-zero on a
+toothless Verify line. That it runs at all is now **observed, not gated**: every lint
+appends a run record beside the card (`scripts/card-lint-record.sh`), and
+`hooks/card-lint-observe.sh` warns on the run's first write when a card in the
+registered set carries none. It warns and never blocks, it is keyed off the run
+registering itself (a set executed without `/task-runner:run` is still unseen), and a
+record proves invocation, not honesty — it closes forgetting, not evasion.

@@ -49,13 +49,13 @@ command -v jq >/dev/null 2>&1 || exit 0
       | grep -qvE '(__Q__|^[[:space:]]*(can|could|should|would|shall|is|are|was|were|do|does|did|am|will|what|why|how|when|where|which|who|whether)[^a-z])' \
       || exit 0
   fi
-  # TURN-TAKING (spec §4.3). Evaluated only after the prompt already matched this
+  # TURN-TAKING. Evaluated only after the prompt already matched this
   # hook's own trigger, so an out-of-phase artifact costs one lane.tsv read and
   # nothing else. sid is needed by the guard's session check, so resolve it first.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
   cc_phase_guard '{{artifact}}' || exit 0
   if printf '%s' "$head" | grep -qiE '{{regex}}'{{#if extraGuard}} && {{extraGuard}}{{/if}}; then
-    # MONOTONIC PRECEDENCE (spec §4.4). Rank arbitrates only between hooks that
+    # MONOTONIC PRECEDENCE. Rank arbitrates only between hooks that
     # share a phase; the phase sentinel does the real turn-taking. Guaranteed:
     # among hooks eligible THIS TURN, the best rank always speaks, in every
     # invocation order. NOT guaranteed: exactly one line — a worse-ranked sibling

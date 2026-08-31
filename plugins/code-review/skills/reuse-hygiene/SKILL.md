@@ -108,23 +108,13 @@ corpse the next agent will be tempted to reuse.
 
 ## Composition seams
 
-This skill owns a narrow lane — **reuse-time deadness** (a symbol you are about to
-build on) and **orphan detection on demand**. It is not the whole dead-code story:
-
-- **"Dead code" as a review catalog** — unreferenced symbols surfaced as a finding
-  during a review — belongs to `code-smells` (the dispensables catalog) in this
-  plugin. That is a review pass; this is a *pre-reuse* check.
-- **Speculative generality / creating dead weight** — interfaces with one
-  implementation, config nobody sets, hooks nobody calls — belongs to
-  `code-architecture` yagni-check. That is about not *building* dead code; this is
-  about not *reusing* it.
-- **Dependency-level deprecation** — a whole package deprecated, abandoned, or yanked
-  upstream — belongs to `packages` package-hygiene. This reasons about symbols inside
-  the repo, not third-party health.
-- **Pre-existing dead code passed mid-task** — a corpse you notice while editing for
-  an unrelated reason — belongs to `code-architecture` plan-before-code: mention it,
-  never delete it in an unrelated diff. The orphan rule above covers only orphans
-  *your* change creates. (Admission law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+Standing: recorded — owns **reuse-time deadness** (a symbol you are about to build on)
+and orphan detection on demand, for orphans *your* change creates. Dead code as a
+review finding is `code-smells`; speculative generality is `code-architecture`
+yagni-check; a yanked or deprecated package is `packages` package-hygiene;
+pre-existing dead code passed mid-task is `code-architecture` plan-before-code —
+mention it, never delete it in an unrelated diff. (Admission law:
+`claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
 
 ## Honest limits
 

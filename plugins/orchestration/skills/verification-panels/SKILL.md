@@ -41,13 +41,13 @@ consumer; one that re-derives its own N does not inherit corrections to this.
 | **Lens-fixed** — `task-runner:code-redteam` alone | 3 at any radius: its N is a lens taxonomy, not a radius call. The one blessed exception; a new one belongs in this table or it is an invention |
 
 No `Workflow` tool → 1 inline pass, reported as **"inline heuristic pass — single
-model, uncorroborated"**, never as a panel or an adversary count. That label is owned
-here; consumers cite it rather than restating it, so a change to the wording reaches
-every one of them. The boost dispatch tier is owned here too — `references/dispatch-tier.md`.
+model, uncorroborated"**, never as a panel or an adversary count. That label and the
+boost dispatch tier (`references/dispatch-tier.md`) are owned here; consumers cite,
+never restate.
 
 A consumer may map its OWN triggers onto these rows — `spec-redteam`'s four gate bullets,
 `ultra`'s recon/coverage columns — because which conditions signal "large" is domain
-knowledge they hold and this skill does not. It may not invent a different N for the same radius.
+knowledge they hold. It may not invent a different N for the same radius.
 
 ## Refuter voting
 

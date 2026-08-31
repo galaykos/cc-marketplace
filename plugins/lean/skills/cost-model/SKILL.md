@@ -81,43 +81,22 @@ floored by whatever already runs: a card's `Verify` must still name a real test 
 asserted outcome, and a control that fails to discriminate is a gap to close, not fat to
 trim. This doctrine argues about what to ADD. It never argues a gate DOWN.
 
-## What this owns, and who owns the rest
+## What this owns, and standing
 
-This skill owns **how much**, across all five surfaces at once, and the cost of
-**actions**. It does not restate the surface owners — go to them for the *what*:
+Owns **how much**, across all five surfaces at once, and the cost of **actions**.
+For the *what*, go to the surface owners: `comment-discipline:comment-discipline`,
+`testing:testing-best-practices`, `code-architecture:yagni-check`,
+`code-architecture:low-cognitive-load`.
 
-| Question | Owner |
-|---|---|
-| Should this comment exist, and where does the fact belong instead? | `comment-discipline:comment-discipline` |
-| What is worth testing, and at which layer? | `testing:testing-best-practices` |
-| Is this abstraction speculative? | `code-architecture:yagni-check` |
-| Where does a fact belong so a reader finds it? | `code-architecture:low-cognitive-load` |
+Evidence — `testing:testing-best-practices` `references/proportionality.md` measured
+a 30-card run at **3.44 : 1** test-to-code against the same repository's own
+**0.78–1.31 : 1** (~3x), and **520 tests for an integration comparable to an existing
+65-test one** (8x), every gate green.
 
-The strongest evidence for this doctrine is already recorded by one of them.
-`testing:testing-best-practices` → `references/proportionality.md` measured a real
-30-card feature run at **3.44 : 1 test-to-code against the same repository's own
-0.78–1.31 : 1 (~3x)**, and **520 tests for an integration comparable to an existing
-65-test one (8x)**. Every gate passed green and every agent optimised locally; the
-aggregate was first looked at when a human asked. That is what unpriced surfaces
-look like at scale, and it is why the answer is a bar per surface rather than a
-tighter gate on any one of them.
-
-## Standing
-
-- The doctrine above is **agent-graded** and **recorded**: a reviewer applies it,
-  and nothing reads it back. The residual is that a reviewer has to actually apply it.
-- The one mechanical delivery is this plugin's `PostToolUse` hook, and it is
-  **warn-only**. `additionalContext` is not a blocking key, and the hook arrives
-  *after* the first write of a context — it informs the next write, never the one
-  that triggered it. It also cannot see the aggregate across a fan-out, which is
-  precisely the number the measurement above is about.
-- There is deliberately **no blocking volume gate**, and saying so is the point. A
-  mechanical line-count or test-count threshold would be exactly the ratio-chasing
-  this skill rejects. It would fire on legitimately dense work — a driver full of
-  vendor quirks, a parser, a security boundary with real branches — and wave through
-  a bloated diff that happens to sit under the number. There is no correct ratio, so
-  there is nothing honest to gate on.
-
-Proportionality and Admission are the two laws this skill applies. Read them at
-`claude-authoring/skills/authoring-skills/SKILL.md`, "The four laws"; they are not
-restated here.
+Standing: agent-graded and recorded — a reviewer applies this, nothing reads it back.
+The one mechanical delivery is this plugin's warn-only `PostToolUse` hook:
+`additionalContext` does not block, it arrives after the write that triggered it, and
+it cannot see a fan-out's aggregate. There is deliberately no blocking volume gate — a
+line- or test-count threshold would fire on dense work and wave through a bloated diff
+under the number. Proportionality and Admission are the laws applied:
+`claude-authoring/skills/authoring-skills/SKILL.md`, "The four laws".

@@ -23,12 +23,26 @@
 #   3  usage error (Honest limitation law: claude-authoring/skills/authoring-skills/SKILL.md "The four laws".)
 set -euo pipefail
 
+# RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —
+# a card set could reach execution with none of the three invoked and every check in
+# the repo green. `record_run` appends one line per invocation beside the card; the
+# reader is hooks/card-lint-observe.sh. Written on BOTH outcomes: the record says the
+# lint ran and what it said, never that the card is good.
+_cardlint_target=""
+. "$(dirname "$0")/card-lint-record.sh" 2>/dev/null || true
+record_run() { # $1 = verdict. No-op in --line mode: no file to key the record on.
+  [ -n "$_cardlint_target" ] || return 0
+  command -v cardlint_write >/dev/null 2>&1 || return 0
+  cardlint_write spec-ledger "$_cardlint_target" "$1"
+}
+
 die_usage() {
   printf 'spec-ledger: usage error: %s\n' "$1" >&2
   exit 3
 }
 
 violation() {
+  record_run block
   printf 'spec-ledger: %s\n' "$1" >&2
   exit 2
 }
@@ -49,6 +63,7 @@ done
 
 [ -n "$spec" ] || die_usage "need --spec <spec.md>"
 [ -f "$spec" ] || die_usage "spec file not found: $spec"
+_cardlint_target="$spec"
 
 # Extract the ledger section: from the `## Ambiguity ledger` heading (any level,
 # optional "(final)") to the next `## ` heading or EOF.
@@ -79,4 +94,5 @@ if [ -n "$nostatus" ]; then
   violation "no-status: ledger row carries no CLEAR/ASSUMED status. First: ${first}"
 fi
 
+record_run pass
 exit 0

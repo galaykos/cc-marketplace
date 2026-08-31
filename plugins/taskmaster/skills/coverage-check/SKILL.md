@@ -5,15 +5,11 @@ description: Use after task-cards splits a spec into cards — verifies every sp
 
 ## Where this sits
 
-This runs at the tail of task-cards: once `00-INDEX.md` and the card files are
-written, and before the execution handoff. It is an independent verifier of
-task-cards' own output — fresh eyes on the split, not the author re-reading its
-own work, which is why the matrix build is dispatched to a subagent rather than
-done by the thread that just wrote the cards. It checks documents against
-documents; it is not code verification. work-verification and task-runner check
-delivered code against criteria later — this checks that the criteria are all
-represented in the cards first, so the run does not begin already missing a
-requirement or carrying scope nobody asked for.
+Standing: recorded — runs at the tail of `task-cards`, once `00-INDEX.md` and the
+cards are written and before the execution handoff. It verifies task-cards' own output
+with fresh eyes, which is why the matrix build is dispatched to a subagent. It checks
+documents against documents; `work-verification` and `task-runner` check delivered
+code later.
 
 ## What it checks
 

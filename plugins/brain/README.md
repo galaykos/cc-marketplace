@@ -97,5 +97,3 @@ Anchored notes and `/brain note` · per-symbol anchors and content-hash stamps �
 graph over existing `.md` (taskmaster-docs, ADRs, hindsight, skills) · canvas · kanban ·
 graph visualization · automatic re-indexing · cross-project maps · semantic/embedding search.
 
-See [ROADMAP.md](ROADMAP.md) for the planned Phase 1b (anchored notes) and the go/revisit
-trigger that decides when to build it.

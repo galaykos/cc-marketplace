@@ -135,12 +135,9 @@ An icon-only delete button in a list row needs all of:
 
 ## Boundaries
 
-- General visual and layout review belongs to /ui-ux:review and the
-  ui-ux plugin's agents; ui-ux-engineer implements the fixes. This skill
-  owns the WCAG audit itself.
-- Automated tooling (axe, Lighthouse) complements this checklist — a
-  clean axe run is necessary, not sufficient. Tools cannot judge alt-text
-  quality, focus-order sanity, or whether a label makes sense.
+Standing: recorded — owns the WCAG audit only; visual and layout review is
+`/ui-ux:review` (ui-ux-engineer fixes). A clean axe or Lighthouse run is
+necessary, not sufficient.
 
 ## Anti-patterns
 

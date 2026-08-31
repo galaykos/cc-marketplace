@@ -38,10 +38,20 @@ but not idiom-restating by construction); ui-ux skills `bootstrap-`,
 `css3-`, `css-grid-`, `flexbox-best-practices`.
 
 Kept deliberately (tier 1, not tested — highest training-cutoff drift and/or
-teeth): laravel (ships the shared backend-engineer worker), php, livewire,
-inertia, nextjs, nuxt, vue3, vite, threejs, node-backend, react-native, and
-the db dialect plugins. These encode version leverage maps and lockfile-pinning
-behavior, not idioms.
+teeth): laravel (ships the shared backend-engineer worker), inertia, nextjs,
+vite, threejs, react-native, and the db dialect plugins. These encode version
+leverage maps and lockfile-pinning behavior, not idioms.
+
+> **Corrected 2026-08-31.** This paragraph also named php, livewire, nuxt, vue3
+> and node-backend as "kept deliberately" until then; all five were deleted on
+> 2026-08-26 by `cfef9c1`. It matters more than a stale list usually would,
+> because `scripts/lib/plugin-checks.sh:298-299` cites THIS FILE as the ground
+> truth for `pc_removed_refs`' hardcoded denylist — so the gate and its own
+> stated source disagreed. The defence this paragraph makes is also weaker than
+> it reads: `rationale/eval-ablation-2026-08-20.md` §4 measured the
+> lockfile-reading claim directly and got 3/3 control, 3/3 treatment, with every
+> control run opening the manifest unprompted. The tier still ships on the
+> refuted half of its own argument.
 
 ## Residuals (honest scope)
 

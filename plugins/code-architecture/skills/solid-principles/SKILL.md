@@ -113,11 +113,10 @@ concrete implementation at the composition root, and keep infrastructure imports
 modules. The abstraction belongs to the consumer and is shaped by what it needs — not a mirror
 of the vendor SDK's surface.
 
-**Boundary with yagni-check:** that skill lists single-implementation interfaces as
-speculative generality, and both rules fire on the same artifact. Split them by origin, not
-by implementation count: an interface the consumer wrote to state what it needs at a genuine
-boundary is this principle and stands with one implementation; an interface added because a
-second provider might arrive is yagni-check's, and it wins.
+**Boundary with yagni-check:** both rules fire on single-implementation interfaces.
+Split by origin, not by implementation count — one the consumer wrote to state what
+it needs at a genuine boundary is this principle and stands with one implementation;
+one added because a second provider might arrive is yagni-check's, and it wins.
 
 **Not a violation:** wrapping every concrete class in an interface by reflex. A value object,
 a stdlib call, or a stable in-process collaborator needs no interface between you and it.

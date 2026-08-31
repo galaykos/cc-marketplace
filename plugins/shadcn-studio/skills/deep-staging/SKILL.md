@@ -5,14 +5,10 @@ description: Use when authoring staged variants inside a running shadcn-studio s
 
 ## Where this sits
 
-studio provisions, serves, and cleans up the sandbox; this skill decides WHAT to
-author in it and HOW DEEP. Read it once studio has a stage running, before
-writing any `src/variants/*.tsx`. The two never overlap: lifecycle is studio's,
-substance is here.
-
-A staged option is thin when it is one frame with a caption. Depth comes from a
-clear lane, the states that lane actually has, real interactivity, and realistic
-data — never from more variants (still at most three, one axis).
+Standing: recorded — `studio` owns the sandbox lifecycle; this decides WHAT to author
+in it and HOW DEEP. Read it once studio has a stage running, before writing any
+`src/variants/*.tsx`. Depth comes from a clear lane, that lane's real states, real
+interactivity, and realistic data — never from more variants (at most three, one axis).
 
 ## Pick the lane — one per stage
 

@@ -131,13 +131,9 @@ the code before the first webhook arrives.
 
 ## Boundaries
 
-- Infra-level HA and failover are the devops plugin's territory; this
-  skill designs application-level failure handling.
-- The inversion strategy in the approaches plugin (/approaches:compare)
-  generates failure routes at design time — this skill supplies the
-  standard mitigations for the routes it finds.
-- Injection and authz gaps go to /security:review; a timeout will not
-  fix a missing permission check.
+Standing: recorded — owns application-level failure handling. Infra HA and
+failover are the devops plugin; `/approaches:compare` generates the failure routes
+this skill mitigates; injection and authz gaps go to `/security:review`.
 
 ## Anti-patterns
 

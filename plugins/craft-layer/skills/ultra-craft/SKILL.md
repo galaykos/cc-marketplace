@@ -153,7 +153,7 @@ workflow-size ceiling: `verification-panels` `references/dispatch-tier.md` § Na
 
 ## Residual: no cross-plugin activation guard
 
-Two boost tokens in one prompt inject two directives; nothing can stop it — three
-independently-installed plugins share no writable state. Standing **unenforceable**; the
-off switch (`CC_BOOST=off` / `CRAFT_BOOST=off`) is what IS implementable. Full statement:
-`verification-panels` `references/dispatch-tier.md`.
+Standing: unenforceable — three independently-installed plugins share no writable
+state, so two boost tokens inject two directives. The off switch (`CC_BOOST=off` /
+`CRAFT_BOOST=off`) is what IS implementable; full statement: `verification-panels`
+`references/dispatch-tier.md`.

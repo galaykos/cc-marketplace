@@ -89,13 +89,11 @@ switched off and takes the unambiguous ones with it.
 
 ## The observability boundary
 
-Two plugins touch observability; the split is by layer:
-
-- **This plugin (infra):** wire probes to endpoints, ship logs off the node, scrape/
-  export metrics, provision dashboards and alerting rules, set up the collector.
-- **`observability` plugin (code):** what the application *emits* — structured logs,
-  correlation IDs, log levels, RED/USE metrics in code, trace spans. Do not audit
-  in-code instrumentation here; recommend `/observability:review`.
+Standing: recorded — this plugin owns the infra layer: probes wired to endpoints,
+logs shipped off the node, metrics scraped/exported, dashboards, alerting, the
+collector. What the application *emits* — structured logs, correlation IDs, levels,
+RED/USE metrics, spans — is the `observability` plugin; recommend
+`/observability:review`, do not audit in-code instrumentation here.
 
 ## Defer rule
 
