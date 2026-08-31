@@ -3,6 +3,20 @@
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.12.5
+
+### Changed
+- **`authoring-plugins` no longer teaches the all-in-bundle rule.** It told authors
+  a new leaf plugin must be added to the `everything` bundle's `dependencies` or the
+  aggregate install would silently omit it. That bundle was removed on 2026-08-31 —
+  at 224 description-bearing artifacts it overshot the host's ~15,000-char skill
+  listing and about three quarters of it arrived name-only, nondeterministically.
+  The rule is replaced by what is actually true now: a new leaf joins a themed
+  bundle or none, and the README leaf count is still gated.
+- **`authoring-skills`' `references/doctrine.md` drops the same reference.** Its
+  "no number" argument stands unchanged; it now also names the one ceiling that
+  does bind and is not ours — the host's listing eviction.
+
 ## 0.12.4
 
 ### Fixed

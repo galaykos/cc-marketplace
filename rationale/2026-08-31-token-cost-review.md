@@ -214,7 +214,34 @@ branch.
 
 ## Recommendations, in the order I would do them
 
-**R1 — Delete `everything`, or cut it to ~70 artifacts.** It ships 224
+**R1 — Delete `everything`, or cut it to ~70 artifacts.** **Done 2026-08-31:
+removed** (marketplace 0.94.0). Two things the recommendation had not accounted
+for, both found while executing it:
+
+- **Deleting the bundle would have deleted a gate.** `validate.sh`'s README
+  leaf-count check lived inside `if [ -f "$EV" ]`, keyed on the bundle's
+  `plugin.json`. Removing the bundle would have made that check vanish silently
+  — a passing build with one fewer check in it. It was rehomed first, and now
+  runs unconditionally. *Removing an artifact can remove a gate riding on it,
+  and nothing warns you.* That generalises past this removal.
+- **The README's cap figure was wrong**, and it was the number that justified
+  this recommendation. It read "~2k tokens at 200k, ~10k at 1M"; this repo's own
+  live observation recorded ~19,949 chars stripped **at 1M**
+  (`marketplace-necessity-review-2026-08-26.md`), consistent with a ~15,000-char
+  absolute default binding before the 1% fraction. Corrected at the generator.
+
+Also corrected: this section said `everything` cannot dispatch "two-thirds" of
+what it advertises. At 224 artifacts against ~76 that fit, it is **about three
+quarters**. And a stripped skill is name-only, not absent — autonomous dispatch
+is what dies, since the description is the channel; an informed user naming the
+skill explicitly can still reach it.
+
+What is genuinely lost, stated rather than buried: nothing now asserts that a new
+leaf plugin joins *any* bundle. The old failure mode (an aggregate install
+silently omitting a leaf) is retired rather than unguarded, but a leaf that
+belongs in a themed suite and is left out is now a WARN nobody writes.
+
+The original recommendation, for the record: It ships 224
 description-bearing artifacts into a ~72-artifact budget. It cannot dispatch
 two-thirds of what it advertises, and which third works is nondeterministic
 across reloads. Trimming descriptions cannot fix it (1.8% measured) and would not

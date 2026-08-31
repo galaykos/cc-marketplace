@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+### Changed
+- Regenerated `/always-on-suite:uninstall` from the shared template: it no longer
+  names the `everything` meta-bundle as a scope that might also list a member,
+  because that bundle was removed from the marketplace. Membership and behaviour
+  are unchanged.
+
 ## 0.2.0
 
 ### Removed

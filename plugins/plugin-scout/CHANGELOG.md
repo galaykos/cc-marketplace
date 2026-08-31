@@ -7,6 +7,14 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.12.3
+
+### Changed
+
+- Regenerated catalog: the `everything` meta-bundle was removed from the
+  marketplace, so its row is gone. No behaviour change here — skip on upgrade.
+  Install a themed `*-suite` or the leaves you want instead.
+
 ## 0.12.2
 
 ### Changed
