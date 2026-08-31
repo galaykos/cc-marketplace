@@ -587,12 +587,27 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # Emit the listing channel. Report-only by construction: no `fail=1`, no ceiling
 # comparison that can red a build. It answers a question the token table cannot —
 # not "what does the catalogue weigh" but "what will the host actually load".
+#
+# AN `OVER` STATUS IS A REACHABILITY WARNING AND NEVER A COST WARNING, and the
+# channel now says so on every run because the number looks exactly like a bill.
+# The host DROPS description text past the cap, so that text is never sent and
+# never charged: an over-cap install pays the same description cost as any install
+# sitting at the cap. Trimming descriptions above the cap therefore saves ~nothing
+# (measured twice: 2.8% catalogue-wide at distillation-2026-08-23.md:206-214, 1.8%
+# for taskmaster-suite specifically). What overflow costs is DISPATCH — the dropped
+# descriptions arrive name-only and the surviving set is nondeterministic across
+# reloads (observed live, marketplace-necessity-review-2026-08-26.md:262-287). That
+# is the reasoning that retired the `everything` bundle on 2026-08-31, and it is a
+# membership argument, not a token one: the only route under the cap is fewer
+# artifacts. Full derivation: rationale/2026-08-31-token-cost-review.md.
 echo
 echo "listing channel (description text only, vs the host's ~${LISTING_CAP}-char skill-listing budget):"
 if [ -n "$listing_rows" ]; then
   printf '%-24s %9s  %s\n' "install" "chars" "status"
   printf '%s' "$listing_rows"
   echo "  every install not listed above is under the cap and loses nothing to eviction"
+  echo "  OVER = a REACHABILITY warning, never a cost one: the host drops the overflow, so it"
+  echo "  is never charged. The fix is fewer artifacts in the install, not shorter descriptions."
 else
   echo "  no install exceeds the cap"
 fi
