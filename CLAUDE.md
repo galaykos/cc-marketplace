@@ -19,7 +19,7 @@ publishable plugin.
     and no script can tell the two apart.
 
     **Standing of the eval surface itself: `recorded`, not verified** — recounted
-    2026-08-27. **2 of 63** plugins ship an eval (nextjs, resilience), **none**
+    2026-08-31. **2 of 62** plugins ship an eval (nextjs, resilience), **none**
     defines a control arm, and `claude plugin eval` is early-access gated
     on this account, so no shipped suite has been run against the runner's schema.
     "Functional" above describes the intended contract, not a checked one. The
@@ -168,8 +168,8 @@ marker. Two days, two stale counts: run the command. **No script enforces the co
   also checks **changelog coverage**, and the tier is split on purpose: a plugin
   that HAS a `CHANGELOG.md` must carry an entry for the version it just bumped to
   (`gate`), and one that has none draws a `WARN` naming the consumer's problem. It
-  is not hard for everyone because that would demand ~49 backfilled changelogs
-  (63 plugins, 14 with the file — recounted 2026-08-27 with
+  is not hard for everyone because that would demand ~47 backfilled changelogs
+  (62 plugins, 15 with the file — recounted 2026-08-31 with
   `ls plugins/*/CHANGELOG.md | wc -l`) describing releases nobody recorded — invented history in the file whose job is
   history. Adding the file opts a plugin in; `code-review` and `devops` ship the
   worked examples.
