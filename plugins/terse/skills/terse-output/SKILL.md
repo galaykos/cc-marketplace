@@ -74,6 +74,11 @@ causal arrows (X → Y) at **ultra**. Never abbreviate a symbol, function, API n
 or error string. **lite** keeps full sentences and only drops filler. The
 `wenyan-lite` / `wenyan-full` / `wenyan-ultra` levels swap this paragraph for a
 classical-Chinese register at the same budgets — `references/wenyan.md`.
+
+**Surface exception, word level only.** Where the host prompt bans telegraphese
+(the Claude Code desktop app bans "fragments, abbreviations, arrow chains like
+`A → B → fails`, or jargon"), hold **lite** word rules at every level. Budgets
+and shape are unchanged: cut by deleting content, never by abbreviating it.
 <!-- terse-contract:end -->
 
 ## Why shape, not just words

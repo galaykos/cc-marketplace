@@ -264,6 +264,38 @@ Recorded so the next reviewer does not re-derive it:
   and shares a name; worth a sentence, but the deliverables genuinely differ (ours
   fans in eight stack reviews, the built-in has ultra/`--comment`/`--fix`).
 
+## Outcome — every finding applied, same day
+
+All eight were fixed on branch `fable5-prompt-alignment`. Nothing was deferred.
+What changed, by finding:
+
+| # | Plugin | Change | Version |
+|---|---|---|---|
+| 1 | `terse` | `terse-output` gains a surface exception: where the host bans telegraphese, every level holds `lite` word rules. Shape budgets untouched. | 0.3.9 → 0.4.0 |
+| 2 | `git-workflow` | `worktree-isolation` leads with `EnterWorktree` / `ExitWorktree` and makes `.claude/worktrees/` rung 1; new anti-pattern for hand-rolling beside the harness. | 0.3.2 → 0.4.0 |
+| 2 | `task-runner` | `track-orchestration` names the harness as a second owner of that root and requires live track worktrees in the halt report. | 0.30.1 → 0.31.0 |
+| 3 | `design-preview` | A `preview_start` / `.claude/launch.json` rung above the Bash ladder, on both README and `real-preview`. | 0.4.2 → 0.5.0 |
+| 4 | `code-review` | `/code-review:review` emits through `ReportFindings` when present, prose unchanged; plus a stated boundary against the built-in `/code-review`. | 0.12.6 → 0.13.0 |
+| 5 | `claude-authoring` | `authoring-agents` documents the `fable` rung and why `inherit` stays the default. | 0.12.5 → 0.13.0 |
+| 6 | `hindsight` | Harvest rules now route to two homes — CLAUDE.md for repo-binding rules, a `feedback` memory for user-binding ones. | 0.5.6 → 0.6.0 |
+| 7 | `brain` | A boundary section against native memory, with the split as a table. | 0.3.4 → 0.3.5 |
+| 8 | `llm-app` | A real "Context-window management" section, so the description stops promising what the body lacked. | 0.1.6 → 0.2.0 |
+
+Three baseline numbers moved, each hand-verified rather than accepted from the
+tool: `terse` activated 1891 → 1970 and `always-on-suite` activated 2715 → 2770
+(both measured), `process-suite` activated 2013 → 2020 (hand-applied: the +7 is
+hindsight's description growth, and the activated surface is a superset of
+always-on, so the delta must track). Plus `hindsight` 121 → 128,
+`always-on-suite` 1641 → 1648, `process-suite` 1981 → 1988 on the always-on
+channel.
+
+**A blanket `--update-baseline` was run and its output rejected.** It deleted six
+entries from the activated baseline and zeroed twelve in the dynamic one, because
+this machine cannot create the state those hooks wait for — the exact failure
+`CLAUDE.md` records against commit `5192047a`. Both files were restored from git
+and the three real deltas applied by hand. Anyone re-running that command in a
+sandbox will reproduce the damage; the warning in `CLAUDE.md` is not theoretical.
+
 ## What this review did NOT check
 
 Honest limitation, per the house convention:

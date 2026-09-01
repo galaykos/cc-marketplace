@@ -107,8 +107,17 @@ Same decision discipline as the shell, real ingredients:
 - A dev server already running (user's terminal, detected port in use with a
   Vite response)? Reuse it — the entry appears at `/design-preview.html` without
   a restart. NEVER kill or restart a server this flow did not start.
-- Otherwise start the dev script in the background, note the PID, wait for the
-  ready line, and hand over `http://localhost:<port>/design-preview.html`.
+- **Where the harness owns servers, start it there.** Claude Code's desktop app
+  ships `mcp__Claude_Browser__preview_start`, which runs a dev server named in
+  `.claude/launch.json`, reuses one already running, and opens the Browser pane on
+  it — and its own instruction is to use it instead of Bash for running servers.
+  When that tool is present: add the project's dev script as a `launch.json`
+  configuration (`name`, `runtimeExecutable`, `runtimeArgs`, `port`) if it is not
+  there, start it by name, then navigate to `/design-preview.html`. Stop it with
+  `preview_stop` in place of the PID kill below, and only if this flow started it.
+- Otherwise (the CLI, or no preview tool) start the dev script in the background,
+  note the PID, wait for the ready line, and hand over
+  `http://localhost:<port>/design-preview.html`.
 - Iteration: edit `main.tsx` in place — Vite HMR updates the open tab; no new
   entries, no new ports, at most two passes.
 

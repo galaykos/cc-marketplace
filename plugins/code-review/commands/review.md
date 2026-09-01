@@ -62,6 +62,18 @@ Output rules:
   critical first — the marketplace-wide scale the chassis reviews use, so
   fan-in output merges with theirs without translation.
 - No praise, no restating the diff, no findings on unchanged lines.
+- **Also emit through `ReportFindings` when that tool is available.** This command
+  is the active code-review instruction the tool's own usage rule waits for, so
+  the condition is met here. Emit once, after the self-refute pass, with the
+  surviving findings ranked most-severe first (an empty array when none survived),
+  and keep the prose lines as well — the prose is what the stack fan-in merges on,
+  and dropping it would break every plugin that reads this format. Map the
+  marketplace scale onto the tool's fields: `category` takes the kebab-case kind
+  (`correctness`, `simplification`, `efficiency`, `test-coverage`), `verdict` is
+  `CONFIRMED` for anything re-read or re-run and `PLAUSIBLE` for the rest, and
+  `failure_scenario` carries the concrete inputs-to-wrong-output line rather than a
+  restatement of the summary. When the tool is absent, prose only — nothing else
+  about this command changes.
 - Defer instead of duplicating. The fan-in covers two axes:
   - **Stack axis** — idiom detail is already loaded inline when the plugin is
     installed; when absent, name the plugin in the closing line rather than

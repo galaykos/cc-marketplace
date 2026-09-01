@@ -3,6 +3,18 @@
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.13.0
+
+### Added
+- **`authoring-agents` documents the `fable` model tier.** The tier list taught
+  `opus | sonnet | haiku | inherit` and stopped there, while the Agent tool's enum
+  is `sonnet|opus|haiku|fable`, `scripts/validate.sh` accepts all four, and
+  `orchestration`'s `role-floors.md` builds its whole floor formula on the ladder
+  `haiku < sonnet < opus < fable`. An author reading the skill had no way to learn
+  the top rung exists. The entry states the one case that warrants pinning it (an
+  opus pin capping a stronger session) and why `inherit` remains the right default
+  for nearly everything.
+
 ## 0.12.5
 
 ### Changed

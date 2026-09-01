@@ -30,7 +30,11 @@ applied without your explicit approval.
    agent per session, and synthesizes findings under a two-session recurrence
    gate: proposals need evidence from at least two sessions; single-session
    patterns are parked as candidates until corroborated.
-3. **Apply (on approval)** — approved rules append to CLAUDE.md, ideas hand off
+3. **Apply (on approval)** — approved rules go to one of two homes (a repo-binding
+   rule appends to CLAUDE.md; a rule about how *you* want to be worked with becomes
+   a `feedback` entry in Claude Code's own memory at
+   `~/.claude/projects/<slug>/memory/`, which is machine-local and not imposed on
+   teammates), ideas hand off
    to `/claude-authoring:new-skill` or `/claude-authoring:new-plugin`, warnings
    land in `.claude/hindsight/anti-patterns.md`. Nothing is written without an
    explicit pick.

@@ -3,6 +3,21 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.13.0
+
+### Added
+- **`/code-review:review` emits through `ReportFindings` when the host provides it.**
+  Claude Code ships a typed findings tool whose usage rule waits for an active
+  code-review instruction to ask for it; this command is that instruction. Findings
+  now go out both ways — the typed array for the host UI, and the existing
+  `path:line — severity — problem — fix` prose, unchanged, because the prose format
+  is what the stack fan-in merges on. Absent the tool, nothing changes.
+- **A stated boundary against Claude Code's built-in `/code-review`** in the README.
+  The names collide and the deliverables genuinely differ: the built-in is deeper on
+  one diff (effort levels, `ultra`, `--comment`, `--fix`), this plugin is the fan-in
+  across every installed stack review, plus the `--debt` lane. The plugin already
+  stated its boundary against the built-in `simplify`; this closes the larger gap.
+
 ## 0.12.6
 
 ### Changed

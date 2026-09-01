@@ -73,6 +73,15 @@ visual-decisions `assets/serve.py` (threaded static + SSE push-reload on
 (`python3 -m http.server --bind 127.0.0.1`, `php -S 127.0.0.1:`, `npx serve`)
 work identically except consumers fall back to polling reload.
 
+**Surface rung above all of those.** On Claude Code's desktop app the harness owns
+server lifecycle: `mcp__Claude_Browser__preview_start` runs a server named in
+`.claude/launch.json`, reuses one already up, and opens the Browser pane on it,
+and the harness instructs the model to use it rather than Bash. Where that tool
+exists, register the port as a `launch.json` configuration and start it that way;
+the `PREVIEW_PORT` slot table below is unchanged, because it addresses which file
+each producer writes, not who started the process. The Bash rungs remain the CLI
+path.
+
 | Port | Slot | Plugin — surface |
 |------|------|------------------|
 | `${PREVIEW_PORT:-8123}` | `current.html` | taskmaster — `visual-decisions` |
