@@ -282,12 +282,23 @@ What changed, by finding:
 | 8 | `llm-app` | A real "Context-window management" section, so the description stops promising what the body lacked. | 0.1.6 → 0.2.0 |
 
 Three baseline numbers moved, each hand-verified rather than accepted from the
-tool: `terse` activated 1891 → 1970 and `always-on-suite` activated 2715 → 2770
-(both measured), `process-suite` activated 2013 → 2020 (hand-applied: the +7 is
+tool: `terse` activated 1891 → 1970 (measured), `always-on-suite` activated
+2715 → 2802, and `process-suite` activated 2013 → 2020 (hand-applied: the +7 is
 hindsight's description growth, and the activated surface is a superset of
 always-on, so the delta must track). Plus `hindsight` 121 → 128,
 `always-on-suite` 1641 → 1648, `process-suite` 1981 → 1988 on the always-on
 channel.
+
+**The suite number took two attempts, and the miss is the instructive part.** The
+first value committed for `always-on-suite` activated was 2770 — measured on this
+machine, and wrong. CI measured 2802 and failed the gate. The arithmetic settles
+which is right without appealing to either environment: the prior baseline was
+2715, hindsight's description grew 7 tokens and terse's hook-read contract grew
+80, and 2715 + 7 + 80 = 2802 exactly. The local run under-measured a BUNDLE by 32
+while measuring each of its member plugins correctly — so "the members all read
+delta 0" is not evidence the suite total is right. Cross-check a bundle's
+activated number against the sum of what changed inside it, not against the
+tool's own output.
 
 One further fix rode along, found by a question this review prompted rather than by
 the review itself: `plugin-scout`'s Preflight built its installed set from
