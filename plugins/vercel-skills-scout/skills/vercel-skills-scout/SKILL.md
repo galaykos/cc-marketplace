@@ -31,15 +31,15 @@ never run package managers, and a query is earned only by cited evidence
 
 | Signal (evidence file) | Query |
 |---|---|
-| composer.json exists | `php` |
+| composer.json exists | `php` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | composer.json require laravel/framework | `laravel` |
-| composer.json require livewire/livewire | `livewire` |
+| composer.json require livewire/livewire | `livewire` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | inertiajs dep (composer or npm) | `inertia` |
-| package.json dep react (not react-native) | `react` |
+| package.json dep react (not react-native) | `react` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep react-native | `react native` |
 | package.json dep vue | `vue` |
 | package.json dep next | `nextjs` |
-| package.json dep nuxt | `nuxt` |
+| package.json dep nuxt | `nuxt` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep express / fastify / @nestjs/core | that framework's name |
 | package.json dep vite (devDependencies counts) | `vite` |
 | DB engine in .env DSN or docker image | that engine's name |

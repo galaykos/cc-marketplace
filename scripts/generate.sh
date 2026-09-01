@@ -350,7 +350,7 @@ render_bundle_table() {
       [ -f "$lp" ] || continue
       jq -e 'has("dependencies")' "$lp" >/dev/null 2>&1 || nonsuite=$((nonsuite+1))
     done
-    printf '\n`everything` is all %s leaf plugins; every other row is a curated subset.\n' "$nonsuite"
+    printf '\nEvery row is a curated subset. The marketplace ships all %s leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.\n' "$nonsuite"
     # The budget these numbers are measured AGAINST, stated once, with its source.
     # Claude Code budgets the skill listing at 1%% of the model context window and,
     # on overflow, drops descriptions starting with the skills you invoke least —
@@ -359,7 +359,7 @@ render_bundle_table() {
     # history. Our figures also read LOW: `claude plugin details` charges a
     # per-component floor our bytes/4 estimate does not, measured at 1.54x across
     # the 61 leaves on 2026-08-20 (scripts/context-budget-official.json).
-    printf '\nThe budget these are measured against is **1%% of the model context window** for the\nskill listing ([docs](https://code.claude.com/docs/en/skills)) — ~2k tokens at 200k, ~10k at 1M —\nand on overflow Claude Code drops the descriptions of the skills you invoke least, which\ncosts those skills their trigger words rather than raising an error. Multiply the column\nabove by ~1.5 for what the host actually charges: `claude plugin details` adds a\nper-component floor this table'"'"'s estimate does not.\n'
+    printf '\nThe budget these are measured against is the host'"'"'s skill listing, and it is a FORMULA,\nnot a constant — read out of the shipped CLI (2.1.251), not from documentation:\n\n    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction\n\n`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.\nIf you install a bundle flagged over the 200k floor, set it to the value that bundle'"'"'s README\nnames (0.02-0.03) in the settings.json of the PROJECT where you use it — the fraction is a\nceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the\ndescriptions being evicted.\n`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including\nopus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,\n**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single\ndescription past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it\nnever binds. Over budget the CLI reduces entries to name-only and buys descriptions back in\npriority order — text past the budget is never sent, so it costs reachability, never tokens.\nThe cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that\nis the mechanical reason fewer artifacts beats shorter descriptions.\nUnit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token\nmodels this paragraph calls current, add ~33%%. The host also charges a per-component floor\nthis estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat\nthat as an order-of-magnitude correction, never as a coefficient\n(`scripts/context-budget-official.json` header has the derivation and the staleness).\n'
     printf '\n%s\n' '<!-- end:bundle-table -->'
   } > "$block"
 

@@ -225,31 +225,35 @@ while IFS= read -r mdf; do
     || err "$mdf: non-functional doc inside a plugin — specs/design/task history belong in taskmaster-docs/, not plugins/"
 done < <(find plugins -name '*.md')
 
-# The 'everything' bundle must depend on every non-suite (leaf) plugin — a leaf
-# plugin.json has no .dependencies; a bundle has them. Prevents an aggregate
-# install silently missing a plugin, and keeps the README count honest.
-EV=plugins/everything/.claude-plugin/plugin.json
-if [ -f "$EV" ]; then
-  evdeps=$(jq -r '.dependencies[]?' "$EV")
-  nonsuite=0
-  for pj in plugins/*/.claude-plugin/plugin.json; do
-    jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && continue  # skip bundles
-    nonsuite=$((nonsuite + 1))
-    name=$(jq -r .name "$pj")
-    printf '%s\n' "$evdeps" | grep -qx "$name" \
-      || err "everything bundle missing dependency '$name' (must list every non-suite plugin)"
-  done
-  # Matches "all N plugins" AND "all N leaf plugins". The optional-word form is
-  # the point: the narrow original regex could not see README.md's actual wording
-  # ("all 72 leaf plugins"), so rc came back empty and the check passed vacuously
-  # — shipping the exact 72-vs-69 drift it was written to catch. A missing count
-  # is now an error too, not a silent pass.
-  rc=$(grep -oE 'all [0-9]+ (leaf )?plugins' README.md | grep -oE '[0-9]+' | head -1)
-  if [ -z "$rc" ]; then
-    err "README.md has no 'all N leaf plugins' count — the leaf-count claim must exist to be checkable"
-  elif [ "$rc" != "$nonsuite" ]; then
-    err "README.md's leaf count says $rc but there are $nonsuite non-suite plugins"
-  fi
+# README leaf-count honesty. This USED TO ride on the `everything` bundle: the
+# check walked that bundle's dependencies, and the count check lived inside
+# `if [ -f "$EV" ]`. When `everything` was removed (2026-08-31 — 224
+# description-bearing artifacts against the host's ~15k-char skill listing meant
+# two thirds of it arrived name-only, nondeterministically; see
+# rationale/2026-08-31-token-cost-review.md), the count check would have died
+# with it, silently. It did not, because it was rehomed here first. Deleting an
+# artifact can delete a gate riding on it, and nothing warns you.
+#
+# What was LOST and is not replaced: nothing now asserts that a new leaf plugin
+# joins any bundle. There is no aggregate install to omit it from, so the old
+# failure mode is gone rather than unguarded — but a leaf that belongs in a
+# themed suite and is left out of it is now a WARN nobody writes. Stated, not
+# hidden.
+nonsuite=0
+for pj in plugins/*/.claude-plugin/plugin.json; do
+  jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 && continue  # skip bundles
+  nonsuite=$((nonsuite + 1))
+done
+# Matches "all N plugins" AND "all N leaf plugins". The optional-word form is
+# the point: the narrow original regex could not see README.md's actual wording
+# ("all 72 leaf plugins"), so rc came back empty and the check passed vacuously
+# — shipping the exact 72-vs-69 drift it was written to catch. A missing count
+# is now an error too, not a silent pass.
+rc=$(grep -oE 'all [0-9]+ (leaf )?plugins' README.md | grep -oE '[0-9]+' | head -1)
+if [ -z "$rc" ]; then
+  err "README.md has no 'all N leaf plugins' count — the leaf-count claim must exist to be checkable"
+elif [ "$rc" != "$nonsuite" ]; then
+  err "README.md's leaf count says $rc but there are $nonsuite non-suite plugins"
 fi
 
 # Stack-authoring-gap guard: a worker agent declaring `bestpractices-skill: <dir[,dir]>`
@@ -753,11 +757,19 @@ crowd_gap=$(pc_budget_crowding plugins scripts/skill-crowding-baseline.json) || 
 # bounds the distribution of file lengths, and NEITHER can see a plugin that stays
 # under both while shipping a 100k-token prose corpus across a dozen skills. That
 # channel is unmetered everywhere else — context-budget.sh gates three channels and
-# CLAUDE.md says bodies loaded by a routing rule are "unmetered BY NATURE". Prose
+# CLAUDE.md says bodies loaded by a routing rule are "unmetered by nature". Prose
 # only (.md, generated files excluded): counting runtime assets read taskmaster at
 # 70,664 against a real 36,037. Ratchet, not ceiling — reasoning in the header.
 corpus_gap=$(pc_plugin_corpus plugins scripts/plugin-corpus-baseline.json) || true
 [ -n "$corpus_gap" ] && lane_err "$corpus_gap" "more plugins now exceed the per-plugin on-invoke prose corpus cap than the committed baseline — cut or split a plugin's skills, do not raise scripts/plugin-corpus-baseline.json"
+
+# A bundle that overflows the FLOOR skill-listing budget (200k window, 3 B/tok,
+# 1% = 6,000 chars) must tell the installer, because the failure is silent on
+# their machine and invisible on a 1M maintainer's. Gates that the declaration
+# STRING exists, not that its numbers are right — pc_listing_declaration's header
+# carries the formula and the residuals.
+listing_decl_gap=$(pc_listing_declaration plugins) || true
+[ -n "$listing_decl_gap" ] && lane_err "$listing_decl_gap" "bundle overflows the 6,000-char floor listing budget without declaring it — mention skillListingBudgetFraction in its README (or bless with <!-- listing-floor-ok: why -->)"
 
 # A bundle's README must name every plugin it installs. Two commits added a
 # dependency to four bundles and updated zero READMEs; the all-bundle dependency

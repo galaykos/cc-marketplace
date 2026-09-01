@@ -7,6 +7,25 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.12.4
+
+### Changed
+
+- Regenerated catalog: four bundle descriptions now carry a 200k-window
+  context requirement pointer. No behaviour change — skip on upgrade.
+- **README and skill no longer oversell `taskmaster-suite`.** It was described
+  as "installs most of the universal tier"; since that bundle's 32→10 trim it
+  covers 2 of the 8 any-project-core picks, and the docs now say so. `/suggest`
+  and the picker reference also stop special-casing the removed all-in bundle.
+
+## 0.12.3
+
+### Changed
+
+- Regenerated catalog: the `everything` meta-bundle was removed from the
+  marketplace, so its row is gone. No behaviour change here — skip on upgrade.
+  Install a themed `*-suite` or the leaves you want instead.
+
 ## 0.12.2
 
 ### Changed

@@ -36,7 +36,7 @@ one of them. Steps:
    rows (including leaves an installed suite provides) are never options;
    deprioritize only on the named overlap pairs, never on keyword overlap.
    A suite covering 3+ suggested rows earns one shortcut option naming at
-   most 4 of them (never under `--yes`; `everything` never). Other takes
+   most 4 of them (never under `--yes`; an all-in bundle never). Other takes
    numbers/names/ranges as bulk picks; >30 rows, offer the
    `scripts/pick.sh` TTY picker per the contract and read back its
    `PICKED:` line — an empty one means "picked nothing", not an error.

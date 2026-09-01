@@ -100,7 +100,7 @@ or leave.
 
 Read `references/catalog.md` (generated — one `name — [keywords] — description` row per
 marketplace plugin). Tier 3 is **every catalog plugin not already in tier 1 or 2**,
-excluding the bundles (`everything` and any `*-suite`) and `plugin-scout` itself, plus
+excluding the bundles (any `*-suite`) and `plugin-scout` itself, plus
 every unfired tier-1 candidate from **either** the table above or
 `references/signals.md` (evidence: "no signal detected" — a missed signal demotes,
 never drops). Suggest all of it, with "universal" as the evidence for the rest, reading

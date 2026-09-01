@@ -157,7 +157,7 @@ never a default:
   option on the first page it fits. Its description names **at most 4** covered
   rows plus a count ("php-suite — installs #1, #2, #4, #9 and 3 more as
   dependencies; clean removal via /php-suite:uninstall").
-- `everything` is never offered as a shortcut option. A bundle covering the
+- An all-in bundle is never offered as a shortcut option. A bundle covering the
   entire remainder is not a shortcut, it is the opposite of a pick — name it in
   one line under the report and leave it there.
 - Suites never enter the numbered report. They are pickable by the name shown in

@@ -74,6 +74,8 @@ did not see a picker for those.
   version truth (EOL majors, lockfile drift); the manifest signal table still runs
 - **vercel-skills-scout** — where this marketplace has no plugin for your stack,
   the scout for third-party skills is the intended next step
-- **taskmaster-suite** — bundle alternative: installs most of the universal tier
-  in one step (see its README for deliberate exclusions such as secret-scanning)
-  instead of picking plugins individually
+- **taskmaster-suite** — pipeline bundle, NOT a shortcut past this scout: since
+  its 2026-08-31 trim (32 members → 10) it ships the clarify→spec→cards→execute
+  workflow plus only 2 of the 8 any-project-core picks (testing,
+  code-architecture) — install the scout's other core picks individually, and
+  read its README's context-window requirement before installing
