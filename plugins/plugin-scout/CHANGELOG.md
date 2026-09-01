@@ -7,6 +7,77 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.0
+
+### Added
+
+- **The remainder is judged, not just swept.** Tier 3 was defined by subtraction
+  — "every catalog plugin not in tier 1 or 2" — so no plugin ever entered the
+  report because of anything about the project in front of it, and roughly two
+  fifths of the eligible set could not be earned by any signal at all: they
+  printed the literal string `universal` in every repo, forever. A relevance
+  pass now lifts 3-5 remainder rows that fit THIS repo into a `worth a look
+  here` group, each carrying a one-line **reason** (an argument from what the
+  project is) as opposed to evidence (a file and a key). It adds no questions
+  and no AskUserQuestion calls, never promotes a row to tier 1, is never
+  `--yes`-eligible, and reports "nothing stands out" instead of padding.
+  Contract and anti-patterns: `references/relevance.md`.
+- **Six new evidence-bearing signal rows** in `references/signals.md`, for
+  plugins that previously had no route out of the remainder at all:
+  `claude-authoring` (the repo ships a `.claude-plugin/` manifest — deliberately
+  not `.claude/`, which only means the repo *uses* Claude Code), `database`
+  (ORM deps or a migrations dir), `shadcn-studio` (`components.json` plus a
+  Tailwind setup), `api-docs-first` (the same OpenAPI evidence `api-design`
+  reads), `performance` (a measurement tool already in the manifest), and
+  `resilience` (retry, breaker or queue libraries).
+
+### Fixed
+
+- **A range dropped rows that exist.** `scripts/pick.sh` clamped `N-M` to the
+  rows file's LINE COUNT rather than its highest row NUMBER. Report numbers are
+  stable while installed rows are filtered out of the pick list, so the file is
+  sparse whenever anything is installed — every run after the first. Over rows
+  1, 2, 5, 8, typing `1-8` returned `1 2`: two requested, existing rows dropped
+  in silence, while the diagnostics blamed rows 3 and 4, which do not exist.
+  Exit 0 throughout, so nothing downstream could tell. A range now spans the
+  numbers the file actually carries, and a gap is not a rejected token.
+- **A huge range operand wrapped into a valid pick.** `$(( ))` wraps mod 2^64
+  without a word, so `1-18446744073709551620` came back as `1 2 3 4` — a wrong
+  pick reported as clean success, the same class as the `1-3-2` bug the harness
+  was built for, through a different door. Operands over nine digits are now
+  refused before any arithmetic.
+- **`01` meant two different things.** Accepted as a range operand (`01-02`
+  picked rows 1-2) and rejected as a bare number (`skip: no row 01`). Leading
+  zeros are now stripped in both forms.
+- **An unreadable rows file leaked a raw tool error.** The guard tested `-f`
+  but not `-r`, so `cut` failed under `set -e` and printed
+  `cut: …: Permission denied` in place of the usage line. It is now the third
+  named invocation error.
+- **The TTY hint pasted as two arguments** when the rows path contained a
+  space. That line exists to be pasted verbatim; it is now quoted.
+- **`pick.sh`'s header claimed a parity the code never had** — that both
+  branches take numbers, ranges and names. The entire parser is in the numbered
+  branch; fzf selects rows directly and cannot expand a range.
+- Prose corrections, no behaviour change: the bundle-filter sentence carried a
+  hard-coded count of 11 (there are 10) eighteen lines above this skill's own
+  "never from a number written here" rule; `references/picker.md`'s worked
+  sample listed `stack-scan` twice under two numbers, breaking the completeness
+  rule it exists to illustrate; the "no bundles here" line at the install step
+  forbade the suite shortcut the picker requires; the exhaustive-paging cost was
+  billed at 5 calls / 20 questions in two files when the file's own 15-per-call
+  rule gives 4 and 16; `references/signals.md` said three rows mirror
+  `rules.tsv` when four do, and that all three had diverged when the `sql` row
+  has not; `references/flags.md`'s Standing quoted wording ("that floor is
+  absolute") that a previous commit had deleted; `references/picker.md` sent
+  readers to SKILL.md for a definition that lives in `references/flags.md`; and
+  the read-only detection rule was tagged `recorded` in Boundaries and
+  `agent-graded` in Standing, which are mutually exclusive tiers.
+- **`PICKED:` carries survivors only**, now said out loud in
+  `references/picker.md`. Rejected tokens go to stderr, which that line does not
+  carry, so the "list the unmatched tokens and ask once more" rule it inherits
+  from Other had nothing to read. Compare against what was offered and re-offer
+  what is missing; never read absence as a decline.
+
 ## 0.12.4
 
 ### Changed

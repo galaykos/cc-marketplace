@@ -13,17 +13,16 @@ installs tiers 1 and 2 with no picker. Tier 3 never auto-installs.
 
 ## Preflight
 
-- Run `claude plugin marketplace list`. If `cc-plugins-marketplace` is absent,
-  ask via AskUserQuestion: "Add marketplace (Recommended)" / "Stop". On the
-  recommended pick, run `claude plugin marketplace add galaykos/cc-marketplace`
-  (add `--scope project` under `--persist`) first. Headless **without** `--yes`:
-  print that command, continue in command-printing mode. Headless **with**
-  `--yes`: stop before Detection (`references/flags.md`).
+- Run `claude plugin marketplace list`. If `cc-plugins-marketplace` is absent, ask via
+  AskUserQuestion: "Add marketplace (Recommended)" / "Stop". On the recommended pick, run
+  `claude plugin marketplace add galaykos/cc-marketplace` (add `--scope project` under
+  `--persist`) first. Headless **without** `--yes`: print that command, continue in
+  command-printing mode. Headless **with** `--yes`: stop before Detection (flags.md).
 - Record the installed set — it drives the installed marks and filters the
   picker. `claude plugin list` alone is **machine-wide**: a plugin installed in an
   unrelated repo would be marked installed here and silently dropped from the
-  picker. Filter to this project, then union with the settings files (a
-  `--persist` entry the CLI wrote is not always reported as an install):
+  picker. Filter to this project, then union with the settings files (a `--persist`
+  entry the CLI wrote is not always reported as an install):
 
   ```bash
   claude plugin list --json | jq -r --arg root "$PWD" \
@@ -46,17 +45,16 @@ whose apps hold every framework reports "no stack signals found". Installs alway
 target the session's project root regardless of `[path]`.
 
 If stack-scan is installed, run `/stack-scan:report` for version truth (EOL majors,
-lockfile drift) and fold it into the evidence — but **run the signal table anyway**:
-it probes nine dependency names, never reads `.env`, and does not know
-`react-native`, so treating it as a replacement loses signals. Take its inventory
-only; never accept its offer to fix red flags from inside detection, which would
-delete a lockfile inside a read-only step.
+lockfile drift) and fold it into the evidence — but **run the signal table anyway**;
+it is not a replacement (nine dependency names, no `.env`, no `react-native`). Take
+its inventory only, never its offer to fix red flags: that deletes a lockfile inside
+a read-only step.
 
-- Detection is read-only: never install anything, never run a package manager
-  (composer, npm, yarn, pnpm, bun).
-- A signal counts only with evidence: the file plus the dependency or key
-  that triggered it. No evidence, no tier-1 suggestion.
-- Missing manifests are fine — no composer.json simply means no PHP signals.
+- Detection is read-only: never install anything, never run a package manager (composer,
+  npm, yarn, pnpm, bun).
+- A signal counts only with evidence: the file plus the dependency or key that triggered
+  it. No evidence, no tier-1 suggestion. Missing manifests are fine — no composer.json
+  simply means no PHP signals.
 
 ## Stack signals (tier 1)
 
@@ -73,28 +71,25 @@ in `dependencies` or `devDependencies`, never a substring: `next-auth` is not
 | package.json dep vite (devDependencies counts) AND a vite.config.* at the scan root | vite |
 | compose/Dockerfile image matching `mariadb`, `.env.example` DB_CONNECTION=mariadb, or `mariadb` in composer.json/package.json | mariadb |
 
-Read `.env.example`, not just `.env` — `.env` is gitignored in every Laravel and
-Next scaffold, so on this skill's headline case (a fresh clone) it is absent. Known
-miss, inherited from skill-router: a repo with `DB_CONNECTION=mysql` that actually
-runs MariaDB earns no mariadb row. Vue, plain JavaScript and TypeScript map to no
-plugin — removed after baseline testing (`rationale/stack-skill-baselines.md`, in
-the marketplace repo; it does not ship here). A `vue` dep of any major earns no row
-and no note.
+Read `.env.example`, not just `.env` — `.env` is gitignored in every Laravel and Next
+scaffold, so on this skill's headline case (a fresh clone) it is absent. Known miss,
+inherited from skill-router: a repo with `DB_CONNECTION=mysql` that actually runs
+MariaDB earns no mariadb row. Vue, plain JavaScript and TypeScript map to no plugin —
+removed after baseline testing (`rationale/stack-skill-baselines.md`, marketplace repo
+only); a `vue` dep of any major earns no row and no note.
 
-`references/signals.md` holds the rest of the evidence-bearing signals — CI,
-compose, OpenAPI, payment keys, auth deps, Tailwind, SQL, LLM keys, otel, plus
-rows for stacks this marketplace does NOT cover. Its hits are tier-1 signals under
-the same evidence rule and join the `--yes` set. A `—` in its Suggest column is an
-answer, not a gap: no plugin covers that stack, so route onward instead of padding
-tier 3.
+`references/signals.md` holds the rest of the evidence-bearing signals — CI, compose,
+OpenAPI, payment keys, auth deps, Tailwind, SQL, ORMs, LLM keys, otel, perf and retry
+libraries, plugin manifests, plus rows for stacks this marketplace does NOT cover. Its
+hits are tier-1 signals under the same evidence rule and join the `--yes` set. A `—` in
+its Suggest column is an answer, not a gap: route onward instead of padding tier 3.
 
 ## Any-project core (tier 2)
 
-Read `references/any-core.md` — plugins judged useful in any project regardless of
-stack, each row carrying its why and the two-part membership test. Core rows carry
-the evidence string "core", sort directly after tier 1, and join the `--yes` set.
-Curated, not derived: re-judge it against `references/catalog.md` when plugins land
-or leave.
+Read `references/any-core.md` — plugins judged useful in any project regardless of stack,
+each row carrying its why and the two-part membership test. Core rows carry the evidence
+string "core", sort directly after tier 1, and join the `--yes` set. Curated, not derived:
+re-judge it against `references/catalog.md` when plugins land or leave.
 
 ## Universal remainder (tier 3)
 
@@ -105,22 +100,26 @@ every unfired tier-1 candidate from **either** the table above or
 `references/signals.md` (evidence: "no signal detected" — a missed signal demotes,
 never drops). Suggest all of it, with "universal" as the evidence for the rest, reading
 each row's keywords and description to phrase the suggestion. Do not hard-code a plugin
-list here — the catalog is the source of truth and stays in sync as plugins change. The
-bundle filter is a name test because catalog rows carry no `dependencies` key; it holds
-for all 11 today, and a future bundle named otherwise would be offered as a leaf.
+list here — the catalog is the source of truth. The bundle filter is a name test because
+catalog rows carry no `dependencies` key; it holds for every bundle shipping today, and a
+future bundle named otherwise would be offered as a leaf.
+
+**Then judge, once.** Tier 3 is defined by subtraction, so nothing enters it because of
+this project — read `references/relevance.md` and lift 3-5 rows that fit THIS repo into a
+`worth a look here` group leading the block, each with a one-line **reason**, never
+evidence. No extra questions, no promotion to tier 1, never `--yes`; zero beats padding.
 
 ## Report
 
-Print a numbered inventory grouped by tier — a header line (eligible count,
-installed count, detected stack), then one block per tier, tier 3 grouped by
-catalog keyword. **Not** one 51-row five-column table: evidence is a constant for
-~45 of those rows and installed usually for all of them, so the table scrolls two
-screens to carry information in four. Worked sample and layout rules:
-`references/picker.md`.
+Print a numbered inventory grouped by tier — a header line (eligible count, installed
+count, detected stack), then one block per tier, tier 3 grouped by catalog keyword and
+led by its `worth a look here` group. **Not** one five-column table over every row —
+sample, layout, and why that table is the wrong rendering: `references/picker.md`.
 
-- Evidence prints only where a signal earned it — the file plus the key that
-  matched, with a line number when the scan produced one. Tier 2 is "core" and
-  tier 3 "universal" by definition; neither needs a repeated cell.
+- Evidence prints only where a signal earned it — the file plus the key that matched,
+  with a line number when the scan produced one. Tier 2 is "core" and tier 3 "universal"
+  by definition; neither needs a repeated cell. A lifted row prints its reason instead,
+  and reasons never appear in an evidence column.
 - Installed rows carry `✓` inline and are not pickable; the header count replaces
   a constant column.
 - **Completeness rule:** every catalog plugin except the bundles and plugin-scout
@@ -129,8 +128,8 @@ screens to carry information in four. Worked sample and layout rules:
 - Under the inventory, list each not-installed suite whose dependencies cover 3+
   suggested not-installed rows — rules: `references/picker.md`.
 - Zero stack signals → note "no stack signals found"; tiers 2 and 3 still print in
-  full. If a `references/signals.md` `—` row fired, lead with its routing line
-  instead of the tier-3 sweep.
+  full, and the relevance pass matters most in exactly that repo. If a
+  `references/signals.md` `—` row fired, lead with its routing line instead.
 
 ## Install
 
@@ -149,7 +148,9 @@ suggestion, then stop. With `--yes`: skip the picker — see Flags.
    claude plugin install <name>@cc-plugins-marketplace --scope local
    ```
 
-That is the only install command form — no bundles here. `--scope local` keeps installs
+That is the only install command form; a suite picked from the under-report shortcut list
+(`references/picker.md`) installs by the same command and scope rules, and only `--yes`
+never installs a bundle. `--scope local` keeps installs
 repo-only (`.claude/settings.local.json`); `--persist` → `--scope project`, `--global` →
 `--scope user` (Flags). Always pass `--scope`: the CLI's own default is `user`.
 
@@ -164,11 +165,10 @@ repo-only (`.claude/settings.local.json`); `--persist` → `--scope project`, `-
 
 ## Flags
 
-- `--yes` — the auto-installer: installs every tier-1 signal-backed and tier-2 core
-plugin not yet installed, instead of showing the picker; the full report still prints
-first. Tier-3 rows are never auto-installed. Zero auto-installable picks: report only,
-with a hint to rerun without `--yes` to pick tier-3. The marketplace-add preflight
-prompt is unchanged by `--yes`. Full rules: `references/flags.md`.
+- `--yes` — the auto-installer: installs every tier-1 signal-backed and tier-2 core plugin
+not yet installed, instead of showing the picker; the full report still prints first. Tier
+3 never auto-installs, relevance-lifted rows included. Zero auto-installable picks: report
+only, with a hint to rerun without `--yes`. Full rules: `references/flags.md`.
 - `--all` — offers every eligible row as an explicit picker option, paging until all
 appeared (the pre-0.12 default). Picker-only; no effect under `--yes`.
 - `--persist` — switches installs to `--scope project` and verifies the marketplace
@@ -181,17 +181,20 @@ Full rules and the required machine-wide notice: `references/flags.md`.
 
 ## Boundaries
 
-Standing: recorded — suggests and installs only cc-plugins-marketplace plugins; it
-does not audit, configure, or uninstall. Detection never mutates the project: no
-lockfile writes, installs, package-manager invocations, or delegated fix prompts. If
-every suggestion is already installed, say so and stop.
+Tiered once, in Standing below — not restated here. Suggests and installs only
+cc-plugins-marketplace plugins; it does not audit, configure, or uninstall (an uninstall
+command under `--persist` is printed for the user, never run). Detection and the
+relevance pass never mutate the project: no lockfile writes, installs, package-manager
+invocations, or delegated fix prompts. If every suggestion is already installed, say so
+and stop.
 
 ## Standing
 
-**Agent-graded.** No script checks that a tier-1 row cited its evidence, that the
-sweep ran, that detection stayed read-only, or that the picker offered the door.
-Gated by name only: catalog freshness (`generate.sh --check`), the plugin names in
-this skill's three lists (`pc_scout_names`), `scripts/pick.sh` parity
-(`pc_pick_parity`) and its parser (`scripts/__tests__/pick.test.sh`), body budget
-(`pc_skill_budget`), token cost (`context-budget.sh`). The evidence rule binds tier 1
-only.
+**Agent-graded.** No script checks that a tier-1 row cited its evidence, that the sweep
+ran, that detection stayed read-only, that the picker offered the door, or that the
+relevance pass gave reasons instead of padding. Gated by name only: catalog freshness
+(`generate.sh --check`), plugin names in the three TABLE lists of this file,
+`references/signals.md` and `references/any-core.md` (`pc_scout_names` — it does not read
+`references/relevance.md`), `scripts/pick.sh` parity (`pc_pick_parity`) and its parser
+(`scripts/__tests__/pick.test.sh`), body budget (`pc_skill_budget`), token cost
+(`context-budget.sh`). The evidence rule binds tier 1 only.

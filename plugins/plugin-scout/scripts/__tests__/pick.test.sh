@@ -112,8 +112,31 @@ esac
 
 # ---- 8-9. a range is clamped, not expanded --------------------------------------------
 # 1-1000 built a thousand tokens and ran a thousand cut|grep pipelines to reject 995.
-expect "range clamped to the row count" "1-1000" "PICKED: 1 2 3 4 5"
+expect "range clamped to the highest row number" "1-1000" "PICKED: 1 2 3 4 5"
 expect "range starting past the end"    "9-20"   "PICKED:" "skip bad range: 9-20"
+# A 20-digit operand wrapped mod 2^64 into a small in-range number, so the clamp never
+# fired and the range picked rows nobody typed — the 1-3-2 failure through another door.
+expect "operand too long to be a row"   "1-18446744073709551620" "PICKED:" "skip bad range:"
+# `01` was a row number inside a range (`10#`) and an unknown row on its own.
+expect "leading zeros mean the same in both forms" "01 02-03" "PICKED: 1 2 3"
+
+# ---- 9b. THE SPARSE ROWS FILE -----------------------------------------------------------
+# The regression the contiguous fixture above cannot see. picker.md numbers rows stably
+# across the run and filters installed ones out of the pick list, so the rows file has
+# gaps whenever anything is installed — every run after the first. The clamp read the
+# LINE COUNT as the ceiling, so `1-8` over rows 1,2,5,8 returned `1 2`: two requested,
+# existing rows dropped silently, with the diagnostics blaming rows that do not exist.
+SPARSE="$TMP/sparse.txt"
+{ printf '1\talpha — first\n'; printf '2\tbeta — second\n'
+  printf '5\tgamma — third\n'; printf '8\tdelta — fourth\n'; } > "$SPARSE"
+run_sparse() { printf '%s\n' "$1" > "$TMP/in"
+  OUT=$(PICK_TTY="$TMP/in" PATH="$BIN" bash "$PICK" "$SPARSE" 2>"$TMP/err"); RC=$?
+  ERR=$(cat "$TMP/err"); }
+run_sparse "1-8";  assert "a range spans gaps in a sparse rows file" "PICKED: 1 2 5 8"
+[ -z "$ERR" ] || fail "a gap is not a rejected token" "stderr should be silent, got: $ERR"
+run_sparse "3-7";  assert "a range covering only gaps picks nothing" "PICKED: 5"
+run_sparse "5 8";  assert "sparse rows still pick by number" "PICKED: 5 8"
+run_sparse "1-99"; assert "clamp uses the highest number, not the count" "PICKED: 1 2 5 8"
 
 # ---- 10-14. names: the input the two branches disagreed about --------------------------
 expect "a name resolves to its row"   "laravel"      "PICKED: 2"
@@ -156,6 +179,16 @@ err_case() { # $1 label, $2 want stderr substring; runs "$@" from index 3
 err_case "no argument"        "usage: pick.sh"   env PATH="$BIN" bash "$PICK"
 err_case "missing rows file"  "usage: pick.sh"   env PATH="$BIN" bash "$PICK" "$TMP/nope.txt"
 err_case "no usable TTY"      "needs a real TTY" env PATH="$BIN" PICK_TTY="$TMP/no/such/dev" bash "$PICK" "$ROWS"
+# `-f` alone passed an unreadable file to `cut`, which died under `set -e` and printed
+# bash's own diagnostic instead of the usage line. Root can read anything, so skip there
+# rather than assert something the environment makes false.
+NOREAD="$TMP/noread.txt"; cp "$ROWS" "$NOREAD"; chmod 000 "$NOREAD"
+if [ -r "$NOREAD" ]; then
+  printf 'SKIP  unreadable rows file (running as root — chmod 000 is still readable)\n'
+else
+  err_case "unreadable rows file" "usage: pick.sh" env PATH="$BIN" bash "$PICK" "$NOREAD"
+fi
+chmod 644 "$NOREAD"
 
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'pick.test: all cases passed\n' || printf 'pick.test: FAILURES above\n'

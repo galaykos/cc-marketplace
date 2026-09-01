@@ -12,11 +12,12 @@ that remainder — a hit lifts the plugin into tier 1, same evidence rule and
 same `--yes` auto-install eligibility: **cite the file and the line/key that
 matched**, never suggest without one.
 
-Three rows are also encoded as skill-router glob rows and are lifted here rather
+Four rows are also encoded as skill-router glob rows and are lifted here rather
 than re-derived — the mechanism differs (suggest-at-install vs route-at-edit) but
 the manifest→plugin mapping must not fork. Where a row says "mirrors rules.tsv",
-change both or neither. **They have already forked** and the divergence is recorded
-per row; reconciling them is a `skill-router` change, out of this plugin's scope.
+change both or neither. **Three of the four have already forked** and each
+divergence is recorded in that row's note; reconciling them is a `skill-router`
+change, out of this plugin's scope.
 
 ## Reading a dependency row
 
@@ -41,6 +42,12 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | `llm-app` | |
 | `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `observability` | |
 | `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | `stack-scan` | the version-truth plugin is the ONE always-right answer for a stack this marketplace does not cover |
+| `.claude-plugin/plugin.json` or `.claude-plugin/marketplace.json` | `claude-authoring` | the repo SHIPS Claude Code artifacts, which is what this plugin's rubric is about. Deliberately not `.claude/` — that directory means the repo *uses* Claude Code, which is not the same claim and would fire nearly everywhere |
+| dep `prisma`, `@prisma/client`, `typeorm`, `sequelize`, `mongoose`, `drizzle-orm`; or composer require `doctrine/orm`; or `**/migrations/**` | `database` | the schema/migration/pooling half, and it ships a PreToolUse guard. The `sql` row above fires on some of the same evidence and owns statements; `references/picker.md` already pairs the two as overlapping, so both rows firing is correct, not a duplicate |
+| `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `shadcn-studio` | the sandbox is for staging new components against a shadcn setup that already exists; `components.json` alone also earns `ui-ux` and possibly `registry-source`, and all three are correct together |
+| the `api-design` row's evidence above (`openapi*`, `swagger*.json`) | also `api-docs-first` | a repo carrying an API contract is the one that drifts from it; the plugin's other half (verify SDK docs before integrating) is not what this row claims |
+| devDep `lighthouse`, `@lhci/cli`, `k6`, `artillery`, `autocannon`, or dep `web-vitals` | `performance` | a measurement tool already in the manifest is someone having decided performance is a concern here |
+| dep `p-retry`, `cockatiel`, `opossum`, `bullmq`, `bull`; or composer require `laravel/horizon` | `resilience` | retry/breaker/queue libraries are integration points with failure modes, which is the whole subject |
 | any of the above **plus** no tier-1 hit | also `vercel-skills-scout` | say so explicitly: this marketplace has no plugin for that stack, and the scout for third-party skills is the intended next step |
 | `*.tf`, `*.tofu`, `.terraform/` | — | **no plugin covers this.** Do not pad the list; route to `/vercel-skills-scout:suggest terraform` |
 | `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | — | **no plugin covers this** — the i18n plugin was removed from this marketplace on 2026-08-26. Route to `/vercel-skills-scout:suggest i18n` |
@@ -74,4 +81,6 @@ it fires on the right file, and whether the plugin is the right suggestion are a
 still judgment nothing checks.
 
 The `mirrors rules.tsv` rows have a mechanical counterpart but no comparison
-between the two files; all three have already diverged, as noted per row.
+between the two files; three of the four have already diverged, as noted per
+row. The `sql` row is the one that still matches — which nothing checks either,
+so it matches until someone edits one side.
