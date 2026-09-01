@@ -168,7 +168,7 @@ Three modes, one flag surface — every install this run uses exactly one scope:
 that the marketplace-add prompt fired, that the `--persist` merge preserved
 unrelated keys, or that the machine-wide notice printed. Those are model
 behaviours a reviewer judges, and the absolute-sounding wording above ("never",
-"always", "that floor is absolute") states a contract, not a guarantee.
+"always") states a contract, not a guarantee.
 
 The residual worth naming: the `--persist` abort path writes to a **committed**
 file. If the model merges anyway after a parse error, or authors an

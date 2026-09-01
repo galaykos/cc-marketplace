@@ -81,14 +81,25 @@ Published by Vercel Labs; `npx -y skills <command>`.
 
 For very long tables an unbounded interactive multi-select ships at
 `scripts/pick.sh` (fzf with TAB-toggle when available, else a numbered
-prompt with ranges). It needs a real TTY, which model-run Bash lacks, so
-the flow is: write the eligible rows to a scratch file as
-`<number><TAB><label>` lines, print the exact
+prompt taking numbers, names and ranges). It needs a real TTY, which
+model-run Bash lacks, so the flow is: write the eligible rows to a scratch
+file as `<number><TAB><label>` lines, print the exact
 `! bash <absolute path to pick.sh> <rows file>` command for the user to
 run themselves (the `!` prefix runs it user-side and its output lands in
 the conversation), then read the returned `PICKED: <numbers>` line and
 treat those numbers as row picks. Offer it when rows exceed two pages
 (>32); never require it.
+
+- The script prints `PICKED:` on **every** path that reaches the picker,
+  including an fzf abort and an empty selection. A bare `PICKED:` with no
+  numbers means "selected nothing" — advance, do not treat it as an error.
+  A non-zero exit means the script never ran (bad usage, an unreadable rows
+  file, or no TTY), which is different.
+- Row numbers need not be contiguous: a range spans whatever numbers the
+  rows file actually carries, so filtering rows out does not renumber them.
+- Rejected tokens go to stderr, which the `PICKED:` line does not carry.
+  Re-offer anything the user named that did not come back rather than
+  assuming it was declined.
 
 ## Why no --yes / auto-install exists
 
