@@ -60,7 +60,8 @@
     "fresh-take@cc-plugins-marketplace": true,
     "ultra-deep-research@cc-plugins-marketplace": false,
     "lean@cc-plugins-marketplace": true,
-    "candor@cc-plugins-marketplace": true
+    "candor@cc-plugins-marketplace": true,
+    "terse@cc-plugins-marketplace": true
   },
   "extraKnownMarketplaces": {
     "cc-plugins-marketplace": {

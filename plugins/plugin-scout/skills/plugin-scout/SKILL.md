@@ -21,14 +21,14 @@ installs tiers 1 and 2 with no picker. Tier 3 never auto-installs.
 - Record the installed set — it drives the installed marks and filters the
   picker. `claude plugin list` alone is **machine-wide**: a plugin installed in an
   unrelated repo would be marked installed here and silently dropped from the
-  picker. Filter to this project, then union with the settings files (a `--persist`
-  entry the CLI wrote is not always reported as an install):
+  picker. Filter to this project, then union all three settings files — the CLI does not
+  always report a `--persist` write it made, and never reports a hand-edited entry:
 
   ```bash
   claude plugin list --json | jq -r --arg root "$PWD" \
     '[.[] | select(.enabled and (.scope=="user" or .projectPath==$root))] | .[].id'
   jq -r '.enabledPlugins // {} | to_entries[] | select(.value) | .key' \
-    .claude/settings.json .claude/settings.local.json 2>/dev/null
+    .claude/settings.json .claude/settings.local.json ~/.claude/settings.json 2>/dev/null
   ```
 
 - No `claude` CLI: mark installed-state unknown and print install commands

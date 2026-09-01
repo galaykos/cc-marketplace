@@ -40,7 +40,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
 | `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
-| `always-on-suite` | 8 | ~1.6k tokens | ~1.1k tokens | ~2.5k tokens |
+| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
 | `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 4 | ~497 tokens | — | — |

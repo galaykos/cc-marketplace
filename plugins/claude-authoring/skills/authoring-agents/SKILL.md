@@ -44,12 +44,25 @@ reviewed.
 
 Match `model:` to the cost of a wrong answer, not to prestige:
 
+- `fable` — the top rung, and the one most often forgotten: the Agent tool's
+  enum is `sonnet|opus|haiku|fable` and `validate.sh` accepts all four. Pin it
+  only where an opus pin would CAP a stronger session — a reasoning role whose
+  verdict must never be weaker than the code it judges. Note the trap this
+  exists to close: `model:` is a ceiling as well as a floor, so an opus-pinned
+  reviewer in a fable session reviews work written by a stronger model than
+  itself. That is what `role-floors.md` computes; read it before pinning.
 - `opus` — judgment-heavy and wrong-answer-expensive: review verdicts
   (architecture, code), system-design trade-offs, adversarial
   verification, security exploitability calls.
 - `sonnet` — a deliberate pin for cheap checklist/breadth work (workers
   default to `inherit`, not a sonnet pin).
 - `haiku` — mechanical locate/grep/report with no judgment in the output.
+
+The ladder is `haiku < sonnet < opus < fable`, and it is the ladder
+`role-floors.md` and `references/model-tier-scoping.md` both reason on. Most
+agents should still ship `inherit`, which reaches fable by itself in a fable
+session at no authoring cost — that is why the roster currently pins fable
+nowhere, and it is a default rather than an oversight.
 
 `effort:` is orthogonal and tunes reasoning depth on the same model:
 sonnet + xhigh buys deep reasoning at worker prices; opus + medium is not
