@@ -7,6 +7,18 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.1
+
+### Fixed
+- **A plugin enabled only in the user's own `~/.claude/settings.json` is now counted
+  as installed.** Preflight built the installed set from `claude plugin list`
+  (filtered to user scope or this project) unioned with the two PROJECT settings
+  files. A user-scope install normally arrives via the CLI half, so the gap was
+  narrow — but an `enabledPlugins` entry added by hand to `~/.claude/settings.json`,
+  or written by a tool other than the CLI, was reported by neither half, and the row
+  was offered as though it were missing. The union now reads that file too. Nobody
+  is re-offered a plugin they already run everywhere.
+
 ## 0.13.0
 
 ### Added

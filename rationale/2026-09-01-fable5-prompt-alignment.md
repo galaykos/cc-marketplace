@@ -289,6 +289,15 @@ always-on, so the delta must track). Plus `hindsight` 121 → 128,
 `always-on-suite` 1641 → 1648, `process-suite` 1981 → 1988 on the always-on
 channel.
 
+One further fix rode along, found by a question this review prompted rather than by
+the review itself: `plugin-scout`'s Preflight built its installed set from
+`claude plugin list` unioned with the two PROJECT settings files, so an
+`enabledPlugins` entry hand-written into `~/.claude/settings.json` was seen by
+neither half and the plugin was offered as though missing. The union now reads that
+file too (`plugin-scout` 0.13.0 → 0.13.1). Kept line-neutral deliberately: that
+SKILL body is at 196 lines and `skill-crowding-baseline.json` holds
+`within_3_of_line_cap` at 0, so 198 lines fails the build.
+
 **A blanket `--update-baseline` was run and its output rejected.** It deleted six
 entries from the activated baseline and zeroed twelve in the dynamic one, because
 this machine cannot create the state those hooks wait for — the exact failure
