@@ -113,6 +113,7 @@ convention. What follows is only what you need in hand while editing.
   | `# marker-key-ok:` | a context key deliberately used raw in a path |
   | `# harness-payload-ok:` | a harness deliberately sending no `transcript_path` |
   | `# lane-cofire-ok:` | two artifacts deliberately sharing one `owns` in one phase |
+  | `<!-- listing-floor-ok: -->` | a bundle over the floor skill-listing budget that will not declare it |
 
   `claude-api` must be described as Claude Code's built-in skill, never as a
   marketplace artifact.
