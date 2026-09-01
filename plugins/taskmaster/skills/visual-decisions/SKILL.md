@@ -23,7 +23,9 @@ Before building the session's FIRST visual artifact, ask via `AskUserQuestion`:
 - **Quick ASCII only** — wireframes/tables in chat; no server, no files, skip HTML/Preview.
 - **No mockups** — dormant for the session; visual choices become plain multiple-choice.
 
-The answer holds all session — never re-ask. The gate is lazy: fire only when a
+The answer holds all session — never re-ask, and record it as a grill ledger row
+(Source: "consent gate") so it rides the per-round persist and survives compaction or a
+subagent hop instead of living only in prose. The gate is lazy: fire only when a
 genuinely visual choice exists and a build is imminent, never at task intake.
 
 ## The fidelity ladder — climb only as high as the decision requires

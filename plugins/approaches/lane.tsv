@@ -6,9 +6,9 @@
 approaches:opinion-lens	agent	decide	persona-opinion-shard	dispatched by approach-deliberation's blind panel, four in parallel, one persona each	-
 approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)	-
 #
-# THE TWO DELIBERATION SKILLS SHARE ONE TERRITORY ON PURPOSE. Both decide the SHAPE of
-# a change and both say "skip if the other already ran" — that mutual exclusion is the
-# point, so a yields_to edge would misdescribe it (neither outranks the other; whichever
-# fires first owns the task). Blessed as a co-fire, with the marker below as the
-# mechanism that makes the exclusion checkable instead of remembered.
+# ONE skill owns change-shape-deliberation. There were two, blessed here as a co-fire;
+# 22c3239 merged opinion-round into approach-deliberation, so the mutual exclusion now
+# lives INSIDE that skill's own double-run guard (the .claude/approaches/deliberated.json
+# marker) instead of across a lane edge. No co-fire blessing is needed or present — this
+# comment described the pre-merge topology for as long as it outlived it.
 approaches:approach-deliberation	skill	decide	change-shape-deliberation	a non-trivial change with two-plus viable shapes, or a refactor/rewrite/migrate request, AND no deliberation marker exists for this task	-

@@ -58,10 +58,10 @@ Visual surface: `None` → skip; unknown (no scout) → a skippable offer; other
 staging is mandatory, floor included.
 
 ONE fidelity consent per session, and in a brainstorm-led run brainstorm is the
-skill that asks it — once, on the first staged decision, via AskUserQuestion, with
-NO dormant/none option, because the floor here is describe-only which still RECORDS
-a decision. The question's wording and its option set are owned by
-`visual-decisions`; whichever skill reaches the gate first asks it and the answer
+skill that asks it — once, on the first staged decision, via AskUserQuestion. The
+question's WORDING is owned by `visual-decisions`; brainstorm's one exception is
+dropping the dormant/none option, because the floor here is describe-only which still
+RECORDS a decision. Whichever skill reaches the gate first asks it and the answer
 then holds all session, so erd and visual-decisions reuse it and never re-ask.
 Brainstorm does not hand the ASKING off mid-run:
 visual-decisions is a rendering backend only, its first-use gate treated as
@@ -93,13 +93,13 @@ one per surface. Fold picks into current.html per visual-decisions' references/s
 
 Never present the first workable idea as the design. When two or more genuinely different
 design shapes are viable, do not generate them from one voice — that anchors every
-"alternative" on a single draft. approaches plugin installed → dispatch the four blind
-`opinion-lens` personas (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist,
-Skeptic-Investigator) on the design question, synthesize alternatives + recommendation from
-their takes, then WRITE the round's marker `.claude/approaches/deliberated.json`
-(`{"task","by","at"}`): unwritten, the double-run guard is unarmed and the
-question is re-litigated downstream. Absent → propose 2–3 yourself, recommendation first
-and argued. If only one approach exists, say so — "alternatives considered: none viable
+"alternative" on a single draft. approaches plugin installed → run its blind panel on the
+design question per `approaches:approach-deliberation` `references/blind-panel.md`, which
+owns the persona roster and the dispatch contract; synthesize alternatives + recommendation
+from their takes, then WRITE the round's marker `.claude/approaches/deliberated.json`:
+unwritten, the double-run guard is unarmed and the question is re-litigated downstream.
+The panel's own pick-approval is satisfied here by the design doc's approval gate below.
+Absent → propose 2–3 yourself, recommendation first and argued. If only one approach exists, say so — "alternatives considered: none viable
 because X" is a legitimate answer; silence is not. YAGNI applies at design level: strike
 every capability the idea does not need this round; moved-to-later is a decision, not a loss.
 
