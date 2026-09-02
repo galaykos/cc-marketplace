@@ -20,7 +20,7 @@
   "dev-env": 0,
   "devops": 0,
   "fresh-take": 0,
-  "frontend-suite": 2404,
+  "frontend-suite": 2376,
   "git-workflow": 0,
   "hindsight": 0,
   "inertia": 0,
@@ -28,7 +28,6 @@
   "lean": 85,
   "llm-app": 0,
   "mariadb": 0,
-  "nextjs": 0,
   "observability": 0,
   "orchestration": 0,
   "packages": 0,
@@ -40,7 +39,6 @@
   "product-suite": 0,
   "quality-principles-suite": 127,
   "quality-suite": 2489,
-  "react-native": 0,
   "registry-source": 0,
   "resilience": 0,
   "secret-scanning": 0,
@@ -59,6 +57,5 @@
   "ui-ux": 0,
   "ultra-deep-research": 0,
   "vercel-skills-scout": 0,
-  "vite": 0,
   "web-dev": 0
 }

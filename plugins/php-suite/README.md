@@ -1,8 +1,8 @@
 # php-suite
 
 Meta-bundle: the PHP category in one install — Laravel best practices,
-Inertia, Vite (Laravel's default asset bundler), and the generalist
-web worker. Uninstall cleanly with `/php-suite:uninstall` — removes the bundle
+Inertia, and web-dev (the generalist worker, the frontend-reviewer, and the
+Vite skill for Laravel's default asset bundler). Uninstall cleanly with `/php-suite:uninstall` — removes the bundle
 and prunes its auto-installed plugins.
 
 ## Install
@@ -18,8 +18,7 @@ Installing the bundle pulls in every plugin below as a dependency.
 
 - **laravel** — Laravel framework review (Eloquent N+1 prevention, form requests, thin controllers, migrations) with `/laravel:review`
 - **inertia** — Inertia.js partial reloads, deferred props, useForm flow, and SSR across the Laravel adapters with `/inertia:review`
-- **vite** — Vite env security, code splitting, and build-config review pinned to the locked vite version with `/vite:review`
-- **web-dev** — generalist web-developer worker plus a frontend-reviewer agent that defers stack idioms to the per-framework plugins
+- **web-dev** — generalist web-developer worker, the opus-floored frontend-reviewer, and the Vite skill (env security, code splitting, build config pinned to the locked vite version) via `/web-dev:review`
 
 ## Commands
 

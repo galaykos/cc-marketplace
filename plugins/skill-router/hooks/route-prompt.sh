@@ -164,15 +164,15 @@
 
   # ---- stack relevance (spec 4.6) ---------------------------------------------
   # The catalog used to list every installed plugin's commands, filtered only by
-  # installed-ness, so a Laravel repo was offered /nextjs:review. A command whose
+  # installed-ness, so a Laravel repo was offered /web-dev:review (then /nextjs:review). A command whose
   # stack is demonstrably absent is noise at the exact surface where the model
   # picks a tool, and it is the largest line item in this hook's output.
   #
   # PREDICATE: drop a plugin's commands only when it OWNS rules.tsv rows AND none
   # of them can match anything in this repo. Two corrections the design needed:
   #   * NOT the stack_marker column. It is populated on 15 of 67 data rows and is
-  #     absent on exactly nextjs, nuxt, vite and threejs — the plugins the filter
-  #     is FOR. A stack_marker predicate would silently do nothing for them.
+  #     absent on exactly the Next.js, Nuxt, Vite and threejs rows — the stacks the
+  #     filter is FOR (the first three now owned by web-dev). A stack_marker predicate would silently do nothing for them.
   #   * NOT glob rows alone. Seven plugins ship ONLY content rows (llm-app,
   #     node-backend, observability, payments, resilience, security, threejs), so a
   #     glob-only predicate matches nothing for them in ANY repo and would delete
@@ -189,7 +189,7 @@
   # form hid dev-env init from any repo without a Dockerfile, craft-layer craft from every
   # greenfield repo, and the a11y audit from anything without a .tsx at depth four, since
   # a11y ships one glob row and it is .tsx alone. The original motivation was narrow: a
-  # Laravel repo should not be offered the nextjs review, so the filter is narrow now.
+  # Laravel repo should not be offered the Next.js review, so the filter is narrow now.
   #
   # PRUNED AND MEMOISED. Unpruned walks measured 2.86s at 4515 entries and 20.26s at 35014,
   # linear, and a real node_modules is often past 100k. That is dead air on the first

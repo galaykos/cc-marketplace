@@ -7,6 +7,15 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.2
+
+### Changed
+- **Three tier-1 stack signals now point at one plugin.** `next`, `react-native`, and
+  `vite` + `vite.config.*` each suggest `web-dev`, which absorbed the three stack
+  plugins on 2026-09-02. The overlap pair for `web-dev` shrinks to `laravel` and
+  `inertia`. Regenerated catalog: three rows gone, `web-dev`, `frontend-suite` and
+  `php-suite` descriptions updated.
+
 ## 0.13.1
 
 ### Fixed

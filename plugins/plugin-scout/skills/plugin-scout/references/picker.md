@@ -65,7 +65,7 @@ TIER 2 — any-project core (8)
    4  code-review ✓  5  debugging  6  testing  7  git-workflow
    8  code-architecture  9  secret-scanning  10 command-guard  11 comment-discipline
 TIER 3 — no signal in this repo (40)
-  stack, unfired:  12 nextjs  13 react-native  14 vite  15 mariadb
+  stack, unfired:  12 web-dev  13 mariadb  14 threejs  15 payments
   quality/review:  16 a11y  17 performance  18 resilience  19 security  20 system-design
   data:            21 database  22 sql  23 stack-scan
   tooling:         24 brain  25 hindsight  26 packages  27 claude-authoring
@@ -123,7 +123,7 @@ TIER 3 — no signal in this repo (40)
   | `sql` | `mariadb`, `database` |
   | `ui-ux` | `craft-layer`, `shadcn-studio`, `design-preview`, `registry-source` |
   | `taskmaster` | `task-runner`, `orchestration` |
-  | `web-dev` | `laravel`, `nextjs`, `react-native`, `inertia` |
+  | `web-dev` | `laravel`, `inertia` |
 
   A row on no pair is never annotated. A deprioritized row sorts last within its
   tier and its description names the overlap ("overlaps installed ui-ux"). Tier-1

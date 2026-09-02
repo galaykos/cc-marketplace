@@ -311,7 +311,7 @@ fi
 
 # ---- STACK RELEVANCE of the catalog (spec 4.6, card C6) ----------------------
 # The catalog is filtered by repo evidence, not just installed-ness: a Laravel repo
-# should not be offered /nextjs:review. Asserted in BOTH directions plus the trap
+# should not be offered /web-dev:review. Asserted in BOTH directions plus the trap
 # that a glob-only predicate would fall into.
 #
 # THE TRAP: seven plugins own ONLY content rows in rules.tsv (llm-app,
@@ -336,14 +336,14 @@ if [ -f "$CAT_HOOK" ]; then
   CL="$WORK/cat-laravel"; mkdir -p "$CL"
   printf '{"require":{"laravel/framework":"^11"}}' > "$CL/composer.json"; : > "$CL/app.php"
   OL=$(cat_for "$CL" laravel)
-  cat_expect "a Laravel repo is not offered /nextjs:review" "$OL" "/nextjs:review" absent
+  cat_expect "a Laravel repo is not offered /web-dev:review" "$OL" "/web-dev:review" absent
   cat_expect "a Laravel repo keeps /laravel:review"         "$OL" "/laravel:review" present
   cat_expect "stack-neutral /code-review:review always kept" "$OL" "/code-review:review" present
 
   CN="$WORK/cat-next"; mkdir -p "$CN"
   printf '{"dependencies":{"next":"^14"}}' > "$CN/package.json"; : > "$CN/next.config.js"
   ON=$(cat_for "$CN" next)
-  cat_expect "a Next.js repo keeps /nextjs:review"      "$ON" "/nextjs:review" present
+  cat_expect "a Next.js repo keeps /web-dev:review"      "$ON" "/web-dev:review" present
   cat_expect "a Next.js repo is not offered /laravel:review" "$ON" "/laravel:review" absent
 
   CE="$WORK/cat-empty"; mkdir -p "$CE"

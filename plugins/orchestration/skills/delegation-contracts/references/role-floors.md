@@ -16,6 +16,7 @@ Reasoning-class agents whose frontmatter tier is a FLOOR, not a ceiling:
 
 ```
 code-review:code-reviewer                 opus
+web-dev:frontend-reviewer                 opus
 code-architecture:architecture-reviewer   opus
 system-design:system-design-reviewer      opus
 system-design:system-architect            opus
@@ -23,7 +24,10 @@ taskmaster:spec-adversary                 opus
 ultra-deep-research:verifier              sonnet
 ```
 
-A floor is the agent's own pin, reinterpreted — not a raise. `verifier` floors at `sonnet`
+A floor is the agent's own pin, reinterpreted — not a raise. `frontend-reviewer` joined
+2026-09-02 when web-dev absorbed the Next.js, React Native and Vite skills: its verdict
+is Reasoning-class, and an `inherit` reviewer in a Sonnet session judged code with a
+Sonnet-class verdict while the session's own work never dropped that low. `verifier` floors at `sonnet`
 because the defect was the *ceiling*, never the level: it kept an adversarial refuter at
 sonnet while the claims it audits were produced under a stronger session.
 
@@ -34,7 +38,7 @@ An agent with no row here is **unfloored** — that is the correct default, not 
 A single formula cannot serve both classes; trying to write one is how an earlier draft
 silently turned an explicit low-tier marker (`Ultra: true (model=haiku)`) into a no-op.
 
-    FLOORED (the six above):
+    FLOORED (the seven above):
         model: = max( marker tier if a marker is present else session model,
                       role floor )
         ladder: haiku < sonnet < opus < fable

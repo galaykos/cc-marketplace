@@ -1,7 +1,8 @@
 # frontend-suite
 
 Meta-bundle: the frontend stack category in one install — UI/UX stacks,
-React Native, Next.js, Vite, Inertia, the generalist web worker, file-aware
+web-dev (Next.js, React Native and Vite skills behind `/web-dev:review`, the
+generalist worker and the opus-floored frontend-reviewer), Inertia, file-aware
 skill auto-routing, and accessibility auditing. The creative-build studio (craft-layer, design-preview,
 shadcn-studio, registry-source, threejs) moved to the craft-suite bundle, so
 ordinary frontend app work does not pay the studio's always-on context.
@@ -17,24 +18,20 @@ prunes the plugins it auto-installed.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (8):
+One bullet per bundled plugin, in dependency order (5):
 
 - **a11y** — WCAG 2.2 AA audit with a concrete fix per violation, via
   `/a11y:audit`
 - **inertia** — partial reloads, deferred props, useForm flow, SSR across
   adapters, plus `/inertia:review`
-- **nextjs** — App Router server/client boundaries, opt-in caching, server
-  actions, route handlers, streaming, metadata API, plus `/nextjs:review`
-- **react-native** — list performance, navigation, platform-specific code,
-  animations, plus `/react-native:review`
 - **skill-router** — file-aware skill auto-routing: hooks load the matching
   best-practice skill(s) as files are edited
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Tailwind)
   plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
-- **vite** — env security, code splitting, base for sub-path deploys, dev
-  proxy, plus `/vite:review`
-- **web-dev** — the generalist web-developer worker and frontend-reviewer
-  agents (no commands)
+- **web-dev** — Next.js (App Router boundaries, opt-in caching, server
+  actions), React Native (lists, navigation, Expo inversions) and Vite (env
+  security, chunking, `base`) skills behind one `/web-dev:review`, plus the
+  generalist web-developer worker and the opus-floored frontend-reviewer
 
 | Command | What it does |
 |---------|--------------|

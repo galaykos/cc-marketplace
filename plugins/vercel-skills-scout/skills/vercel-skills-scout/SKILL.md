@@ -36,12 +36,12 @@ never run package managers, and a query is earned only by cited evidence
 | composer.json require livewire/livewire | `livewire` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | inertiajs dep (composer or npm) | `inertia` |
 | package.json dep react (not react-native) | `react` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
-| package.json dep react-native | `react native` |
+| package.json dep react-native | `react native` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep vue | `vue` |
-| package.json dep next | `nextjs` |
+| package.json dep next | `nextjs` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep nuxt | `nuxt` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep express / fastify / @nestjs/core | that framework's name |
-| package.json dep vite (devDependencies counts) | `vite` |
+| package.json dep vite (devDependencies counts) | `vite` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | DB engine in .env DSN or docker image | that engine's name |
 
 **Stacks this marketplace does not cover** — check these BEFORE the vite row,

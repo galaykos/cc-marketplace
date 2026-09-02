@@ -2,6 +2,14 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.10
+
+### Changed
+- **`coding-entry`'s skill map primes web-dev for the three JS stacks.** The
+  `react-native`, `next` and `vite` manifest signals now resolve to
+  `web-dev:<stack>-best-practices`; the three plugins merged into web-dev on
+  2026-09-02 and the skill names are unchanged, so the primed content is the same.
+
 ## 0.13.9
 
 ### Changed

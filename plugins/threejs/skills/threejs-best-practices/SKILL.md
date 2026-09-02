@@ -101,7 +101,7 @@ scene keeps its geometry, material, and textures alive on the GPU:
 ## Defer rule
 
 - Bundler mechanics (code-splitting the three chunk, import.meta.glob asset
-  handling) → the vite plugin.
+  handling) → web-dev's `vite-best-practices` skill.
 - Server state feeding R3F components (query libs, cache keys) and general
   React correctness are baseline — handle them inline.
 - DOM/CSS animation (Motion, GSAP) → ui-ux motion-best-practices; three owns

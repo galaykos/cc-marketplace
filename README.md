@@ -42,12 +42,12 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
-| `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
-| `php-suite` | 4 | ~497 tokens | — | — |
+| `frontend-suite` | 5 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
+| `php-suite` | 3 | ~639 tokens | — | — |
 | `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 52 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 49 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -80,7 +80,7 @@ that as an order-of-magnitude correction, never as a coefficient
 | **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline. Ten members, trimmed from 32 to fit the host's skill listing; install other plugins alongside it. |
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
-| **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, Vite, plus the shared web-dev worker. |
+| **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, plus web-dev (Vite review and the shared worker). |
 | **[db-suite](plugins/db-suite)** | Schema and query work — engine-agnostic SQL plus MariaDB dialect depth. |
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
@@ -136,7 +136,7 @@ early:
 
 ## Stacks and frameworks
 
-Each of these ships a best-practice skill plus a review command (`/laravel:review`, `/nextjs:review`, and so on). The
+Each of these ships a best-practice skill plus a review command (`/laravel:review`, `/web-dev:review`, and so on). The
 skill is what Claude applies while writing; the command is what you run over a
 diff, a path, or a branch. All of them pin their advice to the version in your
 lockfile rather than to the version the model happens to remember.
@@ -145,17 +145,14 @@ lockfile rather than to the version the model happens to remember.
 |--------|-----------------|-------------------|
 | **[laravel](plugins/laravel)** | Eloquent N+1 and eager loading, FormRequests, thin controllers, queued jobs, policies, the Laravel 11/12/13 map | Controllers, models, jobs, migrations — the daily Laravel surface |
 | **[inertia](plugins/inertia)** | prop hygiene, partial reloads, deferred vs lazy props, `useForm`, shared data, the silent-SSR trap | A Laravel + Vue/React/Svelte app on Inertia v1/v2/v3 |
-| **[react-native](plugins/react-native)** | FlatList/FlashList performance, navigation, platform splits, native-driver animation | React Native screens and lists |
-| **[nextjs](plugins/nextjs)** | server/client boundaries, opt-in caching, server actions as public endpoints, streaming, `next/image` and `next/font`, versions 14→16 | App Router work — and any time someone repeats the Next 14 caching mental model |
-| **[vite](plugins/vite)** | `VITE_` env security, `optimizeDeps`, `manualChunks`, `base` for sub-path deploys, `server.proxy`, `define` stringify traps | Touching `vite.config.*` or debugging a build that only breaks in production |
 | **[threejs](plugins/threejs)** | WebGPU-first with WebGL2 fallback, TSL shaders, r3f/drei, glTF/Draco/KTX2, disposal discipline | 3D scenes, and any leak that only shows after ten route changes |
-| **[web-dev](plugins/web-dev)** | a generalist `web-developer` worker and a `frontend-reviewer` that audits against whichever framework skill matches | Cross-cutting web work no single framework plugin owns |
+| **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) behind one `/web-dev:review`, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
 
 **Using them.** Three entry points, in rising order of ceremony:
 
 1. Just work. With `skill-router` installed, editing `app/Models/Order.php`
    loads the Laravel skill on its own.
-2. Review a change: `/laravel:review`, `/nextjs:review`, `/vite:review` — each
+2. Review a change: `/laravel:review`, `/web-dev:review` — each
    takes an optional path or diff reference and returns severity-sorted
    one-line findings with fixes.
 3. Review a change that spans stacks: `/code-review:review` is the fan-in. It
@@ -435,7 +432,7 @@ bill you did not agree to.
 
 ```
 /stack-scan:report        # PHP 8.3 / Laravel 12 / MariaDB 11.4 / Node 22 + pnpm
-/plugin-scout:suggest     # → suggests laravel, mariadb, vite, …
+/plugin-scout:suggest     # → suggests laravel, mariadb, web-dev, …
 /dev-env:init             # → compose file pinned to those exact versions
 ```
 

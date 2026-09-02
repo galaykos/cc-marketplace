@@ -435,6 +435,13 @@ pc_removed_refs() {
   # deleted directory or the generated catalog. Do not move it to $skills, which
   # word-matches.
   plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything'
+  # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
+  # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
+  # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
+  # shapes in $shapes are deliberately NOT applied: `vite` and `react-native` are npm
+  # package names the surviving skills must keep naming in prose.
+  moved='nextjs|react-native|vite'
+  bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # task-orchestration added 2026-08-21: merged into plan-before-code, which
   # already produced the file map its dependency edges were derived from. Its
   # parallel-safety rule was stated in four places across three plugins; the
@@ -463,7 +470,7 @@ pc_removed_refs() {
   # the first version of that addition REPLACED the skills clause instead of
   # appending, silently un-guarding every removed skill name; parity-check.sh's
   # violation-skill-name fixture is what caught it.
-  shapes="\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)"
+  shapes="/($moved):|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)

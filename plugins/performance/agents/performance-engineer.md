@@ -68,7 +68,7 @@ Rubric above; the copy is not restated here so the two cannot drift.
 - SQL-shape review (query structure, indexing idioms) belongs to
   `/sql:review` — recommend it instead of duplicating it.
 - Framework-idiom review belongs to the matching installed stack review
-  command (e.g. `/laravel:review`, `/nextjs:review`) — recommend it instead
+  command (e.g. `/laravel:review`, `/web-dev:review`) — recommend it instead
   of duplicating it.
 
 ## Kill-trigger (three strikes)

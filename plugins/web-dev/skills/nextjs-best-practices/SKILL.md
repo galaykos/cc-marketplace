@@ -132,6 +132,14 @@ Advising above the installed version is a finding; confirm boundaries against th
   `next lint` removed; needs React 19.2+/Node 20.9+. Per-change operational detail
   (what breaks, escape hatches, 16.1/16.2 minors): read `references/next16.md`.
 
+## Scope by model tier
+
+**All models** — every rule above: the version gates, the boundaries, the footguns. Facts
+do not scale down with the model. **Compensation (worker-tier)** — the detect → pin →
+verify order in `/web-dev:review` step 3, followed literally, every skill in scope applied
+to every file in scope; a Fable-class session may compress it once the lockfile is read.
+**Skip** — a diff touching no server/client boundary, no data fetch, no `app/` route and no `next.config.*` earns a one-line verdict; do not walk the rubric to prove it.
+
 ## Common mistakes
 
 - `'use client'` on a page/layout, pulling the whole tree into the client bundle.

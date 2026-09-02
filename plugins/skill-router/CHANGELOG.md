@@ -2,6 +2,16 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.4
+
+### Changed
+- **Six routing rows and the SessionStart primer name `web-dev` as owner** of
+  `nextjs-best-practices`, `react-native-best-practices` and `vite-best-practices`
+  (the three plugins merged into web-dev on 2026-09-02). Patterns, confidence and
+  stack markers are unchanged. The catalog relevance filter now drops
+  `/web-dev:review` from a repo with none of the three stacks and keeps it when any
+  one is present — asserted both ways in `prompt-route-tests.sh`.
+
 ## 0.14.3
 
 ### Fixed

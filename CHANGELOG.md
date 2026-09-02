@@ -4,6 +4,34 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.97.0] - 2026-09-02
+
+**First consolidation merge: `nextjs`, `react-native`, `vite` → `web-dev`** — the
+marketplace ships 49 leaf plugins, down from 52, and web-dev now does what four did.
+Doctrine and the Opus 5 / Sonnet 5 / Fable 5.1 prompting-guide extraction behind it:
+`rationale/2026-09-02-web-dev-merge.md`.
+
+- `web-dev` 0.6.1: the three skills move in unchanged (`nextjs-best-practices`,
+  `react-native-best-practices`, `vite-best-practices`, the nextjs eval rides along);
+  one hand-written `/web-dev:review` detects every stack in scope from the manifests
+  and applies every matching skill, carrying the Expo inversion preamble and a
+  coverage-first reporting rule (report everything, the self-refute pass filters).
+  `frontend-reviewer` pins `model: opus` as a role FLOOR — a Sonnet session still gets
+  an Opus-class verdict; Opus and Fable sessions are unchanged. Each skill gains a
+  "Scope by model tier" block (All models / Compensation / Skip).
+- `frontend-suite` 0.10.0 (8 → 5 members) and `php-suite` 0.4.0 (4 → 3) drop the
+  absorbed plugins; web-dev carries the Vite review Laravel needs.
+- `skill-router` 0.14.4: six routing rows and the SessionStart primer now name
+  `web-dev` as owner; the catalog relevance filter drops `/web-dev:review` from a
+  repo with none of the three stacks (smoke: `prompt-route-tests.sh`).
+- `code-review` 0.13.1, `code-architecture` 0.13.10, `performance` 0.4.4 (deferRule),
+  `plugin-scout` 0.13.2, `vercel-skills-scout` 0.4.5, `threejs` 0.2.3: references
+  rerouted; `orchestration` 0.16.6: the role-floors registry gains the seventh row.
+- `scripts/lib/plugin-checks.sh`: the removed-reference guard learns the three MOVED
+  names in their plugin forms only (`/vite:review`, `plugins/vite`, `**vite**`,
+  "vite plugin") — the bare package names stay legal because the surviving skills
+  must keep saying them.
+
 ## [0.96.1] - 2026-08-31
 
 **Fifteen review findings fixed** — a high-effort review of the day's branch
