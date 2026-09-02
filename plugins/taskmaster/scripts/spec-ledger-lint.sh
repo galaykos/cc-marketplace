@@ -14,6 +14,15 @@
 #   empty-ledger  : the section holds no data rows
 #   open-unknown  : a row carries the UNKNOWN status token
 #   no-status     : a data row carries none of CLEAR / ASSUMED / UNKNOWN
+#   no-source     : a CLEAR row's Source cell holds no alphanumeric character (empty,
+#                   a dash, a "?"). grill promises "decisions (CLEAR rows with sources)";
+#                   a blank source is a settled claim nothing can be traced back to.
+#                   LENIENT BY DESIGN: a table with no Source column at all is an
+#                   accepted header variant, so its last cell is the status token and
+#                   the check passes. It catches the dropped source, not the absent column.
+#   no-criteria   : spec has no `## Success criteria` section. coverage-check and
+#                   spec-redteam both key off that exact heading, so a spec without it
+#                   degrades both into silent no-ops rather than failing loudly.
 #
 # CLI:
 #   spec-ledger-lint.sh --spec <spec.md>
@@ -93,6 +102,24 @@ if [ -n "$nostatus" ]; then
   first=$(printf '%s\n' "$nostatus" | head -1)
   violation "no-status: ledger row carries no CLEAR/ASSUMED status. First: ${first}"
 fi
+
+nosource=$(printf '%s\n' "$rows" | awk '
+  !/(^|[^[:alnum:]_])CLEAR([^[:alnum:]_]|$)/ { next }
+  {
+    line = $0
+    sub(/[[:space:]]+$/, "", line)
+    sub(/\|$/, "", line)
+    n = split(line, f, "|")
+    src = f[n]
+    if (src !~ /[[:alnum:]]/) print $0
+  }' || true)
+if [ -n "$nosource" ]; then
+  first=$(printf '%s\n' "$nosource" | head -1)
+  violation "no-source: CLEAR row cites no source — a settled decision must name what settled it. First: ${first}"
+fi
+
+grep -qEi '^##+[[:space:]]+Success criteria' "$spec" \
+  || violation "no-criteria: spec has no '## Success criteria' section — coverage-check and spec-redteam both read that heading"
 
 record_run pass
 exit 0

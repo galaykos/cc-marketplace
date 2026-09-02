@@ -16,17 +16,10 @@ entities and a relation, so it fires; "add a bio field to users" does not.
 
 ## Consent gate — shared with visual-decisions
 
-The visual-decisions skill owns the WORDING of the fidelity consent question
-(Full mockups / Quick ASCII only / No mockups); whichever skill reaches the gate
-first is the one that ASKS it — in a brainstorm-led run that is brainstorm, at its
-first staged decision. One answer governs all three:
-
-- Already answered this session? Reuse it. Never re-ask — the answer holds all
-  session regardless of which skill triggered the gate first.
-- Never asked? Ask it now via `AskUserQuestion`, in the exact wording of the
-  visual-decisions consent gate; the answer then covers that skill too.
-- On "No mockups": present the model as a mermaid code block in chat plus the
-  approve/amend question — no server, no SVG, no ASCII art.
+`visual-decisions` owns the fidelity consent question; whichever skill reaches the gate
+first ASKS it, in that skill's exact wording, and the answer holds all session — reuse it,
+never re-ask. erd's only delta: on **No mockups**, present the model as a mermaid code
+block in chat plus the approve/amend question — no server, no SVG, no ASCII art.
 
 ## Flow
 
@@ -47,7 +40,10 @@ first staged decision. One answer governs all three:
    A mix answer gets ONE merged variant and one re-ask — at most two passes.
 3. **Approve or amend.** Show the picked model and ask: approve as-is, or name
    the amendment. Amendments re-render and re-ask; loop until an explicit
-   approval lands. No approval, no spec section.
+   approval lands. No approval, no spec section — except headless: with
+   `AskUserQuestion` unavailable, do not stall. Write the single most defensible
+   model, mark its ledger row ASSUMED, and flag it in the assumption list for veto
+   (grill's headless fallback; a guided skill that hangs a headless run is a defect).
 4. **Write the spec section.** Embed the approved model as `## Data Model` in
    the spec (format below) and record the approval as a CLEAR ledger row with
    the diagram file or chat message as its source.

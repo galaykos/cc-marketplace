@@ -9,6 +9,11 @@ No plan, no spec, no implementation code while the ambiguity ledger holds an UNK
 row or an unconfirmed ASSUMED row. Interrogation is the deliverable of this phase.
 The cheapest bug is the one killed as a wrong assumption before a line existed.
 
+**Standing is split and that sentence hides it:** "no spec" is a **gate**
+(`scripts/spec-ledger-lint.sh` blocks an UNKNOWN row); "no implementation code" is
+**unenforceable** by default (`hooks/clarify-gate.sh` ships off, opt-in via
+`CC_CLARIFY_GATE=block`); round count and question quality are **agent-graded**.
+
 Scale to blast radius: a one-file bugfix earns zero to two questions; a feature that
 crosses module boundaries earns full rounds. Every question must be able to change
 what gets built — if any answer leads to the same code, delete the question.
@@ -25,6 +30,8 @@ reinterpret scope. Boosted runs bind this step differently: `../ultra/references
 - "Only the user can answer" entries seed the first question round.
 - Hard constraints (versions, configs, CI gates) become CLEAR rows that bound the
   option sets you offer.
+- Task tool unavailable (subagent, non-interactive)? Run the scan inline yourself, then
+  derive the statement from it — never from the raw words alone. Only fresh eyes are lost.
 
 ## The ambiguity ledger
 
@@ -117,18 +124,21 @@ assumption list, or the user says "enough". Then:
 
 1. Decide the implementation approach when the settled requirements admit two or more
    structurally different implementations (new module vs extend, sync vs async, rewrite vs
-   strangler) and the task is not mechanical. approaches plugin installed → run its blind panel: dispatch the four `opinion-lens` personas
-   (Standards Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) per
-   that skill's blind-dispatch contract, synthesize one pick + kill-trigger, then WRITE its
-   marker `.claude/approaches/deliberated.json` (`{"task","by","at"}`) —
-   unwritten, the double-run guard is unarmed and `/approaches:opinions` re-litigates the
-   settled pick. Absent → 2–3 inline and pick. Skip mechanical or single-approach tasks, or
-   when an upstream brainstorm design already recorded the approach.
+   strangler) and the task is not mechanical. approaches plugin installed → run its blind
+   panel per `approaches:approach-deliberation` `references/blind-panel.md` — it owns the
+   persona roster, the dispatch contract, and the proceed rule (surface the pick for
+   approval; never self-approve it). WRITE its marker `.claude/approaches/deliberated.json`
+   after: unwritten, the double-run guard is unarmed and `/approaches:opinions` re-litigates
+   the settled pick. Absent → 2–3 inline and pick. Skip mechanical or single-approach tasks,
+   or when an upstream brainstorm design already recorded the approach.
 2. Write the spec to `taskmaster-docs/specs/YYYY-MM-DD-<slug>.md`: raw + upgraded statement pair,
    goal, decisions (CLEAR rows with sources), accepted assumptions, approach with rejected
    alternatives and kill-trigger, non-goals, success criteria, and the converged ledger embedded
    as `## Ambiguity ledger (final)`; run `${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh --spec <file>` (blocks
-   UNKNOWN/missing/empty ledger) until exit 0. Staged visual/creative picks → follow
+   UNKNOWN/missing/empty ledger, a sourceless CLEAR row, a spec with no success criteria)
+   until exit 0. Every behavior-bearing CLEAR row must ALSO
+   appear as a success criterion: coverage-check walks criteria only, so a decision left in
+   Decisions alone vanishes from every card on a clean pass (agent-graded). Staged visual/creative picks → follow
    `references/visual-contract.md` to bind them as `## Visual contract`.
 3. Red-team the spec when its blast radius warrants — run the `spec-redteam` skill to
    attack the frozen spec for holes and resolve each before cards; trivial specs skip.
