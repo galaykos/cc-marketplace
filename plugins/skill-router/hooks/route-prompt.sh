@@ -186,7 +186,7 @@
   # were authored to route a SKILL to files that already exist, so reusing them as a
   # relevance test for EVERY command was a category error: it hid the commands whose whole
   # job is to create the thing the glob looks for. Measured on a Laravel repo, the earlier
-  # form hid dev-env init from any repo without a Dockerfile, craft-layer craft from every
+  # form hid the compose init from any repo without a Dockerfile, craft-layer craft from every
   # greenfield repo, and the a11y audit from anything without a .tsx at depth four, since
   # a11y ships one glob row and it is .tsx alone. The original motivation was narrow: a
   # Laravel repo should not be offered the Next.js review, so the filter is narrow now.

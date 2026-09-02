@@ -68,7 +68,7 @@
     add tailwind-best-practices ui-ux
   fi
   [ -f "$cwd/components.json" ] && add shadcn-best-practices ui-ux
-  if has 'Dockerfile*' || has 'docker-compose*.yml' || has 'compose*.yml'; then add docker-best-practices dev-env; fi
+  if has 'Dockerfile*' || has 'docker-compose*.yml' || has 'compose*.yml'; then add docker-best-practices devops; fi
   if has_dir tests || has '*.test.*' || has '*.spec.*'; then add testing-best-practices testing; fi
 
   skills="${skills# }"

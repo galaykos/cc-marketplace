@@ -103,9 +103,9 @@ glob	openapi*.yaml	api-design	api-design	high
 glob	*.test.*	testing-best-practices	testing	high
 glob	*.spec.*	testing-best-practices	testing	high
 glob	**/tests/**	testing-best-practices	testing	high
-glob	Dockerfile*	docker-best-practices	dev-env	high
-glob	docker-compose*.yml	docker-best-practices	dev-env	high
-glob	compose*.yml	docker-best-practices	dev-env	high
+glob	Dockerfile*	docker-best-practices	devops	high
+glob	docker-compose*.yml	docker-best-practices	devops	high
+glob	compose*.yml	docker-best-practices	devops	high
 glob	package.json	package-hygiene	packages	high
 glob	composer.json	package-hygiene	packages	high
 glob	next.config.*	nextjs-best-practices	web-dev	high

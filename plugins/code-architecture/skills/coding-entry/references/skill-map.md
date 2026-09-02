@@ -54,7 +54,7 @@ Engines without a dialect plugin (MySQL, PostgreSQL, …) prime only the sql row
 
 | Signal | Prime |
 |---|---|
-| `Dockerfile*` or a compose file | `dev-env:docker-best-practices` |
+| `Dockerfile*` or a compose file | `devops:docker-best-practices` |
 | `.github/workflows/` | `devops:devops-practices` |
 | the ASK mentions auth, login, token, session, permission, or payment | `security:security-review` |
 | the ASK mentions Stripe, billing, subscription, invoice, or checkout | `payments:payments` |

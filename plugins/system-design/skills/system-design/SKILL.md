@@ -96,7 +96,7 @@ boundary move, one schema change, one integration swap per step.
   `domain-modeling` in this plugin.
 - REST contract detail (paths, verbs, status, payloads) → `api-design`.
 - Cache correctness mechanics and load-test numbers → `performance-tuning`.
-- Local environment topology → `dev-env`.
+- Local environment topology → `/devops:init`.
 
 ## Anti-patterns
 

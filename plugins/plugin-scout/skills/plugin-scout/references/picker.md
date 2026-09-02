@@ -60,7 +60,7 @@ first question — to carry real information in four rows.
 TIER 1 — earned by a signal in this repo
    1  laravel   composer.json — laravel/framework ^11
    2  web-dev   package.json — vite ^5 + vite.config.ts
-   3  dev-env   docker-compose.yml
+   3  devops    docker-compose.yml
 TIER 2 — any-project core (8)
    4  code-review ✓  5  debugging  6  testing  7  git-workflow
    8  code-architecture  9  secret-scanning  10 command-guard  11 comment-discipline

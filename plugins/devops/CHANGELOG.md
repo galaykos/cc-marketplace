@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.0
+
+### Added
+- **dev-env merged in.** `docker-best-practices` and `compose-init` are devops skills; <!-- removed-ok -->
+  `/devops:init` generates a local compose environment from evidence, and
+  `/devops:review` loads the Docker rubric whenever a Dockerfile or compose file is in
+  scope. The old ownership split (prod containers here, dev compose there) is gone: one
+  review, the skill table decides the rubric by what the file deploys.
+
 ## 0.5.9
 
 ### Changed

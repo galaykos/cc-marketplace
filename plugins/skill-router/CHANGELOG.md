@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.7
+
+### Changed
+- **The three Docker routing rows and the primer name `devops` as owner** of
+  `docker-best-practices` (dev-env merged into devops on 2026-09-02). <!-- removed-ok -->
+
 ## 0.14.6
 
 ### Changed

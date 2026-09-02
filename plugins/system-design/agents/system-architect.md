@@ -60,7 +60,7 @@ Work through each item that the task touches:
   architecture-reviewer agent.
 - REST contract detail (paths, verbs, status codes, payload shapes) →
   `/api-design:review`.
-- Local environment topology → `/dev-env:init`.
+- Local environment topology → `/devops:init`.
 
 ## Output rule
 

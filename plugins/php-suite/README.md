@@ -30,4 +30,4 @@ Installing the bundle pulls in every plugin below as a dependency.
 
 - **database** — the persistence side of a PHP app: `/database:review`, the sql and mariadb skills, the schema worker
 - **quality-suite** — the enforcing-mechanism bundle (review, comment discipline, command guard, secret scanning, and more; testing and security now live in **quality-principles-suite**) on top of the stack rules
-- **dev-env** — docker-compose scaffolding and Docker review for the services a PHP app runs against
+- **devops** — `/devops:init` compose scaffolding and Docker review for the services a PHP app runs against

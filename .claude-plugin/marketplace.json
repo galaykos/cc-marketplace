@@ -100,11 +100,6 @@
       "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces (DataLoader, resolver authz, proto field-number safety, streaming). Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). Defers third-party API docs to api-docs-first."
     },
     {
-      "name": "dev-env",
-      "source": "./plugins/dev-env",
-      "description": "Dev environment initiator: scan composer/npm manifests, lockfiles, .env DSNs, and CI images, then generate a docker-compose.yml and Dockerfile matched to the actual stack — PHP version and extensions, Node, database engine, Redis, queues, mail. Includes /dev-env:init to generate and /dev-env:review to audit existing docker files. Pairs with stack-scan. Owns local development environments; defers CI/CD pipelines and production deploys to the devops plugin."
-    },
-    {
       "name": "web-dev",
       "source": "./plugins/web-dev",
       "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — with /web-dev:review detecting the stack from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill."
@@ -117,7 +112,7 @@
     {
       "name": "devops",
       "source": "./plugins/devops",
-      "description": "DevOps pipeline and infrastructure: CI/CD ordering, container/image hygiene, Kubernetes resource limits and probes, deploy strategy with rollback, and secrets handling — a firing devops-practices skill, a /devops:review command, and a devops-engineer worker + devops-reviewer pair. Owns infra-layer observability wiring (defers in-code instrumentation to observability); defers local docker-compose dev environments to dev-env."
+      "description": "Infrastructure in one plugin: CI/CD ordering, container/image hygiene, Kubernetes limits and probes, deploy strategy with rollback, and secrets handling (devops-practices); Dockerfile and compose discipline (docker-best-practices); and local dev environments generated from evidence — manifests, lockfiles, .env DSNs, CI images — via /devops:init (compose-init). One /devops:review loads the Docker skill when a Dockerfile or compose file is in scope, backed by a PreToolUse guard on workflow files and a devops-engineer worker + devops-reviewer pair. Owns infra-layer observability wiring; defers in-code instrumentation to observability."
     },
     {
       "name": "database",

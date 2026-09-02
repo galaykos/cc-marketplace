@@ -57,5 +57,5 @@ operations need a confirmed backup or recovery path, or it stops and asks.
 ## Pairs well with
 
 - **laravel** — the Eloquent side of the same queries
-- **dev-env** — spins up the local database services these reviews run against
+- **devops** — `/devops:init` spins up the local database services these reviews run against
 - **performance** — measuring a slow query before this plugin reshapes it

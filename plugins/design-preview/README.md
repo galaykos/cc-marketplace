@@ -90,5 +90,5 @@ path.
 | `${PREVIEW_PORT:-8123}` | `theme.html` | ui-ux — `README`, `commands/theme.md`, `shadcn-theming` |
 | `${PREVIEW_PORT:-8123}` | `modules.html` | code-architecture — `plan-before-code` |
 | `${PREVIEW_PORT:-8123}` | `api.html` | api-design — `api-design` |
-| `${PREVIEW_PORT:-8123}` | `compose.html` | dev-env — `compose-init` |
+| `${PREVIEW_PORT:-8123}` | `compose.html` | devops — `compose-init` |
 | `Number(process.env.SHADCN_STUDIO_PORT) || 8124` | own harness | shadcn-studio — dedicated Vite dev server (own var, not PREVIEW_PORT) |

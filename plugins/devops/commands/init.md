@@ -3,7 +3,7 @@ description: Scan the project's dependencies, propose a service plan, then gener
 argument-hint: [path]
 ---
 
-Invoke the compose-init skill from this plugin against $ARGUMENTS (or the
+Invoke the `compose-init` skill from this plugin against $ARGUMENTS (or the
 repository root if no argument). Steps:
 
 1. If the stack-scan plugin is installed, run its installed-versions

@@ -116,3 +116,10 @@ when it matters, and flag anything within six months of EOL as
 - Shell-form `CMD`, no init, 10-second stops accepted as normal.
 - `depends_on` without `service_healthy`, retry loops in app code as a fix.
 - Alpine chosen by reflex, then hours lost to a musl-only native-module bug.
+
+## Scope by model tier
+
+**All models** — every rule above. **Compensation (worker-tier)** — the manifests-first
+pin in `/devops:review` step 3, followed literally; a Fable-class session may compress it
+once the stack is read. **Skip** — a diff touching no Dockerfile, no compose file and no
+image tag earns a one-line verdict.

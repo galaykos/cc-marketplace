@@ -39,14 +39,14 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `taskmaster-suite` | 10 | ~3.8k tokens | ~32 tokens | ~2.5k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
-| `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
+| `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.4k tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
 | `frontend-suite` | 4 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 2 | ~659 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 46 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 45 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -411,15 +411,13 @@ bill you did not agree to.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[dev-env](plugins/dev-env)** | scans manifests, lockfiles, `.env` DSNs and CI images, then generates a `docker-compose.yml` + `Dockerfile` matched to the real stack — pinned tags, healthchecks, then boots and verifies | Onboarding a repo, or a compose file that drifted from reality |
-| **[devops](plugins/devops)** | CI/CD ordering, image hygiene, Kubernetes limits and probes, deploy strategy with rollback, secrets handling — plus a **PreToolUse guard** on workflow files and a `devops-engineer` / `devops-reviewer` pair | Pipelines, manifests, and anything that reaches production |
+| **[devops](plugins/devops)** | CI/CD ordering, image hygiene, Kubernetes limits and probes, deploy strategy with rollback, secrets handling, Dockerfile and compose discipline — plus `/devops:init`, which scans manifests, lockfiles, `.env` DSNs and CI images and generates a `docker-compose.yml` + `Dockerfile` matched to the real stack, a **PreToolUse guard** on workflow files and a `devops-engineer` / `devops-reviewer` pair | Pipelines, manifests, anything that reaches production — and onboarding a repo or a compose file that drifted from reality |
 | **[stack-scan](plugins/stack-scan)** | required-vs-installed inventory from manifests, lockfiles, runtime binaries and container images, with drift, missing locks and EOL majors flagged | Before giving version-dependent advice in an unfamiliar repo |
 
 ```bash
 /stack-scan:report        # what is ACTUALLY installed here
-/dev-env:init             # generate compose + Dockerfile from evidence
-/dev-env:review           # audit existing docker files
-/devops:review            # pipelines, k8s manifests, deploy and secret config
+/devops:init              # generate compose + Dockerfile from evidence
+/devops:review            # pipelines, k8s manifests, deploy and secret config, docker files
 ```
 
 **Worked example — a repo you have never seen:**
@@ -427,7 +425,7 @@ bill you did not agree to.
 ```
 /stack-scan:report        # PHP 8.3 / Laravel 12 / MariaDB 11.4 / Node 22 + pnpm
 /plugin-scout:suggest     # → suggests laravel, mariadb, web-dev, …
-/dev-env:init             # → compose file pinned to those exact versions
+/devops:init              # → compose file pinned to those exact versions
 ```
 
 ---

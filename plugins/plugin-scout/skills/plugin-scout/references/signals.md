@@ -29,7 +29,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 |---|---|---|
 | `.github/workflows/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile` | `devops` | mirrors rules.tsv `**/workflows/**` — which matches any path segment case-insensitively, so the router also fires on `app/Workflows/`; this row does not |
 | `k8s/`, `helm/`, `*.yaml` with `apiVersion:` + `kind:` | `devops` | |
-| `Dockerfile*`, `docker-compose*.y{a,}ml`, `compose*.y{a,}ml` | `dev-env` | mirrors rules.tsv, which covers `.yml` only — a repo with `compose.yaml` (the Compose Spec's preferred name) is suggested here and not routed there |
+| `Dockerfile*`, `docker-compose*.y{a,}ml`, `compose*.y{a,}ml` | `devops` | mirrors rules.tsv, which covers `.yml` only — a repo with `compose.yaml` (the Compose Spec's preferred name) is suggested here and not routed there |
 | `openapi*.y{a,}ml`, `swagger*.json`, `*.proto`, `*.graphql` | `api-design` | mirrors rules.tsv, forked both ways: `swagger*.json` is only here, `api.php` is only there |
 | `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | `payments` | key name only — never read the value |
 | dep `three` or `@react-three/fiber` | `threejs` | |

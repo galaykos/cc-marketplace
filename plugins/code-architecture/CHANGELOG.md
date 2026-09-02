@@ -2,6 +2,12 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.13
+
+### Changed
+- **`coding-entry`'s skill map primes `devops:docker-best-practices`** for Dockerfiles
+  and compose files; dev-env merged into devops on 2026-09-02. <!-- removed-ok -->
+
 ## 0.13.12
 
 ### Changed
