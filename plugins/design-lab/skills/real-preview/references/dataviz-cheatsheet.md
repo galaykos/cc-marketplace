@@ -31,8 +31,8 @@ When ≤3 numbers answer the question, a chart is decoration. Use a stat tile.
 
 ## Color
 
-- Use the sandbox's `--chart-1..5` tokens as the categorical palette — they are
-  theme-aware and contrast-checked. Do not introduce raw hex.
+- Use the project's own chart tokens (`--chart-1..5` in shadcn, the theme's
+  palette elsewhere) as the categorical palette. Do not introduce raw hex.
 - Categorical: distinct hues, ≤5 series; beyond that, group the tail into "Other".
 - Sequential/diverging (a magnitude ramp): a single-hue light→dark scale, or a
   two-hue diverging scale around a meaningful midpoint — never a rainbow.
@@ -41,10 +41,8 @@ When ≤3 numbers answer the question, a chart is decoration. Use a stat tile.
 
 ## The four states (dataviz lane)
 
-- **populated** — the chart with realistic data and a working tooltip.
-- **empty** — "No data for this period", not an empty axis frame.
-- **loading** — a Skeleton the size and shape of the chart, not a spinner.
-- **error** — a clear failure message with a retry affordance.
+Per `variant-depth.md` §depth matrix; chart-specific: empty is "No data for this
+period", not an empty axis frame, and loading is a Skeleton the chart's shape.
 
 ## When NOT to chart
 

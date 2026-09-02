@@ -1,12 +1,15 @@
 # design-lab
 
-See real components before deciding. Three tools that used to be three plugins
-(design-preview, shadcn-studio, registry-source) and were always installed together: <!-- removed-ok -->
+See real components before deciding. Two tools that used to be separate plugins
+(design-preview, registry-source) and were always installed together. The shadcn-studio <!-- removed-ok -->
+sandbox that also merged here was removed in 0.2.0: it rendered components the project
+did not have, so it decided nothing about the project — a greenfield decision now
+falls back to the taskmaster shell mockup, and the variant-depth rules it carried
+(lanes, states, serves/trades/breaks) live in `real-preview/references/`.
 
 | Command / server | What it does |
 |---|---|
 | `/design-lab:preview [decision-description]` | Render 2–3 candidate variants with the project's **own** components on its own dev server — Vite (React or Vue/Nuxt) or Laravel Blade/Livewire — on a scratch surface removed at cleanup, behind a strict consent gate. Falls back to static shell mockups when neither stack is detected |
-| `/design-lab:stage [what-to-stage]` | Stand up a self-contained shadcn + Vite (Tailwind v4) sandbox outside the work tree and render agent-authored variants side by side with real interactivity — for greenfield or non-React work where the preview cannot run |
 | `registry-source` MCP server | Read component registries from the source, never from memory: live list/search/get across Aceternity, shadcn and Magic UI, 24h-cached, every answer carrying its source URL, fetch date and a stale flag |
 | `reui` MCP server | ReUI's own hosted registry, delivered by install and authenticated by your own browser sign-in |
 
@@ -22,14 +25,13 @@ See real components before deciding. Three tools that used to be three plugins
 | Situation | Tool |
 |---|---|
 | Runnable Vite+React (or Vue/Nuxt, or Laravel Blade) host with components present | `/design-lab:preview` — the `real-preview` skill |
-| Empty/greenfield dir, or a non-React stack | `/design-lab:stage` — the `studio` skill, with `deep-staging` for the variants' substance |
+| Empty/greenfield dir, or a stack with no Vite/Laravel host | the taskmaster `visual-decisions` shell mockup, offered by `/design-lab:preview` as its fallback |
 | Installing or reviewing a registry component (shadcn, ReUI, Aceternity, Magic UI) | the MCP servers below, via ui-ux's stack skills |
 
-Both renderers are consent-gated, write only scratch files they can prove are theirs,
-and verify cleanup: `scripts/preview-cleanup.sh <project-root>` removes every
-`__design-preview__` artefact; `scripts/studio-cleanup.sh <scratch-dir>` refuses to
-delete a directory that does not carry the studio marker. Both have fixture harnesses
-under `scripts/__tests__/`.
+The renderer is consent-gated, writes only scratch files it can prove are its own,
+and verifies cleanup: `scripts/preview-cleanup.sh <project-root>` removes every
+`__design-preview__` artefact and exits non-zero if anything remains. Its fixture
+harness is under `scripts/__tests__/`.
 
 ## Component registries (MCP)
 

@@ -4,6 +4,41 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.20.0
+
+### Added
+- **`mui-best-practices`** — Material UI (`@mui/material`, `@mui/x-*`): lockfile-first
+  version discipline (v7 and v9 removed APIs a v5 memory still recites; v8 was
+  skipped), one-level imports, `createTheme` with `cssVariables`/`colorSchemes`,
+  `theme.vars` + `applyStyles` over `palette.mode` branches, `useColorScheme` and
+  `InitColorSchemeScript`, `slotProps` over class-selector reach-ins, Emotion default
+  vs alpha Pigment CSS, Base UI as the headless sibling. `references/mui.md` carries
+  the package family, theme API and per-major removals (last verified 2026-09-02).
+- **`component-libraries`** — the library-agnostic floor for any React component
+  library without a sibling skill: detect from the manifest and build in what the
+  project has, copy-in vs npm-dependency ownership rules, tokens through the
+  library's own theme channel, keep the a11y contract of headless primitives,
+  composition over wrapper prop explosion, docs/registry/MCP over memory, and a
+  routing table to the sibling skills. `references/library-map.md` maps Base UI,
+  Radix, React Aria, Ark UI, Headless UI, Ariakit, Mantine, Chakra, Ant Design,
+  HeroUI, Reshaped, Untitled UI, Kibo, daisyUI and more to signal, theme channel
+  and docs URL, and records shadcn/ui's July 2026 Base UI default.
+
+### Changed
+- `/ui-ux:review` and `/ui-ux:build` detect MUI and route any other library to
+  `component-libraries`; the review docs list gains https://mui.com/material-ui/.
+- `ui-ux-engineer` / `ui-ux-reviewer` name the two new skills in their stack
+  detection; `lane.tsv` declares both skills.
+
+## 0.19.5
+
+### Changed
+- `/ui-ux:build` routes an undecided visual choice to `/design-lab:preview` only;
+  `/design-lab:stage` (the shadcn-only sandbox) was removed from design-lab 0.2.0
+  because the UI layer is library-agnostic — shadcn, a registry, MUI, Astryx or
+  vanilla Tailwind — and a sandbox that ships one library decides nothing about
+  a project using another.
+
 ## 0.19.4
 
 ### Changed

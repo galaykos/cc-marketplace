@@ -78,7 +78,6 @@ already own it, in fidelity order:
 | --- | --- |
 | Consent gate, fidelity ladder, ASCII + shell HTML mockups | `taskmaster:visual-decisions` |
 | Real project components on a live server | `/design-lab:preview` |
-| Greenfield / non-React component variants | `/design-lab:stage` |
 | Colour or theme IS the decision | `/ui-ux:theme` |
 | Validating the ASSEMBLED page after the picks | `taskmaster:experience-walkthrough` |
 

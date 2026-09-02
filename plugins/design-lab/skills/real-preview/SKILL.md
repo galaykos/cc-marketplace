@@ -1,6 +1,6 @@
 ---
 name: real-preview
-description: Use when a visual decision needs REAL component fidelity — the project's actual design-system components, true typography and spacing — beyond token-mimicking static mockups. Vite (React or Vue/Nuxt) and Laravel Blade/Livewire; scratch entry, strict consent, guaranteed cleanup. Falls back to the taskmaster shell mockup when neither path is available.
+description: Use when a visual or UI decision needs REAL component fidelity — the project's actual design-system components, true typography, spacing and states — beyond token-mimicking static mockups. Vite (React or Vue/Nuxt) and Laravel Blade/Livewire; scratch entry, strict consent, guaranteed cleanup. Greenfield or non-Vite/non-Laravel stacks fall back to the taskmaster shell mockup — no sandbox is stood up.
 ---
 
 ## When to escalate here
@@ -33,12 +33,15 @@ when that plugin is installed):
 | Vite present | `vite.config.{ts,js,mjs}` exists, `vite` in devDependencies |
 | Framework wired | `@vitejs/plugin-react` (or `-swc`), **or** `@vitejs/plugin-vue`, in the config's plugins |
 | Dev script | `package.json` `scripts.dev` (or `scripts.start`) runs vite |
-| Component paths | `components.json` aliases, or `tsconfig` paths, or `src/components/` |
+| Component paths | any of: `components.json` aliases, `tsconfig` paths, `src/components/`, or a UI library dep (`@mui/material`, `@astryx/*`, `@radix-ui/*`, `@headlessui/*`, …). Library-agnostic: shadcn, a registry, MUI, Astryx, vanilla Tailwind all qualify |
 
 Laravel (Blade/Livewire) takes the SEPARATE path below — detect it by
 `artisan` + `composer.json` requiring `laravel/framework`, with `@vite` in a
-Blade layout. Any check failing on both paths → skip straight to Fallback. Never
-`npm install` or `composer require` anything to make detection pass.
+Blade layout. Any check failing on both paths — including an empty/greenfield
+dir or a stack with no host to render in — → skip straight to Fallback. Never
+`npm install` or `composer require` anything to make detection pass, and never
+scaffold a throwaway app to get one: a sandbox that renders components the
+project does not have decides nothing about the project.
 
 ## Consent gate — stricter than mockups
 
@@ -96,11 +99,21 @@ cannot work without touching an existing file, stop and fall back.
 Same decision discipline as the shell, real ingredients:
 
 - 2–3 variants side by side, differing on ONE axis, equal fidelity.
-- Variants composed from the project's OWN components via its aliases
-  (`@/components/ui/button`, not copies) with realistic data.
+- Variants composed from the project's OWN components, imported the way the
+  app imports them (`@/components/ui/button`, `@mui/material`, a Blade
+  component, a Tailwind class set the app already uses) — never copies, never
+  a library the project does not have. The preview is library-agnostic.
 - A slim header: the decision question, axis name, variant labels A/B/C with a
-  one-line tradeoff each. Plain elements, no shell chrome — the project's global
-  CSS already styles the page like the app.
+  serves/trades/breaks line each, and — for data lanes — a state switch
+  (`populated` / `empty` / `loading` / `error`). Plain elements, no shell chrome —
+  the project's global CSS already styles the page like the app.
+- Lane choice (design / creative / dataviz), which states each variant must
+  render, and what to hold constant: `references/variant-depth.md`. Charts
+  without the host `dataviz` skill: `references/dataviz-cheatsheet.md`.
+- Variants built on ReUI, Aceternity or Magic UI components: query this plugin's
+  `registry-source` MCP tools (`registry_search` / `registry_get`, via
+  ToolSearch) for real current names and props before authoring — never recite
+  a component API from memory; without the tools, verify against the live docs.
 
 ## Server lifecycle
 
@@ -129,7 +142,10 @@ pipeline, record the pick as a CLEAR ledger row with
 
 ## Cleanup — guaranteed, verified
 
-A preview that leaves files behind is a failed run, whatever was picked:
+Standing: **gate** — `preview-cleanup.sh` exits non-zero on leftovers, harnessed by
+`scripts/__tests__/preview-cleanup.test.sh`. Residual: a scratch file renamed away
+from `__design-preview__` is invisible to it. A preview that leaves files behind is a
+failed run, whatever was picked:
 
 1. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview-cleanup.sh <project-root>` at the
    pick, on abort, and on fallback alike — it removes every `__design-preview__`
@@ -144,9 +160,11 @@ A preview that leaves files behind is a failed run, whatever was picked:
 
 ## Fallback — the decision still happens
 
-Detection failed, consent declined, or the server does not come up in its normal
-boot time: offer the taskmaster visual-decisions shell mockup (when installed)
-with theme tokens — it mimics the look at ~90% fidelity. Without taskmaster,
+Standing: **agent-graded** — nothing detects a scaffold being stood up; the
+anti-pattern below is the only guard. Detection failed (including greenfield, or a stack with no Vite/Laravel host),
+consent declined, or the server does not come up in its normal boot time: offer
+the taskmaster visual-decisions shell mockup (when installed) with theme tokens —
+it mimics the look at ~90% fidelity. Without taskmaster,
 state exactly which check failed and decide via ASCII/description. Never leave
 the decision undecided because the fancy path was unavailable.
 
@@ -158,6 +176,8 @@ the decision undecided because the fancy path was unavailable.
 - Leaving scratch files behind, or "keeping them for later" — the pick is
   recorded in the ledger/spec; the files die.
 - Using the preview page as the implementation starting point.
+- Standing up a scratch app (Vite scaffold, sandbox template) so a greenfield
+  project has something to preview in — the shell mockup is the honest rung there.
 - Escalating here for decisions the static shell can carry — real components
   cost a consent gate and a dev server; spend that only when fidelity is the axis.
 - More than 3 variants or more than one axis — same rule as every mockup pass.

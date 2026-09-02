@@ -190,7 +190,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
     craft findings now" / "Report only". craft-layer ships no writer — both its agents are read-only —
     so route accepted fixes to `task-runner:task-executor` when installed, else `ui-ux:ui-ux-engineer`
     for markup/style/component work, else apply inline. Findings owned by a delegate go to that
-    delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Headless: report only,
+    delegate's worker (`ui-ux:a11y-engineer`, `resilience:performance-engineer`). Headless: report only,
     and print the exact `/ui-ux:audit` and `/resilience:performance-review` commands to rerun.
 
     After an "Apply now" pick lands, re-run the step-4 script gates (divergence, contrast, the gate

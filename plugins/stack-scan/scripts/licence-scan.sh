@@ -4,7 +4,7 @@
 # THE THREE THINGS THIS DOES THAT READING package.json DOES NOT:
 #
 # 1. TRANSITIVITY. Measured on a lockfile shipped inside this very marketplace:
-#    plugins/shadcn-studio/template/package-lock.json has 170 entries, twelve of
+#    scripts/__tests__/fixtures/transitive-mpl/package-lock.json (a frozen shadcn+Vite lockfile) has 170 entries, twelve of
 #    them MPL-2.0 (lightningcss plus its eleven platform binaries, pulled in by
 #    Tailwind v4), and NONE of the twelve appears in package.json. A direct-dep
 #    read reports "all MIT/ISC, clean". Nobody enumerates 170 lock entries by

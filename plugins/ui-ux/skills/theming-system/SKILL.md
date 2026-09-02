@@ -61,14 +61,9 @@ Take each step in turn; each routes to the reference that owns its derivation:
    serialized to the W3C DTCG token format, and if so which roles map to which token
    groups, so the system survives leaving this codebase. → `references/token-interchange.md`.
 
-## Where this sits in ui-ux
-
-Standing: recorded — one pipeline, concept → roles → values → stack. `design-tokens`
-owns the numeric SCALES (spacing, radius, type, the ramps); **this skill** owns the
-ROLES derived from a concept — surface/ink/accent tiers, the three-role accent split,
-status and chart palettes, light/dark duality — rules and ratios, never values;
-`shadcn-theming` owns the VALUES and stack wiring. The craft flow still drives this
-skill through `/craft-layer:research` and `/craft-layer:craft`.
+Standing: recorded — one pipeline, concept → roles → values → stack; the neighbour
+list above is the whole split. The craft flow drives this skill through
+`/craft-layer:research` and `/craft-layer:craft`.
 
 ## The two seam rules
 
@@ -110,14 +105,10 @@ theme-BUILDER and its rules, never a built theme.
 
 ## Anti-patterns
 
-- **Shipping a value** — a hex, an `oklch`/`hsl`/`rgb` scalar, a named colour, or a whole
-  named theme in any file. That is the kill-trigger, not a token system — re-scope to roles.
-- **Stripping the ratios** — deleting `≥4.5:1`/`≥3:1` to "remove all numbers"; the ratios
-  are RULES and must survive (ratio-is-a-rule). Only colour VALUES are forbidden.
+- **Shipping a value, or stripping a ratio** — both break ratio-is-a-rule above: values
+  are forbidden, ratios must survive. Either one is the kill-trigger.
 - **Two accent owners** — deriving the split in `token-tiers.md` AND `accent-system.md`;
   tiers NAME the roles, accent-system DERIVES the steps — one home, no contradiction.
-- **Auto-flip duality** — generating dark mode by inverting light instead of stepping both
-  modes from the ramps; an `invert()` dual is not a designed duality.
 - **A bolted-on chart palette** — chart colours picked independent of the theme rather than
   derived from its ramps; the chart palette is part of the system, not an afterthought.
 - **Re-teaching a neighbour** — restating `/ui-ux:theme` generation, `design-tokens` scales,

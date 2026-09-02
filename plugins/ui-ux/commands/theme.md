@@ -32,14 +32,11 @@ accent swap.
 3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),
    write `taskmaster-docs/mockups/theme.html`, reuse-or-start the shared preview
    server (port `${PREVIEW_PORT:-8123}`), and give the user the stable URL.
-   Build the page by copying the skill's `assets/theme-shell.html` starter —
-   it already carries the component skeleton, the favicon, the auto-reload
-   lane, and the `Phone 375 / Tablet 768 / Full` viewport control, so
-   candidates land as columns with light and dark side by side and the palette
-   can be judged at device width. The preview always uses the starter's own
-   token names whatever the stack — it decides COLOUR, not component look; say
-   so rather than implying the page shows the user's app. Never publish the
-   preview as a remote artifact; the decision lives on the local URL.
+   Build and serve the page per `shadcn-theming` §"The live theme preview"
+   (the `theme-shell.html` starter, viewport control, light and dark side by
+   side). It decides COLOUR, not component look — say so rather than implying
+   the page shows the user's app. Never publish the preview as a remote
+   artifact; the decision lives on the local URL.
 4. Iterate per the skill's protocol: one axis per round, picks via
    AskUserQuestion, regenerate in place so the open tab reloads itself.
 5. On acceptance: show the diff against the real target for the detected stack —

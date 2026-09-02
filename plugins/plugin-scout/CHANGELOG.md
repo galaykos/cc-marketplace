@@ -7,6 +7,21 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.14
+
+### Changed
+- Regenerated catalog for ui-ux 0.20.0 (Material UI + library-agnostic
+  `component-libraries` skills). `references/signals.md` gains a row: a React
+  component-library dependency (`@mui/material`, `@mantine/core`, `antd`,
+  `@base-ui/react`, `radix-ui`, `react-aria-components`, …) earns `ui-ux`.
+
+## 0.13.13
+
+### Changed
+- Regenerated catalog: design-lab 0.2.0 drops the `/design-lab:stage` sandbox. The
+  `components.json` + tailwind signal row still suggests `design-lab`, now for the
+  real-component preview rather than the sandbox.
+
 ## 0.13.12
 
 ### Changed

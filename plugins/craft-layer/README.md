@@ -139,7 +139,7 @@ source; when the rubric moves, fix and re-date it here first.
   offers 2–3 structurally different treatments per section, and records the picks in a
   section ledger the build task carries and the audit checks for conformance. Owns the
   agenda, the rounds, and the ledger; routes all option-drawing to `taskmaster:visual-decisions`,
-  `/design-lab:preview`, `/design-lab:stage` and `/ui-ux:theme`, each optional.
+  `/design-lab:preview` and `/ui-ux:theme`, each optional.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
 - **theming-system** — MOVED to the `ui-ux` plugin (2026-07-27); it sits beside
@@ -220,7 +220,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | One-writer-per-property (physics-motion references) | `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` |
 | RTL / BiDi base rules (the four-rule floor plus the motion decisions + LTR-islands) | `plugins/craft-layer/skills/motion-tiers/references/rtl-bidi.md` |
 | Option staging for guided builds — consent gate, ASCII + shell HTML mockups (section-decisions decides WHAT to ask, never how to draw it) | `plugins/taskmaster/skills/visual-decisions` |
-| Real-component option previews on a live server | `/design-lab:preview`, `/design-lab:stage` |
+| Real-component option previews on a live server | `/design-lab:preview` |
 | Validating the ASSEMBLED page after the section picks | `plugins/taskmaster/skills/experience-walkthrough` |
 | Requirement clarification into a spec + cards (section-decisions consumes a spec, never re-interrogates it) | `plugins/taskmaster` |
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |

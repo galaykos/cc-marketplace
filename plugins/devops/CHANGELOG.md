@@ -73,7 +73,7 @@ Consumer-facing changes only. Newest first.
 
 ### Added
 - **`lane.tsv`** — `devops-reviewer` declares `pipeline-and-deploy-config-review` and
-  yields to `dev-env:review` on local compose environments, which is the boundary the
+  yields to `dev-env:review` on local compose environments, which is the boundary the <!-- removed-ok -->
   two plugins' descriptions already asserted and no gate previously checked.
 
 ## 0.5.4 — 2026-08-15

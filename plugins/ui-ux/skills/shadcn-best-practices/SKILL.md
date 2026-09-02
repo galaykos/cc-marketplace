@@ -125,10 +125,6 @@ When design-lab's `registry-source` MCP tools are available (`registry_list`,
 `registry_search`, `registry_get`), read a component's actual props/variants/dependencies
 from them BEFORE writing usage code — a component API written from recall is the failure
 those tools exist to stop. Each answer carries `source` and `fetched_at`; prefer a fresh
-fetch (`refresh: true`) when `stale` is set.
-
-## Verify Against Current Docs
-
-shadcn/ui's CLI flags, registry structure, and component APIs change between releases. Before
-relying on memory for install commands, theming variables, or a specific component's props,
-check the current docs: https://ui.shadcn.com
+fetch (`refresh: true`) when `stale` is set. Without the tools, the fallback is the current
+docs at https://ui.shadcn.com — CLI flags, registry structure and props change between
+releases, and memory does not.

@@ -2,7 +2,7 @@
 
 Meta-bundle: the creative-build studio in one install — concept-first
 creative direction with a tiered motion catalog, real-component visual
-decisions, greenfield shadcn staging, live registry sourcing, WebGL/Three.js
+decisions in whatever UI library the project runs, live registry sourcing, WebGL/Three.js
 effects, and the companion the studio requires (ui-ux, which carries the WCAG audit). Split out
 of frontend-suite so ordinary frontend app work does not pay the studio's
 always-on context. Uninstalls cleanly: `/craft-suite:uninstall` removes the
@@ -48,11 +48,11 @@ One bullet per bundled plugin, in dependency order (7):
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
 - **design-lab** — visual decisions rendered with the project's OWN components
-  (`/design-lab:preview`), a self-contained shadcn + Vite sandbox for interactive
-  variants (`/design-lab:stage`), and live component-registry MCP servers
+  (`/design-lab:preview`) and live component-registry MCP servers
   (Aceternity, shadcn, Magic UI local; ReUI hosted)
-- **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Tailwind)
-  plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
+- **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
+  Tailwind) and the library-agnostic `component-libraries` floor for any other
+  React component library, plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
 
 ui-ux is listed here AND in frontend-suite on purpose: craft-layer
 delegates theming to ui-ux and auditing to `/ui-ux:audit`, so a standalone

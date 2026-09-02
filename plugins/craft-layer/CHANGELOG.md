@@ -7,6 +7,14 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.48.4
+
+### Changed
+- Every staging hand-off (`/craft-layer:craft`, `/craft-layer:sections`,
+  `section-decisions`, README) names `/design-lab:preview` alone; `/design-lab:stage`
+  was removed from design-lab 0.2.0. Greenfield decisions degrade to
+  `taskmaster:visual-decisions` as they already did without design-lab.
+
 ## 0.48.3
 
 ### Changed
@@ -123,7 +131,7 @@ than an honest starting point.
 
 ### Changed
 - WCAG SC 2.5.7 was stated in full three times — `physics-motion`,
-  `interaction-fx`, and `a11y:a11y-audit`, which owns it. The two craft-layer
+  `interaction-fx`, and `a11y:a11y-audit`, which owns it. The two craft-layer <!-- removed-ok -->
   satellites now state the rule in one line and name the owner. Deliberately
   still STATE it rather than only pointing: craft-layer installs standalone, so a
   bare pointer would leave a legal accessibility criterion unreachable.

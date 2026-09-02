@@ -4,6 +4,48 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.98.0] - 2026-09-02
+
+**design-lab 0.2.0 — the shadcn-studio sandbox is gone; the UI layer is library-agnostic.**
+`/design-lab:stage`, the `studio` and `deep-staging` skills, the vendored Vite +
+shadcn `template/` and its cleanup script are removed. A sandbox that ships one
+component library renders components the project does not have, so it decides
+nothing about a project on MUI, Astryx, a registry, or vanilla Tailwind — and the
+usage ledgers showed the pair fired in four attributed turns against zero for
+`deep-staging`. `/design-lab:preview` (`real-preview`) is the one renderer: detection
+now accepts any UI library dep, variants import components the way the app does,
+and a greenfield or host-less stack falls back to `taskmaster:visual-decisions`
+instead of scaffolding. The variant-substance rules deep-staging carried (lane,
+depth matrix of states, serves/trades/breaks) survive as
+`real-preview/references/variant-depth.md`; the dataviz cheat-sheet moves beside it.
+
+- Consumers re-pointed: `ui-ux` 0.19.5 (`/ui-ux:build`), `craft-layer` 0.48.4
+  (craft, sections, section-decisions, README), `taskmaster` 0.41.5 (brainstorm,
+  visual-decisions), `plugin-scout` 0.13.13 (catalog + the components.json signal
+  row), the craft-suite / frontend-suite / taskmaster-suite READMEs.
+- `stack-scan` 0.6.2: the licence-scan transitivity harness read the studio's
+  lockfile as its real-data fixture; that lockfile is now frozen under
+  `scripts/__tests__/fixtures/transitive-mpl/` so the twelve-MPL assertion still runs.
+- always-on baseline: `design-lab` 738 → 599 tokens, hand-applied.
+
+**ui-ux 0.20.0 — Material UI and a library-agnostic component-libraries skill.**
+`mui-best-practices` (v9 stable, v8 skipped, CSS-variables theming, `slotProps`,
+MUI X pinned separately, Base UI as the headless sibling) and `component-libraries`
+— the floor for any React component library without a sibling skill: detect from
+the manifest, build in what the project has, copy-in vs dependency ownership,
+tokens through the library's theme channel, the a11y contract of headless
+primitives, and `references/library-map.md` covering Base UI, Radix, React Aria,
+Ark UI, Headless UI, Ariakit, Mantine, Chakra, Ant Design, HeroUI, Reshaped,
+Untitled UI, Kibo, daisyUI. Review/build commands, both agents and `lane.tsv`
+route to them; `skill-router` gains an `@mui/*` digest rule; `plugin-scout`
+0.13.14 adds the component-library dependency signal.
+- craft-suite 0.4.1: description drops "a shadcn staging sandbox" (stale since
+  design-lab 0.2.0). frontend-suite now overflows the 6,000-char floor listing
+  budget (~6,400) and declares it in its README like craft-suite does.
+- always-on baselines hand-applied: `ui-ux` 739 → 968, `craft-suite` 2675 → 2765,
+  `frontend-suite` 1534 → 1763 (activated 1566 → 1795), `taskmaster-suite`
+  4031 → 4260 (activated 4063 → 4292).
+
 ## [0.97.0] - 2026-09-02
 
 **Consolidation: 52 leaf plugins to 36, 10 bundles to 8** — one plugin per install

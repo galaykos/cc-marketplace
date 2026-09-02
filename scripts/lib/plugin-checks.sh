@@ -442,6 +442,13 @@ pc_removed_refs() {
   # package names the surviving skills must keep naming in prose.
   moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
+  # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
+  # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick
+  # plugin:artifact form, the most common way one skill names another — and
+  # every shape above missed it. Residual: the same citation unbackticked in
+  # prose still passes; `web-dev:react-native-best-practices` is legal because
+  # the moved name is not the plugin half, and `mariadb:11` (a docker tag) is
+  # legal because the artifact half must start with a letter.
   # task-orchestration added 2026-08-21: merged into plan-before-code, which
   # already produced the file map its dependency edges were derived from. Its
   # parallel-safety rule was stated in four places across three plugins; the
@@ -470,7 +477,7 @@ pc_removed_refs() {
   # the first version of that addition REPLACED the skills clause instead of
   # appending, silently un-guarding every removed skill name; parity-check.sh's
   # violation-skill-name fixture is what caught it.
-  shapes="/($moved):|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)"
+  shapes="/($moved):|\\\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)
