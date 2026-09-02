@@ -3,6 +3,36 @@
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.13.0
+
+### Added
+- **`authoring-agents` documents the `fable` model tier.** The tier list taught
+  `opus | sonnet | haiku | inherit` and stopped there, while the Agent tool's enum
+  is `sonnet|opus|haiku|fable`, `scripts/validate.sh` accepts all four, and
+  `orchestration`'s `role-floors.md` builds its whole floor formula on the ladder
+  `haiku < sonnet < opus < fable`. An author reading the skill had no way to learn
+  the top rung exists. The entry states the one case that warrants pinning it (an
+  opus pin capping a stronger session) and why `inherit` remains the right default
+  for nearly everything.
+
+## 0.12.5
+
+### Changed
+- **`authoring-plugins` no longer teaches the all-in-bundle rule.** It told authors
+  a new leaf plugin must be added to the `everything` bundle's `dependencies` or the <!-- removed-ok -->
+  aggregate install would silently omit it. That bundle was removed on 2026-08-31 —
+  at 224 description-bearing artifacts it overshot the host's ~15,000-char skill
+  listing and about three quarters of it arrived name-only, nondeterministically.
+  The rule is replaced by what is actually true now: a new leaf joins a themed
+  bundle or none, and the README leaf count is still gated.
+- **`authoring-skills`' `references/doctrine.md` drops the same reference.** Its
+  "no number" argument stands unchanged; it now also names the one ceiling that
+  does bind and is not ours — the host's listing eviction.
+- **Both docs now teach the listing budget as the formula it is** (contextWindow
+  x bytesPerToken x fraction — 6,000 chars at a default 200k window), replacing
+  a "~15k-char" constant that turned out not to exist, and the eviction figure
+  is corrected from two thirds to about three quarters.
+
 ## 0.12.4
 
 ### Fixed

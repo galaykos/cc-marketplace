@@ -4,6 +4,133 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.96.1] - 2026-08-31
+
+**Fifteen review findings fixed** — a high-effort review of the day's branch
+confirmed 15 defects; all are addressed here. The substantive ones:
+
+- `scripts/turn-cost.sh` no longer hangs on a flag missing its value, bounds
+  `--project` at a path boundary, computes a real p90 (the old index equalled
+  MAX for n≤10), uses one median in both output modes, rejects non-numeric
+  values instead of crash-then-exit-0, and `--help` prints the header only.
+- `skill-router` 0.14.3: a plain FILE squatting the once-per-session marker no
+  longer re-injects the ~9 KB catalog on every prompt; squat case harnessed.
+- `context-budget.sh`: the documented `LISTING_FRACTION` override now works and
+  takes the CLI's own unit (0.01/0.02/0.03 — the old integer-percent variable
+  crashed on exactly the values the bundle READMEs teach); the NEAR band covers
+  both sides of the cap (100–103% no longer prints a confident OVER); and the
+  entry-cost walk is ONE shared helper (`pc_listing_entry_cost`) used by both
+  the gate and the channel — the two by-value copies disagreed by their
+  separator models, so every bundle README's "recompute" step failed.
+- `pc_listing_declaration` is now harnessed (watched fail, clear, bless, and
+  pass-under-floor in `hook-budget-tests.sh`) and counts with pinned `LC_ALL=C`
+  — deterministic bytes, ~1% above the CLI's chars, conservative for a floor.
+- The removed-artifact guard learns the backtick-name + "bundle(s)" shape that
+  let six shipped docs keep offering the deleted `everything` bundle; all six
+  rerouted, historical changelog lines blessed.
+- Superseded-cap prose swept: taskmaster-suite README/CHANGELOG, plugin-scout's
+  "installs most of the universal tier" claim (now 2 of 8 core picks, and says
+  so), claude-authoring's two docs, CLAUDE.md's channel table, the bundle
+  table's mixed 4-vs-3 bytes/token conversion, and the rationale doc's
+  subagent-starvation claim (wrong; superseded in place with the evidence).
+
+## [0.96.0] - 2026-08-31
+
+**The listing cap measured, and the four over-floor bundles made to say so.**
+
+The skill-listing budget is not the ~15,000-char constant this marketplace had
+been designing against — it is a formula, read out of CLI 2.1.251:
+`contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
+0.01; 3 bytes/token on current models). That is **6,000 chars on the default
+200k window and 30,000 on the 1M tier** — the same install can be broken on one
+and fine on the other, and only the bundle can warn the user.
+
+- Four bundles overflow the 200k floor: `taskmaster-suite` (~15.4k),
+  `craft-suite` (~8.7k), `process-suite` (~8.3k), `quality-principles-suite`
+  (~7.9k). Each now declares the requirement in its README and names the fix:
+  `skillListingBudgetFraction` 0.02 (0.03 for taskmaster-suite) in the
+  project's settings.json, or the 1M tier. The fraction is a ceiling, not a
+  purchase — under budget it changes nothing.
+- **New gate `pc_listing_declaration`**: a bundle over the 6,000-char floor
+  without that declaration fails the build. Watched fail on all four before the
+  declarations were written. It gates the string's presence, not its numbers.
+- `context-budget.sh`'s listing channel now computes the real formula (both
+  budgets printed per row), costs entries the way the CLI does
+  (`name + 4 + min(desc,1536)`), and no longer compares bytes to a char cap.
+- No members were cut and no leaves were touched: all 52 leaf plugins fit the
+  200k floor individually — the overflow is a property of bundling, so the
+  honest fix is declaration plus the host's own lever, not deleting a third of
+  each bundle.
+
+## [0.95.0] - 2026-08-31
+
+**`taskmaster-suite` cut from 32 members to 10**, and the listing channel that
+measures it corrected to count the unit it claims to.
+
+The bundle was 156 description-bearing artifacts and 29,100 chars against a
+~15,000-char skill listing — 2.0x — so roughly half of it arrived name-only, the
+surviving half varying between identical reloads, and the pipeline core was as
+exposed as anything else. It now ships the pipeline and only what it dispatches
+into: taskmaster, task-runner, orchestration, code-architecture, approaches,
+stack-scan, skill-router, ui-ux, testing, security. The other 22 are still
+shipped and still work — install them directly.
+See `plugins/taskmaster-suite/CHANGELOG.md` for the full list and the reasoning.
+
+**A measurement bug found at the margin, worth more than the cut.**
+`context-budget.sh`'s listing channel compared `wc -c` **bytes** against a cap
+documented in **chars**. On this em-dash-heavy corpus that is a ~3% inflation:
+the trimmed suite read 15,016 bytes — OVER — against 14,581 chars, under. The
+channel now counts characters, the unit the host's own docs state.
+
+It also stops claiming precision it does not have. Which unit the host counts is
+**unverified**, so an install within 3% of the cap now reports **`NEAR (N% of
+cap, no headroom)`** instead of a verdict. The trimmed suite lands there at
+**99%** — it fits today, and one new skill in any member puts it over. Reporting
+that is the point; a cut that looked clean and was one commit from stale would
+have been the same failure this marketplace keeps writing about.
+
+Also: an `OVER` status now says on every run that it is a **reachability**
+warning and never a cost one — the host drops the overflow, so it is never
+charged, and the fix is fewer artifacts rather than shorter descriptions.
+
+## [0.94.0] - 2026-08-31
+
+**The `everything` meta-bundle removed.** It advertised all 52 leaf plugins in
+one install and could not deliver them: 224 description-bearing artifacts,
+43,936 chars of description, against a host skill listing whose **~15,000-char
+absolute default binds before the documented 1%-of-context fraction**. About
+three quarters of its catalogue arrived name-only, and *which* three quarters
+varied between identical reloads.
+
+The removal is argued on **reachability, not cost**.
+`rationale/2026-08-31-token-cost-review.md` measured the always-on surface at
+**~1% of a session's spend** against **61.8% for cache reads**, and showed that
+description text above the listing cap is *dropped by the host and therefore not
+charged* — so trimming it saves approximately nothing, and a bundle that
+overshoots the cap is a dispatch defect wearing a cost defect's clothes. The
+prior run had already measured description-trimming at 1.8–2.8%; the only route
+under the cap was ever fewer artifacts.
+
+Consequences worth knowing:
+
+- **A gate was rehomed, not lost.** `validate.sh`'s README leaf-count check lived
+  inside `if [ -f "$EV" ]` and would have died silently with the bundle. It is now
+  unconditional. Removing an artifact can remove a gate riding on it, and nothing
+  warns you — that is the transferable lesson.
+- **What is genuinely gone:** nothing now asserts that a new leaf plugin joins
+  *any* bundle. There is no aggregate install to omit it from, so the old failure
+  mode is retired rather than unguarded, but a leaf that belongs in a themed suite
+  and is left out is now a WARN nobody writes.
+- **`everything` joined the removed-artifact denylist** (`pc_removed_refs`), which
+  matches reference shapes only — bare "everything" is ordinary English and appears
+  ~200 times in shipped prose. Watched fail before shipping.
+- **The README's cap figure was wrong and is corrected.** It claimed ~10k tokens at
+  1M context; this repo's own live observation
+  (`marketplace-necessity-review-2026-08-26.md`) recorded ~19,949 chars stripped at
+  1M. A bigger window does not buy the catalogue back.
+
+Install a themed `*-suite`, or the leaves you want.
+
 ## [0.93.0] - 2026-08-26
 
 **Nine measured-zero stack plugins removed: php, postgresql, vue3, nuxt,

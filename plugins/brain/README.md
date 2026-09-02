@@ -63,6 +63,26 @@ It is committed (so the whole team and every Claude session share it), but it is
 **generated**, not hand-authored. On a merge conflict, do not hand-merge — discard the
 conflicted `INDEX.md` and regenerate it with `/brain index`.
 
+## Boundary with Claude Code's own memory
+
+Claude Code ships a per-project file memory at `~/.claude/projects/<slug>/memory/`,
+indexed by a `MEMORY.md`. It does not replace this plugin and is not replaced by it —
+the harness's own rule for that memory is to store facts about the user and the work
+and to **not** store "what the repo already records (code structure, past fixes, git
+history, CLAUDE.md)".
+
+Code structure is exactly and only what `brain` stores. The split is clean:
+
+| | native memory | `brain` |
+|---|---|---|
+| Holds | who the user is, feedback, project goals, references | the codebase map — areas, files, key classes |
+| Lives | `~/.claude/`, machine-local, per user | `brain/` in the repo, committed, shared |
+| Derived from | conversations | reading the source |
+| On conflict | edited or deleted by hand | discarded and regenerated |
+
+Use both. A teammate cloning the repo gets the map and none of your memories, which
+is the correct outcome in each direction.
+
 ## Trust
 
 `brain/` is committed repo content, at the same trust boundary as `CLAUDE.md` and skill

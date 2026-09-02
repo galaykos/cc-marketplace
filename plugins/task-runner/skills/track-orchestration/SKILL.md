@@ -132,7 +132,12 @@ per-track green is stale after merge. Therefore:
   worktrees/branches in this run's `<run-branch>-track-*` namespace, cross-checked
   against `git worktree list`; foreign worktrees and any other live run's worktrees are
   never targeted. Parked/dirty worktrees are retained (never `--force`-removed) so
-  evidence survives.
+  evidence survives. The guard is one-directional: it stops this run touching another
+  owner's trees, not the reverse. `.claude/worktrees/` is also where the harness's
+  own `EnterWorktree` puts trees, and `ExitWorktree` prompts the user to keep or
+  remove at session exit — so name the run's live track worktrees in the halt/handoff
+  report, or a keep-or-remove prompt lands on the user with no way to tell which
+  trees a mid-flight run still needs.
 - **Degradation / kill-trigger.** If the index lacks per-milestone `Files:` sets, or
   0–1 milestone is eligible, warn and fall back to the serial `task-execution` path. If
   worktree/merge orchestration proves flaky in practice, `--tracks` degrades to a

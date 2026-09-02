@@ -120,7 +120,7 @@ else bad "blocking run left no record or changed the exit code (rc=$wrc)"; fi
 # spec-ledger records against its spec (written, deliberately not graded by the hook).
 spec="$FX/spec/design.md"
 mkdir -p "$FX/spec"
-printf '# Spec\n\n## Ambiguity ledger (final)\n\n| # | Item | Current understanding | Status | Source |\n|---|---|---|---|---|\n| 1 | scope | one repo | CLEAR | user |\n' > "$spec"
+printf '# Spec\n\n## Ambiguity ledger (final)\n\n| # | Item | Current understanding | Status | Source |\n|---|---|---|---|---|\n| 1 | scope | one repo | CLEAR | user |\n\n## Success criteria\n\n- it works\n' > "$spec"
 bash "$TM/scripts/spec-ledger-lint.sh" --spec "$spec" >/dev/null 2>&1
 if grep -q "$(printf '\tspec-ledger\tpass\t')" "$FX/spec/.lint-records/design.md.log" 2>/dev/null; then
   pass "spec-ledger-lint records against the spec"

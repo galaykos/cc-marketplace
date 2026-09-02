@@ -2,6 +2,18 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.31.0
+
+### Changed
+- **`track-orchestration` names the harness as a second owner of `.claude/worktrees/`.**
+  The cleanup guard already refused to touch worktrees outside this run's
+  `<run-branch>-track-*` namespace, but it is one-directional — it stops the run
+  touching someone else's trees, not the reverse. Claude Code's `EnterWorktree`
+  creates trees in the same root and `ExitWorktree` prompts the user to keep or
+  remove them at session exit, which can reach a live track worktree mid-run. The
+  halt/handoff report now names the run's live track worktrees so that prompt is
+  answerable.
+
 ## 0.30.1
 
 ### Changed

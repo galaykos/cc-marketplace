@@ -2,6 +2,29 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.3
+
+### Fixed
+- **The command catalog is no longer lost when `TMPDIR` is unwritable.** The
+  once-per-session marker was written with `mkdir "$seen" || exit 0`, which answers
+  two opposite situations the same way: the marker already exists (suppress — the
+  point of the marker) and the marker *cannot* exist (suppress — wrong, and the
+  catalog is then silently dropped on every prompt of every session). The failed
+  `mkdir` now distinguishes them, matching this plugin's own doctrine at
+  `hooks/route.sh:156`: an unwritable state dir must not swallow a payload the model
+  should have seen. Both outcomes are asserted in `scripts/smoke/prompt-route-tests.sh`
+  — the dedup case alone passes on the broken version, so only the pair pins it.
+- **A plain file squatting the marker path no longer re-injects the catalog on
+  every prompt.** The first version of the fix above tested for a directory, so
+  an EEXIST-as-file fell through both branches — worse than the bug it fixed.
+  Anything at the path now suppresses (one lost catalog beats ~9 KB per prompt);
+  the fail-open branch fires only when the path is genuinely vacant. Third case
+  asserted in the same harness.
+- README: dropped the removed `everything` bundle from the install line. <!-- removed-ok -->
+- `hooks/summary.sh`'s comments now name `scripts/turn-cost.sh --skills` as the
+  ledger's reader — `scripts/retirement-queue.sh` was folded into it (the ledger
+  format and surfaced/invoked semantics are unchanged).
+
 ## 0.14.2
 
 ### Changed
@@ -133,7 +156,7 @@ All notable changes to the skill-router plugin.
 - `**/migrations/**` now routes to `sql-best-practices` alone. The <!-- removed-ok -->
   `database-design` row and its three co-fire blessings are gone with the skill: <!-- removed-ok -->
   a migration file in a MySQL project used to load `sql` + `database-design` + <!-- removed-ok -->
-  `mysql` at once, 4,333 tokens of bodies, with "index every foreign key" stated
+  `mysql` at once, 4,333 tokens of bodies, with "index every foreign key" stated <!-- removed-ok -->
   in six places across the family.
 
 ## 0.13.3

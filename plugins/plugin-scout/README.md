@@ -16,6 +16,14 @@ line that earned it, and without `--yes` nothing installs without your pick. Whe
 this marketplace has no plugin for your stack (Terraform, i18n, Django), the scout
 says so and routes you onward instead of padding the list.
 
+The remainder is not just a dump. Tier 3 is defined by subtraction, so nothing
+would otherwise enter it because of anything about *your* repo — a relevance pass
+lifts a handful of remainder plugins that actually fit, each with a one-line
+**reason** (an argument from what the project is) rather than evidence (a file and
+a key). It adds no questions, never auto-installs, and says "nothing stands out"
+rather than padding to fill the group. Contract:
+`skills/plugin-scout/references/relevance.md`.
+
 Flags: `--yes` is the auto-installer — installs tier-1 signal-backed plus the
 tier-2 any-project core, not-yet-installed only (skips the picker; tier 3 never
 auto-installs); `--all` offers every eligible row as an explicit picker option
@@ -52,9 +60,9 @@ whatever is already installed.
 
 ## Picking, and why it is one call
 
-The remainder is ~40 rows. Offering every one as an explicit checkbox costs five
-AskUserQuestion calls and twenty blocking questions, in every repo, including a
-Django repo being asked to consider `laravel`. So the default offers the rows a
+Offering every eligible row as an explicit checkbox costs four AskUserQuestion
+calls and sixteen blocking questions, in every repo, including a Django repo
+being asked to consider `laravel`. So the default offers the rows a
 signal or the core list earned, and puts the remainder behind one door — every row
 still prints in the numbered inventory first and stays pickable by number, name or
 range, or through the unbounded `scripts/pick.sh` TTY picker. `--all` restores
@@ -74,6 +82,8 @@ did not see a picker for those.
   version truth (EOL majors, lockfile drift); the manifest signal table still runs
 - **vercel-skills-scout** — where this marketplace has no plugin for your stack,
   the scout for third-party skills is the intended next step
-- **taskmaster-suite** — bundle alternative: installs most of the universal tier
-  in one step (see its README for deliberate exclusions such as secret-scanning)
-  instead of picking plugins individually
+- **taskmaster-suite** — pipeline bundle, NOT a shortcut past this scout: since
+  its 2026-08-31 trim (32 members → 10) it ships the clarify→spec→cards→execute
+  workflow plus only 2 of the 8 any-project-core picks (testing,
+  code-architecture) — install the scout's other core picks individually, and
+  read its README's context-window requirement before installing

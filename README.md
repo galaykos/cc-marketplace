@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **52 leaf plugins** and **11 bundles** covering
+A Claude Code plugin marketplace: **52 leaf plugins** and **10 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -36,33 +36,48 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `everything` | 52 | ~11.6k tokens | ~1.2k tokens | ~2.7k tokens |
-| `taskmaster-suite` | 32 | ~7.4k tokens | ~169 tokens | ~2.7k tokens |
+| `taskmaster-suite` | 10 | ~3.8k tokens | ~32 tokens | ~2.6k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
 | `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
-| `always-on-suite` | 8 | ~1.6k tokens | ~1.1k tokens | ~2.5k tokens |
+| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
 | `frontend-suite` | 8 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 4 | ~497 tokens | — | — |
 | `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-`everything` is all 52 leaf plugins; every other row is a curated subset.
+Every row is a curated subset. The marketplace ships all 52 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
-The budget these are measured against is **1% of the model context window** for the
-skill listing ([docs](https://code.claude.com/docs/en/skills)) — ~2k tokens at 200k, ~10k at 1M —
-and on overflow Claude Code drops the descriptions of the skills you invoke least, which
-costs those skills their trigger words rather than raising an error. Multiply the column
-above by ~1.5 for what the host actually charges: `claude plugin details` adds a
-per-component floor this table's estimate does not.
+The budget these are measured against is the host's skill listing, and it is a FORMULA,
+not a constant — read out of the shipped CLI (2.1.251), not from documentation:
+
+    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction
+
+`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.
+If you install a bundle flagged over the 200k floor, set it to the value that bundle's README
+names (0.02-0.03) in the settings.json of the PROJECT where you use it — the fraction is a
+ceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the
+descriptions being evicted.
+`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including
+opus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,
+**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single
+description past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it
+never binds. Over budget the CLI reduces entries to name-only and buys descriptions back in
+priority order — text past the budget is never sent, so it costs reachability, never tokens.
+The cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that
+is the mechanical reason fewer artifacts beats shorter descriptions.
+Unit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token
+models this paragraph calls current, add ~33%. The host also charges a per-component floor
+this estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat
+that as an order-of-magnitude correction, never as a coefficient
+(`scripts/context-budget-official.json` header has the derivation and the staleness).
 
 <!-- end:bundle-table -->
 
 | Bundle | Take it when |
 |--------|--------------|
-| **[everything](plugins/everything)** | You want the lot and have context to spare. Read the number above first. |
-| **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline and its wired companions. |
+| **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline. Ten members, trimmed from 32 to fit the host's skill listing; install other plugins alongside it. |
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
 | **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, Vite, plus the shared web-dev worker. |
@@ -490,8 +505,10 @@ advertisement:
   control-vs-treatment run on two stack skills measured exactly that
   (`rationale/eval-ablation-2026-08-20.md`).
 - **Skills cost context whether or not they fire.** Their descriptions are
-  always loaded. That is why the bundle table above prints tokens, and why
-  taking `everything` is a real decision rather than a default.
+  always loaded. That is why the bundle table above prints tokens — and why the
+  all-in bundle was removed rather than repriced: past the host's listing budget
+  the descriptions are dropped name-only, so the tokens stop being the problem
+  and reachability starts.
 - **Most rules are agent-graded, not enforced.** A handful are gates that block
   a turn — `command-guard`, `secret-scanning`, `comment-discipline`'s narrow
   deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s

@@ -11,12 +11,13 @@ offers **15 suggestions, not 16**. Each question also carries a required short
 `header` (a few words, truncated hard in the UI): use the tier and group —
 `Tier 1`, `Core 1/2`, `The rest`.
 
-The eligible set is ~51 rows (every catalog leaf minus the bundles and
-plugin-scout itself; recount it, never trust that number). Offering all of them
-as explicit options costs **5 calls and 20 blocking questions**, on every run, in
-every repo — including a Django repo being asked to consider `laravel` and
-`mariadb` four pages deep. This file used to require exactly that, under the name
-"full coverage".
+The eligible set is every catalog leaf minus the bundles and plugin-scout itself
+— recount it, never write the number down. At 15 per call that is **4 calls and
+16 blocking questions**, on every run, in every repo — including a Django repo
+being asked to consider `laravel` and `mariadb` four pages deep. This file used
+to require exactly that, under the name "full coverage". (It billed the cost at
+5 and 20 for months, in two files, neither of which derived it from the 15-per-
+call rule stated one paragraph up.)
 
 ## The contract
 
@@ -67,7 +68,7 @@ TIER 3 — no signal in this repo (40)
   stack, unfired:  12 nextjs  13 react-native  14 vite  15 mariadb
   quality/review:  16 a11y  17 performance  18 resilience  19 security  20 system-design
   data:            21 database  22 sql  23 stack-scan
-  tooling:         24 brain  25 hindsight  26 packages  27 stack-scan
+  tooling:         24 brain  25 hindsight  26 packages  27 claude-authoring
   ...
   bundles:  php-suite (#1,#2,+2) · quality-suite (#4,#6,#16,+5)
 ```
@@ -157,7 +158,7 @@ never a default:
   option on the first page it fits. Its description names **at most 4** covered
   rows plus a count ("php-suite — installs #1, #2, #4, #9 and 3 more as
   dependencies; clean removal via /php-suite:uninstall").
-- `everything` is never offered as a shortcut option. A bundle covering the
+- An all-in bundle is never offered as a shortcut option. A bundle covering the
   entire remainder is not a shortcut, it is the opposite of a pick — name it in
   one line under the report and leave it there.
 - Suites never enter the numbered report. They are pickable by the name shown in
@@ -185,14 +186,22 @@ numbers as row picks under the same rules as Other.
 - The script prints `PICKED:` on **every** path that reaches the picker,
   including an fzf abort and an empty selection. A bare `PICKED:` with no numbers
   means "selected nothing" — advance, do not treat it as an error. A non-zero
-  exit means the script never ran (bad usage, or no TTY), which is different.
+  exit means the script never ran (bad usage, an unreadable rows file, or no
+  TTY), which is different.
+- **`PICKED:` carries survivors only.** Rejected tokens go to stderr, which the
+  line does not carry, so Other's "list the unmatched tokens and ask once more"
+  rule has nothing to read here. Compare the returned numbers against what the
+  user was offered and re-offer anything missing; never read absence as a
+  decline. Row numbers need not be contiguous — a range spans whatever numbers
+  the rows file carries, so filtering installed rows out does not renumber the
+  rest.
 - Offer it when suggestions exceed two pages (>30 rows); never require it. Under
   the default one-call picker this is the practical way to take many tier-3 rows
   at once, so offer it alongside the `Browse` door rather than only under `--all`.
 
 ## Boundaries
 
-- Headless (`SKILL.md` defines the term): no picker at all — print the exact
+- Headless (`references/flags.md` defines the term): no picker at all — print the exact
   install command for every not-installed suggestion, then stop.
 - **Standing: recorded and agent-graded — no script gates this contract.** Nothing
   checks that the model used all 4 questions, honored the overlap pairs, or

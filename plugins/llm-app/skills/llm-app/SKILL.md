@@ -72,6 +72,32 @@ not just this checklist.
 - **Right-size the model** — do not send a summarization to the frontier model when a
   smaller one passes the eval. Route by task difficulty.
 
+## Context-window management
+
+The window is a budget with a hard edge, and the failure is not an error — it is a
+silently worse answer. Three things to get right:
+
+- **Know the ceiling and measure against it, not against vibes.** Count tokens
+  before the call (the provider's token-counting endpoint, not a character
+  heuristic), and set the ceiling from the model actually configured, not the one
+  the code was written for. A prompt that fit last quarter's model is not a
+  guarantee.
+- **Decide the eviction policy explicitly.** A growing chat history needs a named
+  rule for what leaves: a sliding window over recent turns, a running summary of
+  older ones, or retrieval over the transcript so old turns come back only when
+  relevant. Choosing nothing means the policy is "truncate at the front", which
+  silently drops the system prompt's neighbours first.
+- **Protect the two ends.** Instructions and the current task belong where
+  truncation cannot reach them; the middle is where a long context loses
+  attention, so put what must be used at the edges rather than buried. Order
+  matters for caching too: a stable prefix is what makes prompt caching pay, so
+  keep the volatile part last.
+
+More window is not the same as more useful context. Filling a large window with
+marginally relevant chunks measurably degrades answers and always costs more —
+retrieval quality (above) is what decides how much of the window is worth
+spending.
+
 ## Reach for the simplest that works
 
 Do not jump to the heavy tool:
@@ -94,6 +120,8 @@ fine-tune for *behavior*, retrieve for *facts*.
 - Prompts are versioned artifacts, not scattered literals.
 - User/retrieved text is untrusted: instruction/data boundary explicit, tools least-priv.
 - `max_tokens` capped, context trimmed, caching used, model right-sized to the task.
+- The context window has a named eviction policy and a token count measured against
+  the configured model's ceiling, not assumed to fit.
 
 ## Defer rule
 
@@ -110,4 +138,6 @@ fine-tune for *behavior*, retrieve for *facts*.
 - **Prompt as scattered string literals** — unversioned, undiffable, un-rollback-able.
 - **User input concatenated into the system prompt** — a prompt-injection open door.
 - **Uncapped output / unbounded context** — a latency and cost surprise.
+- **No eviction policy** — a chat history that grows until the provider truncates
+  it, so what gets dropped is decided by position rather than by importance.
 - **Uncited RAG answer** — a hallucination the UI presents as sourced fact.

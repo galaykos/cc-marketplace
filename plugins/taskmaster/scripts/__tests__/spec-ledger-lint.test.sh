@@ -46,6 +46,8 @@ mk good.md '# Spec
 |---|----------|------------|--------|--------|
 | 1 | Auth method | Session-based | CLEAR | config/auth.php:14 |
 | 2 | Who can delete | Owner only | ASSUMED | default, round 2 |
+## Success criteria
+- it works
 ## Goal
 Do the thing.'
 run_case "converged ledger passes" 0 "" --spec "$tmp/good.md"
@@ -94,6 +96,8 @@ mk prose.md '# Spec
 | # | Question | Resolution | Status | Source |
 |---|----------|------------|--------|--------|
 | 1 | Handle unknown hosts? | Reject with 422 | CLEAR | user, round 1 |
+## Success criteria
+- it works
 ## Goal
 Do.'
 run_case "lowercase unknown in prose passes" 0 "" --spec "$tmp/prose.md"
@@ -104,6 +108,8 @@ mk bare.md '# Spec
 | # | Question | Resolution | Status | Source |
 |---|----------|------------|--------|--------|
 | 1 | Auth | Session | CLEAR | code |
+## Success criteria
+- it works
 ## Goal
 Do.'
 run_case "bare heading accepted" 0 "" --spec "$tmp/bare.md"
@@ -115,6 +121,8 @@ mk item-good.md '# Spec
 |---|------|-----------------------|--------|--------|
 | 1 | Auth method | Session-based | CLEAR | config/auth.php:14 |
 | 2 | Who can delete | Owner only | ASSUMED | default, round 2 |
+## Success criteria
+- it works
 ## Goal
 Do the thing.'
 run_case "Item-header converged ledger passes" 0 "" --spec "$tmp/item-good.md"
@@ -130,7 +138,65 @@ mk item-unknown.md '# Spec
 Do the thing.'
 run_case "Item-header UNKNOWN row blocked" 2 "open-unknown" --spec "$tmp/item-unknown.md"
 
-# 10) usage errors
+# 10a) CLEAR row with a blank Source cell -> blocked
+mk nosource.md '# Spec
+## Ambiguity ledger (final)
+| # | Item | Current understanding | Status | Source |
+|---|------|-----------------------|--------|--------|
+| 1 | Auth method | Session-based | CLEAR |  |
+## Success criteria
+- it works
+## Goal
+Do.'
+run_case "CLEAR row with blank source blocked" 2 "no-source" --spec "$tmp/nosource.md"
+
+# 10b) an em-dash Source on a CLEAR row is not a source either -> blocked
+mk dashsource.md '# Spec
+## Ambiguity ledger (final)
+| # | Item | Current understanding | Status | Source |
+|---|------|-----------------------|--------|--------|
+| 1 | Auth method | Session-based | CLEAR | — |
+## Success criteria
+- it works
+## Goal
+Do.'
+run_case "CLEAR row with dash source blocked" 2 "no-source" --spec "$tmp/dashsource.md"
+
+# 10c) ASSUMED rows are exempt: a named default IS the provenance
+mk assumed-nosource.md '# Spec
+## Ambiguity ledger (final)
+| # | Item | Current understanding | Status | Source |
+|---|------|-----------------------|--------|--------|
+| 1 | Who can delete | Owner only | ASSUMED |  |
+## Success criteria
+- it works
+## Goal
+Do.'
+run_case "ASSUMED row without source passes" 0 "" --spec "$tmp/assumed-nosource.md"
+
+# 10d) three-column variant has no Source column at all -> lenient, passes
+mk nosourcecol.md '# Spec
+## Ambiguity ledger (final)
+| # | Question | Status |
+|---|----------|--------|
+| 1 | Auth method | CLEAR |
+## Success criteria
+- it works
+## Goal
+Do.'
+run_case "table without a Source column passes (documented leniency)" 0 "" --spec "$tmp/nosourcecol.md"
+
+# 10e) converged ledger but no success-criteria heading -> blocked
+mk nocriteria.md '# Spec
+## Ambiguity ledger (final)
+| # | Item | Current understanding | Status | Source |
+|---|------|-----------------------|--------|--------|
+| 1 | Auth method | Session-based | CLEAR | config/auth.php:14 |
+## Goal
+Do.'
+run_case "spec without success criteria blocked" 2 "no-criteria" --spec "$tmp/nocriteria.md"
+
+# 11) usage errors
 run_case "missing --spec is usage error" 3 "usage error" --line "x"
 run_case "nonexistent file is usage error" 3 "not found" --spec "$tmp/nope.md"
 

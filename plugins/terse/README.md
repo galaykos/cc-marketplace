@@ -113,6 +113,13 @@ audit or scan you invoked returns all of them, in that command's own format.
 Truncating a report-only command's output into a file is data loss with a budget
 for an excuse.
 
+The word layer — dropped articles at `full`, abbreviations and `X → Y` arrows at
+`ultra` — yields to the host. Claude Code's desktop app bans "fragments,
+abbreviations, arrow chains like `A → B → fails`, or jargon" in its own prompt, so
+on that surface every level holds `lite` word rules and full sentences. Nothing
+else moves: the budgets and the shape skeleton are where the compression lives,
+and they bind on every surface.
+
 `wenyan-lite` / `wenyan-full` / `wenyan-ultra` keep those budgets and swap the word
 layer for classical Chinese — `skills/terse-output/references/wenyan.md`. Verdicts
 and gate acknowledgements stay in English there, because two Stop hooks in this
@@ -154,7 +161,8 @@ switches are the level itself and `CC_TERSE=off`.
 
 Always-on cost of the plugin itself: **886 tokens** of command, skill and agent
 descriptions, paid every session whether the mode is on or off — the price of the
-full command set, and `everything` bundle users pay it by default.
+full command set. It is a member of `always-on-suite`, whose README prices the
+whole bundle.
 
 ## Optional, wire them yourself
 

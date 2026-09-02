@@ -13,18 +13,41 @@ forks remotes and doubles fetches. The unit is strict: one worktree per feature
 branch. A worktree that hosts three features in sequence inherits the previous
 feature's stale deps and leftover artifacts — a clone with extra steps.
 
+## Prefer the harness's own worktree
+
+Claude Code ships `EnterWorktree` / `ExitWorktree`. `EnterWorktree` creates the
+worktree under `.claude/worktrees/`, switches the session's working directory
+into it, and prompts the user to keep or remove it at session exit; `Agent`'s
+`isolation: "worktree"` does the same for one subagent and auto-cleans it if the
+agent changed nothing. When those tools are available, use them — a
+harness-created worktree is a harness-tracked worktree, and the exit prompt is a
+lifecycle guarantee this skill can only ask for. Everything below still applies
+inside it: the baseline run, the dependency install, the one-branch-one-directory
+unit.
+
+Two constraints come with the tool. It refuses to create a second worktree from
+inside a worktree session (pass `path` to switch into an existing one instead),
+and the harness only reaches for it on an explicit request — the tool's own rule
+is to use it only when the user or project instructions say "worktree". Neither
+changes what you do; both change the error you get if you assume otherwise.
+
 ## Where it lives
 
 Never place a worktree bare inside the repo's working tree: git sees a whole
 untracked checkout, status becomes noise, and one careless `git add -A` commits
 it. Safe locations, in preference order:
 
-1. An existing project convention — if a worktree directory is already in use,
-   join it rather than inventing a second one.
-2. A sibling directory outside the tree: `../<repo>-worktrees/<branch>`.
-3. A project-local directory that is PROVEN ignored: `.worktrees/<branch>`,
-   only after `git check-ignore -q .worktrees` exits 0. Not ignored → add it
-   to `.gitignore`, commit that, then create the worktree.
+1. `.claude/worktrees/<branch>` — where `EnterWorktree` puts them, so a hand-made
+   worktree lands where the harness and the rest of this marketplace already look
+   (`task-runner`'s track orchestration uses the same root). Confirm it is ignored;
+   Claude Code's own `.gitignore` line usually covers it.
+2. An existing project convention — if a different worktree directory is already
+   in use, join it rather than inventing a second one.
+3. A sibling directory outside the tree: `../<repo>-worktrees/<branch>` — the right
+   answer outside a git repo, or when the worktree must outlive the checkout.
+4. Any other project-local directory that is PROVEN ignored, only after
+   `git check-ignore -q <dir>` exits 0. Not ignored → add it to `.gitignore`,
+   commit that, then create the worktree.
 
 ## Detect isolation before creating it
 
@@ -102,7 +125,11 @@ git branch -D <branch>        # only for an explicitly confirmed discard
 ```
 
 Order matters: worktree first, branch second — and only remove worktrees this
-workflow created; a harness-provided workspace is the harness's to reclaim.
+workflow created; a harness-provided workspace is the harness's to reclaim. That
+cuts both ways under `.claude/worktrees/`: a tree another owner created — the
+harness via `EnterWorktree`, or a live `task-runner --tracks` run holding its
+`<run-branch>-track-*` trees until the final gate — is not yours to remove, and
+`git worktree list` is the check that tells you which is which.
 
 Per-agent worktrees for parallel subagent WRITERS are the orchestration
 plugin's delegation-contracts skill; this skill covers feature branches.
@@ -111,6 +138,9 @@ plugin's delegation-contracts skill; this skill covers feature branches.
 
 - A project-local worktree directory whose ignore status was assumed, not
   proven with `git check-ignore`.
+- Hand-rolling `git worktree add` when `EnterWorktree` was available — the
+  session stays in the old directory and the exit-time keep/remove prompt never
+  fires, so the lifecycle rule above has nothing enforcing it.
 - Creating a worktree from inside a worktree because detection was skipped.
 - First edit before the baseline run — every later failure is now ambiguous.
 - Bootstrapping with `npm install` / `composer update` and diffing the

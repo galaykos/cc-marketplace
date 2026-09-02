@@ -26,7 +26,12 @@ one of them. Steps:
    by keyword, including unfired tier-1 candidates from either signal source
    marked "no signal detected". Every catalog leaf except bundles and
    plugin-scout itself appears exactly once, untruncated; if a
-   `references/signals.md` `—` row fired, lead with its routing line.
+   `references/signals.md` `—` row fired, lead with its routing line. Then run
+   the tier-3 relevance pass per `references/relevance.md`: lift 3-5 remainder
+   rows that fit THIS repo into a `worth a look here` group leading the tier-3
+   block, each with a one-line reason rather than evidence — no extra
+   questions, no promotion to tier 1, never `--yes`-eligible, and report zero
+   rather than pad.
 4. Run the picker per the skill's `references/picker.md` contract: by
    default ONE AskUserQuestion call — questions 1-3 hold tier-1 picks with
    evidence then the core rows, 4 options each, and question 4 is the tier-3
@@ -36,7 +41,7 @@ one of them. Steps:
    rows (including leaves an installed suite provides) are never options;
    deprioritize only on the named overlap pairs, never on keyword overlap.
    A suite covering 3+ suggested rows earns one shortcut option naming at
-   most 4 of them (never under `--yes`; `everything` never). Other takes
+   most 4 of them (never under `--yes`; an all-in bundle never). Other takes
    numbers/names/ranges as bulk picks; >30 rows, offer the
    `scripts/pick.sh` TTY picker per the contract and read back its
    `PICKED:` line — an empty one means "picked nothing", not an error.

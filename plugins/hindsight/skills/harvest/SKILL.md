@@ -1,6 +1,6 @@
 ---
 name: harvest
-description: Use when the user runs /hindsight:harvest or asks to mine PAST session transcripts for cross-session friction — fans out read-only transcript miners, applies a two-session recurrence gate, proposes CLAUDE.md rules and skill ideas on explicit approval.
+description: Use when the user runs /hindsight:harvest or asks to mine PAST session transcripts for cross-session friction — fans out read-only transcript miners, applies a two-session recurrence gate, proposes CLAUDE.md rules, Claude Code memory entries, and skill ideas on explicit approval.
 ---
 
 ## Purpose
@@ -95,7 +95,18 @@ Ask via AskUserQuestion with multiSelect, one question per non-empty
 category, each proposal a separate option and every question carrying a
 "Skip this category" option. On approval only:
 
-- Rules → append the picked lines to the project's CLAUDE.md.
+- Rules → **two destinations, and the pick names which.** A rule that binds the
+  REPO — a convention, a command to run, a constraint any contributor inherits —
+  is appended to the project's CLAUDE.md, where it is committed and reviewed in a
+  PR. A rule that binds how THIS USER wants to be worked with — a correction they
+  gave, an approach they confirmed — belongs in Claude Code's own memory instead:
+  one file under `~/.claude/projects/<slug>/memory/` with `metadata.type:
+  feedback`, the fact followed by its **Why:** and **How to apply:** lines, plus a
+  one-line pointer appended to that directory's `MEMORY.md` index. It is
+  machine-local and personal, so committing it to a shared CLAUDE.md would impose
+  one person's preference on the team. Offer the destination as part of the
+  option's label; when the memory directory is not present, fall back to CLAUDE.md
+  and say that is what happened.
 - Ideas → hand each pick to `/claude-authoring:new-skill` or
   `/claude-authoring:new-plugin` (whichever fits the idea's size) when
   claude-authoring is installed; else write the idea as a one-paragraph
@@ -130,7 +141,8 @@ recorded is invisible to the loop — record at the moment of the write.
 ## Boundaries
 
 Standing: recorded — current project only, never another slug's ledgers. Never edits
-application code: outputs are CLAUDE.md lines, files under
+application code: outputs are CLAUDE.md lines, `feedback` memory files under
+`~/.claude/projects/<slug>/memory/`, files under
 `$HOME/.claude/hindsight/<slug>/`, the project's `.claude/hindsight/anti-patterns.md`,
 and claude-authoring handoffs. No auto-apply — every write passes the apply gate
 above. Transcript JSONL is officially unstable: skip malformed lines, tolerate

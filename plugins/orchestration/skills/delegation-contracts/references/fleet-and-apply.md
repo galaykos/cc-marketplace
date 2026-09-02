@@ -51,7 +51,7 @@ everything else is the shared executor's job.
 A new agent is not done when its file is written. It must also:
 
 1. **Bump** its plugin's `plugin.json` version (`check-version-bumps.sh` gates CI).
-2. **Join the bundles** that advertise it — `everything`, and any `*-suite` whose
+2. **Join the bundles** that advertise it — any `*-suite` whose
    description claims "all worker agents" or the agent's domain — plus that suite's
    uninstall prune list. A bundle promising a set it no longer contains is a silent
    lie the validator cannot catch.

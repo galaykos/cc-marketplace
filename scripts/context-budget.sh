@@ -81,6 +81,31 @@ plugin_desc_bytes() {
   printf '%s' "$total"
 }
 
+# Same walk, counting CHARACTERS instead of bytes (`wc -m`). The listing channel
+# needs this and the token channels do not: a token estimate is bytes/4, but the
+# listing cap is documented in CHARS and this corpus is em-dash heavy, so the two
+# diverge by ~3%. Measured 2026-08-31 on taskmaster-suite: 15,016 bytes against
+# 14,581 chars — 435 bytes of multi-byte punctuation, enough to report a bundle
+# OVER a cap it is 419 chars UNDER. That is the whole reason this function exists.
+#
+# HONEST LIMITATION, and it is the important half: nobody here has verified which
+# unit the HOST counts. Chars is the unit its documentation states, so chars is
+# what this compares — but an install within ~3% of the cap cannot be called under
+# or over with confidence on either measure, and the channel says so when it lands
+# in that band rather than printing a verdict it has not earned.
+# Listing entry cost: delegated to pc_listing_entry_cost in scripts/lib/plugin-checks.sh
+# — the SINGLE implementation, shared with the pc_listing_declaration gate, after the
+# two by-value copies were measured disagreeing by their separator models (9 chars on
+# taskmaster-suite) while every bundle README told readers to reconcile one against the
+# other. This wrapper returns chars-without-separators and stashes the entry count in
+# The call sites read "chars entries" via `set --` and add the CLI's n-1
+# separator term once per install (a $()-wrapper cannot return the count: the
+# subshell drops any variable it sets).
+# Unit note (inherited from the helper): LC_ALL=C bytes — a deterministic ~1% overcount
+# of the chars the CLI counts, conservative for a floor warning. Agents excluded: they
+# render in a separate system-prompt section (unverified whether it shares this budget).
+. "$(dirname "$0")/lib/plugin-checks.sh"
+
 # Stdout bytes a plugin's SessionStart hooks inject each session, measured by
 # executing them in a throwaway sandbox (empty CLAUDE_PROJECT_DIR/HOME, minimal
 # SessionStart JSON on stdin, fail-open per hook). Deterministic lower bound.
@@ -401,14 +426,50 @@ fail=0
 # where ~31 marketplace descriptions arrived stripped and the stripped set was
 # nondeterministic at the margin across identical reloads.
 #
-# Standing: recorded, report-only. This is a DOCUMENTED DEFAULT, not a constant
-# measured on this account, and it is configurable in settings.json — so this
-# channel names a risk, it does not fail a build. What it buys: the always-on
-# token total says what the catalogue weighs, and says nothing about what the
-# host will actually load. An install 3x over this cap does not pay 3x; it
-# silently loses the tail, and a lost description is a skill that can no longer
-# be triggered.
-LISTING_CAP=15000
+# THE CAP IS NOT A CONSTANT AND NOT 15,000. This channel asserted `LISTING_CAP=15000`
+# from its creation until 2026-08-31, sourced from a doc paraphrase nobody checked.
+# Read out of the shipped CLI (2.1.251) the rule is:
+#
+#     budget_chars = contextWindowTokens * bytesPerToken * skillListingBudgetFraction
+#
+#   * `skillListingBudgetFraction` defaults to **0.01** and is a settings.json key.
+#   * `bytesPerToken` is **4** for the older tokenizer set (through opus-4-6 /
+#     sonnet-4-6 / haiku-4-5) and **3** for everything newer, opus-5 included.
+#   * A SECOND, independent cap applies per skill: `skillListingMaxDescChars`,
+#     default **1536**. Longer descriptions are truncated individually, always,
+#     budget or not. This repo's own description linter caps at 500, so it never binds.
+#
+# So the real budget spans a 6.7x range depending on where you run:
+#
+#     opus-5    @200k = 6,000 chars     opus-5    @1M = 30,000 chars
+#     opus-4-6  @200k = 8,000 chars     opus-4-6  @1M = 40,000 chars
+#
+# AND THE UNIT IS NOT DESCRIPTION TEXT. The CLI costs each entry as
+# `name + 4 + min(desc, 1536)`, joined by one separator each — so the artifact NAME
+# and a 4-char delimiter are charged per artifact. Artifact COUNT is in the measure
+# directly, which is the mechanical reason "fewer artifacts" beats "shorter
+# descriptions" and not merely an empirical one.
+#
+# Over budget, the CLI does not drop the tail: it reduces every non-protected entry
+# to name-only, then buys descriptions back in PRIORITY order until the budget is
+# spent (bundled-prompt skills are protected outright). So the survivors are the
+# high-priority ones, and "least-invoked first" is the right intuition.
+#
+# WHAT THIS CHANNEL REPORTS: the worst realistic case, opus-5 at 200k = 6,000 chars,
+# overridable with LISTING_CTX_TOKENS / LISTING_BYTES_PER_TOKEN / LISTING_FRACTION.
+# A 1M-context session gets 5x that, so an install flagged here may be entirely fine
+# where you personally run it — the row prints both. Report-only, never fails a build.
+LISTING_CTX_TOKENS=${LISTING_CTX_TOKENS:-200000}
+LISTING_BYTES_PER_TOKEN=${LISTING_BYTES_PER_TOKEN:-3}
+# LISTING_FRACTION takes the same unit as the CLI's skillListingBudgetFraction
+# (0.01, 0.02, ...) — the unit every bundle README teaches. awk, not $(( )): the
+# first version read an undocumented integer-percent variable and crashed on
+# exactly the values the READMEs recommend.
+LISTING_FRACTION=${LISTING_FRACTION:-0.01}
+LISTING_CAP=$(awk -v t="$LISTING_CTX_TOKENS" -v b="$LISTING_BYTES_PER_TOKEN" -v f="$LISTING_FRACTION" 'BEGIN{printf "%d", t*b*f}')
+LISTING_CAP_1M=$(awk -v b="$LISTING_BYTES_PER_TOKEN" -v f="$LISTING_FRACTION" 'BEGIN{printf "%d", 1000000*b*f}')
+case "$LISTING_CAP" in ''|*[!0-9]*|0) LISTING_CAP=6000; LISTING_CAP_1M=30000 ;; esac
+LISTING_MAX_DESC=1536
 listing_rows=""
 leaf_tokens_total=0
 leaf_dyn_total=0
@@ -431,7 +492,8 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     total_bytes=$(plugin_desc_bytes "plugins/$bname")
     dyn_bytes=0
     act_bytes=$(plugin_desc_bytes "plugins/$bname")
-    listing_bytes=$(plugin_desc_bytes "plugins/$bname")
+    set -- $(pc_listing_entry_cost "plugins/$bname")
+    listing_chars=$1; listing_n=$2
     while IFS= read -r member; do
       [ -n "$member" ] || continue
       mdir="plugins/$member"
@@ -440,7 +502,8 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
       total_bytes=$((total_bytes + bytes))
       dyn_bytes=$((dyn_bytes + $(plugin_dynamic_hook_bytes "$mdir") ))
       act_bytes=$((act_bytes + $(plugin_desc_bytes "$mdir") + $(plugin_sessionstart_activated_bytes "$mdir") + $(plugin_mcp_bytes "$mdir") ))
-      listing_bytes=$((listing_bytes + $(plugin_desc_bytes "$mdir") ))
+      set -- $(pc_listing_entry_cost "$mdir")
+      listing_chars=$((listing_chars + $1)); listing_n=$((listing_n + $2))
     done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
     is_leaf=0
     members=$(jq -r '.dependencies | length' "$pj" 2>/dev/null || echo 1)
@@ -450,7 +513,8 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     total_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
     dyn_bytes=$(plugin_dynamic_hook_bytes "$pdir")
     act_bytes=$(( $(plugin_desc_bytes "$pdir") + $(plugin_sessionstart_activated_bytes "$pdir") + $(plugin_mcp_bytes "$pdir") ))
-    listing_bytes=$(plugin_desc_bytes "$pdir")
+    set -- $(pc_listing_entry_cost "$pdir")
+    listing_chars=$1; listing_n=$2
     is_leaf=1
     members=1
   fi
@@ -462,8 +526,20 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
   # SessionStart hook's stdout and an MCP tools/list are injected by other
   # means and survive the listing budget, which is the whole distinction this
   # channel exists to draw. Hooks are eviction-proof; descriptions are not.
-  if [ "$listing_bytes" -gt "$LISTING_CAP" ]; then
-    listing_rows="${listing_rows}$(printf '%-24s %9s  OVER (%sx)' "$bname" "$listing_bytes" "$(awk -v a="$listing_bytes" -v c="$LISTING_CAP" 'BEGIN{printf "%.1f", a/c}')")
+  # NEAR band: within 3% of the cap EITHER WAY — [97%, 103%]. The unit the host
+  # counts is unverified (this measures LC_ALL=C bytes, a ~1% overcount of chars),
+  # so inside that band neither "under" nor "over" is a claim this channel has
+  # earned. The first version checked `-gt cap` before the band, so 100-103%
+  # printed a confident OVER — the exact unearned verdict the band was added to
+  # avoid. The order below is the fix: band first, OVER only past 103%.
+  [ "${listing_n:-0}" -gt 1 ] && listing_chars=$((listing_chars + listing_n - 1))
+  near_lo=$((LISTING_CAP * 97 / 100))
+  near_hi=$((LISTING_CAP * 103 / 100))
+  if [ "$listing_chars" -gt "$near_hi" ]; then
+    listing_rows="${listing_rows}$(printf '%-24s %9s  OVER (%sx here, %sx at 1M)' "$bname" "$listing_chars" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP" 'BEGIN{printf "%.1f", a/c}')" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP_1M" 'BEGIN{printf "%.2f", a/c}')")
+"
+  elif [ "$listing_chars" -ge "$near_lo" ]; then
+    listing_rows="${listing_rows}$(printf '%-24s %9s  NEAR (%s%% of cap, no headroom)' "$bname" "$listing_chars" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP" 'BEGIN{printf "%.0f", 100*a/c}')")
 "
   fi
   # TOTAL sums leaves only — bundles would double-count their members.
@@ -587,12 +663,32 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # Emit the listing channel. Report-only by construction: no `fail=1`, no ceiling
 # comparison that can red a build. It answers a question the token table cannot —
 # not "what does the catalogue weigh" but "what will the host actually load".
+#
+# AN `OVER` STATUS IS A REACHABILITY WARNING AND NEVER A COST WARNING, and the
+# channel now says so on every run because the number looks exactly like a bill.
+# The host DROPS description text past the cap, so that text is never sent and
+# never charged: an over-cap install pays the same description cost as any install
+# sitting at the cap. Trimming descriptions above the cap therefore saves ~nothing
+# (measured twice: 2.8% catalogue-wide at distillation-2026-08-23.md:206-214, 1.8%
+# for taskmaster-suite specifically). What overflow costs is DISPATCH — the dropped
+# descriptions arrive name-only and the surviving set is nondeterministic across
+# reloads (observed live, marketplace-necessity-review-2026-08-26.md:262-287). That
+# is the reasoning that retired the `everything` bundle on 2026-08-31, and it is a
+# membership argument, not a token one: the only route under the cap is fewer
+# artifacts. Full derivation: rationale/2026-08-31-token-cost-review.md.
 echo
-echo "listing channel (description text only, vs the host's ~${LISTING_CAP}-char skill-listing budget):"
+echo "listing channel (CLI entry cost: name + 4 + min(desc,${LISTING_MAX_DESC}), skills + commands)"
+echo "  budget = ctxTokens x bytesPerToken x fraction; showing ${LISTING_CTX_TOKENS} tok x ${LISTING_BYTES_PER_TOKEN} x ${LISTING_FRACTION} = ${LISTING_CAP} chars (a 1M-context session gets ${LISTING_CAP_1M})"
 if [ -n "$listing_rows" ]; then
   printf '%-24s %9s  %s\n' "install" "chars" "status"
   printf '%s' "$listing_rows"
   echo "  every install not listed above is under the cap and loses nothing to eviction"
+  echo "  OVER = a REACHABILITY warning, never a cost one: over budget the CLI reduces entries"
+  echo "  to name-only and buys descriptions back in PRIORITY order, so the text is never sent"
+  echo "  and never charged. Artifact NAME + 4 chars is charged per artifact, which is why the"
+  echo "  fix is fewer artifacts and not shorter descriptions."
+  echo "  Both numbers are real: the same install can be OVER at 200k and comfortably under at 1M."
+  echo "  Levers, in settings.json: skillListingBudgetFraction (default 0.01), skillListingMaxDescChars (1536)."
 else
   echo "  no install exceeds the cap"
 fi
@@ -674,6 +770,17 @@ fi
 # under-reads in proportion to the thing it exists to control is worth
 # reconciling against.
 #
+# THAT SNAPSHOT'S POPULATION IS STALE AND THE RATIO INHERITS IT. The 61 leaves it
+# sums were measured before `cfef9c1`, and include nine plugins since deleted
+# (i18n, livewire, mysql, node-backend, nuxt, php, postgresql, react, vue3) and
+# none of the bundles. Today's tree is 52 leaves. Re-measuring needs an install,
+# because `details` resolves by installed name — so 1.54 is carried forward as a
+# HISTORICAL figure, not a current one. Treat it as an order-of-magnitude
+# correction, never as a coefficient to multiply today's numbers by. (This
+# paragraph lived in CLAUDE.md until 2026-08-31 and was deleted there on the
+# premise that this header carried it. It did not. Verifying that claim per fact,
+# rather than per file, is the only reason it is here.)
+#
 # IT IS NOT GROUND TRUTH, measured 2026-08-21. `details` is a static estimate over
 # the FILES: it charged a `disable-model-invocation: true` skill ~60 always-on
 # tokens for a description the session listing provably does not contain (probes
@@ -753,8 +860,8 @@ done | sort | tr '\n' ' ')
 # Still unmetered by nature: a routing rule fires a skill BODY, which is an
 # order of magnitude above its description and depends on the user's files.
 echo "note: skill BODIES loaded by skill-router rules are not metered in any channel"
-echo "note: the listing cap is a DOCUMENTED DEFAULT (~${LISTING_CAP} chars), not a constant measured on this account, and it is configurable in settings.json; the channel is report-only and never fails the build"
-echo "note: the listing channel counts description text only — SessionStart stdout and MCP tools/list are always-on but not part of the skill listing, so they are eviction-proof and excluded here"
+echo "note: the listing cap is a FORMULA read out of CLI 2.1.251 (ctxTokens x bytesPerToken x skillListingBudgetFraction, default fraction 0.01, configurable in settings.json) — derivation in this script's LISTING_* header; the channel is report-only and never fails the build"
+echo "note: the listing channel costs entries the way the CLI does (name + 4 + capped desc, skills + commands). SessionStart stdout and MCP tools/list are always-on but not part of this listing, so they are eviction-proof and excluded. AGENTS are excluded too, and that one is UNVERIFIED rather than known: they render in a separate system-prompt listing and whether it draws on the same budget was not established"
 echo "note: the activated channel turns on what THIS fixture knows (terse level, brain/INDEX.md, manifests); a hook waiting for other state still reads its OFF value"
 # EVENT AND TOOL SHAPE. The dynamic channel executes UserPromptSubmit and
 # Pre/PostToolUse-as-Edit, and nothing else. Two whole categories therefore read

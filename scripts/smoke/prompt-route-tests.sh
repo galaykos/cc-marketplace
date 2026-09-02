@@ -143,6 +143,37 @@ o2=$(printf '%s' "$J" | env TMPDIR="$box" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_
 [ -n "$o1" ] && pass "first prompt injects" || fail "first prompt injects" "silent"
 [ -z "$o2" ] && pass "second prompt yields" || fail "second prompt yields" "injected twice"
 
+# UNWRITABLE TMPDIR MUST STILL INJECT. The dedup above and this case are the two
+# outcomes of one failed `mkdir`, and the hook used to answer both with `exit 0`:
+# marker exists (suppress, correct) and marker CANNOT exist (suppress, wrong — the
+# catalog is then lost on every prompt of every session, silently). Only the pair
+# pins the behaviour; asserting the dedup alone passes on the broken version, which
+# is why it is asserted here and not left to the case above. route.sh:156 is the
+# doctrine being enforced: an unwritable state dir must not swallow the payload.
+ro="$WORK/ro"; mkdir -p "$ro"; chmod 500 "$ro" 2>/dev/null
+if mkdir "$ro/probe" 2>/dev/null; then
+  rmdir "$ro/probe" 2>/dev/null
+  printf 'SKIP: TMPDIR still writable after chmod 500 (running as root?) — fail-open case not graded\n'
+else
+  oro=$(printf '{"prompt":"build a landing page","session_id":"ro"}' \
+    | env TMPDIR="$ro" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_BIN" "$HOOK" 2>/dev/null)
+  [ -n "$oro" ] && pass "unwritable TMPDIR still injects (fail open)" \
+    || fail "unwritable TMPDIR still injects (fail open)" "marker write failed and the catalog went with it"
+fi
+chmod 700 "$ro" 2>/dev/null
+
+# A plain FILE squatting the marker path must SUPPRESS, not inject-forever: with
+# `[ -d ]` it fell through both branches and 9 KB re-injected on every prompt.
+# Suppression (not injection) is asserted because the state is unusable — one
+# lost catalog beats a per-prompt payload — and the fail-open case above already
+# pins the genuinely-vacant-path behaviour.
+sq="$WORK/squat"; mkdir -p "$sq"
+sqj='{"prompt":"build a landing page","session_id":"squat"}'
+touch "$sq/cc-route-catalog-$(printf '%s' squat | cksum | cut -d' ' -f1)"
+osq=$(printf '%s' "$sqj" | env TMPDIR="$sq" CLAUDE_PLUGIN_ROOT="$ROOT/$SR" "$BASH_BIN" "$HOOK" 2>/dev/null)
+[ -z "$osq" ] && pass "file squatting the marker suppresses (no per-prompt re-injection)" \
+  || fail "file squatting the marker suppresses" "injected ${#osq} bytes past a squatted marker"
+
 printf '== half A: catalog content ==\n'
 cat_out="$(run_hook "build a landing page for a B2B marketing agency" "$ROOT/$SR")"
 lines=$(printf '%s' "$cat_out" | grep -c '^- /' || true)
