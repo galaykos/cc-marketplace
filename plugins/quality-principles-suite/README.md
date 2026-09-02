@@ -54,10 +54,8 @@ text that was previously being evicted.
 - **approaches** — compare structurally different approaches, build-vs-buy, GoF pattern selection *and rejection*, sizing, rollout planning, and a blind four-persona opinion round: `/approaches:compare`, `/approaches:pattern`, `/approaches:build-vs-buy`, `/approaches:size`, `/approaches:rollout`, `/approaches:opinions`
 - **security** — OWASP-aligned code review, API auth, data privacy, and design-phase threat modeling, plus `/security:review`
 - **debugging** — systematic root cause with evidence before any fix, plus `/debugging:debug`
-- **performance** — measure-first hotspot and cache-correctness review, plus `/performance:review`
-- **resilience** — timeouts, safe retries, degradation paths, plus the merged error-handling (catches, cause chains) and concurrency (races, idempotency, locks) disciplines: `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review`
+- **resilience** — timeouts, safe retries, degradation paths, the merged error-handling (catches, cause chains) and concurrency (races, idempotency, locks) disciplines, observability (structured logs, correlation IDs, metrics without cardinality bombs) and measure-first performance: `/resilience:review`, `:error-review`, `:concurrency-review`, `:observability-review`, `:performance-review`
 - **stack-scan** — installed-stack inventory (`/stack-scan:report`) and composer/npm dependency hygiene with security-audit triage (`/stack-scan:audit`)
-- **observability** — structured logs, correlation IDs, metrics without cardinality bombs, plus `/observability:review`
 - **testing** — test pyramid, mocking boundaries, flaky-test causes, TDD workflow, plus `/testing:review` and `/testing:flake-hunt`
 
 | Command | What it does |

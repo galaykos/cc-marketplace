@@ -138,7 +138,7 @@ internal log entry carries the same id plus everything else.
 
 Standing: recorded — owns how errors are typed, propagated, and reported once at
 the boundary. Retry, timeout and circuit-breaker policy is `/resilience:review`;
-log and metric shape is the observability plugin.
+log and metric shape is the sibling `observability-design` skill.
 
 ## Anti-patterns
 

@@ -58,4 +58,4 @@ operations need a confirmed backup or recovery path, or it stops and asks.
 
 - **laravel** — the Eloquent side of the same queries
 - **devops** — `/devops:init` spins up the local database services these reviews run against
-- **performance** — measuring a slow query before this plugin reshapes it
+- **resilience** — `/resilience:performance-review` measures a slow query before this plugin reshapes it

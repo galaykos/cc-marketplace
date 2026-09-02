@@ -185,7 +185,7 @@ and duplicated rules drift:
   `/ui-ux:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (step 6) IS a craft
   gate — run it here; defer the rest of a11y.
 - Performance / Lighthouse / Core Web Vitals / load timing → defer to
-  `/performance:review`. `/performance:review` requires the `performance` plugin; skipped if not
+  `/resilience:performance-review`. `/resilience:performance-review` requires the `resilience` plugin; skipped if not
   installed.
 
 If a finding is really an a11y or perf concern, name it and point to the owning
@@ -197,5 +197,5 @@ One line per finding, no praise and no rewrites:
 
     path:line — severity — problem — fix
 
-Close with the two Defer pointers (`/ui-ux:audit`, `/performance:review`) so the
+Close with the two Defer pointers (`/ui-ux:audit`, `/resilience:performance-review`) so the
 caller runs them for the checks you did not.

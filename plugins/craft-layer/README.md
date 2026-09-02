@@ -202,7 +202,7 @@ source; when the rubric moves, fix and re-date it here first.
   3D, per-tier budgets, sprite/asset budgets, licence + asset-fit, accent-vs-surface
   contrast). Cites the sizes and ratios the audit measured for it, and reports `not measured`
   rather than guessing when it has none. Delegates a11y → `/ui-ux:audit` and performance →
-  `/performance:review`.
+  `/resilience:performance-review`.
 
 ## Reuse map
 
@@ -224,7 +224,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Validating the ASSEMBLED page after the section picks | `plugins/taskmaster/skills/experience-walkthrough` |
 | Requirement clarification into a spec + cards (section-decisions consumes a spec, never re-interrogates it) | `plugins/taskmaster` |
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |
-| Performance / Lighthouse (optional external delegation) | `/performance:review` requires the `performance` plugin; skipped if not installed |
+| Performance / Lighthouse (optional external delegation) | `/resilience:performance-review` requires the `resilience` plugin; skipped if not installed |
 | Chart form / color | the `dataviz` skill (external host skill, not in this repo) |
 
 ## Install
@@ -239,7 +239,7 @@ optional in practice:
 - **`a11y` — required for the audit.** `/craft-layer:audit` delegates the full accessibility
   pass to `/ui-ux:audit` unconditionally; craft-layer checks only accent-vs-surface contrast
   itself.
-- **`performance` — genuinely optional.** `/performance:review` is explicitly skipped when the
+- **`resilience` (performance review) — genuinely optional.** `/resilience:performance-review` is explicitly skipped when the
   plugin is absent.
 - **`taskmaster`, `design-preview`, `shadcn-studio` — optional.** They stage guided-mode
   options at higher fidelity; without them decisions degrade to written multiple-choice and

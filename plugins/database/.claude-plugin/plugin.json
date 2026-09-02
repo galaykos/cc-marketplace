@@ -1,6 +1,6 @@
 {
   "name": "database",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera), one /database:review that detects the engine and loads the dialect skill only for MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands.",
   "author": {
     "name": "Ivan-WG",

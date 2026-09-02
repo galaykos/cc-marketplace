@@ -81,7 +81,7 @@ testing and security stay because task cards dispatch into both.
 **Everything cut is still shipped and still works — install it directly.** The
 22 removed: a11y (now in ui-ux), api-design, <!-- removed-ok --> api-docs-first, brain, claude-authoring,
 code-review, comment-discipline, database, debugging, devops,
-git-workflow, hindsight, lean, observability, performance,
+git-workflow, hindsight, lean,
 plugin-scout, resilience, sql, system-design, web-dev. Several are excellent and
 several are near-core — `code-review` and `git-workflow` especially — but a
 bundle that cannot surface its own members' descriptions is not doing them a

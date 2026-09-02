@@ -69,4 +69,4 @@ companion once.
 
 - **frontend-suite** — the stack half: Next.js/React Native/Vite reviews and
   the generalist web worker for the app the studio decorates
-- **performance** — motion and WebGL work is exactly where frame budgets die
+- **resilience** — its `/resilience:performance-review`: motion and WebGL work is exactly where frame budgets die

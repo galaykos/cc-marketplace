@@ -2,6 +2,13 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.31.4
+
+### Changed
+- `routing.md` and `reviewer-routing.md` resolve the `performance` and `observability`
+  tags to resilience's workers and skills; both plugins merged into resilience on <!-- removed-ok -->
+  2026-09-02.
+
 ## 0.31.3
 
 ### Changed

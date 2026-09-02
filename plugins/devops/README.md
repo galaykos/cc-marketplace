@@ -6,7 +6,7 @@ resource limits and probes, deploy strategy with rollback, and secrets handling
 local dev environments generated from evidence via `/devops:init` (`compose-init`).
 Ships a `devops-engineer` worker + `devops-reviewer` read-only pair and a PreToolUse
 guard on workflow files. Owns infra-layer observability wiring, but defers in-code
-instrumentation to **observability**.
+instrumentation to **resilience** (its observability skill).
 
 ## Install
 
@@ -45,7 +45,7 @@ configuration and never runs deploys.
 ## Pairs well with
 
 - **stack-scan** — when installed, `/devops:init` reuses its inventory instead of re-scanning
-- **observability** — in-code instrumentation; devops owns only the infra-layer wiring
+- **resilience** — in-code instrumentation (`/resilience:observability-review`); devops owns only the infra-layer wiring
 - **secret-scanning** — sweeps for already-committed secrets while devops reviews secret injection
 - **approaches** — its rollout-planning skill covers staged rollout planning around the deploy-with-rollback strategy this plugin reviews
 - **database** — the services `/devops:init` wires up are the ones its review covers

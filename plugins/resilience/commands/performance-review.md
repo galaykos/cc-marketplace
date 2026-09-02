@@ -41,6 +41,6 @@ Review the target for performance hotspots and cache-correctness gaps.
 
 8. When findings exist, offer the next step as a selectable choice (AskUserQuestion):
    "Apply now" / "Measure first, then decide" / "Report only". On an apply pick,
-   dispatch the finding list down the static chain `performance:performance-engineer →
+   dispatch the finding list down the static chain `resilience:performance-engineer →
    task-runner:task-executor if installed → inline` — never leave the user to retype
    findings as instructions. In headless or non-interactive runs, report only.

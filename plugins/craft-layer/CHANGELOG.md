@@ -7,6 +7,12 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.48.2
+
+### Changed
+- The optional performance delegation names `/resilience:performance-review`; the
+  performance plugin merged into resilience on 2026-09-02. <!-- removed-ok -->
+
 ## 0.48.1
 
 ### Added

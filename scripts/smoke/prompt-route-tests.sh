@@ -350,7 +350,7 @@ if [ -f "$CAT_HOOK" ]; then
   OE=$(cat_for "$CE" empty)
   cat_expect "content-only /security:review survives an empty repo"     "$OE" "/security:review" present
   cat_expect "content-only /resilience:review survives an empty repo"   "$OE" "/resilience:review" present
-  cat_expect "content-only /observability:review survives an empty repo" "$OE" "/observability:review" present
+  cat_expect "content-only /resilience:observability-review survives an empty repo" "$OE" "/resilience:observability-review" present
 
   # A filter that dropped everything would pass every "absent" assertion above.
   ln_l=$(printf '%s' "$OL" | grep -c '^- /')

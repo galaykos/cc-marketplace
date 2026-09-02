@@ -26,7 +26,7 @@ implementing it.
 
 4. Defer, do not duplicate: code-level module structure → `/code-architecture:plan`;
    REST contract detail → `/api-design:review`; cache mechanics and load numbers →
-   `/performance:review`.
+   `/resilience:performance-review`.
 
 5. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit what was covered, what was clean, and what

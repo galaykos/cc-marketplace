@@ -39,14 +39,14 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `taskmaster-suite` | 10 | ~4.0k tokens | ~32 tokens | ~2.5k tokens |
 | `craft-suite` | 5 | ~2.7k tokens | — | — |
 | `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
-| `quality-principles-suite` | 8 | ~2.0k tokens | — | ~127 tokens |
+| `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
 | `frontend-suite` | 3 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
 | `php-suite` | 2 | ~659 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 41 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 39 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -246,9 +246,7 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 | **[candor](plugins/candor)** | a blocking Stop gate on the two dishonesty shapes a script can prove: a `file:line` citation that resolves to nothing, and a position retracted under pushback with no tool call in between | You want the honesty rule to have teeth rather than tone |
 | **[lean](plugins/lean)** | one bar per cost surface — code, tests, comments, files, actions — and four named triggers that buy more than the minimum | Scope keeps growing and nobody can say which requirement bought it |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
-| **[performance](plugins/performance)** | measure-before-and-after, N+1, payload and bundle, Core Web Vitals, cache correctness (stampede, TTL, eviction), percentile load testing | Something is *measurably* slow — not suspected slow |
 | **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
-| **[observability](plugins/observability)** | structured logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace propagation, honest health checks | Before the incident, not during it |
 
 **Using them.**
 
@@ -263,11 +261,11 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 /comment-discipline:review             # comment noise, one line per finding
 /candor:check                          # measure this session against the candour axes
 /debugging:debug "<symptom>"           # root cause before any fix
-/performance:review                    # hotspots and cache correctness
+/resilience:performance-review                    # hotspots and cache correctness
 /resilience:review                     # timeouts, retries, degradation
 /resilience:error-review               # catch placement, cause chains
 /resilience:concurrency-review         # races, locking, retry idempotency
-/observability:review                  # logging and instrumentation gaps
+/resilience:observability-review                  # logging and instrumentation gaps
 /stack-scan:audit                      # vulnerabilities, outdated, licences
 ```
 

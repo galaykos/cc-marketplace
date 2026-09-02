@@ -2,6 +2,13 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.2
+
+### Changed
+- In-code instrumentation is deferred to resilience's observability skill and
+  `/resilience:observability-review`; the observability plugin merged into resilience on <!-- removed-ok -->
+  2026-09-02.
+
 ## 0.6.1
 
 ### Added

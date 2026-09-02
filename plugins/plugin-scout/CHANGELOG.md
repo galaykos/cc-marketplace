@@ -7,6 +7,12 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.9
+
+### Changed
+- The observability and performance signal rows suggest `resilience`, which absorbed <!-- removed-ok -->
+  both plugins on 2026-09-02. Regenerated catalog.
+
 ## 0.13.8
 
 ### Changed

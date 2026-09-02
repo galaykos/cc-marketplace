@@ -1,7 +1,7 @@
 {
   "name": "quality-principles-suite",
-  "version": "0.4.0",
-  "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene and stack inventory (stack-scan), observability, and test design and coverage review. Accessibility auditing lives in ui-ux (frontend-suite, craft-suite). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first.",
+  "version": "0.5.0",
+  "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, systematic debugging, resilience (failure modes, error handling, concurrency, observability, measure-first performance), dependency hygiene and stack inventory (stack-scan), and test design and coverage review. Accessibility auditing lives in ui-ux (frontend-suite, craft-suite). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -16,10 +16,8 @@
     "approaches",
     "security",
     "debugging",
-    "performance",
     "resilience",
     "stack-scan",
-    "observability",
     "testing"
   ]
 }

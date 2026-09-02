@@ -36,7 +36,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
      relative-luminance ratios per pairing per theme. A value only resolvable at runtime is
      `not measured` for that pairing, never guessed.
    - **NARROW VIEWPORT**, if you can drive a browser. A body scrolling horizontally at phone width is a
-     layout defect, and layout is this audit's job — not `/ui-ux:audit`'s and not `/performance:review`'s,
+     layout defect, and layout is this audit's job — not `/ui-ux:audit`'s and not `/resilience:performance-review`'s,
      so it otherwise falls between them and nobody checks it. Compare `document.body.scrollWidth` against
      `documentElement.clientWidth` and name the overflowing element; the usual cause is structural, a
      grid or flex item defaulting to `min-width: auto` so one wide child pushes the page instead of
@@ -136,8 +136,8 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
 
 7. **Delegate what craft-layer does not own** — do not re-implement: full accessibility →
    `/ui-ux:audit $ARGUMENTS` (the accent-vs-surface contrast pre-check stays a craft gate; a11y owns the
-   comprehensive pass); performance / Core Web Vitals → `/performance:review $ARGUMENTS`, skipped when
-   the `performance` plugin is absent. Same scope, collect both verdicts.
+   comprehensive pass); performance / Core Web Vitals → `/resilience:performance-review $ARGUMENTS`, skipped when
+   the `resilience` plugin is absent. Same scope, collect both verdicts.
 
 8. **Report — lead with COVERAGE, of gates AND of triggers.**
 
@@ -191,7 +191,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
     so route accepted fixes to `task-runner:task-executor` when installed, else `ui-ux:ui-ux-engineer`
     for markup/style/component work, else apply inline. Findings owned by a delegate go to that
     delegate's worker (`a11y:a11y-engineer`, `performance:performance-engineer`). Headless: report only,
-    and print the exact `/ui-ux:audit` and `/performance:review` commands to rerun.
+    and print the exact `/ui-ux:audit` and `/resilience:performance-review` commands to rerun.
 
     After an "Apply now" pick lands, re-run the step-4 script gates (divergence, contrast, the gate
     suite) on the changed scope before reporting done — a fix is verified by the gate that failed,

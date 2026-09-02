@@ -3,6 +3,12 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.13.4
+
+### Changed
+- The fan-in's defer list names resilience for observability and performance findings; <!-- removed-ok -->
+  both plugins merged into resilience on 2026-09-02.
+
 ## 0.13.3
 
 ### Changed

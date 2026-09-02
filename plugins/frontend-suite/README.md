@@ -39,5 +39,5 @@ One bullet per bundled plugin, in dependency order (3):
   pipeline and motion catalog, design-preview, shadcn-studio,
   registry-source
 - **laravel** — the backend that Inertia frontends sit on
-- **performance** — hotspot and cache-correctness review beyond the UI layer
+- **resilience** — `/resilience:performance-review`, hotspot and cache-correctness review beyond the UI layer
 - **testing** — test review for the components these stacks produce

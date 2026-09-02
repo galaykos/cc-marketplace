@@ -107,17 +107,12 @@
     {
       "name": "devops",
       "source": "./plugins/devops",
-      "description": "Infrastructure in one plugin: CI/CD ordering, container/image hygiene, Kubernetes limits and probes, deploy strategy with rollback, and secrets handling (devops-practices); Dockerfile and compose discipline (docker-best-practices); and local dev environments generated from evidence — manifests, lockfiles, .env DSNs, CI images — via /devops:init (compose-init). One /devops:review loads the Docker skill when a Dockerfile or compose file is in scope, backed by a PreToolUse guard on workflow files and a devops-engineer worker + devops-reviewer pair. Owns infra-layer observability wiring; defers in-code instrumentation to observability."
+      "description": "Infrastructure in one plugin: CI/CD ordering, container/image hygiene, Kubernetes limits and probes, deploy strategy with rollback, and secrets handling (devops-practices); Dockerfile and compose discipline (docker-best-practices); and local dev environments generated from evidence — manifests, lockfiles, .env DSNs, CI images — via /devops:init (compose-init). One /devops:review loads the Docker skill when a Dockerfile or compose file is in scope, backed by a PreToolUse guard on workflow files and a devops-engineer worker + devops-reviewer pair. Owns infra-layer observability wiring; defers in-code instrumentation to resilience's observability skill."
     },
     {
       "name": "database",
       "source": "./plugins/database",
       "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera), one /database:review that detects the engine and loads the dialect skill only for MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands."
-    },
-    {
-      "name": "performance",
-      "source": "./plugins/performance",
-      "description": "Performance tuning: measure-first profiling, N+1/index/payload/bundle/Core Web Vitals hotspots, cache correctness (stampede, TTL, eviction, staleness), and percentile load testing — a firing performance-tuning skill, a /performance:review command, and a worker agent that optimizes only what a measurement proves slow."
     },
     {
       "name": "claude-authoring",
@@ -147,17 +142,12 @@
     {
       "name": "resilience",
       "source": "./plugins/resilience",
-      "description": "Failure-mode design for integration points — timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics — plus the merged error-handling and concurrency disciplines: catches and cause chains, check-then-act races, retry idempotency. Includes /resilience:review, /resilience:error-review, /resilience:concurrency-review."
+      "description": "Runtime quality in one plugin — does it stay up, can you see it, is it fast. Failure-mode design for integration points (timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics) with the merged error-handling and concurrency disciplines; application observability (structured logs with correlation IDs, RED/USE metrics without cardinality bombs, trace propagation, honest health checks); and measure-first performance (N+1, payload, bundle, Core Web Vitals, cache correctness, percentile load tests). Five audits — /resilience:review, :error-review, :concurrency-review, :observability-review, :performance-review — and two workers, observability-engineer and performance-engineer, that apply only what a measurement or a finding proves."
     },
     {
       "name": "orchestration",
       "source": "./plugins/orchestration",
       "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared contract review commands route their fix lists through. Includes /orchestration:review."
-    },
-    {
-      "name": "observability",
-      "source": "./plugins/observability",
-      "description": "Application observability with judgment: structured JSON logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace-context propagation, symptom-based alerting, honest health checks — plus an observability-engineer worker that adds the instrumentation (deferring infra-layer wiring to devops). Includes /observability:review."
     },
     {
       "name": "comment-discipline",
@@ -202,7 +192,7 @@
     {
       "name": "quality-principles-suite",
       "source": "./plugins/quality-principles-suite",
-      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene and stack inventory (stack-scan), observability, and test design and coverage review. Accessibility auditing lives in ui-ux (frontend-suite, craft-suite). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, systematic debugging, resilience (failure modes, error handling, concurrency, observability, measure-first performance), dependency hygiene and stack inventory (stack-scan), and test design and coverage review. Accessibility auditing lives in ui-ux (frontend-suite, craft-suite). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "process-suite",

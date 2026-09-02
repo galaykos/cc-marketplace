@@ -83,7 +83,7 @@ Output rules:
     `resilience` (missing timeouts, unsafe retries, absent degradation paths;
     empty/over-broad catches, swallowed exceptions, missing cause chains;
     check-then-act races, retry idempotency, unguarded parallel writes),
-    `observability` (silent catch blocks, correlation IDs, secrets in logs),
+    `resilience` also owns observability (silent catch blocks, correlation IDs, secrets in logs) and performance,
     `comment-discipline` (comment volume and placement).
     Report the finding once and name the owner; when none is installed, this
     review keeps it. The swallowed catch alone had four claimants.

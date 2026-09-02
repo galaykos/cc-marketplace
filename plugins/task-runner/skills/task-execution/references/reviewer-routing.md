@@ -34,8 +34,8 @@ backend       -> code-review:code-reviewer + prime {card Skills-to-apply} + resi
 api           -> code-review:code-reviewer + prime {card Skills-to-apply} + api-design:api-design + resilience:resilience-design
 security      -> code-review:code-reviewer + prime {card Skills-to-apply} + security:security-review
 testing       -> code-review:code-reviewer + prime {card Skills-to-apply} + testing:testing-best-practices
-performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + performance:performance-tuning
-observability -> code-review:code-reviewer + prime {card Skills-to-apply} + observability:observability-design
+performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:performance-tuning
+observability -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:observability-design
 ```
 
 ## Priming (the orchestrator primes every routed reviewer)
