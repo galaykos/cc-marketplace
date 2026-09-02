@@ -12,3 +12,4 @@ approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making v
 # marker) instead of across a lane edge. No co-fire blessing is needed or present — this
 # comment described the pre-merge topology for as long as it outlived it.
 approaches:approach-deliberation	skill	decide	change-shape-deliberation	a non-trivial change with two-plus viable shapes, or a refactor/rewrite/migrate request, AND no deliberation marker exists for this task	-
+approaches:compact-recovery	hook	any	post-compaction-decision-recall	SessionStart fires with source=compact AND .claude/approaches/deliberated.json exists	-
