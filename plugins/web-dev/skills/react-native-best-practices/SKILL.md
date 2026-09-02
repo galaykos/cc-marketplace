@@ -132,6 +132,14 @@ const handler = useAnimatedScrollHandler((e) => { scrollY.value = e.contentOffse
 Prefer `StyleSheet.create` at module scope for static styles over inline object literals
 re-allocated every render — it also validates style keys in development.
 
+## Scope by model tier
+
+**All models** — every rule above: the version gates, the boundaries, the footguns. Facts
+do not scale down with the model. **Compensation (worker-tier)** — the detect → pin →
+verify order in `/web-dev:review` step 3, followed literally, every skill in scope applied
+to every file in scope; a Fable-class session may compress it once the lockfile is read.
+**Skip** — a diff touching no list, no navigator, no animation, no native config and no `.ios`/`.android` split earns a one-line verdict; do not walk the rubric to prove it.
+
 ## Common mistakes
 
 - Missing `keyExtractor` on `FlatList`, or using `getItemLayout` with variable-height rows.

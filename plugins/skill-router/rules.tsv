@@ -92,8 +92,8 @@ glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	a11y	high
-glob	*.tsx	react-native-best-practices	react-native	high	package.json~"react-native"
-glob	*.tsx	nextjs-best-practices	nextjs	high	package.json~"next"
+glob	*.tsx	react-native-best-practices	web-dev	high	package.json~"react-native"
+glob	*.tsx	nextjs-best-practices	web-dev	high	package.json~"next"
 glob	**/resources/js/Pages/**	inertia-best-practices	inertia	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework
@@ -108,10 +108,10 @@ glob	docker-compose*.yml	docker-best-practices	dev-env	high
 glob	compose*.yml	docker-best-practices	dev-env	high
 glob	package.json	package-hygiene	packages	high
 glob	composer.json	package-hygiene	packages	high
-glob	next.config.*	nextjs-best-practices	nextjs	high
-glob	vite.config.*	vite-best-practices	vite	high
-glob	app.config.*	react-native-best-practices	react-native	high	package.json~"expo"
-glob	eas.json	react-native-best-practices	react-native	high	package.json~"expo"
+glob	next.config.*	nextjs-best-practices	web-dev	high
+glob	vite.config.*	vite-best-practices	web-dev	high
+glob	app.config.*	react-native-best-practices	web-dev	high	package.json~"expo"
+glob	eas.json	react-native-best-practices	web-dev	high	package.json~"expo"
 glob	*.graphql	graphql-grpc	api-design	high
 glob	*.proto	graphql-grpc	api-design	high
 glob	**/workflows/**	devops-practices	devops	high

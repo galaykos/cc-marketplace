@@ -34,10 +34,10 @@ changed).
 
 Stack fan-in — one pass, no duplicate reviews: from the changed files' types and
 manifests, list every matching best-practice skill (`.ts`/`.tsx`/`.jsx`/`.vue` →
-no language plugin, the baseline covers language-level review; react-native per
-its manifest marker; markup/utility classes touched → the matching ui-ux stack
+no language plugin, the baseline covers language-level review; web-dev's
+react-native and vite skills per their manifest markers; markup/utility classes touched → the matching ui-ux stack
 skill + a11y-audit; `.php`/`.blade.php` → laravel per composer.json;
-`next.config.*`/`app/` routes → nextjs; `.sql`/migrations → sql + mariadb when
+`next.config.*`/`app/` routes → web-dev's nextjs skill; `.sql`/migrations → sql + mariadb when
 that engine is detected). Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name

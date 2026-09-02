@@ -56,7 +56,7 @@
     && add inertia-best-practices inertia
 
   # JS side. react-native and react are exclusive the same way.
-  if dep package.json '"react-native"'; then add react-native-best-practices react-native
+  if dep package.json '"react-native"'; then add react-native-best-practices web-dev
   fi
 
   # Tailwind requires an actual Tailwind signal. This line previously read

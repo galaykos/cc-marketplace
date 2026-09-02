@@ -1,6 +1,6 @@
 ---
 name: vite-best-practices
-description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security, optimizeDeps, code splitting (manualChunks), base for sub-path deploys, server.proxy, import.meta.glob, SSR externalization, plugin order — pinned to the lockfile's vite version. Type layer and framework rules live in their own plugins.
+description: Use when writing or reviewing Vite config or a Vite-built app — VITE_-prefix env security, optimizeDeps, code splitting (manualChunks), base for sub-path deploys, server.proxy, import.meta.glob, SSR externalization, plugin order — pinned to the lockfile's vite version. Framework rules live in the sibling nextjs and react-native skills.
 ---
 
 > Last verified: 2026-08-02 — https://vite.dev/releases
@@ -137,6 +137,14 @@ Advising above the locked version is a finding; confirm boundaries against the d
   (`import.meta.hot?.accept(...)`) so it tree-shakes out of the production bundle
   instead of throwing. HMR boundaries are dev ergonomics, never a correctness
   mechanism the app depends on.
+
+## Scope by model tier
+
+**All models** — every rule above: the version gates, the boundaries, the footguns. Facts
+do not scale down with the model. **Compensation (worker-tier)** — the detect → pin →
+verify order in `/web-dev:review` step 3, followed literally, every skill in scope applied
+to every file in scope; a Fable-class session may compress it once the lockfile is read.
+**Skip** — a diff touching no `vite.config.*`, no `.env*`, no `import.meta` and no dynamic `import()` earns a one-line verdict; do not walk the rubric to prove it.
 
 ## Anti-patterns
 

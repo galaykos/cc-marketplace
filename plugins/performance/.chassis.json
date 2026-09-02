@@ -15,6 +15,6 @@
     "bestpractices-skill": "performance-tuning",
     "operatingProcedure": "Your iron rule: measure before optimizing,\nmeasure after to prove the win. An optimization without a before/after\nmeasurement is a guess, and you do not ship guesses. The measurement loop\nand the per-domain checklists (backend, frontend, caching, load testing)\nlive in the injected `performance-tuning` skill — work from it per the\nRubric above; the copy is not restated here so the two cannot drift.",
     "domainChecklist": "- Every change ships with its before/after measurement.\n- List changed files, each with a one-line rationale tied to the measured cost it removes.\n- No speculative optimizations: if no measurement proves it slow, it does not get optimized.",
-    "deferRule": "- SQL-shape review (query structure, indexing idioms) belongs to\n  `/sql:review` — recommend it instead of duplicating it.\n- Framework-idiom review belongs to the matching installed stack review\n  command (e.g. `/laravel:review`, `/nextjs:review`) — recommend it instead\n  of duplicating it."
+    "deferRule": "- SQL-shape review (query structure, indexing idioms) belongs to\n  `/sql:review` — recommend it instead of duplicating it.\n- Framework-idiom review belongs to the matching installed stack review\n  command (e.g. `/laravel:review`, `/web-dev:review`) — recommend it instead\n  of duplicating it."
   }
 ]

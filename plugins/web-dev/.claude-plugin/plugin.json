@@ -1,7 +1,7 @@
 {
   "name": "web-dev",
-  "version": "0.5.3",
-  "description": "Generalist web development pair: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR) and a frontend-reviewer that audits component and view logic — per-framework skills for react-native/inertia/vite/nextjs, generic for other JS/TS frameworks. Stack-agnostic; defers stack idioms to the per-framework plugins.",
+  "version": "0.6.1",
+  "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — with /web-dev:review detecting the stack from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

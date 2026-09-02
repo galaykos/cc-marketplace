@@ -4,7 +4,7 @@ description: Use PROACTIVELY for general web implementation work — routing, RE
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: inherit
 effort: xhigh
-bestpractices-skill: laravel-best-practices,nextjs-best-practices
+bestpractices-skill: laravel-best-practices,nextjs-best-practices,react-native-best-practices,vite-best-practices
 ---
 <!-- generated from templates/worker-agent.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 
@@ -98,11 +98,12 @@ SSR/CSR, a11y) that no single framework skill owns; keep applying it.
 
 ## Defer rule
 
-Stack-specific review is owned by the framework plugins. Do
+Stack-specific review is owned by the review commands, not by you. Do
 not restate their content — after implementing, recommend the matching
-installed stack review command instead: `/laravel:review`,
-`/nextjs:review` (and `/security:review` when
-the change touches auth, sessions, or user input handling).
+installed review command instead: `/web-dev:review` for Next.js, React
+Native, or Vite code, `/laravel:review` and `/inertia:review` for their
+stacks (and `/security:review` when the change touches auth, sessions,
+or user input handling).
 
 ## Kill-trigger (three strikes)
 

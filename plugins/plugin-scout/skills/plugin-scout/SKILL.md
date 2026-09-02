@@ -58,7 +58,7 @@ a read-only step.
 
 ## Stack signals (tier 1)
 
-Six framework plugins, each earned by one signal. "dep X" means an **exact key**
+Four framework plugins across six signals — web-dev is earned by any of its three. "dep X" means an **exact key**
 in `dependencies` or `devDependencies`, never a substring: `next-auth` is not
 `next`, `react-native-web` is not `react-native`.
 
@@ -66,9 +66,9 @@ in `dependencies` or `devDependencies`, never a substring: `next-auth` is not
 |---|---|
 | composer.json require laravel/framework | laravel |
 | composer.json require inertiajs/inertia-laravel OR package.json @inertiajs/* | inertia |
-| package.json dep react-native | react-native |
-| package.json dep next | nextjs |
-| package.json dep vite (devDependencies counts) AND a vite.config.* at the scan root | vite |
+| package.json dep react-native | web-dev |
+| package.json dep next | web-dev |
+| package.json dep vite (devDependencies counts) AND a vite.config.* at the scan root | web-dev |
 | compose/Dockerfile image matching `mariadb`, `.env.example` DB_CONNECTION=mariadb, or `mariadb` in composer.json/package.json | mariadb |
 
 Read `.env.example`, not just `.env` — `.env` is gitignored in every Laravel and Next

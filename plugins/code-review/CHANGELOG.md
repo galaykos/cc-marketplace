@@ -3,6 +3,15 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.13.1
+
+### Changed
+- **The stack fan-in names web-dev's skills where it used to name three plugins.**
+  `nextjs`, `react-native` and `vite` merged into `web-dev` (2026-09-02); the skills
+  keep their names, so the fan-in loads `web-dev`'s `nextjs-best-practices`,
+  `react-native-best-practices` and `vite-best-practices` under the same file and
+  manifest signals as before. No finding format or severity change.
+
 ## 0.13.0
 
 ### Added
