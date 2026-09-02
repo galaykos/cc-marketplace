@@ -55,8 +55,8 @@ convention.
      result rather than silently building without the dense-UI floor.
 
 4. Keep accessibility in view while building: semantic elements, labels, focus order —
-   then recommend `/a11y:audit` on the result for a thorough pass (a11y remediation is
-   the a11y plugin's, not this build step's).
+   then recommend `/ui-ux:audit` on the result for a thorough pass (a11y remediation is
+   the audit command's and `a11y-engineer`'s, not this build step's).
 
 5. Return the changed files with a one-line rationale each, and note any visual decision
    that was assumed rather than specified — surface it for confirmation rather than

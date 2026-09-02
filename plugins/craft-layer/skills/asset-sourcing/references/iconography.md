@@ -36,7 +36,7 @@ decided here — that is the theming system (Part C). This file only says "inher
 ## Accessibility
 
 A meaningful icon needs an accessible name (`aria-label` / `<title>`); a decorative icon is
-`aria-hidden`; an icon-only control always needs a name. Full a11y → `/a11y:audit`.
+`aria-hidden`; an icon-only control always needs a name. Full a11y → `/ui-ux:audit`.
 
 ## Licence
 

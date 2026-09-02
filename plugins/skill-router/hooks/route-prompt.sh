@@ -188,7 +188,7 @@
   # job is to create the thing the glob looks for. Measured on a Laravel repo, the earlier
   # form hid the compose init from any repo without a Dockerfile, craft-layer craft from every
   # greenfield repo, and the a11y audit from anything without a .tsx at depth four, since
-  # a11y ships one glob row and it is .tsx alone. The original motivation was narrow: a
+  # its plugin shipped one glob row and it was .tsx alone. The original motivation was narrow: a
   # Laravel repo should not be offered the Next.js review, so the filter is narrow now.
   #
   # PRUNED AND MEMOISED. Unpruned walks measured 2.86s at 4515 entries and 20.26s at 35014,

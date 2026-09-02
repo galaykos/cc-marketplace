@@ -21,7 +21,7 @@ Your authoritative checklist is the `tailwind-best-practices,shadcn-best-practic
 
 - Component/view LOGIC (state, effects, data fetching) → the web-dev plugin's
   frontend-reviewer; markup and styles only here.
-- Deep WCAG auditing beyond the basics above → `/a11y:audit`; flag, don't audit.
+- Deep WCAG auditing beyond the basics above → `/ui-ux:audit`; flag, don't audit.
 - Theme token VALUES and palette generation → `/ui-ux:theme`.
 
 ## Checklist before finishing

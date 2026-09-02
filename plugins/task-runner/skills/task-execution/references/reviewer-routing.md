@@ -25,8 +25,8 @@ Tag → the domain reviewer the card's `Agent:` tag ADDS. The vocab-sync parser 
 the **tag key** (the field before `->`); the RHS is descriptive.
 
 ```
-frontend      -> web-dev:frontend-reviewer + prime {card Skills-to-apply} + a11y:a11y-audit
-ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply} + a11y:a11y-audit
+frontend      -> web-dev:frontend-reviewer + prime {card Skills-to-apply} + ui-ux:a11y-audit
+ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply} + ui-ux:a11y-audit
 devops        -> devops:devops-reviewer + prime {card Skills-to-apply} + devops:devops-practices
 generic       -> code-review:code-reviewer
 database      -> code-review:code-reviewer + prime {card Skills-to-apply} + database:sql-best-practices

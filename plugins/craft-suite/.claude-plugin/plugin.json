@@ -1,13 +1,12 @@
 {
   "name": "craft-suite",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components (design-preview), a shadcn staging sandbox (shadcn-studio), live component-registry MCP sourcing (registry-source), and WebGL/Three.js effects (threejs), plus the two companions the studio requires: ui-ux and a11y. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
   },
   "dependencies": [
-    "a11y",
     "craft-layer",
     "design-preview",
     "registry-source",

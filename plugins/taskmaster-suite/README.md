@@ -79,7 +79,7 @@ specs bind `/ui-ux:theme`; without it those cards degrade to generic routing.
 testing and security stay because task cards dispatch into both.
 
 **Everything cut is still shipped and still works — install it directly.** The
-22 removed: a11y, api-design, api-docs-first, brain, claude-authoring,
+22 removed: a11y (now in ui-ux), api-design, <!-- removed-ok --> api-docs-first, brain, claude-authoring,
 code-review, comment-discipline, database, debugging, devops,
 git-workflow, hindsight, lean, observability, performance,
 plugin-scout, resilience, sql, system-design, web-dev. Several are excellent and

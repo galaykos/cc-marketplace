@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.31.2
+
+### Changed
+- `reviewer-routing.md` primes `ui-ux:a11y-audit` for frontend and ui-ux cards; the a11y <!-- removed-ok -->
+  plugin merged into ui-ux on 2026-09-02.
+
 ## 0.31.1
 
 ### Changed

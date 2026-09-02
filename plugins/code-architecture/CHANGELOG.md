@@ -2,6 +2,12 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.15
+
+### Changed
+- **`coding-entry`'s skill map primes `ui-ux:a11y-audit`**; the a11y plugin merged into <!-- removed-ok -->
+  ui-ux on 2026-09-02.
+
 ## 0.13.14
 
 ### Changed

@@ -13,7 +13,7 @@ description: "Audit UI code against WCAG 2.2 AA — semantic structure, contrast
 1. **Determine scope** from `$ARGUMENTS`: a component, a page, or a diff.
    With no arguments, default to recent UI changes (`git diff` against the
    default branch, filtered to markup, style, and component files).
-2. **Apply the checklist** from the `a11y-audit` skill: semantics first,
+2. **Apply the checklist** from this plugin's `a11y-audit` skill: semantics first,
    the ARIA rules, keyboard operability, focus management, contrast (AA
    ratios and every interaction state), forms, media, and touch targets.
    Read the actual markup and styles — never infer from file names.

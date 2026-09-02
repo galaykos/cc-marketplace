@@ -3,7 +3,7 @@
 Meta-bundle: the creative-build studio in one install — concept-first
 creative direction with a tiered motion catalog, real-component visual
 decisions, greenfield shadcn staging, live registry sourcing, WebGL/Three.js
-effects, and the two companions the studio requires (ui-ux, a11y). Split out
+effects, and the companion the studio requires (ui-ux, which carries the WCAG audit). Split out
 of frontend-suite so ordinary frontend app work does not pay the studio's
 always-on context. Uninstalls cleanly: `/craft-suite:uninstall` removes the
 bundle and prunes the plugins it auto-installed.
@@ -45,8 +45,6 @@ text that was previously being evicted.
 
 One bullet per bundled plugin, in dependency order (7):
 
-- **a11y** — WCAG 2.2 AA audit with a concrete fix per violation, via
-  `/a11y:audit`
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
 - **design-preview** — visual decisions rendered with the project's OWN
@@ -60,8 +58,8 @@ One bullet per bundled plugin, in dependency order (7):
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Tailwind)
   plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
 
-ui-ux and a11y are listed here AND in frontend-suite on purpose: craft-layer
-delegates theming to ui-ux and auditing to `/a11y:audit`, so a standalone
+ui-ux is listed here AND in frontend-suite on purpose: craft-layer
+delegates theming to ui-ux and auditing to `/ui-ux:audit`, so a standalone
 craft-suite install must carry both. Installing both suites installs each
 companion once.
 

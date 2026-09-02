@@ -28,7 +28,7 @@ author-created content. Fixes, cheapest first:
   with the pin or make the covered region inert for the duration.
 
 Test it by tabbing the whole page with the sticky element at every state it has, not by
-looking at the design. Full-page verification stays `/a11y:audit`'s job; not creating the
+looking at the design. Full-page verification stays `/ui-ux:audit`'s job; not creating the
 obstruction is the motion decision's job.
 
 ## whileInView / scroll-reveal → hidden until observed

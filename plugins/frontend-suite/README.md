@@ -3,7 +3,7 @@
 Meta-bundle: the frontend stack category in one install — UI/UX stacks,
 web-dev (Next.js, React Native and Vite skills behind `/web-dev:review`, the
 generalist worker and the opus-floored frontend-reviewer), file-aware skill
-auto-routing, and accessibility auditing. Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-preview,
+auto-routing, and the WCAG audit inside ui-ux. Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-preview,
 shadcn-studio, registry-source, threejs) moved to the craft-suite bundle, so
 ordinary frontend app work does not pay the studio's always-on context.
 Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and
@@ -18,10 +18,8 @@ prunes the plugins it auto-installed.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (4):
+One bullet per bundled plugin, in dependency order (3):
 
-- **a11y** — WCAG 2.2 AA audit with a concrete fix per violation, via
-  `/a11y:audit`
 - **skill-router** — file-aware skill auto-routing: hooks load the matching
   best-practice skill(s) as files are edited
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Tailwind)

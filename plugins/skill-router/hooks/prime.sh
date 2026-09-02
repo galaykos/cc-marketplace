@@ -46,7 +46,7 @@
   [ -f "$cwd/composer.json" ] && add package-hygiene stack-scan
   [ -f "$cwd/package.json" ]  && add package-hygiene stack-scan
   if has '*.sql' || has_dir migrations; then add sql-best-practices database; fi
-  if has '*.tsx' || has '*.jsx'; then add a11y-audit a11y; fi
+  if has '*.tsx' || has '*.jsx'; then add a11y-audit ui-ux; fi
 
   # PHP side. laravel and plain php are stack-EXCLUSIVE per skill-map.md — a Laravel
   # rules.tsv applies via its `!composer.json~laravel/framework` markers.

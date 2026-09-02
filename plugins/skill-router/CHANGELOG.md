@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.9
+
+### Changed
+- **The `*.tsx` accessibility row and the primer name `ui-ux` as owner** of
+  `a11y-audit` (the a11y plugin merged into ui-ux on 2026-09-02). <!-- removed-ok -->
+
 ## 0.14.8
 
 ### Changed

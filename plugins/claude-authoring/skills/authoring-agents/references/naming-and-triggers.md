@@ -36,7 +36,7 @@ Exceptions that keep their established names (do not rename): `code-reviewer`,
 
 `description: Use PROACTIVELY …` means the main thread may dispatch the agent
 without being asked. That is a loaded gun when N agents all say "after editing
-code": one `.tsx` save nominally wakes ui-ux-reviewer, a11y, the frontend reviewer,
+code": one `.tsx` save nominally wakes ui-ux-reviewer, a11y-engineer, the frontend reviewer,
 code-reviewer. The fix is at authoring time, in the description:
 
 - **Name one surface.** A PROACTIVELY trigger must state the specific surface —
@@ -44,7 +44,7 @@ code-reviewer. The fix is at authoring time, in the description:
   editing a migration or schema", not "after writing code".
 - **One surface, one owner.** Two agents that would fire on the same surface must
   differentiate by specificity: the more specific claim wins, the general one steps
-  back. `a11y` owns accessibility on markup; `ui-ux-reviewer` owns everything else
+  back. `/ui-ux:audit` owns accessibility on markup; `ui-ux-reviewer` owns everything else
   on the same file — the descriptions say so, so both know when to defer.
 - **Most-specific-wins at dispatch.** When surfaces still overlap, the main thread
   runs the single most-specific reviewer for that edit, not the whole set. Breadth

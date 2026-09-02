@@ -201,7 +201,7 @@ source; when the rubric moves, fix and re-date it here first.
   anti-sameness, section-ledger conformance, reduced-motion per tier, lazy + static-fallback
   3D, per-tier budgets, sprite/asset budgets, licence + asset-fit, accent-vs-surface
   contrast). Cites the sizes and ratios the audit measured for it, and reports `not measured`
-  rather than guessing when it has none. Delegates a11y → `/a11y:audit` and performance →
+  rather than guessing when it has none. Delegates a11y → `/ui-ux:audit` and performance →
   `/performance:review`.
 
 ## Reuse map
@@ -223,7 +223,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | Real-component option previews on a live server | `/design-preview:preview`, `/shadcn-studio:stage` |
 | Validating the ASSEMBLED page after the section picks | `plugins/taskmaster/skills/experience-walkthrough` |
 | Requirement clarification into a spec + cards (section-decisions consumes a spec, never re-interrogates it) | `plugins/taskmaster` |
-| Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/a11y:audit` |
+| Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |
 | Performance / Lighthouse (optional external delegation) | `/performance:review` requires the `performance` plugin; skipped if not installed |
 | Chart form / color | the `dataviz` skill (external host skill, not in this repo) |
 
@@ -237,7 +237,7 @@ optional in practice:
   generation (step 2) and `/ui-ux:build` owns the build (step 6). Without it the chain has no
   step 2 and no step 6.
 - **`a11y` — required for the audit.** `/craft-layer:audit` delegates the full accessibility
-  pass to `/a11y:audit` unconditionally; craft-layer checks only accent-vs-surface contrast
+  pass to `/ui-ux:audit` unconditionally; craft-layer checks only accent-vs-surface contrast
   itself.
 - **`performance` — genuinely optional.** `/performance:review` is explicitly skipped when the
   plugin is absent.

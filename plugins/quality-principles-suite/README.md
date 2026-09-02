@@ -53,7 +53,6 @@ text that was previously being evicted.
 
 - **approaches** — compare structurally different approaches, build-vs-buy, GoF pattern selection *and rejection*, sizing, rollout planning, and a blind four-persona opinion round: `/approaches:compare`, `/approaches:pattern`, `/approaches:build-vs-buy`, `/approaches:size`, `/approaches:rollout`, `/approaches:opinions`
 - **security** — OWASP-aligned code review, API auth, data privacy, and design-phase threat modeling, plus `/security:review`
-- **a11y** — WCAG 2.2 AA audit, one line per violation with the concrete fix, plus `/a11y:audit`
 - **debugging** — systematic root cause with evidence before any fix, plus `/debugging:debug`
 - **performance** — measure-first hotspot and cache-correctness review, plus `/performance:review`
 - **resilience** — timeouts, safe retries, degradation paths, plus the merged error-handling (catches, cause chains) and concurrency (races, idempotency, locks) disciplines: `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review`

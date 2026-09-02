@@ -43,7 +43,7 @@ low-severity; the dispatcher filters, you do not. Say which you could not confir
 
 ## Defer rule
 
-- Accessibility (semantics, ARIA, focus, contrast) → `/a11y:audit`; flag its presence
+- Accessibility (semantics, ARIA, focus, contrast) → `/ui-ux:audit`; flag its presence
   do not audit it here.
 - Visual/design-system correctness (spacing, tokens, layout) → `/ui-ux:review`.
 - Backend/API code behind the component → the backend engineer and `/api-design:review`.

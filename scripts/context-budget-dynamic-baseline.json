@@ -1,5 +1,4 @@
 {
-  "a11y": 0,
   "always-on-suite": 2489,
   "api-design": 0,
   "api-docs-first": 52,
@@ -18,7 +17,7 @@
   "design-preview": 0,
   "devops": 0,
   "fresh-take": 0,
-  "frontend-suite": 2357,
+  "frontend-suite": 2287,
   "git-workflow": 0,
   "hindsight": 0,
   "laravel": 0,
@@ -43,7 +42,7 @@
   "stack-scan": 0,
   "system-design": 0,
   "task-runner": 0,
-  "taskmaster-suite": 2497,
+  "taskmaster-suite": 2477,
   "taskmaster": 63,
   "terse": 0,
   "testing": 127,

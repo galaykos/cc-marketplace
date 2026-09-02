@@ -26,7 +26,7 @@ body load; § Priming in the skill body has the form.
 | `package.json` ~ `"vite"` | `web-dev:vite-best-practices` |
 | `package.json` ~ `"tailwindcss"` | `ui-ux:tailwind-best-practices` |
 | `components.json` present (shadcn/ReUI registry) | `ui-ux:shadcn-best-practices` |
-| any `*.tsx` / `*.jsx` / `*.vue` / `*.blade.php` in the tree | `a11y:a11y-audit` |
+| any `*.tsx` / `*.jsx` / `*.vue` / `*.blade.php` in the tree | `ui-ux:a11y-audit` |
 
 ## Stack-neutral
 

@@ -106,7 +106,7 @@ scene keeps its geometry, material, and textures alive on the GPU:
   React correctness are baseline — handle them inline.
 - DOM/CSS animation (Motion, GSAP) → ui-ux motion-best-practices; three owns
   the canvas, not the page.
-- WCAG/a11y of the page hosting the canvas → the a11y plugin.
+- WCAG/a11y of the page hosting the canvas → ui-ux's `/ui-ux:audit`.
 
 ## Anti-patterns
 

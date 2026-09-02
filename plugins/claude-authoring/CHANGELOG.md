@@ -1,5 +1,11 @@
 # Changelog — claude-authoring
 
+## 0.13.2
+
+### Changed
+- `naming-and-triggers.md` and `project-skill-suggester` name `/ui-ux:audit` and
+  `a11y-engineer` where they named the a11y plugin (merged into ui-ux, 2026-09-02). <!-- removed-ok -->
+
 ## 0.13.1
 
 ### Changed

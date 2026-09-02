@@ -5,3 +5,6 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 ui-ux:ui-ux-engineer	agent	build	ui-implementation	work changes layout, breakpoints, spacing, colour, hierarchy, or component placement	-
 ui-ux:ui-ux-reviewer	agent	review	markup-and-style-review	diff touches markup or styles only (class attributes, CSS/SCSS, theme or tailwind config) and no component logic	-
+ui-ux:a11y-engineer	agent	build	accessibility-remediation	fix list names a WCAG/ARIA/keyboard/focus/label/contrast defect in markup or component files	-
+ui-ux:audit	command	review	wcag-audit	the user asks for an accessibility audit, or markup/focus/contrast changed and a full WCAG pass is wanted	-
+ui-ux:a11y-audit	skill	build	wcag-checklist	an edit to a .tsx, .jsx, .vue, or .blade.php file	-

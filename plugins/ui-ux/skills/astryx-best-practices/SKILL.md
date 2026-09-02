@@ -100,7 +100,7 @@ the digest. Before writing any Astryx code:
 
 - General React correctness (state, effects, keys) → web-dev's `frontend-reviewer`.
 - Tailwind/CSS mechanics of overrides → the tailwind skill (this plugin); plain CSS is baseline.
-- Full WCAG audit → the a11y plugin.
+- Full WCAG audit → `/ui-ux:audit`.
 - shadcn/ReUI/Aceternity surfaces → their sibling skills (this plugin).
 
 ## Anti-patterns

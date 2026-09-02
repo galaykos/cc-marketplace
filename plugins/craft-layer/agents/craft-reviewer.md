@@ -182,7 +182,7 @@ Do not re-implement accessibility or performance checks — they are owned elsew
 and duplicated rules drift:
 
 - Full accessibility (labels, focus, keyboard, ARIA, comprehensive contrast) → defer to
-  `/a11y:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (step 6) IS a craft
+  `/ui-ux:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (step 6) IS a craft
   gate — run it here; defer the rest of a11y.
 - Performance / Lighthouse / Core Web Vitals / load timing → defer to
   `/performance:review`. `/performance:review` requires the `performance` plugin; skipped if not
@@ -197,5 +197,5 @@ One line per finding, no praise and no rewrites:
 
     path:line — severity — problem — fix
 
-Close with the two Defer pointers (`/a11y:audit`, `/performance:review`) so the
+Close with the two Defer pointers (`/ui-ux:audit`, `/performance:review`) so the
 caller runs them for the checks you did not.

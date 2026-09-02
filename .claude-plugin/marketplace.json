@@ -12,12 +12,12 @@
     {
       "name": "ui-ux",
       "source": "./plugins/ui-ux",
-      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, and ui-ux-reviewer + ui-ux-engineer agents."
+      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker that applies the fix list with native semantics over ARIA patches), and ui-ux-reviewer + ui-ux-engineer agents."
     },
     {
       "name": "craft-layer",
       "source": "./plugins/craft-layer",
-      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, and ultra-craft escalates a run with live web research and a red-team of the result. Requires ui-ux and a11y; reuses threejs."
+      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, and ultra-craft escalates a run with live web research and a red-team of the result. Requires ui-ux (which carries the WCAG audit); reuses threejs."
     },
     {
       "name": "registry-source",
@@ -160,11 +160,6 @@
       "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared contract review commands route their fix lists through. Includes /orchestration:review."
     },
     {
-      "name": "a11y",
-      "source": "./plugins/a11y",
-      "description": "Dedicated accessibility: WCAG 2.2 AA audit for markup, contrast, keyboard navigation, focus management, forms, media, and ARIA — one line per violation with the concrete fix — plus an a11y-engineer worker that applies the fix list, preferring native semantics over ARIA patches and tagging each change with its WCAG criterion. Includes /a11y:audit."
-    },
-    {
       "name": "observability",
       "source": "./plugins/observability",
       "description": "Application observability with judgment: structured JSON logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace-context propagation, symptom-based alerting, honest health checks — plus an observability-engineer worker that adds the instrumentation (deferring infra-layer wiring to devops). Includes /observability:review."
@@ -187,7 +182,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), accessibility auditing, and skill auto-routing (skill-router). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, and skill auto-routing (skill-router). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "craft-suite",
@@ -212,7 +207,7 @@
     {
       "name": "quality-principles-suite",
       "source": "./plugins/quality-principles-suite",
-      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene and stack inventory (stack-scan), observability, and test design and coverage review. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene and stack inventory (stack-scan), observability, and test design and coverage review. Accessibility auditing lives in ui-ux (frontend-suite, craft-suite). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "process-suite",

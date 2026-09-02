@@ -25,7 +25,7 @@ The modal's open/close + interaction craft is owned elsewhere; cite by path, nev
 - enter/exit choreography + reduced-motion → `plugins/craft-layer/skills/motion-tiers/SKILL.md` /
   `plugins/craft-layer/skills/page-transitions/SKILL.md`;
 - focus-trap, dismiss affordances, restore-focus, `Esc`, backdrop click, `dialog` semantics →
-  `plugins/craft-layer/skills/interaction-fx/SKILL.md` for pointer craft and **`/a11y:audit`** for
+  `plugins/craft-layer/skills/interaction-fx/SKILL.md` for pointer craft and **`/ui-ux:audit`** for
   the dialog / focus a11y contract.
 
 ## Reduced-motion + fallback

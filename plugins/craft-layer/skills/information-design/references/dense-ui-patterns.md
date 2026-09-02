@@ -47,7 +47,7 @@ TARGET, not the row — a 24px hit area inside a shorter row, via padding rather
 icon size — or keep the affordance out of compact mode. The criterion's spacing
 exception can carry a smaller icon only when the surrounding untargeted space
 genuinely makes up the 24px, which a dense grid rarely provides. Verification belongs
-to `/a11y:audit`; the decision belongs here, because density is decided here.
+to `/ui-ux:audit`; the decision belongs here, because density is decided here.
 
 ## Tables
 

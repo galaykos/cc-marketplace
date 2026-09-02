@@ -3,6 +3,6 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-craft-layer:craft-reviewer	agent	review	motion-and-asset-gate-audit	a craft run reaches its audit step with a persisted craft contract and a shipped tree	a11y:audit,performance:review
+craft-layer:craft-reviewer	agent	review	motion-and-asset-gate-audit	a craft run reaches its audit step with a persisted craft contract and a shipped tree	ui-ux:audit,performance:review
 craft-layer:creative-director	agent	shape	creative-concept-divergence	dispatched by the creative-direction skill before any token is generated	-
 craft-layer:ultra-craft	hook	any	ultra-craft-boost-directive	prompt head matches ultra-?craft with no negation and no active-banner echo	-

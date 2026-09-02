@@ -135,7 +135,7 @@ The reach floors raise what a build must REACH FOR. They lower nothing:
   with bytes on first paint.
 - Accent-vs-surface contrast at every size — unchanged.
 - The licence and provenance gate — unchanged.
-- Full accessibility, delegated to `/a11y:audit` — unchanged.
+- Full accessibility, delegated to `/ui-ux:audit` — unchanged.
 
 An `maximal` build that clears its reach floors by breaking a ceiling has not reached
 further; it has shipped a defect with more moving parts. Where the two genuinely conflict,

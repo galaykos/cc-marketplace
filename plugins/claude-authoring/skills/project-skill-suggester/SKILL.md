@@ -47,7 +47,7 @@ not a cluster. When in doubt, it is not a candidate.
 Before offering anything, confirm nothing already captures the knowledge:
 
 - Name the installed plugin skills that plausibly cover it (database, testing,
-  a11y, the stack's ui-ux skill, and so on).
+  ui-ux's a11y-audit, the stack's ui-ux skill, and so on).
 - Read any project skills already present under `.claude/skills/*/SKILL.md`.
 
 If an existing skill covers the subject, stay silent — surfacing the right

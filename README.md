@@ -36,17 +36,17 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~3.9k tokens | ~32 tokens | ~2.5k tokens |
-| `craft-suite` | 7 | ~2.6k tokens | — | — |
-| `quality-principles-suite` | 9 | ~2.2k tokens | — | ~127 tokens |
+| `taskmaster-suite` | 10 | ~4.0k tokens | ~32 tokens | ~2.5k tokens |
+| `craft-suite` | 6 | ~2.6k tokens | — | — |
 | `process-suite` | 10 | ~2.1k tokens | ~32 tokens | ~2.4k tokens |
+| `quality-principles-suite` | 8 | ~2.0k tokens | — | ~127 tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
-| `frontend-suite` | 4 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
+| `frontend-suite` | 3 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
 | `php-suite` | 2 | ~659 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 44 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 43 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -197,7 +197,6 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | **[design-preview](plugins/design-preview)** | renders 2–3 variants with the project's OWN components on its own dev server, zero edits to existing files, guaranteed cleanup | You need a real-fidelity visual decision in a Vite + React/Vue app |
 | **[shadcn-studio](plugins/shadcn-studio)** | a self-contained shadcn + Vite sandbox for interactive variants outside the work tree | Same decision, but the project is greenfield or not React |
 | **[registry-source](plugins/registry-source)** | MCP servers reading Aceternity / shadcn / Magic UI / ReUI registries live,every answer carrying its source URL, fetch date, stale flag | Installing a registry component — so the API comes from the registry, not from memory |
-| **[a11y](plugins/a11y)** | a WCAG 2.2 AA checklist (semantics, contrast, keyboard, focus, forms, media, ARIA) plus an `a11y-engineer` that applies fixes tagged with their criterion | Any markup change, and before any accessibility claim |
 
 **Using them.**
 
@@ -205,7 +204,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 /ui-ux:theme                  # create or restyle a colour theme, live preview URL
 /ui-ux:build                  # build or restyle a component/layout
 /ui-ux:review                 # audit markup and styles
-/a11y:audit                   # WCAG 2.2 AA, one line per violation with the fix
+/ui-ux:audit                   # WCAG 2.2 AA, one line per violation with the fix
 /craft-layer:craft            # the full studio pipeline, end to end
 /craft-layer:sections         # decide a page section by section, with you
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
