@@ -6,6 +6,16 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.8.7
+
+### Changed
+- **`tdd` names the tautology tell and the seam rule.** A test whose assertion
+  recomputes the expected value the way the code does passes by construction and
+  red-before-green never catches it; expected values come from an independent source.
+  The test list now names the seam each behavior is tested at, confirmed with the
+  user in ad-hoc work and taken from the card's `Verify` line in a taskmaster run.
+  Both drawn from a 2026-09-02 review of mattpocock/skills; unmeasured.
+
 ## 0.8.6
 
 ### Fixed

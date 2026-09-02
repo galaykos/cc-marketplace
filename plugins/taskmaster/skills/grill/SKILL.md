@@ -71,6 +71,9 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
 ## Question mechanics
 
 - Batch through `AskUserQuestion`: up to 4 questions per round, each single-topic.
+  A question whose answer depends on another question still open in this round
+  belongs to a LATER round — ask the unblocked frontier, then what it unlocks
+  (agent-graded; the ledger lint cannot see round order).
   Multiple-choice beats open-ended — options are answers the user only has to
   recognize, not compose. Put your recommended option first, labeled
   "(Recommended)", and use `multiSelect` when choices are not mutually exclusive.

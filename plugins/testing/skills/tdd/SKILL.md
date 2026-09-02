@@ -27,7 +27,11 @@ testing-best-practices; this skill is the workflow that produces the tests.
 A test never seen failing is unverified. It may pass vacuously — asserting
 nothing, asserting a tautology, exercising a mock instead of the code — and
 a vacuous test is worse than none, because it reports safety that does not
-exist. The failing run is the only direct evidence the test CAN fail, which
+exist. The tautology tell: the assertion recomputes the expected value the way
+the code does (`expect(total(items)).toBe(items.reduce(...))`), so it passes by
+construction and red-before-green never catches it — the test is red only while
+the function is unimplemented. Expected values come from an independent source: a
+known-good literal, a worked example, the spec. The failing run is the only direct evidence the test CAN fail, which
 is the only property that makes it worth keeping. Skipping red because "it
 obviously fails" discards the single observation the discipline exists to
 produce. Tests written after the implementation pass on their first run, so
@@ -61,7 +65,10 @@ Two hard lines:
 ## The test list
 
 Before the first test, jot the behaviors as a checklist: happy path, each
-validation rule, each boundary, each failure mode. That is the plan — burn
+validation rule, each boundary, each failure mode — and name the seam each one is
+tested at (the public boundary, not the helper you just wrote); in ad-hoc work
+confirm the seams with the user before the first test, and skip that confirmation
+when a task card's `Verify` line already fixes them. That is the plan — burn
 it down one cycle per line. Cases discovered mid-cycle are appended to the
 list, not folded into the current cycle; the test in front of you stays
 about one behavior. The list is done when it is empty and no behavior you

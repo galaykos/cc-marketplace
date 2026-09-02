@@ -80,7 +80,9 @@ the default branch is finished via the PR protocol, never a local merge.
    branch. Merging into a stale base produces a green merge that explodes on
    push.
 2. Merge the feature branch into the base; resolve conflicts in favor of
-   intent, not convenience.
+   intent, not convenience: read each side's commit messages, PR, and the issue it
+   closes before choosing, never invent behavior neither side had, and never
+   `--abort` to dodge a hunk — resolve, run the checks, finish.
 3. Re-run the FULL suite on the merged result. The pre-merge pass certified
    the branch against an old base; the merged tree is new code nobody has
    tested. Conflict resolutions are edits like any other.

@@ -71,7 +71,11 @@ disprove it, it is a mood, not a hypothesis.
 Then design the smallest experiment that can kill it: a log line at the
 suspect boundary, a debugger breakpoint, a five-line repro script, a query run
 by hand. An experiment is NOT a fix attempt — it changes your knowledge, not
-the code's behavior.
+the code's behavior. Tag every probe you add with one unique prefix for the
+investigation (`[DEBUG-a4f2]`): cleanup is then a single grep, and an untagged
+probe is the one that ships. Build loops against env vars so a credential stays in
+the environment, never in the transcript; quote only the response lines that carry
+the signal, not the headers.
 
 - Hypothesis survives → tighten it and test again until it is a diagnosis.
 - Hypothesis dies → progress. Form the next one from what the experiment
@@ -105,6 +109,8 @@ Verification is two-part, both mandatory:
 1. The ORIGINAL Phase 1 reproduction now passes — not a related test, not a
    re-description of it, the exact one.
 2. The full suite passes — the fix broke nothing else.
+3. `grep` for the investigation's `[DEBUG-…]` prefix returns nothing — every probe
+   is gone. Standing: recorded; no hook runs the grep, so a survivor is yours to find.
 
 Then the reproduction graduates into the suite as a permanent regression test.
 A bug that got in once has proven the road exists.
