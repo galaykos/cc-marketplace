@@ -36,7 +36,7 @@ own header warns about, found by `pc_prime_coverage` rather than by reading.
 
 | Signal | Prime |
 |---|---|
-| any `composer.json` or `package.json` | `packages:package-hygiene` |
+| any `composer.json` or `package.json` | `stack-scan:package-hygiene` |
 | a `tests/` directory, or any `*.test.*` / `*.spec.*` | `testing:testing-best-practices` |
 
 ## Data

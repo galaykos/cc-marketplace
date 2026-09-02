@@ -37,7 +37,7 @@ A row belongs here only if it passes both:
 
 ## Deliberate exclusions (near misses)
 
-- `packages` — moved OUT of core to `references/signals.md`, earned by the
+- `stack-scan` (package-hygiene, formerly the packages plugin) — moved OUT of core to `references/signals.md`, earned by the <!-- removed-ok -->
   presence of a `package.json` or `composer.json`. Its own description is
   "Composer/npm dependency hygiene", so it fails membership test 1: a Python or
   Go repo was auto-installing a plugin whose entire rubric is about two manifests

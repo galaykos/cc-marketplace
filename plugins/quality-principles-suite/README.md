@@ -57,7 +57,7 @@ text that was previously being evicted.
 - **debugging** — systematic root cause with evidence before any fix, plus `/debugging:debug`
 - **performance** — measure-first hotspot and cache-correctness review, plus `/performance:review`
 - **resilience** — timeouts, safe retries, degradation paths, plus the merged error-handling (catches, cause chains) and concurrency (races, idempotency, locks) disciplines: `/resilience:review`, `/resilience:error-review`, `/resilience:concurrency-review`
-- **packages** — composer/npm dependency hygiene and security-audit triage, plus `/packages:audit`
+- **stack-scan** — installed-stack inventory (`/stack-scan:report`) and composer/npm dependency hygiene with security-audit triage (`/stack-scan:audit`)
 - **observability** — structured logs, correlation IDs, metrics without cardinality bombs, plus `/observability:review`
 - **testing** — test pyramid, mocking boundaries, flaky-test causes, TDD workflow, plus `/testing:review` and `/testing:flake-hunt`
 

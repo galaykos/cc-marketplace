@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.8
+
+### Changed
+- **The two manifest routing rows and the primer name `stack-scan` as owner** of
+  `package-hygiene` (the packages plugin merged into stack-scan on 2026-09-02). <!-- removed-ok -->
+
 ## 0.14.7
 
 ### Changed

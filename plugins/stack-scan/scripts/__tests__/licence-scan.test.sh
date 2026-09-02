@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fixtures for plugins/packages/scripts/licence-scan.sh.
+# Fixtures for plugins/stack-scan/scripts/licence-scan.sh.
 #
 # The distribution-mode conditional is the whole reason this is a script and not a
 # paragraph, so it is asserted in BOTH directions on the SAME input: MPL-2.0 must
@@ -12,7 +12,7 @@
 # file is the evidence for the transitivity claim, so it is also the test.
 set -u
 cd "$(dirname "$0")/../../../.." || exit 1
-S=plugins/packages/scripts/licence-scan.sh
+S=plugins/stack-scan/scripts/licence-scan.sh
 rc=0
 FX=$(mktemp -d); trap 'rm -rf "$FX"' EXIT
 

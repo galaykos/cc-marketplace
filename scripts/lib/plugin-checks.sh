@@ -440,7 +440,7 @@ pc_removed_refs() {
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
   # shapes in $shapes are deliberately NOT applied: `vite` and `react-native` are npm
   # package names the surviving skills must keep naming in prose.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env'
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # task-orchestration added 2026-08-21: merged into plan-before-code, which
   # already produced the file map its dependency edges were derived from. Its

@@ -1,7 +1,7 @@
 {
   "name": "stack-scan",
-  "version": "0.5.5",
-  "description": "Inventory the project's actual stack: manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints, docker images. Reports required vs installed versions and flags drift, missing locks, and EOL majors.",
+  "version": "0.6.0",
+  "description": "Know what is actually installed, then keep it healthy: /stack-scan:report inventories manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged; /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene: semver strategy, lockfile discipline, upgrade lanes, licences against the distribution mode) — report-only. Whether to add a dependency at all is approaches' build-vs-buy.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

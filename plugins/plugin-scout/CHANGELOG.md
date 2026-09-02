@@ -7,6 +7,12 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.6
+
+### Changed
+- **The manifest-present signal suggests `stack-scan`**, which absorbed the packages <!-- removed-ok -->
+  plugin on 2026-09-02. Regenerated catalog.
+
 ## 0.13.5
 
 ### Changed

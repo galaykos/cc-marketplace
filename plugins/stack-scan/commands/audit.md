@@ -3,7 +3,7 @@ description: Audit composer/npm dependencies — vulnerabilities, outdated packa
 ---
 
 Audit the project's dependencies for vulnerabilities and outdated packages against
-the package-hygiene skill from this plugin. Invoke the skill first.
+the `package-hygiene` skill from this plugin. Invoke the skill first.
 
 Detect: check for `composer.json` and `package.json` at the project root. Determine
 the JS package manager from the lockfile present: package-lock.json → npm,

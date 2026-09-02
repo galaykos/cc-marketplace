@@ -2,7 +2,7 @@
 
 Consumer-facing changes only. Newest first.
 
-## 0.6.0
+## 0.6.1
 
 ### Added
 - **dev-env merged in.** `docker-best-practices` and `compose-init` are devops skills; <!-- removed-ok -->

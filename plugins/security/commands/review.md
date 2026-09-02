@@ -20,9 +20,9 @@ Before reporting, read the project manifests (composer.json / package.json and t
 lockfiles) and pin every finding to the installed versions — do not flag vulnerabilities
 the installed framework version already mitigates, and do not recommend APIs above it.
 When lockfiles are present, run `composer audit` / `npm audit` and fold known advisories
-into the findings — unless a `/packages:audit` report already exists in this session:
-cite its findings instead of re-running the same commands blind to it (the packages
-plugin owns dependency-audit DEPTH — outdated lanes, transitive chains; this review
+into the findings — unless a `/stack-scan:audit` report already exists in this session:
+cite its findings instead of re-running the same commands blind to it (stack-scan's
+package-hygiene owns dependency-audit DEPTH — outdated lanes, transitive chains; this review
 folds advisories into diff context). On a full audit, when the secret-scanning plugin
 is installed, also run `/secret-scanning:scan` over the scope and fold its hits in —
 its write-time hook cannot see secrets already committed, and this review's Secrets

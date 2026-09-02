@@ -72,7 +72,7 @@
     {
       "name": "stack-scan",
       "source": "./plugins/stack-scan",
-      "description": "Inventory the project's actual stack: manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints, docker images. Reports required vs installed versions and flags drift, missing locks, and EOL majors."
+      "description": "Know what is actually installed, then keep it healthy: /stack-scan:report inventories manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged; /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene: semver strategy, lockfile discipline, upgrade lanes, licences against the distribution mode) — report-only. Whether to add a dependency at all is approaches' build-vs-buy."
     },
     {
       "name": "plugin-scout",
@@ -155,11 +155,6 @@
       "description": "Failure-mode design for integration points — timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics — plus the merged error-handling and concurrency disciplines: catches and cause chains, check-then-act races, retry idempotency. Includes /resilience:review, /resilience:error-review, /resilience:concurrency-review."
     },
     {
-      "name": "packages",
-      "source": "./plugins/packages",
-      "description": "Composer/npm dependency hygiene: semver constraint strategy, lockfile discipline, security-audit triage, dependency-licence checks against the project's distribution mode, and patch/minor/major upgrade lanes. Managing deps already in the project — whether to add one is build-vs-buy's job."
-    },
-    {
       "name": "orchestration",
       "source": "./plugins/orchestration",
       "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared contract review commands route their fix lists through. Includes /orchestration:review."
@@ -217,7 +212,7 @@
     {
       "name": "quality-principles-suite",
       "source": "./plugins/quality-principles-suite",
-      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene, observability, and test design and coverage review. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, WCAG 2.2 AA accessibility, systematic debugging, measure-first performance, resilience with the merged error-handling and concurrency disciplines, dependency hygiene and stack inventory (stack-scan), observability, and test design and coverage review. Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "process-suite",

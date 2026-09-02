@@ -36,17 +36,17 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~3.8k tokens | ~32 tokens | ~2.5k tokens |
+| `taskmaster-suite` | 10 | ~3.9k tokens | ~32 tokens | ~2.5k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
-| `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
-| `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.4k tokens |
+| `quality-principles-suite` | 9 | ~2.2k tokens | — | ~127 tokens |
+| `process-suite` | 10 | ~2.1k tokens | ~32 tokens | ~2.4k tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
 | `frontend-suite` | 4 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 2 | ~659 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 45 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 44 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -251,7 +251,6 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 | **[performance](plugins/performance)** | measure-before-and-after, N+1, payload and bundle, Core Web Vitals, cache correctness (stampede, TTL, eviction), percentile load testing | Something is *measurably* slow — not suspected slow |
 | **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
 | **[observability](plugins/observability)** | structured logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace propagation, honest health checks | Before the incident, not during it |
-| **[packages](plugins/packages)** | semver constraint strategy, lockfile discipline, audit triage, upgrade lanes, plus a licence scanner | Dependency bumps, audit output, or a lockfile conflict |
 
 **Using them.**
 
@@ -271,7 +270,7 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 /resilience:error-review               # catch placement, cause chains
 /resilience:concurrency-review         # races, locking, retry idempotency
 /observability:review                  # logging and instrumentation gaps
-/packages:audit                        # vulnerabilities, outdated, licences
+/stack-scan:audit                      # vulnerabilities, outdated, licences
 ```
 
 **Worked example — a review that ends in applied fixes:**

@@ -106,8 +106,8 @@ glob	**/tests/**	testing-best-practices	testing	high
 glob	Dockerfile*	docker-best-practices	devops	high
 glob	docker-compose*.yml	docker-best-practices	devops	high
 glob	compose*.yml	docker-best-practices	devops	high
-glob	package.json	package-hygiene	packages	high
-glob	composer.json	package-hygiene	packages	high
+glob	package.json	package-hygiene	stack-scan	high
+glob	composer.json	package-hygiene	stack-scan	high
 glob	next.config.*	nextjs-best-practices	web-dev	high
 glob	vite.config.*	vite-best-practices	web-dev	high
 glob	app.config.*	react-native-best-practices	web-dev	high	package.json~"expo"

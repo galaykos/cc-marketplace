@@ -43,8 +43,8 @@
     [ -f "$cwd/$1" ] && grep -qE "$2" "$cwd/$1" 2>/dev/null
   }
 
-  [ -f "$cwd/composer.json" ] && add package-hygiene packages
-  [ -f "$cwd/package.json" ]  && add package-hygiene packages
+  [ -f "$cwd/composer.json" ] && add package-hygiene stack-scan
+  [ -f "$cwd/package.json" ]  && add package-hygiene stack-scan
   if has '*.sql' || has_dir migrations; then add sql-best-practices database; fi
   if has '*.tsx' || has '*.jsx'; then add a11y-audit a11y; fi
 

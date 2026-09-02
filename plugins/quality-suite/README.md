@@ -10,7 +10,7 @@ cleanly: `/quality-suite:uninstall` removes the bundle and prunes the plugins it
 auto-installed.
 
 The nine advisory disciplines this bundle used to carry — security, a11y,
-debugging, performance, resilience, packages, observability, approaches in 0.7.0,
+debugging, performance, resilience, packages (now stack-scan), observability, approaches in 0.7.0, <!-- removed-ok -->
 and testing in 0.9.0 (it ships no ENFORCEMENT hook — its PostToolUse hook is advisory) — moved to **quality-principles-suite**.
 They were never gates, and bundling them here meant a project wanting enforcement
 paid for their always-on description context too. Install both if you want what

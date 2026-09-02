@@ -2,6 +2,12 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.14
+
+### Changed
+- **`coding-entry`'s skill map primes `stack-scan:package-hygiene`** on any manifest;
+  the packages plugin merged into stack-scan on 2026-09-02. <!-- removed-ok -->
+
 ## 0.13.13
 
 ### Changed
