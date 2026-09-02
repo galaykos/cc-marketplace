@@ -119,3 +119,11 @@ scene keeps its geometry, material, and textures alive on the GPU:
   reuse scratch objects.
 - **React state per frame** — `setState` inside `useFrame`.
 - **Raw PNG texture pipelines** — no KTX2/Draco, VRAM and bundle both bloat.
+
+## Scope by model tier
+
+**All models** — every rule above: the revision gate, the WebGPU/WebGL choice, disposal.
+**Compensation (worker-tier)** — the resolve-revision → verify order in
+`/craft-layer:review` step 3, followed literally; a Fable-class session may compress it once
+the lockfile is read. **Skip** — a diff touching no scene, renderer, shader, loader or
+R3F component earns a one-line verdict.

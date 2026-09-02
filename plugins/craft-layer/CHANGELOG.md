@@ -7,6 +7,13 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.48.1
+
+### Added
+- **threejs merged in.** `threejs-best-practices` is a craft-layer skill and <!-- removed-ok -->
+  `/craft-layer:review` (chassis stack-review) is its review command; every in-plugin
+  path that pointed at the old plugin now points here. The skill body is unchanged.
+
 ## 0.47.12
 
 ### Changed

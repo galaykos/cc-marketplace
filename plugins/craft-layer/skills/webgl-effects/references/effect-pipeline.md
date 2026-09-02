@@ -1,7 +1,7 @@
 # Effect pipeline — postprocessing, uniforms, and the GLSL→TSL port
 
 Read on demand from the webgl-effects SKILL. Renderer/scene/R3F setup is NOT re-taught
-here — it lives in `plugins/threejs/skills/threejs-best-practices/SKILL.md`; lazy-load
+here — it lives in `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`; lazy-load
 and static-fallback rules live in
 `plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md`. This file is only the
 effect-layer how-to.

@@ -4,6 +4,12 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.19.2
+
+### Changed
+- `motion-best-practices` points Three.js work at craft-layer's `threejs-best-practices`;
+  the threejs plugin merged into craft-layer on 2026-09-02. <!-- removed-ok -->
+
 ## 0.19.0
 
 ### Added

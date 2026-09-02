@@ -37,7 +37,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.0k tokens | ~32 tokens | ~2.5k tokens |
-| `craft-suite` | 6 | ~2.6k tokens | — | — |
+| `craft-suite` | 5 | ~2.7k tokens | — | — |
 | `process-suite` | 10 | ~2.1k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 8 | ~2.0k tokens | — | ~127 tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
@@ -46,7 +46,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `php-suite` | 2 | ~659 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 43 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 42 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -142,7 +142,6 @@ lockfile rather than to the version the model happens to remember.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[laravel](plugins/laravel)** | Eloquent N+1 and eager loading, FormRequests, thin controllers, queued jobs, policies, the Laravel 11/12/13 map | Controllers, models, jobs, migrations — the daily Laravel surface |
-| **[threejs](plugins/threejs)** | WebGPU-first with WebGL2 fallback, TSL shaders, r3f/drei, glTF/Draco/KTX2, disposal discipline | 3D scenes, and any leak that only shows after ten route changes |
 | **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) behind one `/web-dev:review`, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
 
 **Using them.** Three entry points, in rising order of ceremony:

@@ -2,6 +2,12 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.10
+
+### Changed
+- **The Three.js content row names `craft-layer` as owner** of `threejs-best-practices`
+  (the threejs plugin merged into craft-layer on 2026-09-02). <!-- removed-ok -->
+
 ## 0.14.9
 
 ### Changed

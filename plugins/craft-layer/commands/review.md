@@ -1,5 +1,5 @@
 ---
-description: Review Three.js scene, renderer, or R3F code against threejs-best-practices
+description: Review Three.js / react-three-fiber code against threejs-best-practices — renderer choice, TSL, asset pipeline, disposal, render-loop cost — pinned to the locked three revision
 argument-hint: [files-or-diff]
 ---
 <!-- generated from templates/review-command.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
@@ -29,7 +29,7 @@ Review the target in $ARGUMENTS against this plugin's rubric — audit it, do no
    read the project manifests (dependency files and their lockfiles) and pin every
    finding to the installed version — do not flag what that version already solves, nor
    propose an API above it. When unsure of an API or behavior, verify against the
-   official docs for the pinned version (https://threejs.org/docs/) rather than answering from memory.
+   official docs for the pinned version (https://threejs.org/docs) rather than answering from memory.
 
 4. Report findings one line each, sorted by severity (critical, high, medium, low):
    `locator — severity — [CONFIRMED|PLAUSIBLE] problem — fix`. Mark a

@@ -216,7 +216,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | GSAP timelines | `plugins/ui-ux/skills/motion-best-practices/references/gsap.md` |
 | Spring/tween alternative (physics-motion references, to decide when NOT to use physics) | `plugins/ui-ux/skills/motion-best-practices` |
 | View Transitions API (page-transitions references it) | `plugins/ui-ux/skills/motion-best-practices` |
-| Three.js / R3F correctness (webgl-effects references it) | `plugins/threejs/skills/threejs-best-practices` |
+| Three.js / R3F correctness (webgl-effects references it) | `skills/threejs-best-practices` in this plugin, reviewed by `/craft-layer:review` |
 | One-writer-per-property (physics-motion references) | `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` |
 | RTL / BiDi base rules (the four-rule floor plus the motion decisions + LTR-islands) | `plugins/craft-layer/skills/motion-tiers/references/rtl-bidi.md` |
 | Option staging for guided builds — consent gate, ASCII + shell HTML mockups (section-decisions decides WHAT to ask, never how to draw it) | `plugins/taskmaster/skills/visual-decisions` |
@@ -229,8 +229,8 @@ craft-layer **references, never re-teaches**, these existing skills:
 
 ## Install
 
-Ships in the **craft-suite** bundle alongside `ui-ux`, `threejs`, `design-preview`,
-`shadcn-studio`, and `a11y` — which is the recommended install, because two of those are not
+Ships in the **craft-suite** bundle alongside `ui-ux`, `design-preview`, and
+`shadcn-studio` — which is the recommended install, because one of those is not
 optional in practice:
 
 - **`ui-ux` — required.** craft-layer writes no build logic itself; `/ui-ux:theme` owns token

@@ -53,8 +53,6 @@ One bullet per bundled plugin, in dependency order (7):
   shadcn, Magic UI, ReUI) so sourcing reads the source, never memory
 - **shadcn-studio** — self-contained shadcn + Vite sandbox for staging
   interactive component variants, via `/shadcn-studio:stage`
-- **threejs** — WebGPU-first Three.js review, TSL shaders, R3F/drei, asset
-  pipelines, disposal discipline, plus `/threejs:review`
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Tailwind)
   plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
 

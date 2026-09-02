@@ -30,7 +30,7 @@ surface. Record the scoring so the craft audit can check the choice.
    format-axis failure even if it is free and permissively licensed.
 4. **Perf / bundle** — the shipped weight and runtime cost. This axis REUSES the
    existing budgets — sprite/webgl weight and the Tier-3 poly/texture budget in
-   `plugins/threejs/skills/threejs-best-practices/SKILL.md`, imagery/icon/font weight in
+   `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`, imagery/icon/font weight in
    `/performance:review`. No new byte numbers are invented here; a source that cannot
    meet the kind's existing budget fails this axis.
 5. **Fidelity** — does the asset meet the award-grade quality bar for the surface

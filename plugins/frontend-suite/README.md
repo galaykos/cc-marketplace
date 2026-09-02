@@ -4,7 +4,7 @@ Meta-bundle: the frontend stack category in one install — UI/UX stacks,
 web-dev (Next.js, React Native and Vite skills behind `/web-dev:review`, the
 generalist worker and the opus-floored frontend-reviewer), file-aware skill
 auto-routing, and the WCAG audit inside ui-ux. Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-preview,
-shadcn-studio, registry-source, threejs) moved to the craft-suite bundle, so
+shadcn-studio, registry-source) moved to the craft-suite bundle, so
 ordinary frontend app work does not pay the studio's always-on context.
 Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and
 prunes the plugins it auto-installed.
@@ -37,7 +37,7 @@ One bullet per bundled plugin, in dependency order (3):
 
 - **craft-suite** — the creative-build studio half: craft-layer's design
   pipeline and motion catalog, design-preview, shadcn-studio,
-  registry-source, threejs
+  registry-source
 - **laravel** — the backend that Inertia frontends sit on
 - **performance** — hotspot and cache-correctness review beyond the UI layer
 - **testing** — test review for the components these stacks produce

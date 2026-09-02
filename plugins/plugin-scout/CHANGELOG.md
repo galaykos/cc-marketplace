@@ -7,6 +7,12 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.7
+
+### Changed
+- Regenerated catalog: ui-ux, craft-layer, craft-suite, frontend-suite, quality-principles-suite
+  descriptions after the a11y and threejs merges (2026-09-02). <!-- removed-ok -->
+
 ## 0.13.6
 
 ### Changed

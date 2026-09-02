@@ -122,5 +122,5 @@ content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resili
 content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|\bspan\b)\b	observability-design	observability	low
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
 content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	payments	payments	low
-content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	threejs	low
+content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	craft-layer	low
 content	(\bmessages\.create\b|\bchat\.completions\b|\bembeddings\.create\b|\bgenerateText\()	llm-app	llm-app	low

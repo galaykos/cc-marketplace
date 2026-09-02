@@ -15,7 +15,7 @@ jobs belong to neighbours:
 - Lottie-vs-Rive vector-motion playback + budget:
   `plugins/craft-layer/skills/motion-tiers/references/vector.md`.
 - Three.js / R3F 3D correctness and the Tier-3 poly/texture budget:
-  `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
+  `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`.
 - Token / `currentColor` theming of an asset:
   `plugins/ui-ux/skills/design-tokens/SKILL.md`.
 - Typeface-as-motion and variable-font selection:

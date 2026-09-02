@@ -19,7 +19,7 @@ Library idioms are NOT repeated here. This is the DECISION table only:
 
 - Motion / GSAP / anime.js API: `plugins/ui-ux/skills/motion-best-practices/SKILL.md`
   (+ `plugins/ui-ux/skills/motion-best-practices/references/animejs.md`).
-- Three.js / R3F correctness: `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
+- Three.js / R3F correctness: `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`.
 - Sprite-sheet authoring: `sprite.md`.
 
 ## A tier is named for the job, not the package that currently does it
