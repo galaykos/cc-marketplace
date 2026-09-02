@@ -34,7 +34,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | `payments` | key name only — never read the value |
 | dep `three` or `@react-three/fiber` | `craft-layer` | |
 | `tailwind.config.*`, `components.json`, or dep `tailwindcss` | `ui-ux` | |
-| `components.json` carrying a `registries` or `aliases` key | `registry-source` | the same file also earns `ui-ux`; both are correct |
+| `components.json` carrying a `registries` or `aliases` key | `design-lab` | the same file also earns `ui-ux`; both are correct |
 | devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `ui-ux` | the dep, not the presence of `.tsx` — every React repo has those |
 | `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
@@ -44,7 +44,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | `stack-scan` | the version-truth plugin is the ONE always-right answer for a stack this marketplace does not cover |
 | `.claude-plugin/plugin.json` or `.claude-plugin/marketplace.json` | `claude-authoring` | the repo SHIPS Claude Code artifacts, which is what this plugin's rubric is about. Deliberately not `.claude/` — that directory means the repo *uses* Claude Code, which is not the same claim and would fire nearly everywhere |
 | dep `prisma`, `@prisma/client`, `typeorm`, `sequelize`, `mongoose`, `drizzle-orm`; or composer require `doctrine/orm`; or `**/migrations/**` | `database` | the schema/migration/pooling half, and it ships a PreToolUse guard. The `sql` row above fires on some of the same evidence and owns statements; `references/picker.md` already pairs the two as overlapping, so both rows firing is correct, not a duplicate |
-| `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `shadcn-studio` | the sandbox is for staging new components against a shadcn setup that already exists; `components.json` alone also earns `ui-ux` and possibly `registry-source`, and all three are correct together |
+| `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `design-lab` | the sandbox is for staging new components against a shadcn setup that already exists; `components.json` alone also earns `ui-ux` and possibly `registry-source`, and all three are correct together |
 | devDep `lighthouse`, `@lhci/cli`, `k6`, `artillery`, `autocannon`, or dep `web-vitals` | `resilience` | a measurement tool already in the manifest is someone having decided performance is a concern here |
 | dep `p-retry`, `cockatiel`, `opossum`, `bullmq`, `bull`; or composer require `laravel/horizon` | `resilience` | retry/breaker/queue libraries are integration points with failure modes, which is the whole subject |
 | any of the above **plus** no tier-1 hit | also `vercel-skills-scout` | say so explicitly: this marketplace has no plugin for that stack, and the scout for third-party skills is the intended next step |

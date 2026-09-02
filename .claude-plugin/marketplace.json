@@ -20,11 +20,6 @@
       "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, and ultra-craft escalates a run with live web research and a red-team of the result. Ships the Three.js/R3F skill (WebGPU-first, TSL, asset pipelines, disposal) behind /craft-layer:review. Requires ui-ux, which carries the WCAG audit."
     },
     {
-      "name": "registry-source",
-      "source": "./plugins/registry-source",
-      "description": "Read component registries from the source, never from memory. Ships two MCP servers: a dependency-free local one with live list/search/get across Aceternity, shadcn and Magic UI — 24h-cached, every answer carrying its source URL, fetch date and a stale flag — plus ReUI's own hosted server, so installing the plugin delivers it. Flags components pulling a 3D/particle runtime so bundle cost is known before install. Never holds a licence key; ReUI auth is a browser sign-in the user completes."
-    },
-    {
       "name": "laravel",
       "source": "./plugins/laravel",
       "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with — behind one /laravel:review that loads Inertia when the manifests show it, plus the backend-engineer worker (PHP/Laravel) the review routes its fixes to."
@@ -38,16 +33,6 @@
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
       "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/)."
-    },
-    {
-      "name": "design-preview",
-      "source": "./plugins/design-preview",
-      "description": "Real-component visual decisions for Vite (React or Vue/Nuxt) and Laravel Blade/Livewire projects: renders 2-3 candidate variants with the project's OWN components on its own dev server, on a scratch surface removed at cleanup, behind a strict consent gate. The Vite path adds an extra HTML entry and touches no existing file; the Laravel path also adds one marked line to routes/web.php, named in the consent gate first. Escalation tier above static shell mockups — falls back to them when neither stack is detected. Includes /design-preview:preview."
-    },
-    {
-      "name": "shadcn-studio",
-      "source": "./plugins/shadcn-studio",
-      "description": "Greenfield interactive shadcn staging: stands up a self-contained shadcn + Vite (Tailwind v4) sandbox on its own dev server and renders agent-authored component variants side by side — real interactivity (sort/filter/dialog), not static HTML. For idea-stage / non-React work where design-preview cannot run (no host Vite+React app). Consent-gated, scratch outside the work tree, verified cleanup, static-shell fallback. Includes /shadcn-studio:stage."
     },
     {
       "name": "git-workflow",
@@ -162,22 +147,17 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, and skill auto-routing (skill-router). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill), design-preview, shadcn-studio, registry-source — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, and skill auto-routing (skill-router). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
-      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components (design-preview), a shadcn staging sandbox (shadcn-studio), and live component-registry MCP sourcing (registry-source) — WebGL/Three.js effects now ship inside craft-layer — plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components, a shadcn staging sandbox, and live component-registry MCP sourcing (design-lab) — WebGL/Three.js effects now ship inside craft-layer — plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "php-suite",
       "source": "./plugins/php-suite",
       "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill behind one /laravel:review, plus the backend-engineer worker) and web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler via /web-dev:review). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
-    },
-    {
-      "name": "product-suite",
-      "source": "./plugins/product-suite",
-      "description": "Meta-bundle: the product-domain disciplines in one install — payments and billing (idempotent webhooks, money handling, ledgers) and LLM application engineering (evals, RAG, prompt-injection defense). Uninstall cleanly with /product-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "quality-suite",
@@ -243,6 +223,11 @@
       "name": "terse",
       "source": "./plugins/terse",
       "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker."
+    },
+    {
+      "name": "design-lab",
+      "source": "./plugins/design-lab",
+      "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate); /design-lab:stage stands up a self-contained shadcn + Vite (Tailwind v4) sandbox for greenfield or non-React work with real interactivity; and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in."
     }
   ]
 }

@@ -9,7 +9,7 @@ Standing: recorded — the interactive vehicle for visual decisions a static moc
 cannot carry: real, clicking shadcn components from a sandbox the plugin ships, zero
 project scaffolding. Cheaper rungs first — layout, density, and flow feel stay in the
 taskmaster `visual-decisions` shell. Real components on an EXISTING app is
-`design-preview:real-preview`; this is its greenfield / non-React sibling. The engine
+`design-lab:real-preview`; this is its greenfield / non-React sibling. The engine
 renders whatever JSX the authoring agent writes, so layout and copy variants are both
 just variants; lanes, depth, and charts are a separate concern.
 
@@ -19,9 +19,9 @@ Decide the route BEFORE any consent or write:
 
 | Condition | Route |
 |-----------|-------|
-| Runnable Vite+React host (`vite.config.*`, `@vitejs/plugin-react`, `scripts.dev`, components present) | Defer to `design-preview:real-preview` |
+| Runnable Vite+React host (`vite.config.*`, `@vitejs/plugin-react`, `scripts.dev`, components present) | Defer to `design-lab:real-preview` |
 | Node absent, or below `20.19` (the Vite 8 floor) | Static-shell fallback (before any write) |
-| Empty/greenfield dir, or a non-React stack | shadcn-studio (this skill) |
+| Empty/greenfield dir, or a non-React stack | the studio (this skill) |
 
 Never `npm install` into the host to make a check pass. A too-old Node fails
 Vite/Tailwind boot later, so gate on the Vite floor (Node `20.19+`) up front,
@@ -89,7 +89,7 @@ Ordered:
 
 1. Kill studio's OWN Vite server first (release file handles) — only if this
    flow started it, identified by the `/__studio` marker.
-2. Delete via `bash ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh <scratch-dir>` —
+2. Delete via `bash ${CLAUDE_PLUGIN_ROOT}/scripts/studio-cleanup.sh <scratch-dir>` —
    it refuses anything that is not provably a studio tree (components.json +
    `/__studio` marker, never a git work tree) and aborts if :8124 still serves
    the marker. Fall back to manual deletion only if the script is unavailable.

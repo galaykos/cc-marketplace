@@ -37,16 +37,15 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.0k tokens | ~32 tokens | ~2.5k tokens |
-| `craft-suite` | 5 | ~2.7k tokens | — | — |
+| `craft-suite` | 3 | ~2.7k tokens | — | — |
 | `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.4k tokens |
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `frontend-suite` | 3 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
 | `php-suite` | 2 | ~659 tokens | — | — |
-| `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 38 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 36 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -83,7 +82,6 @@ that as an order-of-magnitude correction, never as a coefficient
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
 | **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
-| **[product-suite](plugins/product-suite)** | Payments and LLM-application engineering. |
 | **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, lean, routing, git discipline — on in every repo. |
 
 Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
@@ -192,10 +190,8 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Tailwind), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
+| **[design-lab](plugins/design-lab)** | `/design-lab:preview` renders 2–3 variants with the project's OWN components on its own dev server; `/design-lab:stage` does the same in a throwaway shadcn + Vite sandbox; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Seeing real components before a visual decision, and installing registry components from the source |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated |
-| **[design-preview](plugins/design-preview)** | renders 2–3 variants with the project's OWN components on its own dev server, zero edits to existing files, guaranteed cleanup | You need a real-fidelity visual decision in a Vite + React/Vue app |
-| **[shadcn-studio](plugins/shadcn-studio)** | a self-contained shadcn + Vite sandbox for interactive variants outside the work tree | Same decision, but the project is greenfield or not React |
-| **[registry-source](plugins/registry-source)** | MCP servers reading Aceternity / shadcn / Magic UI / ReUI registries live,every answer carrying its source URL, fetch date, stale flag | Installing a registry component — so the API comes from the registry, not from memory |
 
 **Using them.**
 
@@ -207,8 +203,8 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 /craft-layer:craft            # the full studio pipeline, end to end
 /craft-layer:sections         # decide a page section by section, with you
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
-/design-preview:preview       # variants rendered with your real components
-/shadcn-studio:stage          # variants in a throwaway shadcn sandbox
+/design-lab:preview       # variants rendered with your real components
+/design-lab:stage          # variants in a throwaway shadcn sandbox
 ```
 
 **Worked example — a landing page that must not look templated:**
@@ -226,12 +222,12 @@ that computes WCAG ratios from your token source.
 **Worked example — one component, real fidelity:**
 
 ```
-/design-preview:preview "three card treatments for the dashboard"
+/design-lab:preview "three card treatments for the dashboard"
 ```
 
 Renders three variants side by side using your own components, on a scratch
 entry that is deleted afterwards. In a non-React or greenfield repo,
-`/shadcn-studio:stage` does the same job in its own sandbox.
+`/design-lab:stage` does the same job in its own sandbox.
 
 ---
 
@@ -433,7 +429,6 @@ bill you did not agree to.
 | **[claude-authoring](plugins/claude-authoring)** | how to write skills, agents, commands, hooks and plugins — including the measured behaviour of `paths:` and `disable-model-invocation:` — plus scaffold commands and a routine-detector that offers to capture a repeating chore | You are writing a plugin, a project skill, or a hook |
 | **[plugin-scout](plugins/plugin-scout)** | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks | First session in a repo |
 | **[vercel-skills-scout](plugins/vercel-skills-scout)** | searches skills.sh — Vercel's open agent-skills directory — for third-party skills matching your stack, with provenance, previewing each before it lands | This marketplace has no plugin for what you need |
-| **[registry-source](plugins/registry-source)** | (also listed above) live component-registry MCP access | Installing registry components |
 
 ```bash
 /terse:level ultra          # set brevity; /terse:level off to stop

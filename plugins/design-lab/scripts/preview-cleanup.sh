@@ -23,14 +23,14 @@ list_hits() {
   # VCS internals and this plugin's own shipped files.
   { find . -path ./.git -prune -o -name "*${MARKER}*" -print 2>/dev/null
     grep -rIl --exclude-dir=.git --exclude-dir=node_modules -- "$MARKER" . 2>/dev/null
-  } | grep -v "plugins/design-preview" | sort -u
+  } | grep -v "plugins/design-lab" | sort -u
 }
 
 if [[ $verify_only -eq 0 ]]; then
   # Known artifact shapes from the skill: scratch HTML entries, scratch src dir,
   # Blade view, scratch route file.
   find . -path ./.git -prune -o -name "*${MARKER}*" -print 2>/dev/null \
-    | grep -v "plugins/design-preview" \
+    | grep -v "plugins/design-lab" \
     | while IFS= read -r p; do rm -rf "$p" && echo "removed: $p"; done
   # The one permitted touch of an existing file: the require/marker line in
   # routes/web.php (Laravel path).

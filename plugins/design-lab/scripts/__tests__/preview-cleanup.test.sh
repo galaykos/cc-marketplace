@@ -2,7 +2,7 @@
 # Fixture tests for cleanup.sh — builds a fake project tree with every scratch
 # artifact shape the skill names, proves removal + verification + the residual.
 set -u
-CLEAN="$(cd "$(dirname "$0")/.." && pwd)/cleanup.sh"
+CLEAN="$(cd "$(dirname "$0")/.." && pwd)/preview-cleanup.sh"
 pass=0; fail=0
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 

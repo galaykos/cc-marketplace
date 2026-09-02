@@ -87,7 +87,7 @@ several are near-core — `code-review` and `git-workflow` especially — but a
 bundle that cannot surface its own members' descriptions is not doing them a
 favour by listing them. Take the ones your work actually needs.
 
-Still excluded for the older reasons: **design-preview** and **shadcn-studio**
+Still excluded for the older reasons: **design-lab** (preview and studio)
 — the two optional full-fidelity escalations above taskmaster's built-in mockup
 preview, both "when installed" upgrades and stack-specific; **laravel** and the
 other stack plugins — stack-specific; **secret-scanning** — hook-heavy and

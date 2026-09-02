@@ -139,7 +139,7 @@ source; when the rubric moves, fix and re-date it here first.
   offers 2–3 structurally different treatments per section, and records the picks in a
   section ledger the build task carries and the audit checks for conformance. Owns the
   agenda, the rounds, and the ledger; routes all option-drawing to `taskmaster:visual-decisions`,
-  `/design-preview:preview`, `/shadcn-studio:stage` and `/ui-ux:theme`, each optional.
+  `/design-lab:preview`, `/design-lab:stage` and `/ui-ux:theme`, each optional.
 - **design-research** — a repeatable method to mine reference designs and patterns and
   emit briefs in the exact form `/ui-ux:theme` and `/ui-ux:build` consume.
 - **theming-system** — MOVED to the `ui-ux` plugin (2026-07-27); it sits beside
@@ -220,7 +220,7 @@ craft-layer **references, never re-teaches**, these existing skills:
 | One-writer-per-property (physics-motion references) | `plugins/craft-layer/skills/motion-tiers/references/gotchas.md` |
 | RTL / BiDi base rules (the four-rule floor plus the motion decisions + LTR-islands) | `plugins/craft-layer/skills/motion-tiers/references/rtl-bidi.md` |
 | Option staging for guided builds — consent gate, ASCII + shell HTML mockups (section-decisions decides WHAT to ask, never how to draw it) | `plugins/taskmaster/skills/visual-decisions` |
-| Real-component option previews on a live server | `/design-preview:preview`, `/shadcn-studio:stage` |
+| Real-component option previews on a live server | `/design-lab:preview`, `/design-lab:stage` |
 | Validating the ASSEMBLED page after the section picks | `plugins/taskmaster/skills/experience-walkthrough` |
 | Requirement clarification into a spec + cards (section-decisions consumes a spec, never re-interrogates it) | `plugins/taskmaster` |
 | Full WCAG accessibility (craft checks only accent-vs-surface contrast itself) | `/ui-ux:audit` |
@@ -229,9 +229,8 @@ craft-layer **references, never re-teaches**, these existing skills:
 
 ## Install
 
-Ships in the **craft-suite** bundle alongside `ui-ux`, `design-preview`, and
-`shadcn-studio` — which is the recommended install, because one of those is not
-optional in practice:
+Ships in the **craft-suite** bundle alongside `ui-ux` and `design-lab` — which is
+the recommended install, because one of those is not optional in practice:
 
 - **`ui-ux` — required.** craft-layer writes no build logic itself; `/ui-ux:theme` owns token
   generation (step 2) and `/ui-ux:build` owns the build (step 6). Without it the chain has no
@@ -241,6 +240,6 @@ optional in practice:
   itself.
 - **`resilience` (performance review) — genuinely optional.** `/resilience:performance-review` is explicitly skipped when the
   plugin is absent.
-- **`taskmaster`, `design-preview`, `shadcn-studio` — optional.** They stage guided-mode
+- **`taskmaster`, `design-lab` — optional.** They stage guided-mode
   options at higher fidelity; without them decisions degrade to written multiple-choice and
   every gate still runs.

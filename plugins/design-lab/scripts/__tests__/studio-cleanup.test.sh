@@ -2,7 +2,7 @@
 # Fixture tests for cleanup.sh — deletion happens only on a provable scratch
 # tree; every refusal path proven.
 set -u
-CLEAN="$(cd "$(dirname "$0")/.." && pwd)/cleanup.sh"
+CLEAN="$(cd "$(dirname "$0")/.." && pwd)/studio-cleanup.sh"
 pass=0; fail=0
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 

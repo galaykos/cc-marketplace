@@ -47,12 +47,10 @@ One bullet per bundled plugin, in dependency order (7):
 
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
-- **design-preview** — visual decisions rendered with the project's OWN
-  components on its own dev server, via `/design-preview:preview`
-- **registry-source** — live component-registry MCP servers (Aceternity,
-  shadcn, Magic UI, ReUI) so sourcing reads the source, never memory
-- **shadcn-studio** — self-contained shadcn + Vite sandbox for staging
-  interactive component variants, via `/shadcn-studio:stage`
+- **design-lab** — visual decisions rendered with the project's OWN components
+  (`/design-lab:preview`), a self-contained shadcn + Vite sandbox for interactive
+  variants (`/design-lab:stage`), and live component-registry MCP servers
+  (Aceternity, shadcn, Magic UI local; ReUI hosted)
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Tailwind)
   plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
 

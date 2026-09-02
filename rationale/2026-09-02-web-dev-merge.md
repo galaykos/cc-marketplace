@@ -1,4 +1,4 @@
-# web-dev absorbs nextjs, react-native, vite — 2026-09-02
+# Consolidation: 52 leaf plugins to 36 — 2026-09-02
 
 **Standing: `recorded`.** Nothing reads this file back. It records why the first
 consolidation merge took the shape it did, so the next merge can copy the shape
@@ -91,3 +91,67 @@ here), and the Fable 5.1 harness-design rules (belong to `llm-app`).
   skills fire; it cannot show whether the Opus verdict was better.
 - The next merges in the queue (database ← sql + mariadb, devops ← dev-env,
   ui-ux ← a11y, …) should copy the shape here and not the wording.
+
+
+## The full run, same day
+
+The web-dev merge above was the shape; the rest of the queue was run the same way,
+one commit per merge, four gates green after each, the full smoke set at the
+checkpoints. Result: **36 leaf plugins (from 52), 8 bundles (from 10)**.
+
+| Keeper | Absorbed | Commands now |
+|---|---|---|
+| `web-dev` | nextjs, react-native, vite | `/web-dev:review` |
+| `laravel` | inertia | `/laravel:review` (loads Inertia when the manifests show it) |
+| `database` | sql, mariadb (+ `db-suite` removed) | `/database:review` (dialect skill only on MariaDB) |
+| `devops` | dev-env | `/devops:review`, `/devops:init` |
+| `stack-scan` | packages | `/stack-scan:report`, `/stack-scan:audit` |
+| `ui-ux` | a11y | `/ui-ux:audit` + `a11y-engineer` |
+| `craft-layer` | threejs | `/craft-layer:review` (chassis stack-review) |
+| `api-design` | api-docs-first | `/api-design:check`, `/api-design:drift` + the reminder hook |
+| `resilience` | observability, performance | five audits, two workers; routing tags resolve here |
+| `code-review` | comment-discipline | `/code-review:comment-review` + three write-time hooks |
+| `design-lab` (new) | design-preview, shadcn-studio, registry-source (+ `product-suite` removed) | `/design-lab:preview`, `/design-lab:stage`, two MCP servers |
+
+Every absorbed skill kept its name, so `skill-router` rows, `coding-entry`'s skill map,
+and the card `Skills to apply` vocabulary changed only in the owning-plugin column.
+The removed-reference guard (`pc_removed_refs`) learned every moved name in its
+plugin forms only, with a boundary that keeps package names (`vite`,
+`react-native`, `@inertiajs/vite plugin`) legal.
+
+### Bundle cost, measured
+
+Merging does not change listing cost when both plugins were already in a bundle
+(entries are per skill and command). It does when a keeper sits in a bundle the
+absorbed plugin did not: `stack-scan` carried `package-hygiene` into
+`process-suite` and `taskmaster-suite` (+124 always-on tokens each), `api-design`
+carried the docs-first check into `process-suite` (+178), and `ui-ux` carried the
+WCAG audit into `taskmaster-suite` (+153). Each was accepted and hand-applied to the
+baselines with the arithmetic cross-checked against the absorbed plugin's old number.
+
+### Not merged, and the measured or recorded reason
+
+| Proposed | Reason it stays |
+|---|---|
+| `plugin-scout` ← vercel-skills-scout | Measured, then reverted: plugin-scout ships in `always-on-suite`, and the merge pushed that bundle over the 6,000-char floor listing budget (6,388) and +147 always-on tokens. The baseline bundle is the one that must stay under the floor. |
+| `terse` ← candor + lean | `quality-suite` carries candor and lean but not terse; any host puts terse's 848-token surface (plus its SessionStart and UserPromptSubmit hooks) into the enforcement bundle that deliberately does not carry it. Also rejected once before (`rationale/distillation-2026-08-23.md`). |
+| new `guards` ← secret-scanning + command-guard | `always-on-suite`'s README records rule 3, "adds no interruption you did not ask for", as the rule that removed command-guard from the baseline: its `ask` tier converts a silent host judgement into a permission click on every prompt. A merged plugin would put that tier back. |
+| `brain` ← hindsight | hindsight is in `always-on-suite`; brain is not, and its SessionStart primer would join the baseline at the listing floor. Same floor argument as vercel-skills-scout. |
+| `debugging` ← fresh-take | fresh-take's README: "standalone by design — its reminder hook and stronger-model consultant are deliberate opt-ins a bundle would install silently." debugging ships in `quality-principles-suite`. |
+| `orchestration` ← ultra-deep-research | Same recorded standalone reason, and craft-layer's `moves-taxonomy.md` depends on it NEVER being a declared dependency (a declared dependency would make craft-layer a bundle). |
+| `code-architecture` ← approaches | code-architecture is in `quality-suite` (enforcing), approaches in `quality-principles-suite` (advisory); the merge crosses the split those two bundles exist for. |
+
+The pattern in the table: a merge is safe when the two plugins already travel
+together; it is a bundle-composition change when they do not, and this marketplace
+has recorded reasons for most of those compositions. Fewer plugins is the goal;
+silently widening the user-scope baseline is not the price.
+
+### Also in this run
+
+Five rules adopted from a review of `mattpocock/skills` (commit `98d09c6`): tagged
+debug probes with a grep-away cleanup step and credentials kept out of the
+transcript (`debugging`), the frontier rule for question rounds (`grill`), the
+tautology tell and named seams (`tdd`), and conflict resolution from each side's
+intent with no `--abort` (`git-workflow`). All recorded, none measured; the
+reviewer's full inventory, overlap table and the seven contradictions with local
+doctrine are not reproduced here.

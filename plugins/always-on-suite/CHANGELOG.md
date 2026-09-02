@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2
+
+### Changed
+- README only: the exclusion notes name code-review's comment-discipline lane where they
+  named the comment-discipline plugin (merged into code-review, 2026-09-02). Membership <!-- removed-ok -->
+  and cost unchanged.
+
 ## 0.2.1
 
 ### Changed

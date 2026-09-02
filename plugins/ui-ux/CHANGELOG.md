@@ -4,6 +4,13 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.19.3
+
+### Changed
+- Registry and preview hand-offs name design-lab (`/design-lab:preview`, `/design-lab:stage`,
+  its `registry-source` MCP); design-preview, shadcn-studio and registry-source merged <!-- removed-ok -->
+  into it on 2026-09-02.
+
 ## 0.19.2
 
 ### Changed

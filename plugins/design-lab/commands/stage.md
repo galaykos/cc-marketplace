@@ -8,16 +8,16 @@ needs deciding first). Invoke the `studio` skill from this plugin and follow it
 exactly.
 
 1. Detect and route per the skill's table. Host is already a runnable Vite+React
-   app → defer to `design-preview:real-preview` (renders the project's own
+   app → defer to `design-lab:real-preview` (renders the project's own
    components). Node below `20.19` (the Vite floor) or absent → static-shell fallback, before any
-   write. Otherwise (empty/greenfield dir, or a non-React stack) → shadcn-studio.
+   write. Otherwise (empty/greenfield dir, or a non-React stack) → the studio.
 2. Ask the strict consent gate, naming the resolved scratch path actually taken
    (outside the work tree by default), the `npm ci` + `vite dev` commands, and
    the port. Declined → static-shell fallback.
 3. Provision once per session (stale recovery → copy template → isolated
    `npm ci` → `vite dev` on the dedicated port); author `src/variants/*.tsx` as
    real shadcn JSX with realistic data; hand over the resolved URL. Variants
-   built on ReUI or Aceternity components: query the registry-source plugin's
+   built on ReUI or Aceternity components: query this plugin's registry-source MCP
    MCP tools (`registry_search` / `registry_get`, via ToolSearch) for real
    current names and props before authoring — never recite a component API
    from memory; without the tools, verify against the live docs URL.

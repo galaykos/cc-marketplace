@@ -7,6 +7,13 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.11
+
+### Changed
+- The registry and shadcn-sandbox signal rows suggest `design-lab`; the `ui-ux` overlap pair
+  names it. design-preview, shadcn-studio and registry-source merged on 2026-09-02. <!-- removed-ok -->
+  Regenerated catalog.
+
 ## 0.13.10
 
 ### Changed

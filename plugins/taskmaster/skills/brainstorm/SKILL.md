@@ -70,8 +70,8 @@ already answered (shell = "Full mockups", ASCII = "Quick ASCII only", never
 
 | Decision | Tier |
 |----------|------|
-| Design, runnable Vite+React host | design-preview (real components) |
-| Design, greenfield/non-React, interactivity matters | shadcn-studio sandbox |
+| Design, runnable Vite+React host | design-lab preview (real components) |
+| Design, greenfield/non-React, interactivity matters | design-lab studio sandbox |
 | Design, structure/density/flow only | visual-decisions shell |
 | Design, trivial layout | ASCII wireframe |
 | Creative/concept | interactive tier only, else describe-only |

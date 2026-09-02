@@ -59,7 +59,7 @@ with a fresher stamp on it. A count in a static file is a count that will be
 wrong; the registry index is the only thing that knows.
 
 Get it live instead. `registry_list({registry:"aceternity"})` from the
-`registry-source` plugin returns the current inventory with per-item
+`design-lab` plugin's registry-source MCP returns the current inventory with per-item
 dependencies and a `heavy` flag for anything pulling a 3D/particle runtime —
 which also prices a block's bundle cost before it is installed. Without that
 plugin, `https://ui.aceternity.com/registry.json` is the same data raw.

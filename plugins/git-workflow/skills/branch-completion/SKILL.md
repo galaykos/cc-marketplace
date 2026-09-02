@@ -36,7 +36,7 @@ the set depends on the base (see "The default branch is PR-only" below).
 For a large or many-session branch, offer one optional artifact before the
 destination ask: a change explainer — what changed, why, decisions and
 deviations — for a reviewer who saw none of the work (HTML on the
-design-preview pattern when installed, else markdown). Offer, never default:
+design-lab preview pattern when installed, else markdown). Offer, never default:
 small branches don't earn the ceremony. For a
 feature whose base is NOT the default branch, offer all four: merge locally,
 push and open a PR, keep the branch open, discard the work. When the base IS

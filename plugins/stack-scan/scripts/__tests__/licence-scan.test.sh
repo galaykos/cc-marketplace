@@ -83,7 +83,7 @@ printf '{"packages":[{"name":"a/b","license":["MIT"]},{"name":"c/d","license":["
 ec "composer.lock array licences are read"       2 --dir "$FX/php" --distribution saas
 
 # --- transitivity, on real in-repo data -------------------------------------
-REAL=plugins/shadcn-studio/template
+REAL=plugins/design-lab/template
 if [ -f "$REAL/package-lock.json" ]; then
   ec "real lockfile: clean for saas"                   0 --dir "$REAL" --distribution saas
   ec "real lockfile: MPL denied for a binary"          2 --dir "$REAL" --distribution distributed-binary

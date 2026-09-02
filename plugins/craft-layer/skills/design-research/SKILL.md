@@ -98,7 +98,7 @@ must describe one product, not two.
 
 A brief encodes a decision. When the decision is still open — two layout directions, two
 motion energies — stage it before committing. Route the undecided fork to
-`/design-preview:preview` (its `[decision-description]` argument), which renders the
+`/design-lab:preview` (its `[decision-description]` argument), which renders the
 options with the project's own components. Decided direction goes straight to the briefs;
 only genuinely open questions preview.
 

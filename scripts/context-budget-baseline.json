@@ -12,7 +12,6 @@
   "craft-suite": 2675,
   "database": 257,
   "debugging": 144,
-  "design-preview": 111,
   "devops": 368,
   "fresh-take": 125,
   "frontend-suite": 1168,
@@ -26,14 +25,11 @@
   "php-suite": 659,
   "plugin-scout": 156,
   "process-suite": 2290,
-  "product-suite": 254,
   "quality-principles-suite": 2025,
   "quality-suite": 1312,
-  "registry-source": 475,
   "resilience": 591,
   "secret-scanning": 81,
   "security": 299,
-  "shadcn-studio": 152,
   "skill-router": 0,
   "stack-scan": 208,
   "system-design": 311,
@@ -45,5 +41,6 @@
   "ui-ux": 739,
   "ultra-deep-research": 223,
   "vercel-skills-scout": 147,
-  "web-dev": 360
+  "web-dev": 360,
+  "design-lab": 738
 }

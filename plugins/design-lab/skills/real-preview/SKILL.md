@@ -131,7 +131,7 @@ pipeline, record the pick as a CLEAR ledger row with
 
 A preview that leaves files behind is a failed run, whatever was picked:
 
-1. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/cleanup.sh <project-root>` at the
+1. Run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview-cleanup.sh <project-root>` at the
    pick, on abort, and on fallback alike — it removes every `__design-preview__`
    artifact, strips the marker line from `routes/web.php`, and exits non-zero
    if anything remains. `--verify` is the search-only mode.

@@ -272,7 +272,7 @@ Cite the one that answers the question being asked.
 **Enumerate, then pick.** Before the class decision in "The four classes" runs for a
 surface, the run needs the registry's actual index in front of it, not its memory of one:
 
-- **The `registry-source` plugin in this marketplace exists for exactly this step.** Install
+- **The `design-lab` plugin's registry-source MCP in this marketplace exists for exactly this step.** Install
   it and `registry_list` / `registry_search` / `registry_get` answer from the registries'
   own indexes, cached 24h, with the source URL, fetch date and a `stale` flag on every
   answer — plus a `heavy` flag naming anything that would pull a 3D/particle runtime. It
