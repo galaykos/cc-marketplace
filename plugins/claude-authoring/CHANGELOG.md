@@ -1,5 +1,11 @@
 # Changelog — claude-authoring
 
+## 0.13.3
+
+### Changed
+- `authoring-hooks` cites api-design as the hook-bearing example where it cited <!-- removed-ok -->
+  api-docs-first (merged 2026-09-02).
+
 ## 0.13.2
 
 ### Changed

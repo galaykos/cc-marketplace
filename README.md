@@ -38,7 +38,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.0k tokens | ~32 tokens | ~2.5k tokens |
 | `craft-suite` | 5 | ~2.7k tokens | — | — |
-| `process-suite` | 10 | ~2.1k tokens | ~32 tokens | ~2.4k tokens |
+| `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 8 | ~2.0k tokens | — | ~127 tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
@@ -46,7 +46,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `php-suite` | 2 | ~659 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 42 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 41 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -311,7 +311,6 @@ grant stays granted on your terms.
 |--------|-----------------|-------------------|
 | **[system-design](plugins/system-design)** | service boundaries from data ownership, scaling paths, cache placement, sync vs async and its failure modes, single points of failure — plus domain modeling (bounded contexts, aggregates) and event-driven design (delivery semantics, outbox, sagas, DLQ) | The question is topology, not code: what service owns what, and what happens when the queue is down |
 | **[api-design](plugins/api-design)** | resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning, `Idempotency-Key`, Laravel `apiResource` mapping — plus GraphQL/gRPC (DataLoader, resolver authz, depth limits, proto field-number safety) | Designing or reviewing an API you own |
-| **[api-docs-first](plugins/api-docs-first)** | verify current official docs before writing integration code — no accessible docs, stop and ask — plus a drift scan for your own docs after a change | Calling someone else's SDK, and after any change that made your README a lie |
 
 **Using them.**
 
@@ -319,14 +318,14 @@ grant stays granted on your terms.
 /system-design:review              # boundaries, ownership, scaling, async failure modes
 /api-design:review                 # routes, controllers, or an OpenAPI spec
 /api-design:scaffold               # spec-first: OpenAPI → Laravel routes/FormRequests/Resources
-/api-docs-first:check              # do current docs back the integration you are about to write?
-/api-docs-first:drift              # README claims, changelog gaps, stale examples, dead links
+/api-design:check                  # do current docs back the integration you are about to write?
+/api-design:drift                  # README claims, changelog gaps, stale examples, dead links
 ```
 
 **Worked example — a new integration:**
 
 ```
-/api-docs-first:check stripe subscriptions
+/api-design:check stripe subscriptions
 # → verifies the current SDK surface before a line is written
 /payments:review                   # then the domain rules: idempotency, money, webhooks
 ```

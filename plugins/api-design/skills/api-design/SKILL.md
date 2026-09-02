@@ -1,6 +1,6 @@
 ---
 name: api-design
-description: Use when designing or reviewing your own REST APIs — resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning and breaking changes, Idempotency-Key, Laravel apiResource/FormRequest mapping. Consuming third-party API docs lives in api-docs-first.
+description: Use when designing or reviewing your own REST APIs — resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning and breaking changes, Idempotency-Key, Laravel apiResource/FormRequest mapping. Consuming third-party API docs lives in the sibling `api-docs-first` skill.
 ---
 
 ## Resources are nouns

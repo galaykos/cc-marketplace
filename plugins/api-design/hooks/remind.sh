@@ -144,7 +144,7 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
   printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
-  printf '%s' "$head" | grep -qF '/api-docs-first:check' && exit 0 # own suggestion quoted back = transcript, not intent
+  printf '%s' "$head" | grep -qF '/api-design:check' && exit 0 # own suggestion quoted back = transcript, not intent
   # QUESTION-SHAPED PROMPTS (misfire regression, live transcript 2026-08-25). The
   # trigger is a bare verb list matched anywhere in the head, so "can I BUILD a
   # tool on Claude Code?" and "if we needed to BUILD from scratch, what would you
@@ -172,7 +172,7 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   # hook's own trigger, so an out-of-phase artifact costs one lane.tsv read and
   # nothing else. sid is needed by the guard's session check, so resolve it first.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
-  cc_phase_guard 'api-docs-first:remind' || exit 0
+  cc_phase_guard 'api-design:remind' || exit 0
   if printf '%s' "$head" | grep -qiE '\b(librar\w*|sdk|integrat\w*|webhook|oauth|graphql|(external|third[- ]party|public|vendor) api|api (client|key|token|docs?|reference))\b' && printf '%s' "$head" | grep -qiE '\b(build|implement|write|creat\w*|add|wire|connect|integrat\w*|call|fetch|use|fix|debug|update)\b'; then
     # MONOTONIC PRECEDENCE. Rank arbitrates only between hooks that
     # share a phase; the phase sentinel does the real turn-taking. Guaranteed:
@@ -197,7 +197,7 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
     best=$(ls -d "${TMPDIR:-/tmp}/cc-remind-$key-rank-"* 2>/dev/null \
              | sed 's/.*-rank-//' | sort -n | head -1)
     if [ -z "$best" ] || [ "$best" = '40' ]; then
-      printf '%s (%s).\n' 'api-docs-first: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file' '/api-docs-first:check'
+      printf '%s (%s).\n' 'api-design: this prompt mentions an API/SDK integration — verify current official docs before writing integration code, and if none are accessible ask the user for a URL or file' '/api-design:check'
     fi
     find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'cc-remind-*' -o -name 'cc-workprompt-*' \) -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
   fi

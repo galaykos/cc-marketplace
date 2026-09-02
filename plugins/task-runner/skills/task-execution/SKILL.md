@@ -148,7 +148,7 @@ The run is complete only when:
 2. The project's FULL check suite passes at the end (local passes can compose into a global
    failure) AND the **behavioral-gate** actually runs the produced code (`scripts/behavioral-gate.sh
    --changed <run's files>`) — the repo suite may be a static linter that never runs new code.
-   If installed, api-docs-first's drift check joins, and code-architecture's **drift-review** reads the whole-run diff against what was ASKED — no suite checks that.
+   If installed, api-design's drift check (`/api-design:drift`) joins, and code-architecture's **drift-review** reads the whole-run diff against what was ASKED — no suite checks that.
 3. The final report is a table: task / status / verify command / evidence line, plus the
    parked list with reasons and the follow-up backlog collected by the scope lock.
 

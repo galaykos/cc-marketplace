@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.31.3
+
+### Changed
+- The completion gate names `/api-design:drift`; api-docs-first merged into api-design <!-- removed-ok -->
+  on 2026-09-02.
+
 ## 0.31.2
 
 ### Changed

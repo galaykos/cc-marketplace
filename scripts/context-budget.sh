@@ -230,7 +230,7 @@ plugin_dynamic_hook_bytes() {
   # UserPromptSubmit is measured against a CORPUS, scored MAX, not one string.
   #
   # WHY. This used to send exactly one prompt — "refactor the auth module, add
-  # tests and review the diff". api-docs-first's remind.sh gates on
+  # tests and review the diff". api-design's remind.sh (the docs-first reminder) gates on
   # (sdk|endpoint|integrat\w*|webhook|oauth|graphql); none of those words is in
   # that sentence, so the hook baselined at 0 while emitting 206 bytes (~52 tok)
   # on a real integration prompt. A hook whose trigger vocabulary misses the one

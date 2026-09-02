@@ -3,7 +3,7 @@ description: Check that current API docs back the integration code you are about
 argument-hint: [library-sdk-or-api]
 ---
 
-Invoke the api-docs-first skill from this plugin for $ARGUMENTS (a library, SDK, or API
+Invoke the `api-docs-first` skill from this plugin for $ARGUMENTS (a library, SDK, or API
 name). Report:
 
 1. Exact installed version from the lockfile/manifest.

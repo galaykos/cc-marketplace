@@ -140,7 +140,7 @@ own audience, not a comment; that is a docs decision, not this rule's.
 ## Boundaries
 
 Standing: recorded — owns comment volume and placement. The one-bullet version is
-`code-review`'s code-smells; doc/comment staleness is api-docs-first's
+`code-review`'s code-smells; doc/comment staleness is api-design's docs-upkeep
 `docs-upkeep`; naming and extraction are `code-architecture`, the destination a
 comment's content moves to.
 

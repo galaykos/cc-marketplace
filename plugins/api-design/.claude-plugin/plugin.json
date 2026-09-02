@@ -1,7 +1,7 @@
 {
   "name": "api-design",
-  "version": "0.6.3",
-  "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces (DataLoader, resolver authz, proto field-number safety, streaming). Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). Defers third-party API docs to api-docs-first.",
+  "version": "0.7.1",
+  "description": "APIs in both directions: design your own (resource naming, status-code discipline, pagination/filtering/sorting, versioning, RFC 9457 errors, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces; /api-design:review and spec-first /api-design:scaffold) and consume others' honestly — verify current official API/SDK docs before writing integration code (UserPromptSubmit reminder + /api-design:check, the api-docs-first skill) and keep your own docs true after a change with the docs-upkeep drift scan: README claims, changelog gaps, stale examples, dead links (/api-design:drift).",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

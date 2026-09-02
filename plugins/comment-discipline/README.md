@@ -106,6 +106,6 @@ prose than it saves.
 ## Pairs well with
 
 - **code-review** — the broader smell sweep; owns the one-bullet "comment as deodorant" version
-- **api-docs-first** (docs-upkeep skill) — comment and doc *staleness*, where this plugin owns whether the comment should exist
+- **api-design** (docs-upkeep skill) — comment and doc *staleness*, where this plugin owns whether the comment should exist
 - **code-architecture** — naming, extraction and file structure, the destinations a comment's content moves to
 - **testing** — the artifact that should be carrying your edge-case comments

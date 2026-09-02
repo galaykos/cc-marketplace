@@ -2,6 +2,12 @@
 
 All notable changes to the comment-discipline plugin.
 
+## 0.6.8
+
+### Changed
+- Doc staleness is named as api-design's docs-upkeep skill; api-docs-first merged into <!-- removed-ok -->
+  api-design on 2026-09-02.
+
 ## 0.6.7
 
 ### Changed

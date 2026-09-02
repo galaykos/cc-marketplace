@@ -1,7 +1,6 @@
 {
   "always-on-suite": 2489,
-  "api-design": 0,
-  "api-docs-first": 52,
+  "api-design": 50,
   "approaches": 0,
   "brain": 0,
   "candor": 0,
@@ -29,7 +28,7 @@
   "performance": 0,
   "php-suite": 0,
   "plugin-scout": 0,
-  "process-suite": 2444,
+  "process-suite": 2420,
   "product-suite": 0,
   "quality-principles-suite": 127,
   "quality-suite": 2489,

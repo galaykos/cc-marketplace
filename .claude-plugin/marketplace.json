@@ -35,11 +35,6 @@
       "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — enforced by a blocking Stop hook that refuses a completion claim when files were edited but nothing ran afterward — low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin."
     },
     {
-      "name": "api-docs-first",
-      "source": "./plugins/api-docs-first",
-      "description": "Docs before claims, both directions: verify current official API/SDK docs before writing integration code (UserPromptSubmit reminder + /api-docs-first:check), and keep your own docs true after a change with the merged docs-upkeep drift scan — README claims, changelog gaps, stale examples, dead links (/api-docs-first:drift)."
-    },
-    {
       "name": "taskmaster",
       "source": "./plugins/taskmaster",
       "description": "Idea-to-execution clarification: brainstorm fuzzy ideas into approved designs, grill requirements until zero ambiguity, deliberate the implementation approach with a blind four-persona round (via the approaches plugin when installed; inline 2-3 approaches otherwise), decide visual choices with mockups, validate whole experiences with an interactive clickable demo, then emit milestone-grouped single-prompt task cards. Outputs live under taskmaster-docs/ (no collision with a project's own docs/)."
@@ -97,7 +92,7 @@
     {
       "name": "api-design",
       "source": "./plugins/api-design",
-      "description": "REST API design: resource naming, status-code discipline, pagination/filtering/sorting conventions, versioning strategy, RFC 9457 error format, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces (DataLoader, resolver authz, proto field-number safety, streaming). Includes /api-design:review and /api-design:scaffold (spec-first: OpenAPI → Laravel routes/FormRequests/Resources). Defers third-party API docs to api-docs-first."
+      "description": "APIs in both directions: design your own (resource naming, status-code discipline, pagination/filtering/sorting, versioning, RFC 9457 errors, idempotency, Laravel API Resources, plus a graphql-grpc skill for non-REST surfaces; /api-design:review and spec-first /api-design:scaffold) and consume others' honestly — verify current official API/SDK docs before writing integration code (UserPromptSubmit reminder + /api-design:check, the api-docs-first skill) and keep your own docs true after a change with the docs-upkeep drift scan: README claims, changelog gaps, stale examples, dead links (/api-design:drift)."
     },
     {
       "name": "web-dev",
@@ -212,7 +207,7 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (with the build-vs-buy, estimation, rollout, and pattern-selection disciplines folded into approaches), hindsight mining, docs upkeep, subagent orchestration, task execution, stack scanning, plugin scouting, a token-cost warn hook (lean), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (with the build-vs-buy, estimation, rollout, and pattern-selection disciplines folded into approaches), hindsight mining, docs discipline (api-design's docs-first check and drift scan), subagent orchestration, task execution, stack scanning, plugin scouting, a token-cost warn hook (lean), and file-aware skill auto-routing (skill-router). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "taskmaster-suite",

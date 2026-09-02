@@ -59,7 +59,7 @@ way: each event maps to groups, each group to a "hooks" array.
 
 ## A real example
 
-The hook-bearing plugins in this repo — taskmaster and api-docs-first
+The hook-bearing plugins in this repo — taskmaster and api-design
 among them — share this exact hooks.json shape:
 
     {
