@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.97.0"
+    "version": "0.98.0"
   },
   "plugins": [
     {
       "name": "ui-ux",
       "source": "./plugins/ui-ux",
-      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Tailwind — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker that applies the fix list with native semantics over ARIA patches), and ui-ux-reviewer + ui-ux-engineer agents."
+      "description": "UI/UX best practices with per-stack skills: shadcn/ui, ReUI, Aceternity UI, Astryx, Material UI, Tailwind, plus a library-agnostic component-libraries skill (headless and styled React libraries, owned-code vs dependency rules, a per-library map) — plus a design-tokens skill (spacing/type/radius/elevation/motion scales + semantic color tiering), a theming-system skill, theme creation with a live colour preview, a /ui-ux:build entry point, a WCAG 2.2 AA accessibility audit (/ui-ux:audit, the a11y-audit skill, and an a11y-engineer worker that applies the fix list with native semantics over ARIA patches), and ui-ux-reviewer + ui-ux-engineer agents."
     },
     {
       "name": "craft-layer",
@@ -152,7 +152,7 @@
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
-      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components, a shadcn staging sandbox, and live component-registry MCP sourcing (design-lab) — WebGL/Three.js effects now ship inside craft-layer — plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-lab) — WebGL/Three.js effects now ship inside craft-layer — plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "php-suite",
@@ -227,7 +227,7 @@
     {
       "name": "design-lab",
       "source": "./plugins/design-lab",
-      "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate); /design-lab:stage stands up a self-contained shadcn + Vite (Tailwind v4) sandbox for greenfield or non-React work with real interactivity; and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in."
+      "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate, shell-mockup fallback for greenfield); and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in."
     }
   ]
 }

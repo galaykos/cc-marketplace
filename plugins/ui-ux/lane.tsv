@@ -8,3 +8,5 @@ ui-ux:ui-ux-reviewer	agent	review	markup-and-style-review	diff touches markup or
 ui-ux:a11y-engineer	agent	build	accessibility-remediation	fix list names a WCAG/ARIA/keyboard/focus/label/contrast defect in markup or component files	-
 ui-ux:audit	command	review	wcag-audit	the user asks for an accessibility audit, or markup/focus/contrast changed and a full WCAG pass is wanted	-
 ui-ux:a11y-audit	skill	build	wcag-checklist	an edit to a .tsx, .jsx, .vue, or .blade.php file	-
+ui-ux:mui-best-practices	skill	build	mui-idioms	the file imports from @mui/material, @mui/icons-material or @mui/x-*	-
+ui-ux:component-libraries	skill	build	component-library-floor	the project depends on a React component library that has no sibling skill in ui-ux, or two libraries appear on one surface	-

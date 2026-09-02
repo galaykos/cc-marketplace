@@ -52,7 +52,7 @@ as a toy and fights the click target underneath.
 - **Drag affordance** — a grabbable handle or carousel using Framer drag with inertia and
   constraints, with a visible grab cursor, a keyboard/scroll equivalent, AND a
   single-pointer non-dragging path (tap targets, prev/next, a click-to-position control)
-  — keyboard access does not satisfy this one (SC 2.5.7; `a11y:a11y-audit` owns it).
+  — keyboard access does not satisfy this one (SC 2.5.7; `ui-ux:a11y-audit` owns it).
   Mechanics + the shared pointer loop: `references/pointer-patterns.md`.
 
 ## Accessibility (non-negotiable)

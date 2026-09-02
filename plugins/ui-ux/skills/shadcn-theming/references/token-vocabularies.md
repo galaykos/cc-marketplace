@@ -20,7 +20,7 @@ Bootstrap project previewing here sees Bootstrap's *palette*, rendered on
 generic components. Never present the preview as "this is how your app will
 look"; present it as "this is how these colours behave across surfaces and
 states". Component-level fidelity is a different tool (design-lab's
-preview and studio) and a different decision.
+preview) and a different decision.
 
 ## shadcn / ReUI / Aceternity
 

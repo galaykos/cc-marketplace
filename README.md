@@ -36,12 +36,12 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~4.0k tokens | ~32 tokens | ~2.5k tokens |
-| `craft-suite` | 3 | ~2.7k tokens | — | — |
+| `taskmaster-suite` | 10 | ~4.3k tokens | ~32 tokens | ~2.5k tokens |
+| `craft-suite` | 3 | ~2.8k tokens | — | — |
 | `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.3k tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.4k tokens |
-| `frontend-suite` | 4 | ~1.5k tokens | ~32 tokens | ~2.3k tokens |
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
@@ -189,8 +189,8 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Tailwind), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
-| **[design-lab](plugins/design-lab)** | `/design-lab:preview` renders 2–3 variants with the project's OWN components on its own dev server; `/design-lab:stage` does the same in a throwaway shadcn + Vite sandbox; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Seeing real components before a visual decision, and installing registry components from the source |
+| **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind, any other React component library via `component-libraries`), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
+| **[design-lab](plugins/design-lab)** | `/design-lab:preview` renders 2–3 variants with the project's OWN components on its own dev server, with a shell-mockup fallback for greenfield; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Seeing real components before a visual decision, and installing registry components from the source |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated |
 
 **Using them.**
@@ -204,7 +204,6 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 /craft-layer:sections         # decide a page section by section, with you
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
 /design-lab:preview       # variants rendered with your real components
-/design-lab:stage          # variants in a throwaway shadcn sandbox
 ```
 
 **Worked example — a landing page that must not look templated:**
@@ -226,8 +225,8 @@ that computes WCAG ratios from your token source.
 ```
 
 Renders three variants side by side using your own components, on a scratch
-entry that is deleted afterwards. In a non-React or greenfield repo,
-`/design-lab:stage` does the same job in its own sandbox.
+entry that is deleted afterwards. In a greenfield repo with nothing to render
+in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox.
 
 ---
 

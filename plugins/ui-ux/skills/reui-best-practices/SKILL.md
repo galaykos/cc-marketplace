@@ -41,15 +41,9 @@ fails silently at runtime, not at install.
 
 ## Owned code, same as shadcn
 
-Installed files land in your `components/ui/*` (or configured alias) and are
-first-party source from that moment:
-
-- Read the generated file before using it; adapt it to the project instead of
-  wrapping it in prop-fighting decorators.
-- Re-running the CLI add OVERWRITES local edits — diff before accepting any
-  re-add, exactly like the shadcn rule.
-- Review generated code in PRs like any other code; "it came from ReUI" is not
-  a review waiver.
+Installed files are first-party source from the moment they land. Owned-code and
+re-add rules are identical to `shadcn-best-practices` §"You own the code" and
+§"Install only what you use" — read those; nothing ReUI-specific changes them.
 
 ## Theme through the project's tokens
 

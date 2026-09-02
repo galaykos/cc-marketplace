@@ -18,10 +18,13 @@ concept stage to avoid. When a decided line and a best-practice default conflict
 decided line wins and the conflict is reported — not quietly resolved toward the
 convention.
 
-1. Detect the stack from the repo (shadcn, ReUI, Aceternity, Astryx, Tailwind, Bootstrap,
-   plain CSS3, Grid/Flexbox, React/Vue) so the right best-practice skill and token
-   conventions apply. A component registry already present in the tree is a detection
-   signal, not a suggestion — build in the one the project has rather than beside it.
+1. Detect the stack from the repo (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind,
+   Bootstrap, plain CSS3, Grid/Flexbox, React/Vue) so the right best-practice skill and
+   token conventions apply. Any other component library — headless or styled — is governed
+   by `component-libraries` and its `references/library-map.md`. A component library or
+   registry already present in the tree is a detection signal, not a suggestion — build in
+   the one the project has rather than beside it; the UI layer is library-agnostic and no
+   skill here gets to pick a second one.
 
 2. When the stack is ReUI or Aceternity and design-lab's registry-source MCP tools
    are available (`registry_search` / `registry_get` — load via ToolSearch), query
@@ -32,7 +35,7 @@ convention.
 
 3. Dispatch the `ui-ux-engineer` worker with the request, instructing it to apply this
    plugin's relevant skills: the matching stack best-practice skill (shadcn/reui/
-   aceternity/astryx/tailwind), `design-tokens` for
+   aceternity/astryx/mui/tailwind, or `component-libraries` for any other), `design-tokens` for
    spacing/type/radius/elevation/motion
    from the scale (no magic numbers), and `shadcn-theming` when colors are in play.
    When the request names a registry block to adapt, that registry's best-practice skill is
@@ -67,8 +70,8 @@ convention.
    itself. Headless: skip the question and name the review as not run.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
-   still a visual decision between options (not yet decided), route to the staging path
-   (`/design-lab:stage` or `/design-lab:preview`) when either is installed, else fall back
+   still a visual decision between options (not yet decided), route to
+   `/design-lab:preview` when installed, else fall back
    to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
    via ASCII options inline — so the choice is made on concrete mockups without dead-ending
    on a missing command. Headless: take the decided lines above as binding, resolve what

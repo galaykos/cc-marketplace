@@ -60,8 +60,7 @@ weight, collision, or inertia is the point.
   MUST also be reachable by keyboard and in the static fallback. Never make physics the
   only path to information.
 - Every drag needs a single-pointer, non-dragging route to the same outcome — a
-  click/tap control, not just a tab stop (SC 2.5.7; `a11y:a11y-audit` owns the full
-  criterion and the rest of the checklist).
+  click/tap control, not just a tab stop (SC 2.5.7; `ui-ux:a11y-audit` owns it).
 - Respect focus and do not trap it inside a physics canvas.
 
 ## prefers-reduced-motion (mandatory)

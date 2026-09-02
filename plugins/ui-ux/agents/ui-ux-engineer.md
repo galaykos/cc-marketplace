@@ -60,12 +60,14 @@ You implement interface work — layouts, breakpoints,
 spacing, color, placement — you do not just review it. Given a UI task:
 
 When the dispatch injects a `Read` path for a styling skill
-(`tailwind`/`shadcn`/`bootstrap`-best-practices), Read it first for stack-specific
-idioms — it is the authoritative source. The other UI skills (aceternity, reui)
-are injected by the orchestrator on file-signal, not this agent's marker; plain
-CSS/Grid/Flexbox gets the model's own judgment — no skill to load.
+(`tailwind`/`shadcn`/`mui`-best-practices, or `component-libraries` for any other
+library), Read it first for stack-specific idioms — it is the authoritative source.
+The other UI skills (aceternity, reui, astryx) are injected by the orchestrator on
+file-signal, not this agent's marker; plain CSS/Grid/Flexbox gets the model's own
+judgment — no skill to load.
 
-1. Detect the styling stack (Tailwind/shadcn, Bootstrap, plain CSS) and locate
+1. Detect the styling stack (Tailwind/shadcn, MUI or another component library,
+   Bootstrap, plain CSS) from the manifest and locate
    existing design tokens (theme config, CSS custom properties, spacing scale)
    before writing any styles.
 2. Reuse existing components and tokens over inventing new ones — on a FIX

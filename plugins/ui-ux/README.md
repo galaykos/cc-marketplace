@@ -1,7 +1,10 @@
 # ui-ux
 
 UI/UX best practices with per-stack skills — shadcn/ui, ReUI, Aceternity UI,
-Astryx (Meta's agent-ready design system), and Tailwind — plus a theme builder
+Astryx (Meta's agent-ready design system), Material UI, and Tailwind — and a
+library-agnostic `component-libraries` skill for every other React component
+library (Base UI, Radix, React Aria, Ark, Mantine, Chakra, Ant Design, HeroUI…)
+with a per-library map of signals, theme channels and docs — plus a theme builder
 (shadcn/ReUI/Aceternity, Tailwind, or Bootstrap) with a live colour-preview URL
 and a ui-ux-reviewer agent. Generic CSS3/Grid/Flexbox/Bootstrap skills were
 removed after baseline tests showed the model covers them unaided — see
@@ -14,6 +17,11 @@ live docs page, never from memory. The skills split roles cleanly — shadcn/ReU
 for app UI, Aceternity for motion-heavy marketing pages, one primitive set per
 project, everything themed through the same CSS-variable tokens.
 
+The UI layer is library-agnostic on purpose: the skills detect the library the
+project already has from its manifest and build in that one. A library without
+a sibling skill is governed by `component-libraries` plus its docs URL, never
+by a second library installed beside it.
+
 ## Install
 
 ```bash
@@ -25,7 +33,7 @@ project, everything themed through the same CSS-variable tokens.
 
 | Command | What it does |
 |---------|--------------|
-| `/ui-ux:review [files-or-diff]` | Review UI code against the per-stack skills (shadcn, ReUI, Aceternity, Astryx, Tailwind…) |
+| `/ui-ux:review [files-or-diff]` | Review UI code against the per-stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind, any other library via component-libraries) |
 | `/ui-ux:theme [brand-color-vibe-or-reference]` | Create or restyle a UI colour theme — shadcn/ReUI/Aceternity, Tailwind, or Bootstrap — with a live preview URL |
 | `/ui-ux:build [what-to-build]` | Build or restyle a UI component/layout via the ui-ux-engineer worker, applying the stack best-practice and token skills |
 | `/ui-ux:audit [files-or-diff]` | Audit UI code against WCAG 2.2 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix, blockers first, a manual-test list at the end, and the `a11y-engineer` worker offered to apply the fixes |
@@ -55,8 +63,9 @@ that looks great as a swatch can fail hard as a button.
 ## Contents
 
 - **Skills**: shadcn-best-practices, shadcn-theming, reui-best-practices,
-  aceternity-best-practices, astryx-best-practices, tailwind-best-practices,
-  design-tokens, theming-system, motion-best-practices, a11y-audit (the WCAG 2.2 AA
+  aceternity-best-practices, astryx-best-practices, mui-best-practices,
+  component-libraries (the library-agnostic floor plus `references/library-map.md`),
+  tailwind-best-practices, design-tokens, theming-system, motion-best-practices, a11y-audit (the WCAG 2.2 AA
   checklist, so accessibility rules apply while writing markup, not only under the
   audit command)
 - **Agents**: ui-ux-reviewer, ui-ux-engineer, a11y-engineer (applies an audit's fix

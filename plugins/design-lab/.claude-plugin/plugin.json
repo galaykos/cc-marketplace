@@ -1,7 +1,7 @@
 {
   "name": "design-lab",
-  "version": "0.1.0",
-  "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate); /design-lab:stage stands up a self-contained shadcn + Vite (Tailwind v4) sandbox for greenfield or non-React work with real interactivity; and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in.",
+  "version": "0.2.0",
+  "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate, shell-mockup fallback for greenfield); and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
