@@ -12,6 +12,7 @@
   "craft-suite": 0,
   "database": 0,
   "debugging": 0,
+  "design-lab": 0,
   "devops": 0,
   "fresh-take": 0,
   "frontend-suite": 2262,
@@ -41,6 +42,5 @@
   "ui-ux": 0,
   "ultra-deep-research": 0,
   "vercel-skills-scout": 0,
-  "web-dev": 0,
-  "design-lab": 0
+  "web-dev": 0
 }

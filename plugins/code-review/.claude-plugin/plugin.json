@@ -1,7 +1,7 @@
 {
   "name": "code-review",
-  "version": "0.14.1",
-  "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings — plus comment discipline: every fact routed to the artifact that cannot lie about it, comments spent only on why-not-the-obvious, external constraints, intentional silence and contract facts (a write-time hook that warns, and denies the two strictest once per file per session; /code-review:comment-review). Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, the code-smells, reuse-hygiene and comment-discipline skills. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass.",
+  "version": "0.15.0",
+  "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings — plus comment discipline: every fact routed to the artifact that cannot lie about it, comments spent only on why-not-the-obvious, external constraints, intentional silence and contract facts (default: no comment; write-time hooks warn, and deny the three strictest patterns plus any whole file over a 0.4:1 comment ceiling, once per file per session; /code-review:comment-review). Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, the code-smells, reuse-hygiene and comment-discipline skills. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

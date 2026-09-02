@@ -58,10 +58,14 @@ state your assumption before editing.
 
 ## Code shape
 
-Match the surrounding file's naming, idiom, and comment density. A comment you add
-states a constraint the code cannot show — never what the next line does or that the
-fix is now correct; that voice is the diff addressing its reviewer. New behavior no
-test exercises is named as untested in your return.
+Match the surrounding file's naming and idiom, not its comment density: the default is
+no comment, and a heavily commented neighbour is drift, not a specification. A comment
+you add is one line and states a fact the code cannot show — a why, a linked external
+constraint, a deliberate no-op, a docblock fact the signature cannot state — never what
+the next line does or that the fix is now correct; that voice is the diff addressing
+its reviewer. A docblock that only repeats the signature is deleted. Only a house style
+the project states in its CLAUDE.md overrides this. New behavior no test exercises is
+named as untested in your return.
 
 ## Checklist before finishing
 

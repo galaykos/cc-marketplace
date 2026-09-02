@@ -15,11 +15,14 @@
 #
 #   PreToolUse — DENY, narrowly. Warning after the write is warning about a file that is
 #   already on disk, and a warning the model may read and walk past is not enforcement.
-#   So the two strictest categories — a comment restating the next line, and commented-out
-#   code — are denied BEFORE the write, and only those. Banners, bare TODOs, dead
-#   docblock tags and change-narration comments stay warn-only: they are house-style
-#   calls, a TODO can be a legitimate mid-task marker, and narration cues are phrase
-#   matches that can catch a legitimate why-comment phrased as a change event.
+#   So the three strictest categories — a comment restating the next line, commented-out
+#   code, and a docblock tag that repeats the signature — are denied BEFORE the write,
+#   and only those. The third joined on 2026-09-02: `@param $id The id` / `@return void`
+#   is a syntax match with no prose judgment in it, and it was the shape most of the
+#   observed noise took (a full PHPDoc block per method, every tag filled in). Banners,
+#   bare TODOs and change-narration comments stay warn-only: they are house-style calls,
+#   a TODO can be a legitimate mid-task marker, and narration cues are phrase matches
+#   that can catch a legitimate why-comment phrased as a change event.
 #
 # BOUNDED: the deny is ONE-SHOT PER FILE PER SESSION. A second edit to the same file goes
 # through and the PostToolUse lane warns instead, so a false positive costs one extra turn
@@ -284,14 +287,15 @@
       if (j <= T && restates(b, L[j])) { H[1]++; total++ }
     }
     if (total == 0) exit 0
-    # Line 1 is machine-read by the shell: how many findings are in the two
-    # BLOCKABLE categories (restatement, commented-out code). Those two are the
-    # strictest detectors here — restates() requires EVERY content word of the
-    # comment to be recoverable from the code line, and is_code() matches syntax,
-    # not prose. Banners, bare TODOs, dead docblock tags and change-narration
-    # comments stay warn-only: they are house-style calls, a TODO can be a
-    # legitimate mid-task marker, and narration cues are phrase matches.
-    printf "%d\n", (1 in H ? H[1] : 0) + (3 in H ? H[3] : 0)
+    # Line 1 is machine-read by the shell: how many findings are in the three
+    # BLOCKABLE categories (restatement, commented-out code, dead docblock tag).
+    # Those are the strictest detectors here — restates() requires EVERY content
+    # word of the comment to be recoverable from the code line, is_code() matches
+    # syntax, and is_dead_tag() fires only when the tag description is empty or
+    # the parameter name itself. Banners, bare TODOs and change-narration comments
+    # stay warn-only: they are house-style calls, a TODO can be a legitimate
+    # mid-task marker, and narration cues are phrase matches.
+    printf "%d\n", (1 in H ? H[1] : 0) + (3 in H ? H[3] : 0) + (5 in H ? H[5] : 0)
     parts = ""
     for (k = 1; k <= 6; k++) {
       if (!(k in H)) continue
@@ -313,7 +317,7 @@
     exit 0
   fi
 
-  # ---- PreToolUse lane: deny the two blockable categories, ONCE per file ----
+  # ---- PreToolUse lane: deny the three blockable categories, ONCE per file ----
   #
   # WHY DENY AND NOT ASK: the model wrote the comment, so the model is the right
   # audience for the correction. `ask` would interrupt the HUMAN for a style nit,
@@ -365,7 +369,7 @@
   : > "$marker" 2>/dev/null || exit 0
   [ -e "$marker" ] || exit 0                  # marker did not land → deny stays unbounded → withhold
 
-  reason=$(printf '%s Write the edit again without them: a comment restating the next line, or a line of commented-out code, has no fact to carry — delete it or move the fact to a name, a type, or a test. Blocked once per file; a repeat edit to this file goes through with a warning instead.' "$warn")
+  reason=$(printf '%s Write the edit again without them: a comment restating the next line, a line of commented-out code, or a docblock tag that only repeats the signature has no fact to carry — delete it or move the fact to a name, a type, or a test. The default is no comment; a docblock earns a line only for what the signature cannot state. Blocked once per file; a repeat edit to this file goes through with a warning instead.' "$warn")
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
 } 2>/dev/null

@@ -20,10 +20,14 @@ worker's own default procedure wherever they differ.
 5. Run the project's full check suite at the end, not only the per-card verify.
 6. Defer rule: a mis-specified card (wrong file, impossible criterion, a decision you
    were not given) is **reported, not reinterpreted**.
-7. Code shape: match the surrounding file's naming, idiom, and comment density. A
-   comment states a constraint the code cannot show — never what the next line does or
-   that the fix is now correct (that voice is the diff addressing its reviewer). New
-   behavior no test exercises is **named as untested** in your return.
+7. Code shape: match the surrounding file's naming and idiom, not its comment
+   density — the default is no comment, and a heavily commented neighbour is drift,
+   not a specification. A comment is one line and states a fact the code cannot show
+   (a why, a linked constraint, a deliberate no-op, a docblock fact the signature
+   cannot state) — never what the next line does or that the fix is now correct (that
+   voice is the diff addressing its reviewer). A docblock that only repeats the
+   signature is deleted; only a house style the project's CLAUDE.md states overrides
+   this. New behavior no test exercises is **named as untested** in your return.
 8. Final message is data for the orchestrator: a completion table
    (task / status / verify command / evidence line) plus any parked items. No preamble
    prose, no file dumps.

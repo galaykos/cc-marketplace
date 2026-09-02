@@ -212,7 +212,7 @@ fi
 # `hookSpecificOutput`/`additionalContext` is the non-blocking context channel, not a
 # veto. `decision` (Stop) is a blocking key this hook must never emit on any lane.
 # `permissionDecision` used to be in this list too; it is now emitted, but ONLY on the
-# PreToolUse lane and ONLY for the two blockable categories — asserted behaviorally in
+# PreToolUse lane and ONLY for the three blockable categories — asserted behaviorally in
 # section 5 rather than by grepping the file, because the file-level assertion can no
 # longer tell an emission from an emission on the correct lane.
 # Comment lines are stripped first: the header *names* keys to describe them.
@@ -238,8 +238,9 @@ else
 fi
 
 # ---- 5. the PreToolUse lane denies the blockable categories, once per file -----------
-# Blockable = restatement of the next line, and commented-out code. Banners, bare TODOs
-# and dead docblock tags stay warn-only: they are house-style calls.
+# Blockable = restatement of the next line, commented-out code, and a docblock tag that
+# repeats the signature. Banners, bare TODOs and change-narration stay warn-only: they
+# are house-style calls.
 STATE_DIR="$(mktemp -d)"
 pre() { # session-id  file_path  added-text  -> stdout
   envelope Write "$2" "$3" \
@@ -266,6 +267,13 @@ assert_denies "one-shot is per FILE: a new file in the same session still denies
 counter++;'
 assert_denies "PreToolUse denies commented-out code" s2 /tmp/proj/c.js '// doThing(a, b);
 doThing(a, c);'
+assert_denies "PreToolUse denies a docblock tag repeating the signature" s8 /tmp/proj/j.php '/**
+ * @param $id The id
+ * @return void
+ */
+function f($id) {}'
+assert_allows "PreToolUse does NOT deny a docblock that says what the signature cannot" s9 /tmp/proj/k.php '/** @param int $ttl Seconds; 0 disables the cache. */
+function f($ttl) {}'
 assert_allows "PreToolUse does NOT deny a bare TODO (warn-only category)" s3 /tmp/proj/d.js '// TODO: revisit
 const x = compute();'
 assert_allows "PreToolUse does NOT deny a section banner (warn-only category)" s4 /tmp/proj/e.js '// ===== Helpers =====

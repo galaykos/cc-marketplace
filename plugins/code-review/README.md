@@ -58,20 +58,26 @@ cannot settle it. The two split cleanly: `code-smells` catalogs dead code as a
 
 ## Comment discipline (merged in on 2026-09-02) <!-- removed-ok -->
 
-Over-commenting is an information-routing problem, not a comment-count problem. The
-`comment-discipline` skill routes every fact to the artifact that cannot lie about it —
-a name, a type, a test, an extracted function — and spends comments only on what has
-nowhere else to live: why-not-the-obvious-way, external constraints with a link,
-intentional-silence markers, and contract facts a signature cannot express.
+**The default is no comment.** The `comment-discipline` skill routes every fact to the
+artifact that cannot lie about it — a name, a type, a test, an extracted function — and
+spends a one-line comment only on what has nowhere else to live: why-not-the-obvious-way,
+external constraints with a link, intentional-silence markers, and docblock facts a
+signature cannot express (units, ownership, what throws). A docblock that repeats the
+signature is deleted. Only a house style the project states in its `CLAUDE.md` overrides
+the default; a heavily commented neighbour does not.
 
-**The write-time hook.** One detector inspects the text each `Edit` / `Write` /
+**The write-time hooks.** `scan.sh` inspects the text each `Edit` / `Write` /
 `MultiEdit` adds, on two lanes. `PostToolUse` warns, at most one line, for any of the
-six categories. `PreToolUse` denies just the two strictest — commented-out code and a
-change-narration comment — once per file per session, then stands down. A second
-warn-only hook (`density.sh`) flags a file whose comment-to-code ratio jumps, and a
-third (`verbosity.sh`) applies the same rule to terminal prose. Ledgers and markers
-live under `.claude/comment-discipline/`, unchanged from before the merge, so an
-existing session's state carries over. Silence any advisory with `CC_REMIND=off`.
+seven categories. `PreToolUse` denies the three strictest — a comment restating the
+next line, commented-out code, and a docblock tag repeating the signature — once per
+file per session, then stands down. `density.sh` denies a whole `Write` over the
+comment ceiling (0.4:1 comment-to-code by default), once per file, and after any edit
+warns when a file is over min(2x its committed siblings' median, the ceiling); a file
+with no committed siblings is judged against the ceiling alone. A project that specifies
+a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (10 for
+1:1, 0 for the sibling test only). `verbosity.sh` applies the same rule to terminal
+prose. Ledgers and markers live under `.claude/comment-discipline/`. Silence any
+advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it.
 
 ## Pairs well with
 
