@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.31.1
+
+### Changed
+- `reviewer-routing.md` primes `database:sql-best-practices` for database-tagged cards;
+  the sql plugin merged into database on 2026-09-02. <!-- removed-ok -->
+
 ## 0.31.0
 
 ### Changed

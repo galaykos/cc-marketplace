@@ -3,6 +3,13 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.13.2
+
+### Changed
+- **The stack fan-in loads database's sql and mariadb skills** for `.sql` files and
+  migrations; the two plugins merged into database on 2026-09-02. Same signals,
+  same finding format.
+
 ## 0.13.1
 
 ### Changed

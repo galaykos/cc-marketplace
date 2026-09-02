@@ -434,13 +434,13 @@ pc_removed_refs() {
   # word. Verified at removal: every shape-match in plugins/ was inside the
   # deleted directory or the generated catalog. Do not move it to $skills, which
   # word-matches.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything'
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite'
   # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
   # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
   # shapes in $shapes are deliberately NOT applied: `vite` and `react-native` are npm
   # package names the surviving skills must keep naming in prose.
-  moved='nextjs|react-native|vite|inertia'
+  moved='nextjs|react-native|vite|inertia|sql|mariadb'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # task-orchestration added 2026-08-21: merged into plan-before-code, which
   # already produced the file map its dependency edges were derived from. Its

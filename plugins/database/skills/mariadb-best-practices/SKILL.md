@@ -102,7 +102,7 @@ SST/IST, quorum, and TOI-vs-RSU DDL each invert single-primary intuition.
 
 - `ANALYZE FORMAT=JSON` (MariaDB's actual-execution EXPLAIN) on every query you
   claim is fast: check access type, rows examined vs. returned, and whether the
-  chosen index matches the composite-order logic from the sql plugin.
+  chosen index matches the composite-order logic from the sibling `sql-best-practices` skill.
 - After major-version upgrades (10.x → 11.x), re-check the top hot queries; the
   optimizer changes are real and plans move.
 
@@ -117,3 +117,10 @@ SST/IST, quorum, and TOI-vs-RSU DDL each invert single-primary intuition.
   treat certification failures as retries.
 - Performance claims carry `ANALYZE FORMAT=JSON` evidence — rows examined vs.
   returned, and the index actually chosen.
+
+## Scope by model tier
+
+**All models** — every rule above: the engine gates, the design floor, the footguns.
+**Compensation (worker-tier)** — the detect-engine → load → pin order in
+`/database:review` step 3, followed literally; a Fable-class session may compress it
+once the engine is known. **Skip** — a diff touching no MariaDB-specific type, function, or clause and no Galera topology earns a one-line verdict.

@@ -2,6 +2,13 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.6
+
+### Changed
+- **The four SQL routing rows and the primer name `database` as owner** of
+  `sql-best-practices` and `mariadb-best-practices` (the sql and mariadb plugins <!-- removed-ok -->
+  merged into database on 2026-09-02). Patterns, markers, confidence unchanged.
+
 ## 0.14.5
 
 ### Changed
@@ -184,7 +191,7 @@ All notable changes to the skill-router plugin.
   comparison, and `**/resources/js/Pages/**` is inertia's ONLY routing row. On a
   project scaffolded by Laravel's current starter kits — which generate
   `resources/js/pages/` — the router matched nothing, the 2,134-token skill never
-  loaded, and `/inertia:review` had to be typed by hand. `**/Livewire/**` had the
+  loaded, and `/inertia:review` had to be typed by hand. <!-- removed-ok --> `**/Livewire/**` had the
   same exposure, masked only by livewire's second row. Directory segments now
   match case-insensitively; the `nocasematch` shell option is saved and restored
   rather than left on. Residual, stated in the code: case is checkable, a wrong

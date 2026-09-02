@@ -1,7 +1,7 @@
 {
   "name": "database",
-  "version": "0.5.3",
-  "description": "Database implementation and safety for relational stores: a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks for confirmation before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands. Reviewing is /sql:review's job (install sql alongside); the rubric lives in its sql-best-practices skill; dialect audits in mariadb.",
+  "version": "0.6.1",
+  "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera), one /database:review that detects the engine and loads the dialect skill only for MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

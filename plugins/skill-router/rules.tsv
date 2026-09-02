@@ -72,10 +72,10 @@
 # sessions via /craft-layer:craft and the catalog channel, not per-file rules —
 # their triggers are prompt-shaped, not file-shaped. Motion CODE routes via the
 # motion-best-practices content row below (zero corpus co-fires as of 2026-08-11).
-glob	*.sql	sql-best-practices	sql	high
-glob	**/migrations/**	sql-best-practices	sql	high
-glob	*.sql	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
-glob	**/migrations/**	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
+glob	*.sql	sql-best-practices	database	high
+glob	**/migrations/**	sql-best-practices	database	high
+glob	*.sql	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
+glob	**/migrations/**	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
 glob	*.ts	low-cognitive-load	code-architecture	high
 glob	*.ts	solid-principles	code-architecture	high
 glob	*.js	low-cognitive-load	code-architecture	high

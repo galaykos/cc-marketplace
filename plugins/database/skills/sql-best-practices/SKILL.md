@@ -137,3 +137,10 @@ An index is used only when the column stands alone on its side of the comparison
 Run the engine's EXPLAIN and read the actual plan — row estimates, join order,
 index used. Guessing at indexes from the query text alone adds write cost without
 evidence; the plan is the evidence.
+
+## Scope by model tier
+
+**All models** — every rule above: the engine gates, the design floor, the footguns.
+**Compensation (worker-tier)** — the detect-engine → load → pin order in
+`/database:review` step 3, followed literally; a Fable-class session may compress it
+once the engine is known. **Skip** — a diff touching no statement, no index, no migration and no transaction boundary earns a one-line verdict.

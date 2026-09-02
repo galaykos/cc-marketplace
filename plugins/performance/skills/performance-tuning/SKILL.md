@@ -88,7 +88,7 @@ check the failure modes:
 
 ## Defer rule
 
-- SQL query-shape and indexing idioms → `/sql:review` (and the dialect plugins). This
+- SQL query-shape and indexing idioms → `/database:review` (which adds the MariaDB dialect skill when detected). This
   skill counts the queries and reads the plan; the SQL skills fix the statement.
 - Framework-idiom performance (React re-renders, Eloquent hydration) → the stack review command,
   `/laravel:review`. Recommend, do not duplicate.

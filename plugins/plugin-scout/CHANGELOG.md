@@ -7,6 +7,14 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.4
+
+### Changed
+- **The MariaDB tier-1 signal suggests `database`**, which absorbed the sql and
+  mariadb plugins on 2026-09-02; the `sql` overlap pair is gone with the plugin. <!-- removed-ok -->
+  `db-suite` is removed — three members that now live in one plugin do not earn a <!-- removed-ok -->
+  bundle. Regenerated catalog.
+
 ## 0.13.3
 
 ### Changed

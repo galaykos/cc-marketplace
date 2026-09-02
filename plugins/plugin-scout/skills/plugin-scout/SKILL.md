@@ -69,12 +69,12 @@ in `dependencies` or `devDependencies`, never a substring: `next-auth` is not
 | package.json dep react-native | web-dev |
 | package.json dep next | web-dev |
 | package.json dep vite (devDependencies counts) AND a vite.config.* at the scan root | web-dev |
-| compose/Dockerfile image matching `mariadb`, `.env.example` DB_CONNECTION=mariadb, or `mariadb` in composer.json/package.json | mariadb |
+| compose/Dockerfile image matching `mariadb`, `.env.example` DB_CONNECTION=mariadb, or `mariadb` in composer.json/package.json | database |
 
 Read `.env.example`, not just `.env` — `.env` is gitignored in every Laravel and Next
 scaffold, so on this skill's headline case (a fresh clone) it is absent. Known miss,
 inherited from skill-router: a repo with `DB_CONNECTION=mysql` that actually runs
-MariaDB earns no mariadb row. Vue, plain JavaScript and TypeScript map to no plugin —
+MariaDB earns no database row. Vue, plain JavaScript and TypeScript map to no plugin —
 removed after baseline testing (`rationale/stack-skill-baselines.md`, marketplace repo
 only); a `vue` dep of any major earns no row and no note.
 

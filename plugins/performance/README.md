@@ -35,7 +35,7 @@ optimization without a before/after measurement.
 
 ## Pairs well with
 
-- **sql** — SQL statement and index idioms the review defers to instead of duplicating
+- **database** — SQL statement and index idioms (`/database:review`) the review defers to instead of duplicating
 - **database** — schema, index, and pooling design underneath query hotspots
 - **observability** — the telemetry that turns suspected findings into measured ones
 - **task-runner** — the apply-now path hands findings to its executor when installed

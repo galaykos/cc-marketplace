@@ -30,7 +30,7 @@ Review the target for performance hotspots and cache-correctness gaps.
    path:line — severity — problem — measurement-that-confirms — fix
    Order by severity: critical, high, medium, low. No praise, no padding.
 
-6. Defer, do not duplicate: SQL statement/index idioms → `/sql:review`;
+6. Defer, do not duplicate: SQL statement/index idioms → `/database:review`;
    framework-idiom perf → the installed stack review command (e.g. `/laravel:review`, `/web-dev:review`).
 
 7. Close with a coverage inventory and a self-refute pass: state `Checked: …` and

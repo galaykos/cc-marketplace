@@ -43,8 +43,8 @@ own header warns about, found by `pc_prime_coverage` rather than by reading.
 
 | Signal | Prime |
 |---|---|
-| a `migrations/` directory, or any `*.sql` | `sql:sql-best-practices` |
-| compose file ~ `image: *mariadb*` | `mariadb:mariadb-best-practices` |
+| a `migrations/` directory, or any `*.sql` | `database:sql-best-practices` |
+| compose file ~ `image: *mariadb*` | `database:mariadb-best-practices` |
 
 Engine detection mirrors `rules.tsv`'s chain and inherits its stated misses — compose
 image first, because it is the one signal that separates MySQL from MariaDB cleanly.

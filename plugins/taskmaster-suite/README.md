@@ -104,4 +104,3 @@ research harness, opt-in.
 
 - **php-suite** — PHP/Laravel/Inertia stack specifics the bundle leaves out
 - **frontend-suite** — React/Vue/TS framework specifics left out of this bundle; its sibling **craft-suite** carries the design-preview/shadcn-studio fidelity escalations
-- **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

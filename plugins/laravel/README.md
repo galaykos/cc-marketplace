@@ -40,5 +40,5 @@ matching files are edited.
 ## Pairs well with
 
 - **web-dev** — the JS side: its `frontend-reviewer` loads `inertia-best-practices` from here when installed
-- **sql** / **mariadb** — the queries under the models
+- **database** — the queries under the models: `/database:review`, the sql and mariadb skills, and the schema worker
 - **api-design** — REST contract shape and spec-first scaffolding

@@ -2,6 +2,13 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.12
+
+### Changed
+- **`coding-entry`'s skill map primes `database:sql-best-practices` and
+  `database:mariadb-best-practices`**; the sql and mariadb plugins merged into <!-- removed-ok -->
+  database on 2026-09-02.
+
 ## 0.13.11
 
 ### Changed

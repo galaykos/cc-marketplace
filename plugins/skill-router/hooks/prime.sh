@@ -45,7 +45,7 @@
 
   [ -f "$cwd/composer.json" ] && add package-hygiene packages
   [ -f "$cwd/package.json" ]  && add package-hygiene packages
-  if has '*.sql' || has_dir migrations; then add sql-best-practices sql; fi
+  if has '*.sql' || has_dir migrations; then add sql-best-practices database; fi
   if has '*.tsx' || has '*.jsx'; then add a11y-audit a11y; fi
 
   # PHP side. laravel and plain php are stack-EXCLUSIVE per skill-map.md — a Laravel

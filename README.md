@@ -36,7 +36,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~3.8k tokens | ~32 tokens | ~2.6k tokens |
+| `taskmaster-suite` | 10 | ~3.8k tokens | ~32 tokens | ~2.5k tokens |
 | `craft-suite` | 7 | ~2.6k tokens | — | — |
 | `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
 | `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
@@ -44,10 +44,9 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
 | `frontend-suite` | 4 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 2 | ~659 tokens | — | — |
-| `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 48 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 46 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -81,7 +80,6 @@ that as an order-of-magnitude correction, never as a coefficient
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
 | **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, plus web-dev (Vite review and the shared worker). |
-| **[db-suite](plugins/db-suite)** | Schema and query work — engine-agnostic SQL plus MariaDB dialect depth. |
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
 | **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
@@ -89,7 +87,7 @@ that as an order-of-magnitude correction, never as a coefficient
 | **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, lean, routing, git discipline — on in every repo. |
 
 Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
-`/db-suite:uninstall`, and so on — which removes the bundle **and** prunes the
+`/php-suite:uninstall`, and so on — which removes the bundle **and** prunes the
 plugins it auto-installed, leaving anything you installed yourself alone.
 
 ---
@@ -172,24 +170,21 @@ lockfile rather than to the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[sql](plugins/sql)** | sargable predicates, join correctness, NULL three-valued logic, composite index order, keyset pagination, parameterization — **plus the design floor**: normalization, expand-migrate-contract migrations with a rollback path, index choice from observed queries, connection-pool sizing | Any SQL on any engine, and any schema or migration decision |
-| **[mariadb](plugins/mariadb)** | the MariaDB-is-not-MySQL divergences: no `utf8mb4_0900_*`, JSON as LONGTEXT, `RETURNING`, sequences, system-versioned tables, Galera | MariaDB — where copying a MySQL 8 answer is the most common bug |
-| **[database](plugins/database)** | a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | You want the work applied, or you want a seatbelt on destructive SQL |
+| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill behind one `/database:review` that detects the engine first, a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
 
-**Using them.** `/sql:review` for the engine-agnostic pass — statements and
-the shape that persists both; add the engine command — `/mariadb:review` —
-when the dialect matters. The database plugin contributes the worker and the
-destructive-SQL guard, not a review command.
+**Using them.** `/database:review` detects the engine first, runs the
+engine-agnostic pass over statements and the shape that persists them, and adds
+the MariaDB dialect rules when the compose image or DSN says MariaDB. The worker
+and the destructive-SQL guard ride in the same plugin.
 
 **Worked example.** Adding a column to a hot table on MariaDB:
 
 ```
-/sql:review database/migrations/2026_08_21_add_status.php
-/mariadb:review                 # RETURNING, sequences, the not-MySQL divergences
+/database:review database/migrations/2026_08_21_add_status.php   # engine detected → sql + mariadb rules
 ```
 
 The expand → migrate → contract sequence, the rollback-path rule, and the
-"never a one-step `RENAME COLUMN`" example all live in the `sql` skill.
+"never a one-step `RENAME COLUMN`" example all live in the `sql-best-practices` skill.
 
 ---
 
@@ -479,7 +474,7 @@ description and the body budget already applied.
 |---------|---------|
 | just cloned an unfamiliar repo | `plugin-scout`, then whatever it suggests |
 | want a global baseline in every repo | `always-on-suite`, at user scope |
-| write Laravel every day | `php-suite` + `db-suite` |
+| write Laravel every day | `php-suite` + `database` |
 | write React/Vue apps | `frontend-suite` |
 | are building something design-led | `craft-suite` |
 | want reviews that catch real bugs | `quality-suite` (enforcing) and/or `quality-principles-suite` (advisory) |

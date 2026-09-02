@@ -42,5 +42,5 @@ reused as the fixture source for tests.
 
 ## Pairs well with
 
-- **sql** — its keyset-pagination rule backs this plugin's cursor-pagination advice
+- **database** — its sql skill's keyset-pagination rule backs this plugin's cursor-pagination advice
 - **laravel** — apiResource routes, FormRequest → 422 shape, policies → 403

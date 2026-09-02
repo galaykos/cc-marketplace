@@ -133,8 +133,8 @@ do the excluding; the transaction makes the result all-or-nothing.
 ## Boundaries
 
 Standing: recorded — owns the concurrency strategy. Engine lock mechanics (gap
-locks, `SKIP LOCKED`, advisory locks, isolation quirks) are the sql and mariadb
-plugins; retry and backoff policy is `/resilience:review`.
+locks, `SKIP LOCKED`, advisory locks, isolation quirks) are the database
+plugin's sql and mariadb skills; retry and backoff policy is `/resilience:review`.
 
 ## Anti-patterns
 

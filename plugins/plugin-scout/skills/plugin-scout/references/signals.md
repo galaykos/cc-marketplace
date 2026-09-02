@@ -36,7 +36,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `tailwind.config.*`, `components.json`, or dep `tailwindcss` | `ui-ux` | |
 | `components.json` carrying a `registries` or `aliases` key | `registry-source` | the same file also earns `ui-ux`; both are correct |
 | devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `a11y` | the dep, not the presence of `.tsx` — every React repo has those |
-| `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `sql` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
+| `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
 | a `package.json` or `composer.json` exists | `packages` | its hygiene rubric is Composer/npm-specific, so it is signal-earned rather than any-project core — a Python repo must not auto-install it |
 | `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | `llm-app` | |

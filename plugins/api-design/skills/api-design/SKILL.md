@@ -52,7 +52,7 @@ and stop. Every other code is a trivia question for your consumers.
 
 - Cursor/keyset for anything unbounded or feed-like: opaque `cursor` param in,
   `next_cursor` out. Offset re-reads every skipped row and duplicates/drops
-  items when rows insert mid-scroll — the sql plugin's keyset section is the
+  items when rows insert mid-scroll — the database plugin's `sql-best-practices` keyset section is the
   storage half of this rule.
 - `page`/`per_page` only for small bounded admin-style sets. Cap `per_page`
   server-side; an uncapped limit is self-service denial of service.
