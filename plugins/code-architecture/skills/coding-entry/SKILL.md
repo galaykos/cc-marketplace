@@ -19,7 +19,7 @@ owns that), write a spec or cards (taskmaster), or execute a list (task-runner).
 regardless of stack or surface. Six, ~11k tokens (43,984 bytes of body):
 
 - `lean:cost-model` — the minimum that clears the bar, per cost surface
-- `comment-discipline:comment-discipline` — where each fact belongs
+- `code-review:comment-discipline` — where each fact belongs
 - `testing:testing-best-practices` — what to test, and its `proportionality.md` for how much
 - `code-architecture:plan-before-code` — which files change, before they do
 - `code-architecture:low-cognitive-load` — the destinations a comment's content moves to

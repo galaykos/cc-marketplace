@@ -7,6 +7,12 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.10
+
+### Changed
+- The any-project core drops the comment-discipline row: its rule ships inside <!-- removed-ok -->
+  code-review (already core) since 2026-09-02. Regenerated catalog.
+
 ## 0.13.9
 
 ### Changed

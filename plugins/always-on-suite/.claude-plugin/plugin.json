@@ -1,6 +1,6 @@
 {
   "name": "always-on-suite",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on in every repo. secret-scanning's write-time secret block, candor's honesty Stop gate, lean's output pricing, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and plugin-scout for the per-project plugins this bundle leaves out — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, not script-checked. /always-on-suite:uninstall removes the bundle and prunes what it installed.",
   "author": {
     "name": "Ivan-WG",

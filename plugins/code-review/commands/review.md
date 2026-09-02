@@ -84,7 +84,7 @@ Output rules:
     empty/over-broad catches, swallowed exceptions, missing cause chains;
     check-then-act races, retry idempotency, unguarded parallel writes),
     `resilience` also owns observability (silent catch blocks, correlation IDs, secrets in logs) and performance,
-    `comment-discipline` (comment volume and placement).
+    this plugin's own `comment-discipline` skill (comment volume and placement).
     Report the finding once and name the owner; when none is installed, this
     review keeps it. The swallowed catch alone had four claimants.
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer

@@ -1,6 +1,6 @@
 {
   "name": "quality-suite",
-  "version": "0.11.3",
+  "version": "0.11.4",
   "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, candor's citation-and-reversal Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, a token-cost warn hook (lean), and file-aware skill auto-routing. The advisory nine live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall.",
   "author": {
     "name": "Ivan-WG",
@@ -9,7 +9,6 @@
   "dependencies": [
     "code-review",
     "code-architecture",
-    "comment-discipline",
     "candor",
     "lean",
     "command-guard",

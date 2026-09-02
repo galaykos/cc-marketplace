@@ -61,9 +61,9 @@ TIER 1 — earned by a signal in this repo
    1  laravel   composer.json — laravel/framework ^11
    2  web-dev   package.json — vite ^5 + vite.config.ts
    3  devops    docker-compose.yml
-TIER 2 — any-project core (8)
+TIER 2 — any-project core (7)
    4  code-review ✓  5  debugging  6  testing  7  git-workflow
-   8  code-architecture  9  secret-scanning  10 command-guard  11 comment-discipline
+   8  code-architecture  9  secret-scanning  10 command-guard
 TIER 3 — no signal in this repo (40)
   stack, unfired:  12 web-dev  13 database  14 craft-layer  15 payments
   quality/review:  16 a11y  17 performance  18 resilience  19 security  20 system-design

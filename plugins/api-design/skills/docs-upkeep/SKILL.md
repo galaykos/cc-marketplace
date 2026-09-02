@@ -69,7 +69,7 @@ generate future drift:
 - **Line-by-line restatement of the code.** A comment or doc that says
   what the next line already says is pure drift liability. This skill owns
   staleness — drift between a doc and the code it describes; whether a
-  comment should exist at all belongs to comment-discipline.
+  comment should exist at all belongs to code-review's comment-discipline skill.
 
 Docs earn upkeep only when someone acts on them. If no reader would
 change their behavior based on a doc, delete it instead of syncing it.

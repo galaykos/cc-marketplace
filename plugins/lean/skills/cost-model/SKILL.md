@@ -84,7 +84,7 @@ trim. This doctrine argues about what to ADD. It never argues a gate DOWN.
 ## What this owns, and standing
 
 Owns **how much**, across all five surfaces at once, and the cost of **actions**.
-For the *what*, go to the surface owners: `comment-discipline:comment-discipline`,
+For the *what*, go to the surface owners: `code-review:comment-discipline`,
 `testing:testing-best-practices`, `code-architecture:yagni-check`,
 `code-architecture:low-cognitive-load`.
 

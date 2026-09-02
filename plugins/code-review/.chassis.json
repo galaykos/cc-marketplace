@@ -1,5 +1,18 @@
-{
-  "chassis": "optout",
-  "file": "commands/review.md",
-  "reason": "Bespoke scope-resolution cascade (path/PR/branch → staged → working-tree diff) distinct from the fable triage/tiers/closer payload; general-purpose reviewer, not a single-skill stack-review chassis."
-}
+[
+  {
+    "chassis": "optout",
+    "file": "commands/review.md",
+    "reason": "Bespoke scope-resolution cascade (path/PR/branch → staged → working-tree diff) distinct from the fable triage/tiers/closer payload; general-purpose reviewer, not a single-skill stack-review chassis."
+  },
+  {
+    "chassis": "stack-review",
+    "variant": "concern",
+    "skill": "comment-discipline",
+    "tag": "generic",
+    "worker": null,
+    "applyExtra": [],
+    "outfile": "commands/comment-review.md",
+    "description": "Audit comments — restatement, section banners, commented-out code, bare TODOs, docblock tags repeating the signature, change-narration, missing why-comments — one line per finding.",
+    "argumentHint": "[path-or-diff]"
+  }
+]

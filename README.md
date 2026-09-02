@@ -40,13 +40,13 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `craft-suite` | 5 | ~2.7k tokens | — | — |
 | `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
-| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
-| `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
+| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.4k tokens |
+| `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `frontend-suite` | 3 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
 | `php-suite` | 2 | ~659 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 39 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 38 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -242,7 +242,6 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
 | **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review — and a **Stop hook** that refuses a completion claim when files were edited and nothing ran afterwards | Structure decisions, and any "it's done" that has no evidence behind it |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
-| **[comment-discipline](plugins/comment-discipline)** | every fact routed to the artifact that cannot lie about it; comments spent only on why-not-the-obvious-way, external constraints, intentional silence, contract facts. One hook, two lanes: PostToolUse warns, PreToolUse denies the two strictest | Codebases drowning in restatement comments and commented-out code |
 | **[candor](plugins/candor)** | a blocking Stop gate on the two dishonesty shapes a script can prove: a `file:line` citation that resolves to nothing, and a position retracted under pushback with no tool call in between | You want the honesty rule to have teeth rather than tone |
 | **[lean](plugins/lean)** | one bar per cost surface — code, tests, comments, files, actions — and four named triggers that buy more than the minimum | Scope keeps growing and nobody can say which requirement bought it |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
@@ -258,7 +257,7 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 /code-architecture:verify              # verify completed work against criteria, with evidence
 /testing:review                        # test design and coverage gaps
 /testing:flake-hunt                    # chase a flaky test to its cause
-/comment-discipline:review             # comment noise, one line per finding
+/code-review:comment-review            # comment noise, one line per finding
 /candor:check                          # measure this session against the candour axes
 /debugging:debug "<symptom>"           # root cause before any fix
 /resilience:performance-review                    # hotspots and cache correctness
@@ -493,8 +492,8 @@ advertisement:
   the descriptions are dropped name-only, so the tokens stop being the problem
   and reachability starts.
 - **Most rules are agent-graded, not enforced.** A handful are gates that block
-  a turn — `command-guard`, `secret-scanning`, `comment-discipline`'s narrow
-  deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s
+  a turn — `command-guard`, `secret-scanning`, `code-review`'s narrow
+  comment-discipline deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s
   completion gate. The rest are instructions a competent model chooses to
   follow. Each plugin's own docs say which tier it is in; where they say
   `recorded`, nothing reads it back.

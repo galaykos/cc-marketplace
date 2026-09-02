@@ -33,7 +33,6 @@ A row belongs here only if it passes both:
 | code-architecture | plan-before-code, YAGNI, and verification-with-evidence are process, not stack |
 | secret-scanning | any repo can leak a key; the pre-write block hook is language-independent |
 | command-guard | irreversible data loss (`migrate:fresh`, `DROP DATABASE`, `rm -rf`) is language-independent, and its deny hook is the pair to secret-scanning's block |
-| comment-discipline | every language has comments; the information-routing rule is universal |
 
 ## Deliberate exclusions (near misses)
 

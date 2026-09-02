@@ -36,6 +36,7 @@ want their review surfaces to arrive as one list rather than six.
 | Command | What it does |
 |---------|--------------|
 | `/code-review:review [path, PR, or branch]` | Review a diff, branch, or path for correctness bugs, code smells, and convention drift — severity-sorted one-line findings |
+| `/code-review:comment-review [path-or-diff]` | Audit comments — restatement of the next line, section banners, commented-out code, bare TODOs, docblock tags that repeat the signature, change-narration, missing why-comments on non-obvious choices — one line per finding |
 
 ## Example
 
@@ -54,6 +55,23 @@ is not deprecated or orphaned, plus the deep pass (dead-code tool shellout,
 export-aware orphan detection, deprecated-reference report) when a quick read
 cannot settle it. The two split cleanly: `code-smells` catalogs dead code as a
 **review finding**; `reuse-hygiene` is the check you run **before** reusing.
+
+## Comment discipline (merged in on 2026-09-02) <!-- removed-ok -->
+
+Over-commenting is an information-routing problem, not a comment-count problem. The
+`comment-discipline` skill routes every fact to the artifact that cannot lie about it —
+a name, a type, a test, an extracted function — and spends comments only on what has
+nowhere else to live: why-not-the-obvious-way, external constraints with a link,
+intentional-silence markers, and contract facts a signature cannot express.
+
+**The write-time hook.** One detector inspects the text each `Edit` / `Write` /
+`MultiEdit` adds, on two lanes. `PostToolUse` warns, at most one line, for any of the
+six categories. `PreToolUse` denies just the two strictest — commented-out code and a
+change-narration comment — once per file per session, then stands down. A second
+warn-only hook (`density.sh`) flags a file whose comment-to-code ratio jumps, and a
+third (`verbosity.sh`) applies the same rule to terminal prose. Ledgers and markers
+live under `.claude/comment-discipline/`, unchanged from before the merge, so an
+existing session's state carries over. Silence any advisory with `CC_REMIND=off`.
 
 ## Pairs well with
 

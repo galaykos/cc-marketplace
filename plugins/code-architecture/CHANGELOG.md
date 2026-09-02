@@ -2,6 +2,12 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.16
+
+### Changed
+- `coding-entry` loads `code-review:comment-discipline`; the comment-discipline plugin <!-- removed-ok -->
+  merged into code-review on 2026-09-02.
+
 ## 0.13.15
 
 ### Changed

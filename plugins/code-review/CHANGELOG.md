@@ -3,6 +3,15 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.14.1
+
+### Added
+- **comment-discipline merged in.** The `comment-discipline` skill, <!-- removed-ok -->
+  `/code-review:comment-review` (was `/comment-discipline:review`), and the three <!-- removed-ok -->
+  write-time hooks (scan, density, verbosity) ship here. Hook behaviour, messages, and
+  the `.claude/comment-discipline/` state paths are unchanged. The absorbed plugin's
+  own changelog history stays in git history under its old directory. <!-- removed-ok -->
+
 ## 0.13.4
 
 ### Changed

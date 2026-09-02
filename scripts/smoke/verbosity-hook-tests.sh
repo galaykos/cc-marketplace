@@ -11,7 +11,7 @@
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-HOOK="$ROOT/plugins/comment-discipline/hooks/verbosity.sh"
+HOOK="$ROOT/plugins/code-review/hooks/verbosity.sh"
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open without it)"; exit 0; }
 [ -f "$HOOK" ] || { echo "FAIL: hook missing at $HOOK"; exit 1; }
