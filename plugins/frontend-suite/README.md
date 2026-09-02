@@ -3,7 +3,9 @@
 Meta-bundle: the frontend stack category in one install — UI/UX stacks,
 web-dev (Next.js, React Native and Vite skills behind `/web-dev:review`, the
 generalist worker and the opus-floored frontend-reviewer), file-aware skill
-auto-routing, and the WCAG audit inside ui-ux. Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-lab) moved to the craft-suite bundle, so
+auto-routing, the WCAG audit inside ui-ux, and code-review (the review fan-in
+plus comment discipline: the no-comment default and its write-time denies).
+Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-lab) moved to the craft-suite bundle, so
 ordinary frontend app work does not pay the studio's always-on context.
 Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and
 prunes the plugins it auto-installed.
@@ -17,7 +19,7 @@ prunes the plugins it auto-installed.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (3):
+One bullet per bundled plugin, in dependency order (4):
 
 - **skill-router** — file-aware skill auto-routing: hooks load the matching
   best-practice skill(s) as files are edited
@@ -27,6 +29,10 @@ One bullet per bundled plugin, in dependency order (3):
   actions), React Native (lists, navigation, Expo inversions) and Vite (env
   security, chunking, `base`) skills behind one `/web-dev:review`, plus the
   generalist web-developer worker and the opus-floored frontend-reviewer
+- **code-review** — `/code-review:review`, the stack-agnostic fan-in, plus
+  comment discipline: the default is no comment, and write-time hooks deny
+  restatement, commented-out code, signature-repeating JSDoc tags and any new
+  file over the 0.4:1 comment ceiling, once per file per session
 
 | Command | What it does |
 |---------|--------------|

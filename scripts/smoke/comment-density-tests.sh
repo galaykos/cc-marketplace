@@ -12,6 +12,11 @@
 #   2. WORKTREE PATHS ARE IN SCOPE. This marketplace places worktrees at
 #      `.claude/worktrees/<branch>`, and the `*/.claude/*` exemption was silently
 #      excluding every file a track run wrote.
+#   3. THE CEILING IS ABSOLUTE AND THE SIBLING TEST SURVIVES IT. A file with no
+#      tracked siblings is judged against the ceiling; a file under the ceiling but
+#      2x its lean siblings still fires; `COMMENT_DISCIPLINE_CEILING_TENTHS=0`
+#      restores the sibling-only behaviour; and the PreToolUse lane denies a whole
+#      Write over the ceiling exactly once per file.
 #
 # Scratch git repos throughout; never the live repo, never real .claude state.
 set -u
@@ -49,10 +54,30 @@ dense() { # $1 path — ~5:1, the shape the observed run produced
     done; echo '}'; } > "$1"
 }
 
+lean() { # $1 path — ~0.1:1, a repo that comments almost nothing
+  { echo '<?php'; echo "class $(basename "$1" .php) {"
+    for i in $(seq 1 30); do
+      [ $((i % 10)) -eq 0 ] && echo "    // why $i: the upstream API returns a bare id here, not an object"
+      echo "    public function m$i(): int { return $i; }"
+    done; echo '}'; } > "$1"
+}
+mid() { # $1 path — 0.4:1 in tenths, at the ceiling but not over it; 4x a lean house
+  { echo '<?php'; echo "class $(basename "$1" .php) {"
+    for i in $(seq 1 40); do
+      [ $((i % 2)) -eq 0 ] && echo "    // why $i: the upstream API returns a bare id here, not an object"
+      echo "    public function m$i(): int { return $i; }"
+    done; echo '}'; } > "$1"
+}
+
 fire() { # $1 cwd, $2 file, $3 session
   jq -n --arg fp "$2" --arg cwd "$1" --arg s "$3" \
     '{hook_event_name:"PostToolUse",tool_name:"Write",session_id:$s,cwd:$cwd,tool_input:{file_path:$fp}}' \
     | bash "$HOOK" 2>/dev/null | jq -r '.hookSpecificOutput.additionalContext // ""' 2>/dev/null
+}
+pre() { # $1 cwd, $2 file, $3 session, $4 content-file -> raw stdout
+  jq -n --arg fp "$2" --arg cwd "$1" --arg s "$3" --rawfile c "$4" \
+    '{hook_event_name:"PreToolUse",tool_name:"Write",session_id:$s,cwd:$cwd,tool_input:{file_path:$fp,content:$c}}' \
+    | bash "$HOOK" 2>/dev/null
 }
 
 # ---- 1. dense file against COMMITTED house style ------------------------------
@@ -64,9 +89,28 @@ mkdir -p "$R/app/Svc/New/Deep"; dense "$R/app/Svc/New/Deep/Fat.php"
 expect "dense file vs committed house style fires" "$(fire "$R" "$R/app/Svc/New/Deep/Fat.php" s1)" "comment-to-code"
 expect "  …and the walk-up found the tracked baseline" "$(fire "$R" "$R/app/Svc/New/Deep/Fat.php" s1b)" "its siblings run"
 
-# ---- 2. a house-style file in the same repo stays silent -----------------------
+# ---- 2. a house-style file: over the ceiling, matching its siblings ------------
+# The 1:1 house style is what the observed run's repo looked like; the marketplace's
+# default says that is too much, so the ceiling names itself, and switching the
+# ceiling off restores the sibling-only verdict (silent).
 house "$R/app/Svc/New/Deep/Normal.php"
-expect "house-style file is silent" "$(fire "$R" "$R/app/Svc/New/Deep/Normal.php" s2)" ""
+expect "house-style file is over the ceiling (limit named)" \
+  "$(fire "$R" "$R/app/Svc/New/Deep/Normal.php" s2)" "the limit here is 0.4:1"
+expect "house-style file is silent with the ceiling off" \
+  "$(COMMENT_DISCIPLINE_CEILING_TENTHS=0 fire "$R" "$R/app/Svc/New/Deep/Normal.php" s2b)" ""
+expect "house-style file is silent under a 1:1 project override" \
+  "$(COMMENT_DISCIPLINE_CEILING_TENTHS=10 fire "$R" "$R/app/Svc/New/Deep/Normal.php" s2c)" ""
+
+# ---- 2b. the sibling test survives the ceiling: under 0.4, 3x a lean house -----
+RL="$TMP/rl"; mkdir -p "$RL/app/Svc"
+for n in A B C D; do lean "$RL/app/Svc/$n.php"; done
+git -C "$RL" init -q; git -C "$RL" add -A
+git -C "$RL" -c user.email=t@t -c user.name=t commit -qm base
+mid "$RL/app/Svc/Mid.php"
+expect "at the ceiling but 4x lean siblings still fires (floor 0.3)" \
+  "$(fire "$RL" "$RL/app/Svc/Mid.php" s2d)" "the limit here is 0.3:1"
+lean "$RL/app/Svc/Lean.php"
+expect "lean file in a lean repo is silent" "$(fire "$RL" "$RL/app/Svc/Lean.php" s2e)" ""
 
 # ---- 3. THE REGRESSION THAT MATTERS: the run must not become its own baseline --
 # Same dense file, but now every sibling in the new subtree is equally dense and
@@ -128,10 +172,37 @@ if [ -n "$(find "$R2B/.claude/comment-discipline" -name 'density-*' -type f 2>/d
 then echo "PASS: transcript_path: the state file actually landed on disk"
 else echo "FAIL: transcript_path: the state file actually landed on disk — none under $R2B"; rc=1; fi
 
-# ---- 7. too few tracked siblings -> silent, never a guess -----------------------
+# ---- 7. too few tracked siblings -> the ceiling judges, never a guessed baseline -
 R3="$TMP/r3"; mkdir -p "$R3/app"; git -C "$R3" init -q
 dense "$R3/app/Only.php"
-expect "no tracked baseline at all is silent" "$(fire "$R3" "$R3/app/Only.php" s7)" ""
+expect "no tracked baseline: the ceiling applies" "$(fire "$R3" "$R3/app/Only.php" s7)" "no committed siblings"
+expect "no tracked baseline, ceiling off: silent" \
+  "$(COMMENT_DISCIPLINE_CEILING_TENTHS=0 fire "$R3" "$R3/app/Only.php" s7b)" ""
+lean "$R3/app/Lean.php"
+expect "no tracked baseline, lean file: silent" "$(fire "$R3" "$R3/app/Lean.php" s7c)" ""
+
+# ---- 7b. PreToolUse lane: a whole Write over the ceiling is denied ONCE per file -
+R4="$TMP/r4"; mkdir -p "$R4/app"; git -C "$R4" init -q
+dense "$TMP/dense.txt"; house "$TMP/house.txt"; lean "$TMP/lean.txt"
+denied() { printf '%s' "$1" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1; }
+out=$(pre "$R4" "$R4/app/Fat.php" p1 "$TMP/dense.txt")
+denied "$out" && echo "PASS: PreToolUse denies a dense Write" || { echo "FAIL: PreToolUse denies a dense Write — got: ${out:-<silent>}"; rc=1; }
+expect "  …and the reason names the ceiling" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')" "the ceiling is 0.4:1"
+expect "one-shot: the same file again is allowed" "$(pre "$R4" "$R4/app/Fat.php" p1 "$TMP/dense.txt")" ""
+out=$(pre "$R4" "$R4/app/Other.php" p1 "$TMP/house.txt")
+denied "$out" && echo "PASS: one-shot is per FILE: a 1:1 Write to a new file still denies" || { echo "FAIL: per-file one-shot — got: ${out:-<silent>}"; rc=1; }
+expect "lean Write is allowed" "$(pre "$R4" "$R4/app/Lean.php" p1 "$TMP/lean.txt")" ""
+expect "ceiling off: dense Write is allowed" "$(COMMENT_DISCIPLINE_CEILING_TENTHS=0 pre "$R4" "$R4/app/Fat2.php" p2 "$TMP/dense.txt")" ""
+out=$(jq -n --arg fp "$R4/app/Fat3.php" --arg cwd "$R4" --rawfile c "$TMP/dense.txt" \
+  '{hook_event_name:"PreToolUse",tool_name:"Edit",session_id:"p3",cwd:$cwd,tool_input:{file_path:$fp,new_string:$c}}' | bash "$HOOK" 2>/dev/null)
+expect "PreToolUse ignores an Edit (a fragment has no file ratio)" "$out" ""
+printf '// @generated by tool — do not edit\n%s' "$(cat "$TMP/dense.txt")" > "$TMP/gen.txt"
+expect "generated header exempts the Write" "$(pre "$R4" "$R4/app/Gen.php" p4 "$TMP/gen.txt")" ""
+head -20 "$TMP/dense.txt" > "$TMP/short.txt"
+expect "short file is below the floor, allowed" "$(pre "$R4" "$R4/app/Short.php" p5 "$TMP/short.txt")" ""
+out=$(jq -n --arg fp "$R4/app/Fat4.php" --rawfile c "$TMP/dense.txt" \
+  '{hook_event_name:"PreToolUse",tool_name:"Write",session_id:"p6",tool_input:{file_path:$fp,content:$c}}' | bash "$HOOK" 2>/dev/null)
+expect "missing cwd withholds the deny (bound cannot be recorded)" "$out" ""
 
 # ---- 8. WORKTREE SCOPING (paths.sh), both hooks ---------------------------------
 WT="$R/.claude/worktrees/feature-x"; mkdir -p "$WT/app/Svc/New" "$WT/.claude"

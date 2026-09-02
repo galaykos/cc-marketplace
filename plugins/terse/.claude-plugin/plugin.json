@@ -1,7 +1,7 @@
 {
   "name": "terse",
-  "version": "0.4.0",
-  "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict \u2192 artifacts \u2192 max 5 findings \u2192 blocker \u2192 next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker.",
+  "version": "0.4.1",
+  "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

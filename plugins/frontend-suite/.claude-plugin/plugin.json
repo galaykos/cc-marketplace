@@ -1,7 +1,7 @@
 {
   "name": "frontend-suite",
-  "version": "0.12.2",
-  "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, and skill auto-routing (skill-router). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "version": "0.13.0",
+  "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -9,7 +9,8 @@
   "dependencies": [
     "skill-router",
     "ui-ux",
-    "web-dev"
+    "web-dev",
+    "code-review"
   ],
   "keywords": [
     "suite",

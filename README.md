@@ -41,9 +41,9 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.4k tokens |
+| `frontend-suite` | 4 | ~1.5k tokens | ~32 tokens | ~2.3k tokens |
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
-| `frontend-suite` | 3 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
-| `php-suite` | 2 | ~659 tokens | — | — |
+| `php-suite` | 3 | ~1.0k tokens | — | — |
 
 Every row is a curated subset. The marketplace ships all 36 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
@@ -76,9 +76,9 @@ that as an order-of-magnitude correction, never as a coefficient
 | Bundle | Take it when |
 |--------|--------------|
 | **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline. Ten members, trimmed from 32 to fit the host's skill listing; install other plugins alongside it. |
-| **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
+| **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight; code-review's no-comment default and write-time denies ride along. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
-| **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, plus web-dev (Vite review and the shared worker). |
+| **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, web-dev (Vite review and the shared worker), plus code-review's no-comment default and write-time denies. |
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
 | **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |

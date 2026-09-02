@@ -3,6 +3,26 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.15.0
+
+### Changed
+- **The default is no comment.** `comment-discipline` now states an absolute default
+  — code speaks for itself; a comment is one line for a fact the code cannot show; a
+  docblock exists only for what the signature cannot state — and names the one override:
+  a house style stated in the project's `CLAUDE.md`. "Match the surrounding file's
+  comment density" is gone from the skill and from every worker agent's preamble.
+- **`scan.sh` denies a third category.** A docblock tag that repeats the signature
+  (`@param $id The id`, `@return void`) is now denied on the `PreToolUse` lane, same
+  one-per-file-per-session bound as restatement and commented-out code.
+- **`density.sh` has a ceiling and a deny lane.** The comment-to-code limit is now
+  min(2x the committed siblings' median, 0.4:1); a file with no committed siblings
+  is judged against the ceiling instead of skipped; the sibling floor dropped from
+  0.8 to 0.3. On `PreToolUse` the hook denies a whole `Write` over the ceiling, once
+  per file per session. Override per project with `COMMENT_DISCIPLINE_CEILING_TENTHS`
+  in settings `env` (10 for 1:1, 0 for the sibling test only).
+- Warning and deny messages changed; anything asserting the old "judged against the
+  surrounding code, not a constant" wording must update.
+
 ## 0.14.1
 
 ### Added

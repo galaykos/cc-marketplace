@@ -107,7 +107,7 @@
     {
       "name": "code-review",
       "source": "./plugins/code-review",
-      "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings — plus comment discipline: every fact routed to the artifact that cannot lie about it, comments spent only on why-not-the-obvious, external constraints, intentional silence and contract facts (a write-time hook that warns, and denies the two strictest once per file per session; /code-review:comment-review). Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, the code-smells, reuse-hygiene and comment-discipline skills. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass."
+      "description": "Stack-agnostic code review: correctness bugs, code smells, convention drift on any diff or PR — severity-sorted one-line findings — plus comment discipline: every fact routed to the artifact that cannot lie about it, comments spent only on why-not-the-obvious, external constraints, intentional silence and contract facts (default: no comment; write-time hooks warn, and deny the three strictest patterns plus any whole file over a 0.4:1 comment ceiling, once per file per session; /code-review:comment-review). Defers structure/YAGNI to code-architecture, security depth to security, stack idioms to the per-framework review plugins. Includes /code-review:review, a code-reviewer agent, the code-smells, reuse-hygiene and comment-discipline skills. The fan-in for overlapping review surfaces: loads every installed matching stack skill in one pass."
     },
     {
       "name": "approaches",
@@ -147,7 +147,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, and skill auto-routing (skill-router). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "craft-suite",
@@ -157,7 +157,7 @@
     {
       "name": "php-suite",
       "source": "./plugins/php-suite",
-      "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill behind one /laravel:review, plus the backend-engineer worker) and web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler via /web-dev:review). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill behind one /laravel:review, plus the backend-engineer worker), web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler via /web-dev:review) and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "quality-suite",

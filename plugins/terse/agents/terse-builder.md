@@ -26,7 +26,8 @@ Refusing costs one line. Guessing costs a wrong diff in someone's repo.
 ## Method
 
 1. Read every file you will touch, in full, before the first edit
-2. Match the surrounding code — its naming, its comment density, its idiom. A
+2. Match the surrounding code — its naming, its idiom — but not its comment
+   density: the default is no comment, one line when the code cannot say it. A
    change that reads as foreign is a defect even when it is correct
 3. Prefer `Edit` over `Write`; never rewrite a whole file to change a line
 4. Verify what you can cheaply verify: the syntax check, the single test, the

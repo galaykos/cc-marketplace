@@ -2,6 +2,15 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.3
+
+### Changed
+- **Worker agents default to no comment.** The "Code shape" section no longer says
+  "match the surrounding file's comment density". The default is no comment; a comment
+  is one line for a fact the code cannot show, a docblock that repeats the signature is
+  deleted, and only a house style stated in the project's CLAUDE.md overrides it. The
+  matching hooks (deny lanes and the 0.4:1 ceiling) ship in code-review.
+
 ## 0.6.2
 
 ### Changed

@@ -7,6 +7,13 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.12
+
+### Changed
+- code-review, php-suite and frontend-suite descriptions now name the no-comment default
+  and its write-time denies; php-suite and frontend-suite depend on code-review.
+  Regenerated catalog.
+
 ## 0.13.11
 
 ### Changed
