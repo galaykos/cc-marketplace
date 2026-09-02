@@ -72,10 +72,10 @@
 # sessions via /craft-layer:craft and the catalog channel, not per-file rules —
 # their triggers are prompt-shaped, not file-shaped. Motion CODE routes via the
 # motion-best-practices content row below (zero corpus co-fires as of 2026-08-11).
-glob	*.sql	sql-best-practices	sql	high
-glob	**/migrations/**	sql-best-practices	sql	high
-glob	*.sql	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
-glob	**/migrations/**	mariadb-best-practices	mariadb	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
+glob	*.sql	sql-best-practices	database	high
+glob	**/migrations/**	sql-best-practices	database	high
+glob	*.sql	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
+glob	**/migrations/**	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
 glob	*.ts	low-cognitive-load	code-architecture	high
 glob	*.ts	solid-principles	code-architecture	high
 glob	*.js	low-cognitive-load	code-architecture	high
@@ -91,10 +91,10 @@ glob	*.rs	solid-principles	code-architecture	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
-glob	*.tsx	a11y-audit	a11y	high
+glob	*.tsx	a11y-audit	ui-ux	high
 glob	*.tsx	react-native-best-practices	web-dev	high	package.json~"react-native"
 glob	*.tsx	nextjs-best-practices	web-dev	high	package.json~"next"
-glob	**/resources/js/Pages/**	inertia-best-practices	inertia	high
+glob	**/resources/js/Pages/**	inertia-best-practices	laravel	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework
 glob	api.php	api-design	api-design	high
@@ -103,11 +103,11 @@ glob	openapi*.yaml	api-design	api-design	high
 glob	*.test.*	testing-best-practices	testing	high
 glob	*.spec.*	testing-best-practices	testing	high
 glob	**/tests/**	testing-best-practices	testing	high
-glob	Dockerfile*	docker-best-practices	dev-env	high
-glob	docker-compose*.yml	docker-best-practices	dev-env	high
-glob	compose*.yml	docker-best-practices	dev-env	high
-glob	package.json	package-hygiene	packages	high
-glob	composer.json	package-hygiene	packages	high
+glob	Dockerfile*	docker-best-practices	devops	high
+glob	docker-compose*.yml	docker-best-practices	devops	high
+glob	compose*.yml	docker-best-practices	devops	high
+glob	package.json	package-hygiene	stack-scan	high
+glob	composer.json	package-hygiene	stack-scan	high
 glob	next.config.*	nextjs-best-practices	web-dev	high
 glob	vite.config.*	vite-best-practices	web-dev	high
 glob	app.config.*	react-native-best-practices	web-dev	high	package.json~"expo"
@@ -122,5 +122,5 @@ content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resili
 content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|\bspan\b)\b	observability-design	observability	low
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
 content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	payments	payments	low
-content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	threejs	low
+content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	craft-layer	low
 content	(\bmessages\.create\b|\bchat\.completions\b|\bembeddings\.create\b|\bgenerateText\()	llm-app	llm-app	low

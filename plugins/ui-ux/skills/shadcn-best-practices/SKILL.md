@@ -121,7 +121,7 @@ paths then follow this skill's owned-code and CSS-variable rules above.
 
 ## Component APIs from the registry, never from memory
 
-When the `registry-source` plugin's MCP tools are available (`registry_list`,
+When design-lab's `registry-source` MCP tools are available (`registry_list`,
 `registry_search`, `registry_get`), read a component's actual props/variants/dependencies
 from them BEFORE writing usage code — a component API written from recall is the failure
 those tools exist to stop. Each answer carries `source` and `fetched_at`; prefer a fresh

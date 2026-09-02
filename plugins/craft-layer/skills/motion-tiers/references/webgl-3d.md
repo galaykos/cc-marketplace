@@ -4,7 +4,7 @@ Tier 3 (Three.js / R3F) is budget-gated because it is the only tier whose bundle
 measured in hundreds, not tens. These rules govern WHEN it is allowed to load and WHAT
 renders in its place. They do NOT teach R3F — renderer choice, disposal, the render
 loop, and R3F correctness live in
-`plugins/threejs/skills/threejs-best-practices/SKILL.md`. Read it before writing any
+`plugins/craft-layer/skills/threejs-best-practices/SKILL.md`. Read it before writing any
 scene; this file only sets the loading and fallback contract on top of it.
 
 ## The two-render contract

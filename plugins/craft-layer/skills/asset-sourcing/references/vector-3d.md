@@ -3,7 +3,7 @@
 SOURCING decisions only — where a vector or model comes from, its format, and its licence. ALL
 perf / poly / texture / budget numbers live in Tier 3
 (`plugins/craft-layer/skills/motion-tiers/references/tier-budgets.md` +
-`.../references/webgl-3d.md`) and `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
+`.../references/webgl-3d.md`) and `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`.
 **No perf recipes here** — cite those.
 
 ## SVG / vector

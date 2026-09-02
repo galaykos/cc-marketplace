@@ -11,7 +11,7 @@
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${CHASSIS_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
-HOOK="$ROOT/plugins/comment-discipline/hooks/scan.sh"
+HOOK="$ROOT/plugins/code-review/hooks/scan.sh"
 BASH_BIN="$(command -v bash)"
 
 WORK="$(mktemp -d)"

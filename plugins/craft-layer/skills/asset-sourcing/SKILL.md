@@ -15,7 +15,7 @@ jobs belong to neighbours:
 - Lottie-vs-Rive vector-motion playback + budget:
   `plugins/craft-layer/skills/motion-tiers/references/vector.md`.
 - Three.js / R3F 3D correctness and the Tier-3 poly/texture budget:
-  `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
+  `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`.
 - Token / `currentColor` theming of an asset:
   `plugins/ui-ux/skills/design-tokens/SKILL.md`.
 - Typeface-as-motion and variable-font selection:
@@ -23,7 +23,7 @@ jobs belong to neighbours:
 - Modal mechanics (focus-trap, enter/exit, reduced-motion): `motion-tiers`,
   `plugins/craft-layer/skills/interaction-fx/SKILL.md`,
   `plugins/craft-layer/skills/page-transitions/SKILL.md`.
-- Dialog / focus-order a11y of an overlay: `/a11y:audit`.
+- Dialog / focus-order a11y of an overlay: `/ui-ux:audit`.
 
 The net-new value here is the source decision, the categorical taxonomy, and the
 licence/provenance gate — nothing this skill routes to owns those.
@@ -126,7 +126,7 @@ Both apply on top of the routed kind, on every asset:
 - `references/illustration-imagery.md` — illustration + imagery art-direction
   (custom-vs-open, AVIF / WebP, `<picture>`), feeding the "no default stock hero".
 - `references/animated-modals.md` — sourcing the animated overlay CONTENT; cites modal
-  mechanics + `/a11y:audit` by path.
+  mechanics + `/ui-ux:audit` by path.
 
 ## Anti-patterns
 

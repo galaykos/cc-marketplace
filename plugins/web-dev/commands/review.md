@@ -35,7 +35,7 @@ Review the target in $ARGUMENTS against this plugin's stack rubrics — audit it
    | `vite` AND a `vite.config.*` at the scan root | `vite-best-practices` |
 
    Exact keys only: `next-auth` is not `next`, `react-native-web` is not `react-native`.
-   Inertia in the manifest with the `inertia` plugin installed → also load its skill.
+   Inertia in the manifest with the `laravel` plugin installed → also load its `inertia-best-practices`.
    No row matches → say so in one line and stop; plain JS/TS needs no stack skill and
    `/code-review:review` covers it.
 

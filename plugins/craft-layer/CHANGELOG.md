@@ -7,6 +7,31 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.48.3
+
+### Changed
+- Every preview and staging hand-off names design-lab; design-preview, shadcn-studio and <!-- removed-ok -->
+  registry-source merged into it on 2026-09-02.
+
+## 0.48.2
+
+### Changed
+- The optional performance delegation names `/resilience:performance-review`; the
+  performance plugin merged into resilience on 2026-09-02. <!-- removed-ok -->
+
+## 0.48.1
+
+### Added
+- **threejs merged in.** `threejs-best-practices` is a craft-layer skill and <!-- removed-ok -->
+  `/craft-layer:review` (chassis stack-review) is its review command; every in-plugin
+  path that pointed at the old plugin now points here. The skill body is unchanged.
+
+## 0.47.12
+
+### Changed
+- Every accessibility hand-off now names `/ui-ux:audit`; the a11y plugin merged into <!-- removed-ok -->
+  ui-ux on 2026-09-02. The craft gates and the contrast pre-check are unchanged.
+
 ## 0.47.11
 
 ### Changed

@@ -79,15 +79,15 @@ specs bind `/ui-ux:theme`; without it those cards degrade to generic routing.
 testing and security stay because task cards dispatch into both.
 
 **Everything cut is still shipped and still works — install it directly.** The
-22 removed: a11y, api-design, api-docs-first, brain, claude-authoring,
-code-review, comment-discipline, database, debugging, dev-env, devops,
-git-workflow, hindsight, lean, observability, packages, performance,
+22 removed: a11y (now in ui-ux), api-design, <!-- removed-ok --> api-docs-first, brain, claude-authoring,
+code-review, database, debugging, devops,
+git-workflow, hindsight, lean,
 plugin-scout, resilience, sql, system-design, web-dev. Several are excellent and
 several are near-core — `code-review` and `git-workflow` especially — but a
 bundle that cannot surface its own members' descriptions is not doing them a
 favour by listing them. Take the ones your work actually needs.
 
-Still excluded for the older reasons: **design-preview** and **shadcn-studio**
+Still excluded for the older reasons: **design-lab** (preview and studio)
 — the two optional full-fidelity escalations above taskmaster's built-in mockup
 preview, both "when installed" upgrades and stack-specific; **laravel** and the
 other stack plugins — stack-specific; **secret-scanning** — hook-heavy and
@@ -104,4 +104,3 @@ research harness, opt-in.
 
 - **php-suite** — PHP/Laravel/Inertia stack specifics the bundle leaves out
 - **frontend-suite** — React/Vue/TS framework specifics left out of this bundle; its sibling **craft-suite** carries the design-preview/shadcn-studio fidelity escalations
-- **db-suite** — MySQL/MariaDB/PostgreSQL dialect review beyond the included sql plugin

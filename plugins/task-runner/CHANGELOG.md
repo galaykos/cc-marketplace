@@ -2,6 +2,31 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.31.4
+
+### Changed
+- `routing.md` and `reviewer-routing.md` resolve the `performance` and `observability`
+  tags to resilience's workers and skills; both plugins merged into resilience on <!-- removed-ok -->
+  2026-09-02.
+
+## 0.31.3
+
+### Changed
+- The completion gate names `/api-design:drift`; api-docs-first merged into api-design <!-- removed-ok -->
+  on 2026-09-02.
+
+## 0.31.2
+
+### Changed
+- `reviewer-routing.md` primes `ui-ux:a11y-audit` for frontend and ui-ux cards; the a11y <!-- removed-ok -->
+  plugin merged into ui-ux on 2026-09-02.
+
+## 0.31.1
+
+### Changed
+- `reviewer-routing.md` primes `database:sql-best-practices` for database-tagged cards;
+  the sql plugin merged into database on 2026-09-02. <!-- removed-ok -->
+
 ## 0.31.0
 
 ### Changed

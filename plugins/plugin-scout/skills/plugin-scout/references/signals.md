@@ -29,24 +29,23 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 |---|---|---|
 | `.github/workflows/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile` | `devops` | mirrors rules.tsv `**/workflows/**` — which matches any path segment case-insensitively, so the router also fires on `app/Workflows/`; this row does not |
 | `k8s/`, `helm/`, `*.yaml` with `apiVersion:` + `kind:` | `devops` | |
-| `Dockerfile*`, `docker-compose*.y{a,}ml`, `compose*.y{a,}ml` | `dev-env` | mirrors rules.tsv, which covers `.yml` only — a repo with `compose.yaml` (the Compose Spec's preferred name) is suggested here and not routed there |
+| `Dockerfile*`, `docker-compose*.y{a,}ml`, `compose*.y{a,}ml` | `devops` | mirrors rules.tsv, which covers `.yml` only — a repo with `compose.yaml` (the Compose Spec's preferred name) is suggested here and not routed there |
 | `openapi*.y{a,}ml`, `swagger*.json`, `*.proto`, `*.graphql` | `api-design` | mirrors rules.tsv, forked both ways: `swagger*.json` is only here, `api.php` is only there |
 | `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | `payments` | key name only — never read the value |
-| dep `three` or `@react-three/fiber` | `threejs` | |
+| dep `three` or `@react-three/fiber` | `craft-layer` | |
 | `tailwind.config.*`, `components.json`, or dep `tailwindcss` | `ui-ux` | |
-| `components.json` carrying a `registries` or `aliases` key | `registry-source` | the same file also earns `ui-ux`; both are correct |
-| devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `a11y` | the dep, not the presence of `.tsx` — every React repo has those |
-| `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `sql` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
+| `components.json` carrying a `registries` or `aliases` key | `design-lab` | the same file also earns `ui-ux`; both are correct |
+| devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `ui-ux` | the dep, not the presence of `.tsx` — every React repo has those |
+| `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
-| a `package.json` or `composer.json` exists | `packages` | its hygiene rubric is Composer/npm-specific, so it is signal-earned rather than any-project core — a Python repo must not auto-install it |
+| a `package.json` or `composer.json` exists | `stack-scan` | its package-hygiene rubric is Composer/npm-specific, so it is signal-earned rather than any-project core — a Python repo must not auto-install it |
 | `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | `llm-app` | |
-| `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `observability` | |
+| `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `resilience` | |
 | `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | `stack-scan` | the version-truth plugin is the ONE always-right answer for a stack this marketplace does not cover |
 | `.claude-plugin/plugin.json` or `.claude-plugin/marketplace.json` | `claude-authoring` | the repo SHIPS Claude Code artifacts, which is what this plugin's rubric is about. Deliberately not `.claude/` — that directory means the repo *uses* Claude Code, which is not the same claim and would fire nearly everywhere |
 | dep `prisma`, `@prisma/client`, `typeorm`, `sequelize`, `mongoose`, `drizzle-orm`; or composer require `doctrine/orm`; or `**/migrations/**` | `database` | the schema/migration/pooling half, and it ships a PreToolUse guard. The `sql` row above fires on some of the same evidence and owns statements; `references/picker.md` already pairs the two as overlapping, so both rows firing is correct, not a duplicate |
-| `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `shadcn-studio` | the sandbox is for staging new components against a shadcn setup that already exists; `components.json` alone also earns `ui-ux` and possibly `registry-source`, and all three are correct together |
-| the `api-design` row's evidence above (`openapi*`, `swagger*.json`) | also `api-docs-first` | a repo carrying an API contract is the one that drifts from it; the plugin's other half (verify SDK docs before integrating) is not what this row claims |
-| devDep `lighthouse`, `@lhci/cli`, `k6`, `artillery`, `autocannon`, or dep `web-vitals` | `performance` | a measurement tool already in the manifest is someone having decided performance is a concern here |
+| `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `design-lab` | the sandbox is for staging new components against a shadcn setup that already exists; `components.json` alone also earns `ui-ux` and possibly `registry-source`, and all three are correct together |
+| devDep `lighthouse`, `@lhci/cli`, `k6`, `artillery`, `autocannon`, or dep `web-vitals` | `resilience` | a measurement tool already in the manifest is someone having decided performance is a concern here |
 | dep `p-retry`, `cockatiel`, `opossum`, `bullmq`, `bull`; or composer require `laravel/horizon` | `resilience` | retry/breaker/queue libraries are integration points with failure modes, which is the whole subject |
 | any of the above **plus** no tier-1 hit | also `vercel-skills-scout` | say so explicitly: this marketplace has no plugin for that stack, and the scout for third-party skills is the intended next step |
 | `*.tf`, `*.tofu`, `.terraform/` | — | **no plugin covers this.** Do not pad the list; route to `/vercel-skills-scout:suggest terraform` |

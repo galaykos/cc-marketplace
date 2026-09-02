@@ -25,17 +25,17 @@ Tag → the domain reviewer the card's `Agent:` tag ADDS. The vocab-sync parser 
 the **tag key** (the field before `->`); the RHS is descriptive.
 
 ```
-frontend      -> web-dev:frontend-reviewer + prime {card Skills-to-apply} + a11y:a11y-audit
-ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply} + a11y:a11y-audit
+frontend      -> web-dev:frontend-reviewer + prime {card Skills-to-apply} + ui-ux:a11y-audit
+ui-ux         -> ui-ux:ui-ux-reviewer + prime {card Skills-to-apply} + ui-ux:a11y-audit
 devops        -> devops:devops-reviewer + prime {card Skills-to-apply} + devops:devops-practices
 generic       -> code-review:code-reviewer
-database      -> code-review:code-reviewer + prime {card Skills-to-apply} + sql:sql-best-practices
+database      -> code-review:code-reviewer + prime {card Skills-to-apply} + database:sql-best-practices
 backend       -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:resilience-design
 api           -> code-review:code-reviewer + prime {card Skills-to-apply} + api-design:api-design + resilience:resilience-design
 security      -> code-review:code-reviewer + prime {card Skills-to-apply} + security:security-review
 testing       -> code-review:code-reviewer + prime {card Skills-to-apply} + testing:testing-best-practices
-performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + performance:performance-tuning
-observability -> code-review:code-reviewer + prime {card Skills-to-apply} + observability:observability-design
+performance   -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:performance-tuning
+observability -> code-review:code-reviewer + prime {card Skills-to-apply} + resilience:observability-design
 ```
 
 ## Priming (the orchestrator primes every routed reviewer)

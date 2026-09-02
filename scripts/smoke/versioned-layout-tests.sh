@@ -115,7 +115,7 @@ for layout in flat versioned; do
   expect_eq "[$layout] catalog lists it exactly once" \
     "$(printf '%s\n' "$cout" | grep -c -- '- /vlpresent:vlcmd' || true)" "1"
 
-  # prime.sh: a .tsx repo asks for a11y-audit, owned by the `a11y` plugin, which
+  # prime.sh: a .tsx repo asks for a11y-audit, owned by the `ui-ux` plugin, which
   # this fixture does NOT install — the include-filter must still say no.
   mkdir -p "$cwd/src"; : > "$cwd/src/x.tsx"
   pout=$(jq -n --arg cwd "$cwd" '{hook_event_name:"SessionStart",session_id:"p1",cwd:$cwd}' \

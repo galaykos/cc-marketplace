@@ -9,8 +9,8 @@ own mechanism is the review fan-in plus an advisory nudge, not a gate.) Uninstal
 cleanly: `/quality-suite:uninstall` removes the bundle and prunes the plugins it
 auto-installed.
 
-The nine advisory disciplines this bundle used to carry — security, a11y,
-debugging, performance, resilience, packages, observability, approaches in 0.7.0,
+The nine advisory disciplines this bundle used to carry — security, a11y (now in ui-ux), <!-- removed-ok -->
+debugging, performance and observability (now in resilience), resilience, packages (now stack-scan), approaches in 0.7.0, <!-- removed-ok -->
 and testing in 0.9.0 (it ships no ENFORCEMENT hook — its PostToolUse hook is advisory) — moved to **quality-principles-suite**.
 They were never gates, and bundling them here meant a project wanting enforcement
 paid for their always-on description context too. Install both if you want what
@@ -35,7 +35,6 @@ in taskmaster-suite.
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
 - **candor** — a Stop gate on the two dishonesty shapes a script can prove: an unverified claim stated as done, and a silent scope reduction, plus `/candor:check`
 - **lean** — prices every line, test, comment and file as a debit, so the smallest change that satisfies the requirement is the one that ships
-- **comment-discipline** — routes every fact to the artifact that cannot lie about it and spends comments only where nothing else can hold them; a PostToolUse hook warns on all six noise categories and a PreToolUse lane denies the two strictest before the write, plus `/comment-discipline:review`
 
 | Command | What it does |
 |---------|--------------|

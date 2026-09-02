@@ -25,7 +25,7 @@ from its manifests and lockfiles, never assumed.
 
 ## Container image hygiene
 
-Dockerfile specifics are `docker-best-practices` (dev-env) — Read it. The pipeline-
+Dockerfile specifics are the sibling `docker-best-practices` skill — Read it. The pipeline-
 level rules that live here:
 
 - Pinned base images (digest or exact tag), multi-stage builds separating build from
@@ -92,17 +92,17 @@ switched off and takes the unambiguous ones with it.
 Standing: recorded — this plugin owns the infra layer: probes wired to endpoints,
 logs shipped off the node, metrics scraped/exported, dashboards, alerting, the
 collector. What the application *emits* — structured logs, correlation IDs, levels,
-RED/USE metrics, spans — is the `observability` plugin; recommend
-`/observability:review`, do not audit in-code instrumentation here.
+RED/USE metrics, spans — is the `resilience` plugin's observability skill; recommend
+`/resilience:observability-review`, do not audit in-code instrumentation here.
 
 ## Defer rule
 
-- Local dev-environment compose generation → `/dev-env:init`; auditing an existing
-  one → `/dev-env:review`.
+- Local dev-environment compose generation → `/devops:init`; auditing an existing
+  one → `/devops:review`, which loads `docker-best-practices`.
 - Stack/dependency inventory → `/stack-scan:report` — use its output.
 - Application-code security → `/security:review`; you handle infra and pipeline
   config, not source audits.
-- In-code instrumentation → `/observability:review` (see the boundary above).
+- In-code instrumentation → `/resilience:observability-review` (see the boundary above).
 
 ## Anti-patterns
 

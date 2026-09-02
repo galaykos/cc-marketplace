@@ -8,7 +8,7 @@ description: Use when adding a postprocessing pass or custom shader to a Three.j
 This skill decides WHETHER a postprocessing pass or custom shader earns the GPU cost and
 WHICH effect layer to add — then pins the pipeline and budget. It does not re-teach
 Three.js: the renderer (WebGPU-default), TSL shader authoring (`three/tsl`), disposal,
-and the render loop live in `plugins/threejs/skills/threejs-best-practices/SKILL.md`; the
+and the render loop live in `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`; the
 lazy-load contract, the two-render static fallback, and capability gating live in
 `plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md` — reference both by path.
 
@@ -96,7 +96,7 @@ in the JS bundle. Budget it like paint, not like KB.
 - `references/effect-pipeline.md` — the postprocessing pipeline wiring, driving uniforms
   from scroll/pointer, and the GLSL→TSL port checklist.
 - Renderer, TSL authoring, disposal, render loop, R3F:
-  `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
+  `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`.
 - Lazy-load contract, two-render static fallback, capability gating, KB budget:
   `plugins/craft-layer/skills/motion-tiers/references/webgl-3d.md`.
 - Scroll progress source: `plugins/craft-layer/skills/scroll-orchestration/SKILL.md`.

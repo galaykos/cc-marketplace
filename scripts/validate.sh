@@ -329,7 +329,7 @@ fi
 #
 # The optout must name the file it exempts. The earlier test was
 # `any(.chassis=="optout")` over the WHOLE manifest, so ONE opt-out entry exempted
-# all four chassis-shaped kinds at once: api-docs-first and build-vs-buy each hand-
+# all four chassis-shaped kinds at once: api-design (docs-first) and build-vs-buy each hand-
 # maintain commands/check.md while generating hooks/remind.sh, and a hand-edit that
 # stripped the header off remind.sh would have been silently covered by check.md's
 # exemption. An unscoped optout is now an error, not a blanket.

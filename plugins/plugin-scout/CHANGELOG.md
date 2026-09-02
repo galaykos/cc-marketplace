@@ -7,6 +7,63 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.13.11
+
+### Changed
+- The registry and shadcn-sandbox signal rows suggest `design-lab`; the `ui-ux` overlap pair
+  names it. design-preview, shadcn-studio and registry-source merged on 2026-09-02. <!-- removed-ok -->
+  Regenerated catalog.
+
+## 0.13.10
+
+### Changed
+- The any-project core drops the comment-discipline row: its rule ships inside <!-- removed-ok -->
+  code-review (already core) since 2026-09-02. Regenerated catalog.
+
+## 0.13.9
+
+### Changed
+- The observability and performance signal rows suggest `resilience`, which absorbed <!-- removed-ok -->
+  both plugins on 2026-09-02. Regenerated catalog.
+
+## 0.13.8
+
+### Changed
+- The "also api-docs-first" signal row is gone: the docs-first check ships inside <!-- removed-ok -->
+  api-design since 2026-09-02, which the `api-design` row already suggests. Regenerated catalog.
+
+## 0.13.7
+
+### Changed
+- Regenerated catalog: ui-ux, craft-layer, craft-suite, frontend-suite, quality-principles-suite
+  descriptions after the a11y and threejs merges (2026-09-02). <!-- removed-ok -->
+
+## 0.13.6
+
+### Changed
+- **The manifest-present signal suggests `stack-scan`**, which absorbed the packages <!-- removed-ok -->
+  plugin on 2026-09-02. Regenerated catalog.
+
+## 0.13.5
+
+### Changed
+- **The Dockerfile/compose signal suggests `devops`**, which absorbed dev-env on <!-- removed-ok -->
+  2026-09-02. Regenerated catalog.
+
+## 0.13.4
+
+### Changed
+- **The MariaDB tier-1 signal suggests `database`**, which absorbed the sql and
+  mariadb plugins on 2026-09-02; the `sql` overlap pair is gone with the plugin. <!-- removed-ok -->
+  `db-suite` is removed — three members that now live in one plugin do not earn a <!-- removed-ok -->
+  bundle. Regenerated catalog.
+
+## 0.13.3
+
+### Changed
+- **The Inertia tier-1 signal suggests `laravel`**, which absorbed the inertia plugin <!-- removed-ok -->
+  on 2026-09-02; the `web-dev` overlap pair shrinks to `laravel`. Regenerated catalog.
+
 ## 0.13.2
 
 ### Changed

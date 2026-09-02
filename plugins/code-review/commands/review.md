@@ -37,8 +37,8 @@ manifests, list every matching best-practice skill (`.ts`/`.tsx`/`.jsx`/`.vue` �
 no language plugin, the baseline covers language-level review; web-dev's
 react-native and vite skills per their manifest markers; markup/utility classes touched → the matching ui-ux stack
 skill + a11y-audit; `.php`/`.blade.php` → laravel per composer.json;
-`next.config.*`/`app/` routes → web-dev's nextjs skill; `.sql`/migrations → sql + mariadb when
-that engine is detected). Load each skill whose plugin IS installed and apply it inside the
+`next.config.*`/`app/` routes → web-dev's nextjs skill; `.sql`/migrations → database's sql skill, plus its
+mariadb skill when that engine is detected). Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name
 relevant-but-uninstalled plugins in one closing line instead.
@@ -83,8 +83,8 @@ Output rules:
     `resilience` (missing timeouts, unsafe retries, absent degradation paths;
     empty/over-broad catches, swallowed exceptions, missing cause chains;
     check-then-act races, retry idempotency, unguarded parallel writes),
-    `observability` (silent catch blocks, correlation IDs, secrets in logs),
-    `comment-discipline` (comment volume and placement).
+    `resilience` also owns observability (silent catch blocks, correlation IDs, secrets in logs) and performance,
+    this plugin's own `comment-discipline` skill (comment volume and placement).
     Report the finding once and name the owner; when none is installed, this
     review keeps it. The swallowed catch alone had four claimants.
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer

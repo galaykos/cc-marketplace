@@ -49,6 +49,6 @@ Rules:
   per-stack review command when its plugin is installed. On the concern axis —
   swallowed catches, races and retry idempotency, silent catch blocks, missing
   timeouts, comment volume — the owning plugin reports it if installed:
-  resilience (error-handling and concurrency audits included), observability, comment-discipline.
+  resilience (error-handling, concurrency, observability and performance audits included), comment-discipline.
 - End with one line: merge-ready, merge-after-criticals, or rework — and why
   in ten words or fewer.

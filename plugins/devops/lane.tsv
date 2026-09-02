@@ -3,5 +3,9 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-devops:devops-engineer	agent	build	pipeline-and-infra-implementation	work targets CI config, a Dockerfile, a Kubernetes manifest, deploy config, or secrets wiring	dev-env:init,observability:observability-engineer
-devops:devops-reviewer	agent	review	pipeline-and-deploy-config-review	diff touches CI config, a Dockerfile, a Kubernetes manifest, or deploy config	dev-env:review
+devops:devops-engineer	agent	build	pipeline-and-infra-implementation	work targets CI config, a Dockerfile, a Kubernetes manifest, deploy config, or secrets wiring	resilience:observability-engineer
+devops:devops-reviewer	agent	review	pipeline-and-deploy-config-review	diff touches CI config, a Dockerfile, a Kubernetes manifest, or deploy config	-
+devops:review	command	review	infra-config-review	the scope is CI, Kubernetes, deploy, Dockerfile, or compose config and nothing else; a mixed scope hands up to the fan-in	code-review:code-reviewer
+devops:init	command	build	local-dev-environment-generation	the user asks for a docker-compose dev environment, or a repo with services and no compose file	-
+devops:docker-best-practices	skill	build	dockerfile-and-compose-idioms	an edit to Dockerfile* or a compose file	-
+devops:compose-init	skill	build	compose-generation-procedure	dispatched by /devops:init	-

@@ -1,6 +1,6 @@
 ---
 name: api-design
-description: Use when designing or reviewing your own REST APIs — resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning and breaking changes, Idempotency-Key, Laravel apiResource/FormRequest mapping. Consuming third-party API docs lives in api-docs-first.
+description: Use when designing or reviewing your own REST APIs — resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning and breaking changes, Idempotency-Key, Laravel apiResource/FormRequest mapping. Consuming third-party API docs lives in the sibling `api-docs-first` skill.
 ---
 
 ## Resources are nouns
@@ -52,7 +52,7 @@ and stop. Every other code is a trivia question for your consumers.
 
 - Cursor/keyset for anything unbounded or feed-like: opaque `cursor` param in,
   `next_cursor` out. Offset re-reads every skipped row and duplicates/drops
-  items when rows insert mid-scroll — the sql plugin's keyset section is the
+  items when rows insert mid-scroll — the database plugin's `sql-best-practices` keyset section is the
   storage half of this rule.
 - `page`/`per_page` only for small bounded admin-style sets. Cap `per_page`
   server-side; an uncapped limit is self-service denial of service.

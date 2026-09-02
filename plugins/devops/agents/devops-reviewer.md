@@ -37,7 +37,7 @@ Checklist before finishing:
 - [ ] Every mechanical claim cites its command output.
 
 Defer rule: in-code instrumentation is observability's; source-code security is
-security's; local compose is dev-env's. Flag the wrong owner and move on.
+security's; local compose is `/devops:review`'s Docker rubric, not this agent's deep pass. Flag the wrong owner and move on.
 
 Output: findings one line each — `path:line — severity — problem — fix` —
 severity-ordered (critical, high, medium, low; a committed secret is always

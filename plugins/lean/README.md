@@ -54,7 +54,7 @@ silently. It can never wedge a run.
 
 ## Pairs well with
 
-- **comment-discipline** — whether a comment should exist and where the fact belongs
+- **code-review** (comment-discipline skill) — whether a comment should exist and where the fact belongs
 - **testing** — what is worth testing and at which layer; its
   `references/proportionality.md` carries the measured 3x test:code and 8x
   tests-per-integration overshoot this plugin exists to prevent

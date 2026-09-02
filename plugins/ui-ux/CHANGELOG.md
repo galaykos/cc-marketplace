@@ -4,6 +4,27 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.19.3
+
+### Changed
+- Registry and preview hand-offs name design-lab (`/design-lab:preview`, `/design-lab:stage`,
+  its `registry-source` MCP); design-preview, shadcn-studio and registry-source merged <!-- removed-ok -->
+  into it on 2026-09-02.
+
+## 0.19.2
+
+### Changed
+- `motion-best-practices` points Three.js work at craft-layer's `threejs-best-practices`;
+  the threejs plugin merged into craft-layer on 2026-09-02. <!-- removed-ok -->
+
+## 0.19.0
+
+### Added
+- **a11y merged in.** `/ui-ux:audit` (was `/a11y:audit`), the `a11y-audit` skill, and <!-- removed-ok -->
+  the `a11y-engineer` worker ship here; `/ui-ux:review` keeps deferring the deep WCAG
+  pass to the audit command, now one plugin over. Nothing in the audit's checklist or
+  report format changed.
+
 ## 0.18.6
 
 ### Changed

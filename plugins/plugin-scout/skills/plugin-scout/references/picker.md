@@ -59,16 +59,16 @@ first question — to carry real information in four rows.
 
 TIER 1 — earned by a signal in this repo
    1  laravel   composer.json — laravel/framework ^11
-   2  inertia   composer.json — inertiajs/inertia-laravel ^2
-   3  dev-env   docker-compose.yml
-TIER 2 — any-project core (8)
+   2  web-dev   package.json — vite ^5 + vite.config.ts
+   3  devops    docker-compose.yml
+TIER 2 — any-project core (7)
    4  code-review ✓  5  debugging  6  testing  7  git-workflow
-   8  code-architecture  9  secret-scanning  10 command-guard  11 comment-discipline
+   8  code-architecture  9  secret-scanning  10 command-guard
 TIER 3 — no signal in this repo (40)
-  stack, unfired:  12 web-dev  13 mariadb  14 threejs  15 payments
+  stack, unfired:  12 web-dev  13 database  14 craft-layer  15 payments
   quality/review:  16 a11y  17 performance  18 resilience  19 security  20 system-design
   data:            21 database  22 sql  23 stack-scan
-  tooling:         24 brain  25 hindsight  26 packages  27 claude-authoring
+  tooling:         24 brain  25 hindsight  26 stack-scan  27 claude-authoring
   ...
   bundles:  php-suite (#1,#2,+2) · quality-suite (#4,#6,#16,+5)
 ```
@@ -120,10 +120,9 @@ TIER 3 — no signal in this repo (40)
 
   | Row | Overlaps |
   |---|---|
-  | `sql` | `mariadb`, `database` |
-  | `ui-ux` | `craft-layer`, `shadcn-studio`, `design-preview`, `registry-source` |
+  | `ui-ux` | `craft-layer`, `design-lab` |
   | `taskmaster` | `task-runner`, `orchestration` |
-  | `web-dev` | `laravel`, `inertia` |
+  | `web-dev` | `laravel` |
 
   A row on no pair is never annotated. A deprioritized row sorts last within its
   tier and its description names the overlap ("overlaps installed ui-ux"). Tier-1

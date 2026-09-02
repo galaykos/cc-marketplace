@@ -6,8 +6,8 @@ that audits component and view logic; and three version-pinned stack skills —
 **Next.js**, **React Native** (with the Expo inversions), and **Vite** — behind one
 `/web-dev:review` that detects the stack from the lockfile.
 
-Inertia and Laravel keep their own plugins: they are a PHP-side pairing, and the
-worker and reviewer defer to them when installed. Plain JavaScript and TypeScript
+Laravel keeps its own plugin and Inertia lives there — a PHP-side pairing — and the
+worker and reviewer defer to it when installed. Plain JavaScript and TypeScript
 need no stack skill — that shape measured zero against a blind control
 (`rationale/measured-zero-shapes.md`), which is why there is none here.
 
@@ -78,7 +78,7 @@ the skill on `app.config.*` and `eas.json` edits in an Expo project.
   never edits.
 
 The worker recommends the matching review command after implementing; the reviewer
-hands accessibility to `/a11y:audit` and design-system concerns to `/ui-ux:review`.
+hands accessibility to `/ui-ux:audit` and design-system concerns to `/ui-ux:review`.
 
 ## Model tiers — why the reviewer is floored
 
@@ -98,8 +98,8 @@ once the skip-clause holds. Standing: **recorded** — no script reads the marke
 
 ## Pairs well with
 
-- **inertia** — the Laravel-side frontend; both agents load its skill when installed
+- **laravel** — the PHP side, and the home of `inertia-best-practices`, which both agents load when installed
 - **ui-ux** — visual and design-system review the frontend-reviewer defers to
-- **a11y** — full WCAG audit; the agents only enforce a semantic baseline
-- **performance** — bundle size and Core Web Vitals beyond the framework defaults
+- **ui-ux** also carries `/ui-ux:audit`, the full WCAG pass; the agents only enforce a semantic baseline
+- **resilience** — `/resilience:performance-review` for bundle size and Core Web Vitals beyond the framework defaults
 - **stack-scan** — supplies the locked versions the advice pins against

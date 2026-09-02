@@ -1,0 +1,13 @@
+[
+  {
+    "chassis": "stack-review",
+    "variant": "lang",
+    "skill": "threejs-best-practices",
+    "docsUrl": "https://threejs.org/docs",
+    "tag": "frontend",
+    "worker": null,
+    "description": "Review Three.js / react-three-fiber code against threejs-best-practices — renderer choice, TSL, asset pipeline, disposal, render-loop cost — pinned to the locked three revision",
+    "argumentHint": "[files-or-diff]",
+    "applyExtra": []
+  }
+]

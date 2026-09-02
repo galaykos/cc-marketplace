@@ -76,8 +76,8 @@ What the pass should lift there:
 TIER 3 — no signal in this repo (40)
   worth a look here
     31 brain          60+ plugin dirs and no map; a fresh session starts cold
-    18 comment-discipline  the repo's own rule is "cite, don't restate" — this
-                           plugin is that rule for code
+    18 code-review    the repo's own rule is "cite, don't restate" — its
+                           comment-discipline skill is that rule for code
     44 approaches     most changes here are shape decisions (a gate? a hook?
                       a reference file?) rather than implementation
   quality/review:  16 a11y  17 performance  ...

@@ -77,8 +77,8 @@ already own it, in fidelity order:
 | Need | Owned by |
 | --- | --- |
 | Consent gate, fidelity ladder, ASCII + shell HTML mockups | `taskmaster:visual-decisions` |
-| Real project components on a live server | `/design-preview:preview` |
-| Greenfield / non-React component variants | `/shadcn-studio:stage` |
+| Real project components on a live server | `/design-lab:preview` |
+| Greenfield / non-React component variants | `/design-lab:stage` |
 | Colour or theme IS the decision | `/ui-ux:theme` |
 | Validating the ASSEMBLED page after the picks | `taskmaster:experience-walkthrough` |
 
@@ -113,7 +113,7 @@ what it left open.
 | How many sections, how deep | `creative-direction` (`content-depth.md`) |
 | The concept the options must honor | `creative-direction` + the creative-director agent |
 | MOVE categories the options are reasoned from | `creative-direction` (`moves-taxonomy.md`) |
-| Drawing an option | `taskmaster:visual-decisions`, `/design-preview:preview` |
+| Drawing an option | `taskmaster:visual-decisions`, `/design-lab:preview` |
 | Building the picked section | `/ui-ux:build` |
 | Checking the built page against the ledger | `/craft-layer:audit` |
 

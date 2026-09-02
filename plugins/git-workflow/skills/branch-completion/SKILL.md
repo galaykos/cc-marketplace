@@ -36,7 +36,7 @@ the set depends on the base (see "The default branch is PR-only" below).
 For a large or many-session branch, offer one optional artifact before the
 destination ask: a change explainer — what changed, why, decisions and
 deviations — for a reviewer who saw none of the work (HTML on the
-design-preview pattern when installed, else markdown). Offer, never default:
+design-lab preview pattern when installed, else markdown). Offer, never default:
 small branches don't earn the ceremony. For a
 feature whose base is NOT the default branch, offer all four: merge locally,
 push and open a PR, keep the branch open, discard the work. When the base IS
@@ -80,7 +80,9 @@ the default branch is finished via the PR protocol, never a local merge.
    branch. Merging into a stale base produces a green merge that explodes on
    push.
 2. Merge the feature branch into the base; resolve conflicts in favor of
-   intent, not convenience.
+   intent, not convenience: read each side's commit messages, PR, and the issue it
+   closes before choosing, never invent behavior neither side had, and never
+   `--abort` to dodge a hunk — resolve, run the checks, finish.
 3. Re-run the FULL suite on the merged result. The pre-merge pass certified
    the branch against an old base; the merged tree is new code nobody has
    tested. Conflict resolutions are edits like any other.

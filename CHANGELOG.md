@@ -6,31 +6,39 @@ version in their `plugin.json`.
 
 ## [0.97.0] - 2026-09-02
 
-**First consolidation merge: `nextjs`, `react-native`, `vite` → `web-dev`** — the
-marketplace ships 49 leaf plugins, down from 52, and web-dev now does what four did.
-Doctrine and the Opus 5 / Sonnet 5 / Fable 5.1 prompting-guide extraction behind it:
-`rationale/2026-09-02-web-dev-merge.md`.
+**Consolidation: 52 leaf plugins to 36, 10 bundles to 8** — one plugin per install
+unit, one commit per merge, every absorbed skill keeping its name. The shape, the
+bundle-cost measurements, and the seven proposed merges deliberately NOT made (each
+with its recorded reason) are in `rationale/2026-09-02-web-dev-merge.md`.
 
-- `web-dev` 0.6.1: the three skills move in unchanged (`nextjs-best-practices`,
-  `react-native-best-practices`, `vite-best-practices`, the nextjs eval rides along);
-  one hand-written `/web-dev:review` detects every stack in scope from the manifests
-  and applies every matching skill, carrying the Expo inversion preamble and a
-  coverage-first reporting rule (report everything, the self-refute pass filters).
-  `frontend-reviewer` pins `model: opus` as a role FLOOR — a Sonnet session still gets
-  an Opus-class verdict; Opus and Fable sessions are unchanged. Each skill gains a
-  "Scope by model tier" block (All models / Compensation / Skip).
-- `frontend-suite` 0.10.0 (8 → 5 members) and `php-suite` 0.4.0 (4 → 3) drop the
-  absorbed plugins; web-dev carries the Vite review Laravel needs.
-- `skill-router` 0.14.4: six routing rows and the SessionStart primer now name
-  `web-dev` as owner; the catalog relevance filter drops `/web-dev:review` from a
-  repo with none of the three stacks (smoke: `prompt-route-tests.sh`).
-- `code-review` 0.13.1, `code-architecture` 0.13.10, `performance` 0.4.4 (deferRule),
-  `plugin-scout` 0.13.2, `vercel-skills-scout` 0.4.5, `threejs` 0.2.3: references
-  rerouted; `orchestration` 0.16.6: the role-floors registry gains the seventh row.
-- `scripts/lib/plugin-checks.sh`: the removed-reference guard learns the three MOVED
-  names in their plugin forms only (`/vite:review`, `plugins/vite`, `**vite**`,
-  "vite plugin") — the bare package names stay legal because the surviving skills
-  must keep saying them.
+| Keeper | Absorbed |
+|---|---|
+| `web-dev` 0.6.x | nextjs, react-native, vite → `/web-dev:review`; `frontend-reviewer` pins `model: opus` as a role floor |
+| `laravel` 0.7.x | inertia → `/laravel:review` loads Inertia when the manifests show it |
+| `database` 0.6.x | sql, mariadb → `/database:review` (engine detected first); `db-suite` removed |
+| `devops` 0.6.x | dev-env → `/devops:init`, Docker rubric inside `/devops:review` |
+| `stack-scan` 0.6.x | packages → `/stack-scan:audit` |
+| `ui-ux` 0.19.x | a11y → `/ui-ux:audit` + `a11y-engineer` |
+| `craft-layer` 0.48.x | threejs → `/craft-layer:review` |
+| `api-design` 0.7.x | api-docs-first → `/api-design:check`, `/api-design:drift` + the reminder hook |
+| `resilience` 0.3.x | observability, performance → `:observability-review`, `:performance-review`, two workers |
+| `code-review` 0.14.x | comment-discipline → `/code-review:comment-review` + three write-time hooks |
+| `design-lab` 0.1.0 (new) | design-preview, shadcn-studio, registry-source; `product-suite` removed |
+
+- Bundles re-pointed: `frontend-suite` 8 → 3 members, `php-suite` 5 → 2,
+  `craft-suite` 7 → 3, `quality-principles-suite` 9 → 5, `quality-suite` 8 → 7,
+  `process-suite` swaps api-docs-first for api-design. Baselines hand-applied and
+  arithmetic-checked per merge.
+- `skill-router` 0.14.x: every routing row and the SessionStart primer name the new
+  owners; the catalog relevance filter asserted both ways for web-dev.
+- `scripts/lib/plugin-checks.sh`: `pc_removed_refs` learns the fourteen moved plugin
+  names in plugin forms only (`/vite:review`, `plugins/vite`, `**vite**`, "vite plugin")
+  with a boundary that keeps package names legal; `pc_pick_parity` stays (its second
+  plugin stays too).
+- Five rules adopted from a review of `mattpocock/skills` — `debugging` 0.3.14
+  (tagged probes, credentials out of the transcript), `taskmaster` 0.41.2 (grill's
+  frontier rule), `testing` 0.8.7 (tautology tell, named seams), `git-workflow` 0.4.1
+  (conflicts by intent, never `--abort`). Recorded, unmeasured.
 
 ## [0.96.1] - 2026-08-31
 

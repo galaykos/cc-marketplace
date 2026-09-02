@@ -171,10 +171,10 @@
   # PREDICATE: drop a plugin's commands only when it OWNS rules.tsv rows AND none
   # of them can match anything in this repo. Two corrections the design needed:
   #   * NOT the stack_marker column. It is populated on 15 of 67 data rows and is
-  #     absent on exactly the Next.js, Nuxt, Vite and threejs rows — the stacks the
-  #     filter is FOR (the first three now owned by web-dev). A stack_marker predicate would silently do nothing for them.
+  #     absent on exactly the Next.js, Nuxt, Vite and Three.js rows — the stacks the
+  #     filter is FOR (now owned by web-dev and craft-layer). A stack_marker predicate would silently do nothing for them.
   #   * NOT glob rows alone. Seven plugins ship ONLY content rows (llm-app,
-  #     node-backend, observability, payments, resilience, security, threejs), so a
+  #     node-backend, observability, payments, resilience, security, craft-layer's threejs row), so a
   #     glob-only predicate matches nothing for them in ANY repo and would delete
   #     /security:review from every repository on earth. A plugin with no rows, or
   #     with no glob rows, is stack-NEUTRAL and always kept.
@@ -186,9 +186,9 @@
   # were authored to route a SKILL to files that already exist, so reusing them as a
   # relevance test for EVERY command was a category error: it hid the commands whose whole
   # job is to create the thing the glob looks for. Measured on a Laravel repo, the earlier
-  # form hid dev-env init from any repo without a Dockerfile, craft-layer craft from every
+  # form hid the compose init from any repo without a Dockerfile, craft-layer craft from every
   # greenfield repo, and the a11y audit from anything without a .tsx at depth four, since
-  # a11y ships one glob row and it is .tsx alone. The original motivation was narrow: a
+  # its plugin shipped one glob row and it was .tsx alone. The original motivation was narrow: a
   # Laravel repo should not be offered the Next.js review, so the filter is narrow now.
   #
   # PRUNED AND MEMOISED. Unpruned walks measured 2.86s at 4515 entries and 20.26s at 35014,

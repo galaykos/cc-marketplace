@@ -10,7 +10,7 @@ re-teach any library's API. Idioms live elsewhere — reference them by path:
 
 - Motion / GSAP / anime.js idioms: `plugins/ui-ux/skills/motion-best-practices/SKILL.md`
   (+ `plugins/ui-ux/skills/motion-best-practices/references/animejs.md`).
-- Three.js / R3F correctness: `plugins/threejs/skills/threejs-best-practices/SKILL.md`.
+- Three.js / R3F correctness: `plugins/craft-layer/skills/threejs-best-practices/SKILL.md`.
 - Sprite-sheet authoring detail: `references/sprite.md`.
 
 The net-new value here is the taxonomy, the per-tier budgets, the framework bindings,
@@ -131,7 +131,7 @@ picking a per-surface tier. Two sibling craft skills layer on top of a chosen ti
 - `references/framework-bindings.md` — the tool→framework binding matrix for every
   named stack (React, Next, Vue, Nuxt, Laravel via Inertia or Livewire).
 - `references/webgl-3d.md` — the 3D lazy-load + static-fallback rules; cites
-  `plugins/threejs/skills/threejs-best-practices/SKILL.md` for R3F correctness.
+  `plugins/craft-layer/skills/threejs-best-practices/SKILL.md` for R3F correctness.
 - `references/gotchas.md` — tool-usage traps that break real builds: gradient-clip on
   split text, whileInView with no fallback, split-text aria, one-writer, scroll-link.
 - `references/rtl-bidi.md` — the RTL/BiDi decision: which effects mirror vs the

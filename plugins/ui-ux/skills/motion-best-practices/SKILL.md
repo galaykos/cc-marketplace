@@ -119,7 +119,7 @@ branching to `utils.set(target, finalState)` when it matches.
 - Motion — declarative React/Vue component animation: gestures, layout and exit transitions.
 - GSAP — complex imperative timelines, ScrollTrigger scenes, SplitText typography.
 - anime.js — lightweight dependency-free imperative tweens/timelines, vanilla-first codebases.
-- Three.js (separate `threejs` plugin) — WebGL/3D scenes, not DOM animation.
+- Three.js (craft-layer's `threejs-best-practices`) — WebGL/3D scenes, not DOM animation.
 - One writer per property per element: never point two libraries at the same `transform`.
 
 ## Animate on the compositor

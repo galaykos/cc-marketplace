@@ -34,7 +34,7 @@ never run package managers, and a query is earned only by cited evidence
 | composer.json exists | `php` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | composer.json require laravel/framework | `laravel` |
 | composer.json require livewire/livewire | `livewire` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
-| inertiajs dep (composer or npm) | `inertia` |
+| inertiajs dep (composer or npm) | `inertia` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep react (not react-native) | `react` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep react-native | `react native` | <!-- removed-ok --> <!-- registry search query, not a marketplace plugin name -->
 | package.json dep vue | `vue` |

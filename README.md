@@ -36,18 +36,16 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~3.8k tokens | ~32 tokens | ~2.6k tokens |
-| `craft-suite` | 7 | ~2.6k tokens | — | — |
-| `quality-principles-suite` | 9 | ~2.1k tokens | — | ~127 tokens |
-| `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
-| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
-| `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
-| `frontend-suite` | 5 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
-| `php-suite` | 3 | ~639 tokens | — | — |
-| `db-suite` | 3 | ~296 tokens | — | — |
-| `product-suite` | 2 | ~254 tokens | — | — |
+| `taskmaster-suite` | 10 | ~4.0k tokens | ~32 tokens | ~2.5k tokens |
+| `craft-suite` | 3 | ~2.7k tokens | — | — |
+| `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
+| `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
+| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.4k tokens |
+| `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
+| `frontend-suite` | 3 | ~1.2k tokens | ~32 tokens | ~2.3k tokens |
+| `php-suite` | 2 | ~659 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 49 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 36 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -81,15 +79,13 @@ that as an order-of-magnitude correction, never as a coefficient
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
 | **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, plus web-dev (Vite review and the shared worker). |
-| **[db-suite](plugins/db-suite)** | Schema and query work — engine-agnostic SQL plus MariaDB dialect depth. |
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
 | **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
-| **[product-suite](plugins/product-suite)** | Payments and LLM-application engineering. |
 | **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, lean, routing, git discipline — on in every repo. |
 
 Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
-`/db-suite:uninstall`, and so on — which removes the bundle **and** prunes the
+`/php-suite:uninstall`, and so on — which removes the bundle **and** prunes the
 plugins it auto-installed, leaving anything you installed yourself alone.
 
 ---
@@ -144,8 +140,6 @@ lockfile rather than to the version the model happens to remember.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[laravel](plugins/laravel)** | Eloquent N+1 and eager loading, FormRequests, thin controllers, queued jobs, policies, the Laravel 11/12/13 map | Controllers, models, jobs, migrations — the daily Laravel surface |
-| **[inertia](plugins/inertia)** | prop hygiene, partial reloads, deferred vs lazy props, `useForm`, shared data, the silent-SSR trap | A Laravel + Vue/React/Svelte app on Inertia v1/v2/v3 |
-| **[threejs](plugins/threejs)** | WebGPU-first with WebGL2 fallback, TSL shaders, r3f/drei, glTF/Draco/KTX2, disposal discipline | 3D scenes, and any leak that only shows after ten route changes |
 | **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) behind one `/web-dev:review`, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
 
 **Using them.** Three entry points, in rising order of ceremony:
@@ -173,24 +167,21 @@ lockfile rather than to the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[sql](plugins/sql)** | sargable predicates, join correctness, NULL three-valued logic, composite index order, keyset pagination, parameterization — **plus the design floor**: normalization, expand-migrate-contract migrations with a rollback path, index choice from observed queries, connection-pool sizing | Any SQL on any engine, and any schema or migration decision |
-| **[mariadb](plugins/mariadb)** | the MariaDB-is-not-MySQL divergences: no `utf8mb4_0900_*`, JSON as LONGTEXT, `RETURNING`, sequences, system-versioned tables, Galera | MariaDB — where copying a MySQL 8 answer is the most common bug |
-| **[database](plugins/database)** | a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | You want the work applied, or you want a seatbelt on destructive SQL |
+| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill behind one `/database:review` that detects the engine first, a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
 
-**Using them.** `/sql:review` for the engine-agnostic pass — statements and
-the shape that persists both; add the engine command — `/mariadb:review` —
-when the dialect matters. The database plugin contributes the worker and the
-destructive-SQL guard, not a review command.
+**Using them.** `/database:review` detects the engine first, runs the
+engine-agnostic pass over statements and the shape that persists them, and adds
+the MariaDB dialect rules when the compose image or DSN says MariaDB. The worker
+and the destructive-SQL guard ride in the same plugin.
 
 **Worked example.** Adding a column to a hot table on MariaDB:
 
 ```
-/sql:review database/migrations/2026_08_21_add_status.php
-/mariadb:review                 # RETURNING, sequences, the not-MySQL divergences
+/database:review database/migrations/2026_08_21_add_status.php   # engine detected → sql + mariadb rules
 ```
 
 The expand → migrate → contract sequence, the rollback-path rule, and the
-"never a one-step `RENAME COLUMN`" example all live in the `sql` skill.
+"never a one-step `RENAME COLUMN`" example all live in the `sql-best-practices` skill.
 
 ---
 
@@ -199,11 +190,8 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Tailwind), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
+| **[design-lab](plugins/design-lab)** | `/design-lab:preview` renders 2–3 variants with the project's OWN components on its own dev server; `/design-lab:stage` does the same in a throwaway shadcn + Vite sandbox; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Seeing real components before a visual decision, and installing registry components from the source |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated |
-| **[design-preview](plugins/design-preview)** | renders 2–3 variants with the project's OWN components on its own dev server, zero edits to existing files, guaranteed cleanup | You need a real-fidelity visual decision in a Vite + React/Vue app |
-| **[shadcn-studio](plugins/shadcn-studio)** | a self-contained shadcn + Vite sandbox for interactive variants outside the work tree | Same decision, but the project is greenfield or not React |
-| **[registry-source](plugins/registry-source)** | MCP servers reading Aceternity / shadcn / Magic UI / ReUI registries live,every answer carrying its source URL, fetch date, stale flag | Installing a registry component — so the API comes from the registry, not from memory |
-| **[a11y](plugins/a11y)** | a WCAG 2.2 AA checklist (semantics, contrast, keyboard, focus, forms, media, ARIA) plus an `a11y-engineer` that applies fixes tagged with their criterion | Any markup change, and before any accessibility claim |
 
 **Using them.**
 
@@ -211,12 +199,12 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 /ui-ux:theme                  # create or restyle a colour theme, live preview URL
 /ui-ux:build                  # build or restyle a component/layout
 /ui-ux:review                 # audit markup and styles
-/a11y:audit                   # WCAG 2.2 AA, one line per violation with the fix
+/ui-ux:audit                   # WCAG 2.2 AA, one line per violation with the fix
 /craft-layer:craft            # the full studio pipeline, end to end
 /craft-layer:sections         # decide a page section by section, with you
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
-/design-preview:preview       # variants rendered with your real components
-/shadcn-studio:stage          # variants in a throwaway shadcn sandbox
+/design-lab:preview       # variants rendered with your real components
+/design-lab:stage          # variants in a throwaway shadcn sandbox
 ```
 
 **Worked example — a landing page that must not look templated:**
@@ -234,12 +222,12 @@ that computes WCAG ratios from your token source.
 **Worked example — one component, real fidelity:**
 
 ```
-/design-preview:preview "three card treatments for the dashboard"
+/design-lab:preview "three card treatments for the dashboard"
 ```
 
 Renders three variants side by side using your own components, on a scratch
 entry that is deleted afterwards. In a non-React or greenfield repo,
-`/shadcn-studio:stage` does the same job in its own sandbox.
+`/design-lab:stage` does the same job in its own sandbox.
 
 ---
 
@@ -250,14 +238,10 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
 | **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review — and a **Stop hook** that refuses a completion claim when files were edited and nothing ran afterwards | Structure decisions, and any "it's done" that has no evidence behind it |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
-| **[comment-discipline](plugins/comment-discipline)** | every fact routed to the artifact that cannot lie about it; comments spent only on why-not-the-obvious-way, external constraints, intentional silence, contract facts. One hook, two lanes: PostToolUse warns, PreToolUse denies the two strictest | Codebases drowning in restatement comments and commented-out code |
 | **[candor](plugins/candor)** | a blocking Stop gate on the two dishonesty shapes a script can prove: a `file:line` citation that resolves to nothing, and a position retracted under pushback with no tool call in between | You want the honesty rule to have teeth rather than tone |
 | **[lean](plugins/lean)** | one bar per cost surface — code, tests, comments, files, actions — and four named triggers that buy more than the minimum | Scope keeps growing and nobody can say which requirement bought it |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
-| **[performance](plugins/performance)** | measure-before-and-after, N+1, payload and bundle, Core Web Vitals, cache correctness (stampede, TTL, eviction), percentile load testing | Something is *measurably* slow — not suspected slow |
 | **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
-| **[observability](plugins/observability)** | structured logs with correlation IDs, log levels that mean something, RED/USE metrics without cardinality bombs, trace propagation, honest health checks | Before the incident, not during it |
-| **[packages](plugins/packages)** | semver constraint strategy, lockfile discipline, audit triage, upgrade lanes, plus a licence scanner | Dependency bumps, audit output, or a lockfile conflict |
 
 **Using them.**
 
@@ -269,15 +253,15 @@ entry that is deleted afterwards. In a non-React or greenfield repo,
 /code-architecture:verify              # verify completed work against criteria, with evidence
 /testing:review                        # test design and coverage gaps
 /testing:flake-hunt                    # chase a flaky test to its cause
-/comment-discipline:review             # comment noise, one line per finding
+/code-review:comment-review            # comment noise, one line per finding
 /candor:check                          # measure this session against the candour axes
 /debugging:debug "<symptom>"           # root cause before any fix
-/performance:review                    # hotspots and cache correctness
+/resilience:performance-review                    # hotspots and cache correctness
 /resilience:review                     # timeouts, retries, degradation
 /resilience:error-review               # catch placement, cause chains
 /resilience:concurrency-review         # races, locking, retry idempotency
-/observability:review                  # logging and instrumentation gaps
-/packages:audit                        # vulnerabilities, outdated, licences
+/resilience:observability-review                  # logging and instrumentation gaps
+/stack-scan:audit                      # vulnerabilities, outdated, licences
 ```
 
 **Worked example — a review that ends in applied fixes:**
@@ -320,7 +304,6 @@ grant stays granted on your terms.
 |--------|-----------------|-------------------|
 | **[system-design](plugins/system-design)** | service boundaries from data ownership, scaling paths, cache placement, sync vs async and its failure modes, single points of failure — plus domain modeling (bounded contexts, aggregates) and event-driven design (delivery semantics, outbox, sagas, DLQ) | The question is topology, not code: what service owns what, and what happens when the queue is down |
 | **[api-design](plugins/api-design)** | resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning, `Idempotency-Key`, Laravel `apiResource` mapping — plus GraphQL/gRPC (DataLoader, resolver authz, depth limits, proto field-number safety) | Designing or reviewing an API you own |
-| **[api-docs-first](plugins/api-docs-first)** | verify current official docs before writing integration code — no accessible docs, stop and ask — plus a drift scan for your own docs after a change | Calling someone else's SDK, and after any change that made your README a lie |
 
 **Using them.**
 
@@ -328,14 +311,14 @@ grant stays granted on your terms.
 /system-design:review              # boundaries, ownership, scaling, async failure modes
 /api-design:review                 # routes, controllers, or an OpenAPI spec
 /api-design:scaffold               # spec-first: OpenAPI → Laravel routes/FormRequests/Resources
-/api-docs-first:check              # do current docs back the integration you are about to write?
-/api-docs-first:drift              # README claims, changelog gaps, stale examples, dead links
+/api-design:check                  # do current docs back the integration you are about to write?
+/api-design:drift                  # README claims, changelog gaps, stale examples, dead links
 ```
 
 **Worked example — a new integration:**
 
 ```
-/api-docs-first:check stripe subscriptions
+/api-design:check stripe subscriptions
 # → verifies the current SDK surface before a line is written
 /payments:review                   # then the domain rules: idempotency, money, webhooks
 ```
@@ -417,15 +400,13 @@ bill you did not agree to.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[dev-env](plugins/dev-env)** | scans manifests, lockfiles, `.env` DSNs and CI images, then generates a `docker-compose.yml` + `Dockerfile` matched to the real stack — pinned tags, healthchecks, then boots and verifies | Onboarding a repo, or a compose file that drifted from reality |
-| **[devops](plugins/devops)** | CI/CD ordering, image hygiene, Kubernetes limits and probes, deploy strategy with rollback, secrets handling — plus a **PreToolUse guard** on workflow files and a `devops-engineer` / `devops-reviewer` pair | Pipelines, manifests, and anything that reaches production |
+| **[devops](plugins/devops)** | CI/CD ordering, image hygiene, Kubernetes limits and probes, deploy strategy with rollback, secrets handling, Dockerfile and compose discipline — plus `/devops:init`, which scans manifests, lockfiles, `.env` DSNs and CI images and generates a `docker-compose.yml` + `Dockerfile` matched to the real stack, a **PreToolUse guard** on workflow files and a `devops-engineer` / `devops-reviewer` pair | Pipelines, manifests, anything that reaches production — and onboarding a repo or a compose file that drifted from reality |
 | **[stack-scan](plugins/stack-scan)** | required-vs-installed inventory from manifests, lockfiles, runtime binaries and container images, with drift, missing locks and EOL majors flagged | Before giving version-dependent advice in an unfamiliar repo |
 
 ```bash
 /stack-scan:report        # what is ACTUALLY installed here
-/dev-env:init             # generate compose + Dockerfile from evidence
-/dev-env:review           # audit existing docker files
-/devops:review            # pipelines, k8s manifests, deploy and secret config
+/devops:init              # generate compose + Dockerfile from evidence
+/devops:review            # pipelines, k8s manifests, deploy and secret config, docker files
 ```
 
 **Worked example — a repo you have never seen:**
@@ -433,7 +414,7 @@ bill you did not agree to.
 ```
 /stack-scan:report        # PHP 8.3 / Laravel 12 / MariaDB 11.4 / Node 22 + pnpm
 /plugin-scout:suggest     # → suggests laravel, mariadb, web-dev, …
-/dev-env:init             # → compose file pinned to those exact versions
+/devops:init              # → compose file pinned to those exact versions
 ```
 
 ---
@@ -448,7 +429,6 @@ bill you did not agree to.
 | **[claude-authoring](plugins/claude-authoring)** | how to write skills, agents, commands, hooks and plugins — including the measured behaviour of `paths:` and `disable-model-invocation:` — plus scaffold commands and a routine-detector that offers to capture a repeating chore | You are writing a plugin, a project skill, or a hook |
 | **[plugin-scout](plugins/plugin-scout)** | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks | First session in a repo |
 | **[vercel-skills-scout](plugins/vercel-skills-scout)** | searches skills.sh — Vercel's open agent-skills directory — for third-party skills matching your stack, with provenance, previewing each before it lands | This marketplace has no plugin for what you need |
-| **[registry-source](plugins/registry-source)** | (also listed above) live component-registry MCP access | Installing registry components |
 
 ```bash
 /terse:level ultra          # set brevity; /terse:level off to stop
@@ -480,7 +460,7 @@ description and the body budget already applied.
 |---------|---------|
 | just cloned an unfamiliar repo | `plugin-scout`, then whatever it suggests |
 | want a global baseline in every repo | `always-on-suite`, at user scope |
-| write Laravel every day | `php-suite` + `db-suite` |
+| write Laravel every day | `php-suite` + `database` |
 | write React/Vue apps | `frontend-suite` |
 | are building something design-led | `craft-suite` |
 | want reviews that catch real bugs | `quality-suite` (enforcing) and/or `quality-principles-suite` (advisory) |
@@ -507,8 +487,8 @@ advertisement:
   the descriptions are dropped name-only, so the tokens stop being the problem
   and reachability starts.
 - **Most rules are agent-graded, not enforced.** A handful are gates that block
-  a turn — `command-guard`, `secret-scanning`, `comment-discipline`'s narrow
-  deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s
+  a turn — `command-guard`, `secret-scanning`, `code-review`'s narrow
+  comment-discipline deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s
   completion gate. The rest are instructions a competent model chooses to
   follow. Each plugin's own docs say which tier it is in; where they say
   `recorded`, nothing reads it back.

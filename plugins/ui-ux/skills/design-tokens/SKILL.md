@@ -110,7 +110,7 @@ A component using `blue-500` directly has broken the tier boundary; it should us
   three-role accent split, light/dark duality → `theming-system`. This skill owns the
   numeric SCALES a value is stepped along; that one owns the roles set on top of them.
 - Applying tokens in a specific stack's components → that stack's best-practices skill.
-- Accessibility of the resulting contrast/targets → `/a11y:audit`.
+- Accessibility of the resulting contrast/targets → `/ui-ux:audit`.
 
 ## Anti-patterns
 

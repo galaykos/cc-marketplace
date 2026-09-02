@@ -3,6 +3,34 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.14.1
+
+### Added
+- **comment-discipline merged in.** The `comment-discipline` skill, <!-- removed-ok -->
+  `/code-review:comment-review` (was `/comment-discipline:review`), and the three <!-- removed-ok -->
+  write-time hooks (scan, density, verbosity) ship here. Hook behaviour, messages, and
+  the `.claude/comment-discipline/` state paths are unchanged. The absorbed plugin's
+  own changelog history stays in git history under its old directory. <!-- removed-ok -->
+
+## 0.13.4
+
+### Changed
+- The fan-in's defer list names resilience for observability and performance findings; <!-- removed-ok -->
+  both plugins merged into resilience on 2026-09-02.
+
+## 0.13.3
+
+### Changed
+- `reuse-hygiene` names stack-scan's package-hygiene for yanked or deprecated packages;
+  the packages plugin merged into stack-scan on 2026-09-02. <!-- removed-ok -->
+
+## 0.13.2
+
+### Changed
+- **The stack fan-in loads database's sql and mariadb skills** for `.sql` files and
+  migrations; the two plugins merged into database on 2026-09-02. Same signals,
+  same finding format.
+
 ## 0.13.1
 
 ### Changed

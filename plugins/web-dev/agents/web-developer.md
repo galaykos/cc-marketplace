@@ -101,8 +101,8 @@ SSR/CSR, a11y) that no single framework skill owns; keep applying it.
 Stack-specific review is owned by the review commands, not by you. Do
 not restate their content — after implementing, recommend the matching
 installed review command instead: `/web-dev:review` for Next.js, React
-Native, or Vite code, `/laravel:review` and `/inertia:review` for their
-stacks (and `/security:review` when the change touches auth, sessions,
+Native, or Vite code, `/laravel:review` for PHP and Inertia
+pages (and `/security:review` when the change touches auth, sessions,
 or user input handling).
 
 ## Kill-trigger (three strikes)

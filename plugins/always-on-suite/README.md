@@ -102,9 +102,9 @@ install, not a fork of the bundle:
   you open. Install it per project, where the map is worth committing.
 - **stack-scan** — universal across stacks but per-project in what it reads;
   plugin-scout invokes it where it helps, so it arrives with the project tier.
-- **code-review / comment-discipline** and the rest of quality-suite's
+- **code-review** (with its comment-discipline hooks) and the rest of quality-suite's
   enforcement half — quality gates you may want per project; that suite already
-  exists for exactly that scope. comment-discipline is the closest call: its
+  exists for exactly that scope. The comment-discipline lane is the closest call: its
   `PreToolUse` lane denies, which is rule 3 again.
 
 ## Pairs well with

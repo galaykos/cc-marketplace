@@ -28,6 +28,7 @@ project, everything themed through the same CSS-variable tokens.
 | `/ui-ux:review [files-or-diff]` | Review UI code against the per-stack skills (shadcn, ReUI, Aceternity, Astryx, Tailwind…) |
 | `/ui-ux:theme [brand-color-vibe-or-reference]` | Create or restyle a UI colour theme — shadcn/ReUI/Aceternity, Tailwind, or Bootstrap — with a live preview URL |
 | `/ui-ux:build [what-to-build]` | Build or restyle a UI component/layout via the ui-ux-engineer worker, applying the stack best-practice and token skills |
+| `/ui-ux:audit [files-or-diff]` | Audit UI code against WCAG 2.2 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix, blockers first, a manual-test list at the end, and the `a11y-engineer` worker offered to apply the fixes |
 
 ## Theme builder example
 
@@ -55,8 +56,12 @@ that looks great as a swatch can fail hard as a button.
 
 - **Skills**: shadcn-best-practices, shadcn-theming, reui-best-practices,
   aceternity-best-practices, astryx-best-practices, tailwind-best-practices,
-  design-tokens, theming-system, motion-best-practices
-- **Agents**: ui-ux-reviewer, ui-ux-engineer
+  design-tokens, theming-system, motion-best-practices, a11y-audit (the WCAG 2.2 AA
+  checklist, so accessibility rules apply while writing markup, not only under the
+  audit command)
+- **Agents**: ui-ux-reviewer, ui-ux-engineer, a11y-engineer (applies an audit's fix
+  list, preferring native semantics over ARIA patches, each change tagged with its
+  WCAG criterion)
 - **Hooks**: `preview-guard` (PreToolUse on `Artifact` — pushes a visual decision
   to a real preview URL instead of an artifact); `palette-default` (PostToolUse on
   a written UI file — names the indigo/violet/purple category default when it

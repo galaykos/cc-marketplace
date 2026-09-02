@@ -23,11 +23,11 @@ convention.
    conventions apply. A component registry already present in the tree is a detection
    signal, not a suggestion — build in the one the project has rather than beside it.
 
-2. When the stack is ReUI or Aceternity and the registry-source plugin's MCP tools
+2. When the stack is ReUI or Aceternity and design-lab's registry-source MCP tools
    are available (`registry_search` / `registry_get` — load via ToolSearch), query
    them BEFORE proposing or writing any component: real current names, props, and
    install commands come from the registry, never from memory — reciting a
-   remembered component API is the exact failure registry-source exists to stop.
+   remembered component API is the exact failure the registry MCP exists to stop.
    Unavailable → say so and verify against the live docs URL instead.
 
 3. Dispatch the `ui-ux-engineer` worker with the request, instructing it to apply this
@@ -55,8 +55,8 @@ convention.
      result rather than silently building without the dense-UI floor.
 
 4. Keep accessibility in view while building: semantic elements, labels, focus order —
-   then recommend `/a11y:audit` on the result for a thorough pass (a11y remediation is
-   the a11y plugin's, not this build step's).
+   then recommend `/ui-ux:audit` on the result for a thorough pass (a11y remediation is
+   the audit command's and `a11y-engineer`'s, not this build step's).
 
 5. Return the changed files with a one-line rationale each, and note any visual decision
    that was assumed rather than specified — surface it for confirmation rather than
@@ -68,7 +68,7 @@ convention.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to the staging path
-   (`/shadcn-studio:stage` or `design-preview`) when either is installed, else fall back
+   (`/design-lab:stage` or `/design-lab:preview`) when either is installed, else fall back
    to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
    via ASCII options inline — so the choice is made on concrete mockups without dead-ending
    on a missing command. Headless: take the decided lines above as binding, resolve what

@@ -50,9 +50,9 @@ text that was previously being evicted.
   `/approaches:pattern`
 - **hindsight** — mines session transcripts for cross-session friction,
   applied only on approval, plus `/hindsight:harvest`
-- **api-docs-first** — docs verified before integration code, and the merged
-  docs-upkeep drift scan after a change, plus `/api-docs-first:check` and
-  `/api-docs-first:drift`
+- **api-design** — REST/GraphQL/gRPC design review and spec-first scaffolding, docs
+  verified before integration code, and the docs-upkeep drift scan after a change,
+  plus `/api-design:check` and `/api-design:drift`
 - **orchestration** — delegation contracts and verification panels for
   subagent fan-outs, plus `/orchestration:review`
 - **task-runner** — scope-locked task execution with bounded verify-fix loops,

@@ -78,7 +78,7 @@ Safety rule: never store credentials, tokens, or private keys in any generated f
 
 Do not reimplement what neighboring plugins already own:
 
-- Local dev-environment compose generation belongs to `/dev-env:init`; auditing an existing dev environment belongs to `/dev-env:review`.
+- Local devopsironment compose generation belongs to `/devops:init`; auditing an existing dev environment belongs to `/devops:review`.
 - Stack and dependency inventory belongs to `/stack-scan:report` — use its output rather than re-deriving it.
 - Application-code security review belongs to `/security:review`; you handle infra and pipeline configuration, not source-code audits.
 

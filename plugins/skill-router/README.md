@@ -33,7 +33,7 @@ You ask for a marketing landing page and the only plugin that speaks up nudges y
 ```
 [skill-router] Tool-fit check (once this session). Commands installed here, and what each is for:
 
-- /a11y:audit — Audit UI code against WCAG 2.2 AA
+- /ui-ux:audit — Audit UI code against WCAG 2.2 AA
 - /craft-layer:craft — Create a crafted web app (CRM, SaaS, landing page) end to end…
 - /ui-ux:theme — Create or restyle a CSS-variable UI theme…
   … one line per installed command …
@@ -98,7 +98,7 @@ answer.
 When two stacks claim the same file pattern (one engine vs another on `*.sql`, plain PHP vs Laravel on `*.php`), an optional `stack_marker` column discriminates by sniffing a manifest at the repo root:
 
 ```
-glob   *.sql            mariadb-best-practices   mariadb   high   docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb
+glob   *.sql            mariadb-best-practices   database  high   docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb
 glob   *.blade.php      laravel-best-practices   laravel   high   composer.json~laravel/framework
 ```
 

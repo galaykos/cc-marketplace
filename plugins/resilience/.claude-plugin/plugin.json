@@ -1,7 +1,7 @@
 {
   "name": "resilience",
-  "version": "0.2.6",
-  "description": "Failure-mode design for integration points — timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics — plus the merged error-handling and concurrency disciplines: catches and cause chains, check-then-act races, retry idempotency. Includes /resilience:review, /resilience:error-review, /resilience:concurrency-review.",
+  "version": "0.3.1",
+  "description": "Runtime quality in one plugin — does it stay up, can you see it, is it fast. Failure-mode design for integration points (timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics) with the merged error-handling and concurrency disciplines; application observability (structured logs with correlation IDs, RED/USE metrics without cardinality bombs, trace propagation, honest health checks); and measure-first performance (N+1, payload, bundle, Core Web Vitals, cache correctness, percentile load tests). Five audits — /resilience:review, :error-review, :concurrency-review, :observability-review, :performance-review — and two workers, observability-engineer and performance-engineer, that apply only what a measurement or a finding proves.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

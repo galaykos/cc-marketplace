@@ -125,7 +125,7 @@ Record as adjectives and references — NOT hex or px. Values are generated down
   not a convention to adopt.** Adopt an agreed pattern only where it is load-bearing
   for comprehension or accessibility, and say in the brief why it earns the exception.
   Where they diverge, that is a genuine decision to make (and a candidate to
-  `/design-preview:preview`).
+  `/design-lab:preview`).
 - Separate the two payloads: colour/type/spacing/radius/motion-feel adjectives go to the
   theme brief; layout/component/state/motion patterns go to the build task.
 - Keep them describing ONE product — reconcile any contradiction before writing.
@@ -140,6 +140,6 @@ Record as adjectives and references — NOT hex or px. Values are generated down
 ## 4. Hand off
 
 - Fill `brief-templates.md` — the theme brief and the build task.
-- Preview only undecided forks via `/design-preview:preview`.
+- Preview only undecided forks via `/design-lab:preview`.
 - Let `/ui-ux:theme` generate the palette and `/ui-ux:build` apply `design-tokens`;
   this method never emits token values itself.

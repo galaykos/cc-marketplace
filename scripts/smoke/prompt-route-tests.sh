@@ -202,13 +202,13 @@ done
 
 # installed-scoping: a tree holding two plugins must yield a catalog of only those
 SOLO="$WORK/solo/plugins"; mkdir -p "$SOLO/skill-router/hooks"
-cp -R plugins/a11y "$SOLO/a11y"
+cp -R plugins/payments "$SOLO/payments"
 cp "$HOOK" "$SOLO/skill-router/hooks/route-prompt.sh"
-solo_out="$(run_hook "audit this for accessibility problems and fix them" "$SOLO/skill-router")"
+solo_out="$(run_hook "review the checkout and payment flow" "$SOLO/skill-router")"
 solo_lines=$(printf '%s' "$solo_out" | grep -c '^- /' || true)
-foreign=$(printf '%s' "$solo_out" | grep '^- /' | grep -vc '^- /a11y:' || true)
+foreign=$(printf '%s' "$solo_out" | grep '^- /' | grep -vc '^- /payments:' || true)
 if [ "$solo_lines" -ge 1 ] && [ "$foreign" -eq 0 ]; then
-  pass "catalog is installed-scoped ($solo_lines entries, all a11y)"
+  pass "catalog is installed-scoped ($solo_lines entries, all payments)"
 else
   fail "catalog is installed-scoped" "$solo_lines entries, $foreign from uninstalled plugins"
 fi
@@ -350,7 +350,7 @@ if [ -f "$CAT_HOOK" ]; then
   OE=$(cat_for "$CE" empty)
   cat_expect "content-only /security:review survives an empty repo"     "$OE" "/security:review" present
   cat_expect "content-only /resilience:review survives an empty repo"   "$OE" "/resilience:review" present
-  cat_expect "content-only /observability:review survives an empty repo" "$OE" "/observability:review" present
+  cat_expect "content-only /resilience:observability-review survives an empty repo" "$OE" "/resilience:observability-review" present
 
   # A filter that dropped everything would pass every "absent" assertion above.
   ln_l=$(printf '%s' "$OL" | grep -c '^- /')

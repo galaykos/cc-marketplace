@@ -111,7 +111,7 @@ corpse the next agent will be tempted to reuse.
 Standing: recorded — owns **reuse-time deadness** (a symbol you are about to build on)
 and orphan detection on demand, for orphans *your* change creates. Dead code as a
 review finding is `code-smells`; speculative generality is `code-architecture`
-yagni-check; a yanked or deprecated package is `packages` package-hygiene;
+yagni-check; a yanked or deprecated package is stack-scan's package-hygiene;
 pre-existing dead code passed mid-task is `code-architecture` plan-before-code —
 mention it, never delete it in an unrelated diff. (Admission law:
 `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)

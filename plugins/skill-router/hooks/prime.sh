@@ -43,17 +43,17 @@
     [ -f "$cwd/$1" ] && grep -qE "$2" "$cwd/$1" 2>/dev/null
   }
 
-  [ -f "$cwd/composer.json" ] && add package-hygiene packages
-  [ -f "$cwd/package.json" ]  && add package-hygiene packages
-  if has '*.sql' || has_dir migrations; then add sql-best-practices sql; fi
-  if has '*.tsx' || has '*.jsx'; then add a11y-audit a11y; fi
+  [ -f "$cwd/composer.json" ] && add package-hygiene stack-scan
+  [ -f "$cwd/package.json" ]  && add package-hygiene stack-scan
+  if has '*.sql' || has_dir migrations; then add sql-best-practices database; fi
+  if has '*.tsx' || has '*.jsx'; then add a11y-audit ui-ux; fi
 
   # PHP side. laravel and plain php are stack-EXCLUSIVE per skill-map.md — a Laravel
   # rules.tsv applies via its `!composer.json~laravel/framework` markers.
   if dep composer.json '"laravel/framework"'; then add laravel-best-practices laravel
   fi
   { dep composer.json '"inertiajs/inertia-laravel"' || dep package.json '"@inertiajs/'; } \
-    && add inertia-best-practices inertia
+    && add inertia-best-practices laravel
 
   # JS side. react-native and react are exclusive the same way.
   if dep package.json '"react-native"'; then add react-native-best-practices web-dev
@@ -68,7 +68,7 @@
     add tailwind-best-practices ui-ux
   fi
   [ -f "$cwd/components.json" ] && add shadcn-best-practices ui-ux
-  if has 'Dockerfile*' || has 'docker-compose*.yml' || has 'compose*.yml'; then add docker-best-practices dev-env; fi
+  if has 'Dockerfile*' || has 'docker-compose*.yml' || has 'compose*.yml'; then add docker-best-practices devops; fi
   if has_dir tests || has '*.test.*' || has '*.spec.*'; then add testing-best-practices testing; fi
 
   skills="${skills# }"

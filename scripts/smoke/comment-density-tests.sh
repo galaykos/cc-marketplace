@@ -16,8 +16,8 @@
 # Scratch git repos throughout; never the live repo, never real .claude state.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-HOOK="$ROOT/plugins/comment-discipline/hooks/density.sh"
-SCAN="$ROOT/plugins/comment-discipline/hooks/scan.sh"
+HOOK="$ROOT/plugins/code-review/hooks/density.sh"
+SCAN="$ROOT/plugins/code-review/hooks/scan.sh"
 command -v jq  >/dev/null 2>&1 || { echo "SKIP: jq not available";  exit 0; }
 command -v git >/dev/null 2>&1 || { echo "SKIP: git not available"; exit 0; }
 

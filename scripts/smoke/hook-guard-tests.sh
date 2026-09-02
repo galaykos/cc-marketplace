@@ -123,7 +123,7 @@ fi
 # Ranks are trigger specificity: approaches 30 (build-vs-buy on a solved capability)
 # outranks taskmaster 90 (clarify, which matches nearly every work-shaped prompt).
 # This inverts the retired budgetExempt privilege on purpose.
-AD="$ROOT/plugins/api-docs-first/hooks/remind.sh"
+AD="$ROOT/plugins/api-design/hooks/remind.sh"
 TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
 AP="$ROOT/plugins/approaches/hooks/remind.sh"
 if [ -f "$TM" ] && [ -f "$AP" ]; then
@@ -313,7 +313,7 @@ if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -d "$ARC_PL/fresh-take/hooks" ]; then
     d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.claude"
     [ -n "$ph" ] && printf '{"phase":"%s","owner":"x","session_id":"ARC","started_at":"z"}' "$ph" \
       > "$d/.claude/cc-phase.json"
-    for pl in taskmaster approaches api-docs-first debugging fresh-take; do
+    for pl in taskmaster approaches api-design debugging fresh-take; do
       [ -f "$ARC_PL/$pl/hooks/remind.sh" ] || continue
       out=$(printf '{"prompt":"%s","session_id":"ARC","cwd":"%s"}' "$ARC_P" "$d" \
         | CLAUDE_PLUGIN_ROOT="$ARC_PL/$pl" TMPDIR="$(mktemp -d "$WORK/at.XXXXXX")" \
@@ -335,7 +335,7 @@ if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -d "$ARC_PL/fresh-take/hooks" ]; then
     *) pass "arc: phase=build mutes the clarify directive" ;; esac
 
   # And the half that proves it is turn-taking rather than a global mute.
-  case "$arc_build" in *api-docs-first*) pass "arc: phase=build still lets a build-phase voice speak" ;;
+  case "$arc_build" in *api-design*) pass "arc: phase=build still lets a build-phase voice speak" ;;
     *) fail "arc: phase=build still lets a build-phase voice speak" "nothing but guards spoke at build: [$arc_build] — the arc is a mute, not a rota" ;; esac
 
   case "$arc_ship" in *fresh-take*) pass "arc: an any-lane guard speaks at every phase" ;;

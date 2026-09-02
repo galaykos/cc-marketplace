@@ -2,6 +2,43 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.16
+
+### Changed
+- `coding-entry` loads `code-review:comment-discipline`; the comment-discipline plugin <!-- removed-ok -->
+  merged into code-review on 2026-09-02.
+
+## 0.13.15
+
+### Changed
+- **`coding-entry`'s skill map primes `ui-ux:a11y-audit`**; the a11y plugin merged into <!-- removed-ok -->
+  ui-ux on 2026-09-02.
+
+## 0.13.14
+
+### Changed
+- **`coding-entry`'s skill map primes `stack-scan:package-hygiene`** on any manifest;
+  the packages plugin merged into stack-scan on 2026-09-02. <!-- removed-ok -->
+
+## 0.13.13
+
+### Changed
+- **`coding-entry`'s skill map primes `devops:docker-best-practices`** for Dockerfiles
+  and compose files; dev-env merged into devops on 2026-09-02. <!-- removed-ok -->
+
+## 0.13.12
+
+### Changed
+- **`coding-entry`'s skill map primes `database:sql-best-practices` and
+  `database:mariadb-best-practices`**; the sql and mariadb plugins merged into <!-- removed-ok -->
+  database on 2026-09-02.
+
+## 0.13.11
+
+### Changed
+- **`coding-entry`'s skill map primes `laravel:inertia-best-practices`** for the
+  Inertia manifest signals; the inertia plugin merged into laravel on 2026-09-02.
+
 ## 0.13.10
 
 ### Changed

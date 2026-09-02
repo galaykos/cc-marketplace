@@ -52,7 +52,7 @@ installs at user scope (every repo on the machine — mutually exclusive with
 /plugin-scout:suggest
 ```
 
-In a Laravel + Inertia repo this suggests laravel and inertia (tier 1, each with
+In a Laravel + Inertia repo this suggests laravel (tier 1, with
 its composer.json evidence), then the any-project core — code-review, debugging,
 testing, git-workflow, and the rest of `references/any-core.md` — then lists the
 remaining catalog as numbered rows you can take by number, name or range, minus

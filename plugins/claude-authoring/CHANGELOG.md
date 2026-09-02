@@ -1,5 +1,24 @@
 # Changelog — claude-authoring
 
+## 0.13.3
+
+### Changed
+- `authoring-hooks` cites api-design as the hook-bearing example where it cited <!-- removed-ok -->
+  api-docs-first (merged 2026-09-02).
+
+## 0.13.2
+
+### Changed
+- `naming-and-triggers.md` and `project-skill-suggester` name `/ui-ux:audit` and
+  `a11y-engineer` where they named the a11y plugin (merged into ui-ux, 2026-09-02). <!-- removed-ok -->
+
+## 0.13.1
+
+### Changed
+- Two plugin-name mentions rerouted after the 2026-09-02 merges: `project-skill-suggester`
+  lists `database` where it listed the sql plugin, and `authoring-plugins`' suite list <!-- removed-ok -->
+  drops the removed `db-suite`. <!-- removed-ok -->
+
 Consumer-facing changes only. Newest first. Started at 0.12.0; earlier versions
 have no entries rather than invented ones.
 

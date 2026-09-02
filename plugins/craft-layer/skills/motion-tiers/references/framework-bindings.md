@@ -11,7 +11,7 @@ you do not, e.g., hand-roll Framer Motion in Vue when `motion-v` exists.
 
 Library idioms stay in the owning skills — this is a routing table, not an API guide:
 `plugins/ui-ux/skills/motion-best-practices/SKILL.md` and
-`plugins/threejs/skills/threejs-best-practices/SKILL.md`.
+`plugins/craft-layer/skills/threejs-best-practices/SKILL.md`.
 
 ## The matrix
 

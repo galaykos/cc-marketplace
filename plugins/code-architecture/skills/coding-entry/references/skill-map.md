@@ -15,7 +15,7 @@ body load; § Priming in the skill body has the form.
 | Signal | Prime |
 |---|---|
 | `composer.json` ~ `laravel/framework` | `laravel:laravel-best-practices` |
-| `composer.json` ~ `inertiajs/inertia-laravel`, or `package.json` ~ `@inertiajs/` | `inertia:inertia-best-practices` |
+| `composer.json` ~ `inertiajs/inertia-laravel`, or `package.json` ~ `@inertiajs/` | `laravel:inertia-best-practices` |
 
 ## Frontend
 
@@ -26,7 +26,7 @@ body load; § Priming in the skill body has the form.
 | `package.json` ~ `"vite"` | `web-dev:vite-best-practices` |
 | `package.json` ~ `"tailwindcss"` | `ui-ux:tailwind-best-practices` |
 | `components.json` present (shadcn/ReUI registry) | `ui-ux:shadcn-best-practices` |
-| any `*.tsx` / `*.jsx` / `*.vue` / `*.blade.php` in the tree | `a11y:a11y-audit` |
+| any `*.tsx` / `*.jsx` / `*.vue` / `*.blade.php` in the tree | `ui-ux:a11y-audit` |
 
 ## Stack-neutral
 
@@ -36,15 +36,15 @@ own header warns about, found by `pc_prime_coverage` rather than by reading.
 
 | Signal | Prime |
 |---|---|
-| any `composer.json` or `package.json` | `packages:package-hygiene` |
+| any `composer.json` or `package.json` | `stack-scan:package-hygiene` |
 | a `tests/` directory, or any `*.test.*` / `*.spec.*` | `testing:testing-best-practices` |
 
 ## Data
 
 | Signal | Prime |
 |---|---|
-| a `migrations/` directory, or any `*.sql` | `sql:sql-best-practices` |
-| compose file ~ `image: *mariadb*` | `mariadb:mariadb-best-practices` |
+| a `migrations/` directory, or any `*.sql` | `database:sql-best-practices` |
+| compose file ~ `image: *mariadb*` | `database:mariadb-best-practices` |
 
 Engine detection mirrors `rules.tsv`'s chain and inherits its stated misses — compose
 image first, because it is the one signal that separates MySQL from MariaDB cleanly.
@@ -54,7 +54,7 @@ Engines without a dialect plugin (MySQL, PostgreSQL, …) prime only the sql row
 
 | Signal | Prime |
 |---|---|
-| `Dockerfile*` or a compose file | `dev-env:docker-best-practices` |
+| `Dockerfile*` or a compose file | `devops:docker-best-practices` |
 | `.github/workflows/` | `devops:devops-practices` |
 | the ASK mentions auth, login, token, session, permission, or payment | `security:security-review` |
 | the ASK mentions Stripe, billing, subscription, invoice, or checkout | `payments:payments` |

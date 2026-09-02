@@ -35,9 +35,9 @@ evaporates, which is the failure the craft flow's step 0 exists to prevent.
    to build, where, and which mined PATTERNS to apply (grid, card anatomy, density, motion
    energy) — this is the `[what-to-build]` argument. Keep it consistent with the theme
    brief: the vibe and the patterns must describe one product, not two.
-4. **Optionally preview open forks via `/design-preview:preview`.** When a decision is
+4. **Optionally preview open forks via `/design-lab:preview`.** When a decision is
    still open — two layout directions, two motion energies — offer to stage it with
-   `/design-preview:preview` (its `[decision-description]` argument) before committing.
+   `/design-lab:preview` (its `[decision-description]` argument) before committing.
    Decided direction goes straight to the briefs; only genuine forks preview.
 
 When both briefs are ready:

@@ -1,0 +1,10 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+api-design:remind	hook	build	third-party-api-doc-reminder	prompt head carries an integration noun (sdk|endpoint|integration|webhook|oauth|graphql) AND a making or calling verb	-
+api-design:check	command	build	third-party-api-doc-verification	invoked as /api-design:check	api-design:api-docs-first
+api-design:drift	command	verify	own-docs-drift-scan	invoked as /api-design:drift, or a run's completion gate when installed	api-design:docs-upkeep
+api-design:api-docs-first	skill	build	third-party-api-doc-verification	about to write code that calls an external API, SDK, or library	-
+api-design:docs-upkeep	skill	verify	own-docs-drift-scan	a change altered behavior, interfaces, setup steps, or commands that docs describe	-

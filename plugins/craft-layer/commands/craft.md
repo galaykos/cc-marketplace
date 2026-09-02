@@ -88,7 +88,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    `/craft-layer:sections`): derive the agenda from the contract's spine slots, run the batched rounds
    (Shape → Treatment → Signature) under the exchange cap in `decision-rounds.md`, always offering
    "decide the rest for me", staging options through `taskmaster:visual-decisions` /
-   `/design-preview:preview` / `/shadcn-studio:stage` when installed. Fold each row's choice and locks
+   `/design-lab:preview` / `/design-lab:stage` when installed. Fold each row's choice and locks
    into the build task. Two skips, and they differ: `one-shot` skips entirely and writes no ledger; a
    `guided` run with no interactive user still runs the agenda, auto-decides, and writes every row
    `source: auto`.

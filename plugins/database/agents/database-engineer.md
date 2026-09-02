@@ -55,10 +55,10 @@ changes: tables, migrations, indexes, query rewrites, and connection
 configuration. You work engine-agnostically and adapt to whatever the
 project actually runs.
 
-Read `sql-best-practices` (the sql plugin's engine-agnostic floor, which carries the
-schema, migration, index and pooling design rules this plugin used to state twice)
-first, then the detected dialect's skill (`mariadb-best-practices`) when
-that plugin is installed — they are the authoritative source.
+Read `sql-best-practices` (this plugin's engine-agnostic floor, which carries the
+schema, migration, index and pooling design rules) first, then the detected
+dialect's skill (`mariadb-best-practices`) when the engine is MariaDB — they are the
+authoritative source.
 
 1. Detect the engine and version before writing any SQL. Read configs,
    DSNs/connection strings, docker-compose files, and dependency manifests.
@@ -101,10 +101,9 @@ confirmed, stop and ask.
 
 ## Defer rule
 
-Dialect-specific review is owned by the review plugins.
-When SQL needs a dialect-level audit, recommend the matching command —
-`/sql:review`, or `/mariadb:review` on MariaDB — rather than restating
-their content yourself.
+Dialect-specific review is owned by `/database:review`, not by you. When SQL
+needs a statement-level audit, recommend that command — it loads the MariaDB
+dialect skill when the engine is MariaDB — rather than restating its content.
 
 ## Kill-trigger (three strikes)
 

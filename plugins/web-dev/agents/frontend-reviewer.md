@@ -23,7 +23,7 @@ Your authoritative checklist is the skill set named in this file's `bestpractice
 Detect the framework from the files and imports, then load the matching skill from that
 same frontmatter set — every skill the diff touches, across every file in the diff, not
 only the first match. Three of the four ship in this plugin; `inertia-best-practices`
-comes from the inertia plugin. Skip silently if a skill's plugin is not installed.
+comes from the laravel plugin. Skip silently if a skill's plugin is not installed.
 
 ## What you check
 
@@ -43,7 +43,7 @@ low-severity; the dispatcher filters, you do not. Say which you could not confir
 
 ## Defer rule
 
-- Accessibility (semantics, ARIA, focus, contrast) → `/a11y:audit`; flag its presence
+- Accessibility (semantics, ARIA, focus, contrast) → `/ui-ux:audit`; flag its presence
   do not audit it here.
 - Visual/design-system correctness (spacing, tokens, layout) → `/ui-ux:review`.
 - Backend/API code behind the component → the backend engineer and `/api-design:review`.
