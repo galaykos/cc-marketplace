@@ -1,13 +1,14 @@
 ---
 name: component-libraries
-description: Use when building or reviewing UI on any React component library — headless (Base UI, Radix, React Aria, Ark UI, Headless UI, Ariakit), styled (Mantine, Chakra, Ant Design, HeroUI, daisyUI, Untitled UI, Reshaped), or one without a sibling skill here. Library-agnostic rules — detect from the manifest, build in the one the project has, tokens through the library's own theme, keep its accessibility contract — plus a map to the sibling skill or docs URL per library.
+description: Use when building or reviewing UI on any React or Vue component library — headless (Base UI, Radix, Reka UI, React Aria, Ark, Headless UI), styled (Mantine, Chakra, Ant Design, HeroUI, PrimeVue, Vuetify, Element Plus), or one with no sibling skill here. Library-agnostic rules — detect from the manifest, build in the one the project has, tokens through the library's own theme, keep its accessibility contract — plus a per-library map to the sibling skill or docs URL.
 ---
 
 # Component libraries — the library-agnostic floor
 
-The UI layer is not one library. A project may run shadcn/ui, a registry, MUI,
-Astryx, vanilla Tailwind, Mantine, Chakra, Ant Design or a headless primitive
-set, and the marketplace does not get to pick. Sibling skills in this plugin
+The UI layer is not one library or one framework. A project may run shadcn/ui, a
+registry, MUI, Astryx, vanilla Tailwind, Mantine, Chakra, Ant Design, a headless
+primitive set, or on Vue: Reka UI, shadcn-vue, PrimeVue, Vuetify, Element Plus,
+Naive UI — and the marketplace does not get to pick. Sibling skills in this plugin
 carry the idioms of the libraries they name; this skill carries what is true
 across all of them, and says where to go for the rest.
 
@@ -53,9 +54,9 @@ because nothing else does.
 - A headless or well-built library ships roles, keyboard handling, focus
   management and `aria-*` wiring. Composition undoes it: a `div onClick`
   wrapped around a trigger, a custom close button outside the dialog's focus
-  trap, `asChild`/`render` misuse that drops the semantic element.
+  trap, `asChild`/`render`/`as-child` misuse that drops the semantic element.
 - Prefer the library's polymorphic escape (`asChild`, `render`, `as`,
-  `component`) over nesting two interactive elements.
+  `component`; `as-child`/`as` on Vue) over nesting two interactive elements.
 - Never re-implement a primitive the library ships (menu, dialog, combobox,
   tooltip, tabs). Hand-rolled twins are where the WCAG failures live;
   `a11y-audit` (this plugin) is the checklist.
@@ -76,7 +77,7 @@ because nothing else does.
 
 - Resolve the installed major and read that major's docs. Headless libraries
   in particular renamed APIs between 0.x and 1.0 (Base UI's `render` prop, Ark's
-  `.Root` split, React Aria Components vs the hooks package).
+  `.Root` split, React Aria Components vs the hooks package, Radix Vue → Reka UI).
 - When design-lab's registry-source MCP (`registry_search`/`registry_get`) or a
   library's own MCP/JSON manifest is available, query it before writing a
   component. Unavailable → say so and cite the docs URL from
@@ -91,7 +92,7 @@ because nothing else does.
 | Astryx | `astryx-best-practices` |
 | Material UI, MUI X | `mui-best-practices` |
 | Tailwind utility work, daisyUI classes | `tailwind-best-practices` |
-| Everything else in `references/library-map.md` | this skill + the docs URL there |
+| Vue libraries, and everything else in `references/library-map.md` | this skill + the docs URL there |
 
 ## Review checklist
 

@@ -2,6 +2,14 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.11
+
+### Added
+- `*.vue` and `*.jsx` glob rows → `a11y-audit` (ui-ux). Vue single-file components and
+  untyped React files routed nothing before; the a11y lane in ui-ux already named
+  `.vue`, the router did not. Laravel + Inertia apps on the Vue or React adapter are the
+  case this closes.
+
 ## 0.14.10
 
 ### Changed

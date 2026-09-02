@@ -4,6 +4,14 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.20.1
+
+### Changed
+- `component-libraries` is framework-agnostic in name as well as rule: description
+  and intro say React or Vue, and `references/library-map.md` gains a Vue 3 section
+  (Reka UI, shadcn-vue, Headless UI and Ark UI Vue builds, PrimeVue, Vuetify, Element
+  Plus, Naive UI, Quasar, Nuxt UI) plus the Inertia adapters as a non-library row.
+
 ## 0.20.0
 
 ### Added

@@ -42,9 +42,18 @@ route to them; `skill-router` gains an `@mui/*` digest rule; `plugin-scout`
 - craft-suite 0.4.1: description drops "a shadcn staging sandbox" (stale since
   design-lab 0.2.0). frontend-suite now overflows the 6,000-char floor listing
   budget (~6,400) and declares it in its README like craft-suite does.
+**React and Vue 3 as first-class app stacks on Laravel + Inertia.** `web-dev`
+0.6.7: `frontend-reviewer` grades React and Vue 3 in their own vocabulary
+(`computed` vs `watch`, reactivity unwrapping, `defineProps`/`defineEmits` on one
+side; derived state, effect deps, keys on the other) and treats Inertia page props
+as the server state; no idiom skill is added, per the measured-zero record.
+`skill-router` 0.14.11 routes `*.vue` and `*.jsx` to `a11y-audit`. `ui-ux` 0.20.1:
+`component-libraries` covers Vue libraries (Reka UI, shadcn-vue, PrimeVue, Vuetify,
+Element Plus, Naive UI, Quasar, Nuxt UI).
 - always-on baselines hand-applied: `ui-ux` 739 → 968, `craft-suite` 2675 → 2765,
   `frontend-suite` 1534 → 1763 (activated 1566 → 1795), `taskmaster-suite`
-  4031 → 4260 (activated 4063 → 4292).
+  4031 → 4260 (activated 4063 → 4292); then `web-dev` 360 → 378, `ui-ux` 969,
+  `frontend-suite` 1782 (activated 1814), `taskmaster-suite` 4261 (activated 4293), `php-suite` 1043.
 
 ## [0.97.0] - 2026-09-02
 

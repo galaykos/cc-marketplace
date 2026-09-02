@@ -1,4 +1,4 @@
-# React component library map — signals, ownership, theme channel, docs
+# Component library map (React and Vue) — signals, ownership, theme channel, docs
 
 > Last verified: 2026-09-02. Sources: each library's docs plus landscape
 > surveys (untitledui.com/blog/react-component-libraries,
@@ -46,6 +46,22 @@ governed by the SKILL.md rules plus its docs URL.
 | 21st.dev, shadcnblocks | registry URLs in `components.json` | shadcn CSS vars | https://21st.dev, https://www.shadcnblocks.com | community/commercial blocks; treat as copy-in |
 | daisyUI | Tailwind plugin `daisyui` | Tailwind theme + daisyUI theme vars | https://daisyui.com/docs | class-based, no React runtime; governed by `tailwind-best-practices` |
 
+## Vue 3 (Laravel + Inertia's other adapter; same ownership rules)
+
+| Library | Signal | Model | Theme channel | Docs | Notes |
+|---|---|---|---|---|---|
+| Reka UI (ex-Radix Vue) | `reka-ui` (old: `radix-vue`) | dependency, headless | none — `data-*` state attrs | https://reka-ui.com | the primitive under shadcn-vue and Nuxt UI; `as-child` |
+| shadcn-vue | `components.json`, `components/ui/*.vue` | copy-in / registry | shadcn CSS variables | https://www.shadcn-vue.com/docs | Reka UI build; same `shadcn-theming` tokens as the React one |
+| Headless UI (Vue) | `@headlessui/vue` | dependency, headless | none — Tailwind-first | https://headlessui.com/v1/vue | Tailwind Labs; small set |
+| Ark UI (Vue) | `@ark-ui/vue` | dependency, headless | none — `data-*` | https://ark-ui.com/vue/docs/overview/introduction | same state machines as the React build |
+| PrimeVue | `primevue` | dependency, styled or unstyled mode | `definePreset` design tokens, `@primeuix/themes`; Tailwind via `tailwindcss-primeui` | https://primevue.org | v4 tokens are CSS variables; unstyled + Tailwind passthrough is a supported mode |
+| Vuetify | `vuetify` | dependency, styled | `createVuetify({ theme })` | https://vuetifyjs.com | Material Design; v3 on Vue 3 |
+| Element Plus | `element-plus` | dependency, styled | SCSS variables / CSS vars (`--el-*`) | https://element-plus.org | admin/enterprise |
+| Naive UI | `naive-ui` | dependency, styled | `NConfigProvider` `themeOverrides` | https://www.naiveui.com | TS-first, tree-shakable |
+| Quasar | `quasar` | dependency + framework | `setCssVar`/Sass vars, `quasar.config` | https://quasar.dev | app framework, not just components |
+| Nuxt UI | `@nuxt/ui` | dependency, styled | `app.config.ts` `ui` + Tailwind `@theme` | https://ui.nuxt.com | Reka UI + Tailwind v4; Nuxt or plain Vue |
+| Inertia page props | `@inertiajs/vue3` / `@inertiajs/react` | — | — | `inertia-best-practices` (laravel plugin) | not a component library; governs page/props/forms, not UI |
+
 ## Landscape notes (snapshot)
 
 - Tailwind integration is the leading selection factor in 2026 surveys;
@@ -56,5 +72,7 @@ governed by the SKILL.md rules plus its docs URL.
   `components.json` alone.
 - Ant Design and MUI remain the two largest by weekly downloads; Mantine is the
   fastest-growing full-styled set. Chakra v3 moved onto Ark UI internals.
+- Vue's headless layer consolidated on Reka UI in 2025; shadcn-vue and Nuxt UI
+  both sit on it, so the shadcn token vocabulary applies to Vue projects too.
 - A library absent from this file is not unsupported — apply the SKILL.md
   rules and cite its docs; add a row when it recurs.

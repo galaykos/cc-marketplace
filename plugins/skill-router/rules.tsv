@@ -92,6 +92,8 @@ glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	ui-ux	high
+glob	*.jsx	a11y-audit	ui-ux	high
+glob	*.vue	a11y-audit	ui-ux	high
 glob	*.tsx	react-native-best-practices	web-dev	high	package.json~"react-native"
 glob	*.tsx	nextjs-best-practices	web-dev	high	package.json~"next"
 glob	**/resources/js/Pages/**	inertia-best-practices	laravel	high

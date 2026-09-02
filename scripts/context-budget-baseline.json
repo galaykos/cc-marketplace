@@ -15,7 +15,7 @@
   "design-lab": 599,
   "devops": 368,
   "fresh-take": 125,
-  "frontend-suite": 1763,
+  "frontend-suite": 1782,
   "git-workflow": 185,
   "hindsight": 128,
   "laravel": 230,
@@ -23,7 +23,7 @@
   "llm-app": 90,
   "orchestration": 251,
   "payments": 95,
-  "php-suite": 1024,
+  "php-suite": 1043,
   "plugin-scout": 156,
   "process-suite": 2290,
   "quality-principles-suite": 2025,
@@ -35,12 +35,12 @@
   "stack-scan": 208,
   "system-design": 311,
   "task-runner": 379,
-  "taskmaster-suite": 4260,
+  "taskmaster-suite": 4261,
   "taskmaster": 875,
   "terse": 848,
   "testing": 211,
-  "ui-ux": 968,
+  "ui-ux": 969,
   "ultra-deep-research": 223,
   "vercel-skills-scout": 147,
-  "web-dev": 360
+  "web-dev": 378
 }
