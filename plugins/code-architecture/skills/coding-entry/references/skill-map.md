@@ -15,7 +15,7 @@ body load; § Priming in the skill body has the form.
 | Signal | Prime |
 |---|---|
 | `composer.json` ~ `laravel/framework` | `laravel:laravel-best-practices` |
-| `composer.json` ~ `inertiajs/inertia-laravel`, or `package.json` ~ `@inertiajs/` | `inertia:inertia-best-practices` |
+| `composer.json` ~ `inertiajs/inertia-laravel`, or `package.json` ~ `@inertiajs/` | `laravel:inertia-best-practices` |
 
 ## Frontend
 

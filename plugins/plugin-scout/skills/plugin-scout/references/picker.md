@@ -59,7 +59,7 @@ first question — to carry real information in four rows.
 
 TIER 1 — earned by a signal in this repo
    1  laravel   composer.json — laravel/framework ^11
-   2  inertia   composer.json — inertiajs/inertia-laravel ^2
+   2  web-dev   package.json — vite ^5 + vite.config.ts
    3  dev-env   docker-compose.yml
 TIER 2 — any-project core (8)
    4  code-review ✓  5  debugging  6  testing  7  git-workflow
@@ -123,7 +123,7 @@ TIER 3 — no signal in this repo (40)
   | `sql` | `mariadb`, `database` |
   | `ui-ux` | `craft-layer`, `shadcn-studio`, `design-preview`, `registry-source` |
   | `taskmaster` | `task-runner`, `orchestration` |
-  | `web-dev` | `laravel`, `inertia` |
+  | `web-dev` | `laravel` |
 
   A row on no pair is never annotated. A deprioritized row sorts last within its
   tier and its description names the overlap ("overlaps installed ui-ux"). Tier-1

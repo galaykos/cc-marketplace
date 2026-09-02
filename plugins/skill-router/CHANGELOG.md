@@ -2,6 +2,13 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.5
+
+### Changed
+- **The Inertia routing row and primer name `laravel` as owner** of <!-- removed-ok -->
+  `inertia-best-practices` (the inertia plugin merged into laravel on 2026-09-02). <!-- removed-ok -->
+  Pattern and confidence unchanged.
+
 ## 0.14.4
 
 ### Changed

@@ -53,7 +53,7 @@
   if dep composer.json '"laravel/framework"'; then add laravel-best-practices laravel
   fi
   { dep composer.json '"inertiajs/inertia-laravel"' || dep package.json '"@inertiajs/'; } \
-    && add inertia-best-practices inertia
+    && add inertia-best-practices laravel
 
   # JS side. react-native and react are exclusive the same way.
   if dep package.json '"react-native"'; then add react-native-best-practices web-dev

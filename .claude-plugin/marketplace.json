@@ -27,7 +27,7 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), and mass-assignment security — plus the backend-engineer worker (PHP/Laravel) the laravel review command routes its fixes to."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with — behind one /laravel:review that loads Inertia when the manifests show it, plus the backend-engineer worker (PHP/Laravel) the review routes its fixes to."
     },
     {
       "name": "sql",
@@ -103,11 +103,6 @@
       "name": "security",
       "source": "./plugins/security",
       "description": "Security for web apps: OWASP-aligned code review (injection, XSS, CSRF, authz vs authn, mass assignment, uploads, secrets, dependency audit) mapped to PHP/Laravel and JS/Vue, PLUS design-phase threat-modeling (STRIDE, trust boundaries), a data-privacy (GDPR/CCPA) regulatory lens, and an api-auth lens (token model, OAuth2+PKCE, scopes). Includes /security:review and a security-engineer worker agent."
-    },
-    {
-      "name": "inertia",
-      "source": "./plugins/inertia",
-      "description": "Inertia.js v1/v2/v3 best practices (Laravel + Vue/React/Svelte adapters): partial reloads, deferred and lazy props, useForm flow, shared data via middleware, prop hygiene, SSR, code splitting, v1/v2/v3 differences and adapter awareness. Includes /inertia:review."
     },
     {
       "name": "api-design",
@@ -212,7 +207,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), Inertia, accessibility auditing, and skill auto-routing (skill-router). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), accessibility auditing, and skill auto-routing (skill-router). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer, design-preview, shadcn-studio, registry-source, threejs — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "craft-suite",
@@ -222,7 +217,7 @@
     {
       "name": "php-suite",
       "source": "./plugins/php-suite",
-      "description": "Meta-bundle: the PHP category in one install — Laravel best practices, Inertia, and web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler via /web-dev:review). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill behind one /laravel:review, plus the backend-engineer worker) and web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler via /web-dev:review). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "db-suite",

@@ -94,7 +94,7 @@ glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	a11y	high
 glob	*.tsx	react-native-best-practices	web-dev	high	package.json~"react-native"
 glob	*.tsx	nextjs-best-practices	web-dev	high	package.json~"next"
-glob	**/resources/js/Pages/**	inertia-best-practices	inertia	high
+glob	**/resources/js/Pages/**	inertia-best-practices	laravel	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework
 glob	api.php	api-design	api-design	high

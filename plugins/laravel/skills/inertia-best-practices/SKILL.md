@@ -137,6 +137,14 @@ eagerly it is consumed on the wrong request and the redirect that needed it rend
   dashboard can skip it. Everywhere keep `window`/`document` out of setup/render — gate browser
   APIs behind `onMounted` (Vue) or `useEffect` (React), which never run during the server render.
 
+## Scope by model tier
+
+**All models** — every rule above: the version gates, the prop contract, the footguns.
+**Compensation (worker-tier)** — the detect → pin → verify order in `/laravel:review`
+step 3, followed literally; a Fable-class session may compress it once the lockfiles are
+read. **Skip** — a diff touching no page component, no controller returning `Inertia::render`,
+no shared-data middleware and no `useForm` earns a one-line verdict.
+
 ## Anti-patterns
 
 - Fetching page data with axios/fetch next to Inertia props — two data channels, two auth paths,

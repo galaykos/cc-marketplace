@@ -58,14 +58,14 @@ a read-only step.
 
 ## Stack signals (tier 1)
 
-Four framework plugins across six signals — web-dev is earned by any of its three. "dep X" means an **exact key**
+Three framework plugins across six signals — web-dev is earned by any of its three, laravel by either of its two. "dep X" means an **exact key**
 in `dependencies` or `devDependencies`, never a substring: `next-auth` is not
 `next`, `react-native-web` is not `react-native`.
 
 | Signal (evidence file) | Plugin |
 |---|---|
 | composer.json require laravel/framework | laravel |
-| composer.json require inertiajs/inertia-laravel OR package.json @inertiajs/* | inertia |
+| composer.json require inertiajs/inertia-laravel OR package.json @inertiajs/* | laravel |
 | package.json dep react-native | web-dev |
 | package.json dep next | web-dev |
 | package.json dep vite (devDependencies counts) AND a vite.config.* at the scan root | web-dev |

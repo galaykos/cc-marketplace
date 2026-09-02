@@ -2,6 +2,12 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.11
+
+### Changed
+- **`coding-entry`'s skill map primes `laravel:inertia-best-practices`** for the
+  Inertia manifest signals; the inertia plugin merged into laravel on 2026-09-02.
+
 ## 0.13.10
 
 ### Changed

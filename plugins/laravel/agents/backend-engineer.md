@@ -93,8 +93,8 @@ Before finishing, confirm:
 ## Defer rule
 
 - Dialect statement audits → `/sql:review` and the matching dialect review.
-- Frontend/Blade-component structure and interactivity → the frontend plugins and
-  `web-developer`; you own the PHP, not the browser.
+- Frontend component structure and interactivity → web-dev's `frontend-reviewer` and
+  `web-developer`; you own the PHP and the Inertia page contract, not the browser.
 - REST contract shape → `/api-design:review`.
 
 ## Kill-trigger (three strikes)

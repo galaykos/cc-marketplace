@@ -42,12 +42,12 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `process-suite` | 10 | ~2.0k tokens | ~32 tokens | ~2.5k tokens |
 | `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.5k tokens |
 | `quality-suite` | 8 | ~1.3k tokens | ~32 tokens | ~2.5k tokens |
-| `frontend-suite` | 5 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
-| `php-suite` | 3 | ~639 tokens | — | — |
+| `frontend-suite` | 4 | ~1.2k tokens | ~32 tokens | ~2.4k tokens |
+| `php-suite` | 2 | ~659 tokens | — | — |
 | `db-suite` | 3 | ~296 tokens | — | — |
 | `product-suite` | 2 | ~254 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 49 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 48 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -144,7 +144,6 @@ lockfile rather than to the version the model happens to remember.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[laravel](plugins/laravel)** | Eloquent N+1 and eager loading, FormRequests, thin controllers, queued jobs, policies, the Laravel 11/12/13 map | Controllers, models, jobs, migrations — the daily Laravel surface |
-| **[inertia](plugins/inertia)** | prop hygiene, partial reloads, deferred vs lazy props, `useForm`, shared data, the silent-SSR trap | A Laravel + Vue/React/Svelte app on Inertia v1/v2/v3 |
 | **[threejs](plugins/threejs)** | WebGPU-first with WebGL2 fallback, TSL shaders, r3f/drei, glTF/Draco/KTX2, disposal discipline | 3D scenes, and any leak that only shows after ten route changes |
 | **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) behind one `/web-dev:review`, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
 
