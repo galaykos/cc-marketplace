@@ -709,6 +709,12 @@ lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
 phase_gap=$(pc_phase_guard plugins) || true
 [ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read .claude/cc-phase.json — declare the lane 'any' if it is a guard that must fire in every phase"
 
+# A description that promises "defers X to <plugin>" must be backed by a
+# yields_to edge in the plugin's own lane.tsv; host-built-in and plugin-class
+# targets are skipped by design. Derivation: pc_deference_edges' header.
+def_gap=$(pc_deference_edges plugins) || true
+[ -n "$def_gap" ] && lane_err "$def_gap" "plugin.json promises deference to a plugin that no lane row yields to — add the yields_to edge or reword the description"
+
 # PostToolUse is the only channel that reaches subagents; a one-shot keyed on
 # session_id is deduped by the parent's history and never speaks in the worker.
 ctx_gap=$(pc_context_key plugins) || true

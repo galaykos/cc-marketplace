@@ -1245,6 +1245,67 @@ pc_dispatch_binding() {
   return $bad
 }
 
+# pc_deference_edges [plugins_root]
+# A plugin.json description that promises deference — a clause matching
+# `defers? … to …` — must be backed by a lane edge: for every token in that
+# clause that names a plugin directory under <root> (other than the plugin
+# itself), some row in the plugin's OWN lane.tsv must carry a `yields_to` entry
+# of that plugin (`<target>:…`). Prints one `deference <plugin> -> <target>`
+# line per unbacked claim and returns 1; clean returns 0. Requires jq.
+#
+# WHY THIS EXISTS. Descriptions carried "defers X to Y" clauses when the lane
+# system landed (collective-taskforce-backlog #9; recount with
+# `grep -il 'defer' plugins/*/.claude-plugin/plugin.json`) and the lane rows
+# were reconciled against them BY HAND. pc_handoff_refs does scan plugin.json,
+# but it resolves `plugin:artifact` tokens — these clauses name a bare plugin
+# word, so nothing compared them to lane.tsv and the next edit to either side
+# could diverge silently. A description is what the USER reads before
+# installing; a lane row is what the RUNTIME honours. Two copies of one promise
+# with nothing comparing them is the drift CLAUDE.md's has-teeth convention
+# names. Landed by the 2026-09-03 marketplace standard review
+# (rationale/marketplace-standard-review-2026-09-03.md, spec A14).
+#
+# LIMITATION (honest scope). Only PLUGIN-NAMED targets are checkable. A clause
+# that defers to a host built-in ("Claude Code's built-in claude-api skill") or
+# to a class of plugins ("the per-framework review plugins") names no directory,
+# so it is SKIPPED, not failed — that half of the promise is unenforceable here
+# and the skip is deliberate. The clause must be introduced by a form of
+# "defer" (defer/defers/deferred/deferring/deferral); "hands X to Y" or
+# "leaves X to Y" is not scanned. Tokens are maximal `[a-z0-9-]` runs after
+# lowercasing, so a plugin named inside a hyphen-joined word (`ui-ux-review`)
+# is not matched — a false NEGATIVE — while a plugin whose name is an ordinary
+# word (`testing`, `security`) is matched wherever it appears in the clause — a
+# false POSITIVE that fails loud with the target named, never silently. The
+# edge's PHASE and territory are not checked — pc_lanes_territory owns that.
+pc_deference_edges() {
+  local root="${1:-plugins}" bad=0 pj p desc clause tok lane
+  command -v jq >/dev/null 2>&1 || return 0
+  for pj in "$root"/*/.claude-plugin/plugin.json; do
+    [ -f "$pj" ] || continue
+    p=$(basename "$(dirname "$(dirname "$pj")")")
+    desc=$(jq -r '.description // ""' "$pj" 2>/dev/null) || continue
+    lane="$root/$p/lane.tsv"
+    while IFS= read -r clause; do
+      [ -n "$clause" ] || continue
+      while IFS= read -r tok; do
+        [ -n "$tok" ] || continue
+        [ "$tok" = "$p" ] && continue
+        [ -d "$root/$tok" ] || continue
+        if ! awk -F'\t' -v t="$tok:" '
+              /^#/ { next } NF==6 { n=split($6, a, ","); for (i=1;i<=n;i++) if (index(a[i], t)==1) { f=1 } }
+              END { exit f ? 0 : 1 }' "$lane" 2>/dev/null; then
+          printf 'deference %s -> %s\n' "$p" "$tok"; bad=1
+        fi
+      done <<EOF_TOK
+$(printf '%s' "$clause" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-\n' '\n' | sort -u)
+EOF_TOK
+    done <<EOF_CLAUSE
+$(printf '%s' "$desc" | grep -oiE 'defer(s|red|ring|ral)?\b[^.;]*\bto\b[^.;]*' || true)
+EOF_CLAUSE
+  done
+  return $bad
+}
+
 # pc_phase_guard <plugins-root> — spec §4.3, C4.
 # A script wired to UserPromptSubmit or Stop must READ the phase sentinel, or it
 # cannot take turns: it speaks in every phase forever, which is the defect the
