@@ -6,5 +6,11 @@
   "extraGuard": "[ \"${#prompt}\" -lt 200 ]",
   "budgetShared": true,
   "artifact": "sample:remind",
-  "arcRank": 50
+  "arcRank": 50,
+  "lane": {
+    "owns": "sample-signal",
+    "trigger": "prompt matches the sample regex",
+    "yieldsTo": "-",
+    "phase": "build"
+  }
 }

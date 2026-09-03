@@ -11,5 +11,10 @@
   "argumentHint": "[path-diff-or-design-doc]",
   "applyExtra": [],
   "applyExtraBlock": "",
-  "workerChain": "database:database-engineer if installed → task-runner:task-executor if installed → inline"
+  "workerChain": "database:database-engineer if installed → task-runner:task-executor if installed → inline",
+  "lane": {
+    "owns": "sample-foreign-review",
+    "trigger": "invoked as /sample:review",
+    "yieldsTo": "-"
+  }
 }

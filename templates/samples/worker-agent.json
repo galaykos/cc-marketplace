@@ -6,5 +6,11 @@
   "tools": "Read, Write, Edit, Bash, Grep, Glob",
   "model": "sonnet",
   "effort": "xhigh",
-  "bestpractices-skill": "observability-design"
+  "bestpractices-skill": "observability-design",
+  "lane": {
+    "owns": "sample-worker-implementation",
+    "trigger": "a review routes a fix list to this worker",
+    "yieldsTo": "-",
+    "phase": "verify"
+  }
 }

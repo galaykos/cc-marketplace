@@ -127,6 +127,99 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
   printf 'bumped %s: %s -> %s\n' "${pj#$ROOT/}" "$v" "$newv"
 }
 
+# --- lane rows: the generated block in <plugin>/lane.tsv ---------------------------
+# Every chassis object that renders an ARTIFACT (review command, suite uninstall,
+# reminder hook, worker agent) also declares its lane in a `lane` key —
+#   {"owns": "<territory>", "trigger": "<definite trigger>", "yieldsTo": "a:b,c:d" | "-",
+#    "phase": "<optional override>"}
+# — and generate.sh renders one six-field lane.tsv row per artifact into a block
+# between `# generated:start` and `# generated:end`. --check byte-diffs that block
+# like any other generated file; --write rewrites it and patch-bumps the plugin.
+#
+# WHY. Until 2026-09-03 the rows for generated artifacts were typed by hand
+# (every generated worker agent, chassis command and reminder hook — recount with
+# `grep -l 'generated from templates' plugins/*/agents/*.md plugins/*/commands/*.md
+# plugins/*/hooks/*.sh`), so one property was split across a generator and a
+# hand-edited file — exactly the drift the chassis exists to prevent
+# (collective-taskforce-backlog #8). A missing `lane` key is REPORTED, not fatal,
+# until every manifest carries one (see TRANSITION in lane_row); the sweep that
+# finishes the adoption flips it to `die`.
+# Phase: commands default (review command → review, suite uninstall → ship);
+# hooks and agents MUST declare `lane.phase` explicitly — a hook's phase is what
+# pc_phase_guard reads (`any` exempts it from the sentinel), and the shipped rows
+# disagree with any default (api-design:remind build, taskmaster:remind shape,
+# testing:test-engineer verify), so a default there would silently disarm a gate.
+# owns/trigger/yieldsTo carry the SAME values the hand rows carried, lifted verbatim.
+# A hand row for an artifact the block now owns is a hard error: two rows for one
+# artifact only trip pc_lanes_schema when their `owns` match verbatim.
+LANE_ROWS=""
+LANE_MISSING_REPORT=""
+LANE_HEADER='# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).'
+LANE_START='# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows'
+LANE_END='# generated:end'
+
+lane_row() { # obj plugin-dir artifact kind default-phase
+  local obj="$1" pdir="$2" art="$3" kind="$4" dphase="$5" rel="${2#$ROOT/}" owns trig yt phase
+  # TRANSITION (card 06 → 07 of the 2026-09-03 standard review): a manifest without
+  # a `lane` key is REPORTED, not fatal, until every manifest carries one; card 07's
+  # sweep flips this `return 0` to `die`. The report keeps the gap visible on every run.
+  printf '%s' "$obj" | jq -e '(.lane // null) | type == "object"' >/dev/null 2>&1 \
+    || { LANE_MISSING_REPORT="$LANE_MISSING_REPORT
+  $rel: $art has no \"lane\" key — its lane.tsv row is still hand-written"; return 0; }
+  [ -n "$art" ] || die "$rel/.chassis.json: a $kind object has a lane but no artifact name (reminder hooks need \"artifact\")"
+  owns="$(printf '%s' "$obj" | jq -r '.lane.owns // empty')"
+  trig="$(printf '%s' "$obj" | jq -r '.lane.trigger // empty')"
+  yt="$(printf '%s' "$obj" | jq -r '.lane.yieldsTo // "-"')"
+  phase="$(printf '%s' "$obj" | jq -r --arg d "$dphase" '.lane.phase // $d')"
+  [ -n "$owns" ] && [ -n "$trig" ] || die "$rel/.chassis.json: lane for $art needs non-empty owns and trigger"
+  [ -n "$phase" ] || die "$rel/.chassis.json: lane for $art ($kind) must declare \"phase\" explicitly — hooks and agents have no default (pc_phase_guard reads it; 'any' exempts a hook from the sentinel)"
+  local tab=$'\t' nl=$'\n'   # $(printf '\n') would strip its own newline into an empty, match-everything pattern
+  case "$art$owns$trig$yt$phase" in *"$tab"*|*"$nl"*) die "$rel/.chassis.json: lane for $art contains a tab or newline" ;; esac
+  LANE_ROWS="${LANE_ROWS}$(printf '%s\t%s\t%s\t%s\t%s\t%s' "$art" "$kind" "$phase" "$owns" "$trig" "$yt")
+"
+}
+
+write_lane_block() { # plugin-dir — called once per manifest after its objects rendered
+  local pdir="$1" lf="$1/lane.tsv" out="$WORK/lane.out" blk="$WORK/lane.blk" s e art dup
+  if [ -z "$LANE_ROWS" ]; then
+    # No generated rows for this plugin. A block left behind by a deleted lane key
+    # is stripped rather than left to rot — --check reports it as drift, --write removes it.
+    if [ -f "$lf" ] && grep -q '^# generated:start' "$lf"; then
+      s="$(grep -n '^# generated:start' "$lf" | head -1 | cut -d: -f1)"
+      e="$(grep -n '^# generated:end' "$lf" | head -1 | cut -d: -f1)"
+      [ -n "$e" ] && [ "$e" -gt "$s" ] || die "${lf#$ROOT/}: '# generated:start' without a matching '# generated:end'"
+      { head -n "$((s-1))" "$lf"; tail -n "+$((e+1))" "$lf"; } > "$out"
+      emit "$out" "$lf" 0 "$pdir"
+    fi
+    return 0
+  fi
+  { printf '%s\n' "$LANE_START"; printf '%s' "$LANE_ROWS"; printf '%s\n' "$LANE_END"; } > "$blk"
+  # A hand row for an artifact the block owns is the split-property drift this block
+  # exists to end — and pc_lanes_schema only sees it when `owns` matches verbatim.
+  if [ -f "$lf" ]; then
+    for art in $(cut -f1 "$blk" | grep -v '^#'); do
+      dup="$(awk -v a="$art" -F'\t' '/^# generated:start/{g=1} /^# generated:end/{g=0} !g && !/^#/ && $1==a {print FNR}' "$lf")"
+      [ -z "$dup" ] || die "${lf#$ROOT/}:$dup: hand-written row for $art, which is now generated from .chassis.json — delete the hand row"
+    done
+  fi
+  if [ -f "$lf" ] && grep -q '^# generated:start' "$lf"; then
+    s="$(grep -n '^# generated:start' "$lf" | head -1 | cut -d: -f1)"
+    e="$(grep -n '^# generated:end' "$lf" | head -1 | cut -d: -f1)"
+    [ -n "$e" ] && [ "$e" -gt "$s" ] || die "${lf#$ROOT/}: '# generated:start' without a matching '# generated:end'"
+    { head -n "$((s-1))" "$lf"; cat "$blk"; tail -n "+$((e+1))" "$lf"; } > "$out"
+  elif [ -f "$lf" ]; then
+    { cat "$lf"; [ -n "$(tail -c1 "$lf")" ] && echo; cat "$blk"; } > "$out"
+  else
+    { printf '%s\n' "$LANE_HEADER"; cat "$blk"; } > "$out"
+  fi
+  emit "$out" "$lf" 0 "$pdir"
+  LANE_ROWS=""
+}
+
 # --- per-chassis renderers --------------------------------------------------------
 render_stack_review() { # obj plugin-dir
   local obj="$1" pdir="$2" rel="${2#$ROOT/}"
@@ -186,6 +279,7 @@ render_stack_review() { # obj plugin-dir
   # An ungated copy of a gated file is the drift the chassis exists to prevent.
   outfile="$(printf '%s' "$obj" | jq -r '.outfile // "commands/review.md"')"
   emit "$rfile" "$pdir/$outfile" 0 "$pdir"
+  lane_row "$obj" "$pdir" "$(basename "$pdir"):$(basename "$outfile" .md)" command review
 }
 
 render_suite_uninstall() { # obj plugin-dir
@@ -193,6 +287,7 @@ render_suite_uninstall() { # obj plugin-dir
   printf '%s' "$obj" > "$dfile"; ensure_engine
   render_template "$TEMPLATES/suite-uninstall.md.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} uninstall.md"
   emit "$rfile" "$pdir/commands/uninstall.md" 0 "$pdir"
+  lane_row "$obj" "$pdir" "$(basename "$pdir"):uninstall" command ship
 }
 
 render_reminder_hook() { # obj plugin-dir
@@ -210,6 +305,7 @@ render_reminder_hook() { # obj plugin-dir
   ensure_engine
   render_template "$TEMPLATES/reminder-hook.sh.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} remind.sh"
   emit "$rfile" "$pdir/hooks/remind.sh" 1 "$pdir"
+  lane_row "$obj" "$pdir" "$(printf '%s' "$obj" | jq -r '.artifact // empty')" hook ""
 }
 
 render_worker_agent() { # obj plugin-dir
@@ -231,6 +327,7 @@ render_worker_agent() { # obj plugin-dir
   ensure_engine
   render_template "$TEMPLATES/worker-agent.md.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} $agentFile"
   emit "$rfile" "$pdir/$agentFile" 0 "$pdir"
+  lane_row "$obj" "$pdir" "$(basename "$pdir"):$(basename "$agentFile" .md)" agent ""
 }
 
 render_chassis() { # obj plugin-dir
@@ -384,11 +481,13 @@ for manifest in "$ROOT"/plugins/*/.chassis.json; do
   pdir="$(dirname "$manifest")"
   n="$(jq 'if type=="array" then length else 1 end' "$manifest")"
   i=0
+  LANE_ROWS=""
   while [ "$i" -lt "$n" ]; do
     obj="$(jq -c "if type==\"array\" then .[$i] else . end" "$manifest")"
     render_chassis "$obj" "$pdir"
     i=$((i+1))
   done
+  write_lane_block "$pdir"
 done
 
 render_catalog
@@ -401,6 +500,7 @@ fi
 # reports (both modes)
 printf '== opt-out reviews ==%s\n' "${OPTOUT_REPORT:- (none)}"
 printf '== worker overrides ==%s\n' "${OVERRIDE_REPORT:- (none)}"
+printf '== generated artifacts without a lane key (rows still hand-written) ==%s\n' "${LANE_MISSING_REPORT:- (none)}"
 
 if [ "$MODE" = check ] && [ "$DRIFT" != 0 ]; then
   printf 'generate.sh --check: drift detected — run scripts/generate.sh --write\n' >&2

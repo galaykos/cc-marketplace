@@ -3,6 +3,15 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.16.1
+
+### Changed
+- `lane.tsv`'s row for `/code-review:comment-review` is now rendered by
+  `scripts/generate.sh` from the `lane` key on its `.chassis.json` object (a
+  `# generated:start` … `# generated:end` block) instead of being typed by hand.
+  Same territory, same trigger; `generate.sh --check` now fails if the two drift.
+  No behaviour change for a user of the plugin.
+
 ## 0.16.0
 
 ### Changed
