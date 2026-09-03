@@ -4,3 +4,4 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 hindsight:transcript-miner	agent	review	session-transcript-mining	dispatched by the /hindsight:harvest fan-out, one per selected session JSONL	-
+hindsight:claude-md	command	review	claude-md-audit	invoked as /hindsight:claude-md	-

@@ -22,9 +22,35 @@ Not sure what you need? Install one plugin and let it tell you:
 
 ```bash
 /plugin install plugin-scout@cc-plugins-marketplace
-/plugin-scout:suggest              # scans your manifests, suggests a set
+/plugin-scout:suggest              # scans your manifests, suggests a set, installs your picks
 /plugin-scout:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
+/plugin-scout:suggest --persist    # project scope: teammates who clone get the same set
+/plugin-scout:suggest --global     # user scope: every repo on this machine
+/plugin-scout:suggest --all        # page every row as an explicit option instead of one question
+/reload-plugins                    # nothing installed this run is active until you do
 ```
+
+What the scout prints, in order:
+
+1. **Stack-matched** — plugins earned by a manifest line it cites (`composer.json`
+   `laravel/framework` → laravel, `package.json` `next` → web-dev, a `mariadb` image →
+   database, and the rest of `references/signals.md`). Where a signal fires and this
+   marketplace has nothing for it (Terraform, i18n, Django), it says so and routes you
+   onward instead of padding the list.
+2. **Any-project core** — code-review, debugging, testing, git-workflow,
+   code-architecture, secret-scanning, command-guard: useful whatever the stack. Two of
+   those ship write-time hooks; a `--yes` run names them because you saw no picker.
+3. **Universal remainder** — every other plugin, numbered, with 3-5 lifted into
+   `worth a look here` with a one-line reason. Never auto-installed.
+4. **Beyond this marketplace** — the vendor-agnostic plugins in Anthropic's own
+   `claude-plugins-official` directory that carry a mechanism nothing here ships
+   (`security-guidance`, `hookify`, `commit-commands`, the language-server plugins,
+   `playwright`, `context7`, ...), each with the plugin here it overlaps so you do not
+   install two doctrines for one job. Their install command is printed, never run.
+
+Without `--yes` it asks once: the signal-backed and core rows as options, and one door to
+the remainder. Installed plugins are marked and never re-offered. The scout is read-only
+until you pick — no package manager runs, no lockfile changes.
 
 Or take a whole category with a bundle — one install, dependencies pulled in.
 
@@ -41,7 +67,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.3k tokens |
-| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.4k tokens |
+| `always-on-suite` | 8 | ~1.7k tokens | ~1.2k tokens | ~2.4k tokens |
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 

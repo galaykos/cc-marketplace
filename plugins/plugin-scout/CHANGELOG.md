@@ -7,6 +7,39 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.14.0
+
+### Added
+- `Beyond this marketplace` block, printed once after tier 3, from the new
+  `references/official-complements.md`: vendor-agnostic plugins in Anthropic's
+  `claude-plugins-official` directory that carry a mechanism no plugin here ships
+  — `security-guidance` (Stop-time diff review, commit-time reviewer), `hookify`
+  (rule-file hooks), `commit-commands`, `claude-code-setup`,
+  `claude-md-management`, `pr-review-toolkit` (two agents named, the rest
+  overlap), `code-simplifier`, the language-server plugins (`php-lsp`,
+  `typescript-lsp`, and the rest by manifest), `playwright`, `serena`,
+  `context7` (flagged as the one hosted row), plus opt-in rows for
+  `ralph-loop`, `claude-security`, `mcp-server-dev`/`agent-sdk-dev` and
+  `session-report`. Each row names its overlap with a plugin here so two
+  doctrines are not installed for one job; an exclusions list names the
+  official plugins that duplicate one installed here (`feature-dev`,
+  `frontend-design`, official `code-review`, `plugin-dev`, `playground`, the
+  output styles) and is never suggested.
+- Rows print under the tier-1 evidence rule or as `core`; their install
+  command (`claude plugin install <name>@claude-plugins-official`) is printed,
+  never run, and `--yes` never touches the block. Standing: recorded —
+  `pc_scout_names` does not read the file; names were verified by hand against
+  the live directory on 2026-09-02, and the file carries the recount command.
+- Gap review behind the list: `rationale/official-plugins-gap-review-2026-09-02.md`
+  (marketplace repo only). Overlap sentences name what the same review ported into
+  this marketplace (security 0.7.0 patterns, terse 0.5.0 preload, git-workflow
+  0.5.0 clean-gone, hindsight 0.7.0 claude-md audit, resilience 0.4.0 fallback
+  rules) so a row is suggested for what is still unique, not for what is not.
+
+### Changed
+- `SKILL.md` prose tightened to stay inside the 200-line body budget; no
+  behaviour change outside the block above.
+
 ## 0.13.14
 
 ### Changed

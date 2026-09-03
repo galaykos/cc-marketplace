@@ -3,6 +3,20 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.16.0
+
+### Changed
+- **The self-refute pass covers `high` as well as `critical`, and has a checklist.**
+  `/code-review:review` and the `code-reviewer` agent now refute each finding against
+  a six-row false-positive taxonomy — pre-existing, silenced, tooling-caught,
+  intentional, senior-reviewer nit, unstated style preference — and drop a match
+  rather than downgrade it. Ported from the official `code-review` plugin's rubric
+  and its false-positive list; the numeric 0-100 confidence score was not ported, the
+  marketplace-wide `CONFIRMED`/`PLAUSIBLE` verdict already carries that distinction.
+- **History pass.** When a diff edits or removes existing lines, the review reads the
+  blame of the touched hunks and reports any reversal of a line a bug-fix or
+  workaround commit added, naming that commit. Additions-only diffs skip it.
+
 ## 0.15.0
 
 ### Changed
