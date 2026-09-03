@@ -1,4 +1,9 @@
 {
   "chassis": "suite-uninstall",
-  "bundle": "craft-suite"
+  "bundle": "craft-suite",
+  "lane": {
+    "owns": "craft-suite-uninstall",
+    "trigger": "invoked as /craft-suite:uninstall",
+    "yieldsTo": "-"
+  }
 }

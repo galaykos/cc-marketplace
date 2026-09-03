@@ -6,5 +6,10 @@
   "worker": null,
   "applyExtra": [],
   "description": "Review a payments/billing integration for PCI scope, webhook idempotency, money handling, and subscription-race gaps against payments",
-  "argumentHint": "[path-or-diff]"
+  "argumentHint": "[path-or-diff]",
+  "lane": {
+    "owns": "payments-integration-review",
+    "trigger": "the scope is payment, billing, or subscription integration code and nothing else; a mixed scope hands up to the fan-in",
+    "yieldsTo": "code-review:code-reviewer"
+  }
 }

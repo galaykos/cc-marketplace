@@ -1,4 +1,9 @@
 {
   "chassis": "suite-uninstall",
-  "bundle": "quality-suite"
+  "bundle": "quality-suite",
+  "lane": {
+    "owns": "quality-suite-uninstall",
+    "trigger": "invoked as /quality-suite:uninstall",
+    "yieldsTo": "-"
+  }
 }

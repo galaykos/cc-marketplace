@@ -3,7 +3,9 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-laravel:backend-engineer	agent	build	php-laravel-backend-implementation	target files match *.php under app/, database/, routes/ or tests/	-
 laravel:review	command	review	php-laravel-idiom-review	the scope is PHP, Blade, or Inertia pages and nothing else; a mixed scope hands up to the fan-in	code-review:code-reviewer
 laravel:laravel-best-practices	skill	build	laravel-idioms	composer.json requires laravel/framework, or an edit under app/, database/, routes/	-
 laravel:inertia-best-practices	skill	build	inertia-idioms	composer.json requires inertiajs/inertia-laravel or package.json carries @inertiajs/*, or an edit under resources/js/Pages/	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+laravel:backend-engineer	agent	build	php-laravel-backend-implementation	target files match *.php under app/, database/, routes/ or tests/	-
+# generated:end

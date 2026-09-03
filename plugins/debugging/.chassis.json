@@ -5,5 +5,11 @@
   "command": "/debugging:debug",
   "extraGuard": null,
   "artifact": "debugging:remind",
-  "arcRank": 20
+  "arcRank": 20,
+  "lane": {
+    "owns": "stuck-loop-signal",
+    "trigger": "UserPromptSubmit prompt head matches (still failing|same error|didn.?t work|not working|keeps failing)",
+    "yieldsTo": "-",
+    "phase": "any"
+  }
 }

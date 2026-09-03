@@ -141,9 +141,8 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 # `grep -l 'generated from templates' plugins/*/agents/*.md plugins/*/commands/*.md
 # plugins/*/hooks/*.sh`), so one property was split across a generator and a
 # hand-edited file — exactly the drift the chassis exists to prevent
-# (collective-taskforce-backlog #8). A missing `lane` key is REPORTED, not fatal,
-# until every manifest carries one (see TRANSITION in lane_row); the sweep that
-# finishes the adoption flips it to `die`.
+# (collective-taskforce-backlog #8). A missing `lane` key is a hard error in both
+# modes: every manifest has carried one since the 2026-09-03 sweep.
 # Phase: commands default (review command → review, suite uninstall → ship);
 # hooks and agents MUST declare `lane.phase` explicitly — a hook's phase is what
 # pc_phase_guard reads (`any` exempts it from the sentinel), and the shipped rows
@@ -153,7 +152,6 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 # A hand row for an artifact the block now owns is a hard error: two rows for one
 # artifact only trip pc_lanes_schema when their `owns` match verbatim.
 LANE_ROWS=""
-LANE_MISSING_REPORT=""
 LANE_HEADER='# lane declaration — who owns which territory, at which phase, and who outranks them.
 # artifact	kind	phase	owns	definite_trigger	yields_to
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
@@ -164,12 +162,11 @@ LANE_END='# generated:end'
 
 lane_row() { # obj plugin-dir artifact kind default-phase
   local obj="$1" pdir="$2" art="$3" kind="$4" dphase="$5" rel="${2#$ROOT/}" owns trig yt phase
-  # TRANSITION (card 06 → 07 of the 2026-09-03 standard review): a manifest without
-  # a `lane` key is REPORTED, not fatal, until every manifest carries one; card 07's
-  # sweep flips this `return 0` to `die`. The report keeps the gap visible on every run.
+  # Every manifest carries a lane key since the 2026-09-03 sweep; a new chassis
+  # object without one is a hard error — the generator owns the artifact, so it
+  # owns the row, and pc_lanes_coverage would fail the build on a row nobody writes.
   printf '%s' "$obj" | jq -e '(.lane // null) | type == "object"' >/dev/null 2>&1 \
-    || { LANE_MISSING_REPORT="$LANE_MISSING_REPORT
-  $rel: $art has no \"lane\" key — its lane.tsv row is still hand-written"; return 0; }
+    || die "$rel/.chassis.json: object for $art has no \"lane\" key — {\"owns\",\"trigger\",\"yieldsTo\"[,\"phase\"]}; generated artifacts declare their lane in the manifest, never by hand in lane.tsv"
   [ -n "$art" ] || die "$rel/.chassis.json: a $kind object has a lane but no artifact name (reminder hooks need \"artifact\")"
   owns="$(printf '%s' "$obj" | jq -r '.lane.owns // empty')"
   trig="$(printf '%s' "$obj" | jq -r '.lane.trigger // empty')"
@@ -500,7 +497,6 @@ fi
 # reports (both modes)
 printf '== opt-out reviews ==%s\n' "${OPTOUT_REPORT:- (none)}"
 printf '== worker overrides ==%s\n' "${OVERRIDE_REPORT:- (none)}"
-printf '== generated artifacts without a lane key (rows still hand-written) ==%s\n' "${LANE_MISSING_REPORT:- (none)}"
 
 if [ "$MODE" = check ] && [ "$DRIFT" != 0 ]; then
   printf 'generate.sh --check: drift detected — run scripts/generate.sh --write\n' >&2

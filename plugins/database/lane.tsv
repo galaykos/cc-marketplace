@@ -3,7 +3,9 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-database:database-engineer	agent	build	relational-schema-and-query-implementation	work names a schema, migration, index, query shape, or connection pool in a relational store	database:review
 database:review	command	review	relational-statement-review	the scope is SQL, migrations, or schema definitions and nothing else; a mixed scope hands up to the fan-in	code-review:code-reviewer
 database:sql-best-practices	skill	build	sql-idioms	an edit to a .sql file or under migrations/	-
 database:mariadb-best-practices	skill	build	mariadb-idioms	an edit to a .sql file or migration when the compose image or DSN names mariadb	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+database:database-engineer	agent	build	relational-schema-and-query-implementation	work names a schema, migration, index, query shape, or connection pool in a relational store	database:review
+# generated:end

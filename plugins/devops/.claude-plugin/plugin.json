@@ -1,6 +1,6 @@
 {
   "name": "devops",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Infrastructure in one plugin: CI/CD ordering, container/image hygiene, Kubernetes limits and probes, deploy strategy with rollback, and secrets handling (devops-practices); Dockerfile and compose discipline (docker-best-practices); and local dev environments generated from evidence — manifests, lockfiles, .env DSNs, CI images — via /devops:init (compose-init). One /devops:review loads the Docker skill when a Dockerfile or compose file is in scope, backed by a PreToolUse guard on workflow files and a devops-engineer worker + devops-reviewer pair. Owns infra-layer observability wiring; defers in-code instrumentation to resilience's observability skill.",
   "author": {
     "name": "Ivan-WG",

@@ -4,7 +4,6 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 approaches:opinion-lens	agent	decide	persona-opinion-shard	dispatched by approach-deliberation's blind panel, four in parallel, one persona each	-
-approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)	-
 #
 # ONE skill owns change-shape-deliberation. There were two, blessed here as a co-fire;
 # 22c3239 merged opinion-round into approach-deliberation, so the mutual exclusion now
@@ -13,3 +12,6 @@ approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making v
 # comment described the pre-merge topology for as long as it outlived it.
 approaches:approach-deliberation	skill	decide	change-shape-deliberation	a non-trivial change with two-plus viable shapes, or a refactor/rewrite/migrate request, AND no deliberation marker exists for this task	-
 approaches:compact-recovery	hook	any	post-compaction-decision-recall	SessionStart fires with source=compact AND .claude/approaches/deliberated.json exists	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)	-
+# generated:end

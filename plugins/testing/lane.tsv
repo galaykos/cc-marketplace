@@ -3,4 +3,7 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+testing:review	command	review	test-code-review	the scope is test files and test infrastructure and nothing else; a mixed scope hands up to the fan-in	code-review:code-reviewer
 testing:test-engineer	agent	verify	test-authoring	changed code has no covering test, or the request names tests, coverage, fixtures, or mocks	-
+# generated:end

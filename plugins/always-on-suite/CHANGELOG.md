@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.3
+
+### Changed
+- `lane.tsv` rows for this plugin's chassis-generated artifacts are now rendered by
+  `scripts/generate.sh` from `lane` keys on its `.chassis.json` objects (a
+  `# generated:start` … `# generated:end` block) instead of being typed by hand —
+  same territory, trigger and yields_to; `generate.sh --check` fails if the two drift.
+  No behaviour change for a user of the plugin.
+
 ## 0.2.2
 
 ### Changed

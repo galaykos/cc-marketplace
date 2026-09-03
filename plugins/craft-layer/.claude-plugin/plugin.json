@@ -1,6 +1,6 @@
 {
   "name": "craft-layer",
-  "version": "0.49.0",
+  "version": "0.49.1",
   "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, and ultra-craft escalates a run with live web research and a red-team of the result. Ships the Three.js/R3F skill (WebGPU-first, TSL, asset pipelines, disposal) behind /craft-layer:review. Requires ui-ux, which carries the WCAG audit.",
   "author": {
     "name": "Ivan-WG",

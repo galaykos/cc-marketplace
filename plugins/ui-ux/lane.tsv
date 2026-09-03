@@ -3,10 +3,12 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-ui-ux:ui-ux-engineer	agent	build	ui-implementation	work changes layout, breakpoints, spacing, colour, hierarchy, or component placement	-
 ui-ux:ui-ux-reviewer	agent	review	markup-and-style-review	diff touches markup or styles only (class attributes, CSS/SCSS, theme or tailwind config) and no component logic	-
-ui-ux:a11y-engineer	agent	build	accessibility-remediation	fix list names a WCAG/ARIA/keyboard/focus/label/contrast defect in markup or component files	-
 ui-ux:audit	command	review	wcag-audit	the user asks for an accessibility audit, or markup/focus/contrast changed and a full WCAG pass is wanted	-
 ui-ux:a11y-audit	skill	build	wcag-checklist	an edit to a .tsx, .jsx, .vue, or .blade.php file	-
 ui-ux:mui-best-practices	skill	build	mui-idioms	the file imports from @mui/material, @mui/icons-material or @mui/x-*	-
 ui-ux:component-libraries	skill	build	component-library-floor	the project depends on a React component library that has no sibling skill in ui-ux, or two libraries appear on one surface	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+ui-ux:ui-ux-engineer	agent	build	ui-implementation	work changes layout, breakpoints, spacing, colour, hierarchy, or component placement	-
+ui-ux:a11y-engineer	agent	build	accessibility-remediation	fix list names a WCAG/ARIA/keyboard/focus/label/contrast defect in markup or component files	-
+# generated:end

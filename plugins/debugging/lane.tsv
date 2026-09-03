@@ -7,6 +7,8 @@
 # coding-entry already routed errors here. The three artifacts hold three
 # separate territories on purpose — the hook is the signal, the command is the
 # diagnosis, the agent is the long loop — so none of them can gag another.
-debugging:remind	hook	any	stuck-loop-signal	UserPromptSubmit prompt head matches (still failing|same error|didn.?t work|not working|keeps failing)	-
 debugging:debug	command	understand	incident-diagnosis	invoked, or a reported symptom has no recorded root cause yet	-
 debugging:debugger	agent	understand	reproduce-and-bisect-investigation	dispatched by /debugging:debug when the reproduce-bisect loop outlives one turn	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+debugging:remind	hook	any	stuck-loop-signal	UserPromptSubmit prompt head matches (still failing|same error|didn.?t work|not working|keeps failing)	-
+# generated:end

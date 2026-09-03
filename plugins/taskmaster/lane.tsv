@@ -5,5 +5,7 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 taskmaster:context-scout	agent	understand	pre-question-codebase-scan	a taskmaster interrogation starts and no grounding scan has run for it	-
 taskmaster:spec-adversary	agent	decide	spec-hole-adversary	a frozen taskmaster spec exists and has not been red-teamed	-
-taskmaster:remind	hook	shape	requirements-clarification	prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)	-
 taskmaster:ultra	hook	any	ultra-task-boost-directive	prompt head matches ultra-?(task|goal) with no negation and no active-banner echo	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+taskmaster:remind	hook	shape	requirements-clarification	prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)	-
+# generated:end

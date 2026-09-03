@@ -1,4 +1,9 @@
 {
   "chassis": "suite-uninstall",
-  "bundle": "taskmaster-suite"
+  "bundle": "taskmaster-suite",
+  "lane": {
+    "owns": "taskmaster-suite-uninstall",
+    "trigger": "invoked as /taskmaster-suite:uninstall",
+    "yieldsTo": "-"
+  }
 }

@@ -5,5 +5,11 @@
   "command": "/taskmaster:task",
   "artifact": "taskmaster:remind",
   "arcRank": 90,
-  "armsClarifyGate": true
+  "armsClarifyGate": true,
+  "lane": {
+    "owns": "requirements-clarification",
+    "trigger": "prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)",
+    "yieldsTo": "-",
+    "phase": "shape"
+  }
 }

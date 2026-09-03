@@ -13,8 +13,18 @@ the plugin's `.chassis.json`, then regenerate.
 
 - `plugins/<name>/.chassis.json` — ONE chassis object or an ARRAY of them.
   Kinds seen in-tree: `stack-review` (stamps `commands/review.md`),
-  `worker-agent` (stamps the agent file declared in `agentFile`), `optout`
-  (declares a chassis-shaped file as intentionally hand-written).
+  `suite-uninstall` (stamps `commands/uninstall.md`), `reminder-hook` (stamps
+  `hooks/remind.sh`), `worker-agent` (stamps the agent file declared in
+  `agentFile`), `optout` (declares a chassis-shaped file as intentionally
+  hand-written).
+- Every artifact-rendering object also carries **`lane`** —
+  `{"owns", "trigger", "yieldsTo"[, "phase"]}` — and generate.sh renders the
+  plugin's lane.tsv row for that artifact into a `# generated:start` …
+  `# generated:end` block. A missing `lane` key is a hard error. Commands default
+  their phase (review command → `review`, uninstall → `ship`); **hooks and agents
+  must declare `phase` explicitly** (a hook's phase is what `pc_phase_guard` reads;
+  `any` exempts it). Never hand-write a lane row for a generated artifact — the
+  generator dies on the duplicate.
 - `templates/*.tmpl` + `templates/blocks/` — the sources. Engine:
   `scripts/lib/template-engine.sh` (override with `TEMPLATE_ENGINE`).
 - `scripts/generate.sh` — the stamper. Its header comment is the authoritative
@@ -43,7 +53,8 @@ modes. Tag vocabulary is closed (11 tags) and synced across `agent-tags.md`,
 ## Procedure for a new/changed chassis file
 
 1. Edit template and/or `.chassis.json` (single object → convert to array when
-   adding a second object to the same plugin).
+   adding a second object to the same plugin); a new artifact object needs its
+   `lane` key (see The pieces).
 2. `bash scripts/generate.sh --write`, then review the diff — for agent
    migrations, confirm no domain-checklist content was lost.
 3. Gates before push:

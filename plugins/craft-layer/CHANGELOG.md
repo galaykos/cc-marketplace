@@ -7,6 +7,15 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.1
+
+### Changed
+- `lane.tsv` rows for this plugin's chassis-generated artifacts are now rendered by
+  `scripts/generate.sh` from `lane` keys on its `.chassis.json` objects (a
+  `# generated:start` … `# generated:end` block) instead of being typed by hand —
+  same territory, trigger and yields_to; `generate.sh --check` fails if the two drift.
+  No behaviour change for a user of the plugin.
+
 ## 0.49.0
 
 ### Changed

@@ -11,7 +11,13 @@
     "command": "/api-design:check",
     "extraGuard": "printf '%s' \"$head\" | grep -qiE '\\b(build|implement|write|creat\\w*|add|wire|connect|integrat\\w*|call|fetch|use|fix|debug|update)\\b'",
     "artifact": "api-design:remind",
-    "arcRank": 40
+    "arcRank": 40,
+    "lane": {
+      "owns": "third-party-api-doc-reminder",
+      "trigger": "prompt head carries an integration noun (sdk|endpoint|integration|webhook|oauth|graphql) AND a making or calling verb",
+      "yieldsTo": "-",
+      "phase": "build"
+    }
   },
   {
     "chassis": "optout",

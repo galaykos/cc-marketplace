@@ -5,5 +5,11 @@
   "command": "/fresh-take:consult",
   "extraGuard": null,
   "artifact": "fresh-take:remind",
-  "arcRank": 10
+  "arcRank": 10,
+  "lane": {
+    "owns": "irreversible-command-or-repeated-attempt",
+    "trigger": "prompt head matches (tried everything|third time) OR an irreversible command token (rm -rf|reset --hard|drop table|migrate:fresh|delete all|force.push)",
+    "yieldsTo": "-",
+    "phase": "any"
+  }
 }

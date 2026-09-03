@@ -1,4 +1,9 @@
 {
   "chassis": "suite-uninstall",
-  "bundle": "frontend-suite"
+  "bundle": "frontend-suite",
+  "lane": {
+    "owns": "frontend-suite-uninstall",
+    "trigger": "invoked as /frontend-suite:uninstall",
+    "yieldsTo": "-"
+  }
 }
