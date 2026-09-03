@@ -23,8 +23,8 @@ pass=0; fail=0
 ok()  { pass=$((pass+1)); printf 'PASS  %s\n' "$1"; }
 bad() { fail=$((fail+1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
-# A fake root with a two-plugin marketplace. `laravel` is live, `i18n` is not —
-# the real removal this check exists for.
+# A fake root with a three-plugin marketplace. `laravel`, `devops` and
+# `vercel-skills-scout` are live; `i18n` is not — the real removal this check exists for.
 mkroot() {
   rm -rf "$WORK/root"
   mkdir -p "$WORK/root/.claude-plugin" "$WORK/root/plugins/plugin-scout/skills/plugin-scout/references"
@@ -33,7 +33,7 @@ mkroot() {
 EOF
 }
 
-# $1 = one of SKILL.md / signals.md / any-core.md, $2… = body lines
+# $1 = one of SKILL.md / signals.md / any-core.md / stack-relevance.md, $2… = body lines
 mkfile() {
   local which="$1"; shift
   local dir="$WORK/root/plugins/plugin-scout/skills/plugin-scout"
@@ -48,7 +48,7 @@ expect() { # want-rc  desc
   [ "$got" = "$1" ] && ok "$2" || bad "$2" "want rc=$1, got rc=$got"
 }
 
-printf '== the defect: a dead plugin in each of the three lists\n'
+printf '== the defect: a dead plugin in each of the four lists\n'
 mkroot
 mkfile signals.md '| Signal | Suggest | Note |' '|---|---|---|' \
   '| `locales/`, `lang/`, `*.po`, `i18n` dep | `i18n` | |'
@@ -63,6 +63,22 @@ mkroot
 mkfile any-core.md '| Plugin | Why any project |' '|---|---|' \
   '| packages | dependency hygiene |'
 expect 1 "any-core.md Plugin column names a removed plugin"
+
+mkroot
+mkfile stack-relevance.md '| Class | Plugin | Evidence | Tokens |' '|---|---|---|---|' \
+  '| PHP | `laravel` | composer | php |' '| i18n | `i18n` | locales | i18n |'
+expect 1 "stack-relevance.md Plugin column names a removed plugin"
+
+printf '== multi-name Plugin cells (the shape stack-relevance.md ships)\n'
+mkroot
+mkfile stack-relevance.md '| Class | Plugin | Evidence | Tokens |' '|---|---|---|---|' \
+  '| PHP | `laravel` | composer | php |' '| JS | `devops`, `laravel` | package.json | react |'
+expect 0 "stack-relevance.md multi-name Plugin cell of live names passes"
+
+mkroot
+mkfile stack-relevance.md '| Class | Plugin | Evidence | Tokens |' '|---|---|---|---|' \
+  '| JS | `devops`, `vue3`, `laravel` | package.json | react |'
+expect 1 "stack-relevance.md one dead name beside live ones in a multi-name cell fails"
 
 printf '== the fix: the same row retargeted, and a live name\n'
 mkroot

@@ -1740,10 +1740,15 @@ pc_bundle_readme_members() {
 
 # pc_scout_names <repo_root>
 #
-# Every plugin name in the plugin-scout skill's three HAND-WRITTEN suggestion
+# Every plugin name in the plugin-scout skill's four HAND-WRITTEN suggestion
 # lists — the tier-1 signal table in SKILL.md, the Suggest column of
-# references/signals.md, the Plugin column of references/any-core.md — must be a
-# live entry in .claude-plugin/marketplace.json.
+# references/signals.md, the Plugin column of references/any-core.md, and the
+# Plugin column of references/stack-relevance.md (the `--full` exclusion table,
+# added 2026-09-03) — must be a live entry in .claude-plugin/marketplace.json.
+# The fourth file is the one where a stale name is an ACTION, not a typo: that
+# table decides what `--full` installs or skips, so a removed plugin left in it
+# is a leaf `--full` silently drops from every plan — or a ghost it tries to
+# install.
 #
 # WHY THIS EXISTS. `cfef9c1` deleted nine plugins. signals.md kept the row
 #   | `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | `i18n` | |
@@ -1776,7 +1781,7 @@ pc_bundle_readme_members() {
 #   3. Tables only, and only tables whose header carries a `Plugin`/`Suggest`
 #      cell. A plugin named in prose (any-core.md's "Deliberate exclusions"
 #      bullets, the SKILL's Boundaries section) is out of scope. Conversely it
-#      reads EVERY such table in those files, not only the three lists — an
+#      reads EVERY such table in those files, not only the four lists — an
 #      illustrative one (SKILL.md carried a sample report table until 2026-08-28)
 #      is covered too, so a placeholder row there needs the blessing. Fenced
 #      blocks are not tracked either, so a `|`-shaped table INSIDE one would be
@@ -1798,7 +1803,7 @@ pc_scout_names() {
   live=$(jq -r '.plugins[].name' "$mp" 2>/dev/null) || return 0
   [ -n "$live" ] || return 0
   skill="$root/plugins/plugin-scout/skills/plugin-scout"
-  for f in "$skill/SKILL.md" "$skill/references/signals.md" "$skill/references/any-core.md"; do
+  for f in "$skill/SKILL.md" "$skill/references/signals.md" "$skill/references/any-core.md" "$skill/references/stack-relevance.md"; do
     [ -f "$f" ] || continue
     while IFS=$'\t' read -r ln kind val; do
       [ -n "$ln" ] || continue

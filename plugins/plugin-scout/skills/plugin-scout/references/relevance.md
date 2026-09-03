@@ -37,9 +37,11 @@ headed `worth a look here` at the top of the tier-3 block.
    tier-3 row, keeps its number, prints once, and the completeness rule
    (`SKILL.md` Report) is unaffected — the group is a reordering inside tier 3,
    not a fourth tier.
-3. **Never auto-installed.** `--yes` covers tier 1 and tier 2 core only. A
-   judgment call is the precise thing a human should confirm, so a lifted row
-   is offered and never installed without a pick, under any flag.
+3. **Never auto-installed by `--yes`.** `--yes` covers tier 1 and tier 2 core only.
+   A judgment call is the precise thing a human should confirm, so a lifted row
+   is offered and never installed without a pick. Under `--full` this pass does
+   not run: there is no picker, and every tier-3 row that survives stack exclusion
+   installs behind the single plan confirm (skipped only by `--full --yes`).
 4. **Zero is a legal answer.** If nothing in the remainder stands out, say
    "nothing in the remainder stands out for this repo" and print tier 3 as
    usual. Padding to reach three is the failure this pass exists to avoid, in

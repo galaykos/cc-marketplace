@@ -7,7 +7,9 @@ short pointer; this file is the source of truth a reviewer checks against.
 These rows sit between the signal-backed tier 1 and the universal remainder:
 no manifest earns them, but their usefulness does not depend on the stack
 either, so leaving them in the undifferentiated remainder undersold them.
-Under `--yes` they auto-install alongside tier 1; without `--yes` they fill
+Under `--yes` they auto-install alongside tier 1 (under `--full` they install
+too, with everything else that survives stack exclusion); without `--yes` or
+`--full` they fill
 the picker's core questions right after the tier-1 evidence rows.
 
 ## The membership test
@@ -50,7 +52,9 @@ A row belongs here only if it passes both:
 - `candor`, `lean`, `skill-router`, `hindsight` — these change how the model
   talks, prices output, or routes across every session rather than how this
   project's code is checked, so per-project installation is the wrong unit for
-  them. Point at the always-on-suite bundle or a `--global` run.
+  them. Point at the always-on-suite bundle or a `--global` run. Under `--full` they install
+  at the run's scope anyway — the user asked for everything; that is the one flag
+  this bullet does not bind.
 
 Note what that last bullet is NOT: "member of always-on-suite". `git-workflow`,
 `secret-scanning` and `command-guard` are all members of that bundle and are all
@@ -63,8 +67,10 @@ criterion and then contradicted itself twice.
 
 - Under `--yes`, every core row not yet installed installs with the same scope
   rules as tier 1 (`local` default, `project` with `--persist`, `user` with
-  `--global`). Tier 3 never auto-installs.
-- Without `--yes`, core rows are picker options like any other — nothing
+  `--global`). Tier 3 never auto-installs under `--yes`; `--full` installs the
+  tier-3 rows that survive stack exclusion (`references/stack-relevance.md`)
+  after its own confirm, unless paired with `--yes` (`references/flags.md`).
+- Without `--yes` or `--full`, core rows are picker options like any other — nothing
   installs without a pick.
 - Evidence column: the literal string `core` — the evidence is this file, not
   a manifest.

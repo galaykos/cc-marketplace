@@ -4,6 +4,29 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.99.0] - 2026-09-03
+
+**plugin-scout 0.15.0 — `--full`, the stack-aware mass installer.**
+`/plugin-scout:suggest --full` installs every marketplace leaf that is any-stack or
+matches the detected stack — leaves only, never a suite — and skips just what is
+bound to a stack the repo does not have, per the new
+`references/stack-relevance.md` (four classes, a domain-bound rule for `payments`
+and `llm-app`, a fired-signal-always-wins rule so `--full` never installs less than
+`--yes`). It prints a plan first — exclusions with reasons and the `--stack` token
+that includes them, hooks by event, MCP servers local/remote, and the set's
+skill-listing cost against the 6,000 / 30,000-char caps with the
+`skillListingBudgetFraction` lever — then one confirm; `--full --yes` skips it.
+`--stack a,b,c` names a stack the manifests do not show yet. On a Laravel +
+Inertia + React app nothing is stack-mismatched: no Vue or Nuxt plugin exists to
+skip, and Next.js and React Native are skills inside `web-dev`, so it excludes only
+the two domain leaves. The contract sentences that said tier 3 never installs are
+qualified with `--full` across the skill's references.
+
+- `pc_scout_names` now reads `references/stack-relevance.md`'s `Plugin` column, with
+  three fixtures in `scripts/smoke/scout-names-tests.sh`.
+- always-on baseline: `plugin-scout` 156 → 157, `always-on-suite` 1701 → 1702.
+  always-on-suite's listing now sits at 5,999 chars against the 6,000-char floor.
+
 ## [0.98.0] - 2026-09-02
 
 **design-lab 0.2.0 — the shadcn-studio sandbox is gone; the UI layer is library-agnostic.**

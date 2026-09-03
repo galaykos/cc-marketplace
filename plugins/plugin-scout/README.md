@@ -26,7 +26,10 @@ rather than padding to fill the group. Contract:
 
 Flags: `--yes` is the auto-installer — installs tier-1 signal-backed plus the
 tier-2 any-project core, not-yet-installed only (skips the picker; tier 3 never
-auto-installs); `--all` offers every eligible row as an explicit picker option
+auto-installs, except under `--full`); `--full` installs every leaf that is
+any-stack or matches the detected stack, after a plan and one confirm (below);
+`--stack a,b,c` names a stack the manifests do not show yet; `--all` offers
+every eligible row as an explicit picker option
 instead of the default single question set; `--persist` installs at project scope
 and verifies the installed set in the project's `.claude/settings.json`; `--global`
 installs at user scope (every repo on the machine — mutually exclusive with
@@ -44,7 +47,7 @@ installs at user scope (every repo on the machine — mutually exclusive with
 
 | Command | What it does |
 |---------|--------------|
-| `/plugin-scout:suggest [path] [--yes] [--all] [--persist \| --global]` | Detect the stack, print the numbered three-tier inventory covering every marketplace plugin, then offer the plugins you pick — one question set for the signal-backed and core rows plus a door into the remainder (`--all` pages every row explicitly), or auto-install tier-1 + core picks (`--yes`), at project scope (`--persist`) or machine-wide user scope (`--global`) |
+| `/plugin-scout:suggest [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist \| --global]` | Detect the stack, print the numbered three-tier inventory covering every marketplace plugin, then offer the plugins you pick — one question set for the signal-backed and core rows plus a door into the remainder (`--all` pages every row explicitly), or auto-install tier-1 + core picks (`--yes`), or install the whole stack-relevant set after one plan confirm (`--full`, with `--stack a,b,c` for a stack the manifests do not show yet), at project scope (`--persist`) or machine-wide user scope (`--global`) |
 
 ## Example
 
@@ -57,6 +60,57 @@ its composer.json evidence), then the any-project core — code-review, debuggin
 testing, git-workflow, and the rest of `references/any-core.md` — then lists the
 remaining catalog as numbered rows you can take by number, name or range, minus
 whatever is already installed.
+
+## Everything for a stack
+
+```bash
+/plugin-scout:suggest --full
+/plugin-scout:suggest --full --stack laravel,inertia,react   # greenfield: no manifests yet
+```
+
+`--full` installs every marketplace leaf that is any-stack or matches the
+detected stack — leaves only, never a suite — and skips just what is bound to a
+stack the repo does not have. The stack→plugin table is
+`skills/plugin-scout/references/stack-relevance.md`; the flag's contract is
+`skills/plugin-scout/references/flags.md`.
+
+In a Laravel + Inertia + React app (composer.json requires `laravel/framework`,
+package.json declares `@inertiajs/react`) that means everything except the two
+domain leaves — 33 of 35 eligible at the time of writing; recount from the
+catalog, never from this number. Excluded: `payments` and `llm-app` unless a
+payments/LLM signal fires (or you type `--stack stripe` / `--stack llm`), plus the
+bundles and plugin-scout itself. **Nothing is stack-mismatched** — no Vue or Nuxt
+plugin exists anywhere in this marketplace, and Next.js and React Native live as
+skills inside `web-dev`, so installing it lists their descriptions too. Where the
+table earns its keep: a Next.js
+app with no composer.json excludes `laravel`; a Python or Go service with no
+frontend dependency excludes `laravel`, `web-dev`, `craft-layer` and `design-lab`.
+
+Nothing installs until you confirm. `--full` prints a plan first: the install list,
+what is already installed, every exclusion with its reason and the `--stack` token
+that would include it, the hook-bearing plugins by event and any MCP server (local
+or remote URL) the set adds, and the listing cost below. One question — install /
+print the commands / stop. `--full --yes` skips it; `--persist` and `--global`
+set scope exactly as without the flag.
+
+**The listing cap.** Claude Code budgets the skill listing it sends the model at
+`contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
+fraction 0.01). On the default 200k window with a current-tokenizer model that is
+**6,000 chars**; on the 1M tier, 30,000. A full stack set costs on the order of
+35,000 chars summed over its skill and command entries — over budget at both tiers, so the host
+reduces entries to name-only in priority order, silently, and skills stop being
+reachable without any error. The plan prints the set's cost against both caps and
+the smallest fraction that fits, e.g.:
+
+```json
+{ "skillListingBudgetFraction": 0.06 }
+```
+
+The fraction is a ceiling, not a purchase — it only admits description text that
+was being evicted. The scout never writes it and never trims the set: it can only
+say so before the install. Standing of the figures above: **recorded** — nothing
+checks them; recompute with `bash scripts/context-budget.sh` (marketplace repo)
+before trusting them, and the plan prints the live sum for your set.
 
 ## Picking, and why it is one call
 

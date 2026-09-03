@@ -92,7 +92,7 @@ TIER 3 — no signal in this repo (40)
   each option's description citing its evidence (e.g. "laravel — composer.json:
   laravel/framework ^11"). Tier-2 core rows follow, described as "any-project
   core" (`references/any-core.md`). Tier 3 gets no recommended framing anywhere,
-  consistent with `--yes` never touching it.
+  consistent with `--yes` never touching it (`--full` bypasses this picker entirely).
 - When coherence and density collide — 4 tier-1 rows and 8 core rows do not
   divide into 3 questions of 4 — **coherence wins**, the under-filled question is
   the last one on the page, and a question never mixes tiers. Without that
@@ -169,7 +169,9 @@ never a default:
   members. Within a single call a suite picked in question 1 cannot filter
   questions 2-4 — dedupe at install time covers that residual.
 - `--yes` never auto-installs a suite — the auto-select set stays tier-1 and
-  tier-2 core leaves only; a mass install of anything else must be a human pick.
+  tier-2 core leaves only; a mass install of the remaining leaves is `--full`'s
+  job, behind its own confirm (`--full --yes` skips it) and never as a bundle,
+  never `--yes`'s.
 
 ## TTY picker escape hatch
 

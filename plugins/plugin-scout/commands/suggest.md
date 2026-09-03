@@ -1,14 +1,18 @@
 ---
-description: Scan the project's manifests and suggest every marketplace plugin in three tiers — install the picked ones; --yes auto-installs tiers 1-2, --all offers every row explicitly, --persist project scope, --global user scope.
-argument-hint: [path] [--yes] [--all] [--persist | --global]
+description: Scan manifests and suggest every marketplace plugin in three tiers, then install the picks; --yes auto-installs tiers 1-2, --full installs everything stack-relevant after one confirm, --all pages every row, --persist/--global set scope.
+argument-hint: [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist | --global]
 ---
 
 Invoke the plugin-scout skill from this plugin against $ARGUMENTS (or the
-repository root if no argument), parsing any `--yes`, `--all`, `--persist`, and
-`--global` flags out of $ARGUMENTS first — the remainder is the path.
-`--persist` and `--global` together are a conflict: abort before anything
-else, including the marketplace-add prompt, with one line asking for exactly
-one of them. Steps:
+repository root if no argument), parsing any `--yes`, `--all`, `--full`,
+`--stack <tokens>` (also `--stack=<tokens>`), `--persist`, and `--global` flags
+out of $ARGUMENTS first — the token after `--stack` is consumed before the
+remainder becomes the path. `--persist` and `--global` together are a conflict:
+abort before anything else, including the marketplace-add prompt, with one line
+asking for exactly one of them. A bare `--stack`, an empty token, a token outside
+`references/stack-relevance.md`'s token column aborts the same way, printing the
+accepted list; a positional argument that is itself a token (`--stack laravel, react`)
+aborts with the hint `did you mean --stack laravel,react`. Steps:
 
 1. Preflight per the skill: check that the marketplace is registered, then
    detect the installed set — `claude plugin list --json` filtered to this
@@ -35,7 +39,22 @@ one of them. Steps:
    block from `references/official-complements.md`: the vendor-agnostic
    `claude-plugins-official` rows whose signal fired or that are `core`, each
    with its overlap sentence and its install command printed, never run.
-4. Run the picker per the skill's `references/picker.md` contract: by
+   Under `--full` this step prints only the header line and any fired `—`
+   routing line — the plan in step 4 replaces the inventory.
+4. With `--full`: skip the inventory, the relevance pass and the picker. Print
+   the plan block per `references/flags.md` `--full` — install list, installed
+   count (project-filtered list ∪ settings files ∪ installed suites' members),
+   each exclusion with its reason and the `--stack` token that includes it, the
+   by-construction count, classes restored by `--stack`, overlap pairs, hooks by
+   event, MCP servers local/remote, and the listing-cap cost per skill and
+   command entry against 6,000 (200k) and 30,000 (1M) chars with the
+   `skillListingBudgetFraction` lever — then the `Beyond this marketplace`
+   block, then ONE AskUserQuestion, after Preflight's own ask if any: "Install N
+   plugins at scope S (Recommended)" / "Print the commands instead" / "Stop".
+   `--full --yes` skips the ask. Headless without `--yes`, or no `claude` CLI:
+   print the commands and stop. Then install per leaf with the same `--scope`
+   rules and the same exit-0 success rule below.
+   Without `--full`: run the picker per the skill's `references/picker.md` contract: by
    default ONE AskUserQuestion call — questions 1-3 hold tier-1 picks with
    evidence then the core rows, 4 options each, and question 4 is the tier-3
    door (browse the remainder / print its install commands / just these /
