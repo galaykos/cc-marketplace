@@ -24,6 +24,8 @@ Not sure what you need? Install one plugin and let it tell you:
 /plugin install plugin-scout@cc-plugins-marketplace
 /plugin-scout:suggest              # scans your manifests, suggests a set, installs your picks
 /plugin-scout:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
+/plugin-scout:suggest --full       # everything relevant to the detected stack, leaves only, after a plan and one confirm
+/plugin-scout:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
 /plugin-scout:suggest --persist    # project scope: teammates who clone get the same set
 /plugin-scout:suggest --global     # user scope: every repo on this machine
 /plugin-scout:suggest --all        # page every row as an explicit option instead of one question

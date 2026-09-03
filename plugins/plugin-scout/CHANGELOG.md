@@ -7,6 +7,52 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.0
+
+### Added
+- `--full` — the stack-aware mass installer: every catalog leaf that is any-stack
+  or matches the detected stack, leaves only, never a suite; all of tier 3 by name
+  (process/pipeline, session-wide, research/tooling). Excludes stack-mismatched
+  leaves, `payments`/`llm-app` when their domain signal is absent, the bundles and
+  plugin-scout itself. Prints a plan first — install list, installed count,
+  every exclusion with its reason and the `--stack` token that includes it,
+  overlap pairs, hooks by event, MCP servers local/remote, and the listing-cap
+  cost against 6,000 (200k) / 30,000 (1M) chars with the
+  `skillListingBudgetFraction` lever — then ONE confirm; `--full --yes` skips it.
+  Headless and no-CLI branches print the commands. Full contract:
+  `references/flags.md` `--full`.
+- `--stack a,b,c` — a typed stack for the manifest that is not there yet: restores
+  a class only when its manifest evidence is absent (one plan line says so);
+  never changes a leaf's tier; bare, empty or unknown tokens abort before
+  Preflight with the accepted list. `references/flags.md` `--stack`.
+- `references/stack-relevance.md` — the ONLY stack→plugin exclusion source: four
+  classes (PHP / Laravel → `laravel`; JS / web frontend → `web-dev`, `craft-layer`,
+  `design-lab`; Payments → `payments`; LLM → `llm-app`) with manifest evidence and
+  tokens, the domain-bound rule, a fired-signal-always-wins rule so `--full`
+  never installs less than `--yes`, and two worked examples (Laravel + Inertia +
+  React excludes only the two domain leaves; a Next.js app excludes `laravel`).
+  `pc_scout_names` now reads its `Plugin` column (marketplace repo only).
+- The plan's listing-cap warning, in the bundle READMEs' wording: `--full`
+  reconstitutes, per project, roughly the all-in bundle that was removed on 2026-08-31, and
+  overflows the host's skill-listing budget at both tiers; the scout says so and
+  prints the lever, never writes it, never trims the set.
+
+### Changed
+- The contract sentences that said tier 3 never installs "under any flag
+  combination" are qualified with `--full`: `SKILL.md` Purpose and Flags,
+  `flags.md` `--yes`, `any-core.md` Rules and its `--global` bullet,
+  `relevance.md` rule 3, `picker.md` (twice). `--yes` never auto-installs a suite
+  is unchanged and still true.
+- `SKILL.md` description and the `/plugin-scout:suggest` description tightened
+  to keep the always-on-suite listing under the 6,000-char floor; the
+  `--persist`/`--global` bullets rewrapped with no words lost.
+- README: `Everything for a stack` section with the Laravel + Inertia + React
+  example and the listing-cap paragraph.
+
+Standing: agent-graded except the table's plugin names (`pc_scout_names`) and
+the catalog (`generate.sh --check`). Residual named in `flags.md`: headless
+`--full --yes --persist` mass-edits a committed settings file unattended.
+
 ## 0.14.0
 
 ### Added

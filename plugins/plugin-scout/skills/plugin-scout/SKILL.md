@@ -1,6 +1,6 @@
 ---
 name: plugin-scout
-description: Use when setting up Claude Code plugins for a project — "which plugins should I install", "what plugins fit this repo", starting in a repo without marketplace plugins, or right after cloning an unfamiliar codebase: scans manifests, suggests every marketplace plugin in three tiers; `--yes` auto-installs tiers 1-2, `--persist`/`--global` pick project or user scope, `--all` offers every row explicitly.
+description: Use when setting up Claude Code plugins for a project — "which plugins should I install", "what plugins fit this repo", a repo without plugins, or right after cloning: scans manifests, suggests every marketplace plugin in three tiers; `--yes` auto-installs tiers 1-2, `--full` installs everything stack-relevant after one confirm, `--persist`/`--global` set scope, `--all` pages every row.
 ---
 
 ## Purpose
@@ -8,7 +8,7 @@ description: Use when setting up Claude Code plugins for a project — "which pl
 Scan the current project and suggest **every leaf plugin in the marketplace** in three
 tiers — tier 1 stack-specific (signal-earned, evidence cited), tier 2 the curated
 any-project core, tier 3 the universal remainder — then install what the user picks.
-`--yes` installs tiers 1 and 2 with no picker. Tier 3 never auto-installs.
+`--yes` installs tiers 1 and 2 with no picker. Tier 3 never auto-installs — `--full` is the one exception (Flags).
 
 ## Preflight
 
@@ -132,7 +132,7 @@ sample, layout, and why that table is the wrong rendering: `references/picker.md
 
 ## Install
 
-1. Without `--yes`: **one** AskUserQuestion call. Questions 1-3 hold the tier-1
+1. Without `--yes` or `--full`: **one** AskUserQuestion call. Questions 1-3 hold the tier-1
 signal-backed rows (evidence cited) then the tier-2 core rows, 4 options each;
 question 4 is the tier-3 door — browse the remainder / print its install commands /
 just the picks above / stop. Every tier-3 row stays reachable by number, name or range
@@ -149,7 +149,7 @@ suggestion, then stop. With `--yes`: skip the picker — see Flags.
 
 That is the only install command this scout RUNS (official-directory rows are printed,
 never run); a suite picked from the under-report shortcut list (`references/picker.md`)
-installs by the same command and scope rules, and only `--yes` never installs a bundle.
+installs by the same command and scope rules, and only `--yes` and `--full` never install a bundle.
 `--scope local` keeps installs repo-only (`.claude/settings.local.json`); `--persist` →
 `--scope project`, `--global` → `--scope user` (Flags). Always pass `--scope`: the CLI's
 own default is `user`.
@@ -166,16 +166,16 @@ own default is `user`.
 
 - `--yes` — the auto-installer: installs every tier-1 signal-backed and tier-2 core plugin
 not yet installed, instead of showing the picker; the full report still prints first. Tier
-3 never auto-installs, relevance-lifted rows included. Zero auto-installable picks: report
+3 never auto-installs under `--yes`, relevance-lifted rows included (`--full` is the exception). Zero auto-installable picks: report
 only, with a hint to rerun without `--yes`. Full rules: `references/flags.md`.
-- `--all` — offers every eligible row as an explicit picker option, paging until all appeared (the pre-0.12 default). Picker-only; no effect under `--yes`.
-- `--persist` — switches installs to `--scope project` and verifies the marketplace entry
-and the CLI's `enabledPlugins` writes in the project's `.claude/settings.json`, so teammates
-who clone get the same set; covers only what actually installed this run. Never hand-author
-an entry for a failed install. Full rules: `references/flags.md`.
-- `--global` — switches installs to `--scope user`: machine-wide, every repo on this
-machine. Mutually exclusive with `--persist` — both at once aborts before Preflight.
-Full rules and the required machine-wide notice: `references/flags.md`.
+- `--full` — installs every leaf that is any-stack or matches the detected stack (`references/stack-relevance.md`), leaves only; a plan (exclusions with reasons, hooks
+and MCP servers added, listing-cap cost) replaces the inventory, relevance pass and picker, then one confirm — `--full --yes` skips the confirm, the plan still prints. `--stack a,b,c` restores a class with no manifest evidence. Rules: `references/flags.md`.
+- `--all` — offers every eligible row as an explicit picker option, paging until all appeared (the pre-0.12 default). Picker-only; no effect under `--yes` or `--full`.
+- `--persist` — switches installs to `--scope project` and verifies the marketplace entry and the CLI's `enabledPlugins` writes
+in the project's `.claude/settings.json`, so teammates who clone get the same set; covers only what actually installed this run.
+Never hand-author an entry for a failed install. Full rules: `references/flags.md`.
+- `--global` — switches installs to `--scope user`: machine-wide, every repo on this machine. Mutually
+exclusive with `--persist` — both at once aborts before Preflight. Full rules and the required machine-wide notice: `references/flags.md`.
 
 ## Boundaries
 
@@ -191,8 +191,8 @@ suggestion is already installed, say so and stop.
 **Agent-graded.** No script checks that a tier-1 row cited its evidence, that the sweep
 ran, that detection stayed read-only, that the picker offered the door, or that the
 relevance pass gave reasons instead of padding. Gated by name only: catalog freshness
-(`generate.sh --check`), plugin names in the three TABLE lists of this file,
-`references/signals.md` and `references/any-core.md` (`pc_scout_names` — it reads neither
+(`generate.sh --check`), plugin names in the four TABLE lists of this file,
+`references/signals.md`, `references/any-core.md` and `references/stack-relevance.md` (`pc_scout_names` — it reads neither
 `references/relevance.md` nor `references/official-complements.md`; the latter's names are
 foreign to this marketplace by construction and are checked by hand against the live
 directory), `scripts/pick.sh` parity (`pc_pick_parity`) and its parser
