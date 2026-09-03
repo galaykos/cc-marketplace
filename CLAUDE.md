@@ -189,13 +189,14 @@ artifacts must not claim one `owns` in one `phase` without a `yields_to` edge or
 artifact honours the verdict on every branch, so the behaviour half is
 **agent-graded**, and saying so is the point.
 
-Run all four before pushing:
+Run the four gates plus the host validator before pushing:
 
 ```bash
 bash scripts/validate.sh
 bash scripts/check-version-bumps.sh master
 bash scripts/context-budget.sh
 bash scripts/generate.sh --check
+bash scripts/official-validate.sh   # the host's validator, --strict; CI runs it last
 ```
 
 **The four are not sufficient, and here is the case that proves it.** On
@@ -236,8 +237,8 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **32 named steps;
-31 can fail the build**, and on a push to `master` only **30** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **34 named steps;
+33 can fail the build**, and on a push to `master` only **32** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else —
 `scripts/done-gate.sh:7` says why: two files carrying one number is how they
@@ -248,8 +249,12 @@ drift apart. It has still been stale in both directions five times, so
 python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"
 ```
 Beyond the four scripts above: the harnesses under `scripts/smoke/`, each its own
-named CI step, and the author-time lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
-ANY plugin shipping a harness is enforced the moment it lands. **Do not record the
+named CI step; the author-time lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
+ANY plugin shipping a harness is enforced the moment it lands; and the host's own
+validator, `claude plugin validate --strict` over every plugin and the marketplace
+manifest, run through `scripts/official-validate.sh` (pinned CLI version asserted;
+it catches manifest SCHEMA errors `validate.sh` never models, and nothing about
+SKILL.md frontmatter — its header says why). **Do not record the
 count here** — this paragraph used to name 20 and list them, which was stale within
 two commits of being written and contradicted the very sentence you are reading.
 Recount instead:

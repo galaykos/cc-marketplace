@@ -12,7 +12,11 @@ set -u
 LIVE="$(cd "$(dirname "$0")/../../.." && pwd)" || exit 2
 cd "$LIVE" || exit 2
 . scripts/lib/plugin-checks.sh || exit 2
-command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not installed"; exit 0; }
+# jq missing is a silent green locally; under CI it is a broken runner image — fail loud.
+command -v jq >/dev/null 2>&1 || {
+  [ -n "${CI:-}" ] && { echo "FAIL: jq missing on the CI runner"; exit 1; }
+  echo "SKIP: jq not installed"; exit 0
+}
 rc=0
 T=$(mktemp -d) || exit 2
 cleanup() {
