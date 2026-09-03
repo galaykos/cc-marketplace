@@ -87,6 +87,41 @@ last 5 palettes**. Seeded and refreshed from evidence gathered across craft-laye
 - navy + gold (dark)
 - aubergine + coral/apricot + mint (dark)
 - purple/violet gradient — see the category-default note below
+- **warm cream + high-contrast serif + terracotta/clay accent** (light; the cream near
+  `#F4F1EA`, the accent near `#D97757`) — a category default, and a doubly bad one on a
+  client brief: that accent is Anthropic's own Claude-interaction colour, so the page
+  reads as "the model's house style" rather than the client's. Entered 2026-09-03 from
+  the official `frontend-design` skill's calibration list.
+- **near-black + one acid-green or vermilion accent** (dark) — the other category
+  default the same source names; same standing, same entry date.
+
+### Category-default chrome (the small tells)
+
+Template furniture that appears whatever the subject. None of these is wrong; each is
+a default reached for without a decision, and a reader identifies three of them together
+as generated faster than any palette. Catalogued to DIVERGE from, per the anti-corpus
+exception; the craft-reviewer reads shipped markup against this list:
+
+- a tracked-out ALL-CAPS eyebrow label above every heading
+- meta strings joined with middle dots (`A · B · C`) and labels shaped `WORD — fragment`
+- one word of a headline accented in italic, bold, or a second colour
+- numbered markers (`01 / 02 / 03`) on content that is not a sequence
+- `→` appended to every link and button label
+- a monospace face for small data labels with no data argument
+- tinted near-black (`#0B0B0B`, `#111`) standing in for black
+- identical rounded cards with one border-radius for every hierarchy level and the same
+  soft grey shadow (`rgba(0,0,0,.1)`) under each — the SaaS card kit
+- a broadsheet layout: hairline rules, zero radius, dense newspaper columns, on a
+  subject that is not editorial
+- fade-and-slide-up entrance on every section plus a hover transition on every card —
+  scattered motion where one orchestrated moment would land (`motion-tiers.md` owns the
+  budget; this row only names the default)
+
+Source: the official `frontend-design` skill's calibration list, 2026-09-03, cross-checked
+against the vocabulary above so nothing is listed twice. Standing: agent-graded — no
+assertion in `template/craft-gates/divergence.mjs` reads this subsection yet; the
+`emoji-as-icon` and `copy-register` assertions are the pattern to extend if one of these
+proves mechanical (the eyebrow, the middle-dot string and the trailing arrow are).
 - (the don't-repeat-recent nudge in `palette-strategy.md` reads this list)
 
 ### Recurring copy register (category default)

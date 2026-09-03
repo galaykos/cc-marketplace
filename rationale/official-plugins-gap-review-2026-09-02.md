@@ -73,6 +73,29 @@ hook duplicates a maintained one. The marketplace already routes uncovered stack
 to `vercel-skills-scout` for the same reason; this extends the pattern to the
 official directory.
 
+## What was ported, on a second full-read pass (2026-09-03)
+
+The first pass routed. A second pass read each official plugin's files directly and
+folded the pieces that are mechanisms or ordered procedures into the plugin here
+that owns the territory. Prose-only material was left where it was.
+
+| Official source | Landed in | What moved |
+|---|---|---|
+| `security-guidance` `hooks/patterns.py` | `security` 0.7.0 `hooks/write-scan.sh` | the stack-agnostic sinks — eval / new Function, shell-string exec (JS, PHP, Python), pickle-family and PHP `unserialize`, `yaml.load` without SafeLoader, `torch.load`, XXE, TLS-off, ECB / `createCipher`, script without SRI — as ERE rows gated by file extension, one warn per finding, 33 new fixture cases. GitHub Actions injection skipped: `devops` already denies it |
+| `code-review` command + README false-positive list | `code-review` 0.16.0 | the self-refute pass now covers `high` and refutes against a six-row taxonomy (pre-existing, silenced, tooling-caught, intentional, nit, unstated style); a history pass reads blame on edited hunks. The 0-100 score was not ported — `CONFIRMED`/`PLAUSIBLE` already carries it |
+| `pr-review-toolkit` `silent-failure-hunter` | `resilience` 0.4.0 `error-handling-design` | a "Fallbacks and quiet defaults" section: silent substitution, fakes outside tests, `?.`/`??` on required values, exhausted retries, and the list-the-hidden-errors technique for broad catches |
+| `commit-commands` `/commit` | `terse` 0.5.0 `/terse:commit` | git state preloaded with `!` substitution, `allowed-tools` locked to read-only git; still drafts rather than commits by design |
+| `commit-commands` `/clean_gone` | `git-workflow` 0.5.0 `/git-workflow:clean-gone` | the `[gone]` sweep with worktree removal, plus a confirm step and a dirty-worktree guard the original lacks |
+| `frontend-design` calibration list | `craft-layer` 0.49.0 `sameness-fingerprint.md` | two category-default hues and a "category-default chrome" subsection of ten tells, de-duplicated against the existing vocabulary |
+| `claude-md-management` rubric | `hindsight` 0.7.0 `/hindsight:claude-md` | the six weighted criteria as the judgment half, and a new `scripts/claude-md-check.sh` (16 fixture cases) as the mechanical half: stale backticked paths and undeclared npm/composer/make scripts, with line numbers |
+
+Not ported, and why: `hookify`'s rule engine (a new hook runtime; `secret-scanning` and
+`command-guard` are the hard-coded equivalents and routing is cheaper than a third
+engine), `ralph-loop` (doctrine conflict with `task-runner`), the Stop-time LLM
+security review (needs an out-of-band model call from a hook; routed), the LSP
+plugins and MCP wrappers (host mechanisms, nothing to copy), `type-design-analyzer`
+(a lens with no owner here yet), `code-simplifier` (`/simplify` is now a built-in).
+
 ## Standing
 
 **Recorded.** `pc_scout_names` checks names against this marketplace and does not

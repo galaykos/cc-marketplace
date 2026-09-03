@@ -60,6 +60,27 @@ asking where their data went.
   telemetry) are the one exception, and they earn a comment saying WHY
   ignoring is safe, plus a counter so the ignoring stays observable.
 
+## Fallbacks and quiet defaults
+
+A fallback is a decision the user never saw. It is legitimate only when it
+is named in the spec or asked for, and it must leave a trace:
+
+- Falling back to a default value, a cached copy, or an alternative
+  provider on error is a handled event only if the caller can tell it
+  happened — a log line at the boundary, a counter, or a flag on the
+  response. Silent substitution is a swallow with extra steps.
+- A fallback to a mock, stub, or fake outside test code is an
+  architecture finding, not error handling: production is now running
+  test scaffolding when the real dependency is down.
+- `?.` chains, `??` defaults, `?? []`, and `catch { return null }` hide
+  the failure of the operation they skip. Each is fine for an optional
+  value and a defect for a required one — decide which, per site.
+- Retries that exhaust their attempts must end in a surfaced error, not
+  in the last attempt's fallback value.
+- For every broad catch, list the unexpected errors it would also
+  catch (a typo-level bug, an auth failure, a disk-full). If any of
+  them must not be handled as this event, narrow the catch.
+
 ## Wrap and rethrow across boundaries
 
 When an error crosses an abstraction boundary, translate it. The
@@ -143,6 +164,8 @@ log and metric shape is the sibling `observability-design` skill.
 ## Anti-patterns
 
 - Empty catch blocks — failures converted into mysteries.
+- Silent fallbacks — a default, cache, or fake substituted with no trace.
+- Optional-chaining a required value — `?.` turning a failure into `undefined`.
 - catch (Exception) around whole methods — bugs handled as events.
 - Log-and-rethrow at every layer — one failure, six reports.
 - Branching on message contents — control flow coupled to wording.

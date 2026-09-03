@@ -53,6 +53,11 @@ Then:
    pre-existing smells outside the diff get one summary note, not findings.
 4. Convention pass: naming, structure, and idiom drift versus the surrounding
    file and the project's stated conventions (CLAUDE.md, linters, existing code).
+5. History pass, when the change edits or removes existing lines: `git log -L` or
+   `git blame` on the touched hunks. A line added by a commit whose subject names a
+   bug, a workaround, or an incident is a line the diff must not undo without saying
+   why — report the reversal with the commit it reverts. Skip this pass for
+   additions-only diffs.
 
 Output rules:
 
@@ -92,8 +97,20 @@ Output rules:
 
 Before the verdict, state the coverage: `Checked: …` and `Not checked: … (why)` so it
 is explicit what was covered, what was clean, and what was skipped — not only what
-broke. Then run one adversarial self-refute pass over every `critical` finding; if a
-finding does not survive it, drop or downgrade it with a note.
+broke. Then run one adversarial self-refute pass over every `critical` and `high`
+finding; if a finding does not survive it, drop or downgrade it with a note. The
+refutation checklist is the false-positive taxonomy — a finding matching any row is
+dropped, not downgraded:
+
+- pre-existing: the problem is on a line the diff did not touch, or existed before it
+- silenced: the code carries a lint-ignore / suppression comment for exactly this
+- tooling-caught: a linter, type-checker, compiler, or the test suite would report it
+  (missing import, type error, formatting) — CI runs those; this review does not
+- intentional: a behaviour change that is the point of the diff, not a side effect
+- a nit a senior reviewer would not raise, or a general-quality wish (more tests,
+  more docs) that no project rule asks for
+- a stylistic call not stated in CLAUDE.md or the surrounding file — a preference,
+  not a convention
 
 Close with a one-line verdict: merge-ready, merge-after-criticals, or rework.
 

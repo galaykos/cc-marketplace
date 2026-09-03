@@ -67,7 +67,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.3k tokens |
-| `always-on-suite` | 8 | ~1.6k tokens | ~1.2k tokens | ~2.4k tokens |
+| `always-on-suite` | 8 | ~1.7k tokens | ~1.2k tokens | ~2.4k tokens |
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 

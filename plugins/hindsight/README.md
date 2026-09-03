@@ -18,6 +18,7 @@ applied without your explicit approval.
 | Command | What it does |
 |---------|--------------|
 | `/hindsight:harvest [N\|all]` | Mine the top N unmined sessions (default 5) ranked by friction score; rank raw transcripts from `~/.claude/projects/<slug>/` when no ledger row exists. Reports a friction stats digest, CLAUDE.md rule candidates, skill/plugin ideas, and failed-approach warnings — inline and saved to `$HOME/.claude/hindsight/<slug>/reports/YYYY-MM-DD.md` — then gates every application behind a per-category multiselect |
+| `/hindsight:claude-md [path]` | Audit every CLAUDE.md in the repo: `scripts/claude-md-check.sh` reports stale backticked paths and undeclared `npm run` / `composer` / `make` scripts with line numbers (gate-shaped, fixture-tested), then each file is scored on six weighted criteria (agent-graded) and at most five diffs per file are proposed — applied only on an explicit pick |
 
 ## How it works
 

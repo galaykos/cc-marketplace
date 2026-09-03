@@ -31,7 +31,10 @@ this file is what makes an upgrade readable. Newest first.
   `pc_scout_names` does not read the file; names were verified by hand against
   the live directory on 2026-09-02, and the file carries the recount command.
 - Gap review behind the list: `rationale/official-plugins-gap-review-2026-09-02.md`
-  (marketplace repo only).
+  (marketplace repo only). Overlap sentences name what the same review ported into
+  this marketplace (security 0.7.0 patterns, terse 0.5.0 preload, git-workflow
+  0.5.0 clean-gone, hindsight 0.7.0 claude-md audit, resilience 0.4.0 fallback
+  rules) so a row is suggested for what is still unique, not for what is not.
 
 ### Changed
 - `SKILL.md` prose tightened to stay inside the 200-line body budget; no

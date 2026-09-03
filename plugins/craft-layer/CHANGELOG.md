@@ -7,6 +7,18 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.0
+
+### Changed
+- `sameness-fingerprint.md` gains two category-default hues (warm cream + serif +
+  terracotta; near-black + acid accent) and a **Category-default chrome** subsection —
+  ALL-CAPS eyebrows, middle-dot meta strings, single-word headline accents, numbered
+  markers on non-sequences, trailing `→`, the identical-card kit, the broadsheet
+  layout, per-section fade-slide-up — ported from the official `frontend-design`
+  skill's calibration list and de-duplicated against the existing vocabulary. The
+  creative-director diverges from it and the craft-reviewer reads against it;
+  standing agent-graded, no divergence assertion reads the new subsection yet.
+
 ## 0.48.4
 
 ### Changed

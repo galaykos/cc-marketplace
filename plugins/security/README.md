@@ -36,11 +36,23 @@ pattern on a public endpoint.
 ## What has teeth
 
 Since 0.6.0 a PostToolUse hook (`hooks/write-scan.sh`, fixture harness in CI) WARNS at
-write time on the five mechanically detectable shapes from the security-review skill:
+write time on the mechanically detectable shapes from the security-review skill:
 empty `$guarded`, unescaped `{!! $ !!}` Blade output, `VITE_`-prefixed secrets,
-variables inside `whereRaw` SQL, and raw HTML sinks. Warn — never deny — because each
-has a legitimate form; `CC_SECURITY_SCAN=off` disables. Everything else (authz logic,
-cross-file flows, dependency audit) stays review-time via `/security:review`.
+variables inside `whereRaw` SQL, and raw HTML sinks (`dangerouslySetInnerHTML`,
+`v-html`, `innerHTML`/`outerHTML`/`insertAdjacentHTML`, `document.write`). Since 0.7.0
+it also carries the stack-agnostic sinks ported from Anthropic's `security-guidance`
+pattern set, each gated to the file types where the token IS the sink: `eval` / `new
+Function`, shell-string execution (`child_process.exec`, `execSync`, PHP `exec` /
+`shell_exec` / `system` / `passthru`, `os.system`, `subprocess(..., shell=True)`),
+unsafe deserialization (`pickle` and its wrappers, PHP `unserialize($…)`), `yaml.load`
+without `SafeLoader`, `torch.load` without `weights_only`, XML parsed with entities on,
+TLS verification switched off (`verify=False`, `rejectUnauthorized: false`, Guzzle
+`'verify' => false`, `CURLOPT_SSL_VERIFYPEER`), ECB / `createCipher`, and an external
+`<script>` without `integrity=`. Warn — never deny — because each has a legitimate
+form; `CC_SECURITY_SCAN=off` disables. Single-line matching only: a `SafeLoader` on
+the next line still warns. GitHub Actions expression injection is deliberately not
+here — `devops` denies it pre-write. Everything else (authz logic, cross-file flows,
+dependency audit) stays review-time via `/security:review`.
 
 ## Pairs well with
 

@@ -30,6 +30,57 @@ warns "whereRaw interp"    '->whereRaw("id = {$id}")'                        "ra
 warns "whereRaw concat"    "->whereRaw('id = ' . \$id)"                      "raw-sql-interpolation"
 warns "raw html sink"      '<div dangerouslySetInnerHTML={{__html: bio}} />' "raw-html-sink"
 
+# ---- ported stack-agnostic sinks, each gated to its language --------------------------
+runf() { # runf <session> <file_path> <content>
+  jq -cn --arg s "$1" --arg f "$2" --arg c "$3" \
+    '{tool_name:"Write", session_id:$s, tool_input:{file_path:$f, content:$c}}' | bash "$HOOK"
+}
+warnsf() { # warnsf <name> <file_path> <content> <expect-slug>
+  n=$((n+1)); out=$(runf "f$n" "$2" "$3")
+  if grep -q "$4" <<<"$out"; then pass=$((pass+1));
+  else echo "FAIL $1: expected [$4], got: ${out:-<empty>}"; fail=$((fail+1)); fi
+}
+silentf() { # silentf <name> <file_path> <content>
+  n=$((n+1)); out=$(runf "q$n" "$2" "$3")
+  if [[ -z "$out" ]]; then pass=$((pass+1));
+  else echo "FAIL $1: expected silence, got: $out"; fail=$((fail+1)); fi
+}
+warnsf "innerHTML"          /tmp/a.js  'el.innerHTML = user.bio'                          "raw-html-sink"
+warnsf "insertAdjacentHTML" /tmp/a.ts  'el.insertAdjacentHTML("beforeend", html)'         "raw-html-sink"
+warnsf "js eval"            /tmp/a.js  'const v = eval(input)'                            "code-eval"
+warnsf "php eval"           /tmp/a.php 'eval($code);'                                     "code-eval"
+warnsf "new Function"       /tmp/a.ts  'const fn = new Function("a", body)'               "code-eval"
+silentf "eval in README"    /tmp/R.md  'never call eval(input) on user data'
+silentf "model.eval()"      /tmp/t.py  'model.eval()'
+warnsf "child_process"      /tmp/a.js  'child_process.exec(`ls ${dir}`)'                  "shell-string-exec"
+warnsf "execSync"           /tmp/a.mjs 'execSync("git " + args)'                          "shell-string-exec"
+warnsf "php shell_exec"     /tmp/a.php 'shell_exec("ls " . $dir);'                        "shell-string-exec"
+warnsf "php exec var"       /tmp/a.php 'exec($cmd, $out);'                                "shell-string-exec"
+warnsf "os.system"          /tmp/a.py  'os.system("rm " + path)'                          "shell-string-exec"
+warnsf "subprocess shell"   /tmp/a.py  'subprocess.run(cmd, shell=True)'                  "shell-string-exec"
+silentf "execFile array"    /tmp/a.js  'execFile("git", ["status"])'
+silentf "subprocess list"   /tmp/a.py  'subprocess.run(["ls", path])'
+warnsf "pickle.load"        /tmp/a.py  'data = pickle.load(f)'                            "unsafe-deserialization"
+warnsf "pandas read_pickle" /tmp/a.py  'df = pd.read_pickle(path)'                        "unsafe-deserialization"
+warnsf "php unserialize"    /tmp/a.php '$o = unserialize($_COOKIE["u"]);'                 "unsafe-deserialization"
+warnsf "yaml.load bare"     /tmp/a.py  'cfg = yaml.load(f)'                               "unsafe-yaml-load"
+silentf "yaml.load Safe"    /tmp/a.py  'cfg = yaml.load(f, Loader=yaml.SafeLoader)'
+silentf "yaml.safe_load"    /tmp/a.py  'cfg = yaml.safe_load(f)'
+warnsf "torch.load"         /tmp/a.py  'm = torch.load(p)'                                "torch-unsafe-load"
+silentf "torch weights"     /tmp/a.py  'm = torch.load(p, weights_only=True)'
+warnsf "ElementTree"        /tmp/a.py  'root = ET.fromstring(body)'                       "xml-external-entities"
+warnsf "php LIBXML_NOENT"   /tmp/a.php '$d->loadXML($x, LIBXML_NOENT);'                   "xml-external-entities"
+warnsf "requests verify"    /tmp/a.py  'requests.get(url, verify=False)'                  "tls-verify-off"
+warnsf "node reject"        /tmp/a.js  'https.request({rejectUnauthorized: false})'       "tls-verify-off"
+warnsf "guzzle verify"      /tmp/a.php '$c->get($u, ["verify" => false]);'                "tls-verify-off"
+warnsf "curl verifypeer"    /tmp/a.php 'curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);' "tls-verify-off"
+warnsf "aes ecb"            /tmp/a.py  'AES.new(k, AES.MODE_ECB)'                         "weak-cipher-mode"
+warnsf "createCipher"       /tmp/a.js  'crypto.createCipher("aes256", key)'               "weak-cipher-mode"
+silentf "createCipheriv"    /tmp/a.js  'crypto.createCipheriv("aes-256-gcm", key, iv)'
+warnsf "script no sri"      /tmp/a.html '<script src="https://cdn.x/lib.js"></script>'    "script-without-sri"
+silentf "script with sri"   /tmp/a.html '<script src="https://cdn.x/lib.js" integrity="sha384-abc" crossorigin="anonymous"></script>'
+silentf "script in .md"     /tmp/a.md   '<script src="https://cdn.x/lib.js"></script>'
+
 # Dedup: same session + file + finding warns once.
 out1=$(run dedup Write 'protected $guarded = [];')
 out2=$(run dedup Write 'protected $guarded = [];')
