@@ -2,6 +2,15 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.12
+
+### Fixed
+- `rules.tsv` row for `observability-design` named `observability` as its owning plugin — a
+  directory that has not existed since the fold into `resilience`. `route.sh` skips any
+  row whose col-4 plugin is not installed, so the row was suppressed wherever the
+  installed-plugin filter resolved — and named a non-existent plugin in its nudge where
+  it did not. Col 4 now reads `resilience` and the row routes.
+
 ## 0.14.11
 
 ### Added

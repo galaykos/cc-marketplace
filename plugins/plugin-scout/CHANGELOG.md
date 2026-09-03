@@ -7,6 +7,14 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.1
+
+### Fixed
+- `references/official-complements.md` described `/code-review` as the GitHub-only
+  official plugin. Claude Code 2.1.259 ships it as a built-in skill that reviews the
+  current diff or a PR/branch/path target; the entry now says so and names
+  `code-review:review` as the stack fan-in hub over it.
+
 ## 0.15.0
 
 ### Added

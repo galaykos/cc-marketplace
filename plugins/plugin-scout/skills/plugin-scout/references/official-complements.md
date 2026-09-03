@@ -63,9 +63,16 @@ as a suggestion, because installing both loads two doctrines for one job.
 - `frontend-design` — a 71-line anti-generic-aesthetic prompt. `craft-layer`
   carries the same intent with ordered decision procedures; two design doctrines
   in one session contradict each other on layout defaults.
-- `code-review` (official) — GitHub-only: reviews a PR through `gh` with five
-  parallel lenses and 0-100 confidence scoring. `code-review` here reviews the
-  local diff. Both can coexist, but the names collide in the skill listing.
+- `code-review` (official directory plugin) — GitHub-only: reviews a PR through
+  `gh` with five parallel lenses and 0-100 confidence scoring. `code-review:review`
+  here reviews the local diff and fans in every installed per-stack review. Both
+  can coexist; `/code-review` vs `/code-review:review` collide at the slash-command
+  surface.
+- `code-review` (host built-in skill, Claude Code 2.1.259) — nothing to install:
+  reviews the current diff, or a PR number, branch, or path target, at a chosen
+  effort level, with `--fix` and `--comment` modes and an `ultra` cloud tier. It
+  performs the generic pass only; the per-stack fan-in stays with
+  `code-review:review`, which today runs its own generic pass as well.
 - `plugin-dev` — seven authoring skills plus a validator agent; `claude-authoring`
   covers the same surface. Pick one.
 - `skill-creator` — Claude Code now ships this as a built-in skill; nothing to install.
@@ -91,4 +98,5 @@ curl -s https://raw.githubusercontent.com/anthropics/claude-plugins-official/mai
   | python3 -c "import json,sys;print('\n'.join(sorted(p['name'] for p in json.load(sys.stdin)['plugins'])))"
 ```
 
-Verified against that file on 2026-09-02.
+Verified against that file on 2026-09-02; the host built-in `code-review` entry was
+verified against the Claude Code 2.1.259 skill listing on 2026-09-03, not the directory.
