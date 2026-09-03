@@ -435,6 +435,18 @@ $unreach
 EOF_UNREACH
   fi
 
+  # Col-4 owner must be a plugin directory. rules.tsv:124 named a plugin folded
+  # away weeks earlier; route.sh's installed-plugin filter suppressed the row and
+  # nothing at author time read the column. Derivation: pc_rules_owner's header.
+  owners=$(pc_rules_owner "$SR/rules.tsv" plugins) || true
+  if [ -n "$owners" ]; then
+    while IFS= read -r ow; do
+      err "rules.tsv owner missing ($ow) — col 4 must name the plugin that ships the col-3 skill; route.sh skips rows whose owner is not installed"
+    done <<EOF_OWNER
+$owners
+EOF_OWNER
+  fi
+
   # Content-row co-firing, against a corpus of representative snippets. Content rows
   # never share a literal pattern, so the glob-axis equality test above is vacuous for
   # them; two different regexes matching one file is the real collision.

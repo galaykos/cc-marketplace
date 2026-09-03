@@ -663,6 +663,47 @@ pc_rules_reachable() {
   return $bad
 }
 
+# pc_rules_owner <rules_tsv> [plugins_root]
+# Every routing row's col-4 `owning_plugin` must be a plugin directory that
+# SHIPS the row's col-3 skill: `<root>/<plugin>/skills/<skill>/SKILL.md` must
+# exist. Prints one `rules-owner <skill> <plugin>` line per bad row — a row with
+# no fourth field at all prints `rules-owner <skill> (missing)` — and returns 1;
+# clean or missing file returns 0. A row whose col 4 is EMPTY between two tabs
+# is read by bash (and by route.sh, same `read`) with the next field shifted
+# into it, so it surfaces as an unknown owner such as `low`; caught either way.
+#
+# WHY THIS EXISTS. Until 2026-09-03 (skill-router 0.14.12) rules.tsv named
+# `observability` as the owner of `observability-design`, weeks after that
+# plugin was folded into `resilience`. Nothing read col 4 at author time:
+# pc_rules_reachable reads cols 1-3, validate.sh resolves col 3 across ALL
+# plugins, so a skill that moved between plugins still resolved. At run time
+# route.sh DOES read col 4 — `plugin_installed "$plugin" || continue` — so the
+# row was silently suppressed wherever the installed-plugin filter resolved, and
+# named a non-existent plugin in its nudge where it did not. An empty owner is
+# the same class: `pr_is_enabled ""` returns 1 and the row is skipped. A dead
+# owner is a routing rule that looks alive and never fires — the class
+# pc_rules_reachable exists for, one column over. Found by the 2026-09-03
+# marketplace standard review (rationale/marketplace-standard-review-2026-09-03.md).
+#
+# LIMITATION (honest scope). Author-time file existence only. It does not prove
+# the plugin is installed for any user — that is route.sh's runtime filter, by
+# design — nor that the row's pattern fires (pc_rules_reachable) or collides
+# (pc_rules_overlap / pc_rules_cofire).
+pc_rules_owner() {
+  local tsv="$1" root="${2:-plugins}" bad=0 kind pattern skill plugin rest
+  [ -f "$tsv" ] || return 0
+  # `|| [ -n "$kind" ]` mirrors route.sh: a final row without a trailing newline
+  # is live at runtime and must be visible to the gate.
+  while IFS=$'\t' read -r kind pattern skill plugin rest || [ -n "$kind" ]; do
+    case "$kind" in ''|'#'*) continue ;; esac
+    if [ -z "$plugin" ]; then
+      printf 'rules-owner %s (missing)\n' "$skill"; bad=1; continue
+    fi
+    [ -f "$root/$plugin/skills/$skill/SKILL.md" ] || { printf 'rules-owner %s %s\n' "$skill" "$plugin"; bad=1; }
+  done < "$tsv"
+  return $bad
+}
+
 # pc_host_overlap <md_path>
 # Fails a shipped plugin .md that introduces a SKILL whose name collides with a
 # skill Claude Code itself ships. Prints one `hostoverlap <path>
