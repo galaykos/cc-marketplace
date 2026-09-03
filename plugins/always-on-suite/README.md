@@ -36,6 +36,32 @@ claude plugin install always-on-suite@cc-plugins-marketplace
 (From inside a session, `/plugin install` targets the project — fine for a
 trial, but the global install is the intended shape.)
 
+## Context-window requirement (read before installing)
+
+**Standing: `gate` for the declaration's presence, `recorded` for its numbers** —
+`pc_listing_declaration` fails the build if this section disappears while the
+bundle overflows; nothing checks the figures below, so recompute them with
+`bash scripts/context-budget.sh` before trusting them.
+
+Claude Code budgets the skill listing it sends the model at
+`contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
+fraction 0.01). On the default 200k window with a current-tokenizer model that is
+**6,000 chars**, and this bundle's listing costs **~5,999 chars** (LC_ALL=C bytes
+— the marketplace's deterministic measure, ~1% above what the CLI counts): at the
+floor, with no headroom. Over it the host reduces entries to name-only in priority
+order, silently, so skills stop being reachable without any error — and because
+this bundle is installed at user scope, every repo pays.
+
+If any member's description grows, or you install this bundle beside project
+plugins on the default 200k window, add to your user `settings.json`:
+
+```json
+{ "skillListingBudgetFraction": 0.02 }
+```
+
+That raises the listing budget to 12,000 chars at 200k. The fraction is a
+ceiling, not a purchase — it only admits description text that was being evicted.
+
 ## What's included
 
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`

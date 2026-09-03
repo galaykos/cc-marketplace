@@ -14,12 +14,15 @@ silently skips — or, worse, a ghost it tries to install.
 "dep X" is an **exact key** in `dependencies` or `devDependencies`, the same rule
 as the tier-1 table in `SKILL.md` — `react-native-web` is not `react-native`. The
 JS class is deliberately WIDER than that table (`vue` and `svelte` earn no row in
-SKILL.md's tier-1 table; `tailwindcss` earns a signals.md row for `ui-ux`, not for this
-class; `vite` needs no `vite.config.*` here): suggesting needs one strong signal,
+SKILL.md's tier-1 table; `tailwindcss`'s own signals.md row targets `ui-ux`, which is not in
+this class — it still counts as class evidence here; `vite` needs no `vite.config.*` here): suggesting needs one strong signal,
 excluding needs the absence of every frontend signal. **A fired signals.md row always
-wins:** a leaf whose own signal fired (`@react-three/fiber` → craft-layer,
-`components.json` → design-lab) installs under `--full` whatever its class says, so
-`--full` can never install less than `--yes`. The
+wins:** a leaf whose own signal fired installs under `--full` whatever its class
+says, so `--full` can never install less than `--yes`. Today that rule is
+belt-and-braces — every signals.md key for the three JS-class leaves
+(`@react-three/fiber`, `components.json`, `tailwindcss`) is already class evidence
+above — and it exists so the next signals.md row added without a matching entry
+here cannot open the gap. The
 token column names STACKS a user can type, not plugins: the `removed-ok` markers on
 those rows exist because three tokens share a name with plugins removed on
 2026-08-26, and the removal is the reason they are tokens now.

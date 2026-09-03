@@ -25,7 +25,10 @@ qualified with `--full` across the skill's references.
 - `pc_scout_names` now reads `references/stack-relevance.md`'s `Plugin` column, with
   three fixtures in `scripts/smoke/scout-names-tests.sh`.
 - always-on baseline: `plugin-scout` 156 → 157, `always-on-suite` 1701 → 1702.
-  always-on-suite's listing now sits at 5,999 chars against the 6,000-char floor.
+  always-on-suite's listing now sits at 5,999 chars against the 6,000-char floor,
+  so its README gained the `skillListingBudgetFraction` section the other
+  over-floor bundles carry — the next description byte would otherwise fail
+  `pc_listing_declaration` naming the bundle, not the plugin that grew.
 
 ## [0.98.0] - 2026-09-02
 

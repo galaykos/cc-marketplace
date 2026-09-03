@@ -108,7 +108,8 @@ description, that the reason is true, or that zero was reported honestly
 instead of padded.
 
 `pc_scout_names` does **not** read this file. It parses markdown table cells in
-`SKILL.md`, `references/signals.md` and `references/any-core.md`; the plugin
+`SKILL.md`, `references/signals.md`, `references/any-core.md` and
+`references/stack-relevance.md`; the plugin
 names above live in prose and a fenced block, so a plugin deleted from the
 marketplace would go stale here exactly the way a since-removed row went stale
 in `references/signals.md` and shipped for two days — the bug that gate was

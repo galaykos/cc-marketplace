@@ -65,8 +65,11 @@ whose class the manifests (or `--stack`) satisfy, per
 `references/stack-relevance.md` — which owns the class table, the domain-bound
 rule and the typed-token rule; this section does not restate them.
 
-- What it includes, by name so no later reader has to infer it: all of tier 1
-  whether or not its signal fired; all of tier 2; and ALL of tier 3 — the
+- What it includes, by name so no later reader has to infer it: every
+  **any-stack** leaf whether or not its signal fired — the six stack-bound leaves
+  (`laravel`, `web-dev`, `craft-layer`, `design-lab`, `payments`, `llm-app`)
+  follow `references/stack-relevance.md` and are the only tier-1 or tier-3 rows
+  `--full` can skip. Any-stack covers the whole of tier 2 and, from tier 3, the
   process/pipeline group (taskmaster, task-runner, orchestration, approaches,
   system-design), the session-wide group (terse, plus candor, lean, hindsight and
   skill-router — the four `references/any-core.md` routes to `--global` for `--yes`;
@@ -119,7 +122,9 @@ rule and the typed-token rule; this section does not restate them.
     plugin description: the host charges one entry per skill and per command —
     `name + 4 + min(len(description), 1536)` from each `skills/*/SKILL.md` and
     `commands/*.md` frontmatter, plus one separator per entry beyond the first
-    (`scripts/context-budget.sh`'s listing channel, the repo's one implementation).
+    (`pc_listing_entry_cost` in `scripts/lib/plugin-checks.sh` is the one
+    implementation; `bash scripts/context-budget.sh` is the entry point that
+    recomputes it).
     Read those frontmatters from the registered marketplace clone
     (`claude plugin marketplace list` prints its path) for every plugin in the set,
     sum, and print the figure against both caps. If the clone is unreadable, sum the
@@ -172,8 +177,10 @@ of `references/stack-relevance.md`, nothing else.
   changes nothing. Manifest wins; there is no contradiction notice, because
   `react` and `vue` are one class and no conflict is detectable at that level. <!-- removed-ok -->
 - Never changes a leaf's tier in the default flow: `--yes --stack laravel`
-  installs exactly what `--yes` installs; `--stack` without `--full` is accepted
-  and inert beyond that one line.
+  installs exactly what `--yes` installs. `--stack` without `--full` is accepted,
+  prints one line — `--stack laravel: accepted, no effect without --full` — and
+  changes nothing else; the `Restored by --stack:` line exists only in the
+  `--full` plan.
 
 ## `--all`
 
