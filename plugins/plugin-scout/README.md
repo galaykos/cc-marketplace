@@ -76,6 +76,21 @@ Nothing installed during a run is active in that session until you run
 `command-guard` denies destructive commands); the summary names them, because you
 did not see a picker for those.
 
+## Beyond this marketplace
+
+The inventory closes with one block of plugins from Anthropic's own
+`claude-plugins-official` directory — only the vendor-agnostic ones that carry a
+mechanism nothing here ships: `security-guidance` (Stop-time LLM diff review and a
+commit-time reviewer), `hookify` (hooks as markdown rule files), `commit-commands`,
+the language-server plugins (`php-lsp`, `typescript-lsp`, ...), `playwright`,
+`serena`, `context7`, and a few opt-in rows. Each prints with the plugin here it
+overlaps, so you do not install two doctrines for one job, and its install
+command is printed rather than run — this scout only installs from
+cc-plugins-marketplace, and `--yes` never touches the block. The curated table,
+the exclusions (official plugins that duplicate one installed here, such as
+`feature-dev` against taskmaster or `frontend-design` against craft-layer), and
+the recount command: `skills/plugin-scout/references/official-complements.md`.
+
 ## Pairs well with
 
 - **stack-scan** — when installed, its inventory supplements detection with

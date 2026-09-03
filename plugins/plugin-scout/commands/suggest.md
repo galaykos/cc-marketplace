@@ -31,7 +31,10 @@ one of them. Steps:
    rows that fit THIS repo into a `worth a look here` group leading the tier-3
    block, each with a one-line reason rather than evidence — no extra
    questions, no promotion to tier 1, never `--yes`-eligible, and report zero
-   rather than pad.
+   rather than pad. Close the inventory with the `Beyond this marketplace`
+   block from `references/official-complements.md`: the vendor-agnostic
+   `claude-plugins-official` rows whose signal fired or that are `core`, each
+   with its overlap sentence and its install command printed, never run.
 4. Run the picker per the skill's `references/picker.md` contract: by
    default ONE AskUserQuestion call — questions 1-3 hold tier-1 picks with
    evidence then the core rows, 4 options each, and question 4 is the tier-3
