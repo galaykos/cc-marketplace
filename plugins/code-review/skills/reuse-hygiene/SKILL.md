@@ -114,7 +114,7 @@ review finding is `code-smells`; speculative generality is `code-architecture`
 yagni-check; a yanked or deprecated package is stack-scan's package-hygiene;
 pre-existing dead code passed mid-task is `code-architecture` plan-before-code —
 mention it, never delete it in an unrelated diff. (Admission law:
-`claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+`.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Honest limits
 

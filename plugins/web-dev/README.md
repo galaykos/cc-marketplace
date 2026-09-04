@@ -94,7 +94,7 @@ The skills carry the same split in prose. Everything marked **All models** is a 
 or a boundary no tier may skip; the short **Compensation (worker-tier)** blocks are the
 procedure a Sonnet-class session follows in full and a Fable-class session may compress
 once the skip-clause holds. Standing: **recorded** — no script reads the markers
-(`claude-authoring` `references/model-tier-scoping.md`).
+(`.claude/skills/authoring-skills/references/model-tier-scoping.md` in the marketplace repository).
 
 ## Pairs well with
 

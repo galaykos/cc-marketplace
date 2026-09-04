@@ -76,7 +76,7 @@ REMOVED — bare tokens only, one fixed tier.)
   ITS model, never below opus; an older runner parses legacy forms as opus/xhigh. Hands-off
   execution needs task-runner ≥0.11.0; older runners fall back to interactive.
 - Fan-out counts are CEILINGS sized to blast radius, additionally gated by `budget.remaining()`
-  and the session's workflow-size guideline on the Workflow path (see dispatch-tiers). (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+  and the session's workflow-size guideline on the Workflow path (see dispatch-tiers). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Goal mode — autonomy on top of the boost
 

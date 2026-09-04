@@ -37,7 +37,7 @@
 # switch the ceiling off and keep the sibling test). The deny lane uses the same CEIL.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - The PostToolUse lane is WARN-ONLY: `additionalContext` is not a blocking key. The
 #     file is already on disk. It informs the next write, never the one that tripped it.
 #     The PreToolUse lane denies, but only a `Write` (an Edit carries a fragment, and a

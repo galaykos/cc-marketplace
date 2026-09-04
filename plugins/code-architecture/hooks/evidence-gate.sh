@@ -26,7 +26,7 @@
 # below for the hole that a bare `failing` opened.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - Saying nothing evades it. A turn that ends without a completion claim is
 #     not judged — acceptable: the lie this gate exists to stop was never told.
 #   - ANY post-edit execution counts as evidence — a `git status` satisfies

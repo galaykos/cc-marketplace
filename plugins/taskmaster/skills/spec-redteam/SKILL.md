@@ -24,7 +24,7 @@ A red-team is not free — run it only when the spec warrants it, **except under
 
 Otherwise the spec is trivial for this purpose — note "spec trivial for red-team —
 skipped" in one line and let the handoff proceed. Matches grill's own scale-to-
-blast-radius doctrine; a one-file, two-criterion spec does not earn a subagent. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+blast-radius doctrine; a one-file, two-criterion spec does not earn a subagent. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 **Exception — a boosted run never skips.** Under `ULTRA-TASK ACTIVE` **or** `ULTRA-GOAL ACTIVE` the red-team runs regardless of the bullets (`ultra/SKILL.md` "run ALWAYS";
 `ultra-goal/SKILL.md` "ALWAYS runs under goal"). Both directives count — goal injects `ULTRA-GOAL ACTIVE`, not the ultra-task string, and goal is hands-off, so no user is

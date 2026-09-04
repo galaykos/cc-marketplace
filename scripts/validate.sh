@@ -42,9 +42,16 @@ jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
   || err "$MP: owner must be an object with a string .name"
 
 # Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
-# name: + description:, and a body within the 200-line ceiling (no floor)
-for d in plugins/*/skills/*/; do
+# name: + description:, and a body within the 200-line ceiling (no floor).
+# `.claude/skills/*/` — the repo's tracked PROJECT skills, where the authoring
+# doctrine has lived since 2026-09-03 — is held to the same rules: a doctrine home
+# outside every gate would be the "recorded" tier pretending to be "gate".
+for d in plugins/*/skills/*/ .claude/skills/*/; do
   [ -d "$d" ] || continue
+  # A symlinked project skill (`.claude/skills/plugin-structure -> ../../.agents/…`)
+  # is somebody else's file mounted here, not authored in this repo; its budget
+  # and phrasing are theirs to keep. Only skills whose bytes live here are gated.
+  [ -L "${d%/}" ] && continue
   f="${d}SKILL.md"
   [ -f "$f" ] || { err "$d: SKILL.md missing"; continue; }
   head -1 "$f" | grep -q '^---$' || { err "$f: missing frontmatter opener"; continue; }
@@ -54,7 +61,13 @@ for d in plugins/*/skills/*/; do
   sname=$(echo "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1)
   [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
-  echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during)"
+  # Trigger phrasing is for skills the MODEL picks from a listing. A skill carrying
+  # `disable-model-invocation: true` is invoked only by name (`/name`), never
+  # matched on its description, so an imperative description ("Scaffold a …") is
+  # its correct shape — the rule is kind-level, never plugin-level.
+  if ! echo "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true'; then
+    echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during) — a user-invoked skill sets disable-model-invocation: true instead"
+  fi
   if bud=$(pc_skill_budget "$f"); then :; else
     # "budget <path> <kind> <n> [:line]" -> one sentence naming the measure that
     # bit, since there are now three and "over the ceiling" no longer says which.
@@ -153,6 +166,8 @@ while IFS= read -r mdf; do
 done < <(
   {
     find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \)
+    # the tracked project skills are held to the same jargon/removed-ref/handoff rules
+    find .claude/skills -type f \( -path '*/SKILL.md' -o -path '*/references/*.md' \) 2>/dev/null
     # an unmatched glob prints its literal pattern; the pc_* [ -f ] guard skips it
     printf '%s\n' plugins/*/README.md plugins/*/CHANGELOG.md plugins/*/ROADMAP.md
   } | sort -u

@@ -1,6 +1,6 @@
 {
   "name": "terse",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker.",
   "author": {
     "name": "Ivan-WG",

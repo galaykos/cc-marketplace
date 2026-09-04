@@ -135,7 +135,7 @@ Print one numbered table, all queries merged, deduplicated by
 ## Boundaries
 
 Standing: recorded/agent-graded — nothing in this repo gates any of it (the
-authoring-skills "say what has teeth" convention, claude-authoring plugin). Discovers
+authoring-skills "say what has teeth" convention, a project skill of the marketplace repository). Discovers
 and installs skills.sh skills only: no audit, update, or removal (`npx skills remove`
 / `update` exist for that), and never touches `.claude/settings.json` — skills.sh
 tracks installs in `skills-lock.json`. No curation claim: suggestions rank by installs

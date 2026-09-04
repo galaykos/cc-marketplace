@@ -7,6 +7,14 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.2
+
+### Changed
+- Citations of the four-laws / has-teeth doctrine now point at
+  `.claude/skills/authoring-skills/SKILL.md` in the marketplace repository — the
+  authoring plugin was demoted to a tracked project skill on 2026-09-03. Prose only;
+  no behaviour change.
+
 ## 0.49.1
 
 ### Changed

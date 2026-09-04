@@ -21,7 +21,7 @@
 # path. It asks a question; it never renders a verdict. Breadth is not wrongness.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - BREADTH ONLY, NEVER DEPTH. 300 lines of unasked refactor inside the one file the
 #     request named is completely invisible here, and that is probably the commoner way to
 #     stray. This measures the axis that is countable, not the axis that matters most.

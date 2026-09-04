@@ -96,7 +96,7 @@ named SKILL.md before implementing — e.g. laravel-best-practices; or "none det
 - Mark parallel groups — cards with no mutual dependency that touch disjoint
   files. Within a group, put the riskiest card first so failures surface early.
 - Cards coupled through shared work-in-progress state are ordering bugs: merge
-  them or move the shared piece into its own earlier card. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+  them or move the shared piece into its own earlier card. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Milestones for big runs
 
@@ -140,8 +140,8 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 2. **Lint each card.** Per card run `verify-teeth-lint.sh --card <file>` (blocks a weak
    Verify line) and `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
    Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
-3. **Suggest a project skill.** If claude-authoring is installed, its project-skill-suggester
-   scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);
+3. **Suggest a project skill.** If a `project-skill-suggester` skill is available (the
+   marketplace repository keeps one under `.claude/skills/`), it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);
    skip silently when absent, never blocks.
 
 ## Anti-patterns

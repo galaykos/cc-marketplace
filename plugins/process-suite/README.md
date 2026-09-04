@@ -76,5 +76,3 @@ text that was previously being evicted.
   task-runner then executes
 - **quality-suite** — the code-quality review category alongside this
   process discipline
-- **claude-authoring** — scaffold the new commands, skills, and plugins these
-  processes surface

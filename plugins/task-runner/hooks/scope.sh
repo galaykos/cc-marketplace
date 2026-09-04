@@ -19,7 +19,7 @@
 # fd 3 = the caller's real stderr, saved before the block so the two fail-open
 # warnings below (D7: missing jq / malformed scope.json) reach stderr — the block's
 # `2>/dev/null` is there only to silence incidental jq/grep noise and would eat a
-# plain `>&2` warning. (Honest limitation law: claude-authoring/skills/authoring-skills/SKILL.md "The four laws".)
+# plain `>&2` warning. (Honest limitation law: .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws".)
 exec 3>&2
 {
   input=$(cat)

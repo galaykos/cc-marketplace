@@ -33,6 +33,12 @@ publishable plugin.
   history. If a document truly must be tracked, it goes in **`rationale/`** at
   the repo root — never inside a plugin. (`taskmaster-docs/` and `docs/` are
   both gitignored, so "move it there" is deletion, not preservation.)
+- **Doctrine with exactly one user — this repository — is a tracked project
+  skill**, `.claude/skills/<name>/SKILL.md` (+ `references/`), not a plugin: the
+  authoring skills moved there 2026-09-03. `.gitignore` re-includes
+  `.claude/skills/*/` as a whole, so a new project skill is tracked the moment it
+  exists; `validate.sh` holds every non-symlinked one to the same budget, jargon
+  and removed-reference gates as a shipped skill.
 
 `scripts/validate.sh` enforces this: any `.md` under `plugins/` that is not one of
 the functional kinds above fails the build (and CI on every PR).
@@ -46,11 +52,14 @@ One-clause glosses so a contributor can act without leaving this file:
 - **The theater test** — name what a check catches that nothing else catches.
 - **Admission** — an artifact earns existence by carrying a rule nothing else carries.
 
-The home is the `claude-authoring` plugin's `authoring-skills` skill, "The four
-laws", with the derivation in its `references/doctrine.md`. **Cite it; do not
-restate it here** — a gloss is a citation aid, a fifth full copy of a law about
-not keeping copies would be its own counter-example. Same reasoning as the teeth
-convention below: it lives in a plugin because that one SHIPS. (Provenance of
+The home is the `authoring-skills` project skill, `.claude/skills/authoring-skills/SKILL.md`,
+"The four laws", with the derivation in its `references/doctrine.md`. **Cite it; do
+not restate it here** — a gloss is a citation aid, a fifth full copy of a law about
+not keeping copies would be its own counter-example. It was a shipped plugin until
+2026-09-03; it is a tracked project skill now because the doctrine has one user,
+this repository, and a plugin with one user is the Admission law's own
+counter-example. Installers of any one plugin reach it as a repo path, not as an
+installed skill — that is a smaller reach than before, stated, not hidden. (Provenance of
 the laws: `rationale/four-laws-provenance.md`.)
 
 ## Say what has teeth (convention)
@@ -61,10 +70,11 @@ the build), **agent-graded** (a reviewer judges it, real variance), **recorded**
 cannot tell those apart from the sentence alone, which is how a rule gets trusted
 as a guarantee while nothing enforces it.
 
-The canonical statement lives in the `claude-authoring` plugin's `authoring-skills`
-skill, because that one SHIPS — a convention that exists only in this file reaches
-contributors to this repo and nobody who installs from it. Read it there; do not
-restate the table here, or the two drift.
+The canonical statement lives in the `authoring-skills` project skill
+(`.claude/skills/authoring-skills/SKILL.md`) — tracked, gated by the same per-file
+checks as a shipped skill, and cited by path from every plugin that applies it.
+Read it there; do not restate the table here, or the two drift. (Until 2026-09-03
+it shipped as a plugin "because that one SHIPS"; it has one user, so it does not.)
 
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.

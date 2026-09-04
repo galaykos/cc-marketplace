@@ -128,8 +128,8 @@ unaffected.
 
 ## What has teeth
 
-Standing markers per the marketplace convention (see the `claude-authoring`
-plugin's `authoring-skills` skill).
+Standing markers per the marketplace convention (see
+`.claude/skills/authoring-skills/SKILL.md` in the marketplace repository).
 
 | Control | Standing | What actually happens |
 |---|---|---|

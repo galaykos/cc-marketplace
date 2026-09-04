@@ -31,7 +31,7 @@
 # different claim from scoring a count, which is why this ships and a ratio gate does not.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - PostToolUse: the file is already on disk. This informs the NEXT write.
 #   - ONE FILE, NO DIFF. It cannot see test count growing faster than behaviour count —
 #     the aggregate blind spot density.sh and lean/hooks/budget.sh each name for

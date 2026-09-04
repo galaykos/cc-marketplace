@@ -99,4 +99,4 @@ The one mechanical delivery is this plugin's warn-only `PostToolUse` hook:
 it cannot see a fan-out's aggregate. There is deliberately no blocking volume gate — a
 line- or test-count threshold would fire on dense work and wave through a bloated diff
 under the number. Proportionality and Admission are the laws applied:
-`claude-authoring/skills/authoring-skills/SKILL.md`, "The four laws".
+`.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository), "The four laws".

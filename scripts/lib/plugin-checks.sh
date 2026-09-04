@@ -434,6 +434,11 @@ pc_removed_refs() {
   # word. Verified at removal: every shape-match in plugins/ was inside the
   # deleted directory or the generated catalog. Do not move it to $skills, which
   # word-matches.
+  # `claude-authoring` added 2026-09-03: demoted to the tracked project skills under
+  # .claude/skills/ (marketplace-standard-review-2026-09-03). Safe here because the
+  # ~45 shipped citations were rewritten to `.claude/skills/authoring-*/…` paths,
+  # which carry no `claude-authoring` token; only a live reference shape trips it.
+  # History lines in CHANGELOGs keep the name behind "Removed:" or <!-- removed-ok -->.
   plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring'
   # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
   # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
