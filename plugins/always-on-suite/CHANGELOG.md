@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+- `vercel-skills-scout` joins the bundle beside `plugin-scout`: the same scan-and-suggest
+  shape for third-party skills.sh skills, project-agnostic, inert until invoked.
+  (2026-09-03 marketplace review: it belonged to no suite.)
+
 ## 0.2.3
 
 ### Changed

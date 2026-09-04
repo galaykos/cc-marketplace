@@ -65,11 +65,11 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.3k tokens | ~32 tokens | ~2.5k tokens |
+| `process-suite` | 13 | ~2.8k tokens | ~169 tokens | ~2.4k tokens |
 | `craft-suite` | 3 | ~2.8k tokens | — | — |
-| `process-suite` | 10 | ~2.3k tokens | ~32 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
+| `always-on-suite` | 9 | ~1.8k tokens | ~1.2k tokens | ~2.4k tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.3k tokens |
-| `always-on-suite` | 8 | ~1.7k tokens | ~1.2k tokens | ~2.4k tokens |
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
@@ -155,6 +155,12 @@ early:
 - [Workflow: idea to shipped](#workflow-idea-to-shipped)
 - [Infrastructure and environments](#infrastructure-and-environments)
 - [Meta: steering Claude Code itself](#meta-steering-claude-code-itself)
+
+Suites are curated starting points, not coverage: five leaves belong to no suite
+on purpose. Four are stack-matched — `database`, `devops`, `llm-app`, `payments` —
+and `/plugin-scout:suggest` names each when the project's manifests earn it; the
+fifth, `system-design`, is any-stack and deliberately unbundled (it surfaces in
+the scout's universal tier). Install them by name.
 
 ---
 
