@@ -193,7 +193,7 @@ fi
 lane_ok=1
 for s in "$SAMPLES"/*.json; do
   # hooks and agents must also declare phase — generate.sh dies without it for those two kinds
-  if jq -e '.chassis != "optout" and ((.lane // null) | type == "object") and (.lane.owns|type=="string") and (.lane.trigger|type=="string") and (.lane.yieldsTo|type=="string") and (((.chassis == "reminder-hook" or .chassis == "worker-agent") | not) or (.lane.phase|type=="string"))' "$s" >/dev/null 2>&1; then :; else
+  if jq -e '(.chassis == "optout") or (((.lane // null) | type == "object") and (.lane.owns|type=="string") and (.lane.trigger|type=="string") and (.lane.yieldsTo|type=="string") and (((.chassis == "reminder-hook" or .chassis == "worker-agent") | not) or (.lane.phase|type=="string")))' "$s" >/dev/null 2>&1; then :; else
     fail "sample-lane-schema $(basename "$s")" "lane key missing, not {owns,trigger,yieldsTo} strings, or (hook/agent) no phase"; lane_ok=0
   fi
 done

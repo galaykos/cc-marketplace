@@ -151,6 +151,9 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 # owns/trigger/yieldsTo carry the SAME values the hand rows carried, lifted verbatim.
 # A hand row for an artifact the block now owns is a hard error: two rows for one
 # artifact only trip pc_lanes_schema when their `owns` match verbatim.
+# RESIDUAL (named): a deleted `lane` KEY strips its block on the next run, but a
+# deleted MANIFEST is never visited, so its plugin's generated block would rot with
+# --check silent. Delete the block by hand with the manifest; nothing checks it.
 LANE_ROWS=""
 LANE_HEADER='# lane declaration — who owns which territory, at which phase, and who outranks them.
 # artifact	kind	phase	owns	definite_trigger	yields_to

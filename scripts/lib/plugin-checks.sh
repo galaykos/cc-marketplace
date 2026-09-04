@@ -984,8 +984,10 @@ pc_lanes_schema() {
 # compares owns and phase as STRINGS, so it fires only on an exact collision. Two
 # artifacts doing one job still pass by choosing different nouns for it — security-review
 # against security-audit, with identical triggers — or by declaring different phases for
-# the same noun. 45 of the 47 shipped rows already carry a unique owns, so on today's
-# tree this gate fires on nothing; the two rows it would catch are the pair the authors
+# the same noun. When this was written nearly every shipped row carried a unique owns,
+# so the gate fired on nothing (the row count has since roughly doubled — 2026-09-03's
+# generated blocks — so recount with `grep -hv '^#' plugins/*/lane.tsv | wc -l` rather
+# than trusting a number here); the two rows it would catch are the pair the authors
 # deliberately wrote identically. What it genuinely prevents is a FUTURE unblessed
 # duplicate, and the empty-field checks above close the hole where a row satisfied the
 # coverage gate while declaring no territory and no trigger at all. Judging whether two
