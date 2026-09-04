@@ -6,7 +6,7 @@
 
 **Baseline:** `c53413c`, CI green, 44 plugins (36 leaves + 8 suites), 116 skills, 80 commands, 32 agents, 23 `hooks.json`; `claude plugin validate` passes for 44/44 and the marketplace manifest.
 
-**Method:** context scout over eight prior reviews and the gate battery; three clarifying rounds; a four-persona blind panel on the one structural decision (commands→skills shape); a blind spec red-team (24 holes, all resolved into the spec); then cards. Spec and cards live in `taskmaster-docs/` (gitignored); this file is what survives.
+**Method:** context scout over eight prior reviews and the gate battery; three clarifying rounds; a four-persona blind panel on the one structural decision (commands→skills shape); a blind spec red-team (24 holes, all resolved into the spec); then cards, each reviewed by a code reviewer and negative-controlled before it closed. Spec and cards live in `taskmaster-docs/` (gitignored); this file is what survives. **The run stopped after Milestone 2 by the user's decision on 2026-09-04**: the migration and sweep milestones were judged more ceremony than standard once the gates and structural cuts had landed; their rows above say `deferred`.
 
 ## Findings
 
@@ -21,15 +21,15 @@ Each proposed upgrade, its standing once landed, and what it catches that nothin
 | claude-authoring demoted to tracked project skills | recorded (removal) + gate (`.claude/skills/*` now under the per-file checks) | always-on tokens billed to every installer for a plugin with one user. Two meters disagree: 801 by `claude plugin details` (`scripts/context-budget-official.json`, taken 2026-08-20; a static per-component estimate over its 12 components, `scripts/context-budget.sh:764-769`, which that header calls "NOT GROUND TRUTH"), 425 by the repo's description-bytes estimate (`scripts/context-budget-baseline.json`). Neither is a measurement of a session; both say the plugin is the largest prose-only always-on cost | 08, 09 |
 | code-review's hub and security's review command delegate their generic pass to the host built-ins (`/code-review`, `/security-review`) and keep only what the built-ins lack | recorded | duplicate generic reviews once the host ships `/code-review` and `/security-review`. The plan to delete the `code-reviewer` AGENT was declined mid-run: it is the only stack-agnostic dispatchable reviewer — task-runner's reviewer pass, terse-crew, orchestration's fleet table and role-floors route to it, every per-stack review command's lane row yields to it (`pc_lanes_resolve` fails the build on each if it is deleted), and a host skill cannot be spawned as a subagent | 10, 11 |
 | Process leaves re-homed into suites; by-name rule stated | gate for suite membership (`pc_bundle_readme_members` checks the README names each dependency, nothing about truth) / recorded for the by-name sentence, which nothing reads back | leaves reachable only by name with no statement that this is intended | 12 |
-| Shared tiered-suggest method extracted | recorded | 96 shared 12-word runs between two scouts | 13 |
-| Commands migrated to user-invocable skills (`disable-model-invocation: true`) | gate (validator + static harness) / recorded (live-resolution canary) | 80 descriptions the host lists but never auto-loads; the legacy `commands/` form | 14–21 |
-| Lane rows for every skill; coverage promoted to gate | gate | an artifact shipping with no declared territory | 22, 23, 27 |
-| Every model-invocable skill routed or explicitly `# unroutable:` | gate | a skill with no router row and no recorded reason | 24 |
-| `license: MIT` on every manifest | gate once card 25 lands `pc_license_field` (nothing today requires the field; `--strict` only accepts it) | a plugin installed alone carrying no licence statement. **This reverses `README.md` § Licence**, which chose "stated once, here" to avoid one drift site per manifest (63 when that paragraph was written, 44 today); the reversal is the user's (round 2) and rests on the platform now reading the field per manifest — an installed plugin does not carry the README. Card 25 rewrites that README paragraph so the two do not contradict | 25 |
-| `Standing:` marker in every plugin | recorded | a rule whose tier a reader cannot tell from the sentence | 26 |
-| CLAUDE.md corrected where measured stale | recorded (warn-only staleness check) | five sentences contradicted by a recount | 29 |
-| Eval access probed once | recorded | whether `claude plugin eval` runs on this account at all | 30 |
-| Always-on budget stops billing DMI skills | gate (baseline) | an over-count the host provably does not load | 15, 28 |
+| Shared tiered-suggest method extracted | no change needed — measured at execution: the two scout bodies share 0 distinct 12-word runs (the audit's 96 predates plugin-scout 0.15.0's rewrite) | 96 shared 12-word runs between two scouts, as of 2026-08-27 | 13 |
+| Commands migrated to user-invocable skills (`disable-model-invocation: true`) | **deferred 2026-09-04** — not landed; belongs in its own scoped run opened by the spike (was: gate + local canary) | 80 descriptions the host lists but never auto-loads; the legacy `commands/` form | 14–21 |
+| Lane rows for every skill; coverage promoted to gate | **deferred 2026-09-04** — ~190 hand-written territory claims at once was judged more ceremony than standard; agents and prompt/Stop hooks stay gated, skills stay WARN | an artifact shipping with no declared territory | 22, 23, 27 |
+| Every model-invocable skill routed or explicitly `# unroutable:` | **deferred 2026-09-04** — the routing sweep grows the per-prompt surface the 2026-08-31 cost review names as where spend lives | a skill with no router row and no recorded reason | 24 |
+| `license: MIT` on every manifest | **deferred 2026-09-04** — README § Licence's "stated once" decision stands until a run adds the field AND a `pc_license_field` gate together | a plugin installed alone carrying no licence statement. **This reverses `README.md` § Licence**, which chose "stated once, here" to avoid one drift site per manifest (63 when that paragraph was written, 44 today); the reversal was the user's (round 2) and rests on the platform now reading the field per manifest — an installed plugin does not carry the README. Deferred before card 25 ran, so README § Licence still states the original decision and nothing contradicts it | 25 |
+| `Standing:` marker in every plugin | **deferred 2026-09-04** — CLAUDE.md's "adopted incrementally, not in a sweep" stands | a rule whose tier a reader cannot tell from the sentence | 26 |
+| CLAUDE.md corrected where measured stale | recorded (warn-only staleness check) | the CI-step count (32→34), the doctrine-home paragraphs, the pre-push block, a new doc-location clause for project skills; the eval and sweep sentences were re-measured and stand | 29 |
+| Eval access probed once | recorded — **gated**: `claude plugin eval` prints "currently in early access", exit 1 (2026-09-04) | whether `claude plugin eval` runs on this account at all | 30 |
+| Always-on budget stops billing DMI skills | **deferred 2026-09-04** with the migration it depended on | an over-count the host provably does not load | 15, 28 |
 
 ## Carried forward from prior reviews
 
@@ -39,15 +39,15 @@ Each proposed upgrade, its standing once landed, and what it catches that nothin
 | marketplace-coverage-review-2026-08-02 | coverage breadth | four owner decisions (§519-543) | superseded by the personal-toolchain decision (D3) |
 | distillation-2026-08-23 | prose redundancy | all closed | — |
 | marketplace-necessity-review-2026-08-26 | admission | §6.3 demote claude-authoring, thin code-review/security | **accepted** (cards 08–11) |
-| marketplace-necessity-review-2026-08-26 | admission | §6.4 Tier-2 ablation | blocked on eval access; probe in card 30 |
-| collective-taskforce-backlog | lanes | #7 WARN→gate for commands/skills | **accepted** (cards 22, 23, 27) |
+| marketplace-necessity-review-2026-08-26 | admission | §6.4 Tier-2 ablation | still blocked: the probe ran 2026-09-04 and `claude plugin eval` is early-access gated on this account |
+| collective-taskforce-backlog | lanes | #7 WARN→gate for commands/skills | accepted, then **deferred 2026-09-04** (see Deferred) |
 | collective-taskforce-backlog | lanes | #8 chassis lane rows generated | **accepted** (cards 06, 07) |
 | collective-taskforce-backlog | lanes | #9 deference claims ungated | **accepted** (card 04) |
 | collective-taskforce-backlog | lanes | #1 `prime.sh` map generation, #6 compaction unverified | declined — #1 needs a fifth chassis type nothing else asks for; #6 depends on harness semantics no artifact establishes |
 | 2026-08-31-token-cost-review | cost | agents' listing cost unmetered | declined — unverified whether agents draw on the listing budget |
 | 2026-09-01-fable5-prompt-alignment | host contradiction | all applied | — |
 | official-plugins-gap-review-2026-09-02 | parity | hookify, ralph-loop, Stop-time LLM security review, type-design-analyzer, LSP/MCP | declined — each is a new capability, not a standard; none of the four laws asks for it |
-| standards-audit-2026-08-27 (gitignored) | conformance | F5 lanes, F8 licence, F11 scout dedupe, F14 bundles | **accepted** (22/23, 25, 13, 12) |
+| standards-audit-2026-08-27 (gitignored) | conformance | F5 lanes, F8 licence, F11 scout dedupe, F14 bundles | F14 **landed** (12); F11 already satisfied on measurement (13); F5 and F8 accepted then **deferred 2026-09-04** |
 | standards-audit-2026-08-27 | conformance | F2 line-cap crowding | closed by the cap move 150→200; one skill at ≥195 lines |
 | standards-audit-2026-08-27 | conformance | F10 eval pick-a-side | resolved by the probe (card 30); no CI job either way |
 
@@ -65,28 +65,41 @@ Each proposed upgrade, its standing once landed, and what it catches that nothin
 - **Collapsing commands into their backing skills** (blind-panel Purist/Quality take) — multi-skill commands are not 1:1; mixes orchestration into knowledge skills.
 - **Pilot-only migration** (Pragmatist take) — the user chose full scope; the spike card keeps the pilot's safety.
 
+## Deferred 2026-09-04, with the reason
+
+- **Commands → user-invocable skills (cards 14–21)** — touches every gate, five harnesses, the prompt catalog and both chassis templates for a payoff of platform alignment plus ~80 descriptions leaving the listing; the riskiest block with the smallest measured benefit. Reopen as its own run, spike first (four verifications in the spec).
+- **Lane rows for every skill and the WARN→gate promotion (22, 23, 27)** — ~190 hand-written territory claims in one sweep; the honest tier for skill lanes today is WARN.
+- **Routing every skill (24)** — grows the per-prompt UserPromptSubmit surface, the channel the 2026-08-31 cost review measured as where spend lives.
+- **Licence field (25), Standing markers (26), DMI baseline (28)** — fell with the sweeps; the README's "stated once" licence decision and CLAUDE.md's incremental-adoption sentences stand.
+
 ## Measurements
 
 Recount commands, not copied numbers. "Before" is `c53413c`; "after" is filled by the closing card.
 
 | gap | recount | before | after |
 |---|---|---|---|
-| plugins (the denominator below) | `ls -d plugins/*/ \| wc -l` | 44 | |
-| skills with no router row or exemption | `python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s))"` | 88 of 116 | |
-| plugins with `lane.tsv` | `ls plugins/*/lane.tsv \| wc -l` | 26 of 44 | |
-| plugins with `CHANGELOG.md` | `ls plugins/*/CHANGELOG.md \| wc -l` | 15 of 44 | |
-| plugins with `evals/` | `ls -d plugins/*/evals \| wc -l` | 2 of 44 | |
-| manifests with `license` | `grep -l '"license"' plugins/*/.claude-plugin/plugin.json \| wc -l` | 0 of 44 | |
-| plugins with a `Standing:` marker | `grep -rl "Standing:" --include='*.md' plugins/ \| cut -d/ -f2 \| sort -u \| wc -l` | 29 of 44 | |
-| `commands/*.md` files | `ls plugins/*/commands/*.md \| wc -l` | 80 | |
+| plugins (the denominator below) | `ls -d plugins/*/ \| wc -l` | 44 |  43 |
+| skills with no router row or exemption | `python3 -c "import glob,os;s={os.path.basename(os.path.dirname(p)) for p in glob.glob('plugins/*/skills/*/SKILL.md')};r=open('plugins/skill-router/rules.tsv').read();print(sum(1 for x in s if f'\t{x}\t' not in r),'of',len(s))"` | 88 of 116 |  81 of 109 |
+| plugins with `lane.tsv` | `ls plugins/*/lane.tsv \| wc -l` | 26 of 44 |  36 of 43 |
+| plugins with `CHANGELOG.md` | `ls plugins/*/CHANGELOG.md \| wc -l` | 15 of 44 |  14 of 43 |
+| plugins with `evals/` | `ls -d plugins/*/evals \| wc -l` | 2 of 44 |  2 of 43 |
+| manifests with `license` | `grep -l '"license"' plugins/*/.claude-plugin/plugin.json \| wc -l` | 0 of 44 |  0 of 43 |
+| plugins with a `Standing:` marker | `grep -rl "Standing:" --include='*.md' plugins/ \| cut -d/ -f2 \| sort -u \| wc -l` | 29 of 44 |  29 of 43 |
+| `commands/*.md` files | `ls plugins/*/commands/*.md \| wc -l` | 80 |  75 |
 
 ## Spike record
 
-(filled by card 14)
+Not run. The migration milestone (cards 14–21) was deferred on 2026-09-04 before its spike; the four verifications the spike was to record are in the spec (`taskmaster-docs/`, gitignored) and belong to the run that reopens it.
 
 ## Eval probe
 
-(filled by card 30)
+```
+$ claude plugin eval plugins/resilience --runs 1 --max-cost-usd 1 --no-publish --json /tmp/eval.json
+`plugin eval` is currently in early access
+exit=1
+```
+
+Run 2026-09-04 on Claude Code 2.1.259. Gated on this account; no arm ran, nothing was spent. The `--ablation with-without` control arm the runner advertises stays unmeasured here. No CI job was added (declined above). The two shipped suites (resilience, web-dev) remain `recorded`, as CLAUDE.md says.
 
 ---
 
