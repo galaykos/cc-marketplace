@@ -9,7 +9,12 @@ to the per-framework review plugins.
 ## Boundary with Claude Code's built-in `/code-review`
 
 Claude Code ships its own `code-review` skill, and the names collide: `/code-review`
-is the built-in, `/code-review:review` is this plugin. They are not substitutes.
+is the built-in, `/code-review:review` is this plugin. They are not substitutes —
+since 0.17.0 this command **wraps** the built-in: when the session has it, the
+generic correctness/smell/convention pass is delegated to it (report-only, through
+the Skill tool) and this command keeps the hunk read, the history pass, the stack
+fan-in, the merge and the single `ReportFindings` emission; without it, the
+generic pass runs inline as before.
 
 The built-in is deeper on one diff — it carries effort levels from low to max, an
 `ultra` multi-agent cloud pass, `--comment` to post inline PR comments, and `--fix`
@@ -20,9 +25,10 @@ already speak, with a named owner for each overlapping concern so no finding is
 raised twice. It also carries the `--debt` lane, which the built-in has no
 equivalent for.
 
-Reach for the built-in when the question is "how good is this one diff, and post
-it to the PR". Reach for this one when the repo has stack plugins installed and you
-want their review surfaces to arrive as one list rather than six.
+Reach for the built-in directly when you want `--fix`, `--comment`, or the `ultra`
+cloud pass. Reach for this one when the repo has stack plugins installed and you
+want their review surfaces, plus the built-in's generic pass, to arrive as one
+list rather than one per plugin.
 
 ## Install
 
@@ -47,8 +53,13 @@ want their review surfaces to arrive as one list rather than six.
 
 Reviews state their coverage (`Checked:` / `Not checked:`) and close with a
 one-line verdict — merge-ready, merge-after-blockers, or rework — with an
-option to apply the fixes. The plugin also ships a `code-reviewer` agent
-that reviews proactively after code is written, and two skills: `code-smells`
+option to apply the fixes. Since 0.17.0 the generic pass is delegated to Claude
+Code's built-in `/code-review` skill when the session has it; this command is
+the stack fan-in over it, and runs the generic pass itself only when the
+built-in is absent. The plugin also ships a `code-reviewer` agent — the
+dispatchable reviewer task-runner, terse-crew and the per-stack review commands
+route to (a built-in skill cannot be dispatched as a subagent, which is why the
+agent stays) — and two skills: `code-smells`
 — the smell catalog, with when-it-is-NOT-a-smell judgment — and
 `reuse-hygiene`, the pre-reuse check that a symbol you are about to build on
 is not deprecated or orphaned, plus the deep pass (dead-code tool shellout,

@@ -45,6 +45,26 @@ relevant-but-uninstalled plugins in one closing line instead.
 
 Then:
 
+**Generic pass — the host's, not a second one.** Claude Code ships a built-in
+skill named `code-review` (2.1.259+) that reviews the current diff or a
+PR/branch/path target for correctness and quality. Availability test: a skill
+named exactly `code-review` (no plugin prefix) is listed in this session. When it
+is, invoke it through the Skill tool — never the bare `/code-review` slash form,
+which collides with this plugin's namespace — on the scope resolved in items 1–4
+above, report-only: no `--fix`, no `--comment`. Take its findings as the
+correctness, smell and convention passes (the pass's items 2–4 below); do the hunk
+read (item 1) and the history pass (item 5) yourself — the built-in does not read
+blame — then the stack fan-in and the merge. The built-in applies neither the
+`code-smells` catalog nor the concern-axis owner rules further down, so the merge
+filters its findings through both before anything is reported, and pre-existing
+smells it raises outside the diff collapse to the one summary note. Everything
+after the pass — fan-in merge, self-refute, `Checked:`, verdict, apply offer — is
+this command's, and **this command emits `ReportFindings` once**; the built-in's
+own emission, if any, is consumed as input, never forwarded. When the skill is
+absent (older host, disabled, a headless run without it), run items 1–5 inline
+exactly as written. Output contract unchanged either way; the `Checked:` line
+names which branch ran. Standing: recorded — nothing checks which branch ran.
+
 1. Read every changed hunk plus enough surrounding code to judge behavior —
    never review a hunk in isolation when it calls or is called by nearby code.
 2. Correctness pass: logic errors, off-by-one, null/undefined paths, error
@@ -95,9 +115,9 @@ Output rules:
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
     agent; security-deep issues → `/security:review`.
 
-Before the verdict, state the coverage: `Checked: …` and `Not checked: … (why)` so it
-is explicit what was covered, what was clean, and what was skipped — not only what
-broke. Then run one adversarial self-refute pass over every `critical` and `high`
+Before the verdict, state the coverage: `Checked: … (generic pass: host built-in | inline)`
+and `Not checked: … (why)` so it is explicit what was covered, what was clean, which
+branch did the generic pass, and what was skipped — not only what broke. Then run one adversarial self-refute pass over every `critical` and `high`
 finding; if a finding does not survive it, drop or downgrade it with a note. The
 refutation checklist is the false-positive taxonomy — a finding matching any row is
 dropped, not downgraded:

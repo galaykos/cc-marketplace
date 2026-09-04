@@ -72,7 +72,8 @@ as a suggestion, because installing both loads two doctrines for one job.
   reviews the current diff, or a PR number, branch, or path target, at a chosen
   effort level, with `--fix` and `--comment` modes and an `ultra` cloud tier. It
   performs the generic pass only; the per-stack fan-in stays with
-  `code-review:review`, which today runs its own generic pass as well.
+  `code-review:review`, which delegates its generic pass to this built-in when
+  the session has it (0.17.0) and runs it inline otherwise.
 - `plugin-dev` — seven authoring skills plus a validator agent. This marketplace
   keeps its authoring doctrine as project skills of its own repository, not as a
   plugin, so `plugin-dev` is the one to install for plugin authoring elsewhere.

@@ -7,6 +7,13 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.3
+
+### Changed
+- `references/official-complements.md`: the host built-in `code-review` row now says
+  `code-review:review` delegates its generic pass to the built-in (code-review 0.17.0)
+  instead of running a second one.
+
 ## 0.15.2
 
 ### Changed

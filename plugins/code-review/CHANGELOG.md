@@ -3,6 +3,19 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.17.0
+
+### Changed
+- **`/code-review:review` delegates its generic pass to the host's built-in
+  `/code-review` skill** (Claude Code 2.1.259+) when the session has it, and keeps
+  the scope resolution, the hunk read, the history pass, the stack fan-in and the merge; without the built-in
+  it runs the generic pass inline as before. Output contract unchanged.
+- The `code-reviewer` agent is **kept**, deliberately: it is the dispatchable
+  reviewer that task-runner's reviewer pass, terse-crew, orchestration's fleet
+  routing and every per-stack review command yield to, and a host skill cannot be
+  spawned as a subagent. The 2026-09-03 marketplace review had planned to delete
+  it; the plan was wrong and is recorded as declined there.
+
 ## 0.16.3
 
 ### Changed
