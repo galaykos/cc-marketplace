@@ -1,6 +1,8 @@
 ---
+name: new-plugin
 description: Scaffold a plugin directory and register it in marketplace.json when present.
 argument-hint: [plugin-name] [purpose]
+disable-model-invocation: true
 ---
 
 Scaffold a new plugin from $ARGUMENTS. Steps:
@@ -28,9 +30,8 @@ Scaffold a new plugin from $ARGUMENTS. Steps:
    ```
 
    Then create the chosen artifact dirs (`skills/`, `agents/`, `commands/`,
-   `hooks/`) and scaffold their contents with the sibling commands from
-   this plugin (/claude-authoring:new-skill, /claude-authoring:new-agent,
-   /claude-authoring:new-hook) or by hand.
+   `hooks/`) and scaffold their contents with the sibling project skills (/new-skill, /new-agent,
+   /new-hook) or by hand.
 4. Register the plugin — mandatory when `.claude-plugin/marketplace.json`
    exists at the repo root; this marketplace's validator fails on any
    plugin directory not listed there. Append to the plugins array in the

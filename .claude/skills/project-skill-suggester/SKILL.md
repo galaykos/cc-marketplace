@@ -67,7 +67,7 @@ is fixed:
    manual". Bare scaffold command only when headless.
 4. On yes, hand the scaffold command a concrete draft: a kebab-case name and a
    one-line "Use when…" purpose synthesized from the cluster, so
-   `/claude-authoring:new-skill` (or `new-agent`) starts from a draft, not an
+   `/new-skill` (or `new-agent`) starts from a draft, not an
    empty prompt.
 
 Never scaffold without the yes. At most one candidate is surfaced per run.
@@ -79,8 +79,8 @@ table (repeatable knowledge → project skill; delegated persona with its own
 tools → agent; invoked-by-name action → command; always-run guarantee → hook).
 For this skill the common outcomes are a **project skill** (a house convention
 or subsystem's rules) and, when the repeated need is a multi-step read-only
-investigation, an **agent**. Scaffold via `/claude-authoring:new-skill` and
-`/claude-authoring:new-agent`; for format rules defer to the sibling
+investigation, an **agent**. Scaffold via `/new-skill` and
+`/new-agent`; for format rules defer to the sibling
 authoring-skills and authoring-agents skills.
 
 ## Suggestion etiquette
@@ -110,7 +110,7 @@ durable, uncovered knowledge. After the index is written, offer:
 > future ledger task instead of it being re-derived per card.
 > **Scaffold:** "Scaffold the `ledger-client` skill now (Recommended)" / "Skip".
 
-On yes, hand `/claude-authoring:new-skill` the name `ledger-client` and a
+On yes, hand `/new-skill` the name `ledger-client` and a
 one-line purpose drawn from the cluster. On no, drop it for good.
 
 ## Anti-patterns

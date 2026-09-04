@@ -1,6 +1,8 @@
 ---
+name: new-hook
 description: Scaffold hooks/hooks.json plus an executable hook script for a chosen event.
 argument-hint: [hook-name] [purpose]
+disable-model-invocation: true
 ---
 
 Scaffold a new hook from $ARGUMENTS. Steps:

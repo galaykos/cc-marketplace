@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **52 leaf plugins** and **10 bundles** covering
+A Claude Code plugin marketplace: **35 leaf plugins** and **8 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -73,7 +73,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 36 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 35 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -453,7 +453,6 @@ bill you did not agree to.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[terse](plugins/terse)** | chat-message brevity as a shape contract: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list. Levels `lite` / `full` / `ultra`, plus classical-Chinese novelty variants | Long sessions where the narration costs more than the work |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
-| **[claude-authoring](plugins/claude-authoring)** | how to write skills, agents, commands, hooks and plugins — including the measured behaviour of `paths:` and `disable-model-invocation:` — plus scaffold commands and a routine-detector that offers to capture a repeating chore | You are writing a plugin, a project skill, or a hook |
 | **[plugin-scout](plugins/plugin-scout)** | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks | First session in a repo |
 | **[vercel-skills-scout](plugins/vercel-skills-scout)** | searches skills.sh — Vercel's open agent-skills directory — for third-party skills matching your stack, with provenance, previewing each before it lands | This marketplace has no plugin for what you need |
 
@@ -464,20 +463,16 @@ bill you did not agree to.
 /terse:commit               # a Conventional Commits message from the staged diff
 /terse:compress <file>      # shrink a prose memory file, backed up first
 /brain:brain                # print the map; /brain:brain index refreshes it
-/claude-authoring:new-skill # scaffold a SKILL.md
-/claude-authoring:new-agent
-/claude-authoring:new-command
-/claude-authoring:new-hook
-/claude-authoring:new-plugin
 /plugin-scout:suggest
 /vercel-skills-scout:suggest
 ```
 
 **Worked example — the chore that keeps coming back:**
 
-Do it twice and `claude-authoring`'s routine-detector offers to capture it as a
-project skill; `/claude-authoring:new-skill` scaffolds it with a trigger-rich
-description and the body budget already applied.
+Do it twice and this repo's `routine-detector` project skill offers to capture it
+as a project skill; `/new-skill` scaffolds it with a trigger-rich description and
+the body budget already applied. (Both live in `.claude/skills/` here, not in a
+plugin — the authoring doctrine has one user, this repository.)
 
 ---
 

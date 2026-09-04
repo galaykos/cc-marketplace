@@ -111,8 +111,11 @@ command (run the cards, apply the fixes, review the diff):
 
 ## The four laws
 
-Applying sites cite `claude-authoring/skills/authoring-skills/SKILL.md`, "The
-four laws", by path — a path citation works without this skill firing.
+Applying sites cite `.claude/skills/authoring-skills/SKILL.md`, "The four
+laws", by path — a path citation works without this skill firing. This is a
+project skill of the marketplace repository, not a shipped plugin: an installer
+of any one plugin reads the citation as a repo path, and the derivation it points
+at is tracked in git.
 Derivation: `references/doctrine.md`. Standing: **recorded** — nothing checks
 that an applying site cites it; law 4's ratchet is the only partial gate.
 

@@ -74,8 +74,8 @@ rule and the typed-token rule; this section does not restate them.
   system-design), the session-wide group (terse, plus candor, lean, hindsight and
   skill-router — the four `references/any-core.md` routes to `--global` for `--yes`;
   `--full` is the flag that bullet does not bind) and the research/tooling group
-  (brain, fresh-take, ultra-deep-research, and claude-authoring and
-  vercel-skills-scout when their signal has not fired — they are tier 1 when it has).
+  (brain, fresh-take, ultra-deep-research, and vercel-skills-scout
+  when its signal has not fired — they are tier 1 when it has).
   Leaves only, never a suite.
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
   absent and whose `--stack` token was not typed); `payments` and `llm-app` when

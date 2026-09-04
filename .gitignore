@@ -12,6 +12,18 @@ taskmaster-docs
 .claude/skills/*
 !.claude/skills/chassis-workflow/
 !.claude/skills/plugin-structure
+!.claude/skills/authoring-agents/
+!.claude/skills/authoring-commands/
+!.claude/skills/authoring-hooks/
+!.claude/skills/authoring-plugins/
+!.claude/skills/authoring-skills/
+!.claude/skills/project-skill-suggester/
+!.claude/skills/routine-detector/
+!.claude/skills/new-agent/
+!.claude/skills/new-command/
+!.claude/skills/new-hook/
+!.claude/skills/new-plugin/
+!.claude/skills/new-skill/
 # Session tooling state must never ship inside a plugin. The rule above is
 # root-anchored (a mid-pattern slash anchors to the .gitignore dir), so nested
 # .claude/ dirs were never matched — which is how six per-session state files

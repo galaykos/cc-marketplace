@@ -52,7 +52,7 @@ Exactly two leaves qualify: `payments` and `llm-app`. They install under `--full
 only when their signals.md row fires or a `--stack` token in their class is typed.
 
 Every signal-earned leaf NOT named in the table above — devops, api-design,
-security, resilience, database, claude-authoring, vercel-skills-scout, and
+security, resilience, database, vercel-skills-scout, and
 stack-scan — installs under `--full` whether or not its signal fired. That list is
 illustrative of "any stack", not a fifth class: a missing CI file does not make CI
 discipline irrelevant, it makes it absent. `stack-scan` is the honest edge:

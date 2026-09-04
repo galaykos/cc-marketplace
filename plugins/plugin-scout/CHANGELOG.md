@@ -7,6 +7,14 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.2
+
+### Changed
+- The authoring plugin was demoted to project skills of the marketplace repository
+  (2026-09-03); its signal row, `--full` membership, picker slot and the three
+  official-complement mentions are gone, so the scout no longer offers an install
+  that cannot resolve.
+
 ## 0.15.1
 
 ### Fixed
@@ -211,7 +219,7 @@ the catalog (`generate.sh --check`). Residual named in `flags.md`: headless
   Contract and anti-patterns: `references/relevance.md`.
 - **Six new evidence-bearing signal rows** in `references/signals.md`, for
   plugins that previously had no route out of the remainder at all:
-  `claude-authoring` (the repo ships a `.claude-plugin/` manifest — deliberately
+  `claude-authoring` (the repo ships a `.claude-plugin/` manifest — deliberately <!-- removed-ok -->
   not `.claude/`, which only means the repo *uses* Claude Code), `database`
   (ORM deps or a migrations dir), `shadcn-studio` (`components.json` plus a
   Tailwind setup), `api-docs-first` (the same OpenAPI evidence `api-design`

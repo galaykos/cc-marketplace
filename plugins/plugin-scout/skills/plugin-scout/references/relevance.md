@@ -68,9 +68,9 @@ Run against `cc-marketplace` itself, detection finds `.github/workflows/` and a
 `.sql` file and reports `devops` and `sql`. Everything that makes the repo what
 it is — 60-odd plugins, skills, agents, hook scripts, generator templates —
 produced nothing, because none of it is a manifest. Before this pass,
-`claude-authoring` printed as `universal` in a repo whose entire content is
-Claude Code artifacts. (It now has its own signal row; the general lesson
-stands, which is why the pass is not just more rows.)
+the since-demoted authoring plugin printed as `universal` in a repo whose entire <!-- removed-ok -->
+content is Claude Code artifacts. (The general lesson stands, which is why the
+pass is not just more rows.)
 
 What the pass should lift there:
 

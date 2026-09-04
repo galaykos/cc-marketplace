@@ -35,9 +35,9 @@ nothing local replaces it (`context7`).
 | Official plugin | Signal | What it carries that nothing here does | Overlap here |
 |---|---|---|---|
 | `security-guidance` | core | Stop-hook LLM review of the accumulated diff and a commit-time cross-file reviewer on `git commit`/`git push`, both running in the background and re-waking the session with findings | `security` 0.7.0's write-scan hook carries this plugin's edit-time pattern set already, so expect two warnings on the same line; what only this plugin has is the Stop-time and commit-time LLM review. `secret-scanning` blocks secrets pre-write, which this does not |
-| `hookify` | core | Hooks authored as markdown rule files in `.claude/hookify.*.local.md` (regex or field conditions, warn or block, live-reloaded), plus a transcript analyzer that proposes rules from corrections you already made | none — `claude-authoring:new-hook` scaffolds a script per hook; it has no rule-file engine |
+| `hookify` | core | Hooks authored as markdown rule files in `.claude/hookify.*.local.md` (regex or field conditions, warn or block, live-reloaded), plus a transcript analyzer that proposes rules from corrections you already made | none — nothing in this marketplace has a rule-file engine |
 | `commit-commands` | core | `/commit` that stages and commits with git state preloaded into the prompt; `/clean_gone` deletes branches whose upstream is gone and removes their worktrees | `terse:commit` 0.5.0 preloads the same git context but only drafts the message; `git-workflow:clean-gone` 0.5.0 is the `/clean_gone` sweep with a confirm step. What only this plugin has is a `/commit` that runs the commit. `/commit-push-pr` needs `gh` |
-| `claude-code-setup` | core | Read-only repo scan that recommends hooks, MCP servers, subagents and skills with install snippets | this scout recommends marketplace plugins only; `claude-authoring`'s routine-detector proposes skills from repetition, not from a scan |
+| `claude-code-setup` | core | Read-only repo scan that recommends hooks, MCP servers, subagents and skills with install snippets | this scout recommends marketplace plugins only; nothing here proposes hooks or MCP servers from a scan |
 | `claude-md-management` | a `CLAUDE.md` exists | Scores every CLAUDE.md against a six-criterion rubric before proposing diffs; a `/revise-claude-md` that mines the current session | `hindsight:claude-md` 0.7.0 carries the six-criterion audit plus a stale-reference script; what only this plugin has is `/revise-claude-md` mining the CURRENT session. Skip unless you want that |
 | `pr-review-toolkit` | core | `silent-failure-hunter` (swallowed errors, five fixed rules) and `type-design-analyzer` (1-10 ratings on encapsulation, invariants, usefulness, enforcement) | `silent-failure-hunter`'s fallback rules are folded into `resilience` 0.4.0's error-handling-design, so only `type-design-analyzer` is unique now; `code-reviewer` and `comment-analyzer` duplicate `code-review`; `code-simplifier` is the row below |
 | `code-simplifier` | `package.json` or `tsconfig.json` | An agent that rewrites the code touched this session for clarity with behaviour held fixed | none as an agent; `code-architecture:low-cognitive-load` is doctrine only. Its baked-in style rules are JS/TS-shaped, which is why the signal is a JS manifest |
@@ -73,8 +73,9 @@ as a suggestion, because installing both loads two doctrines for one job.
   effort level, with `--fix` and `--comment` modes and an `ultra` cloud tier. It
   performs the generic pass only; the per-stack fan-in stays with
   `code-review:review`, which today runs its own generic pass as well.
-- `plugin-dev` — seven authoring skills plus a validator agent; `claude-authoring`
-  covers the same surface. Pick one.
+- `plugin-dev` — seven authoring skills plus a validator agent. This marketplace
+  keeps its authoring doctrine as project skills of its own repository, not as a
+  plugin, so `plugin-dev` is the one to install for plugin authoring elsewhere.
 - `skill-creator` — Claude Code now ships this as a built-in skill; nothing to install.
 - `playground` — single-file HTML control panels; `design-lab:preview` and
   `taskmaster:visual-decisions` render against the project's own components.

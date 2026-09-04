@@ -68,7 +68,7 @@ TIER 3 — no signal in this repo (40)
   stack, unfired:  12 web-dev  13 database  14 craft-layer  15 payments
   quality/review:  16 a11y  17 performance  18 resilience  19 security  20 system-design
   data:            21 database  22 sql  23 stack-scan
-  tooling:         24 brain  25 hindsight  26 stack-scan  27 claude-authoring
+  tooling:         24 brain  25 hindsight  26 stack-scan
   ...
   bundles:  php-suite (#1,#2,+2) · quality-suite (#4,#6,#16,+5)
 ```

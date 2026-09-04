@@ -1,6 +1,8 @@
 ---
+name: new-skill
 description: Scaffold a SKILL.md — trigger-rich description, 200-line body cap.
 argument-hint: [skill-name] [purpose]
+disable-model-invocation: true
 ---
 
 Scaffold a new skill from $ARGUMENTS. Steps:
@@ -61,7 +63,7 @@ Scaffold a new skill from $ARGUMENTS. Steps:
    f=<path>/SKILL.md
    head -1 "$f" | grep -q '^---$' && echo frontmatter-opener-ok
    awk '/^---$/{c++; next} c==1' "$f" | grep -Eq '^(name|description):' && echo frontmatter-keys-ok
-   awk '/^---$/{c++; next} c>=2' "$f" | wc -l   # marketplace ceiling: 150, no floor
+   awk '/^---$/{c++; next} c>=2' "$f" | wc -l   # marketplace ceiling: 200, no floor
    ```
 6. Offer the next step as a selectable choice (AskUserQuestion): "Load the
    authoring-skills skill and flesh out the TODOs now (Recommended)" /
