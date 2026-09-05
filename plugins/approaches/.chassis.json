@@ -6,6 +6,12 @@
     "command": "/approaches:build-vs-buy",
     "extraGuard": "printf '%s' \"$head\" | grep -qiE '(auth(entication|orization)?|login|session|oauth|jwt|password[[:space:]]hash|parser|tokeni[sz]er|date[[:space:]-]*(lib|library|math|parsing)|time[[:space:]]?zone|queue|job[[:space:]]queue|message[[:space:]]broker|cache|rate[[:space:]-]*limit(er|ing)?|state[[:space:]]machine|pdf|csv[[:space:]]parser|email[[:space:]]sending|smtp|payment|billing|encryption|crypto(graphy)?|hashing|search[[:space:]]engine|full[[:space:]-]*text[[:space:]]search|orm|scheduler|cron|websocket|pub[[:space:]-]*sub|i18n|internationali[sz]ation|feature[[:space:]]flag|markdown[[:space:]]parser|diff(ing)?[[:space:]]algorithm|uuid|slug)'",
     "artifact": "approaches:remind",
-    "arcRank": 30
+    "arcRank": 30,
+    "lane": {
+      "owns": "build-vs-buy-advice",
+      "trigger": "prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)",
+      "yieldsTo": "-",
+      "phase": "decide"
+    }
   }
 ]

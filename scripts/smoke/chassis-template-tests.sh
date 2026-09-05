@@ -171,5 +171,45 @@ done
 render_template "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-lang.json" > "$WORK/d2.md" 2>/dev/null
 if diff "$L" "$WORK/d2.md" >/dev/null; then pass "determinism (double render byte-identical)"; else fail "determinism" "$(diff -u "$L" "$WORK/d2.md")"; fi
 
+# --- lane block drift (generate.sh, not the engine) ---------------------------------
+# A generated lane.tsv row edited by hand must fail --check exactly like a generated
+# file — the property the block exists for. Runs on a MIRROR (never the live tree):
+# copy the inputs generate.sh reads, corrupt one generated row, expect DRIFT naming
+# the lane file. Locks the class, not the pilot plugin: whichever plugin carries the
+# first generated block is the one corrupted.
+MIR="$WORK/mirror"; mkdir -p "$MIR"
+for _d in plugins scripts templates .claude-plugin; do cp -R "$REPO_ROOT/$_d" "$MIR/"; done
+cp "$REPO_ROOT/README.md" "$MIR/"
+LF="$(grep -l '^# generated:start' "$MIR"/plugins/*/lane.tsv 2>/dev/null | head -1)"
+# Control arm first: the pristine mirror must NOT report the lane file, or the
+# corruption below would pass for the wrong reason (a tree that was already drifted).
+if bash "$MIR/scripts/generate.sh" --check >/dev/null 2>"$WORK/chk0.err" && ! grep -q 'lane.tsv' "$WORK/chk0.err"; then
+  pass "lane-block-control (pristine mirror --check clean)"
+else
+  fail "lane-block-control" "pristine mirror --check already reports drift: $(grep 'DRIFT' "$WORK/chk0.err" | head -3)"
+fi
+# Sample `lane` keys are inert to the templates (no template names them); assert their
+# schema here so a key rename in generate.sh cannot round-trip green past the samples.
+lane_ok=1
+for s in "$SAMPLES"/*.json; do
+  # hooks and agents must also declare phase — generate.sh dies without it for those two kinds
+  if jq -e '(.chassis == "optout") or (((.lane // null) | type == "object") and (.lane.owns|type=="string") and (.lane.trigger|type=="string") and (.lane.yieldsTo|type=="string") and (((.chassis == "reminder-hook" or .chassis == "worker-agent") | not) or (.lane.phase|type=="string")))' "$s" >/dev/null 2>&1; then :; else
+    fail "sample-lane-schema $(basename "$s")" "lane key missing, not {owns,trigger,yieldsTo} strings, or (hook/agent) no phase"; lane_ok=0
+  fi
+done
+[[ $lane_ok == 1 ]] && pass "sample-lane-schema (every sample carries lane.{owns,trigger,yieldsTo}; hooks/agents also phase)"
+if [[ -z "$LF" ]]; then
+  fail "lane-block-drift" "no lane.tsv carries a generated block — generate.sh lane rows did not land"
+else
+  awk 'BEGIN{FS=OFS="\t"} /^# generated:start/{g=1} /^# generated:end/{g=0} g && !/^#/ && !d {$4="hand-edited-owns"; d=1} {print}' "$LF" > "$LF.tmp" && mv "$LF.tmp" "$LF"
+  if bash "$MIR/scripts/generate.sh" --check >/dev/null 2>"$WORK/chk.err"; then
+    fail "lane-block-drift" "--check passed after a generated lane row was hand-edited"
+  elif grep -q "DRIFT content: ${LF#$MIR/}" "$WORK/chk.err"; then
+    pass "lane-block-drift (hand-edited generated row → DRIFT ${LF#$MIR/})"
+  else
+    fail "lane-block-drift" "--check failed but did not name the lane file: $(head -3 "$WORK/chk.err")"
+  fi
+fi
+
 if [[ $rc -eq 0 ]]; then printf '\nAll chassis-template asserts passed.\n'; else printf '\nSome asserts FAILED.\n'; fi
 exit $rc

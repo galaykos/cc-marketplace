@@ -1,4 +1,9 @@
 {
   "chassis": "suite-uninstall",
-  "bundle": "process-suite"
+  "bundle": "process-suite",
+  "lane": {
+    "owns": "process-suite-uninstall",
+    "trigger": "invoked as /process-suite:uninstall",
+    "yieldsTo": "-"
+  }
 }

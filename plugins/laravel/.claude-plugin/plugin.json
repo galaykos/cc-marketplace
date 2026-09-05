@@ -1,6 +1,6 @@
 {
   "name": "laravel",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with — behind one /laravel:review that loads Inertia when the manifests show it, plus the backend-engineer worker (PHP/Laravel) the review routes its fixes to.",
   "author": {
     "name": "Ivan-WG",

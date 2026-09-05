@@ -42,7 +42,7 @@
 # Exit codes:
 #   0  teeth OK (no known-weak form matched)
 #   2  weak form matched (reason on stderr)
-#   3  usage error (Honest limitation law: claude-authoring/skills/authoring-skills/SKILL.md "The four laws".)
+#   3  usage error (Honest limitation law: .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws".)
 set -euo pipefail
 
 # RUN RECORD. The lint is a gate when it runs, and nothing observed that it ran —

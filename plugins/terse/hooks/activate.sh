@@ -13,7 +13,7 @@
 # one directory below the skills dir.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - This injects a contract; it cannot enforce one. Nothing can rewrite a message
 #     after the model emits it. Per-turn reinforcement lives in mode.sh, and
 #     after-the-fact measurement in /terse:check. Both are advisory.

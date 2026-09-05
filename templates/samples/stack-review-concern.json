@@ -11,5 +11,10 @@
   "argumentHint": "[path-diff-or-design-doc]",
   "applyExtra": [],
   "applyExtraBlock": "",
-  "workerChain": "observability-engineer → task-runner:task-executor if installed → inline"
+  "workerChain": "observability-engineer → task-runner:task-executor if installed → inline",
+  "lane": {
+    "owns": "sample-concern-review",
+    "trigger": "invoked as /sample:review",
+    "yieldsTo": "-"
+  }
 }

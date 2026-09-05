@@ -1,6 +1,6 @@
 {
   "name": "craft-suite",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-lab) — WebGL/Three.js effects now ship inside craft-layer — plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first.",
   "author": {
     "name": "Ivan-WG",

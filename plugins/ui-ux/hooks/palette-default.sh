@@ -24,7 +24,7 @@
 # the legitimate case with no way to say so.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - It counts a hue, never a composition. Three equal cards, a ribbon on the middle one
 #     and a centred hero are the rest of the fingerprint and are not detected here.
 #   - Literal class strings only. A palette assembled in a variable, behind `cn(...)`, or

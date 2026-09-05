@@ -100,12 +100,26 @@ jobs:
         run: bash scripts/smoke/validate-fixtures/parity-check.sh
       - name: role-floor gate harness (all nine FAIL strings fire)
         run: bash scripts/smoke/validate-fixtures/role-floors-check.sh
+      - name: deference gate harness (a "defers to <plugin>" claim needs a lane edge)
+        run: bash scripts/smoke/validate-fixtures/deference-check.sh
       - name: preview-guard twin + tier smoke tests
         run: bash scripts/smoke/preview-guard-tests.sh
       - name: source-of-truth gate smoke tests
         run: bash scripts/smoke/source-of-truth-tests.sh
       - name: scout-name gate smoke tests (a dead plugin name fails the build)
         run: bash scripts/smoke/scout-names-tests.sh
+      # The host's own validator, pinned to the CLI this repo was measured against —
+      # scripts/official-validate.sh is the local twin and carries the derivation.
+      # LAST among the fail-capable steps on purpose: the install is a ~217 MB native
+      # download, and every sub-second repo-owned harness above should report before
+      # a registry blip can. Supply-chain residual, stated: the wrapper and its
+      # platform binary are exact-pinned, but their tarball hashes are registry-TOFU —
+      # committed nowhere in this repo. Egress: auto-updater and non-essential traffic
+      # are disabled inside the script so the verdict cannot depend on network.
+      - name: Official plugin validator (--strict)
+        run: |
+          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.259
+          bash scripts/official-validate.sh
       - name: doc staleness (warn-only)
         continue-on-error: true
         run: bash scripts/check-doc-staleness.sh

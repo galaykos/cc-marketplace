@@ -1,6 +1,8 @@
 ---
+name: new-command
 description: Scaffold a slash-command .md — description/argument-hint frontmatter, numbered $ARGUMENTS-driven body.
 argument-hint: [command-name] [what-it-does]
+disable-model-invocation: true
 ---
 
 Scaffold a new slash command from $ARGUMENTS. Steps:

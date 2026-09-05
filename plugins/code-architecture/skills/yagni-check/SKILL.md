@@ -42,7 +42,7 @@ does — will likely need a different shape than the one you guessed.
   concrete type, a repository interface with one backing store, a base class with one subclass
   that overrides nothing meaningful.
 - **"While I'm in here" scope creep.** Generalizing a function to handle inputs the current
-  feature never produces, because it was easy to do while already editing that code. (Admission law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+  feature never produces, because it was easy to do while already editing that code. (Admission law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## The "delete until it hurts" test
 

@@ -1,4 +1,9 @@
 {
   "chassis": "suite-uninstall",
-  "bundle": "always-on-suite"
+  "bundle": "always-on-suite",
+  "lane": {
+    "owns": "always-on-suite-uninstall",
+    "trigger": "invoked as /always-on-suite:uninstall",
+    "yieldsTo": "-"
+  }
 }

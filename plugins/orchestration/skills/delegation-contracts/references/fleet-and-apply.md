@@ -2,7 +2,7 @@
 
 Read on demand from `../SKILL.md`. The runtime half of the former
 `agent-conventions` skill; its authoring half (naming taxonomy, PROACTIVE-trigger
-arbitration) moved to `claude-authoring/skills/authoring-agents/references/naming-and-triggers.md`.
+arbitration) moved to `.claude/skills/authoring-agents/references/naming-and-triggers.md` (in the marketplace repository).
 
 ---
 

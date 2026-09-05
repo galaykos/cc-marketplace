@@ -3,10 +3,12 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-resilience:observability-engineer	agent	build	in-code-instrumentation	diff adds logs, correlation IDs, metrics, spans, or health signals inside application code	devops:devops-engineer
-resilience:performance-engineer	agent	build	performance-optimization	a measured number exists (profile, bundle report, query log, Core Web Vital) and the work is to move it	-
+resilience:performance-review	command	review	performance-review	invoked as /resilience:performance-review, or a measured slowness is reported	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 resilience:review	command	review	failure-mode-review	invoked as /resilience:review, or a change crosses a process boundary	-
 resilience:error-review	command	review	error-handling-review	invoked as /resilience:error-review	-
 resilience:concurrency-review	command	review	concurrency-review	invoked as /resilience:concurrency-review	-
 resilience:observability-review	command	review	observability-review	invoked as /resilience:observability-review	-
-resilience:performance-review	command	review	performance-review	invoked as /resilience:performance-review, or a measured slowness is reported	-
+resilience:observability-engineer	agent	build	in-code-instrumentation	diff adds logs, correlation IDs, metrics, spans, or health signals inside application code	devops:devops-engineer
+resilience:performance-engineer	agent	build	performance-optimization	a measured number exists (profile, bundle report, query log, Core Web Vital) and the work is to move it	-
+# generated:end

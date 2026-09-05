@@ -3,12 +3,13 @@ name: security-review
 description: Use when security-reviewing web application code — authorization vs authentication (policies, IDOR), injection, XSS, mass assignment, file uploads, CSRF, secrets, session/cookie transport, dependency audit — PHP/Laravel and JS/Vue specifics, exploitability-first triage.
 ---
 
-> **Name collision, deliberate.** Claude Code ships a built-in `/security-review`
-> command that reviews the pending changes on the current branch. This skill is a
+> **Name collision, deliberate.** Claude Code ships a built-in `security-review`
+> skill that reviews the pending changes on the current branch. This skill is a
 > different artifact with a different scope: an OWASP-mapped review body invoked as
 > `security:security-review`, stack-aware for PHP/Laravel and JS/Vue, and reachable
-> from `/security:review` and the task-runner reviewer map. Run the host command for
-> a quick branch pass; use this when the review needs the mapping and the depth. <!-- host-ok -->
+> from `/security:review` and the task-runner reviewer map. Since security 0.8.0
+> `/security:review` wraps the host skill on a branch-diff scope — its generic pass is
+> delegated, this body supplies the mapping, the triage and the depth on top. <!-- host-ok -->
 
 ## Severity is exploitability times impact
 

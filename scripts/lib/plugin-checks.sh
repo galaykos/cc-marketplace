@@ -434,7 +434,12 @@ pc_removed_refs() {
   # word. Verified at removal: every shape-match in plugins/ was inside the
   # deleted directory or the generated catalog. Do not move it to $skills, which
   # word-matches.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite'
+  # `claude-authoring` added 2026-09-03: demoted to the tracked project skills under
+  # .claude/skills/ (marketplace-standard-review-2026-09-03). Safe here because the
+  # ~45 shipped citations were rewritten to `.claude/skills/authoring-*/…` paths,
+  # which carry no `claude-authoring` token; only a live reference shape trips it.
+  # History lines in CHANGELOGs keep the name behind "Removed:" or <!-- removed-ok -->.
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring'
   # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
   # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
@@ -659,6 +664,47 @@ pc_rules_reachable() {
         printf '' | grep -qE "$pattern" 2>/dev/null
         [ $? -gt 1 ] && { printf 'unreachable content %s %s\n' "$pattern" "$skill"; bad=1; } ;;
     esac
+  done < "$tsv"
+  return $bad
+}
+
+# pc_rules_owner <rules_tsv> [plugins_root]
+# Every routing row's col-4 `owning_plugin` must be a plugin directory that
+# SHIPS the row's col-3 skill: `<root>/<plugin>/skills/<skill>/SKILL.md` must
+# exist. Prints one `rules-owner <skill> <plugin>` line per bad row — a row with
+# no fourth field at all prints `rules-owner <skill> (missing)` — and returns 1;
+# clean or missing file returns 0. A row whose col 4 is EMPTY between two tabs
+# is read by bash (and by route.sh, same `read`) with the next field shifted
+# into it, so it surfaces as an unknown owner such as `low`; caught either way.
+#
+# WHY THIS EXISTS. Until 2026-09-03 (skill-router 0.14.12) rules.tsv named
+# `observability` as the owner of `observability-design`, weeks after that
+# plugin was folded into `resilience`. Nothing read col 4 at author time:
+# pc_rules_reachable reads cols 1-3, validate.sh resolves col 3 across ALL
+# plugins, so a skill that moved between plugins still resolved. At run time
+# route.sh DOES read col 4 — `plugin_installed "$plugin" || continue` — so the
+# row was silently suppressed wherever the installed-plugin filter resolved, and
+# named a non-existent plugin in its nudge where it did not. An empty owner is
+# the same class: `pr_is_enabled ""` returns 1 and the row is skipped. A dead
+# owner is a routing rule that looks alive and never fires — the class
+# pc_rules_reachable exists for, one column over. Found by the 2026-09-03
+# marketplace standard review (rationale/marketplace-standard-review-2026-09-03.md).
+#
+# LIMITATION (honest scope). Author-time file existence only. It does not prove
+# the plugin is installed for any user — that is route.sh's runtime filter, by
+# design — nor that the row's pattern fires (pc_rules_reachable) or collides
+# (pc_rules_overlap / pc_rules_cofire).
+pc_rules_owner() {
+  local tsv="$1" root="${2:-plugins}" bad=0 kind pattern skill plugin rest
+  [ -f "$tsv" ] || return 0
+  # `|| [ -n "$kind" ]` mirrors route.sh: a final row without a trailing newline
+  # is live at runtime and must be visible to the gate.
+  while IFS=$'\t' read -r kind pattern skill plugin rest || [ -n "$kind" ]; do
+    case "$kind" in ''|'#'*) continue ;; esac
+    if [ -z "$plugin" ]; then
+      printf 'rules-owner %s (missing)\n' "$skill"; bad=1; continue
+    fi
+    [ -f "$root/$plugin/skills/$skill/SKILL.md" ] || { printf 'rules-owner %s %s\n' "$skill" "$plugin"; bad=1; }
   done < "$tsv"
   return $bad
 }
@@ -938,8 +984,10 @@ pc_lanes_schema() {
 # compares owns and phase as STRINGS, so it fires only on an exact collision. Two
 # artifacts doing one job still pass by choosing different nouns for it — security-review
 # against security-audit, with identical triggers — or by declaring different phases for
-# the same noun. 45 of the 47 shipped rows already carry a unique owns, so on today's
-# tree this gate fires on nothing; the two rows it would catch are the pair the authors
+# the same noun. When this was written nearly every shipped row carried a unique owns,
+# so the gate fired on nothing (the row count has since roughly doubled — 2026-09-03's
+# generated blocks — so recount with `grep -hv '^#' plugins/*/lane.tsv | wc -l` rather
+# than trusting a number here); the two rows it would catch are the pair the authors
 # deliberately wrote identically. What it genuinely prevents is a FUTURE unblessed
 # duplicate, and the empty-field checks above close the hole where a row satisfied the
 # coverage gate while declaring no territory and no trigger at all. Judging whether two
@@ -1200,6 +1248,67 @@ pc_dispatch_binding() {
     [ "$lhs" = "$plug" ] && continue              # already covered by the own-plugin pass
     [ -f "$root/$lhs/agents/$rhs.md" ] || continue
     printf 'dispatch %s %s\n' "$f" "$tok"; bad=1
+  done
+  return $bad
+}
+
+# pc_deference_edges [plugins_root]
+# A plugin.json description that promises deference — a clause matching
+# `defers? … to …` — must be backed by a lane edge: for every token in that
+# clause that names a plugin directory under <root> (other than the plugin
+# itself), some row in the plugin's OWN lane.tsv must carry a `yields_to` entry
+# of that plugin (`<target>:…`). Prints one `deference <plugin> -> <target>`
+# line per unbacked claim and returns 1; clean returns 0. Requires jq.
+#
+# WHY THIS EXISTS. Descriptions carried "defers X to Y" clauses when the lane
+# system landed (collective-taskforce-backlog #9; recount with
+# `grep -il 'defer' plugins/*/.claude-plugin/plugin.json`) and the lane rows
+# were reconciled against them BY HAND. pc_handoff_refs does scan plugin.json,
+# but it resolves `plugin:artifact` tokens — these clauses name a bare plugin
+# word, so nothing compared them to lane.tsv and the next edit to either side
+# could diverge silently. A description is what the USER reads before
+# installing; a lane row is what the RUNTIME honours. Two copies of one promise
+# with nothing comparing them is the drift CLAUDE.md's has-teeth convention
+# names. Landed by the 2026-09-03 marketplace standard review
+# (rationale/marketplace-standard-review-2026-09-03.md, spec A14).
+#
+# LIMITATION (honest scope). Only PLUGIN-NAMED targets are checkable. A clause
+# that defers to a host built-in ("Claude Code's built-in claude-api skill") or
+# to a class of plugins ("the per-framework review plugins") names no directory,
+# so it is SKIPPED, not failed — that half of the promise is unenforceable here
+# and the skip is deliberate. The clause must be introduced by a form of
+# "defer" (defer/defers/deferred/deferring/deferral); "hands X to Y" or
+# "leaves X to Y" is not scanned. Tokens are maximal `[a-z0-9-]` runs after
+# lowercasing, so a plugin named inside a hyphen-joined word (`ui-ux-review`)
+# is not matched — a false NEGATIVE — while a plugin whose name is an ordinary
+# word (`testing`, `security`) is matched wherever it appears in the clause — a
+# false POSITIVE that fails loud with the target named, never silently. The
+# edge's PHASE and territory are not checked — pc_lanes_territory owns that.
+pc_deference_edges() {
+  local root="${1:-plugins}" bad=0 pj p desc clause tok lane
+  command -v jq >/dev/null 2>&1 || return 0
+  for pj in "$root"/*/.claude-plugin/plugin.json; do
+    [ -f "$pj" ] || continue
+    p=$(basename "$(dirname "$(dirname "$pj")")")
+    desc=$(jq -r '.description // ""' "$pj" 2>/dev/null) || continue
+    lane="$root/$p/lane.tsv"
+    while IFS= read -r clause; do
+      [ -n "$clause" ] || continue
+      while IFS= read -r tok; do
+        [ -n "$tok" ] || continue
+        [ "$tok" = "$p" ] && continue
+        [ -d "$root/$tok" ] || continue
+        if ! awk -F'\t' -v t="$tok:" '
+              /^#/ { next } NF==6 { n=split($6, a, ","); for (i=1;i<=n;i++) if (index(a[i], t)==1) { f=1 } }
+              END { exit f ? 0 : 1 }' "$lane" 2>/dev/null; then
+          printf 'deference %s -> %s\n' "$p" "$tok"; bad=1
+        fi
+      done <<EOF_TOK
+$(printf '%s' "$clause" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9-\n' '\n' | sort -u)
+EOF_TOK
+    done <<EOF_CLAUSE
+$(printf '%s' "$desc" | grep -oiE 'defer(s|red|ring|ral)?\b[^.;]*\bto\b[^.;]*' || true)
+EOF_CLAUSE
   done
   return $bad
 }

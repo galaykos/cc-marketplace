@@ -4,5 +4,7 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 code-review:code-reviewer	agent	review	stack-agnostic-diff-review	diff touches code outside UI-framework component and view files; a stack whose per-framework review plugin is installed is that plugin's call	code-architecture:architecture-reviewer,security:review,web-dev:frontend-reviewer,ui-ux:ui-ux-reviewer
-code-review:comment-review	command	review	comment-placement-review	invoked as /code-review:comment-review	-
 code-review:comment-discipline	skill	build	comment-placement-rule	writing or reviewing code and deciding whether a comment should exist	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+code-review:comment-review	command	review	comment-placement-review	invoked as /code-review:comment-review	-
+# generated:end

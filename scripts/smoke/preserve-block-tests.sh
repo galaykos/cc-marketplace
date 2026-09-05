@@ -44,7 +44,8 @@ cat > "$FX/root/plugins/fixture/.claude-plugin/plugin.json" <<'EOF'
 { "name": "fixture", "version": "0.1.0", "description": "fixture", "keywords": ["fixture"] }
 EOF
 cat > "$FX/root/plugins/fixture/.chassis.json" <<'EOF'
-{ "chassis": "suite-uninstall", "bundle": "fixture" }
+{ "chassis": "suite-uninstall", "bundle": "fixture",
+  "lane": { "owns": "fixture-uninstall", "trigger": "invoked as /fixture:uninstall", "yieldsTo": "-" } }
 EOF
 
 write_tmpl() { # $1 = the line that lives OUTSIDE the preserve block

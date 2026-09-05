@@ -3,4 +3,6 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 security:security-engineer	agent	build	defensive-security-remediation	work applies an auth, OWASP, header/CSP, input-validation, or dependency-audit fix	-
+# generated:end

@@ -105,7 +105,7 @@ Walk these ten dimensions; skip any the scout or the prompt already settled:
   at the end even if they delegated every call.
 - Converge, don't loop: 2–4 rounds scaled to blast radius, broad then narrow. At the
   cap, or the first round that closes no new UNKNOWN, stop asking — convert remaining
-  UNKNOWNs to ASSUMED with named defaults and route to Stopping (assumption list for veto). (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+  UNKNOWNs to ASSUMED with named defaults and route to Stopping (assumption list for veto). (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Big tasks: slice before grilling
 

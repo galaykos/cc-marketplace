@@ -50,8 +50,8 @@ Sequence is fixed:
    (Recommended)" / "Skip — leave it manual". Never scaffold without the
    yes; bare scaffold command only when headless.
 
-If the answer is yes, scaffold with /claude-authoring:new-skill or
-/claude-authoring:new-agent and fill the body from what this session
+If the answer is yes, scaffold with /new-skill or
+/new-agent and fill the body from what this session
 already knows about the routine — format, sources, steps, tone.
 
 ## Artifact selection
@@ -76,8 +76,8 @@ Match the routine's shape to the artifact that natively fits it:
   them (formatting on save, a guard before every commit). Prefer the other
   three; hooks are the last resort, not the default.
 
-Scaffold skills and agents with /claude-authoring:new-skill and
-/claude-authoring:new-agent. For format rules, defer to the sibling
+Scaffold skills and agents with /new-skill and
+/new-agent. For format rules, defer to the sibling
 authoring skills: authoring-skills, authoring-agents, authoring-hooks,
 and authoring-plugins.
 
@@ -107,7 +107,7 @@ dry-informative tone. Deliver the summary first, exactly as asked. Then:
 > **Payoff:** next release, "write the release notes" produces this format
 > in one pass instead of a fresh briefing.
 > **Scaffold:** offered as a selectable choice — "Scaffold the release-notes
-    skill now (Recommended)" / "Skip" (proceeds as /claude-authoring:new-skill
+    skill now (Recommended)" / "Skip" (proceeds as /new-skill
     would).
 
 If the user says yes, scaffold it and fill the body from this session's

@@ -6,6 +6,25 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.8.10
+
+### Changed
+- Citations of the four-laws / has-teeth doctrine now point at
+  `.claude/skills/authoring-skills/SKILL.md` in the marketplace repository — the
+  authoring plugin was demoted to a tracked project skill on 2026-09-03. Prose only;
+  no behaviour change.
+
+## 0.8.9
+
+### Changed
+- `lane.tsv` rows for this plugin's chassis-generated artifacts are now rendered by
+  `scripts/generate.sh` from `lane` keys on its `.chassis.json` objects (a
+  `# generated:start` … `# generated:end` block) instead of being typed by hand —
+  same territory, trigger and yields_to; `generate.sh --check` fails if the two drift.
+  `/testing:review` had no lane row before: it now declares `test-code-review`
+  (phase review, yields to `code-review:code-reviewer`) — a new row, not a lift.
+  No behaviour change for a user of the plugin.
+
 ## 0.8.8
 
 ### Changed

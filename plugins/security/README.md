@@ -16,11 +16,25 @@ when the diff touches their surface.
 /plugin install security@cc-plugins-marketplace
 ```
 
+## Boundary with Claude Code's built-in `/security-review`
+
+Claude Code ships its own `security-review` skill, which reviews the pending
+changes on the current branch. Since 0.8.0 `/security:review` **wraps** it: when the
+session lists the bare host skill (this plugin's own skill lists as
+`security:security-review`, which is not the same thing) and the scope is the
+branch diff, the generic OWASP pass is delegated to the built-in, report-only, and
+this command adds what the built-in lacks — the pin against the installed framework
+version, `composer audit` / `npm audit` folding, the secret-scanning fold, the
+threat-model disposition audit, the data-privacy and api-auth lenses, the coverage
+inventory and the self-refute pass. A path or file-set scope, or a session without
+the built-in, runs the whole review inline. Standing: recorded — nothing checks
+which branch ran; the `Checked:` line says.
+
 ## Commands
 
 | Command | What it does |
 |---------|--------------|
-| `/security:review [files-or-diff]` | Security-review a diff or path; severity-ordered findings with exploitability notes and concrete fixes; runs `composer audit` / `npm audit` alongside |
+| `/security:review [files-or-diff]` | Security-review a diff or path; severity-ordered findings with exploitability notes and concrete fixes; runs `composer audit` / `npm audit` alongside; wraps the host's built-in `security-review` on a branch-diff scope (see Boundary above) |
 
 ## Example
 

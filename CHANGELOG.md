@@ -4,6 +4,22 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.100.0] - 2026-09-03
+
+**`claude-authoring` removed from the marketplace — demoted to project skills.**
+The authoring doctrine (four laws, has-teeth, skill/agent/hook/plugin authoring,
+routine-detector, project-skill-suggester, the five `new-*` scaffolds) has one
+user, this repository, so it now lives as tracked project skills under
+`.claude/skills/` and is no longer installable. An existing installer should
+`claude plugin uninstall claude-authoring@cc-plugins-marketplace`; nothing else
+depended on it. Sixteen plugins re-point their doctrine citations to
+`.claude/skills/authoring-skills/SKILL.md (in the marketplace repository)` — prose
+only. Also in this release: `pc_rules_owner` (a router rule's owner must ship its
+skill), `pc_deference_edges` (a "defers to <plugin>" claim needs a lane edge),
+generated lane rows for every chassis artifact, and `claude plugin validate
+--strict` as the last CI step (`scripts/official-validate.sh`). Full record:
+`rationale/marketplace-standard-review-2026-09-03.md`.
+
 ## [0.99.0] - 2026-09-03
 
 **plugin-scout 0.15.0 — `--full`, the stack-aware mass installer.**

@@ -23,7 +23,7 @@
 #   retraction, or nothing was.
 #
 # WHAT THIS CARRIES THAT NO SIBLING GATE DOES (Admission law — see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - code-architecture/hooks/evidence-gate.sh judges a COMPLETION CLAIM against
 #     post-edit execution. It never reads what the message cites, and it never
 #     looks at the user's turn at all. A turn that edits nothing, claims nothing,

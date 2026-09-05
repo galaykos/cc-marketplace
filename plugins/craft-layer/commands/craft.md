@@ -193,7 +193,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    what it pinned, N=3 as a CEILING sized to blast radius, composing
    `orchestration:verification-panels` when installed; no Workflow tool means ONE inline pass, labeled
    `inline heuristic pass — single model, uncorroborated`. The three rules the panel owes are in
-   `skills/ultra-craft/references/red-team-contract.md`. An unboosted run skips this entirely. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+   `skills/ultra-craft/references/red-team-contract.md`. An unboosted run skips this entirely. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Notes
 

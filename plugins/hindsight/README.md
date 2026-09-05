@@ -36,7 +36,8 @@ applied without your explicit approval.
    a `feedback` entry in Claude Code's own memory at
    `~/.claude/projects/<slug>/memory/`, which is machine-local and not imposed on
    teammates), ideas hand off
-   to `/claude-authoring:new-skill` or `/claude-authoring:new-plugin`, warnings
+   to a `/new-skill` or `/new-plugin` project skill when the project has one
+   (the marketplace repository does), warnings
    land in `.claude/hindsight/anti-patterns.md`. Nothing is written without an
    explicit pick.
 

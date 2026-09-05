@@ -12,5 +12,10 @@
   "argumentHint": "[files-or-diff]",
   "applyExtra": [],
   "applyExtraBlock": "",
-  "workerChain": "backend-engineer → task-runner:task-executor if installed → inline"
+  "workerChain": "backend-engineer → task-runner:task-executor if installed → inline",
+  "lane": {
+    "owns": "sample-lang-review",
+    "trigger": "invoked as /sample:review",
+    "yieldsTo": "-"
+  }
 }

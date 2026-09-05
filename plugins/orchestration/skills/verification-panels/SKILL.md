@@ -26,7 +26,7 @@ paid for. Convene one only when the output clears at least one bar:
 Everything else — typo fixes, formatting, mechanical renames, output you
 will immediately verify by running it — gets one reviewer or none. A
 five-agent panel voting on a typo fix is theater: it costs real tokens,
-delays the change, and teaches everyone to ignore panel verdicts. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+delays the change, and teaches everyone to ignore panel verdicts. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Panel width — this skill owns N
 

@@ -30,7 +30,7 @@ Check each prompt/stage for:
    blast radius rather than filled to a quota. Flag: a flat per-item ×N panel, a
    fan-out with no stated ceiling, and a loop with no round cap. Sizing authority
    is this plugin's own `verification-panels` § Panel width (2 small / 3 medium /
-   3 large) — those counts are ceilings, not quotas. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+   3 large) — those counts are ceilings, not quotas. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 Report one line per gap: `stage/prompt — gap — fix`, ordered by impact (accuracy
 risks before efficiency nits). Say "no gaps" when clean.

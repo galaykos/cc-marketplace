@@ -57,7 +57,7 @@ a phase to zero.
 The **Red-team panel** column below is not owned here: panel width is
 `orchestration:verification-panels` § Panel width, and this table maps taskmaster's
 radius rows onto it. Recon lenses and the coverage loop ARE owned here — they are
-pipeline phases no other plugin runs. (Proportionality law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+pipeline phases no other plugin runs. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 | Blast radius | Recon lenses | Red-team panel | Coverage loop |
 |---|---|---|---|

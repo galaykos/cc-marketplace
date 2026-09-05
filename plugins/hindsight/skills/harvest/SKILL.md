@@ -107,10 +107,10 @@ category, each proposal a separate option and every question carrying a
   one person's preference on the team. Offer the destination as part of the
   option's label; when the memory directory is not present, fall back to CLAUDE.md
   and say that is what happened.
-- Ideas → hand each pick to `/claude-authoring:new-skill` or
-  `/claude-authoring:new-plugin` (whichever fits the idea's size) when
-  claude-authoring is installed; else write the idea as a one-paragraph
-  scaffold brief in the harvest output for manual capture.
+- Ideas → hand each pick to a `/new-skill` or `/new-plugin` project skill
+  (whichever fits the idea's size) when the project has one — the marketplace
+  repository keeps both under `.claude/skills/`; else write the idea as a
+  one-paragraph scaffold brief in the harvest output for manual capture.
 - Warnings → write picks to `<project>/.claude/hindsight/anti-patterns.md` — the
   ONE project-tree file this plugin writes, and only on an explicit pick. It is
   team-shared, so it must be tracked, not gitignored, or the committed pointer
@@ -144,6 +144,6 @@ Standing: recorded — current project only, never another slug's ledgers. Never
 application code: outputs are CLAUDE.md lines, `feedback` memory files under
 `~/.claude/projects/<slug>/memory/`, files under
 `$HOME/.claude/hindsight/<slug>/`, the project's `.claude/hindsight/anti-patterns.md`,
-and claude-authoring handoffs. No auto-apply — every write passes the apply gate
+and the scaffold handoffs above. No auto-apply — every write passes the apply gate
 above. Transcript JSONL is officially unstable: skip malformed lines, tolerate
 missing fields, never hard-fail on format drift.

@@ -1,0 +1,8 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+quality-suite:uninstall	command	ship	quality-suite-uninstall	invoked as /quality-suite:uninstall	-
+# generated:end

@@ -1,6 +1,8 @@
 ---
+name: new-agent
 description: Scaffold a subagent .md — name/description/tools/model/effort frontmatter, role-procedure-checklist body.
 argument-hint: [agent-name] [purpose]
+disable-model-invocation: true
 ---
 
 Scaffold a new subagent from $ARGUMENTS. Steps:

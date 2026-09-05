@@ -8,6 +8,11 @@
     "worker": null,
     "description": "Review Three.js / react-three-fiber code against threejs-best-practices — renderer choice, TSL, asset pipeline, disposal, render-loop cost — pinned to the locked three revision",
     "argumentHint": "[files-or-diff]",
-    "applyExtra": []
+    "applyExtra": [],
+    "lane": {
+      "owns": "threejs-idiom-review",
+      "trigger": "the scope is Three.js or react-three-fiber code and nothing else; a mixed scope hands up to the fan-in",
+      "yieldsTo": "code-review:code-reviewer"
+    }
   }
 ]

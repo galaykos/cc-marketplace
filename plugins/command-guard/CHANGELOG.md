@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1
+
+### Changed
+- Citations of the four-laws / has-teeth doctrine now point at
+  `.claude/skills/authoring-skills/SKILL.md` in the marketplace repository — the
+  authoring plugin was demoted to a tracked project skill on 2026-09-03. Prose only;
+  no behaviour change.
+
 ## 0.5.0
 
 ### Changed

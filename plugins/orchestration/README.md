@@ -25,7 +25,8 @@ Two discipline skills load on demand: **delegation-contracts** when
 dispatching subagents or reading their reports back, and **verification-panels**
 when deciding whether an agent's findings can be trusted or judging competing
 attempts. Naming a new agent, and arbitrating which reviewer fires on an edit,
-belong to `claude-authoring`'s **authoring-agents** skill. A third,
+belong to the marketplace repository's **authoring-agents** project skill
+(`.claude/skills/authoring-agents/` (in the marketplace repository)). A third,
 **ultra-assess**, is armed by a
 UserPromptSubmit hook: writing "ultra-assess" in a prompt injects the Extreme
 Boost directive for assessment-shaped runs — inventory, audit, gap-analysis —
@@ -65,4 +66,4 @@ quality.
 - **task-runner** — the parallelize-or-inline verdict and execution loop these contracts feed
 - **taskmaster** — produces the card indices with parallel groups that the review command audits
 - **code-architecture** — plan-before-code decomposes the work these contracts then dispatch
-- **claude-authoring** — owns agent authoring: the naming taxonomy and PROACTIVE-trigger arbitration live in its `authoring-agents` skill
+- the marketplace repository's **authoring-agents** project skill — owns agent authoring: the naming taxonomy and PROACTIVE-trigger arbitration live there (`.claude/skills/authoring-agents/`, not a plugin)

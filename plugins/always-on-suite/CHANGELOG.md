@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+- `vercel-skills-scout` joins the bundle beside `plugin-scout`: the same scan-and-suggest
+  shape for third-party skills.sh skills, project-agnostic, inert until invoked.
+  (2026-09-03 marketplace review: it belonged to no suite.)
+
+## 0.2.3
+
+### Changed
+- `lane.tsv` rows for this plugin's chassis-generated artifacts are now rendered by
+  `scripts/generate.sh` from `lane` keys on its `.chassis.json` objects (a
+  `# generated:start` … `# generated:end` block) instead of being typed by hand —
+  same territory, trigger and yields_to; `generate.sh --check` fails if the two drift.
+  No behaviour change for a user of the plugin.
+
 ## 0.2.2
 
 ### Changed

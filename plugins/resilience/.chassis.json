@@ -7,7 +7,12 @@
     "worker": null,
     "applyExtra": [],
     "description": "Review code or a design for failure-mode gaps — missing timeouts, unsafe retries, absent degradation paths — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]"
+    "argumentHint": "[path-diff-or-design-doc]",
+    "lane": {
+      "owns": "failure-mode-review",
+      "trigger": "invoked as /resilience:review, or a change crosses a process boundary",
+      "yieldsTo": "-"
+    }
   },
   {
     "chassis": "stack-review",
@@ -18,7 +23,12 @@
     "applyExtra": [],
     "outfile": "commands/error-review.md",
     "description": "Audit error handling — empty or over-broad catches, swallowed exceptions, message-string branching, missing cause chains, internals leaking to users — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]"
+    "argumentHint": "[path-diff-or-design-doc]",
+    "lane": {
+      "owns": "error-handling-review",
+      "trigger": "invoked as /resilience:error-review",
+      "yieldsTo": "-"
+    }
   },
   {
     "chassis": "stack-review",
@@ -29,7 +39,12 @@
     "applyExtra": [],
     "outfile": "commands/concurrency-review.md",
     "description": "Audit code for concurrency hazards — check-then-act races, missing idempotency on retried paths, unguarded parallel writes, locks without TTL or fencing — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]"
+    "argumentHint": "[path-diff-or-design-doc]",
+    "lane": {
+      "owns": "concurrency-review",
+      "trigger": "invoked as /resilience:concurrency-review",
+      "yieldsTo": "-"
+    }
   },
   {
     "chassis": "stack-review",
@@ -40,7 +55,12 @@
     "applyExtra": [],
     "outfile": "commands/observability-review.md",
     "description": "Audit code for observability gaps — unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]"
+    "argumentHint": "[path-diff-or-design-doc]",
+    "lane": {
+      "owns": "observability-review",
+      "trigger": "invoked as /resilience:observability-review",
+      "yieldsTo": "-"
+    }
   },
   {
     "chassis": "optout",
@@ -55,7 +75,13 @@
     "tools": "Read, Write, Edit, Bash, Grep, Glob",
     "model": "inherit",
     "effort": "xhigh",
-    "bestpractices-skill": "observability-design"
+    "bestpractices-skill": "observability-design",
+    "lane": {
+      "owns": "in-code-instrumentation",
+      "trigger": "diff adds logs, correlation IDs, metrics, spans, or health signals inside application code",
+      "yieldsTo": "devops:devops-engineer",
+      "phase": "build"
+    }
   },
   {
     "chassis": "worker-agent",
@@ -68,6 +94,12 @@
     "bestpractices-skill": "performance-tuning",
     "operatingProcedure": "Your iron rule: measure before optimizing,\nmeasure after to prove the win. An optimization without a before/after\nmeasurement is a guess, and you do not ship guesses. The measurement loop\nand the per-domain checklists (backend, frontend, caching, load testing)\nlive in the injected `performance-tuning` skill — work from it per the\nRubric above; the copy is not restated here so the two cannot drift.",
     "domainChecklist": "- Every change ships with its before/after measurement.\n- List changed files, each with a one-line rationale tied to the measured cost it removes.\n- No speculative optimizations: if no measurement proves it slow, it does not get optimized.",
-    "deferRule": "- SQL-shape review (query structure, indexing idioms) belongs to\n  `/database:review` — recommend it instead of duplicating it.\n- Framework-idiom review belongs to the matching installed stack review\n  command (e.g. `/laravel:review`, `/web-dev:review`) — recommend it instead\n  of duplicating it."
+    "deferRule": "- SQL-shape review (query structure, indexing idioms) belongs to\n  `/database:review` — recommend it instead of duplicating it.\n- Framework-idiom review belongs to the matching installed stack review\n  command (e.g. `/laravel:review`, `/web-dev:review`) — recommend it instead\n  of duplicating it.",
+    "lane": {
+      "owns": "performance-optimization",
+      "trigger": "a measured number exists (profile, bundle report, query log, Core Web Vital) and the work is to move it",
+      "yieldsTo": "-",
+      "phase": "build"
+    }
   }
 ]

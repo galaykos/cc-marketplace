@@ -4,8 +4,10 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 web-dev:frontend-reviewer	agent	review	component-logic-review	diff changes component or view LOGIC (state, effects, keys, data fetching) in a JS/TS framework file	-
-web-dev:web-developer	agent	build	stack-neutral-web-implementation	web work whose stack has no per-framework plugin matching the repo manifests	-
 web-dev:review	command	review	frontend-stack-idiom-review	the scope is Next.js, React Native, or Vite code and nothing else; a mixed scope hands up to the fan-in	code-review:code-reviewer
 web-dev:nextjs-best-practices	skill	build	nextjs-idioms	package.json dep next, or an edit under app/ or to next.config.*	-
 web-dev:react-native-best-practices	skill	build	react-native-idioms	package.json dep react-native or expo, or an edit to app.config.* or eas.json	-
 web-dev:vite-best-practices	skill	build	vite-idioms	an edit to vite.config.*, or a lockfile carrying vite when the build layer is in scope	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+web-dev:web-developer	agent	build	stack-neutral-web-implementation	web work whose stack has no per-framework plugin matching the repo manifests	-
+# generated:end

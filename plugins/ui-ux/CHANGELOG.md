@@ -4,6 +4,23 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.20.3
+
+### Changed
+- Citations of the four-laws / has-teeth doctrine now point at
+  `.claude/skills/authoring-skills/SKILL.md` in the marketplace repository — the
+  authoring plugin was demoted to a tracked project skill on 2026-09-03. Prose only;
+  no behaviour change.
+
+## 0.20.2
+
+### Changed
+- `lane.tsv` rows for this plugin's chassis-generated artifacts are now rendered by
+  `scripts/generate.sh` from `lane` keys on its `.chassis.json` objects (a
+  `# generated:start` … `# generated:end` block) instead of being typed by hand —
+  same territory, trigger and yields_to; `generate.sh --check` fails if the two drift.
+  No behaviour change for a user of the plugin.
+
 ## 0.20.1
 
 ### Changed

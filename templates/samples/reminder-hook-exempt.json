@@ -6,5 +6,11 @@
   "budgetShared": false,
   "artifact": "sample:remind",
   "arcRank": 50,
-  "armsClarifyGate": true
+  "armsClarifyGate": true,
+  "lane": {
+    "owns": "sample-signal",
+    "trigger": "prompt matches the sample regex",
+    "yieldsTo": "-",
+    "phase": "build"
+  }
 }

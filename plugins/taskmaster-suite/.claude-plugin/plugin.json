@@ -1,6 +1,6 @@
 {
   "name": "taskmaster-suite",
-  "version": "0.17.1",
+  "version": "0.17.2",
   "description": "Meta-bundle (10 plugins): the clarification-to-execution pipeline and only what it dispatches into — taskmaster planning, task-runner execution, orchestration, code-architecture, approaches, stack-scan, skill-router, plus the ui-ux, testing and security lanes its cards route to. Trimmed from 32 on 2026-08-31 to fit the host's skill-listing budget: over that cap the host drops descriptions name-only and the surviving set varies per reload, so the extra members cost reachability for every member. Install the rest individually. Uninstall cleanly with /taskmaster-suite:uninstall. 200k-window installs: see the README's context-window requirement first.",
   "author": {
     "name": "Ivan-WG",

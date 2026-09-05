@@ -179,7 +179,7 @@ block. Unmarked source is presumed first-party — the same presumption
 `licence-discipline.md` grants a sub-threshold inline blob, and for the same
 decidability reason. The marker converts an invisible obligation into a DECLARED one that
 is then checked; it does not make detection complete. Anyone quoting this gate says both
-halves or over-claims it. (Honest limitation law: `claude-authoring/skills/authoring-skills/SKILL.md` "The four laws".)
+halves or over-claims it. (Honest limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## Registry choice as a diversity lever — recorded, not gated
 

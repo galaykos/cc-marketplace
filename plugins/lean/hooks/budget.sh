@@ -23,7 +23,7 @@
 # shipped a paragraph here would refute itself; that is the actual reason for the 300.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - WARN-ONLY, PostToolUse. `additionalContext` is not a blocking key. The file is
 #     already on disk; this informs the NEXT write, never the one that fired it.
 #   - It fires on the first write of a context, so the first file of every context

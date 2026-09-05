@@ -29,7 +29,7 @@
 # Judging them by this metric would be measuring the wrong thing.
 #
 # LIMITATION (honest scope — the four laws, see
-# claude-authoring/skills/authoring-skills/SKILL.md "The four laws"):
+# .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - WARN-ONLY, and PostToolUse at that: it emits `additionalContext`, which is not a
 #     blocking key. It cannot stop a verbose turn, only inform the ones after it.
 #     Stop-event delivery was considered and rejected: a Stop hook reaches the model

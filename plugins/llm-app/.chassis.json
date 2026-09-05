@@ -6,5 +6,10 @@
   "worker": null,
   "applyExtra": [],
   "description": "Review an LLM/RAG feature for eval coverage, retrieval quality, prompt-injection, grounding, and cost against llm-app",
-  "argumentHint": "[path-or-diff]"
+  "argumentHint": "[path-or-diff]",
+  "lane": {
+    "owns": "llm-app-integration-review",
+    "trigger": "the scope is LLM or agent integration code (prompts, tool schemas, provider calls, eval harness) and nothing else; a mixed scope hands up to the fan-in",
+    "yieldsTo": "code-review:code-reviewer"
+  }
 }

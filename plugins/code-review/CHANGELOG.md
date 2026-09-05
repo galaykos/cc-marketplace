@@ -3,6 +3,44 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.17.0
+
+### Changed
+- **`/code-review:review` delegates its generic pass to the host's built-in
+  `/code-review` skill** (Claude Code 2.1.259+) when the session has it, and keeps
+  the scope resolution, the hunk read, the history pass, the stack fan-in and the merge; without the built-in
+  it runs the generic pass inline as before. Output contract unchanged.
+- The `code-reviewer` agent is **kept**, deliberately: it is the dispatchable
+  reviewer that task-runner's reviewer pass, terse-crew, orchestration's fleet
+  routing and every per-stack review command yield to, and a host skill cannot be
+  spawned as a subagent. The 2026-09-03 marketplace review had planned to delete
+  it; the plan was wrong and is recorded as declined there.
+
+## 0.16.3
+
+### Changed
+- Citations of the four-laws / has-teeth doctrine now point at
+  `.claude/skills/authoring-skills/SKILL.md` in the marketplace repository — the
+  authoring plugin was demoted to a tracked project skill on 2026-09-03. Prose only;
+  no behaviour change.
+
+## 0.16.2
+
+### Changed
+- The generated lane block from 0.16.1 is now the marketplace-wide form: the same
+  `# generated:start` … `# generated:end` markers every plugin's `lane.tsv` carries,
+  rendered by the sweep that gave the eight suites their first `lane.tsv`. No row of
+  this plugin changed; no behaviour change for a user of the plugin.
+
+## 0.16.1
+
+### Changed
+- `lane.tsv`'s row for `/code-review:comment-review` is now rendered by
+  `scripts/generate.sh` from the `lane` key on its `.chassis.json` object (a
+  `# generated:start` … `# generated:end` block) instead of being typed by hand.
+  Same territory, same trigger; `generate.sh --check` now fails if the two drift.
+  No behaviour change for a user of the plugin.
+
 ## 0.16.0
 
 ### Changed

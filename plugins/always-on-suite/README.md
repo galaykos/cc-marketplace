@@ -19,9 +19,10 @@ prose — no script checks it:
 What that buys you always-on: the write-time secret block, candor's honesty
 Stop gate, lean's output pricing, terse's chat-brevity contract (inert until
 you set a level), file-aware skill auto-routing, git workflow discipline,
-cross-session friction mining, and the scout that suggests the per-project
-plugins this bundle deliberately leaves out — install it globally and
-`/plugin-scout:suggest` bridges to the stack-matched tier per repo.
+cross-session friction mining, and the two scouts — marketplace plugins, and
+third-party skills on skills.sh — that suggest what this bundle deliberately
+leaves out — install it globally and `/plugin-scout:suggest` bridges to the
+stack-matched tier per repo.
 
 ## Install
 
@@ -46,14 +47,15 @@ bundle overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **~5,999 chars** (LC_ALL=C bytes
-— the marketplace's deterministic measure, ~1% above what the CLI counts): at the
-floor, with no headroom. Over it the host reduces entries to name-only in priority
+**6,000 chars**, and this bundle's listing costs **~6,664 chars** (LC_ALL=C bytes
+— the marketplace's deterministic measure, ~1% above what the CLI counts; recount
+with `bash scripts/context-budget.sh`, listing channel): over the floor since
+0.3.0 added vercel-skills-scout's two entries. Over it the host reduces entries to name-only in priority
 order, silently, so skills stop being reachable without any error — and because
 this bundle is installed at user scope, every repo pays.
 
-If any member's description grows, or you install this bundle beside project
-plugins on the default 200k window, add to your user `settings.json`:
+On the default 200k window this bundle is over the floor on its own, so add to
+your user `settings.json` (the 1M tier fits with room to spare):
 
 ```json
 { "skillListingBudgetFraction": 0.02 }
@@ -72,6 +74,7 @@ ceiling, not a purchase — it only admits description text that was being evict
 - **git-workflow** — worktree isolation, the branch finish protocol, and review-exchange rigor, plus `/git-workflow:finish`
 - **hindsight** — mines session transcripts for recurring friction and proposes CLAUDE.md rules and skill ideas, applied only on approval; its ledgers already live under `~/.claude`, so user scope is its native home
 - **plugin-scout** — `/plugin-scout:suggest` scans each project and suggests the stack-matched plugins this bundle intentionally excludes
+- **vercel-skills-scout** — `/vercel-skills-scout:suggest` does the same for third-party skills on skills.sh, matched to the project's stack; project-agnostic and inert until invoked
 
 lean and terse do not overlap: lean prices what gets **written to disk** (code,
 tests, comments, files, tool calls), terse shapes what gets **said in chat**,
@@ -86,7 +89,8 @@ and terse's own description puts code and files explicitly out of scope.
 Adding terse and dropping command-guard moved the bundle from **943 to 1,641**
 always-on tokens, and from **975 to 2,715** with everything switched on. Both
 figures are re-baselined in `scripts/context-budget-*baseline.json`; neither
-number is hidden, and the growth is one member's.
+number is hidden, and the growth is one member's. 0.3.0 added vercel-skills-scout:
+**+146** always-on tokens (its two descriptions), nothing per prompt until invoked.
 
 - **terse** is that member and the largest single line in the bundle: **848**
   tokens of descriptions with no level set, **1,891** once you commit to one.
@@ -96,9 +100,10 @@ number is hidden, and the growth is one member's.
 - **skill-router** dominates the per-prompt channel at ~2.3k tokens in the
   marketplace bundle table, but that figure is built from the **sibling**
   plugins' command frontmatter, and the table is measured in the marketplace
-  repo with all 52 leaves present — not the shape a user-scope baseline install
-  has. Measured against this bundle's eight members, the same hook emits **~602
-  tokens** (2,410 bytes). It grows as you add project-tier plugins, which is the
+  repo with every leaf present — not the shape a user-scope baseline install
+  has. Measured against this bundle's own members it emits a fraction of that
+  (recount: `bash scripts/context-budget.sh`, dynamic channel, with only this
+  bundle installed). It grows as you add project-tier plugins, which is the
   point: it is the mechanism that makes them fire.
 
 One consequence worth stating: **none of skill-router's 126 routing rows names a

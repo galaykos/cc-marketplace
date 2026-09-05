@@ -106,6 +106,49 @@ else
   echo "PASS[reach]: path-shaped basename glob detected"
 fi
 
+# 5b. col-4 owner must ship the col-3 skill (pc_rules_owner). Until skill-router
+#     0.14.12 rules.tsv named `observability` as an owner after that plugin was
+#     folded into resilience; route.sh's installed filter suppressed the row and
+#     nothing at author time read the column. Lock the CLASS: a missing plugin, a
+#     live-but-wrong owner, and an empty owner all fail; the shipped file passes.
+if pc_rules_owner plugins/skill-router/rules.tsv plugins >/dev/null; then
+  echo "PASS[owner]: every shipped rules.tsv row names the plugin that ships its skill"
+else
+  echo "FAIL[owner]: shipped rules.tsv has a row whose owner does not ship its skill"; rc=1
+fi
+cp plugins/skill-router/rules.tsv "$RT"
+printf 'glob\t*.zzprobe\tzz-probe\tno-such-plugin\thigh\n' >> "$RT"
+out=$(pc_rules_owner "$RT" plugins) && own_rc=0 || own_rc=$?
+case "$own_rc:$out" in
+  1:*'rules-owner zz-probe no-such-plugin'*) echo "PASS[owner]: dead owner detected with the rules-owner string" ;;
+  *) echo "FAIL[owner]: dead owner not flagged (rc=$own_rc; out=$out)"; rc=1 ;;
+esac
+cp plugins/skill-router/rules.tsv "$RT"
+printf 'glob\t*.zzprobe\tobservability-design\tui-ux\tlow\n' >> "$RT"
+out=$(pc_rules_owner "$RT" plugins) && own_rc=0 || own_rc=$?
+case "$own_rc:$out" in
+  1:*'rules-owner observability-design ui-ux'*) echo "PASS[owner]: live-but-wrong owner detected" ;;
+  *) echo "FAIL[owner]: live-but-wrong owner not flagged (rc=$own_rc; out=$out)"; rc=1 ;;
+esac
+cp plugins/skill-router/rules.tsv "$RT"
+# Empty owner AND no trailing newline. bash `read` with a tab IFS collapses the
+# empty field (tab is whitespace), so col 4 arrives as `low` — route.sh reads it
+# the same way — and the row surfaces as an unknown owner, not as `(missing)`.
+# Either string proves the class is caught; the assertion accepts both.
+printf 'glob\t*.zzprobe\tzz-probe\t\tlow' >> "$RT"
+out=$(pc_rules_owner "$RT" plugins) && own_rc=0 || own_rc=$?
+case "$own_rc:$out" in
+  1:*'rules-owner zz-probe'*) echo "PASS[owner]: empty owner on a newline-less last row detected ($out)" ;;
+  *) echo "FAIL[owner]: empty owner not flagged (rc=$own_rc; out=$out)"; rc=1 ;;
+esac
+cp plugins/skill-router/rules.tsv "$RT"
+printf 'glob\t*.zzprobe\tzz-probe\n' >> "$RT"   # three columns: no owner at all
+out=$(pc_rules_owner "$RT" plugins) && own_rc=0 || own_rc=$?
+case "$own_rc:$out" in
+  1:*'rules-owner zz-probe (missing)'*) echo "PASS[owner]: three-column row flagged as (missing)" ;;
+  *) echo "FAIL[owner]: three-column row not flagged (rc=$own_rc; out=$out)"; rc=1 ;;
+esac
+
 # 6. the ONE multi-segment form route.sh does implement must stay accepted — a
 #    gate that rejected the working form would be worse than no gate
 cp plugins/skill-router/rules.tsv "$RT"

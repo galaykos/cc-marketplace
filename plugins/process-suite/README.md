@@ -2,7 +2,9 @@
 
 Meta-bundle: the engineering-process category in one install — git workflow,
 approach deliberation, hindsight mining, docs upkeep, subagent orchestration,
-task execution, stack scanning, plugin scouting, and skill routing. Uninstalls
+task execution, stack scanning, plugin scouting, skill routing, a stronger-model
+second opinion (fresh-take), a refuting research harness (ultra-deep-research),
+and a committed codebase map (brain). Uninstalls
 cleanly: `/process-suite:uninstall` removes the bundle and prunes the plugins
 it auto-installed.
 
@@ -23,7 +25,7 @@ bundle still overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **~8,391 chars** (LC_ALL=C bytes — the marketplace's deterministic measure, ~1% above what the CLI counts) — over
+**6,000 chars**, and this bundle's listing costs **~10,969 chars** (recount: `bash scripts/context-budget.sh`, listing channel) (LC_ALL=C bytes — the marketplace's deterministic measure, ~1% above what the CLI counts) — over
 budget, the host reduces entries to name-only in priority order, silently, so
 skills stop being reachable without any error.
 
@@ -65,6 +67,13 @@ text that was previously being evicted.
   smallest change that satisfies the requirement is the one that ships
 - **skill-router** — hook that auto-loads the matching best-practice skill on
   edit
+- **fresh-take** — a blind stronger-model second opinion when a session is stuck or
+  about to do something irreversible, plus `/fresh-take:consult`
+- **ultra-deep-research** — parallel web research with provenance tiers and an
+  adversarial refute pass before synthesis, plus `/ultra-deep-research:research`
+- **brain** — a committed Obsidian-style codebase map a fresh session reads first,
+  plus `/brain:brain`. It scaffolds a committed `brain/` directory; run
+  `/brain:brain index` once or its SessionStart hook reminds you every session
 
 | Command | What it does |
 |---------|--------------|
@@ -76,5 +85,3 @@ text that was previously being evicted.
   task-runner then executes
 - **quality-suite** — the code-quality review category alongside this
   process discipline
-- **claude-authoring** — scaffold the new commands, skills, and plugins these
-  processes surface

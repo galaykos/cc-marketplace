@@ -7,4 +7,6 @@
 # what is left is a guard, not a phase step — an irreversible command can be proposed at any
 # arc position, which is what phase=any is for.
 fresh-take:consultant	agent	decide	unanchored-second-opinion	dispatched by /fresh-take:consult with a facts-only brief that omits the session hypothesis; read-only tools, never writes	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 fresh-take:remind	hook	any	irreversible-command-or-repeated-attempt	prompt head matches (tried everything|third time) OR an irreversible command token (rm -rf|reset --hard|drop table|migrate:fresh|delete all|force.push)	-
+# generated:end

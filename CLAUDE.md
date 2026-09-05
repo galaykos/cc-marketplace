@@ -33,6 +33,12 @@ publishable plugin.
   history. If a document truly must be tracked, it goes in **`rationale/`** at
   the repo root — never inside a plugin. (`taskmaster-docs/` and `docs/` are
   both gitignored, so "move it there" is deletion, not preservation.)
+- **Doctrine with exactly one user — this repository — is a tracked project
+  skill**, `.claude/skills/<name>/SKILL.md` (+ `references/`), not a plugin: the
+  authoring skills moved there 2026-09-03. `.gitignore` re-includes
+  `.claude/skills/*/` as a whole, so a new project skill is tracked the moment it
+  exists; `validate.sh` holds every non-symlinked one to the same budget, jargon
+  and removed-reference gates as a shipped skill.
 
 `scripts/validate.sh` enforces this: any `.md` under `plugins/` that is not one of
 the functional kinds above fails the build (and CI on every PR).
@@ -46,11 +52,14 @@ One-clause glosses so a contributor can act without leaving this file:
 - **The theater test** — name what a check catches that nothing else catches.
 - **Admission** — an artifact earns existence by carrying a rule nothing else carries.
 
-The home is the `claude-authoring` plugin's `authoring-skills` skill, "The four
-laws", with the derivation in its `references/doctrine.md`. **Cite it; do not
-restate it here** — a gloss is a citation aid, a fifth full copy of a law about
-not keeping copies would be its own counter-example. Same reasoning as the teeth
-convention below: it lives in a plugin because that one SHIPS. (Provenance of
+The home is the `authoring-skills` project skill, `.claude/skills/authoring-skills/SKILL.md`,
+"The four laws", with the derivation in its `references/doctrine.md`. **Cite it; do
+not restate it here** — a gloss is a citation aid, a fifth full copy of a law about
+not keeping copies would be its own counter-example. It was a shipped plugin until
+2026-09-03; it is a tracked project skill now because the doctrine has one user,
+this repository, and a plugin with one user is the Admission law's own
+counter-example. Installers of any one plugin reach it as a repo path, not as an
+installed skill — that is a smaller reach than before, stated, not hidden. (Provenance of
 the laws: `rationale/four-laws-provenance.md`.)
 
 ## Say what has teeth (convention)
@@ -61,10 +70,11 @@ the build), **agent-graded** (a reviewer judges it, real variance), **recorded**
 cannot tell those apart from the sentence alone, which is how a rule gets trusted
 as a guarantee while nothing enforces it.
 
-The canonical statement lives in the `claude-authoring` plugin's `authoring-skills`
-skill, because that one SHIPS — a convention that exists only in this file reaches
-contributors to this repo and nobody who installs from it. Read it there; do not
-restate the table here, or the two drift.
+The canonical statement lives in the `authoring-skills` project skill
+(`.claude/skills/authoring-skills/SKILL.md`) — tracked, gated by the same per-file
+checks as a shipped skill, and cited by path from every plugin that applies it.
+Read it there; do not restate the table here, or the two drift. (Until 2026-09-03
+it shipped as a plugin "because that one SHIPS"; it has one user, so it does not.)
 
 Worked examples in-repo: the "What has teeth and what is recorded" table in
 `plugins/craft-layer/skills/asset-sourcing/references/component-sourcing.md`.
@@ -189,13 +199,14 @@ artifacts must not claim one `owns` in one `phase` without a `yields_to` edge or
 artifact honours the verdict on every branch, so the behaviour half is
 **agent-graded**, and saying so is the point.
 
-Run all four before pushing:
+Run the four gates plus the host validator before pushing:
 
 ```bash
 bash scripts/validate.sh
 bash scripts/check-version-bumps.sh master
 bash scripts/context-budget.sh
 bash scripts/generate.sh --check
+bash scripts/official-validate.sh   # the host's validator, --strict; CI runs it last
 ```
 
 **The four are not sufficient, and here is the case that proves it.** On
@@ -236,8 +247,8 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **32 named steps;
-31 can fail the build**, and on a push to `master` only **30** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **34 named steps;
+33 can fail the build**, and on a push to `master` only **32** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else —
 `scripts/done-gate.sh:7` says why: two files carrying one number is how they
@@ -248,8 +259,12 @@ drift apart. It has still been stale in both directions five times, so
 python3 -c "import re;s=open('.github/workflows/validate.yml').read();t=re.split(r'\n      - name:',s)[1:];f=[x for x in t if 'continue-on-error: true' not in x];print(len(t),'named',len(f),'fail-capable',len([x for x in f if 'pull_request' in x]),'PR-gated')"
 ```
 Beyond the four scripts above: the harnesses under `scripts/smoke/`, each its own
-named CI step, and the author-time lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
-ANY plugin shipping a harness is enforced the moment it lands. **Do not record the
+named CI step; the author-time lints — one shared CI step globbing `plugins/*/scripts/__tests__/*.test.sh`, so
+ANY plugin shipping a harness is enforced the moment it lands; and the host's own
+validator, `claude plugin validate --strict` over every plugin and the marketplace
+manifest, run through `scripts/official-validate.sh` (pinned CLI version asserted;
+it catches manifest SCHEMA errors `validate.sh` never models, and nothing about
+SKILL.md frontmatter — its header says why). **Do not record the
 count here** — this paragraph used to name 20 and list them, which was stale within
 two commits of being written and contradicted the very sentence you are reading.
 Recount instead:

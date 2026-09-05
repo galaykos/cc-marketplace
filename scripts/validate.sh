@@ -42,9 +42,16 @@ jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
   || err "$MP: owner must be an object with a string .name"
 
 # Every skills/<name>/ directory must contain SKILL.md with terminated frontmatter,
-# name: + description:, and a body within the 200-line ceiling (no floor)
-for d in plugins/*/skills/*/; do
+# name: + description:, and a body within the 200-line ceiling (no floor).
+# `.claude/skills/*/` — the repo's tracked PROJECT skills, where the authoring
+# doctrine has lived since 2026-09-03 — is held to the same rules: a doctrine home
+# outside every gate would be the "recorded" tier pretending to be "gate".
+for d in plugins/*/skills/*/ .claude/skills/*/; do
   [ -d "$d" ] || continue
+  # A symlinked project skill (`.claude/skills/plugin-structure -> ../../.agents/…`)
+  # is somebody else's file mounted here, not authored in this repo; its budget
+  # and phrasing are theirs to keep. Only skills whose bytes live here are gated.
+  [ -L "${d%/}" ] && continue
   f="${d}SKILL.md"
   [ -f "$f" ] || { err "$d: SKILL.md missing"; continue; }
   head -1 "$f" | grep -q '^---$' || { err "$f: missing frontmatter opener"; continue; }
@@ -54,7 +61,13 @@ for d in plugins/*/skills/*/; do
   sname=$(echo "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1)
   [ "$sname" = "$(basename "$d")" ] || err "$f: name '$sname' does not match directory '$(basename "$d")'"
   echo "$fm" | grep -q '^description:' || err "$f: frontmatter missing description:"
-  echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during)"
+  # Trigger phrasing is for skills the MODEL picks from a listing. A skill carrying
+  # `disable-model-invocation: true` is invoked only by name (`/name`), never
+  # matched on its description, so an imperative description ("Scaffold a …") is
+  # its correct shape — the rule is kind-level, never plugin-level.
+  if ! echo "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true'; then
+    echo "$fm" | grep -q '^description:.*Use \(when\|before\|after\|during\)' || err "$f: description lacks trigger phrasing (Use when/before/after/during) — a user-invoked skill sets disable-model-invocation: true instead"
+  fi
   if bud=$(pc_skill_budget "$f"); then :; else
     # "budget <path> <kind> <n> [:line]" -> one sentence naming the measure that
     # bit, since there are now three and "over the ceiling" no longer says which.
@@ -153,6 +166,8 @@ while IFS= read -r mdf; do
 done < <(
   {
     find plugins -type f \( -path '*/skills/*/SKILL.md' -o -path '*/skills/*/references/*.md' -o -path '*/commands/*.md' -o -path '*/agents/*.md' \)
+    # the tracked project skills are held to the same jargon/removed-ref/handoff rules
+    find .claude/skills -type f \( -path '*/SKILL.md' -o -path '*/references/*.md' \) 2>/dev/null
     # an unmatched glob prints its literal pattern; the pc_* [ -f ] guard skips it
     printf '%s\n' plugins/*/README.md plugins/*/CHANGELOG.md plugins/*/ROADMAP.md
   } | sort -u
@@ -435,6 +450,18 @@ $unreach
 EOF_UNREACH
   fi
 
+  # Col-4 owner must be a plugin directory. rules.tsv:124 named a plugin folded
+  # away weeks earlier; route.sh's installed-plugin filter suppressed the row and
+  # nothing at author time read the column. Derivation: pc_rules_owner's header.
+  owners=$(pc_rules_owner "$SR/rules.tsv" plugins) || true
+  if [ -n "$owners" ]; then
+    while IFS= read -r ow; do
+      err "rules.tsv owner missing ($ow) — col 4 must name the plugin that ships the col-3 skill; route.sh skips rows whose owner is not installed"
+    done <<EOF_OWNER
+$owners
+EOF_OWNER
+  fi
+
   # Content-row co-firing, against a corpus of representative snippets. Content rows
   # never share a literal pattern, so the glob-axis equality test above is vacuous for
   # them; two different regexes matching one file is the real collision.
@@ -696,6 +723,12 @@ lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
 # speaks in every phase forever. `any` lanes are guards and exempt by declaration.
 phase_gap=$(pc_phase_guard plugins) || true
 [ -n "$phase_gap" ] && lane_err "$phase_gap" "a hook whose lane names one phase must read .claude/cc-phase.json — declare the lane 'any' if it is a guard that must fire in every phase"
+
+# A description that promises "defers X to <plugin>" must be backed by a
+# yields_to edge in the plugin's own lane.tsv; host-built-in and plugin-class
+# targets are skipped by design. Derivation: pc_deference_edges' header.
+def_gap=$(pc_deference_edges plugins) || true
+[ -n "$def_gap" ] && lane_err "$def_gap" "plugin.json promises deference to a plugin that no lane row yields to — add the yields_to edge or reword the description"
 
 # PostToolUse is the only channel that reaches subagents; a one-shot keyed on
 # session_id is deduped by the parent's history and never speaks in the worker.
