@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/palette-default.sh PostToolUse 'Edit|Write|MultiEdit'",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit|apply_patch"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" --notice 'Codex compatibility: Codex has no Claude Artifact event. Run a rendered preview and verify the UI before presenting it.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

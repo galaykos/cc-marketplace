@@ -20,3 +20,7 @@ taskmaster-docs
 # got committed into plugins/craft-layer/. Enforced in scripts/validate.sh.
 plugins/**/.claude/
 .playwright-mcp/
+
+# Python tooling bytecode is not a marketplace artifact.
+__pycache__/
+*.pyc

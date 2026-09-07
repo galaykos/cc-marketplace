@@ -1,0 +1,59 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/conventions.sh PostToolUse 'Write|Edit|MultiEdit'",
+            "timeout": 15
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit|apply_patch"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/scan.sh PostToolUse 'Edit|Write|MultiEdit'",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/density.sh PostToolUse 'Edit|Write|MultiEdit'",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit|apply_patch"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/scan.sh PreToolUse 'Edit|Write|MultiEdit'",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/density.sh PreToolUse 'Edit|Write|MultiEdit'",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit|apply_patch"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" --notice 'Codex compatibility: Transcript verbosity measurement is unavailable. Keep progress updates brief and focused on decisions and evidence.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+---
+name: command-plan
+description: "Produce a file-level implementation plan before writing code"
+---
+
+Read [the Codex execution contract](../../references/codex.md) before using helpers or delegating.
+
+Invoke the plan-before-code skill from this plugin against the user-supplied arguments (the feature or change
+described there, or the current uncommitted diff/context if no argument is given). Steps:
+
+1. Invoke the plan-before-code skill and follow its procedure.
+2. Output a file map: every file to create or touch, with a one-sentence responsibility each.
+3. Output the interfaces between the units in that map: signatures, data shapes crossing
+   boundaries, and error/validation ownership.
+4. For structural changes (new service, moved boundary, changed data flow): render the
+   current-vs-target diagram artifact per the skill and get the target shape approved
+   before the task sequence.
+5. Output a task sequence: dependency order, and which tasks (if any) are independent enough to
+   parallelize, per plan-before-code's "Split into tasks" rules.
+6. Do not write implementation code in this step. The output is the plan only — code comes
+   after the plan is reviewed.
+
+7. Handoff — offer, do not instruct: ask via a user question using the available interaction tool "Plan is ready.
+   Implement it now?" — "Implement now (Recommended)" / "Stop here — plan
+   only". On implement, execute the task sequence per plan-before-code's
+   "Split into tasks" rules. Headless: output the plan and stop.

@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/test-shape.sh PostToolUse 'Edit|Write|MultiEdit'",
+            "timeout": 15
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit|apply_patch"
+      }
+    ]
+  }
+}

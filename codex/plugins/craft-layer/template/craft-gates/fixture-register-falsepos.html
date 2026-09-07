@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ledgerleaf — register fixture, the false-positive control</title>
+    <!--
+      craft-layer register fixture — THE FALSE-POSITIVE CONTROL, third of the set
+      beside `fixture-register.html` (the failing shape) and
+      `fixture-register-clean.html` (the passing shape).
+
+      Those two differ in REGISTER. This one differs in nothing a reader would
+      call technical: it is an ordinary benefits page, written for a buyer in
+      every slot. It exists because the copy a correct benefits page ships is
+      full of numbers a BARE status-code list mistakes for HTTP — `401(k)`,
+      `429 teams`, `Suite 502`, `$451/yr`. A gate that fires on those teaches
+      builders to strip real detail and is waived into silence inside one run,
+      which register-corpus.md names as its own anti-pattern. The status-code
+      rules are therefore anchored to a preceding or trailing TELL, never bare.
+
+      It carries a second proof. Every buyer anchor here sits on the element
+      that HOLDS the copy, which is what craft.md step 6 instructs builders to
+      do: `#plain-what` and `#audience` are TEXT-ONLY LEAVES with no child tag
+      at all, and `#problem` opens with a text run BEFORE its first child tag.
+      The reader used to start at the first `<`, so the two leaves produced zero
+      chunks and were reported as "an element holding no copy" — ungraded, with
+      a remedy line telling the builder to do what they had already done — and
+      `#problem` was graded on its `<em>` alone. All three must now report
+      CHECKED.
+
+      Third proof: the `data-*` attributes inside `#problem` carry `plan_id`,
+      which is the shape `orm-schema` greps for. They are code hooks no reader
+      sees, so this gate does not read `data-*` at all (divergence.mjs COPY_ATTR).
+
+      THIS FIXTURE MUST PASS, with three buyer slots CHECKED and none
+      unreadable. Point a scratch project at it with a build task carrying, on
+      ONE line and never wrapped:
+
+      Spine regions: plain-what=#plain-what, audience=#audience, problem=#problem, how-it-works=#method, price=#pricing, proof=#proof, objection=#limits, cta=#cta
+    -->
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+      section { padding: 3rem 1.5rem; max-width: 44rem; margin: 0 auto; }
+      h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+      code { background: #f0efe9; padding: 0.1em 0.3em; }
+    </style>
+  </head>
+  <body>
+    <!-- plain-what — the id is on the TEXT-ONLY LEAF that holds the line -->
+    <section>
+      <p>Ledgerleaf</p>
+      <h1 id="plain-what">One place for the 401(k), the health plan and the leave ledger.</h1>
+      <p>
+        Every benefit your company offers, kept in one record, so the answer an
+        employee gets is the answer payroll already has.
+      </p>
+    </section>
+
+    <!-- audience — a text-only leaf again, carrying a plain count -->
+    <section>
+      <h2>Who it is for</h2>
+      <p id="audience">
+        Built for the 429 teams of fifty to five hundred people who have outgrown
+        a spreadsheet and do not yet want a broker on retainer.
+      </p>
+    </section>
+
+    <!-- problem — copy BEFORE the first child tag, plus data-* code hooks -->
+    <section>
+      <h2>Why change</h2>
+      <p id="problem">
+        Open enrolment arrives and the answer lives in four places at once.
+        Payroll holds one number, the broker in Suite 502 holds another, and the
+        handbook on the shared drive holds a third that nobody has opened since
+        the plan changed.
+        <em data-testid="plan_id" data-state="stale">
+          The employee asks HR, HR asks the broker, and the week goes.
+        </em>
+        The cost of the gap is not the premium — it is the fortnight of
+        answering the same question by hand.
+      </p>
+    </section>
+
+    <!-- how it works — method disclosure, LEGAL here and not checked -->
+    <section id="method">
+      <h2>How it works</h2>
+      <ol>
+        <li>Connect payroll: Ledgerleaf reads <code>GET /v1/employees</code> nightly with a scoped api key.</li>
+        <li>Map each plan to the roster it covers, once.</li>
+        <li>Employees see their own record; HR sees the roll-up.</li>
+      </ol>
+    </section>
+
+    <!-- price -->
+    <section id="pricing">
+      <h2>Pricing</h2>
+      <p>
+        Standard is <em>$451/yr</em> per company plus $4 per person a month.
+        Enterprise, on application.
+      </p>
+    </section>
+
+    <!-- proof -->
+    <section id="proof">
+      <h2>Proof</h2>
+      <blockquote>
+        “{{metric:enrolment_days_saved}} days off open enrolment.” —
+        {{customer_name}}, illustrative sample
+      </blockquote>
+    </section>
+
+    <!-- objection / limits — CONCRETE ON PURPOSE, and not checked -->
+    <section id="limits">
+      <h2>Limits, and what this is not</h2>
+      <ul>
+        <li>Rate limit: 240 requests per minute on the payroll sync; past it we back off and retry.</li>
+        <li>A revoked payroll key returns 403 on the next sync, not at the next renewal.</li>
+        <li>Not a broker. Ledgerleaf records the plans you already bought.</li>
+      </ul>
+    </section>
+
+    <!-- cta -->
+    <section>
+      <p id="cta"><a href="/signup">Start a trial</a></p>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "debugging",
+  "version": "0.3.16+codex.2f8f239154d2",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "process",
+    "quality"
+  ],
+  "description": "Codex adaptation of debugging: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Debugging",
+    "shortDescription": "debugging workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of debugging: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use debugging for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

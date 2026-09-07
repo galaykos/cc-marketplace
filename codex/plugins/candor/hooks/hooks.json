@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" --notice 'Codex compatibility: Automatic candor transcript gating is unavailable. Before finalizing, use the candor skill to verify claims, unresolved risks, and omissions against actual evidence.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

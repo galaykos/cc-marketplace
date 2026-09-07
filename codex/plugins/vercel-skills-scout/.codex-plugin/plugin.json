@@ -1,0 +1,28 @@
+{
+  "name": "vercel-skills-scout",
+  "version": "0.4.7+codex.366f599780e8",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling",
+    "research"
+  ],
+  "description": "Codex adaptation of vercel-skills-scout: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Vercel Skills Scout",
+    "shortDescription": "vercel-skills-scout workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of vercel-skills-scout: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use vercel-skills-scout for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

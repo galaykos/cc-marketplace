@@ -1,0 +1,25 @@
+name: codex-compatibility
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  codex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify generated Codex distribution
+        run: python3 scripts/build_codex.py --check
+      - name: Verify Codex adapters and suite ownership
+        run: python3 -m unittest discover -s scripts/codex_tests -v

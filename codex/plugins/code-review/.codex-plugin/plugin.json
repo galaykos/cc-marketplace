@@ -1,0 +1,28 @@
+{
+  "name": "code-review",
+  "version": "0.17.0+codex.185c34ee7144",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "review",
+    "quality"
+  ],
+  "description": "Codex adaptation of code-review: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Code Review",
+    "shortDescription": "code-review workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of code-review: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use code-review for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

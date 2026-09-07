@@ -1,0 +1,28 @@
+{
+  "name": "taskmaster-suite",
+  "version": "0.17.2+codex.7dc0e464867d",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "suite",
+    "planning"
+  ],
+  "description": "Codex adaptation of taskmaster-suite: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Taskmaster Suite",
+    "shortDescription": "taskmaster-suite workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of taskmaster-suite: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use taskmaster-suite for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

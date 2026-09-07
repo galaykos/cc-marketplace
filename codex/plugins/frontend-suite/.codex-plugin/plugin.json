@@ -1,0 +1,28 @@
+{
+  "name": "frontend-suite",
+  "version": "0.13.1+codex.19901300f17e",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "suite",
+    "frontend"
+  ],
+  "description": "Codex adaptation of frontend-suite: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Frontend Suite",
+    "shortDescription": "frontend-suite workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of frontend-suite: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use frontend-suite for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

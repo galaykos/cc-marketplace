@@ -1,0 +1,27 @@
+{
+  "name": "ultra-deep-research",
+  "version": "0.6.3+codex.4bb24eebf3d5",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "research"
+  ],
+  "description": "Codex adaptation of ultra-deep-research: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ultra Deep Research",
+    "shortDescription": "ultra-deep-research workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of ultra-deep-research: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use ultra-deep-research for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

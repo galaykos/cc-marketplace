@@ -1,0 +1,29 @@
+{
+  "name": "api-design",
+  "version": "0.7.3+codex.2ba28cea8260",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "api",
+    "backend",
+    "review"
+  ],
+  "description": "Codex adaptation of api-design: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Api Design",
+    "shortDescription": "api-design workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of api-design: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use api-design for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

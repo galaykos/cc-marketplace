@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" --notice 'Codex compatibility: Automatic architecture transcript gating is unavailable. Before finalizing architecture work, explicitly verify the evidence checklist in the code-architecture skill.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><!-- SLOT: title --></title>
+<!-- 🎨 marks this as the THEME tab among the sibling previews on this origin
+     (mockup 🖼, diagram 🗂, walkthrough 🚶). One plain codepoint: a '#' would
+     end the data URI early and a variation selector renders as a stray box. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+
+<style>
+/* ============================================================================
+   theme-shell.html — the starter for taskmaster-docs/mockups/theme.html.
+   Copy this file, fill the SLOTs, never restyle the chrome.
+
+   Everything the theme preview needs is already wired: the viewport axis, the
+   favicon, the auto-reload lane, and a component skeleton that is IDENTICAL
+   across candidates by construction. Fill token VALUES only — the moment a
+   candidate's markup differs from its neighbours', the comparison stops being
+   about colour.
+
+   The skeleton is deliberately BROAD. A palette that looks fine on five
+   buttons falls apart on a table header, a disabled control, a muted caption,
+   or a focus ring — so every token in the skill's inventory is exercised on
+   something you can actually look at, including the states CSS can only show
+   statically (disabled, focused, selected, invalid).
+   ========================================================================= */
+
+/* ---- Chrome ---------------------------------------------------------------
+   Deliberately hardcoded, never token-driven: a candidate palette must not be
+   able to restyle the toolbar that is judging it, and a broken candidate must
+   still leave the page navigable. */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f6f6f7; color: #1a1a1a;
+}
+#ts-head { padding: .9rem 1rem .2rem; }
+#ts-head h1 { margin: 0; font-size: 1.05rem; }
+#ts-head .ts-meta { font-size: .8rem; color: #666; margin-top: .15rem; }
+@media (prefers-color-scheme: dark) {
+  body { background: #0e0f11; color: #ececec; }
+  #ts-head .ts-meta { color: #9a9a9a; }
+}
+
+/* ---- Viewport axis --------------------------------------------------------
+   Synced copy of taskmaster's visual-decisions assets/preview-toolbar.html.
+   Kept inline so this plugin owns a working preview with no cross-plugin
+   dependency; if you change the axis, change it in both places. */
+#vd-vp-bar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; gap: .35rem; align-items: center;
+  padding: .45rem .7rem; margin: 0 0 1rem;
+  font: 500 12px/1 system-ui, -apple-system, sans-serif;
+  background: #fff; color: #1a1a1a; border-bottom: 1px solid #e3e3e3;
+}
+#vd-vp-bar .vd-vp-label {
+  text-transform: uppercase; letter-spacing: .06em;
+  font-size: 10px; color: #666; margin-inline-end: .25rem;
+}
+#vd-vp-bar button {
+  font: inherit; cursor: pointer;
+  padding: .3rem .55rem; border-radius: .3rem;
+  background: transparent; color: inherit; border: 1px solid #d0d0d0;
+}
+#vd-vp-bar button:hover { border-color: #0b57d0; color: #0b57d0; }
+#vd-vp-bar button[aria-pressed="true"] {
+  background: #0b57d0; border-color: #0b57d0; color: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  #vd-vp-bar { background: #17181a; color: #ececec; border-bottom-color: #2c2e31; }
+  #vd-vp-bar .vd-vp-label { color: #9a9a9a; }
+  #vd-vp-bar button { border-color: #3a3c40; }
+  #vd-vp-bar button:hover { border-color: #7cacf8; color: #7cacf8; }
+  #vd-vp-bar button[aria-pressed="true"] {
+    background: #7cacf8; border-color: #7cacf8; color: #101112;
+  }
+}
+body[data-vd-vw="phone"]  [data-vd-vp],
+body[data-vd-vw="tablet"] [data-vd-vp] { max-width: 100%; }
+body[data-vd-vw="phone"]  [data-vd-vp] { width: 375px; }
+body[data-vd-vw="tablet"] [data-vd-vp] { width: 768px; }
+
+/* ---- Layout ---------------------------------------------------------------
+   Candidates are columns; inside each, light and dark sit side by side and
+   BOTH stay on screen. Judging colour by toggling modes is the anti-pattern
+   this layout exists to prevent, so there is no mode switch anywhere. Both
+   containers wrap, so a viewport preset that no longer fits reflows instead
+   of squeezing the panels below their stated device width. */
+.ts-candidates { display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0 1rem 2rem; align-items: flex-start; }
+.ts-candidate > h2 { margin: 0 0 .1rem; font-size: .95rem; }
+.ts-candidate > .ts-caption { margin: 0 0 .5rem; font-size: .8rem; color: #666; }
+@media (prefers-color-scheme: dark) { .ts-candidate > .ts-caption { color: #9a9a9a; } }
+.ts-modes { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-start; }
+/* Wider than the 375 phone preset on purpose: if the default were narrower,
+   picking "Phone" would make a panel GROW, which reads as the control doing
+   the opposite of what it says. Presets should only ever narrow from here. */
+.ts-panel {
+  width: 420px; max-width: 100%; padding: 1rem; border-radius: var(--radius, .5rem);
+  background: var(--background); color: var(--foreground);
+  border: 1px solid var(--border);
+}
+.ts-mode-label {
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .07em;
+  opacity: .6; margin: 0 0 .6rem;
+}
+.ts-sec { font-size: .6rem; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--muted-foreground); margin: 1rem 0 .35rem; }
+
+/* ---- Component skeleton ---------------------------------------------------
+   Reads shadcn token names ONLY, so a candidate is defined entirely by its
+   token block. Every rule here is shared by every panel — that is what makes
+   the comparison honest. sidebar-* tokens fall back to their non-sidebar
+   equivalents, so a project without a sidebar group still renders. */
+
+/* Swatches */
+.ts-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: .3rem; }
+.ts-sw { border: 1px solid var(--border); border-radius: calc(var(--radius, .5rem) / 2); overflow: hidden; font-size: .55rem; }
+.ts-sw i { display: block; height: 24px; }
+.ts-sw span { display: block; padding: .1rem .25rem; background: var(--card); color: var(--card-foreground); }
+
+/* Type */
+.ts-h { margin: 0 0 .1rem; font-size: .95rem; }
+.ts-body { margin: 0 0 .3rem; font-size: .78rem; }
+.ts-muted { margin: 0; font-size: .72rem; color: var(--muted-foreground); }
+.ts-link { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Buttons */
+.ts-row { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+.ts-btn { font: inherit; font-size: .78rem; padding: .35rem .7rem; border-radius: var(--radius, .5rem); border: 1px solid transparent; cursor: pointer; }
+.ts-btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.ts-btn-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+.ts-btn-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+.ts-btn-outline { background: transparent; color: var(--foreground); border-color: var(--border); }
+.ts-btn-ghost { background: transparent; color: var(--muted-foreground); }
+.ts-btn-accent { background: var(--accent); color: var(--accent-foreground); }
+/* Disabled is a real palette risk: opacity on a low-contrast pair goes
+   unreadable long before the enabled state does. */
+.ts-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* Surfaces */
+.ts-card { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius, .5rem); padding: .75rem; }
+.ts-popover { background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border); border-radius: var(--radius, .5rem); padding: .55rem .7rem; font-size: .75rem; box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+.ts-mutedbox { background: var(--muted); color: var(--muted-foreground); border-radius: var(--radius, .5rem); padding: .5rem .65rem; font-size: .73rem; }
+
+/* Forms */
+.ts-label { display: block; font-size: .7rem; margin-bottom: .45rem; }
+.ts-input { display: block; width: 100%; font: inherit; font-size: .76rem; padding: .35rem .5rem; margin-top: .18rem; border-radius: calc(var(--radius, .5rem) / 1.5); border: 1px solid var(--input); background: var(--background); color: var(--foreground); }
+.ts-input::placeholder { color: var(--muted-foreground); }
+/* Statically painted focus + invalid states — :focus cannot be captured in a
+   side-by-side comparison, and the ring is the token most often left as a
+   copy of primary that vanishes against the surface it rings. */
+.ts-input.is-focus { outline: 2px solid var(--ring); outline-offset: 1px; border-color: var(--ring); }
+.ts-input.is-invalid { border-color: var(--destructive); }
+/* display:block is load-bearing — vertical margins do nothing on an inline
+   box, so without it the authored gap under an invalid field never applies. */
+.ts-err { display: block; margin: .18rem 0 0; font-size: .66rem; color: var(--destructive); }
+.ts-check { display: flex; align-items: center; gap: .4rem; font-size: .74rem; margin-bottom: .3rem; }
+.ts-box { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--input); flex: none; }
+.ts-box.on { background: var(--primary); border-color: var(--primary); }
+.ts-radio { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--input); flex: none; }
+.ts-radio.on { border: 4px solid var(--primary); }
+.ts-switch { width: 26px; height: 15px; border-radius: 999px; background: var(--muted); flex: none; position: relative; }
+.ts-switch.on { background: var(--primary); }
+.ts-switch i { position: absolute; top: 2px; inset-inline-start: 2px; width: 11px; height: 11px; border-radius: 50%; background: var(--background); }
+.ts-switch.on i { inset-inline-start: 13px; background: var(--primary-foreground); }
+
+/* Nav */
+.ts-tabs { display: flex; gap: .1rem; border-bottom: 1px solid var(--border); }
+.ts-tab { font-size: .74rem; padding: .3rem .6rem; color: var(--muted-foreground); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.ts-tab.on { color: var(--foreground); border-bottom-color: var(--primary); }
+
+/* Sidebar shell — every token falls back, so a project with no sidebar group
+   still renders something honest instead of an unstyled box. */
+.ts-shell { display: flex; border: 1px solid var(--border); border-radius: var(--radius, .5rem); overflow: hidden; font-size: .72rem; }
+.ts-side { width: 34%; padding: .5rem; background: var(--sidebar, var(--card)); color: var(--sidebar-foreground, var(--card-foreground)); border-inline-end: 1px solid var(--sidebar-border, var(--border)); }
+.ts-side b { display: block; font-weight: 600; margin-bottom: .3rem; }
+.ts-side .on { background: var(--sidebar-primary, var(--primary)); color: var(--sidebar-primary-foreground, var(--primary-foreground)); border-radius: calc(var(--radius, .5rem) / 1.5); padding: .12rem .35rem; }
+.ts-side div { padding: .12rem .35rem; }
+.ts-main { flex: 1; padding: .5rem; background: var(--background); color: var(--foreground); }
+
+/* Table */
+.ts-table { width: 100%; border-collapse: collapse; font-size: .72rem; }
+.ts-table th { text-align: start; font-weight: 600; background: var(--muted); color: var(--muted-foreground); padding: .28rem .4rem; }
+.ts-table td { padding: .28rem .4rem; border-top: 1px solid var(--border); }
+.ts-table tr.sel td { background: var(--accent); color: var(--accent-foreground); }
+.ts-num { text-align: end; font-variant-numeric: tabular-nums; }
+
+/* Feedback */
+.ts-alert { border: 1px solid var(--destructive); color: var(--destructive); border-radius: var(--radius, .5rem); padding: .45rem .6rem; font-size: .73rem; }
+.ts-badges { display: flex; flex-wrap: wrap; gap: .25rem; }
+.ts-badge { font-size: .63rem; padding: .1rem .45rem; border-radius: 999px; }
+.ts-badge-primary { background: var(--primary); color: var(--primary-foreground); }
+.ts-badge-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+.ts-badge-muted { background: var(--muted); color: var(--muted-foreground); }
+.ts-badge-destructive { background: var(--destructive); color: var(--destructive-foreground); }
+.ts-badge-outline { border: 1px solid var(--border); color: var(--foreground); }
+.ts-progress { height: 6px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+.ts-progress i { display: block; height: 100%; width: 62%; background: var(--primary); }
+
+/* Data */
+.ts-charts { display: flex; gap: .2rem; }
+.ts-charts i { display: block; height: 26px; flex: 1; border-radius: calc(var(--radius, .5rem) / 2); }
+.ts-stack { display: flex; height: 14px; border-radius: 999px; overflow: hidden; }
+.ts-stack i { display: block; }
+
+/* ---- Vertical rhythm ------------------------------------------------------
+   The components above carry NO outer margins, so they can be nested anywhere
+   without fighting a parent's spacing; the PANEL supplies the rhythm. Without
+   this, every block in a section stacks flush against its neighbour and the
+   palette gets judged on a cramped page — which reads as a fault in the
+   colours rather than in the layout showing them. */
+.ts-panel > * { margin-bottom: .65rem; }
+.ts-panel > *:last-child { margin-bottom: 0; }
+.ts-panel > .ts-mode-label { margin-bottom: .85rem; }
+.ts-panel > .ts-sec { margin-top: 1.35rem; margin-bottom: .45rem; }
+/* Sibling selector, NOT :first-of-type — that matches by TAG, and the first
+   <p> in a panel is always the mode label, so a .ts-sec could never be the
+   first <p> of its parent and the rule would silently never apply. */
+.ts-panel > .ts-mode-label + .ts-sec { margin-top: .25rem; }
+/* Heading sits tight to the paragraph it introduces. */
+.ts-panel > .ts-h { margin-bottom: .2rem; }
+.ts-panel > .ts-body { margin-bottom: .25rem; }
+/* Inside the form card, and around its action row. */
+.ts-card > * { margin-bottom: .55rem; }
+.ts-card > *:last-child { margin-bottom: 0; }
+.ts-card > .ts-row { margin-top: .8rem; }
+.ts-check { margin-bottom: .4rem; }
+
+/* SLOT: candidate-tokens — one block per candidate, VALUES ONLY. Scope light
+   to the section id and dark to that section's dark panel, e.g.
+
+   #ts-a { --background: oklch(1 0 0); --foreground: oklch(.15 0 0); ... }
+   #ts-a .ts-panel.dark { --background: oklch(.15 0 0); --foreground: oklch(.98 0 0); ... }
+
+   Emit EVERY token the skeleton reads — a surface without its -foreground
+   partner inherits one tuned for a different surface, which is where
+   unreadable buttons come from:
+     background/foreground, card/-foreground, popover/-foreground,
+     primary/-foreground, secondary/-foreground, muted/-foreground,
+     accent/-foreground, destructive/-foreground,
+     border, input, ring, radius, chart-1..5.
+   sidebar-* is optional; omit it and the shell falls back to card/primary. */
+</style>
+</head>
+<body>
+
+<nav id="vd-vp-bar" role="group" aria-label="Viewport width">
+  <span class="vd-vp-label">Width</span>
+  <button type="button" data-vd-set-vw="phone" aria-pressed="false">Phone 375</button>
+  <button type="button" data-vd-set-vw="tablet" aria-pressed="false">Tablet 768</button>
+  <button type="button" data-vd-set-vw="full" aria-pressed="true">Full</button>
+</nav>
+
+<div id="ts-head">
+  <h1><!-- SLOT: question --></h1>
+  <div class="ts-meta">axis <!-- SLOT: axis --> · <!-- SLOT: round --></div>
+</div>
+
+<div class="ts-candidates">
+
+  <!-- CANDIDATE-START — duplicate this whole <section> once per candidate (max
+       3). Change ONLY the section id and the label/caption; never the panel
+       markup. Identical content is what makes the pick attributable to colour.
+       Nothing inside carries an id, so a duplicate cannot collide. -->
+  <section class="ts-candidate" id="ts-a">
+    <h2>A — <!-- SLOT: candidate-A-label --></h2>
+    <p class="ts-caption"><!-- SLOT: candidate-A-caption --></p>
+    <div class="ts-modes">
+
+      <div class="ts-panel" data-vd-vp>
+        <p class="ts-mode-label">Light</p>
+        <p class="ts-sec">Tokens</p>
+        <div class="ts-swatches">
+          <div class="ts-sw"><i style="background:var(--primary)"></i><span>primary</span></div>
+          <div class="ts-sw"><i style="background:var(--secondary)"></i><span>secondary</span></div>
+          <div class="ts-sw"><i style="background:var(--accent)"></i><span>accent</span></div>
+          <div class="ts-sw"><i style="background:var(--muted)"></i><span>muted</span></div>
+          <div class="ts-sw"><i style="background:var(--card)"></i><span>card</span></div>
+          <div class="ts-sw"><i style="background:var(--popover)"></i><span>popover</span></div>
+          <div class="ts-sw"><i style="background:var(--destructive)"></i><span>destructive</span></div>
+          <div class="ts-sw"><i style="background:var(--border)"></i><span>border</span></div>
+          <div class="ts-sw"><i style="background:var(--ring)"></i><span>ring</span></div>
+        </div>
+        <p class="ts-sec">Type</p>
+        <h3 class="ts-h">Billing settings</h3>
+        <p class="ts-body">Your plan renews on 12 August. <a class="ts-link" href="#">Manage plan</a></p>
+        <p class="ts-muted">Muted caption text — the pair that fails first.</p>
+        <p class="ts-sec">Buttons</p>
+        <div class="ts-row">
+          <button class="ts-btn ts-btn-primary">Primary</button>
+          <button class="ts-btn ts-btn-secondary">Secondary</button>
+          <button class="ts-btn ts-btn-destructive">Delete</button>
+          <button class="ts-btn ts-btn-outline">Outline</button>
+          <button class="ts-btn ts-btn-ghost">Ghost</button>
+          <button class="ts-btn ts-btn-accent">Accent</button>
+          <button class="ts-btn ts-btn-primary" disabled>Disabled</button>
+        </div>
+        <p class="ts-sec">Form</p>
+        <div class="ts-card">
+          <label class="ts-label">Email
+            <input class="ts-input" value="dana@example.com">
+          </label>
+          <label class="ts-label">Workspace
+            <input class="ts-input" placeholder="acme-inc">
+          </label>
+          <label class="ts-label">Seats (focused)
+            <input class="ts-input is-focus" value="12">
+          </label>
+          <label class="ts-label">Billing email (invalid)
+            <input class="ts-input is-invalid" value="not-an-email">
+            <span class="ts-err">Enter a valid email address.</span>
+          </label>
+          <div class="ts-check"><span class="ts-box on"></span> Email me receipts</div>
+          <div class="ts-check"><span class="ts-box"></span> Share usage data</div>
+          <div class="ts-check"><span class="ts-radio on"></span> Monthly</div>
+          <div class="ts-check"><span class="ts-radio"></span> Annual</div>
+          <div class="ts-check"><span class="ts-switch on"><i></i></span> Auto-renew</div>
+          <div class="ts-check"><span class="ts-switch"><i></i></span> Beta features</div>
+          <div class="ts-row">
+            <button class="ts-btn ts-btn-primary">Save</button>
+            <button class="ts-btn ts-btn-ghost">Cancel</button>
+          </div>
+        </div>
+        <p class="ts-sec">Navigation</p>
+        <div class="ts-tabs">
+          <span class="ts-tab on">Overview</span>
+          <span class="ts-tab">Usage</span>
+          <span class="ts-tab">Invoices</span>
+        </div>
+        <p class="ts-sec">App shell</p>
+        <div class="ts-shell">
+          <div class="ts-side">
+            <b>Acme Inc</b>
+            <div class="on">Dashboard</div>
+            <div>Projects</div>
+            <div>Members</div>
+          </div>
+          <div class="ts-main">Content area on <code>background</code>, beside the shell surface.</div>
+        </div>
+        <p class="ts-sec">Table</p>
+        <table class="ts-table">
+          <thead><tr><th>Member</th><th>Role</th><th class="ts-num">Seats</th></tr></thead>
+          <tbody>
+            <tr><td>Dana Ruiz</td><td>Owner</td><td class="ts-num">1</td></tr>
+            <tr class="sel"><td>Sam Oyelaran</td><td>Admin</td><td class="ts-num">3</td></tr>
+            <tr><td>Wei Zhang</td><td>Viewer</td><td class="ts-num">12</td></tr>
+          </tbody>
+        </table>
+        <p class="ts-sec">Feedback</p>
+        <div class="ts-alert">Card declined — update the payment method to continue.</div>
+        <div class="ts-mutedbox">Usage resets in 6 days. Overage is billed at $0.02 per unit.</div>
+        <div class="ts-popover">Popover surface — sits above card, not equal to it.</div>
+        <div class="ts-badges">
+          <span class="ts-badge ts-badge-primary">Active</span>
+          <span class="ts-badge ts-badge-secondary">Trial</span>
+          <span class="ts-badge ts-badge-muted">Draft</span>
+          <span class="ts-badge ts-badge-destructive">Overdue</span>
+          <span class="ts-badge ts-badge-outline">Archived</span>
+        </div>
+        <div class="ts-progress"><i></i></div>
+        <p class="ts-sec">Data</p>
+        <div class="ts-charts">
+          <i style="background:var(--chart-1)"></i><i style="background:var(--chart-2)"></i>
+          <i style="background:var(--chart-3)"></i><i style="background:var(--chart-4)"></i>
+          <i style="background:var(--chart-5)"></i>
+        </div>
+        <div class="ts-stack">
+          <i style="background:var(--chart-1);width:34%"></i><i style="background:var(--chart-2);width:26%"></i>
+          <i style="background:var(--chart-3);width:18%"></i><i style="background:var(--chart-4);width:13%"></i>
+          <i style="background:var(--chart-5);width:9%"></i>
+        </div>
+      </div>
+
+      <div class="ts-panel dark" data-vd-vp>
+        <p class="ts-mode-label">Dark</p>
+        <p class="ts-sec">Tokens</p>
+        <div class="ts-swatches">
+          <div class="ts-sw"><i style="background:var(--primary)"></i><span>primary</span></div>
+          <div class="ts-sw"><i style="background:var(--secondary)"></i><span>secondary</span></div>
+          <div class="ts-sw"><i style="background:var(--accent)"></i><span>accent</span></div>
+          <div class="ts-sw"><i style="background:var(--muted)"></i><span>muted</span></div>
+          <div class="ts-sw"><i style="background:var(--card)"></i><span>card</span></div>
+          <div class="ts-sw"><i style="background:var(--popover)"></i><span>popover</span></div>
+          <div class="ts-sw"><i style="background:var(--destructive)"></i><span>destructive</span></div>
+          <div class="ts-sw"><i style="background:var(--border)"></i><span>border</span></div>
+          <div class="ts-sw"><i style="background:var(--ring)"></i><span>ring</span></div>
+        </div>
+        <p class="ts-sec">Type</p>
+        <h3 class="ts-h">Billing settings</h3>
+        <p class="ts-body">Your plan renews on 12 August. <a class="ts-link" href="#">Manage plan</a></p>
+        <p class="ts-muted">Muted caption text — the pair that fails first.</p>
+        <p class="ts-sec">Buttons</p>
+        <div class="ts-row">
+          <button class="ts-btn ts-btn-primary">Primary</button>
+          <button class="ts-btn ts-btn-secondary">Secondary</button>
+          <button class="ts-btn ts-btn-destructive">Delete</button>
+          <button class="ts-btn ts-btn-outline">Outline</button>
+          <button class="ts-btn ts-btn-ghost">Ghost</button>
+          <button class="ts-btn ts-btn-accent">Accent</button>
+          <button class="ts-btn ts-btn-primary" disabled>Disabled</button>
+        </div>
+        <p class="ts-sec">Form</p>
+        <div class="ts-card">
+          <label class="ts-label">Email
+            <input class="ts-input" value="dana@example.com">
+          </label>
+          <label class="ts-label">Workspace
+            <input class="ts-input" placeholder="acme-inc">
+          </label>
+          <label class="ts-label">Seats (focused)
+            <input class="ts-input is-focus" value="12">
+          </label>
+          <label class="ts-label">Billing email (invalid)
+            <input class="ts-input is-invalid" value="not-an-email">
+            <span class="ts-err">Enter a valid email address.</span>
+          </label>
+          <div class="ts-check"><span class="ts-box on"></span> Email me receipts</div>
+          <div class="ts-check"><span class="ts-box"></span> Share usage data</div>
+          <div class="ts-check"><span class="ts-radio on"></span> Monthly</div>
+          <div class="ts-check"><span class="ts-radio"></span> Annual</div>
+          <div class="ts-check"><span class="ts-switch on"><i></i></span> Auto-renew</div>
+          <div class="ts-check"><span class="ts-switch"><i></i></span> Beta features</div>
+          <div class="ts-row">
+            <button class="ts-btn ts-btn-primary">Save</button>
+            <button class="ts-btn ts-btn-ghost">Cancel</button>
+          </div>
+        </div>
+        <p class="ts-sec">Navigation</p>
+        <div class="ts-tabs">
+          <span class="ts-tab on">Overview</span>
+          <span class="ts-tab">Usage</span>
+          <span class="ts-tab">Invoices</span>
+        </div>
+        <p class="ts-sec">App shell</p>
+        <div class="ts-shell">
+          <div class="ts-side">
+            <b>Acme Inc</b>
+            <div class="on">Dashboard</div>
+            <div>Projects</div>
+            <div>Members</div>
+          </div>
+          <div class="ts-main">Content area on <code>background</code>, beside the shell surface.</div>
+        </div>
+        <p class="ts-sec">Table</p>
+        <table class="ts-table">
+          <thead><tr><th>Member</th><th>Role</th><th class="ts-num">Seats</th></tr></thead>
+          <tbody>
+            <tr><td>Dana Ruiz</td><td>Owner</td><td class="ts-num">1</td></tr>
+            <tr class="sel"><td>Sam Oyelaran</td><td>Admin</td><td class="ts-num">3</td></tr>
+            <tr><td>Wei Zhang</td><td>Viewer</td><td class="ts-num">12</td></tr>
+          </tbody>
+        </table>
+        <p class="ts-sec">Feedback</p>
+        <div class="ts-alert">Card declined — update the payment method to continue.</div>
+        <div class="ts-mutedbox">Usage resets in 6 days. Overage is billed at $0.02 per unit.</div>
+        <div class="ts-popover">Popover surface — sits above card, not equal to it.</div>
+        <div class="ts-badges">
+          <span class="ts-badge ts-badge-primary">Active</span>
+          <span class="ts-badge ts-badge-secondary">Trial</span>
+          <span class="ts-badge ts-badge-muted">Draft</span>
+          <span class="ts-badge ts-badge-destructive">Overdue</span>
+          <span class="ts-badge ts-badge-outline">Archived</span>
+        </div>
+        <div class="ts-progress"><i></i></div>
+        <p class="ts-sec">Data</p>
+        <div class="ts-charts">
+          <i style="background:var(--chart-1)"></i><i style="background:var(--chart-2)"></i>
+          <i style="background:var(--chart-3)"></i><i style="background:var(--chart-4)"></i>
+          <i style="background:var(--chart-5)"></i>
+        </div>
+        <div class="ts-stack">
+          <i style="background:var(--chart-1);width:34%"></i><i style="background:var(--chart-2);width:26%"></i>
+          <i style="background:var(--chart-3);width:18%"></i><i style="background:var(--chart-4);width:13%"></i>
+          <i style="background:var(--chart-5);width:9%"></i>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  <!-- CANDIDATE-END -->
+
+</div>
+
+<script>
+  // Viewport axis — one data-vd-vw on <body>, all sizing in CSS.
+  (function () {
+    var buttons = Array.prototype.slice.call(
+      document.querySelectorAll('[data-vd-set-vw]'));
+    function setVw(vw) {
+      document.body.dataset.vdVw = vw;
+      buttons.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.vdSetVw === vw));
+      });
+    }
+    if (!document.body.dataset.vdVw) document.body.dataset.vdVw = 'full';
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () { setVw(b.dataset.vdSetVw); });
+    });
+  })();
+</script>
+
+<script>
+// Auto-reload: body-compare polling as the baseline, upgraded to serve.py's
+// SSE push when /events answers. Same lane the mockup shell uses, so a
+// regenerated theme.html lands in the open tab without touching the URL.
+(() => {
+  let last = null;
+  let pollTimer = null;
+
+  function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(async () => {
+      try {
+        const body = await (await fetch(location.href, { cache: 'no-store' })).text();
+        if (last !== null && body !== last) location.reload();
+        last = body;
+      } catch { /* server gone: stop reloading, page stays usable */ }
+    }, 1000);
+  }
+  function stopPolling() {
+    if (!pollTimer) return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  startPolling();
+
+  if (typeof EventSource === 'function') {
+    let es;
+    try {
+      es = new EventSource('/events');
+    } catch {
+      es = null;
+    }
+    if (es) {
+      es.addEventListener('open', () => stopPolling());
+      const onChange = e => {
+        const own = decodeURIComponent(location.pathname).split('/').pop() || 'index.html';
+        const changed = String(e.data || '').trim().split('/').pop();
+        if (changed && changed === own) location.reload();
+      };
+      es.addEventListener('change', onChange);
+      es.addEventListener('message', onChange);
+      es.addEventListener('error', () => {
+        es.close();
+        startPolling();
+      });
+    }
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+{
+  "marketplace": "cc-plugins-codex",
+  "plugins": {
+    "ui-ux": {
+      "dependencies": []
+    },
+    "craft-layer": {
+      "dependencies": []
+    },
+    "laravel": {
+      "dependencies": []
+    },
+    "code-architecture": {
+      "dependencies": []
+    },
+    "taskmaster": {
+      "dependencies": []
+    },
+    "git-workflow": {
+      "dependencies": []
+    },
+    "debugging": {
+      "dependencies": []
+    },
+    "task-runner": {
+      "dependencies": []
+    },
+    "stack-scan": {
+      "dependencies": []
+    },
+    "plugin-scout": {
+      "dependencies": []
+    },
+    "vercel-skills-scout": {
+      "dependencies": []
+    },
+    "testing": {
+      "dependencies": []
+    },
+    "security": {
+      "dependencies": []
+    },
+    "api-design": {
+      "dependencies": []
+    },
+    "web-dev": {
+      "dependencies": []
+    },
+    "system-design": {
+      "dependencies": []
+    },
+    "devops": {
+      "dependencies": []
+    },
+    "database": {
+      "dependencies": []
+    },
+    "code-review": {
+      "dependencies": []
+    },
+    "approaches": {
+      "dependencies": []
+    },
+    "hindsight": {
+      "dependencies": []
+    },
+    "brain": {
+      "dependencies": []
+    },
+    "resilience": {
+      "dependencies": []
+    },
+    "orchestration": {
+      "dependencies": []
+    },
+    "candor": {
+      "dependencies": []
+    },
+    "lean": {
+      "dependencies": []
+    },
+    "frontend-suite": {
+      "dependencies": [
+        "skill-router",
+        "ui-ux",
+        "web-dev",
+        "code-review"
+      ]
+    },
+    "craft-suite": {
+      "dependencies": [
+        "craft-layer",
+        "design-lab",
+        "ui-ux"
+      ]
+    },
+    "php-suite": {
+      "dependencies": [
+        "laravel",
+        "web-dev",
+        "code-review"
+      ]
+    },
+    "quality-suite": {
+      "dependencies": [
+        "code-review",
+        "code-architecture",
+        "candor",
+        "lean",
+        "command-guard",
+        "secret-scanning",
+        "skill-router"
+      ]
+    },
+    "quality-principles-suite": {
+      "dependencies": [
+        "approaches",
+        "security",
+        "debugging",
+        "resilience",
+        "stack-scan",
+        "testing"
+      ]
+    },
+    "process-suite": {
+      "dependencies": [
+        "git-workflow",
+        "approaches",
+        "hindsight",
+        "api-design",
+        "orchestration",
+        "lean",
+        "task-runner",
+        "stack-scan",
+        "plugin-scout",
+        "skill-router",
+        "fresh-take",
+        "ultra-deep-research",
+        "brain"
+      ]
+    },
+    "taskmaster-suite": {
+      "dependencies": [
+        "taskmaster",
+        "task-runner",
+        "orchestration",
+        "code-architecture",
+        "approaches",
+        "stack-scan",
+        "skill-router",
+        "ui-ux",
+        "testing",
+        "security"
+      ]
+    },
+    "always-on-suite": {
+      "dependencies": [
+        "candor",
+        "git-workflow",
+        "hindsight",
+        "lean",
+        "plugin-scout",
+        "secret-scanning",
+        "skill-router",
+        "terse",
+        "vercel-skills-scout"
+      ]
+    },
+    "skill-router": {
+      "dependencies": []
+    },
+    "command-guard": {
+      "dependencies": []
+    },
+    "secret-scanning": {
+      "dependencies": []
+    },
+    "payments": {
+      "dependencies": []
+    },
+    "llm-app": {
+      "dependencies": []
+    },
+    "ultra-deep-research": {
+      "dependencies": []
+    },
+    "fresh-take": {
+      "dependencies": []
+    },
+    "terse": {
+      "dependencies": []
+    },
+    "design-lab": {
+      "dependencies": []
+    }
+  }
+}

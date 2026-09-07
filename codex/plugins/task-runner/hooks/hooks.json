@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/scope.sh PostToolUse 'Edit|Write|MultiEdit'",
+            "timeout": 5
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit|apply_patch"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/completion-gate.sh Stop '*'",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/rv-consent.sh PreToolUse 'Write|Edit|MultiEdit|Bash'",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit|Bash|apply_patch|exec_command|shell_command|shell"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" --notice 'Codex compatibility: Transcript drift detection is unavailable. Recheck the user request and active scope before each work batch. Claude Agent dispatch observation is unavailable. Record reviewer results explicitly using task-runner scripts. Completion state and HEAD checks remain active; transcript-based reduction disclosure checks are unavailable. Explicitly name every reduction and its reason in the closing report.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

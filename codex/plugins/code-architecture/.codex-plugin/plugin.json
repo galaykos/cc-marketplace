@@ -1,0 +1,28 @@
+{
+  "name": "code-architecture",
+  "version": "0.13.17+codex.1127d4258385",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "process",
+    "quality"
+  ],
+  "description": "Codex adaptation of code-architecture: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Code Architecture",
+    "shortDescription": "code-architecture workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of code-architecture: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use code-architecture for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

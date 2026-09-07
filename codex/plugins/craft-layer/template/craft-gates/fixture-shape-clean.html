@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relaydeck — composition fixture, the passing shape</title>
+    <!--
+      craft-layer composition fixture — THE CLEAN CONTROL for
+      `fixture-shape.html`. Same product, the same six sections in the same
+      order, and the same copy word for word.
+
+      What changed is only the SPATIAL STRUCTURE. This page draws "Asymmetric
+      split" and builds it: a sticky rail held against a moving column, two
+      full-bleed panels that take no fixed measure at all, and a spanning grid
+      whose cells are not equal. That is a page that decided.
+
+      `composition-shape` MUST PASS here, and it must pass for the RIGHT reason
+      — not because the check is lenient but because both of its conditions are
+      genuinely absent: no single measure carries 70% of the containers, and
+      the escapes (sticky, absolute, col-span, w-screen) outnumber one per two
+      sections. A run where this fixture fails has turned the check into a tax
+      on any page with a container in it.
+    -->
+  </head>
+  <body>
+    <main>
+      <!-- full-bleed: no fixed measure at all -->
+      <section class="w-screen">
+        <div class="px-8 py-32">
+          <h1>Relaydeck</h1>
+          <p>Ship queue telemetry your on-call actually reads.</p>
+          <a href="#start">Book a walkthrough</a>
+        </div>
+      </section>
+
+      <!-- the asymmetric split: a fixed rail against a moving column -->
+      <section>
+        <div class="grid grid-cols-12 gap-8 px-8 py-24">
+          <aside class="sticky top-0 col-span-4 self-start">
+            <h2>Who it is for</h2>
+          </aside>
+          <div class="col-span-8">
+            <p>Teams running more than one queue and fewer than ten engineers on call.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="mx-auto max-w-2xl px-5 py-20">
+          <h2>Why dashboards go unread</h2>
+          <p>A dashboard that shows everything at once is a dashboard nobody opens twice.</p>
+        </div>
+      </section>
+
+      <!-- layered: the plate occludes the copy rather than sitting under it -->
+      <section class="relative">
+        <div class="mx-auto max-w-5xl px-5 py-28">
+          <h2>How it works</h2>
+          <p>Relaydeck watches the queue depth and pages only on the shape of a backlog, not its size.</p>
+          <figure class="absolute inset-x-0 bottom-0" aria-hidden="true"></figure>
+        </div>
+      </section>
+
+      <!-- full-bleed again, with its own local logic -->
+      <section class="w-screen">
+        <div class="grid grid-cols-3 px-8 py-24">
+          <div class="col-span-2">
+            <h2>What it costs</h2>
+            <p>Flat per-queue pricing. No seat count, no ingest tier.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="mx-auto max-w-md px-5 py-20">
+          <h2 id="start">Start</h2>
+          <p>Two weeks, no card.</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

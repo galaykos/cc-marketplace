@@ -1,0 +1,524 @@
+{
+  "name": "cc-plugins-codex",
+  "interface": {
+    "displayName": "CC Plugins for Codex"
+  },
+  "plugins": [
+    {
+      "name": "ui-ux",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/ui-ux"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "craft-layer",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/craft-layer"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "laravel",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/laravel"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "code-architecture",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/code-architecture"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "taskmaster",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/taskmaster"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "git-workflow",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/git-workflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "debugging",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/debugging"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "task-runner",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/task-runner"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "stack-scan",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/stack-scan"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "plugin-scout",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/plugin-scout"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "vercel-skills-scout",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/vercel-skills-scout"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "testing",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/testing"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "security",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/security"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "api-design",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/api-design"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "web-dev",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/web-dev"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "system-design",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/system-design"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "devops",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/devops"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "database",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/database"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "code-review",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/code-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "approaches",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/approaches"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "hindsight",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/hindsight"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "brain",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/brain"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "resilience",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/resilience"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "orchestration",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/orchestration"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "candor",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/candor"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "lean",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/lean"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "frontend-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/frontend-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "craft-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/craft-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "php-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/php-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "quality-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/quality-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "quality-principles-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/quality-principles-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "process-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/process-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "taskmaster-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/taskmaster-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "always-on-suite",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/always-on-suite"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "skill-router",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/skill-router"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "command-guard",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/command-guard"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "secret-scanning",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/secret-scanning"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "payments",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/payments"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "llm-app",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/llm-app"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "ultra-deep-research",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/ultra-deep-research"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "fresh-take",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/fresh-take"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "terse",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/terse"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "design-lab",
+      "source": {
+        "source": "local",
+        "path": "./codex/plugins/design-lab"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

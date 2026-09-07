@@ -1,0 +1,30 @@
+{
+  "name": "devops",
+  "version": "0.6.4+codex.9575698fcf30",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "devops",
+    "pipeline",
+    "review",
+    "worker"
+  ],
+  "description": "Codex adaptation of devops: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Devops",
+    "shortDescription": "devops workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of devops: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use devops for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

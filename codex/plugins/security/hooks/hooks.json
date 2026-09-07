@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/write-scan.sh PostToolUse 'Write|Edit|MultiEdit'",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit|apply_patch"
+      }
+    ]
+  }
+}

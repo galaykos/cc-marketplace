@@ -1,0 +1,146 @@
+---
+name: ultra-deep-research
+description: "Use when a question needs a deep, multi-source, fact-checked answer with the latest data — deep-research requests, competitive/market/technical scans, any claim that must be corroborated and dated."
+---
+
+Read [the Codex execution contract](../../references/codex.md) before using helpers or delegating.
+
+# Ultra Deep Research
+
+Produce answers that survive scrutiny: every load-bearing claim corroborated by
+independent quality sources, date-stamped, and attacked before it is trusted.
+The failure mode of research is confident wrongness — a plausible claim echoed
+across low-quality pages that all copied one unverified origin. This harness is
+built to catch exactly that.
+
+## Depth ladder
+
+Pick depth from the ask; `ultra-deep-research` (or `--ultra`) forces the top rung.
+
+- **standard** — portable parallel-Agent fan-out, one refutation pass. Default.
+- **ultra** — Workflow-driven `loop-until-dry` fan-out with multi-vote refutation
+  panels and a completeness critic. Fires on the `ultra-deep-research` trigger, on
+  `--ultra`, or when the topic is high-stakes/contested. Needs the Workflow tool
+  (ultracode / explicit opt-in); if unavailable, run the standard path with extra
+  rounds instead of failing.
+
+Read `references/orchestration.md` for the exact fan-out and Workflow scripts.
+
+## The loop
+
+1. **Scope & decompose.** Restate the question in one line. Split it into 4–8
+   orthogonal facets (sub-questions) that together cover it with no overlap. Mark
+   each facet `time-sensitive` if its answer depends on recent events — those
+   demand fresh sources and an explicit "as of <date>".
+2. **Fan out.** One `researcher` subagent per facet, in parallel (standard) or as a
+   Workflow pipeline (ultra). Each shard runs several search angles, fetches the top
+   3–5 sources, and returns **atomic claims** — one fact each, with a verbatim-grounded
+   quote, the source URL, its publication date, and a source tier. No claim without a
+   page the shard actually fetched. Fabricated or unfetched URLs are disqualifying.
+3. **Tier & corroborate.** Weight every claim by source tier (see below). A
+   load-bearing claim needs **≥2 independent Tier-1/2 sources** that do not trace to
+   the same origin. One source, or many that circularly cite one blog, is `unconfirmed`.
+4. **Refute.** Route each load-bearing claim to the `verifier` subagent, which tries
+   to *break* it: does the cited page actually say this, is it current, is the
+   citation circular, is there stronger counter-evidence? Standard = one refuter;
+   ultra = a panel voting, majority-refute kills the claim. Survivors are `confirmed`;
+   the rest are downgraded or dropped — an unfetchable source lands `unconfirmed`,
+   never `contested` (unreadable is not disagreement). **Capped at 24 verifier
+   dispatches per round** (claims × votes): rank by how much the answer leans on each,
+   verify down to the cap, carry the rest `unconfirmed`, and name the deferred count.
+   **Lint every verdict before trusting it:** pipe each verifier return through
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh` — a `confirmed` that fails
+   the lint (no verbatim quote, no retrieval timestamp, or empty corroboration) is
+   DEMOTED to `contested`, never patched up on the verifier's behalf. The lint is a
+   format gate only; whether the quote is real stays your judgment. Stated limitation:
+   verification is one-directional — the researcher never sees or answers a
+   refutation, so a claim killed on a misread source dies undefended. The
+   majority-vote panel is the mitigation, not a cure.
+5. **Ledger contradictions.** Where sources disagree, never silently average. Record
+   the disagreement, then adjudicate by an ordered rule: (1) for volatile facts
+   (versions, prices, dates, live status) the more recent of two Tier-1/2 sources wins,
+   even one tier step lower; (2) otherwise the higher tier wins; (3) within the same
+   tier, primary beats secondary; (4) still tied → ship it as an open `contested`
+   contradiction, never a silent pick.
+6. **Gap check (ultra: loop-until-dry).** A completeness critic asks: which facet is
+   thin, which claim is still unconfirmed, which fact is stale? Spawn another round on
+   the gaps. Repeat until two consecutive rounds surface nothing new, **capped at 3
+   rounds**, or the budget is spent — then say what was left uncovered rather than
+   implying full coverage. The cap is the enforceable ceiling; two-dry is the quality
+   exit and the budget check is advisory, so a run that keeps finding gaps still ends.
+
+## Local corpus, one authoritative source
+
+When the subject is a document rather
+than a question — a contract, an RFP, a standard, a filing, a long PDF — read
+`references/local-corpus.md` FIRST and swap the corroboration engine for a coverage
+engine. Refuting a clause against the open web is a category error: there is one
+source and it is authoritative by definition. The deliverable becomes a coverage
+manifest (pages read, pages NOT read and why, pages unreadable) written before any
+claim, page/clause anchors on everything load-bearing, and "the document does not
+say X" kept strictly apart from "the document says the opposite". Note the harness
+cap while planning: `Read` takes at most 20 PDF pages per request, so one naive
+call returns a prefix and reports it as the whole.
+
+## The loop, continued
+
+7. **Synthesize.** Write the report per `references/report-template.md`: direct answer
+   first, per-section confidence, inline `[n]` citations, contradiction ledger, tiered
+   source list, and open questions. Print it inline **and** write it to
+   `research/<slugged-topic>-<YYYY-MM-DD>.md` (create `research/`; use the scratchpad
+   dir if the project is read-only).
+
+## Source tiers
+
+Rank every source and let the tier drive its weight:
+
+- **Tier 1 — primary/authoritative.** Official docs, standards, filings, court records,
+  datasets, original research, first-party statements, the actual code/spec.
+- **Tier 2 — reputable secondary.** Established press with editorial standards,
+  peer-reviewed literature, recognized domain institutions.
+- **Tier 3 — tertiary.** Blogs, forums, wikis, vendor marketing — usable for leads and
+  color, never as sole support for a load-bearing claim.
+- **Tier 4 — low-trust.** SEO farms, undated content, unattributed AI text, circular
+  aggregators. Use only to locate a primary source; never cite as evidence.
+
+Always resolve a claim to where it **originated**, not to whoever echoed it last.
+
+## Accuracy rules (non-negotiable)
+
+- **Date everything.** Stamp each claim with its source date; lead time-sensitive
+  answers with "as of <date>". Treat undated pages as low-trust.
+- **Ground every claim** in text the source actually contains; if the page doesn't
+  support it on re-read, drop it.
+- **Separate fact from inference from speculation** — label the latter two.
+- **Report the negative space.** State what you could not verify or find as plainly as
+  what you confirmed. "Not found" is a result.
+- **Confidence is earned:** High = multiple independent Tier-1/2, survived refutation;
+  Medium = limited corroboration or minor conflict; Low = single/weak source or
+  contested. Show the reason, never a bare label.
+- **No fabrication.** Never invent URLs, dates, quotes, or figures. An honest gap beats
+  a confident guess.
+
+## Prompt hardening
+
+Every fan-out shard and refuter inherits these instructions verbatim — they are
+what turns a generic web summary into a defensible finding:
+
+- "Prefer primary sources. Name each source's publication date. If you cannot
+  confirm a claim, say so — do not fill the gap with a guess."
+- "Quote the exact sentence that supports each claim. If the page does not contain
+  it, discard the claim."
+- "Only cite pages you actually opened. Never construct a plausible-looking URL."
+- "Distinguish what the source *states* from what you *infer*. Label inference."
+- "When two sources conflict, report both and trace each to its origin — do not
+  pick one silently."
+- "State what you searched for and found nothing on. Absence is data."
+
+Pass the caller's domain constraints too (region, timeframe, language, jurisdiction);
+an unscoped query drifts to the loudest, not the most relevant, result.
+
+## When to stop
+
+Stop when every load-bearing claim is `confirmed` or explicitly flagged
+`unconfirmed`/`contested`, the contradiction ledger is settled or surfaced, and the
+gap check comes back dry. Ship the report with its open questions — do not pad thin
+findings into false certainty.

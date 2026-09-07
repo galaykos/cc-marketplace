@@ -1,0 +1,29 @@
+{
+  "name": "laravel",
+  "version": "0.7.5+codex.d975ee0f9a91",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "backend",
+    "review",
+    "worker"
+  ],
+  "description": "Codex adaptation of laravel: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Laravel",
+    "shortDescription": "laravel workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of laravel: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use laravel for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

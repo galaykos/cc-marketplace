@@ -1,0 +1,29 @@
+{
+  "name": "terse",
+  "version": "0.5.1+codex.1eded49a1b9f",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "generic",
+    "quality",
+    "hooks"
+  ],
+  "description": "Codex adaptation of terse: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Terse",
+    "shortDescription": "terse workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of terse: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use terse for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

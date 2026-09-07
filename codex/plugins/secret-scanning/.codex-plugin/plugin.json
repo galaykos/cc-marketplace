@@ -1,0 +1,28 @@
+{
+  "name": "secret-scanning",
+  "version": "0.4.2+codex.d64723773719",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "security",
+    "hooks"
+  ],
+  "description": "Codex adaptation of secret-scanning: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Secret Scanning",
+    "shortDescription": "secret-scanning workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of secret-scanning: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use secret-scanning for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

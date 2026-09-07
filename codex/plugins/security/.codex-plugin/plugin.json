@@ -1,0 +1,29 @@
+{
+  "name": "security",
+  "version": "0.8.0+codex.fb5488685cb8",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "security",
+    "review",
+    "worker"
+  ],
+  "description": "Codex adaptation of security: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Security",
+    "shortDescription": "security workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of security: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use security for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

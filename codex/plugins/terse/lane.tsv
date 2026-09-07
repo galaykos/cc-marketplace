@@ -1,0 +1,9 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+terse:terse-builder	agent	build	bounded-two-file-edit	the change is already decided and touches at most 2 files	task-runner:task-executor
+terse:terse-investigator	agent	understand	where-is-it-lookup	the question is WHERE (definition, callers, uses, directory map) and the answer is a file-and-line table	-
+terse:terse-reviewer	agent	review	stack-agnostic-diff-review	a diff, branch, or file needs one line per finding and the review itself is not the deliverable	code-review:code-reviewer
+terse:mode	hook	any	reply-verbosity-mode	prompt head carries an explicit terse on/off/level directive	-

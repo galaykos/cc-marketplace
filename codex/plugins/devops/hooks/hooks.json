@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/workflow-guard.sh PreToolUse 'Write|Edit|MultiEdit'",
+            "timeout": 15
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit|apply_patch"
+      }
+    ]
+  }
+}

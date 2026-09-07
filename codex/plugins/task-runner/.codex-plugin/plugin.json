@@ -1,0 +1,29 @@
+{
+  "name": "task-runner",
+  "version": "0.31.6+codex.dca85420d9f0",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "worker",
+    "process",
+    "generic"
+  ],
+  "description": "Codex adaptation of task-runner: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Task Runner",
+    "shortDescription": "task-runner workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of task-runner: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use task-runner for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

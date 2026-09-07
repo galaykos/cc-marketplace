@@ -1,0 +1,59 @@
+<!--
+  Starter: Landing page — hero, proof strip, feature grid, pricing teaser.
+  Suits axis passes like hero-emphasis-vs-proof-emphasis or feature-grid
+  density. The nav is persistent chrome: it sits OUTSIDE the data-state
+  blocks (no data-state attribute) so it stays visible while the body swaps
+  per state. Copy the whole fragment into a frame's `.vd-content` — see
+  ../shell-authoring.md for the copy steps.
+-->
+<div class="vd-nav">
+  <span class="vd-brand">Wayfare</span>
+  <a href="#" aria-current="page">Product</a>
+  <a href="#">Pricing</a>
+  <a href="#">Docs</a>
+  <button type="button" class="vd-btn vd-primary">Start free trial</button>
+</div>
+
+<div data-state="populated">
+  <div class="vd-detail">
+    <h3>Ship customer onboarding in days, not quarters</h3>
+    <p>Wayfare wires your product tour, checklist, and lifecycle emails from
+      one flow builder — no engineering ticket.</p>
+    <div class="vd-kpis">
+      <div class="vd-kpi"><b>2,480</b><span>teams onboarded</span></div>
+      <div class="vd-kpi"><b>63%</b><span>faster activation</span></div>
+      <div class="vd-kpi"><b>4.8 / 5</b><span>G2 rating</span></div>
+    </div>
+  </div>
+  <div class="vd-cards">
+    <div class="vd-card">
+      <h4>Guided checklists</h4>
+      <p class="vd-meta">Step new accounts through setup with progress tracked per workspace.</p>
+    </div>
+    <div class="vd-card">
+      <h4>In-app tours</h4>
+      <p class="vd-meta">Spotlight a new feature without shipping a release for the tour itself.</p>
+    </div>
+    <div class="vd-card">
+      <h4>Lifecycle emails</h4>
+      <p class="vd-meta">Trigger nudges off product events instead of a static drip schedule.</p>
+    </div>
+  </div>
+  <div class="vd-toolbar">
+    <span class="vd-chip vd-ok">Starter — $29/mo</span>
+    <span class="vd-chip">Growth — $99/mo</span>
+    <span class="vd-chip">Scale — $349/mo</span>
+    <button type="button" class="vd-btn vd-primary">Compare plans</button>
+  </div>
+</div>
+
+<div data-state="empty">
+  <div class="vd-empty">
+    No sections published yet.
+    <div><button type="button" class="vd-btn vd-primary">Add a hero section</button></div>
+  </div>
+</div>
+
+<div data-state="loading">
+  <div class="vd-empty">Loading page preview…</div>
+</div>

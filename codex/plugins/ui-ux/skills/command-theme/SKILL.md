@@ -1,0 +1,50 @@
+---
+name: command-theme
+description: "Create or restyle a CSS-variable UI theme (shadcn/ReUI/Aceternity, Tailwind, or Bootstrap) with a live preview URL for the colours"
+---
+
+Read [the Codex execution contract](../../references/codex.md) before using helpers or delegating.
+
+Build a UI theme for this project from the user-supplied arguments (a brand color, a vibe like
+"warm editorial", or a reference site). Invoke the `theming-system` skill for the
+role DIRECTION (metaphor→surfaces, voice→type, mood→chroma), then `shadcn-theming`
+for the VALUES, and follow both exactly. Loading only the value skill discards the
+derivation at the stage that writes the numbers, which is how a concept becomes an
+accent swap.
+
+1. Resolve the STACK before anything else — detect, do not ask blind. Read
+   `components.json` (cssVariables, baseColor), `package.json`/lockfile for
+   `bootstrap` vs `tailwindcss`, any `.scss` importing `bootstrap/scss/bootstrap`,
+   the current `globals.css` token blocks, and the Tailwind major version; if
+   the stack-scan plugin is installed, reuse its inventory. Collect EVERY
+   signal before deciding — not a first-match cascade, or a migration resolves
+   to whichever rule you happened to check first. `components.json` +
+   `tailwindcss` is ONE signal (shadcn is Tailwind-based), not two. Then:
+   - exactly one signal → state the detected stack in one line and continue;
+   - two genuinely different ones (Bootstrap + Tailwind), or none at all → ask via
+     a user question using the available interaction tool which target this theme is for: shadcn / ReUI / Aceternity
+     (shadcn CSS variables) · Tailwind semantic tokens · Bootstrap (Sass
+     `$variables`).
+   The skill's `references/token-vocabularies.md` holds the per-stack mapping,
+   the Bootstrap traps (`-rgb` companions, `[data-bs-theme="dark"]`, no
+   `-foreground` pairing), and the detection rules. Read it for anything but
+   plain shadcn.
+2. If the user-supplied arguments is empty, ask for direction in one round: brand color or hue
+   family, light/dark priority, and any reference the user wants to echo.
+3. Generate up to 3 candidate token sets (light + dark each, contrast-checked),
+   write `taskmaster-docs/mockups/theme.html`, reuse-or-start the shared preview
+   server (port `${PREVIEW_PORT:-8123}`), and give the user the stable URL.
+   Build and serve the page per `shadcn-theming` §"The live theme preview"
+   (the `theme-shell.html` starter, viewport control, light and dark side by
+   side). It decides COLOUR, not component look — say so rather than implying
+   the page shows the user's app. Never publish the preview as a remote
+   artifact; the decision lives on the local URL.
+4. Iterate per the skill's protocol: one axis per round, picks via
+   a user question using the available interaction tool, regenerate in place so the open tab reloads itself.
+5. On acceptance: show the diff against the real target for the detected stack —
+   `globals.css` (plus `tailwind.config` mappings on v3), or the Sass partial
+   holding `$variables` before the Bootstrap import — then offer the write as a
+   selectable choice (a user question using the available interaction tool): "Apply this theme now (Recommended)" /
+   "Skip — keep the preview only"; write only on the first option. Kill the
+   preview server only if this flow started it (other flows share it), then
+   report the final token block and where it was written.

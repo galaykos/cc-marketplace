@@ -1,0 +1,31 @@
+---
+name: command-plan
+description: "Dry-run parallelization plan — dependency levels, parallel groups, subagent count, speedup estimate, inline-vs-delegate verdict. No execution."
+---
+
+Read [the Codex execution contract](../../references/codex.md) before using helpers or delegating.
+
+Run the parallel-planning skill from this plugin on the user-supplied arguments (a taskmaster
+`00-INDEX.md`, a tasks directory, a plan document, or an inline list; default:
+the most recent `taskmaster-docs/tasks/*/00-INDEX.md`).
+
+1. Build the dependency graph and per-task file sets from the list.
+2. Compute levels, parallel groups, critical path, and the speedup estimate
+   per the skill's model — show the arithmetic, not just the verdict, and
+   label every speedup figure `(heuristic, unmeasured)`.
+3. Output the run-plan table (level / tasks / mode / agents / est. wall-clock)
+   and the one-line verdict with its reason, plus the run-level **`Dispatch:`**
+   recommendation (`{default, workflow-tracks}` — see
+   `skills/parallel-planning/references/dispatch-selection.md`). `BATCH` levels
+   and the `Dispatch:` line are part of the same computed plan.
+4. Do NOT execute yet. Offer the next step as a selectable choice
+   (a user question using the available interaction tool): "Run now with this plan (Recommended)" / "Stop here".
+   On "Run now", proceed exactly as `task-runner:command-run <list>` would, using the
+   computed run-level machinery (the `Dispatch:` pick — `default` or, at this
+   confirmation, `workflow-tracks`) with the per-level `INLINE`/`DELEGATE`/`BATCH`
+   verdicts as the within-run schedule. Print the bare command only when headless.
+
+**Goal marker** — when the list's `00-INDEX.md` carries `Goal: true` (hands-off,
+requires task-runner ≥0.11.0), the step-4 a user question using the available interaction tool is auto-taken to the computed
+verdict ("Run now with this plan"): proceed exactly as `task-runner:command-run <list>` would,
+no prompt. Halts and the completion gate still surface.

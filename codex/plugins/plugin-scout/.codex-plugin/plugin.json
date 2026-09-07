@@ -1,0 +1,27 @@
+{
+  "name": "plugin-scout",
+  "version": "0.15.3+codex.c9efaa4a103e",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling"
+  ],
+  "description": "Codex adaptation of plugin-scout: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Plugin Scout",
+    "shortDescription": "plugin-scout workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of plugin-scout: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use plugin-scout for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

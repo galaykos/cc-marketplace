@@ -1,0 +1,28 @@
+{
+  "name": "approaches",
+  "version": "0.6.23+codex.606f5adbbd4f",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "process",
+    "planning"
+  ],
+  "description": "Codex adaptation of approaches: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Approaches",
+    "shortDescription": "approaches workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of approaches: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use approaches for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

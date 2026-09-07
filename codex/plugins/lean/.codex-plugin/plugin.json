@@ -1,0 +1,30 @@
+{
+  "name": "lean",
+  "version": "0.1.4+codex.63d9b5867182",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "generic",
+    "quality",
+    "process",
+    "hooks"
+  ],
+  "description": "Codex adaptation of lean: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Lean",
+    "shortDescription": "lean workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of lean: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use lean for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

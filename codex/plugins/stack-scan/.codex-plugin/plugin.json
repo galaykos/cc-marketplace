@@ -1,0 +1,27 @@
+{
+  "name": "stack-scan",
+  "version": "0.6.2+codex.ff8de85cc6b2",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling"
+  ],
+  "description": "Codex adaptation of stack-scan: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Stack Scan",
+    "shortDescription": "stack-scan workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of stack-scan: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use stack-scan for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

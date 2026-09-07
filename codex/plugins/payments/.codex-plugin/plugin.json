@@ -1,0 +1,29 @@
+{
+  "name": "payments",
+  "version": "0.2.2+codex.10a4bee937a3",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "backend",
+    "security",
+    "review"
+  ],
+  "description": "Codex adaptation of payments: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Payments",
+    "shortDescription": "payments workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of payments: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use payments for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

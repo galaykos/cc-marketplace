@@ -1,0 +1,124 @@
+<!--
+  Starter: App shell — persistent left sidenav wrapping a workspace list.
+  Suits axis passes like sidenav-vs-topbar or rail-collapsed-vs-expanded. The
+  vd-app chrome — workspace switcher, section nav (one vd-i icon each), user
+  vd-avatar row, and the main-pane toolbar — is repeated verbatim inside every
+  state block so it reads as persistent while only the main body swaps. That
+  duplication is deliberate, the same technique dialog.html uses for its
+  backdrop: the sidenav must sit as a grid column beside the main pane, yet the
+  state toggle only swaps direct children of `.vd-content`, so the chrome can't
+  be a plain sibling here. States: populated / empty / loading / error. Copy the
+  whole fragment into a frame's `.vd-content` — see ../shell-authoring.md.
+-->
+<div data-state="populated">
+  <div class="vd-app">
+    <div class="vd-layout">
+      <nav class="vd-sidenav" aria-label="Primary">
+        <a href="#"><span class="vd-avatar">H</span> <b>Harbor Billing</b></a>
+        <a href="#" aria-current="page"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-home"/></svg> Home</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-user"/></svg> Accounts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-check"/></svg> Tasks</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-bell"/></svg> Alerts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-settings"/></svg> Settings</a>
+        <a href="#"><span class="vd-avatar">PR</span> Priya Raman</a>
+      </nav>
+      <div>
+        <h3>Invoices</h3>
+        <div class="vd-toolbar">
+          <input class="vd-input" placeholder="Search invoices" aria-label="Search invoices" />
+          <button type="button" class="vd-btn vd-primary">New invoice</button>
+        </div>
+        <table class="vd-table">
+          <thead>
+            <tr><th scope="col">Invoice</th><th scope="col">Customer</th><th scope="col" class="vd-num">Amount</th><th scope="col">Due</th><th scope="col">Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>INV-4821</td><td>Northwind Traders</td><td class="vd-num">$1,240.00</td><td>Jul 22, 2026</td><td><span class="vd-chip vd-ok">Paid</span></td></tr>
+            <tr><td>INV-4822</td><td>Fenwick &amp; Co</td><td class="vd-num">$680.50</td><td>Jul 3, 2026</td><td><span class="vd-chip vd-warn">Overdue 12 days</span></td></tr>
+            <tr><td>INV-4823</td><td>Meridian Logistics</td><td class="vd-num">$3,412.00</td><td>Jul 28, 2026</td><td><span class="vd-chip vd-ok">Paid</span></td></tr>
+            <tr><td>INV-4824</td><td>Aster Foods</td><td class="vd-num">$912.75</td><td>Aug 4, 2026</td><td><span class="vd-chip vd-neutral">Draft</span></td></tr>
+          </tbody>
+        </table>
+        <div class="vd-pager"><span>Showing 4 of 57</span><span>Page 1 of 15</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-state="empty">
+  <div class="vd-app">
+    <div class="vd-layout">
+      <nav class="vd-sidenav" aria-label="Primary">
+        <a href="#"><span class="vd-avatar">H</span> <b>Harbor Billing</b></a>
+        <a href="#" aria-current="page"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-home"/></svg> Home</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-user"/></svg> Accounts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-check"/></svg> Tasks</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-bell"/></svg> Alerts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-settings"/></svg> Settings</a>
+        <a href="#"><span class="vd-avatar">PR</span> Priya Raman</a>
+      </nav>
+      <div>
+        <h3>Invoices</h3>
+        <div class="vd-toolbar">
+          <input class="vd-input" placeholder="Search invoices" aria-label="Search invoices" />
+          <button type="button" class="vd-btn vd-primary">New invoice</button>
+        </div>
+        <div class="vd-empty">
+          No invoices in this workspace yet.
+          <div><button type="button" class="vd-btn vd-primary">Create your first invoice</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-state="loading">
+  <div class="vd-app">
+    <div class="vd-layout">
+      <nav class="vd-sidenav" aria-label="Primary">
+        <a href="#"><span class="vd-avatar">H</span> <b>Harbor Billing</b></a>
+        <a href="#" aria-current="page"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-home"/></svg> Home</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-user"/></svg> Accounts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-check"/></svg> Tasks</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-bell"/></svg> Alerts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-settings"/></svg> Settings</a>
+        <a href="#"><span class="vd-avatar">PR</span> Priya Raman</a>
+      </nav>
+      <div>
+        <h3>Invoices</h3>
+        <div class="vd-toolbar">
+          <input class="vd-input" placeholder="Search invoices" aria-label="Search invoices" />
+          <button type="button" class="vd-btn vd-primary">New invoice</button>
+        </div>
+        <div class="vd-empty">Loading invoices…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-state="error">
+  <div class="vd-app">
+    <div class="vd-layout">
+      <nav class="vd-sidenav" aria-label="Primary">
+        <a href="#"><span class="vd-avatar">H</span> <b>Harbor Billing</b></a>
+        <a href="#" aria-current="page"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-home"/></svg> Home</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-user"/></svg> Accounts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-check"/></svg> Tasks</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-bell"/></svg> Alerts</a>
+        <a href="#"><svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-settings"/></svg> Settings</a>
+        <a href="#"><span class="vd-avatar">PR</span> Priya Raman</a>
+      </nav>
+      <div>
+        <h3>Invoices</h3>
+        <div class="vd-toolbar">
+          <input class="vd-input" placeholder="Search invoices" aria-label="Search invoices" />
+          <button type="button" class="vd-btn vd-primary">New invoice</button>
+        </div>
+        <div class="vd-alert vd-err">
+          Couldn't load invoices — the billing service is unreachable.
+          <div><button type="button" class="vd-btn">Retry</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

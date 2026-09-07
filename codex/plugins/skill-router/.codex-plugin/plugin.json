@@ -1,0 +1,28 @@
+{
+  "name": "skill-router",
+  "version": "0.14.12+codex.dff87eef9e24",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "tooling",
+    "hooks"
+  ],
+  "description": "Codex adaptation of skill-router: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skill Router",
+    "shortDescription": "skill-router workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of skill-router: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use skill-router for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

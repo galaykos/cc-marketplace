@@ -1,0 +1,29 @@
+{
+  "name": "always-on-suite",
+  "version": "0.3.0+codex.a8f6c6fd20cc",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "suite",
+    "generic",
+    "hooks"
+  ],
+  "description": "Codex adaptation of always-on-suite: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Always On Suite",
+    "shortDescription": "always-on-suite workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of always-on-suite: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use always-on-suite for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

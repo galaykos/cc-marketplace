@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "registry-source": {
+      "command": "node",
+      "args": [
+        "mcp/server.mjs"
+      ],
+      "cwd": "."
+    },
+    "reui": {
+      "type": "http",
+      "url": "https://mcp.reui.io"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "craft-suite",
+  "version": "0.4.2+codex.662aad3b3863",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "suite",
+    "frontend",
+    "ui-ux"
+  ],
+  "description": "Codex adaptation of craft-suite: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Craft Suite",
+    "shortDescription": "craft-suite workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of craft-suite: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use craft-suite for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

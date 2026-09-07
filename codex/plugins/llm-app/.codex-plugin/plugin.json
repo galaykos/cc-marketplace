@@ -1,0 +1,28 @@
+{
+  "name": "llm-app",
+  "version": "0.2.1+codex.c8c895f300a5",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "backend",
+    "review"
+  ],
+  "description": "Codex adaptation of llm-app: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Llm App",
+    "shortDescription": "llm-app workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of llm-app: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use llm-app for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "ui-ux",
+  "version": "0.20.3+codex.a74ff1014c8f",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "ui-ux",
+    "frontend",
+    "review",
+    "worker"
+  ],
+  "description": "Codex adaptation of ui-ux: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Ui Ux",
+    "shortDescription": "ui-ux workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of ui-ux: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use ui-ux for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

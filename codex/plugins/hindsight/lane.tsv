@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+hindsight:transcript-miner	agent	review	session-transcript-mining	dispatched by the hindsight:command-harvest fan-out, one per selected session JSONL	-
+hindsight:claude-md	command	review	claude-md-audit	invoked as hindsight:command-claude-md	-

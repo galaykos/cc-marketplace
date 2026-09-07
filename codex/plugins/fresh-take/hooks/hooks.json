@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/remind.sh UserPromptSubmit '*'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

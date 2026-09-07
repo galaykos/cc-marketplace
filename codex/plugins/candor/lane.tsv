@@ -1,0 +1,8 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+candor:gate	hook	any	unresolved-assertion	Stop whose final message cites a file:line that does not resolve, or retracts a position after challenge-shaped pushback with no tool call in between	code-architecture:evidence-gate
+candor:check	command	verify	candour-transcript-measurement	the user asks how flattering, apologetic, defensive or unbacked this session's replies have been	terse:check
+candor:straight-talk	skill	any	claim-reversal-discipline	a claim is challenged or about to be reversed, or an honest unflattering read of the user's own work is asked for	-

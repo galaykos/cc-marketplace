@@ -1,0 +1,28 @@
+{
+  "name": "taskmaster",
+  "version": "0.41.7+codex.3b649d1a0568",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "planning",
+    "process"
+  ],
+  "description": "Codex adaptation of taskmaster: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Taskmaster",
+    "shortDescription": "taskmaster workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of taskmaster: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use taskmaster for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "command-guard",
+  "version": "0.5.1+codex.3404fbe88dde",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "security",
+    "hooks",
+    "governance"
+  ],
+  "description": "Codex adaptation of command-guard: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Command Guard",
+    "shortDescription": "command-guard workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of command-guard: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use command-guard for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+system-design:system-architect	agent	shape	system-topology-design	work spans more than one service, store, or async boundary	code-architecture:plan
+system-design:system-design-reviewer	agent	review	system-topology-review	a design doc, RFC, or service topology was drafted or changed	-

@@ -1,0 +1,163 @@
+---
+name: authoring-agents
+description: Use when writing or editing a subagent .md — frontmatter (name, description, tools, model, effort), PROACTIVELY phrasing, tool scoping, worker vs reviewer.
+---
+
+## Anatomy
+
+One agent is one markdown file:
+
+    plugins/<plugin>/agents/<agent-name>.md
+
+Frontmatter delimited by dash-fence lines, then a body that becomes the
+agent's entire system prompt:
+
+    ---
+    name: <agent-name>
+    description: Use PROACTIVELY when <situation> — <what it returns>.
+    tools: Read, Grep, Glob
+    model: inherit
+    effort: xhigh
+    ---
+    You are a <role> …
+
+This marketplace's validator (scripts/validate.sh) rejects any agent file
+missing one of the four required keys:
+
+- `name:` — the agent's identifier.
+- `description:` — the dispatch trigger (see below).
+- `model:` — required here; workers default to `inherit` (the session model), pins are deliberate.
+- `effort:` — required here even though agents default to xhigh.
+
+**A pinned agent needs a fifth thing: a classification.** If `model:` is anything other than
+`inherit`, the validator requires either a row in `orchestration:delegation-contracts`
+`references/role-floors.md` (the pin is a FLOOR — dispatch at `max(session, pin)`, never
+below) **or** `floor: none` plus a non-empty `floor-reason:` in the frontmatter (the pin is
+deliberate and must NOT track the session). A row and `floor: none` together is an error —
+a row means floored. Exemptions are printed on every validate run, so they stay visible.
+
+`tools:` is optional — but omitting it grants ALL tools. Always list tools
+explicitly; an unscoped agent is a standing permission grant nobody
+reviewed.
+
+## Model and effort tiers
+
+Match `model:` to the cost of a wrong answer, not to prestige:
+
+- `fable` — the top rung, and the one most often forgotten: the Agent tool's
+  enum is `sonnet|opus|haiku|fable` and `validate.sh` accepts all four. Pin it
+  only where an opus pin would CAP a stronger session — a reasoning role whose
+  verdict must never be weaker than the code it judges. Note the trap this
+  exists to close: `model:` is a ceiling as well as a floor, so an opus-pinned
+  reviewer in a fable session reviews work written by a stronger model than
+  itself. That is what `role-floors.md` computes; read it before pinning.
+- `opus` — judgment-heavy and wrong-answer-expensive: review verdicts
+  (architecture, code), system-design trade-offs, adversarial
+  verification, security exploitability calls.
+- `sonnet` — a deliberate pin for cheap checklist/breadth work (workers
+  default to `inherit`, not a sonnet pin).
+- `haiku` — mechanical locate/grep/report with no judgment in the output.
+
+The ladder is `haiku < sonnet < opus < fable`, and it is the ladder
+`role-floors.md` and `references/model-tier-scoping.md` both reason on. Most
+agents should still ship `inherit`, which reaches fable by itself in a fable
+session at no authoring cost — that is why the roster currently pins fable
+nowhere, and it is a default rather than an oversight.
+
+`effort:` is orthogonal and tunes reasoning depth on the same model:
+sonnet + xhigh buys deep reasoning at worker prices; opus + medium is not
+equivalent — opus has the better raw judgment, sonnet xhigh the better
+cost-per-token. Drop scouts and locators to `high` or below; xhigh on a
+grep-shaped agent only slows the pipeline.
+
+Frontmatter is the static default; the dispatcher can override per
+invocation (the Agent tool's model parameter). Set frontmatter for the
+agent's typical difficulty and let the caller escalate the hard cases.
+
+**Picking a tier.** Default to `inherit` — it tracks the session and needs no
+classification. Pin a tier only for one of two reasons, and they are not the same
+reason. A **Reasoning** role whose depth IS the deliverable (review, adversarial
+check, acceptance judgment) pins the tier it must never drop below and takes a
+`role-floors.md` row, so a stronger session raises it and a weaker one cannot lower
+it. A **breadth or mechanical** role (persona lens, scout, index builder, fan-out
+shard) pins the mid tier its work actually needs and takes `floor: none` with a
+reason — escalating it multiplies cost for no depth. The current roster of both
+lives in `role-floors.md` and its exemption rows; do not restate it here.
+
+Effort is separate and is never floored: `context-scout` ships `inherit` at
+`effort: high`, and fresh-take's `consultant` ships `inherit` because its caller
+escalates it at dispatch — neither is a registry candidate.
+
+## Description as dispatch trigger
+
+The main thread decides whether to delegate from the description alone; the
+body is never consulted at dispatch time.
+
+- Use "Use PROACTIVELY when/for/after …" phrasing to mark agents the main
+  thread should reach for without being asked.
+- Describe the situations that warrant dispatch — file types, events, task
+  shapes — not the agent's virtues. "Expert in X" matches nothing; "Use
+  PROACTIVELY after structural changes or new modules" matches a moment in
+  the workflow.
+- Say what comes back — findings list, diff, file:line table — so the
+  caller knows what to do with the result.
+
+## Tool scoping
+
+Grant the minimum the role needs:
+
+- Reviewers get `Read, Grep, Glob` — they inspect and report; they must not
+  be able to "helpfully" fix what they find.
+- Workers add `Write, Edit, Bash` — they change files and must be able to
+  run verification commands.
+- Anything beyond those six needs a stated reason in the body. Web access,
+  subagent spawning, and MCP tools are almost never needed and only widen
+  the blast radius.
+
+## Body pattern
+
+The agent wakes with zero conversation context; the body must stand alone.
+Structure it as:
+
+1. Role line: "You are a <role> for <domain>." One sentence.
+2. Numbered operating procedure — the steps in order, so the agent does not
+   improvise a workflow.
+3. Domain checklist — the specific things to look for or produce.
+4. Defer rules to sibling plugins: if another plugin owns a rule set, name
+   it and defer instead of copying the rules — duplicated rules drift.
+5. Output-format rule — the exact shape of the final message, stated last
+   so it is freshest when the agent writes its report.
+
+## Worker vs reviewer
+
+Keep the split hard; hybrid agents do both jobs badly.
+
+- Reviewers emit findings, one per line:
+
+      path:line — severity — problem — fix
+
+  No praise, no rewrites, no scope creep into fixing what they found.
+- Workers implement, then MUST show verification evidence: the command they
+  ran and its output. "Done" without output is not done.
+- If a task needs both, dispatch two agents in sequence — worker then
+  reviewer — not one agent with two personalities.
+
+## Common failures
+
+- Trigger overlap. A new agent whose description matches the same moments
+  as an existing agent makes dispatch a coin flip. Diff your description
+  against every installed agent's before adding one. Arbitration rules —
+  name one surface, most-specific-wins — and the `-engineer`/`-reviewer`
+  naming taxonomy: `references/naming-and-triggers.md`.
+- Kitchen-sink agents. One agent covering three domains has a description
+  too broad to dispatch precisely and a body too long to obey. One domain
+  per agent; compose via sequential dispatch instead.
+- Missing `model:` or `effort:` keys — the two most commonly forgotten,
+  because upstream Claude Code treats both as optional defaults. This
+  marketplace's validator does not.
+- Unscoped tools. An omitted `tools:` line reads like a default but is
+  actually a grant of everything, including write and shell access for an
+  agent that only needed to read.
+- Bodies that assume context. Every path, convention, and constraint the
+  agent needs must be in the body or the dispatch prompt — it cannot see
+  the conversation that spawned it.

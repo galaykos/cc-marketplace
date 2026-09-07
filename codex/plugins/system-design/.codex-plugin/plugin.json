@@ -1,0 +1,29 @@
+{
+  "name": "system-design",
+  "version": "0.4.2+codex.6c2380348a61",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "process",
+    "review",
+    "worker"
+  ],
+  "description": "Codex adaptation of system-design: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "System Design",
+    "shortDescription": "system-design workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of system-design: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use system-design for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

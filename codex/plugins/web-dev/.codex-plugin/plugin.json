@@ -1,0 +1,30 @@
+{
+  "name": "web-dev",
+  "version": "0.6.9+codex.d8a5bca900b6",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "frontend",
+    "backend",
+    "worker",
+    "review"
+  ],
+  "description": "Codex adaptation of web-dev: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Web Dev",
+    "shortDescription": "web-dev workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of web-dev: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use web-dev for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

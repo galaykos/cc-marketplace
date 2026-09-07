@@ -1,0 +1,28 @@
+{
+  "name": "git-workflow",
+  "version": "0.5.0+codex.f3bf36d076e3",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "git",
+    "process"
+  ],
+  "description": "Codex adaptation of git-workflow: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Git Workflow",
+    "shortDescription": "git-workflow workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of git-workflow: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use git-workflow for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

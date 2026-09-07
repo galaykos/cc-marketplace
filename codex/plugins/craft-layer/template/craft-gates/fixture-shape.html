@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relaydeck — composition fixture, the defective shape</title>
+    <!--
+      craft-layer composition fixture — THE DEFECTIVE ONE. Its clean control is
+      `fixture-shape-clean.html`: same product, same six sections, same copy,
+      same section order. Only the SPATIAL STRUCTURE differs.
+
+      This is the shape a build lands on when Axis 1 (composition strategy) is
+      drawn and then not built — one measure repeated down the page, a running
+      flow, and not one element that escapes the column. Every other divergence
+      assertion can pass on a page shaped like this, because colour, type,
+      motion and the graphic system are all orthogonal to it. It was caught by
+      a human reading the page, whose words were "it looks like a blog post".
+
+      `composition-shape` MUST FAIL here. Six sections, six `mx-auto max-w-3xl`
+      containers (100% on one measure), zero escapes.
+    -->
+  </head>
+  <body>
+    <main>
+      <section>
+        <div class="mx-auto max-w-3xl px-5 py-20">
+          <h1>Relaydeck</h1>
+          <p>Ship queue telemetry your on-call actually reads.</p>
+          <a href="#start">Book a walkthrough</a>
+        </div>
+      </section>
+
+      <section>
+        <div class="mx-auto max-w-3xl px-5 py-20">
+          <h2>Who it is for</h2>
+          <p>Teams running more than one queue and fewer than ten engineers on call.</p>
+        </div>
+      </section>
+
+      <section>
+        <div class="mx-auto max-w-3xl px-5 py-20">
+          <h2>Why dashboards go unread</h2>
+          <p>A dashboard that shows everything at once is a dashboard nobody opens twice.</p>
+        </div>
+      </section>
+
+      <section>
+        <div class="mx-auto max-w-3xl px-5 py-20">
+          <h2>How it works</h2>
+          <p>Relaydeck watches the queue depth and pages only on the shape of a backlog, not its size.</p>
+        </div>
+      </section>
+
+      <section>
+        <div class="mx-auto max-w-3xl px-5 py-20">
+          <h2>What it costs</h2>
+          <p>Flat per-queue pricing. No seat count, no ingest tier.</p>
+        </div>
+      </section>
+
+      <section>
+        <div class="mx-auto max-w-3xl px-5 py-20">
+          <h2 id="start">Start</h2>
+          <p>Two weeks, no card.</p>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

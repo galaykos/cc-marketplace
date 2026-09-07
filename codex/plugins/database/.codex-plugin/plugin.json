@@ -1,0 +1,29 @@
+{
+  "name": "database",
+  "version": "0.6.4+codex.b62b5a74c07b",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "database",
+    "review",
+    "worker"
+  ],
+  "description": "Codex adaptation of database: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Database",
+    "shortDescription": "database workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of database: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use database for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

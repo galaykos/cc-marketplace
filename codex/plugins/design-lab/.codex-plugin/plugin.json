@@ -1,0 +1,32 @@
+{
+  "name": "design-lab",
+  "version": "0.2.0+codex.9f94fb682982",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "ui-ux",
+    "frontend",
+    "tooling",
+    "research",
+    "navigator"
+  ],
+  "description": "Codex adaptation of design-lab: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Design Lab",
+    "shortDescription": "design-lab workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of design-lab: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use design-lab for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

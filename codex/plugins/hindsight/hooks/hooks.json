@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" --notice 'Codex compatibility: Automatic transcript collection is unavailable. Use the hindsight reflection skill to record outcomes explicitly. Codex does not emit Claude Skill tool events. Record useful skill outcomes explicitly with hindsight.'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

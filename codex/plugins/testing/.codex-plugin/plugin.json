@@ -1,0 +1,29 @@
+{
+  "name": "testing",
+  "version": "0.8.10+codex.7aca84cf8f11",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "testing",
+    "review",
+    "worker"
+  ],
+  "description": "Codex adaptation of testing: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Testing",
+    "shortDescription": "testing workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of testing: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use testing for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

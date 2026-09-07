@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relaydeck — register fixture, the failing shape</title>
+    <!--
+      craft-layer register fixture — THE DEFECTIVE ONE. Its clean control is
+      `fixture-register-clean.html`: SAME product, SAME facts, same eight spine
+      slots answered, same endpoints and the same limits list — the only
+      difference is the register the three BUYER slots are answered in.
+
+      Every offer-spine slot below is ANSWERED, so the presence gate passes
+      green. Every one of the three buyer slots is answered in an INTEGRATOR's
+      voice, so a buyer learns nothing about why they would want it. This is the
+      shape that actually shipped: a landing page that reads as API
+      documentation while every gate reports clean.
+
+      Graded by `divergence.mjs` -> `spine-register`, scoped through
+      `craft/build-task.md`'s `Spine regions:` line to #hero, #status-quo and
+      nothing else. Corpus and mapping:
+      skills/creative-direction/references/register-corpus.md
+
+      The pair is what proves the assertion fails for the RIGHT reason. A check
+      that has never failed on purpose is not known to work — and a check that
+      fires on the clean control is the blunt whole-page grep this one exists
+      to not be.
+    -->
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+      section { padding: 3rem 1.5rem; max-width: 44rem; margin: 0 auto; }
+      h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+      code { background: #f0efe9; padding: 0.1em 0.3em; }
+    </style>
+  </head>
+  <body>
+    <!-- plain-what + audience + cta -->
+    <section id="hero">
+      <p>Relaydeck</p>
+      <h1>Queue a job with <code>POST /api/task</code></h1>
+      <p>
+        Every call carries a Sanctum bearer token minted for the calling
+        workspace. Consumers holding <code>ability:machine</code> may enqueue;
+        anything else is rejected 403 before the handler runs.
+      </p>
+      <p>
+        Built for services that already speak HTTP and hold a client secret.
+      </p>
+      <p><a href="/signup">Start a trial</a></p>
+    </section>
+
+    <!-- problem / status quo -->
+    <section id="status-quo">
+      <h2>Why change</h2>
+      <p>
+        Today's dispatch table has no <code>workspace_id</code> global scope, so
+        every read is a full-table scan and one tenant's backlog delays another's.
+        Rows are soft-deleted rather than archived and the foreign key onto
+        <code>owner_id</code> is nullable, which is why retries fan out.
+      </p>
+    </section>
+
+    <!-- how it works — method disclosure, LEGAL and not checked -->
+    <section id="method">
+      <h2>How it works</h2>
+      <ol>
+        <li>Mint a token: <code>POST /api/v1/tokens</code> with an api key.</li>
+        <li>Enqueue: <code>POST /api/v1/tasks/{queue}</code> with the payload.</li>
+        <li>Poll <code>GET /api/v1/tasks/:id</code> or take the webhook payload.</li>
+      </ol>
+    </section>
+
+    <!-- price -->
+    <section id="pricing">
+      <h2>Pricing</h2>
+      <p>Starter 49 a month. Team 149 a month. Scale, on application.</p>
+    </section>
+
+    <!-- proof -->
+    <section id="proof">
+      <h2>Proof</h2>
+      <blockquote data-metric="illustrative">
+        “{{metric:jobs_per_day}} jobs a day, since March.” — {{customer_name}},
+        illustrative sample
+      </blockquote>
+    </section>
+
+    <!-- objection / limits — CONCRETE ON PURPOSE, and not checked -->
+    <section id="limits">
+      <h2>Limits, and what this is not</h2>
+      <ul>
+        <li>Rate limit: 600 requests per minute per workspace; over it you get 429.</li>
+        <li>A revoked token returns 403 on the next call, not at the next renewal.</li>
+        <li>No scheduler. Relaydeck runs what you hand it, when you hand it over.</li>
+      </ul>
+      <p><a href="/signup">Start a trial</a></p>
+    </section>
+  </body>
+</html>

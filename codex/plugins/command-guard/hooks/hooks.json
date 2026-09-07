@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/destructive-guard.sh PreToolUse 'Bash|.*execute_terminal_command|.*execute_sql_query|.*run_command|.*shell_command|.*run_in_terminal'",
+            "timeout": 15
+          }
+        ],
+        "matcher": "Bash|.*execute_terminal_command|.*execute_sql_query|.*run_command|.*shell_command|.*run_in_terminal|exec_command|shell_command|shell"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/destructive-guard.sh PreToolUse 'Write|Edit|MultiEdit|NotebookEdit'",
+            "timeout": 15
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|apply_patch"
+      }
+    ]
+  }
+}

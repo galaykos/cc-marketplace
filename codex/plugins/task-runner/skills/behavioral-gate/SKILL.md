@@ -1,0 +1,131 @@
+---
+name: behavioral-gate
+description: "Use during run completion (and the tracks merged-branch final gate) — actually runs the produced artifact: test suite via a real runner plus a smoke of each shell entrypoint, not just re-linting."
+---
+
+Read [the Codex execution contract](../../references/codex.md) before using helpers or delegating.
+
+# Behavioral gate
+
+A green run should mean the produced code *works*, but the completion gate has historically
+run "whatever the repo defines" — which for a freshly generated subtree is often a static
+linter (JSON shape, frontmatter, line budgets) that never executes a single line of the new
+code. So an SSRF guard that fails open, a documented flag that is a silent no-op, and a test
+suite that collects zero tests all pass a fully green run. This gate closes that hole: at
+completion it **runs the artifact**, and refuses to certify code it could not exercise.
+
+## The three-gate defense
+
+This gate is the completion-time layer of a three-part defense against green-that-proves-
+nothing; it is deliberately not the whole thing:
+
+1. **Author-time (`taskmaster:verify-teeth`).** Blocks a weak Verify *line* before code
+   exists — the cheap first filter.
+2. **Per-card runtime (negative-control, in `task-execution`).** Proves each card with a
+   resolvable target and an automatable verify — on every dispatch path (inline, delegated,
+   parallel-group, and tracks, plus the crew fix-loop re-check on directly-dispatched
+   cards) — goes RED against a targeted feature disable,
+   that the check discriminates. The residual exempt classes (manual/visual verify lines, an
+   unresolvable `--target`) are skipped with a note, not proven here, and lean on this gate.
+3. **Completion runtime (this gate).** Runs the whole produced artifact once at the end —
+   the suite is non-empty, the code executes, entrypoints and their flags actually do
+   something.
+
+Layers 1–2 are per-card and can be scoped out or skipped; this gate is the run-level backstop
+that a code-producing run shipped *something* runnable and non-empty. None substitutes for
+the others.
+
+## Where it runs
+
+- **Serial completion protocol** — as an added gate alongside the full check suite, never
+  replacing it. The suite catches lint/type/build regressions; this catches "the new code
+  never ran."
+- **Tracks merged-branch final gate** — on the merged run branch, so the integrated result
+  of all tracks is exercised, not just re-linted (see `track-orchestration`).
+
+Invoke the shipped script (it is the authoritative logic; this skill only drives it):
+
+```
+${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed "<the run's touched files>" \
+  [--entrypoint <bin> ...] [--differential 'flag::with::without' ...]
+```
+
+## What it does
+
+1. **Classify.** Resolve a test runner for the touched-file languages. If none resolves and
+   only non-executable/doc types were touched, exit 0 labeled `no-executable-surface` — an
+   honest lint-only run, not a failure. Otherwise the run needs behavioral coverage. The
+   classifier is objective (runner detection + file type), never author discretion, so a run
+   cannot dodge the gate by declaring its untested code "lint-only".
+2. **Own-tests.** Run the resolved runner non-interactively, under a hard timeout, in a temp
+   cwd. Apply per-runner **empty-detection** (see `references/runners.md`): an empty or
+   zero-collected suite is `empty-suite` (exit 2), not a pass. A runner that exposes no empty
+   signal **fails closed** for a code-producing run — silence is never a pass.
+3. **Zero-check.** A run that needs coverage but ships neither a runnable own-test nor a
+   smokable entrypoint exits 2 `no-behavioral-coverage`.
+4. **Entrypoint smoke.** Each shell-executable entrypoint is invoked in its declared
+   non-destructive form and asserted non-error (`entrypoint-error` on crash). For each
+   declared affordance, a **differential** check runs the entrypoint with and without the
+   flag and asserts the observable output differs — a no-effect flag is `dead-affordance`
+   (exit 2). "Assert not error" alone cannot catch a no-op flag; the differential can.
+5. **Honest report.** A markdown command/skill entrypoint is not shell-executable; the gate
+   reports `not-shell-smokable → routed to B2/review` and continues — never a silent pass.
+
+## Exit contract
+
+| Exit | Meaning | Completion action |
+|------|---------|-------------------|
+| 0 | covered, or honest `no-executable-surface` | gate passes |
+| 2 | `empty-suite` / `no-behavioral-coverage` / `unverifiable-suite` / `entrypoint-error` / `dead-affordance` | block completion |
+| 3 | usage | fix the invocation |
+
+## Worked example
+
+A run generates a plugin whose `test` script is `vitest run` over a directory with no test
+files. Vitest exits 0 ("no test files found"), so the repo's full suite is green and the run
+reports 13/13 cards done. The behavioral gate classifies the run as needing coverage (`.ts`
+files touched, a runner resolves), runs the suite, applies empty-detection, sees zero
+collected tests, and exits 2 `empty-suite`. Completion is blocked with the artifact path —
+the false-green that previously shipped is now caught before the run closes.
+
+## Safety
+
+The gate executes produced code, which is arbitrary-code-execution by design. It runs under a
+hard timeout, in a temp cwd, and never mutates the caller's live working tree. An entrypoint
+smoke uses only the declared non-destructive form. A suite that needs an unavailable
+environment is reported as skipped-with-reason, not silently passed.
+
+## Under ultra-goal (hands-off)
+
+A behavioral-gate failure **parks-and-stops** — it is never auto-taken. A hands-off run does
+not close on a green that the gate contradicts; the failing label + artifact path is
+surfaced for the operator.
+
+## Enforcement — the Stop hook, and the honest residual
+
+The completion protocol runs this gate and, on a pass, records it to
+`.codex/cc-marketplace/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). The task-runner **Stop
+hook** (`hooks/completion-gate.sh`) reads that record: for a run that registered itself
+(`.codex/cc-marketplace/task-runner/active-run.json`, written at run start per `run.md` step 1), it
+refuses a clean stop unless a gate pass is recorded for the current HEAD — a hard block
+by default (`${TASK_RUNNER_STOP_GATE:-block}`), downgradable to a warning only by
+explicitly setting `TASK_RUNNER_STOP_GATE=warn`. Per-card negative controls (layer 2
+above) are counted there too: with records in `.codex/cc-marketplace/task-runner/nc/`
+(`negative-control.sh --record-dir` writes `nc-pass-*` mechanically, documented skips
+`nc-skip-*`), fewer records than done cards refuses the clean stop.
+
+Standing: gate for what it reads, unenforceable for the rest — the hook is a *records*
+check, never executes the produced tests, and fails open for a run that writes no
+`active-run.json` or no `nc/`; a record could be forged, a skip reason is
+model-authored, and a non-index run records no card counts, so card-completeness never
+fires for it. It closes the honest-but-forgetful skip, not deliberate evasion. (Honest
+limitation law: `references/project-skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
+
+## Anti-patterns
+
+- Reimplementing runner detection or empty-detection in prose — the script + `runners.md`
+  are the single source of truth.
+- Treating `no-executable-surface` as a failure — a genuinely doc-only run is honestly
+  lint-gated; the gate says so rather than failing it.
+- Accepting a green suite without the gate "because the suite passed" — the suite passing is
+  exactly the false-green this gate exists to test for emptiness.

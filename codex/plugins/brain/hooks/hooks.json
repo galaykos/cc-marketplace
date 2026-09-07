@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}/codex-runtime/hooks.py\" hooks/inject.sh SessionStart '*'",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

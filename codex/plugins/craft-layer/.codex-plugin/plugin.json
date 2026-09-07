@@ -1,0 +1,29 @@
+{
+  "name": "craft-layer",
+  "version": "0.49.2+codex.03fc8a564a57",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "ui-ux",
+    "frontend",
+    "review"
+  ],
+  "description": "Codex adaptation of craft-layer: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Craft Layer",
+    "shortDescription": "craft-layer workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of craft-layer: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use craft-layer for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

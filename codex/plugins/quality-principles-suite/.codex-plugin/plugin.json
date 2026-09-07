@@ -1,0 +1,30 @@
+{
+  "name": "quality-principles-suite",
+  "version": "0.5.1+codex.f110227d6b50",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "generic",
+    "quality",
+    "review",
+    "suite"
+  ],
+  "description": "Codex adaptation of quality-principles-suite: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Quality Principles Suite",
+    "shortDescription": "quality-principles-suite workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of quality-principles-suite: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use quality-principles-suite for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

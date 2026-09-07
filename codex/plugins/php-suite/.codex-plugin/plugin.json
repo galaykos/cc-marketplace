@@ -1,0 +1,28 @@
+{
+  "name": "php-suite",
+  "version": "0.6.1+codex.685f0d51e1e7",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "suite",
+    "backend"
+  ],
+  "description": "Codex adaptation of php-suite: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Php Suite",
+    "shortDescription": "php-suite workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of php-suite: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use php-suite for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

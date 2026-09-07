@@ -1,0 +1,28 @@
+{
+  "name": "quality-suite",
+  "version": "0.11.5+codex.de68505a7449",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "suite",
+    "quality"
+  ],
+  "description": "Codex adaptation of quality-suite: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Quality Suite",
+    "shortDescription": "quality-suite workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of quality-suite: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use quality-suite for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

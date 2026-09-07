@@ -1,0 +1,28 @@
+{
+  "name": "orchestration",
+  "version": "0.16.8+codex.049ae15090df",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "process",
+    "worker"
+  ],
+  "description": "Codex adaptation of orchestration: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Orchestration",
+    "shortDescription": "orchestration workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of orchestration: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use orchestration for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

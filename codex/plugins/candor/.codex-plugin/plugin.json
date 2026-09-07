@@ -1,0 +1,29 @@
+{
+  "name": "candor",
+  "version": "0.1.3+codex.007b2724dd51",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "generic",
+    "quality",
+    "hooks"
+  ],
+  "description": "Codex adaptation of candor: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Candor",
+    "shortDescription": "candor workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of candor: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use candor for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

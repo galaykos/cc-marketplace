@@ -1,0 +1,28 @@
+{
+  "name": "resilience",
+  "version": "0.4.1+codex.511d35d2a844",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "backend",
+    "review"
+  ],
+  "description": "Codex adaptation of resilience: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Resilience",
+    "shortDescription": "resilience workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of resilience: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use resilience for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

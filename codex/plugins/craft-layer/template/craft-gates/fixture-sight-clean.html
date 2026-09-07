@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sight fixture (clean control) — the same page with nothing wrong</title>
+    <!--
+      craft-layer sight fixture — THE CLEAN CONTROL. Its defective twin is
+      `fixture-sight.html`: same copy, same layout, same components, carrying
+      three faults this page does not.
+
+      This file is the half people skip, and skipping it is what makes a check
+      untrustworthy. A run that only proves the defective page FAILS has proved
+      that something failed, never that it failed for the right reason. Both
+      pages go through `gates.spec.ts` unchanged:
+
+        BASE_URL="file://$PWD/craft-gates/fixture-sight.html" \
+          npx playwright test craft-gates/gates.spec.ts    # MUST fail
+        BASE_URL="file://$PWD/craft-gates/fixture-sight-clean.html" \
+          npx playwright test craft-gates/gates.spec.ts    # MUST pass
+
+      The three fixes, against the twin's three defects:
+        1. the leader label starts at x=16 instead of x=300, so the whole
+           string sits inside the viewBox and nothing is cut;
+        2. the two annotations are placed apart instead of on top of each
+           other;
+        3. the page reserves bottom padding for the fixed rail, so no text
+           ends up underneath it.
+      Nothing else differs. See the twin's header for which of the three a
+      machine catches and which is agent-graded.
+    -->
+    <style>
+      * { box-sizing: border-box; }
+      :root { --paper: #f7f5f0; --ink: #16191d; --line: #cfc8bb; --bar: #8a5a2b; }
+      html.dark { --paper: #14171b; --ink: #f1eee8; --line: #39404a; --bar: #d79a63; }
+      body {
+        margin: 0;
+        /* THE FIX for defect 3: the fixed rail is 60px of chrome, so the
+           column reserves room for it instead of running underneath. */
+        padding: 24px 16px 96px;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        overflow-wrap: break-word;
+      }
+      main { max-width: 720px; margin: 0 auto; }
+      h1 { margin: 0 0 12px; font-size: clamp(26px, 5vw, 40px); line-height: 1.15; }
+      p { margin: 0 0 16px; }
+      figure { position: relative; margin: 24px 0; }
+      svg { display: block; width: 100%; max-width: 480px; height: auto; }
+      text { fill: var(--ink); font-family: system-ui, sans-serif; }
+      .bar { fill: var(--bar); }
+      .axis { stroke: var(--line); stroke-width: 1; }
+      .ann {
+        margin-top: 8px; padding: 6px 8px;
+        border: 1px solid var(--line); background: var(--paper);
+        font-size: 13px; line-height: 1.35;
+      }
+      figcaption { font-size: 13px; }
+      .rail {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        padding: 12px 16px; font-size: 14px;
+        background: var(--paper); border-top: 1px solid var(--line);
+      }
+      /* Wide enough for a gutter: the annotations move beside the chart. */
+      @media (min-width: 900px) {
+        .ann { position: absolute; left: 68%; width: 30%; margin: 0; }
+        /* THE FIX for defect 2: stacked, not piled. */
+        .ann.one { top: 4%; }
+        .ann.two { top: 54%; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Daily spend ceiling</h1>
+      <p>
+        Every card on the account shares one ceiling. The chart reads the week
+        against it, so an overrun is a shape rather than a number to look up.
+      </p>
+      <figure>
+        <svg role="img" viewBox="0 0 480 180">
+          <title>Daily spend against the ceiling, Monday to Friday</title>
+          <rect class="bar" x="16" y="96" width="56" height="60" />
+          <rect class="bar" x="106" y="72" width="56" height="84" />
+          <rect class="bar" x="196" y="110" width="56" height="46" />
+          <rect class="bar" x="286" y="60" width="56" height="96" />
+          <rect class="bar" x="376" y="88" width="56" height="68" />
+          <line class="axis" x1="8" y1="156" x2="472" y2="156" />
+          <text x="16" y="172" font-size="11">Mon</text>
+          <text x="106" y="172" font-size="11">Tue</text>
+          <text x="196" y="172" font-size="11">Wed</text>
+          <text x="286" y="172" font-size="11">Thu</text>
+          <text x="376" y="172" font-size="11">Fri</text>
+          <!-- THE FIX for defect 1: x=16, so the label ends well inside the
+               viewBox instead of running off its right edge. -->
+          <text class="leader" x="16" y="34" font-size="14">£1,200 DAILY CEILING — ABSOLUTE MAX</text>
+        </svg>
+        <div class="ann one">Peak sits 14% under the ceiling.</div>
+        <div class="ann two">Thursday is the only overrun.</div>
+        <figcaption>Spend per day, Monday to Friday, against the shared ceiling.</figcaption>
+      </figure>
+      <p>
+        Thursday clears the line by a little under nine per cent. The week
+        still closes inside the ceiling, because Wednesday ran light enough to
+        pay for it.
+      </p>
+      <p>
+        A ceiling is not a budget. It stops a card, it does not plan a month,
+        and a week spent hugging it is a week with no room for the thing nobody
+        forecast.
+      </p>
+      <p>
+        Raising it is a two-signature change and takes effect at the next
+        reconciliation, never retroactively.
+      </p>
+      <p class="under">
+        Reconciliation runs at 04:00. Anything settled after that lands on the
+        next day's ledger, which is why a late Friday can read as a Monday
+        overrun.
+      </p>
+    </main>
+    <div class="rail">Ceiling £1,200 · this week £4,880 of £6,000</div>
+  </body>
+</html>

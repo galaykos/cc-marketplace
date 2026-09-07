@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fieldnote — emoji fixture, the failing shape</title>
+    <!--
+      craft-layer emoji fixture — THE DEFECTIVE ONE. Its clean control is
+      `fixture-emoji-clean.html`: SAME product, SAME copy, same sections — the
+      only difference is the icon treatment. Here every feature and section
+      icon is a pictograph (🚀 ⚡ 🔒 ✨) because no icon decision was made,
+      which is the single fastest visual identifier of a generated page
+      (sameness-fingerprint.md, the vocabulary registry). One of them ships as
+      an icon-only leaf with no letter beside it, because that is the shape an
+      emoji icon most often takes and the shape a letters-only copy reader
+      cannot see.
+
+      Graded by `divergence.mjs` -> `emoji-as-icon`. The text-default marks
+      BOTH fixtures carry — the ™ after the product name, the © in the footer
+      — must never fire; they are prose, not an icon system.
+
+      THIS FIXTURE MUST FAIL.
+    -->
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+      section { padding: 3rem 1.5rem; max-width: 44rem; margin: 0 auto; }
+      h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <section id="hero">
+      <p>Fieldnote™</p>
+      <h1>🚀 Field reports your crew can file from the truck</h1>
+      <p>
+        Photos, signatures and job notes, captured where the work happens and
+        readable back at the office before the crew is off the site.
+      </p>
+      <p><a href="/signup">Start a trial</a></p>
+    </section>
+
+    <section id="features">
+      <h2>What you get</h2>
+      <ul>
+        <li><span>⚡</span> Reports file in under a minute, even offline.</li>
+        <li>🔒 Every entry is signed and time-stamped on the device.</li>
+        <li>✨ Photos land in the job record, not in a camera roll.</li>
+      </ul>
+    </section>
+
+    <section id="pricing">
+      <h2>Pricing</h2>
+      <p>Crew 29 a month. Fleet 99 a month. Enterprise, on application.</p>
+    </section>
+
+    <footer>
+      <p>© 2026 Fieldnote. All rights reserved.</p>
+    </footer>
+  </body>
+</html>

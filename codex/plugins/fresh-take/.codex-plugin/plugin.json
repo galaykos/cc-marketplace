@@ -1,0 +1,28 @@
+{
+  "name": "fresh-take",
+  "version": "0.3.15+codex.17de1787873c",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "quality",
+    "tooling"
+  ],
+  "description": "Codex adaptation of fresh-take: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Fresh Take",
+    "shortDescription": "fresh-take workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of fresh-take: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use fresh-take for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

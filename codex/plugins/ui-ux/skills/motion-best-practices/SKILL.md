@@ -1,0 +1,160 @@
+---
+name: motion-best-practices
+description: "Use when writing or reviewing UI animation — transitions/@keyframes, @starting-style, scroll-driven animations, View Transitions, Motion (ex-Framer), GSAP, anime.js (animejs), microinteractions, easing, prefers-reduced-motion."
+---
+
+Read [the Codex execution contract](../../references/codex.md) before using helpers or delegating.
+
+## `prefers-reduced-motion` is a hard rule, not a nice-to-have
+
+Vestibular disorders make large or unexpected motion physically harmful, so every animation
+ships with a reduced-motion path — this is an accessibility requirement, not polish. "Reduce"
+means removing movement (translation, scale, parallax, spin, autoplay), not necessarily all
+feedback: an opacity crossfade is usually a safe substitute for a slide or zoom.
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
+}
+```
+
+The global kill-switch above is the minimum baseline; per-component crossfade fallbacks are
+better. In JS the preference is a **subscription, not a one-time read** — a bare `.matches`
+check on mount answers only for the instant it ran, so a visitor who turns the setting on
+mid-session keeps every animation until reload, which is exactly when they wanted it to stop.
+Hold the query and `mq.addEventListener("change", …)`, tearing motion down when it flips to
+`reduce`. CSS re-evaluates itself; only the JS path needs this, and so only it gets it wrong.
+
+## CSS transitions and entry/exit effects
+
+Use transitions for two-state changes and `@keyframes` for multi-step sequences. To animate
+an element entering from `display: none` (dialogs, popovers, toasts), pair `@starting-style`
+with `transition-behavior: allow-discrete` — Baseline since late 2024 and safe as progressive
+enhancement: unsupported browsers just show the element instantly.
+
+```css
+dialog[open] {
+  opacity: 1;
+  transition: opacity 200ms ease-out, display 200ms allow-discrete, overlay 200ms allow-discrete;
+  @starting-style { opacity: 0; }
+}
+```
+
+Reduced-motion fallback: entry/exit effects collapse to instant appearance or a short fade —
+never a slide or scale — under the media query above.
+
+## Scroll-driven animations (CSS, no JS)
+
+`animation-timeline: scroll()` / `view()` replaces JS scroll listeners for progress bars,
+reveal-on-scroll, and parallax. Support (mid-2026): Chrome/Edge 115+, Safari 26+; Firefox
+stable still gates it behind a flag — treat it as a progressive enhancement wrapped in
+`@supports (animation-timeline: view())`, with the element resting in its final state otherwise.
+
+Reduced-motion fallback: scroll-linked movement and parallax are among the strongest vestibular
+triggers. Under `prefers-reduced-motion: reduce`, set `animation: none` and show content in its
+final state; keep at most an opacity-only reveal.
+
+## View Transitions API
+
+Same-document (`document.startViewTransition(cb)`) is Baseline: Chrome 111+, Safari 18+,
+Firefox 144+ (Level 1 only — no transition types yet, which some framework wrappers need).
+Cross-document, opt in on both pages with `@view-transition { navigation: auto; }` — Chrome
+126+ and Safari 18.2+, not yet Firefox. Always feature-detect and fall back to an instant
+DOM update or plain navigation; the transition is decoration, never a dependency.
+
+Reduced-motion fallback:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+```
+
+## Motion (the library formerly Framer Motion)
+
+The npm package is `motion` (v13 line, 2026-08 — v12 recipes and imports carry over unchanged:
+`motion` / `motion/react`). `framer-motion` still mirrors releases but is a legacy alias.
+Prefer the mini `animate()` from `motion/mini` for simple vanilla tweens (smallest bundle);
+reserve full `motion` components for gestures, layout animation, and exit transitions.
+
+Reduced-motion fallback: wrap the tree in `<MotionConfig reducedMotion="user">` so transform
+animations are disabled system-wide automatically, or branch on `useReducedMotion()` for
+per-component crossfade substitutes.
+
+2026 additions (verify on motion.dev before use): `animateView` (12.41+) for JS-driven
+view transitions — prefer over hand-rolled `startViewTransition`; official `motion-v` for
+Vue; `spring()` → CSS `linear(...)` easing. Deeper recipes: `references/motion.md`.
+
+## GSAP
+
+GSAP 3.13+ (April 2025, post-Webflow acquisition) is 100% free for commercial use including
+every formerly-paid Club plugin — SplitText, MorphSVG, ScrollSmoother, DrawSVG, ScrollTrigger —
+all shipped in the standard `gsap` npm package. Do not avoid plugins or bundle nulled copies
+over stale licensing assumptions. Register plugins once (`gsap.registerPlugin(ScrollTrigger)`)
+and kill tweens on component unmount (`gsap.context()` / `useGSAP()`) to avoid leaks.
+
+Deeper GSAP recipes (ScrollTrigger architecture, SplitText, timeline composition):
+`references/gsap.md`. Reduced-motion fallback: `gsap.matchMedia()` is the idiomatic gate —
+
+```js
+const mm = gsap.matchMedia();
+mm.add("(prefers-reduced-motion: no-preference)", () => gsap.from(".card", { y: 40, opacity: 0, stagger: 0.1 }));
+mm.add("(prefers-reduced-motion: reduce)", () => gsap.set(".card", { opacity: 1 })); // final state
+```
+
+## anime.js
+
+anime.js v4 (npm `animejs`, ESM-only) is the lightweight dependency-free option for
+imperative tweens and timelines. v4 rewrote the API: `animate(target, params)` replaces
+v3's `anime({ targets })`, `easing` became `ease`, timelines come from `createTimeline()`,
+staggering from `stagger()`, scroll-linked play from `autoplay: onScroll(...)`. Deeper
+recipes (timelines, scope/cleanup, WAAPI variant, SVG): `references/animejs.md`.
+Reduced-motion fallback: `createScope` with a `prefers-reduced-motion` media query,
+branching to `utils.set(target, finalState)` when it matches.
+
+## Choosing a library
+
+- CSS first: transitions, `@keyframes`, and scroll-driven animations cover most UI motion with zero JS.
+- Motion — declarative React/Vue component animation: gestures, layout and exit transitions.
+- GSAP — complex imperative timelines, ScrollTrigger scenes, SplitText typography.
+- anime.js — lightweight dependency-free imperative tweens/timelines, vanilla-first codebases.
+- Three.js (craft-layer's `threejs-best-practices`) — WebGL/3D scenes, not DOM animation.
+- One writer per property per element: never point two libraries at the same `transform`.
+
+## Animate on the compositor
+
+- Animate `transform` and `opacity` only; `width`, `height`, `top`, `left`, and `margin`
+  trigger layout on every frame, and `box-shadow`/`filter` can be paint-heavy.
+- `will-change` is a scalpel: apply it just before an animation starts, remove it after.
+  Leaving it on permanently or sprinkling it across many elements wastes GPU memory and
+  can degrade rendering.
+- Avoid layout thrash in JS: batch DOM reads before writes, drive frames with
+  `requestAnimationFrame`, and use the FLIP technique (measure First/Last, Invert with a
+  transform, Play) instead of animating layout properties directly.
+- Microinteraction durations and easings come from the motion token scale (the `design-tokens`
+  skill) so separate builds land on the same curves; sequencing: `references/choreography.md`.
+
+## Common mistakes
+
+- Shipping any motion with no `prefers-reduced-motion` path — an accessibility
+  failure, not a style choice.
+- Animating layout properties (`width`, `top`, `margin`) instead of `transform`.
+- Permanent `will-change` on many elements "for performance".
+- Infinite or autoplaying decorative loops with no pause affordance.
+- JS scroll listeners restyling per scroll event where `animation-timeline` or an
+  `IntersectionObserver` toggle would do.
+- Importing `framer-motion` in new code instead of `motion` / `motion/react`; calling
+  anime.js v4 with v3's `anime({ targets })` style or `easing:` param.
+- Treating View Transitions as required — no feature detection, broken without
+  `startViewTransition`.
+- Assuming GSAP plugins still need a Club licence — they have been free since 3.13.
+
+## Verify Against Current Docs
+
+Digest-first: Read `references/motion.md`, `references/animejs.md`, `references/gsap.md` — most
+API questions are answered there. Live fetch stays REQUIRED for version-sensitive literals (method names, options,
+version numbers):
+motion.dev/docs, animejs.com/documentation, gsap.com/docs; browser support live-only (caniuse, MDN).

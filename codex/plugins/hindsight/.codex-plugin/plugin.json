@@ -1,0 +1,28 @@
+{
+  "name": "hindsight",
+  "version": "0.7.1+codex.71e41807e693",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "process",
+    "tooling"
+  ],
+  "description": "Codex adaptation of hindsight: skills and workflows. See README for hook coverage and host limitations.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hindsight",
+    "shortDescription": "hindsight workflows for Codex",
+    "category": "Productivity",
+    "longDescription": "Codex adaptation of hindsight: skills and workflows. See README for hook coverage and host limitations.",
+    "developerName": "Ivan-WG",
+    "defaultPrompt": [
+      "Use hindsight for this task."
+    ],
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

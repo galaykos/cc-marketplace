@@ -1,5 +1,7 @@
 # cc-plugins-marketplace
 
+**Codex:** A separate installation is available. See [Codex setup and compatibility](codex/README.md).
+
 A Claude Code plugin marketplace: **35 leaf plugins** and **8 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
