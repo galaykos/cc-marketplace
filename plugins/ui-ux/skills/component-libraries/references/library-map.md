@@ -30,7 +30,7 @@ governed by the SKILL.md rules plus its docs URL.
 | Chakra UI | `@chakra-ui/react` | `createSystem`/`defineConfig` (v3), tokens + recipes | https://chakra-ui.com/docs | v3 is built on Ark UI; `asChild` |
 | Ant Design | `antd` | `ConfigProvider` `theme.token`/`components`, CSS-in-JS | https://ant.design/docs/react/introduce | enterprise/data-heavy; `@ant-design/icons`, `@ant-design/pro-components` |
 | HeroUI (ex-NextUI) | `@heroui/react` | Tailwind plugin `heroui()` themes | https://www.heroui.com/docs | Tailwind + React Aria; `tailwind-variants` |
-| Astryx | `@astryxdesign/core` | `Theme`/`useTheme`, StyleX pre-compiled | https://astryx.atmeta.com/components | sibling skill `astryx-best-practices`; beta |
+| Astryx | `@astryxdesign/core` (+ `@astryxdesign/theme-*`, `@astryxdesign/cli`) | `Theme` + `defineTheme()` light/dark tuples, `xstyle` (StyleX) | https://astryx.atmeta.com/docs/getting-started | sibling skill `astryx-best-practices`; beta 0.x, React 19+ |
 | Reshaped | `reshaped` | theme CSS vars via its CLI | https://reshaped.so/docs | open-sourced Sep 2025; Figma parity |
 | React-Bootstrap | `react-bootstrap` + `bootstrap` | Bootstrap SCSS variables / CSS vars | https://react-bootstrap.github.io | Bootstrap semantics; no sibling skill (baseline-removed) |
 | Fluent UI, Primer, Blueprint | `@fluentui/react-components`, `@primer/react`, `@blueprintjs/core` | each ships a provider + tokens | vendor docs | corporate design systems; stay inside them |

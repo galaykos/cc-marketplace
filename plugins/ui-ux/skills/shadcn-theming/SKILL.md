@@ -42,6 +42,9 @@ vocabulary is written to a file the project never reads:
   pairing. Read `references/token-vocabularies.md` before emitting anything.
 - `tailwindcss` and no `components.json` → Tailwind with no semantic layer yet;
   the theme creates it, so say that rather than implying you are editing it.
+- `@astryxdesign/core` in dependencies → Astryx: the preview decides colour,
+  but the values land in a `defineTheme()` file as light/dark tuples, per
+  `astryx-best-practices` — do not write `globals.css` variables it never reads.
 - Signals for two stacks at once (a live migration) is the one case to ask
   outright which target this theme is for.
 
