@@ -527,6 +527,33 @@ advertisement:
 
 ## Contributing
 
+### Keeping Claude Code and Codex in sync
+
+`plugins/` is the shared source. After changing a Claude Code plugin, regenerate
+and check the separate Codex distribution from the repository root:
+
+```bash
+python3 scripts/build_codex.py --write
+python3 scripts/build_codex.py --check
+python3 -m unittest discover -s scripts/codex_tests -v
+```
+
+Commit the regenerated Codex files alongside the source changes. CI fails if
+generated files are stale, missing, or unexpected. Do not edit `codex/plugins/`
+directly; Codex-specific changes belong in `codex/adapters/`.
+
+Shared content changes generally flow through the generator. New Claude-specific
+tools, hooks, or workflow behavior need a compatibility review and may require
+an adapter change and tests. Explicit Codex overrides take precedence over shared
+content, so review those overrides when changing the corresponding source workflow.
+
+Regeneration updates repository packages, not users' installed copies. Changed
+package content receives a new Codex version hash; users must reinstall affected
+packages and start a new session. See [Codex maintenance](codex/README.md#maintain)
+and [installed-package updates](codex/README.md#remove-or-update).
+
+### Claude Code checks
+
 ```bash
 bash scripts/validate.sh                    # structure, frontmatter, budgets, references
 bash scripts/check-version-bumps.sh master  # a changed plugin must bump its version

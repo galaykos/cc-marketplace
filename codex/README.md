@@ -93,6 +93,12 @@ Edit shared sources in `plugins/` or native replacements in `codex/adapters/`.
 Generated files in `codex/plugins/`, `codex/catalog.json`, `codex/COMPATIBILITY.md`
 and `.agents/plugins/marketplace.json` must not be hand-edited.
 
+After changing a Claude Code plugin, run the commands below and commit the
+regenerated files together with the source changes. Content normally carries
+through automatically, but new host-specific behavior needs an adapter review.
+Overrides in `codex/adapters/overrides/` replace their corresponding source files;
+review them when those source workflows change so improvements are not masked.
+
 ```bash
 python3 scripts/build_codex.py --write
 python3 scripts/build_codex.py --check
@@ -103,6 +109,9 @@ python3 scripts/codex_host_check.py  # optional: installed Codex CLI required
 The generator has no third-party dependencies. CI rebuilds into a temporary
 folder and compares bytes and executable modes, and runs the adapter/installer
 behavioral tests. Original Claude validation remains separate.
+
+This updates the repository distribution only. Users still need to
+[refresh their installed packages](#remove-or-update) and start a new session.
 
 Packaging follows [OpenAI's plugin format](https://developers.openai.com/plugins/build/plugins)
 and [Codex hook contracts](https://learn.chatgpt.com/docs/hooks). Support for native
