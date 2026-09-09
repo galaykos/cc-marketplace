@@ -285,7 +285,13 @@ breaks CI even when the gate itself still works.
 
 **Warn-only in CI.** `scripts/check-doc-staleness.sh` — its step carries
 `continue-on-error: true` and the script `exit 0`s on every path by contract.
-It reports; it never fails anything.
+It reports; it never fails anything. Age is its only default signal, and age
+missed the Astryx digest (49 days old, materially wrong after a 0.x minor).
+`--live` compares the stamp's `npm:<pkg>@<major>[.<minor>]` tail against npm
+and HEADs the URL; `--inventory` prints one row per stamp. The re-read no
+script can do is the `digest-refresh` project skill,
+`.claude/skills/digest-refresh/SKILL.md` — invoke it when a row warns or a
+user asks whether something is stale.
 
 **Blocking — fails the turn.** `scripts/done-gate.sh`, a `Stop` hook wired in
 `.claude/settings.json`. A Stop hook can reach the model two ways — stdout

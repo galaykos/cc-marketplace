@@ -2,6 +2,13 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.14.13
+
+### Added
+- `rules.tsv` content row for `@astryxdesign/(core|cli|theme-*)` → ui-ux's
+  `astryx-best-practices` (low confidence, digest channel), matching the existing
+  `@mui/*` row. Verified against `scripts/smoke/router-corpus` for co-fires: none.
+
 ## 0.14.12
 
 ### Fixed

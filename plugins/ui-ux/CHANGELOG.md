@@ -4,6 +4,30 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.21.0
+
+### Changed
+- **`astryx-best-practices` rewritten against Astryx 0.5.4** (was a 0.3-era digest,
+  last verified 2026-07-22). What changed upstream and now in the skill: the install
+  set is four packages (`core`, `@stylexjs/stylex`, a `theme-<name>` package, `cli`),
+  React 19+ is the peer range, three global CSS imports and a documented `@layer`
+  order are mandatory, themes are `<Theme theme mode>` + `defineTheme()` with
+  light/dark token tuples (no `dark` class), overrides go `xstyle` → Tailwind bridge
+  → `className`/`style` → stable classes, `astryx swizzle` is the sanctioned eject,
+  the Data Input category is now Form Controls, 40 CLI-installed page templates
+  exist, and the agent surface is the CLI's `--json`/`--dense`/`manifest`, the
+  generated `AGENTS.md`/`.claude/CLAUDE.md`, and a hosted MCP server.
+  `references/astryx.md` carries the package/CSS/CLI/theme/template inventory
+  (last verified 2026-09-09, stamped `npm:@astryxdesign/core@0.5` so
+  `check-doc-staleness.sh --live` flags the next 0.x minor).
+- `lane.tsv` declares `astryx-best-practices` (build, `astryx-idioms`), the same
+  standing `mui-best-practices` already had.
+- `/ui-ux:theme`, `shadcn-theming` and its `token-vocabularies.md` detect an Astryx
+  project and route the theme WRITE to the `defineTheme()` file instead of
+  `globals.css`; the colour preview is unchanged.
+- `component-libraries/references/library-map.md` Astryx row names the theme
+  channel and React 19 requirement correctly.
+
 ## 0.20.3
 
 ### Changed
