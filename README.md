@@ -539,6 +539,27 @@ judged against — are in [CLAUDE.md](CLAUDE.md). Design rationale that must
 survive a clone, including the measurement runs behind several of the claims
 above, is in [rationale/](rationale).
 
+### Checking for stale docs
+
+Every vendored doc digest (`references/*.md`, and a `SKILL.md` that claims
+version leverage) carries a stamp in its first six lines:
+`> Last verified: YYYY-MM-DD — <url>[ — npm:<pkg>@<major>[.<minor>]]`.
+
+```bash
+bash scripts/check-doc-staleness.sh                     # warn-only: stamps older than 90 days
+bash scripts/check-doc-staleness.sh --live              # + npm major/minor drift, URL reachability (needs network)
+bash scripts/check-doc-staleness.sh --live --inventory  # one row per stamp: age, stamped vs live npm, URL status
+bash scripts/check-doc-staleness.sh --path .claude/skills --live --inventory   # the project skills
+```
+
+The script reads dates, versions and URLs; it cannot read prose, so a digest
+can pass every check and still be wrong (that happened to the Astryx digest
+after a 0.x minor). The re-read is a Claude Code step: run `/digest-refresh`
+in this repository and it walks the inventory, diffs each digest against its
+live source claim by claim, rewrites, re-stamps, and bumps the plugin. A
+stamp with no `npm:` tail is invisible to `--live` — the inventory shows
+those as `-` in the `stamped_npm` column.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE). **It covers every plugin in this repository.**
