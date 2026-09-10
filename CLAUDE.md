@@ -3,6 +3,17 @@
 This is a Claude Code plugin marketplace. Each `plugins/<name>/` directory is a
 publishable plugin.
 
+## Mission (convention)
+
+Every change here exists to make a plugin under `plugins/` better for the people
+who install it. The bar a plugin must clear is `README.md`'s opening paragraph:
+it carries a rule the model gets wrong from memory, or ships a mechanism prose
+cannot replace. Gates, project skills, `rationale/` and this file exist to
+protect or author those plugins — none of them is the product. Before an edit,
+name the plugin it improves or the gate that protects one; if neither exists,
+the edit is out of scope, and that includes polishing this file. **Standing:
+`recorded`** — no script reads intent.
+
 ## Where documentation lives (enforced)
 
 - **Task documentation, specifications, design docs, and task history live ONLY in
@@ -145,9 +156,9 @@ convention. What follows is only what you need in hand while editing.
 
   | channel | baseline | measures |
   |---|---|---|
-  | always-on | `context-budget-baseline.json` | descriptions + SessionStart stdout + local MCP `tools/list` |
-  | dynamic | `context-budget-dynamic-baseline.json` | UserPromptSubmit + per-tool hook stdout, MAX across a prompt corpus and five file shapes |
-  | activated | `context-budget-activated-baseline.json` | the always-on surface with the state its hooks WAIT for |
+  | always-on | `scripts/context-budget-baseline.json` | descriptions + SessionStart stdout + local MCP `tools/list` |
+  | dynamic | `scripts/context-budget-dynamic-baseline.json` | UserPromptSubmit + per-tool hook stdout, MAX across a prompt corpus and five file shapes |
+  | activated | `scripts/context-budget-activated-baseline.json` | the always-on surface with the state its hooks WAIT for |
   | listing (report-only) | — | CLI entry cost (`name + 4 + capped desc`) vs the formula budget: 6,000 chars at the default 200k window, 30,000 at 1M — derivation in the script's `LISTING_*` header |
 
   Accept intentional growth with `--update-baseline`, **never in CI**, and never
@@ -179,8 +190,8 @@ The file is **per-plugin and shipped**, not a central registry, because the two 
 separate cleanly: collision detection happens at author time, where `validate.sh`
 reads the whole repo, while turn-taking happens at runtime, where an artifact must
 resolve its OWN lane from `${CLAUDE_PLUGIN_ROOT}/lane.tsv` even when its plugin is
-installed alone. A central file would have privileged `skill-router`, which ships in
-only 5 of 10 bundles.
+installed alone. A central file would have privileged `skill-router`, which not every
+bundle includes.
 
 `phase` is the arc: `understand shape decide plan build verify review ship`, or
 **`any`** for a guard that must fire at every point (a Stop gate, an irreversible-
@@ -217,7 +228,8 @@ bash scripts/official-validate.sh   # the host's validator, --strict; CI runs it
 
 The reason is structural, not carelessness: `generate.sh` ENRICHES every chassis
 manifest before rendering — `skillHome` is computed and injected by the script
-(`generate.sh:167-178`), so `--check` never sees a manifest missing it, and no
+(grep `skillHome` in `generate.sh`; a line number here went stale once already),
+so `--check` never sees a manifest missing it, and no
 `.chassis.json` on disk contains the key at all. The harness feeds the FROZEN
 sample fixtures to the template engine raw, so those must carry every key
 literally, and did not. **The gate you run and the gate
