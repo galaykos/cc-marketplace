@@ -176,7 +176,7 @@ convention. What follows is only what you need in hand while editing.
 
 - **`scripts/generate.sh --check`** — BLOCKING chassis-drift gate: every
   chassis-generated file (review commands, worker agents, suite uninstalls,
-  reminder hooks) must byte-match its template output. Regenerate with `--write`
+  reminder hooks, boost hooks) must byte-match its template output. Regenerate with `--write`
   after editing anything under `templates/` or a `.chassis.json`. Two repo-level
   steps ride the same gate and are NOT chassis files: plugin-scout's `catalog.md`,
   and the README **bundle table** between `<!-- generated:bundle-table -->` and

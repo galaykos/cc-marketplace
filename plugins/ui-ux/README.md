@@ -92,4 +92,7 @@ that looks great as a swatch can fail hard as a button.
 
 - **taskmaster** — its visual-decisions skill uses the same always-live mockup
   pattern for layout/flow choices
+- **theme-design** — the same three-way line from its side: `/ui-ux:theme` is
+  candidate-driven colour theming, `/design-lab:preview` is real-component variants,
+  theme-design is session-driven direct manipulation on one surface
 - **vue3 / web-dev** — component-logic review alongside the visual layer

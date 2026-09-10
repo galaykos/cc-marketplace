@@ -129,7 +129,7 @@ bump_plugin() { # plugin-dir : patch-bump plugin.json once
 
 # --- lane rows: the generated block in <plugin>/lane.tsv ---------------------------
 # Every chassis object that renders an ARTIFACT (review command, suite uninstall,
-# reminder hook, worker agent) also declares its lane in a `lane` key —
+# reminder hook, boost hook, worker agent) also declares its lane in a `lane` key —
 #   {"owns": "<territory>", "trigger": "<definite trigger>", "yieldsTo": "a:b,c:d" | "-",
 #    "phase": "<optional override>"}
 # — and generate.sh renders one six-field lane.tsv row per artifact into a block
@@ -308,6 +308,27 @@ render_reminder_hook() { # obj plugin-dir
   lane_row "$obj" "$pdir" "$(printf '%s' "$obj" | jq -r '.artifact // empty')" hook ""
 }
 
+render_boost_hook() { # obj plugin-dir
+  # Boost injectors (taskmaster ultra.sh, orchestration ultra-assess.sh, craft-layer
+  # ultra-craft.sh) shared one hand-copied 35-line skeleton — off switch, fence
+  # scrub, 200-char head, negation guard, enumerated self-echo guard — and differed
+  # only in env var, token regex and directive text. The self-echo guard had been
+  # fixed in three files once already (hook-guard-tests.sh pins the regression), so
+  # the skeleton is one template now and the manifest carries the data. `file`
+  # names the target (hooks/<name>.sh — the three shipped names differ); `regex2`/
+  # `message2` render an elif branch when non-empty (taskmaster's ultra-goal) and
+  # nothing otherwise. The directive goes out through a quoted heredoc, so the
+  # manifest text is the wire text — no bash escaping in the manifest.
+  local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out" file
+  file="$(printf '%s' "$obj" | jq -r '.file // empty')"
+  [ -n "$file" ] || die "${2#$ROOT/}/.chassis.json: boost-hook object needs \"file\" (hooks/<name>.sh)"
+  printf '%s' "$obj" | jq '{intro: "", regex2: "", message2: ""} + .' > "$dfile"
+  ensure_engine
+  render_template "$TEMPLATES/boost-hook.sh.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} $file"
+  emit "$rfile" "$pdir/$file" 1 "$pdir"
+  lane_row "$obj" "$pdir" "$(printf '%s' "$obj" | jq -r '.artifact // empty')" hook ""
+}
+
 render_worker_agent() { # obj plugin-dir
   local obj="$1" pdir="$2" agentFile dfile="$WORK/m.json" rfile="$WORK/r.out"
   agentFile="$(printf '%s' "$obj" | jq -r '.agentFile')"
@@ -341,6 +362,7 @@ render_chassis() { # obj plugin-dir
     stack-review)    render_stack_review    "$obj" "$pdir" ;;
     suite-uninstall) render_suite_uninstall "$obj" "$pdir" ;;
     reminder-hook)   render_reminder_hook   "$obj" "$pdir" ;;
+    boost-hook)      render_boost_hook      "$obj" "$pdir" ;;
     worker-agent)    render_worker_agent    "$obj" "$pdir" ;;
     "") die "$rel/.chassis.json has no \"chassis\" field" ;;
     *) die "unknown chassis type '$chassis' in $rel/.chassis.json" ;;

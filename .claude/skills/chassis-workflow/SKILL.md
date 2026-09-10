@@ -14,8 +14,9 @@ the plugin's `.chassis.json`, then regenerate.
 - `plugins/<name>/.chassis.json` — ONE chassis object or an ARRAY of them.
   Kinds seen in-tree: `stack-review` (stamps `commands/review.md`),
   `suite-uninstall` (stamps `commands/uninstall.md`), `reminder-hook` (stamps
-  `hooks/remind.sh`), `worker-agent` (stamps the agent file declared in
-  `agentFile`), `optout` (declares a chassis-shaped file as intentionally
+  `hooks/remind.sh`), `boost-hook` (stamps the `hooks/<name>.sh` named in `file`
+  — the ultra-* injectors; `regex2`/`message2` add an elif branch), `worker-agent`
+  (stamps the agent file declared in `agentFile`), `optout` (declares a chassis-shaped file as intentionally
   hand-written).
 - Every artifact-rendering object also carries **`lane`** —
   `{"owns", "trigger", "yieldsTo"[, "phase"]}` — and generate.sh renders the

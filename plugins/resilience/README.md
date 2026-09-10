@@ -63,3 +63,8 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 - **devops** — infra-layer wiring (collectors, dashboards, deploy config) the observability engineer defers to
 - **database** — SQL statement and index idioms (`/database:review`) the performance review defers to instead of duplicating
 - **task-runner** — the apply-now path hands findings to its executor when installed
+- **craft-layer** — a consumer: its `craft-reviewer` yields to
+  `/resilience:performance-review` for the audit step (`craft-layer/lane.tsv`).
+  Frame-budget, `requestAnimationFrame` and compositor questions route to ui-ux's
+  `motion-best-practices` skill instead — `performance-tuning` carries no
+  frame-budget material (grep it before trusting this line)

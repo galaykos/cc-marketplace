@@ -66,4 +66,5 @@ quality.
 - **task-runner** — the parallelize-or-inline verdict and execution loop these contracts feed
 - **taskmaster** — produces the card indices with parallel groups that the review command audits
 - **code-architecture** — plan-before-code decomposes the work these contracts then dispatch
+- **approaches** — shape deliberation happens before a fan-out is planned; a contract that dispatches an unsettled shape dispatches the wrong work
 - the marketplace repository's **authoring-agents** project skill — owns agent authoring: the naming taxonomy and PROACTIVE-trigger arbitration live there (`.claude/skills/authoring-agents/`, not a plugin)

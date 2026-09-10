@@ -155,6 +155,39 @@ if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook-exempt.json" "$HX
   expect_absent "$HX" 'PER-PROMPT BUDGET' "hook(arms): retired lottery branch is gone"
 fi
 
+# ---- boost hook: two-branch (taskmaster ultra-task / ultra-goal) -----------------
+# The three boost injectors were hand-copied twins until 2026-09-10; the template
+# owns the shared skeleton and the manifest owns env var, token regex and directive.
+B="$WORK/boost.sh"
+if render "$TPL/boost-hook.sh.tmpl" "$SAMPLES/boost-hook.json" "$B"; then
+  [[ "$(line1 "$B")" == "#!/usr/bin/env bash" ]] && pass "boost: line 1 is shebang" || fail "boost: line 1 is shebang" "got [$(line1 "$B")]"
+  case "$(line_n "$B" 2)" in "# generated"*) pass "boost: line 2 is # generated header" ;; *) fail "boost: line 2 is # generated header" "got [$(line_n "$B" 2)]" ;; esac
+  expect_has "$B" 'case "$prompt" in "/"*) exit 0' "boost: slash-prompt guard"
+  expect_has "$B" 'plugin_switch=TASKMASTER_BOOST' "boost: per-plugin off switch envVar substituted"
+  expect_has "$B" 'CC_BOOST:-on}${!plugin_switch:-on}' "boost: global + per-plugin off switch"
+  expect_has "$B" 'cut -c1-200' "boost: 200-char head narrowing"
+  expect_has "$B" "(do not|don't|never|without|avoid|not) +" "boost: negation guard"
+  expect_has "$B" 'ultra-?(task|goal|assess(ment)?|craft) +active' "boost: enumerated self-echo guard (shared list)"
+  expect_has "$B" "grep -qiE '\\bultra-?goal\\b'" "boost: first-branch regex substituted"
+  expect_has "$B" "elif printf '%s' \"\$head\" | grep -qiE '\\bultra-?task\\b'" "boost: second branch rendered when regex2 set"
+  expect_has "$B" "<<'CC_BOOST_DIRECTIVE'" "boost: directive via quoted heredoc (no expansion)"
+  expect_has "$B" "ULTRA-GOAL ACTIVE" "boost: first directive text present"
+  expect_has "$B" "ULTRA-TASK ACTIVE" "boost: second directive text present"
+  # Behavioural: the rendered hook must speak on an invocation and stay silent on its own banner.
+  out="$(printf '%s' '{"prompt":"ultra-task build the thing"}' | bash "$B" 2>/dev/null)"
+  [[ "$out" == "ULTRA-TASK ACTIVE"* ]] && pass "boost: rendered hook speaks on invocation" || fail "boost: rendered hook speaks on invocation" "got [${out:0:40}]"
+  out="$(printf '%s' '{"prompt":"ULTRA-TASK ACTIVE (model=auto) — ultra-task"}' | bash "$B" 2>/dev/null)"
+  [[ -z "$out" ]] && pass "boost: rendered hook silent on own banner" || fail "boost: rendered hook silent on own banner" "spoke: ${out:0:40}"
+fi
+
+# ---- boost hook: single branch (regex2 empty → no elif) -------------------------
+BS="$WORK/boost-single.sh"
+if render "$TPL/boost-hook.sh.tmpl" "$SAMPLES/boost-hook-single.json" "$BS"; then
+  expect_absent "$BS" "elif printf" "boost(single): no elif branch when regex2 is empty"
+  expect_has "$BS" 'plugin_switch=ORCHESTRATION_BOOST' "boost(single): envVar substituted"
+  expect_has "$BS" "ULTRA-ASSESS ACTIVE" "boost(single): directive text present"
+fi
+
 # A manifest without the flag must not produce that marker: arming it unconditionally
 # would widen a PreToolUse deny gate's trigger to every reminder hook installed.
 if [ -f "$H" ]; then
@@ -193,7 +226,7 @@ fi
 lane_ok=1
 for s in "$SAMPLES"/*.json; do
   # hooks and agents must also declare phase — generate.sh dies without it for those two kinds
-  if jq -e '(.chassis == "optout") or (((.lane // null) | type == "object") and (.lane.owns|type=="string") and (.lane.trigger|type=="string") and (.lane.yieldsTo|type=="string") and (((.chassis == "reminder-hook" or .chassis == "worker-agent") | not) or (.lane.phase|type=="string")))' "$s" >/dev/null 2>&1; then :; else
+  if jq -e '(.chassis == "optout") or (((.lane // null) | type == "object") and (.lane.owns|type=="string") and (.lane.trigger|type=="string") and (.lane.yieldsTo|type=="string") and (((.chassis == "reminder-hook" or .chassis == "boost-hook" or .chassis == "worker-agent") | not) or (.lane.phase|type=="string")))' "$s" >/dev/null 2>&1; then :; else
     fail "sample-lane-schema $(basename "$s")" "lane key missing, not {owns,trigger,yieldsTo} strings, or (hook/agent) no phase"; lane_ok=0
   fi
 done

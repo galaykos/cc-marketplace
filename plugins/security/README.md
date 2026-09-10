@@ -62,9 +62,16 @@ unsafe deserialization (`pickle` and its wrappers, PHP `unserialize($…)`), `ya
 without `SafeLoader`, `torch.load` without `weights_only`, XML parsed with entities on,
 TLS verification switched off (`verify=False`, `rejectUnauthorized: false`, Guzzle
 `'verify' => false`, `CURLOPT_SSL_VERIFYPEER`), ECB / `createCipher`, and an external
-`<script>` without `integrity=`. Warn — never deny — because each has a legitimate
+`<script>` without `integrity=`. Since 0.9.0 three LLM sinks ported from `llm-app`'s
+prompt-injection rule, gated to JS/TS/Python/PHP: `prompt-interpolation` (a `system` /
+`role: "system"` string built by interpolation or concatenation), `llm-output-exec` (a
+completion / `choices[0]` / `.content` value on the same line as `eval`, `exec`,
+`new Function`, `child_process`, `subprocess` or a PHP shell call) and
+`tool-result-unfenced` (a `tool_result` / `retrieved*` / `chunks` / `documents` name
+interpolated into a `prompt` / `messages` string with no delimiter token on that
+line). Warn — never deny — because each has a legitimate
 form; `CC_SECURITY_SCAN=off` disables. Single-line matching only: a `SafeLoader` on
-the next line still warns. GitHub Actions expression injection is deliberately not
+the next line still warns, a system prompt assembled across lines never does. GitHub Actions expression injection is deliberately not
 here — `devops` denies it pre-write. Everything else (authz logic, cross-file flows,
 dependency audit) stays review-time via `/security:review`.
 
@@ -72,3 +79,4 @@ dependency audit) stays review-time via `/security:review`.
 
 - **testing** — turn each confirmed finding into a regression test
 - **php / laravel** — general code-quality review; security:review goes deeper on the attack surface
+- **llm-app** — states the prompt-injection rule in prose; the write-scan's three LLM-sink patterns are its mechanism half, firing on the line as it is written

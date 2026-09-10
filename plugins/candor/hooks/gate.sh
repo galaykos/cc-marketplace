@@ -78,6 +78,16 @@
 # already ended and can prevent nothing.
 #
 # MODES: CC_CANDOR_GATE=block (default) | warn (print, never block) | off
+#
+# SUBAGENT REPORTS (SubagentStop, added 0.2.0). The same script is wired to
+# SubagentStop, so a subagent's final report goes through CLAUSE 1 before the
+# main thread quotes it as fact. The payload carries the subagent's own
+# transcript (agent_transcript_path) and its final text (last_assistant_message),
+# both measured live on 2.1.267, and exit 2 blocks the subagent exactly as it
+# blocks a Stop — the subagent sees the reason and re-reports. CLAUSE 2 disarms
+# for a subagent: there is no user turn in its transcript, so "pushback" there is
+# a tool result, never a challenge. Loop-guard and claim markers are suffixed per
+# agent so a subagent block cannot spend the main thread's disarm or vice versa.
 
 input=$(cat)
 
@@ -94,12 +104,19 @@ command -v jq >/dev/null 2>&1 || { echo "[candor] gate: jq not found — gate no
 # flag only when that record is present.
 sha_active=$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)
 
-tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+evt=$(printf '%s' "$input" | jq -r '.hook_event_name // "Stop"' 2>/dev/null)
+# A subagent's report lives in ITS transcript, not the parent's; fall back to the
+# parent path only when the host sent no agent path (a pre-2.1 payload).
+tp=$(printf '%s' "$input" | jq -r '.agent_transcript_path // .transcript_path // empty' 2>/dev/null)
 [ -n "$tp" ] && [ -r "$tp" ] || exit 0
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
 [ -n "$cwd" ] || cwd="."
+# Per-agent marker suffix: hashed, so the id never lands raw in a path.
+agent_sfx=""
+agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
+[ -n "$agent_id" ] && agent_sfx="-$(printf '%s' "$agent_id" | cksum | cut -d' ' -f1)"
 
-claimed="$cwd/.claude/candor-blocked"
+claimed="$cwd/.claude/candor-blocked$agent_sfx"
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
   rm -f "$claimed" 2>/dev/null
   exit 0
@@ -111,7 +128,8 @@ tail_jsonl=$(tail -n 4000 "$tp" 2>/dev/null)
 # The FINAL assistant text message, whole and alone. `-s` slurps the JSONL into
 # an array so "last" is expressible; a malformed line collapses the slurp, which
 # is a fail-open path and is why the result is tested for emptiness below.
-last_msg=$(printf '%s' "$tail_jsonl" | jq -rs '
+last_msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null)
+[ -n "$last_msg" ] || last_msg=$(printf '%s' "$tail_jsonl" | jq -rs '
   [ .[] | select(.type=="assistant")
         | ((.message.content // []) | map(select(.type=="text") | .text) | join("\n"))
         | select(length > 0) ] | last // empty' 2>/dev/null)
@@ -205,7 +223,7 @@ fi
 # ---------------------------------------------------------------------------
 # CLAUSE 2 — a position reversed after bare pushback, with nothing re-checked
 # ---------------------------------------------------------------------------
-if [ -z "$verdict" ]; then
+if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ]; then
   # Last real user message. Tool results also arrive as type "user"; they carry
   # tool_result blocks and no text blocks, so selecting text blocks excludes them.
   last_user=$(printf '%s' "$tail_jsonl" | jq -rs '
@@ -262,7 +280,7 @@ fi
 
 # LOOP GUARD: block once per distinct final text. stop_hook_active is not trusted
 # alone (no sibling trusts it); the marker is state a mid-work turn cannot fake.
-marker="$cwd/.claude/candor-last"
+marker="$cwd/.claude/candor-last$agent_sfx"
 state=$(printf '%s|%s' "$verdict" "$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
 if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
   exit 0
@@ -278,7 +296,8 @@ fi
 mkdir -p "$cwd/.claude" 2>/dev/null && : > "$claimed" 2>/dev/null
 
 if [ "$verdict" = "citation" ]; then
-  printf '[candor] gate: this turn cites a location that does not exist.%s\n' "$detail" >&2
+  what="this turn"; [ "$evt" = "SubagentStop" ] && what="this report"
+  printf '[candor] gate: %s cites a location that does not exist.%s\n' "$what" "$detail" >&2
   printf '  A file:line citation asserts you read that line. Open the file, cite what is actually\n' >&2
   printf '  there, or drop the number and say plainly that you are inferring rather than quoting.\n' >&2
   printf '  Inventing a location is the failure this clause exists to stop.\n' >&2

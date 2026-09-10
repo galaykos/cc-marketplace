@@ -6,6 +6,19 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.9.0
+
+### Added
+- `testing-best-practices/references/clock.md` — the clock as an injected boundary
+  and what each global freeze does NOT reach (`Carbon::setTestNow` vs `time()`, the DB's
+  own `CURRENT_TIMESTAMP`; Vitest fake timers vs `queueMicrotask`, and `waitFor` not
+  detecting them), per-test teardown, DST / month-end / leap-day / ISO-week / epoch
+  boundaries as named fixtures, why `sleep` is never a synchronisation primitive and
+  the replacement per wait shape, TTL assertions at T−1 / T / T+1 with whole-second
+  freezes, and CI zone pinning plus the hostile-zone second run. Cited from the
+  "Determinism" section in one line; loaded only when the skill fires. Written from
+  training knowledge, not a live re-read — its stamp says so.
+
 ## 0.8.10
 
 ### Changed

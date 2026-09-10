@@ -57,6 +57,15 @@ source (the skill demotes it to `contested`), with a fixture harness CI runs. Wh
 the quote is real and the sources independent stays agent-graded — the lint cannot
 know, and saying so is the point.
 
+## Pairs well with
+
+Two plugins call this one; neither is required by it:
+
+- **craft-layer** — `creative-director` runs a live research pass through the skill when
+  a dispatch opts in
+- **code-architecture** — `coding-entry` routes "what is the state of X" and unfamiliar
+  vendors to `/ultra-deep-research:research`
+
 ## Suite membership
 
 None — standalone by design (recorded; nothing enforces this). A research run

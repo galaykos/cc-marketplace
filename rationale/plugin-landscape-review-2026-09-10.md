@@ -78,7 +78,7 @@ means "nothing but the catalog".
 |---|---|---|---|
 | **candor** | lane edges to code-architecture, terse | 0 | `code-architecture`'s evidence gate and `terse:check` both have a `yields_to` FROM candor and never mention it. A reader of either cannot learn candor exists. |
 | **theme-design** | ui-ux, design-lab | 0 | `ui-ux/README.md:91-95` and `design-lab/README.md` list their neighbours; neither lists the plugin that most overlaps them (§3.3). Also absent from `craft-suite`, which is the design bundle. |
-| **brain** | 0 | 4 | Consumed by taskmaster's context-scout, orchestration, git-workflow, theme-design; consumes nothing, and its README has no pairs-with section at all. §6.3 makes it a consumer. |
+| **brain** | 0 | 3 | Consumed by taskmaster's context-scout, orchestration, git-workflow (the first count of four included theme-design, whose only "brain" is a metaphor in its README); consumes nothing, and its README has no pairs-with section at all. §6.3 makes it a consumer. |
 | **hindsight** | 0 declarative | 0 declarative | Four incidental mentions in other plugins' hook comments. No `yields_to`, no prose edge either way. |
 | **command-guard** | 0 | 2 | No `lane.tsv`. `taskmaster/hooks/clarify-gate.sh:15` reads its marker and nothing declares that. |
 | **ultra-deep-research** | 2 weak | 4 | craft-layer's creative-director and code-architecture's coding-entry both invoke it; its README names neither. |
@@ -172,7 +172,7 @@ Filtered against `measured-zero-shapes.md` and the explicit rejections in the
 | `pgvector` reference | **lost**, restore | Was a delivered P2 item; RAG is llm-app's domain and llm-app has no vector-store material. A reference file, not a leaf. |
 | time / timezone | **open since 08-02**, no owner | Footgun class, not a checklist: storing local time, DST arithmetic, `now()` in tests, MariaDB `TIMESTAMP` vs `DATETIME` tz semantics. Homes exist: database references, testing (clock injection), security data-privacy (retention windows). |
 | multi-tenancy | **open since 08-02**, no owner | Tenant scoping is IDOR at scale; security-review's authz section is the home, one reference file. |
-| monorepo (Turborepo / Nx) | **reopened** by 09-03 | Task-graph claims (`dependsOn: ["^build"]`, cache `inputs`/`outputs`, remote-cache env leakage) were never refuted. Only plugin-scout mentions `turbo.json`. Needs the control-arm test before it is a leaf. |
+| monorepo (Turborepo / Nx) | **measured zero, killed** (same day) | Three Turborepo 2.x cases (`tasks` vs `pipeline` + own-build `dependsOn`; `$TURBO_DEFAULT$` on narrowed `inputs`; `env` + `envMode: strict` for cache keys), Sonnet, n=3 per arm, regex scorer over fenced JSON: control 9/9, treatment 9/9. The base model already carries the version inversion. Protocol and numbers in the proposals document, P10. |
 | LLM prompt-injection sinks | covered in prose only | llm-app names the rule; no hook fires. §6.5. |
 | SEO / Open Graph for landing pages | **dies** | Only web-dev's nextjs skill mentions it. Shape 2 (canonical-doctrine checklist); the model knows OG sizes. Not proposed. |
 | framework major upgrades | **dies** | Shape 1 (per-version idiom map), measured zero twice. package-hygiene's upgrade lanes are the surviving half. |
@@ -197,25 +197,26 @@ binary, absent from every `hooks.json` and from every document in this repositor
 The 09-03 review scoped these out as "capability, not conformance". That was a
 scoping ruling for a conformance review, not a merit rejection, and this review's
 question is capability. Two of them close residuals that three shipped plugins
-already admit.
+already admit — one via the SessionStart twin, see 5.1.
 
-### 5.1 Compaction survival (PreCompact + PostCompact)
+### 5.1 Compaction survival — SessionStart `compact`, not PreCompact
 
-The backlog's open item #6: the router's rank-marker key and the phase sentinel
-both assume `session_id` survives compaction and nothing establishes it. One plugin
-reacts to compaction today — `approaches/hooks/compact-recovery.sh` on
-`SessionStart` matcher `compact` — and its own header says the marker file survives
-fine; what dies is the model's memory that a decision was made. That is true of
-every other ledger in the tree: the phase file, the active card, the terse level,
-the taskmaster ambiguity ledger, the task-runner scope lock. Only approaches
-re-asserts its own.
+**Correction, same day.** The first draft of this section called `PreCompact` "the
+stronger lever". It is not, and this repository already knew:
+`approaches/hooks/compact-recovery.sh` states in its header that Claude Code writes
+PreCompact stdout to the debug log and never adds it to the model's context. The
+hooks reference confirms it: only `UserPromptSubmit`, `UserPromptExpansion`,
+`SessionStart` and `PostModelSwitch` inject exit-0 stdout. PreCompact and
+PostCompact stay in the table above as unused events; neither is a channel to the
+model, so neither is proposed.
 
-`PreCompact` is the stronger lever: a hook there can print the capsule (phase,
-card, pick, level, spec path) into the transcript before the summary is generated,
-so it is inside the summary rather than re-injected after it. A blind control
-misses this by construction: the base model cannot remember across a compaction
-what was never in the summary. Measurable with a headless run that forces
-compaction and asks for the current phase.
+The lever that works is the one approaches already pulls: `SessionStart` with
+matcher `compact`, which fires exactly once per compaction and injects. Backlog #6
+stands: the router's rank-marker key and the phase sentinel both assume
+`session_id` survives compaction and nothing establishes it. One plugin re-asserts
+its own ledger after compaction; the phase file, the registered task-runner run and
+the taskmaster ledgers have no recovery path. A blind control misses this by
+construction: the base model cannot recall a phase that was never in the summary.
 
 ### 5.2 Subagent evidence gate (SubagentStop)
 
@@ -244,9 +245,9 @@ classes.
 
 ### 6.1 Compaction capsule — `skill-router` (or `taskmaster`), M
 
-- **Carries:** a `PreCompact` hook that emits every open ledger the installed
-  plugins keep, in one block, and a `PostCompact` re-assertion for hooks whose
-  SessionStart matcher never fires on compact.
+- **Carries:** a `SessionStart` matcher-`compact` hook that emits every open ledger
+  the installed plugins keep, in one block — the phase sentinel, the registered
+  task-runner run, the taskmaster ledgers. Not PreCompact: see 5.1.
 - **Control misses:** the phase and the active card, by construction.
 - **Does not:** prove any hook honours the re-asserted phase (agent-graded, same as
   `pc_phase_guard`'s behaviour half).

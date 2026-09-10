@@ -19,6 +19,10 @@
 # Cross-file flows, authz logic, injection via query builders other than whereRaw —
 # still review-time judgment (/security:review). GitHub Actions expression injection
 # is deliberately NOT here: devops/hooks/workflow-guard.sh denies it pre-write.
+# Three LLM sinks (prompt-interpolation, llm-output-exec, tool-result-unfenced) are
+# ported from llm-app's prompt-injection prose rule and carry the same single-line
+# residual: a system prompt assembled across lines, or a completion executed two
+# statements later, never fires — and no regex detects injection IN the data.
 {
   [ "${CC_SECURITY_SCAN:-on}" = "off" ] && exit 0
   input=$(cat)
@@ -125,6 +129,32 @@
     '<script[^>]*src[[:space:]]*=[[:space:]]*["'"'"'](https?:)?//' \
     "external <script> without integrity= — add an SRI hash and crossorigin, or self-host" \
     "$MARKUP" 'integrity[[:space:]]*='
+
+  # ---- LLM sinks, ported from llm-app's prompt-injection rule (2026-09-10) ----------
+  # Each ERE is composed from named pieces so the shape stays readable; every piece is
+  # still one line and the match is still one line. A `system`/`role: "system"` key
+  # whose value is built by interpolation or concatenation; a completion/message value
+  # on the same line as an exec sink; a tool-result/retrieved-chunk name interpolated
+  # into a prompt/messages string with no delimiter token on that line.
+  SYSKEY='role["'"'"']?[[:space:]]*(:|=>|=)[[:space:]]*["'"'"']system["'"'"']|(^|[^[:alnum:]_])["'"'"']?(system|system_?prompt|systemPrompt)["'"'"']?[[:space:]]*(:|=>|=)'
+  INTERP='\$\{|\{\$|r?f["'"'"']{1,3}[^"'"'"']*\{|\.format[[:space:]]*\(|%s|["'"'"'`][[:space:]]*\+[[:space:]]*[A-Za-z_$]|[A-Za-z0-9_$][[:space:]]*\+[[:space:]]*["'"'"'`]|["'"'"'][[:space:]]*\.[[:space:]]*\$|\$[A-Za-z0-9_]+[[:space:]]*\.[[:space:]]*["'"'"']'
+  detect "prompt-interpolation" \
+    "(${SYSKEY}).*(${INTERP})" \
+    "user input inside the system prompt — pass it as a user turn or a delimited data block, never into the instruction text" \
+    "$JS|$PY|$PHP" '[=!]='
+  LLMSRC='completion|choices\[0\]|(\.|->)(content|text)([^[:alnum:]_]|$)|(^|[^[:alnum:]_$])message([^[:alnum:]_]|$)'
+  SINKCALL='(^|[^[:alnum:]_.$>])(eval|exec(Sync)?|system|shell_exec|passthru|proc_open|popen)[[:space:]]*|os\.system[[:space:]]*|new[[:space:]]+Function[[:space:]]*|child_process\.[A-Za-z]+[[:space:]]*|subprocess\.[A-Za-z_]+[[:space:]]*'
+  detect "llm-output-exec" \
+    "(${LLMSRC}).*(${SINKCALL})\(|(${SINKCALL})\((message([^[:alnum:]_]|$)|.*(${LLMSRC}))" \
+    "model output executed as code — validate against a schema or allow-list first" \
+    "$JS|$PY|$PHP"
+  TRVAR='tool_?[Rr]esults?|retrieved[A-Za-z_]*|chunks|documents|context_docs'
+  TRKEY='[Pp]rompt|messages|content["'"'"']?[[:space:]]*(:|=>)'
+  TRINTERP='["'"'"'`][^"'"'"'`]*\$?\{([^}]*[^[:alnum:]_])?('"$TRVAR"')|\+[[:space:]]*\$?('"$TRVAR"')([^[:alnum:]_]|$)|(^|[^[:alnum:]_])\$?('"$TRVAR"')[[:space:]]*\+|\.[[:space:]]*\$('"$TRVAR"')([^[:alnum:]_]|$)|\$('"$TRVAR"')[[:space:]]*\.|%[[:space:]]*\(?('"$TRVAR"')([^[:alnum:]_]|$)|(format|join)\([[:space:]]*('"$TRVAR"')([^[:alnum:]_]|$)'
+  detect "tool-result-unfenced" \
+    "(${TRKEY}).*(${TRINTERP})|(${TRINTERP}).*(${TRKEY})" \
+    "retrieved text is untrusted input — fence it with a delimiter and tell the model it is data" \
+    "$JS|$PY|$PHP" '<<<|"""|'"'''"'|<[a-z_]+>|\[BEGIN|---|```'
 
   [ -n "$hits" ] || exit 0
   ctx="${hits}[security] warn-tier only (file: ${file}) — judgment cases stay with /security:review; CC_SECURITY_SCAN=off disables."

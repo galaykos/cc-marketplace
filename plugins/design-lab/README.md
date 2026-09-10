@@ -26,7 +26,12 @@ falls back to the taskmaster shell mockup, and the variant-depth rules it carrie
 |---|---|
 | Runnable Vite+React (or Vue/Nuxt, or Laravel Blade) host with components present | `/design-lab:preview` — the `real-preview` skill |
 | Empty/greenfield dir, or a stack with no Vite/Laravel host | the taskmaster `visual-decisions` shell mockup, offered by `/design-lab:preview` as its fallback |
+| A running theme-design session (`.theme-design/` present) | that session owns the preview surface; hand the decision there and do not start a second server on it (recorded — no script checks the marker) |
 | Installing or reviewing a registry component (shadcn, ReUI, Aceternity, Magic UI) | the MCP servers below, via ui-ux's stack skills |
+
+Three plugins draw one line, each from its own side: `/ui-ux:theme` is candidate-driven
+colour theming, `/design-lab:preview` is real-component variants, theme-design is
+session-driven direct manipulation on one surface.
 
 The renderer is consent-gated, writes only scratch files it can prove are its own,
 and verifies cleanup: `scripts/preview-cleanup.sh <project-root>` removes every

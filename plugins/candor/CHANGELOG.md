@@ -2,6 +2,19 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.2.0
+
+### Added
+- `hooks/gate.sh` also fires on `SubagentStop`: a subagent's final report goes
+  through the fabricated-citation clause before the main thread quotes it. The
+  payload's `last_assistant_message` is judged directly; `agent_transcript_path`
+  is the fallback. Clause 2 (reversal) disarms for subagents — no user turn there.
+  Loop-guard and claim markers are suffixed per agent id (hashed). Seven harness
+  cases drive the measured SubagentStop payload shape.
+- A span ledger was considered and dropped: the host already writes one transcript
+  per subagent under `<session>/subagents/`, which is the cost denominator
+  `scripts/turn-cost.sh` lacks — a reader problem, not a new writer.
+
 ## 0.1.3
 
 ### Changed

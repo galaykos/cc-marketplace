@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **35 leaf plugins** and **8 bundles** covering
+A Claude Code plugin marketplace: **36 leaf plugins** and **8 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -65,7 +65,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.3k tokens | ~32 tokens | ~2.5k tokens |
-| `craft-suite` | 3 | ~2.8k tokens | — | — |
+| `craft-suite` | 4 | ~3.0k tokens | — | — |
 | `process-suite` | 13 | ~2.8k tokens | ~169 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
 | `always-on-suite` | 9 | ~1.8k tokens | ~1.2k tokens | ~2.4k tokens |

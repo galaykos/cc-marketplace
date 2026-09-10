@@ -74,3 +74,6 @@ readable transcript. Downgrade with `CC_EVIDENCE_GATE=warn`, disable with
 - **system-design** — hands off service boundaries, scaling, and caching topology
 - **taskmaster** — supplies the plan-before-code and work-verification gates the pipeline runs
 - **task-runner** — applies the work-verification discipline across a task run
+- **candor** — its Stop gate (`candor:gate`, unresolved `file:line` citations and
+  unbacked reversals) yields to this plugin's evidence gate on the same Stop
+  (`candor/lane.tsv`)

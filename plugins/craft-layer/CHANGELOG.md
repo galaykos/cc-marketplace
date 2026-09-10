@@ -7,6 +7,16 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.3
+
+### Changed
+- `hooks/ultra-craft.sh` is now rendered from `templates/boost-hook.sh.tmpl` via a
+  `boost-hook` object in `.chassis.json`; its lane row moved into the manifest's
+  generated block. Output is byte-identical for every invocation the guard
+  harness drives; the only behavioural-line changes are the per-plugin off switch
+  reading `CRAFT_BOOST` through an indirect expansion and the directive going out
+  via a quoted heredoc, so the manifest text is the wire text.
+
 ## 0.49.2
 
 ### Changed

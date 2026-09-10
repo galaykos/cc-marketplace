@@ -178,5 +178,47 @@ payload_active "$T" | bash "$HOOK" >/dev/null 2>&1; rc=$?
 if [ "$rc" -eq 2 ]; then pass=$((pass+1)); printf 'PASS  sibling block does not disarm this gate\n'
 else fail=$((fail+1)); printf 'FAIL  sibling block does not disarm this gate (rc=%s)\n' "$rc"; fi
 
+# ---------------------------------------------------------------------------
+# SubagentStop — the same gate over a subagent's final report (payload shape
+# measured live on 2.1.267: agent_id, agent_type, agent_transcript_path,
+# last_assistant_message, stop_hook_active, plus the PARENT transcript_path).
+# ---------------------------------------------------------------------------
+sub_payload() { # agent-transcript  last-msg  [stop_hook_active]
+  jq -cn --arg tp "$WS/parent.jsonl" --arg atp "$1" --arg m "$2" --arg cwd "$CWD" --argjson a "${3:-false}" \
+    '{hook_event_name:"SubagentStop",transcript_path:$tp,agent_transcript_path:$atp,agent_id:"aac4725192b90da07",agent_type:"Explore",last_assistant_message:$m,cwd:$cwd,stop_hook_active:$a}'
+}
+{ user "main thread prompt"; } > "$WS/parent.jsonl"
+A="$WS/agent.jsonl"; { user "find the bug"; asst "placeholder"; } > "$A"
+SUB_MARKER="$CWD/.claude/candor-last-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
+SUB_CLAIMED="$CWD/.claude/candor-blocked-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
+sub_check() { # desc  last-msg  exp_rc  exp_sub
+  local desc="$1" msg="$2" exp_rc="$3" exp_sub="$4" err rc ok=1
+  rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
+  err=$(sub_payload "$A" "$msg" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  [ "$rc" -eq "$exp_rc" ] || ok=0
+  if [ "$exp_sub" != "__NONE__" ]; then printf '%s' "$err" | grep -qF "$exp_sub" || ok=0; else [ -z "$err" ] || ok=0; fi
+  if [ "$ok" -eq 1 ]; then pass=$((pass+1)); printf 'PASS  %s\n' "$desc"
+  else fail=$((fail+1)); printf 'FAIL  %s (rc=%s want %s; stderr=%s)\n' "$desc" "$rc" "$exp_rc" "$err"; fi
+}
+sub_check "subagent: fabricated citation in last_assistant_message blocks" "Found it at src/ghost.ts:12." 2 "this report cites a location that does not exist"
+sub_check "subagent: resolving citation passes"                            "Found it at src/real.ts:3."   0 "__NONE__"
+sub_check "subagent: reversal clause disarmed (no user turn to push back)" "You're right, my mistake."   0 "__NONE__"
+# last_assistant_message wins over the transcript: the transcript says src/real.ts:3 (clean) but the payload text fabricates.
+{ user "find the bug"; asst "See src/real.ts:3."; } > "$A"
+sub_check "subagent: payload text is judged, not the transcript tail"      "Found it at src/ghost.ts:12." 2 "this report"
+# Markers are per agent: a subagent block must not consume the main thread's disarm, and vice versa.
+rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
+sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1
+if [ -f "$SUB_CLAIMED" ] && [ ! -f "$CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  subagent block writes its own claim, not the main thread'"'"'s\n'
+else fail=$((fail+1)); printf 'FAIL  subagent block writes its own claim (sub=%s main=%s)\n' "$([ -f "$SUB_CLAIMED" ] && echo y || echo n)" "$([ -f "$CLAIMED" ] && echo y || echo n)"; fi
+sub_payload "$A" "Found it at src/ghost.ts:12." true | bash "$HOOK" >/dev/null 2>&1; rc=$?
+if [ "$rc" -eq 0 ] && [ ! -f "$SUB_CLAIMED" ]; then pass=$((pass+1)); printf 'PASS  subagent continuation releases its own record\n'
+else fail=$((fail+1)); printf 'FAIL  subagent continuation releases its own record (rc=%s)\n' "$rc"; fi
+rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"
+sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1
+sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1; rc=$?
+if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  subagent: same report re-stop passes (one-shot)\n'
+else fail=$((fail+1)); printf 'FAIL  subagent: same report re-stop passes (rc=%s)\n' "$rc"; fi
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
