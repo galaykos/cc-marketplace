@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><!-- SLOT: title --></title>
+<link rel="stylesheet" href="/tokens.css">
+<style>
+/* Page-local layout only. Colour, radius, spacing and type come from tokens.css —
+   a hex or a px here is a token that should exist and does not yet. */
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-sans); font-size: var(--text-base); line-height: 1.5;
+       background: var(--background); color: var(--foreground); }
+.container { max-width: 72rem; margin: 0 auto; padding: var(--space-6) var(--space-4); }
+.stack > * + * { margin-top: var(--space-4); }
+.row { display: flex; gap: var(--space-4); align-items: center; }
+.grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
+.card { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: var(--space-4); }
+.btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4);
+       border-radius: var(--radius); border: 1px solid transparent; font: inherit; cursor: pointer; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); }
+.btn-secondary { background: var(--secondary); color: var(--secondary-foreground); border-color: var(--border); }
+.muted { color: var(--muted-foreground); font-size: var(--text-sm); }
+.input { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--input);
+         border-radius: var(--radius); background: var(--background); color: inherit; font: inherit; }
+.input:focus { outline: 2px solid var(--ring); outline-offset: 1px; }
+h1 { font-size: var(--text-2xl); margin: 0; } h2 { font-size: var(--text-xl); margin: 0; }
+</style>
+</head>
+<body>
+<!-- SLOT: page. Give every landmark and repeated block a data-td="<name>" so the
+     editor's selectors stay stable across regenerations. -->
+<main class="container stack" data-td="main">
+</main>
+<!-- Dark preview: add class="dark" on <html>; both variants must read well. -->
+</body>
+</html>
