@@ -48,9 +48,10 @@ jq -e ".owner | $author_ok" "$MP" >/dev/null 2>&1 \
 # outside every gate would be the "recorded" tier pretending to be "gate".
 for d in plugins/*/skills/*/ .claude/skills/*/; do
   [ -d "$d" ] || continue
-  # A symlinked project skill (`.claude/skills/plugin-structure -> ../../.agents/…`)
-  # is somebody else's file mounted here, not authored in this repo; its budget
-  # and phrasing are theirs to keep. Only skills whose bytes live here are gated.
+  # A symlinked project skill is somebody else's file mounted here, not authored
+  # in this repo; its budget and phrasing are theirs to keep. Only skills whose
+  # bytes live here are gated. None is symlinked today: the last one, a vendored
+  # 476-line plugin-structure skill, duplicated authoring-plugins and was removed.
   [ -L "${d%/}" ] && continue
   f="${d}SKILL.md"
   [ -f "$f" ] || { err "$d: SKILL.md missing"; continue; }
