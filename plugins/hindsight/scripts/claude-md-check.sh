@@ -15,6 +15,14 @@
 # command with a variable in it, or a runner not listed is not checked and not
 # reported as clean — it is simply not seen. Currency of ARCHITECTURE prose
 # (a described module boundary that moved) is judgment, left to the command.
+#
+# A token that resolves neither from the repo root nor from the file's own
+# directory gets one more chance: if it exists ANYWHERE in the tree as a path
+# suffix (`plugin.json`, `references/`, `hooks/x.sh`), it is read as an
+# illustrative fragment, not a stale path. Measured 2026-09-10 on this
+# marketplace's own CLAUDE.md before the rule: 35 rows, 3 real. A bare
+# extension (`.md`) is skipped outright. The cost, accepted: a root-anchored
+# path that went stale while a same-named file lives elsewhere is not reported.
 set -u
 root="${1:-$PWD}"
 [ -d "$root" ] || { echo "claude-md-check: not a directory: $root"; exit 0; }
@@ -24,6 +32,13 @@ files=$(find . \( -name node_modules -o -name vendor -o -name .git \) -prune -o 
   \( -name CLAUDE.md -o -name .claude.md -o -name .claude.local.md \) -type f -print 2>/dev/null | sort)
 [ -n "$files" ] || { echo "claude-md-check: no CLAUDE.md under $root"; exit 0; }
 
+is_extension_only() { # `.md`, `.json` — a suffix, never a path
+  case "$1" in .*) case "${1#.}" in *.*|*/*) return 1 ;; *) return 0 ;; esac ;; *) return 1 ;; esac
+}
+exists_anywhere() { # exists_anywhere <path-fragment>: any file or dir in the tree ends in it
+  case "$1" in ../*) return 1 ;; esac
+  [ -n "$(find . \( -name node_modules -o -name vendor -o -name .git \) -prune -o -path "*/$1" -print -quit 2>/dev/null)" ]
+}
 has_script() { # has_script <runner> <name>
   case "$1" in
     npm|pnpm|yarn|bun)
@@ -59,8 +74,9 @@ while IFS= read -r f; do
       # path-like: contains a slash or ends in a file extension, no spaces, no glob, no variable
       *" "*|*'*'*|*'$'*|*'<'*|*'{'*|http*|-*) continue ;;
       */*|*.sh|*.md|*.json|*.ts|*.js|*.php|*.py|*.yml|*.yaml|*.toml|*.env|*.tsv)
-        p=${tok#./}; p=${p%/}
-        [ -e "$p" ] || [ -e "$dir/$p" ] || { printf '  L%s  stale path    %s\n' "$ln" "$tok"; stale=$((stale+1)); } ;;
+        p=${tok#./}; p=${p%/}; p=$(printf '%s' "$p" | sed -E 's/:[0-9]+(-[0-9]+)?$//')  # `file:12` and `file:12-20` are line refs
+        is_extension_only "$p" && continue
+        [ -e "$p" ] || [ -e "$dir/$p" ] || exists_anywhere "$p" || { printf '  L%s  stale path    %s\n' "$ln" "$tok"; stale=$((stale+1)); } ;;
       *) continue ;;
     esac
   done < <(grep -no '`[^`]*`' "$f" 2>/dev/null | sed -E 's/^([0-9]+):`(.*)`$/\1\t\2/')

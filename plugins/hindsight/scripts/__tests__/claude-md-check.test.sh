@@ -22,7 +22,10 @@ Live: `scripts/live.sh`. Gone: `scripts/gone.sh`.
 Prose mention of scripts/also-gone.sh without backticks.
 `make lint` works; `make release` does not exist.
 `composer install` is never checked. Variable `$ROOT/x.sh` skipped.
+Fragments: a plugin ships `plugin.json` under `.claude-plugin/`; suffix `.md` is not a path.
+Truly absent anywhere: `nowhere/at-all.sh`. Line refs: `scripts/live.sh:12` and `scripts/live.sh:3-9`.
 MD
+mkdir -p "$root/plugins/demo/.claude-plugin"; touch "$root/plugins/demo/.claude-plugin/plugin.json"
 printf 'See `handler.php` and `../missing.md`.\n' > "$root/packages/api/CLAUDE.md"
 touch "$root/packages/api/handler.php"
 
@@ -40,7 +43,12 @@ reject "variable skipped"   'x.sh'
 expect "nested file found"  "./packages/api/CLAUDE.md"
 reject "relative live"      'stale path    handler.php'
 expect "relative stale"     'stale path    ../missing.md'
-expect "total line"         "stale references: 4"
+reject "fragment elsewhere" 'stale path    plugin.json'
+reject "dir fragment"       'stale path    .claude-plugin/'
+reject "bare extension"     'stale path    .md'
+reject "line ref stripped"  'stale path    scripts/live.sh:'
+expect "absent anywhere"    'L8  stale path    nowhere/at-all.sh'
+expect "total line"         "stale references: 5"
 expect "residual stated"    "prose references and architecture claims are not"
 
 echo "claude-md-check tests: $pass passed, $fail failed"
