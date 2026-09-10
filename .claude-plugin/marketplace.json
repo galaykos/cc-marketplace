@@ -223,6 +223,11 @@
       "name": "design-lab",
       "source": "./plugins/design-lab",
       "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate, shell-mockup fallback for greenfield); and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in."
+    },
+    {
+      "name": "theme-design",
+      "source": "./plugins/theme-design",
+      "description": "Interactive UI, theme and prototype design in the browser, driven by this Claude Code session on the subscription: /theme-design:init serves standalone HTML prototypes or your running dev server with a chat + direct-manipulation editor injected (select, move, resize, edit text, pick colours), Claude long-polls the local bridge, applies every gesture to real files (tokens.css, pages, or project source), replies in-panel and live-reloads; /theme-design:export writes tokens, pages, a design brief and optionally the project's theme file."
     }
   ]
 }

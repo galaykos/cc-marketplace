@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# Harness for server/serve.py: boots a session on a free port against a scratch
+# root and proves the bridge contract end to end — event append with a
+# monotonic seq, long-poll delivery that advances the cursor exactly once,
+# editor injection into served HTML, the CSRF header requirement, the
+# path-traversal refusal, reply broadcast over SSE, proxy-mode injection and
+# Location rewriting, and --status/--stop lifecycle. Stdlib python3 + curl only.
+set -u
+HERE="$(cd "$(dirname "$0")/../.." && pwd)"
+SERVE="$HERE/server/serve.py"
+pass=0; fail=0
+T=$(mktemp -d)
+pids=()
+cleanup() { for p in "${pids[@]:-}"; do [ -n "$p" ] && kill "$p" 2>/dev/null; done; rm -rf "$T"; }
+trap cleanup EXIT
+ok()   { pass=$((pass+1)); }
+bad()  { echo "FAIL $1"; [ -n "${2:-}" ] && echo "  $2" | head -5; fail=$((fail+1)); }
+
+port_of() { python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['port'])" "$1"; }
+wait_state() { for _ in $(seq 1 60); do [ -f "$1" ] && return 0; sleep 0.05; done; return 1; }
+
+# ---- html mode ---------------------------------------------------------------
+ROOT="$T/root"; mkdir -p "$ROOT/pages"
+printf '<html><body><h1 id="t">hi</h1></body></html>' > "$ROOT/pages/index.html"
+printf ':root{--background:#fff}' > "$ROOT/tokens.css"
+THEME_DESIGN_QUIET=1 python3 "$SERVE" --root "$ROOT" --mode html --port 0 >"$T/html.log" 2>&1 &
+pids+=($!)
+wait_state "$ROOT/state.json" || bad "html: state.json never appeared" "$(cat "$T/html.log")"
+P=$(port_of "$ROOT/state.json"); U="http://127.0.0.1:$P"
+
+body=$(curl -s "$U/")
+grep -q '__td/editor.js' <<<"$body" && grep -q '<h1 id="t">hi</h1>' <<<"$body" && ok || bad "html: index not injected" "$body"
+grep -q 'no-store' <<<"$(curl -sI "$U/pages/index.html")" && ok || bad "html: no-store missing"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$U/../etc/passwd")" != "200" ] && ok || bad "html: traversal served"
+grep -q 'editor chrome' <<<"$(curl -s "$U/__td/editor.css")" && ok || bad "html: editor.css not served"
+
+# CSRF: no header -> 403; header -> appended with seq 1
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"type":"message","text":"x"}' "$U/__td/event")
+[ "$code" = 403 ] && ok || bad "html: event without header accepted ($code)"
+r=$(curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"type":"message","text":"make it blue"}' "$U/__td/event")
+grep -q '"seq": 1' <<<"$r" && ok || bad "html: first seq not 1" "$r"
+grep -q 'make it blue' "$ROOT/events.jsonl" && grep -q '\*\*user\*\*' "$ROOT/transcript.md" && ok || bad "html: event/transcript not persisted"
+
+# long-poll returns the pending batch and advances the cursor; a second poll times out empty
+n=$(curl -s "$U/__td/next?timeout=1")
+grep -q 'make it blue' <<<"$n" && [ "$(cat "$ROOT/cursor")" = 1 ] && ok || bad "html: next did not deliver/advance" "$n / cursor=$(cat "$ROOT/cursor")"
+[ "$(curl -s "$U/__td/next?timeout=1")" = "[]" ] && ok || bad "html: second poll redelivered"
+# a poll that is already waiting wakes when an event lands
+( sleep 0.5; curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"type":"select","selector":"#t"}' "$U/__td/event" >/dev/null ) &
+start=$(date +%s); n=$(curl -s "$U/__td/next?timeout=5"); took=$(( $(date +%s) - start ))
+grep -q '"selector": "#t"' <<<"$n" && [ "$took" -lt 4 ] && ok || bad "html: waiting poll not woken (took ${took}s)" "$n"
+# an externally advanced cursor (the hook) is honoured
+printf '<html><body>x</body></html>' > "$ROOT/pages/a.html"
+curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"type":"annotate","text":"later"}' "$U/__td/event" >/dev/null
+echo 3 > "$ROOT/cursor"
+[ "$(curl -s "$U/__td/next?timeout=1")" = "[]" ] && ok || bad "html: hook-advanced cursor ignored"
+# bad payloads
+[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d '{"nope":1}' "$U/__td/event")" = 400 ] && ok || bad "html: typeless event accepted"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d 'not json' "$U/__td/event")" = 400 ] && ok || bad "html: invalid json accepted"
+
+# SSE: a reply is broadcast; a file change pushes reload
+curl -s -N --max-time 3 "$U/__td/events" > "$T/sse.txt" &
+ssepid=$!
+sleep 0.4
+curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"text":"done","reload":true}' "$U/__td/reply" >/dev/null
+printf ':root{--background:#000}' > "$ROOT/tokens.css"
+sleep 1.6; wait "$ssepid" 2>/dev/null
+grep -q '"type": "assistant"' "$T/sse.txt" && grep -q '"reload"' "$T/sse.txt" && grep -q 'tokens.css' "$T/sse.txt" && ok || bad "html: sse missing assistant/reload/watch" "$(cat "$T/sse.txt")"
+grep -q '\*\*assistant\*\*.*done' "$ROOT/transcript.md" && ok || bad "html: assistant reply not in transcript"
+grep -q '"pages": \["a.html", "index.html"\]' <<<"$(curl -s "$U/__td/state")" && ok || bad "html: state pages wrong" "$(curl -s "$U/__td/state")"
+
+# a second start on the same root refuses while the first lives
+out=$(THEME_DESIGN_QUIET=1 python3 "$SERVE" --root "$ROOT" --mode html --port 0 2>&1); rc=$?
+[ $rc -ne 0 ] && grep -q 'already running' <<<"$out" && ok || bad "html: duplicate start not refused" "$out"
+
+# lifecycle
+python3 "$SERVE" --root "$ROOT" --status | grep -q '"mode": "html"' && ok || bad "html: --status"
+python3 "$SERVE" --root "$ROOT" --stop | grep -q stopped && sleep 0.3 && [ ! -f "$ROOT/state.json" ] && ok || bad "html: --stop"
+python3 "$SERVE" --root "$ROOT" --status >/dev/null 2>&1 && bad "html: --status after stop should fail" || ok
+
+# ---- proxy mode ----------------------------------------------------------------
+UP="$T/upstream"; mkdir -p "$UP/sub"
+printf '<!doctype html><html><body><main>app</main></body></html>' > "$UP/index.html"
+printf 'body{}' > "$UP/app.css"
+UPP=$(python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));print(s.getsockname()[1]);s.close()')
+python3 -m http.server "$UPP" --bind 127.0.0.1 -d "$UP" >"$T/up.log" 2>&1 &
+pids+=($!)
+for _ in $(seq 1 60); do curl -s -o /dev/null "http://127.0.0.1:$UPP/" && break; sleep 0.05; done
+ROOT2="$T/root2"; mkdir -p "$ROOT2"
+THEME_DESIGN_QUIET=1 python3 "$SERVE" --root "$ROOT2" --mode proxy --proxy "http://127.0.0.1:$UPP" --port 0 >"$T/proxy.log" 2>&1 &
+pids+=($!)
+wait_state "$ROOT2/state.json" || bad "proxy: state.json never appeared" "$(cat "$T/proxy.log")"
+P2=$(port_of "$ROOT2/state.json"); U2="http://127.0.0.1:$P2"
+body=$(curl -s "$U2/")
+grep -q '<main>app</main>' <<<"$body" && grep -q '__td/editor.js' <<<"$body" && ok || bad "proxy: html not proxied+injected" "$body"
+[ "$(curl -s "$U2/app.css")" = 'body{}' ] && ok || bad "proxy: non-html body altered"
+loc=$(curl -s -o /dev/null -w '%{redirect_url}' "$U2/sub")
+grep -q "127.0.0.1:$P2/sub/\|localhost:$P2/sub/" <<<"$loc" && ok || bad "proxy: Location not rewritten to own origin ($loc)"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$U2/missing")" = 404 ] && ok || bad "proxy: upstream status not passed through"
+grep -q '"mode": "proxy"' <<<"$(curl -s "$U2/__td/state")" && ok || bad "proxy: control lane not reachable"
+kill "${pids[1]}" 2>/dev/null; wait "${pids[1]}" 2>/dev/null; sleep 0.2
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$U2/")" = 502 ] && ok || bad "proxy: dead upstream should be 502"
+python3 "$SERVE" --root "$ROOT2" --stop >/dev/null
+
+echo "theme-design serve tests: $pass passed, $fail failed"
+exit $((fail > 0))
