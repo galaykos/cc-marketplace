@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **36 leaf plugins** and **8 bundles** covering
+A Claude Code plugin marketplace: **37 leaf plugins** and **8 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -73,7 +73,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 36 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 37 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -382,6 +382,7 @@ take a fuzzy request to a verified branch.
 |--------|-----------------|-------------------|
 | **[taskmaster](plugins/taskmaster)** | brainstorm a fuzzy idea into an approved design, grill requirements to zero ambiguity against an ambiguity ledger, decide visuals with mockups, red-team the frozen spec, then emit single-prompt task cards with a coverage check and a verify-teeth lint | The request is vague, large, or has five plausible readings |
 | **[task-runner](plugins/task-runner)** | one task at a time, scope locked, a bounded verify-fix loop per task, halt-with-evidence instead of drift, a completion gate that actually runs the artifact, plus parallel planning and a `--tracks` mode | You have a task list and want it executed without drift |
+| **[overseer](plugins/overseer)** | a program-level product owner: `/overseer:start "Build a CRM"` inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, briefs taskmaster and task-runner per milestone on its own branch, and closes a milestone only after a browser walk at three widths with a clean console — `program.sh accept` refuses a green suite alone; `/overseer:resume` continues across sessions | A whole product to deliver over many sessions and branches, with someone owning the roadmap and the acceptance |
 | **[approaches](plugins/approaches)** | 2–3 structurally different approaches with a trade-off table and a kill-trigger — or four **blind** persona subagents when the work is a refactor/rewrite — plus build-vs-buy, S/M/L/XL estimation, rollout planning, and design-pattern selection | Before implementing anything non-trivial, and especially before a rewrite |
 | **[git-workflow](plugins/git-workflow)** | worktree isolation, a branch-finish protocol (verify → merge / PR / keep / discard, no zombie branches), and review-exchange rigor | Starting isolated work, or finishing a branch |
 | **[orchestration](plugins/orchestration)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry) | Fanning out subagents, or deciding whether to trust what one returned |

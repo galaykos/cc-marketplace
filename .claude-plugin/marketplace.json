@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.100.0"
+    "version": "0.101.0"
   },
   "plugins": [
     {
@@ -48,6 +48,11 @@
       "name": "task-runner",
       "source": "./plugins/task-runner",
       "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — and a PostToolUse scope-lock tripwire that flags edits outside the current task's declared files. Includes parallel-planning: computed subagents-vs-inline verdict with dependency levels, agent count, and speedup estimate via /task-runner:plan."
+    },
+    {
+      "name": "overseer",
+      "source": "./plugins/overseer",
+      "description": "A program-level product owner for long, multi-session, multi-branch builds. /overseer:start \"Build a CRM that manages clients\" inventories the project and every installed plugin (user, project, local scope), asks one clarifying round, writes a milestone roadmap, then delivers each milestone on its own branch by briefing the taskmaster pipeline and task-runner execution with skill-pinned dispatch prompts. An accept script refuses to close a milestone until the app was driven in a real browser at three widths with a clean console — a green suite alone does not count. State under .claude/overseer/ lets /overseer:resume continue in a fresh session; a SessionStart hook announces it."
     },
     {
       "name": "stack-scan",

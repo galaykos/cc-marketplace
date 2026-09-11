@@ -4,6 +4,21 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.101.0] - 2026-09-11
+
+**New plugin `overseer` (0.1.0)** — a program-level product owner for long,
+multi-session, multi-branch builds. `/overseer:start "<goal>"` inventories the
+project and the installed plugins in every scope (`scripts/capability-scan.sh`),
+asks one clarifying round, writes a charter and a milestone roadmap, then delivers
+each milestone on its own branch by briefing taskmaster and task-runner with
+skill-pinned dispatch prompts. `scripts/program.sh accept` is the gate: a
+milestone closes only with nine file-backed evidence kinds recorded — tests,
+browser happy-path, browser error-path, three viewports, console-clean, keyboard
+and reduced-motion — and `dispatch check` refuses a prompt whose discipline
+preamble is reworded or that pins no existing skill path. `/overseer:resume`
+continues in a fresh session; a SessionStart hook announces an open program.
+Hardened by two recorded simulations before landing. Joins no bundle.
+
 ## [0.100.0] - 2026-09-03
 
 **`claude-authoring` removed from the marketplace — demoted to project skills.**

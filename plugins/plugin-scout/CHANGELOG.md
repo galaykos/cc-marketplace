@@ -7,6 +7,11 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.8
+
+### Changed
+- `references/catalog.md` regenerated: overseer 0.1.0 joins the catalog.
+
 ## 0.15.7
 
 ### Changed
