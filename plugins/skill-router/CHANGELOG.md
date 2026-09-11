@@ -2,6 +2,13 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.15.1
+
+### Added
+- `rules.tsv`: edits under `.theme-design/` route the `design-session` skill
+  (theme-design), so a session's token or page edits made from the terminal load
+  the loop contract instead of only the slash command reaching it.
+
 ## 0.15.0
 
 ### Added

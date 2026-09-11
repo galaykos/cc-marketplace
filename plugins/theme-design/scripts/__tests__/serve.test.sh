@@ -33,6 +33,7 @@ grep -q '__td/editor.js' <<<"$body" && grep -q '<h1 id="t">hi</h1>' <<<"$body" &
 grep -q 'no-store' <<<"$(curl -sI "$U/pages/index.html")" && ok || bad "html: no-store missing"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$U/../etc/passwd")" != "200" ] && ok || bad "html: traversal served"
 grep -q 'editor chrome' <<<"$(curl -s "$U/__td/editor.css")" && ok || bad "html: editor.css not served"
+[ "$(curl -s -o /dev/null -w '%{http_code}' "$U/favicon.ico")" = 204 ] && ok || bad "html: favicon should be an empty 204, not a console 404"
 
 # CSRF: no header -> 403; header -> appended with seq 1
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"type":"message","text":"x"}' "$U/__td/event")
@@ -68,6 +69,27 @@ sleep 1.6; wait "$ssepid" 2>/dev/null
 grep -q '"type": "assistant"' "$T/sse.txt" && grep -q '"reload"' "$T/sse.txt" && grep -q 'tokens.css' "$T/sse.txt" && ok || bad "html: sse missing assistant/reload/watch" "$(cat "$T/sse.txt")"
 grep -q '\*\*assistant\*\*.*done' "$ROOT/transcript.md" && ok || bad "html: assistant reply not in transcript"
 grep -q '"pages": \["a.html", "index.html"\]' <<<"$(curl -s "$U/__td/state")" && ok || bad "html: state pages wrong" "$(curl -s "$U/__td/state")"
+
+# the prompt hook budgets in whole events: with the cursor at 0 and eight ~430-byte
+# events queued, it must print only what fits in 3000 chars, advance the cursor to
+# the LAST event it printed in full, and leave the rest for the next poll.
+HOOK="$HERE/hooks/pending-events.sh"
+if command -v jq >/dev/null 2>&1; then
+  HC="$T/hookcwd"; ROOTH="$HC/.theme-design"; mkdir -p "$ROOTH"
+  printf '{"pid": %s, "mode": "html", "url": "http://localhost:0/"}' "$$" > "$ROOTH/state.json"
+  pad=$(printf 'x%.0s' $(seq 1 380))
+  : > "$ROOTH/events.jsonl"
+  for i in $(seq 1 8); do printf '{"type":"select","seq":%s,"selector":"#e%s","text":"%s"}\n' "$i" "$i" "$pad" >> "$ROOTH/events.jsonl"; done
+  echo 0 > "$ROOTH/cursor"
+  hout=$(printf '{"prompt":"hello","cwd":"%s"}' "$HC" | bash "$HOOK" 2>&1)
+  shown=$(grep -c '^{' <<<"$hout"); cur=$(cat "$ROOTH/cursor")
+  [ "$shown" -ge 1 ] && [ "$shown" -lt 8 ] && [ "$cur" = "$shown" ] && grep -q "$shown of 8 shown" <<<"$hout" && ok || bad "hook: whole-event budget/cursor wrong (shown=$shown cursor=$cur)" "$hout"
+  ! grep -q '^{[^}]*$' <<<"$hout" && ok || bad "hook: an event was cut mid-JSON"
+  hout2=$(printf '{"prompt":"hello","cwd":"%s"}' "$HC" | bash "$HOOK" 2>&1)
+  grep -q "$((8 - shown)) of 8 pending\|browser event(s) pending" <<<"$hout2" && [ "$(cat "$ROOTH/cursor")" = 8 ] && ok || bad "hook: second prompt did not drain the remainder" "$hout2"
+  hout3=$(printf '{"prompt":"/theme-design:init","cwd":"%s"}' "$HC" | bash "$HOOK" 2>&1)
+  [ -z "$hout3" ] && ok || bad "hook: slash prompt to this plugin must be silent" "$hout3"
+fi
 
 # a second start on the same root refuses while the first lives
 out=$(THEME_DESIGN_QUIET=1 python3 "$SERVE" --root "$ROOT" --mode html --port 0 2>&1); rc=$?

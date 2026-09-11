@@ -26,7 +26,8 @@ radius}` as the browser computed them BEFORE the gesture.
 - `rect` is where the element WAS. For `move` without a drop, `rect + (dx,dy)` is
   where the user wanted it; the nearest layout that puts it there wins.
 - `page` tells which file (html mode) or which route (proxy mode) the gesture was
-  on. Do not apply a gesture from `/pages/pricing.html` to `index.html`.
+  on. Do not apply a gesture from `/pages/pricing.html` to `index.html`. In html
+  mode `/` is `pages/index.html`: the root serves it directly.
 
 ## Selector shape
 

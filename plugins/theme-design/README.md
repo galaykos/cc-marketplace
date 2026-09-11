@@ -64,7 +64,8 @@ of a fourth single reveal. The full contract is
 | claim | standing |
 |---|---|
 | The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop` | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
-| The hook is silent without a running session and injects with one | **recorded** — the harness step exercises `hooks/pending-events.sh` only by inspection, which is not a run; the dynamic budget baseline records its silent cost and nothing else reads it |
+| The hook injects only whole events, advances the cursor no further than the last one printed, and stays silent for `/theme-design:` prompts | **gate** — the same harness runs `hooks/pending-events.sh` against a live-pid fixture (skipped without `jq`, which is also when the hook itself is silent) |
+| The hook is silent without a running session | **recorded** — the dynamic budget baseline records its silent cost; nothing else reads it |
 | A gesture is applied faithfully to source, replies are one line, tokens over inline styles | **agent-graded** — the reply and the reload are the review; nothing scripts it |
 | Contrast and light/dark completeness at export | **recorded** — the skill instructs the check; no script runs it |
 

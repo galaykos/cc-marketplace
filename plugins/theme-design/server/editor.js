@@ -132,9 +132,16 @@
       '<label>text <input type="color" data-prop="color" value="' + toHex(d.computed.color) + '"></label></div>' +
       '<form class="__td-note"><input placeholder="note about this element…"><button>Note</button></form>';
     Array.prototype.forEach.call(inspector.querySelectorAll("input[type=color]"), function (inp) {
-      inp.addEventListener("input", function () { el.style.setProperty(inp.dataset.prop, inp.value); });
+      // describe() must see the element BEFORE the preview lands, or `computed`
+      // reports the picked colour and the token match in the skill has nothing to match.
+      var from = null;
+      inp.addEventListener("input", function () {
+        if (!from) from = describe(el);
+        el.style.setProperty(inp.dataset.prop, inp.value);
+      });
       inp.addEventListener("change", function () {
-        send("style", Object.assign(describe(el), { property: inp.dataset.prop, value: inp.value }));
+        send("style", Object.assign(from || describe(el), { property: inp.dataset.prop, value: inp.value }));
+        from = null;
       });
     });
     inspector.querySelector(".__td-note").addEventListener("submit", function (e) {
@@ -219,7 +226,11 @@
       var before = (e.clientY - r.top) < r.height / 2 && (e.clientX - r.left) < r.width / 2;
       placement = { target: selectorFor(target), position: before ? "before" : "after", sibling: true };
     }
+    // The browser fires `click` right after this mouseup only when mousedown and
+    // mouseup hit the same element; a drop on a sibling fires none, so the flag
+    // must expire on its own or it eats the user's next real click.
     state.justDragged = true;
+    setTimeout(function () { state.justDragged = false; }, 0);
     send("move", Object.assign(d.from, { dx: dx, dy: dy, drop: placement }));
     // Preview: a sibling drop reorders in place; a free drop keeps the translate until reload.
     if (placement) {

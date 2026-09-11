@@ -404,6 +404,8 @@ def build_handler(session):
         # --- html mode: static files ---------------------------------------
         def static_get(self, path):
             rel = urllib.parse.unquote(path).lstrip("/")
+            if path == "/favicon.ico" and not (session.root / "favicon.ico").is_file():
+                return self.send_bytes(b"", "image/x-icon", 204)
             if path in ("", "/"):
                 index = session.root / "pages" / "index.html"
                 if index.is_file():
