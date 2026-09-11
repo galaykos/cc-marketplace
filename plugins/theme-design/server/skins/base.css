@@ -167,6 +167,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .logo { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: calc(var(--radius) / 1.5); background: var(--primary); color: var(--primary-foreground); font-weight: 700; }
 
 /* ---- states: variants of one page, not pages -------------------------------- */
+.when-populated { display: contents; }   /* a wrapper that never breaks the parent's grid or gap */
 .when-empty, .when-loading, .when-error { display: none; }
 [data-state="empty"] .when-empty, [data-state="loading"] .when-loading, [data-state="error"] .when-error { display: revert; }
 [data-state="empty"] .when-populated, [data-state="loading"] .when-populated, [data-state="error"] .when-populated { display: none; }

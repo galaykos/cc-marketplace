@@ -1,6 +1,6 @@
 {
   "name": "theme-design",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Interactive UI, theme and prototype design in the browser, driven by this Claude Code session on the subscription: /theme-design:init serves standalone HTML prototypes or your running dev server with a chat + direct-manipulation editor injected (select, move, resize, edit text, pick colours), Claude long-polls the local bridge, applies every gesture to real files (tokens.css, pages, or project source), replies in-panel and live-reloads; multi-page flows walked with a Go tool and recorded in flow.json for the brief; a skin selector shows the same wireframe in the feel of shadcn, Bootstrap, MUI or Astryx (lookalikes, never the library) and a rich dial adds imagery, chart shapes, depth and motion on the same files; /theme-design:export writes tokens, pages, a design brief and optionally the project's theme file.",
   "author": {
     "name": "Ivan-WG",

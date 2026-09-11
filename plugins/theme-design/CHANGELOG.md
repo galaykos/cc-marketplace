@@ -2,6 +2,13 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.4.1
+
+### Fixed
+- `.when-populated` is `display: contents` in the base sheet, so a page can wrap
+  its populated blocks without breaking the parent grid and the state selector
+  still hides them (an inline `display` on the wrapper used to win).
+
 ## 0.4.0
 
 ### Added
