@@ -76,7 +76,7 @@ of a fourth single reveal. The full contract is
 
 | claim | standing |
 |---|---|
-| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop`, skin list/switch/fallback | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
+| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop`, skin list/switch/fallback, listening/away presence | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
 | A skin is presented as a lookalike, never as the library | **recorded** — the skin files and the panel label say it; nothing checks a reply repeats it |
 | The hook injects only whole events, advances the cursor no further than the last one printed, and stays silent for `/theme-design:` prompts | **gate** — the same harness runs `hooks/pending-events.sh` against a live-pid fixture (skipped without `jq`, which is also when the hook itself is silent) |
 | The hook is silent without a running session | **recorded** — the dynamic budget baseline records its silent cost; nothing else reads it |
@@ -85,6 +85,12 @@ of a fourth single reveal. The full contract is
 
 ## Limits, stated
 
+- The panel header says **listening** while the session is blocked on the poll and
+  **away** otherwise. Away is not broken: what you send is kept and applied when
+  the session polls again — or, if you type a prompt in the terminal that runs
+  the session, the hook drains it into that turn. That terminal must be in the
+  project that holds `.theme-design/`; a session driving another project's root
+  from elsewhere never sees the hook.
 - Editor changes are preview only until Claude writes them; the page reloads from disk.
 - Selectors are heuristics (`#id`, `data-td`, class + `nth-of-type`). Framework-hashed
   classes in `proxy` mode can defeat them; Claude asks for the component name.

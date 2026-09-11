@@ -55,6 +55,13 @@ grep -q 'make it blue' <<<"$n" && [ "$(cat "$ROOT/cursor")" = 1 ] && ok || bad "
 ( sleep 0.5; curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"type":"select","selector":"#t"}' "$U/__td/event" >/dev/null ) &
 start=$(date +%s); n=$(curl -s "$U/__td/next?timeout=5"); took=$(( $(date +%s) - start ))
 grep -q '"selector": "#t"' <<<"$n" && [ "$took" -lt 4 ] && ok || bad "html: waiting poll not woken (took ${took}s)" "$n"
+# presence: listening is true only while a /__td/next is blocked
+grep -q '"listening": false' <<<"$(curl -s "$U/__td/state")" && ok || bad "presence: idle server should not be listening"
+curl -s "$U/__td/next?timeout=3" >/dev/null &
+sleep 0.4
+grep -q '"listening": true' <<<"$(curl -s "$U/__td/state")" && ok || bad "presence: blocked poll should read listening"
+wait $! 2>/dev/null
+grep -q '"listening": false' <<<"$(curl -s "$U/__td/state")" && ok || bad "presence: listening should drop when the poll returns"
 # an externally advanced cursor (the hook) is honoured
 printf '<html><body>x</body></html>' > "$ROOT/pages/a.html"
 curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"type":"annotate","text":"later"}' "$U/__td/event" >/dev/null
@@ -74,9 +81,11 @@ curl -s -N --max-time 3 "$U/__td/events" > "$T/sse.txt" &
 ssepid=$!
 sleep 0.4
 curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"text":"done","reload":true}' "$U/__td/reply" >/dev/null
+curl -s "$U/__td/next?timeout=0.3" >/dev/null
 printf ':root{--background:#000}' > "$ROOT/tokens.css"
 sleep 1.6; wait "$ssepid" 2>/dev/null
 grep -q '"type": "assistant"' "$T/sse.txt" && grep -q '"reload"' "$T/sse.txt" && grep -q 'tokens.css' "$T/sse.txt" && ok || bad "html: sse missing assistant/reload/watch" "$(cat "$T/sse.txt")"
+grep -q '"type": "presence", "listening": true' "$T/sse.txt" && grep -q '"type": "presence", "listening": false' "$T/sse.txt" && ok || bad "presence: SSE did not carry both transitions" "$(cat "$T/sse.txt")"
 grep -q '\*\*assistant\*\*.*done' "$ROOT/transcript.md" && ok || bad "html: assistant reply not in transcript"
 grep -q '"pages": \["a.html", "index.html"\]' <<<"$(curl -s "$U/__td/state")" && ok || bad "html: state pages wrong" "$(curl -s "$U/__td/state")"
 

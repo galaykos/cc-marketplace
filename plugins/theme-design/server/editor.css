@@ -5,6 +5,9 @@
 #__td-panel header{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#111;color:#fff}
 #__td-panel header strong{flex:1;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
 #__td-pending{font-size:11px;color:#ffd166}
+#__td-presence{font-size:11px;padding:1px 6px;border-radius:999px}
+#__td-presence.__td-on{background:#1f6f3f;color:#dff5e6}
+#__td-presence.__td-off{background:#6b2b2b;color:#ffd9d9}
 #__td-toggle{background:none;border:0;color:#fff;font-size:16px;cursor:pointer;line-height:1}
 #__td-panel.__td-collapsed{width:auto}
 #__td-panel.__td-collapsed > :not(header){display:none}

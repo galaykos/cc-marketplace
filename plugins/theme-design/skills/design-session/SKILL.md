@@ -81,7 +81,10 @@ marked consumed — apply it as one turn:
    stop, or when the user types in the terminal (Esc interrupts the wait).
 
 Batch size is the user's pace: never reply "applying…" and then apply; the reply
-IS the signal that the reload they see is finished.
+IS the signal that the reload they see is finished. The panel header reads
+**listening** only while your poll is blocked; every turn you spend outside the
+loop shows **away** there, so do not end the turn while the session is open
+unless the user asked you to.
 
 ## Judgement calls the protocol cannot make
 

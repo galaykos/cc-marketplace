@@ -2,6 +2,19 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.2.1
+
+### Added
+- Presence: while a `/__td/next` is blocked the server reports `listening: true`
+  (`/__td/state`, SSE `presence`); the panel header shows **listening** / **away**
+  with a tooltip saying what happens to a message sent while away. Harness-gated.
+  Found in use: a message typed while the session was between polls sat in the
+  queue with no signal to the user.
+
+### Changed
+- Panel counter reads "N queued" (gestures and messages since the last reply)
+  instead of "N pending".
+
 ## 0.2.0
 
 ### Added

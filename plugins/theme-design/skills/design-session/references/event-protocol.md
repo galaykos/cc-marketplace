@@ -46,6 +46,14 @@ so regenerating the page does not change the selectors the user has been clickin
 mode the file watcher already reloads on save, so `reload` there is only for a
 change the watcher cannot see (an image swapped under the same name is one).
 
+## Presence
+
+While your `/__td/next` is blocked the server reports `listening: true` (in
+`/__td/state` and as an SSE `presence` line) and the panel header says so; when
+you are between polls it says **away**. The user reads "away" as "nothing will
+happen until Claude is back", which is true — so stay in the loop, and when you
+leave it, say in the terminal that the panel will show away until `/theme-design:init`.
+
 ## Cursor discipline
 
 `/__td/next` marks its batch consumed by writing `.theme-design/cursor`. The prompt

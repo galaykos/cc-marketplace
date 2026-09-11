@@ -56,7 +56,7 @@
   var panel = document.createElement("aside");
   panel.id = "__td-panel";
   panel.innerHTML =
-    '<header><strong>theme-design</strong><span id="__td-pending" title="events not yet applied by Claude"></span>' +
+    '<header><strong>theme-design</strong><span id="__td-presence" title="whether the Claude Code session is blocked on the poll right now"></span><span id="__td-pending" title="gestures and messages sent since Claude last replied"></span>' +
     '<button id="__td-toggle" title="collapse">–</button></header>' +
     '<nav id="__td-tools">' +
     '<button data-tool="select" class="on" title="click to select, then note / colour / resize">Select</button>' +
@@ -77,7 +77,15 @@
 
   function renderPending() {
     var el = panel.querySelector("#__td-pending");
-    el.textContent = state.pending ? state.pending + " pending" : "";
+    el.textContent = state.pending ? state.pending + " queued" : "";
+  }
+  function renderPresence() {
+    var el = panel.querySelector("#__td-presence");
+    el.className = state.listening ? "__td-on" : "__td-off";
+    el.textContent = state.listening ? "listening" : "away";
+    el.title = state.listening
+      ? "Claude is blocked on the poll: the next thing you do is applied when it lands"
+      : "No session is polling. What you send is kept; it is applied when the session polls again or when you type a prompt in that terminal";
   }
   function logLine(role, text) {
     var line = document.createElement("div");
@@ -275,6 +283,7 @@
   es.onmessage = function (e) {
     var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
     if (msg.type === "assistant") { state.pending = 0; renderPending(); logLine("assistant", msg.text); }
+    if (msg.type === "presence") { state.listening = !!msg.listening; renderPresence(); }
     if (msg.type === "reload") setTimeout(function () { location.reload(); }, 150);
   };
   fetch("/__td/transcript").then(function (r) { return r.text(); }).then(function (t) {
@@ -286,6 +295,7 @@
   var skinSel = panel.querySelector("#__td-skin");
   fetch("/__td/state").then(function (r) { return r.json(); }).then(function (s) {
     state.pending = s.pending || 0; renderPending();
+    state.listening = !!s.listening; renderPresence();
     (s.skins || []).forEach(function (name) {
       var o = document.createElement("option"); o.value = name; o.textContent = "skin: " + name; skinSel.appendChild(o);
     });

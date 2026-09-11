@@ -11,7 +11,8 @@ Two lanes ride one port.
                       pushed over GET /__td/events (Server-Sent Events).
   Claude waits        GET  /__td/next    long-poll: blocks until an event with
                       seq > <root>/cursor exists, returns the batch, advances
-                      the cursor. The UserPromptSubmit hook advances the same
+                      the cursor. While one is blocked the session is
+                      "listening" (state + SSE `presence`); the panel says so. The UserPromptSubmit hook advances the same
                       file when it injects pending events into a terminal turn,
                       so an event is delivered on one surface, not both.
 
@@ -114,6 +115,7 @@ class Session:
         self.lock = threading.Lock()
         self.cond = threading.Condition(self.lock)
         self.clients = []
+        self.waiters = 0
         self.events_path = root / "events.jsonl"
         self.cursor_path = root / "cursor"
         self.transcript_path = root / "transcript.md"
@@ -167,17 +169,33 @@ class Session:
         return out
 
     def wait_next(self, timeout):
+        """Block until an event lands or the timeout passes. While a poller is
+        blocked here the session is "listening"; the panel shows that, and shows
+        the opposite when nothing is polling so the user knows a message will sit
+        until the session polls again or a terminal prompt drains it."""
         deadline = time.monotonic() + timeout
-        with self.cond:
-            while True:
-                batch = self.pending()
-                if batch:
-                    self.write_cursor(batch[-1]["seq"])
-                    return batch
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    return []
-                self.cond.wait(min(remaining, 1.0))
+        self.set_waiting(+1)
+        try:
+            with self.cond:
+                while True:
+                    batch = self.pending()
+                    if batch:
+                        self.write_cursor(batch[-1]["seq"])
+                        return batch
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        return []
+                    self.cond.wait(min(remaining, 1.0))
+        finally:
+            self.set_waiting(-1)
+
+    def set_waiting(self, delta):
+        with self.lock:
+            before = self.waiters > 0
+            self.waiters = max(0, self.waiters + delta)
+            after = self.waiters > 0
+        if before != after:
+            self.broadcast({"type": "presence", "listening": after})
 
     # --- transcript --------------------------------------------------------
     def append_transcript(self, role, text):
@@ -253,6 +271,7 @@ class Session:
             "clients": len(self.clients),
             "skin": self.active_skin(),
             "skins": self.skins(),
+            "listening": self.waiters > 0,
         }
 
 
