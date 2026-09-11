@@ -55,8 +55,8 @@ does not abort the harvest; record the failure and continue.
 - Recurrence gate: propose a CLAUDE.md rule or a skill/plugin idea only
   when the cluster has evidence from ≥2 distinct sessions.
 - Existing-coverage check, before any proposal reaches the report: grep
-  the project's CLAUDE.md and the installed skills' descriptions for the
-  rule the candidate states. Already covered → report it as a routing or
+  the project's CLAUDE.md, the installed skills' descriptions, and `brain/`
+  when it exists for the rule the candidate states. Already covered → report it as a routing or
   compliance gap ("the rule exists at X and was not followed"), never as
   a new rule — the approving user otherwise sees evidence FOR the rule
   and no evidence it already exists, which is how duplicates accumulate.
@@ -95,7 +95,7 @@ Ask via AskUserQuestion with multiSelect, one question per non-empty
 category, each proposal a separate option and every question carrying a
 "Skip this category" option. On approval only:
 
-- Rules → **two destinations, and the pick names which.** A rule that binds the
+- Rules → **three destinations, and the pick names which.** A rule that binds the
   REPO — a convention, a command to run, a constraint any contributor inherits —
   is appended to the project's CLAUDE.md, where it is committed and reviewed in a
   PR. A rule that binds how THIS USER wants to be worked with — a correction they
@@ -104,9 +104,17 @@ category, each proposal a separate option and every question carrying a
   feedback`, the fact followed by its **Why:** and **How to apply:** lines, plus a
   one-line pointer appended to that directory's `MEMORY.md` index. It is
   machine-local and personal, so committing it to a shared CLAUDE.md would impose
-  one person's preference on the team. Offer the destination as part of the
-  option's label; when the memory directory is not present, fall back to CLAUDE.md
-  and say that is what happened.
+  one person's preference on the team. A finding that describes the CODEBASE —
+  where something lives, a trap in one specific module, a choice that was
+  settled — is neither a rule nor a preference: when `brain/INDEX.md` exists
+  (brain plugin), offer it as a **brain note**, one bullet appended under a
+  `## Notes` heading in the `brain/<area>.md` whose `## Files` lists the module
+  (`brain/decisions.md` for a settled choice; the area's `INDEX.md` line names it
+  when unsure). It is committed and shared like the map; the indexer carries
+  `## Notes` over verbatim, so tell the user no `/brain index` is needed after a
+  note. Offer the destination as part of the option's label; when the memory
+  directory or `brain/INDEX.md` is not present, fall back to CLAUDE.md and say
+  that is what happened. The recurrence gate applies to all three alike.
 - Ideas → hand each pick to a `/new-skill` or `/new-plugin` project skill
   (whichever fits the idea's size) when the project has one — the marketplace
   repository keeps both under `.claude/skills/`; else write the idea as a
@@ -124,7 +132,7 @@ a valid outcome and still counts as a completed harvest.
 **Record every applied pick** (rules, ideas, warnings alike) so the next
 harvest's outcome check can grade it: append one line per pick to
 `$HOME/.claude/hindsight/<slug>/applied.jsonl` —
-`{"v":1,"ts":"<now, ISO-8601 UTC>","kind":"rule|idea|warning","text":"<the
+`{"v":1,"ts":"<now, ISO-8601 UTC>","kind":"rule|note|idea|warning","text":"<the
 applied line>","sessions":[<source session ids>]}`. A pick applied but not
 recorded is invisible to the loop — record at the moment of the write.
 
@@ -142,7 +150,8 @@ recorded is invisible to the loop — record at the moment of the write.
 
 Standing: recorded — current project only, never another slug's ledgers. Never edits
 application code: outputs are CLAUDE.md lines, `feedback` memory files under
-`~/.claude/projects/<slug>/memory/`, files under
+`~/.claude/projects/<slug>/memory/`, brain notes under `brain/` (only when the brain
+plugin's map exists), files under
 `$HOME/.claude/hindsight/<slug>/`, the project's `.claude/hindsight/anti-patterns.md`,
 and the scaffold handoffs above. No auto-apply — every write passes the apply gate
 above. Transcript JSONL is officially unstable: skip malformed lines, tolerate

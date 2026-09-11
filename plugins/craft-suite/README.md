@@ -3,7 +3,7 @@
 Meta-bundle: the creative-build studio in one install — concept-first
 creative direction with a tiered motion catalog, real-component visual
 decisions in whatever UI library the project runs, live registry sourcing, WebGL/Three.js
-effects, and the companion the studio requires (ui-ux, which carries the WCAG audit). Split out
+effects, browser-driven design sessions (theme-design), and the companion the studio requires (ui-ux, which carries the WCAG audit). Split out
 of frontend-suite so ordinary frontend app work does not pay the studio's
 always-on context. Uninstalls cleanly: `/craft-suite:uninstall` removes the
 bundle and prunes the plugins it auto-installed.
@@ -43,13 +43,16 @@ text that was previously being evicted.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (7):
+One bullet per bundled plugin, in dependency order (4):
 
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
 - **design-lab** — visual decisions rendered with the project's OWN components
   (`/design-lab:preview`) and live component-registry MCP servers
   (Aceternity, shadcn, Magic UI local; ReUI hosted)
+- **theme-design** — session-driven direct manipulation in the browser
+  (`/theme-design:init`, `/theme-design:export`): the tightest overlap with
+  design-lab in the tree, which is why it rides in the design bundle
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
   Tailwind) and the library-agnostic `component-libraries` floor for any other
   React component library, plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`

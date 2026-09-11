@@ -221,3 +221,9 @@ prose lines per turn-final message against a user-selected budget, on demand. It
 header argues that a rule saying "be concise" more loudly is rule N+1 and loses —
 correct, and the reason this plugin is a requested mode with numbers and a skeleton
 rather than another ambient instruction to be brief.
+
+## Pairs well with
+
+- **candor** — `/candor:check` measures how flattering, apologetic or unbacked a
+  session's replies were; it yields to `/terse:check` on transcript measurement
+  (`candor/lane.tsv`), so one session is measured by one command

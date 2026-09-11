@@ -3,4 +3,4 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-brain:indexer	agent	understand	project-brain-index	dispatched by /brain:brain index; writes only under brain/	-
+brain:indexer	agent	understand	project-brain-index	dispatched by /brain:brain index; writes only under brain/ — the codebase map plus brain/decisions.md, appended from .claude/approaches/deliberated.json when that marker exists	-

@@ -1,0 +1,13 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# Three rows, all `any`: a command can be about to run in every phase, so none of these
+# is a phase step. The hook is the gate; the command is its dry-run; the skill is what
+# the model reads once the hook has spoken. fresh-take:remind nudges at PROMPT time on
+# irreversible tokens — a second opinion, not a block — so the territories are distinct
+# and no edge is declared.
+command-guard:destructive-guard	hook	any	destructive-command-execution	PreToolUse on Bash or an MCP shell/SQL tool whose command classifies deny (migrate:fresh, DROP DATABASE, docker compose down -v, terraform destroy) or ask (git reset --hard, rm -rf ./dir, kubectl delete pod), or a Write/Edit aimed at the guard's own allow-file	-
+command-guard:check	command	any	destructive-command-classification	invoked as /command-guard:check <command>; a command was just denied and the reason needs unpacking, or the project allow-file is being tuned	-
+command-guard:destructive-commands	skill	any	non-destructive-command-equivalents	a shell command about to run can destroy data (db reset or migration, rm -rf, git history rewrite, volume removal, cloud or cluster delete), or command-guard has just denied one	-

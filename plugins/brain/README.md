@@ -5,9 +5,10 @@ of contents (one line per area) is injected at session start so a fresh Claude s
 oriented immediately; per-area `brain/<area>.md` detail files (key files, classes,
 entrypoints) load on demand via `/brain <area>`. No more re-scouting from zero.
 
-> **Status: map-only tracer (Phase 1a).** An anchored-notes + backlink layer (notes you
-> and Claude write against symbols, with staleness stamps) is planned as Phase 1b. This
-> release ships the auto codebase map only.
+> **Status: map + decisions ledger (Phase 1a).** An anchored-notes + backlink layer (notes
+> you and Claude write against symbols, with staleness stamps) is planned as Phase 1b. This
+> release ships the auto codebase map, a reserved `decisions` area fed by the approaches
+> plugin's marker, and a `## Notes` section per area that hindsight's harvest appends to.
 
 ## What it does
 
@@ -33,6 +34,7 @@ Install the `brain` plugin from this marketplace.
 |---------|------|
 | `/brain` | Print the whole map (`brain/INDEX.md`). If none exists, prompts you to initialize. |
 | `/brain <area>` | Print one area's detail. Unknown area → a not-found message listing known areas. |
+| `/brain decisions` | Print `brain/decisions.md` — the reserved area: one entry per approach pick, copied from `.claude/approaches/deliberated.json` by `/brain index`. |
 | `/brain index` | **Incremental refresh** — diffs what changed since the map was built and re-indexes only the affected areas. Bootstraps a full build on first run. |
 | `/brain index --full` | Force a full rebuild — re-picks areas; the only mode that discovers **new** subsystems. |
 | `/brain index <area>` | Rebuild just one named area, leaving the rest untouched. |
@@ -57,6 +59,36 @@ immediately — no keystroke needed; you see the refresh happen in-session. Larg
 drift stays an explicit offer (a big reindex spends real tokens — your call). The
 hook itself never writes anything; the model performs the refresh visibly.
 
+## Pairs with
+
+`brain` is a sink for two ledgers and an orientation prior for three readers. It
+consumes nothing else and holds no opinion about the code.
+
+**Sources (written into `brain/`):**
+
+- **approaches** — its double-run marker `.claude/approaches/deliberated.json`
+  (`{"task","by","at"}`, one object, overwritten per task, gitignored) is copied by the
+  indexer into `brain/decisions.md` on every `/brain index`: one entry per pick, keyed
+  by the marker's `at`, so a re-deliberation after a kill-trigger is a new entry and a
+  repeat run is not. The marker carries no shape, reason, or kill-trigger — those three
+  slots land as `_not in marker — fill in_` and are yours to complete. The
+  `INDEX.md` line reads `decisions — N recorded shape choices; latest <date>`.
+- **hindsight** — `/hindsight:harvest`'s apply gate offers a finding that describes the
+  codebase (where something lives, a trap in one module) as a note appended to the
+  matching `brain/<area>.md` under `## Notes`, or to `brain/decisions.md` for a settled
+  choice — on approval only. No `/brain index` is needed after a note; the indexer
+  carries `## Notes` over verbatim when it rewrites an area.
+
+**Consumers (read `brain/INDEX.md`):** taskmaster's `context-scout` and orchestration's
+`delegation-contracts` hand readers the map as an orientation prior and trust the code
+over a stale map; git-workflow's `branch-completion` offers `/brain index` at finish when
+the `built:` stamp is behind the merged result.
+
+**Standing.** The decisions area and the `## Notes` carry-over are written by the
+indexer agent — **agent-graded**: no script asserts the dedupe key, the entry shape, or
+that a rewrite preserved a note. The write boundary (`brain/` only) is the same
+agent-graded rule the rest of this plugin already carries.
+
 ## `brain/INDEX.md` is a derived artifact
 
 It is committed (so the whole team and every Claude session share it), but it is
@@ -75,7 +107,7 @@ Code structure is exactly and only what `brain` stores. The split is clean:
 
 | | native memory | `brain` |
 |---|---|---|
-| Holds | who the user is, feedback, project goals, references | the codebase map — areas, files, key classes |
+| Holds | who the user is, feedback, project goals, references | the codebase map — areas, files, key classes — plus recorded shape picks and per-area notes |
 | Lives | `~/.claude/`, machine-local, per user | `brain/` in the repo, committed, shared |
 | Derived from | conversations | reading the source |
 | On conflict | edited or deleted by hand | discarded and regenerated |
@@ -114,6 +146,6 @@ shared map for the whole team. Disable the plugin locally instead.
 ## Not in this release (planned / out of scope)
 
 Anchored notes and `/brain note` · per-symbol anchors and content-hash stamps · a backlink
-graph over existing `.md` (taskmaster-docs, ADRs, hindsight, skills) · canvas · kanban ·
+graph over existing `.md` (taskmaster-docs, ADRs, skills) · canvas · kanban ·
 graph visualization · automatic re-indexing · cross-project maps · semantic/embedding search.
 

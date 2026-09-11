@@ -91,6 +91,7 @@ better mocking library.
 - Freeze the clock: `Carbon::setTestNow()` / `$this->travel()` in Laravel,
   `vi.useFakeTimers()` + `vi.setSystemTime()` in Vitest. Any test that
   computes "now" twice can straddle a second, a month boundary, or DST.
+  Injection seams, teardown, DST/leap/ISO-week fixtures, TTL at T±1, zone pinning: `references/clock.md`.
 - Seed randomness: Faker with a fixed seed, seeded RNG where code rolls
   dice. A generator that "sometimes" collides on unique emails is a flake
   on a delay timer.

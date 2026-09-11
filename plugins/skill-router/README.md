@@ -19,10 +19,11 @@ The plugin routes on two independent signals, and it helps to keep them apart:
 
 ## What it does
 
-Four hooks, all fail-open (any error, or a missing `jq`, exits silently and never blocks an edit or a prompt):
+Five hooks, all fail-open (any error, or a missing `jq`, exits silently and never blocks an edit or a prompt):
 
 - **`SessionStart` → `prime.sh`** — sniffs the repo's manifests (composer.json, package.json, Dockerfiles, `*.tsx`/`*.sql` presence) and injects a one-line index of the skills relevant to this stack, filtered to the plugins you actually have installed.
 - **`PostToolUse` (Edit/Write/MultiEdit) → `route.sh`** — after an edit, matches the file against `rules.tsv`. A high-confidence match (path or extension) injects a directive to load the relevant skill and review the change against it — **once per signal per session**, so a run of `.sql` edits nudges you once, not every time.
+- **`SessionStart` (matcher `compact`) → `compact-capsule.sh`** — after a compaction, re-states the task state on disk the summary may have dropped: the arc phase sentinel, a registered task-runner run and scope lock, open taskmaster ledgers — one line each with the file path. Silent on startup/resume/clear/fork and when no ledger exists, so the always-on budget reads 0. PreCompact is not used: its stdout never reaches the model (the hook header says why). approaches re-asserts its own deliberation marker separately; this one does not repeat it.
 - **`SessionEnd` → `summary.sh`** — appends the session's surfaced/pending signals to the machine-local ledger and removes the state file; low-confidence signals themselves surface earlier, on the next prompt (below).
 - **`UserPromptSubmit` → `route-prompt.sh`** — first flushes any accumulated low-confidence content signals (a file that mentions `password`, uses `async`/locks, is dense with `try/catch`) as one digest on your next prompt — a channel the model receives in time to act, unlike SessionEnd — then, on the first work-shaped prompt of a session, injects the catalog of commands actually installed here plus the rules for judging which one fits the ask. The hook does not pick; the model does. Exception in the catalog's rule 3: a scope-first reminder on the same prompt outranks tool-fit.
 
@@ -110,3 +111,5 @@ glob   *.blade.php      laravel-best-practices   laravel   high   composer.json~
 ## State
 
 A per-session dedup file lives at `<repo>/.claude/skill-router/fired-<session_id>.json` (gitignored) and is removed at session end.
+
+`<repo>/.claude/skill-router/compact-log.jsonl` — one line per compaction the capsule fired on, recording whether the phase sentinel's `session_id` matched the post-compaction payload's. **Standing: recorded** — nothing reads it. It exists because two shipped mechanisms key on that match and no probe has established it (`rationale/collective-taskforce-backlog.md` #6); `grep -c true` against it answers the question on real sessions.

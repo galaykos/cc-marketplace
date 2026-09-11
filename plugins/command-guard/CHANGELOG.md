@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.2
+
+### Added
+- `lane.tsv`: the hook, `/command-guard:check` and the `destructive-commands` skill
+  now declare their territory, phase and trigger in the marketplace's lane graph
+  (`scripts/lib/plugin-checks.sh`, `pc_lanes_*`). All three are `any`-phase guards —
+  a command can be about to run in every phase. Declaration only; no behaviour change.
+
 ## 0.5.1
 
 ### Changed

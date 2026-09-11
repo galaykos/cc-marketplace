@@ -1,0 +1,16 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# report is a dispatcher over installed-versions (one territory, command yields to skill).
+# The skill's yields are the consumers its README names: the inventory is INPUT to
+# plugin-scout's suggestion, devops's compose generation and taskmaster's context scan,
+# and each of those outranks it on its own job. plugin-scout's row yields back to this
+# skill as version truth — a mutual pair between two territories, not a cycle.
+# package-hygiene's yields are the two hand-offs its description states: add-at-all is
+# approaches' build-vs-buy, docs-before-integration is api-design's api-docs-first.
+stack-scan:report	command	understand	installed-stack-inventory	invoked as /stack-scan:report [path]	stack-scan:installed-versions
+stack-scan:installed-versions	skill	understand	installed-stack-inventory	version-dependent advice is about to be given, or work starts in an unfamiliar repo, and what is actually installed has not been read from manifests, lockfiles, runtime binaries or container images	plugin-scout:plugin-scout,devops:compose-init,taskmaster:context-scout
+stack-scan:audit	command	review	dependency-audit	invoked as /stack-scan:audit; the user asks for vulnerabilities, outdated packages or licences across composer/npm dependencies	security:security-review
+stack-scan:package-hygiene	skill	build	dependency-management-discipline	editing composer.json or package.json, adding/updating/removing a dependency, bumping versions, resolving a lockfile conflict, or acting on audit output	approaches:build-vs-buy,api-design:api-docs-first

@@ -189,6 +189,10 @@ taskmaster works standalone but reaches full potential alongside
 code-architecture — see the [marketplace README](../../README.md#optimal-setup-the-taskmaster-workflow-suite)
 for the full workflow suite.
 
+A spec whose surface is a landing page or marketing site is craft-layer's input:
+`/craft-layer:craft` consumes the spec and its section-decisions never re-interrogates
+it (recorded; the router is the only nudge).
+
 ## Contents
 
 - **Skills**: brainstorm (fuzzy idea → approved design doc, upstream of

@@ -81,6 +81,51 @@ warnsf "script no sri"      /tmp/a.html '<script src="https://cdn.x/lib.js"></sc
 silentf "script with sri"   /tmp/a.html '<script src="https://cdn.x/lib.js" integrity="sha384-abc" crossorigin="anonymous"></script>'
 silentf "script in .md"     /tmp/a.md   '<script src="https://cdn.x/lib.js"></script>'
 
+# ---- LLM sinks, ported from llm-app's prompt-injection rule; JS/TS/PY/PHP gated ------
+warnsf "sys interp ts"      /tmp/a.ts  '{ role: "system", content: `You are a helper for ${user.name}` }' "prompt-interpolation"
+warnsf "sys key ts"         /tmp/a.ts  'system: `You are ${persona}. Answer briefly.`,'            "prompt-interpolation"
+warnsf "sys fstring py"     /tmp/a.py  'system=f"You are {persona}. Answer briefly."'              "prompt-interpolation"
+warnsf "sys concat py"      /tmp/a.py  '{"role": "system", "content": "You are " + persona}'      "prompt-interpolation"
+warnsf "sys format py"      /tmp/a.py  '{"role": "system", "content": "You are {}".format(who)}'  "prompt-interpolation"
+warnsf "sys concat php"     /tmp/a.php "['role' => 'system', 'content' => \"You are \" . \$who]," "prompt-interpolation"
+silentf "sys in .md"        /tmp/a.md  'system: `You are ${persona}`'
+silentf "sys constant ts"   /tmp/a.ts  '{ role: "system", content: SYSTEM_PROMPT }'
+silentf "sys literal py"    /tmp/a.py  '{"role": "system", "content": "You are a helpful assistant."}'
+silentf "user turn interp"  /tmp/a.ts  '{ role: "user", content: `Question: ${q}` }'
+silentf "sys type only"     /tmp/a.ts  'system: string;'
+silentf "sys equality"      /tmp/a.py  'if system == "linux" + suffix:'
+warnsf "eval completion ts" /tmp/a.ts  'eval(completion.choices[0].message.content)'               "llm-output-exec"
+warnsf "new Function msg"   /tmp/a.ts  'const fn = new Function(msg.content)'                      "llm-output-exec"
+warnsf "exec choices py"    /tmp/a.py  'exec(response.choices[0].message.content)'                 "llm-output-exec"
+warnsf "subprocess text py" /tmp/a.py  'subprocess.run(reply.text, shell=True)'                    "llm-output-exec"
+warnsf "os.system message"  /tmp/a.py  'os.system(message)'                                        "llm-output-exec"
+warnsf "shell_exec php"     /tmp/a.php 'shell_exec($response->content);'                           "llm-output-exec"
+silentf "exec in .md"       /tmp/a.md  'never eval(completion.choices[0].message.content)'
+silentf "log completion"    /tmp/a.ts  'console.log(completion.choices[0].message.content)'
+silentf "parse content py"  /tmp/a.py  'data = json.loads(response.choices[0].message.content)'
+silentf "regex exec ts"     /tmp/a.ts  'const m = pattern.exec(message.content)'
+notslug() { # notslug <name> <file_path> <content> <slug-that-must-NOT-fire> — a sibling may
+  n=$((n+1)); out=$(runf "z$n" "$2" "$3")
+  if ! grep -q "$4" <<<"$out"; then pass=$((pass+1));
+  else echo "FAIL $1: [$4] must not fire, got: $out"; fail=$((fail+1)); fi
+}
+notslug "php mail message"  /tmp/a.php 'exec("mail " . $message);'                                 "llm-output-exec"
+warnsf "chunks template ts" /tmp/a.ts  'const prompt = `Answer using: ${chunks}\nQ: ${q}`'         "tool-result-unfenced"
+warnsf "docs concat ts"     /tmp/a.ts  'messages.push({ role: "user", content: "Docs: " + documents })' "tool-result-unfenced"
+warnsf "retrieved fstr py"  /tmp/a.py  'prompt = f"Context: {retrieved_text}\nQuestion: {q}"'      "tool-result-unfenced"
+warnsf "chunks join py"     /tmp/a.py  'prompt = "Context:\n" + "\n".join(chunks) + "\nQ: " + q'  "tool-result-unfenced"
+warnsf "tool_result pct py" /tmp/a.py  '{"role": "user", "content": "Result: %s" % tool_result}'  "tool-result-unfenced"
+warnsf "toolResult php"     /tmp/a.php "\$prompt = \"Context: \" . \$toolResult . \"\\nQ: \" . \$q;" "tool-result-unfenced"
+silentf "chunks in .md"     /tmp/a.md  'const prompt = `Answer using: ${chunks}`'
+silentf "fenced document"   /tmp/a.ts  'const prompt = `Answer using:\n<document>${chunks}</document>\nQ: ${q}`'
+silentf "fenced hr"         /tmp/a.ts  'const prompt = `---\n${chunks}\n---\nQ: ${q}`'
+silentf "fenced <<<"        /tmp/a.py  'prompt = "Context:\n<<<\n" + "\n".join(chunks) + "\n>>>\nQ: " + q'
+silentf "fenced BEGIN"      /tmp/a.py  'prompt = f"[BEGIN DATA]{tool_result}[END DATA]"'
+silentf "fenced triple"     /tmp/a.py  'prompt = f"""Context:\n{retrieved_text}\n"""'
+silentf "chunks no prompt"  /tmp/a.ts  'const context = chunks.map(c => c.text).join("\n")'
+silentf "chunks as arg"     /tmp/a.py  'prompt = build_prompt(chunks, question)'
+silentf "content is var"    /tmp/a.ts  'messages.push({ role: "user", content: chunks })'
+
 # Dedup: same session + file + finding warns once.
 out1=$(run dedup Write 'protected $guarded = [];')
 out2=$(run dedup Write 'protected $guarded = [];')

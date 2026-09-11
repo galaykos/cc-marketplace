@@ -1,0 +1,11 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# The hook and the command share the artifact id `scan` (hooks/scan.sh, commands/scan.md);
+# they resolve by kind and own different territories — the hook denies a secret on its
+# way to disk, the command sweeps for one already committed.
+secret-scanning:scan	hook	any	secret-write-denial	PreToolUse Write/Edit/MultiEdit whose new text matches a high-confidence secret shape (AWS key id, private-key block, GitHub/Slack token, Google API key, Stripe live key, assigned secret literal)	-
+secret-scanning:scan	command	review	committed-secret-sweep	invoked as /secret-scanning:scan [path-or-diff]; the user asks whether a secret is already in the tree or a diff	-
+secret-scanning:secret-scanning	skill	build	secret-handling-discipline	writing config or .env, wiring an API client, pasting a key, or reading a diff for leaked credentials	-

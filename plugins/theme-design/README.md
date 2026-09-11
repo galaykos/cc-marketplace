@@ -64,7 +64,7 @@ of a fourth single reveal. The full contract is
 | claim | standing |
 |---|---|
 | The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop` | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
-| The hook is silent without a running session and injects with one | **gate** — same harness step exercises `hooks/pending-events.sh` only by inspection; the dynamic budget baseline records its silent cost |
+| The hook is silent without a running session and injects with one | **recorded** — the harness step exercises `hooks/pending-events.sh` only by inspection, which is not a run; the dynamic budget baseline records its silent cost and nothing else reads it |
 | A gesture is applied faithfully to source, replies are one line, tokens over inline styles | **agent-graded** — the reply and the reload are the review; nothing scripts it |
 | Contrast and light/dark completeness at export | **recorded** — the skill instructs the check; no script runs it |
 
@@ -80,3 +80,17 @@ of a fourth single reveal. The full contract is
   with `--stop`.
 - Not a component renderer: for variants built from a project's own components, use
   `/design-lab:preview`; for colour-only theming with candidates, `/ui-ux:theme`.
+
+## Pairs well with
+
+Three plugins emit a theme or a preview; the line between them is who drives, stated
+here and in the other two (recorded — no lane edge, no script reads it):
+
+- **ui-ux** — `/ui-ux:theme` is candidate-driven colour theming: it proposes, you pick.
+  This plugin is session-driven direct manipulation on one surface: you gesture, the
+  session applies. Both emit CSS variables; `/theme-design:export write` merges into
+  the same project theme file `/ui-ux:theme` writes, diff shown first.
+- **design-lab** — `/design-lab:preview` renders variants from the project's own
+  components. A running session here (`.theme-design/` present) owns the preview surface
+  and design-lab's fallback table hands the decision to it.
+- **craft-suite** — the design bundle carries this plugin since 0.5.0.

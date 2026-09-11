@@ -48,6 +48,7 @@ An index is used only when the column stands alone on its side of the comparison
 - Index every foreign key; deletes/updates on the parent otherwise scan the child.
 - Low-selectivity columns (status with 3 values) rarely deserve their own index;
   they belong as the equality prefix of a composite one.
+- Vector indexes (pgvector) follow none of the above — opclass must match the query operator, HNSW vs IVFFlat, and a filter that empties the result: `references/pgvector.md`.
 
 ## Aggregation and windows
 
@@ -116,6 +117,7 @@ An index is used only when the column stands alone on its side of the comparison
 - Index choice is a design decision driven by queries you have SEEN. An index on
   the wrong column is write cost with no read benefit, and removing a "redundant"
   one without checking what reads it is how a report query falls to a full scan.
+- Time columns: which types convert through the session zone, DST arithmetic, `now()` in defaults and fixtures, zone-boundary ranges — `references/time.md`.
 
 ## Connection pooling
 

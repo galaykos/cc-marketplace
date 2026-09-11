@@ -2,6 +2,15 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.15.0
+
+### Added
+- `hooks/compact-capsule.sh` on `SessionStart` matcher `compact`: re-states the
+  phase sentinel, registered task-runner run, scope lock and open taskmaster
+  ledgers after a compaction, one line each with the file path, and appends a
+  `compact-log.jsonl` line recording whether the sentinel's session_id survived
+  (backlog #6, recorded not read). 26 harness cases under `scripts/__tests__/`.
+
 ## 0.14.13
 
 ### Added

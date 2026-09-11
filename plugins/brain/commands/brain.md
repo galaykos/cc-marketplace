@@ -26,7 +26,8 @@ the argument after `index`:
 Report the indexer's summary (mode, areas refreshed, any unassigned new files it suggests
 `--full` for, `built:` hash).
 
-`index`, `--full`, and `all` are reserved — never treated as area names.
+`index`, `--full`, and `all` are reserved — never treated as area names. `decisions` is
+reserved the other way: it is an area name, but the indexer never re-picks it from the code.
 
 ## `<area>` — print one area
 
@@ -38,6 +39,9 @@ Any other non-empty argument is an area name:
   and note no detail file was built (suggest `/brain index <area>`).
 - If the area is unknown (no detail file and no `INDEX.md` line), print `no such area: <area>`
   followed by the known area names (the `- <area>` lines in `brain/INDEX.md`).
+- `/brain decisions` takes exactly this path: it prints `brain/decisions.md`, the append-only
+  ledger of approach picks the indexer copies from `.claude/approaches/deliberated.json`
+  (approaches plugin) on every `/brain index`.
 
 ## empty — print the whole map
 

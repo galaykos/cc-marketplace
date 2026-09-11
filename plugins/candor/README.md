@@ -11,12 +11,19 @@ rest is measured and not enforced.
 
 ## What blocks
 
-`hooks/gate.sh`, a `Stop` hook. Two clauses, both decidable:
+`hooks/gate.sh`, wired to `Stop` and, since 0.2.0, to `SubagentStop`. Two clauses,
+both decidable:
 
 | Clause | Fires when | Escape |
 | --- | --- | --- |
 | **Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under `cwd`, or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
 | **Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between | re-check and report what it showed, or hold the position and say why |
+
+On `SubagentStop` only the first clause runs, over the subagent's final report
+(`last_assistant_message`, measured live on Claude Code 2.1.267 with `exit 2`
+blocking the subagent the way it blocks a turn). A subagent has no user turn to
+push back, so the second clause disarms there. Markers are suffixed per agent, so
+a subagent block never spends the main thread's disarm.
 
 Both judge the **final assistant message only**. The sibling gate in
 `code-architecture` documents a measured window-bleed defect from matching a

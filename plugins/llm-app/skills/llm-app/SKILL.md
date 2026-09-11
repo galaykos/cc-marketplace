@@ -32,6 +32,7 @@ well from bad context or refuses from missing context.
   chars mid-sentence); overlap so a fact split across a boundary is still retrievable.
 - **Embeddings + store** — pick an embedding model suited to your domain; store in a
   vector DB with metadata for filtering (tenant, recency, source).
+  On Postgres, the database plugin's `sql-best-practices/references/pgvector.md` (when installed) carries the opclass/operator mismatch and the filter-kills-recall trap.
 - **Retrieve then re-rank** — top-k vector search is coarse; a re-ranker over the
   candidates sharply improves what actually reaches the prompt.
 - **Measure retrieval** separately from generation — recall@k on a labeled set tells

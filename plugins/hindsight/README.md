@@ -31,11 +31,12 @@ applied without your explicit approval.
    agent per session, and synthesizes findings under a two-session recurrence
    gate: proposals need evidence from at least two sessions; single-session
    patterns are parked as candidates until corroborated.
-3. **Apply (on approval)** — approved rules go to one of two homes (a repo-binding
+3. **Apply (on approval)** — approved rules go to one of three homes (a repo-binding
    rule appends to CLAUDE.md; a rule about how *you* want to be worked with becomes
    a `feedback` entry in Claude Code's own memory at
    `~/.claude/projects/<slug>/memory/`, which is machine-local and not imposed on
-   teammates), ideas hand off
+   teammates; a finding about the codebase itself becomes a note under `## Notes`
+   in the matching `brain/<area>.md` when the brain plugin's map exists), ideas hand off
    to a `/new-skill` or `/new-plugin` project skill when the project has one
    (the marketplace repository does), warnings
    land in `.claude/hindsight/anti-patterns.md`. Nothing is written without an
@@ -62,9 +63,10 @@ machine-local by construction — absolute transcript paths and per-machine sess
 history were never project artifacts, so they live under `$HOME` and no longer
 create a directory inside your project.
 
-The one file this plugin writes into the project is
+The one file this plugin writes into the project on its own is
 `<project>/.claude/hindsight/anti-patterns.md`, and only when you explicitly pick a
-warning at the apply gate. That one is **team-shared and must be committed** — a
+warning at the apply gate (a brain note goes into the brain plugin's committed
+`brain/` map, again only on a pick). That one is **team-shared and must be committed** — a
 CLAUDE.md pointer references it, and ignoring it breaks the pointer for teammates.
 Do not ignore `.claude/` wholesale to be safe: other plugins keep team files there
 too, e.g. plugin-scout's `--persist` writes `.claude/settings.json`.
@@ -84,6 +86,19 @@ session, before vs after each applied rule, with a hard ≥3-sessions-per-side f
 before any number is shown. Standing: the computation is mechanical; the attribution
 is correlational and the script prints that caveat with every table — a "worsened"
 row is a retraction candidate, not a verdict.
+
+## Pairs with
+
+- **brain** — the third harvest destination: a codebase finding approved at the
+  apply gate lands as a note in `brain/<area>.md` (or `brain/decisions.md`), only
+  when `brain/INDEX.md` exists. Agent-graded; no script checks the routing.
+- **skill-router** — not a plugin edge: `hooks/skill-use.sh`'s `skills.jsonl` (what
+  was invoked) and the router's `surfaced.jsonl` (what was offered) are joined by
+  `scripts/turn-cost.sh --skills`, a maintainer path in the marketplace repository.
+  Neither plugin reads the other's ledger at runtime.
+- **plugin-scout** — suggests hindsight in its session-wide tier and, in its
+  official-complements table, names `/hindsight:claude-md` as the overlap with the
+  host's `claude-md-management`.
 
 ## Contents
 

@@ -40,6 +40,9 @@ not just `auth` middleware:
   pixels, not requests; anyone with curl skips the frontend. Authorize server-side, always.
 - Check the whole object graph: updating a comment must verify the comment's owner,
   not merely the parent post's visibility.
+- Multi-tenant: tenant scoping IS authorization — where global scopes silently fail,
+  the tenant from the session not the request, the two-tenant id-swap test, jobs and
+  caches that lose the tenant, RLS and its owner trap: `references/multi-tenancy.md`.
 
 ## Injection
 
