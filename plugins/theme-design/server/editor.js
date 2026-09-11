@@ -104,12 +104,19 @@
   panel.querySelector("#__td-toggle").addEventListener("click", function () { setPanel(!state.panelOpen); });
   setPanel(state.panelOpen);
 
+  function setTool(name) {
+    var b = panel.querySelector('button[data-tool="' + name + '"]'); if (!b) return;
+    state.tool = name;
+    sessionStorage.setItem("td-tool", name);
+    Array.prototype.forEach.call(panel.querySelectorAll("button[data-tool]"), function (x) { x.classList.toggle("on", x === b); });
+    document.body.classList.toggle("__td-moving", name === "move");
+  }
   panel.querySelector("#__td-tools").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-tool]"); if (!b) return;
-    state.tool = b.dataset.tool;
-    Array.prototype.forEach.call(panel.querySelectorAll("button[data-tool]"), function (x) { x.classList.toggle("on", x === b); });
-    document.body.classList.toggle("__td-moving", state.tool === "move");
+    setTool(b.dataset.tool);
   });
+  // The tool survives navigation so walking a flow with Go does not mean re-picking it per page.
+  setTool(sessionStorage.getItem("td-tool") || "select");
 
   chat.addEventListener("submit", function (e) {
     e.preventDefault();

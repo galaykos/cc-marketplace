@@ -2,6 +2,12 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.1
+
+### Fixed
+- Editor: the active tool now survives navigation (sessionStorage), so a flow
+  can be walked with Go across pages without re-picking it on each one.
+
 ## 0.3.0
 
 ### Added
