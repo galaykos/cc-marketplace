@@ -30,6 +30,12 @@ Stdlib only; binds 127.0.0.1 only; every state-changing route demands the
 X-Theme-Design header, which forces a CORS preflight this server never answers,
 so a page on another localhost port cannot drive the session.
 
+Pages and flows: <root>/pages/*.html are the screens; <!-- include: name -->
+in a page is replaced at serve time by <root>/partials/<name>.html (one sidebar,
+every page). <root>/flow.json is the session's record of which link on which
+page leads where; GET /__td/flow serves it to the panel, the session writes it.
+A `navigate` event says the user followed a link in the canvas.
+
 Skins: <root>/skin.css is the look the prototype vocabulary (.card, .btn,
 .input, .badge, table …) renders in. server/skins/<name>.css are lookalikes of
 a library's defaults on that vocabulary — never the library. GET /__td/skins
@@ -45,6 +51,7 @@ import argparse
 import html
 import json
 import mimetypes
+import re
 import shutil
 import os
 import queue
@@ -63,6 +70,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SKINS_DIR = HERE / "skins"
 DEFAULT_SKIN = "wireframe"
+INCLUDE_RE = re.compile(rb"<!--\s*include:\s*([A-Za-z0-9_-]+)\s*-->")
+INCLUDE_DEPTH = 3
 LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 CSRF_HEADER = "X-Theme-Design"
 MAX_BODY = 64 * 1024
@@ -92,6 +101,23 @@ def hostname_from_netloc(netloc):
         end = netloc.find("]")
         return netloc[1:end] if end != -1 else netloc
     return netloc.split(":", 1)[0]
+
+
+def expand_includes(body, root, depth=INCLUDE_DEPTH):
+    """Replace <!-- include: name --> with <root>/partials/<name>.html, recursively
+    to a small depth. A missing partial stays visible as a comment so the page
+    still renders and the gap is on screen, not in a log."""
+    if depth <= 0 or b"include:" not in body:
+        return body
+
+    def sub(m):
+        name = m.group(1).decode("ascii")
+        path = root / "partials" / (name + ".html")
+        if not path.is_file():
+            return ("<!-- missing partial: partials/%s.html -->" % name).encode("utf-8")
+        return expand_includes(path.read_bytes(), root, depth - 1)
+
+    return INCLUDE_RE.sub(sub, body)
 
 
 def inject_editor(body):
@@ -387,6 +413,10 @@ def build_handler(session):
                 return self.handle_sse()
             if path == "/__td/state":
                 return self.send_json(session.snapshot())
+            if path == "/__td/flow":
+                fp = session.root / "flow.json"
+                data = fp.read_bytes() if fp.is_file() else b'{"pages": [], "edges": []}'
+                return self.send_bytes(data, "application/json; charset=utf-8")
             if path == "/__td/skins":
                 return self.send_json({"skins": session.skins(), "active": session.active_skin()})
             if path == "/__td/transcript":
@@ -467,7 +497,8 @@ def build_handler(session):
             if path in ("", "/"):
                 index = session.root / "pages" / "index.html"
                 if index.is_file():
-                    return self.send_html(index.read_text("utf-8", errors="replace"))
+                    return self.send_bytes(inject_editor(expand_includes(index.read_bytes(), session.root)),
+                                           "text/html; charset=utf-8")
                 return self.send_html(self.landing())
             target = (session.root / rel).resolve()
             try:
@@ -481,7 +512,7 @@ def build_handler(session):
             ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
             data = target.read_bytes()
             if ctype == "text/html":
-                return self.send_bytes(inject_editor(data), "text/html; charset=utf-8")
+                return self.send_bytes(inject_editor(expand_includes(data, session.root)), "text/html; charset=utf-8")
             self.send_bytes(data, ctype)
 
         def landing(self):

@@ -62,6 +62,8 @@
     '<button data-tool="select" class="on" title="click to select, then note / colour / resize">Select</button>' +
     '<button data-tool="move" title="drag an element; drop on a sibling to reorder">Move</button>' +
     '<button data-tool="text" title="double-click text to edit it">Text</button>' +
+    '<button data-tool="navigate" title="click links to walk the flow (Alt+click does this in any tool)">Go</button>' +
+    '<select id="__td-page" title="pages in this session"></select>' +
     '<select id="__td-skin" title="skin: how this wireframe could look in a library — a lookalike, not the library"></select>' +
     '</nav>' +
     '<section id="__td-inspector"><em>Nothing selected.</em></section>' +
@@ -139,7 +141,8 @@
       '<div class="__td-meta">' + d.rect.w + '×' + d.rect.h + ' · ' + escapeHtml(d.computed.font) + ' · r ' + escapeHtml(d.computed.radius) + '</div>' +
       '<div class="__td-row"><label>bg <input type="color" data-prop="background-color" value="' + toHex(d.computed.background) + '"></label>' +
       '<label>text <input type="color" data-prop="color" value="' + toHex(d.computed.color) + '"></label></div>' +
-      '<form class="__td-note"><input placeholder="note about this element…"><button>Note</button></form>';
+      (el.closest("a[href]") ? '<div class="__td-meta">→ ' + escapeHtml(el.closest("a[href]").getAttribute("href")) + ' <span class="__td-hint">(Go tool or Alt+click follows it)</span></div>' : '') +
+      '<form class="__td-note"><input placeholder="note about this element… (or: link this to reports)"><button>Note</button></form>';
     Array.prototype.forEach.call(inspector.querySelectorAll("input[type=color]"), function (inp) {
       // describe() must see the element BEFORE the preview lands, or `computed`
       // reports the picked colour and the token match in the skill has nothing to match.
@@ -180,7 +183,17 @@
   document.addEventListener("click", function (e) {
     if (inPanel(e.target) || state.tool === "text") return;
     if (state.justDragged) { state.justDragged = false; e.preventDefault(); e.stopPropagation(); return; }
-    if (e.target.closest("a, button, input, select, textarea") && !e.altKey) { e.preventDefault(); }
+    var link = e.target.closest("a[href]");
+    if (link && (state.tool === "navigate" || e.altKey)) {
+      // Follow the link and tell the session which edge was walked; keepalive so the
+      // POST survives the navigation. Off-canvas links (http, mailto, #) are left alone.
+      var href = link.getAttribute("href") || "";
+      if (href && href.charAt(0) !== "#" && !/^[a-z]+:/i.test(href)) {
+        fetch("/__td/event", { method: "POST", headers: HDR, keepalive: true,
+          body: JSON.stringify({ type: "navigate", page: location.pathname, tool: state.tool, selector: selectorFor(link), text: (link.innerText || "").trim().slice(0, 80), to: href }) });
+      }
+      return;
+    }
     e.preventDefault(); e.stopPropagation();
     if (state.tool === "select" || state.tool === "move") {
       var target = e.target === document.body || e.target === document.documentElement ? null : e.target;
@@ -292,6 +305,18 @@
       if (m) logLine(m[1], m[2]);
     });
   });
+  var pageSel = panel.querySelector("#__td-page");
+  pageSel.addEventListener("change", function () { location.href = pageSel.value === "index.html" ? "/" : "/pages/" + pageSel.value; });
+  var flowBox = document.createElement("section"); flowBox.id = "__td-flow"; inspector.insertAdjacentElement("afterend", flowBox);
+  function renderFlow(flow) {
+    var here = location.pathname === "/" ? "index.html" : location.pathname.replace(/^\/pages\//, "");
+    var out = (flow.edges || []).filter(function (x) { return x.from === here; });
+    if (!out.length) { flowBox.innerHTML = ""; return; }
+    flowBox.innerHTML = '<div class="__td-meta">Flows from this page</div>' + out.map(function (x) {
+      return '<div class="__td-edge"><code>' + escapeHtml(x.selector || "?") + '</code> → ' + escapeHtml(x.to) + (x.label ? ' <em>' + escapeHtml(x.label) + '</em>' : '') + '</div>';
+    }).join("");
+  }
+  fetch("/__td/flow").then(function (r) { return r.json(); }).then(renderFlow).catch(function () {});
   var skinSel = panel.querySelector("#__td-skin");
   fetch("/__td/state").then(function (r) { return r.json(); }).then(function (s) {
     state.pending = s.pending || 0; renderPending();
@@ -301,6 +326,12 @@
     });
     if (s.skin) skinSel.value = s.skin;
     skinSel.hidden = !(s.skins || []).length;
+    var here = location.pathname === "/" ? "index.html" : location.pathname.replace(/^\/pages\//, "");
+    (s.pages || []).forEach(function (name) {
+      var o = document.createElement("option"); o.value = name; o.textContent = name.replace(/\.html$/, ""); pageSel.appendChild(o);
+    });
+    pageSel.value = here;
+    pageSel.hidden = (s.pages || []).length < 2;
   });
   skinSel.addEventListener("change", function () {
     var name = skinSel.value;

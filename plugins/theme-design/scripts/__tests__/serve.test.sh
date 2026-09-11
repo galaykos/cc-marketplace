@@ -34,6 +34,15 @@ grep -q 'no-store' <<<"$(curl -sI "$U/pages/index.html")" && ok || bad "html: no
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$U/../etc/passwd")" != "200" ] && ok || bad "html: traversal served"
 grep -q 'editor chrome' <<<"$(curl -s "$U/__td/editor.css")" && ok || bad "html: editor.css not served"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$U/favicon.ico")" = 204 ] && ok || bad "html: favicon should be an empty 204, not a console 404"
+# partials: inlined at serve time, recursively; a missing one stays visible; flow.json is served or defaulted
+mkdir -p "$ROOT/partials"; printf '<nav id="side"><!-- include: inner --></nav>' > "$ROOT/partials/side.html"; printf '<b>deep</b>' > "$ROOT/partials/inner.html"
+printf '<html><body><!-- include: side --><!-- include: nope --><main>p</main></body></html>' > "$ROOT/pages/p.html"
+body=$(curl -s "$U/pages/p.html")
+grep -q '<nav id="side"><b>deep</b></nav>' <<<"$body" && grep -q 'missing partial: partials/nope.html' <<<"$body" && ok || bad "partials: include not expanded / missing not marked" "$body"
+[ "$(curl -s "$U/__td/flow")" = '{"pages": [], "edges": []}' ] && ok || bad "flow: default when absent" "$(curl -s "$U/__td/flow")"
+printf '{"pages":["index.html"],"edges":[]}' > "$ROOT/flow.json"
+grep -q '"pages":\["index.html"\]' <<<"$(curl -s "$U/__td/flow")" && ok || bad "flow: file not served"
+rm -f "$ROOT/pages/p.html"
 # skins: a fresh root starts in wireframe; the list names every shipped file; a switch copies + records
 [ "$(cat "$ROOT/skin")" = wireframe ] && grep -q 'skin: wireframe' "$ROOT/skin.css" && ok || bad "skin: fresh root did not start in wireframe"
 grep -q '"skins": \["astryx", "bootstrap", "mui", "shadcn", "wireframe"\]' <<<"$(curl -s "$U/__td/skins")" && ok || bad "skin: list wrong" "$(curl -s "$U/__td/skins")"

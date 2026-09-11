@@ -15,6 +15,7 @@ radius}` as the browser computed them BEFORE the gesture.
 | `resize` | describe, `to` `{w,h}` | corner-handle drag | width/height, column span, basis, padding or aspect, per the element's role |
 | `text` | describe, `before`, `after` | inline text edit | replace the content verbatim |
 | `style` | describe, `property` (`color` or `background-color`), `value` hex | colour picked in the inspector | the nearest token, or a new one, or the element alone when told "just this" |
+| `navigate` | `selector`, `text`, `to` (the href) | the user followed a link with the Go tool or Alt+click; the browser is now on `to` | no edit; if `flow.json` lacks that edge, add it (`references/flows.md`) |
 | `skin` | `name` | the panel's skin selector, already applied by the server | no edit; note the preference in `decisions.md` (`references/skins.md`) |
 | `end` | – | End session pressed | export, then stop |
 

@@ -23,8 +23,10 @@ Read `references/event-protocol.md` before the first event: it is the contract
 for every event shape and how each becomes an edit. `references/skins.md` is the
 look layer: a prototype is a wireframe of what to build, and a skin shows how the
 same structure *could* look in shadcn, Bootstrap, MUI or Astryx — lookalikes,
-never the library, and you say so. `references/export-targets.md` is the end of
-the session; do not read it before then.
+never the library, and you say so. `references/flows.md` is the second screen: pages, `partials/` for what every
+page shares, and `flow.json`, the record of which link leads where, which the
+brief draws. `references/export-targets.md` is the end of the session; do not
+read it before then.
 
 ## Start
 
@@ -101,6 +103,8 @@ unless the user asked you to.
 - An `annotate` is a brief for that element; treat it as a message scoped there.
 - A `skin` event is already applied by the server; log the preference, do not
   edit. A message asking for a library's look is the same switch, made by you.
+- "Link this to X" with a selection: set the href, add the edge to `flow.json`,
+  create `pages/x.html` from the shell if it is missing, say all three.
 - Three gestures on one axis in a row (colour, colour, colour) mean the axis is
   unsettled: offer two or three candidates side by side on one page in `html`
   mode instead of a fourth single reveal.

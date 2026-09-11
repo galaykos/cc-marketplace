@@ -55,6 +55,17 @@ export brief say so. Real components are `/design-lab:preview`'s job. The
 vocabulary a skin styles and the honesty line per skin:
 `skills/design-session/references/skins.md`.
 
+## Multi-page flows
+
+One file per screen under `pages/`, plain relative links between them, and the
+panel's **Go** tool (or Alt+click in any tool) walks them; the page switcher
+lists every page. `partials/<name>.html` + `<!-- include: name -->` is the shared
+sidebar or top bar, inlined at serve time and at export. `flow.json` is the
+record of which link leads where: Claude writes it as links are added or walked,
+the panel shows "Flows from this page", and the brief draws it as a mermaid
+graph. States (empty, error, logged-out) are variants of one page, not pages.
+Contract: `skills/design-session/references/flows.md`.
+
 ## What each gesture becomes
 
 | in the panel | Claude does |
@@ -65,6 +76,8 @@ vocabulary a skin styles and the honesty line per skin:
 | colour pick | the nearest token in `tokens.css`, or a new one under both `:root` and `.dark` |
 | double-click text edit | verbatim content change |
 | note on an element | a brief scoped to it |
+| Go tool / Alt+click on a link | the browser follows it; Claude adds the edge to `flow.json` if the record lacked it |
+| "link this to reports" with a selection | href set, edge recorded, page created from the shell if missing |
 | skin selector | nothing to edit — the server swapped `skin.css`; Claude logs the preference |
 | End session | export, then stop |
 
@@ -76,7 +89,8 @@ of a fourth single reveal. The full contract is
 
 | claim | standing |
 |---|---|
-| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop`, skin list/switch/fallback, listening/away presence | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
+| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop`, skin list/switch/fallback, listening/away presence, partial inlining with a visible marker for a missing one, `/__td/flow` | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
+| `flow.json` stays true to the links on disk | **agent-graded** — Claude writes it; `navigate` events surface a link the record missed, nothing else checks |
 | A skin is presented as a lookalike, never as the library | **recorded** — the skin files and the panel label say it; nothing checks a reply repeats it |
 | The hook injects only whole events, advances the cursor no further than the last one printed, and stays silent for `/theme-design:` prompts | **gate** — the same harness runs `hooks/pending-events.sh` against a live-pid fixture (skipped without `jq`, which is also when the hook itself is silent) |
 | The hook is silent without a running session | **recorded** — the dynamic budget baseline records its silent cost; nothing else reads it |

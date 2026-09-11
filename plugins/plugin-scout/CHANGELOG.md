@@ -7,6 +7,11 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.6
+
+### Changed
+- `references/catalog.md` regenerated: theme-design 0.3.0 names multi-page flows.
+
 ## 0.15.5
 
 ### Changed

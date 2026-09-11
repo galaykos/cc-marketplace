@@ -2,6 +2,22 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.3.0
+
+### Added
+- Multi-page flows: the panel's **Go** tool (and Alt+click in any tool) follows
+  links inside the canvas and posts a `navigate` event; a page switcher lists
+  every page; `partials/<name>.html` + `<!-- include: name -->` is inlined at
+  serve time (missing partial → visible marker); `flow.json` records which link
+  on which page leads where, served at `GET /__td/flow` and shown as "Flows from
+  this page" in the panel; the brief gets a Flows section as a mermaid graph;
+  the export inlines partials and relativises page links. Contract in
+  `references/flows.md`; states are variants of one page, not pages.
+
+### Fixed
+- Editor: Alt+click on a link was cancelled by an unconditional `preventDefault`
+  right after the Alt check, so no link could ever be followed in the canvas.
+
 ## 0.2.1
 
 ### Added
