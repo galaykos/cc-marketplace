@@ -43,6 +43,19 @@ Working files live in `.theme-design/` at the project root: `tokens.css`, `pages
 and `cursor`. Track it or ignore it; the plugin suggests `.gitignore` once and never
 decides.
 
+## Fidelity: wireframe to rich, same files
+
+Two dials in the panel. **Skin** swaps the look; **rich** turns on imagery,
+chart shapes, depth and motion on the same page, injected at serve time so the
+page on disk stays clean. A prototype starts as a greyscale wireframe and ends
+looking like an app without a rebuild: every page is built from one component
+vocabulary (`server/skins/base.css`, about forty classes: app shell, stats,
+tables, kanban, tabs, dialogs, toasts, empty states, skeletons, forms, charts,
+icons), pages are started from a page archetype
+(`skills/design-session/references/patterns.md`), states are variants toggled
+in the panel, and the viewport select narrows the page in place through
+container queries.
+
 ## Skins: how it could look, not what it is built with
 
 A prototype here is a wireframe of what to build. The panel's skin selector (or
@@ -78,7 +91,8 @@ Contract: `skills/design-session/references/flows.md`.
 | note on an element | a brief scoped to it |
 | Go tool / Alt+click on a link | the browser follows it; Claude adds the edge to `flow.json` if the record lacked it |
 | "link this to reports" with a selection | href set, edge recorded, page created from the shell if missing |
-| skin selector | nothing to edit — the server swapped `skin.css`; Claude logs the preference |
+| skin selector, rich checkbox | nothing to edit — the server swapped `skin.css` / `rich`; Claude logs the preference |
+| viewport, state selectors | preview only; context for the next gesture |
 | End session | export, then stop |
 
 Three picks on one axis in a row make Claude offer candidates side by side instead
@@ -89,7 +103,7 @@ of a fourth single reveal. The full contract is
 
 | claim | standing |
 |---|---|
-| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop`, skin list/switch/fallback, listening/away presence, partial inlining with a visible marker for a missing one, `/__td/flow` | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
+| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop`, skin list/switch/fallback, listening/away presence, partial inlining with a visible marker for a missing one, `/__td/flow`, base+delta skin assembly, rich toggle injecting `data-rich`, shipped icon and chart assets | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
 | `flow.json` stays true to the links on disk | **agent-graded** — Claude writes it; `navigate` events surface a link the record missed, nothing else checks |
 | A skin is presented as a lookalike, never as the library | **recorded** — the skin files and the panel label say it; nothing checks a reply repeats it |
 | The hook injects only whole events, advances the cursor no further than the last one printed, and stays silent for `/theme-design:` prompts | **gate** — the same harness runs `hooks/pending-events.sh` against a live-pid fixture (skipped without `jq`, which is also when the hook itself is silent) |

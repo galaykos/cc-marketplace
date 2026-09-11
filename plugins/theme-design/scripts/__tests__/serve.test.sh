@@ -45,7 +45,9 @@ grep -q '"pages":\["index.html"\]' <<<"$(curl -s "$U/__td/flow")" && ok || bad "
 rm -f "$ROOT/pages/p.html"
 # skins: a fresh root starts in wireframe; the list names every shipped file; a switch copies + records
 [ "$(cat "$ROOT/skin")" = wireframe ] && grep -q 'skin: wireframe' "$ROOT/skin.css" && ok || bad "skin: fresh root did not start in wireframe"
-grep -q '"skins": \["astryx", "bootstrap", "mui", "shadcn", "wireframe"\]' <<<"$(curl -s "$U/__td/skins")" && ok || bad "skin: list wrong" "$(curl -s "$U/__td/skins")"
+grep -q '"skins": \["astryx", "bootstrap", "mui", "shadcn", "wireframe"\]' <<<"$(curl -s "$U/__td/skins")" && ok || bad "skin: list wrong (base must be excluded)" "$(curl -s "$U/__td/skins")"
+head -c 200 "$ROOT/skin.css" | grep -q 'theme-design base sheet' && ok || bad "skin: root skin.css must start with base.css"
+grep -q 'id="search"' <<<"$(curl -s "$U/icons.svg")" && grep -q '__tdCharts' <<<"$(curl -s "$U/charts.js")" && ok || bad "assets: icons.svg / charts.js not served"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d '{"name":"../editor"}' "$U/__td/skin")" = 400 ] && ok || bad "skin: unknown/traversal name accepted"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{"name":"mui"}' "$U/__td/skin")" = 403 ] && ok || bad "skin: switch without CSRF header accepted"
 
@@ -74,12 +76,18 @@ grep -q '"listening": false' <<<"$(curl -s "$U/__td/state")" && ok || bad "prese
 # an externally advanced cursor (the hook) is honoured
 printf '<html><body>x</body></html>' > "$ROOT/pages/a.html"
 curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"type":"annotate","text":"later"}' "$U/__td/event" >/dev/null
-echo 3 > "$ROOT/cursor"
+tail -1 "$ROOT/events.jsonl" | python3 -c "import sys,json;print(json.loads(sys.stdin.read())['seq'])" > "$ROOT/cursor"
 [ "$(curl -s "$U/__td/next?timeout=1")" = "[]" ] && ok || bad "html: hook-advanced cursor ignored"
 # bad payloads
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d '{"nope":1}' "$U/__td/event")" = 400 ] && ok || bad "html: typeless event accepted"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d 'not json' "$U/__td/event")" = 400 ] && ok || bad "html: invalid json accepted"
 
+# rich: off by default, on after the route, injected on <html> at serve time only
+grep -q '"rich": false' <<<"$(curl -s "$U/__td/state")" && ! grep -q 'data-rich' <<<"$(curl -s "$U/")" && ok || bad "rich: should be off on a fresh root"
+r=$(curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"on":true}' "$U/__td/rich")
+grep -q '"rich": true' <<<"$r" && grep -q '<html data-rich' <<<"$(curl -s "$U/")" && ! grep -q 'data-rich' "$ROOT/pages/index.html" && [ "$(cat "$ROOT/rich")" = 1 ] && ok || bad "rich: toggle not applied/injected" "$r"
+curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"on":false}' "$U/__td/rich" >/dev/null
+curl -s "$U/__td/next?timeout=1" >/dev/null
 r=$(curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"name":"mui"}' "$U/__td/skin")
 grep -q '"skin": "mui"' <<<"$r" && grep -q 'skin: mui' "$ROOT/skin.css" && [ "$(cat "$ROOT/skin")" = mui ] && grep -q '"type": "skin", "name": "mui"' "$ROOT/events.jsonl" && ok || bad "skin: switch did not copy/record" "$r"
 n=$(curl -s "$U/__td/next?timeout=1"); grep -q '"type": "skin"' <<<"$n" && ok || bad "skin: switch event not delivered to the poll" "$n"

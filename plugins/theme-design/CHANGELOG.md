@@ -2,6 +2,36 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.4.0
+
+### Added
+- Fidelity dial: a **rich** checkbox in the panel (`POST /__td/rich`, `<root>/rich`)
+  turns on imagery gradients, chart shapes, depth, shimmer and motion; the server
+  injects `data-rich` on `<html>` at serve time so pages stay clean.
+- `server/skins/base.css`: one component vocabulary (~40 classes — app shell,
+  stats with sparklines, tables, kanban, tabs, breadcrumbs, pagination, menus,
+  dialogs, toasts, alerts, empty states, skeletons, forms, switches, segmented
+  controls, progress, avatars, charts, imagery, states) and container-query
+  breakpoints; skins are now deltas on it.
+- `server/icons.svg`: a 49-symbol stroke icon sprite served at `/icons.svg`.
+- `server/charts.js`: bars / line / area / ring shapes from `data-values`, served
+  at `/charts.js`; the export copies both assets.
+- Panel: viewport select (desktop / tablet 820 / mobile 390, narrows `body` so the
+  container queries fire) and a state select driven by `data-states` on the page
+  root (`.when-empty` / `.when-populated` …). Both preview-only, both reach the
+  session as `viewport` / `state` events.
+- `references/patterns.md`: twelve page archetypes (landing, auth, onboarding,
+  dashboard, list, detail, form, settings, inbox, checkout, kanban, empty) with
+  the blocks and states each declares — the start point for any future mockup.
+- `tokens.css`: `--success`, `--warning`, `--font-display`, `--text-3xl`,
+  `--sidebar-w`.
+
+### Changed
+- Skin files are deltas; `/skin.css` and `<root>/skin.css` are base + delta.
+- `assets/page-shell.html` links `/charts.js` and shows icon, chart and state
+  conventions in its slot comment; layout primitives moved to the base sheet.
+- SKILL: pages start from an archetype with realistic content and declared states.
+
 ## 0.3.1
 
 ### Fixed

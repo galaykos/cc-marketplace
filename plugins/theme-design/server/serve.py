@@ -36,9 +36,12 @@ every page). <root>/flow.json is the session's record of which link on which
 page leads where; GET /__td/flow serves it to the panel, the session writes it.
 A `navigate` event says the user followed a link in the canvas.
 
-Skins: <root>/skin.css is the look the prototype vocabulary (.card, .btn,
-.input, .badge, table …) renders in. server/skins/<name>.css are lookalikes of
-a library's defaults on that vocabulary — never the library. GET /__td/skins
+Skins: <root>/skin.css is the look the prototype vocabulary (base.css: ~40
+classes) renders in, written as base.css + skins/<name>.css concatenated.
+Each skin is a DELTA, a lookalike of a library's defaults — never the library.
+Fidelity: <root>/rich holds 1 when the rich layer is on; the server injects
+data-rich on <html> at serve time so pages never carry it. /icons.svg and
+/charts.js are shipped assets served with a fallback and copied by the export. GET /__td/skins
 lists them, POST /__td/skin {"name"} copies one over <root>/skin.css (the
 watcher reloads) and records a `skin` event so the session knows.
 
@@ -70,6 +73,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SKINS_DIR = HERE / "skins"
 DEFAULT_SKIN = "wireframe"
+BASE_SKIN = SKINS_DIR / "base.css"
+SKIN_NAMES_EXCLUDED = {"base"}
+HTML_TAG_RE = re.compile(rb"<html\b", re.I)
 INCLUDE_RE = re.compile(rb"<!--\s*include:\s*([A-Za-z0-9_-]+)\s*-->")
 INCLUDE_DEPTH = 3
 LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
@@ -256,7 +262,27 @@ class Session:
 
     # --- skins -------------------------------------------------------------
     def skins(self):
-        return sorted(p.stem for p in SKINS_DIR.glob("*.css"))
+        return sorted(p.stem for p in SKINS_DIR.glob("*.css") if p.stem not in SKIN_NAMES_EXCLUDED)
+
+    @staticmethod
+    def skin_css(name):
+        return BASE_SKIN.read_bytes() + b"\n\n" + (SKINS_DIR / (name + ".css")).read_bytes()
+
+    def rich(self):
+        try:
+            return (self.root / "rich").read_text("utf-8").strip() == "1"
+        except OSError:
+            return False
+
+    def set_rich(self, on):
+        (self.root / "rich").write_text("1\n" if on else "0\n", "utf-8")
+        self.broadcast({"type": "reload", "paths": ["rich"]})
+
+    def mark_html(self, body):
+        """Inject the fidelity attribute on <html> so the page on disk stays clean."""
+        if not self.rich():
+            return body
+        return HTML_TAG_RE.sub(b"<html data-rich", body, count=1)
 
     def active_skin(self):
         try:
@@ -268,7 +294,7 @@ class Session:
         """Copy a shipped skin over <root>/skin.css; the watcher pushes the reload."""
         if name not in self.skins():
             return False
-        shutil.copyfile(SKINS_DIR / ("%s.css" % name), self.root / "skin.css")
+        (self.root / "skin.css").write_bytes(self.skin_css(name))
         (self.root / "skin").write_text(name + "\n", "utf-8")
         return True
 
@@ -298,6 +324,7 @@ class Session:
             "skin": self.active_skin(),
             "skins": self.skins(),
             "listening": self.waiters > 0,
+            "rich": self.rich(),
         }
 
 
@@ -443,6 +470,11 @@ def build_handler(session):
                     return self.send_json({"error": "event needs a string `type`"}, 400)
                 seq = session.append_event(body)
                 return self.send_json({"ok": True, "seq": seq})
+            if path == "/__td/rich":
+                on = bool(body.get("on")) if isinstance(body, dict) else False
+                session.set_rich(on)
+                seq = session.append_event({"type": "rich", "on": on, "page": body.get("page", "")})
+                return self.send_json({"ok": True, "rich": on, "seq": seq})
             if path == "/__td/skin":
                 name = body.get("name") if isinstance(body, dict) else None
                 if not isinstance(name, str) or not session.apply_skin(name):
@@ -493,11 +525,15 @@ def build_handler(session):
             if path == "/favicon.ico" and not (session.root / "favicon.ico").is_file():
                 return self.send_bytes(b"", "image/x-icon", 204)
             if path == "/skin.css" and not (session.root / "skin.css").is_file():
-                return self.send_bytes((SKINS_DIR / (DEFAULT_SKIN + ".css")).read_bytes(), "text/css; charset=utf-8")
+                return self.send_bytes(session.skin_css(DEFAULT_SKIN), "text/css; charset=utf-8")
+            if path == "/icons.svg" and not (session.root / "icons.svg").is_file():
+                return self.send_bytes((HERE / "icons.svg").read_bytes(), "image/svg+xml")
+            if path == "/charts.js" and not (session.root / "charts.js").is_file():
+                return self.send_bytes((HERE / "charts.js").read_bytes(), "application/javascript; charset=utf-8")
             if path in ("", "/"):
                 index = session.root / "pages" / "index.html"
                 if index.is_file():
-                    return self.send_bytes(inject_editor(expand_includes(index.read_bytes(), session.root)),
+                    return self.send_bytes(inject_editor(session.mark_html(expand_includes(index.read_bytes(), session.root))),
                                            "text/html; charset=utf-8")
                 return self.send_html(self.landing())
             target = (session.root / rel).resolve()
@@ -512,7 +548,7 @@ def build_handler(session):
             ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
             data = target.read_bytes()
             if ctype == "text/html":
-                return self.send_bytes(inject_editor(expand_includes(data, session.root)), "text/html; charset=utf-8")
+                return self.send_bytes(inject_editor(session.mark_html(expand_includes(data, session.root))), "text/html; charset=utf-8")
             self.send_bytes(data, ctype)
 
         def landing(self):

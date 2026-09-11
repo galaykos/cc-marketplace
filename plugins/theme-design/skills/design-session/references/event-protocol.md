@@ -16,6 +16,9 @@ radius}` as the browser computed them BEFORE the gesture.
 | `text` | describe, `before`, `after` | inline text edit | replace the content verbatim |
 | `style` | describe, `property` (`color` or `background-color`), `value` hex | colour picked in the inspector | the nearest token, or a new one, or the element alone when told "just this" |
 | `navigate` | `selector`, `text`, `to` (the href) | the user followed a link with the Go tool or Alt+click; the browser is now on `to` | no edit; if `flow.json` lacks that edge, add it (`references/flows.md`) |
+| `rich` | `on` | the rich checkbox, already applied by the server | no edit; log the preference (`references/skins.md`) |
+| `viewport` | `name` (`desktop`/`tablet`/`mobile`) | preview width changed, preview only | nothing; context for a layout gesture that follows |
+| `state` | `name`, `selector` | the state selector switched the page's `data-state`, preview only | nothing; a gesture that follows is about that variant |
 | `skin` | `name` | the panel's skin selector, already applied by the server | no edit; note the preference in `decisions.md` (`references/skins.md`) |
 | `end` | – | End session pressed | export, then stop |
 

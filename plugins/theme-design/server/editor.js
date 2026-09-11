@@ -64,6 +64,11 @@
     '<button data-tool="text" title="double-click text to edit it">Text</button>' +
     '<button data-tool="navigate" title="click links to walk the flow (Alt+click does this in any tool)">Go</button>' +
     '<select id="__td-page" title="pages in this session"></select>' +
+    '</nav>' +
+    '<nav id="__td-view">' +
+    '<label class="__td-toggle" title="rich layer: imagery, chart shapes, depth, motion — off is a styled wireframe"><input type="checkbox" id="__td-rich"> rich</label>' +
+    '<select id="__td-viewport" title="preview width (container queries, preview only)"><option value="">desktop</option><option value="tablet">tablet 820</option><option value="mobile">mobile 390</option></select>' +
+    '<select id="__td-state" title="page state variant (preview only; the page declares data-states)"></select>' +
     '<select id="__td-skin" title="skin: how this wireframe could look in a library — a lookalike, not the library"></select>' +
     '</nav>' +
     '<section id="__td-inspector"><em>Nothing selected.</em></section>' +
@@ -324,10 +329,32 @@
     }).join("");
   }
   fetch("/__td/flow").then(function (r) { return r.json(); }).then(renderFlow).catch(function () {});
+  // Fidelity + preview controls. rich is server-side (persists, reloads); viewport and state are preview-only.
+  var richBox = panel.querySelector("#__td-rich");
+  richBox.addEventListener("change", function () {
+    post("/__td/rich", { on: richBox.checked, page: location.pathname }).then(function () { logLine("gesture", "rich " + (richBox.checked ? "on" : "off")); });
+  });
+  var vpSel = panel.querySelector("#__td-viewport");
+  vpSel.value = sessionStorage.getItem("td-viewport") || "";
+  function applyViewport() { if (vpSel.value) document.documentElement.setAttribute("data-viewport", vpSel.value); else document.documentElement.removeAttribute("data-viewport"); }
+  vpSel.addEventListener("change", function () { sessionStorage.setItem("td-viewport", vpSel.value); applyViewport(); send("viewport", { name: vpSel.value || "desktop" }); });
+  applyViewport();
+  var stateSel = panel.querySelector("#__td-state");
+  var stateHost = document.querySelector("[data-states]");
+  if (stateHost) {
+    ["populated"].concat(stateHost.dataset.states.split(",").map(function (x) { return x.trim(); }).filter(Boolean)).forEach(function (name, i) {
+      var o = document.createElement("option"); o.value = i ? name : ""; o.textContent = "state: " + name; stateSel.appendChild(o);
+    });
+    stateSel.addEventListener("change", function () {
+      if (stateSel.value) stateHost.setAttribute("data-state", stateSel.value); else stateHost.removeAttribute("data-state");
+      send("state", { name: stateSel.value || "populated", selector: selectorFor(stateHost) });
+    });
+  } else { stateSel.hidden = true; }
   var skinSel = panel.querySelector("#__td-skin");
   fetch("/__td/state").then(function (r) { return r.json(); }).then(function (s) {
     state.pending = s.pending || 0; renderPending();
     state.listening = !!s.listening; renderPresence();
+    richBox.checked = !!s.rich;
     (s.skins || []).forEach(function (name) {
       var o = document.createElement("option"); o.value = name; o.textContent = "skin: " + name; skinSel.appendChild(o);
     });

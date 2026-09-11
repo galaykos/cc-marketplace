@@ -6,24 +6,22 @@
 <title><!-- SLOT: title --></title>
 <link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/skin.css">
+<script src="/charts.js" defer></script>
 <style>
-/* Page-local LAYOUT only. Colour, radius, spacing and type come from tokens.css;
-   the look of .card/.btn/.input/.badge/table/.avatar/.img comes from skin.css
-   (references/skins.md). A hex or a px here is a token that should exist and
-   does not yet; a component recipe here is a skin rule the user can no longer switch. */
-*, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-size: var(--text-base); line-height: 1.5; }
-.container { max-width: 72rem; margin: 0 auto; padding: var(--space-6) var(--space-4); }
-.stack > * + * { margin-top: var(--space-4); }
-.row { display: flex; gap: var(--space-4); align-items: center; }
-.grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
-h1, h2, h3, p { margin: 0; }
+/* Page-local LAYOUT only — grid shapes this page alone needs. Everything else
+   is a class from the base sheet (references/skins.md lists them) styled by
+   skin.css, or a token. A hex or px here is a token that does not exist yet;
+   a component recipe here is one the user can no longer switch skins on. */
 </style>
 </head>
 <body>
 <!-- SLOT: page. Give every landmark and repeated block a data-td="<name>" so the
-     editor's selectors stay stable across regenerations. -->
-<main class="container stack" data-td="main">
+     editor's selectors stay stable across regenerations. Icons:
+     <svg class="icon"><use href="/icons.svg#search"/></svg>. Charts:
+     <div class="chart" data-kind="line" data-values="3,5,2,8"></div>.
+     States: data-states="empty,error" on the root below, then .when-empty /
+     .when-populated blocks inside — variants of one page, never new pages. -->
+<main class="container stack" data-td="main" data-states="">
 </main>
 <!-- Dark preview: add class="dark" on <html>; both variants must read well. -->
 </body>

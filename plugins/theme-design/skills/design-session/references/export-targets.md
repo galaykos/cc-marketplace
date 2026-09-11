@@ -17,7 +17,11 @@ the user chose those colours in the session.
 
 ## 2. Prototype pages
 
-Copy `.theme-design/pages/*.html` and `.theme-design/skin.css`. They are clean on
+Copy `.theme-design/pages/*.html`, `.theme-design/skin.css`, and the shipped
+`server/icons.svg` and `server/charts.js` from `${CLAUDE_PLUGIN_ROOT}` (as
+`icons.svg`, `charts.js`; rewrite `/icons.svg#` and `/charts.js` to `./`). If the
+session ended with rich on, add `data-rich` to `<html>` in the copies — the
+server injected it live and the folder has no server. They are clean on
 disk — the editor is injected at serve time and never written — so no stripping
 step exists. Inline every `<!-- include: name -->` from `partials/` (the server
 did this at serve time; the folder has no server), rewrite `/tokens.css`,
