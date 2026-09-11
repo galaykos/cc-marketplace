@@ -20,8 +20,15 @@ Two modes, chosen once at start and recorded in `.theme-design/state.json`:
 | `proxy` | the project's dev server, proxied with the editor injected | the project's source | you post `reload:true` |
 
 Read `references/event-protocol.md` before the first event: it is the contract
-for every event shape and how each becomes an edit. `references/export-targets.md`
-is the end of the session; do not read it before then.
+for every event shape and how each becomes an edit. `references/skins.md` is the
+look layer: the component vocabulary every page is built from, the skins that
+show how the same structure *could* look in shadcn, Bootstrap, MUI or Astryx
+(lookalikes, never the library, and you say so), and the rich dial. Build a
+page from the vocabulary and an archetype in `references/patterns.md`, with
+realistic content — never lorem, numbers that agree — and declare its states. `references/flows.md` is the second screen: pages, `partials/` for what every
+page shares, and `flow.json`, the record of which link leads where, which the
+brief draws. `references/export-targets.md` is the end of the session; do not
+read it before then.
 
 ## Start
 
@@ -33,13 +40,15 @@ is the end of the session; do not read it before then.
    said in one line.
 2. Seed `.theme-design/` if absent: `mkdir -p .theme-design/pages`, copy
    `assets/tokens.css` (relative to this skill) to `.theme-design/tokens.css`. In
-   `html` mode with no pages, build `pages/index.html` from `assets/page-shell.html`
-   and the user's opening description before opening the browser — an empty canvas
-   invites a chat about nothing. Suggest `.theme-design/` for `.gitignore` once; the
+   `html` mode with no pages, build `pages/index.html` from `assets/page-shell.html`,
+   the matching archetype in `references/patterns.md` and the user's opening
+   description before opening the browser — an empty canvas invites a chat about
+   nothing. Suggest `.theme-design/` for `.gitignore` once; the
    user decides whether decisions are tracked.
 3. Start the server in the background, port `${THEME_DESIGN_PORT:-8140}`:
    `python3 "${CLAUDE_PLUGIN_ROOT}/server/serve.py" --root .theme-design --mode html --open`
-   (or `--mode proxy --proxy <url> --open`). `--status` reports a live session;
+   (or `--mode proxy --proxy <url> --open`). `--skin <name>` sets the starting
+   look; without it a new root starts in `wireframe`. `--status` reports a live session;
    `--stop` ends one. A refused start names the pid holding the root — do not
    kill a session another terminal owns without asking.
 4. Post the opening line so the panel is not blank:
@@ -77,7 +86,10 @@ marked consumed — apply it as one turn:
    stop, or when the user types in the terminal (Esc interrupts the wait).
 
 Batch size is the user's pace: never reply "applying…" and then apply; the reply
-IS the signal that the reload they see is finished.
+IS the signal that the reload they see is finished. The panel header reads
+**listening** only while your poll is blocked; every turn you spend outside the
+loop shows **away** there, so do not end the turn while the session is open
+unless the user asked you to.
 
 ## Judgement calls the protocol cannot make
 
@@ -92,6 +104,10 @@ IS the signal that the reload they see is finished.
   `.dark` — a light-only value is half a decision.
 - A `text` edit is content; write it verbatim and do not "improve" it.
 - An `annotate` is a brief for that element; treat it as a message scoped there.
+- A `skin` or `rich` event is already applied by the server; log the preference,
+  do not edit. `viewport` and `state` are preview-only context for what follows. A message asking for a library's look is the same switch, made by you.
+- "Link this to X" with a selection: set the href, add the edge to `flow.json`,
+  create `pages/x.html` from the shell if it is missing, say all three.
 - Three gestures on one axis in a row (colour, colour, colour) mean the axis is
   unsettled: offer two or three candidates side by side on one page in `html`
   mode instead of a fourth single reveal.

@@ -18,3 +18,4 @@ taskmaster-docs
 # got committed into plugins/craft-layer/. Enforced in scripts/validate.sh.
 plugins/**/.claude/
 .playwright-mcp/
+__pycache__/

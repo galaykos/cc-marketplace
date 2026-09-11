@@ -5,33 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><!-- SLOT: title --></title>
 <link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/skin.css">
+<script src="/charts.js" defer></script>
 <style>
-/* Page-local layout only. Colour, radius, spacing and type come from tokens.css —
-   a hex or a px here is a token that should exist and does not yet. */
-*, *::before, *::after { box-sizing: border-box; }
-body { margin: 0; font-family: var(--font-sans); font-size: var(--text-base); line-height: 1.5;
-       background: var(--background); color: var(--foreground); }
-.container { max-width: 72rem; margin: 0 auto; padding: var(--space-6) var(--space-4); }
-.stack > * + * { margin-top: var(--space-4); }
-.row { display: flex; gap: var(--space-4); align-items: center; }
-.grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
-.card { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border);
-        border-radius: var(--radius); padding: var(--space-4); }
-.btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4);
-       border-radius: var(--radius); border: 1px solid transparent; font: inherit; cursor: pointer; }
-.btn-primary { background: var(--primary); color: var(--primary-foreground); }
-.btn-secondary { background: var(--secondary); color: var(--secondary-foreground); border-color: var(--border); }
-.muted { color: var(--muted-foreground); font-size: var(--text-sm); }
-.input { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--input);
-         border-radius: var(--radius); background: var(--background); color: inherit; font: inherit; }
-.input:focus { outline: 2px solid var(--ring); outline-offset: 1px; }
-h1 { font-size: var(--text-2xl); margin: 0; } h2 { font-size: var(--text-xl); margin: 0; }
+/* Page-local LAYOUT only — grid shapes this page alone needs. Everything else
+   is a class from the base sheet (references/skins.md lists them) styled by
+   skin.css, or a token. A hex or px here is a token that does not exist yet;
+   a component recipe here is one the user can no longer switch skins on. */
 </style>
 </head>
 <body>
 <!-- SLOT: page. Give every landmark and repeated block a data-td="<name>" so the
-     editor's selectors stay stable across regenerations. -->
-<main class="container stack" data-td="main">
+     editor's selectors stay stable across regenerations. Icons:
+     <svg class="icon"><use href="/icons.svg#search"/></svg>. Charts:
+     <div class="chart" data-kind="line" data-values="3,5,2,8"></div>.
+     States: data-states="empty,error" on the root below, then .when-empty /
+     .when-populated blocks inside — variants of one page, never new pages. -->
+<main class="container stack" data-td="main" data-states="">
 </main>
 <!-- Dark preview: add class="dark" on <html>; both variants must read well. -->
 </body>

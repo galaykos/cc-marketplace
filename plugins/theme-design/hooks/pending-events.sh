@@ -24,12 +24,17 @@
   pending=$(jq -c --argjson c "$cursor" 'select((.seq // 0) > $c)' "$root/events.jsonl" 2>/dev/null)
   [ -n "$pending" ] || exit 0
   n=$(printf '%s\n' "$pending" | grep -c .)
-  last=$(printf '%s\n' "$pending" | tail -1 | jq -r '.seq')
+  # Budget in whole events, never bytes: a line cut mid-JSON is unreadable, and the
+  # cursor must only pass events that were printed in full. Whatever does not fit
+  # stays behind the cursor for the next poll or the next prompt.
+  shown=$(printf '%s\n' "$pending" | awk -v max=3000 '{ if (used + length($0) + 1 > max && shown > 0) exit; print; used += length($0) + 1; shown++ }')
+  k=$(printf '%s\n' "$shown" | grep -c .)
+  last=$(printf '%s\n' "$shown" | tail -1 | jq -r '.seq')
   mode=$(jq -r '.mode // "html"' "$root/state.json")
   url=$(jq -r '.url // empty' "$root/state.json")
-  echo "theme-design: $n browser event(s) pending from the open $mode design session ($url). Apply them per the design-session skill (skills/design-session/SKILL.md) before answering this prompt, then POST a one-line summary to /__td/reply with reload:true. Events (newest last, truncated at 3000 chars):"
-  printf '%s\n' "$pending" | head -c 3000
-  echo
+  left=$((n - k))
+  echo "theme-design: $n browser event(s) pending from the open $mode design session ($url). Apply them per the design-session skill (skills/design-session/SKILL.md) before answering this prompt, then POST a one-line summary to /__td/reply with reload:true. Events (oldest first, $k of $n shown; $left still queued behind the cursor for the next poll):"
+  printf '%s\n' "$shown"
   echo "$last" > "$root/cursor"
 } 2>/dev/null
 exit 0

@@ -56,12 +56,20 @@
   var panel = document.createElement("aside");
   panel.id = "__td-panel";
   panel.innerHTML =
-    '<header><strong>theme-design</strong><span id="__td-pending" title="events not yet applied by Claude"></span>' +
+    '<header><strong>theme-design</strong><span id="__td-presence" title="whether the Claude Code session is blocked on the poll right now"></span><span id="__td-pending" title="gestures and messages sent since Claude last replied"></span>' +
     '<button id="__td-toggle" title="collapse">–</button></header>' +
     '<nav id="__td-tools">' +
     '<button data-tool="select" class="on" title="click to select, then note / colour / resize">Select</button>' +
     '<button data-tool="move" title="drag an element; drop on a sibling to reorder">Move</button>' +
     '<button data-tool="text" title="double-click text to edit it">Text</button>' +
+    '<button data-tool="navigate" title="click links to walk the flow (Alt+click does this in any tool)">Go</button>' +
+    '<select id="__td-page" title="pages in this session"></select>' +
+    '</nav>' +
+    '<nav id="__td-view">' +
+    '<label class="__td-toggle" title="rich layer: imagery, chart shapes, depth, motion — off is a styled wireframe"><input type="checkbox" id="__td-rich"> rich</label>' +
+    '<select id="__td-viewport" title="preview width (container queries, preview only)"><option value="">desktop</option><option value="tablet">tablet 820</option><option value="mobile">mobile 390</option></select>' +
+    '<select id="__td-state" title="page state variant (preview only; the page declares data-states)"></select>' +
+    '<select id="__td-skin" title="skin: how this wireframe could look in a library — a lookalike, not the library"></select>' +
     '</nav>' +
     '<section id="__td-inspector"><em>Nothing selected.</em></section>' +
     '<section id="__td-log"></section>' +
@@ -76,7 +84,15 @@
 
   function renderPending() {
     var el = panel.querySelector("#__td-pending");
-    el.textContent = state.pending ? state.pending + " pending" : "";
+    el.textContent = state.pending ? state.pending + " queued" : "";
+  }
+  function renderPresence() {
+    var el = panel.querySelector("#__td-presence");
+    el.className = state.listening ? "__td-on" : "__td-off";
+    el.textContent = state.listening ? "listening" : "away";
+    el.title = state.listening
+      ? "Claude is blocked on the poll: the next thing you do is applied when it lands"
+      : "No session is polling. What you send is kept; it is applied when the session polls again or when you type a prompt in that terminal";
   }
   function logLine(role, text) {
     var line = document.createElement("div");
@@ -93,12 +109,19 @@
   panel.querySelector("#__td-toggle").addEventListener("click", function () { setPanel(!state.panelOpen); });
   setPanel(state.panelOpen);
 
+  function setTool(name) {
+    var b = panel.querySelector('button[data-tool="' + name + '"]'); if (!b) return;
+    state.tool = name;
+    sessionStorage.setItem("td-tool", name);
+    Array.prototype.forEach.call(panel.querySelectorAll("button[data-tool]"), function (x) { x.classList.toggle("on", x === b); });
+    document.body.classList.toggle("__td-moving", name === "move");
+  }
   panel.querySelector("#__td-tools").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-tool]"); if (!b) return;
-    state.tool = b.dataset.tool;
-    Array.prototype.forEach.call(panel.querySelectorAll("button[data-tool]"), function (x) { x.classList.toggle("on", x === b); });
-    document.body.classList.toggle("__td-moving", state.tool === "move");
+    setTool(b.dataset.tool);
   });
+  // The tool survives navigation so walking a flow with Go does not mean re-picking it per page.
+  setTool(sessionStorage.getItem("td-tool") || "select");
 
   chat.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -130,11 +153,19 @@
       '<div class="__td-meta">' + d.rect.w + '×' + d.rect.h + ' · ' + escapeHtml(d.computed.font) + ' · r ' + escapeHtml(d.computed.radius) + '</div>' +
       '<div class="__td-row"><label>bg <input type="color" data-prop="background-color" value="' + toHex(d.computed.background) + '"></label>' +
       '<label>text <input type="color" data-prop="color" value="' + toHex(d.computed.color) + '"></label></div>' +
-      '<form class="__td-note"><input placeholder="note about this element…"><button>Note</button></form>';
+      (el.closest("a[href]") ? '<div class="__td-meta">→ ' + escapeHtml(el.closest("a[href]").getAttribute("href")) + ' <span class="__td-hint">(Go tool or Alt+click follows it)</span></div>' : '') +
+      '<form class="__td-note"><input placeholder="note about this element… (or: link this to reports)"><button>Note</button></form>';
     Array.prototype.forEach.call(inspector.querySelectorAll("input[type=color]"), function (inp) {
-      inp.addEventListener("input", function () { el.style.setProperty(inp.dataset.prop, inp.value); });
+      // describe() must see the element BEFORE the preview lands, or `computed`
+      // reports the picked colour and the token match in the skill has nothing to match.
+      var from = null;
+      inp.addEventListener("input", function () {
+        if (!from) from = describe(el);
+        el.style.setProperty(inp.dataset.prop, inp.value);
+      });
       inp.addEventListener("change", function () {
-        send("style", Object.assign(describe(el), { property: inp.dataset.prop, value: inp.value }));
+        send("style", Object.assign(from || describe(el), { property: inp.dataset.prop, value: inp.value }));
+        from = null;
       });
     });
     inspector.querySelector(".__td-note").addEventListener("submit", function (e) {
@@ -164,7 +195,17 @@
   document.addEventListener("click", function (e) {
     if (inPanel(e.target) || state.tool === "text") return;
     if (state.justDragged) { state.justDragged = false; e.preventDefault(); e.stopPropagation(); return; }
-    if (e.target.closest("a, button, input, select, textarea") && !e.altKey) { e.preventDefault(); }
+    var link = e.target.closest("a[href]");
+    if (link && (state.tool === "navigate" || e.altKey)) {
+      // Follow the link and tell the session which edge was walked; keepalive so the
+      // POST survives the navigation. Off-canvas links (http, mailto, #) are left alone.
+      var href = link.getAttribute("href") || "";
+      if (href && href.charAt(0) !== "#" && !/^[a-z]+:/i.test(href)) {
+        fetch("/__td/event", { method: "POST", headers: HDR, keepalive: true,
+          body: JSON.stringify({ type: "navigate", page: location.pathname, tool: state.tool, selector: selectorFor(link), text: (link.innerText || "").trim().slice(0, 80), to: href }) });
+      }
+      return;
+    }
     e.preventDefault(); e.stopPropagation();
     if (state.tool === "select" || state.tool === "move") {
       var target = e.target === document.body || e.target === document.documentElement ? null : e.target;
@@ -219,7 +260,11 @@
       var before = (e.clientY - r.top) < r.height / 2 && (e.clientX - r.left) < r.width / 2;
       placement = { target: selectorFor(target), position: before ? "before" : "after", sibling: true };
     }
+    // The browser fires `click` right after this mouseup only when mousedown and
+    // mouseup hit the same element; a drop on a sibling fires none, so the flag
+    // must expire on its own or it eats the user's next real click.
     state.justDragged = true;
+    setTimeout(function () { state.justDragged = false; }, 0);
     send("move", Object.assign(d.from, { dx: dx, dy: dy, drop: placement }));
     // Preview: a sibling drop reorders in place; a free drop keeps the translate until reload.
     if (placement) {
@@ -263,6 +308,7 @@
   es.onmessage = function (e) {
     var msg; try { msg = JSON.parse(e.data); } catch (err) { return; }
     if (msg.type === "assistant") { state.pending = 0; renderPending(); logLine("assistant", msg.text); }
+    if (msg.type === "presence") { state.listening = !!msg.listening; renderPresence(); }
     if (msg.type === "reload") setTimeout(function () { location.reload(); }, 150);
   };
   fetch("/__td/transcript").then(function (r) { return r.text(); }).then(function (t) {
@@ -271,7 +317,62 @@
       if (m) logLine(m[1], m[2]);
     });
   });
-  fetch("/__td/state").then(function (r) { return r.json(); }).then(function (s) { state.pending = s.pending || 0; renderPending(); });
+  var pageSel = panel.querySelector("#__td-page");
+  pageSel.addEventListener("change", function () { location.href = pageSel.value === "index.html" ? "/" : "/pages/" + pageSel.value; });
+  var flowBox = document.createElement("section"); flowBox.id = "__td-flow"; inspector.insertAdjacentElement("afterend", flowBox);
+  function renderFlow(flow) {
+    var here = location.pathname === "/" ? "index.html" : location.pathname.replace(/^\/pages\//, "");
+    var out = (flow.edges || []).filter(function (x) { return x.from === here; });
+    if (!out.length) { flowBox.innerHTML = ""; return; }
+    flowBox.innerHTML = '<div class="__td-meta">Flows from this page</div>' + out.map(function (x) {
+      return '<div class="__td-edge"><code>' + escapeHtml(x.selector || "?") + '</code> → ' + escapeHtml(x.to) + (x.label ? ' <em>' + escapeHtml(x.label) + '</em>' : '') + '</div>';
+    }).join("");
+  }
+  fetch("/__td/flow").then(function (r) { return r.json(); }).then(renderFlow).catch(function () {});
+  // Fidelity + preview controls. rich is server-side (persists, reloads); viewport and state are preview-only.
+  var richBox = panel.querySelector("#__td-rich");
+  richBox.addEventListener("change", function () {
+    post("/__td/rich", { on: richBox.checked, page: location.pathname }).then(function () { logLine("gesture", "rich " + (richBox.checked ? "on" : "off")); });
+  });
+  var vpSel = panel.querySelector("#__td-viewport");
+  vpSel.value = sessionStorage.getItem("td-viewport") || "";
+  function applyViewport() { if (vpSel.value) document.documentElement.setAttribute("data-viewport", vpSel.value); else document.documentElement.removeAttribute("data-viewport"); }
+  vpSel.addEventListener("change", function () { sessionStorage.setItem("td-viewport", vpSel.value); applyViewport(); send("viewport", { name: vpSel.value || "desktop" }); });
+  applyViewport();
+  var stateSel = panel.querySelector("#__td-state");
+  var stateHost = document.querySelector("[data-states]");
+  if (stateHost) {
+    ["populated"].concat(stateHost.dataset.states.split(",").map(function (x) { return x.trim(); }).filter(Boolean)).forEach(function (name, i) {
+      var o = document.createElement("option"); o.value = i ? name : ""; o.textContent = "state: " + name; stateSel.appendChild(o);
+    });
+    stateSel.addEventListener("change", function () {
+      if (stateSel.value) stateHost.setAttribute("data-state", stateSel.value); else stateHost.removeAttribute("data-state");
+      send("state", { name: stateSel.value || "populated", selector: selectorFor(stateHost) });
+    });
+  } else { stateSel.hidden = true; }
+  var skinSel = panel.querySelector("#__td-skin");
+  fetch("/__td/state").then(function (r) { return r.json(); }).then(function (s) {
+    state.pending = s.pending || 0; renderPending();
+    state.listening = !!s.listening; renderPresence();
+    richBox.checked = !!s.rich;
+    (s.skins || []).forEach(function (name) {
+      var o = document.createElement("option"); o.value = name; o.textContent = "skin: " + name; skinSel.appendChild(o);
+    });
+    if (s.skin) skinSel.value = s.skin;
+    skinSel.hidden = !(s.skins || []).length;
+    var here = location.pathname === "/" ? "index.html" : location.pathname.replace(/^\/pages\//, "");
+    (s.pages || []).forEach(function (name) {
+      var o = document.createElement("option"); o.value = name; o.textContent = name.replace(/\.html$/, ""); pageSel.appendChild(o);
+    });
+    pageSel.value = here;
+    pageSel.hidden = (s.pages || []).length < 2;
+  });
+  skinSel.addEventListener("change", function () {
+    var name = skinSel.value;
+    post("/__td/skin", { name: name, page: location.pathname }).then(function (r) {
+      if (r && r.ok) logLine("gesture", "skin " + name + " (lookalike of its defaults, not the library)");
+    });
+  });
 
   window.__td = { state: state, selectorFor: selectorFor, send: send };
 })();

@@ -17,9 +17,17 @@ the user chose those colours in the session.
 
 ## 2. Prototype pages
 
-Copy `.theme-design/pages/*.html`. They are clean on disk — the editor is injected
-at serve time and never written — so no stripping step exists. Rewrite the
-`/tokens.css` link to `./tokens.css` so the folder opens from the filesystem.
+Copy `.theme-design/pages/*.html`, `.theme-design/skin.css`, and the shipped
+`server/icons.svg` and `server/charts.js` from `${CLAUDE_PLUGIN_ROOT}` (as
+`icons.svg`, `charts.js`; rewrite `/icons.svg#` and `/charts.js` to `./`). If the
+session ended with rich on, add `data-rich` to `<html>` in the copies — the
+server injected it live and the folder has no server. They are clean on
+disk — the editor is injected at serve time and never written — so no stripping
+step exists. Inline every `<!-- include: name -->` from `partials/` (the server
+did this at serve time; the folder has no server), rewrite `/tokens.css`,
+`/skin.css` and `/pages/x.html` links to `./tokens.css`, `./skin.css` and
+`./x.html` so the folder walks from the filesystem, and name the skin in the
+brief's Direction as a lookalike, not the library.
 Proxy-mode sessions have no pages; say so instead of exporting an empty folder.
 
 ## 3. Design brief (`brief.md`)
@@ -31,6 +39,9 @@ From `.theme-design/decisions.md` (one line per accepted change) and
 - **Layout** — per page/screen: structure, hierarchy, what moved and why.
 - **Tokens** — the sheet's role names with their light/dark values, and every
   token added during the session with the reason.
+- **Flows** — `flow.json` as a mermaid `graph LR` (page nodes, edge labels from
+  `label`, `state` in brackets), then one line per orphan page. Omit the section
+  only when the session has one page.
 - **Components and states** — anything the user named as a repeated element.
 - **Open questions** — every question asked in a reply that got no answer.
 

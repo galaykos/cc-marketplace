@@ -128,3 +128,4 @@ content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-thr
 content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	payments	payments	low
 content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	craft-layer	low
 content	(\bmessages\.create\b|\bchat\.completions\b|\bembeddings\.create\b|\bgenerateText\()	llm-app	llm-app	low
+glob	**/.theme-design/**	design-session	theme-design	high

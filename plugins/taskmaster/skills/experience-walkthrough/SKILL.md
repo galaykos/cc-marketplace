@@ -18,6 +18,12 @@ itself is a requirement. A single widget or page stays in visual-decisions. (Pro
 
 ## The demo artifact
 
+**If a theme-design session is open** (`.theme-design/flow.json` in the project
+root), its pages already are the clickable demo: hand over that session's URL
+and read its flow record for the coverage rules below instead of assembling a
+second file. Gaps still go to the ambiguity ledger; the session's brief is not
+the spec. Otherwise:
+
 One self-contained HTML file — `taskmaster-docs/mockups/YYYY-MM-DD-<slug>-walkthrough.html`,
 copied to `walkthrough.html` on the same session preview server (port
 `${PREVIEW_PORT:-8123}`, see visual-decisions; own file so it never clobbers the

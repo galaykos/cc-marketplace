@@ -15,6 +15,11 @@ radius}` as the browser computed them BEFORE the gesture.
 | `resize` | describe, `to` `{w,h}` | corner-handle drag | width/height, column span, basis, padding or aspect, per the element's role |
 | `text` | describe, `before`, `after` | inline text edit | replace the content verbatim |
 | `style` | describe, `property` (`color` or `background-color`), `value` hex | colour picked in the inspector | the nearest token, or a new one, or the element alone when told "just this" |
+| `navigate` | `selector`, `text`, `to` (the href) | the user followed a link with the Go tool or Alt+click; the browser is now on `to` | no edit; if `flow.json` lacks that edge, add it (`references/flows.md`) |
+| `rich` | `on` | the rich checkbox, already applied by the server | no edit; log the preference (`references/skins.md`) |
+| `viewport` | `name` (`desktop`/`tablet`/`mobile`) | preview width changed, preview only | nothing; context for a layout gesture that follows |
+| `state` | `name`, `selector` | the state selector switched the page's `data-state`, preview only | nothing; a gesture that follows is about that variant |
+| `skin` | `name` | the panel's skin selector, already applied by the server | no edit; note the preference in `decisions.md` (`references/skins.md`) |
 | `end` | – | End session pressed | export, then stop |
 
 ## Reading a batch
@@ -26,7 +31,8 @@ radius}` as the browser computed them BEFORE the gesture.
 - `rect` is where the element WAS. For `move` without a drop, `rect + (dx,dy)` is
   where the user wanted it; the nearest layout that puts it there wins.
 - `page` tells which file (html mode) or which route (proxy mode) the gesture was
-  on. Do not apply a gesture from `/pages/pricing.html` to `index.html`.
+  on. Do not apply a gesture from `/pages/pricing.html` to `index.html`. In html
+  mode `/` is `pages/index.html`: the root serves it directly.
 
 ## Selector shape
 
@@ -43,6 +49,14 @@ so regenerating the page does not change the selectors the user has been clickin
 `transcript.md`; `reload:true` reloads every open tab of the session. In `html`
 mode the file watcher already reloads on save, so `reload` there is only for a
 change the watcher cannot see (an image swapped under the same name is one).
+
+## Presence
+
+While your `/__td/next` is blocked the server reports `listening: true` (in
+`/__td/state` and as an SSE `presence` line) and the panel header says so; when
+you are between polls it says **away**. The user reads "away" as "nothing will
+happen until Claude is back", which is true — so stay in the loop, and when you
+leave it, say in the terminal that the panel will show away until `/theme-design:init`.
 
 ## Cursor discipline
 

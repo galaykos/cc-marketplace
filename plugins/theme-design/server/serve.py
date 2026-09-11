@@ -11,7 +11,8 @@ Two lanes ride one port.
                       pushed over GET /__td/events (Server-Sent Events).
   Claude waits        GET  /__td/next    long-poll: blocks until an event with
                       seq > <root>/cursor exists, returns the batch, advances
-                      the cursor. The UserPromptSubmit hook advances the same
+                      the cursor. While one is blocked the session is
+                      "listening" (state + SSE `presence`); the panel says so. The UserPromptSubmit hook advances the same
                       file when it injects pending events into a terminal turn,
                       so an event is delivered on one surface, not both.
 
@@ -29,7 +30,22 @@ Stdlib only; binds 127.0.0.1 only; every state-changing route demands the
 X-Theme-Design header, which forces a CORS preflight this server never answers,
 so a page on another localhost port cannot drive the session.
 
-    python3 serve.py --root .theme-design --mode html [--port 8140] [--open]
+Pages and flows: <root>/pages/*.html are the screens; <!-- include: name -->
+in a page is replaced at serve time by <root>/partials/<name>.html (one sidebar,
+every page). <root>/flow.json is the session's record of which link on which
+page leads where; GET /__td/flow serves it to the panel, the session writes it.
+A `navigate` event says the user followed a link in the canvas.
+
+Skins: <root>/skin.css is the look the prototype vocabulary (base.css: ~40
+classes) renders in, written as base.css + skins/<name>.css concatenated.
+Each skin is a DELTA, a lookalike of a library's defaults — never the library.
+Fidelity: <root>/rich holds 1 when the rich layer is on; the server injects
+data-rich on <html> at serve time so pages never carry it. /icons.svg and
+/charts.js are shipped assets served with a fallback and copied by the export. GET /__td/skins
+lists them, POST /__td/skin {"name"} copies one over <root>/skin.css (the
+watcher reloads) and records a `skin` event so the session knows.
+
+    python3 serve.py --root .theme-design --mode html [--port 8140] [--open] [--skin wireframe]
     python3 serve.py --root .theme-design --mode proxy --proxy http://localhost:5173
     python3 serve.py --root .theme-design --status | --stop
 """
@@ -38,6 +54,8 @@ import argparse
 import html
 import json
 import mimetypes
+import re
+import shutil
 import os
 import queue
 import signal
@@ -53,6 +71,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+SKINS_DIR = HERE / "skins"
+DEFAULT_SKIN = "wireframe"
+BASE_SKIN = SKINS_DIR / "base.css"
+SKIN_NAMES_EXCLUDED = {"base"}
+HTML_TAG_RE = re.compile(rb"<html\b", re.I)
+INCLUDE_RE = re.compile(rb"<!--\s*include:\s*([A-Za-z0-9_-]+)\s*-->")
+INCLUDE_DEPTH = 3
 LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 CSRF_HEADER = "X-Theme-Design"
 MAX_BODY = 64 * 1024
@@ -84,6 +109,23 @@ def hostname_from_netloc(netloc):
     return netloc.split(":", 1)[0]
 
 
+def expand_includes(body, root, depth=INCLUDE_DEPTH):
+    """Replace <!-- include: name --> with <root>/partials/<name>.html, recursively
+    to a small depth. A missing partial stays visible as a comment so the page
+    still renders and the gap is on screen, not in a log."""
+    if depth <= 0 or b"include:" not in body:
+        return body
+
+    def sub(m):
+        name = m.group(1).decode("ascii")
+        path = root / "partials" / (name + ".html")
+        if not path.is_file():
+            return ("<!-- missing partial: partials/%s.html -->" % name).encode("utf-8")
+        return expand_includes(path.read_bytes(), root, depth - 1)
+
+    return INCLUDE_RE.sub(sub, body)
+
+
 def inject_editor(body):
     """Insert the editor tags before </body> (or </html>, or at the end)."""
     lower = body.lower()
@@ -105,6 +147,7 @@ class Session:
         self.lock = threading.Lock()
         self.cond = threading.Condition(self.lock)
         self.clients = []
+        self.waiters = 0
         self.events_path = root / "events.jsonl"
         self.cursor_path = root / "cursor"
         self.transcript_path = root / "transcript.md"
@@ -158,17 +201,33 @@ class Session:
         return out
 
     def wait_next(self, timeout):
+        """Block until an event lands or the timeout passes. While a poller is
+        blocked here the session is "listening"; the panel shows that, and shows
+        the opposite when nothing is polling so the user knows a message will sit
+        until the session polls again or a terminal prompt drains it."""
         deadline = time.monotonic() + timeout
-        with self.cond:
-            while True:
-                batch = self.pending()
-                if batch:
-                    self.write_cursor(batch[-1]["seq"])
-                    return batch
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    return []
-                self.cond.wait(min(remaining, 1.0))
+        self.set_waiting(+1)
+        try:
+            with self.cond:
+                while True:
+                    batch = self.pending()
+                    if batch:
+                        self.write_cursor(batch[-1]["seq"])
+                        return batch
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        return []
+                    self.cond.wait(min(remaining, 1.0))
+        finally:
+            self.set_waiting(-1)
+
+    def set_waiting(self, delta):
+        with self.lock:
+            before = self.waiters > 0
+            self.waiters = max(0, self.waiters + delta)
+            after = self.waiters > 0
+        if before != after:
+            self.broadcast({"type": "presence", "listening": after})
 
     # --- transcript --------------------------------------------------------
     def append_transcript(self, role, text):
@@ -201,6 +260,44 @@ class Session:
             except queue.Full:
                 pass
 
+    # --- skins -------------------------------------------------------------
+    def skins(self):
+        return sorted(p.stem for p in SKINS_DIR.glob("*.css") if p.stem not in SKIN_NAMES_EXCLUDED)
+
+    @staticmethod
+    def skin_css(name):
+        return BASE_SKIN.read_bytes() + b"\n\n" + (SKINS_DIR / (name + ".css")).read_bytes()
+
+    def rich(self):
+        try:
+            return (self.root / "rich").read_text("utf-8").strip() == "1"
+        except OSError:
+            return False
+
+    def set_rich(self, on):
+        (self.root / "rich").write_text("1\n" if on else "0\n", "utf-8")
+        self.broadcast({"type": "reload", "paths": ["rich"]})
+
+    def mark_html(self, body):
+        """Inject the fidelity attribute on <html> so the page on disk stays clean."""
+        if not self.rich():
+            return body
+        return HTML_TAG_RE.sub(b"<html data-rich", body, count=1)
+
+    def active_skin(self):
+        try:
+            return (self.root / "skin").read_text("utf-8").strip() or None
+        except OSError:
+            return None
+
+    def apply_skin(self, name):
+        """Copy a shipped skin over <root>/skin.css; the watcher pushes the reload."""
+        if name not in self.skins():
+            return False
+        (self.root / "skin.css").write_bytes(self.skin_css(name))
+        (self.root / "skin").write_text(name + "\n", "utf-8")
+        return True
+
     # --- state file --------------------------------------------------------
     def write_state(self):
         self.state_path.write_text(json.dumps({
@@ -224,6 +321,10 @@ class Session:
             "pending": len(self.pending()),
             "pages": pages,
             "clients": len(self.clients),
+            "skin": self.active_skin(),
+            "skins": self.skins(),
+            "listening": self.waiters > 0,
+            "rich": self.rich(),
         }
 
 
@@ -339,6 +440,12 @@ def build_handler(session):
                 return self.handle_sse()
             if path == "/__td/state":
                 return self.send_json(session.snapshot())
+            if path == "/__td/flow":
+                fp = session.root / "flow.json"
+                data = fp.read_bytes() if fp.is_file() else b'{"pages": [], "edges": []}'
+                return self.send_bytes(data, "application/json; charset=utf-8")
+            if path == "/__td/skins":
+                return self.send_json({"skins": session.skins(), "active": session.active_skin()})
             if path == "/__td/transcript":
                 text = session.transcript_path.read_text("utf-8") if session.transcript_path.exists() else ""
                 return self.send_bytes(text.encode("utf-8"), "text/markdown; charset=utf-8")
@@ -363,6 +470,17 @@ def build_handler(session):
                     return self.send_json({"error": "event needs a string `type`"}, 400)
                 seq = session.append_event(body)
                 return self.send_json({"ok": True, "seq": seq})
+            if path == "/__td/rich":
+                on = bool(body.get("on")) if isinstance(body, dict) else False
+                session.set_rich(on)
+                seq = session.append_event({"type": "rich", "on": on, "page": body.get("page", "")})
+                return self.send_json({"ok": True, "rich": on, "seq": seq})
+            if path == "/__td/skin":
+                name = body.get("name") if isinstance(body, dict) else None
+                if not isinstance(name, str) or not session.apply_skin(name):
+                    return self.send_json({"error": "unknown skin", "skins": session.skins()}, 400)
+                seq = session.append_event({"type": "skin", "name": name, "page": body.get("page", "")})
+                return self.send_json({"ok": True, "skin": name, "seq": seq})
             if path == "/__td/reply":
                 text = body.get("text", "") if isinstance(body, dict) else ""
                 session.append_transcript("assistant", text)
@@ -404,10 +522,19 @@ def build_handler(session):
         # --- html mode: static files ---------------------------------------
         def static_get(self, path):
             rel = urllib.parse.unquote(path).lstrip("/")
+            if path == "/favicon.ico" and not (session.root / "favicon.ico").is_file():
+                return self.send_bytes(b"", "image/x-icon", 204)
+            if path == "/skin.css" and not (session.root / "skin.css").is_file():
+                return self.send_bytes(session.skin_css(DEFAULT_SKIN), "text/css; charset=utf-8")
+            if path == "/icons.svg" and not (session.root / "icons.svg").is_file():
+                return self.send_bytes((HERE / "icons.svg").read_bytes(), "image/svg+xml")
+            if path == "/charts.js" and not (session.root / "charts.js").is_file():
+                return self.send_bytes((HERE / "charts.js").read_bytes(), "application/javascript; charset=utf-8")
             if path in ("", "/"):
                 index = session.root / "pages" / "index.html"
                 if index.is_file():
-                    return self.send_html(index.read_text("utf-8", errors="replace"))
+                    return self.send_bytes(inject_editor(session.mark_html(expand_includes(index.read_bytes(), session.root))),
+                                           "text/html; charset=utf-8")
                 return self.send_html(self.landing())
             target = (session.root / rel).resolve()
             try:
@@ -421,7 +548,7 @@ def build_handler(session):
             ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
             data = target.read_bytes()
             if ctype == "text/html":
-                return self.send_bytes(inject_editor(data), "text/html; charset=utf-8")
+                return self.send_bytes(inject_editor(session.mark_html(expand_includes(data, session.root))), "text/html; charset=utf-8")
             self.send_bytes(data, ctype)
 
         def landing(self):
@@ -544,6 +671,11 @@ def serve(args):
         sys.exit("a session is already running on port %s (pid %s); use --stop first"
                  % (previous.get("port"), previous.get("pid")))
     session = Session(root, args.mode, args.proxy, args.port)
+    if args.skin:
+        if not session.apply_skin(args.skin):
+            sys.exit("unknown skin %r; shipped: %s" % (args.skin, ", ".join(session.skins())))
+    elif args.mode == "html" and not (root / "skin.css").is_file():
+        session.apply_skin(DEFAULT_SKIN)
     if not session.cursor_path.exists():
         session.write_cursor(session.seq)
     httpd = ThreadingHTTPServer(("127.0.0.1", args.port), build_handler(session))
@@ -578,6 +710,8 @@ def main(argv=None):
     parser.add_argument("--proxy", help="dev server origin for --mode proxy, e.g. http://localhost:5173")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="0 picks a free port")
     parser.add_argument("--open", action="store_true", help="open the URL in the default browser")
+    parser.add_argument("--skin", help="html mode: the look to start in (%s); default %s when the root has none"
+                        % (", ".join(sorted(p.stem for p in SKINS_DIR.glob("*.css"))), DEFAULT_SKIN))
     parser.add_argument("--status", action="store_true")
     parser.add_argument("--stop", action="store_true")
     args = parser.parse_args(argv)

@@ -1,0 +1,19 @@
+/* skin: wireframe — the default. Low fidelity on purpose: greyscale, dashed
+   frames, hatched imagery, no brand colour, so the talk stays on structure.
+   Colour tokens are overridden here; pick another skin to see them. */
+:root, .dark { --primary: var(--wf-ink); --primary-foreground: var(--wf-page); --accent: var(--wf-fill); --accent-foreground: var(--wf-ink); --secondary: var(--wf-fill); --secondary-foreground: var(--wf-ink); --muted: var(--wf-fill); --muted-foreground: var(--wf-line); --border: var(--wf-line); --input: var(--wf-line); --ring: var(--wf-ink); --card: var(--wf-page); --card-foreground: var(--wf-ink); --background: var(--wf-page); --foreground: var(--wf-ink); --success: var(--wf-ink); --warning: var(--wf-ink); --destructive: var(--wf-ink); --destructive-foreground: var(--wf-page); --radius: 0; --font-display: "Comic Neue", "Segoe Print", "Chalkboard SE", var(--font-sans); }
+:root { --wf-ink: #333; --wf-line: #9a9a9a; --wf-fill: #f2f2f2; --wf-page: #fff; }
+.dark { --wf-ink: #ddd; --wf-line: #666; --wf-fill: #2a2a2a; --wf-page: #171717; }
+body { font-family: var(--font-display); }
+a { text-decoration: underline; }
+.card, .menu, .dialog, .toast, .alert, .kanban .deal { border: 2px dashed var(--wf-line); }
+.btn { border: 2px solid var(--wf-ink); font-weight: 700; }
+.input, .select, .textarea { border-width: 2px; }
+.input:focus { outline: 2px dashed var(--wf-ink); }
+th { background: var(--wf-fill); font-weight: 700; }
+th, td { border: 1px dashed var(--wf-line); }
+.img, html[data-rich] .img { background: repeating-linear-gradient(45deg, var(--wf-fill), var(--wf-fill) 6px, var(--wf-page) 6px, var(--wf-page) 12px); border: 2px solid var(--wf-line); }
+html[data-rich] .img::after { content: none; }
+.avatar, html[data-rich] .avatar { background: var(--wf-fill); border: 2px solid var(--wf-line); color: var(--wf-ink); }
+html[data-rich] .card, html[data-rich] .btn-primary { box-shadow: none; }
+.chart[data-kind] svg * { fill: var(--wf-line) !important; stroke: var(--wf-ink) !important; }

@@ -1,0 +1,19 @@
+/* skin: astryx — a lookalike of the Astryx design system's feel, NOT the
+   library: container radius over control radius, surface stepping, medium-weight
+   type, quiet borders. Approximate; the real thing needs @astryxdesign/core. */
+:root, .dark { --ax-container: calc(var(--radius) * 2); --font-display: var(--font-sans); }
+body { font-feature-settings: "ss01", "cv11"; }
+h1 { font-weight: 500; letter-spacing: -0.02em; } h2 { font-weight: 500; letter-spacing: -0.01em; } h3 { font-weight: 500; }
+.card, .dialog, .menu, .toast, .panel { border-color: color-mix(in srgb, var(--border) 70%, transparent); border-radius: var(--ax-container); }
+.card { padding: var(--space-6); box-shadow: 0 1px 1px rgb(0 0 0 / .03), 0 8px 24px -16px rgb(0 0 0 / .18); }
+.btn { height: 2.5rem; padding: 0 var(--space-4); font-size: var(--text-sm); }
+.btn-sm { height: 2rem; } .btn-lg { height: 3rem; padding: 0 var(--space-6); }
+.btn-primary { box-shadow: inset 0 1px 0 rgb(255 255 255 / .15); }
+.input, .select { height: 2.5rem; padding-top: 0; padding-bottom: 0; background: var(--card); font-size: var(--text-sm); }
+.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 25%, transparent); }
+.badge { height: 1.5rem; background: var(--muted); color: var(--muted-foreground); }
+th { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+th, td { border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent); }
+.avatar { border-radius: var(--radius); }
+.img { border-radius: var(--ax-container); }
+.navlink { border-radius: var(--ax-container); }
