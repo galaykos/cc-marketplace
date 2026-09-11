@@ -62,6 +62,7 @@
     '<button data-tool="select" class="on" title="click to select, then note / colour / resize">Select</button>' +
     '<button data-tool="move" title="drag an element; drop on a sibling to reorder">Move</button>' +
     '<button data-tool="text" title="double-click text to edit it">Text</button>' +
+    '<select id="__td-skin" title="skin: how this wireframe could look in a library — a lookalike, not the library"></select>' +
     '</nav>' +
     '<section id="__td-inspector"><em>Nothing selected.</em></section>' +
     '<section id="__td-log"></section>' +
@@ -282,7 +283,21 @@
       if (m) logLine(m[1], m[2]);
     });
   });
-  fetch("/__td/state").then(function (r) { return r.json(); }).then(function (s) { state.pending = s.pending || 0; renderPending(); });
+  var skinSel = panel.querySelector("#__td-skin");
+  fetch("/__td/state").then(function (r) { return r.json(); }).then(function (s) {
+    state.pending = s.pending || 0; renderPending();
+    (s.skins || []).forEach(function (name) {
+      var o = document.createElement("option"); o.value = name; o.textContent = "skin: " + name; skinSel.appendChild(o);
+    });
+    if (s.skin) skinSel.value = s.skin;
+    skinSel.hidden = !(s.skins || []).length;
+  });
+  skinSel.addEventListener("change", function () {
+    var name = skinSel.value;
+    post("/__td/skin", { name: name, page: location.pathname }).then(function (r) {
+      if (r && r.ok) logLine("gesture", "skin " + name + " (lookalike of its defaults, not the library)");
+    });
+  });
 
   window.__td = { state: state, selectorFor: selectorFor, send: send };
 })();

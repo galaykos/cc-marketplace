@@ -1,7 +1,7 @@
 {
   "name": "theme-design",
-  "version": "0.1.1",
-  "description": "Interactive UI, theme and prototype design in the browser, driven by this Claude Code session on the subscription: /theme-design:init serves standalone HTML prototypes or your running dev server with a chat + direct-manipulation editor injected (select, move, resize, edit text, pick colours), Claude long-polls the local bridge, applies every gesture to real files (tokens.css, pages, or project source), replies in-panel and live-reloads; /theme-design:export writes tokens, pages, a design brief and optionally the project's theme file.",
+  "version": "0.2.0",
+  "description": "Interactive UI, theme and prototype design in the browser, driven by this Claude Code session on the subscription: /theme-design:init serves standalone HTML prototypes or your running dev server with a chat + direct-manipulation editor injected (select, move, resize, edit text, pick colours), Claude long-polls the local bridge, applies every gesture to real files (tokens.css, pages, or project source), replies in-panel and live-reloads; a skin selector shows the same wireframe in the feel of shadcn, Bootstrap, MUI or Astryx (lookalikes, never the library); /theme-design:export writes tokens, pages, a design brief and optionally the project's theme file.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

@@ -20,8 +20,11 @@ Two modes, chosen once at start and recorded in `.theme-design/state.json`:
 | `proxy` | the project's dev server, proxied with the editor injected | the project's source | you post `reload:true` |
 
 Read `references/event-protocol.md` before the first event: it is the contract
-for every event shape and how each becomes an edit. `references/export-targets.md`
-is the end of the session; do not read it before then.
+for every event shape and how each becomes an edit. `references/skins.md` is the
+look layer: a prototype is a wireframe of what to build, and a skin shows how the
+same structure *could* look in shadcn, Bootstrap, MUI or Astryx — lookalikes,
+never the library, and you say so. `references/export-targets.md` is the end of
+the session; do not read it before then.
 
 ## Start
 
@@ -39,7 +42,8 @@ is the end of the session; do not read it before then.
    user decides whether decisions are tracked.
 3. Start the server in the background, port `${THEME_DESIGN_PORT:-8140}`:
    `python3 "${CLAUDE_PLUGIN_ROOT}/server/serve.py" --root .theme-design --mode html --open`
-   (or `--mode proxy --proxy <url> --open`). `--status` reports a live session;
+   (or `--mode proxy --proxy <url> --open`). `--skin <name>` sets the starting
+   look; without it a new root starts in `wireframe`. `--status` reports a live session;
    `--stop` ends one. A refused start names the pid holding the root — do not
    kill a session another terminal owns without asking.
 4. Post the opening line so the panel is not blank:
@@ -92,6 +96,8 @@ IS the signal that the reload they see is finished.
   `.dark` — a light-only value is half a decision.
 - A `text` edit is content; write it verbatim and do not "improve" it.
 - An `annotate` is a brief for that element; treat it as a message scoped there.
+- A `skin` event is already applied by the server; log the preference, do not
+  edit. A message asking for a library's look is the same switch, made by you.
 - Three gestures on one axis in a row (colour, colour, colour) mean the axis is
   unsettled: offer two or three candidates side by side on one page in `html`
   mode instead of a fourth single reveal.

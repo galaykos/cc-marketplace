@@ -1,0 +1,23 @@
+/* skin: wireframe — the default. Low fidelity on purpose: greyscale, dashed
+   frames, no brand colour, so the conversation stays about structure. Colour
+   tokens are deliberately ignored here; pick another skin to see them. */
+:root { --wf-ink: #333; --wf-line: #9a9a9a; --wf-fill: #f2f2f2; --wf-page: #fff; }
+.dark { --wf-ink: #ddd; --wf-line: #666; --wf-fill: #2a2a2a; --wf-page: #171717; }
+body { background: var(--wf-page); color: var(--wf-ink); font-family: "Comic Neue", "Segoe Print", "Chalkboard SE", var(--font-sans); }
+h1, h2, h3 { font-weight: 700; color: var(--wf-ink); }
+a { color: var(--wf-ink); text-decoration: underline; }
+.card { background: var(--wf-page); color: var(--wf-ink); border: 2px dashed var(--wf-line); border-radius: 0; padding: var(--space-4); }
+.btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 2px solid var(--wf-ink); border-radius: 0; background: var(--wf-page); color: var(--wf-ink); font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; }
+.btn-primary { background: var(--wf-ink); color: var(--wf-page); }
+.btn-secondary { background: var(--wf-fill); }
+.input { width: 100%; padding: var(--space-2) var(--space-3); border: 2px solid var(--wf-line); border-radius: 0; background: var(--wf-page); color: inherit; font: inherit; }
+.input:focus { outline: 2px dashed var(--wf-ink); outline-offset: 2px; }
+.muted { color: var(--wf-line); font-size: var(--text-sm); }
+.badge { display: inline-block; padding: 0 var(--space-2); border: 1px solid var(--wf-line); border-radius: 0; font-size: var(--text-sm); background: var(--wf-fill); }
+.badge-primary { background: var(--wf-ink); color: var(--wf-page); border-color: var(--wf-ink); }
+table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+th, td { text-align: left; padding: var(--space-2) var(--space-3); border: 1px dashed var(--wf-line); }
+th { background: var(--wf-fill); font-weight: 700; }
+.avatar, .img { background: repeating-linear-gradient(45deg, var(--wf-fill), var(--wf-fill) 6px, var(--wf-page) 6px, var(--wf-page) 12px); border: 2px solid var(--wf-line); color: var(--wf-ink); }
+.avatar { width: 2rem; height: 2rem; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-sm); font-weight: 700; }
+.img { display: block; min-height: 8rem; }

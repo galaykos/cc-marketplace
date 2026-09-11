@@ -34,6 +34,11 @@ grep -q 'no-store' <<<"$(curl -sI "$U/pages/index.html")" && ok || bad "html: no
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$U/../etc/passwd")" != "200" ] && ok || bad "html: traversal served"
 grep -q 'editor chrome' <<<"$(curl -s "$U/__td/editor.css")" && ok || bad "html: editor.css not served"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$U/favicon.ico")" = 204 ] && ok || bad "html: favicon should be an empty 204, not a console 404"
+# skins: a fresh root starts in wireframe; the list names every shipped file; a switch copies + records
+[ "$(cat "$ROOT/skin")" = wireframe ] && grep -q 'skin: wireframe' "$ROOT/skin.css" && ok || bad "skin: fresh root did not start in wireframe"
+grep -q '"skins": \["astryx", "bootstrap", "mui", "shadcn", "wireframe"\]' <<<"$(curl -s "$U/__td/skins")" && ok || bad "skin: list wrong" "$(curl -s "$U/__td/skins")"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d '{"name":"../editor"}' "$U/__td/skin")" = 400 ] && ok || bad "skin: unknown/traversal name accepted"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{"name":"mui"}' "$U/__td/skin")" = 403 ] && ok || bad "skin: switch without CSRF header accepted"
 
 # CSRF: no header -> 403; header -> appended with seq 1
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"type":"message","text":"x"}' "$U/__td/event")
@@ -58,6 +63,11 @@ echo 3 > "$ROOT/cursor"
 # bad payloads
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d '{"nope":1}' "$U/__td/event")" = 400 ] && ok || bad "html: typeless event accepted"
 [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'X-Theme-Design: 1' -d 'not json' "$U/__td/event")" = 400 ] && ok || bad "html: invalid json accepted"
+
+r=$(curl -s -X POST -H 'Content-Type: application/json' -H 'X-Theme-Design: 1' -d '{"name":"mui"}' "$U/__td/skin")
+grep -q '"skin": "mui"' <<<"$r" && grep -q 'skin: mui' "$ROOT/skin.css" && [ "$(cat "$ROOT/skin")" = mui ] && grep -q '"type": "skin", "name": "mui"' "$ROOT/events.jsonl" && ok || bad "skin: switch did not copy/record" "$r"
+n=$(curl -s "$U/__td/next?timeout=1"); grep -q '"type": "skin"' <<<"$n" && ok || bad "skin: switch event not delivered to the poll" "$n"
+rm -f "$ROOT/skin.css"; grep -q 'skin: wireframe' <<<"$(curl -s "$U/skin.css")" && ok || bad "skin: /skin.css without a root file should fall back to wireframe"
 
 # SSE: a reply is broadcast; a file change pushes reload
 curl -s -N --max-time 3 "$U/__td/events" > "$T/sse.txt" &

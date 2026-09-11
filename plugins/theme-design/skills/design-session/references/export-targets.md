@@ -17,9 +17,11 @@ the user chose those colours in the session.
 
 ## 2. Prototype pages
 
-Copy `.theme-design/pages/*.html`. They are clean on disk — the editor is injected
-at serve time and never written — so no stripping step exists. Rewrite the
-`/tokens.css` link to `./tokens.css` so the folder opens from the filesystem.
+Copy `.theme-design/pages/*.html` and `.theme-design/skin.css`. They are clean on
+disk — the editor is injected at serve time and never written — so no stripping
+step exists. Rewrite the `/tokens.css` and `/skin.css` links to `./tokens.css`
+and `./skin.css` so the folder opens from the filesystem, and name the skin in
+the brief's Direction as a lookalike, not the library.
 Proxy-mode sessions have no pages; say so instead of exporting an empty folder.
 
 ## 3. Design brief (`brief.md`)

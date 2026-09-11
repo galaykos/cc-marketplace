@@ -10,7 +10,7 @@ it knows applies to the design work too.
 
 | Command | What it does |
 |---|---|
-| `/theme-design:init [html \| proxy <url>] [brief]` | Start or resume a session. `html` serves standalone prototypes under `.theme-design/pages/` driven by one `tokens.css`; `proxy` overlays the editor on your running dev server and edits go to project source. No mode given: detects a dev server and asks once |
+| `/theme-design:init [html \| proxy <url>] [--skin <name>] [brief]` | Start or resume a session. `html` serves standalone prototypes under `.theme-design/pages/` driven by one `tokens.css` and one `skin.css`; `proxy` overlays the editor on your running dev server and edits go to project source. No mode given: detects a dev server and asks once |
 | `/theme-design:export [tokens\|pages\|brief\|write]` | Write `tokens.css` (light + dark, contrast-checked), the prototype pages, a design brief built from the session's decisions and transcript, and optionally merge tokens into the project's theme file after showing the diff. Stops the server if this session started it |
 
 ## Install
@@ -43,6 +43,18 @@ Working files live in `.theme-design/` at the project root: `tokens.css`, `pages
 and `cursor`. Track it or ignore it; the plugin suggests `.gitignore` once and never
 decides.
 
+## Skins: how it could look, not what it is built with
+
+A prototype here is a wireframe of what to build. The panel's skin selector (or
+`--skin` at init, or "show me this in MUI" in chat) swaps one stylesheet,
+`.theme-design/skin.css`, so the same structure renders in the feel of
+`wireframe` (default, greyscale), `shadcn`, `bootstrap`, `mui` or `astryx`.
+**Every skin is a lookalike authored from the library's public defaults, not the
+library** — no CDN, no React runtime, no registry install; the panel and the
+export brief say so. Real components are `/design-lab:preview`'s job. The
+vocabulary a skin styles and the honesty line per skin:
+`skills/design-session/references/skins.md`.
+
 ## What each gesture becomes
 
 | in the panel | Claude does |
@@ -53,6 +65,7 @@ decides.
 | colour pick | the nearest token in `tokens.css`, or a new one under both `:root` and `.dark` |
 | double-click text edit | verbatim content change |
 | note on an element | a brief scoped to it |
+| skin selector | nothing to edit — the server swapped `skin.css`; Claude logs the preference |
 | End session | export, then stop |
 
 Three picks on one axis in a row make Claude offer candidates side by side instead
@@ -63,7 +76,8 @@ of a fourth single reveal. The full contract is
 
 | claim | standing |
 |---|---|
-| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop` | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
+| The bridge: seq-ordered events, single delivery through the cursor, editor injection, CSRF header on every mutation, traversal refusal, SSE reply and reload, proxy injection and `Location` rewrite, `--status`/`--stop`, skin list/switch/fallback | **gate** — `scripts/__tests__/serve.test.sh`, run by CI's plugin-harness step |
+| A skin is presented as a lookalike, never as the library | **recorded** — the skin files and the panel label say it; nothing checks a reply repeats it |
 | The hook injects only whole events, advances the cursor no further than the last one printed, and stays silent for `/theme-design:` prompts | **gate** — the same harness runs `hooks/pending-events.sh` against a live-pid fixture (skipped without `jq`, which is also when the hook itself is silent) |
 | The hook is silent without a running session | **recorded** — the dynamic budget baseline records its silent cost; nothing else reads it |
 | A gesture is applied faithfully to source, replies are one line, tokens over inline styles | **agent-graded** — the reply and the reload are the review; nothing scripts it |

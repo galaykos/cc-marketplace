@@ -11,6 +11,7 @@
 #__td-tools{display:flex;border-bottom:1px solid #e5e5e5}
 #__td-tools button{flex:1;padding:6px;border:0;background:#f6f6f6;cursor:pointer;font:inherit}
 #__td-tools button.on{background:#fff;font-weight:600;box-shadow:inset 0 -2px 0 #111}
+#__td-skin{flex:1.2;border:0;border-left:1px solid #e5e5e5;background:#f6f6f6;font:inherit;font-size:12px;padding:0 4px;cursor:pointer}
 #__td-inspector{padding:8px 10px;border-bottom:1px solid #e5e5e5;font-size:12px}
 #__td-inspector code{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:#444}
 #__td-inspector .__td-meta{color:#666;margin:4px 0}
@@ -35,7 +36,7 @@ body.__td-moving *{cursor:grab}
 .__td-handle{position:absolute;z-index:2147483000;width:12px;height:12px;background:#3b82f6;border:2px solid #fff;border-radius:2px;cursor:nwse-resize;box-shadow:0 0 0 1px #3b82f6}
 @media (prefers-color-scheme: dark){
   #__td-panel{color:#e5e5e5;background:#1a1a1a;border-color:#333}
-  #__td-tools button{background:#222;color:#ddd}
+  #__td-tools button,#__td-skin{background:#222;color:#ddd;border-color:#333}
   #__td-tools button.on{background:#1a1a1a;box-shadow:inset 0 -2px 0 #e5e5e5}
   #__td-tools,#__td-inspector,#__td-chat{border-color:#333}
   #__td-inspector code{color:#bbb}

@@ -29,7 +29,13 @@ Stdlib only; binds 127.0.0.1 only; every state-changing route demands the
 X-Theme-Design header, which forces a CORS preflight this server never answers,
 so a page on another localhost port cannot drive the session.
 
-    python3 serve.py --root .theme-design --mode html [--port 8140] [--open]
+Skins: <root>/skin.css is the look the prototype vocabulary (.card, .btn,
+.input, .badge, table …) renders in. server/skins/<name>.css are lookalikes of
+a library's defaults on that vocabulary — never the library. GET /__td/skins
+lists them, POST /__td/skin {"name"} copies one over <root>/skin.css (the
+watcher reloads) and records a `skin` event so the session knows.
+
+    python3 serve.py --root .theme-design --mode html [--port 8140] [--open] [--skin wireframe]
     python3 serve.py --root .theme-design --mode proxy --proxy http://localhost:5173
     python3 serve.py --root .theme-design --status | --stop
 """
@@ -38,6 +44,7 @@ import argparse
 import html
 import json
 import mimetypes
+import shutil
 import os
 import queue
 import signal
@@ -53,6 +60,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+SKINS_DIR = HERE / "skins"
+DEFAULT_SKIN = "wireframe"
 LOCAL_HOSTNAMES = {"localhost", "127.0.0.1", "::1"}
 CSRF_HEADER = "X-Theme-Design"
 MAX_BODY = 64 * 1024
@@ -201,6 +210,24 @@ class Session:
             except queue.Full:
                 pass
 
+    # --- skins -------------------------------------------------------------
+    def skins(self):
+        return sorted(p.stem for p in SKINS_DIR.glob("*.css"))
+
+    def active_skin(self):
+        try:
+            return (self.root / "skin").read_text("utf-8").strip() or None
+        except OSError:
+            return None
+
+    def apply_skin(self, name):
+        """Copy a shipped skin over <root>/skin.css; the watcher pushes the reload."""
+        if name not in self.skins():
+            return False
+        shutil.copyfile(SKINS_DIR / ("%s.css" % name), self.root / "skin.css")
+        (self.root / "skin").write_text(name + "\n", "utf-8")
+        return True
+
     # --- state file --------------------------------------------------------
     def write_state(self):
         self.state_path.write_text(json.dumps({
@@ -224,6 +251,8 @@ class Session:
             "pending": len(self.pending()),
             "pages": pages,
             "clients": len(self.clients),
+            "skin": self.active_skin(),
+            "skins": self.skins(),
         }
 
 
@@ -339,6 +368,8 @@ def build_handler(session):
                 return self.handle_sse()
             if path == "/__td/state":
                 return self.send_json(session.snapshot())
+            if path == "/__td/skins":
+                return self.send_json({"skins": session.skins(), "active": session.active_skin()})
             if path == "/__td/transcript":
                 text = session.transcript_path.read_text("utf-8") if session.transcript_path.exists() else ""
                 return self.send_bytes(text.encode("utf-8"), "text/markdown; charset=utf-8")
@@ -363,6 +394,12 @@ def build_handler(session):
                     return self.send_json({"error": "event needs a string `type`"}, 400)
                 seq = session.append_event(body)
                 return self.send_json({"ok": True, "seq": seq})
+            if path == "/__td/skin":
+                name = body.get("name") if isinstance(body, dict) else None
+                if not isinstance(name, str) or not session.apply_skin(name):
+                    return self.send_json({"error": "unknown skin", "skins": session.skins()}, 400)
+                seq = session.append_event({"type": "skin", "name": name, "page": body.get("page", "")})
+                return self.send_json({"ok": True, "skin": name, "seq": seq})
             if path == "/__td/reply":
                 text = body.get("text", "") if isinstance(body, dict) else ""
                 session.append_transcript("assistant", text)
@@ -406,6 +443,8 @@ def build_handler(session):
             rel = urllib.parse.unquote(path).lstrip("/")
             if path == "/favicon.ico" and not (session.root / "favicon.ico").is_file():
                 return self.send_bytes(b"", "image/x-icon", 204)
+            if path == "/skin.css" and not (session.root / "skin.css").is_file():
+                return self.send_bytes((SKINS_DIR / (DEFAULT_SKIN + ".css")).read_bytes(), "text/css; charset=utf-8")
             if path in ("", "/"):
                 index = session.root / "pages" / "index.html"
                 if index.is_file():
@@ -546,6 +585,11 @@ def serve(args):
         sys.exit("a session is already running on port %s (pid %s); use --stop first"
                  % (previous.get("port"), previous.get("pid")))
     session = Session(root, args.mode, args.proxy, args.port)
+    if args.skin:
+        if not session.apply_skin(args.skin):
+            sys.exit("unknown skin %r; shipped: %s" % (args.skin, ", ".join(session.skins())))
+    elif args.mode == "html" and not (root / "skin.css").is_file():
+        session.apply_skin(DEFAULT_SKIN)
     if not session.cursor_path.exists():
         session.write_cursor(session.seq)
     httpd = ThreadingHTTPServer(("127.0.0.1", args.port), build_handler(session))
@@ -580,6 +624,8 @@ def main(argv=None):
     parser.add_argument("--proxy", help="dev server origin for --mode proxy, e.g. http://localhost:5173")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="0 picks a free port")
     parser.add_argument("--open", action="store_true", help="open the URL in the default browser")
+    parser.add_argument("--skin", help="html mode: the look to start in (%s); default %s when the root has none"
+                        % (", ".join(sorted(p.stem for p in SKINS_DIR.glob("*.css"))), DEFAULT_SKIN))
     parser.add_argument("--status", action="store_true")
     parser.add_argument("--stop", action="store_true")
     args = parser.parse_args(argv)

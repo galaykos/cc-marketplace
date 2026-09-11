@@ -1,0 +1,27 @@
+/* skin: mui — a lookalike of Material UI defaults on the prototype vocabulary,
+   NOT the library: Roboto, 4px shape radius, uppercase 500-weight buttons with
+   .02857em tracking, Paper elevation shadows, outlined inputs. Colour from
+   tokens.css (primary.main, background.paper, text.secondary as mapped). */
+body { background: var(--background); color: var(--foreground); font-family: Roboto, "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.00938em; }
+h1 { font-size: 2.125rem; font-weight: 400; line-height: 1.235; letter-spacing: 0.00735em; }
+h2 { font-size: 1.5rem; font-weight: 400; line-height: 1.334; }
+h3 { font-size: 1.25rem; font-weight: 500; line-height: 1.6; letter-spacing: 0.0075em; }
+a { color: var(--primary); text-decoration: underline; }
+.card { background: var(--card); color: var(--card-foreground); border: 0; border-radius: 4px; padding: 16px; box-shadow: 0 2px 1px -1px rgb(0 0 0 / .2), 0 1px 1px 0 rgb(0 0 0 / .14), 0 1px 3px 0 rgb(0 0 0 / .12); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 64px; padding: 6px 16px; border: 1px solid transparent; border-radius: 4px; font: inherit; font-size: 0.875rem; font-weight: 500; line-height: 1.75; letter-spacing: 0.02857em; text-transform: uppercase; text-decoration: none; cursor: pointer; transition: box-shadow .25s, background-color .25s; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); box-shadow: 0 3px 1px -2px rgb(0 0 0 / .2), 0 2px 2px 0 rgb(0 0 0 / .14), 0 1px 5px 0 rgb(0 0 0 / .12); }
+.btn-primary:hover { box-shadow: 0 2px 4px -1px rgb(0 0 0 / .2), 0 4px 5px 0 rgb(0 0 0 / .14), 0 1px 10px 0 rgb(0 0 0 / .12); filter: brightness(0.92); }
+.btn-secondary { background: transparent; color: var(--primary); border-color: color-mix(in srgb, var(--primary) 50%, transparent); }
+.btn-secondary:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); border-color: var(--primary); }
+.input { width: 100%; padding: 16.5px 14px; border: 1px solid color-mix(in srgb, var(--foreground) 23%, transparent); border-radius: 4px; background: transparent; color: inherit; font: inherit; font-size: 1rem; }
+.input:hover { border-color: var(--foreground); }
+.input:focus { outline: none; border: 2px solid var(--primary); padding: 15.5px 13px; }
+.muted { color: color-mix(in srgb, var(--foreground) 60%, transparent); font-size: 0.875rem; letter-spacing: 0.01071em; }
+.badge { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 16px; font-size: 0.8125rem; background: color-mix(in srgb, var(--foreground) 8%, transparent); color: var(--foreground); }
+.badge-primary { background: var(--primary); color: var(--primary-foreground); }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+th, td { text-align: left; padding: 16px; border-bottom: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent); }
+th { font-weight: 500; color: var(--foreground); }
+tr:hover td { background: color-mix(in srgb, var(--foreground) 4%, transparent); }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: color-mix(in srgb, var(--foreground) 38%, transparent); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+.img { display: block; min-height: 8rem; border-radius: 4px; background: color-mix(in srgb, var(--foreground) 11%, transparent); }

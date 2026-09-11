@@ -1,0 +1,27 @@
+/* skin: shadcn — a lookalike of shadcn/ui defaults on the prototype vocabulary,
+   NOT the library: Tailwind-derived sizes, 1px borders, shadow-sm, the token
+   names in tokens.css are shadcn's own so colour is exact. */
+body { background: var(--background); color: var(--foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+h1 { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.025em; }
+h2 { font-size: var(--text-xl); font-weight: 600; letter-spacing: -0.025em; }
+h3 { font-size: var(--text-lg); font-weight: 600; }
+a { color: inherit; text-decoration: none; }
+.card { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-6); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 2.25rem; padding: 0 var(--space-4); border: 1px solid transparent; border-radius: calc(var(--radius) - 2px); font: inherit; font-size: var(--text-sm); font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color .15s; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.btn-primary:hover { filter: brightness(0.92); }
+.btn-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+.btn-secondary:hover { filter: brightness(0.96); }
+.input { width: 100%; height: 2.25rem; padding: 0 var(--space-3); border: 1px solid var(--input); border-radius: calc(var(--radius) - 2px); background: transparent; color: inherit; font: inherit; font-size: var(--text-sm); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+.input::placeholder { color: var(--muted-foreground); }
+.input:focus { outline: none; box-shadow: 0 0 0 1px var(--ring); border-color: var(--ring); }
+.muted { color: var(--muted-foreground); font-size: var(--text-sm); }
+.badge { display: inline-flex; align-items: center; padding: 0.125rem var(--space-2); border: 1px solid transparent; border-radius: calc(var(--radius) - 2px); font-size: 0.75rem; font-weight: 600; background: var(--secondary); color: var(--secondary-foreground); }
+.badge-primary { background: var(--primary); color: var(--primary-foreground); }
+table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+th, td { text-align: left; padding: var(--space-3); border-bottom: 1px solid var(--border); }
+th { color: var(--muted-foreground); font-weight: 500; height: 2.5rem; }
+tr:hover td { background: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+.avatar { width: 2.5rem; height: 2.5rem; border-radius: 999px; background: var(--muted); color: var(--foreground); display: inline-flex; align-items: center; justify-content: center; font-size: var(--text-sm); font-weight: 500; }
+.img { display: block; min-height: 8rem; border-radius: var(--radius); background: var(--muted); }
