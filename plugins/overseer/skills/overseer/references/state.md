@@ -42,6 +42,7 @@ evidence is machine-local by nature.
       "branch": "overseer/m1-clients-list",
       "kind": "crud",
       "depends": [],
+      "history": [ { "status": "queued", "at": "…" }, { "status": "building", "at": "…" } ],
       "status": "queued",
       "reason": "",
       "evidence": [ { "kind": "tests", "note": "pest 42 · pint · phpstan · tsc · build", "file": "/abs/…/tests.txt", "at": "…" } ]
@@ -49,6 +50,13 @@ evidence is machine-local by nature.
   ]
 }
 ```
+
+`history` is appended by every `milestone set` and by `accept`; `status` derives wall time
+from the first `briefed`/`building` stamp to `done`, and `program.sh log` merges it with
+evidence stamps, dispatch file times, `decisions.md` and `suggestions.md` into one timeline
+(the guidance log of a run is that export plus hand-written learnings, never typed stamps).
+`suggestions.md` (`program.sh suggestion add --text … --from mN`) is the deferred ledger
+close prints and archives.
 
 `kind` (default `feature`) selects the row of `kinds.tsv` whose skill groups `accept`
 requires some gated dispatch to have pinned (**gate**). `foreign_session_reason` at the

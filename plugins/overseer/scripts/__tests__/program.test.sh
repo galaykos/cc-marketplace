@@ -259,7 +259,7 @@ SESS=deadbeef-0000; ENC_OTHER="-Users-someone-other-project"; ENC_HERE=$(printf 
 mkdir -p "$FAKEHOME/.claude/projects/$ENC_OTHER"; printf '{}\n' > "$FAKEHOME/.claude/projects/$ENC_OTHER/$SESS.jsonl"
 rm -f "$SD/program.json"
 expect 2 "init refused from a session opened in another project" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="$SESS" "$PS" init --goal g --slug g
-grep -q "opened in /Users/someone/other/project" "$WS/err" && grep -q "foreign-session" "$WS/err" && ok || bad "refusal names the session's project and the override: $(head -2 "$WS/err")"
+grep -q "transcript dir -Users-someone-other-project" "$WS/err" && grep -q "foreign-session" "$WS/err" && ok || bad "refusal names the session's project and the override: $(head -2 "$WS/err")"
 expect 0 "init with --foreign-session records the reason" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="$SESS" "$PS" init --goal g --slug g --foreign-session "simulation from the marketplace"
 [ "$(jq -r .foreign_session_reason "$SD/program.json")" = "simulation from the marketplace" ] && ok || bad "foreign reason stored"
 "$PS" milestone add --id m1 --title t --branch b >/dev/null
@@ -268,6 +268,43 @@ grep -q "foreign session" "$WS/err" && ok || bad "foreign session WARN on dispat
 rm -f "$SD/program.json"; mkdir -p "$FAKEHOME/.claude/projects/$ENC_HERE"; printf '{}\n' > "$FAKEHOME/.claude/projects/$ENC_HERE/$SESS.jsonl"; rm -rf "$FAKEHOME/.claude/projects/$ENC_OTHER"
 expect 0 "init allowed when the session's project is this root" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="$SESS" "$PS" init --goal g --slug g
 expect 0 "init fail-open when the session id has no transcript" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="unknown-id" "$PS" init --goal g --slug g
+
+# ---- history, log, suggestions, close divergence, plugins-used ----------------------------------
+W2=$(mktemp -d); git -C "$W2" init -q -b main 2>/dev/null || git -C "$W2" init -q
+git -C "$W2" -c user.email=t@t -c user.name=t commit -q --allow-empty -m base
+git -C "$W2" branch ov/a; git -C "$W2" branch ov/b
+git -C "$W2" -c user.email=t@t -c user.name=t commit -q --allow-empty -m tip-a && git -C "$W2" branch -f ov/a HEAD && git -C "$W2" checkout -q main
+git -C "$W2" checkout -q ov/b && git -C "$W2" -c user.email=t@t -c user.name=t commit -q --allow-empty -m tip-b && git -C "$W2" checkout -q main
+P2() { env OVERSEER_ROOT="$W2" "$PS" "$@"; }
+P2 init --goal g2 --slug g2 >/dev/null
+expect 0 "add a (board)" -- env OVERSEER_ROOT="$W2" "$PS" milestone add --id m1 --title A --branch ov/a --kind board
+expect 0 "add b" -- env OVERSEER_ROOT="$W2" "$PS" milestone add --id m2 --title B --branch ov/b
+[ "$(jq -r '.milestones[0].history[0].status' "$W2/.claude/overseer/program.json")" = queued ] && ok || bad "history starts at queued"
+P2 milestone set --id m1 --status building >/dev/null; P2 milestone set --id m2 --status building >/dev/null
+jq -e '.milestones[0].history|length==2 and .[1].status=="building"' "$W2/.claude/overseer/program.json" >/dev/null && ok || bad "history records set"
+expect 0 "suggestion add" -- env OVERSEER_ROOT="$W2" "$PS" suggestion add --text "pagination on the index" --from m1
+grep -q "pagination on the index" "$W2/.claude/overseer/suggestions.md" && ok || bad "suggestion row written"
+expect 0 "log" -- env OVERSEER_ROOT="$W2" "$PS" log
+grep -q "status → building" "$WS/out" && grep -q "suggestion" "$WS/out" && head -1 "$WS/out" | grep -q "^at" && ok || bad "log lists status changes and suggestions in order: $(head -3 "$WS/out")"
+# force both done through the state file (accept needs nine evidence files; the divergence gate is what is under test)
+jq '(.milestones[]) |= (.status="done" | .history = [{status:"queued",at:"2026-01-01T00:00:00Z"},{status:"building",at:"2026-01-01T00:05:00Z"},{status:"done",at:"2026-01-01T01:00:00Z"}])' "$W2/.claude/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.claude/overseer/program.json"
+expect 0 "status shows wall time" -- env OVERSEER_ROOT="$W2" "$PS" status
+grep -q "55 min" "$WS/out" && ok || bad "wall column (want 55 min): $(sed -n 4,6p "$WS/out")"
+expect 2 "close refuses divergent done branches" -- env OVERSEER_ROOT="$W2" "$PS" close
+grep -q "ov/a<->ov/b" "$WS/err" && grep -q "integration" "$WS/err" && ok || bad "refusal names the pair and the integration route: $(head -2 "$WS/err")"
+printf 'phase\tinstalled\tmissing\nbuild\tlaravel,ui-ux,testing\t-\nreview\tcode-review\t-\n' > "$W2/.claude/overseer/capabilities.tsv"
+mkdir -p "$W2/.claude/overseer/milestones/m1/dispatch"; printf 'READ: /x/.claude/plugins/cache/mkt/ui-ux/1.0.0/skills/a11y-audit/SKILL.md\n' > "$W2/.claude/overseer/milestones/m1/dispatch/1.md"
+expect 0 "close --divergent-ok passes and records" -- env OVERSEER_ROOT="$W2" "$PS" close --divergent-ok "user merges after review"
+grep -q "closed with divergent done branches" "$W2/.claude/overseer/decisions.md" && ok || bad "divergent-ok decision row"
+grep -q "installed per the scan: 4" "$WS/out" && grep -q "pinned in a dispatch: 1" "$WS/out" && grep -q "never pinned: code-review laravel testing" "$WS/out" && ok || bad "plugins-used line: $(grep 'plugins' "$WS/out")"
+grep -q "deferred suggestions (1)" "$WS/out" && ok || bad "suggestions printed at close"
+ls "$W2"/.claude/overseer/archive/g2-*/suggestions.md >/dev/null 2>&1 && ok || bad "suggestions.md archived"
+# integration kind lifts the gate
+P2 init --goal g3 --slug g3 >/dev/null
+P2 milestone add --id m1 --title A --branch ov/a >/dev/null; P2 milestone add --id m2 --title B --branch ov/b >/dev/null; P2 milestone add --id m3 --title I --branch main --kind integration >/dev/null
+jq '(.milestones[]) |= (.status="done")' "$W2/.claude/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.claude/overseer/program.json"
+expect 0 "close passes with a done integration milestone" -- env OVERSEER_ROOT="$W2" "$PS" close
+rm -rf "$W2"
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

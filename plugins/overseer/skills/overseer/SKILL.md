@@ -74,7 +74,9 @@ a user at the keyboard is not hands-off, however keen you are to proceed — ask
 
 Write `charter.md`: the raw goal, the upgraded statement, users, must-haves, non-goals,
 the product decisions from `references/product-judgment.md` (library, motion policy,
-density, empty/error/loading conventions), and the suggested-but-deferred improvements.
+density, empty/error/loading conventions, the starter's known defects, which primitives
+the owned library still lacks), and the deferred improvements — each also a
+`program.sh suggestion add` row, so close can print them.
 Then split into milestones: each a shippable increment a user can try, dependency-ordered,
 sized to finish in one session (S/M via `/approaches:size` when installed). Register each
 with `program.sh milestone add --id mN --title … --branch <slug> --kind <kind> [--depends mK]`;
@@ -108,7 +110,7 @@ one test, deployed to the browser — never a data model alone.
    A reviewer is a dispatch: `dispatch/<n>-review-<name>.md`, `--kind reviewer`, saying it
    writes no file (eight reviewer prompts in simulation 2 were never saved).
    A reviewer's severity is a hypothesis: reproduce a `critical` in the browser before it
-   costs a fix cycle (simulation 2's one critical did not reproduce). Confirmed findings go
+   costs a fix cycle. Confirmed findings go
    back through step 3 as a bounded fix loop — three cycles, then park. Milestones that do
    not depend on each other may run in parallel via `references/worktree.md`.
 5. **Accept.** Status → `accepting`. Run the protocol in `references/acceptance.md`: suite
@@ -126,11 +128,15 @@ one test, deployed to the browser — never a data model alone.
 
 ### Close
 
-When every milestone is done or parked: print the board, the decisions made on the
-user's behalf, the parked items with reasons, and every deferred suggestion — the
-charter's list plus anything the milestone findings parked. Then `program.sh close`,
-which archives the program under `.claude/overseer/archive/` (the record is kept; a new
-`/overseer:start` may follow). Never delete the program dir by hand.
+When every milestone is done or parked: print the board (`status` carries wall time per
+milestone), `program.sh log` (the timeline from the record, never typed), the decisions
+made on the user's behalf and the parked items. Then `program.sh close`: it prints the
+deferred suggestions and which installed plugins no dispatch ever pinned, and it refuses
+while two done milestones sit on branches that contain neither the other — the product
+was never walked in one tree — until a `--kind integration` milestone merges them and
+its acceptance walk crosses features, or `--divergent-ok "<why>"` records that the user
+merges later (**gate**). Close archives under `.claude/overseer/archive/`; never delete
+the program dir by hand.
 
 ## Decisions live in one file
 
@@ -148,9 +154,9 @@ conversation is broken. Apply `orchestration:delegation-contracts` when installe
 are restated minimally in `references/dispatch-prompts.md` for when it is not. Name skills by
 absolute path, resolved by you; name files by absolute path; state the return shape and the
 verify commands; paste the discipline preamble verbatim — `cat` the file into the prompt,
-never retype it from memory (a retyped preamble lost a clause per dispatch in the first
-simulation, which is what `dispatch check` now catches). A prompt that names a plugin the
-scan showed as missing is a prompt that will be ignored — use the fallback.
+never retype it from memory (a retyped preamble lost a clause per dispatch, which is what
+`dispatch check` catches). A prompt that names a plugin the scan showed as missing is a
+prompt that will be ignored — use the fallback.
 
 ## Rules with teeth, and rules without
 
@@ -179,5 +185,5 @@ scan showed as missing is a prompt that will be ignored — use the fallback.
   found none installed.
 - **Silent scope creep.** A milestone that grew a second feature — park the extra as a new
   milestone, keep the branch to its brief.
-- **Marketing ahead of the product.** A homepage or summary that names stages, roles or
-  counts the other milestones do not ship — the product-truth check in acceptance.md.
+- **Marketing ahead of the product.** A homepage that names stages, roles or counts the
+  other milestones do not ship — the product-truth check in acceptance.md.

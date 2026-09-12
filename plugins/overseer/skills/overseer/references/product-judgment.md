@@ -23,6 +23,20 @@ A decision the user later overrides is re-recorded, never argued.
    may add a test runner when there is none, because acceptance needs one; nothing else
    arrives uninvited.
 
+## Known starter defects — check at discovery, not after a reviewer finds them
+
+The plugin has no memory across programs; this list is it. A starter matched here puts
+each row in the charter's product decisions as "fix in m1" or "suggested", never as a
+surprise in a review. Add a row when a simulation or a program finds one.
+
+| Starter | Defect | Where it bit |
+| --- | --- | --- |
+| Laravel 13 + Inertia React starter (Fortify, shadcn-style `components/ui`) | focus-visible ring on button/input/select/checkbox/toggle/badge ≈1.2:1 in both modes | simulations 1 and 2, fixed twice |
+| same | Radix-based `sheet`, `select`, `dropdown-menu`, `navigation-menu` animations not `motion-safe:` | simulations 1 and 2 |
+| same | `NavUser` rendered outside `SidebarProvider` warns on `/register` | simulation 2 |
+| same | dialog action buttons 36 px tall at 375 (44 px target) | simulation 2 |
+| same | CI workflow triggers on `main` while the base branch is `master` | simulation 2 (the scan prints it) |
+
 ## Choosing a component library (greenfield only)
 
 Ask the Clarify round only when the tree has none AND the goal's register is unclear.

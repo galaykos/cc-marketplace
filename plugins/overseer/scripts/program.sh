@@ -27,7 +27,11 @@
 #                                            # worker (default): preamble verbatim, TOUCH ONLY, VERIFY, an existing skill path
 #                                            # reader/reviewer: preamble verbatim, RETURN shape, an existing skill path, no scope/verify
 #                                            # every kind: a state file named without an absolute path is a WARN
-#   program.sh close                         # every milestone done/parked → archive the program (evidence paths rewritten); init may follow
+#   program.sh close [--divergent-ok "<why>"] # every milestone done/parked → archive the program (evidence paths rewritten); init may follow
+#                                            # refuses when two done milestones' branches contain neither the other and no done milestone
+#                                            # has kind integration — the product was never seen in one tree — unless --divergent-ok says why
+#   program.sh log                           # timeline from the record: status changes, dispatches, evidence, decisions — generated, not typed
+#   program.sh suggestion add --text "<t>" [--from <id>]   # deferred-suggestion ledger (suggestions.md), printed at close
 # Exit codes: 0 ok · 2 gate refused / bad vocabulary · 3 no program or bad usage · 4 jq missing · 5 state write failed
 # Env: OVERSEER_ROOT overrides the project root (default: git toplevel, else $PWD).
 #      OVERSEER_PREAMBLE overrides where `dispatch check` finds the canonical discipline preamble.
@@ -88,7 +92,7 @@ session_root_check() {
   t=$(ls -d "$HOME"/.claude/projects/*/"$sid".jsonl 2>/dev/null | head -1); [ -n "$t" ] || return 0
   enc=$(basename "$(dirname "$t")"); want=$(printf '%s' "$root" | sed 's#[^A-Za-z0-9]#-#g')
   [ "$enc" = "$want" ] && return 0
-  echo "program.sh: this Claude session was opened in $(printf '%s' "$enc" | sed 's#^-#/#; s#-#/#g'), not in $root — the pipeline commands (taskmaster, task-runner, craft) are unreachable from here; start the session in $root, or pass --foreign-session \"<why>\" to init (recorded, every dispatch then WARNs)" >&2
+  echo "program.sh: this Claude session was opened in another directory (transcript dir $enc), not in $root — the pipeline commands (taskmaster, task-runner, craft) are unreachable from here; start the session in $root, or pass --foreign-session \"<why>\" to init (recorded, every dispatch then WARNs)" >&2
   return 2
 }
 # pinned_groups_status <kind> <files...>: one line per group: "ok <group>" / "missing <group>" / "uninstalled <group>"
@@ -148,9 +152,13 @@ case "$cmd" in
     jq -r --arg assumed "${assumed:-0}" '"program: " + .goal + "  [" + .slug + "]  base: " + .base_branch + (if .hands_off then "  hands-off (" + (.hands_off_reason // "no reason recorded") + ")" else "" end),
            "milestones: " + ([.milestones[]|select(.status=="done")]|length|tostring) + "/" + (.milestones|length|tostring) + " done  ·  assumed decisions: " + $assumed,
            "",
-           "id\tstatus\tbranch\tdepends\tevidence\ttitle",
-           (.milestones[] | [.id, .status, .branch, ((.depends // [])|join(",")|if .=="" then "-" else . end),
+           "id\tstatus\tkind\tbranch\tdepends\tevidence\twall\ttitle",
+           (.milestones[] | [.id, .status, (.kind // "feature"), .branch, ((.depends // [])|join(",")|if .=="" then "-" else . end),
              ((.evidence // [])|map(.kind)|unique|join(",")|if .=="" then "-" else . end),
+             (((.history // []) | map(select(.status=="briefed" or .status=="building")) | .[0].at) as $s
+              | ((.history // []) | map(select(.status=="done")) | .[0].at) as $e
+              | if $s == null then "-" elif $e == null then "open since " + $s[11:16] + "Z"
+                else ((($e|fromdate) - ($s|fromdate)) / 60 | floor | tostring) + " min" end),
              (.title + (if .reason != "" then "  (" + .reason + ")" else "" end))] | @tsv)' "$state"
     nxt=$(jq -r "$NEXT_FILTER | .id // empty" "$state")
     echo; echo "next: ${nxt:-none}"
@@ -193,8 +201,8 @@ case "$cmd" in
           [ "$d" = "$id" ] && { echo "program.sh: $id cannot depend on itself" >&2; exit 2; }
           has_ms "$d" || { echo "program.sh: dependency $d does not exist" >&2; exit 2; }
         done
-        write --arg id "$id" --arg t "$title" --arg b "$branch" --arg kind "$kind" --argjson deps "$deps" \
-          '.milestones += [{id:$id,title:$t,branch:$b,kind:$kind,depends:$deps,status:"queued",reason:"",evidence:[]}]'
+        write --arg id "$id" --arg t "$title" --arg b "$branch" --arg kind "$kind" --argjson deps "$deps" --arg at "$(now)" \
+          '.milestones += [{id:$id,title:$t,branch:$b,kind:$kind,depends:$deps,status:"queued",reason:"",evidence:[],history:[{status:"queued",at:$at}]}]'
         mkdir -p "$dir/milestones/$id/evidence" "$dir/milestones/$id/dispatch"
         echo "added $id ($branch)";;
       set)
@@ -202,7 +210,7 @@ case "$cmd" in
         in_list "$st" $STATUSES || { echo "program.sh: status must be one of: $STATUSES" >&2; exit 2; }
         [ "$st" = "done" ] && { echo "program.sh: 'done' is set only by 'accept'" >&2; exit 2; }
         [ "$st" = "parked" ] && [ -z "$reason" ] && { echo "program.sh: parked needs --reason" >&2; exit 2; }
-        write --arg id "$id" --arg st "$st" --arg r "$reason" '(.milestones[]|select(.id==$id)) |= (.status=$st | .reason=$r)'
+        write --arg id "$id" --arg st "$st" --arg r "$reason" --arg at "$(now)" '(.milestones[]|select(.id==$id)) |= (.status=$st | .reason=$r | .history += [{status:$st,at:$at}])'
         echo "$id → $st";;
     esac;;
 
@@ -274,7 +282,7 @@ case "$cmd" in
       echo "  program.sh decision add --assumed --text \"<reading taken>\" --alternative \"<reading not taken>\" --rationale \"<why>\"" >&2
       exit 2
     fi
-    write --arg id "$id" --arg at "$(now)" '(.milestones[]|select(.id==$id)) |= (.status="done" | .reason="" | .accepted_at=$at)'
+    write --arg id "$id" --arg at "$(now)" '(.milestones[]|select(.id==$id)) |= (.status="done" | .reason="" | .accepted_at=$at | .history += [{status:"done",at:$at}])'
     echo "$id accepted → done";;
 
   decision)
@@ -292,6 +300,25 @@ case "$cmd" in
     fi
     printf '| %s | %s | %s | %s |\n' "$(now)" "$text" "$opts" "$why" >> "$dir/decisions.md"
     echo "decision recorded";;
+
+  suggestion)
+    need_state
+    [ "${1:-}" = "add" ] || usage; shift
+    text=""; from="-"
+    while [ $# -gt 0 ]; do case "$1" in --text) text=$(arg "$1" "${2:-}") || exit 3; shift 2;; --from) from=$(arg "$1" "${2:-}") || exit 3; shift 2;; *) usage;; esac; done
+    [ -n "$text" ] || usage
+    [ -f "$dir/suggestions.md" ] || printf '# Deferred suggestions\n\nWhat the program saw and did not build; the user picks. One row per item, newest last.\n\n| when | from | suggestion |\n| --- | --- | --- |\n' > "$dir/suggestions.md"
+    printf '| %s | %s | %s |\n' "$(now)" "$from" "$text" >> "$dir/suggestions.md"
+    echo "suggestion recorded";;
+
+  log)
+    need_state
+    { jq -r '.milestones[] | .id as $id | ((.history // [])[] | [.at, $id, "status → " + .status] | @tsv), ((.evidence // [])[] | [.at, $id, "evidence " + .kind + (if .file != "" then " (" + (.file|split("/")|last) + ")" else "" end)] | @tsv)' "$state"
+      for f in "$dir"/milestones/*/dispatch/*.md; do [ -f "$f" ] || continue
+        m=$(basename "$(dirname "$(dirname "$f")")"); printf '%s\t%s\tdispatch %s\n' "$(date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ)" "$m" "$(basename "$f")"; done
+      grep -E '^\| [0-9]{4}-' "$dir/decisions.md" 2>/dev/null | awk -F' \\| ' '{printf "%s\t-\tdecision %s\n", $2, $3}'
+      grep -E '^\| [0-9]{4}-' "$dir/suggestions.md" 2>/dev/null | awk -F' \\| ' '{printf "%s\t%s\tsuggestion %s\n", $2, $3, $4}'
+    } | sort | awk -F'\t' 'BEGIN{print "at\tmilestone\tevent"} {print}';;
 
   dispatch)
     [ "${1:-}" = "check" ] && [ -n "${2:-}" ] || usage
@@ -378,9 +405,35 @@ case "$cmd" in
 
   close)
     need_state
+    divok=""
+    while [ $# -gt 0 ]; do case "$1" in --divergent-ok) divok=$(arg "$1" "${2:-}") || exit 3; shift 2;; *) usage;; esac; done
     if jq -e '[.milestones[]|select(.status!="done" and .status!="parked")]|length>0' "$state" >/dev/null; then
       echo "program.sh: cannot close — milestones still open (not done/parked): $(jq -r '[.milestones[]|select(.status!="done" and .status!="parked")|.id]|join(" ")' "$state")" >&2; exit 2
     fi
+    # divergence: two done branches that contain neither the other were never seen in one tree
+    # (simulation 2 closed with the homepage from master and the board from m1 never combined)
+    if [ -z "$divok" ] && ! jq -e '[.milestones[]|select(.status=="done" and .kind=="integration")]|length>0' "$state" >/dev/null; then
+      div=""
+      for a in $(jq -r '.milestones[]|select(.status=="done")|.branch' "$state"); do
+        for b in $(jq -r '.milestones[]|select(.status=="done")|.branch' "$state"); do
+          [ "$a" \< "$b" ] || continue
+          git -C "$root" rev-parse --verify -q "$a" >/dev/null && git -C "$root" rev-parse --verify -q "$b" >/dev/null || continue
+          git -C "$root" merge-base --is-ancestor "$a" "$b" 2>/dev/null || git -C "$root" merge-base --is-ancestor "$b" "$a" 2>/dev/null || div="$div ${a}<->${b}"
+        done
+      done
+      if [ -n "$div" ]; then
+        echo "program.sh: cannot close — done milestones on branches that contain neither the other:$div" >&2
+        echo "  the product has never been walked in one tree: add a milestone --kind integration (merge, walk across features, accept), or close --divergent-ok \"<why the user merges later>\" (recorded in decisions.md)" >&2; exit 2
+      fi
+    fi
+    [ -n "$divok" ] && printf '| %s | %s | %s | %s |\n' "$(now)" "closed with divergent done branches" "-" "$divok" >> "$dir/decisions.md"
+    # plugins pinned in dispatches vs plugins the scan found installed — what strength was left on the table
+    if [ -f "$dir/capabilities.tsv" ]; then
+      avail=$(grep -v '^#' "$dir/capabilities.tsv" | awk -F'\t' 'NR>1 && $2!="-" {print $2}' | tr ',' '\n' | sed '/^$/d' | sort -u)
+      used=$(cat "$dir"/milestones/*/dispatch/*.md 2>/dev/null | grep -oE '/plugins/cache/[^/]+/[a-z0-9-]+/' | awk -F/ '{print $5}' | sort -u)
+      [ -n "$avail" ] && echo "plugins installed per the scan: $(printf '%s\n' "$avail" | wc -l | tr -d ' ') · pinned in a dispatch: $(printf '%s\n' "$used" | sed '/^$/d' | wc -l | tr -d ' ') · never pinned: $(comm -23 <(printf '%s\n' "$avail") <(printf '%s\n' "$used") | tr '\n' ' ')"
+    fi
+    [ -f "$dir/suggestions.md" ] && { echo "deferred suggestions ($(grep -cE '^\| [0-9]{4}-' "$dir/suggestions.md")):"; grep -E '^\| [0-9]{4}-' "$dir/suggestions.md" | awk -F' \\| ' '{print "  " $3 ": " $4}' | sed 's/ |$//'; }
     slug=$(jq -r .slug "$state"); at=$(jq -r .created_at "$state" | tr -d ':')
     arch="$dir/archive/$slug-$at"
     mkdir -p "$arch"
@@ -392,7 +445,7 @@ case "$cmd" in
     jq --arg a "$dir/milestones/" --arg b "$phys/milestones/" --arg to "$(cd "$arch" && pwd -P)/milestones/" \
       '(.milestones[].evidence[].file) |= (if startswith($a) then $to + .[($a|length):] elif startswith($b) then $to + .[($b|length):] else . end)' \
       "$arch/program.json" > "$arch/program.json.tmp" && mv "$arch/program.json.tmp" "$arch/program.json"
-    for f in charter.md discovery.md capabilities.tsv decisions.md; do [ -f "$dir/$f" ] && cp "$dir/$f" "$arch/$f"; done
+    for f in charter.md discovery.md capabilities.tsv decisions.md suggestions.md; do [ -f "$dir/$f" ] && cp "$dir/$f" "$arch/$f"; done
     mkdir -p "$dir/milestones"
     echo "program closed → $arch (decisions.md kept in place; init may start a new program)";;
 

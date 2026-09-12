@@ -51,7 +51,10 @@ the loading state the charter promised must be seen, not inferred from the code)
    before accept. For any marketing or summary surface (a homepage, a dashboard card, an
    onboarding screen): every capability, noun and count it shows exists in a done or
    queued milestone with the same words — the overseer is the only one who sees all the
-   milestones, so this check is yours, not a reviewer's.
+   milestones, so this check is yours, not a reviewer's. For an `integration` milestone
+   (or the last one when every branch already contains the others) the walk crosses
+   features in one tree — landing page → sign in → each feature in the order a new user
+   meets them — and that walk is the evidence, not a re-run of each milestone's own.
 5. **Read the console** after the walk, not before: hydration warnings, 404s on assets,
    failed XHRs are findings. Read since the last navigation — a log carrying an earlier
    wrong-port error is not "clean because we fixed it".

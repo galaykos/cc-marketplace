@@ -14,3 +14,4 @@ auth	stack testing:testing-best-practices security:security-review|security:api-
 api	stack testing:testing-best-practices api-design:api-design|api-design:api-docs-first security:api-auth|security:security-review	an HTTP or GraphQL surface other code calls
 data-model	stack database:sql-best-practices|database:mariadb-best-practices|database:database-design testing:testing-best-practices	schema, migrations, indexes, backfills
 infra	devops:devops-practices|devops:docker-best-practices|devops:compose-init	CI, containers, deploy, environments
+integration	testing:testing-best-practices	merge the done branches into one tree and walk the product across them; close refuses divergent done branches without one

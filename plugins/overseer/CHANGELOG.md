@@ -33,3 +33,10 @@
   group is unpinned (uninstalled groups WARN); `init` refuses a Claude session opened in
   another project unless `--foreign-session "<why>"` records it (both simulations ran that
   way unnoticed); the reviewer template states read-only and is saved as a dispatch.
+- Improvement plan 2, step 1b: milestone `history` stamps and a wall-time column in
+  `status`; `program.sh log` (timeline generated from the record); `suggestion add` and
+  `suggestions.md` printed at close; `close` refuses divergent done branches without a done
+  `integration` milestone (kinds.tsv row) or `--divergent-ok`; close prints installed
+  plugins no dispatch pinned; brief carries "primitives to add first", worker template an
+  OWNER line and a consumer check; product-judgment lists the starter's known defects;
+  acceptance walks an integration milestone across features.

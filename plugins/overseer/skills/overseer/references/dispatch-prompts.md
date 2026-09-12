@@ -49,6 +49,7 @@ One paragraph: what a user can do when this is done, and why it is next.
 - [ ] Console clean; suite green (`<verify command>`)
 ## Binding decisions (from charter.md)
 Library: … · Motion: … · States: … · Dependencies: none without a decisions.md entry
+Primitives to ADD to the owned library first: <list or none> — decided here, never by a worker
 ## Scope
 Touch: <dirs/files>. Do not touch: <dirs/files>.
 ## Skills to read (absolute paths)
@@ -70,6 +71,7 @@ You are implementing ONE card in <abs project root>. Cwd resets between commands
 absolute paths or `git -C`.
 CARD: <title>. DONE WHEN: <criteria copied from the brief>.
 STATE FILES: brief <abs>, findings <abs>, decisions <abs>.   SIBLINGS: <none | who, files>.
+OWNER: you own exactly TOUCH ONLY; a sibling owns <files> — do not read-modify-write theirs.
 TOUCH ONLY: <files, listed — never "the files in the brief">. DO NOT TOUCH: <files>.
 Adding a dependency is out of scope. Never leave a dev server running: stop what you
 start and delete the hot file before returning.
@@ -81,7 +83,8 @@ DESIGN (page or component builds only; binding, from charter.md § Product decis
   or the worker will build a local one) · motion: what moves, ≤ N ms, motion-safe only.
 CONVENTIONS: <project rules>. Match sibling files for structure and naming.
 VERIFY: run <commands>; paste the last 15 lines of each. For a guard you add, paste a
-control run with the guard removed showing the new test fail.
+control run with the guard removed showing the new test fail. For a token, variant or
+shared-primitive change: list every consumer you checked (grep the class or token).
 RETURN (max 25 lines): completion table; files touched; behaviour no test exercises;
 parked items. No narrative. Your final message is data for the orchestrator.
 ```
