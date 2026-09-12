@@ -286,6 +286,9 @@ expect 0 "suggestion add" -- env OVERSEER_ROOT="$W2" "$PS" suggestion add --text
 grep -q "pagination on the index" "$W2/.claude/overseer/suggestions.md" && ok || bad "suggestion row written"
 expect 0 "log" -- env OVERSEER_ROOT="$W2" "$PS" log
 grep -q "status → building" "$WS/out" && grep -q "suggestion" "$WS/out" && head -1 "$WS/out" | grep -q "^at" && ok || bad "log lists status changes and suggestions in order: $(head -3 "$WS/out")"
+P2 decision add --text "keep vanilla css" --rationale "one screen" >/dev/null
+expect 0 "log again" -- env OVERSEER_ROOT="$W2" "$PS" log
+grep -qE "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9:]+Z	-	decision keep vanilla css$" "$WS/out" && grep -qE "^20[0-9]{2}-[^	]+	m1	suggestion pagination on the index$" "$WS/out" && ok || bad "log parses decision and suggestion rows into at/milestone/event: $(grep -E 'decision|suggestion' "$WS/out")"
 # force both done through the state file (accept needs nine evidence files; the divergence gate is what is under test)
 jq '(.milestones[]) |= (.status="done" | .history = [{status:"queued",at:"2026-01-01T00:00:00Z"},{status:"building",at:"2026-01-01T00:05:00Z"},{status:"done",at:"2026-01-01T01:00:00Z"}])' "$W2/.claude/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.claude/overseer/program.json"
 expect 0 "status shows wall time" -- env OVERSEER_ROOT="$W2" "$PS" status
@@ -293,11 +296,12 @@ grep -q "55 min" "$WS/out" && ok || bad "wall column (want 55 min): $(sed -n 4,6
 expect 2 "close refuses divergent done branches" -- env OVERSEER_ROOT="$W2" "$PS" close
 grep -q "ov/a<->ov/b" "$WS/err" && grep -q "integration" "$WS/err" && ok || bad "refusal names the pair and the integration route: $(head -2 "$WS/err")"
 printf 'phase\tinstalled\tmissing\nbuild\tlaravel,ui-ux,testing\t-\nreview\tcode-review\t-\n' > "$W2/.claude/overseer/capabilities.tsv"
-mkdir -p "$W2/.claude/overseer/milestones/m1/dispatch"; printf 'READ: /x/.claude/plugins/cache/mkt/ui-ux/1.0.0/skills/a11y-audit/SKILL.md\n' > "$W2/.claude/overseer/milestones/m1/dispatch/1.md"
+mkdir -p "$W2/.claude/overseer/milestones/m1/dispatch/.claude/candor"; printf 'READ: /x/.claude/plugins/cache/mkt/ui-ux/1.0.0/skills/a11y-audit/SKILL.md\nAGENT: code-review:code-reviewer\n' > "$W2/.claude/overseer/milestones/m1/dispatch/1.md"; printf 'x' > "$W2/.claude/overseer/milestones/m1/dispatch/.claude/candor/last"
 expect 0 "close --divergent-ok passes and records" -- env OVERSEER_ROOT="$W2" "$PS" close --divergent-ok "user merges after review"
 grep -q "closed with divergent done branches" "$W2/.claude/overseer/decisions.md" && ok || bad "divergent-ok decision row"
-grep -q "installed per the scan: 4" "$WS/out" && grep -q "pinned in a dispatch: 1" "$WS/out" && grep -q "never pinned: code-review laravel testing" "$WS/out" && ok || bad "plugins-used line: $(grep 'plugins' "$WS/out")"
-grep -q "deferred suggestions (1)" "$WS/out" && ok || bad "suggestions printed at close"
+grep -q "installed per the scan: 4" "$WS/out" && grep -q "pinned in a dispatch: 2" "$WS/out" && grep -q "never pinned: laravel testing" "$WS/out" && ok || bad "plugins-used line counts AGENT lines too: $(grep 'plugins' "$WS/out")"
+[ ! -d "$W2"/.claude/overseer/archive/g2-*/milestones/m1/dispatch/.claude ] && ok || bad "foreign hook scratch dirs pruned from the archive"
+grep -q "deferred suggestions (1)" "$WS/out" && grep -qx "  m1: pagination on the index" "$WS/out" && ok || bad "suggestions printed at close without a trailing pipe: $(grep -A1 'deferred' "$WS/out")"
 ls "$W2"/.claude/overseer/archive/g2-*/suggestions.md >/dev/null 2>&1 && ok || bad "suggestions.md archived"
 # integration kind lifts the gate
 P2 init --goal g3 --slug g3 >/dev/null

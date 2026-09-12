@@ -40,3 +40,7 @@
   plugins no dispatch pinned; brief carries "primitives to add first", worker template an
   OWNER line and a consumer check; product-judgment lists the starter's known defects;
   acceptance walks an integration milestone across features.
+- After simulation 3 (first project-session run, headless): close prints suggestions without
+  a stray pipe, counts `AGENT:` lines so an agent-only plugin is not reported as never used,
+  and prunes other plugins' hook scratch dirs from the archive; `game` kind; the Vite starter's
+  known defects; the keyboard-walk focus note in acceptance.

@@ -36,6 +36,7 @@ surprise in a review. Add a row when a simulation or a program finds one.
 | same | `NavUser` rendered outside `SidebarProvider` warns on `/register` | simulation 2 |
 | same | dialog action buttons 36 px tall at 375 (44 px target) | simulation 2 |
 | same | CI workflow triggers on `main` while the base branch is `master` | simulation 2 (the scan prints it) |
+| Vite `react-ts` template | `tsconfig.app.json` / `tsconfig.node.json` never set `strict`; starter App/hero assets ship; no test runner | simulation 3 (a reviewer found the strict flag) |
 
 ## Choosing a component library (greenfield only)
 

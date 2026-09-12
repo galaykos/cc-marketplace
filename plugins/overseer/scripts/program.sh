@@ -316,8 +316,8 @@ case "$cmd" in
     { jq -r '.milestones[] | .id as $id | ((.history // [])[] | [.at, $id, "status → " + .status] | @tsv), ((.evidence // [])[] | [.at, $id, "evidence " + .kind + (if .file != "" then " (" + (.file|split("/")|last) + ")" else "" end)] | @tsv)' "$state"
       for f in "$dir"/milestones/*/dispatch/*.md; do [ -f "$f" ] || continue
         m=$(basename "$(dirname "$(dirname "$f")")"); printf '%s\t%s\tdispatch %s\n' "$(date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ)" "$m" "$(basename "$f")"; done
-      grep -E '^\| [0-9]{4}-' "$dir/decisions.md" 2>/dev/null | awk -F' \\| ' '{printf "%s\t-\tdecision %s\n", $2, $3}'
-      grep -E '^\| [0-9]{4}-' "$dir/suggestions.md" 2>/dev/null | awk -F' \\| ' '{printf "%s\t%s\tsuggestion %s\n", $2, $3, $4}'
+      grep -E '^\| [0-9]{4}-' "$dir/decisions.md" 2>/dev/null | sed 's/^| //; s/ |$//' | awk -F' \\| ' '{printf "%s\t-\tdecision %s\n", $1, $2}'
+      grep -E '^\| [0-9]{4}-' "$dir/suggestions.md" 2>/dev/null | sed 's/^| //; s/ |$//' | awk -F' \\| ' '{printf "%s\t%s\tsuggestion %s\n", $1, $2, $3}'
     } | sort | awk -F'\t' 'BEGIN{print "at\tmilestone\tevent"} {print}';;
 
   dispatch)
@@ -430,14 +430,19 @@ case "$cmd" in
     # plugins pinned in dispatches vs plugins the scan found installed — what strength was left on the table
     if [ -f "$dir/capabilities.tsv" ]; then
       avail=$(grep -v '^#' "$dir/capabilities.tsv" | awk -F'\t' 'NR>1 && $2!="-" {print $2}' | tr ',' '\n' | sed '/^$/d' | sort -u)
-      used=$(cat "$dir"/milestones/*/dispatch/*.md 2>/dev/null | grep -oE '/plugins/cache/[^/]+/[a-z0-9-]+/' | awk -F/ '{print $5}' | sort -u)
+      # a pinned skill path names its plugin; an agent type (AGENT: task-runner:task-executor) names its plugin before the colon
+      used=$( { cat "$dir"/milestones/*/dispatch/*.md 2>/dev/null | grep -oE '/plugins/cache/[^/]+/[a-z0-9-]+/' | awk -F/ '{print $5}'
+                grep -hoE '^AGENT: *[a-z0-9-]+:' "$dir"/milestones/*/dispatch/*.md 2>/dev/null | sed -E 's/^AGENT: *//; s/:$//'; } | sort -u)
       [ -n "$avail" ] && echo "plugins installed per the scan: $(printf '%s\n' "$avail" | wc -l | tr -d ' ') · pinned in a dispatch: $(printf '%s\n' "$used" | sed '/^$/d' | wc -l | tr -d ' ') · never pinned: $(comm -23 <(printf '%s\n' "$avail") <(printf '%s\n' "$used") | tr '\n' ' ')"
     fi
-    [ -f "$dir/suggestions.md" ] && { echo "deferred suggestions ($(grep -cE '^\| [0-9]{4}-' "$dir/suggestions.md")):"; grep -E '^\| [0-9]{4}-' "$dir/suggestions.md" | awk -F' \\| ' '{print "  " $3 ": " $4}' | sed 's/ |$//'; }
+    [ -f "$dir/suggestions.md" ] && { echo "deferred suggestions ($(grep -cE '^\| [0-9]{4}-' "$dir/suggestions.md")):"; grep -E '^\| [0-9]{4}-' "$dir/suggestions.md" | sed 's/^| //; s/ |$//' | awk -F' \\| ' '{print "  " $2 ": " $3}'; }
     slug=$(jq -r .slug "$state"); at=$(jq -r .created_at "$state" | tr -d ':')
     arch="$dir/archive/$slug-$at"
     mkdir -p "$arch"
     mv "$state" "$arch/program.json"
+    # other plugins' hooks (candor, comment-discipline) key their scratch dir on the edited file's directory and
+    # leave .claude/ dirs under dispatch/; they are never overseer's and do not belong in the record
+    find "$dir/milestones" -type d -name .claude -prune -exec rm -rf {} + 2>/dev/null
     [ -d "$dir/milestones" ] && mv "$dir/milestones" "$arch/milestones"
     # evidence rows hold absolute paths under $dir/milestones; the archive is the record a reader
     # follows, so every path is rewritten to where the file now lives (checked by the harness)

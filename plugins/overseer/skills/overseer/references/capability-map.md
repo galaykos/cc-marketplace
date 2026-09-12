@@ -62,6 +62,7 @@ installed is a WARN with the fallback, never a refusal — the run is weaker and
 | api | stack · testing · api-design · api-auth or security-review | an HTTP or GraphQL surface |
 | data-model | stack · a database skill · testing | schema, migrations, indexes |
 | infra | a devops skill | CI, containers, deploy |
+| game | stack · testing · a11y-audit · motion or interaction-fx | a game or motion-heavy interactive screen |
 
 "stack" is any project skill under `.claude/skills/` or any `laravel`/`web-dev` plugin skill.
 The rows are the two simulations' pins written down; a kind the table lacks is `feature`

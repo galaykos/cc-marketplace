@@ -70,6 +70,7 @@ as CLEAR rows and asks only about what the brief left open.
 You are implementing ONE card in <abs project root>. Cwd resets between commands: use
 absolute paths or `git -C`.
 CARD: <title>. DONE WHEN: <criteria copied from the brief>.
+AGENT: <agent type this prompt is sent to, e.g. task-runner:task-executor — close counts it>.
 STATE FILES: brief <abs>, findings <abs>, decisions <abs>.   SIBLINGS: <none | who, files>.
 OWNER: you own exactly TOUCH ONLY; a sibling owns <files> — do not read-modify-write theirs.
 TOUCH ONLY: <files, listed — never "the files in the brief">. DO NOT TOUCH: <files>.

@@ -80,3 +80,7 @@ the loading state the charter promised must be seen, not inferred from the code)
 - Keyboard: the whole path, not one Tab (the `keyboard` kind); focus is visible and lands
   somewhere sensible after a destructive action removes the element that had it.
 - After a reload the state the user created is still there.
+
+Harness note (three simulations, three false alarms): a Playwright page has no focused element
+until something is clicked — click a blank area before the first `Tab`, or the keyboard walk
+"does nothing" and the finding is yours, not the product's.
