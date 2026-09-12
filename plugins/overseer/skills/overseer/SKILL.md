@@ -34,6 +34,11 @@ only the files exist; a program with zero milestones is re-entered by `/overseer
 
 ### Discover (write `discovery.md` and `capabilities.tsv` in the program dir)
 
+0. **Right session.** `program.sh init` refuses when this Claude session was opened in
+   another directory (it reads the session's transcript location): from there taskmaster,
+   task-runner and craft are unreachable and the whole run silently becomes hand-dispatch,
+   which is what both simulations did. Restart in the project, or pass `--foreign-session
+   "<why>"` and accept that every pipeline phase runs on its fallback (**gate**).
 1. **Project inventory.** Stack and versions from manifests (run `/stack-scan:report` when
    installed, else read `composer.json`, `package.json`, lockfiles, `Dockerfile`s directly);
    existing features (routes, pages, models, migrations); the component library already in
@@ -72,8 +77,11 @@ the product decisions from `references/product-judgment.md` (library, motion pol
 density, empty/error/loading conventions), and the suggested-but-deferred improvements.
 Then split into milestones: each a shippable increment a user can try, dependency-ordered,
 sized to finish in one session (S/M via `/approaches:size` when installed). Register each
-with `program.sh milestone add --id mN --title … --branch <slug> [--depends mK]`. The
-first milestone in a greenfield project is the walking skeleton — one route, one page,
+with `program.sh milestone add --id mN --title … --branch <slug> --kind <kind> [--depends mK]`;
+the kind (`kinds.tsv`: marketing-page, crud, board, auth, api, data-model, infra, feature)
+is the routing table — it names the skill groups some gated dispatch must pin before
+`accept` closes the milestone (**gate**), so skill choice is a lookup, not a recollection.
+The first milestone in a greenfield project is the walking skeleton — one route, one page,
 one test, deployed to the browser — never a data model alone.
 
 ### Deliver — one milestone at a time
@@ -92,9 +100,13 @@ one test, deployed to the browser — never a data model alone.
    is missing or reworded, or that has no scope lock, no verify command, or no skill pinned
    by an existing absolute path (**gate**; the check runs only if you run it). A second
    message to a worker that is still running is a dispatch too — `<n>-followup.md`, gated
-   with `--kind followup`. Status → `building`.
+   with `--kind followup`. Pass `--milestone <id>` and the check also WARNs which of the
+   kind's skill groups nothing has pinned yet, and when a card is dense enough to split
+   (more than twelve items or three lettered sections). Status → `building`.
 4. **Review.** Route the diff to every installed reviewer the capability map names for
    `review` (`/code-review:review`, `/ui-ux:review`, `/security:review`, the stack review).
+   A reviewer is a dispatch: `dispatch/<n>-review-<name>.md`, `--kind reviewer`, saying it
+   writes no file (eight reviewer prompts in simulation 2 were never saved).
    A reviewer's severity is a hypothesis: reproduce a `critical` in the browser before it
    costs a fix cycle (simulation 2's one critical did not reproduce). Confirmed findings go
    back through step 3 as a bounded fix loop — three cycles, then park. Milestones that do
@@ -148,6 +160,8 @@ scan showed as missing is a prompt that will be ignored — use the fallback.
 | A hands-off program records at least one ASSUMED decision before its first accept; `--hands-off` carries a reason | **gate** — `program.sh accept` / `init` exit 2 |
 | A milestone id, status and evidence kind must be from the fixed vocabularies | **gate** — `program.sh` refuses others |
 | A dispatched prompt carries the preamble verbatim, a scope lock, a verify command and an existing skill path | **gate when run** — `program.sh dispatch check`; that you run it is **agent-graded** |
+| A milestone of kind K cannot reach `done` until some gated dispatch pins a skill from each of K's groups in `kinds.tsv` | **gate** — `program.sh accept` exits 2; a group whose plugins are not installed is a WARN, not a refusal |
+| The session was opened in the project, or the program records why not | **gate** — `program.sh init` exits 2 |
 | A fresh session learns a program is open | **hook** — SessionStart, one line, silent otherwise |
 | Discover ran before Clarify; Clarify asked nothing the project already answered; CI was inventoried | **agent-graded** — you judge it |
 | The evidence describes a real browser run, not a claimed one | **unenforceable** — the script checks that a file exists, not what it shows; the honest residual |

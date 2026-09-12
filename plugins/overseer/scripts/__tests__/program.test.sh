@@ -18,10 +18,13 @@ here=$(cd "$(dirname "$0")" && pwd)
 PS="$here/../program.sh"; SCAN="$here/../capability-scan.sh"; HOOK="$here/../../hooks/announce.sh"
 for x in "$PS" "$SCAN" "$HOOK"; do [ -x "$x" ] || { echo "FAIL: $x not executable"; exit 1; }; done
 command -v jq >/dev/null 2>&1 || { echo "FAIL: jq required"; exit 1; }
-WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
+WS=$(mktemp -d); FAKEHOME=$(mktemp -d); trap 'rm -rf "$WS" "$FAKEHOME"' EXIT
 git -C "$WS" init -q -b main 2>/dev/null || git -C "$WS" init -q
 export OVERSEER_ROOT="$WS"
 SD="$WS/.claude/overseer"
+# the session-root gate reads CLAUDE_CODE_SESSION_ID + ~/.claude/projects; the harness's project is a
+# temp dir, so a real session id would (correctly) refuse every init — unset it, test the gate explicitly below
+unset CLAUDE_CODE_SESSION_ID
 pass=0; fail=0
 ok()   { pass=$((pass+1)); }
 bad()  { fail=$((fail+1)); echo "FAIL: $1"; }
@@ -47,6 +50,10 @@ expect 0 "init again with no milestones is allowed" -- "$PS" init --goal "Build 
 expect 2 "bad milestone id" -- "$PS" milestone add --id one --title t --branch b
 expect 0 "add m1" -- "$PS" milestone add --id m1 --title "Skeleton" --branch ov/m1
 expect 2 "duplicate m1" -- "$PS" milestone add --id m1 --title "Skeleton" --branch ov/m1
+expect 2 "unknown milestone kind" -- "$PS" milestone add --id m9 --title x --branch ov/m9 --kind vibes
+grep -q "marketing-page" "$WS/err" && ok || bad "unknown kind lists the known ones"
+[ "$(jq -r '.milestones[0].kind' "$SD/program.json")" = feature ] && ok || bad "kind defaults to feature"
+expect 3 "milestone set rejects --kind" -- "$PS" milestone set --id m1 --kind crud
 expect 2 "depends on missing" -- "$PS" milestone add --id m2 --title "Upload" --branch ov/m2 --depends m9
 expect 2 "self dependency" -- "$PS" milestone add --id m2 --title "Upload" --branch ov/m2 --depends m2
 expect 0 "add m2 depends m1,m1 (deduped)" -- "$PS" milestone add --id m2 --title "Upload" --branch ov/m2 --depends m1,m1
@@ -95,7 +102,14 @@ mv "$WS/motion.png" "$WS/motion.gone"
 expect 2 "accept refuses when an evidence file vanished" -- "$PS" accept --id m1
 grep -q "no longer exist" "$WS/err" && ok || bad "vanished file named"
 mv "$WS/motion.gone" "$WS/motion.png"
-expect 0 "accept m1" -- "$PS" accept --id m1
+# kind routing: m1 is 'feature' → needs stack + testing pinned in some gated dispatch under milestones/m1/dispatch/
+mkdir -p "$SD/milestones/m1/dispatch" "$WS/.claude/skills/laravel-best-practices" "$FAKEHOME/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices"
+printf 'x' > "$WS/.claude/skills/laravel-best-practices/SKILL.md"; printf 'x' > "$FAKEHOME/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md"
+printf 'READ FIRST: %s/.claude/skills/laravel-best-practices/SKILL.md\n' "$WS" > "$SD/milestones/m1/dispatch/1-backend.md"
+expect 2 "accept refuses: kind feature has no testing skill pinned in any dispatch" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "accept names the unpinned group"
+printf 'READ FIRST: %s/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md\n' "$FAKEHOME" > "$SD/milestones/m1/dispatch/2-tests.md"
+expect 0 "accept m1" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 jq -e '.milestones[0].status=="done" and .milestones[0].accepted_at!=null' "$SD/program.json" >/dev/null && ok || bad "m1 done"
 [ "$("$PS" next | cut -f1)" = "m2" ] && ok || bad "next advances to m2"
 expect 2 "accept from queued refused" -- "$PS" accept --id m2
@@ -204,6 +218,17 @@ expect 2 "dispatch check (worker) refuses the same follow-up (no preamble text)"
 printf 'Fix cycle 3 — three more items, same TOUCH ONLY, same VERIFY, same RETURN.\n1. do x\n' > "$WS/p9.md"
 expect 2 "dispatch check --kind followup refuses one that neither names the preamble nor the dispatch file" -- "$PS" dispatch check "$WS/p9.md" --kind followup
 grep -q "preamble still applies" "$WS/err" && grep -q "dispatch file it continues" "$WS/err" && ok || bad "followup refusal names both misses"
+# --milestone: WARN per unpinned group of the milestone's kind; uninstalled group is a different WARN
+"$PS" milestone add --id m4 --title Board --branch ov/m4 --kind board >/dev/null 2>&1
+expect 0 "dispatch check --milestone passes with warnings" -- env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4
+grep -q "kind board" "$WS/err" && grep -q "not installed" "$WS/err" && ok || bad "kind WARNs name the kind and the uninstalled groups: $(head -3 "$WS/err")"
+expect 2 "dispatch check --milestone unknown id" -- "$PS" dispatch check "$WS/p2.md" --milestone m77
+# dense card WARN: the fixture preamble clauses + 20 items
+{ cat "$WS/p2.md"; for i in $(seq 1 20); do printf '%s. do thing %s\n' "$i" "$i"; done; } > "$WS/p10.md"
+expect 0 "dense card still passes" -- "$PS" dispatch check "$WS/p10.md"
+grep -q "dense card" "$WS/err" && ok || bad "dense card WARN"
+expect 0 "twelve items is not dense" -- "$PS" dispatch check "$WS/p2.md"
+grep -q "dense card" "$WS/err" && bad "false dense WARN on a normal card" || ok
 { cat "$WS/p2.md"; printf 'Apply the findings in findings.md and read decisions.md first.\nThen run npm run dev to check.\n' ; } > "$WS/p7.md"
 expect 0 "dispatch check passes with warnings" -- "$PS" dispatch check "$WS/p7.md"
 grep -q "findings.md is mentioned without an absolute path" "$WS/err" && grep -q "decisions.md is mentioned" "$WS/err" && grep -q "dev server" "$WS/err" && ok || bad "dispatch check warns on relative state files and an unstopped dev server: $(cat "$WS/err")"
@@ -228,6 +253,21 @@ printf '%s' "$out" | grep "^# install" | grep -q "playwright" && bad "scan still
 js=$(PATH=/usr/bin:/bin HOME="$W3" "$SCAN" --root "$W3" --json 2>/dev/null)
 printf '%s' "$js" | jq -e '(.phases|map(.installed[])|index("unknown"))==null and .cli_available==false and (.ci[0].triggers_on_base==false)' >/dev/null && ok || bad "scan --json: no unknown, ci parsed: $js"
 rm -rf "$W3"
+
+# ---- session-root gate ------------------------------------------------------------------------
+SESS=deadbeef-0000; ENC_OTHER="-Users-someone-other-project"; ENC_HERE=$(printf '%s' "$WS" | sed 's#[^A-Za-z0-9]#-#g')
+mkdir -p "$FAKEHOME/.claude/projects/$ENC_OTHER"; printf '{}\n' > "$FAKEHOME/.claude/projects/$ENC_OTHER/$SESS.jsonl"
+rm -f "$SD/program.json"
+expect 2 "init refused from a session opened in another project" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="$SESS" "$PS" init --goal g --slug g
+grep -q "opened in /Users/someone/other/project" "$WS/err" && grep -q "foreign-session" "$WS/err" && ok || bad "refusal names the session's project and the override: $(head -2 "$WS/err")"
+expect 0 "init with --foreign-session records the reason" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="$SESS" "$PS" init --goal g --slug g --foreign-session "simulation from the marketplace"
+[ "$(jq -r .foreign_session_reason "$SD/program.json")" = "simulation from the marketplace" ] && ok || bad "foreign reason stored"
+"$PS" milestone add --id m1 --title t --branch b >/dev/null
+expect 0 "dispatch check --milestone on a foreign program passes with a WARN" -- env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m1
+grep -q "foreign session" "$WS/err" && ok || bad "foreign session WARN on dispatch"
+rm -f "$SD/program.json"; mkdir -p "$FAKEHOME/.claude/projects/$ENC_HERE"; printf '{}\n' > "$FAKEHOME/.claude/projects/$ENC_HERE/$SESS.jsonl"; rm -rf "$FAKEHOME/.claude/projects/$ENC_OTHER"
+expect 0 "init allowed when the session's project is this root" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="$SESS" "$PS" init --goal g --slug g
+expect 0 "init fail-open when the session id has no transcript" -- env HOME="$FAKEHOME" CLAUDE_CODE_SESSION_ID="unknown-id" "$PS" init --goal g --slug g
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

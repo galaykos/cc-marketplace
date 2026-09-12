@@ -40,6 +40,7 @@ evidence is machine-local by nature.
       "id": "m1",
       "title": "Walking skeleton: clients list page",
       "branch": "overseer/m1-clients-list",
+      "kind": "crud",
       "depends": [],
       "status": "queued",
       "reason": "",
@@ -48,6 +49,11 @@ evidence is machine-local by nature.
   ]
 }
 ```
+
+`kind` (default `feature`) selects the row of `kinds.tsv` whose skill groups `accept`
+requires some gated dispatch to have pinned (**gate**). `foreign_session_reason` at the
+program level is set only by `init --foreign-session`; while it is non-empty every
+`dispatch check --milestone` WARNs that the pipeline commands are unreachable.
 
 Statuses, in order: `queued` → `briefed` → `building` → `accepting` → `done`, plus `parked`
 from any state with a `reason`. `program.sh milestone set` refuses any other word and

@@ -43,3 +43,26 @@ Rules:
 - **A missing stack plugin is a finding, not a blocker.** No `laravel` plugin in a Laravel
   repo: the worker prompt pins the project's own skill or, failing that, says "follow the
   conventions of sibling files" — and the charter's suggestions list carries the install.
+
+## Routing by milestone kind (`kinds.tsv`, **gate** at accept)
+
+Which phase a plugin covers is the table above; which skills a given milestone must pin is
+`${CLAUDE_PLUGIN_ROOT}/kinds.tsv`, one row per kind. `milestone add --kind` records the
+kind; `dispatch check --milestone <id>` WARNs for every group no gated dispatch has pinned
+yet; `accept` refuses while one is still unpinned. A group whose every alternative is not
+installed is a WARN with the fallback, never a refusal — the run is weaker and says so.
+
+| kind | must pin (one per group) | when |
+| --- | --- | --- |
+| feature | a stack skill · testing | anything no row below fits (the default) |
+| marketing-page | craft-layer direction · a motion skill · a11y-audit · a styling skill | a page whose job is to sell |
+| crud | stack · testing · a11y-audit · a styling skill | list/create/edit/delete of one resource |
+| board | crud's set + motion or interaction-fx | drag, reorder, kanban, calendar |
+| auth | stack · testing · security-review or api-auth | login, roles, permissions, tokens |
+| api | stack · testing · api-design · api-auth or security-review | an HTTP or GraphQL surface |
+| data-model | stack · a database skill · testing | schema, migrations, indexes |
+| infra | a devops skill | CI, containers, deploy |
+
+"stack" is any project skill under `.claude/skills/` or any `laravel`/`web-dev` plugin skill.
+The rows are the two simulations' pins written down; a kind the table lacks is `feature`
+plus a decision row naming what you pinned and why — and a row to add here.

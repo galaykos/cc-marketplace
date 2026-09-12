@@ -11,17 +11,19 @@
 # acceptance reference says why that residual stays.
 #
 # Usage:
-#   program.sh init --goal "<text>" --slug <slug> [--base <branch>] [--hands-off --reason "<why>"]
+#   program.sh init --goal "<text>" --slug <slug> [--base <branch>] [--hands-off --reason "<why>"] [--foreign-session "<why>"]
+#                                            # refuses when this Claude session was opened in another project (exit 2) unless --foreign-session says why
 #   program.sh status [--json]
 #   program.sh next                          # first milestone not done/parked whose deps are done
-#   program.sh milestone add --id <id> --title "<t>" --branch <b> [--depends a,b]
+#   program.sh milestone add --id <id> --title "<t>" --branch <b> [--depends a,b] [--kind <kind>]   # kinds: kinds.tsv (default feature)
 #   program.sh milestone set --id <id> --status <queued|briefed|building|accepting|parked> [--reason "<r>"]
 #   program.sh evidence add --id <id> --kind <kind> --note "<n>" [--file <path>]   # --file required for file kinds
 #   program.sh evidence clear --id <id>
-#   program.sh accept --id <id>              # exit 0 → status done; exit 2 → what is missing, listed
+#   program.sh accept --id <id>              # exit 0 → status done; exit 2 → what is missing, listed (evidence AND the kind's skill groups)
 #   program.sh decision add --text "<what>" --rationale "<why>" [--options "<a | b>"]
 #   program.sh decision add --assumed --text "<what>" --alternative "<other reading>" --rationale "<why>"
-#   program.sh dispatch check <prompt-file> [--kind worker|reader|reviewer]
+#   program.sh dispatch check <prompt-file> [--kind worker|reader|reviewer|followup] [--milestone <id>]
+#                                            # --milestone: WARN for each of the kind's skill groups no gated dispatch has pinned yet; WARN on a dense card
 #                                            # worker (default): preamble verbatim, TOUCH ONLY, VERIFY, an existing skill path
 #                                            # reader/reviewer: preamble verbatim, RETURN shape, an existing skill path, no scope/verify
 #                                            # every kind: a state file named without an absolute path is a WARN
@@ -73,18 +75,56 @@ write() { # $1.. = jq args + filter; read-modify-write under the lock, atomic re
   fi
 }
 has_ms() { jq -e --arg id "$1" '.milestones[] | select(.id==$id)' "$state" >/dev/null 2>&1; }
+KINDS_FILE="$(cd "$(dirname "$0")/.." && pwd)/kinds.tsv"
+kind_required() { grep -v '^#' "$KINDS_FILE" | awk -F'\t' -v k="$1" '$1==k {print $2}'; }
+kind_known() { [ -n "$(kind_required "$1")" ]; }
+# session_root_check: this Claude session's transcript lives under ~/.claude/projects/<encoded cwd>/;
+# when that cwd is not this project, the pipeline commands (taskmaster, task-runner, craft) are
+# unreachable and both simulations ran on hand-dispatch without noticing. Fail-open when the
+# session id or transcript is unknown (plain terminal, other harness); refuse when it is known and foreign.
+session_root_check() {
+  local sid="${CLAUDE_CODE_SESSION_ID:-}" t enc want
+  [ -n "$sid" ] || return 0
+  t=$(ls -d "$HOME"/.claude/projects/*/"$sid".jsonl 2>/dev/null | head -1); [ -n "$t" ] || return 0
+  enc=$(basename "$(dirname "$t")"); want=$(printf '%s' "$root" | sed 's#[^A-Za-z0-9]#-#g')
+  [ "$enc" = "$want" ] && return 0
+  echo "program.sh: this Claude session was opened in $(printf '%s' "$enc" | sed 's#^-#/#; s#-#/#g'), not in $root — the pipeline commands (taskmaster, task-runner, craft) are unreachable from here; start the session in $root, or pass --foreign-session \"<why>\" to init (recorded, every dispatch then WARNs)" >&2
+  return 2
+}
+# pinned_groups_status <kind> <files...>: one line per group: "ok <group>" / "missing <group>" / "uninstalled <group>"
+pinned_groups_status() {
+  local kind="$1"; shift; local files="$*" g alt plugin skill hit inst
+  for g in $(kind_required "$kind"); do
+    hit=0; inst=0
+    for alt in $(printf '%s' "$g" | tr '|' ' '); do
+      if [ "$alt" = stack ]; then
+        grep -qE '/\.claude/skills/[A-Za-z0-9_-]+/SKILL\.md|/(laravel|web-dev)/[^/ ]+/skills/[A-Za-z0-9_-]+/SKILL\.md' $files 2>/dev/null && hit=1; inst=1; continue
+      fi
+      plugin="${alt%%:*}"; skill="${alt#*:}"
+      if [ "$plugin" = project ]; then
+        grep -qE "/\.claude/skills/$skill/SKILL\.md" $files 2>/dev/null && hit=1; [ -f "$root/.claude/skills/$skill/SKILL.md" ] && inst=1
+      else
+        grep -qE "/$plugin/[^/ ]+/skills/$skill/SKILL\.md" $files 2>/dev/null && hit=1
+        [ -n "$(ls -d "$HOME"/.claude/plugins/cache/*/"$plugin"/*/skills/"$skill"/SKILL.md 2>/dev/null | head -1)" ] && inst=1
+      fi
+    done
+    if [ "$hit" = 1 ]; then echo "ok $g"; elif [ "$inst" = 1 ]; then echo "missing $g"; else echo "uninstalled $g"; fi
+  done
+}
 abspath() { local d; d=$(cd "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1; printf '%s/%s' "$d" "$(basename "$1")"; }
 NEXT_FILTER='. as $p | [.milestones[] | select(.status!="done" and .status!="parked") | select(all((.depends // [])[]; . as $d | any($p.milestones[]; .id==$d and .status=="done")))] | .[0]'
 
 cmd="${1:-}"; shift || true
 case "$cmd" in
   init)
-    goal=""; slug=""; base=""; hands=false; why=""
+    goal=""; slug=""; base=""; hands=false; why=""; foreign=""
     while [ $# -gt 0 ]; do case "$1" in
       --goal) goal=$(arg "$1" "${2:-}") || exit 3; shift 2;; --slug) slug=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --base) base=$(arg "$1" "${2:-}") || exit 3; shift 2;; --reason) why=$(arg "$1" "${2:-}") || exit 3; shift 2;;
+      --foreign-session) foreign=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --hands-off) hands=true; shift;; *) usage;; esac; done
     [ -n "$goal" ] && [ -n "$slug" ] || usage
+    if [ -z "$foreign" ]; then session_root_check || exit 2; fi
     printf '%s' "$slug" | grep -Eq '^[a-z0-9][a-z0-9-]*$' || { echo "program.sh: slug must be [a-z0-9-]" >&2; exit 2; }
     if [ "$hands" = true ] && [ -z "$why" ]; then
       echo "program.sh: --hands-off needs --reason — why nobody can answer a question (headless run, user asked for it, …)" >&2; exit 2
@@ -95,8 +135,9 @@ case "$cmd" in
     [ -n "$base" ] || base=$(git -C "$root" branch --show-current 2>/dev/null)
     [ -n "$base" ] || base=main
     mkdir -p "$dir/milestones" && printf '*\n' > "$dir/.gitignore"
-    jq -n --arg goal "$goal" --arg slug "$slug" --arg base "$base" --argjson hands "$hands" --arg why "$why" --arg at "$(now)" \
-      '{version:1,goal:$goal,slug:$slug,base_branch:$base,hands_off:$hands,hands_off_reason:$why,created_at:$at,milestones:[]}' > "$state"
+    jq -n --arg goal "$goal" --arg slug "$slug" --arg base "$base" --argjson hands "$hands" --arg why "$why" --arg fs "$foreign" --arg at "$(now)" \
+      '{version:1,goal:$goal,slug:$slug,base_branch:$base,hands_off:$hands,hands_off_reason:$why,foreign_session_reason:$fs,created_at:$at,milestones:[]}' > "$state"
+    [ -n "$foreign" ] && echo "program.sh: WARN foreign session recorded (\"$foreign\") — taskmaster, task-runner and craft commands are unreachable; every phase they own runs on the fallback" >&2
     [ -f "$dir/decisions.md" ] || printf '# Decisions taken on the user'"'"'s behalf\n\nRows marked ASSUMED answer a question the user was not asked; the options column holds the reading that was NOT taken.\n\n| when | decision | options | rationale |\n| --- | --- | --- | --- |\n' > "$dir/decisions.md"
     echo "program initialised: $state (base: $base)";;
 
@@ -124,18 +165,19 @@ case "$cmd" in
   milestone)
     need_state
     sub="${1:-}"; shift || true
-    id=""; title=""; branch=""; depends=""; st=""; reason=""
+    id=""; title=""; branch=""; depends=""; st=""; reason=""; kind="feature"
     case "$sub" in
       add)
         while [ $# -gt 0 ]; do case "$1" in
           --id) id=$(arg "$1" "${2:-}") || exit 3; shift 2;; --title) title=$(arg "$1" "${2:-}") || exit 3; shift 2;;
           --branch) branch=$(arg "$1" "${2:-}") || exit 3; shift 2;; --depends) depends=$(arg "$1" "${2:-}") || exit 3; shift 2;;
+          --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;;
           *) usage;; esac; done;;
       set)
         while [ $# -gt 0 ]; do case "$1" in
           --id) id=$(arg "$1" "${2:-}") || exit 3; shift 2;; --status) st=$(arg "$1" "${2:-}") || exit 3; shift 2;;
           --reason) reason=$(arg "$1" "${2:-}") || exit 3; shift 2;;
-          --title|--branch|--depends) echo "program.sh: $1 is set only by 'milestone add'" >&2; exit 3;;
+          --title|--branch|--depends|--kind) echo "program.sh: $1 is set only by 'milestone add'" >&2; exit 3;;
           *) usage;; esac; done;;
       *) usage;;
     esac
@@ -145,13 +187,14 @@ case "$cmd" in
       add)
         [ -n "$title" ] && [ -n "$branch" ] || usage
         has_ms "$id" && { echo "program.sh: $id already exists" >&2; exit 2; }
+        kind_known "$kind" || { echo "program.sh: unknown kind '$kind' — one of: $(grep -v '^#' "$KINDS_FILE" | cut -f1 | tr '\n' ' ')" >&2; exit 2; }
         deps=$(printf '%s' "$depends" | tr ',' '\n' | sed '/^$/d' | jq -R . | jq -s 'unique')
         for d in $(printf '%s' "$depends" | tr ',' ' '); do
           [ "$d" = "$id" ] && { echo "program.sh: $id cannot depend on itself" >&2; exit 2; }
           has_ms "$d" || { echo "program.sh: dependency $d does not exist" >&2; exit 2; }
         done
-        write --arg id "$id" --arg t "$title" --arg b "$branch" --argjson deps "$deps" \
-          '.milestones += [{id:$id,title:$t,branch:$b,depends:$deps,status:"queued",reason:"",evidence:[]}]'
+        write --arg id "$id" --arg t "$title" --arg b "$branch" --arg kind "$kind" --argjson deps "$deps" \
+          '.milestones += [{id:$id,title:$t,branch:$b,kind:$kind,depends:$deps,status:"queued",reason:"",evidence:[]}]'
         mkdir -p "$dir/milestones/$id/evidence" "$dir/milestones/$id/dispatch"
         echo "added $id ($branch)";;
       set)
@@ -209,6 +252,17 @@ case "$cmd" in
     while IFS= read -r f; do
       [ -n "$f" ] && [ ! -s "$f" ] && gone="$gone $f"
     done < <(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.evidence[]|.file' "$state")
+    mkind=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
+    unpinned=""; dfiles=$(ls "$dir/milestones/$id/dispatch/"*.md 2>/dev/null | tr '\n' ' ')
+    if [ -n "$dfiles" ]; then
+      while IFS= read -r line; do case "$line" in missing*) unpinned="$unpinned ${line#missing }";; esac; done < <(pinned_groups_status "$mkind" $dfiles)
+    fi
+    if [ -n "$unpinned" ]; then
+      echo "program.sh: $id NOT accepted — kind $mkind requires a skill from each group below, and no gated dispatch under milestones/$id/dispatch/ pins one:" >&2
+      for g in $unpinned; do echo "  $g" >&2; done
+      echo "pin it in the next dispatch (skill-path.sh <plugin> <skill>) or change the kind: this is the routing table in kinds.tsv" >&2
+      exit 2
+    fi
     if [ -n "$missing" ] || [ -n "$gone" ]; then
       [ -n "$missing" ] && echo "program.sh: $id NOT accepted — missing evidence:$missing" >&2
       [ -n "$gone" ] && echo "program.sh: $id NOT accepted — evidence files no longer exist:$gone" >&2
@@ -241,8 +295,8 @@ case "$cmd" in
 
   dispatch)
     [ "${1:-}" = "check" ] && [ -n "${2:-}" ] || usage
-    f="$2"; kind="worker"; shift 2
-    while [ $# -gt 0 ]; do case "$1" in --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;; *) usage;; esac; done
+    f="$2"; kind="worker"; ms=""; shift 2
+    while [ $# -gt 0 ]; do case "$1" in --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;; --milestone) ms=$(arg "$1" "${2:-}") || exit 3; shift 2;; *) usage;; esac; done
     in_list "$kind" worker reader reviewer followup || { echo "program.sh: --kind must be worker, reader, reviewer or followup" >&2; exit 2; }
     [ -f "$f" ] || { echo "program.sh: no such prompt file $f" >&2; exit 3; }
     miss=""; warn=""
@@ -299,6 +353,25 @@ case "$cmd" in
     done
     if grep -qiE 'npm run dev|vp dev|artisan serve' "$f" && ! grep -qiE '(^|[^a-z])(stop|kill)([^a-z]|$)|public/hot' "$f"; then warn="$warn
   the prompt may start a dev server and never says to stop it"; fi
+    items=$(grep -cE '^[[:space:]]*[0-9]+\. ' "$f" || true); sections=$(grep -cE '^[[:space:]]*[A-H]\. ' "$f" || true)
+    # the preamble itself is nine numbered clauses; a card is dense past twelve items of its own
+    if [ "$kind" = worker ] && { [ "${items:-0}" -gt 21 ] || [ "${sections:-0}" -gt 3 ]; }; then warn="$warn
+  dense card: $((items-9)) numbered items / $sections lettered sections — simulation 2's densest cards are where follow-ups bypassed the gate; split per reviewer section unless the file sets overlap"; fi
+    if [ -n "$ms" ] && [ -s "$state" ]; then
+      has_ms "$ms" || { echo "program.sh: no milestone $ms" >&2; exit 2; }
+      mkind=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
+      others=$(ls "$dir/milestones/$ms/dispatch/"*.md 2>/dev/null | tr '\n' ' ')
+      while IFS= read -r line; do
+        case "$line" in
+          missing*) warn="$warn
+  kind $mkind: no gated dispatch for $ms pins ${line#missing } yet — accept will refuse until one does";;
+          uninstalled*) warn="$warn
+  kind $mkind: ${line#uninstalled } is not installed — record the fallback (capability-map.md) in decisions.md";;
+        esac
+      done < <(pinned_groups_status "$mkind" "$f" $others)
+      if [ "$(jq -r '.foreign_session_reason // ""' "$state")" != "" ]; then warn="$warn
+  foreign session: pipeline commands unreachable — this prompt is the fallback, say so in findings.md"; fi
+    fi
     [ -n "$warn" ] && echo "program.sh: dispatch prompt $f WARN:$warn" >&2
     if [ -n "$miss" ]; then echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; fi
     echo "dispatch prompt ok ($kind): $f";;

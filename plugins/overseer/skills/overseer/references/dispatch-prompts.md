@@ -109,9 +109,14 @@ stages; the product shipped five fixed ones).
 
 ```
 Review the diff `git -C <root> diff <base>...<branch>` against <skill abs paths>.
+You are read-only: you write no file and run no command that changes the tree.
 One line per finding: `path:line — severity — problem — fix`. Severity-sorted.
-Skip style nits unless they change meaning. Max 30 lines. End with `CLEAN` when none.
+Skip style nits unless they change meaning. Max 30 lines. RETURN `CLEAN` when none.
 ```
+
+Save it as `dispatch/<n>-review-<name>.md` and gate it with `--kind reviewer` before
+sending — a reviewer is a dispatch, and the record of a fix cycle is incomplete without
+the prompt that produced its findings.
 
 ## Follow-up to a worker that is still alive
 

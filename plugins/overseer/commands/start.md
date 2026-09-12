@@ -21,6 +21,7 @@ a trailing `--hands-off` token before using the goal text. Then:
    `--hands-off --reason "<why nobody can answer>"` to `program.sh init` — a user at the
    keyboard is a reason to ask, not a reason to assume.
 4. Write the charter and register the roadmap with
-   `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh milestone add …`, one call per milestone.
+   `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh milestone add … --kind <kind>`, one call per
+   milestone; the kind is the routing row in `kinds.tsv`.
 5. Enter the skill's **Deliver** loop on the first milestone. Do not stop after planning —
    a roadmap with no branch behind it is the failure this command exists to prevent.

@@ -28,3 +28,8 @@
   archived `program.json` to the archive (the record used to point at 35 files that no longer
   existed there); `dispatch check --kind followup` for a second message to a live worker
   (two were sent ungated in simulation 2); the reference and state docs name both.
+- Improvement plan 2, step 1: `kinds.tsv` routing table — `milestone add --kind`, `dispatch
+  check --milestone` WARNs on unpinned groups and on a dense card, `accept` refuses while a
+  group is unpinned (uninstalled groups WARN); `init` refuses a Claude session opened in
+  another project unless `--foreign-session "<why>"` records it (both simulations ran that
+  way unnoticed); the reviewer template states read-only and is saved as a dispatch.
