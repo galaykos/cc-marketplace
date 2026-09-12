@@ -1,0 +1,10 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+overseer:start	command	understand	program-charter-and-roadmap	invoked as /overseer:start with a product goal	-
+overseer:resume	command	any	program-resume	invoked as /overseer:resume while .claude/overseer/program.json has a milestone neither done nor parked	-
+overseer:status	command	any	program-board	invoked as /overseer:status	-
+overseer:overseer	skill	any	program-level-delivery-ownership	a program is open under .claude/overseer/ or /overseer:start was just invoked; owns the milestone loop, never a phase inside it	taskmaster:ultra,task-runner:completion-gate
+overseer:announce	hook	any	open-program-announcement	SessionStart while .claude/overseer/program.json exists with a milestone neither done nor parked	-

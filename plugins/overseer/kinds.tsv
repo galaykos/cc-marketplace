@@ -1,0 +1,18 @@
+# milestone kinds → the skills a milestone of that kind must have pinned in at least one gated
+# dispatch before `program.sh accept` closes it. Read by program.sh (`milestone add --kind`,
+# `dispatch check --milestone`, `accept`). Groups are space-separated; alternatives inside a
+# group use `|`; a group is satisfied when ANY alternative is pinned by an existing path.
+# Tokens: `<plugin>:<skill>` = a marketplace plugin skill; `project:<skill>` = <root>/.claude/skills/<skill>;
+# `stack` = any project skill or any laravel/web-dev plugin skill. A group whose every alternative
+# is NOT installed is a WARN (fallback), never a refusal — the capability map says what to do then.
+# kind	required	note
+feature	stack testing:testing-best-practices	default: any user-facing increment that fits no row below
+marketing-page	craft-layer:creative-direction|craft-layer:section-decisions ui-ux:motion-best-practices|craft-layer:motion-tiers ui-ux:a11y-audit ui-ux:tailwind-best-practices|ui-ux:shadcn-best-practices|ui-ux:component-libraries	a page whose job is to sell; direction before build
+crud	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:shadcn-best-practices|ui-ux:component-libraries|ui-ux:tailwind-best-practices	list/create/edit/delete of one resource
+board	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:motion-best-practices|craft-layer:interaction-fx ui-ux:shadcn-best-practices|ui-ux:component-libraries|ui-ux:tailwind-best-practices	drag, reorder, kanban, calendar — pointer AND keyboard paths
+auth	stack testing:testing-best-practices security:security-review|security:api-auth	login, roles, permissions, tokens
+api	stack testing:testing-best-practices api-design:api-design|api-design:api-docs-first security:api-auth|security:security-review	an HTTP or GraphQL surface other code calls
+data-model	stack database:sql-best-practices|database:mariadb-best-practices|database:database-design testing:testing-best-practices	schema, migrations, indexes, backfills
+infra	devops:devops-practices|devops:docker-best-practices|devops:compose-init	CI, containers, deploy, environments
+game	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:motion-best-practices|craft-layer:interaction-fx	a game or any motion-heavy interactive screen — keyboard path and reduced motion are the product
+integration	testing:testing-best-practices	merge the done branches into one tree and walk the product across them; close refuses divergent done branches without one
