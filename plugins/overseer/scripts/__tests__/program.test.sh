@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Tests program.sh, announce.sh and capability-scan.sh against throwaway git repos.
-# Asserts: init writes state + .gitignore; --hands-off needs --reason; detached HEAD stores a base;
+# Asserts: init writes state + .gitignore; --hands-off needs --reason; --model is opus|auto (default opus); detached HEAD stores a base;
+# milestone --size is S|M|L|XL (default M); a dispatch needs a MODEL: line the tier allows; an M+ milestone's direct worker WARNs
+# unless a taskmaster index is newer than its brief;
 # a second init over a program with milestones is refused (2); vocabularies are enforced (2);
 # `done` cannot be set by hand (2); file kinds need --file, stored absolute, must be a non-empty
 # regular file (2); accept refuses without the nine required kinds (2) and names the missing ones,
@@ -40,9 +42,12 @@ expect 3 "status before init" -- "$PS" status
 expect 2 "bad slug" -- "$PS" init --goal "g" --slug "Bad Slug"
 expect 3 "flag without value" -- "$PS" init --slug g --goal
 expect 2 "hands-off needs reason" -- "$PS" init --goal g --slug g --hands-off
+expect 2 "init refuses an unknown model tier" -- "$PS" init --goal g --slug g --model fable
+grep -q "opus auto" "$WS/err" && ok || bad "tier refusal lists the tiers"
 expect 0 "init" -- "$PS" init --goal "Build a \"CRM\" ünïcode" --slug crm --base main
 [ "$(cat "$SD/.gitignore")" = "*" ] && ok || bad ".gitignore holds *"
 jq -e '.goal=="Build a \"CRM\" ünïcode" and .base_branch=="main" and (.milestones|length)==0' "$SD/program.json" >/dev/null && ok || bad "init state"
+[ "$(jq -r .model "$SD/program.json")" = "opus" ] && ok || bad "init defaults the model tier to opus (nothing above opus unless asked)"
 grep -q "ASSUMED" "$SD/decisions.md" && ok || bad "decisions.md explains ASSUMED rows"
 expect 0 "init again with no milestones is allowed" -- "$PS" init --goal "Build a CRM" --slug crm --base main
 
@@ -53,6 +58,9 @@ expect 2 "duplicate m1" -- "$PS" milestone add --id m1 --title "Skeleton" --bran
 expect 2 "unknown milestone kind" -- "$PS" milestone add --id m9 --title x --branch ov/m9 --kind vibes
 grep -q "marketing-page" "$WS/err" && ok || bad "unknown kind lists the known ones"
 [ "$(jq -r '.milestones[0].kind' "$SD/program.json")" = feature ] && ok || bad "kind defaults to feature"
+expect 2 "unknown milestone size" -- "$PS" milestone add --id m9 --title x --branch ov/m9 --size XXL
+[ "$(jq -r '.milestones[]|select(.id=="m1")|.size' "$SD/program.json")" = "M" ] && ok || bad "milestone size defaults to M"
+expect 3 "milestone set rejects --size" -- "$PS" milestone set --id m1 --size S
 expect 3 "milestone set rejects --kind" -- "$PS" milestone set --id m1 --kind crud
 expect 2 "depends on missing" -- "$PS" milestone add --id m2 --title "Upload" --branch ov/m2 --depends m9
 expect 2 "self dependency" -- "$PS" milestone add --id m2 --title "Upload" --branch ov/m2 --depends m2
@@ -123,6 +131,7 @@ expect 2 "assumed needs alternative" -- "$PS" decision add --assumed --text "gal
 expect 0 "assumed decision" -- "$PS" decision add --assumed --text "team gallery" --alternative "profile avatar" --rationale "goal says users upload photos, plural"
 grep -q "| ASSUMED: team gallery | not taken: profile avatar |" "$SD/decisions.md" && ok || bad "assumed row"
 expect 0 "status prints" -- "$PS" status
+"$PS" status > "$WS/out"; grep -q "model: opus" "$WS/out" && grep -qE "^m1	[a-z]+	feature	M	" "$WS/out" && ok || bad "status shows the model tier and each milestone's size: $(head -4 "$WS/out")"
 grep -q "next: m2" "$WS/out" && grep -q "assumed decisions: 1" "$WS/out" && ok || bad "status names next and assumption count"
 
 # ---- parked is closed, for next and for the hook ----------------------------------------------
@@ -196,15 +205,30 @@ mkdir -p "$WS/skills/x"; printf 'x' > "$WS/skills/x/SKILL.md"
 printf 'Do the thing.\nVERIFY: make test\n' > "$WS/p1.md"
 expect 2 "dispatch check refuses bare prompt" -- "$PS" dispatch check "$WS/p1.md"
 grep -q "preamble clause" "$WS/err" && grep -q "TOUCH ONLY" "$WS/err" && grep -q "skill pinned" "$WS/err" && ok || bad "dispatch check names every miss"
-{ cat "$PRE"; printf 'TOUCH ONLY: %s/a.php\nREAD FIRST: %s/skills/x/SKILL.md\nVERIFY: make test\n' "$WS" "$WS"; } > "$WS/p2.md"
+{ cat "$PRE"; printf 'TOUCH ONLY: %s/a.php\nREAD FIRST: %s/skills/x/SKILL.md\nVERIFY: make test\n' "$WS" "$WS"; } > "$WS/p2-nomodel.md"
+expect 2 "dispatch check refuses a prompt with no MODEL: line" -- "$PS" dispatch check "$WS/p2-nomodel.md"
+grep -q "no MODEL: line" "$WS/err" && ok || bad "refusal names the missing MODEL line"
+{ cat "$WS/p2-nomodel.md"; printf 'MODEL: opus\n'; } > "$WS/p2.md"
 expect 0 "dispatch check passes complete prompt" -- "$PS" dispatch check "$WS/p2.md"
+{ cat "$WS/p2-nomodel.md"; printf 'MODEL: inherit\n'; } > "$WS/p2-inherit.md"
+expect 2 "tier opus refuses MODEL: inherit" -- "$PS" dispatch check "$WS/p2-inherit.md"
+grep -q "above the program tier 'opus'" "$WS/err" && ok || bad "refusal names the tier"
+{ cat "$WS/p2-nomodel.md"; printf 'MODEL: sonnet\n'; } > "$WS/p2-sonnet.md"
+expect 0 "tier opus allows a model below opus" -- "$PS" dispatch check "$WS/p2-sonnet.md"
+# tier auto: a seat may inherit the session model — a separate program, initialised with --model auto
+W5=$(mktemp -d); git -C "$W5" init -q -b main 2>/dev/null || git -C "$W5" init -q
+OVERSEER_ROOT="$W5" "$PS" init --goal g --slug g --model auto >/dev/null 2>&1
+[ "$(jq -r .model "$W5/.claude/overseer/program.json")" = "auto" ] && ok || bad "init stores --model auto"
+expect 0 "tier auto allows MODEL: inherit" -- env OVERSEER_ROOT="$W5" "$PS" dispatch check "$WS/p2-inherit.md"
+OVERSEER_ROOT="$W5" "$PS" status | grep -q "model: auto" && ok || bad "status shows model: auto"
+rm -rf "$W5"
 sed 's/one change per step/one change per step, roughly/' "$WS/p2.md" > "$WS/p3.md"
 expect 2 "dispatch check refuses a reworded clause" -- "$PS" dispatch check "$WS/p3.md"
 sed "s#$WS/skills/x/SKILL.md#/nonexistent/SKILL.md#" "$WS/p2.md" > "$WS/p4.md"
 expect 2 "dispatch check refuses a skill path that does not exist" -- "$PS" dispatch check "$WS/p4.md"
 expect 3 "dispatch check on missing file" -- "$PS" dispatch check "$WS/nope.md"
 # reader kind: no scope/verify needed, RETURN + "write no file" needed
-{ cat "$PRE"; printf 'READ FIRST: %s/skills/x/SKILL.md\nYou WRITE NO FILES.\nRETURN (max 40 lines): a document\n' "$WS"; } > "$WS/p5.md"
+{ cat "$PRE"; printf 'READ FIRST: %s/skills/x/SKILL.md\nYou WRITE NO FILES.\nRETURN (max 40 lines): a document\nMODEL: opus\n' "$WS"; } > "$WS/p5.md"
 expect 0 "dispatch check --kind reader passes a read-only prompt" -- "$PS" dispatch check "$WS/p5.md" --kind reader
 expect 2 "dispatch check (worker) refuses the same read-only prompt" -- "$PS" dispatch check "$WS/p5.md"
 { cat "$PRE"; printf 'READ FIRST: %s/skills/x/SKILL.md\nRETURN: findings\n' "$WS"; } > "$WS/p6.md"
@@ -222,6 +246,17 @@ grep -q "preamble still applies" "$WS/err" && grep -q "dispatch file it continue
 "$PS" milestone add --id m4 --title Board --branch ov/m4 --kind board >/dev/null 2>&1
 expect 0 "dispatch check --milestone passes with warnings" -- env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4
 grep -q "kind board" "$WS/err" && grep -q "not installed" "$WS/err" && ok || bad "kind WARNs name the kind and the uninstalled groups: $(head -3 "$WS/err")"
+# size routes the pipeline: an M milestone with no taskmaster index newer than its brief WARNs on a direct worker; S does not
+grep -q "size M: m4 is briefed to taskmaster" "$WS/err" && ok || bad "direct worker on an M milestone WARNs about the skipped pipeline: $(grep size "$WS/err")"
+printf 'brief' > "$SD/milestones/m4/brief.md"; sleep 1; mkdir -p "$SD/../../taskmaster-docs/tasks/m4"; printf 'idx' > "$SD/../../taskmaster-docs/tasks/m4/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "size M" "$WS/err" && bad "index newer than the brief still WARNs" || ok
+rm -rf "$SD/../../taskmaster-docs"
+"$PS" milestone add --id m5 --title Small --branch ov/m5 --size S >/dev/null 2>&1
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m5 2> "$WS/err" >/dev/null
+grep -q "size S" "$WS/err" && bad "an S milestone WARNs on a direct worker" || ok
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p5.md" --kind reader --milestone m4 2> "$WS/err" >/dev/null
+grep -q "briefed to taskmaster" "$WS/err" && bad "a reader dispatch draws the size WARN" || ok
 expect 2 "dispatch check --milestone unknown id" -- "$PS" dispatch check "$WS/p2.md" --milestone m77
 # dense card WARN: the fixture preamble clauses + 20 items
 { cat "$WS/p2.md"; for i in $(seq 1 20); do printf '%s. do thing %s\n' "$i" "$i"; done; } > "$WS/p10.md"

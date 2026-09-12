@@ -11,13 +11,13 @@ It accepts nothing it has not watched work in a browser.
 
 | Artifact | Kind | Does |
 | --- | --- | --- |
-| `/overseer:start` | command | opens a program: discover → clarify once → charter + roadmap → deliver the first milestone |
+| `/overseer:start` | command | opens a program: discover → clarify once → charter + roadmap → deliver the first milestone; `--model auto` is the only way a seat runs above opus |
 | `/overseer:resume` | command | continues an open program in a fresh session from its recorded milestone status |
 | `/overseer:status` | command | prints the board — milestones, branches, evidence, next |
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
 | `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept; read by `program.sh` |
-| `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; also `dispatch check` (prompt gate; kinds worker, reader, reviewer, followup), `decision add --assumed`, `suggestion add`, `log` (timeline from the record), `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
+| `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup; size WARN), `decision add --assumed`, `suggestion add`, `log`, `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
 | `scripts/skill-path.sh` | script | the absolute `SKILL.md` path to pin in a prompt, resolved through the CLI's install path (cache fallback names its route) |
 
@@ -64,7 +64,9 @@ dispatched directly — weaker, and said so in the charter.
 | no `done` without the nine evidence kinds, each with a file that still exists; hands-off needs a reason and an ASSUMED decision; fixed status and kind vocabularies | **gate** — `scripts/program.sh`, harness `scripts/__tests__/program.test.sh` |
 | close refuses two done milestones on branches that contain neither the other until an `integration` milestone is done or `--divergent-ok` records why | **gate** — `program.sh close` exit 2 |
 | a milestone of kind K reaches `done` only after some gated dispatch pinned a skill from each of K's groups (`kinds.tsv`); `init` refuses a session opened in another project unless `--foreign-session` says why | **gate** — `program.sh accept` / `init` exit 2 |
-| a dispatched prompt carries the discipline preamble verbatim, a scope lock, a verify command, an existing skill path | **gate when run** — `program.sh dispatch check`; running it is agent-graded |
+| a dispatched prompt carries the discipline preamble verbatim, a scope lock, a verify command, an existing skill path, and a `MODEL:` line the program tier allows — nothing above opus unless the program was started `--model auto` | **gate when run** — `program.sh dispatch check`; running it is agent-graded |
+| a milestone sized M or larger is briefed to taskmaster; a direct worker on one needs a decision row | **WARN** — `dispatch check --milestone`; the row is recorded |
+| taskmaster's own red-team and coverage seats follow the session model under `goal`, whatever the overseer's tier | **residual** — hold every seat at opus by starting the session with `claude --model opus` |
 | a fresh session learns a program is open | **hook** — SessionStart, one line |
 | discover before clarify (CI included); ask only what the project cannot answer; no code in the main thread; every decision in `decisions.md` | **agent-graded** / **recorded** |
 | the recorded browser evidence describes a real run | **unenforceable** — file existence is checked, content is not |
@@ -75,8 +77,10 @@ dispatched directly — weaker, and said so in the charter.
 - The session must run from the target project: `taskmaster`, `task-runner`,
   `craft-layer` and every hook are cwd-bound, so a program driven from another directory
   falls back to direct dispatch and inline design direction (both simulations did).
-- An installed copy of this plugin is a cache snapshot; a plugin edit during a program
-  reaches the hook and the skill only after a reinstall.
+- A plugin installed from a git marketplace is a cache snapshot: an edit during a program
+  reaches the hook and the skill only after a reinstall. A directory marketplace whose
+  plugin entry is a symlink is live — `${CLAUDE_PLUGIN_ROOT}` resolved to the working tree
+  in simulation 3, so an edit mid-run changes the script the running program calls.
 - Merge and PR are never taken by the overseer — offered, or left as the next command.
 - A dependency the target project's own `CLAUDE.md` forbids is not added, however
   convenient; the charter records the suggestion instead.

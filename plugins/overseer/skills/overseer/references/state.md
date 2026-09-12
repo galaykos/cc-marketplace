@@ -34,6 +34,7 @@ evidence is machine-local by nature.
   "base_branch": "master",
   "hands_off": false,
   "hands_off_reason": "",
+  "model": "opus",
   "created_at": "2026-09-11T10:00:00Z",
   "milestones": [
     {
@@ -41,6 +42,7 @@ evidence is machine-local by nature.
       "title": "Walking skeleton: clients list page",
       "branch": "overseer/m1-clients-list",
       "kind": "crud",
+      "size": "M",
       "depends": [],
       "history": [ { "status": "queued", "at": "…" }, { "status": "building", "at": "…" } ],
       "status": "queued",
@@ -59,7 +61,11 @@ evidence stamps, dispatch file times, `decisions.md` and `suggestions.md` into o
 close prints and archives.
 
 `kind` (default `feature`) selects the row of `kinds.tsv` whose skill groups `accept`
-requires some gated dispatch to have pinned (**gate**). `foreign_session_reason` at the
+requires some gated dispatch to have pinned (**gate**). `size` (`S|M|L|XL`, default `M`)
+routes the pipeline: M and up are briefed to taskmaster, only S may go to one direct worker
+(`dispatch check --milestone` WARNs otherwise). `model` (`opus|auto`, set by `init
+--model`, default `opus`) is the tier every dispatch's `MODEL:` line must respect
+(**gate**); a program written before the field exists reads as `opus`. `foreign_session_reason` at the
 program level is set only by `init --foreign-session`; while it is non-empty every
 `dispatch check --milestone` WARNs that the pipeline commands are unreachable.
 

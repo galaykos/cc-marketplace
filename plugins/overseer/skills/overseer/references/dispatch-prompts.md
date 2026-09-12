@@ -27,6 +27,24 @@ to database 0.4.2; simulation 2 pinned it without noticing).
 Inject as: `Read <abs-path> before writing; it is the authoritative best-practice source
 for this stack.` A miss is skipped silently, never invented.
 
+## The model per seat — one line every prompt carries, bound by the program tier
+
+`MODEL: <value>` names the model the Agent call passes for this seat; `dispatch check`
+refuses a prompt without it, or with a value above the program's tier (`init --model`,
+default `opus`). Simulation 3 ran two thirds of its subagent turns on the session model
+because no dispatch said one and every `inherit` agent followed the session.
+
+| Seat | tier `opus` (default) | tier `auto` (`/overseer:start … --model auto`) |
+| --- | --- | --- |
+| card worker (task-executor, web-developer, engineers) | `opus` | `opus` — a card with a locked file set and a DONE WHEN list does not need more |
+| direction, adversary, reviewer, critic | `opus` | `inherit` (the session model) — the judgment seats are where capability shows |
+| scout, explorer | `sonnet` or `opus` | same — native is enough for a read |
+
+Below the tier is always allowed (`sonnet`, `haiku`). The tier binds only prompts the
+overseer writes: taskmaster's own red-team and coverage seats resolve `auto` against the
+session model under `goal`, so the one way to hold every seat at opus is to start the
+session with `claude --model opus`.
+
 ## State files and siblings — two lines every prompt carries
 
 `STATE FILES: brief <abs>, findings <abs>, decisions <abs>` — a delegate told to "apply the
@@ -60,9 +78,12 @@ Touch: <dirs/files>. Do not touch: <dirs/files>.
 <exact commands: suite, types, lint, build>
 ```
 
-Hand it over as `/taskmaster:task ultra-goal <the brief text>` (hands-off) or
+Hand it over as `/taskmaster:task goal <the brief text>` (hands-off) or
 `/taskmaster:task <brief>` (interactive); taskmaster's grill treats the acceptance lines
-as CLEAR rows and asks only about what the brief left open.
+as CLEAR rows and asks only about what the brief left open. Every milestone sized M or
+larger goes this way; only an S milestone may skip to the worker template below, and the
+skip is a `decisions.md` row (`dispatch check --milestone` WARNs when it is missing). When
+the card index has two-plus parallel groups, hand execution to `/task-runner:run --tracks`.
 
 ## Worker (no taskmaster/task-runner installed, or a card dispatched directly)
 
@@ -71,6 +92,7 @@ You are implementing ONE card in <abs project root>. Cwd resets between commands
 absolute paths or `git -C`.
 CARD: <title>. DONE WHEN: <criteria copied from the brief>.
 AGENT: <agent type this prompt is sent to, e.g. task-runner:task-executor — close counts it>.
+MODEL: <opus | sonnet | haiku — the seat table; the Agent call passes the same value>.
 STATE FILES: brief <abs>, findings <abs>, decisions <abs>.   SIBLINGS: <none | who, files>.
 OWNER: you own exactly TOUCH ONLY; a sibling owns <files> — do not read-modify-write theirs.
 TOUCH ONLY: <files, listed — never "the files in the brief">. DO NOT TOUCH: <files>.
@@ -102,6 +124,7 @@ SIZE THE ENGINE FIRST: any perf budget you write must sit above the floor of the
 libraries you mandate (motion core + features ≈ 42 KB gz; say the number, then budget).
 PRODUCT VOCABULARY: <the nouns and counts the other milestones ship — stages, roles,
 object names>; never describe a capability that is not in a done or queued milestone.
+MODEL: <opus under the default tier; inherit only when the program was started --model auto>.
 RETURN (max 120 lines, this structure): <sections>. No narrative outside it.
 ```
 Gate it with `program.sh dispatch check <file> --kind reader`. The overseer amends the
@@ -114,6 +137,7 @@ stages; the product shipped five fixed ones).
 ```
 Review the diff `git -C <root> diff <base>...<branch>` against <skill abs paths>.
 You are read-only: you write no file and run no command that changes the tree.
+MODEL: <opus | inherit — the seat table>.
 One line per finding: `path:line — severity — problem — fix`. Severity-sorted.
 Skip style nits unless they change meaning. Max 30 lines. RETURN `CLEAN` when none.
 ```
