@@ -248,9 +248,12 @@ expect 0 "dispatch check --milestone passes with warnings" -- env HOME="$FAKEHOM
 grep -q "kind board" "$WS/err" && grep -q "not installed" "$WS/err" && ok || bad "kind WARNs name the kind and the uninstalled groups: $(head -3 "$WS/err")"
 # size routes the pipeline: an M milestone with no taskmaster index newer than its brief WARNs on a direct worker; S does not
 grep -q "size M: m4 is briefed to taskmaster" "$WS/err" && ok || bad "direct worker on an M milestone WARNs about the skipped pipeline: $(grep size "$WS/err")"
-printf 'brief' > "$SD/milestones/m4/brief.md"; sleep 1; mkdir -p "$SD/../../taskmaster-docs/tasks/m4"; printf 'idx' > "$SD/../../taskmaster-docs/tasks/m4/00-INDEX.md"
+printf 'brief' > "$SD/milestones/m4/brief.md"; sleep 1; mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other"; printf '# m40 other\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
-grep -q "size M" "$WS/err" && bad "index newer than the brief still WARNs" || ok
+grep -q "size M" "$WS/err" && ok || bad "a newer index for ANOTHER milestone (m40) must not cover m4"
+mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-landing"; printf '# m4 landing — task index\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "size M" "$WS/err" && bad "index newer than the brief whose heading names m4 still WARNs" || ok
 rm -rf "$SD/../../taskmaster-docs"
 "$PS" milestone add --id m5 --title Small --branch ov/m5 --size S >/dev/null 2>&1
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m5 2> "$WS/err" >/dev/null

@@ -19,7 +19,7 @@
 - SKILL: `--tracks` when the card index has parallel groups; no filesystem-wide scans in
   discovery (`find /` ran in simulation 3); "pipeline by exception" anti-pattern.
 - README: a directory-marketplace symlink install is live, not a cache snapshot.
-- Harness: 178 cases (tier refusal and default, size default and refusal, `MODEL:` missing /
+- Harness: 179 cases (tier refusal and default, size default and refusal, `MODEL:` missing /
   above tier / below tier / `inherit` under `auto`, size WARN on M with and without an
   index, none on S, none for a reader).
 

@@ -427,10 +427,16 @@ case "$cmd" in
       # both earlier simulations said exactly that for every milestone they hand-dispatched
       msize=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.size // "M"' "$state")
       if [ "$kind" = worker ] && [ "$msize" != S ]; then
-        brief="$dir/milestones/$ms/brief.md"; idx=""
-        [ -f "$brief" ] && idx=$(find "$root/taskmaster-docs/tasks" -name 00-INDEX.md -newer "$brief" 2>/dev/null | head -1)
+        # the index must be newer than the brief AND name this milestone (its dir or heading does: 2026-09-12-m2-landing,
+        # "# m2 landing") — any newer index would let m2's run cover a hand-dispatched m1 (simulation 3, when first checked)
+        brief="$dir/milestones/$ms/brief.md"; idx=""; idre="(^|[^a-z0-9])$ms([^a-z0-9]|$)"
+        if [ -f "$brief" ]; then
+          while IFS= read -r i; do
+            if printf '%s\n' "$i" | grep -qE "$idre" || head -5 "$i" | grep -qE "$idre"; then idx="$i"; break; fi
+          done < <(find "$root/taskmaster-docs/tasks" -name 00-INDEX.md -newer "$brief" 2>/dev/null)
+        fi
         [ -n "$idx" ] || warn="$warn
-  size $msize: $ms is briefed to taskmaster (/taskmaster:task goal <brief>), and no card index under taskmaster-docs/tasks/ is newer than its brief — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
+  size $msize: $ms is briefed to taskmaster (/taskmaster:task goal <brief>), and no card index under taskmaster-docs/tasks/ newer than its brief names $ms — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
       fi
     fi
     [ -n "$warn" ] && echo "program.sh: dispatch prompt $f WARN:$warn" >&2
