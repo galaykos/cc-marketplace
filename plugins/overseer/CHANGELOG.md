@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-09-12
+
+- `scripts/skill-path.sh`: the CLI route took the first enabled install of a plugin across
+  every project on the machine — `claude plugin list --json` is not cwd-scoped — so from a
+  project holding taskmaster 0.41.9 it pinned another project's 0.41.7 (simulation 3 pinned
+  ui-ux 0.20.3 against an installed 0.21.0). It now takes only a row whose `projectPath` is
+  this project (`--project`, else the git toplevel, else the cwd) or a user-scope row; the
+  harness drives the route through a fake `claude`.
+
 ## 0.1.0 — 2026-09-11
 
 - New plugin: `/overseer:start`, `/overseer:resume`, `/overseer:status`; the `overseer`

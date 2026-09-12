@@ -242,7 +242,24 @@ HOME="$FAKEHOME" PATH=/usr/bin:/bin bash "$SP" pl s 2>&1 >/dev/null | grep -q "n
 expect 1 "skill-path missing skill exits 1" -- env HOME="$FAKEHOME" PATH=/usr/bin:/bin bash "$SP" pl nope
 mkdir -p "$FAKEHOME/proj/.claude/skills/s"; printf x > "$FAKEHOME/proj/.claude/skills/s/SKILL.md"
 [ "$(HOME="$FAKEHOME" PATH=/usr/bin:/bin bash "$SP" project s --project "$FAKEHOME/proj")" = "$FAKEHOME/proj/.claude/skills/s/SKILL.md" ] && ok || bad "skill-path resolves a project skill"
-rm -rf "$FAKEHOME"
+# CLI route: the list carries every project's rows; only THIS project's (or a user-scope) row may win
+FAKEBIN=$(mktemp -d); mkdir -p "$FAKEHOME/here" "$FAKEHOME/.claude/plugins/cache/mkt/pl/0.10.0/skills/s"; printf x > "$FAKEHOME/.claude/plugins/cache/mkt/pl/0.10.0/skills/s/SKILL.md"
+cat > "$FAKEBIN/claude" <<EOS
+#!/bin/sh
+cat <<'J'
+[{"id":"pl@mkt","version":"0.10.0","scope":"local","enabled":true,"installPath":"$FAKEHOME/.claude/plugins/cache/mkt/pl/0.10.0","projectPath":"$FAKEHOME/elsewhere"},
+ {"id":"pl@mkt","version":"0.9.0","scope":"local","enabled":true,"installPath":"$FAKEHOME/.claude/plugins/cache/mkt/pl/0.9.0","projectPath":"$FAKEHOME/here"},
+ {"id":"pl@mkt","version":"0.2.0","scope":"user","enabled":true,"installPath":"$FAKEHOME/.claude/plugins/cache/mkt/pl/0.2.0"}]
+J
+EOS
+chmod +x "$FAKEBIN/claude"; JQDIR=$(dirname "$(command -v jq)")
+got=$(HOME="$FAKEHOME" PATH="$FAKEBIN:$JQDIR:/usr/bin:/bin" bash "$SP" pl s --project "$FAKEHOME/here" 2>/dev/null)
+[ "$got" = "$FAKEHOME/.claude/plugins/cache/mkt/pl/0.9.0/skills/s/SKILL.md" ] && ok || bad "skill-path CLI route picks THIS project's row (0.9.0), not another project's newer 0.10.0: $got"
+got=$(cd "$FAKEHOME/here" && HOME="$FAKEHOME" PATH="$FAKEBIN:$JQDIR:/usr/bin:/bin" bash "$SP" pl s 2>/dev/null)
+[ "$got" = "$FAKEHOME/.claude/plugins/cache/mkt/pl/0.9.0/skills/s/SKILL.md" ] && ok || bad "skill-path CLI route resolves the project from the cwd: $got"
+got=$(cd "$FAKEHOME" && HOME="$FAKEHOME" PATH="$FAKEBIN:$JQDIR:/usr/bin:/bin" bash "$SP" pl s 2>/dev/null)
+[ "$got" = "$FAKEHOME/.claude/plugins/cache/mkt/pl/0.2.0/skills/s/SKILL.md" ] && ok || bad "skill-path CLI route falls to the user-scope row outside any listed project, never another project's: $got"
+rm -rf "$FAKEHOME" "$FAKEBIN"
 
 # ---- capability-scan: CI mismatch, no unknown sentinel ------------------------------------------
 W3=$(mktemp -d); git -C "$W3" init -q -b master 2>/dev/null || git -C "$W3" init -q

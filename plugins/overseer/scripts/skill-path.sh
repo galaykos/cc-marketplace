@@ -5,6 +5,11 @@
 # is the one the CLI would load; falls back to the newest cache directory only when the CLI is absent,
 # and says so on stderr. A `sort -V` over full cache paths is NOT a version sort of the middle
 # segment — that shortcut pinned database 0.4.2 while 0.7.0 was installed (simulation 2, lesson 12).
+# The CLI list is NOT cwd-scoped: it carries every project's local/project installs, each with its
+# `projectPath`. Taking the first enabled row pinned another project's taskmaster 0.41.7 while THIS
+# project had 0.41.9 (simulation 3 pinned ui-ux 0.20.3 against an installed 0.21.0). So the row must
+# belong to this project (`projectPath` = --project root, else the git toplevel of the cwd, else the cwd)
+# or be a user-scope install; a row from another project is never a candidate.
 #
 # Usage: skill-path.sh <plugin> <skill> [--project <root>]   # project root: also checks <root>/.claude/skills/<skill>
 # Exit: 0 printed a path that exists · 1 not found · 4 jq missing when the CLI route is used
@@ -17,7 +22,13 @@ if [ -n "$root" ] && [ -f "$root/.claude/skills/$skill/SKILL.md" ] && [ "$plugin
 fi
 if command -v claude >/dev/null 2>&1; then
   command -v jq >/dev/null 2>&1 || { echo "skill-path.sh: jq is required" >&2; exit 4; }
-  p=$(claude plugin list --json 2>/dev/null | jq -r --arg n "$plugin" '[.[] | select(.enabled and (.id | startswith($n + "@")))] | .[0].installPath // empty')
+  # the registry stores the path the CLI was launched from; match it logical and physical (macOS /var → /private/var)
+  here="$root"; [ -n "$here" ] || here=$(git rev-parse --show-toplevel 2>/dev/null) || here=$(pwd)
+  herep=$(cd "$here" 2>/dev/null && pwd -P) || herep="$here"
+  p=$(claude plugin list --json 2>/dev/null | jq -r --arg n "$plugin" --arg r "$here" --arg rp "$herep" '
+    [.[] | select(.enabled and (.id | startswith($n + "@")))]
+    | (map(select(.scope != "user" and (.projectPath == $r or .projectPath == $rp))) + map(select(.scope == "user")))
+    | .[0].installPath // empty')
   if [ -n "$p" ] && [ -f "$p/skills/$skill/SKILL.md" ]; then printf '%s\n' "$p/skills/$skill/SKILL.md"; exit 0; fi
 fi
 best=""
