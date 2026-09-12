@@ -11,11 +11,14 @@
 # acceptance reference says why that residual stays.
 #
 # Usage:
-#   program.sh init --goal "<text>" --slug <slug> [--base <branch>] [--hands-off --reason "<why>"] [--foreign-session "<why>"]
+#   program.sh init --goal "<text>" --slug <slug> [--base <branch>] [--hands-off --reason "<why>"] [--foreign-session "<why>"] [--model opus|auto]
 #                                            # refuses when this Claude session was opened in another project (exit 2) unless --foreign-session says why
+#                                            # --model (default opus): the tier every dispatch may use — opus: nothing above opus; auto: judgment
+#                                            # seats (reader, reviewer) may run at the session model (MODEL: inherit), workers stay at opus
 #   program.sh status [--json]
 #   program.sh next                          # first milestone not done/parked whose deps are done
-#   program.sh milestone add --id <id> --title "<t>" --branch <b> [--depends a,b] [--kind <kind>]   # kinds: kinds.tsv (default feature)
+#   program.sh milestone add --id <id> --title "<t>" --branch <b> [--depends a,b] [--kind <kind>] [--size S|M|L|XL]
+#                                            # kinds: kinds.tsv (default feature); size (default M): only S may skip taskmaster for a direct worker
 #   program.sh milestone set --id <id> --status <queued|briefed|building|accepting|parked> [--reason "<r>"]
 #   program.sh evidence add --id <id> --kind <kind> --note "<n>" [--file <path>]   # --file required for file kinds
 #   program.sh evidence clear --id <id>
@@ -26,6 +29,10 @@
 #                                            # --milestone: WARN for each of the kind's skill groups no gated dispatch has pinned yet; WARN on a dense card
 #                                            # worker (default): preamble verbatim, TOUCH ONLY, VERIFY, an existing skill path
 #                                            # reader/reviewer: preamble verbatim, RETURN shape, an existing skill path, no scope/verify
+#                                            # every kind but followup: a MODEL: line whose value the program's tier allows (simulation 3 ran
+#                                            # two thirds of its subagent turns on the session model because no dispatch ever said a model)
+#                                            # --milestone + worker: WARN when the milestone is sized M or larger and no taskmaster index is
+#                                            # newer than its brief — an M+ milestone is briefed to taskmaster, a direct worker needs a decision row
 #                                            # every kind: a state file named without an absolute path is a WARN
 #   program.sh close [--divergent-ok "<why>"] # every milestone done/parked → archive the program (evidence paths rewritten); init may follow
 #                                            # refuses when two done milestones' branches contain neither the other and no done milestone
@@ -41,6 +48,10 @@ REQUIRED_KINDS="tests browser-happy browser-error viewport:mobile viewport:table
 OPTIONAL_KINDS="a11y review perf dark-mode progress"
 FILE_KINDS="tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion"
 STATUSES="queued briefed building accepting done parked"
+SIZES="S M L XL"
+TIERS="opus auto"
+MODELS_OPUS="opus sonnet haiku"            # tier opus: nothing above opus, in any seat
+MODELS_AUTO="opus sonnet haiku inherit"    # tier auto: a seat may inherit the session model — only when the user asked at start
 
 command -v jq >/dev/null 2>&1 || { echo "program.sh: jq is required" >&2; exit 4; }
 
@@ -121,15 +132,17 @@ NEXT_FILTER='. as $p | [.milestones[] | select(.status!="done" and .status!="par
 cmd="${1:-}"; shift || true
 case "$cmd" in
   init)
-    goal=""; slug=""; base=""; hands=false; why=""; foreign=""
+    goal=""; slug=""; base=""; hands=false; why=""; foreign=""; model="opus"
     while [ $# -gt 0 ]; do case "$1" in
       --goal) goal=$(arg "$1" "${2:-}") || exit 3; shift 2;; --slug) slug=$(arg "$1" "${2:-}") || exit 3; shift 2;;
+      --model) model=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --base) base=$(arg "$1" "${2:-}") || exit 3; shift 2;; --reason) why=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --foreign-session) foreign=$(arg "$1" "${2:-}") || exit 3; shift 2;;
       --hands-off) hands=true; shift;; *) usage;; esac; done
     [ -n "$goal" ] && [ -n "$slug" ] || usage
     if [ -z "$foreign" ]; then session_root_check || exit 2; fi
     printf '%s' "$slug" | grep -Eq '^[a-z0-9][a-z0-9-]*$' || { echo "program.sh: slug must be [a-z0-9-]" >&2; exit 2; }
+    in_list "$model" $TIERS || { echo "program.sh: --model must be one of: $TIERS (opus: no seat above opus; auto: judgment seats may inherit the session model)" >&2; exit 2; }
     if [ "$hands" = true ] && [ -z "$why" ]; then
       echo "program.sh: --hands-off needs --reason — why nobody can answer a question (headless run, user asked for it, …)" >&2; exit 2
     fi
@@ -139,21 +152,21 @@ case "$cmd" in
     [ -n "$base" ] || base=$(git -C "$root" branch --show-current 2>/dev/null)
     [ -n "$base" ] || base=main
     mkdir -p "$dir/milestones" && printf '*\n' > "$dir/.gitignore"
-    jq -n --arg goal "$goal" --arg slug "$slug" --arg base "$base" --argjson hands "$hands" --arg why "$why" --arg fs "$foreign" --arg at "$(now)" \
-      '{version:1,goal:$goal,slug:$slug,base_branch:$base,hands_off:$hands,hands_off_reason:$why,foreign_session_reason:$fs,created_at:$at,milestones:[]}' > "$state"
+    jq -n --arg goal "$goal" --arg slug "$slug" --arg base "$base" --argjson hands "$hands" --arg why "$why" --arg fs "$foreign" --arg model "$model" --arg at "$(now)" \
+      '{version:1,goal:$goal,slug:$slug,base_branch:$base,hands_off:$hands,hands_off_reason:$why,foreign_session_reason:$fs,model:$model,created_at:$at,milestones:[]}' > "$state"
     [ -n "$foreign" ] && echo "program.sh: WARN foreign session recorded (\"$foreign\") — taskmaster, task-runner and craft commands are unreachable; every phase they own runs on the fallback" >&2
     [ -f "$dir/decisions.md" ] || printf '# Decisions taken on the user'"'"'s behalf\n\nRows marked ASSUMED answer a question the user was not asked; the options column holds the reading that was NOT taken.\n\n| when | decision | options | rationale |\n| --- | --- | --- | --- |\n' > "$dir/decisions.md"
-    echo "program initialised: $state (base: $base)";;
+    echo "program initialised: $state (base: $base, model tier: $model)";;
 
   status)
     need_state
     if [ "${1:-}" = "--json" ]; then cat "$state"; exit 0; fi
     assumed=$(grep -c '^| [^|]* | ASSUMED: ' "$dir/decisions.md" 2>/dev/null || true)
-    jq -r --arg assumed "${assumed:-0}" '"program: " + .goal + "  [" + .slug + "]  base: " + .base_branch + (if .hands_off then "  hands-off (" + (.hands_off_reason // "no reason recorded") + ")" else "" end),
+    jq -r --arg assumed "${assumed:-0}" '"program: " + .goal + "  [" + .slug + "]  base: " + .base_branch + "  model: " + (.model // "opus") + (if .hands_off then "  hands-off (" + (.hands_off_reason // "no reason recorded") + ")" else "" end),
            "milestones: " + ([.milestones[]|select(.status=="done")]|length|tostring) + "/" + (.milestones|length|tostring) + " done  ·  assumed decisions: " + $assumed,
            "",
-           "id\tstatus\tkind\tbranch\tdepends\tevidence\twall\ttitle",
-           (.milestones[] | [.id, .status, (.kind // "feature"), .branch, ((.depends // [])|join(",")|if .=="" then "-" else . end),
+           "id\tstatus\tkind\tsize\tbranch\tdepends\tevidence\twall\ttitle",
+           (.milestones[] | [.id, .status, (.kind // "feature"), (.size // "M"), .branch, ((.depends // [])|join(",")|if .=="" then "-" else . end),
              ((.evidence // [])|map(.kind)|unique|join(",")|if .=="" then "-" else . end),
              (((.history // []) | map(select(.status=="briefed" or .status=="building")) | .[0].at) as $s
               | ((.history // []) | map(select(.status=="done")) | .[0].at) as $e
@@ -173,19 +186,19 @@ case "$cmd" in
   milestone)
     need_state
     sub="${1:-}"; shift || true
-    id=""; title=""; branch=""; depends=""; st=""; reason=""; kind="feature"
+    id=""; title=""; branch=""; depends=""; st=""; reason=""; kind="feature"; size="M"
     case "$sub" in
       add)
         while [ $# -gt 0 ]; do case "$1" in
           --id) id=$(arg "$1" "${2:-}") || exit 3; shift 2;; --title) title=$(arg "$1" "${2:-}") || exit 3; shift 2;;
           --branch) branch=$(arg "$1" "${2:-}") || exit 3; shift 2;; --depends) depends=$(arg "$1" "${2:-}") || exit 3; shift 2;;
-          --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;;
+          --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;; --size) size=$(arg "$1" "${2:-}") || exit 3; shift 2;;
           *) usage;; esac; done;;
       set)
         while [ $# -gt 0 ]; do case "$1" in
           --id) id=$(arg "$1" "${2:-}") || exit 3; shift 2;; --status) st=$(arg "$1" "${2:-}") || exit 3; shift 2;;
           --reason) reason=$(arg "$1" "${2:-}") || exit 3; shift 2;;
-          --title|--branch|--depends|--kind) echo "program.sh: $1 is set only by 'milestone add'" >&2; exit 3;;
+          --title|--branch|--depends|--kind|--size) echo "program.sh: $1 is set only by 'milestone add'" >&2; exit 3;;
           *) usage;; esac; done;;
       *) usage;;
     esac
@@ -196,15 +209,16 @@ case "$cmd" in
         [ -n "$title" ] && [ -n "$branch" ] || usage
         has_ms "$id" && { echo "program.sh: $id already exists" >&2; exit 2; }
         kind_known "$kind" || { echo "program.sh: unknown kind '$kind' — one of: $(grep -v '^#' "$KINDS_FILE" | cut -f1 | tr '\n' ' ')" >&2; exit 2; }
+        in_list "$size" $SIZES || { echo "program.sh: --size must be one of: $SIZES" >&2; exit 2; }
         deps=$(printf '%s' "$depends" | tr ',' '\n' | sed '/^$/d' | jq -R . | jq -s 'unique')
         for d in $(printf '%s' "$depends" | tr ',' ' '); do
           [ "$d" = "$id" ] && { echo "program.sh: $id cannot depend on itself" >&2; exit 2; }
           has_ms "$d" || { echo "program.sh: dependency $d does not exist" >&2; exit 2; }
         done
-        write --arg id "$id" --arg t "$title" --arg b "$branch" --arg kind "$kind" --argjson deps "$deps" --arg at "$(now)" \
-          '.milestones += [{id:$id,title:$t,branch:$b,kind:$kind,depends:$deps,status:"queued",reason:"",evidence:[],history:[{status:"queued",at:$at}]}]'
+        write --arg id "$id" --arg t "$title" --arg b "$branch" --arg kind "$kind" --arg size "$size" --argjson deps "$deps" --arg at "$(now)" \
+          '.milestones += [{id:$id,title:$t,branch:$b,kind:$kind,size:$size,depends:$deps,status:"queued",reason:"",evidence:[],history:[{status:"queued",at:$at}]}]'
         mkdir -p "$dir/milestones/$id/evidence" "$dir/milestones/$id/dispatch"
-        echo "added $id ($branch)";;
+        echo "added $id ($branch, $kind, $size)";;
       set)
         has_ms "$id" || { echo "program.sh: no milestone $id" >&2; exit 2; }
         in_list "$st" $STATUSES || { echo "program.sh: status must be one of: $STATUSES" >&2; exit 2; }
@@ -368,6 +382,16 @@ case "$cmd" in
       grep -qE 'write no file|read-only|WRITE NO FILES|writes nothing' "$f" || miss="$miss
   a $kind dispatch must say it writes no file"
     fi
+    # MODEL: the seat's model, bound by the program tier — a dispatch that names none inherits the session
+    # model silently, which is how simulation 3 ran its card workers on the most expensive tier without a decision
+    tier="opus"; [ -s "$state" ] && tier=$(jq -r '.model // "opus"' "$state" 2>/dev/null || echo opus)
+    allowed="$MODELS_OPUS"; [ "$tier" = auto ] && allowed="$MODELS_AUTO"
+    mval=$(grep -m1 -oE '^MODEL: *[a-z0-9.-]+' "$f" | sed -E 's/^MODEL: *//')
+    if [ -z "$mval" ]; then miss="$miss
+  no MODEL: line (tier $tier allows: $allowed) — the Agent call must pass the same value"
+    elif ! in_list "$mval" $allowed; then miss="$miss
+  MODEL: $mval is above the program tier '$tier' (allows: $allowed) — start the program with --model auto to let a judgment seat inherit the session model"
+    fi
     skill_ok=0
     while IFS= read -r p; do [ -f "$p" ] && skill_ok=1 && break; done < <(grep -oE '/[^ `"'"'"'<>)]*/SKILL\.md' "$f" | sort -u)
     [ "$skill_ok" -eq 1 ] || miss="$miss
@@ -398,6 +422,22 @@ case "$cmd" in
       done < <(pinned_groups_status "$mkind" "$f" $others)
       if [ "$(jq -r '.foreign_session_reason // ""' "$state")" != "" ]; then warn="$warn
   foreign session: pipeline commands unreachable — this prompt is the fallback, say so in findings.md"; fi
+      # size routes the pipeline: S may go straight to a worker; M+ is briefed to taskmaster, and the proof it was
+      # is a card index newer than the brief. "The brief is so complete grill would ask nothing" is not a reason —
+      # both earlier simulations said exactly that for every milestone they hand-dispatched
+      msize=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.size // "M"' "$state")
+      if [ "$kind" = worker ] && [ "$msize" != S ]; then
+        # the index must be newer than the brief AND name this milestone (its dir or heading does: 2026-09-12-m2-landing,
+        # "# m2 landing") — any newer index would let m2's run cover a hand-dispatched m1 (simulation 3, when first checked)
+        brief="$dir/milestones/$ms/brief.md"; idx=""; idre="(^|[^a-z0-9])$ms([^a-z0-9]|$)"
+        if [ -f "$brief" ]; then
+          while IFS= read -r i; do
+            if printf '%s\n' "$i" | grep -qE "$idre" || head -5 "$i" | grep -qE "$idre"; then idx="$i"; break; fi
+          done < <(find "$root/taskmaster-docs/tasks" -name 00-INDEX.md -newer "$brief" 2>/dev/null)
+        fi
+        [ -n "$idx" ] || warn="$warn
+  size $msize: $ms is briefed to taskmaster (/taskmaster:task goal <brief>), and no card index under taskmaster-docs/tasks/ newer than its brief names $ms — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
+      fi
     fi
     [ -n "$warn" ] && echo "program.sh: dispatch prompt $f WARN:$warn" >&2
     if [ -n "$miss" ]; then echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; fi

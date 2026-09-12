@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.2.0 — 2026-09-12
+
+- **Model tier, chosen at start and persisted.** `/overseer:start "goal" [--model opus|auto]`
+  → `program.sh init --model` (default `opus`), printed by `status`, honoured by `resume`.
+  Every dispatch file carries a `MODEL:` line and `dispatch check` refuses one without it
+  or above the tier: under `opus` no seat runs above opus; under `auto` judgment seats
+  (direction, adversary, reviewer) may `inherit` the session model, workers stay at opus.
+  Simulation 3 ran two thirds of its subagent turns on the session model because no
+  dispatch said a model and every `inherit` agent followed the session. Stated residual:
+  taskmaster's own seats follow the session model under `goal`; `claude --model opus`
+  holds every seat.
+- **Milestone size routes the pipeline.** `milestone add --size S|M|L|XL` (default `M`),
+  shown by `status`. M and up are briefed to `/taskmaster:task goal`; only S may go to one
+  direct worker, and `dispatch check --milestone` WARNs when a direct worker targets an M+
+  milestone with no taskmaster card index newer than its brief. "The brief is so complete
+  grill would ask nothing" is named as not a reason — all three simulations said it.
+- SKILL: `--tracks` when the card index has parallel groups; no filesystem-wide scans in
+  discovery (`find /` ran in simulation 3); "pipeline by exception" anti-pattern.
+- README: a directory-marketplace symlink install is live, not a cache snapshot.
+- Harness: 179 cases (tier refusal and default, size default and refusal, `MODEL:` missing /
+  above tier / below tier / `inherit` under `auto`, size WARN on M with and without an
+  index, none on S, none for a reader).
+
+## 0.1.1 — 2026-09-12
+
+- `scripts/skill-path.sh`: the CLI route took the first enabled install of a plugin across
+  every project on the machine — `claude plugin list --json` is not cwd-scoped — so from a
+  project holding taskmaster 0.41.9 it pinned another project's 0.41.7 (simulation 3 pinned
+  ui-ux 0.20.3 against an installed 0.21.0). It now takes only a row whose `projectPath` is
+  this project (`--project`, else the git toplevel, else the cwd) or a user-scope row; the
+  harness drives the route through a fake `claude`.
+
 ## 0.1.0 — 2026-09-11
 
 - New plugin: `/overseer:start`, `/overseer:resume`, `/overseer:status`; the `overseer`

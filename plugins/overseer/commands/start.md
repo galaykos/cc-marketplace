@@ -1,11 +1,13 @@
 ---
 description: Start an overseer program — one sentence of product intent, delivered milestone by milestone across sessions and branches
-argument-hint: [product-goal] [--hands-off]
+argument-hint: [product-goal] [--hands-off] [--model opus|auto]
 ---
 
 Invoke the `overseer` skill from this plugin and open a program for $ARGUMENTS (if
 empty, ask for one sentence naming the product and who it is for, then continue). Strip
-a trailing `--hands-off` token before using the goal text. Then:
+trailing `--hands-off` and `--model <tier>` tokens before using the goal text; pass the
+tier to `program.sh init --model` (default `opus`: no seat runs above opus; `auto`: the
+user chose to let judgment seats inherit the session model). Then:
 
 1. Refuse to start when `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh status` reports a
    program with milestones — print its board and route to `/overseer:resume` (or to
@@ -21,7 +23,8 @@ a trailing `--hands-off` token before using the goal text. Then:
    `--hands-off --reason "<why nobody can answer>"` to `program.sh init` — a user at the
    keyboard is a reason to ask, not a reason to assume.
 4. Write the charter and register the roadmap with
-   `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh milestone add … --kind <kind>`, one call per
-   milestone; the kind is the routing row in `kinds.tsv`.
+   `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh milestone add … --kind <kind> --size <S|M|L|XL>`,
+   one call per milestone; the kind is the routing row in `kinds.tsv`, the size decides
+   whether the milestone is briefed to taskmaster (M and up) or may go to one worker (S).
 5. Enter the skill's **Deliver** loop on the first milestone. Do not stop after planning —
    a roadmap with no branch behind it is the failure this command exists to prevent.
