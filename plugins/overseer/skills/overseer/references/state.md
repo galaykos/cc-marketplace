@@ -17,9 +17,11 @@ evidence is machine-local by nature.
   milestones/<id>/
     brief.md              # the milestone brief handed to the pipeline (dispatch-prompts.md § Brief)
     dispatch/<n>.md       # every prompt dispatched directly, as sent, after `program.sh dispatch check`
+                          # (a follow-up message to a live worker too: <n>-followup.md, --kind followup)
     findings.md           # reviewer findings and what was done with each; points at decisions.md rows
     evidence/             # screenshots, console dumps, test output the accept step recorded
-  archive/<slug>-<at>/    # a closed program: its program.json, milestones/ and a copy of the md files
+  archive/<slug>-<at>/    # a closed program: its program.json (evidence paths rewritten to the
+                          # archive), milestones/ and a copy of the md files
 ```
 
 ## program.json

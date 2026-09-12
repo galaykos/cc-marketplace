@@ -113,6 +113,20 @@ One line per finding: `path:line — severity — problem — fix`. Severity-sor
 Skip style nits unless they change meaning. Max 30 lines. End with `CLEAN` when none.
 ```
 
+## Follow-up to a worker that is still alive
+
+A second message to a running worker IS a dispatch: the second simulation sent two ("fix
+cycle 3 — same preamble and rules as your card…") and neither reached `dispatch/` or the
+gate, so the record has a fix cycle no prompt explains. Write it to `dispatch/<n>-followup.md`
+and gate it with `--kind followup`: no preamble text (the worker holds it), but the message
+must say the preamble still binds, keep or extend TOUCH ONLY, repeat VERIFY and RETURN, and
+name the dispatch file it continues by absolute path.
+
+```
+Fix cycle <n> — same preamble and rules as your card <abs>/dispatch/<k>.md; same TOUCH ONLY
+set plus <files>; same VERIFY; same RETURN shape. Items: 1. … 2. …
+```
+
 ## Browser tester (the acceptance walk, when delegated)
 
 ```

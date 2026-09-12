@@ -16,7 +16,7 @@ It accepts nothing it has not watched work in a browser.
 | `/overseer:status` | command | prints the board — milestones, branches, evidence, next |
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
-| `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; also `dispatch check` (prompt gate), `decision add --assumed`, `close` (archive) |
+| `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; also `dispatch check` (prompt gate; kinds worker, reader, reviewer, followup), `decision add --assumed`, `close` (archive, evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
 | `scripts/skill-path.sh` | script | the absolute `SKILL.md` path to pin in a prompt, resolved through the CLI's install path (cache fallback names its route) |
 

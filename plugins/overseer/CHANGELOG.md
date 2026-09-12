@@ -24,3 +24,7 @@
   built-assets rule (kill dev servers, delete the hot file), the untracked-paths check,
   the product-truth check and the overseer's own look; `references/worktree.md`; the
   capability scan's CI branch parse works on BSD sed.
+- After the review of simulation 2's record: `close` rewrites every evidence path in the
+  archived `program.json` to the archive (the record used to point at 35 files that no longer
+  existed there); `dispatch check --kind followup` for a second message to a live worker
+  (two were sent ungated in simulation 2); the reference and state docs name both.

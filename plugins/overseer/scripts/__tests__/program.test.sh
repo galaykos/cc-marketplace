@@ -123,8 +123,14 @@ printf '%s' "$hook_out" | grep -q 'none runnable' && ok || bad "hook says none r
 # ---- close / re-init / archive -----------------------------------------------------------------
 expect 2 "close refuses with open m3" -- "$PS" close
 expect 0 "park m3" -- "$PS" milestone set --id m3 --status parked --reason "dep parked"
+mkdir -p "$SD/milestones/m1/evidence" && printf 'x' > "$SD/milestones/m1/evidence/in-dir.png"
+expect 0 "evidence stored inside the program dir" -- "$PS" evidence add --id m1 --kind review --note "in dir" --file "$SD/milestones/m1/evidence/in-dir.png"
 expect 0 "close" -- "$PS" close
 [ ! -f "$SD/program.json" ] && ls -d "$SD"/archive/crm-*/milestones/m1 >/dev/null 2>&1 && [ -f "$SD/decisions.md" ] && ok || bad "archive layout"
+arch_pj=$(ls "$SD"/archive/crm-*/program.json)
+jq -e '[.milestones[].evidence[].file|select(contains("/archive/") and endswith("/milestones/m1/evidence/in-dir.png"))]|length==1' "$arch_pj" >/dev/null && ok || bad "an evidence path inside the program dir is rewritten to the archive"
+jq -e 'all(.milestones[].evidence[].file; contains("/milestones/") and (contains("/archive/")|not)|not)' "$arch_pj" >/dev/null && ok || bad "no archived evidence path still points at the live milestones dir"
+jq -r '.milestones[].evidence[].file' "$arch_pj" | while read -r f; do [ -f "$f" ] || { echo "dead: $f"; exit 1; }; done && ok || bad "every archived evidence file exists at its recorded path"
 expect 0 "init after close" -- "$PS" init --goal "Second" --slug second
 [ -z "$(printf '{"cwd":"%s"}' "$WS" | "$HOOK")" ] && ok || bad "hook silent on program with no milestones"
 expect 0 "status on empty roadmap" -- "$PS" status
@@ -190,6 +196,14 @@ expect 2 "dispatch check (worker) refuses the same read-only prompt" -- "$PS" di
 { cat "$PRE"; printf 'READ FIRST: %s/skills/x/SKILL.md\nRETURN: findings\n' "$WS"; } > "$WS/p6.md"
 expect 2 "dispatch check --kind reviewer needs the read-only statement" -- "$PS" dispatch check "$WS/p6.md" --kind reviewer
 expect 2 "dispatch check rejects an unknown kind" -- "$PS" dispatch check "$WS/p2.md" --kind boss
+# followup kind: a message to a live worker — no preamble text, but it must say the preamble binds,
+# keep TOUCH ONLY / VERIFY / RETURN and name the dispatch file it continues
+printf 'Fix cycle 3 — same preamble and rules as your card %s/dispatch/3-fix-1.md; same TOUCH ONLY set plus b.php; same VERIFY; same RETURN shape.\n1. do x\n' "$WS" > "$WS/p8.md"
+expect 0 "dispatch check --kind followup passes a complete follow-up" -- "$PS" dispatch check "$WS/p8.md" --kind followup
+expect 2 "dispatch check (worker) refuses the same follow-up (no preamble text)" -- "$PS" dispatch check "$WS/p8.md"
+printf 'Fix cycle 3 — three more items, same TOUCH ONLY, same VERIFY, same RETURN.\n1. do x\n' > "$WS/p9.md"
+expect 2 "dispatch check --kind followup refuses one that neither names the preamble nor the dispatch file" -- "$PS" dispatch check "$WS/p9.md" --kind followup
+grep -q "preamble still applies" "$WS/err" && grep -q "dispatch file it continues" "$WS/err" && ok || bad "followup refusal names both misses"
 { cat "$WS/p2.md"; printf 'Apply the findings in findings.md and read decisions.md first.\nThen run npm run dev to check.\n' ; } > "$WS/p7.md"
 expect 0 "dispatch check passes with warnings" -- "$PS" dispatch check "$WS/p7.md"
 grep -q "findings.md is mentioned without an absolute path" "$WS/err" && grep -q "decisions.md is mentioned" "$WS/err" && grep -q "dev server" "$WS/err" && ok || bad "dispatch check warns on relative state files and an unstopped dev server: $(cat "$WS/err")"

@@ -90,7 +90,9 @@ one test, deployed to the browser — never a data model alone.
    dispatch yourself is written to `milestones/<id>/dispatch/<n>.md` and passed through
    `program.sh dispatch check <file>` first: it refuses a prompt whose discipline preamble
    is missing or reworded, or that has no scope lock, no verify command, or no skill pinned
-   by an existing absolute path (**gate**; the check runs only if you run it). Status → `building`.
+   by an existing absolute path (**gate**; the check runs only if you run it). A second
+   message to a worker that is still running is a dispatch too — `<n>-followup.md`, gated
+   with `--kind followup`. Status → `building`.
 4. **Review.** Route the diff to every installed reviewer the capability map names for
    `review` (`/code-review:review`, `/ui-ux:review`, `/security:review`, the stack review).
    A reviewer's severity is a hypothesis: reproduce a `critical` in the browser before it

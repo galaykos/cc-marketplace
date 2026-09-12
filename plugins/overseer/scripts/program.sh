@@ -25,7 +25,7 @@
 #                                            # worker (default): preamble verbatim, TOUCH ONLY, VERIFY, an existing skill path
 #                                            # reader/reviewer: preamble verbatim, RETURN shape, an existing skill path, no scope/verify
 #                                            # every kind: a state file named without an absolute path is a WARN
-#   program.sh close                         # every milestone done/parked → archive the program; init may follow
+#   program.sh close                         # every milestone done/parked → archive the program (evidence paths rewritten); init may follow
 # Exit codes: 0 ok · 2 gate refused / bad vocabulary · 3 no program or bad usage · 4 jq missing · 5 state write failed
 # Env: OVERSEER_ROOT overrides the project root (default: git toplevel, else $PWD).
 #      OVERSEER_PREAMBLE overrides where `dispatch check` finds the canonical discipline preamble.
@@ -243,11 +243,28 @@ case "$cmd" in
     [ "${1:-}" = "check" ] && [ -n "${2:-}" ] || usage
     f="$2"; kind="worker"; shift 2
     while [ $# -gt 0 ]; do case "$1" in --kind) kind=$(arg "$1" "${2:-}") || exit 3; shift 2;; *) usage;; esac; done
-    in_list "$kind" worker reader reviewer || { echo "program.sh: --kind must be worker, reader or reviewer" >&2; exit 2; }
+    in_list "$kind" worker reader reviewer followup || { echo "program.sh: --kind must be worker, reader, reviewer or followup" >&2; exit 2; }
     [ -f "$f" ] || { echo "program.sh: no such prompt file $f" >&2; exit 3; }
     miss=""; warn=""
     pre="${OVERSEER_PREAMBLE:-}"
     [ -n "$pre" ] || pre=$(find "$HOME/.claude/plugins/cache" -path '*/delegation-contracts/references/discipline-preamble.md' 2>/dev/null | sort -V | tail -1)
+    if [ "$kind" = followup ]; then
+      # a message to a worker that is still alive: the preamble is already in its context, so the
+      # follow-up must SAY it still binds, keep the scope lock, verify and return shape, and name the
+      # dispatch file it continues — simulation 2 sent two of these with none of that recorded
+      grep -qiE 'preamble' "$f" || miss="$miss
+  a follow-up must say the discipline preamble still applies (it is in the worker's context, not in this file)"
+      grep -qE 'TOUCH ONLY|Touch only|touch only' "$f" || miss="$miss
+  no TOUCH ONLY scope lock (say 'same TOUCH ONLY set' or list the additions)"
+      grep -qE '(VERIFY|Verify)' "$f" || miss="$miss
+  no VERIFY command"
+      grep -qE 'RETURN' "$f" || miss="$miss
+  no RETURN shape"
+      grep -qE '/[A-Za-z0-9_./-]+/dispatch/[A-Za-z0-9_.-]+\.md' "$f" || miss="$miss
+  does not name the dispatch file it continues (…/dispatch/<n>.md, absolute)"
+      [ -n "$miss" ] && { echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; }
+      echo "dispatch prompt ok (followup): $f"; exit 0
+    fi
     if [ -n "$pre" ] && [ -f "$pre" ]; then
       while IFS= read -r line; do
         [ -n "$line" ] || continue
@@ -296,6 +313,12 @@ case "$cmd" in
     mkdir -p "$arch"
     mv "$state" "$arch/program.json"
     [ -d "$dir/milestones" ] && mv "$dir/milestones" "$arch/milestones"
+    # evidence rows hold absolute paths under $dir/milestones; the archive is the record a reader
+    # follows, so every path is rewritten to where the file now lives (checked by the harness)
+    phys=$(cd "$dir" && pwd -P)   # evidence add stores the physical path; $dir may be the logical one (macOS /var vs /private/var)
+    jq --arg a "$dir/milestones/" --arg b "$phys/milestones/" --arg to "$(cd "$arch" && pwd -P)/milestones/" \
+      '(.milestones[].evidence[].file) |= (if startswith($a) then $to + .[($a|length):] elif startswith($b) then $to + .[($b|length):] else . end)' \
+      "$arch/program.json" > "$arch/program.json.tmp" && mv "$arch/program.json.tmp" "$arch/program.json"
     for f in charter.md discovery.md capabilities.tsv decisions.md; do [ -f "$dir/$f" ] && cp "$dir/$f" "$arch/$f"; done
     mkdir -p "$dir/milestones"
     echo "program closed → $arch (decisions.md kept in place; init may start a new program)";;
