@@ -62,8 +62,11 @@ close prints and archives.
 
 `kind` (default `feature`) selects the row of `kinds.tsv` whose skill groups `accept`
 requires some gated dispatch to have pinned by an existing path (**gate**). `size`
-(`S|M|L|XL`, default `M`) routes the pipeline: M and up are briefed to taskmaster, only S
-may go to one direct worker (`dispatch check --milestone` WARNs otherwise); it is a roadmap
+(`S|M|L|XL`, default `M`) is the MILESTONE scale, not `/approaches:size`'s card scale (sim
+4's M was five cards and two hours — an L card): S one direct worker; M one taskmaster run
+in one session; L two sessions; XL a roadmap error, split it before briefing. It routes the
+pipeline: M and up are briefed to taskmaster, only S may go to one direct worker
+(`dispatch check --milestone` WARNs otherwise); it is a roadmap
 guess, so `milestone set --size <X> --reason` may correct it (history keeps the row) and
 `accept` prints "sized X · actual …" beside it. `rigour` (`lean|standard|adversarial`,
 unset until the brief is scored — `dispatch-prompts.md` § Rigour) says what scrutiny the

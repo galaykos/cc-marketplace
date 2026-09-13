@@ -2,6 +2,14 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.18
+
+### Changed
+- `coding-entry`'s ownership table splits "a whole app" in two: a landing page, marketing
+  site or one crafted surface still hands to `/craft-layer:craft`; a whole product across
+  sessions (a CRM, a SaaS, "clone X") hands to `/overseer:start` when installed, else
+  `/taskmaster:task`. Both plugins claimed "build a CRM" and neither named the other.
+
 ## 0.13.17
 
 ### Changed

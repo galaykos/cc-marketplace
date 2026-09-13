@@ -161,14 +161,24 @@ grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "an edited-since
 env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/3-review-tests.md" --kind reviewer --milestone m1 >/dev/null 2>&1
 # every required evidence row was recorded before 1-backend.md (a worker) — the walk is of older code
 expect 2 "accept refuses evidence older than the last gated worker dispatch" -- env HOME="$FAKEHOME" "$PS" accept --id m1
-grep -q "recorded before the last gated worker dispatch" "$WS/err" && grep -q " tests" "$WS/err" && ok || bad "stale-evidence refusal names the kinds: $(head -1 "$WS/err")"
+grep -q "recorded before the last gated worker" "$WS/err" && grep -q " tests" "$WS/err" && ok || bad "stale-evidence refusal names the kinds: $(head -1 "$WS/err")"
 sleep 1
-for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop keyboard motion; do
+rewalk() { for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop keyboard motion; do
   f="$WS/$k.png"; [ "$k" = tests ] && f="$WS/rel.txt"; "$PS" evidence add --id m1 --kind "$k" --note "re-walked" --file "$f" >/dev/null; done
-"$PS" evidence add --id m1 --kind console-clean --note "re-walked" --file "$WS/console.txt" >/dev/null
+"$PS" evidence add --id m1 --kind console-clean --note "re-walked" --file "$WS/console.txt" >/dev/null; }
+rewalk
+# a follow-up to a live worker is a dispatch too: gated in .gated, and a walk older than it is stale (0.3.2 — the
+# followup branch used to exit before the record, so no fix cycle ever moved the stale-evidence line)
+sleep 1
+printf 'Fix cycle 2 — same preamble and rules as your card %s/dispatch/1-backend.md; same TOUCH ONLY set; same VERIFY; same RETURN shape.\n1. do y\n' "$SD/milestones/m1" > "$SD/milestones/m1/dispatch/1-followup.md"
+expect 0 "dispatch check --kind followup inside dispatch/" -- env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/1-followup.md" --kind followup
+grep -qE "^[0-9]+ followup 1-followup\.md$" "$SD/milestones/m1/dispatch/.gated" && ok || bad "a gated follow-up is recorded in .gated: $(cat "$SD/milestones/m1/dispatch/.gated")"
+expect 2 "accept refuses evidence older than a gated follow-up" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -q "recorded before the last gated worker" "$WS/err" && ok || bad "a follow-up moves the stale-evidence line: $(head -1 "$WS/err")"
+sleep 1; rewalk
 expect 0 "accept m1" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 grep -qE "^next: m2 \(.*\) — ask once: continue now" "$WS/out" && ok || bad "accept prints the next runnable milestone and the interactive rule: $(grep next "$WS/out")"
-grep -qE "^sized M · actual: 3 gated dispatches \(1 worker\)" "$WS/out" && ok || bad "accept prints sized vs actual: $(grep sized "$WS/out")"
+grep -qE "^sized M · actual: 4 gated dispatches \(2 worker/follow-up\)" "$WS/out" && ok || bad "accept prints sized vs actual: $(grep sized "$WS/out")"
 grep -q "same file" "$WS/err" && bad "distinct evidence files drew the one-file WARN" || ok
 grep -q "no gated reviewer" "$WS/err" && bad "a gated reviewer exists yet the no-reviewer WARN fired" || ok
 jq -e '.milestones[0].status=="done" and .milestones[0].accepted_at!=null' "$SD/program.json" >/dev/null && ok || bad "m1 done"
@@ -292,6 +302,13 @@ expect 2 "dispatch check (worker) refuses the same read-only prompt" -- "$PS" di
 { cat "$PRE"; printf 'READ FIRST: %s/skills/x/SKILL.md\nRETURN: findings\n' "$WS"; } > "$WS/p6.md"
 expect 2 "dispatch check --kind reviewer needs the read-only statement" -- "$PS" dispatch check "$WS/p6.md" --kind reviewer
 expect 2 "dispatch check rejects an unknown kind" -- "$PS" dispatch check "$WS/p2.md" --kind boss
+# the preamble is worker discipline: a reviewer/reader prompt carries none (0.3.2 — the gate used to demand "run the
+# full check suite" verbatim in a prompt that also had to say "you write no file"); the SKILL's reviewer template is the fixture
+printf 'Review the diff `git diff main...ov/m1` against %s/skills/x/SKILL.md.\nYou are read-only: you write no file and run no command that changes the tree.\nMODEL: opus\nOne line per finding. RETURN `CLEAN` when none.\n' "$WS" > "$WS/p7r.md"
+expect 0 "dispatch check --kind reviewer passes the SKILL's template with no preamble" -- "$PS" dispatch check "$WS/p7r.md" --kind reviewer
+expect 0 "dispatch check --kind reader passes with no preamble" -- "$PS" dispatch check "$WS/p7r.md" --kind reader
+expect 2 "dispatch check (worker) still refuses a prompt with no preamble" -- "$PS" dispatch check "$WS/p7r.md"
+grep -q "preamble clause" "$WS/err" && ok || bad "worker refusal names the preamble"
 # followup kind: a message to a live worker — no preamble text, but it must say the preamble binds,
 # keep TOUCH ONLY / VERIFY / RETURN and name the dispatch file it continues
 printf 'Fix cycle 3 — same preamble and rules as your card %s/dispatch/3-fix-1.md; same TOUCH ONLY set plus b.php; same VERIFY; same RETURN shape.\n1. do x\n' "$WS" > "$WS/p8.md"
@@ -464,6 +481,23 @@ P2 milestone add --id m1 --title A --branch ov/a >/dev/null; P2 milestone add --
 jq '(.milestones[]) |= (.status="done")' "$W2/.claude/overseer/program.json" > "$W2/pj" && mv "$W2/pj" "$W2/.claude/overseer/program.json"
 expect 0 "close passes with a done integration milestone" -- env OVERSEER_ROOT="$W2" "$PS" close
 rm -rf "$W2"
+
+# ---- a project root with a space (0.3.2: word-split file lists and a space-free pin regex made accept impossible) ----
+W8="$(mktemp -d)/my proj"; mkdir -p "$W8/.claude/skills/stacky"; printf 'x' > "$W8/.claude/skills/stacky/SKILL.md"
+git -C "$W8" init -q -b main 2>/dev/null || git -C "$W8" init -q
+env OVERSEER_ROOT="$W8" "$PS" init --goal g --slug g >/dev/null 2>&1
+env OVERSEER_ROOT="$W8" "$PS" milestone add --id m1 --title t --branch ov/m1 --rigour standard >/dev/null 2>&1; env OVERSEER_ROOT="$W8" "$PS" milestone set --id m1 --status building >/dev/null 2>&1
+S8="$W8/.claude/overseer/milestones/m1/dispatch"; mkdir -p "$S8"
+{ cat "$PRE"; printf 'TOUCH ONLY: %s/a.php\nREAD FIRST: %s/.claude/skills/stacky/SKILL.md\nREAD FIRST: %s\nVERIFY: make test\nMODEL: opus\n' "$W8" "$W8" "$TESTSK"; } > "$S8/1.md"
+expect 0 "dispatch check pins a project skill under a path with a space" -- env OVERSEER_ROOT="$W8" HOME="$FAKEHOME" "$PS" dispatch check "$S8/1.md" --kind worker --milestone m1
+grep -q "no gated dispatch for m1 pins" "$WS/err" && bad "spaced root: kind groups read from the gated file: $(cat "$WS/err")" || ok
+{ printf 'READ FIRST: %s/.claude/skills/stacky/SKILL.md\nYou WRITE NO FILES.\nRETURN: findings\nMODEL: opus\n' "$W8"; } > "$S8/2-review-x.md"
+env OVERSEER_ROOT="$W8" HOME="$FAKEHOME" "$PS" dispatch check "$S8/2-review-x.md" --kind reviewer >/dev/null 2>&1
+sleep 1
+for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop keyboard motion console-clean; do
+  f="$W8/$k.txt"; mkfile "$f"; env OVERSEER_ROOT="$W8" "$PS" evidence add --id m1 --kind "$k" --note n --file "$f" >/dev/null 2>&1; done
+expect 0 "accept passes under a project root with a space" -- env OVERSEER_ROOT="$W8" HOME="$FAKEHOME" "$PS" accept --id m1
+rm -rf "$(dirname "$W8")"
 
 echo "program.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

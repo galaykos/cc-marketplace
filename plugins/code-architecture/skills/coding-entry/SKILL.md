@@ -57,7 +57,8 @@ row matches does the size question below apply.
 | The ask is | Hand to | Because |
 |---|---|---|
 | one component, layout, or restyle | `/ui-ux:build` | it already resolves the stack skill and injects the Read paths into its worker |
-| a whole app, landing page, CRM, SaaS surface | `/craft-layer:craft` | owns the end-to-end chain |
+| a landing page, a marketing site, one crafted app surface | `/craft-layer:craft` | owns the direction → sections → build → audit chain |
+| a whole product across sessions (a CRM, a SaaS, "clone X") | `/overseer:start` when installed, else `/taskmaster:task` | owns the milestone loop; craft and taskmaster are its per-milestone tools |
 | a page decided section by section | `/craft-layer:sections` | owns the batched option rounds |
 | colours, tokens, a theme | `/ui-ux:theme` | owns the live-preview loop |
 | an error, a failing test, a symptom | `/debugging:debug` | owns root-cause-before-fix |

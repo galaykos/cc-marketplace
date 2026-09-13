@@ -11,7 +11,7 @@ It accepts nothing it has not watched work in a browser.
 
 | Artifact | Kind | Does |
 | --- | --- | --- |
-| `/overseer:start` | command | opens a program: discover → clarify once → charter + roadmap → deliver the first milestone; `--model auto` is the only way a seat runs above opus |
+| `/overseer:start` | command | opens a program: discover → clarify once → charter + roadmap → deliver the first milestone; `--model auto` is the only way a seat the overseer dispatches runs above opus |
 | `/overseer:resume` | command | continues an open program in a fresh session from its recorded milestone status |
 | `/overseer:status` | command | prints the board — milestones, branches, evidence, next |
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
@@ -51,7 +51,7 @@ exist, not what they show — the residual is stated in `skills/overseer/referen
 The overseer writes prompts; other plugins do the work. `capability-scan.sh` reports per
 phase what is installed, and the skill's `references/capability-map.md` names the inline
 fallback for each gap. Best with `taskmaster` (grill → spec → cards; `ultra` for the boost,
-`goal` for hands-off), `task-runner` (scope-locked execution, `--tracks`), `git-workflow` (branch
+`goal-lean`/`goal` for hands-off by rigour), `task-runner` (scope-locked execution, `--tracks`), `git-workflow` (branch
 finish), `orchestration` (delegation contracts), the stack plugins (`laravel`, `web-dev`,
 `ui-ux`, `testing`, `security`) and the official `playwright` plugin or the Chrome MCP for
 the browser walk. With none of them it still runs: specs, cards and reviews inline, workers
@@ -63,8 +63,8 @@ dispatched directly — weaker, and said so in the charter.
 | --- | --- |
 | no `done` without the nine evidence kinds, each with a file that still exists; hands-off needs a reason and an ASSUMED decision; fixed status and kind vocabularies | **gate** — `scripts/program.sh`, harness `scripts/__tests__/program.test.sh` |
 | close refuses two done milestones on branches that contain neither the other until an `integration` milestone is done or `--divergent-ok` records why | **gate** — `program.sh close` exit 2 |
-| a milestone of kind K reaches `done` only after a dispatch that passed `dispatch check` (recorded in `dispatch/.gated`, unchanged since) pinned a skill from each of K's groups (`kinds.tsv`) by a path that exists; every required evidence row postdates the last gated worker dispatch; `init` refuses a session opened in another project unless `--foreign-session` says why | **gate** — `program.sh accept` / `init` exit 2 |
-| a dispatched prompt carries every line of the discipline preamble verbatim, a scope lock, a verify command, an existing skill path, and a `MODEL:` line the program tier allows — nothing above opus unless the program was started `--model auto`, and a worker never `inherit`s | **gate when run** — `program.sh dispatch check`; running it is agent-graded, and a prompt never checked is not part of the record |
+| a milestone of kind K reaches `done` only after a dispatch that passed `dispatch check` (recorded in `dispatch/.gated`, unchanged since) pinned a skill from each of K's groups (`kinds.tsv`) by a path that exists; every required evidence row postdates the last gated worker or follow-up dispatch; `init` refuses a session opened in another project unless `--foreign-session` says why | **gate** — `program.sh accept` / `init` exit 2 |
+| a worker prompt carries every line of the discipline preamble verbatim, a scope lock and a verify command; a reader/reviewer prompt a return shape and the read-only statement, no preamble (it is worker discipline); every kind an existing skill path and a `MODEL:` line the program tier allows — nothing above opus unless the program was started `--model auto`, and a worker never `inherit`s | **gate when run** — `program.sh dispatch check`; running it is agent-graded, and a prompt never checked is not part of the record |
 | a milestone sized M or larger is briefed to taskmaster; a direct worker on one needs a decision row | **WARN** — `dispatch check --milestone`; the row is recorded |
 | each milestone carries a rigour profile (`lean`/`standard`/`adversarial`) scored from six brief signals; a surface kind is never lean; the card index's boost marker agrees with it | **WARN** on form (unset, surface-lean, marker mismatch) — `dispatch check --milestone`; the score is **agent-graded** |
 | taskmaster's own red-team and coverage seats follow the session model under `goal`, whatever the overseer's tier | **residual** — hold every seat at opus by starting the session with `claude --model opus` |

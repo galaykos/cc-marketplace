@@ -37,9 +37,13 @@
 #   program.sh dispatch check <prompt-file> [--kind worker|reader|reviewer|followup] [--milestone <id>]
 #                                            # exit 0 records the file (checksum, kind) in its dispatch/.gated — accept counts only those
 #                                            # --milestone (or a file under milestones/<id>/dispatch/): WARN for each of the kind's skill groups no
-#                                            # gated dispatch has pinned yet; WARN on a dense card; WARN when the milestone has no rigour profile
-#                                            # worker (default): every preamble clause line verbatim (whitespace-folded), TOUCH ONLY, VERIFY, an existing skill path
-#                                            # reader/reviewer: preamble verbatim, RETURN shape, an existing skill path, no scope/verify
+#                                            # gated dispatch has pinned yet; WARN when the milestone has no rigour profile
+#                                            # worker (default): every preamble clause line verbatim (whitespace-folded), TOUCH ONLY, VERIFY, an existing
+#                                            # skill path; WARN on a dense card (with or without --milestone)
+#                                            # reader/reviewer: RETURN shape, says it writes no file, an existing skill path — NO preamble: it is worker
+#                                            # discipline (implement → verify → full suite) and contradicts a seat that writes nothing
+#                                            # followup: says the preamble still binds, scope lock, VERIFY, RETURN, names the dispatch file it continues;
+#                                            # recorded in .gated like a worker — accept's stale-evidence line is the newest worker OR follow-up
 #                                            # every kind but followup: a MODEL: line the program's tier allows — a worker never inherits, even under
 #                                            # --model auto (simulation 3 ran two thirds of its subagent turns on the session model unasked)
 #                                            # --milestone + worker: WARN when the milestone is sized M or larger and no taskmaster index newer than
@@ -125,11 +129,20 @@ session_root_check() {
 # pinned_groups_status <kind> <files...>: one line per group: "ok <group>" / "missing <group>" / "uninstalled <group>".
 # A pin counts only when the path EXISTS — a review found the text match alone let /nowhere/…/SKILL.md close an
 # auth milestone. `stack` is installed only when a project skill or a laravel/web-dev cache skill really is there.
+# pins_in <files...>: every …/SKILL.md path in the files that EXISTS, one per line. Two passes per line: the strict
+# match stops at a space, the lenient one allows spaces inside the path (a project under "…/my proj" could never pin
+# its own skill); a lenient over-capture across two pins on one line is a path that does not exist and drops out.
+pins_in() {
+  local f p
+  for f in "$@"; do
+    [ -f "$f" ] || continue
+    { grep -oE '/[^ `"'"'"'<>)]*/SKILL\.md' "$f"; grep -oE '/[^`"'"'"'<>):]*/SKILL\.md' "$f"; } 2>/dev/null | sort -u \
+      | while IFS= read -r p; do [ -n "$p" ] && [ -f "$p" ] && printf '%s\n' "$p"; done
+  done | sort -u
+}
 pinned_groups_status() {
-  local kind="$1"; shift; local files="$*" g alt plugin skill hit inst pins p
-  pins=""
-  while IFS= read -r p; do [ -n "$p" ] && [ -f "$p" ] && pins="$pins
-$p"; done < <(cat $files 2>/dev/null | grep -oE '/[^ `"'"'"'<>)]*/SKILL\.md' | sort -u)
+  local kind="$1"; shift; local g alt plugin skill hit inst pins
+  pins=$(pins_in "$@")
   for g in $(kind_required "$kind"); do
     hit=0; inst=0
     for alt in $(printf '%s' "$g" | tr '|' ' '); do
@@ -160,6 +173,9 @@ gated_files() {
     [ "$(cksum < "$f" | cut -d' ' -f1)" = "$sum" ] && printf '%s\n' "$f"
   done < <(awk '{last[$3]=$0} END{for (b in last) print last[b]}' "$gd/.gated")
 }
+# record_gated <file> <kind>: the row accept reads — checksum, kind, basename (the last row per file wins). Only a file
+# under its milestone's dispatch/ dir is recorded; a prompt checked elsewhere passes but is not a milestone dispatch
+record_gated() { local fa; fa=$(abspath "$1"); [ -z "$(in_dispatch_dir "$fa")" ] || printf '%s %s %s\n' "$(cksum < "$1" | cut -d' ' -f1)" "$2" "$(basename "$1")" >> "$(dirname "$fa")/.gated"; }
 abspath() { local d; d=$(cd "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1; printf '%s/%s' "$d" "$(basename "$1")"; }
 # in_dispatch_dir <abs-file>: prints the milestone id when the file lives under milestones/<id>/dispatch/ (logical or physical $dir)
 in_dispatch_dir() { local f="$1" dp; dp=$(cd "$dir" 2>/dev/null && pwd -P) || dp="$dir"
@@ -332,14 +348,14 @@ case "$cmd" in
     mkind=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
     # only dispatches that passed `dispatch check` and are unchanged since count: a review closed an auth milestone
     # with zero dispatch files and a hand-written pin to a path that did not exist
-    dfiles=$(gated_files "$id" | tr '\n' ' ')
-    if [ -z "$dfiles" ]; then
+    dfiles=(); while IFS= read -r f; do [ -n "$f" ] && dfiles+=("$f"); done < <(gated_files "$id")
+    if [ "${#dfiles[@]}" -eq 0 ]; then
       echo "program.sh: $id NOT accepted — no gated dispatch under milestones/$id/dispatch/ (a file counts once 'dispatch check' passed it and it is unchanged since; .gated is the record)" >&2
       echo "every worker, reviewer and follow-up prompt is a dispatch file passed through: program.sh dispatch check <file> --kind <k> --milestone $id" >&2
       exit 2
     fi
     unpinned=""
-    while IFS= read -r line; do case "$line" in missing*) unpinned="$unpinned ${line#missing }";; esac; done < <(pinned_groups_status "$mkind" $dfiles)
+    while IFS= read -r line; do case "$line" in missing*) unpinned="$unpinned ${line#missing }";; esac; done < <(pinned_groups_status "$mkind" "${dfiles[@]}")
     if [ -n "$unpinned" ]; then
       echo "program.sh: $id NOT accepted — kind $mkind requires a skill from each group below, and no gated dispatch under milestones/$id/dispatch/ pins one by a path that exists:" >&2
       for g in $unpinned; do echo "  $g" >&2; done
@@ -348,8 +364,8 @@ case "$cmd" in
     fi
     # a walk recorded before the last worker or follow-up dispatch walked older code (simulation 4 ran three fix
     # cycles after its first browser pass); the newest gated worker file's mtime is the line every required row must be after
-    lastw=""; for f in $(gated_files "$id" "worker followup"); do
-      m=$(date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || continue; [ "$m" \> "$lastw" ] && lastw="$m"; done
+    lastw=""; while IFS= read -r f; do [ -n "$f" ] || continue
+      m=$(date -u -r "$f" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || continue; [ "$m" \> "$lastw" ] && lastw="$m"; done < <(gated_files "$id" "worker followup")
     stale=""
     if [ -n "$lastw" ]; then
       for k in $REQUIRED_KINDS; do
@@ -358,7 +374,7 @@ case "$cmd" in
       done
     fi
     if [ -n "$stale" ]; then
-      echo "program.sh: $id NOT accepted — evidence recorded before the last gated worker dispatch ($lastw):$stale" >&2
+      echo "program.sh: $id NOT accepted — evidence recorded before the last gated worker/follow-up dispatch ($lastw):$stale" >&2
       echo "the code changed after that walk: re-run acceptance.md for those kinds and record them again (evidence add appends; the newest row counts)" >&2
       exit 2
     fi
@@ -379,7 +395,7 @@ case "$cmd" in
     mbranch=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.branch' "$state"); mbase=$(jq -r '.base_branch' "$state")
     lines=$(git -C "$root" diff --shortstat "$mbase...$mbranch" 2>/dev/null | sed -E 's/^ *[0-9]+ files? changed,? *//; s/ insertions?\(\+\)/+/; s/ deletions?\(-\)/-/; s/, */ /g' | tr -d '\n')
     mins=$(jq -r --arg id "$id" '.milestones[]|select(.id==$id)|.history as $h | ([$h[]|select(.status=="briefed" or .status=="building")|.at]|min) as $s | ([$h[]|select(.status=="done")|.at]|max) as $e | if $s==null or $e==null then "-" else ((($e|fromdate)-($s|fromdate))/60|floor|tostring) end' "$state")
-    echo "sized $msize · actual: $ng gated dispatches ($nw worker) · ${lines:-diff n/a} lines vs $mbase · $mins min"
+    echo "sized $msize · actual: $ng gated dispatches ($nw worker/follow-up) · ${lines:-diff n/a} lines vs $mbase · $mins min"
     # the moment after accept is where simulation 4 stopped (m1 of 3 done, "resume later", nobody there): say the
     # next step here, at the decision point, not only in the skill text the model read two hours earlier
     nx=$(jq -r "$NEXT_FILTER"' | if . == null then "none" else .id + " (" + .title + ")" end' "$state")
@@ -450,9 +466,12 @@ case "$cmd" in
       grep -qE '/[A-Za-z0-9_./-]+/dispatch/[A-Za-z0-9_.-]+\.md' "$f" || miss="$miss
   does not name the dispatch file it continues (…/dispatch/<n>.md, absolute)"
       [ -n "$miss" ] && { echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; }
-      echo "dispatch prompt ok (followup): $f"; exit 0
+      record_gated "$f" followup; echo "dispatch prompt ok (followup): $f"; exit 0
     fi
-    if [ -n "$pre" ] && [ -f "$pre" ]; then
+    # the preamble is worker discipline — implement, verify, full suite. A reader/reviewer carries none of it: gating
+    # it in put "run the full check suite" verbatim into every prompt that also had to say "you write no file"
+    if [ "$kind" != worker ]; then :
+    elif [ -n "$pre" ] && [ -f "$pre" ]; then
       # every line of every numbered clause, not only its first: clauses 2-9 of the canonical file span two to ten lines,
       # and "skip diagnosis and guess" on clause 2's second line passed the first-line check. Whitespace is folded so a
       # reflowed paragraph still counts as verbatim; a changed word does not.
@@ -493,9 +512,7 @@ case "$cmd" in
     elif ! in_list "$mval" $allowed; then miss="$miss
   MODEL: $mval is above the program tier '$tier' for a $kind seat (allows: $allowed) — only a reader/reviewer under --model auto may inherit the session model"
     fi
-    skill_ok=0
-    while IFS= read -r p; do [ -f "$p" ] && skill_ok=1 && break; done < <(grep -oE '/[^ `"'"'"'<>)]*/SKILL\.md' "$f" | sort -u)
-    [ "$skill_ok" -eq 1 ] || miss="$miss
+    [ -n "$(pins_in "$f")" ] || miss="$miss
   no skill pinned by an absolute path that exists (…/SKILL.md)"
     grep -qE '(^|[[:space:]`"'"'"'(=:])/[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+' "$f" || miss="$miss
   no absolute path anywhere"
@@ -512,7 +529,7 @@ case "$cmd" in
     if [ -n "$ms" ] && [ -s "$state" ]; then
       has_ms "$ms" || { echo "program.sh: no milestone $ms" >&2; exit 2; }
       mkind=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.kind // "feature"' "$state")
-      others=$(ls "$dir/milestones/$ms/dispatch/"*.md 2>/dev/null | tr '\n' ' ')
+      others=(); for o in "$dir/milestones/$ms/dispatch/"*.md; do [ -f "$o" ] && others+=("$o"); done
       while IFS= read -r line; do
         case "$line" in
           missing*) warn="$warn
@@ -520,7 +537,7 @@ case "$cmd" in
           uninstalled*) warn="$warn
   kind $mkind: ${line#uninstalled } is not installed — record the fallback (capability-map.md) in decisions.md";;
         esac
-      done < <(pinned_groups_status "$mkind" "$f" $others)
+      done < <(pinned_groups_status "$mkind" "$f" ${others[@]+"${others[@]}"})
       if [ "$(jq -r '.foreign_session_reason // ""' "$state")" != "" ]; then warn="$warn
   foreign session: pipeline commands unreachable — this prompt is the fallback, say so in findings.md"; fi
       # size routes the pipeline: S may go straight to a worker; M+ is briefed to taskmaster, and the proof it was
@@ -553,7 +570,8 @@ case "$cmd" in
         # The rigour profile says whether the code red-team is worth buying here; the marker says whether it was.
         # `Goal: true (boost=off)` is taskmaster's goal-lean (≥0.42.1, task-runner ≥0.32.0): hands-off without the boost.
         if [ -n "$idx" ]; then
-          if head -12 "$idx" | grep -E '^(Goal|Ultra): *true' | grep -qv 'boost=off'; then
+          # head -40, not -12: index-markers.md lets an upgraded-statement blockquote sit above the markers
+          if head -40 "$idx" | grep -E '^(Goal|Ultra): *true' | grep -qv 'boost=off'; then
             if in_list "$mrig" lean standard; then
               if [ "$hands" = true ]; then warn="$warn
   rigour $mrig, but the card index $idx is boosted — hands-off no longer needs the boost: brief /taskmaster:task goal-lean <brief> (taskmaster ≥0.42.1, task-runner ≥0.32.0); on an older pipeline record in decisions.md that autonomy bought the code red-team"
@@ -568,9 +586,7 @@ case "$cmd" in
     fi
     [ -n "$warn" ] && echo "program.sh: dispatch prompt $f WARN:$warn" >&2
     if [ -n "$miss" ]; then echo "program.sh: dispatch prompt $f NOT ready:$miss" >&2; exit 2; fi
-    # the record accept reads: checksum + kind + basename, appended (the last row per file wins); only a file that lives
-    # under its milestone's dispatch/ dir can be gated — a prompt checked elsewhere passes but is not a milestone dispatch
-    fa=$(abspath "$f"); [ -z "$(in_dispatch_dir "$fa")" ] || printf '%s %s %s\n' "$(cksum < "$f" | cut -d' ' -f1)" "$kind" "$(basename "$f")" >> "$(dirname "$fa")/.gated"
+    record_gated "$f" "$kind"
     echo "dispatch prompt ok ($kind): $f";;
 
   close)

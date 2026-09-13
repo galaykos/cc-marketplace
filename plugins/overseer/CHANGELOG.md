@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.3.2 — 2026-09-13
+
+Final post-merge review: a Fable branch review, a marketplace-wide conflict audit and a
+web survey of comparable harnesses (`taskmaster-docs/overseer/final-review-2026-09-13-*`).
+
+- **A follow-up is gated now.** `dispatch check --kind followup` exited before the
+  `.gated` record, so no fix cycle ever moved the stale-evidence line that 0.3.0 claimed —
+  the exact sim-4 case. It is recorded like a worker; `accept` refuses evidence older than
+  it and prints `(N worker/follow-up)`.
+- **A project path with a space can be accepted.** File lists were word-split and the pin
+  regex stopped at a space, so a project under `…/my proj` could pin nothing and never
+  accept. Lists are newline-safe; a lenient second pass reads a spaced path and the
+  existence check drops any over-capture.
+- **A reader/reviewer carries no preamble.** The gate demanded all nine worker clauses
+  (implement, verify, run the full suite) verbatim inside a prompt that also had to say
+  "you write no file"; the SKILL's own reviewer template failed it. Worker only now.
+- The boost marker is read from the index's first 40 lines, not 12 (an upgraded-statement
+  blockquote may sit above it).
+- Conflicts with neighbours resolved: `--tracks` is for two-plus track-eligible milestones,
+  not parallel groups (task-runner owns the flag); `worktree.md` now follows
+  git-workflow's worktree-isolation (`.claude/worktrees/`, lockfile install, plain remove)
+  and keeps only the Laravel/Vite additions; the `api` kind pins `graphql-grpc`, not
+  `api-docs-first` (which disclaims own-API design); the size letters are declared a
+  milestone scale, not `/approaches:size`'s card scale; tier `opus` is stated as a cost cap
+  overriding role-floors; lean drops the code red-team only (the spec red-team is
+  taskmaster's gate); README no longer says `goal` alone for hands-off, or that `--model
+  auto` is the only way any seat runs above opus.
+- Harness 236 (+11). Neighbours: taskmaster 0.42.2 (ultra description no longer reads all
+  three bare tokens as "no boost"), orchestration 0.16.10 (skill resolution via
+  `claude plugin list --json`, not `find | sort -V`), code-architecture 0.13.18 (a whole
+  product routes to `/overseer:start`, a crafted surface to craft).
+
 ## 0.3.1 — 2026-09-13
 
 - **Hands-off no longer pays the boost by default.** taskmaster 0.42.1 adds `goal-lean`

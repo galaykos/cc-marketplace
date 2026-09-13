@@ -123,9 +123,14 @@ Only the orchestrator can resolve the path, so it resolves and injects it — fo
 skill a card names in `Skills to apply`, and each `bestpractices-skill:` in frontmatter:
 
 1. **Resolve** dir `<name>`'s installed `SKILL.md` — same-plugin
-   `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`, else
-   `find ~/.claude/plugins/cache -path '*/skills/<name>/SKILL.md' | sort -V | tail -1`,
-   else repo `plugins/*/skills/<name>/SKILL.md` (dev). On miss: skip, never error.
+   `${CLAUDE_PLUGIN_ROOT}/skills/<name>/SKILL.md`, else the `installPath` of the plugin's
+   enabled row in `claude plugin list --json` (user scope or THIS project's `projectPath`)
+   + `/skills/<name>/SKILL.md`, else the cache dir whose VERSION segment sorts highest
+   (`~/.claude/plugins/cache/*/<plugin>/*/skills/<name>/SKILL.md`, `sort -V` on that
+   segment alone — `find ~/.claude/plugins/cache … | sort -V | tail -1` over the full path
+   picked database 0.4.2 over 0.7.0 and another marketplace's older copy; overseer's `scripts/skill-path.sh` is the
+   worked implementation), else repo `plugins/*/skills/<name>/SKILL.md` (dev). On miss:
+   skip, never error.
 2. **Inject**: `Read <abs-path> before writing; it is the authoritative best-practice
    source for this stack.`
 
