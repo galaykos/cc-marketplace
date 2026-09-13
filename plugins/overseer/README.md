@@ -77,6 +77,13 @@ dispatched directly — weaker, and said so in the charter.
 - The session must run from the target project: `taskmaster`, `task-runner`,
   `craft-layer` and every hook are cwd-bound, so a program driven from another directory
   falls back to direct dispatch and inline design direction (both simulations did).
+- **A fresh project's first session sees only user-scope plugins.** `enabledPlugins` get
+  registered on that start and loaded on the next; the capability scan cannot tell. Open one
+  throwaway session (or `/reload-plugins`) before `/overseer:start` in a new project, and
+  expect Discover to check the scan against the session's own Skill list (simulation 4).
+- **Hands-off M milestones pay for taskmaster's Extreme Boost** (`goal` = autonomy +
+  boost): $77 and 119 minutes for one ~900-line milestone in simulation 4. Interactive runs
+  brief taskmaster without the token below L; `dispatch check` WARNs on a boosted S/M index.
 - A plugin installed from a git marketplace is a cache snapshot: an edit during a program
   reaches the hook and the skill only after a reinstall. A directory marketplace whose
   plugin entry is a symlink is live — `${CLAUDE_PLUGIN_ROOT}` resolved to the working tree

@@ -10,6 +10,15 @@ entry the CLI does not always report). Without the `claude` CLI the scan prints 
 and the install commands — it never guesses. It also prints one `# ci:` row per workflow
 file with the branches it triggers on, flagged when the base branch is not among them.
 
+**The scan cannot see the session.** Installed and enabled is not the same as invocable:
+a project's first-ever session registers its `enabledPlugins` and loads only user-scope
+ones (simulation 4's first launch: 62 slash commands, 233 after a restart), and the scan
+reads the same settings files the CLI just registered from. The Discover step therefore
+compares the table against the session's own Skill listing; a row the session cannot
+invoke is `unreachable`, and the remedy is `/reload-plugins` (interactive) or a fresh
+session (headless) before any milestone is registered — a fallback there would quietly
+re-run the hand-dispatch path every earlier simulation took. Standing: agent-graded.
+
 | Phase | Preferred (cc-plugins-marketplace) | Also counts | Fallback when nothing is installed |
 | --- | --- | --- | --- |
 | understand | `stack-scan` (`/stack-scan:report`), `brain` (`/brain`, the map), `plugin-scout` | — | read manifests and lockfiles yourself; `find` the routes, pages, models, tests |

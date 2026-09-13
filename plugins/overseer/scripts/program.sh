@@ -426,7 +426,7 @@ case "$cmd" in
       # is a card index newer than the brief. "The brief is so complete grill would ask nothing" is not a reason —
       # both earlier simulations said exactly that for every milestone they hand-dispatched
       msize=$(jq -r --arg id "$ms" '.milestones[]|select(.id==$id)|.size // "M"' "$state")
-      if [ "$kind" = worker ] && [ "$msize" != S ]; then
+      if [ "$kind" = worker ]; then
         # the index must be newer than the brief AND name this milestone (its dir or heading does: 2026-09-12-m2-landing,
         # "# m2 landing") — any newer index would let m2's run cover a hand-dispatched m1 (simulation 3, when first checked)
         brief="$dir/milestones/$ms/brief.md"; idx=""; idre="(^|[^a-z0-9])$ms([^a-z0-9]|$)"
@@ -435,8 +435,15 @@ case "$cmd" in
             if printf '%s\n' "$i" | grep -qE "$idre" || head -5 "$i" | grep -qE "$idre"; then idx="$i"; break; fi
           done < <(find "$root/taskmaster-docs/tasks" -name 00-INDEX.md -newer "$brief" 2>/dev/null)
         fi
-        [ -n "$idx" ] || warn="$warn
-  size $msize: $ms is briefed to taskmaster (/taskmaster:task goal <brief>), and no card index under taskmaster-docs/tasks/ newer than its brief names $ms — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
+        [ "$msize" = S ] || [ -n "$idx" ] || warn="$warn
+  size $msize: $ms is briefed to taskmaster (/taskmaster:task <brief>), and no card index under taskmaster-docs/tasks/ newer than its brief names $ms — a direct worker here needs a decisions.md row saying why the pipeline was skipped"
+        # a Goal:/Ultra: marker in the index is taskmaster's Extreme Boost: spec red-team, a negative control per card,
+        # two to three reviewers per card, then a three-round code red-team. Simulation 4 paid $77 and 119 minutes for
+        # ONE M milestone of ~900 lines that way (simulation 3: $37 for two milestones without it). The panel found a
+        # real bug and one AA failure, so it is not theatre — it is L/XL money spent on an M. Interactive runs drop the
+        # token (/taskmaster:task <brief>); hands-off has no autonomous route without it yet, so there it is a decision row
+        if [ -n "$idx" ] && in_list "$msize" S M && head -12 "$idx" | grep -qE '^(Goal|Ultra): *true'; then warn="$warn
+  size $msize: the card index $idx carries a Goal:/Ultra: marker — Extreme Boost on an S/M milestone (simulation 4: \$77 / 119 min for one M); interactive: brief /taskmaster:task <brief> without the token; hands-off: record in decisions.md that autonomy costs the boost"; fi
       fi
     fi
     [ -n "$warn" ] && echo "program.sh: dispatch prompt $f WARN:$warn" >&2

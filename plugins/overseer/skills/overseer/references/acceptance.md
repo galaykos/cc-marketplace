@@ -28,8 +28,11 @@ the loading state the charter promised must be seen, not inferred from the code)
 
 1. **Suite first.** Run the exact verify commands from the brief and save every tail into
    one file. Red → back to the fix loop; acceptance never starts on a red suite. Then
-   `git status --short`: every untracked path is in the milestone's scope or explained (a
-   worker left a compiled `a.out` in simulation 2).
+   `git status --short --untracked-files=all`: every untracked path is in the milestone's
+   scope or explained (a worker left a compiled `a.out` in simulation 2; simulation 4 left
+   other plugins' scratch — `.claude/candor-last-*`, `.claude/comment-discipline/`,
+   `.claude/task-runner/`, `.claude/taskmaster/` — unnamed). Name them in the walk note or
+   propose the ignore lines as a suggestion; "not mine" is an explanation only once written.
 2. **Serve the app from the BUILT assets.** Kill any dev server a worker left (`lsof -i`
    on the Vite port), delete the framework's hot file (`public/hot` in Laravel) — a walk
    served from HMR modules is not a walk of what ships; then use the project's own serve

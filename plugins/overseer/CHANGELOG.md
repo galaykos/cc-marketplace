@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.2.1 — 2026-09-13
+
+Simulation 4 (a home-loan landing page on the same Vite starter, headless, hands-off,
+session and tier opus) was the first run to take the intended path end to end: taskmaster
+briefed, task-runner executing, every dispatch gated, every seat at opus, zero app code
+from the main thread, eleven evidence kinds from a real Chromium walk. It also stopped
+after m1 of 3 and cost $76.60 / 125 min against simulation 3's $37 / 70 min for two.
+
+- **The loop continues.** `start.md` step 5 and SKILL § Deliver 7: after Finish,
+  `program.sh next` — hands-off delivers every runnable milestone in the session;
+  interactive asks once per milestone whether to continue now or `/overseer:resume` in a
+  fresh session (the main thread, not the workers, held three quarters of the tokens).
+- **`goal` is Extreme Boost.** SKILL § Deliver 3 and `dispatch-prompts.md` § Brief say
+  what `/taskmaster:task goal` buys (spec red-team, negative controls, 2–3 reviewers per
+  card, a 3-round code red-team) and what it cost on an M; interactive runs brief
+  `/taskmaster:task <brief>` without the token below L. `dispatch check --milestone`
+  WARNs when an S/M milestone's card index carries a `Goal:`/`Ultra:` marker (not on L).
+  Residual: a hands-off run has no autonomous route without the boost until taskmaster
+  grows one; the cost is a decision row.
+- **Installed is not reachable.** A project's first-ever session registers
+  `enabledPlugins` without loading them (62 slash commands, 233 after a restart); the scan
+  reads the same files. SKILL § Discover 2 and `capability-map.md` say to check the table
+  against the session's own Skill listing and reload or restart before any milestone is
+  registered — the first launch of simulation 4 would otherwise have hand-dispatched again.
+- Skipping an installed command (`/stack-scan:report`, `/approaches:size`,
+  `/security:review` in sim 4) is named in the decision triggers; acceptance step 1 names
+  other plugins' `.claude/` scratch as an untracked path to explain.
+- Harness: 183 cases (+4: boost WARN on an M index with and without the marker, not on L,
+  and not alongside the skipped-pipeline WARN).
+
 ## 0.2.0 — 2026-09-12
 
 - **Model tier, chosen at start and persisted.** `/overseer:start "goal" [--model opus|auto]`

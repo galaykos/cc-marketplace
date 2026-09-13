@@ -2,7 +2,7 @@
 # Tests program.sh, announce.sh and capability-scan.sh against throwaway git repos.
 # Asserts: init writes state + .gitignore; --hands-off needs --reason; --model is opus|auto (default opus); detached HEAD stores a base;
 # milestone --size is S|M|L|XL (default M); a dispatch needs a MODEL: line the tier allows; an M+ milestone's direct worker WARNs
-# unless a taskmaster index is newer than its brief;
+# unless a taskmaster index is newer than its brief; a Goal:/Ultra: index on an S/M milestone WARNs (boost cost), on L it does not;
 # a second init over a program with milestones is refused (2); vocabularies are enforced (2);
 # `done` cannot be set by hand (2); file kinds need --file, stored absolute, must be a non-empty
 # regular file (2); accept refuses without the nine required kinds (2) and names the missing ones,
@@ -254,6 +254,16 @@ grep -q "size M" "$WS/err" && ok || bad "a newer index for ANOTHER milestone (m4
 mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-landing"; printf '# m4 landing — task index\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "size M" "$WS/err" && bad "index newer than the brief whose heading names m4 still WARNs" || ok
+grep -q "Extreme Boost" "$WS/err" && bad "an index without a Goal:/Ultra: marker draws the boost WARN" || ok
+# a Goal:/Ultra: marker in the index of an S/M milestone WARNs (simulation 4's cost); an L milestone's does not
+printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "Extreme Boost on an S/M milestone" "$WS/err" && ok || bad "Goal:/Ultra: index on an M milestone WARNs about the boost: $(grep -i boost "$WS/err")"
+grep -q "briefed to taskmaster" "$WS/err" && bad "the boost WARN must not also claim the pipeline was skipped" || ok
+"$PS" milestone add --id m6 --title Large --branch ov/m6 --size L >/dev/null 2>&1
+mkdir -p "$SD/milestones/m6"; printf 'brief' > "$SD/milestones/m6/brief.md"; sleep 1; mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-m6-big"; printf '# m6 big\nGoal: true (model=auto, effort=xhigh)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-m6-big/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m6 2> "$WS/err" >/dev/null
+grep -q "Extreme Boost" "$WS/err" && bad "an L milestone's Goal: index draws the boost WARN" || ok
 rm -rf "$SD/../../taskmaster-docs"
 "$PS" milestone add --id m5 --title Small --branch ov/m5 --size S >/dev/null 2>&1
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m5 2> "$WS/err" >/dev/null

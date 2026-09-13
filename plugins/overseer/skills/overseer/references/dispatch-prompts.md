@@ -78,10 +78,17 @@ Touch: <dirs/files>. Do not touch: <dirs/files>.
 <exact commands: suite, types, lint, build>
 ```
 
-Hand it over as `/taskmaster:task goal <the brief text>` (hands-off) or
-`/taskmaster:task <brief>` (interactive); taskmaster's grill treats the acceptance lines
-as CLEAR rows and asks only about what the brief left open. Every milestone sized M or
-larger goes this way; only an S milestone may skip to the worker template below, and the
+Hand it over as `/taskmaster:task <brief>` (interactive; grill treats the acceptance
+lines as CLEAR rows and asks only about what the brief left open) or `/taskmaster:task
+goal <the brief text>` (hands-off). **`goal` is not only autonomy — it is Extreme Boost**:
+spec red-team, a negative control and two to three reviewers per card, then a three-round
+code red-team with three refuters and a critic. Simulation 4 paid $77 and 119 minutes for
+one M milestone of ~900 lines that way (simulation 3: $37 for two milestones without it);
+the panel found one real bug and one AA failure, so it is L/XL money, not theatre. Below L
+an interactive run never adds the token; a hands-off run has no autonomous route without it
+yet (a taskmaster change is filed), so the cost is a `decisions.md` row and `dispatch check
+--milestone` WARNs when an S/M index carries the marker. Every milestone sized M or larger
+goes to taskmaster; only an S milestone may skip to the worker template below, and the
 skip is a `decisions.md` row (`dispatch check --milestone` WARNs when it is missing). When
 the card index has two-plus parallel groups, hand execution to `/task-runner:run --tracks`.
 
