@@ -1,6 +1,6 @@
 ---
 name: ultra
-description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task" (boost) or "ultra-goal" (boost + hands-off) in a taskmaster prompt (hyphen optional), a bare `ultra`/`goal`/`goal-lean` (hands-off, no boost) as FIRST token of a taskmaster command's args, or an `Ultra:`/`Goal: true` index marker; a token owned by ANOTHER command never fires.
+description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task" (boost) or "ultra-goal" (boost + hands-off), hyphen optional, a bare `ultra` (boost), `goal` (hands-off) or `goal-lean` (hands-off, no boost) as FIRST token of a taskmaster command's args, or an `Ultra:`/`Goal: true` index marker; another command's token never fires.
 ---
 
 # Ultra — Extreme Boost for a taskmaster run (+ hands-off Goal mode)

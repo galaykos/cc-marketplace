@@ -4,9 +4,12 @@ The orchestrator's prompt is the only thing a delegate ever sees. When `orchestr
 is installed, `cat` its `delegation-contracts/references/discipline-preamble.md` into the
 prompt — never retype it; a retyped preamble shed one clause per dispatch in the first
 simulation. Write each prompt to `milestones/<id>/dispatch/<n>.md` and run
-`program.sh dispatch check <file>` before spawning: it refuses a prompt in which any line of
-any preamble clause is missing or reworded (whitespace folded, so a reflow passes), or that
-lacks `TOUCH ONLY`, `VERIFY`, or a `…/SKILL.md` path that exists. Exit 0 records the file's
+`program.sh dispatch check <file>` before spawning: it refuses a worker prompt in which any
+line of any preamble clause is missing or reworded (whitespace folded, so a reflow passes),
+or that lacks `TOUCH ONLY`, `VERIFY`, or a `…/SKILL.md` path that exists. A reader or
+reviewer carries NO preamble — it is worker discipline (implement, verify, full suite) and
+contradicts a seat that writes nothing; its gate is the read-only line, `RETURN`, `MODEL:`
+and a skill path (§ Reviewer). Exit 0 records the file's
 checksum and kind in `dispatch/.gated`; `accept` counts only gated, unchanged files, so a
 prompt sent without the check — or edited after it — is not part of the record. The minimal rules below apply either way:
 absolute paths everywhere; the scope lock stated as touch/do-not-touch; the verify
@@ -42,7 +45,10 @@ because no dispatch said one and every `inherit` agent followed the session.
 | direction, adversary, reviewer, critic | `opus` | `inherit` (the session model) — the judgment seats are where capability shows |
 | scout, explorer | `sonnet` or `opus` | same — native is enough for a read |
 
-Below the tier is always allowed (`sonnet`, `haiku`). The tier binds only prompts the
+Tier `opus` is a program-level cost cap, on record here: it overrides `delegation-contracts`
+`references/role-floors.md` (judgment seats float to `max(session, opus)`) and task-executor's
+"nothing lowers my tier" — simulation 3's unasked session-model spend is the reason. `auto` is
+the tier that honours role-floors. Below the tier is always allowed (`sonnet`, `haiku`). The tier binds only prompts the
 overseer writes: taskmaster's own red-team and coverage seats resolve `auto` against the
 session model under `goal`, so the one way to hold every seat at opus is to start the
 session with `claude --model opus`.
@@ -119,7 +125,8 @@ overrides first (**agent-graded** — no script reads a brief for novelty):
 
 - **signal 1 → never lean**, whatever the sum (`dispatch check` WARNs on a lean surface kind).
 - **sum ≤ 1 and no logic change → `lean`**: `/taskmaster:task <brief>`; baseline reviewers
-  and negative control (free); no red-team of either kind. A copy change, a footer year.
+  and negative control (free); no code red-team — the spec red-team is taskmaster's own gate
+  and fires on any brief with three-plus criteria, whatever the profile. A copy change, a footer year.
 - **sum 2–3 → `standard`**: `/taskmaster:task <brief>` (the spec red-team fires on its own
   gate); after the run, ONE code red-team round you drive yourself — the correctness lens
   always, the security lens only with a surface, the test-teeth lens when a card's negative
@@ -208,7 +215,8 @@ One line per finding: `path:line — severity — problem — fix`. Severity-sor
 Skip style nits unless they change meaning. Max 30 lines. RETURN `CLEAN` when none.
 ```
 
-Save it as `dispatch/<n>-review-<name>.md` and gate it with `--kind reviewer` before
+No preamble: that file is worker discipline and its clauses contradict a seat that writes
+nothing. Save it as `dispatch/<n>-review-<name>.md` and gate it with `--kind reviewer` before
 sending — a reviewer is a dispatch, and the record of a fix cycle is incomplete without
 the prompt that produced its findings (`accept` WARNs when a milestone has none). On the
 taskmaster path task-runner writes the richer per-card form (`RV-CARD:`, one line per

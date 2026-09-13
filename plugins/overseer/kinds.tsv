@@ -12,7 +12,7 @@ crud	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:shadcn-best-pra
 board	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:motion-best-practices|craft-layer:interaction-fx ui-ux:shadcn-best-practices|ui-ux:component-libraries|ui-ux:tailwind-best-practices	drag, reorder, kanban, calendar — pointer AND keyboard paths
 auth	stack testing:testing-best-practices security:security-review|security:api-auth	login, roles, permissions, tokens
 form	stack testing:testing-best-practices ui-ux:a11y-audit security:security-review|security:api-auth	a form that collects user data (contact, application, sign-up): validation, error copy, where the data goes — never `feature` (sim 4 m3 got no security or a11y group that way)
-api	stack testing:testing-best-practices api-design:api-design|api-design:api-docs-first security:api-auth|security:security-review	an HTTP or GraphQL surface other code calls
+api	stack testing:testing-best-practices api-design:api-design|api-design:graphql-grpc security:api-auth|security:security-review	an HTTP or GraphQL surface other code calls
 data-model	stack database:sql-best-practices|database:mariadb-best-practices testing:testing-best-practices	schema, migrations, indexes, backfills
 infra	devops:devops-practices|devops:docker-best-practices|devops:compose-init	CI, containers, deploy, environments
 game	stack testing:testing-best-practices ui-ux:a11y-audit ui-ux:motion-best-practices|craft-layer:interaction-fx	a game or any motion-heavy interactive screen — keyboard path and reduced motion are the product
