@@ -4,9 +4,11 @@ The orchestrator's prompt is the only thing a delegate ever sees. When `orchestr
 is installed, `cat` its `delegation-contracts/references/discipline-preamble.md` into the
 prompt — never retype it; a retyped preamble shed one clause per dispatch in the first
 simulation. Write each prompt to `milestones/<id>/dispatch/<n>.md` and run
-`program.sh dispatch check <file>` before spawning: it refuses a prompt whose preamble
-clauses are missing or reworded, or that lacks `TOUCH ONLY`, `VERIFY`, or a `…/SKILL.md`
-path that exists. The minimal rules below apply either way:
+`program.sh dispatch check <file>` before spawning: it refuses a prompt in which any line of
+any preamble clause is missing or reworded (whitespace folded, so a reflow passes), or that
+lacks `TOUCH ONLY`, `VERIFY`, or a `…/SKILL.md` path that exists. Exit 0 records the file's
+checksum and kind in `dispatch/.gated`; `accept` counts only gated, unchanged files, so a
+prompt sent without the check — or edited after it — is not part of the record. The minimal rules below apply either way:
 absolute paths everywhere; the scope lock stated as touch/do-not-touch; the verify
 commands inside the prompt; the return shape and length cap stated; "your final message
 is data for the orchestrator, not prose for a human".
@@ -30,8 +32,8 @@ for this stack.` A miss is skipped silently, never invented.
 ## The model per seat — one line every prompt carries, bound by the program tier
 
 `MODEL: <value>` names the model the Agent call passes for this seat; `dispatch check`
-refuses a prompt without it, or with a value above the program's tier (`init --model`,
-default `opus`). Simulation 3 ran two thirds of its subagent turns on the session model
+refuses a prompt without it, with a value above the program's tier (`init --model`,
+default `opus`), or with `inherit` on a worker under any tier. Simulation 3 ran two thirds of its subagent turns on the session model
 because no dispatch said one and every `inherit` agent followed the session.
 
 | Seat | tier `opus` (default) | tier `auto` (`/overseer:start … --model auto`) |
@@ -78,12 +80,72 @@ Touch: <dirs/files>. Do not touch: <dirs/files>.
 <exact commands: suite, types, lint, build>
 ```
 
-Hand it over as `/taskmaster:task goal <the brief text>` (hands-off) or
-`/taskmaster:task <brief>` (interactive); taskmaster's grill treats the acceptance lines
-as CLEAR rows and asks only about what the brief left open. Every milestone sized M or
-larger goes this way; only an S milestone may skip to the worker template below, and the
-skip is a `decisions.md` row (`dispatch check --milestone` WARNs when it is missing). When
+Add a `## Rigour` block (next section) before handing over. Hand it over as
+`/taskmaster:task <brief>` (interactive; grill treats the acceptance lines as CLEAR rows and
+asks only about what the brief left open), `/taskmaster:task ultra <brief>` when the profile
+is adversarial, or `/taskmaster:task goal <brief>` (hands-off — `goal` is autonomy plus the
+boost, whatever the profile; the residual is a `decisions.md` row). Every milestone sized M
+or larger goes to taskmaster; only an S milestone may skip to the worker template below, and
+the skip is a `decisions.md` row (`dispatch check --milestone` WARNs when it is missing). When
 the card index has two-plus parallel groups, hand execution to `/task-runner:run --tracks`.
+
+## Rigour — what scrutiny a milestone buys, decided from the brief, not from its size
+
+The size letter says how much work a milestone is; it says nothing about how wrong the
+work can be. Simulation 4 priced the boost by size and got both directions wrong: "reserve
+it for L/XL" could never fire (an M milestone was five cards and 119 minutes) and "WARN on
+a boosted S/M" always did. What taskmaster's `ultra`/`goal` marker actually buys on top of a
+standard run — the per-card reviewers and the negative control are task-runner's baseline
+either way, and the spec red-team already runs past three criteria or an ASSUMED row — is
+the code red-team over the shipped diff (three refuters, a completeness critic with browser
+probes, up to three rounds), coverage loop-until-dry and tier escalation. In simulation 4
+that phase was 40 of 119 minutes and found the negative-total-interest bug, a 2.78:1 stale
+label and a comma-decimal keypad lockout; its third round found one test-strength issue and
+changed no source.
+
+Score six signals from the brief, one line each in the block; the profile is the sum,
+overrides first (**agent-graded** — no script reads a brief for novelty):
+
+| # | signal | where it shows |
+| --- | --- | --- |
+| 1 | irreversible or data surface: kind `auth`/`api`/`data-model`/`form`, or Scope touches auth, session, payment, PII, migration, money arithmetic | kind, § Scope |
+| 2 | a numeric or parsing contract in the acceptance lines (computed value, format, range, parser) | § Acceptance |
+| 3 | novel shape — no sibling in the tree implements it | `discovery.md` |
+| 4 | shared blast radius — `Primitives to ADD` non-empty, tokens/layout/middleware a later milestone consumes, two-plus dependants | brief, roadmap |
+| 5 | reviewer history — the previous milestone's `findings.md` has a major from a second reviewer or the red-team (first milestone: 1) | `milestones/*/findings.md` |
+| 6 | four-plus cards or ten-plus files expected | brief, roadmap |
+
+- **signal 1 → never lean**, whatever the sum (`dispatch check` WARNs on a lean surface kind).
+- **sum ≤ 1 and no logic change → `lean`**: `/taskmaster:task <brief>`; baseline reviewers
+  and negative control (free); no red-team of either kind. A copy change, a footer year.
+- **sum 2–3 → `standard`**: `/taskmaster:task <brief>` (the spec red-team fires on its own
+  gate); after the run, ONE code red-team round you drive yourself — the correctness lens
+  always, the security lens only with a surface, the test-teeth lens when a card's negative
+  control needed an explicit mutant — as reviewer dispatches (`--kind reviewer`), then the
+  fix loop. Simulation 4's m2 (marketing page: a11y and direction already forced by its
+  kind) is the worked case.
+- **sum ≥ 4 → `adversarial`**: `/taskmaster:task ultra <brief>` (hands-off: `goal`): the
+  full code red-team; stop after the critic round unless its fixes touched source no test
+  covers. Simulation 4's m1 (money maths, new primitives, first milestone) scores 5 and
+  buys what it bought, minus the six-minute third round; its m3 (an application form:
+  name, email, phone) is signal 1 → adversarial, which `--kind feature` would never have
+  reached — register it `--kind form`.
+
+Record the profile: `program.sh milestone set --id <id> --rigour <profile> --reason
+"<the signals>"` (or `--rigour` at `milestone add` when the roadmap already shows it);
+`status` prints it; `dispatch check --milestone` WARNs while it is unset, when a surface
+kind is lean, and when the card index disagrees with it — a `Goal:`/`Ultra:` marker on a
+lean/standard milestone (interactive: brief without the token; hands-off: the residual
+row) or no marker on an adversarial one (**WARN**; the score itself is recorded). Budget
+left is not an input: the plugin has no cost channel, and a rule on a number nothing can
+read is a fifth unenforceable claim. What the rule never cuts: the reviewers task-runner
+routes per card and the negative control — in simulation 4 every card major came from
+the second or third reviewer, and they cost nothing extra.
+
+```
+## Rigour: <lean | standard | adversarial>
+1 surface: <yes/no — why> · 2 numeric/parsing: … · 3 novel: … · 4 blast radius: … · 5 history: … · 6 volume: …
+```
 
 ## Worker (no taskmaster/task-runner installed, or a card dispatched directly)
 
@@ -144,7 +206,9 @@ Skip style nits unless they change meaning. Max 30 lines. RETURN `CLEAN` when no
 
 Save it as `dispatch/<n>-review-<name>.md` and gate it with `--kind reviewer` before
 sending — a reviewer is a dispatch, and the record of a fix cycle is incomplete without
-the prompt that produced its findings.
+the prompt that produced its findings (`accept` WARNs when a milestone has none). On the
+taskmaster path task-runner writes the richer per-card form (`RV-CARD:`, one line per
+criterion, the compressed return); this template is the direct-worker path's.
 
 ## Follow-up to a worker that is still alive
 

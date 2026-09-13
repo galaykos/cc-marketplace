@@ -2,7 +2,10 @@
 
 `scripts/program.sh accept --id <id>` closes a milestone only when these nine evidence
 kinds are recorded, each with a `--file` that exists at record time and still exists at
-accept time (**gate**, exit 2 otherwise; a screenshot deleted after recording un-accepts).
+accept time, and each recorded after the last gated worker or follow-up dispatch (**gate**,
+exit 2 otherwise; a screenshot deleted after recording un-accepts; a walk before the last
+fix cycle is re-run, not re-dated). Nine rows on one file and a milestone with no gated
+reviewer dispatch each draw a WARN, not a refusal.
 What each file must SHOW is judged by you (**agent-graded**); that the run was real is
 **unenforceable** by a script — which is why every item names a file a human can open.
 
@@ -28,8 +31,11 @@ the loading state the charter promised must be seen, not inferred from the code)
 
 1. **Suite first.** Run the exact verify commands from the brief and save every tail into
    one file. Red → back to the fix loop; acceptance never starts on a red suite. Then
-   `git status --short`: every untracked path is in the milestone's scope or explained (a
-   worker left a compiled `a.out` in simulation 2).
+   `git status --short --untracked-files=all`: every untracked path is in the milestone's
+   scope or explained (a worker left a compiled `a.out` in simulation 2; simulation 4 left
+   other plugins' scratch — `.claude/candor-last-*`, `.claude/comment-discipline/`,
+   `.claude/task-runner/`, `.claude/taskmaster/` — unnamed). Name them in the walk note or
+   propose the ignore lines as a suggestion; "not mine" is an explanation only once written.
 2. **Serve the app from the BUILT assets.** Kill any dev server a worker left (`lsof -i`
    on the Vite port), delete the framework's hot file (`public/hot` in Laravel) — a walk
    served from HMR modules is not a walk of what ships; then use the project's own serve

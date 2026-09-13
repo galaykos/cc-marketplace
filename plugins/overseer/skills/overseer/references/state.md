@@ -61,9 +61,15 @@ evidence stamps, dispatch file times, `decisions.md` and `suggestions.md` into o
 close prints and archives.
 
 `kind` (default `feature`) selects the row of `kinds.tsv` whose skill groups `accept`
-requires some gated dispatch to have pinned (**gate**). `size` (`S|M|L|XL`, default `M`)
-routes the pipeline: M and up are briefed to taskmaster, only S may go to one direct worker
-(`dispatch check --milestone` WARNs otherwise). `model` (`opus|auto`, set by `init
+requires some gated dispatch to have pinned by an existing path (**gate**). `size`
+(`S|M|L|XL`, default `M`) routes the pipeline: M and up are briefed to taskmaster, only S
+may go to one direct worker (`dispatch check --milestone` WARNs otherwise); it is a roadmap
+guess, so `milestone set --size <X> --reason` may correct it (history keeps the row) and
+`accept` prints "sized X · actual …" beside it. `rigour` (`lean|standard|adversarial`,
+unset until the brief is scored — `dispatch-prompts.md` § Rigour) says what scrutiny the
+milestone buys; `dispatch check --milestone` WARNs while unset or contradicted by the card
+index (**WARN**). `milestones/<id>/dispatch/.gated` is written by `dispatch check` (checksum,
+kind, file per exit 0); `accept` reads only files listed there and unchanged since. `model` (`opus|auto`, set by `init
 --model`, default `opus`) is the tier every dispatch's `MODEL:` line must respect
 (**gate**); a program written before the field exists reads as `opus`. `foreign_session_reason` at the
 program level is set only by `init --foreign-session`; while it is non-empty every
@@ -79,7 +85,10 @@ Evidence kinds (fixed vocabulary, **gate**): required — `tests`, `browser-happ
 `browser-error`, `viewport:mobile`, `viewport:tablet`, `viewport:desktop`, `console-clean`,
 `keyboard`, `motion`; optional — `a11y`, `review`, `perf`, `dark-mode`, `progress`. Every
 required kind needs `--file`, a non-empty regular file, stored as an absolute path and
-re-checked by `accept`. See `acceptance.md` for what each must contain.
+re-checked by `accept`; every required row must be newer than the last gated worker or
+follow-up dispatch (**gate** — a walk before the last fix cycle walked older code; record
+the kinds again, the newest row counts). Nine kinds on one file draws a WARN. See
+`acceptance.md` for what each must contain.
 
 `hands_off` is set by `init --hands-off --reason "<why>"`; `accept` refuses a hands-off
 program until `decisions.md` carries at least one ASSUMED row (**gate**).
@@ -94,8 +103,9 @@ program until `decisions.md` carries at least one ASSUMED row (**gate**).
    `queued` → the branch was deleted; set `parked` with reason "branch missing" and ask.
 3. `git branch --merged <base>` containing the branch and status not `done` → the user
    merged by hand; run acceptance anyway (merged is not proven) — never skip to `done`.
-4. Status `building` and a `taskmaster-docs/tasks/*/00-INDEX.md` newer than the brief →
-   continue that run via `/task-runner:run <index>`; otherwise re-execute from the brief.
+4. Status `building` and a `taskmaster-docs/tasks/*/00-INDEX.md` that names the milestone
+   and postdates its registration → continue that run via `/task-runner:run <index>`;
+   otherwise re-execute from the brief.
 5. Status `accepting` → acceptance re-runs from scratch. Evidence from a previous session
    is discarded by `program.sh evidence clear --id <id>` first: a screenshot of yesterday's
    build proves nothing about today's HEAD.

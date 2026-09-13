@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Tests program.sh, announce.sh and capability-scan.sh against throwaway git repos.
 # Asserts: init writes state + .gitignore; --hands-off needs --reason; --model is opus|auto (default opus); detached HEAD stores a base;
-# milestone --size is S|M|L|XL (default M); a dispatch needs a MODEL: line the tier allows; an M+ milestone's direct worker WARNs
-# unless a taskmaster index is newer than its brief;
+# milestone --size is S|M|L|XL (default M) and --rigour lean|standard|adversarial (unset draws a WARN per gated dispatch; a surface
+# kind is never lean); set --size/--rigour needs --reason and lands in history; a dispatch needs a MODEL: line the tier allows and a
+# worker never inherits even under --model auto; an M+ milestone's direct worker WARNs unless a taskmaster index registered after
+# the milestone names it (touching the brief changes nothing); an Ultra:/Goal: index on a lean/standard milestone WARNs, an
+# adversarial milestone with no marker WARNs; `dispatch check` exit 0 records the file in dispatch/.gated and accept counts only
+# gated, unchanged files whose pins EXIST; accept refuses evidence older than the last gated worker dispatch; accept prints sized vs actual;
 # a second init over a program with milestones is refused (2); vocabularies are enforced (2);
 # `done` cannot be set by hand (2); file kinds need --file, stored absolute, must be a non-empty
 # regular file (2); accept refuses without the nine required kinds (2) and names the missing ones,
@@ -51,6 +55,21 @@ jq -e '.goal=="Build a \"CRM\" ünïcode" and .base_branch=="main" and (.milesto
 grep -q "ASSUMED" "$SD/decisions.md" && ok || bad "decisions.md explains ASSUMED rows"
 expect 0 "init again with no milestones is allowed" -- "$PS" init --goal "Build a CRM" --slug crm --base main
 
+# the canonical preamble fixture and a pinnable skill, used by dispatch check below and by the gated dispatches accept needs
+PRE="$WS/preamble.md"; cat > "$PRE" <<'EOF'
+# Portable discipline preamble
+1. Restate the card as discrete ordered steps; one change per step.
+2. Inner loop: implement → run the card's **exact** `Verify` command.
+3. Three failed fix cycles on one card → **halt**.
+4. Touch **only** the allowed-files named in this dispatch prompt;
+   an out-of-set edit reclaims the card.
+EOF
+export OVERSEER_PREAMBLE="$PRE"
+mkdir -p "$WS/skills/x"; printf 'x' > "$WS/skills/x/SKILL.md"
+# wprompt <file> <skill-path>… : a complete worker prompt; rprompt: a complete read-only reviewer prompt
+wprompt() { local f="$1"; shift; { cat "$PRE"; printf 'TOUCH ONLY: %s/a.php\n' "$WS"; for sk in "$@"; do printf 'READ FIRST: %s\n' "$sk"; done; printf 'VERIFY: make test\nMODEL: opus\n'; } > "$f"; }
+rprompt() { local f="$1"; shift; { cat "$PRE"; for sk in "$@"; do printf 'READ FIRST: %s\n' "$sk"; done; printf 'You WRITE NO FILES.\nRETURN (max 40 lines): findings\nMODEL: opus\n'; } > "$f"; }
+
 # ---- milestones --------------------------------------------------------------------------
 expect 2 "bad milestone id" -- "$PS" milestone add --id one --title t --branch b
 expect 0 "add m1" -- "$PS" milestone add --id m1 --title "Skeleton" --branch ov/m1
@@ -60,7 +79,14 @@ grep -q "marketing-page" "$WS/err" && ok || bad "unknown kind lists the known on
 [ "$(jq -r '.milestones[0].kind' "$SD/program.json")" = feature ] && ok || bad "kind defaults to feature"
 expect 2 "unknown milestone size" -- "$PS" milestone add --id m9 --title x --branch ov/m9 --size XXL
 [ "$(jq -r '.milestones[]|select(.id=="m1")|.size' "$SD/program.json")" = "M" ] && ok || bad "milestone size defaults to M"
-expect 3 "milestone set rejects --size" -- "$PS" milestone set --id m1 --size S
+expect 2 "milestone set --size needs --reason" -- "$PS" milestone set --id m1 --size S
+expect 0 "milestone set --size with a reason" -- "$PS" milestone set --id m1 --size L --reason "brief shows five cards"
+jq -e '.milestones[0] | .size=="L" and (.history|last|.size=="L" and .reason=="brief shows five cards")' "$SD/program.json" >/dev/null && ok || bad "re-size lands in size and history"
+"$PS" milestone set --id m1 --size M --reason "back for the status test" >/dev/null
+expect 2 "milestone add refuses an unknown rigour" -- "$PS" milestone add --id m9 --title x --branch ov/m9 --rigour extreme
+expect 2 "milestone set --rigour needs --reason" -- "$PS" milestone set --id m1 --rigour lean
+expect 0 "milestone set --rigour with a reason" -- "$PS" milestone set --id m1 --rigour standard --reason "numeric contract, no surface"
+[ "$(jq -r '.milestones[0].rigour' "$SD/program.json")" = standard ] && ok || bad "rigour stored"
 expect 3 "milestone set rejects --kind" -- "$PS" milestone set --id m1 --kind crud
 expect 2 "depends on missing" -- "$PS" milestone add --id m2 --title "Upload" --branch ov/m2 --depends m9
 expect 2 "self dependency" -- "$PS" milestone add --id m2 --title "Upload" --branch ov/m2 --depends m2
@@ -110,14 +136,41 @@ mv "$WS/motion.png" "$WS/motion.gone"
 expect 2 "accept refuses when an evidence file vanished" -- "$PS" accept --id m1
 grep -q "no longer exist" "$WS/err" && ok || bad "vanished file named"
 mv "$WS/motion.gone" "$WS/motion.png"
-# kind routing: m1 is 'feature' → needs stack + testing pinned in some gated dispatch under milestones/m1/dispatch/
+# gated dispatches: accept counts only files `dispatch check` passed (dispatch/.gated) and that are unchanged since
 mkdir -p "$SD/milestones/m1/dispatch" "$WS/.claude/skills/laravel-best-practices" "$FAKEHOME/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices"
 printf 'x' > "$WS/.claude/skills/laravel-best-practices/SKILL.md"; printf 'x' > "$FAKEHOME/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md"
-printf 'READ FIRST: %s/.claude/skills/laravel-best-practices/SKILL.md\n' "$WS" > "$SD/milestones/m1/dispatch/1-backend.md"
-expect 2 "accept refuses: kind feature has no testing skill pinned in any dispatch" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+TESTSK="$FAKEHOME/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md"; STACKSK="$WS/.claude/skills/laravel-best-practices/SKILL.md"
+printf 'READ FIRST: %s\nREAD FIRST: %s\n' "$STACKSK" "$TESTSK" > "$SD/milestones/m1/dispatch/0-hand.md"
+expect 2 "accept refuses with no gated dispatch (a hand-written file pinning everything does not count)" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -q "no gated dispatch" "$WS/err" && ok || bad "refusal names the gated-dispatch rule: $(head -1 "$WS/err")"
+sleep 1; wprompt "$SD/milestones/m1/dispatch/1-backend.md" "$STACKSK"
+expect 0 "dispatch check gates a milestone worker file" -- env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/1-backend.md" --kind worker --milestone m1
+grep -qE "^[0-9]+ worker 1-backend\.md$" "$SD/milestones/m1/dispatch/.gated" && ok || bad ".gated records checksum, kind, file: $(cat "$SD/milestones/m1/dispatch/.gated")"
+# kind routing: m1 is 'feature' → needs stack + testing pinned, by paths that exist, in some gated dispatch
+expect 2 "accept refuses: kind feature has no testing skill pinned in any gated dispatch" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "accept names the unpinned group"
-printf 'READ FIRST: %s/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md\n' "$FAKEHOME" > "$SD/milestones/m1/dispatch/2-tests.md"
+rprompt "$SD/milestones/m1/dispatch/2-review-nowhere.md" "$WS/skills/x/SKILL.md" "/nowhere/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md"
+expect 0 "a gated reviewer may pin a path that does not exist beside one that does" -- env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/2-review-nowhere.md" --kind reviewer --milestone m1
+expect 2 "accept refuses: the testing pin is a path that does not exist" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "a text-only pin does not satisfy the group"
+rprompt "$SD/milestones/m1/dispatch/3-review-tests.md" "$TESTSK"
+env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/3-review-tests.md" --kind reviewer --milestone m1 >/dev/null 2>&1
+printf '\nedited after the check\n' >> "$SD/milestones/m1/dispatch/3-review-tests.md"
+expect 2 "accept refuses: the only testing pin is in a file edited after its check" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "an edited-since-check file is not gated"
+env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/3-review-tests.md" --kind reviewer --milestone m1 >/dev/null 2>&1
+# every required evidence row was recorded before 1-backend.md (a worker) — the walk is of older code
+expect 2 "accept refuses evidence older than the last gated worker dispatch" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -q "recorded before the last gated worker dispatch" "$WS/err" && grep -q " tests" "$WS/err" && ok || bad "stale-evidence refusal names the kinds: $(head -1 "$WS/err")"
+sleep 1
+for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop keyboard motion; do
+  f="$WS/$k.png"; [ "$k" = tests ] && f="$WS/rel.txt"; "$PS" evidence add --id m1 --kind "$k" --note "re-walked" --file "$f" >/dev/null; done
+"$PS" evidence add --id m1 --kind console-clean --note "re-walked" --file "$WS/console.txt" >/dev/null
 expect 0 "accept m1" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -qE "^next: m2 \(.*\) — ask once: continue now" "$WS/out" && ok || bad "accept prints the next runnable milestone and the interactive rule: $(grep next "$WS/out")"
+grep -qE "^sized M · actual: 3 gated dispatches \(1 worker\)" "$WS/out" && ok || bad "accept prints sized vs actual: $(grep sized "$WS/out")"
+grep -q "same file" "$WS/err" && bad "distinct evidence files drew the one-file WARN" || ok
+grep -q "no gated reviewer" "$WS/err" && bad "a gated reviewer exists yet the no-reviewer WARN fired" || ok
 jq -e '.milestones[0].status=="done" and .milestones[0].accepted_at!=null' "$SD/program.json" >/dev/null && ok || bad "m1 done"
 [ "$("$PS" next | cut -f1)" = "m2" ] && ok || bad "next advances to m2"
 expect 2 "accept from queued refused" -- "$PS" accept --id m2
@@ -163,13 +216,18 @@ grep -q "no milestones registered" "$WS/out" && ok || bad "status explains empty
 "$PS" init --goal "Third" --slug third --hands-off --reason "headless" >/dev/null 2>&1
 rm -f "$SD/decisions.md"; "$PS" init --goal "Third" --slug third --hands-off --reason "headless" >/dev/null 2>&1
 "$PS" milestone add --id m1 --title t --branch b >/dev/null; "$PS" milestone set --id m1 --status building >/dev/null
+mkdir -p "$SD/milestones/m1/dispatch"; wprompt "$SD/milestones/m1/dispatch/1.md" "$STACKSK" "$TESTSK"
+env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m1/dispatch/1.md" --milestone m1 >/dev/null 2>&1 || bad "hands-off worker dispatch gates"
 for k in tests browser-happy browser-error viewport:mobile viewport:tablet viewport:desktop console-clean keyboard motion; do
   "$PS" evidence add --id m1 --kind "$k" --note n --file "$WS/console.txt" >/dev/null
 done
-expect 2 "hands-off accept refused without ASSUMED decision" -- "$PS" accept --id m1
+expect 2 "hands-off accept refused without ASSUMED decision" -- env HOME="$FAKEHOME" "$PS" accept --id m1
 grep -q "ASSUMED" "$WS/err" && ok || bad "refusal names ASSUMED"
 "$PS" decision add --assumed --text a --alternative b --rationale c >/dev/null
-expect 0 "hands-off accept passes with ASSUMED decision" -- "$PS" accept --id m1
+expect 0 "hands-off accept passes with ASSUMED decision" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -qE "^next: none runnable — program.sh close" "$WS/out" && ok || bad "hands-off accept with nothing left prints the close hint: $(grep next "$WS/out")"
+grep -q "every evidence row points at the same file" "$WS/err" && ok || bad "nine kinds behind one file draws the WARN: $(cat "$WS/err")"
+grep -q "no gated reviewer dispatch" "$WS/err" && ok || bad "no reviewer dispatch draws the WARN"
 "$PS" status > "$WS/out"; grep -q "hands-off (headless)" "$WS/out" && ok || bad "status shows hands-off reason"
 
 # ---- malformed state / write failure ---------------------------------------------------------
@@ -194,14 +252,6 @@ OVERSEER_ROOT="$W2" "$PS" init --goal g --slug g >/dev/null 2>&1
 rm -rf "$W2"
 
 # ---- dispatch check ----------------------------------------------------------------------------
-PRE="$WS/preamble.md"; cat > "$PRE" <<'EOF'
-# Portable discipline preamble
-1. Restate the card as discrete ordered steps; one change per step.
-2. Inner loop: implement → run the card's **exact** `Verify` command.
-3. Three failed fix cycles on one card → **halt**.
-EOF
-export OVERSEER_PREAMBLE="$PRE"
-mkdir -p "$WS/skills/x"; printf 'x' > "$WS/skills/x/SKILL.md"
 printf 'Do the thing.\nVERIFY: make test\n' > "$WS/p1.md"
 expect 2 "dispatch check refuses bare prompt" -- "$PS" dispatch check "$WS/p1.md"
 grep -q "preamble clause" "$WS/err" && grep -q "TOUCH ONLY" "$WS/err" && grep -q "skill pinned" "$WS/err" && ok || bad "dispatch check names every miss"
@@ -219,11 +269,19 @@ expect 0 "tier opus allows a model below opus" -- "$PS" dispatch check "$WS/p2-s
 W5=$(mktemp -d); git -C "$W5" init -q -b main 2>/dev/null || git -C "$W5" init -q
 OVERSEER_ROOT="$W5" "$PS" init --goal g --slug g --model auto >/dev/null 2>&1
 [ "$(jq -r .model "$W5/.claude/overseer/program.json")" = "auto" ] && ok || bad "init stores --model auto"
-expect 0 "tier auto allows MODEL: inherit" -- env OVERSEER_ROOT="$W5" "$PS" dispatch check "$WS/p2-inherit.md"
+expect 2 "tier auto still refuses MODEL: inherit on a worker" -- env OVERSEER_ROOT="$W5" "$PS" dispatch check "$WS/p2-inherit.md"
+grep -q "for a worker seat" "$WS/err" && ok || bad "refusal says the seat, not only the tier: $(cat "$WS/err")"
+{ cat "$PRE"; printf 'READ FIRST: %s/skills/x/SKILL.md\nYou WRITE NO FILES.\nRETURN (max 40 lines): a document\nMODEL: inherit\n' "$WS"; } > "$WS/p5-inherit.md"
+expect 0 "tier auto allows MODEL: inherit on a reader" -- env OVERSEER_ROOT="$W5" "$PS" dispatch check "$WS/p5-inherit.md" --kind reader
 OVERSEER_ROOT="$W5" "$PS" status | grep -q "model: auto" && ok || bad "status shows model: auto"
 rm -rf "$W5"
 sed 's/one change per step/one change per step, roughly/' "$WS/p2.md" > "$WS/p3.md"
 expect 2 "dispatch check refuses a reworded clause" -- "$PS" dispatch check "$WS/p3.md"
+sed 's/an out-of-set edit reclaims the card/an out-of-set edit is fine/' "$WS/p2.md" > "$WS/p3b.md"
+expect 2 "dispatch check refuses a reworded SECOND line of a clause" -- "$PS" dispatch check "$WS/p3b.md"
+grep -q "preamble clause 4" "$WS/err" && ok || bad "refusal names the clause: $(cat "$WS/err")"
+awk 'NR==5{printf "%s ", $0; next} NR==6{sub(/^ +/, ""); print; next} {print}' "$WS/p2.md" > "$WS/p3c.md"
+expect 0 "a reflowed clause (same words, one line) still passes" -- "$PS" dispatch check "$WS/p3c.md"
 sed "s#$WS/skills/x/SKILL.md#/nonexistent/SKILL.md#" "$WS/p2.md" > "$WS/p4.md"
 expect 2 "dispatch check refuses a skill path that does not exist" -- "$PS" dispatch check "$WS/p4.md"
 expect 3 "dispatch check on missing file" -- "$PS" dispatch check "$WS/nope.md"
@@ -246,20 +304,54 @@ grep -q "preamble still applies" "$WS/err" && grep -q "dispatch file it continue
 "$PS" milestone add --id m4 --title Board --branch ov/m4 --kind board >/dev/null 2>&1
 expect 0 "dispatch check --milestone passes with warnings" -- env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4
 grep -q "kind board" "$WS/err" && grep -q "not installed" "$WS/err" && ok || bad "kind WARNs name the kind and the uninstalled groups: $(head -3 "$WS/err")"
-# size routes the pipeline: an M milestone with no taskmaster index newer than its brief WARNs on a direct worker; S does not
+grep -q "m4 has no rigour profile" "$WS/err" && ok || bad "an unset rigour WARNs on every gated dispatch: $(grep rigour "$WS/err")"
+# size routes the pipeline: an M milestone with no taskmaster index registered after it that names it WARNs on a direct worker; S does not
 grep -q "size M: m4 is briefed to taskmaster" "$WS/err" && ok || bad "direct worker on an M milestone WARNs about the skipped pipeline: $(grep size "$WS/err")"
-printf 'brief' > "$SD/milestones/m4/brief.md"; sleep 1; mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other"; printf '# m40 other\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other/00-INDEX.md"
+mkdir -p "$SD/milestones/m4"; printf 'brief' > "$SD/milestones/m4/brief.md"; sleep 1; mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other"; printf '# m40 other\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-m40-other/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "size M" "$WS/err" && ok || bad "a newer index for ANOTHER milestone (m40) must not cover m4"
 mkdir -p "$SD/../../taskmaster-docs/tasks/2026-09-12-landing"; printf '# m4 landing — task index\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
-grep -q "size M" "$WS/err" && bad "index newer than the brief whose heading names m4 still WARNs" || ok
+grep -q "size M" "$WS/err" && bad "index registered after m4 whose heading names m4 still WARNs" || ok
+grep -q "marker" "$WS/err" && bad "an index without a marker on an unset-rigour milestone draws a marker WARN" || ok
+touch "$SD/milestones/m4/brief.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "size M" "$WS/err" && bad "amending the brief after the index must not revive the pipeline-skipped WARN" || ok
+# rigour vs the index marker: a boosted index on a lean/standard milestone WARNs; an unboosted one on adversarial WARNs
+"$PS" milestone set --id m4 --rigour standard --reason "one novel signal" >/dev/null
+printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+# this program is hands-off (init Third above): the WARN names the residual, not a wrong token
+grep -q "hands-off has no autonomy without the boost" "$WS/err" && ok || bad "boosted index on a standard hands-off milestone names the residual: $(grep -i rigour "$WS/err")"
+W6=$(mktemp -d); git -C "$W6" init -q -b main 2>/dev/null || git -C "$W6" init -q
+OVERSEER_ROOT="$W6" "$PS" init --goal g --slug g >/dev/null 2>&1; OVERSEER_ROOT="$W6" "$PS" milestone add --id m1 --title t --branch b --rigour standard >/dev/null
+mkdir -p "$W6/taskmaster-docs/tasks/2026-09-12-m1-x"; printf '# m1 x\nUltra: true (model=auto, effort=xhigh)\n' > "$W6/taskmaster-docs/tasks/2026-09-12-m1-x/00-INDEX.md"
+env HOME="$FAKEHOME" OVERSEER_ROOT="$W6" "$PS" dispatch check "$WS/p2.md" --milestone m1 2> "$WS/err" >/dev/null
+grep -q "code red-team was bought where the profile says not to" "$WS/err" && ok || bad "boosted index on a standard interactive milestone WARNs: $(grep -i rigour "$WS/err")"
+rm -rf "$W6"
+grep -q "briefed to taskmaster" "$WS/err" && bad "the marker WARN must not also claim the pipeline was skipped" || ok
+grep -q "no rigour profile" "$WS/err" && bad "a set rigour still draws the unset WARN" || ok
+"$PS" milestone set --id m4 --rigour adversarial --reason "money maths" >/dev/null
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "marker" "$WS/err" && bad "boosted index on an adversarial milestone must not WARN" || ok
+printf '# m4 landing — task index\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "carries no Ultra: marker" "$WS/err" && ok || bad "unboosted index on an adversarial milestone WARNs: $(grep -i marker "$WS/err")"
 rm -rf "$SD/../../taskmaster-docs"
 "$PS" milestone add --id m5 --title Small --branch ov/m5 --size S >/dev/null 2>&1
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m5 2> "$WS/err" >/dev/null
 grep -q "size S" "$WS/err" && bad "an S milestone WARNs on a direct worker" || ok
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p5.md" --kind reader --milestone m4 2> "$WS/err" >/dev/null
 grep -q "briefed to taskmaster" "$WS/err" && bad "a reader dispatch draws the size WARN" || ok
+"$PS" milestone add --id m7 --title Login --branch ov/m7 --kind auth --rigour lean >/dev/null 2>&1
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m7 2> "$WS/err" >/dev/null
+grep -q "kind auth is never lean" "$WS/err" && ok || bad "a lean surface kind WARNs: $(grep -i lean "$WS/err")"
+# a file under milestones/<id>/dispatch/ names its milestone without --milestone, and is recorded in .gated
+mkdir -p "$SD/milestones/m5/dispatch"; cp "$WS/p2.md" "$SD/milestones/m5/dispatch/9.md"
+expect 0 "dispatch check derives the milestone from the file's path" -- env HOME="$FAKEHOME" "$PS" dispatch check "$SD/milestones/m5/dispatch/9.md"
+grep -q "m5 has no rigour profile" "$WS/err" && ok || bad "path-derived milestone draws the milestone WARNs: $(cat "$WS/err")"
+grep -qE "^[0-9]+ worker 9\.md$" "$SD/milestones/m5/dispatch/.gated" && ok || bad "path-derived dispatch is recorded in .gated"
+[ ! -f "$WS/.gated" ] && ok || bad "a prompt outside a dispatch dir is not recorded"
 expect 2 "dispatch check --milestone unknown id" -- "$PS" dispatch check "$WS/p2.md" --milestone m77
 # dense card WARN: the fixture preamble clauses + 20 items
 { cat "$WS/p2.md"; for i in $(seq 1 20); do printf '%s. do thing %s\n' "$i" "$i"; done; } > "$WS/p10.md"

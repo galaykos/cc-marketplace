@@ -50,8 +50,8 @@ exist, not what they show — the residual is stated in `skills/overseer/referen
 
 The overseer writes prompts; other plugins do the work. `capability-scan.sh` reports per
 phase what is installed, and the skill's `references/capability-map.md` names the inline
-fallback for each gap. Best with `taskmaster` (grill → spec → cards, hands-off via
-`ultra-goal`), `task-runner` (scope-locked execution, `--tracks`), `git-workflow` (branch
+fallback for each gap. Best with `taskmaster` (grill → spec → cards; `ultra` for the boost,
+`goal` for hands-off), `task-runner` (scope-locked execution, `--tracks`), `git-workflow` (branch
 finish), `orchestration` (delegation contracts), the stack plugins (`laravel`, `web-dev`,
 `ui-ux`, `testing`, `security`) and the official `playwright` plugin or the Chrome MCP for
 the browser walk. With none of them it still runs: specs, cards and reviews inline, workers
@@ -63,9 +63,10 @@ dispatched directly — weaker, and said so in the charter.
 | --- | --- |
 | no `done` without the nine evidence kinds, each with a file that still exists; hands-off needs a reason and an ASSUMED decision; fixed status and kind vocabularies | **gate** — `scripts/program.sh`, harness `scripts/__tests__/program.test.sh` |
 | close refuses two done milestones on branches that contain neither the other until an `integration` milestone is done or `--divergent-ok` records why | **gate** — `program.sh close` exit 2 |
-| a milestone of kind K reaches `done` only after some gated dispatch pinned a skill from each of K's groups (`kinds.tsv`); `init` refuses a session opened in another project unless `--foreign-session` says why | **gate** — `program.sh accept` / `init` exit 2 |
-| a dispatched prompt carries the discipline preamble verbatim, a scope lock, a verify command, an existing skill path, and a `MODEL:` line the program tier allows — nothing above opus unless the program was started `--model auto` | **gate when run** — `program.sh dispatch check`; running it is agent-graded |
+| a milestone of kind K reaches `done` only after a dispatch that passed `dispatch check` (recorded in `dispatch/.gated`, unchanged since) pinned a skill from each of K's groups (`kinds.tsv`) by a path that exists; every required evidence row postdates the last gated worker dispatch; `init` refuses a session opened in another project unless `--foreign-session` says why | **gate** — `program.sh accept` / `init` exit 2 |
+| a dispatched prompt carries every line of the discipline preamble verbatim, a scope lock, a verify command, an existing skill path, and a `MODEL:` line the program tier allows — nothing above opus unless the program was started `--model auto`, and a worker never `inherit`s | **gate when run** — `program.sh dispatch check`; running it is agent-graded, and a prompt never checked is not part of the record |
 | a milestone sized M or larger is briefed to taskmaster; a direct worker on one needs a decision row | **WARN** — `dispatch check --milestone`; the row is recorded |
+| each milestone carries a rigour profile (`lean`/`standard`/`adversarial`) scored from six brief signals; a surface kind is never lean; the card index's boost marker agrees with it | **WARN** on form (unset, surface-lean, marker mismatch) — `dispatch check --milestone`; the score is **agent-graded** |
 | taskmaster's own red-team and coverage seats follow the session model under `goal`, whatever the overseer's tier | **residual** — hold every seat at opus by starting the session with `claude --model opus` |
 | a fresh session learns a program is open | **hook** — SessionStart, one line |
 | discover before clarify (CI included); ask only what the project cannot answer; no code in the main thread; every decision in `decisions.md` | **agent-graded** / **recorded** |
@@ -77,6 +78,20 @@ dispatched directly — weaker, and said so in the charter.
 - The session must run from the target project: `taskmaster`, `task-runner`,
   `craft-layer` and every hook are cwd-bound, so a program driven from another directory
   falls back to direct dispatch and inline design direction (both simulations did).
+- **A fresh project's first session sees only user-scope plugins.** `enabledPlugins` get
+  registered on that start and loaded on the next; the capability scan cannot tell. Open one
+  throwaway session (or `/reload-plugins`) before `/overseer:start` in a new project, and
+  expect Discover to check the scan against the session's own Skill list (simulation 4).
+- **The boost is bought per milestone by rigour, not by size.** taskmaster's
+  `ultra`/`goal` marker adds the code red-team, coverage loop-until-dry and tier
+  escalation on top of a standard run; the per-card reviewers, the negative control and
+  (past three criteria) the spec red-team run without it. In simulation 4 that phase was
+  40 of 119 minutes and found the real bugs; the profile (`dispatch-prompts.md` § Rigour)
+  says when it is worth it. Hands-off still pays it on every milestone: `goal` is autonomy
+  plus boost, and the plugin records the residual rather than hiding it.
+- **One milestone per session is the cheap shape.** The main thread, not the workers, held
+  three quarters of simulation 4's tokens; `accept` prints the next milestone and the rule
+  (hands-off: continue here; interactive: continue now or `/overseer:resume` fresh).
 - A plugin installed from a git marketplace is a cache snapshot: an edit during a program
   reaches the hook and the skill only after a reinstall. A directory marketplace whose
   plugin entry is a symlink is live — `${CLAUDE_PLUGIN_ROOT}` resolved to the working tree
