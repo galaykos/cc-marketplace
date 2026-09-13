@@ -24,8 +24,11 @@ user chose to let judgment seats inherit the session model). Then:
    keyboard is a reason to ask, not a reason to assume.
 4. Write the charter and register the roadmap with
    `${CLAUDE_PLUGIN_ROOT}/scripts/program.sh milestone add … --kind <kind> --size <S|M|L|XL>`,
-   one call per milestone; the kind is the routing row in `kinds.tsv`, the size decides
-   whether the milestone is briefed to taskmaster (M and up) or may go to one worker (S).
+   one call per milestone; the kind is the routing row in `kinds.tsv` (a form that
+   collects user data is `form`, never `feature`), the size decides whether the milestone
+   is briefed to taskmaster (M and up) or may go to one worker (S). The rigour profile is
+   scored from the brief at Deliver step 2, not here, unless the roadmap already shows a
+   surface (`--rigour adversarial` on an auth milestone).
 5. Enter the skill's **Deliver** loop on the first milestone and keep going: after each
    Finish, `program.sh next` — under `--hands-off` deliver every runnable milestone in this
    session; interactive, ask once per milestone whether to continue now or resume in a

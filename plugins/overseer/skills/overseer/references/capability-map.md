@@ -58,8 +58,11 @@ Rules:
 Which phase a plugin covers is the table above; which skills a given milestone must pin is
 `${CLAUDE_PLUGIN_ROOT}/kinds.tsv`, one row per kind. `milestone add --kind` records the
 kind; `dispatch check --milestone <id>` WARNs for every group no gated dispatch has pinned
-yet; `accept` refuses while one is still unpinned. A group whose every alternative is not
-installed is a WARN with the fallback, never a refusal — the run is weaker and says so.
+yet; `accept` refuses while one is still unpinned. A pin counts only from a file `dispatch
+check` passed and unchanged since, and only by a path that exists. A group whose every
+alternative is not installed is a WARN with the fallback, never a refusal — the run is
+weaker and says so (the `stack` group is installed only when a project skill or a
+laravel/web-dev skill really is).
 
 | kind | must pin (one per group) | when |
 | --- | --- | --- |
@@ -68,10 +71,12 @@ installed is a WARN with the fallback, never a refusal — the run is weaker and
 | crud | stack · testing · a11y-audit · a styling skill | list/create/edit/delete of one resource |
 | board | crud's set + motion or interaction-fx | drag, reorder, kanban, calendar |
 | auth | stack · testing · security-review or api-auth | login, roles, permissions, tokens |
+| form | stack · testing · a11y-audit · security-review or api-auth | a form collecting user data — contact, application, sign-up; never `feature` |
 | api | stack · testing · api-design · api-auth or security-review | an HTTP or GraphQL surface |
 | data-model | stack · a database skill · testing | schema, migrations, indexes |
 | infra | a devops skill | CI, containers, deploy |
 | game | stack · testing · a11y-audit · motion or interaction-fx | a game or motion-heavy interactive screen |
+| integration | testing | merge the done branches and walk the product across them; `close` needs one when done branches diverge |
 
 "stack" is any project skill under `.claude/skills/` or any `laravel`/`web-dev` plugin skill.
 The rows are the two simulations' pins written down; a kind the table lacks is `feature`

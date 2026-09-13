@@ -1,42 +1,63 @@
 # Changelog
 
-## 0.2.1 — 2026-09-13
+## 0.3.0 — 2026-09-13
 
 Simulation 4 (a home-loan landing page on the same Vite starter, headless, hands-off,
 session and tier opus) was the first run to take the intended path end to end: taskmaster
 briefed, task-runner executing, every dispatch gated, every seat at opus, zero app code
 from the main thread, eleven evidence kinds from a real Chromium walk. It also stopped
-after m1 of 3 and cost $76.60 / 125 min against simulation 3's $37 / 70 min for two.
+after m1 of 3 and cost $76.60 / 125 min. A two-reviewer read of the plugin afterwards
+(one Fable, one Opus, every finding re-verified by experiment) found the cost mispriced
+and three "gate" rows that were not gates. This entry folds the unreleased 0.2.1.
 
+- **The boost is priced right and bought per milestone.** 0.2.1 charged the per-card
+  reviewers and the negative control to `goal`; they are task-runner's baseline, and the
+  spec red-team runs on any standard run past three criteria or an ASSUMED row. What the
+  `ultra`/`goal` marker adds is the code red-team, coverage loop-until-dry and tier
+  escalation — 40 of simulation 4's 119 minutes, and where the real bugs came from. Each
+  milestone now carries a **rigour profile** (`lean|standard|adversarial`) scored from six
+  brief signals (`dispatch-prompts.md` § Rigour): `milestone add/set --rigour`, shown by
+  `status`; `dispatch check --milestone` WARNs while unset, when a surface kind is lean,
+  and when the card index's marker disagrees (boost on lean/standard; none on
+  adversarial). Interactive: `/taskmaster:task ultra <brief>` is the boost without
+  autonomy — the overseer never mentioned it before. Hands-off still pays the boost on
+  every milestone (`goal` is both); the WARN names that residual instead of a wrong token.
+- **Three gates are now gates.** `dispatch check` exit 0 records the file (checksum, kind)
+  in `dispatch/.gated`; `accept` counts only gated, unchanged files, refuses a milestone
+  with none, and a kind-group pin counts only by a path that exists (a hand-written
+  `/nowhere/…/SKILL.md` closed an auth milestone before). The `stack` group is "installed"
+  only when a project or laravel/web-dev skill really is (it always refused before). A
+  worker never `MODEL: inherit`s, even under `--model auto` (the check read the tier and
+  never the seat).
+- **Evidence must postdate the last worker.** `accept` refuses a required row recorded
+  before the newest gated worker/follow-up dispatch (the walk was of older code); WARNs
+  when nine kinds share one file or no reviewer dispatch was gated. It prints `sized X ·
+  actual: N dispatches · +A/−B lines · T min` so the next size guess has an anchor, and
+  `milestone set --size --reason` corrects a wrong one (history keeps the row).
+- **Preamble check reads every clause line**, whitespace-folded: clauses 2–9 span two to
+  ten lines and only the first was compared. The canonical file is resolved through
+  `skill-path.sh` (the enabled install), not `find | sort -V` across marketplaces.
+- **The index-age check uses the milestone's registration time**, not the brief's mtime:
+  amending the brief mid-milestone turned the boost WARN into a false "pipeline skipped".
+- **Kinds:** new `form` (user-data forms: a11y + security groups — sim 4's m3 collected
+  name/email/phone as `feature`, which required neither); retired
+  `database:database-design` removed; <!-- removed-ok --> `integration` row added to the map's table.
 - **The loop continues.** `start.md` step 5 and SKILL § Deliver 7: after Finish,
-  `program.sh next` — hands-off delivers every runnable milestone in the session;
-  interactive asks once per milestone whether to continue now or `/overseer:resume` in a
-  fresh session (the main thread, not the workers, held three quarters of the tokens).
-- **`goal` is Extreme Boost.** SKILL § Deliver 3 and `dispatch-prompts.md` § Brief say
-  what `/taskmaster:task goal` buys (spec red-team, negative controls, 2–3 reviewers per
-  card, a 3-round code red-team) and what it cost on an M; interactive runs brief
-  `/taskmaster:task <brief>` without the token below L. `dispatch check --milestone`
-  WARNs when an S/M milestone's card index carries a `Goal:`/`Ultra:` marker (not on L).
-  Residual, by design rather than by omission: `goal`'s autonomy uses the spec red-team
-  as its wrong-pick checkpoint, so the boost is inseparable from hands-off — a hands-off
-  run pays it and records the cost. Interactive CLI/Desktop use is the primary path and
-  never adds the token below L. Per-card reviewer counts stay as task-runner routes them:
-  in simulation 4 the second and third reviewers found the majors on every UI card, so a
-  diff-size cut is not supported by the evidence.
-- **`accept` says what comes next.** After closing a milestone it prints the next runnable
-  one with the rule that applies (hands-off: deliver it here; interactive: ask once), or
-  the close hint — at the decision point, not two hours earlier in the skill text.
-- **Installed is not reachable.** A project's first-ever session registers
-  `enabledPlugins` without loading them (62 slash commands, 233 after a restart); the scan
-  reads the same files. SKILL § Discover 2 and `capability-map.md` say to check the table
-  against the session's own Skill listing and reload or restart before any milestone is
-  registered — the first launch of simulation 4 would otherwise have hand-dispatched again.
-- Skipping an installed command (`/stack-scan:report`, `/approaches:size`,
-  `/security:review` in sim 4) is named in the decision triggers; acceptance step 1 names
-  other plugins' `.claude/` scratch as an untracked path to explain.
-- Harness: 185 cases (+6: boost WARN on an M index with and without the marker, not on L,
-  not alongside the skipped-pipeline WARN; the post-accept next line, interactive and
-  hands-off/none).
+  `program.sh next` — hands-off delivers every runnable milestone; interactive asks once.
+  `accept` prints the next runnable milestone and the rule at the decision point.
+- **Installed is not reachable.** A project's first session registers `enabledPlugins`
+  without loading them; Discover checks the scan against the session's own Skill list and
+  reloads or restarts before any milestone exists.
+- `usage` prints the whole header (dispatch check, close, log, suggestion were cut off);
+  "no absolute path" is anchored (the string `and/or` satisfied it); `state.md` resume
+  rule matches the index-must-name-the-milestone check; the direct-path reviewer template
+  says what task-runner's richer form adds.
+- Not done, with reasons in `dispatch-prompts.md` § Rigour: no cut to task-runner's
+  reviewer routing or negative control (every card major in sim 4 came from the second or
+  third reviewer; both are free); no budget input (the plugin has no cost channel); the
+  brief-vs-spec drift check (three silent contradictions in sim 4) is agent-graded at
+  Deliver 3, not scripted.
+- Harness: 222 cases (+37).
 
 ## 0.2.0 — 2026-09-12
 

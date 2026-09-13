@@ -2,7 +2,10 @@
 
 `scripts/program.sh accept --id <id>` closes a milestone only when these nine evidence
 kinds are recorded, each with a `--file` that exists at record time and still exists at
-accept time (**gate**, exit 2 otherwise; a screenshot deleted after recording un-accepts).
+accept time, and each recorded after the last gated worker or follow-up dispatch (**gate**,
+exit 2 otherwise; a screenshot deleted after recording un-accepts; a walk before the last
+fix cycle is re-run, not re-dated). Nine rows on one file and a milestone with no gated
+reviewer dispatch each draw a WARN, not a refusal.
 What each file must SHOW is judged by you (**agent-graded**); that the run was real is
 **unenforceable** by a script — which is why every item names a file a human can open.
 
