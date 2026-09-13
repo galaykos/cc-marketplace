@@ -1,0 +1,49 @@
+schema_version: "1.0"
+name: hands-off-rigour
+description: A hands-off program's lean/standard milestone is briefed goal-lean, not goal — the boost is priced by the six rigour signals, never by size.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    An overseer program is open in this directory (`.claude/overseer/program.json`; it was
+    started `--hands-off`). Milestone m2 is `briefed` — read its brief under
+    `.claude/overseer/milestones/m2/brief.md`. The program's capability scan
+    (`.claude/overseer/capabilities.tsv`) recorded taskmaster 0.42.2 and task-runner 0.32.0
+    as installed in this project; treat their commands as reachable.
+
+    Which exact command do you hand this brief to, and what would each alternative buy or
+    cost compared with your pick? Answer in under 200 words.
+runs: 1
+graders:
+  - type: tool_used
+    name: overseer-skill-fired
+    tool: Skill
+    input_match: overseer
+  - type: llm
+    name: rigour-pick
+    criteria: |
+      The brief scores every rigour signal low: no surface kind (no form, auth, API or data
+      model), no numeric or parsing contract, no novelty (reused primitives), a clean reviewer
+      history, small volume. The overseer's rule maps a lean/standard milestone on a hands-off
+      program to `goal-lean`, never to `goal`.
+
+      PASS requires BOTH:
+
+      1. The pick is `goal-lean` — the response hands the brief to `/taskmaster:task goal-lean
+         <brief>` (or names `goal-lean` as the token it briefs with), and gives the reason in
+         rigour terms: low signals, lean or standard profile.
+      2. It states what the alternatives change: `goal` (or `ultra`) would additionally buy the
+         code red-team over the shipped diff, the coverage loop and tier escalation — while the
+         per-card reviewers and the negative control are the pipeline's baseline either way, not
+         a boost cost. A bare `<brief>` without `goal-lean` loses hands-off autonomy (the run
+         would stop at the first question with nobody there).
+
+      FAIL if the response picks `goal`, `ultra`, `ultra-goal` or a plain `<brief>` for this
+      milestone; if it prices the boost by size ("small, so no boost" is the wrong reason even
+      when the pick is right — the letter is volume, the signals are risk); or if it claims the
+      boost is what buys reviewers or a negative control.
+
+      Not graded: the order of the alternatives, whether the response mentions `dispatch check`,
+      or how it phrases the milestone's kind.

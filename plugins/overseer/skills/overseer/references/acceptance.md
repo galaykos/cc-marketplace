@@ -6,8 +6,14 @@ accept time, and each recorded after the last gated worker or follow-up dispatch
 exit 2 otherwise; a screenshot deleted after recording un-accepts; a walk before the last
 fix cycle is re-run, not re-dated). Nine rows on one file and a milestone with no gated
 reviewer dispatch each draw a WARN, not a refusal.
-What each file must SHOW is judged by you (**agent-graded**); that the run was real is
-**unenforceable** by a script — which is why every item names a file a human can open.
+That the file was LOOKED AT is a **gate** since 0.4.0: `hooks/track-read.sh` ledgers every
+`Read` while a program is open, and `evidence add` refuses a file no Read in this session
+touched since it last changed (a re-captured screenshot is unread again). Open the artifact
+with `Read` — a PNG renders — before recording it. What it must SHOW is judged by you
+(**agent-graded**); that the run behind it was real stays **unenforceable**, which is why
+every item names a file a human can open. Without a session id (a plain terminal) or with
+no Read tracked for the session (hook not loaded) the gate says so and records — fail-open,
+never silent.
 
 | Kind | What was done | The file |
 | --- | --- | --- |
@@ -66,7 +72,8 @@ the loading state the charter promised must be seen, not inferred from the code)
    wrong-port error is not "clean because we fixed it".
 6. **Record**, one call per item. A browser tool writes screenshots only inside its own
    allowed roots (the Playwright MCP: its `.playwright-mcp/` dir under the session cwd);
-   save there, then move the files into `milestones/<id>/evidence/` before recording:
+   save there, then move the files into `milestones/<id>/evidence/`, `Read` each one (the
+   read gate refuses a file this session never opened), then record:
    `program.sh evidence add --id m1 --kind browser-happy --note "upload → toast" --file <png>`.
 7. **Accept.** `program.sh accept --id m1`. Exit 2 lists what is missing; produce it.
    Take your own product look first (full-page screenshots at 1280 and 375, light and

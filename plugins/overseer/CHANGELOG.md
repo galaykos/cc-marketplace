@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.0 — 2026-09-13
+
+- **Read before you record.** A new PostToolUse hook, `hooks/track-read.sh`, ledgers every
+  `Read` while a program is open (`.claude/overseer/.reads`: epoch, session, physical path;
+  zero stdout). `evidence add --file X` now refuses a file no Read in this session touched
+  since X last changed — a screenshot nobody opened proves nothing, and one re-captured
+  after the look is unread again. The plugin's own "unenforceable — a file exists, not what
+  it shows" row moves to **gate** for the looking; what it shows stays agent-graded. Lifted
+  from the verify-gate in Anthropic's cwc-long-running-agents demo. Fail-open, said aloud:
+  no session id (plain terminal) or no Read tracked for the session (hook not loaded) → a
+  WARN and the row is recorded.
+- First eval suite with a control arm (`evals/`, two `case.yaml`s with a scaffold that
+  writes a real open program, so the skill's trigger is genuine): the hands-off rigour pick
+  and the green-suite acceptance refusal. Measured 2026-09-13, one run per arm, haiku judge,
+  `claude plugin eval plugins/overseer --scaffold --ablation with-without`: rigour pick
+  with 1 / without 0 (delta +1; the skill fired); acceptance refusal with 1 / without 0
+  (delta +1 — but the with-arm answered from the skill's DESCRIPTION, `Skill` called 0x,
+  and offered to record "accepted without evidence" on request, which the body forbids).
+  Two lessons the run bought: without a scaffold the skill never fired in the sandbox (no
+  program on disk → answered from the catalog, delta 0), and a case that only asks for a
+  judgment does not make the model load the body. One run each is a reading, not a
+  statistic; the without arm is the control CLAUDE.md says no plugin had.
+- Harness 251 (+15).
+
 ## 0.3.2 — 2026-09-13
 
 Final post-merge review: a Fable branch review, a marketplace-wide conflict audit and a

@@ -136,6 +136,30 @@ mv "$WS/motion.png" "$WS/motion.gone"
 expect 2 "accept refuses when an evidence file vanished" -- "$PS" accept --id m1
 grep -q "no longer exist" "$WS/err" && ok || bad "vanished file named"
 mv "$WS/motion.gone" "$WS/motion.png"
+# read-before-record (0.4.0): hooks/track-read.sh ledgers every Read while a program is open; a file kind
+# needs a row from this session at or after the file's last change. The payload carries transcript_path
+# because the host does; the hook keys nothing on it (session_id is a ledger field).
+TR="$(dirname "$PS")/../hooks/track-read.sh"
+mkfile "$WS/shot.png"; mkfile "$WS/unread.png"
+payload() { printf '{"session_id":"%s","transcript_path":"%s/t.jsonl","cwd":"%s","hook_event_name":"PostToolUse","tool_name":"Read","tool_input":{"file_path":"%s"}}' "$1" "$WS" "$2" "$3"; }
+out=$(payload s1 "$WS" "$WS/shot.png" | bash "$TR"); [ -z "$out" ] && ok || bad "track-read prints nothing: $out"
+grep -qE "^[0-9]+	s1	$(cd "$WS" && pwd -P)/shot\.png$" "$SD/.reads" && ok || bad "track-read ledgers epoch, session, physical path: $(cat "$SD/.reads" 2>/dev/null)"
+payload s1 "$FAKEHOME" "$WS/shot.png" | bash "$TR"; [ ! -f "$FAKEHOME/.claude/overseer/.reads" ] && ok || bad "no program open → no ledger"
+payload s1 "$WS" "rel-nope.png" | bash "$TR"; grep -q "rel-nope" "$SD/.reads" && bad "a missing file is not ledgered" || ok
+expect 0 "evidence add passes a file this session Read" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind browser-happy --note "looked" --file "$WS/shot.png"
+grep -q "read gate inactive" "$WS/err" && bad "no WARN when the session has rows" || ok
+expect 2 "evidence add refuses a file this session never Read" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind browser-happy --note "claimed" --file "$WS/unread.png"
+grep -q "was not Read in this session" "$WS/err" && ok || bad "refusal names the read gate: $(head -1 "$WS/err")"
+sleep 1; printf 'recaptured\n' >> "$WS/shot.png"
+expect 2 "evidence add refuses a file changed after its last Read" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind browser-happy --note "stale look" --file "$WS/shot.png"
+payload s1 "$WS" "$WS/shot.png" | bash "$TR"
+expect 0 "evidence add passes again once re-Read" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind browser-happy --note "looked again" --file "$WS/shot.png"
+expect 0 "evidence add fails open for a session with no tracked Read" -- env CLAUDE_CODE_SESSION_ID=s2 "$PS" evidence add --id m1 --kind browser-happy --note "no hook" --file "$WS/unread.png"
+grep -q "read gate inactive" "$WS/err" && ok || bad "fail-open is said: $(head -1 "$WS/err")"
+expect 0 "evidence add without a session id skips the gate silently" -- "$PS" evidence add --id m1 --kind browser-happy --note "terminal" --file "$WS/unread.png"
+grep -q "read gate" "$WS/err" && bad "no session id → no gate talk" || ok
+expect 0 "an optional kind without --file is outside the gate" -- env CLAUDE_CODE_SESSION_ID=s1 "$PS" evidence add --id m1 --kind review --note "clean"
+
 # gated dispatches: accept counts only files `dispatch check` passed (dispatch/.gated) and that are unchanged since
 mkdir -p "$SD/milestones/m1/dispatch" "$WS/.claude/skills/laravel-best-practices" "$FAKEHOME/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices"
 printf 'x' > "$WS/.claude/skills/laravel-best-practices/SKILL.md"; printf 'x' > "$FAKEHOME/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md"

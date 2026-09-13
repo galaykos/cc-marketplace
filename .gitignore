@@ -19,3 +19,6 @@ taskmaster-docs
 plugins/**/.claude/
 .playwright-mcp/
 __pycache__/
+
+# `claude plugin eval` writes its run artifacts into the plugin by default; never tracked
+plugins/*/evals/results/

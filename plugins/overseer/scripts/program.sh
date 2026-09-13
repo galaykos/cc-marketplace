@@ -314,6 +314,21 @@ case "$cmd" in
           [ -f "$file" ] || { echo "program.sh: --file $file is not a regular file" >&2; exit 2; }
           [ -s "$file" ] || { echo "program.sh: --file $file is empty" >&2; exit 2; }
           file=$(abspath "$file")
+          # read-before-record: hooks/track-read.sh appends "epoch\tsession\tphysical path" per Read while a
+          # program is open. A file kind needs a row from THIS session at or after the file's last change —
+          # a screenshot nobody opened proves nothing, and one re-captured after the look is unread again.
+          # No session id (plain terminal) or no row at all for this session (hook not loaded) → WARN and
+          # record, fail-open said out loud; a session that read other files but not this one → refused.
+          sid="${CLAUDE_CODE_SESSION_ID:-}"; rl="$dir/.reads"
+          if [ -n "$sid" ] && in_list "$kind" $FILE_KINDS; then
+            if [ -f "$rl" ] && awk -F'\t' -v s="$sid" '$2==s {f=1} END{exit !f}' "$rl"; then
+              fm=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null || echo 0)
+              awk -F'\t' -v s="$sid" -v f="$file" -v m="$fm" '$2==s && $3==f && ($1+0)>=(m+0) {ok=1} END{exit !ok}' "$rl" || {
+                echo "program.sh: --file $file was not Read in this session since its last change — open it and look at what it shows, then record it (the ledger is $rl: epoch, session, path)" >&2; exit 2; }
+            else
+              echo "program.sh: WARN read gate inactive — no Read tracked for session $sid (hooks/track-read.sh not loaded? /reload-plugins and restart); this row is recorded unread" >&2
+            fi
+          fi
         fi
         write --arg id "$id" --arg k "$kind" --arg n "$note" --arg f "$file" --arg at "$(now)" \
           '(.milestones[]|select(.id==$id)).evidence += [{kind:$k,note:$n,file:$f,at:$at}]'

@@ -30,8 +30,7 @@ can die between any two steps and `/overseer:resume` re-enters at the recorded o
 ### Discover (write `discovery.md` and `capabilities.tsv` in the program dir)
 
 0. **Right session.** `program.sh init` refuses a session opened in another directory
-   (the pipeline commands are unreachable from there; the run becomes hand-dispatch):
-   restart in the project, or `--foreign-session "<why>"` and take every
+   (the pipeline commands are unreachable from there): restart in the project, or `--foreign-session "<why>"` and take every
    fallback (**gate**). `init --model opus|auto` (default `opus`) fixes the tier.
 1. **Project inventory.** Stack and versions (`/stack-scan:report` when installed, else
    manifests, lockfiles, `Dockerfile`s); existing routes, pages, models, migrations; the
@@ -112,7 +111,7 @@ walking skeleton — one route, one page, one test, in the browser — never a d
 5. **Accept.** Status → `accepting`. Run `references/acceptance.md`: suite green, then the
    feature driven in a real browser — happy path with its success feedback in frame, error
    path, three widths, full keyboard path, reduced motion emulated, console clean — each
-   recorded with `program.sh evidence add --file <artifact>`. Then `program.sh accept --id
+   artifact `Read`, then `program.sh evidence add --file <artifact>`. Then `program.sh accept --id
    <id>`: exit 0 closes it; exit 2 lists what is missing —
    produce it, never edit the evidence file; evidence older than the last worker/follow-up dispatch
    is re-walked, not re-dated. Every state the charter promised is checked against what
@@ -175,18 +174,18 @@ model — residual).
 | The session was opened in the project, or the program records why not | **gate** — `init` exits 2 |
 | A fresh session learns a program is open | **hook** — SessionStart, one line |
 | Discover ran before Clarify; Clarify asked nothing the project answered; CI was inventoried | **agent-graded** |
-| The evidence describes a real browser run, not a claimed one | **unenforceable** — a file exists, not what it shows |
+| Every recorded artifact was `Read` in this session since it last changed | **gate** — `evidence add` exits 2 (`hooks/track-read.sh` ledger); what it shows: **agent-graded** |
 | No application code in the main thread; every decision in `decisions.md` | **recorded** |
 
 ## Anti-patterns
 
 - **Building in the overseer's seat.** Editing components between dispatches.
 - **Roadmap theatre.** A charter and ten milestones and no branch — plan, then deliver m1.
-  Its twin: accept m1, print "resume later", exit with nobody there (sim 4).
+  Its twin: accept m1, print "resume later", exit with nobody there.
 - **Tests-as-acceptance.** A green suite closing a milestone nobody opened in a browser.
 - **Pipeline by exception.** Every milestone "too well specified for grill", hand-dispatched.
 - **Rigour by size.** "M, so no boost" / "hands-off, so boost all": the letter is volume;
-  the six signals say what a wrong build costs (sim 4 mispriced both ways).
+  the six signals say what a wrong build costs.
 - **Silent scope creep.** A milestone that grew a second feature — park the extra as m<N+1>.
 - **Marketing ahead of the product.** A homepage naming stages, roles or counts no
   milestone ships (acceptance.md, product-truth check).
