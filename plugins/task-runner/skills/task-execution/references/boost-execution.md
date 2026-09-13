@@ -1,7 +1,9 @@
 # Extreme Boost at execution time
 
 Read this when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker. On a
-standard run none of it applies, which is why it left the SKILL body on
+standard run none of it applies — and a `Goal: true (boost=off)` marker (taskmaster's
+`goal-lean`) is a standard run plus the autonomy paragraph below: read ONLY the sentences
+marked "Under `Goal:`" from it, which is why it left the SKILL body on
 2026-08-20: it was ~1.9 kB of the body's 11.9 kB, on lines of 150-530 characters,
 loaded on every card execution including the unboosted ones.
 
@@ -10,7 +12,9 @@ loaded on every card execution including the unboosted ones.
 **Extreme Boost:** when `00-INDEX.md` carries an `Ultra: true` or `Goal: true` marker, dispatch the reviewer, delegated worker, and **code-redteam** panel agents with the
 resolved `model:` override — excluding `opinion-lens` — so the boost reaches execution even in a fresh session; code-redteam never reads the index itself, so pass it the
 resolved `(model, effort)`. A batch carries no tier override of its own — it dispatches like any other card (`references/routing.md` § Batch dispatch). Read BOTH markers:
-tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still escalates workers — goal implies the boost); the autonomy axis comes from `Goal:`. A trailing
+tier from `Ultra:` when present, ELSE from `Goal:` (a lone `Goal:` still escalates workers — goal implies the boost — UNLESS the `Goal:` line carries `boost=off`: then no
+marker sets a tier, workers inherit the session model, the code-redteam pass does NOT run, and the announcement is `▷ Standard run (hands-off) — workers inherit the session
+model (<model>) · effort: <effort> · boost: off`); the autonomy axis comes from `Goal:` either way. A trailing
 `(model=…, effort=…)` sets the tier — `model=auto` resolves HERE, to the executing session's model or opus, whichever is higher (haiku<sonnet<opus<fable); a malformed one
 falls to the marker's legacy default (`Ultra:`→opus/xhigh, `Goal:`→opus/xhigh). Announce the tier once at run start, boosted or not: `⚡ Ultra run — workers
 model=<marker-model>→<resolved>, effort=<effort>` / `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>` (standard `<effort>` =

@@ -27,7 +27,9 @@ full-suite completion gate.
   either. Registry and full rule:
   `plugins/orchestration/skills/delegation-contracts/references/role-floors.md`.
 - **A boost raises further.** An `Ultra: true` / `Goal: true` marker in `00-INDEX.md` carries a
-  `(model=…, effort=…)` tier into execution; workers and reviewers are dispatched at it.
+  `(model=…, effort=…)` tier into execution; workers and reviewers are dispatched at it. A
+  `Goal: true (boost=off)` marker (taskmaster `goal-lean`, since 0.32.0) raises nothing and
+  runs no code red-team: it is hands-off at the standard tier.
 
 Not every agent tracks the session model, and that is deliberate: breadth and mechanical roles
 (persona lenses, scouts, index builders) pin a mid tier by design, which can sit above or below

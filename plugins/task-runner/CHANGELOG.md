@@ -2,6 +2,16 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.32.0
+
+### Added
+- `Goal: true (boost=off)` — taskmaster's `goal-lean` marker. Hands-off autonomy (auto-take,
+  run through, never merge) without the boost: no tier escalation, no code-redteam pass, and
+  the completion gate owes no red-team panel. `boost-execution.md`, track-orchestration,
+  code-redteam, the executor agent and `completion-gate.sh` read the suffix; an older
+  runner reads a lone `Goal:` as boosted (overpays, never under-verifies). Smoke: a
+  `boost=off` index with an empty panel is allowed.
+
 ## 0.31.6
 
 ### Changed

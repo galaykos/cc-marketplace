@@ -29,6 +29,8 @@ blast-radius doctrine; a one-file, two-criterion spec does not earn a subagent. 
 **Exception — a boosted run never skips.** Under `ULTRA-TASK ACTIVE` **or** `ULTRA-GOAL ACTIVE` the red-team runs regardless of the bullets (`ultra/SKILL.md` "run ALWAYS";
 `ultra-goal/SKILL.md` "ALWAYS runs under goal"). Both directives count — goal injects `ULTRA-GOAL ACTIVE`, not the ultra-task string, and goal is hands-off, so no user is
 present to catch a wrong skip. Zero bullets under a boost still runs; § The panel sizes N.
+`ULTRA-GOAL ACTIVE (boost=off)` (goal-lean) is hands-off WITHOUT the boost: the bullets
+decide as on a standard run, and a skip is written to the goal ledger, not only inline.
 
 ## Dispatch the adversary — blind
 

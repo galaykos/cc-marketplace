@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1 — 2026-09-13
+
+- **Hands-off no longer pays the boost by default.** taskmaster 0.42.1 adds `goal-lean`
+  (autonomy without the boost, marker `Goal: true (boost=off)`, read by task-runner
+  0.32.0). The rigour mapping for hands-off is now `goal-lean` for lean/standard and `goal`
+  for adversarial; `dispatch check` reads `boost=off` as unboosted, points a boosted
+  lean/standard hands-off index at `goal-lean`, and WARNs on an adversarial milestone whose
+  index is `boost=off`. The 0.3.0 residual ("hands-off still pays") is closed for
+  pipelines at those versions and stated for older ones. Harness 225 (+3).
+
 ## 0.3.0 — 2026-09-13
 
 Simulation 4 (a home-loan landing page on the same Vite starter, headless, hands-off,

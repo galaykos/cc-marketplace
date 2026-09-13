@@ -53,7 +53,8 @@ Each track-worker is a leaf subagent. Its dispatch prompt carries:
   inside each track,
 - under ultra, the `model` (always) and `effort` (Workflow path only) from the index
   marker — read BOTH, tier from `Ultra:` when present ELSE from `Goal:` (a lone `Goal:`
-  still escalates; `ultra-goal` stamps no `Ultra:` line), resolved per
+  still escalates; `ultra-goal` stamps no `Ultra:` line; `Goal: true (boost=off)` sets
+  no tier and fires no red-team — autonomy only), resolved per
   task-execution/SKILL.md's rule and passed as `agent()` parameters, never as prompt prose.
   The same resolved tier is passed into the **code-redteam** pass this path fires at the
   merge gate — that skill never reads the index, so an unpassed tier runs it native.

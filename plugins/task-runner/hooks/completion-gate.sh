@@ -222,7 +222,8 @@ if [ -r "$gatepass" ] && [ "$(jq -r '.head // empty' "$gatepass" 2>/dev/null)" =
     boosted=0
     case "$idx" in /*) idxp="$idx" ;; *) idxp="$cwd/$idx" ;; esac   # absolute or relative
     if [ -n "$idx" ] && [ -r "$idxp" ]; then
-      grep -qiE '^[[:space:]]*(Ultra|Goal):[[:space:]]*true' "$idxp" 2>/dev/null && boosted=1
+      # a Goal: line carrying boost=off (taskmaster goal-lean) is hands-off without the boost: no panel is owed
+      grep -iE '^[[:space:]]*(Ultra|Goal):[[:space:]]*true' "$idxp" 2>/dev/null | grep -qv 'boost=off' && boosted=1
     fi
     # A boosted run that shipped no code has nothing for a code red-team to refute —
     # code-redteam fires "when a boosted run produced code". Arming rt/ at registration

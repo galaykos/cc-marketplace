@@ -87,8 +87,9 @@ dispatched directly — weaker, and said so in the charter.
   escalation on top of a standard run; the per-card reviewers, the negative control and
   (past three criteria) the spec red-team run without it. In simulation 4 that phase was
   40 of 119 minutes and found the real bugs; the profile (`dispatch-prompts.md` § Rigour)
-  says when it is worth it. Hands-off still pays it on every milestone: `goal` is autonomy
-  plus boost, and the plugin records the residual rather than hiding it.
+  says when it is worth it. Hands-off buys it the same way: `goal-lean` (taskmaster
+  ≥0.42.1, task-runner ≥0.32.0) for lean and standard milestones, `goal` for adversarial;
+  on an older pipeline `goal` is the only autonomous token and the cost is a decision row.
 - **One milestone per session is the cheap shape.** The main thread, not the workers, held
   three quarters of simulation 4's tokens; `accept` prints the next milestone and the rule
   (hands-off: continue here; interactive: continue now or `/overseer:resume` fresh).

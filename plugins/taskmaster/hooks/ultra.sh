@@ -45,7 +45,7 @@
   printf '%s' "$head" | grep -qiE "ultra-?(task|goal|assess(ment)?|craft) +active" && exit 0
   # The directive is emitted through a quoted heredoc: no expansion, so the
   # manifest text is the wire text — backticks, quotes and $ are all literal.
-  if printf '%s' "$head" | grep -qiE '\bultra-?goal\b'; then
+  if printf '%s' "$head" | grep -qiE '\bultra-?goal\b([^-]|$)'; then
     cat <<'CC_BOOST_DIRECTIVE'
 ULTRA-GOAL ACTIVE (model=auto, effort=xhigh) — hands-off Extreme Boost for this taskmaster run. Apply the taskmaster 'ultra' skill (skills/ultra/SKILL.md) in Goal mode: full boost contract (reasoning subagents model:auto — session model or opus, whichever is higher, escalate never downgrade; effort xhigh on the Workflow path, inline dispatch escalates model only; scouts and opinion-lens stay NATIVE), mandatory red-team + coverage, auto-take every recommendation per the skill's Goal rules with every auto-take audited to the goal ledger, stamp 'Goal: true (model=auto, effort=xhigh)' into 00-INDEX.md, never suppress safety halts, print the ⚡ banner first. Fan-out only when the Workflow tool is present; else inline fallback labeled 'inline heuristic pass — single model, uncorroborated'.
 CC_BOOST_DIRECTIVE

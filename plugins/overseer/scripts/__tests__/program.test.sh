@@ -4,8 +4,8 @@
 # milestone --size is S|M|L|XL (default M) and --rigour lean|standard|adversarial (unset draws a WARN per gated dispatch; a surface
 # kind is never lean); set --size/--rigour needs --reason and lands in history; a dispatch needs a MODEL: line the tier allows and a
 # worker never inherits even under --model auto; an M+ milestone's direct worker WARNs unless a taskmaster index registered after
-# the milestone names it (touching the brief changes nothing); an Ultra:/Goal: index on a lean/standard milestone WARNs, an
-# adversarial milestone with no marker WARNs; `dispatch check` exit 0 records the file in dispatch/.gated and accept counts only
+# the milestone names it (touching the brief changes nothing); an Ultra:/Goal: index on a lean/standard milestone WARNs (hands-off: points at goal-lean; Goal: boost=off does not), an
+# adversarial milestone with no marker or a boost=off one WARNs; `dispatch check` exit 0 records the file in dispatch/.gated and accept counts only
 # gated, unchanged files whose pins EXIST; accept refuses evidence older than the last gated worker dispatch; accept prints sized vs actual;
 # a second init over a program with milestones is refused (2); vocabularies are enforced (2);
 # `done` cannot be set by hand (2); file kinds need --file, stored absolute, must be a non-empty
@@ -322,7 +322,12 @@ grep -q "size M" "$WS/err" && bad "amending the brief after the index must not r
 printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 # this program is hands-off (init Third above): the WARN names the residual, not a wrong token
-grep -q "hands-off has no autonomy without the boost" "$WS/err" && ok || bad "boosted index on a standard hands-off milestone names the residual: $(grep -i rigour "$WS/err")"
+grep -q "brief /taskmaster:task goal-lean" "$WS/err" && ok || bad "boosted index on a standard hands-off milestone points at goal-lean: $(grep -i rigour "$WS/err")"
+printf '# m4 landing — task index\n\nGoal: true (boost=off) — requires task-runner >=0.32.0\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "marker" "$WS/err" && bad "a Goal: boost=off index on a standard milestone must not WARN" || ok
+grep -q "briefed to taskmaster" "$WS/err" && bad "a Goal: boost=off index still proves the pipeline ran" || ok
+printf '# m4 landing — task index\n\nUltra: true (model=auto, effort=xhigh)\nGoal: true (model=auto, effort=xhigh)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
 W6=$(mktemp -d); git -C "$W6" init -q -b main 2>/dev/null || git -C "$W6" init -q
 OVERSEER_ROOT="$W6" "$PS" init --goal g --slug g >/dev/null 2>&1; OVERSEER_ROOT="$W6" "$PS" milestone add --id m1 --title t --branch b --rigour standard >/dev/null
 mkdir -p "$W6/taskmaster-docs/tasks/2026-09-12-m1-x"; printf '# m1 x\nUltra: true (model=auto, effort=xhigh)\n' > "$W6/taskmaster-docs/tasks/2026-09-12-m1-x/00-INDEX.md"
@@ -337,6 +342,9 @@ grep -q "marker" "$WS/err" && bad "boosted index on an adversarial milestone mus
 printf '# m4 landing — task index\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
 grep -q "carries no Ultra: marker" "$WS/err" && ok || bad "unboosted index on an adversarial milestone WARNs: $(grep -i marker "$WS/err")"
+printf '# m4 landing — task index\n\nGoal: true (boost=off)\n' > "$SD/../../taskmaster-docs/tasks/2026-09-12-landing/00-INDEX.md"
+env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m4 2> "$WS/err" >/dev/null
+grep -q "never goal-lean" "$WS/err" && ok || bad "a Goal: boost=off index on an adversarial milestone WARNs: $(grep -i marker "$WS/err")"
 rm -rf "$SD/../../taskmaster-docs"
 "$PS" milestone add --id m5 --title Small --branch ov/m5 --size S >/dev/null 2>&1
 env HOME="$FAKEHOME" "$PS" dispatch check "$WS/p2.md" --milestone m5 2> "$WS/err" >/dev/null

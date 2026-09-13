@@ -129,6 +129,13 @@ Every auto-take is auditable through three sinks:
 - **Index marker** — `Goal: true (model=…, effort=…)` in `00-INDEX.md`, carrying
   hands-off into execution
 
+**`goal-lean`** — the same hands-off mode without the boost: a bare `goal-lean` as a
+command's first argument (no free-text token). Every auto-take rule and the ledger apply;
+the tier stays the session's, spec-redteam and coverage run by their own gates, and no
+code red-team runs at execution. The index marker is `Goal: true (boost=off)`, read by
+task-runner ≥ 0.32.0 (older runners treat any `Goal:` as boosted). The overseer plugin
+picks between `goal` and `goal-lean` per milestone from its rigour profile.
+
 Safety floor: goal mode **never** runs a branch merge/PR (the git surface stays
 manual), never suppresses the never-suppress set defined in the `ultra` skill's Goal
 contract, and never auto-accepts a security/auth/data-loss or statement-fidelity red-team

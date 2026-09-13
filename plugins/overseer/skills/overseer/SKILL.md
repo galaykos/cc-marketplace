@@ -87,8 +87,8 @@ walking skeleton — one route, one page, one test, in the browser — never a d
    decides what scrutiny is bought.
 3. **Execute.** Size M and up with taskmaster installed: `/taskmaster:task <brief>`
    (lean/standard), `ultra <brief>` (adversarial: buys the code red-team over the diff,
-   where sim 4's real bugs came from), `goal <brief>` (hands-off: autonomy and boost
-   together, the residual recorded). Per-card reviewers and negative controls are
+   where sim 4's real bugs came from), hands-off `goal-lean <brief>` (lean/standard) or
+   `goal <brief>` (adversarial). Per-card reviewers and negative controls are
    task-runner's baseline, never a boost cost. Let taskmaster hand off to task-runner —
    `/task-runner:run --tracks` for two-plus parallel groups; when the index appears, diff
    its decisions against the brief's binding ones and record each delta (sim 4 shipped

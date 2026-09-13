@@ -359,6 +359,14 @@ for l in logic security repro; do printf '{}' > "$RTDIR/rt-lens-$l.json"; done
 check "boosted run, 3 lenses but no critic -> block" "" "$J" 2 "red-team panel is short"
 printf '{}' > "$RTDIR/rt-critic-m1.json"
 check "boosted run, full panel -> allow" "" "$J" 0 __NONE__
+# a Goal: line carrying boost=off (taskmaster goal-lean) is hands-off without the boost: no panel owed
+rm -f "$RTDIR"/*.json
+printf 'Goal: true (boost=off) — requires task-runner >=0.32.0\n' > "$REPO/x/00-INDEX.md"
+check "goal-lean run (Goal: boost=off), empty red-team panel -> allow" "" "$J" 0 __NONE__
+printf 'Goal: true (model=auto, effort=xhigh)\n' > "$REPO/x/00-INDEX.md"
+check "goal run (Goal: with a tier), empty red-team panel -> block" "" "$J" 2 "red-team panel is short"
+for l in logic security repro; do printf '{}' > "$RTDIR/rt-lens-$l.json"; done; printf '{}' > "$RTDIR/rt-critic-m1.json"
+printf 'Ultra: true\n' > "$REPO/x/00-INDEX.md"
 
 # the observer records refuter and critic dispatches from their markers
 rm -f "$RTDIR"/*.json
