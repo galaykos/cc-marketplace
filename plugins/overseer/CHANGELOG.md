@@ -17,8 +17,15 @@ after m1 of 3 and cost $76.60 / 125 min against simulation 3's $37 / 70 min for 
   card, a 3-round code red-team) and what it cost on an M; interactive runs brief
   `/taskmaster:task <brief>` without the token below L. `dispatch check --milestone`
   WARNs when an S/M milestone's card index carries a `Goal:`/`Ultra:` marker (not on L).
-  Residual: a hands-off run has no autonomous route without the boost until taskmaster
-  grows one; the cost is a decision row.
+  Residual, by design rather than by omission: `goal`'s autonomy uses the spec red-team
+  as its wrong-pick checkpoint, so the boost is inseparable from hands-off — a hands-off
+  run pays it and records the cost. Interactive CLI/Desktop use is the primary path and
+  never adds the token below L. Per-card reviewer counts stay as task-runner routes them:
+  in simulation 4 the second and third reviewers found the majors on every UI card, so a
+  diff-size cut is not supported by the evidence.
+- **`accept` says what comes next.** After closing a milestone it prints the next runnable
+  one with the rule that applies (hands-off: deliver it here; interactive: ask once), or
+  the close hint — at the decision point, not two hours earlier in the skill text.
 - **Installed is not reachable.** A project's first-ever session registers
   `enabledPlugins` without loading them (62 slash commands, 233 after a restart); the scan
   reads the same files. SKILL § Discover 2 and `capability-map.md` say to check the table
@@ -27,8 +34,9 @@ after m1 of 3 and cost $76.60 / 125 min against simulation 3's $37 / 70 min for 
 - Skipping an installed command (`/stack-scan:report`, `/approaches:size`,
   `/security:review` in sim 4) is named in the decision triggers; acceptance step 1 names
   other plugins' `.claude/` scratch as an untracked path to explain.
-- Harness: 183 cases (+4: boost WARN on an M index with and without the marker, not on L,
-  and not alongside the skipped-pipeline WARN).
+- Harness: 185 cases (+6: boost WARN on an M index with and without the marker, not on L,
+  not alongside the skipped-pipeline WARN; the post-accept next line, interactive and
+  hands-off/none).
 
 ## 0.2.0 — 2026-09-12
 

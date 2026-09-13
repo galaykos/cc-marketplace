@@ -118,6 +118,7 @@ expect 2 "accept refuses: kind feature has no testing skill pinned in any dispat
 grep -q "testing:testing-best-practices" "$WS/err" && ok || bad "accept names the unpinned group"
 printf 'READ FIRST: %s/.claude/plugins/cache/mkt/testing/1.0.0/skills/testing-best-practices/SKILL.md\n' "$FAKEHOME" > "$SD/milestones/m1/dispatch/2-tests.md"
 expect 0 "accept m1" -- env HOME="$FAKEHOME" "$PS" accept --id m1
+grep -qE "^next: m2 \(.*\) — ask once: continue now" "$WS/out" && ok || bad "accept prints the next runnable milestone and the interactive rule: $(grep next "$WS/out")"
 jq -e '.milestones[0].status=="done" and .milestones[0].accepted_at!=null' "$SD/program.json" >/dev/null && ok || bad "m1 done"
 [ "$("$PS" next | cut -f1)" = "m2" ] && ok || bad "next advances to m2"
 expect 2 "accept from queued refused" -- "$PS" accept --id m2
@@ -170,6 +171,7 @@ expect 2 "hands-off accept refused without ASSUMED decision" -- "$PS" accept --i
 grep -q "ASSUMED" "$WS/err" && ok || bad "refusal names ASSUMED"
 "$PS" decision add --assumed --text a --alternative b --rationale c >/dev/null
 expect 0 "hands-off accept passes with ASSUMED decision" -- "$PS" accept --id m1
+grep -qE "^next: none runnable — program.sh close" "$WS/out" && ok || bad "hands-off accept with nothing left prints the close hint: $(grep next "$WS/out")"
 "$PS" status > "$WS/out"; grep -q "hands-off (headless)" "$WS/out" && ok || bad "status shows hands-off reason"
 
 # ---- malformed state / write failure ---------------------------------------------------------

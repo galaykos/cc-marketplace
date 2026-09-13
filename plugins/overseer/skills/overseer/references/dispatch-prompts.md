@@ -85,9 +85,9 @@ spec red-team, a negative control and two to three reviewers per card, then a th
 code red-team with three refuters and a critic. Simulation 4 paid $77 and 119 minutes for
 one M milestone of ~900 lines that way (simulation 3: $37 for two milestones without it);
 the panel found one real bug and one AA failure, so it is L/XL money, not theatre. Below L
-an interactive run never adds the token; a hands-off run has no autonomous route without it
-yet (a taskmaster change is filed), so the cost is a `decisions.md` row and `dispatch check
---milestone` WARNs when an S/M index carries the marker. Every milestone sized M or larger
+an interactive run never adds the token; a hands-off run cannot have autonomy without it —
+the spec red-team is `goal`'s wrong-pick checkpoint by design — so the cost is a
+`decisions.md` row and `dispatch check --milestone` WARNs when an S/M index carries the marker. Every milestone sized M or larger
 goes to taskmaster; only an S milestone may skip to the worker template below, and the
 skip is a `decisions.md` row (`dispatch check --milestone` WARNs when it is missing). When
 the card index has two-plus parallel groups, hand execution to `/task-runner:run --tracks`.

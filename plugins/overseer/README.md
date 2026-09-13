@@ -82,8 +82,12 @@ dispatched directly — weaker, and said so in the charter.
   throwaway session (or `/reload-plugins`) before `/overseer:start` in a new project, and
   expect Discover to check the scan against the session's own Skill list (simulation 4).
 - **Hands-off M milestones pay for taskmaster's Extreme Boost** (`goal` = autonomy +
-  boost): $77 and 119 minutes for one ~900-line milestone in simulation 4. Interactive runs
-  brief taskmaster without the token below L; `dispatch check` WARNs on a boosted S/M index.
+  boost, inseparable by design): $77 and 119 minutes for one ~900-line milestone in
+  simulation 4. Interactive runs — the normal case in the CLI or Desktop — brief taskmaster
+  without the token below L; `dispatch check` WARNs on a boosted S/M index.
+- **One milestone per session is the cheap shape.** The main thread, not the workers, held
+  three quarters of simulation 4's tokens; `accept` prints the next milestone and the rule
+  (hands-off: continue here; interactive: continue now or `/overseer:resume` fresh).
 - A plugin installed from a git marketplace is a cache snapshot: an edit during a program
   reaches the hook and the skill only after a reinstall. A directory marketplace whose
   plugin entry is a symlink is live — `${CLAUDE_PLUGIN_ROOT}` resolved to the working tree

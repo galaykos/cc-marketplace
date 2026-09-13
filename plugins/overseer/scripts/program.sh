@@ -297,7 +297,13 @@ case "$cmd" in
       exit 2
     fi
     write --arg id "$id" --arg at "$(now)" '(.milestones[]|select(.id==$id)) |= (.status="done" | .reason="" | .accepted_at=$at | .history += [{status:"done",at:$at}])'
-    echo "$id accepted → done";;
+    echo "$id accepted → done"
+    # the moment after accept is where simulation 4 stopped (m1 of 3 done, "resume later", nobody there): say the
+    # next step here, at the decision point, not only in the skill text the model read two hours earlier
+    nx=$(jq -r "$NEXT_FILTER"' | if . == null then "none" else .id + " (" + .title + ")" end' "$state")
+    if [ "$nx" = none ]; then echo "next: none runnable — program.sh close (or park/unblock what remains)"
+    elif jq -e '.hands_off' "$state" >/dev/null 2>&1; then echo "next: $nx — hands-off: deliver it in this session; stopping here is a decisions.md row"
+    else echo "next: $nx — ask once: continue now, or /overseer:resume in a fresh session"; fi;;
 
   decision)
     need_state
