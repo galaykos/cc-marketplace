@@ -79,7 +79,8 @@ cards stay the sole scope authority, halt-with-evidence unchanged. Absent → as
 
 **Extreme Boost:** an `Ultra: true` / `Goal: true` marker in `00-INDEX.md` escalates
 the reviewer, worker and code-redteam dispatches, adds a code-redteam pass over the
-produced diff, and under `Goal:` auto-takes the pipeline gates. Tier resolution, the
+produced diff, and under `Goal:` auto-takes the pipeline gates (a `Goal:` carrying
+`boost=off` auto-takes only: no escalation, no red-team). Tier resolution, the
 malformed-marker fallback, the run-start announcement, and what Goal never suppresses:
 `references/boost-execution.md`.
 

@@ -1,6 +1,6 @@
 ---
 name: ultra
-description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task" (boost) or "ultra-goal" (boost + hands-off autonomy) anywhere in a taskmaster prompt (hyphen optional), a bare `ultra`/`goal` as FIRST token of a taskmaster command's own args, or an `Ultra:`/`Goal: true` index marker; a bare token owned by ANOTHER command never fires.
+description: Use when a taskmaster run EXPLICITLY triggers Extreme Boost — "ultra-task" (boost) or "ultra-goal" (boost + hands-off) in a taskmaster prompt (hyphen optional), a bare `ultra`/`goal`/`goal-lean` (hands-off, no boost) as FIRST token of a taskmaster command's args, or an `Ultra:`/`Goal: true` index marker; a token owned by ANOTHER command never fires.
 ---
 
 # Ultra — Extreme Boost for a taskmaster run (+ hands-off Goal mode)
@@ -24,7 +24,11 @@ Active for THIS run when any holds this turn:
   (boost) or `goal` (hands-off) as the FIRST token of that command's own
   argument string, or
 - an execution run reads `00-INDEX.md` carrying `Ultra: true` (boost) or
-  `Goal: true` (hands-off; a lone Goal marker also escalates workers).
+  `Goal: true` (hands-off; a lone Goal marker also escalates workers — unless it
+  carries `boost=off`, § Goal-lean).
+- **Goal-lean** (hands-off, no boost): a bare `goal-lean` as the FIRST token of a
+  taskmaster command's args, or a `Goal: true (boost=off)` marker. No free-text form:
+  the hook never fires on it, and `ultra-goal-lean` in prose is not a token.
 
 Ownership rule: `ultra` and `goal` are shared words — another command's flag
 (`caveman ultra` preceding a `/taskmaster:...` invocation) NEVER fires this.
@@ -42,6 +46,7 @@ markdown — no ANSI escapes:
 
     ⚡ EXTREME BOOST — ultra-task active · auto/xhigh · red-team + coverage · bounded fan-out
     ⚡ EXTREME BOOST — ultra-goal active · hands-off · audit ledger · auto/xhigh
+    ▷ goal-lean active · hands-off · audit ledger · standard tier · boost: off
 
 Both tokens present → print ONE goal banner (goal implies the boost), never two. Execution
 is a separate command with its own one-line worker-tier status (task-execution) — across a
@@ -103,6 +108,25 @@ REMOVED — bare tokens only, one fixed tier.)
   derived — contradictory requirements, a fork with no dominant option after analysis, an
   idea too vague to self-shape — halt with evidence, never coin-flip.
 
+## Goal-lean — autonomy without the boost
+
+`goal-lean` is Goal mode with the boost contract switched off. Every rule in § Goal
+mode and § Goal audit trail applies unchanged — auto-take with derive-then-take, run
+through execution, never merge, the never-suppress set, the escape hatch, the ledger
+(the ledger header records `boost=off`). Nothing in § The boost contract applies:
+reasoning roles run at the session tier; grill takes its normal rounds; spec-redteam and
+coverage-check run by their OWN gates (three-plus criteria or an ASSUMED row still fires
+spec-redteam, so a hands-off run of any real brief keeps its wrong-pick checkpoint; a
+trivial spec skips, and the skip is a ledger line); no fan-out; no code red-team at
+execution. Directive string: `ULTRA-GOAL ACTIVE (boost=off)` — the Goal rules key on the
+prefix, the boost rules check the suffix. task-cards stamps `Goal: true (boost=off)` and NO
+`Ultra:` line (`task-cards/references/index-markers.md`); task-runner ≥0.32.0 reads the
+suffix; an older runner reads a lone `Goal:` as boosted and overpays, never under-verifies.
+Status line, not the ⚡ banner: `▷ goal-lean active · hands-off · audit ledger · standard
+tier · boost: off`. Who asks for it: the overseer plugin, whose rigour profile decides per
+milestone whether the code red-team is worth buying (`goal` for adversarial, `goal-lean`
+for lean/standard); or anyone who wants autonomy priced like a standard run.
+
 ## Goal audit trail
 
 1. **Goal ledger** `.claude/taskmaster/goal-ledger-<slug>.md`, appended live per auto-take
@@ -113,7 +137,7 @@ REMOVED — bare tokens only, one fixed tier.)
    dedicated entry — grill stays goal-blind; the recording is goal's.
 2. **Spec appendix** `## Auto-decisions` — durable summary in the frozen spec.
 3. **Index marker** `Goal: true (model=auto, effort=xhigh)` (above) carries
-   hands-off into execution.
+   hands-off into execution; `Goal: true (boost=off)` under goal-lean.
 
 Crash/resume: goal re-derives from the goal-ledger file (header records tier/scope); logged
 decisions replay as CLEAR rows, never re-derived; no ledger AND no marker → re-trigger; a

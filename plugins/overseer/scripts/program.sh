@@ -44,8 +44,9 @@
 #                                            # --model auto (simulation 3 ran two thirds of its subagent turns on the session model unasked)
 #                                            # --milestone + worker: WARN when the milestone is sized M or larger and no taskmaster index newer than
 #                                            # the milestone's registration names it — an M+ milestone is briefed to taskmaster, a direct worker needs a decision row
-#                                            # --milestone + worker + index: WARN when the index's Ultra:/Goal: marker disagrees with the rigour profile
-#                                            # (boost bought on lean/standard; adversarial with no boost), or a surface kind (auth api data-model form) is lean
+#                                            # --milestone + worker + index: WARN when the index's boost marker disagrees with the rigour profile — Ultra:/Goal:
+#                                            # without boost=off on lean/standard (hands-off: brief goal-lean); adversarial with none or with Goal: (boost=off) —
+#                                            # or a surface kind (auth api data-model form) is lean
 #                                            # every kind: a state file named without an absolute path is a WARN
 #   program.sh close [--divergent-ok "<why>"] # every milestone done/parked → archive the program (evidence paths rewritten); init may follow
 #                                            # refuses when two done milestones' branches contain neither the other and no done milestone
@@ -550,16 +551,17 @@ case "$cmd" in
         # a code red-team over the shipped diff, and tier escalation; `goal` adds autonomy. Reviewers per card and the
         # negative control are task-runner's baseline, boosted or not — 0.2.1 charged them to the boost and priced it wrong.
         # The rigour profile says whether the code red-team is worth buying here; the marker says whether it was.
+        # `Goal: true (boost=off)` is taskmaster's goal-lean (≥0.42.1, task-runner ≥0.32.0): hands-off without the boost.
         if [ -n "$idx" ]; then
-          if head -12 "$idx" | grep -qE '^(Goal|Ultra): *true'; then
+          if head -12 "$idx" | grep -E '^(Goal|Ultra): *true' | grep -qv 'boost=off'; then
             if in_list "$mrig" lean standard; then
               if [ "$hands" = true ]; then warn="$warn
-  rigour $mrig, index $idx boosted (Goal:): hands-off has no autonomy without the boost — record in decisions.md that autonomy bought the code red-team the profile did not ask for"
+  rigour $mrig, but the card index $idx is boosted — hands-off no longer needs the boost: brief /taskmaster:task goal-lean <brief> (taskmaster ≥0.42.1, task-runner ≥0.32.0); on an older pipeline record in decisions.md that autonomy bought the code red-team"
               else warn="$warn
   rigour $mrig, but the card index $idx carries an Ultra:/Goal: marker — the code red-team was bought where the profile says not to; brief /taskmaster:task <brief> without the token, or re-rigour with the signal that changed"; fi
             fi
           elif [ "$mrig" = adversarial ]; then warn="$warn
-  rigour adversarial, but the card index $idx carries no Ultra: marker — brief /taskmaster:task ultra <brief> (interactive) or goal (hands-off), or drive the code red-team yourself (dispatch-prompts.md § Rigour) and record it"
+  rigour adversarial, but the card index $idx carries no Ultra: marker (or a Goal: boost=off one) — brief /taskmaster:task ultra <brief> (interactive) or goal, never goal-lean (hands-off), or drive the code red-team yourself (dispatch-prompts.md § Rigour) and record it"
           fi
         fi
       fi

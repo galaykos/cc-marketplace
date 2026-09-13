@@ -83,8 +83,10 @@ Touch: <dirs/files>. Do not touch: <dirs/files>.
 Add a `## Rigour` block (next section) before handing over. Hand it over as
 `/taskmaster:task <brief>` (interactive; grill treats the acceptance lines as CLEAR rows and
 asks only about what the brief left open), `/taskmaster:task ultra <brief>` when the profile
-is adversarial, or `/taskmaster:task goal <brief>` (hands-off — `goal` is autonomy plus the
-boost, whatever the profile; the residual is a `decisions.md` row). Every milestone sized M
+is adversarial, or hands-off: `/taskmaster:task goal-lean <brief>` (lean/standard: autonomy
+without the boost, taskmaster ≥0.42.1 with task-runner ≥0.32.0) and `goal <brief>`
+(adversarial: autonomy plus the boost). On an older pipeline `goal` is the only autonomous
+token and the boost cost is a `decisions.md` row. Every milestone sized M
 or larger goes to taskmaster; only an S milestone may skip to the worker template below, and
 the skip is a `decisions.md` row (`dispatch check --milestone` WARNs when it is missing). When
 the card index has two-plus parallel groups, hand execution to `/task-runner:run --tracks`.
@@ -124,7 +126,8 @@ overrides first (**agent-graded** — no script reads a brief for novelty):
   control needed an explicit mutant — as reviewer dispatches (`--kind reviewer`), then the
   fix loop. Simulation 4's m2 (marketing page: a11y and direction already forced by its
   kind) is the worked case.
-- **sum ≥ 4 → `adversarial`**: `/taskmaster:task ultra <brief>` (hands-off: `goal`): the
+- **sum ≥ 4 → `adversarial`**: `/taskmaster:task ultra <brief>` (hands-off: `goal`, never
+  `goal-lean`): the
   full code red-team; stop after the critic round unless its fixes touched source no test
   covers. Simulation 4's m1 (money maths, new primitives, first milestone) scores 5 and
   buys what it bought, minus the six-minute third round; its m3 (an application form:
@@ -134,9 +137,10 @@ overrides first (**agent-graded** — no script reads a brief for novelty):
 Record the profile: `program.sh milestone set --id <id> --rigour <profile> --reason
 "<the signals>"` (or `--rigour` at `milestone add` when the roadmap already shows it);
 `status` prints it; `dispatch check --milestone` WARNs while it is unset, when a surface
-kind is lean, and when the card index disagrees with it — a `Goal:`/`Ultra:` marker on a
-lean/standard milestone (interactive: brief without the token; hands-off: the residual
-row) or no marker on an adversarial one (**WARN**; the score itself is recorded). Budget
+kind is lean, and when the card index disagrees with it — a boosted `Goal:`/`Ultra:` marker
+on a lean/standard milestone (interactive: brief without the token; hands-off: `goal-lean`,
+whose marker is `Goal: true (boost=off)`) or no boost on an adversarial one (**WARN**; the
+score itself is recorded). Budget
 left is not an input: the plugin has no cost channel, and a rule on a number nothing can
 read is a fifth unenforceable claim. What the rule never cuts: the reviewers task-runner
 routes per card and the negative control — in simulation 4 every card major came from

@@ -22,7 +22,8 @@ inherited cwd.
 ## 1. Classify (per references/eligibility.md)
 
 0. **Announce the tier** (the index is readable from here; §0 runs before it is opened, so
-   the banner cannot live there). Read BOTH markers — `Ultra:` when present, ELSE `Goal:` —
+   the banner cannot live there). Read BOTH markers — `Ultra:` when present, ELSE `Goal:`
+   (a `Goal:` with `boost=off` is a standard run: no tier, no red-team, autonomy only) —
    resolve per task-execution/SKILL.md, then print once:
    `⚡ Ultra run — workers model=<marker-model>→<resolved>, effort=<effort>` or
    `▷ Standard run — workers inherit the session model (<model>) · effort: <effort>`.
@@ -124,7 +125,7 @@ The prompt to each track-worker contains, in order:
 2. Run **one** full project check suite on the merged run branch, AND the behavioral-gate
    (`${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed <all merged tracks' files>`,
    see the behavioral-gate skill) — the merged code is exercised here, not just re-linted.
-   Under an `Ultra:`/`Goal:` marker the code-redteam pass also runs here at the resolved `model`
+   Under an `Ultra:`/`Goal:` marker (not `boost=off`) the code-redteam pass also runs here at the resolved `model`
    and `effort`, passed in as `agent()` parameters (per its skill) — it never reads the index
    itself, so an unpassed tier means it silently runs native.
 3. **Green** → delete merged track branches, `git worktree remove` their (clean)

@@ -23,7 +23,10 @@ session model or opus, whichever is higher — escalate, never downgrade). On a
 match, strip the matched token and apply the taskmaster `ultra` skill
 (`skills/ultra/SKILL.md`) — `ULTRA-TASK ACTIVE`, or `ULTRA-GOAL ACTIVE` in Goal
 mode for `goal`/`ultra-goal` — ⚡ banner first, `Ultra:`/`Goal:` markers per
-that skill.
+that skill. A bare `goal-lean` first token is hands-off WITHOUT the boost: strip
+it and apply the `ultra` skill's Goal-lean section (`ULTRA-GOAL ACTIVE (boost=off)`:
+every Goal auto-take rule, standard tier, no red-team mandate, `▷` status line not
+the ⚡ banner, marker `Goal: true (boost=off)`). It has no free-text form.
 <!-- boost-preamble:end -->
 
 **Goal in this command:** standalone under goal, auto-resolve every hole WITHIN

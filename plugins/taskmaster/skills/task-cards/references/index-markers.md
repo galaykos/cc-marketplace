@@ -23,6 +23,12 @@ marker parsing stays safe. When the spec header has no labeled `**Upgraded state
 (older or hand-written spec), SKIP the section entirely — never derive a statement at card
 time.
 
+Under `ULTRA-GOAL ACTIVE (boost=off)` (goal-lean): the same ledger check first, then write
+exactly `Goal: true (boost=off) — requires task-runner ≥0.32.0; older runners read a lone
+Goal marker as boosted` and NO `Ultra:` line — there is no tier to carry, and an `Ultra:`
+line would buy the code red-team the caller declined. The upgraded-statement section is
+written as under goal.
+
 ## Why the blockquote prefix is load-bearing
 
 Every line of the `## Upgraded statement` section is `> `-prefixed so no statement

@@ -134,7 +134,9 @@ the report's disclosure mandatory rather than optional.
 
 ## When it fires
 
-This pass is wired and active whenever `00-INDEX.md` carries an `Ultra:`/`Goal:` marker:
+This pass is wired and active whenever `00-INDEX.md` carries an `Ultra:`/`Goal:` marker
+(not a `Goal: true (boost=off)` one — goal-lean declined the boost, and the completion gate
+does not count a panel for it):
 task-execution runs it at each milestone boundary with `--base <previous-boundary-ref>`
 (only the new milestone's diff), and once before the completion gate with the run-start
 ref as the whole-run backstop; track-orchestration runs it once on the merged branch. On a
