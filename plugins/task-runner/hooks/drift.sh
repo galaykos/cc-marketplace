@@ -31,8 +31,7 @@
 #   - It reads the LAST typed user message only. A request built up over three turns is
 #     scored against its final sentence.
 #   - It cannot see a fan-out's total: each subagent context counts its own edits, the same
-#     aggregate blind spot lean/hooks/budget.sh and comment-discipline/hooks/density.sh
-#     each name for themselves.
+#     aggregate blind spot code-review/hooks/density.sh names for itself.
 #   - Whether a given extra file was NECESSARY needs a reader. That judgment stays
 #     agent-graded, and is why the message ends in a question.
 #
@@ -51,6 +50,14 @@
 
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   [ -n "$cwd" ] || exit 0
+
+  # STATE HYGIENE (0.34.4). .claude/task-runner/ is written by the run itself
+  # (active-run.json, rv/, bg/, gate-pass.json) and by this plugin's scripts; none of
+  # it belongs in a commit, and it showed up as untracked in every repo a run touched
+  # (overseer's acceptance protocol names it as "other plugins' scratch"). A directory
+  # can ignore itself, so the first hook to see it drops a `.gitignore` holding `*`.
+  tr_dir="$cwd/.claude/task-runner"
+  if [ -d "$tr_dir" ] && [ ! -e "$tr_dir/.gitignore" ]; then printf '*\n' > "$tr_dir/.gitignore" 2>/dev/null; fi
 
   # A declared scope means scope.sh owns this turn; two voices on one territory is the
   # collision plugins/*/lane.tsv exists to prevent.
@@ -112,6 +119,7 @@ EOF
   dir="$cwd/.claude/task-runner"
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
+  [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null
   marker="$dir/drift-$ctx"
   [ -e "$marker" ] && exit 0
   : > "$marker" 2>/dev/null || exit 0

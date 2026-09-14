@@ -348,7 +348,7 @@
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Pattern and rationale: lean/hooks/budget.sh:10.
+  # is the one context this never speaks in. Pattern and rationale: hooks/conventions.sh (context-key one-shot).
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   [ -n "$sid" ] || exit 0                     # cannot bound the one-shot → do not block
   [ -n "$cwd" ] || exit 0                     # no cwd → nowhere to record the bound
@@ -360,12 +360,15 @@
   # then fails, the withhold below fires, and the deny is silently absent on every edit of
   # every file — the tooth reads as present in this file and is gone in every real session.
   # Hashed with the same cksum idiom as code-review/hooks/conventions.sh:59 and
-  # lean/hooks/budget.sh:64, which were the two that got this right.
+  # hooks/conventions.sh, which got this right.
   ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
   marker="$cwd/.claude/comment-discipline/blocked-$ctx-$key"
   [ -e "$marker" ] && exit 0
   mkdir -p "$cwd/.claude/comment-discipline" 2>/dev/null || exit 0
+  # The state dir ignores itself (0.18.3): a marker per denied file showed up as
+  # untracked in every repo without a hand-written ignore line.
+  [ -e "$cwd/.claude/comment-discipline/.gitignore" ] || printf '*\n' > "$cwd/.claude/comment-discipline/.gitignore" 2>/dev/null
   : > "$marker" 2>/dev/null || exit 0
   [ -e "$marker" ] || exit 0                  # marker did not land → deny stays unbounded → withhold
 

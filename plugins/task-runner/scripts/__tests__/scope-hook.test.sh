@@ -127,5 +127,12 @@ else
   printf 'FAIL: jq missing (rc=%s stdout=<%s>)\n' "$jrc" "$out"; fail=$((fail+1))
 fi
 
+# 10) state hygiene (0.34.4): the run's state dir ignores itself once any hook sees it.
+if [ "$(cat "$CWD/.claude/task-runner/.gitignore" 2>/dev/null)" = "*" ]; then
+  printf 'PASS: .claude/task-runner/ ignores itself\n'; pass=$((pass+1))
+else
+  printf 'FAIL: .claude/task-runner/.gitignore missing or not "*"\n'; fail=$((fail+1))
+fi
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -24,7 +24,7 @@
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Pattern and rationale: lean/hooks/budget.sh:10.
+  # is the one context this never speaks in. Pattern and rationale: code-review/hooks/conventions.sh (context-key one-shot).
   session_id=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null) || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
   file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
@@ -49,7 +49,7 @@
   # so `fired-$session_id.json` names a nested file whose parents are never created. The
   # write fails, `fired` is empty on every call, and the "same skill is not re-nudged on
   # later edits" property at :118 never holds — every edit re-injects directives the model
-  # already has. Same idiom as code-review/hooks/conventions.sh:59, lean/hooks/budget.sh:64.
+  # already has. Same idiom as code-review/hooks/conventions.sh (hashed state key).
   ctx=$(printf '%s' "$session_id" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
   state_file="$state_dir/fired-$ctx.json"
@@ -99,6 +99,16 @@
     # range behind it. Indecisive alternatives — absent/unreadable manifest,
     # missing `~`, empty side, grep exit >= 2 — are skipped. No decisive
     # alternative at all fires: an undetectable stack keeps today's behavior.
+    #
+    # `@base` as the manifest name matches the ERE against the edited file's
+    # BASENAME instead of a file's content, so a row can exclude a file SHAPE:
+    # `!@base~\.config\.` suppresses on `vite.config.js`. Added 0.16.0 because the
+    # `*.js`/`*.ts` design-principle rows fired SOLID and cognitive-load nudges on
+    # `tailwind.config.js`, `eslint.config.js`, `*.d.ts` and `*.min.js` — files with
+    # no classes, no design and nothing to review against those skills — and a
+    # bare-extension glob has no way to say "except these". Before 0.16.0 an
+    # `@base` alternative was indecisive (no such file) and skipped, so a rules.tsv
+    # carrying one is safe under an older route.sh: it simply fires.
     local list="$1" alt m neg manifest regex mcontent rc
     [ -z "$list" ] || [ "$list" = "-" ] && return 0
     while [ -n "$list" ]; do
@@ -110,8 +120,12 @@
       regex="${m#*~}"
       [ "$manifest" = "$m" ] && continue
       [ -n "$manifest" ] && [ -n "$regex" ] || continue
-      [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || continue
-      mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || continue
+      if [ "$manifest" = "@base" ]; then
+        mcontent="$base"
+      else
+        [ -f "$cwd/$manifest" ] && [ -r "$cwd/$manifest" ] || continue
+        mcontent=$(head -c 65536 "$cwd/$manifest" 2>/dev/null) || continue
+      fi
       printf '%s' "$mcontent" | grep -qE "$regex" 2>/dev/null
       rc=$?
       [ "$rc" -ge 2 ] && continue
@@ -183,6 +197,10 @@
   # ---- persist state only if something changed ----
   if [ -n "$fired_now" ] || [ -n "$pending_adds" ]; then
     mkdir -p "$state_dir" 2>/dev/null || exit 0
+    # The README has said "(gitignored)" of this directory since it existed; nothing
+    # made that true, and the per-session file showed up as untracked in every repo
+    # without a hand-written ignore line. A directory can ignore itself.
+    [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null
     json='{"fired":[],"pending_low":[]}'
     if [ -r "$state_file" ]; then
       existing=$(cat "$state_file" 2>/dev/null)

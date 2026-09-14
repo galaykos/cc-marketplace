@@ -36,7 +36,7 @@
 # tier, including an ask that deny-only would suppress:
 #   destructive-guard.sh --check '<command>'   exit 0 allow | 1 ask | 2 deny
 
-GUARD_VERSION=0.5.0
+GUARD_VERSION=0.6.0
 
 # ---------------------------------------------------------------------------
 # Normalisation. Every rule matches against a canonical form, because the raw
@@ -169,7 +169,7 @@ denysql	deletemany\( *\{ *\}	an empty filter matches every document in the colle
 deny	 git (filter-branch|filter-repo)	rewrites every commit; old objects become unreachable	work on a copy of the repo, or a scratch clone
 deny	 git reflog expire	discards the reflog, which is the recovery path for a bad reset	leave the reflog alone; it expires on its own
 deny	 git gc .*--prune=now	prunes unreachable objects immediately, destroying the recovery path	plain `git gc`
-deny	 git push .*(--force( |$)| -f( |$))	overwrites remote history for everyone who has pulled it	`--force-with-lease`, and only on a branch you own
+deny	 git push( [^ ]+)* (--force|-[a-eg-z]*f[a-z]*)( |$)	overwrites remote history for everyone who has pulled it	`--force-with-lease`, and only on a branch you own
 deny	 git push .* [+][a-z0-9_./*-]+( |$|:)	a leading + on the refspec is a force push under another name	`--force-with-lease`, and only on a branch you own
 deny	 git push .*(--delete|--mirror)	deletes remote refs	delete the branch in the host UI where it is reviewable
 deny	 git update-ref -d	deletes a ref directly, bypassing the reflog protections	`git branch -d`
@@ -193,13 +193,15 @@ deny	 dd .*of= */dev/	writes directly over a block device	nothing about this bel
 deny	 > /dev/(sd|nvme|disk|hd)	writes over a raw disk	nothing about this belongs in an agent session
 ask	 git reset --hard	discards every uncommitted change in the working tree	`git stash` keeps them recoverable
 ask	 git clean 	deletes untracked files, which are not recoverable from git	`git stash -u` stashes untracked files instead
-ask	 git checkout -- \.( |$)	discards all unstaged changes	`git stash`
-ask	 git restore \.( |$)	discards all unstaged changes	`git stash`
+ask	 git checkout (-- )?\.( |$)	discards all unstaged changes	`git stash`
+ask	 git checkout( [^ ]+)* (-f|--force)( |$)	throws away local changes to switch or reset the tree	`git stash`, then a plain checkout
+ask	 git restore (-s [^ ]+ |--source[= ][^ ]+ |-w |--worktree |-- )*\.( |$)	discards all unstaged changes	`git stash`
+ask	 git restore( [^ ]+)* (-W|--worktree)( [^ ]+)* \.( |$)	discards all unstaged changes	`git stash`
 ask	 git branch -D 	force-deletes a branch even if it is unmerged	`git branch -d` refuses when work would be lost
 ask	 git stash (clear|drop)	discards stashed work with no reflog to recover it	`git stash list` and drop one entry by index
 ask	 git push .*--force-with-lease	rewrites remote history, but only if nobody else pushed	confirm the branch is yours
 ask	[ /]artisan migrate .*--force	runs pending migrations in production, including destructive ones	read the pending migrations first
-asksql	 delete from 	a DELETE with no WHERE on this line rewrites every row	add a WHERE clause, inside a transaction
+asksql	 delete from 	runs a DELETE from the shell; with no WHERE clause it removes every row	confirm the WHERE clause, and run it inside a transaction
 ask	 docker (rm|container rm) .*-f	force-removes running containers	stop them first
 ask	 docker system prune	removes unused containers, networks and images	scope it to one project
 ask	 kubectl delete 	removes a live cluster object	`--dry-run=client` first
@@ -212,6 +214,7 @@ ask	 find [^ ]* .*-delete( |$)	deletes every path the find matched	drop -delete 
 ask	 (shred|srm) 	overwrites files so they cannot be recovered	plain rm leaves the file recoverable by backup
 ask	 truncate -s ?0	empties the file in place	move it aside instead
 ask	 history -c	clears the shell history for the user	nothing in the task needs this
+ask	 crontab -r( |$)	removes every cron job for the user with no confirmation and no backup	`crontab -l > crontab.bak` first, or `crontab -e` to remove one line
 ask	 chmod -[a-z]*r[a-z]* (777|666) 	recursively makes a tree world-writable	set the narrowest mode on the specific path
 RULES
 }
@@ -450,6 +453,15 @@ classify() {
     [ -n "$seg" ] || continue
     segn=$(norm_cmd "$seg")
     [ -n "$segn" ] || continue
+    # git GLOBAL OPTIONS sit between `git` and the subcommand, and every git rule
+    # below is written as ` git <subcommand> …`. `git -C /path push --force`,
+    # `git -c core.pager=cat reset --hard` and `git --git-dir=… clean -fd` therefore
+    # matched nothing and were allowed — measured 2026-09-14 — even though `-C` is
+    # the form an agent reaches for whenever it works outside its cwd. Strip the
+    # option words so the rules see `git push --force`. Only options that take
+    # their value inline or as the next word are handled; an unknown option is
+    # left alone and falls to the old behaviour.
+    segn=$(printf '%s' "$segn" | sed -E 's/(^|[[:space:]])git([[:space:]]+(-C[[:space:]]+[^[:space:]]+|-c[[:space:]]+[^[:space:]]+|--(git-dir|work-tree|namespace)(=[^[:space:]]+|[[:space:]]+[^[:space:]]+)|--no-pager|--no-optional-locks|--literal-pathspecs|--bare))+([[:space:]])/\1git\6/g')
     segn_lc=" $(printf '%s' "$segn" | tr '[:upper:]' '[:lower:]') "
     segn=" $segn "
 
@@ -508,6 +520,14 @@ classify() {
       if [ "$lead" = "git" ]; then
         sub=$(printf '%s' "$segn_lc" | awk '{ for (i=1;i<=NF;i++) if ($i=="git") { print $(i+1); exit } }')
         git_safe_subcmd "$sub" && continue
+        # `git clean -n` / `--dry-run` deletes nothing — it is the preview the
+        # ask-tier's own alternative text tells the model to run first. Asking on
+        # the preview trained a click-through on the exact command that makes the
+        # real one safe. `-f` alongside `-n` is still a dry run (git ignores the
+        # force), so the test is for the n flag, not for the absence of f.
+        if [ "$sub" = "clean" ]; then
+          printf '%s' "$segn_lc" | grep -qE ' (--dry-run|-[a-z]*n[a-z]*)( |$)' && continue
+        fi
       fi
     fi
 

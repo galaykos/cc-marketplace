@@ -73,6 +73,23 @@ allow "secretive prose"  Write 'const secretiveNote = "aVeryLongCommentValue1234
 allow "non-write tool"  Bash  "$AWS"
 allow "empty content"   Write ''
 
+# 0.5.0 PLACEHOLDER EXEMPTION. A matched VALUE that announces itself as fake is
+# released; the deny is unbounded and has no allow-file, so before this the AWS
+# documentation key and an .env.example line were refused on every retry.
+AWS_DOC="AKIA""IOSFODNN7EXAMPLE"                       # AWS's own documented example key
+AWS_DOC2="AKIA""I44QH8DHBEXAMPLE"
+allow "AWS doc key (EXAMPLE suffix)"     Write "aws_ref = \"$AWS_DOC\""
+allow "second AWS doc key"               Write "k = \"$AWS_DOC2\""
+allow ".env.example x-run"               Write "$(printf 'STRIPE_%s=sk_%s_%s' 'SECRET' 'test' 'xxxxxxxxxxxxxxxxxxxxxxxx')"
+allow "changeme value"                   Write "$(printf 'API_%s=changeme_changeme_changeme_now' 'KEY')"
+allow "your- value"                      Write "$(printf 'API_%s=your-api-key-goes-here-1234567890' 'KEY')"
+allow "single repeated char"             Write "$(printf 'PASSWORD=%s' '00000000000000000000000000000000')"
+allow "ghp_ of x's"                      Write "$(printf 'gh%s_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' 'p')"
+# The exemption reads the VALUE, never the name, and every match is checked.
+deny  "EXAMPLE in the NAME only"         "$(printf 'EXAMPLE_%s = "%s"' 'TOKEN' "$LONGVAL")"
+deny  "placeholder + real key together"  "a = \"$AWS_DOC\"; b = \"$AWS\""
+deny  "base64 padding is not a name"     "$(printf 'PASSWORD=%s==' "$LONGVAL")"
+
 # Fail-open: malformed JSON must not deny (and must exit 0).
 out=$(printf 'not json' | bash "$HOOK"); rc=$?
 if [[ $rc -eq 0 && -z "$out" ]]; then pass=$((pass+1));

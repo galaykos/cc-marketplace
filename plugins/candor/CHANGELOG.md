@@ -2,6 +2,34 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.2
+
+### Fixed
+- **Clause 1 blocked `~/` citations.** `~` was outside the extraction class, so
+  `~/.claude/settings.json:12` was read as the absolute path `/.claude/settings.json`,
+  resolved to nothing, and blocked — on the exact file a settings question is
+  answered from. `~/` now expands to `$HOME` before resolution; a `~/` path that
+  does not exist, or a line past its end, still blocks. Three harness cases.
+- **Clause 3 taxed docs-only turns.** "Fixed the typo in README.md" after one Edit
+  to a `.md` file blocked, and the only way through was to run any command at all
+  (`git diff` satisfied it) — a turn spent on ceremony, never on a check, because no
+  command's failure proves prose wrong. Mutations of `.md`/`.mdx`/`.markdown`/`.txt`/
+  `.rst`/`.adoc`/`.asciidoc` files no longer arm the clause. Everything else still
+  does: an edit with no `file_path`, no extension, or a code/config extension
+  (`.json`, `.yaml`, `.sh`, …). Same reasoning clause 4 already applies as its
+  `no-executable-surface` verdict. Residual, stated: a prose edit that claims
+  "verified" passes on the claim alone — there was nothing to execute either way.
+  Five harness cases in `scripts/smoke/evidence-gate-hook-tests.sh`.
+
+### Changed
+- **Gate state moved into `.claude/candor/`** (`last`, `blocked`, per-agent
+  suffixes unchanged) and the directory carries a self-ignoring `.gitignore` the
+  first time it is created. The bare files `.claude/candor-last` and
+  `.claude/candor-blocked` showed up as untracked in every user's `git status` —
+  observed in a live repo, and named as "other plugins' scratch" by overseer's own
+  acceptance protocol — one `git add -A` away from being committed. A stale bare
+  file from 0.3.1 is inert; delete it by hand.
+
 ## 0.3.1
 
 ### Fixed

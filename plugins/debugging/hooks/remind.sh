@@ -163,8 +163,8 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   # next, imperative, prompt. A delayed nudge is the cheaper error than a false one,
   # and CC_REMIND=off remains the reliable control.
   clauses=$(printf '%s' "$head" | awk '{gsub(/\?/," __Q__\n"); gsub(/\. /,"\n"); print}')
-  if printf '%s\n' "$clauses" | grep -qiE '(still failing|same error|didn.?t work|not working|keeps failing)'; then
-    printf '%s\n' "$clauses" | grep -iE '(still failing|same error|didn.?t work|not working|keeps failing)' \
+  if printf '%s\n' "$clauses" | grep -qiE '(still (failing|broken|crash(es|ing)?|fails|not working)|same error|didn.?t work|not working|keeps (failing|breaking|crashing)|failing again|broke again|nothing works|(second|third|2nd|3rd|fourth|4th) (time|attempt|try))'; then
+    printf '%s\n' "$clauses" | grep -iE '(still (failing|broken|crash(es|ing)?|fails|not working)|same error|didn.?t work|not working|keeps (failing|breaking|crashing)|failing again|broke again|nothing works|(second|third|2nd|3rd|fourth|4th) (time|attempt|try))' \
       | grep -qvE '(__Q__|^[[:space:]]*(can|could|should|would|shall|is|are|was|were|do|does|did|am|will|what|why|how|when|where|which|who|whether)[^a-z])' \
       || exit 0
   fi
@@ -173,7 +173,7 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   # nothing else. sid is needed by the guard's session check, so resolve it first.
   sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
   cc_phase_guard 'debugging:remind' || exit 0
-  if printf '%s' "$head" | grep -qiE '(still failing|same error|didn.?t work|not working|keeps failing)'; then
+  if printf '%s' "$head" | grep -qiE '(still (failing|broken|crash(es|ing)?|fails|not working)|same error|didn.?t work|not working|keeps (failing|breaking|crashing)|failing again|broke again|nothing works|(second|third|2nd|3rd|fourth|4th) (time|attempt|try))'; then
     # MONOTONIC PRECEDENCE. Rank arbitrates only between hooks that
     # share a phase; the phase sentinel does the real turn-taking. Guaranteed:
     # among hooks eligible THIS TURN, the best rank always speaks, in every

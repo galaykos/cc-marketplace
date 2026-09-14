@@ -106,6 +106,26 @@ if [ -f "$TMR" ]; then
     '{"prompt":"add a caching layer to the user repository and refactor the service"}'
 fi
 
+# debugging 0.3.18: the stuck-loop trigger covers the phrases a stuck user actually
+# types, not only the five the first cut listed. Each case runs with its own TMPDIR
+# so the rank marker of one never gags the next; the question-shaped one must stay
+# silent (asking WHY it keeps failing is not a report that it does).
+DBR="$ROOT/plugins/debugging/hooks/remind.sh"
+if [ -f "$DBR" ]; then
+  dbg_case() { # speaks|silent  desc  prompt
+    local want="$1" desc="$2" json="{\"prompt\":\"$3\",\"session_id\":\"dbg-$RANDOM\"}" out
+    out="$(printf '%s' "$json" | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/debugging" TMPDIR="$(mktemp -d "$WORK/dbg.XXXXXX")" "$BASH_BIN" "$DBR" 2>/dev/null)"
+    if [ "$want" = speaks ]; then [ -n "$out" ] && pass "$desc" || fail "$desc" "wanted a reminder, got silence"
+    else [ -z "$out" ] && pass "$desc" || fail "$desc" "wanted silence, spoke: $out"; fi
+  }
+  dbg_case speaks "debugging [failing again + nothing works]" "the login test is failing again, I tried three things and nothing works"
+  dbg_case speaks "debugging [third time]"                    "this is the third time the build broke after that change"
+  dbg_case speaks "debugging [still crashing]"                "it is still crashing on startup after the fix"
+  dbg_case speaks "debugging [original phrase kept]"          "the same error comes back every time"
+  dbg_case silent "debugging [question shape stays silent]"   "why does it keep failing?"
+  dbg_case silent "debugging [no stuck signal]"               "add a retry to the fetch call"
+fi
+
 # ---- MONOTONIC PRECEDENCE (spec §4.4, card C5) -------------------------------
 # These assertions REPLACE the old per-prompt-budget block, which asserted that the
 # same prompt produced DIFFERENT output depending on invocation order and recorded

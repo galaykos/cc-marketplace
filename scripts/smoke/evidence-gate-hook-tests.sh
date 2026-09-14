@@ -19,11 +19,11 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 CWD="$WS/proj"; mkdir -p "$CWD"
-MARKER="$CWD/.claude/candor-last"
+MARKER="$CWD/.claude/candor/last"
 # The namespaced-disarm record. A blocking case WRITES it, so it must be cleared
 # between cases — otherwise a later case inherits the previous one's block and reads
 # as that gate's own continuation, which is test pollution wearing a PASS.
-CLAIMED="$CWD/.claude/candor-blocked"
+CLAIMED="$CWD/.claude/candor/blocked"
 
 # Transcript builders: one JSONL line per entry.
 text_entry() { jq -cn --arg t "$1" '{type:"assistant",message:{content:[{type:"text",text:$t}]}}'; }
@@ -220,6 +220,32 @@ check "'failed because of' blocks"                  "" "$T27" 2 "$BLOCK_SUB"
 T28="$WS/t28.jsonl"
 { tool_entry Edit; text_entry "The build failed earlier; after my fix it is all good now. Done."; } > "$T28"
 check "RESIDUAL: past-tense subject escape (documented)" "" "$T28" 0 "__NONE__"
+
+# --- prose-only mutations (29-33) ------------------------------------------
+# candor 0.3.2: an edit to a prose file (.md/.txt/.rst/.adoc) does not arm the
+# clause — no command's failure proves a README typo fix wrong. A mutation with
+# no file_path, no extension, or any code/config extension still arms it.
+tool_path() { jq -cn --arg n "$1" --arg f "$2" '{type:"assistant",message:{content:[{type:"tool_use",name:$n,input:{file_path:$f}}]}}'; }
+
+T29="$WS/t29.jsonl"
+{ tool_entry Read; tool_path Edit "$CWD/README.md"; text_entry "Fixed the typo in README.md."; } > "$T29"
+check "prose-only edit + 'Fixed' passes"             "" "$T29" 0 "__NONE__"
+
+T30="$WS/t30.jsonl"
+{ tool_path Edit "$CWD/README.md"; tool_path Edit "$CWD/src/add.js"; text_entry "Fixed both."; } > "$T30"
+check "prose edit + code edit, no exec blocks"      "" "$T30" 2 "$BLOCK_SUB"
+
+T31="$WS/t31.jsonl"
+{ tool_path Edit "$CWD/src/add.js"; tool_entry Bash; tool_path Edit "$CWD/CHANGELOG.md"; text_entry "Done."; } > "$T31"
+check "code edit, exec, then prose edit passes"     "" "$T31" 0 "__NONE__"
+
+T32="$WS/t32.jsonl"
+{ tool_path Write "$CWD/config.json"; text_entry "Done, config updated."; } > "$T32"
+check "json write still arms the clause"            "" "$T32" 2 "$BLOCK_SUB"
+
+T33="$WS/t33.jsonl"
+{ tool_path Write "$CWD/LICENSE"; text_entry "Done."; } > "$T33"
+check "extensionless write still arms the clause"   "" "$T33" 2 "$BLOCK_SUB"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

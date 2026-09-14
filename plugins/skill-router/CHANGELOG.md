@@ -2,6 +2,28 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.16.0 — 2026-09-14
+
+- **`@base` stack-marker alternative.** `@base~<ERE>` in the manifest position matches
+  the edited file's basename instead of a manifest's content, so a bare-extension row
+  can exclude a file shape. The four `*.js`/`*.ts` rows for `low-cognitive-load` and
+  `solid-principles` now carry `!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|
+  ^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)`: editing `tailwind.config.js`,
+  `eslint.config.mjs`, `.eslintrc.js`, `vitest.setup.ts`, `global.d.ts` or `app.min.js`
+  no longer tells the model to load two design-principle skills (~14.6 KB) and review a
+  tool config against SOLID. `vite.config.*` / `next.config.*` keep their own stack
+  rows. Measured on a scratch project: 17 file shapes, the 11 config/declaration/
+  minified shapes went from two nudges to none, the 6 source shapes unchanged. Six
+  cases in `scripts/smoke/route-marker-tests.sh`. Backward-compatible: an older
+  `route.sh` reads `@base` as an absent manifest and fires.
+- **`.claude/skill-router/` ignores itself.** The README said "(gitignored)" of the
+  per-session state file for as long as it existed; nothing made it so, and the file
+  showed up as untracked in every repo without a hand-written ignore line.
+  `route.sh` and `compact-capsule.sh` now drop a `.gitignore` containing `*` when they
+  create the directory. One harness assertion.
+- Hook comments no longer cite `lean/hooks/budget.sh` as a pattern source (the plugin
+  was removed 2026-09-14); the same idiom is cited from `code-review/hooks/conventions.sh`.
+
 ## 0.15.4 — 2026-09-14
 
 - `rules.tsv`: a payment-webhook content signal (`Stripe-Signature`, `constructEvent`,

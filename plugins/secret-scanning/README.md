@@ -21,8 +21,16 @@ Blocks secrets before they reach disk.
   (rotate, don't just delete), and honest limits.
 
 High-confidence by design: it under-flags rather than over-blocks, so pair it with a
-full scanner (gitleaks, trufflehog) in CI. Obvious placeholders and fixtures pass; a
-denial always offers the fixture escape.
+full scanner (gitleaks, trufflehog) in CI. A matched value that announces itself as a
+placeholder passes — it ends in `EXAMPLE` (AWS's own documentation convention,
+`AKIAIOSFODNN7EXAMPLE`), is one character repeated (`xxxx…`, `0000…`), or carries a
+placeholder word (`example`, `placeholder`, `changeme`, `your-`, `dummy`, `redacted`,
+`sample`, `fake`). Until 0.5.0 that sentence was aspiration: the deny is unbounded and
+has no allow-file, and the AWS example key matches the AKIA shape by construction, so a
+fixture write was refused on every retry with no exit but a heredoc around the guard.
+The test reads the VALUE only — `EXAMPLE_TOKEN=<real value>` still denies — and every
+match in a write is checked, so a placeholder beside a real key still denies. Residual,
+stated: a real secret that happens to contain one of those words passes.
 
 Since 0.3.0 the deny path has its own fixture harness (`scripts/__tests__/`,
 CI-globbed) — every pattern proven to deny, fail-open proven to stay open. Writing it

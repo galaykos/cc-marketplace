@@ -89,6 +89,8 @@ else fail "one nudge per context, not per file" "first='${a:0:30}' second='${b:0
 if [ -n "$(find "$one/.claude/ui-ux" -name 'palette-*' -type f 2>/dev/null)" ]
 then pass "the state file lands on disk (key hashed, not a raw path)"
 else fail "the state file lands on disk (key hashed, not a raw path)" "none under $one"; fi
+if [ "$(cat "$one/.claude/ui-ux/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
+else fail "the state dir ignores itself" ".claude/ui-ux/.gitignore missing or not '*'"; fi
 
 # ---- 7. FAIL-OPEN and off switches ------------------------------------------------------
 printf '' | bash "$HOOK" >/dev/null 2>&1 && pass "empty stdin exits 0" || fail "empty stdin exits 0" "non-zero"

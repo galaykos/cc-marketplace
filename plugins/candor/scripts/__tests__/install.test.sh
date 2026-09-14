@@ -64,7 +64,7 @@ stop_payload() { jq -cn --arg tp "$1" --arg cwd "$PROJ" \
 
 run() { # run <desc> <transcript> <exp_rc> <exp_substr|__NONE__>
   local desc="$1" t="$2" want="$3" sub="$4" err rc ok=1
-  rm -f "$PROJ/.claude/candor-last" "$PROJ/.claude/candor-blocked"
+  rm -f "$PROJ/.claude/candor/last" "$PROJ/.claude/candor/blocked"
   err=$(stop_payload "$t" | "$HOOK" 2>&1 >/dev/null); rc=$?
   [ "$rc" -eq "$want" ] || ok=0
   if [ "$sub" != "__NONE__" ]; then printf '%s' "$err" | grep -qF "$sub" || ok=0
@@ -116,10 +116,10 @@ T="$WS/t9.jsonl"
 run "ordinary honest turn passes" "$T" 0 "__NONE__"
 
 # The one-shot bound, writing state into a NON-git consumer project.
-rm -f "$PROJ/.claude/candor-last" "$PROJ/.claude/candor-blocked"
+rm -f "$PROJ/.claude/candor/last" "$PROJ/.claude/candor/blocked"
 stop_payload "$WS/t1.jsonl" | "$HOOK" >/dev/null 2>&1
 r2=$(stop_payload "$WS/t1.jsonl" | "$HOOK" >/dev/null 2>&1; echo $?)
-if [ "$r2" = "0" ] && [ -f "$PROJ/.claude/candor-last" ]; then
+if [ "$r2" = "0" ] && [ -f "$PROJ/.claude/candor/last" ]; then
   pass=$((pass+1)); printf 'PASS  one-shot marker written under a non-git project\n'
 else fail=$((fail+1)); printf 'FAIL  one-shot marker under a non-git project (second rc=%s)\n' "$r2"; fi
 

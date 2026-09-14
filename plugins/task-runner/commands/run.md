@@ -101,7 +101,9 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    Registering the run lets the hook enforce that a behavioral-gate pass is recorded before
    the run stops clean. `branch` scopes enforcement to the run's own branch, so a
    sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/`, `rt/`, `bg/` and `reductions/` in the same
-   step: reviewer-coverage, red-team-panel and behavioral-gate-evidence enforcement are
+   step, and a `.claude/task-runner/.gitignore` containing `*` if none exists (the
+   hooks drop the same file on their first write; writing it here means a run that is
+   interrupted before any hook fires still leaves no untracked state behind): reviewer-coverage, red-team-panel and behavioral-gate-evidence enforcement are
    each armed by their directory existing, and arming them lazily would let the context
    pressure that causes a cut also prevent the dir that would have caught it. Records
    from an EARLIER run are ignored automatically (the gate counts only records newer

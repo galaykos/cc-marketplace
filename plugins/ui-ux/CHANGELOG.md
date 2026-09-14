@@ -4,6 +4,11 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.22.3
+
+### Changed
+- **`.claude/ui-ux/` ignores itself.** The directory now writes a self-ignoring `.gitignore` (`*`) the first time a hook creates it. Plugin state under the user's `.claude/` showed up as untracked in `git status` in every repo without a hand-written ignore line — observed live, and named by overseer's acceptance protocol as "other plugins' scratch" — one `git add -A` away from being committed. One harness assertion per plugin. (`hooks/palette-default.sh`.)
+
 ## 0.22.2
 
 ### Changed

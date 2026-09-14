@@ -157,6 +157,8 @@ else fail "the same file is reported once per context" "first='${first:0:40}' se
 if [ -n "$(find "$cwd/.claude/testing" -name 'shape-*' -type f 2>/dev/null)" ]
 then pass "the state file lands on disk (the key is hashed, not a raw path)"
 else fail "the state file lands on disk (the key is hashed, not a raw path)" "none under $cwd"; fi
+if [ "$(cat "$cwd/.claude/testing/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
+else fail "the state dir ignores itself" ".claude/testing/.gitignore missing or not '*'"; fi
 
 # ---- 8. FAIL-OPEN ------------------------------------------------------------------------
 printf '' | bash "$HOOK" >/dev/null 2>&1 && pass "empty stdin exits 0" || fail "empty stdin exits 0" "non-zero"

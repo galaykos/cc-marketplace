@@ -24,10 +24,14 @@ that clause on its own continuation.
 
 | Clause | Fires when | Escape |
 | --- | --- | --- |
-| **1 Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under `cwd`, or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
+| **1 Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under `cwd` (or under `~` for a `~/` path), or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
 | **2 Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between | re-check and report what it showed, or hold the position and say why |
-| **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), files were edited this session, and nothing was executed after the last edit | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it |
+| **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and nothing was executed after the last such edit | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it |
 | **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`) and is stopping with no recorded gate pass for HEAD, cards neither done nor parked, short per-card control or reviewer records, a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
+
+The gate's own state — the one-block-per-text marker and the which-clause-blocked
+record — lives in `.claude/candor/`, which carries a self-ignoring `.gitignore`, so
+it never appears in `git status`.
 
 Clause 4 is dormant outside a registered run, on another branch than the run's,
 and without git — a records check, never a test run. On `SubagentStop` only

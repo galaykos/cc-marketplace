@@ -28,6 +28,14 @@ exec 3>&2
   file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
   [ -n "$cwd" ] && [ -n "$file" ] || exit 0
 
+  # STATE HYGIENE (0.34.4). .claude/task-runner/ is written by the run itself
+  # (active-run.json, rv/, bg/, gate-pass.json) and by this plugin's scripts; none of
+  # it belongs in a commit, and it showed up as untracked in every repo a run touched
+  # (overseer's acceptance protocol names it as "other plugins' scratch"). A directory
+  # can ignore itself, so the first hook to see it drops a `.gitignore` holding `*`.
+  tr_dir="$cwd/.claude/task-runner"
+  if [ -d "$tr_dir" ] && [ ! -e "$tr_dir/.gitignore" ]; then printf '*\n' > "$tr_dir/.gitignore" 2>/dev/null; fi
+
   scope="$cwd/.claude/task-runner/scope.json"
   [ -r "$scope" ] || exit 0
   jq empty "$scope" 2>/dev/null || { echo "task-runner scope-lock: scope.json is malformed — scope not enforced this call" >&3; exit 0; }
