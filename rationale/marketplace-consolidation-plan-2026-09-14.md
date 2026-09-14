@@ -5,8 +5,9 @@ is redundant — while still tackling any software task, and say how it differs 
 what the ecosystem ships.
 
 **Standing of this document: `recorded`.** Nothing reads it back. Every number
-carries a recount command. Waves 0 and 1 were executed on this branch on 2026-09-14
-(records in §8); waves 2–4 are not, and §8 is the order to do them in.
+carries a recount command. Waves 0, 1 and 2 were executed on this branch on
+2026-09-14 (records in §8; two of wave 2's six items were declined on measurement,
+§4.3 and §4.4 say why); waves 3–4 are not, and §8 is the order to do them in.
 
 **Method.** Six read-only reviews fanned out over the tree on branch
 `feat/marketplace-consolidation-plan`: UI/UX, architecture, team lead, developer
@@ -149,12 +150,35 @@ Three of them end in the same sentence. Collapse to one script, one envelope. Re
 Measure with the §6.9 fixture from `plugin-landscape-review-2026-09-10.md` before and
 after; that fixture is still unrun.
 
+**Declined on measurement (wave 2, 2026-09-14).** The §6.9 fixture was run: a first
+`Write` of a comment-heavy `.tsx` into a repo with `.editorconfig`, a CI workflow and
+three sibling components, against every PostToolUse Edit|Write adviser in the tree.
+code-review emitted **2** envelopes (conventions 532 B, scan 255 B; density and
+verbosity silent), not 7; the whole eight-adviser stack emitted **3** (skill-router's
+route added 635 B), 1.4 KB in all. The `scan`/`density` "twice per edit" is the
+PreToolUse deny lane and the PostToolUse warn lane of one detector, not a duplicate.
+A dispatcher would turn two envelopes into one with identical bytes, at the cost of a
+new script, a hooks.json rewrite and harness churn across three smoke files. Not
+done. `lean/hooks/budget.sh` went with lean in wave 1.
+
 ### 4.4 One UserPromptSubmit aggregator
 
 Four `remind.sh` copies (api-design, approaches, debugging, fresh-take) are 205-line
 chassis outputs differing only in regex and message; taskmaster's is 213. Move the
 rule rows into `skill-router/hooks/route-prompt.sh`, which owns the event and costs 0
 listing chars. A `workflow` install goes from 7 processes per prompt to 2.
+
+**Declined on measurement (wave 2, 2026-09-14).** Ten runs each of the five reminder
+hooks on one work-shaped prompt: 39–55 ms per hook, ~230 ms if run serially (the host
+runs hooks concurrently, so less). `route-prompt.sh` itself took 533 ms per run — the
+proposed home is the expensive process, not the ones it would absorb. What the move
+would cost: every plugin installed without skill-router loses its nudge (the lane
+doctrine in CLAUDE.md rejects privileging skill-router for exactly that reason), and
+the arc rank, phase guard, extraGuard and self-echo logic the chassis template carries
+would be re-implemented inside the router. The process count is not a cost a user
+can see; the capability loss is. Not done. The chassis stays the mechanism, and
+wave 2 used it once more: approaches now renders two reminder hooks from one
+manifest (`file` key on the reminder-hook object).
 
 ### 4.5 Hand-copied hooks — corrected on execution
 
@@ -322,6 +346,53 @@ bundles; 68 commands; 108 skills; 31 agents; always-on total 11,243 tokens
 (one PR; both are craft-suite members) · `terse` → `candor` and the unified Stop gate
 (§4.2) in one PR · `fresh-take` → `approaches` · `orchestration` → `task-runner` ·
 the UserPromptSubmit aggregator (§4.4) · code-review PostToolUse collapse (§4.3).
+
+**Wave 2 — executed 2026-09-14 on this branch, four commits, every gate and harness
+green at each; the two hook collapses declined on measurement.** What shipped, and
+where it deviated from the row above:
+
+- `theme-design` + `design-lab` → **`design-studio`** 0.5.0 (`616b6e0`). A rename
+  plus a merge: theme-design's tree is the base, design-lab's `real-preview` skill,
+  `/preview` command, registry MCP servers and cleanup harness moved in. The session
+  working directory is `.design-studio/` (an open `.theme-design/` session is not
+  resumed — stated in the changelog). `lane.tsv` carries the edge both READMEs had
+  stated for two releases and no lane held: the preview yields to a running session.
+  craft-suite 0.6.0 has three members. Always-on 793 = 194 + 599, no saving; the
+  win is one install and one name for three surfaces that decide how a thing looks.
+- `terse` → **`candor`** 0.3.0 and the unified Stop gate (`b3e6b33`). `gate.sh` has
+  four clauses: the two it had, plus code-architecture's evidence-at-claim (clause 3)
+  and task-runner's registered-run gate (clause 4), byte-equivalent vocabularies,
+  messages, env overrides and per-HEAD nudge; the two source scripts are deleted and
+  their harnesses (30 + 70 cases) drive the one script. The three-script namespaced
+  disarm protocol is gone — the record names the clause that blocked. terse's mode
+  hook, SessionStart card, `terse-output` skill, `/candor:level`, `measure.sh` (behind
+  `/candor:check --brevity`, automatic while a level is on), statusline and
+  `shrink.mjs` moved; `terse-crew`, `terse-commit`, `terse-compress`, the three crew
+  agents and `/terse:commit`/`/terse:compress` were dropped per §3.1. Consequence
+  the row did not state: code-architecture 0.15.0 and task-runner 0.33.0 ship no Stop
+  hook, so their done-time rules have teeth only with candor installed —
+  taskmaster-suite 0.18.0 and process-suite 0.12.0 add candor for that reason, and
+  always-on-suite 0.6.0 drops terse. quality-suite crossed the 6,000-char listing
+  floor (6,742) and declares it. Always-on total 11,243 → 10,572.
+- `fresh-take` → **`approaches`** 0.7.0 (`0c40598`). `/approaches:consult`, the
+  consultant agent, `brief-lint.sh` and its harness moved unchanged; the
+  irreversible-command reminder is a second chassis reminder hook
+  (`hooks/consult-remind.sh`, phase `any`), which needed one renderer change — an
+  optional `file` key on reminder-hook objects, mirroring boost-hook. process-suite
+  0.13.0. Always-on 500 → 624 (−1 net).
+- `orchestration` → **`task-runner`** 0.34.0 (`1ee03a4`). Both skills and every
+  reference moved with their names; `ultra-assess` is a reference of
+  verification-panels (the boost directive names the path, so a listing entry was a
+  second trigger); the boost hook re-rendered as `task-runner:ultra-assess`;
+  `/orchestration:review` retired (it reviewed prompts, and what it ran is the lint
+  plus the skill's checklist, both of which ship). taskmaster-suite 0.19.0 (10
+  members), process-suite 0.14.0. Always-on 379 → 533 (−97 net).
+- §4.3 and §4.4 **not executed** — the measurements are recorded in those sections.
+
+Recount after wave 2 (the §10 commands): 35 plugin directories = 27 leaves + 8
+bundles; 64 commands; 104 skills; 28 agents; 21 hook dirs; 9 plugins on
+UserPromptSubmit; always-on total 10,474 tokens. The §3.2 target of 26 leaves is one
+away: `overseer` → `taskmaster` is wave 3's.
 
 **Wave 3 — bundles and the big merge.** Rebuild the four bundles; regenerate the
 README table and `catalog.md`; `overseer` → `taskmaster`; worker agents 10 → 7;
