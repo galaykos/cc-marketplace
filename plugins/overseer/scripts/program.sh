@@ -322,7 +322,8 @@ case "$cmd" in
           sid="${CLAUDE_CODE_SESSION_ID:-}"; rl="$dir/.reads"
           if [ -n "$sid" ] && in_list "$kind" $FILE_KINDS; then
             if [ -f "$rl" ] && awk -F'\t' -v s="$sid" '$2==s {f=1} END{exit !f}' "$rl"; then
-              fm=$(stat -f %m "$file" 2>/dev/null || stat -c %Y "$file" 2>/dev/null || echo 0)
+              # date -r is the mtime on both BSD and GNU; GNU `stat -f %m` succeeds and prints the MOUNT POINT (CI caught it)
+              fm=$(date -r "$file" +%s 2>/dev/null || echo 0)
               awk -F'\t' -v s="$sid" -v f="$file" -v m="$fm" '$2==s && $3==f && ($1+0)>=(m+0) {ok=1} END{exit !ok}' "$rl" || {
                 echo "program.sh: --file $file was not Read in this session since its last change — open it and look at what it shows, then record it (the ledger is $rl: epoch, session, path)" >&2; exit 2; }
             else
