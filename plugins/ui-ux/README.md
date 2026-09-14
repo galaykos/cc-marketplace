@@ -33,7 +33,6 @@ by a second library installed beside it.
 
 | Command | What it does |
 |---------|--------------|
-| `/ui-ux:review [files-or-diff]` | Review UI code against the per-stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind, any other library via component-libraries) |
 | `/ui-ux:theme [brand-color-vibe-or-reference]` | Create or restyle a UI colour theme — shadcn/ReUI/Aceternity, Tailwind, or Bootstrap — with a live preview URL |
 | `/ui-ux:build [what-to-build]` | Build or restyle a UI component/layout via the ui-ux-engineer worker, applying the stack best-practice and token skills |
 | `/ui-ux:audit [files-or-diff]` | Audit UI code against WCAG 2.2 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix, blockers first, a manual-test list at the end, and the `a11y-engineer` worker offered to apply the fixes |

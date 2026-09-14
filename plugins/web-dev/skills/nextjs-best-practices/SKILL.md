@@ -136,7 +136,8 @@ Advising above the installed version is a finding; confirm boundaries against th
 
 **All models** — every rule above: the version gates, the boundaries, the footguns. Facts
 do not scale down with the model. **Compensation (worker-tier)** — the detect → pin →
-verify order in `/web-dev:review` step 3, followed literally, every skill in scope applied
+verify order the `/code-review:review` fan-in runs (detect the stack from the lockfile,
+pin the version, verify each rule), followed literally, every skill in scope applied
 to every file in scope; a Fable-class session may compress it once the lockfile is read.
 **Skip** — a diff touching no server/client boundary, no data fetch, no `app/` route and no `next.config.*` earns a one-line verdict; do not walk the rubric to prove it.
 

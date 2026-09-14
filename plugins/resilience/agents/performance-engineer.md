@@ -71,11 +71,10 @@ Rubric above; the copy is not restated here so the two cannot drift.
 
 ## Defer rule
 
-- SQL-shape review (query structure, indexing idioms) belongs to
-  `/database:review` — recommend it instead of duplicating it.
-- Framework-idiom review belongs to the matching installed stack review
-  command (e.g. `/laravel:review`, `/web-dev:review`) — recommend it instead
-  of duplicating it.
+- SQL-shape review (query structure, indexing idioms) and framework-idiom
+  review belong to `/code-review:review`, the fan-in that loads database's
+  sql skill, laravel's and web-dev's stack skills for whatever the diff
+  touches — recommend it instead of duplicating it.
 
 ## Kill-trigger (three strikes)
 

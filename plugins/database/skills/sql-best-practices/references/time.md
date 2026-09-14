@@ -4,7 +4,7 @@
 > June 2026); MySQL 8.0/8.4, MariaDB 10.6–11.x, PostgreSQL 14–17 assumed. Version-pinned
 > claims are marked; confirm on the installed server before relying on one.
 
-Standing: **recorded** — loaded by `/database:review` for a diff touching a
+Standing: **recorded** — loaded with the sql skill (via the `/code-review:review` fan-in or the router) for a diff touching a
 `TIMESTAMP`/`DATETIME`/`timestamptz` column, a default, or a date-range predicate.
 
 ## The one rule, and what it does not cover

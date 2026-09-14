@@ -4,6 +4,15 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.22.0
+
+### Removed
+- `/ui-ux:review`. The code-review fan-in already loads the matching ui-ux stack skill <!-- removed-ok -->
+  and `a11y-audit` for any diff touching markup or utility classes, so the entry was a
+  second name for the same pass (2026-09-14 consolidation plan). `ui-ux-reviewer`,
+  `/ui-ux:audit`, `/ui-ux:build` and `/ui-ux:theme` are unchanged; `/ui-ux:build` now
+  offers `/code-review:review` as its post-build step.
+
 ## 0.21.0
 
 ### Changed

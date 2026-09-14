@@ -121,4 +121,4 @@ because nothing else does.
 
 Standing: **agent-graded** — nothing in this marketplace detects a second
 library being installed or an instance-level token; the reviewer and the
-`/ui-ux:review` inventory are the only readers.
+`/code-review:review` fan-in's inventory are the only readers.

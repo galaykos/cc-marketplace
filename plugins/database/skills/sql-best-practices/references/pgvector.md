@@ -7,7 +7,7 @@
 > `SELECT extversion FROM pg_extension WHERE extname = 'vector';` — managed Postgres
 > (RDS, Cloud SQL, Supabase) often lags upstream by a minor.
 
-Standing: **recorded** — `/database:review` loads this file when a diff touches a
+Standing: **recorded** — the sql skill (via the `/code-review:review` fan-in or the router) loads this file when a diff touches a
 `vector` column or `USING hnsw|ivfflat`; nothing scripts the rules below.
 
 ## Column types and dimension pinning

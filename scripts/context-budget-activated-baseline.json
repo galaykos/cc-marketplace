@@ -1,10 +1,10 @@
 {
   "always-on-suite": 3124,
   "brain": 226,
-  "frontend-suite": 1857,
+  "frontend-suite": 1800,
   "process-suite": 3009,
   "quality-suite": 1485,
   "skill-router": 32,
-  "taskmaster-suite": 4806,
+  "taskmaster-suite": 4790,
   "terse": 1970
 }

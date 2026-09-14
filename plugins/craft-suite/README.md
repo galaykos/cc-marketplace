@@ -55,7 +55,7 @@ One bullet per bundled plugin, in dependency order (4):
   design-lab in the tree, which is why it rides in the design bundle
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
   Tailwind) and the library-agnostic `component-libraries` floor for any other
-  React component library, plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
+  React component library, plus `/ui-ux:build`, `/ui-ux:audit`, `/ui-ux:theme`
 
 ui-ux is listed here AND in frontend-suite on purpose: craft-layer
 delegates theming to ui-ux and auditing to `/ui-ux:audit`, so a standalone

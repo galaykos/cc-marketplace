@@ -136,7 +136,8 @@ re-allocated every render — it also validates style keys in development.
 
 **All models** — every rule above: the version gates, the boundaries, the footguns. Facts
 do not scale down with the model. **Compensation (worker-tier)** — the detect → pin →
-verify order in `/web-dev:review` step 3, followed literally, every skill in scope applied
+verify order the `/code-review:review` fan-in runs (detect the stack from the lockfile,
+pin the version, verify each rule), followed literally, every skill in scope applied
 to every file in scope; a Fable-class session may compress it once the lockfile is read.
 **Skip** — a diff touching no list, no navigator, no animation, no native config and no `.ios`/`.android` split earns a one-line verdict; do not walk the rubric to prove it.
 

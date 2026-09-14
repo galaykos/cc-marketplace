@@ -135,8 +135,8 @@ An icon-only delete button in a list row needs all of:
 
 ## Boundaries
 
-Standing: recorded — owns the WCAG audit only; visual and layout review is
-`/ui-ux:review` (ui-ux-engineer fixes). A clean axe or Lighthouse run is
+Standing: recorded — owns the WCAG audit only; visual and layout review is the
+ui-ux-reviewer agent via `/code-review:review` (ui-ux-engineer fixes). A clean axe or Lighthouse run is
 necessary, not sufficient.
 
 ## Anti-patterns

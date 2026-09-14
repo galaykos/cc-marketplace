@@ -22,7 +22,7 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with — behind one /laravel:review that loads Inertia when the manifests show it, plus the backend-engineer worker (PHP/Laravel) the review routes its fixes to."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with, loaded by the code-review fan-in when the manifests show it — plus the backend-engineer worker (PHP/Laravel) that applies the review's fixes."
     },
     {
       "name": "code-architecture",
@@ -77,7 +77,7 @@
     {
       "name": "web-dev",
       "source": "./plugins/web-dev",
-      "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — with /web-dev:review detecting the stack from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill."
+      "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — loaded by the code-review fan-in from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill."
     },
     {
       "name": "devops",
@@ -87,7 +87,7 @@
     {
       "name": "database",
       "source": "./plugins/database",
-      "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera), one /database:review that detects the engine and loads the dialect skill only for MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands."
+      "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera) that the code-review fan-in loads only when the detected engine is MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands."
     },
     {
       "name": "code-review",
@@ -127,7 +127,7 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "craft-suite",
@@ -137,7 +137,7 @@
     {
       "name": "php-suite",
       "source": "./plugins/php-suite",
-      "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill behind one /laravel:review, plus the backend-engineer worker), web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler via /web-dev:review) and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill, plus the backend-engineer worker), web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler) and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "quality-suite",

@@ -335,18 +335,22 @@ if [ -f "$CAT_HOOK" ]; then
     [ "$got" = "$4" ] && pass "catalog: $1" || fail "catalog: $1" "$3 is $got, wanted $4"
   }
 
+  # The per-stack review commands (/laravel:review, /web-dev:review, …) that this filter
+  # was written for were retired 2026-09-14 — the fan-in owns them. The remaining stack
+  # reviews with FILE-shaped glob rows are devops (Dockerfile*, compose*.yml) and
+  # api-design (openapi*, *.graphql, *.proto, api.php); the cases below use those.
   CL="$WORK/cat-laravel"; mkdir -p "$CL"
   printf '{"require":{"laravel/framework":"^11"}}' > "$CL/composer.json"; : > "$CL/app.php"
   OL=$(cat_for "$CL" laravel)
-  cat_expect "a Laravel repo is not offered /web-dev:review" "$OL" "/web-dev:review" absent
-  cat_expect "a Laravel repo keeps /laravel:review"         "$OL" "/laravel:review" present
+  cat_expect "a repo with no container or CI files is not offered /devops:review" "$OL" "/devops:review" absent
+  cat_expect "a repo with no API spec is not offered /api-design:review"          "$OL" "/api-design:review" absent
   cat_expect "stack-neutral /code-review:review always kept" "$OL" "/code-review:review" present
 
-  CN="$WORK/cat-next"; mkdir -p "$CN"
-  printf '{"dependencies":{"next":"^14"}}' > "$CN/package.json"; : > "$CN/next.config.js"
-  ON=$(cat_for "$CN" next)
-  cat_expect "a Next.js repo keeps /web-dev:review"      "$ON" "/web-dev:review" present
-  cat_expect "a Next.js repo is not offered /laravel:review" "$ON" "/laravel:review" absent
+  CN="$WORK/cat-docker"; mkdir -p "$CN"
+  printf '{"dependencies":{"next":"^14"}}' > "$CN/package.json"; : > "$CN/Dockerfile"; : > "$CN/openapi.yaml"
+  ON=$(cat_for "$CN" docker)
+  cat_expect "a repo with a Dockerfile keeps /devops:review"    "$ON" "/devops:review" present
+  cat_expect "a repo with an OpenAPI spec keeps /api-design:review" "$ON" "/api-design:review" present
 
   CE="$WORK/cat-empty"; mkdir -p "$CE"
   OE=$(cat_for "$CE" empty)

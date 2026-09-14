@@ -72,7 +72,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `always-on-suite` | 7 | ~2.0k tokens | ~1.2k tokens | ~2.1k tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.1k tokens |
 | `quality-suite` | 6 | ~1.5k tokens | ~32 tokens | ~2.1k tokens |
-| `php-suite` | 3 | ~1.0k tokens | — | — |
+| `php-suite` | 3 | ~956 tokens | — | — |
 
 Every row is a curated subset. The marketplace ships all 31 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
@@ -165,23 +165,25 @@ them by name.
 
 ## Stacks and frameworks
 
-Each of these ships a best-practice skill plus a review command (`/laravel:review`, `/web-dev:review`, and so on). The
-skill is what Claude applies while writing; the command is what you run over a
-diff, a path, or a branch. All of them pin their advice to the version in your
-lockfile rather than to the version the model happens to remember.
+Each of these ships best-practice skills and a worker. The skill is what Claude
+applies while writing; `/code-review:review` is what you run over a diff, a path, or a
+branch — it detects the stack and loads every matching skill in one pass (the
+per-plugin `/…:review` entries were retired on 2026-09-14 as second names for that
+pass). All of them pin their advice to the version in your lockfile rather than to
+the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[laravel](plugins/laravel)** | Eloquent N+1 and eager loading, FormRequests, thin controllers, queued jobs, policies, the Laravel 11/12/13 map | Controllers, models, jobs, migrations — the daily Laravel surface |
-| **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) behind one `/web-dev:review`, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
+| **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) skills, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
 
 **Using them.** Three entry points, in rising order of ceremony:
 
 1. Just work. With `skill-router` installed, editing `app/Models/Order.php`
    loads the Laravel skill on its own.
-2. Review a change: `/laravel:review`, `/web-dev:review` — each
-   takes an optional path or diff reference and returns severity-sorted
-   one-line findings with fixes.
+2. Review a change: `/code-review:review` — takes an optional path or diff
+   reference, loads the Laravel, Inertia, Next.js, Vite or SQL skills the scope
+   touches, and returns severity-sorted one-line findings with fixes.
 3. Review a change that spans stacks: `/code-review:review` is the fan-in. It
    loads every matching stack skill in one pass, which is what stops the same
    finding arriving three times from three commands.
@@ -200,17 +202,17 @@ lockfile rather than to the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill behind one `/database:review` that detects the engine first, a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
+| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill (the fan-in detects the engine first), a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
 
-**Using them.** `/database:review` detects the engine first, runs the
-engine-agnostic pass over statements and the shape that persists them, and adds
-the MariaDB dialect rules when the compose image or DSN says MariaDB. The worker
-and the destructive-SQL guard ride in the same plugin.
+**Using them.** On SQL or a migration `/code-review:review` detects the engine first,
+runs the engine-agnostic pass over statements and the shape that persists them, and
+adds the MariaDB dialect rules when the compose image or DSN says MariaDB. The worker
+and the destructive-SQL guard ride in the database plugin.
 
 **Worked example.** Adding a column to a hot table on MariaDB:
 
 ```
-/database:review database/migrations/2026_08_21_add_status.php   # engine detected → sql + mariadb rules
+/code-review:review database/migrations/2026_08_21_add_status.php   # engine detected → sql + mariadb rules
 ```
 
 The expand → migrate → contract sequence, the rollback-path rule, and the
@@ -232,7 +234,6 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 ```bash
 /ui-ux:theme                  # create or restyle a colour theme, live preview URL
 /ui-ux:build                  # build or restyle a component/layout
-/ui-ux:review                 # audit markup and styles
 /ui-ux:audit                   # WCAG 2.2 AA, one line per violation with the fix
 /craft-layer:craft            # the full studio pipeline, end to end
 /craft-layer:sections         # decide a page section by section, with you

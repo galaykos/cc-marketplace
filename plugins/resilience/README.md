@@ -63,7 +63,7 @@ rubrics in one pass.
 
 - **code-architecture** (system-design skill) — the service boundaries whose failure modes this plugin reviews
 - **devops** — infra-layer wiring (collectors, dashboards, deploy config) the observability engineer defers to
-- **database** — SQL statement and index idioms (`/database:review`) the performance review defers to instead of duplicating
+- **database** — SQL statement and index idioms (its sql skill, loaded by `/code-review:review`) the performance review defers to instead of duplicating
 - **task-runner** — the apply-now path hands findings to its executor when installed
 - **craft-layer** — a consumer: its `craft-reviewer` yields to
   `/resilience:review --concern performance` for the audit step (`craft-layer/lane.tsv`).

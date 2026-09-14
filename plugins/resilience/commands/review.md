@@ -62,11 +62,12 @@ An unknown name aborts with one line printing that list. `--concern all` loads e
    `path:line — severity — suspected problem — measurement-that-confirms — fix`. Never
    assert a win without a before/after number.
 
-5. Defer, do not duplicate. SQL statement and index idioms → `/database:review`;
-   framework-idiom review → the installed stack review command (`/laravel:review`,
-   `/web-dev:review`); infra-layer observability wiring (collectors, dashboards, deploy
-   config) → `/devops:review`; the service-boundary decision behind an event →
-   code-architecture's `system-design` skill. Recommend each; do not run it from here.
+5. Defer, do not duplicate. SQL statement and index idioms and framework-idiom review →
+   `/code-review:review`, the fan-in that loads database's sql skill and the laravel /
+   web-dev stack skills for whatever the diff touches; infra-layer observability wiring
+   (collectors, dashboards, deploy config) → `/devops:review`; the service-boundary
+   decision behind an event → code-architecture's `system-design` skill. Recommend
+   each; do not run it from here.
 
 6. Close with a coverage inventory and a self-refute pass. State `Checked: …` (the
    rubrics loaded and the surfaces read) and `Not checked: … (why)` so it is explicit

@@ -107,9 +107,10 @@ confirmed, stop and ask.
 
 ## Defer rule
 
-Dialect-specific review is owned by `/database:review`, not by you. When SQL
-needs a statement-level audit, recommend that command — it loads the MariaDB
-dialect skill when the engine is MariaDB — rather than restating its content.
+Dialect-specific review is owned by the review fan-in, not by you. When SQL
+needs a statement-level audit, recommend `/code-review:review` — it loads the
+sql skill on statements and migrations, plus the MariaDB dialect skill when the
+engine is MariaDB — rather than restating their content.
 
 ## Kill-trigger (three strikes)
 
