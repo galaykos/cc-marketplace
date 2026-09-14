@@ -13,8 +13,8 @@
 # least one file: p50=2, p75=5, p90=12, p95=21, p99=40, max=157. DRIFT_FLOOR is p90, so
 # roughly one edit-turn in ten can reach it before the two filters below apply. An earlier
 # draft of this hook proposed 4 — that would have fired on about a third of all turns,
-# which is the "a number someone wrote down" non-trigger that lean/skills/cost-model
-# rejects, and is why this hook was refused the first time it was proposed rather than
+# which is the "a number someone wrote down" non-trigger the lean plugin's cost-model
+# skill rejected (lean was removed 2026-09-14; the rule stands), and is why this hook was refused the first time it was proposed rather than
 # shipped with a guess. Re-derive from your own transcripts before changing it.
 #
 # STANDING: advisory. additionalContext is not a blocking key and this exits 0 on every

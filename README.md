@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **31 leaf plugins** and **8 bundles** covering
+A Claude Code plugin marketplace: **27 leaf plugins** and **4 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -79,7 +79,7 @@ not a constant — read out of the shipped CLI (2.1.251), not from documentation
 
 `skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.
 If you install a bundle flagged over the 200k floor, set it to the value that bundle's README
-names (0.02-0.03) in the settings.json of the PROJECT where you use it — the fraction is a
+names (0.02 for core-suite, 0.04 for workflow-suite) in the settings.json of the PROJECT where you use it — the fraction is a
 ceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the
 descriptions being evicted.
 `bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including

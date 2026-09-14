@@ -239,9 +239,12 @@ One entry, `/code-review:review`, loading (not deferring to) every installed rub
 Kept standalone because each carries procedure the fan-in does not: `/security:review`
 (audit folding, threat-model disposition), `/ui-ux:audit` (WCAG procedure with a
 re-audit loop), `/api-design:drift` and `:check`, `/testing:flake-hunt`, `/stack-scan:audit`,
-`/resilience:review --concern` (a design doc with no diff). Reviewer agents 11 → 6:
-`code-reviewer`, `frontend-reviewer` (opus floor), `architecture-reviewer`,
-`devops-reviewer`, `craft-reviewer`, and the adversarial panel persona.
+`/resilience:review --concern` (a design doc with no diff). Reviewer agents 11 → 6
+was the target; at the end of wave 3 it is 9: `code-reviewer`, `frontend-reviewer`
+(opus floor), `architecture-reviewer`, `devops-reviewer`, `craft-reviewer`, the
+adversarial panel persona — plus `ui-ux-reviewer`, taskmaster's `spec-adversary` and
+ultra-deep-research's `verifier`, which no wave targeted and this section had not
+been reconciled against (corrected 2026-09-14 by the post-wave review).
 Removed as entries: `web-dev:review`, `database:review`, `laravel:review`,
 `ui-ux:review`, `payments:review`, `llm-app:review`, `system-design:review`,
 `orchestration:review`, four of five `resilience:*-review`, `terse:check` (→ candor).
@@ -427,7 +430,7 @@ harness green at each commit.**
   (renamed from taskmaster-suite; + `code-review`, `git-workflow`, `hindsight`,
   `secret-scanning`, `debugging`); `frontend-suite` and `craft-suite` already matched
   §3.3; `php-suite`, `quality-suite`, `process-suite`, `quality-principles-suite`
-  deleted. Three deviations from the §3.3 table, each because a recorded rule with a
+  deleted. Four deviations from the §3.3 table, each because a recorded rule with a
   reason beat a table row without one: the `-suite` suffix stays (renaming
   frontend-suite and craft-suite would churn installs for no mechanism);
   `command-guard` is NOT in core — always-on-suite 0.2.0 removed it because its ask tier
@@ -446,8 +449,11 @@ harness green at each commit.**
 
 Recount after wave 3 (the §10 commands): 31 plugin directories = 27 leaves + 4
 bundles; 60 commands; 104 skills; 28 agents; 21 hook dirs; 9 plugins on
-UserPromptSubmit; always-on total 10,474 tokens; 164 listing entries ≈ 35,100 chars
-(from 183 ≈ 43,100). The §3.2 target of 26 leaves stands at 27: overseer stays a leaf
+UserPromptSubmit; always-on total 10,474 tokens; 164 listing entries ≈ 39,200 chars
+(from 183 ≈ 43,100 — same name + 4 + description basis, so −9%; the four bundle
+`uninstall` commands are in the 164 and were not in the 183, so like-for-like is
+183 → 160. An earlier draft of this line said 35,100, which was description bytes
+alone — a different measure). The §3.2 target of 26 leaves stands at 27: overseer stays a leaf
 until wave 4 measures what taskmaster's or its own bodies are worth.
 
 **Wave 4 — measure, then cut bodies.** `claude plugin eval --ablation with-without`,

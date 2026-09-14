@@ -4,6 +4,15 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.4
+
+- `plugin-scout` references recounted after the 2026-09-14 consolidation:
+  `stack-relevance.md` said "eight bundles", "35 eligible leaves" and "the two domain
+  leaves" (there are four bundles, 26 eligible leaves and no domain leaf); `flags.md`
+  said 23 of 36 leaves ship a hook (21 of 27); `official-complements.md` named
+  `terse:commit` as the `/commit` overlap (dropped in candor 0.3.0). Doc-only; the
+  picker and the scan read the catalog, not these numbers.
+
 ## 0.7.3
 
 ### Changed

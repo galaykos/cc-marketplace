@@ -45,7 +45,10 @@ Modes: `CC_CANDOR_GATE=block` (default) `| warn | off` for the whole gate;
 `CC_EVIDENCE_GATE` and `TASK_RUNNER_STOP_GATE` still downgrade clauses 3 and 4
 alone, as they did when those were separate scripts. Fails open on missing `jq`,
 an unreadable transcript, or empty text. One block per distinct final message
-(clauses 1-3) or per HEAD (clause 4), so a disagreement cannot loop.
+(clauses 1-3) or per HEAD (clause 4), so a disagreement cannot loop — and a clause
+that is bounded (or in warn mode) prints without silencing the others: a run held
+once at a HEAD is still checked for invented citations and naked completion claims
+on every later stop (0.3.1; `scripts/__tests__/gate.test.sh`, clause independence).
 
 ## What is measured and not blocked
 

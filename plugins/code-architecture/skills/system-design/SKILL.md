@@ -72,8 +72,8 @@ territory; the *placement* decision — which layer owns which data's cache — 
 - **Every async hop names its failure modes**: lost messages, duplicates, ordering,
   poison messages, and back-pressure. An event-driven design that has not answered
   "what happens on redelivery" is a data-corruption bug on a timer. (The delivery-
-  semantics detail — outbox, sagas, DLQ, idempotency — is the event-driven skill's,
-  in this plugin.)
+  semantics detail — outbox, sagas, DLQ, idempotency — is resilience's `event-driven`
+  skill, not this plugin's.)
 
 ## Single points of failure
 

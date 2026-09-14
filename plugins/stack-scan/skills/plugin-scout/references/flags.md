@@ -104,7 +104,7 @@ rule and the typed-token rule; this section does not restate them.
   - `Hooks added:` hook-bearing plugins grouped by event — every event key present
     in the file (Stop, UserPromptSubmit, PreToolUse, PostToolUse, SessionStart,
     SessionEnd, …), never a fixed list — read from each plugin's
-    `hooks/hooks.json` at run time (23 of the 36 leaves ship one at the time of
+    `hooks/hooks.json` at run time (21 of the 27 leaves ship one at the time of
     writing; recount, never quote). `secret-scanning` and `command-guard` are
     always named, as under `--yes`: the user did not see a picker for them.
   - `MCP servers added:` each server from a plugin's `.mcp.json`, marked local or

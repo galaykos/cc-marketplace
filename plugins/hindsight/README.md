@@ -96,7 +96,8 @@ row is a retraction candidate, not a verdict.
   was invoked) and the router's `surfaced.jsonl` (what was offered) are joined by
   `scripts/turn-cost.sh --skills`, a maintainer path in the marketplace repository.
   Neither plugin reads the other's ledger at runtime.
-- **stack-scan** (plugin-scout skill) — suggests hindsight in its session-wide tier and, in its
+- **stack-scan** (plugin-scout skill) — does not suggest hindsight per repo (its `any-core.md`
+  points at the core-suite bundle or a `--global` run instead) but, in its
   official-complements table, names `/hindsight:claude-md` as the overlap with the
   host's `claude-md-management`.
 

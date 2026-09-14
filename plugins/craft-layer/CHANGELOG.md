@@ -7,6 +7,12 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.6
+
+- `agents/craft-reviewer.md`: the performance defer line repeated
+  `/resilience:review --concern performance` twice (a rename artifact from 0.49.4).
+  Wording only.
+
 ## 0.49.5
 
 ### Changed

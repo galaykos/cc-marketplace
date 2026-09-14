@@ -2,6 +2,15 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.34.3
+
+### Changed
+- `skills/task-execution/SKILL.md` and `skills/track-orchestration/SKILL.md` say whose
+  gate "the completion gate" is: candor's clause 4, enforced only with candor installed.
+  The README, `run.md` and `behavioral-gate` carried that condition since 0.33.0; the two
+  bodies still read as an unconditional gate. `hooks/drift.sh`'s comment no longer cites
+  the removed `lean` plugin as a live path. No behaviour change.
+
 ## 0.34.2
 
 ### Changed

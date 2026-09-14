@@ -24,8 +24,8 @@
 #
 # STANDING: advisory. `additionalContext` is not a blocking key and this exits 0 on every
 # path, including every failure. It cannot be a gate, and the reason is on the record
-# rather than a limitation of effort: lean/skills/cost-model/SKILL.md:114-120 and
-# proportionality.md:3 both refuse a test-count or ratio threshold, because there is no
+# rather than a limitation of effort: proportionality.md:3 refuses a test-count or ratio
+# threshold (so did lean's cost-model skill, removed 2026-09-14), because there is no
 # correct ratio — a number would fire on legitimately dense work and wave through a
 # bloated suite that sits under it. Naming three specific shapes at a location is a
 # different claim from scoring a count, which is why this ships and a ratio gate does not.

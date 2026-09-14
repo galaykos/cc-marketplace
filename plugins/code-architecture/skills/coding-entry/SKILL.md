@@ -106,7 +106,7 @@ convention forbids.
 Five lines, then the work or the handoff. No preamble, no restatement of the ask.
 
     stack: laravel 11 · inertia · react 18 · mariadb      (or: no manifest recognised)
-    loaded: cost-model, comment-discipline, testing, plan-before-code, low-cognitive-load, code-smells
+    loaded: comment-discipline, testing, plan-before-code, low-cognitive-load, code-smells
     primed: laravel-best-practices, inertia-best-practices, mariadb-best-practices, a11y-audit
     triage: trivial — proceeding inline
     budget: 1 file, 1 test (the boundary case), no comment, no delegation

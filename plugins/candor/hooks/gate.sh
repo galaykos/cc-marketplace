@@ -93,7 +93,13 @@
 #
 # ORDER: 4, 1, 2, 3. Clause 4 first because it is the most specific context (a
 # live run) and needs no transcript, so a run that stops with no transcript_path
-# in the payload is still held. Only one verdict is reported per stop.
+# in the payload is still held. Only one verdict BLOCKS per stop — but a clause
+# that has spoken without blocking does not silence the others. Clause 4 bounded
+# at this HEAD (or in warn mode) prints its nudge and clauses 1-3 still run: on
+# master these were three independent Stop hooks, each evaluated on every stop,
+# and the first merge (0.3.0) let clause 4's verdict occupy the only slot for the
+# rest of a HEAD — every card of a live run went uncovered for fabricated
+# citations, bare reversals and naked completion claims after its first block.
 
 input=$(cat)
 
@@ -312,6 +318,36 @@ run_clause() {
 }
 RUN_HEAD=""; RUN_SENTINEL=""
 run_clause
+
+if [ "$verdict" = "run" ]; then
+  # Clause-specific mode kept from the script this clause came from.
+  run_mode="$gate_mode"
+  case "${TASK_RUNNER_STOP_GATE:-block}" in warn) run_mode=warn ;; esac
+  # ONE BLOCK PER HEAD. The last HEAD blocked on is recorded, and a second stop at the
+  # SAME commit prints without blocking, so a real run is held at every card boundary
+  # (every commit re-arms) while a stale sentinel costs one extra turn per commit. The
+  # marker counts only while NEWER than the sentinel it was written under: nothing
+  # clears it (the run clears active-run.json, not this), so a marker left by run A
+  # must not eat run B's first block at the same HEAD. A same-tick tie fails toward
+  # blocking, never toward silence. Warn mode never writes it.
+  printf '%s\n' "$run_msg" >&2
+  if [ "$run_mode" = "block" ]; then
+    nudge="$cwd/.claude/task-runner/gate-nudge"
+    if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
+      :                                   # bounded at this HEAD — printed, not blocked
+    elif printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
+      exit 2
+    elif [ "$sha_active" != "true" ]; then
+      # No writable marker → no per-HEAD bound this turn. The shared flag is honoured
+      # only here, so an unwritable state dir cannot block the same stop forever.
+      exit 2
+    fi
+  fi
+  # Bounded or warn: clause 4 has spoken without blocking. Clauses 1-3 still run —
+  # a run held once at this HEAD does not license an invented citation on the next
+  # stop (see ORDER in the header).
+  verdict=""; run_msg=""
+fi
 
 # ---------------------------------------------------------------------------
 # Transcript — clauses 1-3 read it; without one they stand down.
@@ -536,30 +572,7 @@ fi
 mode="$gate_mode"
 case "$verdict" in
   evidence) case "$ev_mode" in warn) mode=warn ;; esac ;;
-  run)      case "${TASK_RUNNER_STOP_GATE:-block}" in warn) mode=warn ;; esac ;;
 esac
-
-if [ "$verdict" = "run" ]; then
-  # ONE BLOCK PER HEAD. The last HEAD blocked on is recorded, and a second stop at the
-  # SAME commit prints without blocking, so a real run is held at every card boundary
-  # (every commit re-arms) while a stale sentinel costs one extra turn per commit. The
-  # marker counts only while NEWER than the sentinel it was written under: nothing
-  # clears it (the run clears active-run.json, not this), so a marker left by run A
-  # must not eat run B's first block at the same HEAD. A same-tick tie fails toward
-  # blocking, never toward silence. Warn mode never writes it.
-  printf '%s\n' "$run_msg" >&2
-  [ "$mode" = "block" ] || exit 0
-  nudge="$cwd/.claude/task-runner/gate-nudge"
-  if [ -r "$nudge" ] && [ "$nudge" -nt "$RUN_SENTINEL" ] && [ "$(cat "$nudge" 2>/dev/null)" = "$RUN_HEAD" ]; then
-    exit 0
-  fi
-  if ! printf '%s' "$RUN_HEAD" > "$nudge" 2>/dev/null; then
-    # No writable marker → no per-HEAD bound this turn. The shared flag is honoured
-    # only here, so an unwritable state dir cannot block the same stop forever.
-    [ "$sha_active" = "true" ] && exit 0
-  fi
-  exit 2
-fi
 
 # LOOP GUARD for clauses 1-3: block once per distinct final text. The marker is
 # state a mid-work turn cannot fake — a genuinely new turn produces new text.

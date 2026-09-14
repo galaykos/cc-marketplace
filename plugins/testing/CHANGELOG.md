@@ -6,6 +6,13 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.9.1
+
+- `README.md` and the `hooks/test-shape.sh` header no longer point at the `lean` plugin's
+  `cost-model` skill as a live source — that plugin was removed from the marketplace on
+  2026-09-14; `testing-best-practices/references/proportionality.md` carries the same
+  refusal of a count/ratio threshold. No behaviour change.
+
 ## 0.9.0
 
 ### Added

@@ -34,11 +34,11 @@ those rows exist because three tokens share a name with plugins removed on
 
 ## Everything else
 
-Every leaf not named above is **any stack** and is always in the plan — 29 of the
-35 eligible leaves (36 minus `stack-scan`) at the time of writing; recount from
+Every leaf not named above is **any stack** and is always in the plan — 22 of the
+26 eligible leaves (27 minus `stack-scan`) at the time of writing; recount from
 `references/catalog.md`, never from this number. That includes `ui-ux`: its a11y-audit, design-tokens and
 theming-system skills are stack-agnostic, so a server-rendered app with no
-JavaScript framework still gets it. The eight `*-suite` bundles and `stack-scan`
+JavaScript framework still gets it. The four `*-suite` bundles and `stack-scan`
 itself are excluded by construction and never listed one by one. Already-installed
 leaves are skipped and counted in the plan's `Already installed (K)` line.
 
@@ -76,8 +76,8 @@ installs candor — the user asked for everything.
 **Laravel + Inertia + React** — composer.json requires `laravel/framework`,
 package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
-- Excluded by construction: the eight bundles, `stack-scan`.
-- **No stack-mismatched leaf.** Both stack classes are satisfied, so 33 of the 34
+- Excluded by construction: the four bundles, `stack-scan`.
+- **No stack-mismatched leaf.** Both stack classes are satisfied, so all 26
   eligible leaves install.
 - `web-dev` brings the Next.js and React Native skill descriptions into the
   model's skill listing regardless — no level of this marketplace skips them for a
@@ -86,8 +86,7 @@ package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 **Next.js app** — package.json declares `next`, no composer.json:
 
 - Excluded: `laravel` — PHP / Laravel evidence absent (no `laravel/framework`, no
-  `@inertiajs/*`); `--stack laravel` includes. Plus the two domain leaves when
-  unsignalled.
+  `@inertiajs/*`); `--stack laravel` includes.
 
 ## Standing
 

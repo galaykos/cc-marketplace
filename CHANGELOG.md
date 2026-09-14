@@ -9,8 +9,10 @@ version in their `plugin.json`.
 **The consolidation: 37 leaves and 8 bundles become 27 leaves and 4 bundles.** The
 plan, the lens reviews, the measurements and the per-wave records are in
 `rationale/marketplace-consolidation-plan-2026-09-14.md`; this entry is the
-installer's view. Every removed name is in `pc_removed_refs`' lists, so a stale
-reference fails the build.
+installer's view. Every removed name but one is in `pc_removed_refs`' lists, so a
+stale reference fails the build; `lean` is deliberately outside them (the check's
+header says why — its name is an English word), so a stale `lean` pointer is a
+review catch, not a gate catch.
 
 - **Removed outright:** `payments`, `llm-app` (their skill bodies were the shape
   measured at zero), `lean` (its PostToolUse fired on every edit with no filter; the
@@ -33,7 +35,8 @@ reference fails the build.
 - **Bundles, 8 → 4.** `core-suite` (was `always-on-suite`, with `code-review` from
   `quality-suite`) and `workflow-suite` (was `taskmaster-suite`, absorbing `process-suite`
   and `quality-principles-suite`; fifteen members, `skillListingBudgetFraction: 0.04` at
-  200k) are new names; `frontend-suite` and `craft-suite` are unchanged; `php-suite` is
+  200k) are new names; `frontend-suite` is unchanged and `craft-suite` keeps its name
+  (its two design members became one, `design-studio`); `php-suite` is
   gone — `laravel`, `web-dev` and `code-review` are install-by-name. An installed retired
   bundle: run its own `uninstall` command, then install the successor.
 - **Lanes.** Every plugin's `lane.tsv` now declares the `plan`, `ship` and `verify`

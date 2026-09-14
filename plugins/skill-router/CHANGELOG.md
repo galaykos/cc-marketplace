@@ -1,5 +1,7 @@
 # Changelog
 
+All notable changes to the skill-router plugin.
+
 ## 0.15.4 — 2026-09-14
 
 - `rules.tsv`: a payment-webhook content signal (`Stripe-Signature`, `constructEvent`,
@@ -7,7 +9,6 @@
   consolidation plan (§3.1) said the row of `payments` (removed 2026-09-14) would be rewritten to <!-- removed-ok -->
   security-review; wave 1 deleted it instead, so a webhook handler edit routed nothing.
 
-All notable changes to the skill-router plugin.
 
 ## 0.15.3
 

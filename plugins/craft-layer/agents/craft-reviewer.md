@@ -185,8 +185,8 @@ and duplicated rules drift:
   `/ui-ux:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (step 6) IS a craft
   gate — run it here; defer the rest of a11y.
 - Performance / Lighthouse / Core Web Vitals / load timing → defer to
-  `/resilience:review --concern performance`. `/resilience:review --concern performance` requires the `resilience` plugin; skipped if not
-  installed.
+  `/resilience:review --concern performance` (requires the `resilience` plugin; skipped if not
+  installed).
 
 If a finding is really an a11y or perf concern, name it and point to the owning
 command instead of judging it yourself.

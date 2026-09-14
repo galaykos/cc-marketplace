@@ -28,8 +28,8 @@ Per task, loop — but with a hard ceiling:
 2. Run the task's verify command — the EXACT command, not a cheaper stand-in.
 3. Pass → run the negative-control gate before flipping (`references/negative-control.md`)
    with `--record-dir .claude/task-runner/nc --card <cardId>` — the pass record lands
-   mechanically, and the completion gate refuses a clean stop when done cards outnumber
-   nc records: `discriminating` → flip; `vacuous`/`invalid-control` → back into this
+   mechanically, and the completion gate (candor's clause 4, when candor is installed)
+   refuses a clean stop when done cards outnumber nc records: `discriminating` → flip; `vacuous`/`invalid-control` → back into this
    loop (no teeth); `isolation-halt` → halt. Manual/visual: `--skip "<reason>"`, same flags.
 4. Fail → diagnose from the actual output, fix, go to 2.
 5. **Three failed fix cycles → halt the task.** Before halting, make ONE bounded dispatch to
@@ -56,8 +56,9 @@ Each fires only if its plugin is installed; a missing reviewer is not a failure,
 never silent — record it with `scripts/review-skip.sh --card <id> --exempt
 no-reviewer-installed`. A reviewer pass dropped for any other reason is a DISCRETIONARY skip:
 it needs the user's approval first, then `--reason "<why>"`, and it must appear under
-`Skipped:` in the completion report. The completion gate counts reviewer records against done
-cards and refuses a clean stop when they are short or when a recorded skip went undisclosed.
+`Skipped:` in the completion report. The completion gate (candor's clause 4 — with candor
+installed; without it this paragraph is prose) counts reviewer records against done cards and
+refuses a clean stop when they are short or when a recorded skip went undisclosed.
 **Concurrent by default:** the resolved read-only reviewers dispatch as ONE concurrent batch over the card diff; a `Bash`-holding reviewer runs serially outside it; the
 inline security-review skill runs after the batch joins (`references/reviewer-routing.md` § Concurrent dispatch — baseline behavior, not `--crew`-gated). Plus the card's
 `Agent:` tag adds a primed domain reviewer per `references/reviewer-routing.md`, augmenting the four above (dedup duplicates; a tag route may suppress the baseline gate

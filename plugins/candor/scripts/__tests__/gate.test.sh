@@ -220,5 +220,66 @@ sub_payload "$A" "Found it at src/ghost.ts:12." | bash "$HOOK" >/dev/null 2>&1; 
 if [ "$rc" -eq 0 ]; then pass=$((pass+1)); printf 'PASS  subagent: same report re-stop passes (one-shot)\n'
 else fail=$((fail+1)); printf 'FAIL  subagent: same report re-stop passes (rc=%s)\n' "$rc"; fi
 
+
+# ---------------------------------------------------------------------------
+# CLAUSE INDEPENDENCE — a bounded clause 4 does not silence clauses 1-3
+# ---------------------------------------------------------------------------
+# On master these were three Stop hooks, each evaluated on every stop. The 0.3.0
+# merge let clause 4 (a registered run with no gate pass) take the only verdict
+# slot and exit 0 on its per-HEAD bound, so from the second stop at a HEAD until
+# the next commit an invented citation or a naked completion claim passed. A live
+# run is exactly where those happen. These cases pin: clause 4 blocks first and
+# alone; once bounded (or in warn mode) it prints and the other clauses still bite.
+if command -v git >/dev/null 2>&1; then
+  rm -f "$MARKER" "$CLAIMED"
+  git -C "$CWD" init -q && git -C "$CWD" config user.email t@t.t && git -C "$CWD" config user.name t
+  git -C "$CWD" add -A >/dev/null 2>&1 && git -C "$CWD" commit -qm init
+  SENT="$CWD/.claude/task-runner/active-run.json"; NUDGE="$CWD/.claude/task-runner/gate-nudge"
+  mkdir -p "$CWD/.claude/task-runner"; printf '{"slug":"t"}' > "$SENT"
+  touch -t 200001010000 "$SENT"                   # registration precedes every stop below
+  RUN_SUB='registered run with no behavioral-gate pass'
+
+  T="$WS/c4a.jsonl"; { user "fix it"; asst "Fixed at src/ghost.ts:12."; } > "$T"
+  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && ! printf '%s' "$err" | grep -qF "$CITE_SUB" && [ -r "$NUDGE" ]; then
+    pass=$((pass+1)); printf 'PASS  live run: clause 4 blocks first and alone, writes the nudge\n'
+  else fail=$((fail+1)); printf 'FAIL  live run: clause 4 blocks first and alone (rc=%s nudge=%s stderr=%s)\n' "$rc" "$([ -r "$NUDGE" ] && echo y || echo n)" "$err"; fi
+
+  err=$(payload_active "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && printf '%s' "$err" | grep -qF "$CITE_SUB"; then
+    pass=$((pass+1)); printf 'PASS  bounded clause 4 prints, clause 1 still blocks the invented citation (continuation)\n'
+  else fail=$((fail+1)); printf 'FAIL  bounded clause 4 + clause 1 on continuation (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  rm -f "$MARKER" "$CLAIMED"
+  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$CITE_SUB"; then
+    pass=$((pass+1)); printf 'PASS  bounded clause 4, fresh stop: clause 1 still blocks\n'
+  else fail=$((fail+1)); printf 'FAIL  bounded clause 4, fresh stop: clause 1 (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  T="$WS/c4b.jsonl"; { user "fix it"; asst "Fixed at src/real.ts:3."; } > "$T"
+  rm -f "$MARKER" "$CLAIMED"
+  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 0 ] && printf '%s' "$err" | grep -qF "$RUN_SUB"; then
+    pass=$((pass+1)); printf 'PASS  bounded clause 4 with a clean turn: print-only exit 0\n'
+  else fail=$((fail+1)); printf 'FAIL  bounded clause 4 with a clean turn (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  T="$WS/c4c.jsonl"; { user "fix it"; tools Edit; tres; asst "Done — implemented and verified."; } > "$T"
+  rm -f "$MARKER" "$CLAIMED"
+  err=$(payload "$T" | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'claims completion'; then
+    pass=$((pass+1)); printf 'PASS  bounded clause 4: clause 3 still blocks a naked completion claim\n'
+  else fail=$((fail+1)); printf 'FAIL  bounded clause 4 + clause 3 (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  T="$WS/c4a.jsonl"; rm -f "$MARKER" "$CLAIMED" "$NUDGE"
+  err=$(payload "$T" | TASK_RUNNER_STOP_GATE=warn bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF "$RUN_SUB" && printf '%s' "$err" | grep -qF "$CITE_SUB" && [ ! -e "$NUDGE" ]; then
+    pass=$((pass+1)); printf 'PASS  clause 4 in warn mode prints, writes no nudge, clause 1 still blocks\n'
+  else fail=$((fail+1)); printf 'FAIL  clause 4 warn + clause 1 (rc=%s nudge=%s stderr=%s)\n' "$rc" "$([ -e "$NUDGE" ] && echo y || echo n)" "$err"; fi
+
+  rm -f "$SENT" "$NUDGE" "$MARKER" "$CLAIMED"
+else
+  printf 'SKIP  clause-independence cases (git not available)\n'
+fi
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

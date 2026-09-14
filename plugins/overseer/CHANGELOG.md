@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.6 — 2026-09-14
+
+- `references/capability-map.md`: the review row no longer names `ui-ux` review and the
+  `laravel`/`web-dev` review commands, retired 2026-09-14 — the fan-in
+  `/code-review:review` loads their skills, `ui-ux` keeps `audit`, `resilience` is one
+  command behind `--concern`. The `capability-scan.sh` map row (plugin names only) was
+  already right.
+
 ## 0.4.5 — 2026-09-14
 
 - `scripts/capability-scan.sh`: the guard row no longer names `lean` (removed from the

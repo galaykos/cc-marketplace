@@ -2,6 +2,21 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.1
+
+### Fixed
+- **A bounded clause 4 silenced clauses 1-3.** In 0.3.0 the gate reported one
+  verdict per stop and clause 4 ran first, so once a registered task-runner run had
+  been blocked at a HEAD (per-HEAD nudge written) — or whenever
+  `TASK_RUNNER_STOP_GATE=warn` — every later stop at that HEAD exited 0 before the
+  citation, reversal and evidence clauses ran. On master those were three
+  independent Stop hooks, each evaluated every stop; the merge lost that for the
+  whole of every card. Clause 4 still blocks first and alone; when it is bounded or
+  warn-mode it prints and falls through. Six regression cases in
+  `scripts/__tests__/gate.test.sh` (clause independence), four of which fail on
+  0.3.0. Found by a post-merge review; no harness case had combined a live run with
+  a clause 1-3 shape at a second stop.
+
 ## 0.3.0
 
 ### Added

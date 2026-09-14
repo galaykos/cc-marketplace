@@ -1,5 +1,16 @@
 # Changelog
 
+All notable changes to the code-architecture plugin.
+
+## 0.15.3 — 2026-09-14
+
+- `skills/system-design/SKILL.md` no longer says the delivery-semantics detail (outbox,
+  sagas, DLQ, idempotency) is "the event-driven skill's, in this plugin" — that skill moved
+  to `resilience` in 0.14.0 and the README said so; the body did not.
+- `skills/coding-entry/SKILL.md`: the sample `loaded:` line no longer names `cost-model`
+  (the `lean` plugin was removed 2026-09-14; the list above the sample already said five).
+  Post-wave review catches; no behaviour change.
+
 ## 0.15.2 — 2026-09-14
 
 - `plugin.json` description no longer claims this plugin ships "a blocking Stop hook": the
@@ -16,7 +27,6 @@
   `plan` had no row anywhere in the marketplace while three artifacts did plan work. No
   behaviour change.
 
-All notable changes to the code-architecture plugin.
 
 ## 0.15.0
 
