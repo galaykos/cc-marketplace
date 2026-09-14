@@ -107,7 +107,7 @@
     {
       "name": "hindsight",
       "source": "./plugins/hindsight",
-      "description": "Cross-session self-improvement loop: mines session transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on approval."
+      "description": "Cross-session self-improvement loop: mines session and subagent transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and defects against the plugin artifact that was running — applied only on approval."
     },
     {
       "name": "brain",

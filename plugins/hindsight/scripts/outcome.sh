@@ -3,7 +3,9 @@
 # applied hindsight rule actually move the numbers in later sessions?
 #
 # Usage: outcome.sh [project-cwd]   (defaults to $PWD; slug derived like collect.sh)
-# Reads:  $HOME/.claude/hindsight/<slug>/ledger.jsonl   (written by the SessionEnd hook)
+# Reads:  $HOME/.claude/hindsight/<slug>/ledger.jsonl   (written by the SessionEnd hook;
+#         rows tagged kind:"agent" are subagent transcripts and are skipped here — a
+#         session that fans out 90 reviewers would otherwise count as 91 sessions)
 #         $HOME/.claude/hindsight/<slug>/applied.jsonl  (written at harvest apply time)
 # Prints a per-rule before/after table. Exit 0 always — a report, not a gate.
 #
@@ -35,7 +37,9 @@ while IFS= read -r rec; do
   ts=$(jq -r '.ts // empty' <<<"$rec" 2>/dev/null); [ -n "$ts" ] || continue
   text=$(jq -r '(.text // "?") | .[0:60]' <<<"$rec" 2>/dev/null)
   stats=$(jq -c -n --arg ts "$ts" --argjson min "$MIN_N" '
-    [inputs | fromjson? // empty | select(.ts_end? and .ts_end != "")] as $rows
+    [inputs | fromjson? // empty
+      | select(.ts_end? and .ts_end != "")
+      | select((.kind // "session") == "session")] as $rows
     | [$rows[] | select(.ts_end < $ts)] as $before
     | [$rows[] | select(.ts_end > $ts)] as $after
     | def mean(f): if length == 0 then null else (map(f) | add / length) end;

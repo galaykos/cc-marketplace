@@ -17,9 +17,15 @@ collects cheap stats. Nothing is written without an explicit user pick.
   in the project tree. One JSON row per session, schema v1:
   `{"v":1, "session_id", "ts_start", "ts_end", "turns", "friction_events",
   "errors", "user_msgs", "reason", "transcript_path", "mined": false}`.
-- Transcripts: `~/.claude/projects/<slug>/*.jsonl`. `<slug>` is the same in
-  both paths: the absolute cwd with every non-alphanumeric character
-  replaced by `-`.
+  Since 0.9.0 the hook also writes one row per subagent the session spawned,
+  same fields plus `"kind":"agent", "agent_id", "agent_type"` (`agent_type` is
+  the spawned name, e.g. `code-review:code-reviewer`; `unknown` when the
+  meta file was missing). A row without `kind` is a session.
+- Transcripts: `~/.claude/projects/<slug>/*.jsonl`; agent transcripts under
+  `~/.claude/projects/<slug>/<session_id>/subagents/agent-*.jsonl`, each with
+  a sibling `.meta.json` naming `agentType`. `<slug>` is the same in both
+  paths: the absolute cwd with every non-alphanumeric character replaced by
+  `-`.
 - A missing ledger is not an error — the fallback below covers projects
   where the hook never ran (pre-install history, jq-less machines).
 
@@ -29,9 +35,12 @@ collects cheap stats. Nothing is written without an explicit user pick.
    is false.
 2. Score each unmined row with hardcoded v1 weights (no tuning):
    `3 × friction_events + 2 × errors + 1 × turns`. Higher scores first.
-3. Fallback: list transcripts under the slug directory that have NO
-   ledger row at all; rank those by recency plus file size (newer and
-   larger first) and append them below the scored ledger rows.
+3. Fallback: list transcripts under the slug directory — session files and
+   `*/subagents/agent-*.jsonl` alike — that have NO ledger row at all; rank
+   those by recency plus file size (newer and larger first) and append them
+   below the scored ledger rows. Agent rows compete in the same list as
+   sessions by the same score; a session that fanned out many agents does
+   not get a quota, and a low-friction agent simply ranks low.
 4. From the merged list pick the top 5 by default. `$ARGUMENTS` overrides
    the count: a number selects the top N; `all` selects every candidate.
 5. Drop candidates whose transcript file no longer exists on disk and
@@ -44,7 +53,10 @@ parallel in a single message. Each miner is read-only and returns
 compressed findings: corrections the user gave, repeated chores, failed
 fix attempts, and the context around friction events. Pass each agent
 its transcript path and the session's ledger metadata — never load raw
-transcripts into the main context. A miner failing on one transcript
+transcripts into the main context. For an agent row, also pass
+`agent_type` and say it is a subagent transcript: its "user" turns are the
+orchestrator's dispatch prompt, so a correction there is a re-dispatch,
+not a human redirect. A miner failing on one transcript
 does not abort the harvest; record the failure and continue.
 
 ## Synthesize
@@ -76,11 +88,22 @@ Produce exactly five sections:
    a candidate for retracting the rule in this harvest's apply gate.
 1. **Friction stats digest** — sessions mined, total turns, friction
    events, errors, user messages, top friction contexts, plus any
-   skipped or failed transcripts.
+   skipped or failed transcripts. When agent rows were mined, add a
+   per-`agent_type` line (rows, mean friction, mean errors) — attribution
+   of WHERE friction landed, not proof of what caused it.
 2. **CLAUDE.md rule candidates** — one proposed rule line each, backed
    by evidence quotes from ≥2 sessions with session ids.
 3. **Skill/plugin ideas** — recurring chores or missing capabilities
-   worth capturing, each with its cross-session evidence.
+   worth capturing, each with its cross-session evidence. When a cluster's
+   evidence comes from agent rows whose `agent_type` carries a `plugin:`
+   prefix, name the artifact (`<plugin>/agents/<name>.md`) and file it as
+   a **defect** against it, not as a new idea — and tier the evidence:
+   *defect* (the artifact's own rule or tool was active and failed; a
+   transcript quote is enough), *recurrence* (≥2 sessions; a proposal, with
+   the control arm still owed), *outcome* (section 0; correlational). A
+   change to a shipped plugin is not an improvement until an eval case
+   built from the friction — prompt = the request, grader = the correction
+   — fails without the artifact and passes with it.
 4. **Failed-approach warnings** — approaches tried and abandoned, with
    what worked instead when the transcripts show it.
 
