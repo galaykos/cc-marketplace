@@ -65,16 +65,16 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~4.8k tokens | ~32 tokens | ~2.3k tokens |
+| `taskmaster-suite` | 11 | ~5.0k tokens | ~1.2k tokens | ~2.2k tokens |
+| `process-suite` | 12 | ~3.1k tokens | ~1.3k tokens | ~2.1k tokens |
 | `craft-suite` | 3 | ~3.0k tokens | — | — |
-| `process-suite` | 11 | ~2.8k tokens | ~170 tokens | ~2.1k tokens |
 | `quality-principles-suite` | 6 | ~2.3k tokens | — | ~127 tokens |
-| `always-on-suite` | 7 | ~2.0k tokens | ~1.2k tokens | ~2.1k tokens |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.1k tokens |
-| `quality-suite` | 6 | ~1.5k tokens | ~32 tokens | ~2.1k tokens |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.0k tokens |
+| `quality-suite` | 6 | ~1.6k tokens | ~1.2k tokens | ~2.0k tokens |
+| `always-on-suite` | 6 | ~1.3k tokens | ~1.2k tokens | ~2.0k tokens |
 | `php-suite` | 3 | ~956 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 30 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 29 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -139,8 +139,8 @@ early:
 
 - **skill-router** auto-loads the matching best-practice skill when you edit a
   matching file, so you do not have to remember which one applies.
-- **terse** reshapes Claude's chat replies into a budget — useful in long
-  sessions, invisible to the code it writes.
+- **candor**'s terse reply mode (`/candor:level`) reshapes Claude's chat replies
+  into a budget — useful in long sessions, invisible to the code it writes.
 
 ---
 
@@ -269,9 +269,9 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
-| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling — and a **Stop hook** that refuses a completion claim when files were edited and nothing ran afterwards | Structure decisions at code or system level, and any "it's done" that has no evidence behind it |
+| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling; the Stop hook that refuses a completion claim with nothing run after the edits is clause 3 of candor's gate since 2026-09-14 | Structure decisions at code or system level |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
-| **[candor](plugins/candor)** | a blocking Stop gate on the two dishonesty shapes a script can prove: a `file:line` citation that resolves to nothing, and a position retracted under pushback with no tool call in between | You want the honesty rule to have teeth rather than tone |
+| **[candor](plugins/candor)** | the marketplace's one blocking Stop gate, four clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
 | **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
 
@@ -286,7 +286,8 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 /testing:review                        # test design and coverage gaps
 /testing:flake-hunt                    # chase a flaky test to its cause
 /code-review:comment-review            # comment noise, one line per finding
-/candor:check                          # measure this session against the candour axes
+/candor:check                          # measure this session against the candour axes (and the terse budget)
+/candor:level ultra                    # set the terse reply level; /candor:level off to stop
 /debugging:debug "<symptom>"           # root cause before any fix
 /resilience:review                     # runtime quality: failure modes, errors, concurrency, observability, performance, events
 /resilience:review --concern performance   # one rubric only: hotspots and cache correctness
@@ -438,16 +439,10 @@ bill you did not agree to.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
-| **[terse](plugins/terse)** | chat-message brevity as a shape contract: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list. Levels `lite` / `full` / `ultra`, plus classical-Chinese novelty variants | Long sessions where the narration costs more than the work |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
 
 ```bash
-/terse:level ultra          # set brevity; /terse:level off to stop
-/terse:level status         # active level + reference card: budgets, commands, what it never touches
-/terse:check                # measure this session against the active budget
-/terse:commit               # a Conventional Commits message from the staged diff
-/terse:compress <file>      # shrink a prose memory file, backed up first
 /brain:brain                # print the map; /brain:brain index refreshes it
 /stack-scan:suggest
 /stack-scan:suggest --skills
@@ -472,7 +467,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | write React/Vue apps | `frontend-suite` |
 | are building something design-led | `craft-suite` |
 | want reviews that catch real bugs | `quality-suite` (enforcing) and/or `quality-principles-suite` (advisory) |
-| keep getting half-finished work | `code-architecture` (Stop gate) + `task-runner` |
+| keep getting half-finished work | `candor` (Stop gate) + `code-architecture` + `task-runner` |
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
 | want the whole pipeline | `taskmaster-suite` |
@@ -496,8 +491,7 @@ advertisement:
   and reachability starts.
 - **Most rules are agent-graded, not enforced.** A handful are gates that block
   a turn — `command-guard`, `secret-scanning`, `code-review`'s narrow
-  comment-discipline deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s
-  completion gate. The rest are instructions a competent model chooses to
+  comment-discipline deny lane, `candor`'s four-clause Stop hook. The rest are instructions a competent model chooses to
   follow. Each plugin's own docs say which tier it is in; where they say
   `recorded`, nothing reads it back.
 

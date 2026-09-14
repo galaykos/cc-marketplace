@@ -4,6 +4,12 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.2
+
+### Changed
+- plugin-scout references name candor's terse reply mode where they named the terse
+  plugin, which was merged into candor on 2026-09-14. `catalog.md` regenerated.
+
 ## 0.7.1
 
 ### Changed

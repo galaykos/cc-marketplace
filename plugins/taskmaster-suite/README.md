@@ -2,8 +2,9 @@
 
 Meta-bundle: the clarification-to-execution pipeline and only what it dispatches
 into — taskmaster planning, task-runner execution, orchestration,
-code-architecture, approaches, stack-scan and skill-router, plus the ui-ux,
-testing and security lanes its cards route to. Trimmed from 32 members to 10 on
+code-architecture, approaches, stack-scan, skill-router and candor (the Stop
+gate that holds a run to its gate pass), plus the ui-ux, testing and security
+lanes its cards route to. Trimmed from 32 members to 10 on
 2026-08-31 so the bundle fits the host's skill-listing budget; see "What's
 excluded, and why". Uninstalls cleanly:
 `/taskmaster-suite:uninstall` removes the bundle and prunes the plugins it
@@ -51,6 +52,7 @@ text that was previously being evicted.
 - **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
 - **stack-scan** — inventories what is actually installed before version-dependent advice
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
+- **candor** — the Stop gate: since 2026-09-14 its clauses 3 and 4 are the evidence-at-claim gate that was code-architecture's and the registered-run gate that was task-runner's, so a run in this bundle cannot end by narration without it
 - **ui-ux** — ui-ux engineer + reviewer agents and `/ui-ux:theme` that the pipeline's visual cards route to
 - **testing** — TDD discipline and test review against testing best practices
 - **security** — security review and threat modeling

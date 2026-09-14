@@ -3,7 +3,7 @@
 # even under a stripped PATH where `env bash` exits 127.
 #
 # UserPromptSubmit, two jobs:
-#   1. Level switching — `/terse:level <lite|full|ultra|off>` and the few natural
+#   1. Level switching — `/candor:level <lite|full|ultra|off>` and the few natural
 #      phrasings for it. The hook owns the state write, not the model: a mode that
 #      depends on the model remembering to run a command is not a mode.
 #   2. Per-turn reinforcement — one compact line while a level is active.
@@ -19,7 +19,7 @@
 #     never stop one.
 #   - Costs ~120 tokens of input per prompt while active (measured: 476 chars),
 #     and nothing when off.
-#     That is the price of persistence; `/terse:level off` stops paying it.
+#     That is the price of persistence; `/candor:level off` stops paying it.
 #   - Natural-language switching is a narrow heuristic, not parsing. The slash
 #     command is the reliable path and the one the docs name.
 {
@@ -83,7 +83,7 @@
   # never lost (it is session state, set by activate.sh), only its restatement.
   slash=0
   case "$prompt" in
-    /terse:level* | /terse\ * | /terse)
+    /candor:level* | /candor\ * | /candor)
       arg=$(printf '%s' "$prompt" | tr 'A-Z' 'a-z' | awk '{print $2}')
       case "$arg" in
         wenyan) write_level wenyan-full && confirm wenyan-full ;; # documented alias
@@ -123,7 +123,7 @@
     # OFF. Not a bare noun phrase in any form: "normal mode" belongs to vim and to an
     # app's boot state, and even "normal length" appears mid-sentence about CSS
     # line-height. The trigger is a REQUEST shape — back to / resume / return to — or an
-    # explicit terse-off. The reliable switch stays /terse:level off.
+    # explicit terse-off. The reliable switch stays /candor:level off.
     if printf '%s' "$head" | grep -qE '\b(stop|disable|turn off|exit|end) (the )?terse\b|\bterse (mode )?off\b|\b(back to|resume|return to|go back to) normal (length|verbosity|replies)\b|\bbe more verbose\b|\bstop being terse\b'; then
       write_level off && confirm off
     fi

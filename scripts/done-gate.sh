@@ -38,7 +38,7 @@
 #     read-only. The state marker below means it says so once, not repeatedly.
 #
 # FAIL-OPEN on every missing tool or unreadable input, matching the sibling hooks
-# (task-runner/hooks/completion-gate.sh, hindsight/hooks/collect.sh).
+# (candor/hooks/gate.sh, hindsight/hooks/collect.sh).
 #
 # A Stop hook can reach the model two ways: stdout {"decision":"block",…} with
 # exit 0, or exit 2 with the reason on stderr. This uses exit 2. Exit 0 with no

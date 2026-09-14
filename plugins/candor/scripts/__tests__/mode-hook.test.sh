@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke tests for terse/hooks/mode.sh — the UserPromptSubmit hook that owns both level
+# Smoke tests for candor/hooks/mode.sh (terse until 2026-09-14) — the UserPromptSubmit hook that owns both level
 # SWITCHING and the per-turn budget reinforcement.
 #
 # WHY THIS FILE EXISTS. The hook shipped with zero coverage and its own comments record
@@ -19,7 +19,7 @@
 # enforced from the moment it lands.
 set -u
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
-HOOK="$ROOT/plugins/terse/hooks/mode.sh"
+HOOK="$ROOT/plugins/candor/hooks/mode.sh"
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available"; exit 0; }
 [ -f "$HOOK" ] || { echo "FAIL: $HOOK not found"; exit 1; }
 
@@ -29,7 +29,7 @@ rc=0
 run() { # $1 prompt, $2 cwd  — CC_TERSE unset so the level FILE is what decides
   jq -n --arg pr "$1" --arg c "$2" \
     '{hook_event_name:"UserPromptSubmit",session_id:"t1",cwd:$c,prompt:$pr}' \
-    | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/terse" bash "$HOOK" 2>/dev/null
+    | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null
 }
 box() { d="$TMP/b$RANDOM$RANDOM"; mkdir -p "$d/.claude"; printf '%s\n' "$d"; }
 
@@ -44,7 +44,7 @@ BUDGET='chat message only'
 CONFIRM='TERSE MODE — level'
 
 # A level must be active for § 3 to have anything to reinforce.
-B=$(box); run "/terse:level full" "$B" >/dev/null
+B=$(box); run "/candor:level full" "$B" >/dev/null
 
 # ---- 1-3. the fix: reinforcement survives a slash command ---------------------
 check "plain work prompt reinforces"            "$(run 'add a google endpoint' "$B")"                 "$BUDGET"
@@ -55,21 +55,21 @@ check "another plugin's command reinforces"     "$(run '/ui-ux:build a card' "$B
 # ---- 4-5. and switching is still disqualified inside a slash command ----------
 # These are what stop the fix from being "delete the branch". A slash command's
 # ARGUMENTS are a task description; they must never move the mode.
-C=$(box); run "/terse:level full" "$C" >/dev/null
+C=$(box); run "/candor:level full" "$C" >/dev/null
 out=$(run '/coding-task please stop being terse and go back to normal length' "$C")
 check "slash args do NOT switch the level off"  "$out" "$BUDGET"
 check "  …and emit no switch confirmation"      "$(printf '%s' "$out" | grep "$CONFIRM" || true)" ""
 out=$(run '/coding-task make it terse ultra.' "$C")
 check "slash args do NOT switch the level up"   "$(printf '%s' "$out" | grep "$CONFIRM" || true)" ""
 
-# ---- 6. an explicit /terse:level still switches, and does NOT also reinforce --
+# ---- 6. an explicit /candor:level still switches, and does NOT also reinforce --
 D=$(box)
-out=$(run '/terse:level ultra' "$D")
-check "/terse:level switches"                   "$out" "$CONFIRM"
+out=$(run '/candor:level ultra' "$D")
+check "/candor:level switches"                   "$out" "$CONFIRM"
 check "  …without doubling the budget line"     "$(printf '%s' "$out" | grep "$BUDGET" || true)" ""
 
 # ---- 7-9. the guards the hook's own comments say regressed before ------------
-E=$(box); run "/terse:level full" "$E" >/dev/null
+E=$(box); run "/candor:level full" "$E" >/dev/null
 check "negation does not switch on"             "$(printf '%s' "$(run 'never turn on terse mode' "$E")" | grep "$CONFIRM" || true)" ""
 check "level word mid-sentence does not switch" "$(printf '%s' "$(run 'I prefer terse full sentences in docs' "$E")" | grep "$CONFIRM" || true)" ""
 check "the hook's own line echoed back is inert" \
@@ -82,9 +82,9 @@ F=$(box)
 check "no level set at all is silent"           "$(run 'add an endpoint' "$F")" ""
 
 # ---- 11. fail-open ------------------------------------------------------------
-out=$(printf '' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/terse" bash "$HOOK" 2>/dev/null); e=$?
+out=$(printf '' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null); e=$?
 [ "$e" -eq 0 ] && echo "PASS: empty stdin exits 0" || { echo "FAIL: empty stdin exit $e"; rc=1; }
-out=$(printf '{}' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/terse" bash "$HOOK" 2>/dev/null); e=$?
+out=$(printf '{}' | env -u CC_TERSE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null); e=$?
 [ "$e" -eq 0 ] && [ -z "$out" ] && echo "PASS: empty JSON is silent, exits 0" \
   || { echo "FAIL: empty JSON (exit $e, out '$out')"; rc=1; }
 

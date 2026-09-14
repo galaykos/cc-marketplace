@@ -1,7 +1,7 @@
 {
   "name": "candor",
-  "version": "0.2.0",
-  "description": "Candour as a mechanism, not a pep talk. A blocking Stop gate carries the two dishonesty shapes a script can prove: a file:line citation resolving to no file under cwd or to a line past the file's end, and a position retracted after challenge-shaped pushback with no tool call in between. Flattery openers, apologies, defensive phrasing and emotional intensifiers are counted by /candor:check and blocked by nothing, on purpose. Ships the straight-talk skill: six orderings, not sentiments. Completion claims stay with code-architecture.",
+  "version": "0.3.0",
+  "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, four clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a registered task-runner run stopping without its recorded gate pass. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

@@ -102,8 +102,9 @@ surfaced for the operator.
 ## Enforcement — the Stop hook, and the honest residual
 
 The completion protocol runs this gate and, on a pass, records it to
-`.claude/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). The task-runner **Stop
-hook** (`hooks/completion-gate.sh`) reads that record: for a run that registered itself
+`.claude/task-runner/gate-pass.json` (`{"head":"<HEAD sha>"}`). Candor's **Stop
+hook** (clause 4 of `plugins/candor/hooks/gate.sh`; this plugin's `hooks/completion-gate.sh`
+until 2026-09-14, so the gate has teeth only with candor installed) reads that record: for a run that registered itself
 (`.claude/task-runner/active-run.json`, written at run start per `run.md` step 1), it
 refuses a clean stop unless a gate pass is recorded for the current HEAD — a hard block
 by default (`${TASK_RUNNER_STOP_GATE:-block}`), downgradable to a warning only by

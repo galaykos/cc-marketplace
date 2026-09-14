@@ -81,7 +81,7 @@ as a suggestion, because installing both loads two doctrines for one job.
 - `playground` — single-file HTML control panels; `design-studio:preview` and
   `taskmaster:visual-decisions` render against the project's own components.
 - `explanatory-output-style`, `learning-output-style` — SessionStart persona
-  injections; orthogonal to `terse`, not a gap, and each costs tokens every turn.
+  injections; orthogonal to candor's terse reply mode, not a gap, and each costs tokens every turn.
 - `code-modernization` — a full legacy-migration pipeline; nothing here competes,
   but it is a project shape, not a development floor, so it is a search away
   rather than a row.

@@ -23,7 +23,7 @@
 # than allowed, which would refuse the record write itself. Either way consent is
 # structurally impossible without a human, so the ceiling in those modes is
 # disclosure-plus-gate: the reason still lands in the transcript via the recorder's
-# stderr, and completion-gate.sh still refuses a clean stop whose report omits it. A
+# stderr, and candor's Stop gate (clause 4) still refuses a clean stop whose report omits it. A
 # denial is bounded — the completion gate blocks at most once per HEAD — but do not
 # read this comment as a claim that the prompt silently passes headless.
 #

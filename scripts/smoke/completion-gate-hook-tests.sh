@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Smoke tests for the task-runner completion-gate Stop hook.
+# Smoke tests for clause 4 of the candor Stop gate — the registered-run clause,
+# task-runner/hooks/completion-gate.sh until 2026-09-14 (wave 2 of the consolidation plan).
+# The records it reads are still written by task-runner (its scripts and hooks are driven
+# below); only the Stop-time reader moved.
 #
 # The hook is a cheap RECORDS check (no test execution): given a throwaway git repo
 # as .cwd, it enforces that a run which registered itself (active-run.json) has a
@@ -12,7 +15,7 @@
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-HOOK="$ROOT/plugins/task-runner/hooks/completion-gate.sh"
+HOOK="$ROOT/plugins/candor/hooks/gate.sh"
 
 command -v jq  >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open without it)"; exit 0; }
 command -v git >/dev/null 2>&1 || { echo "SKIP: git not available"; exit 0; }

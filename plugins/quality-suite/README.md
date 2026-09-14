@@ -2,7 +2,7 @@
 
 Meta-bundle: the code-quality plugins that carry a **mechanism** — something that
 gates, blocks, warns at write time, or routes — in one install. Review and code
-smells, architecture principles with the evidence-at-claim Stop gate, comment
+smells, architecture principles, candor's four-clause Stop gate (evidence-at-claim among them), comment
 discipline, destructive-command blocking, secret-leak prevention, and file-aware
 skill auto-routing. (The membership rule is prose — no script checks it; code-review's
 own mechanism is the review fan-in plus an advisory nudge, not a gate.) Uninstalls
@@ -26,6 +26,33 @@ in taskmaster-suite.
 /plugin install quality-suite@cc-plugins-marketplace
 ```
 
+## Context-window requirement (read before installing)
+
+**Standing: `gate` for the declaration's presence, `recorded` for its numbers** —
+`pc_listing_declaration` fails the build if this section disappears while the
+bundle still overflows; nothing checks the figures below, so recompute them with
+`bash scripts/context-budget.sh` before trusting them.
+
+Claude Code budgets the skill listing it sends the model at
+`contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
+fraction 0.01). On the default 200k window with a current-tokenizer model that is
+**6,000 chars**, and this bundle's listing costs **~6,742 chars** (LC_ALL=C bytes —
+the marketplace's deterministic measure, ~1% above what the CLI counts): over
+the floor since candor absorbed the terse reply mode on 2026-09-14. Over it the
+host reduces entries to name-only in priority order, silently, so skills stop
+being reachable without any error.
+
+On the 1M-context tier (30,000 chars) this bundle fits with room to spare. If you
+run the default 200k window, add to the `settings.json` of the project where you
+use this bundle:
+
+```json
+{ "skillListingBudgetFraction": 0.02 }
+```
+
+That raises the listing budget to 12,000 chars at 200k. The fraction is a
+ceiling, not a purchase — it only admits description text that was being evicted.
+
 ## What's included
 
 - **code-review** — correctness bugs, code smells, and convention drift on any diff or PR, plus `/code-review:review`
@@ -33,7 +60,7 @@ in taskmaster-suite.
 - **command-guard** — PreToolUse hook that denies irreversible destructive commands and asks on scoped ones, plus `/command-guard:check`
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
-- **candor** — a Stop gate on the two dishonesty shapes a script can prove: an unverified claim stated as done, and a silent scope reduction, plus `/candor:check`
+- **candor** — the Stop gate, four clauses a script can prove: a `file:line` citation resolving to nothing, a position retracted under pushback with no tool call between, a completion claim with nothing executed after the last edit (code-architecture's evidence gate until 2026-09-14), an unfinished registered task-runner run; plus the terse reply mode and `/candor:check`
 
 | Command | What it does |
 |---------|--------------|

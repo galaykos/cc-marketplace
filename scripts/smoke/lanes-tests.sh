@@ -254,13 +254,14 @@ EOF
 run pc_lanes_territory $LANES
 clean "[tree] no two shipped artifacts claim one territory in one phase"
 
-# S2c — the 7 reviewer-class agents. They collide on ROLE, not on filename, so no
+# S2c — the 6 reviewer-class agents. They collide on ROLE, not on filename, so no
 # other gate in this repo can see them. Each must carry a row, and none may be
 # rescued by a blessing: a blanket "these all co-fire" would pass the territory
 # gate while conceding the thing the gate exists to establish. (system-design's
-# reviewer folded into architecture-reviewer 2026-09-14.)
+# reviewer folded into architecture-reviewer 2026-09-14; terse-reviewer dropped with
+# the terse merge into candor the same day.)
 REVIEWERS="code-review:code-reviewer code-architecture:architecture-reviewer
-devops:devops-reviewer terse:terse-reviewer web-dev:frontend-reviewer
+devops:devops-reviewer web-dev:frontend-reviewer
 ui-ux:ui-ux-reviewer craft-layer:craft-reviewer"
 missing=""; blessed=""
 for r in $REVIEWERS; do
@@ -269,7 +270,7 @@ for r in $REVIEWERS; do
   grep -h '^#[[:space:]]*lane-cofire-ok:' plugins/*/lane.tsv 2>/dev/null \
     | grep -qw -- "$r" && blessed="$blessed $r"
 done
-[ -z "$missing" ] && pass "[tree] all 8 reviewer-class agents declare a lane row (S2c)" \
+[ -z "$missing" ] && pass "[tree] all 6 reviewer-class agents declare a lane row (S2c)" \
                   || bad "[tree] reviewer-class agents with no lane row:$missing"
 [ -z "$blessed" ] && pass "[tree] no blessing rescues a reviewer-class agent — the territories are distinct or an explicit yields_to carries the pair (S2c)" \
                   || bad "[tree] a co-fire blessing covers reviewer-class agent(s):$blessed"

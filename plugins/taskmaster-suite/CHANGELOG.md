@@ -3,6 +3,14 @@
 Consumer-facing changes only. Newest first. Started at 0.17.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.18.0
+
+### Added
+- `candor` joins the bundle (11 members). The Stop hooks that held a task-runner run
+  to its gate pass and refused a naked completion claim moved into candor's one gate
+  on 2026-09-14 (consolidation plan §4.2); without it the pipeline's two done-time
+  gates would be prose.
+
 ## 0.17.2
 
 ### Changed

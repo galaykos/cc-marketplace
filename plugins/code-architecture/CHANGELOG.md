@@ -2,6 +2,17 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.15.0
+
+### Removed
+- `hooks/evidence-gate.sh` and `hooks/hooks.json`. The evidence-at-claim Stop gate is
+  now clause 3 of candor's one Stop gate (`plugins/candor/hooks/gate.sh`), byte-for-byte
+  the same CLAIM/ACK vocabulary, mutation-order scan, messages and `CC_EVIDENCE_GATE`
+  modes; its harness (`scripts/smoke/evidence-gate-hook-tests.sh`) drives that script.
+  This plugin ships no hook now. The `work-verification` rule keeps its `gate` standing
+  only with candor installed — quality-suite and taskmaster-suite carry both
+  (2026-09-14 consolidation plan, §4.2).
+
 ## 0.14.0
 
 ### Added

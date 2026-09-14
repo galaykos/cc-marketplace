@@ -245,7 +245,7 @@ fi
 # Why staleness is asserted on BOTH sides: a sentinel that never expires mutes the
 # channel in every future session of that project with no symptom, which is worse
 # than the defect it fixes. The precedent it replaces says so itself —
-# completion-gate.sh:71, "Nothing clears it".
+# candor's Stop gate, clause 4 (completion-gate.sh:71 at the time), "Nothing clears it".
 TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
 FT="$ROOT/plugins/fresh-take/hooks/remind.sh"
 if [ -f "$TM" ] && [ -f "$FT" ]; then

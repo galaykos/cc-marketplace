@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Smoke tests for the code-architecture evidence-gate Stop hook.
+# Smoke tests for clause 3 of the candor Stop gate — the naked-completion-claim clause,
+# code-architecture/hooks/evidence-gate.sh until 2026-09-14 (wave 2 of the consolidation plan).
 #
 # The hook reads the Stop payload's transcript_path (session JSONL) and blocks a
 # turn that (1) claims completion in its assistant tail, (2) edited files, and
@@ -10,7 +11,7 @@
 set -u
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-HOOK="$ROOT/plugins/code-architecture/hooks/evidence-gate.sh"
+HOOK="$ROOT/plugins/candor/hooks/gate.sh"
 
 command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open without it)"; exit 0; }
 [ -x "$HOOK" ] || { echo "FAIL: hook not executable at $HOOK"; exit 1; }
@@ -18,11 +19,11 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 CWD="$WS/proj"; mkdir -p "$CWD"
-MARKER="$CWD/.claude/evidence-gate-last"
+MARKER="$CWD/.claude/candor-last"
 # The namespaced-disarm record. A blocking case WRITES it, so it must be cleared
 # between cases — otherwise a later case inherits the previous one's block and reads
 # as that gate's own continuation, which is test pollution wearing a PASS.
-CLAIMED="$CWD/.claude/evidence-gate-blocked"
+CLAIMED="$CWD/.claude/candor-blocked"
 
 # Transcript builders: one JSONL line per entry.
 text_entry() { jq -cn --arg t "$1" '{type:"assistant",message:{content:[{type:"text",text:$t}]}}'; }

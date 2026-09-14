@@ -66,8 +66,9 @@ name is invisible to it. `CC_DRIFT=off` silences it.
 
 ## The run cannot end by narration
 
-A run registers itself at start, and a Stop hook refuses to let it end while the
-work is unfinished — no recorded behavioral-gate pass for the current HEAD, or
+A run registers itself at start, and a Stop hook — clause 4 of candor's gate since
+2026-09-14, this plugin's `hooks/completion-gate.sh` before that; install candor or
+the run can end by narration — refuses to let it end while the work is unfinished — no recorded behavioral-gate pass for the current HEAD, or
 cards neither done nor parked. Ending a turn with "starting card 01 now" and no
 tool call is blocked and fed back, so an announced next step actually happens
 instead of leaving a dead turn the user waits on. An intentional pause is a tool,

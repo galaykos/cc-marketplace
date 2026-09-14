@@ -54,20 +54,21 @@ different questions: `work-verification` asks whether the evidence backs the cla
 `drift-review` asks whether the work that produced it stayed on the task that was
 asked. Cooperative, not tamper-proof — neither is a security boundary.
 
-## Hook: the evidence gate
+## The evidence gate lives in candor
 
 `work-verification`'s "never assert without output" rule has mechanical teeth: a
-**Stop hook** (`hooks/evidence-gate.sh`) blocks a turn that claims completion
-(done / fixed / implemented / verified / passes) after editing files when **no
-command was executed after the last edit** — the exact shape of the later
-apology "you're right, I didn't actually do it." The escape is honesty: prose
-that names what is unverified ("not tested — run `npm test` to verify") passes.
+**Stop hook** blocks a turn that claims completion (done / fixed / implemented /
+verified / passes) after editing files when **no command was executed after the
+last edit** — the exact shape of the later apology "you're right, I didn't
+actually do it." The escape is honesty: prose that names what is unverified
+("not tested — run `npm test` to verify") passes.
 
-Honest limits, stated up front: silence evades it (no claim, no judgment), and
-any post-edit execution satisfies it — it proves *something* ran, not that the
-right verification ran. One block per distinct claim; fail-open without jq or a
-readable transcript. Downgrade with `CC_EVIDENCE_GATE=warn`, disable with
-`CC_EVIDENCE_GATE=off`.
+Until 2026-09-14 that hook shipped here as `hooks/evidence-gate.sh`. It is now
+clause 3 of `candor`'s one Stop gate (`plugins/candor/hooks/gate.sh`), so this
+plugin ships no hook and the rule has teeth only with candor installed —
+`quality-suite` and `taskmaster-suite` carry both. Honest limits, unchanged:
+silence evades it, and any post-edit execution satisfies it. `CC_EVIDENCE_GATE=warn|off`
+still downgrades that clause alone.
 
 ## Example
 
@@ -83,6 +84,5 @@ readable transcript. Downgrade with `CC_EVIDENCE_GATE=warn`, disable with
   the failure modes of the topology this plugin draws
 - **taskmaster** — supplies the plan-before-code and work-verification gates the pipeline runs
 - **task-runner** — applies the work-verification discipline across a task run
-- **candor** — its Stop gate (`candor:gate`, unresolved `file:line` citations and
-  unbacked reversals) yields to this plugin's evidence gate on the same Stop
-  (`candor/lane.tsv`)
+- **candor** — carries the Stop gate whose clause 3 is this plugin's evidence
+  rule; install it or the rule is prose

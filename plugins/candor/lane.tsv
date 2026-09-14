@@ -3,6 +3,12 @@
 # kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-candor:gate	hook	any	unresolved-assertion	Stop or SubagentStop whose final message cites a file:line that does not resolve, or retracts a position after challenge-shaped pushback with no tool call in between	code-architecture:evidence-gate
-candor:check	command	verify	candour-transcript-measurement	the user asks how flattering, apologetic, defensive or unbacked this session's replies have been	terse:check
+# The gate is ONE hook with four clauses (hooks/gate.sh header). Until 2026-09-14 the
+# last two were code-architecture:evidence-gate and task-runner:completion-gate, and
+# this row yielded to the first; one script has nothing to yield to.
+candor:gate	hook	any	stop-turn-honesty	Stop or SubagentStop whose final message cites a file:line that does not resolve, retracts after bare pushback with no tool call between, claims completion after edits with nothing executed since, or ends a registered task-runner run with no recorded gate pass for HEAD	-
+candor:mode	hook	any	reply-verbosity-mode	prompt head carries an explicit terse on/off/level directive, or a level is active and the prompt is work-shaped	-
+candor:check	command	verify	candour-transcript-measurement	the user asks how flattering, apologetic, defensive or unbacked this session's replies have been, or how far over the terse budget they ran	-
+candor:level	command	any	reply-verbosity-level	invoked as /candor:level [lite|full|ultra|wenyan-*|off|status]	-
 candor:straight-talk	skill	any	claim-reversal-discipline	a claim is challenged or about to be reversed, or an honest unflattering read of the user's own work is asked for	-
+candor:terse-output	skill	any	reply-shape-contract	the user asks for shorter or denser replies, or /candor:level sets a level	-

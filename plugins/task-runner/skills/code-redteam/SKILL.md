@@ -55,8 +55,8 @@ still hides what that lens alone hunts. `reduction-record.sh --kind redteam` rec
 degraded run (no `Workflow`), never a sized-down panel.
 
 **Coverage markers.** Each refuter's prompt opens with `RT-LENS: <lens>`, the critic's
-with `RT-CRITIC: <ref>`. `hooks/rv-observe.sh` records those dispatches; `completion-gate.sh`
-refuses a clean stop on a boosted run whose panel is short — three lenses and one critic,
+with `RT-CRITIC: <ref>`. `hooks/rv-observe.sh` records those dispatches; candor's Stop gate
+(clause 4) refuses a clean stop on a boosted run whose panel is short — three lenses and one critic,
 or a recorded degradation.
 
 **Tier — the caller supplies it.** This skill never reads `00-INDEX.md`; the caller

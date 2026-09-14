@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+### Changed
+- `terse` merged into `candor` on 2026-09-14 (consolidation plan §3.1), so the bundle <!-- removed-ok -->
+  lists six members: candor now carries the terse reply mode (`/candor:level`) beside
+  its Stop gate. Nothing a user of the bundle sets changes — the level file and
+  `CC_TERSE` keep their names.
+
 ## 0.5.0
 
 ### Changed

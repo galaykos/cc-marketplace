@@ -16,7 +16,7 @@
 # .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - This injects a contract; it cannot enforce one. Nothing can rewrite a message
 #     after the model emits it. Per-turn reinforcement lives in mode.sh, and
-#     after-the-fact measurement in /terse:check. Both are advisory.
+#     after-the-fact measurement in /candor:check. Both are advisory.
 #   - Level state is machine-local (one file under the Claude config dir), so it
 #     is shared by every project on this machine and not by a team. Deliberate:
 #     how terse the user wants their own terminal is a user preference, not a
@@ -52,7 +52,7 @@
   if [ -n "$card" ]; then
     printf 'TERSE MODE ACTIVE — level: %s. Applies to chat messages only.\n\n%s\n' "$level" "$card"
   else
-    printf 'TERSE MODE ACTIVE — level: %s. Contract unreadable at %s; run /terse:level to re-state it.\n' \
+    printf 'TERSE MODE ACTIVE — level: %s. Contract unreadable at %s; run /candor:level to re-state it.\n' \
       "$level" "${skill:-<unknown>}"
   fi
 } 2>/dev/null

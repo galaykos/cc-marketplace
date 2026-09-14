@@ -11,7 +11,7 @@
 # ~/.claude/settings.json is honoured by the host's OWN trailer injection and by
 # nothing else. The model still writes the trailer from habit — observed on
 # Claude Code 2.1.266 on 2026-09-09 with the setting present since 2026-09-03 —
-# and prose in a skill ("never add AI attribution", terse-commit) did not stop
+# and prose in a skill ("never add AI attribution", the since-dropped terse-commit) did not stop
 # it. A rule with no reader is recorded, not enforced; this is the reader.
 #
 # Tiering (deny, never ask): the trailer is never what the user wants when they

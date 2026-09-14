@@ -19,7 +19,7 @@
 #
 # WHY PostToolUse AND NOT Stop. Stop reaches the model only by BLOCKING (exit 2);
 # an exit-0 Stop hook prints into a turn that has already ended, so a warn-only Stop
-# hook would be a message nobody acts on (task-runner/hooks/completion-gate.sh:11-14
+# hook would be a message nobody acts on (candor's gate.sh clause 4, task-runner/hooks/completion-gate.sh until 2026-09-14
 # states the same constraint from the blocking side). PostToolUse is also the only
 # event that runs inside SUBAGENTS, which is where a fanned-out card is actually
 # implemented.

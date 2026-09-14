@@ -3,6 +3,12 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.18.2
+
+### Changed
+- README no longer names terse-crew as a `code-reviewer` dispatcher — that skill was <!-- removed-ok -->
+  dropped with the terse merge into candor (2026-09-14). Prose only.
+
 ## 0.18.1
 
 ### Changed
@@ -35,7 +41,7 @@ file is what makes an upgrade readable. Newest first.
   the scope resolution, the hunk read, the history pass, the stack fan-in and the merge; without the built-in
   it runs the generic pass inline as before. Output contract unchanged.
 - The `code-reviewer` agent is **kept**, deliberately: it is the dispatchable
-  reviewer that task-runner's reviewer pass, terse-crew, orchestration's fleet
+  reviewer that task-runner's reviewer pass, terse-crew, orchestration's fleet <!-- removed-ok -->
   routing and every per-stack review command yield to, and a host skill cannot be
   spawned as a subagent. The 2026-09-03 marketplace review had planned to delete
   it; the plan was wrong and is recorded as declined there.
@@ -212,7 +218,7 @@ file is what makes an upgrade readable. Newest first.
 ### Added
 - **`lane.tsv`** — `code-reviewer` declares `stack-agnostic-diff-review` and the
   deference edges it already documented in prose (architecture, security, frontend and
-  UI reviewers). `terse:terse-reviewer` declares the same territory and yields to this
+  UI reviewers). `terse:terse-reviewer` declares the same territory and yields to this <!-- removed-ok -->
   one, so the two no longer both claim a diff with nothing arbitrating.
 
 ## 0.12.0 — 2026-08-15

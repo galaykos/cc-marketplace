@@ -1,6 +1,6 @@
 ---
 name: terse-output
-description: Use when the user asks for shorter, denser replies — "be brief", "too verbose", "less tokens", "more concise", "stop explaining so much", "just the answer" — or when /terse:level sets a brevity level. Applies a shape contract to chat prose: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list. Chat prose only — never shortens code, commits, files written to disk, subagent prompts, or reasoning depth.
+description: Use when the user asks for shorter, denser replies — "be brief", "too verbose", "less tokens", "more concise", "stop explaining so much", "just the answer" — or when /candor:level sets a brevity level. Applies a shape contract to chat prose: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list. Chat prose only — never shortens code, commits, files written to disk, subagent prompts, or reasoning depth.
 ---
 
 <!-- terse-contract:start -->
@@ -93,7 +93,7 @@ re-prints an unchanged inventory every turn.
 Shape rules bind hardest on the **last message of a turn**, which is the one that
 grows. Standing: **unenforceable** at write time — nothing can rewrite a message
 after the model emits it. Reinforced per turn by `hooks/mode.sh`; measured after
-the fact by `/terse:check`, which is report-only.
+the fact by `/candor:check`, which is report-only.
 
 ## Exceptions
 

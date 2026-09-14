@@ -1,27 +1,47 @@
 ---
-description: Measure this session's transcript against the six candour axes — unresolved citations, unevidenced reversals, flattery, apologies, defensiveness, emotion. Report-only.
-argument-hint: "[--session-file PATH] [--last N] [--examples N]"
+description: Measure this session's transcript — the six candour axes (unresolved citations, unevidenced reversals, flattery, apologies, defensiveness, emotion) and, when a terse level is active or --brevity is passed, turn-final prose lines against the level's budget. Report-only.
+argument-hint: "[--session-file PATH] [--last N] [--examples N] [--brevity] [--tokens] [--all] [--since Nd]"
 ---
 
 # /candor:check
 
-Run the scan and report what it prints:
+Two measurements, one command. Run the candour scan and report what it prints:
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/candor-scan.sh" $ARGUMENTS
 ```
 
+(Strip `--brevity`, `--tokens`, `--all` and `--since` before passing the rest;
+the scan does not know them.)
+
 Report the table verbatim, then the examples for any axis with a non-zero count.
 Read the examples before saying anything about a number — several axes match
 quoted text, so a hit is a candidate, not a verdict.
 
-Then say **one** thing: which axis is actually elevated for this session, and
-whether the examples support it. No plan and no offer to fix unless asked.
+Then, **if a terse level is active** (`CC_TERSE` set, or
+`${CLAUDE_CONFIG_DIR:-$HOME/.claude}/terse-mode` exists) **or `--brevity` was
+passed**, run the brevity measurement and report that too:
 
-If the two gated axes are non-zero, that is a live defect, not a style note: a
-`file:line` that does not resolve was asserted and never read, and an unevidenced
-reversal changed a position on pressure alone. Name the specific citation or the
-specific turn — never the count on its own.
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/measure.sh" $ARGUMENTS
+```
+
+(`--last N`, `--session-file`, `--tokens`, `--all`, `--since Nd` pass through;
+drop `--examples` and `--brevity`.) It counts **turn-final** assistant messages —
+text with no tool call in the same message — and scores each against the active
+level's report ceiling. A prose line is ~100 rendered characters, so one long
+paragraph counts as several; tables, code blocks and trees are free. Report the
+summary numbers (count, mean, max, percent over) and the per-message rows.
+
+Then say **one** thing per measurement: which candour axis is actually elevated
+for this session and whether the examples support it; whether the brevity trend
+is inside budget, or which message kinds are blowing it. No plan and no offer to
+fix unless asked.
+
+If the two gated candour axes are non-zero, that is a live defect, not a style
+note: a `file:line` that does not resolve was asserted and never read, and an
+unevidenced reversal changed a position on pressure alone. Name the specific
+citation or the specific turn — never the count on its own.
 
 Honest scope, and state it if the numbers are used to argue anything:
 
@@ -46,9 +66,12 @@ Honest scope, and state it if the numbers are used to argue anything:
   four times counts once.
 - `--last N` limits the window to the last N assistant messages; without it the
   whole transcript is measured, so a long session's early turns dominate.
-- The scan never modifies anything and always exits 0. It is a measurement, not
-  the gate; the gate is `hooks/gate.sh` and it runs on Stop whether or not this
-  command is ever used.
+- The brevity script cannot tell a work-done report from a short answer, so it
+  grades everything against the larger ceiling, and prose the user explicitly
+  asked for counts the same as prose nobody wanted.
+- Neither script modifies anything; both always exit 0. They are measurements,
+  not the gate; the gate is `hooks/gate.sh` and it runs on Stop whether or not
+  this command is ever used.
 
-If the script cannot find a transcript, pass `--session-file` with a path from
+If a script cannot find a transcript, pass `--session-file` with a path from
 `~/.claude/projects/<flattened-cwd>/` rather than estimating the numbers by hand.

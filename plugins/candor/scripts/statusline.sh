@@ -5,7 +5,7 @@
 # settings.json on first run is a plugin that edits settings.json. Wire it yourself:
 #
 #   "statusLine": { "type": "command",
-#                   "command": "bash ~/.claude/plugins/.../terse/scripts/statusline.sh" }
+#                   "command": "bash ~/.claude/plugins/.../candor/scripts/statusline.sh" }
 #
 # SECURITY. The level file is user-writable state rendered into a terminal on every
 # keystroke, which makes it an injection surface: refuse symlinks (a link pointed at

@@ -2,6 +2,21 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.33.0
+
+### Removed
+- `hooks/completion-gate.sh` and its `Stop` entry in `hooks/hooks.json`. The
+  registered-run Stop gate is now clause 4 of candor's one Stop gate
+  (`plugins/candor/hooks/gate.sh`): the same records check — gate pass for HEAD, card
+  counts, per-card `nc/` and `rv/` coverage, `bg/` verdicts, red-team panel width,
+  reduction disclosure — the same messages, the same `TASK_RUNNER_STOP_GATE` modes,
+  the same per-HEAD nudge under `.claude/task-runner/`. Every writer of those records
+  stays here (`run.md`, `rv-observe.sh`, `behavioral-gate.sh`, `review-skip.sh`,
+  `reduction-record.sh`, `negative-control.sh`); only the Stop-time reader moved, and
+  `scripts/smoke/completion-gate-hook-tests.sh` still drives the writers and the
+  reader together. A run can end by narration if candor is not installed —
+  process-suite and taskmaster-suite now carry it (2026-09-14 consolidation plan, §4.2).
+
 ## 0.32.0
 
 ### Added

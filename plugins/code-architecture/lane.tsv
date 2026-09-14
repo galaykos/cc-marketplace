@@ -5,4 +5,3 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 code-architecture:architecture-reviewer	agent	review	code-structure-review	diff adds or moves a module, an interface, or a public unit boundary, or a design doc / service topology was drafted or changed	-
 code-architecture:system-architect	agent	shape	system-topology-design	work spans more than one service, store, or async boundary	code-architecture:plan
-code-architecture:evidence-gate	hook	any	completion-claim-evidence	Stop with a completion claim in the assistant tail, files mutated this session, and no execution tool run after the last mutation	-

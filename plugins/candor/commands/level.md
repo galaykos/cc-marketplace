@@ -3,7 +3,7 @@ description: Set or report the terse output level — lite, full, ultra, wenyan-
 argument-hint: "[lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra | off | status]"
 ---
 
-# /terse:level
+# /candor:level
 
 The level is written by this plugin's `hooks/mode.sh` when it sees this command,
 so the switch normally happened before you read this. It can also have failed
@@ -61,17 +61,13 @@ Then print the reference card (display only, change nothing):
 
 | Command | What it does |
 |---|---|
-| `/terse:level [name\|status]` | Set or report the level; persists across sessions |
-| `/terse:check [--last N] [--tokens]` | Measure turn-final messages against the budget |
-| `/terse:commit` | Conventional Commits message from the staged diff |
-| `/terse:compress <file>` | Compress one prose markdown file, with backup |
+| `/candor:level [name\|status]` | Set or report the level; persists across sessions |
+| `/candor:check [--last N] [--tokens]` | Measure turn-final messages against the budget, beside the candour axes |
 
 Reports use one skeleton: verdict → artifacts → ≤5 findings → skipped (`none` when
 nothing was) → blocker → next. Tables, code blocks and trees are free. `wenyan`
-alone is an alias for `wenyan-full`. Crew: `terse-investigator` returns `path:line`
-rows · `terse-builder` edits at most 2 decided files, returns a receipt ·
-`terse-reviewer` returns `path:line: severity: problem. fix.` — routing in the
-`terse-crew` skill.
+alone is an alias for `wenyan-full`. Chat prose only: the same tool calls run, the
+same tests run, files are written at full length.
 
 ## Never
 

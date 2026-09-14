@@ -50,7 +50,7 @@ fix, and a one-question interrogation of a twelve-file migration.
 prose obligation.**
 
 Re-derived at **11 sites** (the frozen table's count, which includes
-`task-runner/hooks/completion-gate.sh` and `agents/task-executor.md` and excludes
+`candor/hooks/gate.sh` clause 4 (task-runner's completion-gate.sh at the time) and `agents/task-executor.md` and excludes
 the teeth table's own two copies), in three mutually unaware vocabularies:
 
 - the declarative teeth table (`CLAUDE.md`, and the body of this skill);

@@ -59,6 +59,9 @@ text that was previously being evicted.
   subagent fan-outs, plus `/orchestration:review`
 - **task-runner** — scope-locked task execution with bounded verify-fix loops,
   plus `/task-runner:plan` and `/task-runner:run`
+- **candor** — the Stop gate whose clause 4 refuses to let a registered run end
+  without its recorded gate pass (task-runner's own hook until 2026-09-14), and
+  whose clause 3 refuses a completion claim with nothing executed after the last edit
 - **stack-scan** — inventory of installed runtimes, frameworks, and packages
   vs manifests, plus `/stack-scan:report`; and the stack-matched marketplace plugin
   suggestions of `/stack-scan:suggest` (plugin-scout was merged into stack-scan on 2026-09-14)

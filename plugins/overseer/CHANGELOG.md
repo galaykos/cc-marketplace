@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.4 — 2026-09-14
+
+- `lane.tsv`: the overseer skill yields to `candor:gate` where it yielded to
+  `task-runner:completion-gate` — that hook is clause 4 of candor's Stop gate now.
+
 ## 0.4.3 — 2026-09-14
 
 - `scripts/capability-scan.sh` and `references/capability-map.md`: the shape row

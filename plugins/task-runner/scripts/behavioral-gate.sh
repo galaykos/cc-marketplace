@@ -37,7 +37,7 @@ usage() { printf '%s: usage error: %s\n' "$PROG" "$1" >&2; exit 3; }
 # MACHINE EVIDENCE. gate-pass.json is written by the MODEL, so on its own it records a
 # claim, not a run: a run can write {"head":...} having never invoked this script. This
 # writes what THIS script actually concluded, for the HEAD it concluded it at, and
-# completion-gate.sh cross-checks the claim against it.
+# candor's Stop gate (clause 4) cross-checks the claim against it.
 #
 # Armed by the directory existing (created at run registration), so a plain non-run
 # invocation writes nothing. Called on EVERY exit path, including the honest

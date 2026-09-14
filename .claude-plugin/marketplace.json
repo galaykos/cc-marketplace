@@ -127,7 +127,7 @@
     {
       "name": "candor",
       "source": "./plugins/candor",
-      "description": "Candour as a mechanism, not a pep talk. A blocking Stop gate carries the two dishonesty shapes a script can prove: a file:line citation resolving to no file under cwd or to a line past the file's end, and a position retracted after challenge-shaped pushback with no tool call in between. Flattery openers, apologies, defensive phrasing and emotional intensifiers are counted by /candor:check and blocked by nothing, on purpose. Ships the straight-talk skill: six orderings, not sentiments. Completion claims stay with code-architecture."
+      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, four clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a registered task-runner run stopping without its recorded gate pass. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
     },
     {
       "name": "frontend-suite",
@@ -147,7 +147,7 @@
     {
       "name": "quality-suite",
       "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, candor's citation-and-reversal Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall."
+      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture principles, candor's four-clause Stop gate (fabricated citation, unevidenced reversal, evidence-at-claim, unfinished registered run), comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall."
     },
     {
       "name": "quality-principles-suite",
@@ -157,17 +157,17 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a stronger-model second opinion when stuck (fresh-take), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution with candor's Stop gate holding a run to its gate pass, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a stronger-model second opinion when stuck (fresh-take), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "taskmaster-suite",
       "source": "./plugins/taskmaster-suite",
-      "description": "Meta-bundle (10 plugins): the clarification-to-execution pipeline and only what it dispatches into — taskmaster planning, task-runner execution, orchestration, code-architecture, approaches, stack-scan, skill-router, plus the ui-ux, testing and security lanes its cards route to. Trimmed from 32 on 2026-08-31 to fit the host's skill-listing budget: over that cap the host drops descriptions name-only and the surviving set varies per reload, so the extra members cost reachability for every member. Install the rest individually. Uninstall cleanly with /taskmaster-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle (11 plugins): the clarification-to-execution pipeline and only what it dispatches into — taskmaster planning, task-runner execution, orchestration, code-architecture, approaches, stack-scan, skill-router, candor (the Stop gate that refuses a naked completion claim and an unfinished registered run), plus the ui-ux, testing and security lanes its cards route to. Trimmed from 32 on 2026-08-31 to fit the host's skill-listing budget: over that cap the host drops descriptions name-only and the surviving set varies per reload, so the extra members cost reachability for every member. Install the rest individually. Uninstall cleanly with /taskmaster-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "always-on-suite",
       "source": "./plugins/always-on-suite",
-      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and stack-scan, whose /stack-scan:suggest scouts what this bundle leaves out — marketplace plugins per repo, and third-party skills on skills.sh with --skills — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
+      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate and its terse reply mode (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and stack-scan, whose /stack-scan:suggest scouts what this bundle leaves out — marketplace plugins per repo, and third-party skills on skills.sh with --skills — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
     },
     {
       "name": "skill-router",
@@ -193,11 +193,6 @@
       "name": "fresh-take",
       "source": "./plugins/fresh-take",
       "description": "Independent stronger-model second opinion at key moments — stuck debugging or an imminent irreversible action. /fresh-take:consult composes a facts-only brief (no leaning) and dispatches a blind stronger-model consultant with read-only repo access; it returns a Take, Risks, and one Alternative. A UserPromptSubmit reminder hook nudges the command on key-moment phrases. Advice only — it never blocks, gates, or edits anything."
-    },
-    {
-      "name": "terse",
-      "source": "./plugins/terse",
-      "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker."
     }
   ]
 }

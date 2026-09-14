@@ -17,8 +17,8 @@ prose — no script checks it:
    repo, forever; that is a per-user opt-in, not a baseline.
 
 What that buys you always-on: the write-time secret block, candor's honesty
-Stop gate, terse's chat-brevity contract (inert until
-you set a level), file-aware skill auto-routing, git workflow discipline,
+Stop gate and its terse reply mode (inert until you set a level), file-aware
+skill auto-routing, git workflow discipline,
 cross-session friction mining, and stack-scan's two scout modes — marketplace
 plugins, and third-party skills on skills.sh — that suggest what this bundle
 deliberately leaves out — install it globally and `/stack-scan:suggest` bridges to
@@ -67,8 +67,7 @@ ceiling, not a purchase — it only admits description text that was being evict
 ## What's included
 
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
-- **candor** — a Stop gate on the two dishonesty shapes a script can prove: a file:line citation resolving to nothing, and a position retracted under pushback with no tool call in between, plus `/candor:check`
-- **terse** — the same discipline one surface over: chat-message brevity as a shape contract. Inert until you run `/terse:commit` and pick a level, which is exactly why it is safe here — see the cost note below
+- **candor** — the marketplace's one Stop gate, four clauses a script can prove: a file:line citation resolving to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass; plus the terse reply mode (chat-message brevity as a shape contract, inert until you run `/candor:level` and pick a level — which is exactly why it is safe here) and `/candor:check`. The terse plugin was merged into candor on 2026-09-14
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit, in whatever language the file turns out to be
 - **git-workflow** — worktree isolation, the branch finish protocol, and review-exchange rigor, plus `/git-workflow:finish`
 - **hindsight** — mines session transcripts for recurring friction and proposes CLAUDE.md rules and skill ideas, applied only on approval; its ledgers already live under `~/.claude`, so user scope is its native home
@@ -88,11 +87,11 @@ number is hidden, and the growth is one member's. 0.3.0 added the skills.sh scou
 0.5.0 swapped the two scout plugins for stack-scan, which carries both scouts plus its
 report and audit commands; recount the delta rather than trusting a number here.
 
-- **terse** is that member and the largest single line in the bundle: **848**
-  tokens of descriptions with no level set, **1,891** once you commit to one.
-  Rule 2 holds because the `SessionStart` hook injects nothing at all until a
-  level exists — off, you pay for the descriptions and nothing else. If you are
-  never going to set a level, this is the member to drop.
+- **candor** carries the terse reply mode since 0.6.0 (it was the separate
+  terse member, the largest single line in the bundle at 848 tokens; recount
+  candor's line now). Rule 2 holds because the `SessionStart` hook injects
+  nothing at all until a level exists — off, you pay for the descriptions and
+  nothing else.
 - **skill-router** dominates the per-prompt channel at ~2.3k tokens in the
   marketplace bundle table, but that figure is built from the **sibling**
   plugins' command frontmatter, and the table is measured in the marketplace
