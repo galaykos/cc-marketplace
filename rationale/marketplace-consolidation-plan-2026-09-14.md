@@ -5,9 +5,10 @@ is redundant — while still tackling any software task, and say how it differs 
 what the ecosystem ships.
 
 **Standing of this document: `recorded`.** Nothing reads it back. Every number
-carries a recount command. Waves 0, 1 and 2 were executed on this branch on
-2026-09-14 (records in §8; two of wave 2's six items were declined on measurement,
-§4.3 and §4.4 say why); waves 3–4 are not, and §8 is the order to do them in.
+carries a recount command. Waves 0–3 were executed on this branch on 2026-09-14
+(records in §8; two of wave 2's six items and two of wave 3's four were declined on
+measurement — §4.3, §4.4, §4.6 and §3.1's overseer row say why); wave 4 is not, and
+§8 says what it measures.
 
 **Method.** Six read-only reviews fanned out over the tree on branch
 `feat/marketplace-consolidation-plan`: UI/UX, architecture, team lead, developer
@@ -72,7 +73,7 @@ each wave).**
 | `llm-app` | **removed** | defers provider facts to the host's built-in `claude-api`; the rest is eval/RAG checklist | same |
 | `system-design` | → `code-architecture` | `system-design` + `domain-modeling` skills and the `system-architect` agent; `event-driven` → `resilience` | `/system-design:review` name |
 | `orchestration` | → `task-runner` | `delegation-contracts` (already read by path from task-runner), `verification-panels`; `ultra-assess` body → reference; boost hook re-rendered from the `boost-hook` chassis type | nothing: it ships zero agents, its doctrine is read by path today |
-| `overseer` | → `taskmaster` | 1 skill, 3 commands, 2 hooks, the eval suite | standalone install; it already pins taskmaster ≥ 0.42.1 and task-runner ≥ 0.32.0 as hard prerequisites |
+| `overseer` | → `taskmaster` — **declined on measurement (wave 3)** | 1 skill, 3 commands, 2 hooks, the eval suite | standalone install; it already pins taskmaster ≥ 0.42.1 and task-runner ≥ 0.32.0 as hard prerequisites. Executed and reverted: with the overseer skill and its six references moved in, taskmaster's on-invoke prose corpus measured 209,652 B against the 160,000 B ratchet in `scripts/plugin-corpus-baseline.json` ("never raise it to make a build pass"); task-runner, the other candidate, is at 155 KB itself. Fitting it means cutting ~50 KB of taskmaster's or overseer's prose blind — a wave-4 ablation decision, not a packaging one. The merge attempt is recoverable from the branch's stash |
 | `plugin-scout`, `vercel-skills-scout` | → `stack-scan` | one manifest pass, two suggestion modes; `catalog.md` generation step follows | vercel's deliberate absence of `--yes` becomes a mode flag, not a plugin boundary |
 | `theme-design`, `design-lab` | → **`design-studio`** (new name) | both preview servers, the registry MCP, `pending-events.sh`, the serve harness | someone wanting only the registry MCP installs the 728-line Python bridge too |
 | `terse` | → `candor` | `mode.sh` (UserPromptSubmit shape hook), `terse-output` skill, `/check`; drop `terse-crew`, `terse-compress`, `terse-commit` and all three terse agents (`terse-reviewer` collides with `code-review:code-reviewer` on the identical `owns`) | `/terse:commit` (host `commit-commands` covers it), `/terse:compress` |
@@ -209,6 +210,18 @@ implement → verify (`web-developer`, `backend-engineer`, `database-engineer`,
 with a real `domainChecklist` or refusal constraint (`security-engineer`,
 `test-engineer`, `a11y-engineer`, `ui-ux-engineer`, `performance-engineer`) and
 `observability-engineer`'s lane edge. Lost: per-domain PROACTIVE auto-dispatch text.
+
+**Declined on inspection (wave 3, 2026-09-14).** The premise does not survive the
+manifests. Two of the four carry a refusal constraint — `database-engineer` ("stop and
+ask" before DROP/TRUNCATE/mass DELETE without a confirmed backup) and `devops-engineer`
+("never store credentials … flag it, do not move it") — which is the section's own
+keep-criterion, so the collapse is 10 → 9 at most (`web-developer`, `backend-engineer`),
+and that leaves a Laravel install with no proactive worker unless it also installs
+web-dev. The stack-parametrised implementer already exists: `task-runner:task-executor`
+is the delegatable sink that reads a pinned skill by path. The saving: the four
+descriptions total 854 B ≈ 212 always-on tokens, and only on an install that carries
+all four leaves, which no bundle produces; a single `implementer` description would give
+back ~60. Recount: `grep -m1 '^description:' plugins/{web-dev,laravel,database,devops}/agents/*.md | wc -c`.
 
 ### 4.7 Declare the phases that have no owner
 
@@ -397,6 +410,45 @@ away: `overseer` → `taskmaster` is wave 3's.
 **Wave 3 — bundles and the big merge.** Rebuild the four bundles; regenerate the
 README table and `catalog.md`; `overseer` → `taskmaster`; worker agents 10 → 7;
 declare the `plan` / `ship` / `verify` lane rows.
+
+**Wave 3 — executed 2026-09-14 on this branch, two of four items; every gate and
+harness green at each commit.**
+
+- **Lane rows** (`0b95bc6`): `plan` — `/code-architecture:plan` → `plan-before-code`
+  (which yields to `approaches:approach-deliberation` on shape), `/task-runner:plan` →
+  `parallel-planning`, `taskmaster:task-cards` (yields to `plan-before-code`);
+  `verify` — `/code-architecture:verify` → `work-verification` (yields to `candor:gate`,
+  which enforces it at Stop), `task-runner:behavioral-gate`; `ship` —
+  `/git-workflow:finish` → `branch-completion`. Command → skill pairs share `owns` with
+  the command yielding, the pattern design-studio and api-design already used.
+  Histogram after: plan 5, ship 6 (four suite uninstalls gone with their bundles), verify 9.
+- **Bundles 8 → 4.** `core-suite` (renamed from always-on-suite, `git mv` so its
+  changelog rides along; + `code-review` from quality-suite) and `workflow-suite`
+  (renamed from taskmaster-suite; + `code-review`, `git-workflow`, `hindsight`,
+  `secret-scanning`, `debugging`); `frontend-suite` and `craft-suite` already matched
+  §3.3; `php-suite`, `quality-suite`, `process-suite`, `quality-principles-suite`
+  deleted. Three deviations from the §3.3 table, each because a recorded rule with a
+  reason beat a table row without one: the `-suite` suffix stays (renaming
+  frontend-suite and craft-suite would churn installs for no mechanism);
+  `command-guard` is NOT in core — always-on-suite 0.2.0 removed it because its ask tier
+  overrides the host's command classifier with a permission click on every repo, and
+  the plugin ships `deny-only` for the by-hand global install; `hindsight` IS in core
+  (its ledgers live under `~/.claude`); `ui-ux` and `security` ARE in workflow —
+  taskmaster-suite's inclusion test ("a member stays when the pipeline hard-wires it":
+  the closed agent-tag set routes visual cards to ui-ux's agents, cards dispatch into
+  security) predates the table. Listing: core 6,881 chars (fraction 0.02 at 200k),
+  workflow 23,875 (0.04 at 200k; 0.80× the 1M budget). Bundle table and `catalog.md`
+  regenerated; `pc_removed_refs` fed; marketplace 0.102.0 with the installer's record
+  in the root CHANGELOG.
+- **`overseer` → `taskmaster`: declined on measurement** — §3.1's row carries the
+  numbers (corpus ratchet 209,652 B vs 160,000 B).
+- **Worker agents 10 → 7: declined on inspection** — §4.6 carries the numbers.
+
+Recount after wave 3 (the §10 commands): 31 plugin directories = 27 leaves + 4
+bundles; 60 commands; 104 skills; 28 agents; 21 hook dirs; 9 plugins on
+UserPromptSubmit; always-on total 10,474 tokens; 164 listing entries ≈ 35,100 chars
+(from 183 ≈ 43,100). The §3.2 target of 26 leaves stands at 27: overseer stays a leaf
+until wave 4 measures what taskmaster's or its own bodies are worth.
 
 **Wave 4 — measure, then cut bodies.** `claude plugin eval --ablation with-without`,
 n ≥ 3, on: the five `resilience` bodies, the four `security` bodies, the six ui-ux
