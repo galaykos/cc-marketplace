@@ -30,7 +30,7 @@ build|task-runner,laravel,web-dev,ui-ux,database,security,testing,craft-layer|di
 verify|testing,code-architecture,task-runner|run the suite yourself; browser via the official playwright plugin, Chrome MCP, or npx playwright
 review|code-review,ui-ux,security,laravel,web-dev,resilience,api-design,database|one read-only reviewer subagent per diff
 ship|git-workflow|offer merge / PR / keep via AskUserQuestion; headless keeps the branch
-guard|command-guard,secret-scanning,candor,lean|none — say in the charter that no destructive-command guard is active'
+guard|command-guard,secret-scanning,candor|none — say in the charter that no destructive-command guard is active'
 
 installed=""
 cli=0

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.5 — 2026-09-14
+
+- `scripts/capability-scan.sh`: the guard row no longer names `lean` (removed from the
+  marketplace 2026-09-14) — 0.4.1 fixed the reference copy of the map and missed the
+  script, so the scan kept suggesting `/plugin install lean`. Found by installing the
+  branch into a fresh project; no gate reads a `.sh` for retired names, and `lean` is
+  deliberately outside `pc_removed_refs` because it is also this plugin's rigour tier.
+
 ## 0.4.4 — 2026-09-14
 
 - `lane.tsv`: the overseer skill yields to `candor:gate` where it yielded to
