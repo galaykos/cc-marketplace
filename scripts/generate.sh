@@ -297,7 +297,7 @@ render_reminder_hook() { # obj plugin-dir
   # was a privileged directive exempt from it. Both are replaced by a single ranked
   # path — a hook declares `arcRank` and yields to any better rank sharing its phase,
   # so no plugin is privileged and the protocol still works when the old exempt
-  # plugin is not installed (process-suite ships two reminder hooks and no taskmaster).
+  # plugin is not installed (approaches alone ships two reminder hooks and no taskmaster).
   # armsClarifyGate replaces budgetExempt's SIDE EFFECT only: dropping the
   # cross-plugin cc-workprompt marker. Defaults keep a bare manifest renderable.
   # `file` (optional, default hooks/remind.sh) names the target the way boost-hook's

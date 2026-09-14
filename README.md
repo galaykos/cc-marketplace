@@ -65,14 +65,10 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~5.1k tokens | ~1.2k tokens | ~2.2k tokens |
-| `process-suite` | 10 | ~3.0k tokens | ~1.3k tokens | ~2.0k tokens |
+| `workflow-suite` | 15 | ~6.0k tokens | ~1.2k tokens | ~2.1k tokens |
 | `craft-suite` | 3 | ~3.0k tokens | — | — |
-| `quality-principles-suite` | 6 | ~2.4k tokens | — | ~127 tokens |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.0k tokens |
-| `quality-suite` | 6 | ~1.6k tokens | ~1.2k tokens | ~2.0k tokens |
-| `always-on-suite` | 6 | ~1.3k tokens | ~1.2k tokens | ~2.0k tokens |
-| `php-suite` | 3 | ~956 tokens | — | — |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.9k tokens |
+| `core-suite` | 7 | ~1.7k tokens | ~1.2k tokens | ~1.9k tokens |
 
 Every row is a curated subset. The marketplace ships all 27 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
@@ -104,18 +100,16 @@ that as an order-of-magnitude correction, never as a coefficient
 
 | Bundle | Take it when |
 |--------|--------------|
-| **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline. Ten members, trimmed from 32 to fit the host's skill listing; install other plugins alongside it. |
+| **[core-suite](plugins/core-suite)** | The user-scope baseline, on in every repo: secret block, candor's Stop gate, the one review entry, routing, git discipline, friction mining, the scout. Seven members. |
+| **[workflow-suite](plugins/workflow-suite)** | You want the whole clarify → spec → cards → execute pipeline: core-suite plus taskmaster, task-runner, approaches, code-architecture, testing, debugging, ui-ux and security. Fifteen members; over the 200k listing floor by design — its README names the settings line. |
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight; code-review's no-comment default and write-time denies ride along. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
-| **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, web-dev (Vite review and the shared worker), plus code-review's no-comment default and write-time denies. |
-| **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
-| **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
-| **[process-suite](plugins/process-suite)** | Git workflow, deliberation, task execution with subagent discipline, scouting. |
-| **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, routing, git discipline — on in every repo. |
 
-Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
-`/php-suite:uninstall`, and so on — which removes the bundle **and** prunes the
-plugins it auto-installed, leaving anything you installed yourself alone.
+Four bundles since 2026-09-14 — eight were rebuilt into these (the consolidation
+plan, `rationale/marketplace-consolidation-plan-2026-09-14.md` §3.3). Each ships
+its own uninstall command — `/craft-suite:uninstall`, `/core-suite:uninstall`,
+and so on — which removes the bundle **and** prunes the plugins it
+auto-installed, leaving anything you installed yourself alone.
 
 ---
 
@@ -156,10 +150,11 @@ early:
 - [Infrastructure and environments](#infrastructure-and-environments)
 - [Meta: steering Claude Code itself](#meta-steering-claude-code-itself)
 
-Suites are curated starting points, not coverage: two leaves belong to no suite
-on purpose, both stack-matched — `database`, `devops` — and
-`/stack-scan:suggest` names each when the project's manifests earn it. Install
-them by name.
+Suites are curated starting points, not coverage: the stack and domain leaves
+that belong to no suite — `laravel`, `database`, `devops`, `api-design`,
+`resilience` — are named by `/stack-scan:suggest` when the project's manifests
+earn them, and `brain`, `command-guard`, `overseer` and `ultra-deep-research` are
+per-project or per-user opt-ins. Install them by name.
 
 ---
 
@@ -459,15 +454,15 @@ plugin — the authoring doctrine has one user, this repository.)
 | If you… | Install |
 |---------|---------|
 | just cloned an unfamiliar repo | `stack-scan`, then whatever `/stack-scan:suggest` suggests |
-| want a global baseline in every repo | `always-on-suite`, at user scope |
-| write Laravel every day | `php-suite` + `database` |
+| want a global baseline in every repo | `core-suite`, at user scope |
+| write Laravel every day | `laravel` + `database` (+ `web-dev` for Inertia's client side) |
 | write React/Vue apps | `frontend-suite` |
 | are building something design-led | `craft-suite` |
-| want reviews that catch real bugs | `quality-suite` (enforcing) and/or `quality-principles-suite` (advisory) |
+| want reviews that catch real bugs | `core-suite` (the enforcing gates) + `security`, `resilience`, `testing` by name (the advisory rubrics) |
 | keep getting half-finished work | `candor` (Stop gate) + `code-architecture` + `task-runner` |
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
-| want the whole pipeline | `taskmaster-suite` |
+| want the whole pipeline | `workflow-suite` |
 
 ---
 

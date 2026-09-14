@@ -181,12 +181,12 @@ if [ -f "$TM" ] && [ -f "$AP" ]; then
   [ -z "$(ls -A "$SW")" ] && pass "precedence: flat markers are reclaimed by the existing sweep" \
     || fail "precedence: flat markers are reclaimed by the existing sweep" "leaked: $(ls "$SW")"
 
-  # No privileged plugin: process-suite ships reminder hooks and no taskmaster.
+  # No privileged plugin: reminder hooks installed with no taskmaster (a bundle-less install).
   if [ -f "$AD" ]; then
     NA="$(mktemp -d "$WORK/na.XXXXXX")"; na1=$(rk_fire "$ROOT/plugins/approaches" "$NA")
     NB="$(mktemp -d "$WORK/nb.XXXXXX")"; nb1=$(rk_fire "$ROOT/plugins/approaches" "$NB")
     { [ -n "$na1" ] && [ -n "$nb1" ]; } \
-      && pass "precedence: resolves with no taskmaster installed (S4, the process-suite shape)" \
+      && pass "precedence: resolves with no taskmaster installed (S4, reminder hooks without taskmaster)" \
       || fail "precedence: resolves with no taskmaster installed" "a1=[$na1] b1=[$nb1]"
   fi
 fi

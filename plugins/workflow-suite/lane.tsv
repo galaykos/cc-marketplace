@@ -4,5 +4,5 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
-quality-principles-suite:uninstall	command	ship	quality-principles-suite-uninstall	invoked as /quality-principles-suite:uninstall	-
+workflow-suite:uninstall	command	ship	workflow-suite-uninstall	invoked as /workflow-suite:uninstall	-
 # generated:end

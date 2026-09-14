@@ -1,5 +1,4 @@
 {
-  "always-on-suite": 1299,
   "api-design": 340,
   "approaches": 624,
   "brain": 89,
@@ -7,6 +6,7 @@
   "code-architecture": 680,
   "code-review": 366,
   "command-guard": 151,
+  "core-suite": 1663,
   "craft-layer": 1129,
   "craft-suite": 2987,
   "database": 205,
@@ -18,20 +18,16 @@
   "hindsight": 154,
   "laravel": 185,
   "overseer": 159,
-  "php-suite": 956,
-  "process-suite": 3027,
-  "quality-principles-suite": 2388,
-  "quality-suite": 1630,
   "resilience": 539,
   "secret-scanning": 81,
   "security": 299,
   "skill-router": 0,
   "stack-scan": 499,
   "task-runner": 533,
-  "taskmaster-suite": 5070,
   "taskmaster": 874,
   "testing": 211,
   "ui-ux": 996,
   "ultra-deep-research": 223,
-  "web-dev": 337
+  "web-dev": 337,
+  "workflow-suite": 6025
 }

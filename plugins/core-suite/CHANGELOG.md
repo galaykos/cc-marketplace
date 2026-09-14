@@ -1,5 +1,27 @@
 # Changelog
 
+core-suite is the bundle always-on-suite became on 2026-09-14; the entries below 0.1.0 <!-- removed-ok -->
+are always-on-suite's own, with its version numbers. <!-- removed-ok -->
+
+## 0.1.0 — 2026-09-14
+
+- **Renamed from always-on-suite, and quality-suite folded in** (consolidation plan §3.3, <!-- removed-ok -->
+  wave 3). Seven members: the six always-on members plus `code-review`, which was <!-- removed-ok -->
+  quality-suite's review surface. Not taken from quality-suite: `code-architecture` <!-- removed-ok -->
+  (workflow-suite carries it — plan-before-code is project work, not a baseline) and
+  `command-guard` (the 0.2.0 exclusion below still holds: its ask tier turns the
+  host's silent command classifier into a permission click on every repo; install it
+  by hand with `CLAUDE_DESTRUCTIVE_GUARD=deny-only`). The plan's table also dropped
+  `hindsight`; it stays because its ledgers live under `~/.claude` and user scope is
+  its native home — the plan gave no reason, the 0.1.0 membership rule does.
+- Listing cost at the default 200k window: ~6,880 entry-chars against the 6,000
+  floor (recount: `bash scripts/context-budget.sh`, listing channel); the README
+  names the `skillListingBudgetFraction: 0.02` line. An existing always-on-suite or <!-- removed-ok -->
+  quality-suite install: uninstall it with its own `uninstall` command, then install <!-- removed-ok -->
+  this one.
+
+---
+
 ## 0.6.0
 
 ### Changed

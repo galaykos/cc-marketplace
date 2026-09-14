@@ -424,7 +424,7 @@ pc_removed_refs() {
   # file, env var and skill are still named terse-mode / CC_TERSE / terse-output, so it
   # is SAFE here only because $shapes matches reference forms; those tokens carry a
   # hyphen or underscore boundary and match no shape.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse'
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite'
   # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
   # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
@@ -447,7 +447,12 @@ pc_removed_refs() {
   # latter, /orchestration:review was retired. Bare "orchestration" is ordinary
   # English (scroll orchestration, track-orchestration) and the hyphen boundary
   # keeps those skill names out of every shape.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take|orchestration'
+  # Bundles rebuilt 2026-09-14 (consolidation plan §3.3): always-on-suite + quality-suite
+  # MOVED into core-suite; taskmaster-suite + process-suite + quality-principles-suite
+  # MOVED into workflow-suite. php-suite is in `plug` (removed outright — its three
+  # members are install-by-name). Every retired name is a hyphenated token, so the
+  # hyphen boundary keeps the live `-suite` bundles out of every shape.
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take|orchestration|always-on-suite|quality-suite|process-suite|taskmaster-suite|quality-principles-suite'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick

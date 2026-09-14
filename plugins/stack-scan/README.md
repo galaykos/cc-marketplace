@@ -145,6 +145,6 @@ plugin names in the suggestion tables (`pc_scout_names`), the picker's parser
 - **devops** — `/devops:init` reuses the report instead of re-scanning
 - **approaches** (build-vs-buy skill) — decides whether a dependency should be added at all
 - **security** — broader security review beyond the dependency audit surface
-- **taskmaster-suite** — pipeline bundle, NOT a shortcut past the scout: it ships the
-  clarify→spec→cards→execute workflow plus only 2 of the any-project-core picks
-  (testing, code-architecture) — install the other core picks individually
+- **workflow-suite** — pipeline bundle, NOT a shortcut past the scout: it ships the
+  clarify→spec→cards→execute workflow and the core-suite baseline, but no stack
+  leaf — `/stack-scan:suggest` names those per project

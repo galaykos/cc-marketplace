@@ -175,9 +175,8 @@ Stated because a gate reads stronger than it is:
 /plugin install candor@cc-plugins-marketplace
 ```
 
-Also arrives with `always-on-suite`, `quality-suite`, `process-suite` and
-`taskmaster-suite` — the last two because the runs and the verification skill
-they ship rely on clauses 3 and 4. Always-on cost: the descriptions of two
+Also arrives with `core-suite` and `workflow-suite` — the second because the runs
+and the verification skill it ships rely on clauses 3 and 4. Always-on cost: the descriptions of two
 commands and two skills; the terse hooks inject nothing until a level is set.
 
 ## Author-time checks

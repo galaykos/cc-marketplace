@@ -8,7 +8,7 @@ File-aware skill auto-routing. The marketplace ships ~50 best-practice skills, b
 claude plugin install skill-router@cc-plugins-marketplace
 ```
 
-Installed automatically by the `taskmaster-suite` bundle.
+Installed automatically by every bundle (`core-suite`, `workflow-suite`, `frontend-suite`).
 
 ## Two axes
 

@@ -1,0 +1,9 @@
+{
+  "chassis": "suite-uninstall",
+  "bundle": "workflow-suite",
+  "lane": {
+    "owns": "workflow-suite-uninstall",
+    "trigger": "invoked as /workflow-suite:uninstall",
+    "yieldsTo": "-"
+  }
+}

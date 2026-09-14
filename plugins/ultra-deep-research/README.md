@@ -71,5 +71,4 @@ Two plugins call this one; neither is required by it:
 None — standalone by design (recorded; nothing enforces this). A research run
 fans out parallel web searches and can escalate to a Workflow-driven
 loop-until-dry sweep — a token cost that should be chosen per install, not
-ride in silently with a bundle (same reasoning as taskmaster-suite's
-deliberate secret-scanning exclusion).
+ride in silently with a bundle (workflow-suite leaves it out for that reason).

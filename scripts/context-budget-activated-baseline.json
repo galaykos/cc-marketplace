@@ -1,10 +1,8 @@
 {
-  "always-on-suite": 2453,
   "brain": 226,
   "candor": 1406,
+  "core-suite": 2817,
   "frontend-suite": 1800,
-  "process-suite": 4318,
-  "quality-suite": 2784,
   "skill-router": 32,
-  "taskmaster-suite": 6224
+  "workflow-suite": 7179
 }

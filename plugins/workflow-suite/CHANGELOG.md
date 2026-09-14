@@ -1,7 +1,27 @@
-# Changelog — taskmaster-suite
+# Changelog — workflow-suite
 
-Consumer-facing changes only. Newest first. Started at 0.17.0; earlier versions
-have no entries rather than invented ones.
+Consumer-facing changes only. Newest first. workflow-suite is the bundle
+taskmaster-suite became on 2026-09-14; the entries below 0.1.0 are taskmaster-suite's <!-- removed-ok -->
+own, with its version numbers (started at 0.17.0; earlier versions have no entries
+rather than invented ones).
+
+## 0.1.0
+
+### Changed
+- **Renamed from taskmaster-suite; process-suite and quality-principles-suite folded <!-- removed-ok -->
+  in** (consolidation plan §3.3, wave 3). Fifteen members: the core-suite baseline
+  (candor, code-review, git-workflow, hindsight, secret-scanning, skill-router,
+  stack-scan) plus taskmaster, task-runner, approaches, code-architecture, testing,
+  debugging, ui-ux and security. New against taskmaster-suite 0.19.0: code-review, <!-- removed-ok -->
+  git-workflow, hindsight, secret-scanning, debugging. Not carried over from
+  process-suite: api-design, ultra-deep-research, brain (install by name); from <!-- removed-ok -->
+  quality-principles-suite: resilience (by name). ui-ux and security stay although the <!-- removed-ok -->
+  plan's table left them out: the inclusion test below — a member stays when the
+  pipeline hard-wires it — is a recorded rule with a reason, and the table gave none.
+- Listing cost: ~23,900 entry-chars — fits the 1M tier (30,000); at 200k the README's
+  settings line is `skillListingBudgetFraction: 0.04`. An existing taskmaster-suite, <!-- removed-ok -->
+  process-suite or quality-principles-suite install: uninstall it with its own <!-- removed-ok -->
+  `uninstall` command, then install this one.
 
 ## 0.19.0
 

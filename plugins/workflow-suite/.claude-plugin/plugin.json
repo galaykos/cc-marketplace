@@ -1,0 +1,31 @@
+{
+  "name": "workflow-suite",
+  "version": "0.1.1",
+  "description": "Meta-bundle: the whole idea-to-shipped pipeline in one install — the core-suite baseline (candor, code-review, git-workflow, hindsight, secret-scanning, skill-router, stack-scan) plus taskmaster clarification and cards, task-runner execution with delegation contracts, approaches deliberation, code-architecture plan-before-code and verification, testing, debugging, and the ui-ux and security lanes the cards dispatch into. Replaces taskmaster-suite, process-suite and quality-principles-suite (2026-09-14). Fifteen members: over the host's 200k skill-listing floor by design — the README names the settings line. Uninstall cleanly with /workflow-suite:uninstall.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "dependencies": [
+    "candor",
+    "code-review",
+    "git-workflow",
+    "hindsight",
+    "secret-scanning",
+    "skill-router",
+    "stack-scan",
+    "taskmaster",
+    "task-runner",
+    "approaches",
+    "code-architecture",
+    "testing",
+    "debugging",
+    "ui-ux",
+    "security"
+  ],
+  "keywords": [
+    "suite",
+    "pipeline",
+    "process"
+  ]
+}

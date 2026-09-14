@@ -24,7 +24,6 @@
   },
   "enabledPlugins": {
     "code-review@cc-plugins-marketplace": true,
-    "taskmaster-suite@cc-plugins-marketplace": false,
     "taskmaster@cc-plugins-marketplace": true,
     "task-runner@cc-plugins-marketplace": true,
     "stack-scan@cc-plugins-marketplace": true,
@@ -37,7 +36,6 @@
     "api-design@cc-plugins-marketplace": true,
     "web-dev@cc-plugins-marketplace": true,
     "ui-ux@cc-plugins-marketplace": true,
-    "system-design@cc-plugins-marketplace": false,
     "devops@cc-plugins-marketplace": true,
     "database@cc-plugins-marketplace": true,
     "approaches@cc-plugins-marketplace": true,
@@ -45,7 +43,6 @@
     "skill-router@cc-plugins-marketplace": true,
     "brain@cc-plugins-marketplace": true,
     "secret-scanning@cc-plugins-marketplace": true,
-    "process-suite@cc-plugins-marketplace": false,
     "ultra-deep-research@cc-plugins-marketplace": false,
     "candor@cc-plugins-marketplace": true
   },

@@ -73,9 +73,8 @@ the bundle makes the bundle lie, and no gate flags it:
   bundle or none — and a bundle over the 6,000-char floor must declare it
   (`pc_listing_declaration` gates the declaration). The README's leaf count is
   still gated; keep it in step.
-- **`*-suite` bundles** (`quality-suite`, `frontend-suite`, `craft-suite`,
-  `php-suite`, `process-suite`, `taskmaster-suite`, … — every plugin
-  with a `dependencies` array) depend on a themed subset and drive an
+- **`*-suite` bundles** (`core-suite`, `workflow-suite`, `frontend-suite`,
+  `craft-suite` — every plugin with a `dependencies` array) depend on a themed subset and drive an
   uninstall prune list. A new plugin or agent in a suite's domain joins that suite's
   `dependencies` AND its prune list — a suite that claims "all worker agents" must
   actually contain them.

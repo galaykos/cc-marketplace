@@ -58,7 +58,7 @@ opinions, the same shape as the opinion panel; the plugin boundary carried nothi
 The consult nudge only suggests the command; it may repeat on later matching
 prompts, and ignoring it is always legitimate. The consult itself dispatches a
 stronger-model subagent — a spend decision, which is why this plugin is not in
-always-on-suite.
+core-suite.
 
 ## Pairs well with
 

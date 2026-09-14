@@ -70,7 +70,7 @@ TIER 3 — no signal in this repo (40)
   data:            21 database  22 sql  23 stack-scan
   tooling:         24 brain  25 hindsight  26 stack-scan
   ...
-  bundles:  php-suite (#1,#2,+2) · quality-suite (#4,#6,#16,+5)
+  bundles:  frontend-suite (#12,#16,+2) · workflow-suite (#4,#6,#19,+12)
 ```
 
 - Header line: eligible count, installed count, detected stack. The installed
@@ -155,8 +155,8 @@ never a default:
 - A not-installed suite whose `plugin.json` dependencies cover 3+ suggested
   not-installed rows is listed by name under the report and earns one explicit
   option on the first page it fits. Its description names **at most 4** covered
-  rows plus a count ("php-suite — installs #1, #2, #4, #9 and 3 more as
-  dependencies; clean removal via /php-suite:uninstall").
+  rows plus a count ("frontend-suite — installs #12, #16 and 2 more as
+  dependencies; clean removal via /frontend-suite:uninstall").
 - An all-in bundle is never offered as a shortcut option. A bundle covering the
   entire remainder is not a shortcut, it is the opposite of a pick — name it in
   one line under the report and leave it there.

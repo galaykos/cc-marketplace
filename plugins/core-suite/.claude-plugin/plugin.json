@@ -1,0 +1,23 @@
+{
+  "name": "core-suite",
+  "version": "0.1.1",
+  "description": "Meta-bundle: the user-scope baseline — the plugins worth enabling once, globally, and keeping on in every repo: secret-scanning's write-time block, candor's four-clause Stop gate and dormant terse mode, code-review's fan-in review with comment discipline, git-workflow's branch finish, hindsight's friction mining, skill-router's file-aware routing, and stack-scan's report, audit and project-tier scout. Replaces always-on-suite and quality-suite (2026-09-14). Membership rule: project-agnostic, safe as a permanent fixture, adds no interruption you did not ask for — why command-guard's ask tier is not here. Uninstall with /core-suite:uninstall. 200k windows: read the README first.",
+  "author": {
+    "name": "Ivan-WG",
+    "email": "public@galayko.com"
+  },
+  "keywords": [
+    "suite",
+    "generic",
+    "hooks"
+  ],
+  "dependencies": [
+    "candor",
+    "code-review",
+    "git-workflow",
+    "hindsight",
+    "secret-scanning",
+    "skill-router",
+    "stack-scan"
+  ]
+}

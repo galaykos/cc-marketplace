@@ -4,6 +4,14 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.3
+
+### Changed
+- The bundles were rebuilt 2026-09-14 (eight → four): `picker.md`'s bundle examples and
+  `any-core.md`'s global-scope pointer name `core-suite`, `workflow-suite` and
+  `frontend-suite`; the README's pipeline-bundle row names workflow-suite. `catalog.md`
+  regenerated. No behaviour change.
+
 ## 0.7.2
 
 ### Changed

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.101.0"
+    "version": "0.102.0"
   },
   "plugins": [
     {
@@ -127,42 +127,22 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-studio — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (install by name). The creative-build studio — craft-layer (with its Three.js skill) and design-studio — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "core-suite",
+      "source": "./plugins/core-suite",
+      "description": "Meta-bundle: the user-scope baseline — the plugins worth enabling once, globally, and keeping on in every repo: secret-scanning's write-time block, candor's four-clause Stop gate and dormant terse mode, code-review's fan-in review with comment discipline, git-workflow's branch finish, hindsight's friction mining, skill-router's file-aware routing, and stack-scan's report, audit and project-tier scout. Replaces always-on-suite and quality-suite (2026-09-14). Membership rule: project-agnostic, safe as a permanent fixture, adds no interruption you did not ask for — why command-guard's ask tier is not here. Uninstall with /core-suite:uninstall. 200k windows: read the README first."
+    },
+    {
+      "name": "workflow-suite",
+      "source": "./plugins/workflow-suite",
+      "description": "Meta-bundle: the whole idea-to-shipped pipeline in one install — the core-suite baseline (candor, code-review, git-workflow, hindsight, secret-scanning, skill-router, stack-scan) plus taskmaster clarification and cards, task-runner execution with delegation contracts, approaches deliberation, code-architecture plan-before-code and verification, testing, debugging, and the ui-ux and security lanes the cards dispatch into. Replaces taskmaster-suite, process-suite and quality-principles-suite (2026-09-14). Fifteen members: over the host's 200k skill-listing floor by design — the README names the settings line. Uninstall cleanly with /workflow-suite:uninstall."
     },
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
       "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer); browser design sessions, visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-studio); plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "php-suite",
-      "source": "./plugins/php-suite",
-      "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill, plus the backend-engineer worker), web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler) and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
-    },
-    {
-      "name": "quality-suite",
-      "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture principles, candor's four-clause Stop gate (fabricated citation, unevidenced reversal, evidence-at-claim, unfinished registered run), comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall."
-    },
-    {
-      "name": "quality-principles-suite",
-      "source": "./plugins/quality-principles-suite",
-      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, systematic debugging, resilience (failure modes, error handling, concurrency, observability, measure-first performance), dependency hygiene and stack inventory (stack-scan), and test design and coverage review. Accessibility auditing lives in ui-ux (frontend-suite, craft-suite). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "process-suite",
-      "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection and the fresh-take second opinion folded in), hindsight mining, docs discipline (api-design), task execution with its subagent delegation contracts and verification panels (the orchestration plugin was merged into task-runner) and candor's Stop gate holding a run to its gate pass, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "taskmaster-suite",
-      "source": "./plugins/taskmaster-suite",
-      "description": "Meta-bundle (10 plugins): the clarification-to-execution pipeline and only what it dispatches into — taskmaster planning, task-runner execution (with the delegation contracts and verification panels; the orchestration plugin was merged into it), code-architecture, approaches, stack-scan, skill-router, candor (the Stop gate that refuses a naked completion claim and an unfinished registered run), plus the ui-ux, testing and security lanes its cards route to. Trimmed from 32 on 2026-08-31 to fit the host's skill-listing budget: over that cap the host drops descriptions name-only and the surviving set varies per reload, so the extra members cost reachability for every member. Install the rest individually. Uninstall cleanly with /taskmaster-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "always-on-suite",
-      "source": "./plugins/always-on-suite",
-      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate and its terse reply mode (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and stack-scan, whose /stack-scan:suggest scouts what this bundle leaves out — marketplace plugins per repo, and third-party skills on skills.sh with --skills — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
     },
     {
       "name": "skill-router",
