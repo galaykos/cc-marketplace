@@ -21,15 +21,15 @@ re-run the hand-dispatch path every earlier simulation took. Standing: agent-gra
 
 | Phase | Preferred (cc-plugins-marketplace) | Also counts | Fallback when nothing is installed |
 | --- | --- | --- | --- |
-| understand | `stack-scan` (`/stack-scan:report`), `brain` (`/brain`, the map), `plugin-scout` | — | read manifests and lockfiles yourself; `find` the routes, pages, models, tests |
-| shape | `taskmaster` (grill, visual-decisions, erd, walkthrough), `approaches` (compare, size), `design-lab`, `theme-design` | official `frontend-design` | write the spec yourself from the brief: goal, criteria, non-goals, ASCII wireframe; no mockup server |
+| understand | `stack-scan` (`/stack-scan:report`, `/stack-scan:suggest`), `brain` (`/brain`, the map) | — | read manifests and lockfiles yourself; `find` the routes, pages, models, tests |
+| shape | `taskmaster` (grill, visual-decisions, erd, walkthrough), `approaches` (compare, size), `design-studio` | official `frontend-design` | write the spec yourself from the brief: goal, criteria, non-goals, ASCII wireframe; no mockup server |
 | decide | `approaches` (approach-deliberation, build-vs-buy) | — | one paragraph per option, pick, kill-trigger, in `decisions.md` |
 | plan | `taskmaster` (task-cards, coverage-check, verify-teeth), `code-architecture` (plan-before-code) | — | write cards yourself: one file set, one verify command, one done-criterion each |
 | build | `task-runner` (run, --tracks, task-executor), `laravel`, `web-dev`, `ui-ux` (ui-ux-engineer), `database`, `security`, `testing` (test-engineer), `craft-layer` (a per-milestone build tool for a crafted surface — a landing or marketing page; it consumes a spec, it never owns the program) | project `.claude/skills/*` | dispatch general-purpose workers with the discipline preamble; one per disjoint file set |
 | verify | `testing`, `code-architecture` (work-verification, drift-review), `task-runner` (behavioral-gate) | official `playwright` (not a marketplace plugin — the scan never lists it as installable), `claude-in-chrome` MCP | run the suite yourself; browser via Playwright MCP, Chrome MCP, or `npx playwright` — see acceptance.md |
-| review | `code-review`, `ui-ux` (review, audit), `security`, `laravel`/`web-dev` review, `resilience`, `api-design`, `database` | — | one read-only reviewer subagent with the diff, `path:line — severity — problem — fix` |
+| review | `code-review` (the fan-in; loads the laravel, web-dev, database and ui-ux skills the diff touches — their own review commands were retired 2026-09-14), `ui-ux` (audit), `security`, `resilience` (`--concern`), `api-design` | — | one read-only reviewer subagent with the diff, `path:line — severity — problem — fix` |
 | ship | `git-workflow` (`/git-workflow:finish`, skills `branch-completion`, `worktree-isolation`) | official `commit-commands` | offer merge / PR / keep via AskUserQuestion; headless: keep and print the command |
-| guard | `command-guard`, `secret-scanning`, `candor`, `lean` | — | none — say in the charter that no destructive-command guard is active |
+| guard | `command-guard`, `secret-scanning`, `candor` | — | none — say in the charter that no destructive-command guard is active |
 
 Rules:
 
@@ -38,8 +38,8 @@ Rules:
   `capabilities.tsv`; the charter names each fallback so the user can install the plugin
   and resume at full strength.
 - **Offer installs once.** Interactive: one AskUserQuestion listing the missing preferred
-  plugins with `/plugin install <name>@cc-plugins-marketplace` (or `/plugin-scout:suggest
-  --full` when the scout is installed). Hands-off: record the commands in the charter, use
+  plugins with `/plugin install <name>@cc-plugins-marketplace` (or `/stack-scan:suggest
+  --full` when stack-scan is installed). Hands-off: record the commands in the charter, use
   the fallback, move on. Never run an install unasked, and remind that `/reload-plugins`
   is needed before a fresh install is active.
 - **Project skills count.** A `.claude/skills/<name>/SKILL.md` in the target project (Laravel

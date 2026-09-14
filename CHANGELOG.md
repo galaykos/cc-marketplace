@@ -4,6 +4,52 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.102.0] - 2026-09-14
+
+**The consolidation: 37 leaves and 8 bundles become 27 leaves and 4 bundles.** The
+plan, the lens reviews, the measurements and the per-wave records are in
+`rationale/marketplace-consolidation-plan-2026-09-14.md`; this entry is the
+installer's view. Every removed name but one is in `pc_removed_refs`' lists, so a
+stale reference fails the build; `lean` is deliberately outside them (the check's
+header says why — its name is an English word), so a stale `lean` pointer is a
+review catch, not a gate catch.
+
+- **Removed outright:** `payments`, `llm-app` (their skill bodies were the shape
+  measured at zero), `lean` (its PostToolUse fired on every edit with no filter; the
+  host's `/simplify` covers it).
+- **Merged, names retired — install the target:** `system-design` → `code-architecture`
+  (`event-driven` → `resilience`); `plugin-scout` + `vercel-skills-scout` → `stack-scan`
+  (`/stack-scan:suggest`, `--skills` for skills.sh); `theme-design` + `design-lab` →
+  `design-studio` (`/design-studio:init|export|preview`); `terse` → `candor`
+  (`/candor:level`, `/candor:check`; the crew agents and the commit and compress
+  commands dropped); `fresh-take` → `approaches` (`/approaches:consult`);
+  `orchestration` → `task-runner` (both skills, the lint, the `ultra-assess` boost hook).
+- **One Stop gate.** `candor/hooks/gate.sh` carries four clauses: the two it had, the
+  evidence-at-claim clause that was `code-architecture/hooks/evidence-gate.sh`, and the
+  registered-run clause that was `task-runner/hooks/completion-gate.sh`. `CC_EVIDENCE_GATE`
+  and `TASK_RUNNER_STOP_GATE` still downgrade their clause alone.
+- **Review entries.** `/code-review:review` is the one review surface and loads every
+  installed rubric; `/web-dev:review`, `/laravel:review`, `/database:review`,
+  `/ui-ux:review` and four of `resilience`'s five review commands are retired
+  (`/resilience:review [--concern]` remains).
+- **Bundles, 8 → 4.** `core-suite` (was `always-on-suite`, with `code-review` from
+  `quality-suite`) and `workflow-suite` (was `taskmaster-suite`, absorbing `process-suite`
+  and `quality-principles-suite`; fifteen members, `skillListingBudgetFraction: 0.04` at
+  200k) are new names; `frontend-suite` is unchanged and `craft-suite` keeps its name
+  (its two design members became one, `design-studio`); `php-suite` is
+  gone — `laravel`, `web-dev` and `code-review` are install-by-name. An installed retired
+  bundle: run its own `uninstall` command, then install the successor.
+- **Lanes.** Every plugin's `lane.tsv` now declares the `plan`, `ship` and `verify`
+  phases where it does that work (code-architecture, task-runner, git-workflow,
+  taskmaster); `plan` had no row anywhere before.
+- **Declined on measurement, recorded in the plan:** one PostToolUse envelope per
+  plugin (§4.3), one UserPromptSubmit aggregator (§4.4), worker agents 10 → 7 (§4.6:
+  two of the four carry refusal constraints the section's own test keeps; the saving is
+  ~150 always-on tokens on an install no bundle produces), and `overseer` →
+  `taskmaster` (§3.1: the on-invoke corpus ratchet, `scripts/plugin-corpus-baseline.json`,
+  would need ~50 KB cut from taskmaster's prose — a wave-4 ablation decision, not a
+  packaging one). `overseer` stays a leaf.
+
 ## [0.101.0] - 2026-09-11
 
 **New plugin `overseer` (0.1.0)** — a program-level product owner for long,

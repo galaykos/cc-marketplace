@@ -48,7 +48,7 @@ silently" gate. A skill whose ceremony can never be skipped should say WHY
 
 ## Relation to role-floors
 
-Role floors (orchestration `delegation-contracts`,
+Role floors (task-runner `delegation-contracts`,
 `references/role-floors.md`) set the MINIMUM model tier an agent role may
 run on — who executes. Model-tier scoping sets which PROSE binds per tier —
 what they execute. Floors stop a too-small judge; scoping stops a too-big

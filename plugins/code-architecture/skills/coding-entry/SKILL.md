@@ -16,9 +16,8 @@ owns that), write a spec or cards (taskmaster), or execute a list (task-runner).
 ## Load, then prime — two different things
 
 **Load** means read the body now. Reserved for skills that apply to every line of code
-regardless of stack or surface. Six, ~11k tokens (43,984 bytes of body):
+regardless of stack or surface. Five:
 
-- `lean:cost-model` — the minimum that clears the bar, per cost surface
 - `code-review:comment-discipline` — where each fact belongs
 - `testing:testing-best-practices` — what to test, and its `proportionality.md` for how much
 - `code-architecture:plan-before-code` — which files change, before they do
@@ -80,7 +79,7 @@ When none matches, emit exactly one line and act on it:
 effect.** Irreversible means the world does not roll back: a mass email or notification, a
 delete or purge, a payment, a third-party write, anything a scheduler will fire
 unattended. It fires on one line as readily as on fifty. It is the same set the
-`code-reviewer` agent and `lean:cost-model`'s blast-radius trigger name, on purpose.
+`code-reviewer` agent names, on purpose.
 
 File count is not the term and never was a good proxy: a 3-file rename is not a 3-file
 redesign. Size is lines and non-mechanical spread. Schema and infrastructure work has no
@@ -107,7 +106,7 @@ convention forbids.
 Five lines, then the work or the handoff. No preamble, no restatement of the ask.
 
     stack: laravel 11 · inertia · react 18 · mariadb      (or: no manifest recognised)
-    loaded: cost-model, comment-discipline, testing, plan-before-code, low-cognitive-load, code-smells
+    loaded: comment-discipline, testing, plan-before-code, low-cognitive-load, code-smells
     primed: laravel-best-practices, inertia-best-practices, mariadb-best-practices, a11y-audit
     triage: trivial — proceeding inline
     budget: 1 file, 1 test (the boundary case), no comment, no delegation
@@ -124,7 +123,9 @@ missed it. And a budget never argues a gate down — if this work later becomes 
 card's `Verify` must still name a specific test or asserted outcome (`verify-teeth-lint`
 blocks a bare suite pass), and a negative control returning `vacuous` means the check had
 no teeth, which is a coverage gap to fix, never an excess to trim.
-`lean:cost-model` carries the surfaces and the trigger list.
+The surfaces the budget prices are code, tests, comments, files and actions; the four
+things that buy more than the minimum are blast radius, an observed defect, a stated
+criterion, and the user asking.
 
 When a work-type row matches, the handover replaces the triage and budget lines, and
 nothing is loaded or primed — the receiving command sets its own:

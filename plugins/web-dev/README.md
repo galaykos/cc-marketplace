@@ -3,8 +3,10 @@
 Web development in one plugin: a **web-developer** worker for routing, REST/API
 integration, forms, state management, and SSR/CSR decisions; a **frontend-reviewer**
 that audits component and view logic; and three version-pinned stack skills —
-**Next.js**, **React Native** (with the Expo inversions), and **Vite** — behind one
-`/web-dev:review` that detects the stack from the lockfile.
+**Next.js**, **React Native** (with the Expo inversions), and **Vite**. Review runs
+through `/code-review:review`, the fan-in that detects the stack from the lockfile and
+loads every matching skill in one pass (the plugin's own review entry was
+retired on 2026-09-14 — it was a second name for that pass).
 
 Laravel keeps its own plugin and Inertia lives there — a PHP-side pairing — and the
 worker and reviewer defer to it when installed. Plain JavaScript and TypeScript
@@ -18,20 +20,19 @@ need no stack skill — that shape measured zero against a blind control
 /plugin install web-dev@cc-plugins-marketplace
 ```
 
-## Commands
-
-| Command | What it does |
-|---------|--------------|
-| `/web-dev:review [files-or-diff]` | Detect Next.js / React Native / Vite from the manifests, load every matching skill, and review the scope pinned to the installed versions — severity-sorted one-line findings with fixes |
+## Review
 
 ```bash
-/web-dev:review app/products/page.tsx app/actions/checkout.ts
-/web-dev:review vite.config.ts
-/web-dev:review                    # reviews the current diff
+/code-review:review app/products/page.tsx app/actions/checkout.ts
+/code-review:review vite.config.ts
+/code-review:review                    # reviews the current diff
 ```
 
-A scope that spans other stacks hands up to `/code-review:review`, the fan-in that
-loads every installed stack skill in one pass.
+`/code-review:review` (the code-review plugin) detects Next.js / React Native / Vite
+from the manifests, loads every matching skill here, and reviews the scope pinned to
+the installed versions — severity-sorted one-line findings with fixes, routed to the
+`web-developer` worker on apply. The skills also fire on their own while editing when
+`skill-router` is installed.
 
 ## Skills
 
@@ -61,7 +62,7 @@ best-practices body:
 - An EAS Update published against a mismatched `runtimeVersion` is never delivered,
   with no error anywhere.
 
-`/web-dev:review` reads it when `expo` is in the manifest, and `skill-router` routes
+The `/code-review:review` fan-in reads it when `expo` is in the manifest, and `skill-router` routes
 the skill on `app.config.*` and `eas.json` edits in an Expo project.
 
 ## Agents
@@ -77,13 +78,13 @@ the skill on `app.config.*` and `eas.json` edits in an Expo project.
   fetching, TS types, and vite config. Returns severity-ranked `path:line` findings;
   never edits.
 
-The worker recommends the matching review command after implementing; the reviewer
-hands accessibility to `/ui-ux:audit` and design-system concerns to `/ui-ux:review`.
+The worker recommends `/code-review:review` after implementing; the reviewer
+hands accessibility to `/ui-ux:audit` and design-system concerns to ui-ux's reviewer.
 
 ## Model tiers — why the reviewer is floored
 
 `frontend-reviewer` pins `model: opus` as a **floor** (row in
-`orchestration:delegation-contracts` `references/role-floors.md`): dispatch runs it at
+`task-runner:delegation-contracts` `references/role-floors.md`): dispatch runs it at
 `max(session model, opus)`. In an Opus or Fable session that changes nothing. In a
 Sonnet session the verdict is still produced by an Opus-class judge, which is the
 mechanism this marketplace uses to keep review quality constant while the session
@@ -101,5 +102,5 @@ once the skip-clause holds. Standing: **recorded** — no script reads the marke
 - **laravel** — the PHP side, and the home of `inertia-best-practices`, which both agents load when installed
 - **ui-ux** — visual and design-system review the frontend-reviewer defers to
 - **ui-ux** also carries `/ui-ux:audit`, the full WCAG pass; the agents only enforce a semantic baseline
-- **resilience** — `/resilience:performance-review` for bundle size and Core Web Vitals beyond the framework defaults
+- **resilience** — `/resilience:review --concern performance` for bundle size and Core Web Vitals beyond the framework defaults
 - **stack-scan** — supplies the locked versions the advice pins against

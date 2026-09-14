@@ -1,8 +1,9 @@
 # database
 
 Relational databases in one plugin: the engine-agnostic **sql-best-practices** skill,
-the **mariadb-best-practices** dialect skill, one `/database:review` that detects the
-engine first and loads the dialect skill only for MariaDB, a `database-engineer`
+the **mariadb-best-practices** dialect skill (loaded only for MariaDB, with the engine
+detected first — review runs through `/code-review:review`; the plugin's own
+review entry was retired on 2026-09-14), a `database-engineer`
 worker that applies schema, migration, indexing and pooling work through the
 project's migration tooling, and a PreToolUse guard that asks for confirmation before
 a destructive statement lands.
@@ -14,17 +15,18 @@ a destructive statement lands.
 /plugin install database@cc-plugins-marketplace
 ```
 
-## Commands
-
-| Command | What it does |
-|---------|--------------|
-| `/database:review [files-or-diff]` | Detect the engine and version (never from a `.sql` file alone), review statements, schemas and migrations against `sql-best-practices`, and add `mariadb-best-practices` when the engine is MariaDB — severity-sorted one-line findings with fixes, routed to `database-engineer` on apply |
+## Review
 
 ```bash
-/database:review database/migrations/2026_08_21_add_status.php
-/database:review db/migrations/2026_add_orders_index.sql
-/database:review                 # reviews the current diff
+/code-review:review database/migrations/2026_08_21_add_status.php
+/code-review:review db/migrations/2026_add_orders_index.sql
+/code-review:review                 # reviews the current diff
 ```
+
+`/code-review:review` (the code-review plugin) detects the engine and version (never
+from a `.sql` file alone), reviews statements, schemas and migrations against
+`sql-best-practices`, and adds `mariadb-best-practices` when the engine is MariaDB —
+severity-sorted one-line findings with fixes, routed to `database-engineer` on apply.
 
 ## Skills
 
@@ -58,4 +60,4 @@ operations need a confirmed backup or recovery path, or it stops and asks.
 
 - **laravel** — the Eloquent side of the same queries
 - **devops** — `/devops:init` spins up the local database services these reviews run against
-- **resilience** — `/resilience:performance-review` measures a slow query before this plugin reshapes it
+- **resilience** — `/resilience:review --concern performance` measures a slow query before this plugin reshapes it

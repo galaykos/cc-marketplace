@@ -2,6 +2,65 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.34.3
+
+### Changed
+- `skills/task-execution/SKILL.md` and `skills/track-orchestration/SKILL.md` say whose
+  gate "the completion gate" is: candor's clause 4, enforced only with candor installed.
+  The README, `run.md` and `behavioral-gate` carried that condition since 0.33.0; the two
+  bodies still read as an unconditional gate. `hooks/drift.sh`'s comment no longer cites
+  the removed `lean` plugin as a live path. No behaviour change.
+
+## 0.34.2
+
+### Changed
+- `plugin.json` description says what the README already said: the run-completion Stop
+  gate is candor's clause 4 since 2026-09-14, so a by-name install without candor has no
+  gate — the catalog and `/stack-scan:suggest` show the description, not the README.
+
+## 0.34.1
+
+### Changed
+- `lane.tsv`: `/task-runner:plan` and `parallel-planning` declare the `plan` phase (the
+  command yields to the skill); `behavioral-gate` declares `verify`. No behaviour change.
+
+## 0.34.0
+
+### Added
+- **orchestration merged in** (2026-09-14 consolidation plan §3.1): the
+  `delegation-contracts` and `verification-panels` skills with every reference
+  (role-floors, discipline-preamble, fleet-and-apply, tree-wide-gates,
+  dispatch-tier), `scripts/dispatch-lint.sh` with its harness, and the `ultra-assess`
+  boost hook re-rendered from the boost-hook chassis as `task-runner:ultra-assess`
+  (`ORCHESTRATION_BOOST` keeps its name). Every `orchestration:<skill>` citation in
+  the marketplace now reads `task-runner:<skill>`; the role-floors resolution ladder
+  probes this plugin's own root first. `lane.tsv` rows for both skills.
+
+### Changed
+- The `ultra-assess` skill body is `skills/verification-panels/references/ultra-assess.md`:
+  the boost hook's directive names the path, so a listing entry was a second trigger
+  for the same text.
+
+### Removed
+- Orchestration's review command. It reviewed prompts, not code; what it ran mechanically
+  (`dispatch-lint.sh`) ships here, and its eight-point checklist is the
+  delegation-contracts skill's own § Prompt contract.
+
+## 0.33.0
+
+### Removed
+- `hooks/completion-gate.sh` and its `Stop` entry in `hooks/hooks.json`. The
+  registered-run Stop gate is now clause 4 of candor's one Stop gate
+  (`plugins/candor/hooks/gate.sh`): the same records check — gate pass for HEAD, card
+  counts, per-card `nc/` and `rv/` coverage, `bg/` verdicts, red-team panel width,
+  reduction disclosure — the same messages, the same `TASK_RUNNER_STOP_GATE` modes,
+  the same per-HEAD nudge under `.claude/task-runner/`. Every writer of those records
+  stays here (`run.md`, `rv-observe.sh`, `behavioral-gate.sh`, `review-skip.sh`,
+  `reduction-record.sh`, `negative-control.sh`); only the Stop-time reader moved, and
+  `scripts/smoke/completion-gate-hook-tests.sh` still drives the writers and the
+  reader together. A run can end by narration if candor is not installed —
+  process-suite and taskmaster-suite now carry it (2026-09-14 consolidation plan, §4.2).
+
 ## 0.32.0
 
 ### Added

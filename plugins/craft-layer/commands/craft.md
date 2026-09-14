@@ -88,7 +88,7 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    `/craft-layer:sections`): derive the agenda from the contract's spine slots, run the batched rounds
    (Shape → Treatment → Signature) under the exchange cap in `decision-rounds.md`, always offering
    "decide the rest for me", staging options through `taskmaster:visual-decisions` /
-   `/design-lab:preview` when installed. Fold each row's choice and locks
+   `/design-studio:preview` when installed. Fold each row's choice and locks
    into the build task. Two skips, and they differ: `one-shot` skips entirely and writes no ledger; a
    `guided` run with no interactive user still runs the agenda, auto-decides, and writes every row
    `source: auto`.
@@ -185,13 +185,13 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    gate: **the banned-vocabulary grep runs once, tree-wide, after every builder has returned** — not
    during, and not once per agent. During a fan-out the result is about a sibling's half-saved file;
    per agent it is green over a subset while the ban is checked nowhere
-   (`orchestration:delegation-contracts` `references/tree-wide-gates.md`). `Banned vocabulary: none`,
+   (`task-runner:delegation-contracts` `references/tree-wide-gates.md`). `Banned vocabulary: none`,
    or no line at all, reports `not checked` — never a pass.
 
 8. **Red-team the result AND the fixes — BOOSTED runs only.** Attack the shipped tree against the
    persisted contract and divergence record: blind refuters each told to REFUTE that the run honored
    what it pinned, N=3 as a CEILING sized to blast radius, composing
-   `orchestration:verification-panels` when installed; no Workflow tool means ONE inline pass, labeled
+   `task-runner:verification-panels` when installed; no Workflow tool means ONE inline pass, labeled
    `inline heuristic pass — single model, uncorroborated`. The three rules the panel owes are in
    `skills/ultra-craft/references/red-team-contract.md`. An unboosted run skips this entirely. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 

@@ -38,24 +38,29 @@ else
   echo "FAIL: shipped tree flagged (rc=$g): $out"; rc=1
 fi
 
-# 2. FAIL path — code-architecture's description defers topology to system-design;
-#    delete that yields_to edge in a mirror and the gate must name the pair.
+# 2. FAIL path — a description that defers to a sibling plugin with no yields_to edge
+#    to that plugin must be named as a pair. Synthesized: a mirror of code-architecture
+#    whose description is rewritten to defer topology to devops (a real sibling, no
+#    lane edge). The shipped code-architecture -> system-design claim this case used
+#    to break was retired when system-design folded in on 2026-09-14.
 mkdir -p "$T/plugins"
-cp -R plugins/code-architecture plugins/system-design "$T/plugins/"
-# portable (GNU + BSD): rewrite through a temp file instead of sed -i
-awk -F'\t' 'BEGIN{OFS="\t"} !/^#/ && NF==6 && $6=="system-design:system-design-reviewer" { $6="-" } { print }' \
-  "$T/plugins/code-architecture/lane.tsv" > "$T/lane.tmp" && mv "$T/lane.tmp" "$T/plugins/code-architecture/lane.tsv"
-grep -q 'system-design:' "$T/plugins/code-architecture/lane.tsv" && { echo "FAIL: fixture edit did not remove the edge"; rc=1; }
+cp -R plugins/code-architecture plugins/devops "$T/plugins/"
+jq '.description = "Fixture: defers pipeline topology to the devops plugin."' \
+  "$T/plugins/code-architecture/.claude-plugin/plugin.json" > "$T/pj.tmp" && mv "$T/pj.tmp" "$T/plugins/code-architecture/.claude-plugin/plugin.json"
+grep -q 'devops:' "$T/plugins/code-architecture/lane.tsv" && { echo "FAIL: fixture already carries a devops edge"; rc=1; }
 out=$(pc_deference_edges "$T/plugins") && g=0 || g=$?
 case "$g:$out" in
-  1:*'deference code-architecture -> system-design'*) echo "PASS: unbacked claim fails with 'deference code-architecture -> system-design'" ;;
+  1:*'deference code-architecture -> devops'*) echo "PASS: unbacked claim fails with 'deference code-architecture -> devops'" ;;
   *) echo "FAIL: unbacked claim not flagged (rc=$g; out=$out)"; rc=1 ;;
 esac
 
-# 3. SKIP path — llm-app defers to "Claude Code's built-in claude-api skill";
-#    no plugin directory is named, so the clause must produce no output and no failure.
-rm -rf "$T/plugins"; mkdir -p "$T/plugins"
-cp -R plugins/llm-app "$T/plugins/"
+# 3. SKIP path — a description that defers to "Claude Code's built-in claude-api skill"
+#    names no plugin directory, so the clause must produce no output and no failure.
+#    Synthesized fixture: the shipped plugin that carried this wording (llm-app) was
+#    removed 2026-09-14, and the check must keep proving the skip path without it.
+rm -rf "$T/plugins"; mkdir -p "$T/plugins/defer-fixture/.claude-plugin"
+printf '%s\n' '{"name":"defer-fixture","version":"0.0.1","description":"Fixture: defers provider API specifics to Claude Code'"'"'s built-in claude-api skill (harness-provided, not part of this marketplace)."}' \
+  > "$T/plugins/defer-fixture/.claude-plugin/plugin.json"
 out=$(pc_deference_edges "$T/plugins") && g=0 || g=$?
 if [ "$g" -eq 0 ] && [ -z "$out" ]; then
   echo "PASS: host-built-in deference target is skipped, not failed"
@@ -93,10 +98,10 @@ done
 for _f in CLAUDE.md README.md skills-lock.json; do
   [ -f "$LIVE/$_f" ] && cp "$LIVE/$_f" "$MIRROR/" 2>/dev/null
 done
-awk -F'\t' 'BEGIN{OFS="\t"} !/^#/ && NF==6 && $6=="system-design:system-design-reviewer" { $6="-" } { print }' \
-  "$MIRROR/plugins/code-architecture/lane.tsv" > "$T/lane.tmp" && mv "$T/lane.tmp" "$MIRROR/plugins/code-architecture/lane.tsv"
+jq '.description = "Fixture: defers pipeline topology to the devops plugin."' \
+  "$MIRROR/plugins/code-architecture/.claude-plugin/plugin.json" > "$T/pj.tmp" && mv "$T/pj.tmp" "$MIRROR/plugins/code-architecture/.claude-plugin/plugin.json"
 vout=$( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ) && vrc=0 || vrc=$?
-if [ "$vrc" -ne 0 ] && printf '%s\n' "$vout" | grep -qF 'deference code-architecture -> system-design — plugin.json promises deference to a plugin that no lane row yields to'; then
+if [ "$vrc" -ne 0 ] && printf '%s\n' "$vout" | grep -qF 'deference code-architecture -> devops — plugin.json promises deference to a plugin that no lane row yields to'; then
   echo "PASS: validate.sh wiring — the deference FAIL string reaches the build"
 else
   echo "FAIL: validate.sh did not surface the deference string (rc=$vrc)"; printf '%s\n' "$vout" | grep -i 'deference' | head -3; rc=1

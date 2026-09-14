@@ -78,7 +78,7 @@ because nothing else does.
 - Resolve the installed major and read that major's docs. Headless libraries
   in particular renamed APIs between 0.x and 1.0 (Base UI's `render` prop, Ark's
   `.Root` split, React Aria Components vs the hooks package, Radix Vue → Reka UI).
-- When design-lab's registry-source MCP (`registry_search`/`registry_get`) or a
+- When design-studio's registry-source MCP (`registry_search`/`registry_get`) or a
   library's own MCP/JSON manifest is available, query it before writing a
   component. Unavailable → say so and cite the docs URL from
   `references/library-map.md`.
@@ -121,4 +121,4 @@ because nothing else does.
 
 Standing: **agent-graded** — nothing in this marketplace detects a second
 library being installed or an instance-level token; the reviewer and the
-`/ui-ux:review` inventory are the only readers.
+`/code-review:review` fan-in's inventory are the only readers.

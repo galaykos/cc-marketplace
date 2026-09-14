@@ -26,7 +26,7 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "candor-scan: jq not found — nothing measured"; exit 0; }
 
-# Same discovery as terse/scripts/measure.sh: Claude Code names the transcript
+# Same discovery as scripts/measure.sh: Claude Code names the transcript
 # directory after the cwd with separators flattened. Two variants are tried;
 # guessing wrong silently would measure someone else's sessions.
 if [ -z "$tp" ]; then

@@ -1,12 +1,13 @@
 {
   "name": "stack-scan",
-  "version": "0.6.3",
-  "description": "Know what is actually installed, then keep it healthy: /stack-scan:report inventories manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged; /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene: semver strategy, lockfile discipline, upgrade lanes, licences against the distribution mode) — report-only. Whether to add a dependency at all is approaches' build-vs-buy.",
+  "version": "0.7.4",
+  "description": "Know what is installed, keep it healthy, find what to add. /stack-scan:report inventories manifests, lockfiles (composer, npm/yarn/pnpm/bun), runtimes and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged. /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene) — report-only. /stack-scan:suggest reads the same manifests and suggests every marketplace plugin in three tiers with cited evidence (--yes auto-installs tiers 1-2, --full the whole stack-relevant set after one confirm, --persist/--global set scope); --skills searches skills.sh for third-party skills instead — provenance, preview, explicit picks only. Add-at-all is approaches' build-vs-buy.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
   },
   "keywords": [
-    "tooling"
+    "tooling",
+    "research"
   ]
 }

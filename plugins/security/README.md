@@ -62,7 +62,7 @@ unsafe deserialization (`pickle` and its wrappers, PHP `unserialize($…)`), `ya
 without `SafeLoader`, `torch.load` without `weights_only`, XML parsed with entities on,
 TLS verification switched off (`verify=False`, `rejectUnauthorized: false`, Guzzle
 `'verify' => false`, `CURLOPT_SSL_VERIFYPEER`), ECB / `createCipher`, and an external
-`<script>` without `integrity=`. Since 0.9.0 three LLM sinks ported from `llm-app`'s
+`<script>` without `integrity=`. Since 0.9.0 three LLM sinks ported from the llm-app plugin's prose rule (that plugin was removed 2026-09-14; the sinks stay here) — from its
 prompt-injection rule, gated to JS/TS/Python/PHP: `prompt-interpolation` (a `system` /
 `role: "system"` string built by interpolation or concatenation), `llm-output-exec` (a
 completion / `choices[0]` / `.content` value on the same line as `eval`, `exec`,
@@ -79,4 +79,3 @@ dependency audit) stays review-time via `/security:review`.
 
 - **testing** — turn each confirmed finding into a regression test
 - **php / laravel** — general code-quality review; security:review goes deeper on the attack surface
-- **llm-app** — states the prompt-injection rule in prose; the write-scan's three LLM-sink patterns are its mechanism half, firing on the line as it is written

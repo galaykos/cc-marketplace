@@ -57,7 +57,7 @@ goal banners in one response.
 
 `model=auto, effort=xhigh`, always. What `auto` resolves to, the escalate-never-downgrade
 ladder, and why `effort` binds only on the Workflow `agent()` path are owned by
-`orchestration:verification-panels` `references/dispatch-tier.md` — cited, not
+`task-runner:verification-panels` `references/dispatch-tier.md` — cited, not
 restated (§ Panel width owns panel width N and states none of the three). Taskmaster adds two
 rules of its own: the resolution is a FLOOR (`max(marker, frontmatter)`), so it never lowers
 an agent below its shipped tier; and never edit agent frontmatter to achieve it — the boost
@@ -148,7 +148,7 @@ auto-approved contracts as the checkpoint; a post-hoc veto of a ledger line re-r
 ## Degradation, and the half the harness owns
 
 Never hard-fails. Without a usable `Workflow` path every fan-out phase falls back to its
-inline single-agent form, still model-escalated, and per `orchestration:verification-panels`
+inline single-agent form, still model-escalated, and per `task-runner:verification-panels`
 that fallback is reported as **"inline heuristic pass — single model, uncorroborated"**,
 never as a panel or adversary count. Auto-take, ledger, and markers operate identically inline.
 
@@ -156,7 +156,7 @@ never as a panel or adversary count. Auto-take, ledger, and markers operate iden
 buys model escalation only: say once that **`ultracode` is the half this plugin cannot
 supply**, and that `ultrathink` (main-thread depth) is the orthogonal other half —
 `ultrathink ultracode ultra-task <task>` is the loaded form. Rules, including the workflow-size
-ceiling: `orchestration:verification-panels` `references/dispatch-tier.md` § Native harness interop.
+ceiling: `task-runner:verification-panels` `references/dispatch-tier.md` § Native harness interop.
 
 ## What the boost does NOT do
 
@@ -176,4 +176,4 @@ ceiling: `orchestration:verification-panels` `references/dispatch-tier.md` § Na
 Standing: unenforceable — three independently-installed plugins share no writable state, so
 two boost tokens inject two directives. The off switch (`CC_BOOST=off`, or `TASKMASTER_BOOST=off`)
 is what IS implementable; full statement with the trigger-narrowing limits:
-`orchestration:verification-panels` `references/dispatch-tier.md`.
+`task-runner:verification-panels` `references/dispatch-tier.md`.

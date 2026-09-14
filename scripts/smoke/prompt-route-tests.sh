@@ -200,15 +200,17 @@ for phrase in "Silence is the default" "AskUserQuestion" "(Recommended)" "as ask
     && pass "directive carries: $phrase" || fail "directive carries: $phrase" "missing"
 done
 
-# installed-scoping: a tree holding two plugins must yield a catalog of only those
+# installed-scoping: a tree holding two plugins must yield a catalog of only those.
+# Fixture plugin: secret-scanning (one command, content-only routing) — the
+# payments plugin this case used to copy was removed 2026-09-14.
 SOLO="$WORK/solo/plugins"; mkdir -p "$SOLO/skill-router/hooks"
-cp -R plugins/payments "$SOLO/payments"
+cp -R plugins/secret-scanning "$SOLO/secret-scanning"
 cp "$HOOK" "$SOLO/skill-router/hooks/route-prompt.sh"
-solo_out="$(run_hook "review the checkout and payment flow" "$SOLO/skill-router")"
+solo_out="$(run_hook "review the repo for committed secrets before I push" "$SOLO/skill-router")"
 solo_lines=$(printf '%s' "$solo_out" | grep -c '^- /' || true)
-foreign=$(printf '%s' "$solo_out" | grep '^- /' | grep -vc '^- /payments:' || true)
+foreign=$(printf '%s' "$solo_out" | grep '^- /' | grep -vc '^- /secret-scanning:' || true)
 if [ "$solo_lines" -ge 1 ] && [ "$foreign" -eq 0 ]; then
-  pass "catalog is installed-scoped ($solo_lines entries, all payments)"
+  pass "catalog is installed-scoped ($solo_lines entries, all secret-scanning)"
 else
   fail "catalog is installed-scoped" "$solo_lines entries, $foreign from uninstalled plugins"
 fi
@@ -219,7 +221,7 @@ printf '== half C: the incident moment has an owner ==\n'
 # mkdir marker, so a shared sandbox would measure scheduling order instead of the
 # trigger, which is the exact confusion this split was made to remove.
 DBG="$ROOT/plugins/debugging/hooks/remind.sh"
-FT="$ROOT/plugins/fresh-take/hooks/remind.sh"
+FT="$ROOT/plugins/approaches/hooks/consult-remind.sh"   # fresh-take's reminder until 2026-09-14
 
 run_remind() { # run_remind <hook> <prompt> -> hook stdout
   local hook="$1" prompt="$2"
@@ -238,8 +240,8 @@ if [ -f "$DBG" ] && [ -f "$FT" ]; then
     && pass "debugging fires on the stuck moment and names its command" \
     || fail "debugging fires on the stuck moment" "wanted /debugging:debug, got: ${out:-<silence>}"
   out="$(run_remind "$FT" "$STUCK")"
-  [ -z "$out" ] && pass "fresh-take yields the stuck moment to debugging" \
-    || fail "fresh-take yields the stuck moment" "both plugins still claim it: $out"
+  [ -z "$out" ] && pass "the consult reminder yields the stuck moment to debugging" \
+    || fail "the consult reminder yields the stuck moment" "both hooks still claim it: $out"
 
   # The destructive branch is KEPT, deliberately. command-guard is PreToolUse and so
   # fires only once the model has already composed the call; this is the only signal
@@ -247,12 +249,12 @@ if [ -f "$DBG" ] && [ -f "$FT" ]; then
   # trigger — deleting the branch would have been the cheaper edit and the wrong one.
   out="$(run_remind "$FT" "rm -rf node_modules")"
   if [ -n "$out" ]; then
-    pass "fresh-take still fires on a destructive token"
+    pass "the consult reminder still fires on a destructive token"
     printf '%s' "$out" | grep -qF 'stronger-model' \
       && fail "destructive line is re-pointed" "still sells a stronger-model take: $out" \
       || pass "destructive line no longer sells a stronger-model take"
   else
-    fail "fresh-take still fires on a destructive token" "the sole pre-proposal signal is gone"
+    fail "the consult reminder still fires on a destructive token" "the sole pre-proposal signal is gone"
   fi
 else
   fail "incident-moment hooks present" "missing $DBG or $FT"
@@ -333,24 +335,28 @@ if [ -f "$CAT_HOOK" ]; then
     [ "$got" = "$4" ] && pass "catalog: $1" || fail "catalog: $1" "$3 is $got, wanted $4"
   }
 
+  # The per-stack review commands (/laravel:review, /web-dev:review, …) that this filter
+  # was written for were retired 2026-09-14 — the fan-in owns them. The remaining stack
+  # reviews with FILE-shaped glob rows are devops (Dockerfile*, compose*.yml) and
+  # api-design (openapi*, *.graphql, *.proto, api.php); the cases below use those.
   CL="$WORK/cat-laravel"; mkdir -p "$CL"
   printf '{"require":{"laravel/framework":"^11"}}' > "$CL/composer.json"; : > "$CL/app.php"
   OL=$(cat_for "$CL" laravel)
-  cat_expect "a Laravel repo is not offered /web-dev:review" "$OL" "/web-dev:review" absent
-  cat_expect "a Laravel repo keeps /laravel:review"         "$OL" "/laravel:review" present
+  cat_expect "a repo with no container or CI files is not offered /devops:review" "$OL" "/devops:review" absent
+  cat_expect "a repo with no API spec is not offered /api-design:review"          "$OL" "/api-design:review" absent
   cat_expect "stack-neutral /code-review:review always kept" "$OL" "/code-review:review" present
 
-  CN="$WORK/cat-next"; mkdir -p "$CN"
-  printf '{"dependencies":{"next":"^14"}}' > "$CN/package.json"; : > "$CN/next.config.js"
-  ON=$(cat_for "$CN" next)
-  cat_expect "a Next.js repo keeps /web-dev:review"      "$ON" "/web-dev:review" present
-  cat_expect "a Next.js repo is not offered /laravel:review" "$ON" "/laravel:review" absent
+  CN="$WORK/cat-docker"; mkdir -p "$CN"
+  printf '{"dependencies":{"next":"^14"}}' > "$CN/package.json"; : > "$CN/Dockerfile"; : > "$CN/openapi.yaml"
+  ON=$(cat_for "$CN" docker)
+  cat_expect "a repo with a Dockerfile keeps /devops:review"    "$ON" "/devops:review" present
+  cat_expect "a repo with an OpenAPI spec keeps /api-design:review" "$ON" "/api-design:review" present
 
   CE="$WORK/cat-empty"; mkdir -p "$CE"
   OE=$(cat_for "$CE" empty)
   cat_expect "content-only /security:review survives an empty repo"     "$OE" "/security:review" present
   cat_expect "content-only /resilience:review survives an empty repo"   "$OE" "/resilience:review" present
-  cat_expect "content-only /resilience:observability-review survives an empty repo" "$OE" "/resilience:observability-review" present
+  cat_expect "content-only /stack-scan:audit survives an empty repo"    "$OE" "/stack-scan:audit" present
 
   # A filter that dropped everything would pass every "absent" assertion above.
   ln_l=$(printf '%s' "$OL" | grep -c '^- /')

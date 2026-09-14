@@ -3,48 +3,116 @@
 Candour as a mechanism, not a pep talk.
 
 A plugin that only said *don't hallucinate, don't flatter, don't fold under
-pressure* would be the shape this marketplace has already measured at zero
-(`rationale/measured-zero-shapes.md`, shape 2: canonical-doctrine checklists —
-the treatment's findings were a strict subset of a blind control's). So this one
-ships the two clauses that a script can actually prove, and is explicit that the
-rest is measured and not enforced.
+pressure, don't claim what you did not run* would be the shape this marketplace
+has already measured at zero (`rationale/measured-zero-shapes.md`, shape 2:
+canonical-doctrine checklists). So this one ships the clauses a script can
+actually prove, and is explicit that the rest is measured and not enforced.
+
+Since 2026-09-14 it is also the home of the **terse reply mode**: chat-message
+brevity as a shape contract, one surface over from honesty. The terse plugin was
+merged into this one; its crew agents and its commit and compress commands were
+dropped (the host's `/commit` covers the first; the second had one user).
 
 ## What blocks
 
-`hooks/gate.sh`, wired to `Stop` and, since 0.2.0, to `SubagentStop`. Two clauses,
-both decidable:
+`hooks/gate.sh`, wired to `Stop` and `SubagentStop`. **One gate, four clauses**,
+each decidable. Until 2026-09-14 clauses 3 and 4 were separate Stop hooks in
+`code-architecture` and `task-runner`; three scripts on one event each had to
+namespace the host's shared `stop_hook_active` flag so no sibling could spend
+another's enforcement. One script records which clause blocked and skips only
+that clause on its own continuation.
 
 | Clause | Fires when | Escape |
 | --- | --- | --- |
-| **Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under `cwd`, or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
-| **Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between | re-check and report what it showed, or hold the position and say why |
+| **1 Fabricated citation** | the final assistant message cites `path/file.ext:NNN` that resolves to no file under `cwd`, or to a line past the file's end | re-read and cite what is there, or drop the number and say you are inferring |
+| **2 Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between | re-check and report what it showed, or hold the position and say why |
+| **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), files were edited this session, and nothing was executed after the last edit | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it |
+| **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`) and is stopping with no recorded gate pass for HEAD, cards neither done nor parked, short per-card control or reviewer records, a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
 
-On `SubagentStop` only the first clause runs, over the subagent's final report
-(`last_assistant_message`, measured live on Claude Code 2.1.267 with `exit 2`
-blocking the subagent the way it blocks a turn). A subagent has no user turn to
-push back, so the second clause disarms there. Markers are suffixed per agent, so
-a subagent block never spends the main thread's disarm.
+Clause 4 is dormant outside a registered run, on another branch than the run's,
+and without git — a records check, never a test run. On `SubagentStop` only
+clause 1 runs, over the subagent's final report; a subagent has no user turn to
+push back and no session that edited files, so the rest disarm there. Markers are
+suffixed per agent, so a subagent block never spends the main thread's disarm.
 
-Both judge the **final assistant message only**. The sibling gate in
-`code-architecture` documents a measured window-bleed defect from matching a
-claim and its escape over a rolling 30-line window in both directions; a
-single-message window cannot bleed, at the cost of missing a retraction split
-across two messages.
+Clauses 1 and 2 judge the **final assistant message only**. Clause 3 matches its
+claim and its honesty escape over the last 30 lines of assistant text, and that
+window bleeds in both directions (measured, documented in the script); narrowing
+it to the final message was rejected because it blocks honest reports that state
+the caveat before the summary.
 
-Modes: `CC_CANDOR_GATE=block` (default) `| warn` (print, never block) `| off`.
-Fails open on missing `jq`, an unreadable transcript, or empty text. One block per
-distinct final message, so a disagreement cannot loop.
+Modes: `CC_CANDOR_GATE=block` (default) `| warn | off` for the whole gate;
+`CC_EVIDENCE_GATE` and `TASK_RUNNER_STOP_GATE` still downgrade clauses 3 and 4
+alone, as they did when those were separate scripts. Fails open on missing `jq`,
+an unreadable transcript, or empty text. One block per distinct final message
+(clauses 1-3) or per HEAD (clause 4), so a disagreement cannot loop — and a clause
+that is bounded (or in warn mode) prints without silencing the others: a run held
+once at a HEAD is still checked for invented citations and naked completion claims
+on every later stop (0.3.1; `scripts/__tests__/gate.test.sh`, clause independence).
 
 ## What is measured and not blocked
 
 `/candor:check` runs `scripts/candor-scan.sh` over the session transcript and
-prints six counts — the two gated axes plus flattery openers, apologies,
-defensive phrasing and emotional intensifiers. It always exits 0.
+prints six counts — the two gated candour axes plus flattery openers, apologies,
+defensive phrasing and emotional intensifiers — and, when a terse level is active
+or `--brevity` is passed, `scripts/measure.sh`'s prose-line count per turn-final
+message against the level's budget. Both always exit 0.
 
 The four extra axes are deliberately ungated. No regex separates "you're right"
 said because it is true from the same words said to please, once the evidence
 question is already answered — and a gate that cannot tell them apart trains the
 model to drop the phrase rather than the behaviour. Standing: **recorded**.
+
+## The terse reply mode
+
+Brevity modes usually compress **words**. Measured across three long sessions
+running a word-compression mode at its strongest setting, mid-turn lines held at
+17–265 characters while every turn-final message ran 1,194–4,447. What grows is
+**shape**: the last message narrates its own process, re-summarizes the files it
+just wrote, re-prints an unchanged inventory. So the mode budgets and shapes the
+message instead of shortening its sentences.
+
+**The one law: fewer words in the message, never less work in the turn.** Code,
+commits, files written, subagent prompts, tool calls, tests and verification
+depth are out of scope at every level. A finding that does not fit goes into a
+file and gets cited by path.
+
+```bash
+/candor:level full      # the default working level
+/candor:level ultra     # answers in 3 prose lines, reports in 6
+/candor:level off       # normal length resumes
+/candor:level status    # what is active, and where it came from
+/candor:check           # candour axes, plus the brevity measurement while a level is on
+```
+
+Installed, the mode does nothing until switched on; there is no ambient mode.
+The level persists across every session on this machine
+(`~/.claude/terse-mode`; `CC_TERSE=off|lite|full|ultra|wenyan-*` overrides it
+for a headless run). Budgets count prose lines only — code blocks, tables and
+trees are free:
+
+| Turn kind | lite | full | ultra |
+|---|---|---|---|
+| progress, mid-turn | 1 | 1 | 1 |
+| answer or explanation | 10 | 6 | 3 |
+| work-done report | 18 | 12 | 6 |
+
+Work-done reports take one skeleton: verdict → artifact table → at most 5
+findings as `path:line — problem → impact` → **skipped** (printed as `none`) →
+blocker → next. The cap does **not** apply when findings are the deliverable. The
+word layer (dropped articles at `full`, abbreviations and arrows at `ultra`)
+yields to a host that bans telegraphese; the budgets and skeleton bind
+everywhere. `wenyan-*` levels swap the word layer for classical Chinese
+(`skills/terse-output/references/wenyan.md`); verdicts stay in English because
+this gate's clause 3 greps the assistant's own words.
+
+**Running another brevity mode?** Remove it first; two always-on compression
+prompts on the same turn are not designed to coexist.
+
+Optional, wire them yourself: `scripts/statusline.sh` (or `.ps1`) renders
+`[TERSE:ULTRA]` in a `statusLine` setting; `scripts/shrink.mjs` is a stdio proxy
+that trims prose out of an MCP server's tool descriptions (`node shrink.mjs
+<command> [args…]`), leaving names, schemas and every request untouched.
 
 ## The skill
 
@@ -54,7 +122,23 @@ not sentiments: evidence before claim; the disagreement before the concession; a
 reversal treated as a finding that needs its own evidence; "I don't know" shipped
 with the command that would settle it; scope honesty stated when decided rather
 than in a footnote; correction without performance. It carries its own standing
-table naming which of the six have teeth (two) and which do not (four).
+table naming which of the six have teeth and which do not.
+
+`terse-output` fires when the user asks for shorter, denser replies or a level is
+set. Its marked contract block is what the hooks inject — extracted at runtime,
+so the injected card and the skill body cannot drift.
+
+## Hooks, all of them
+
+| Event | Script | Does |
+| --- | --- | --- |
+| `Stop`, `SubagentStop` | `hooks/gate.sh` | the four clauses above; exit 2 blocks |
+| `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
+| `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~120 tokens per prompt, nothing when off) |
+
+`mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
+nudge, so it neither claims the one-nudge-per-prompt marker nor answers to that
+switch. Its off switches are the level itself and `CC_TERSE=off`.
 
 ## What this does not carry
 
@@ -63,26 +147,29 @@ Stated because a gate reads stronger than it is:
 - **Only `file:line` is checked, never a bare path.** A bare path is routinely a
   file the turn proposes to create. An invented API name, package, flag or
   function is not caught by anything here — only an invented *location* is.
-- **Any tool call counts as re-checking.** A `git status` satisfies clause 2. The
-  gate proves something ran, not that the right thing ran.
-- **Pushback detection is a regex over one message.** Phrasing outside the list
-  is invisible, and a user message carrying its own evidence — a path, a quoted
-  snippet, a long argument — disarms clause 2 on purpose. Agreeing with a
-  correction that arrived with evidence is reading, not sycophancy.
-- **Completion claims belong to `code-architecture`.** Its evidence-gate blocks a
-  completion claim when files were edited and nothing ran afterward. This plugin
-  yields that territory in `lane.tsv` rather than duplicating it.
 - **Only an invented FILENAME is caught, not a wrong directory.** Measured over
-  47 real transcripts, an abbreviated path (`craft-layer/asset-sourcing/SKILL.md`
-  for a file at `plugins/craft-layer/skills/asset-sourcing/SKILL.md`) is far more
-  common than an invented one, so the resolver falls back to the basename and
-  only a basename that exists nowhere blocks. A real filename under the wrong
-  path now passes silently.
+  47 real transcripts, an abbreviated path is far more common than an invented
+  one, so the resolver falls back to the basename and only a basename that
+  exists nowhere blocks.
+- **Any tool call counts as re-checking (clause 2) and any post-edit execution
+  counts as verification (clause 3).** A `git status` satisfies both. The gate
+  proves something ran, not that the right thing ran.
+- **Silence evades clause 3.** A turn that claims nothing is not judged — the lie
+  this clause exists to stop was never told.
+- **Clause 4 enforces only a run that registered itself.** A run that never
+  writes the sentinel is not enforced; what it closes is the honest-but-forgetful
+  path.
+- **Pushback detection is a regex over one message.** Phrasing outside the list
+  is invisible, and a user message carrying its own evidence disarms clause 2 on
+  purpose.
 - **`/candor:check`'s citation count is backward-looking.** It resolves a whole
-  session's historical citations against today's tree, so a file since edited or
-  deleted reports as unresolved though the citation was true when written. The
-  gate does not share this: it judges one message against the tree at that
-  moment. Use `--last N` for a reading about the current session.
+  session's citations against today's tree; use `--last N` for a reading about
+  the current session. The gate judges one message against the tree at that
+  moment.
+- **The shape contract is unenforceable at write time.** Nothing can rewrite a
+  message after it is emitted; the mode is reinforced per turn and measured after
+  the fact. Nor can any script measure work that did not happen — the
+  no-less-work rule is stated in every injection because that is the only lever.
 - **Tone is never blocked.** See above.
 
 ## Install
@@ -91,20 +178,32 @@ Stated because a gate reads stronger than it is:
 /plugin install candor@cc-plugins-marketplace
 ```
 
-Also arrives with `quality-suite`.
+Also arrives with `core-suite` and `workflow-suite` — the second because the runs
+and the verification skill it ships rely on clauses 3 and 4. Always-on cost: the descriptions of two
+commands and two skills; the terse hooks inject nothing until a level is set.
 
 ## Author-time checks
 
 ```bash
-bash plugins/candor/scripts/__tests__/gate.test.sh        # 37 cases — the two clauses
-bash plugins/candor/scripts/__tests__/candor-scan.test.sh # 16 cases — the six axes
-bash plugins/candor/scripts/__tests__/install.test.sh     # 11 cases — install shape
+bash plugins/candor/scripts/__tests__/gate.test.sh          # clauses 1-2, modes, SubagentStop
+bash scripts/smoke/evidence-gate-hook-tests.sh              # clause 3 (30 cases)
+bash scripts/smoke/completion-gate-hook-tests.sh            # clause 4 (70 cases, drives task-runner's record writers too)
+bash plugins/candor/scripts/__tests__/candor-scan.test.sh   # the six axes
+bash plugins/candor/scripts/__tests__/install.test.sh       # install shape, non-git consumer project
+bash plugins/candor/scripts/__tests__/mode-hook.test.sh     # level switching and per-turn reinforcement
 ```
 
-All three run in CI through the shared `plugins/*/scripts/__tests__/*.test.sh`
-step. `install.test.sh` is the one that carries the install shape: it copies the
-plugin to a temp dir, resolves the hook by expanding `${CLAUDE_PLUGIN_ROOT}` in
-`hooks/hooks.json` the way the host does, refuses a hook that resolves back into
-this repository, drives it against a consumer project that is **not** a git
-repository, and uses transcript entries with the full real field set. Nothing in
-the other two harnesses would catch a plugin that only works in-tree.
+All run in CI: the plugin harnesses through the shared
+`plugins/*/scripts/__tests__/*.test.sh` step, the two smoke harnesses as named
+steps. `install.test.sh` copies the plugin to a temp dir, resolves the hook by
+expanding `${CLAUDE_PLUGIN_ROOT}` the way the host does, refuses a hook that
+resolves back into this repository, and drives it against a consumer project
+that is **not** a git repository.
+
+## Pairs well with
+
+- **code-architecture** — its `work-verification` skill states the rule clause 3
+  enforces; the hook lived there until 2026-09-14
+- **task-runner** — writes every record clause 4 reads (`gate-pass.json`, the
+  `nc/`, `rv/`, `bg/`, `rt/` and `reductions/` dirs); the hook lived there until
+  2026-09-14

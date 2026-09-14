@@ -11,7 +11,7 @@
 #   ACTIVATED (scripts/context-budget-activated-baseline.json) — the always-on
 #   surface again, but with the state its hooks are WAITING FOR. Added
 #   2026-08-20 because the always-on pass runs against an empty HOME and no env,
-#   which meters the OFF state: terse's SessionStart hook emits 4,171 B once a
+#   which meters the OFF state: candor's terse-mode SessionStart hook emits 4,171 B once a
 #   level is set and 0 in the sandbox, brain's emits ~2 kB once brain/INDEX.md
 #   exists and 75 B without it. That is ~1.5k tokens a real user pays and no
 #   baseline saw. This channel is a SEPARATE column, not folded into always-on,
@@ -161,7 +161,7 @@ plugin_sessionstart_bytes() {
 # this is a floor and not a ceiling.
 #
 # Fixture contents, each with the hook it exists for:
-#   CC_TERSE=full            → terse/hooks/activate.sh (env beats its state file)
+#   CC_TERSE=full            → candor/hooks/activate.sh (env beats its state file)
 #   brain/INDEX.md           → brain/hooks/inject.sh (clamped at 2048 B by :65)
 #   package.json + composer.json + a src tree
 #                            → skill-router/hooks/prime.sh, which sniffs manifests
@@ -755,7 +755,7 @@ if [ -n "$act_rows" ]; then
   echo
   printf '%-20s %8s %10s %10s\n' "plugin (activated)" "tokens" "baseline" "delta"
   printf '%s' "$act_rows"
-  echo "TOTAL ACTIVATED: $leaf_act_total tokens (always-on surface with terse on, a brain map present, and manifests to sniff)"
+  echo "TOTAL ACTIVATED: $leaf_act_total tokens (always-on surface with a terse level on, a brain map present, and manifests to sniff)"
   echo "  = always-on $leaf_tokens_total + $((leaf_act_total - leaf_tokens_total)) tokens no baseline saw before 2026-08-20"
 fi
 

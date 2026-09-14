@@ -87,7 +87,7 @@
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Pattern and rationale: lean/hooks/budget.sh:10.
+  # is the one context this never speaks in. Key on transcript_path first, session_id as fallback.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null)
   [ -n "$cwd" ] && [ -n "$sid" ] || exit 0
 

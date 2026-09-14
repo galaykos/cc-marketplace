@@ -5,7 +5,7 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 # Three rows, all `any`: a command can be about to run in every phase, so none of these
 # is a phase step. The hook is the gate; the command is its dry-run; the skill is what
-# the model reads once the hook has spoken. fresh-take:remind nudges at PROMPT time on
+# the model reads once the hook has spoken. approaches:consult-remind nudges at PROMPT time on
 # irreversible tokens — a second opinion, not a block — so the territories are distinct
 # and no edge is declared.
 command-guard:destructive-guard	hook	any	destructive-command-execution	PreToolUse on Bash or an MCP shell/SQL tool whose command classifies deny (migrate:fresh, DROP DATABASE, docker compose down -v, terraform destroy) or ask (git reset --hard, rm -rf ./dir, kubectl delete pod), or a Write/Edit aimed at the guard's own allow-file	-

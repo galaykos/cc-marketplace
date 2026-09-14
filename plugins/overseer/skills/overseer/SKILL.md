@@ -145,7 +145,7 @@ thread; amend a charter promise; or edit this plugin's own references mid-run.
 ## Prompts are the product
 
 Every worker, reviewer and subagent runs in a fresh context: a prompt that depends on this
-conversation is broken. Apply `orchestration:delegation-contracts` when installed (minimal
+conversation is broken. Apply `task-runner:delegation-contracts` when installed (minimal
 form in `references/dispatch-prompts.md`): skills and files by absolute path, resolved by
 you; return shape and verify commands stated; a worker's discipline preamble `cat`-ed in,
 never retyped (a retyped one shed a clause per dispatch). A prompt

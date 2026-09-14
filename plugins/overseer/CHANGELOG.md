@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.4.6 — 2026-09-14
+
+- `references/capability-map.md`: the review row no longer names `ui-ux` review and the
+  `laravel`/`web-dev` review commands, retired 2026-09-14 — the fan-in
+  `/code-review:review` loads their skills, `ui-ux` keeps `audit`, `resilience` is one
+  command behind `--concern`. The `capability-scan.sh` map row (plugin names only) was
+  already right.
+
+## 0.4.5 — 2026-09-14
+
+- `scripts/capability-scan.sh`: the guard row no longer names `lean` (removed from the
+  marketplace 2026-09-14) — 0.4.1 fixed the reference copy of the map and missed the
+  script, so the scan kept suggesting `/plugin install lean`. Found by installing the
+  branch into a fresh project; no gate reads a `.sh` for retired names, and `lean` is
+  deliberately outside `pc_removed_refs` because it is also this plugin's rigour tier.
+
+## 0.4.4 — 2026-09-14
+
+- `lane.tsv`: the overseer skill yields to `candor:gate` where it yielded to
+  `task-runner:completion-gate` — that hook is clause 4 of candor's Stop gate now.
+
+## 0.4.3 — 2026-09-14
+
+- `scripts/capability-scan.sh` and `references/capability-map.md`: the shape row
+  lists design-studio in place of design-lab and theme-design, which were merged
+  into it. No behaviour change beyond the name.
+
+## 0.4.2 — 2026-09-14
+
+- `scripts/capability-scan.sh` and `references/capability-map.md`: the understand row
+  no longer lists plugin-scout as a separate plugin — it merged into stack-scan, whose
+  `/stack-scan:suggest` now carries the install offer. No behaviour change beyond the
+  name.
+
+## 0.4.1 — 2026-09-14
+
+- `references/capability-map.md`: the guard row no longer lists `lean` (removed from
+  the marketplace). No behaviour change.
+
 ## 0.4.0 — 2026-09-13
 
 - **Read before you record.** A new PostToolUse hook, `hooks/track-read.sh`, ledgers every

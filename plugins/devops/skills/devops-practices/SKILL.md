@@ -93,7 +93,7 @@ Standing: recorded — this plugin owns the infra layer: probes wired to endpoin
 logs shipped off the node, metrics scraped/exported, dashboards, alerting, the
 collector. What the application *emits* — structured logs, correlation IDs, levels,
 RED/USE metrics, spans — is the `resilience` plugin's observability skill; recommend
-`/resilience:observability-review`, do not audit in-code instrumentation here.
+`/resilience:review --concern observability`, do not audit in-code instrumentation here.
 
 ## Defer rule
 
@@ -102,7 +102,7 @@ RED/USE metrics, spans — is the `resilience` plugin's observability skill; rec
 - Stack/dependency inventory → `/stack-scan:report` — use its output.
 - Application-code security → `/security:review`; you handle infra and pipeline
   config, not source audits.
-- In-code instrumentation → `/resilience:observability-review` (see the boundary above).
+- In-code instrumentation → `/resilience:review --concern observability` (see the boundary above).
 
 ## Anti-patterns
 

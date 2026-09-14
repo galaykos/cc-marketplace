@@ -3,6 +3,36 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.18.2
+
+### Changed
+- README no longer names terse-crew as a `code-reviewer` dispatcher — that skill was <!-- removed-ok -->
+  dropped with the terse merge into candor (2026-09-14). Prose only.
+
+## 0.18.1
+
+### Changed
+- The fan-in list no longer names `payments` or `llm-app`; both plugins were removed
+  from the marketplace on 2026-09-14. A `hooks/density.sh` comment no longer cites the
+  removed lean plugin's hook as its pattern source; behaviour unchanged.
+
+## 0.18.0
+
+### Fixed
+- **The fan-in now names every rubric the per-stack commands hand up to.** Every
+  generated review command tells the model "the aggregator reaches this plugin's
+  rubric too" — and for testing, devops, api-design, craft-layer (three.js),
+  payments and llm-app the fan-in list never named their skills, so a mixed diff
+  with tests silently lost the test rubric. The stack fan-in list now carries all
+  of them, with the file or content shape that triggers each, and states that a
+  review command not named there is a defect in this file.
+- **The resilience deferral loop is closed.** The concern-axis rule said resilience
+  owns failure-mode, error-handling, concurrency, observability and performance
+  findings and this review "does not duplicate" them, while every `/resilience:*`
+  command hands its whole scope back to this one — a loop in which nobody ran the
+  rubric. The fan-in now LOADS resilience's skills in the same pass and reports each
+  finding once under the owning skill; when resilience is absent, step 2 keeps it.
+
 ## 0.17.0
 
 ### Changed
@@ -11,7 +41,7 @@ file is what makes an upgrade readable. Newest first.
   the scope resolution, the hunk read, the history pass, the stack fan-in and the merge; without the built-in
   it runs the generic pass inline as before. Output contract unchanged.
 - The `code-reviewer` agent is **kept**, deliberately: it is the dispatchable
-  reviewer that task-runner's reviewer pass, terse-crew, orchestration's fleet
+  reviewer that task-runner's reviewer pass, terse-crew, orchestration's fleet <!-- removed-ok -->
   routing and every per-stack review command yield to, and a host skill cannot be
   spawned as a subagent. The 2026-09-03 marketplace review had planned to delete
   it; the plan was wrong and is recorded as declined there.
@@ -188,7 +218,7 @@ file is what makes an upgrade readable. Newest first.
 ### Added
 - **`lane.tsv`** — `code-reviewer` declares `stack-agnostic-diff-review` and the
   deference edges it already documented in prose (architecture, security, frontend and
-  UI reviewers). `terse:terse-reviewer` declares the same territory and yields to this
+  UI reviewers). `terse:terse-reviewer` declares the same territory and yields to this <!-- removed-ok -->
   one, so the two no longer both claim a diff with nothing arbitrating.
 
 ## 0.12.0 — 2026-08-15

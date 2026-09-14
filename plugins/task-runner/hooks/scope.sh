@@ -7,7 +7,7 @@
 # ({"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":...}},
 # exit 0) — the one non-blocking channel the executing model actually receives;
 # plain stdout text with exit 0 never reaches it (same channel reasoning as
-# completion-gate.sh, whose Stop event reaches the model only through exit 2).
+# candor's gate.sh clause 4, whose Stop event reaches the model only through exit 2).
 # No scope file → no-op (the discipline is opt-in per run). Fail-open.
 #
 # COVERAGE LIMIT (honest scope): this hook reads only the INLINE path's scope.json.

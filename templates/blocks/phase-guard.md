@@ -21,7 +21,7 @@
 #                         mute this project's channel in every future session.
 #                         The cited precedent .claude/task-runner/active-run.json
 #                         is cleared by a MODEL INSTRUCTION, which is why
-#                         completion-gate.sh:71 says of it "Nothing clears it";
+#                         candor's gate.sh (clause 4) says of it "Nothing clears it";
 #                         that gate survives only because it SPEAKS when it
 #                         blocks. A silent reader has no such remedy, so the TTL
 #                         is the whole of this one's safety.

@@ -2,6 +2,66 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.15.3 — 2026-09-14
+
+- `skills/system-design/SKILL.md` no longer says the delivery-semantics detail (outbox,
+  sagas, DLQ, idempotency) is "the event-driven skill's, in this plugin" — that skill moved
+  to `resilience` in 0.14.0 and the README said so; the body did not.
+- `skills/coding-entry/SKILL.md`: the sample `loaded:` line no longer names `cost-model`
+  (the `lean` plugin was removed 2026-09-14; the list above the sample already said five).
+  Post-wave review catches; no behaviour change.
+
+## 0.15.2 — 2026-09-14
+
+- `plugin.json` description no longer claims this plugin ships "a blocking Stop hook": the
+  evidence clause is candor's gate (clause 3) since 2026-09-14, so a by-name install
+  without candor has the rule as prose. The README said so; the description — what the
+  catalog and `/stack-scan:suggest` show — did not.
+
+## 0.15.1 — 2026-09-14
+
+- `lane.tsv`: `/code-architecture:plan` and `plan-before-code` declare the `plan` phase
+  (the command yields to the skill; the skill yields to `approaches:approach-deliberation`
+  on the change shape), `/code-architecture:verify` and `work-verification` the `verify`
+  phase (the skill yields to `candor:gate`, which enforces its rule at Stop). Until now
+  `plan` had no row anywhere in the marketplace while three artifacts did plan work. No
+  behaviour change.
+
+
+## 0.15.0
+
+### Removed
+- `hooks/evidence-gate.sh` and `hooks/hooks.json`. The evidence-at-claim Stop gate is
+  now clause 3 of candor's one Stop gate (`plugins/candor/hooks/gate.sh`), byte-for-byte
+  the same CLAIM/ACK vocabulary, mutation-order scan, messages and `CC_EVIDENCE_GATE`
+  modes; its harness (`scripts/smoke/evidence-gate-hook-tests.sh`) drives that script.
+  This plugin ships no hook now. The `work-verification` rule keeps its `gate` standing
+  only with candor installed — quality-suite and taskmaster-suite carry both
+  (2026-09-14 consolidation plan, §4.2).
+
+## 0.14.0
+
+### Added
+- **The system-design plugin was merged into this one** (2026-09-14 consolidation plan): the
+  `system-design` and `domain-modeling` skills and the opus-floored
+  `system-architect` worker now ship here. Its `event-driven` skill went to
+  `resilience`, whose failure-mode review already owned delivery semantics.
+  `architecture-reviewer` absorbs the read-only `system-design-reviewer`: on a design
+  doc, RFC, or service topology it loads the system-design rubric and reports.
+  `/system-design:review` is gone; `/code-architecture:plan` and the reviewer cover it. <!-- removed-ok -->
+
+### Changed
+- Description no longer defers topology to another plugin; this one owns structure at
+  both levels.
+
+## 0.13.19
+
+### Changed
+- `coding-entry` no longer loads `lean:cost-model` (the lean plugin was removed
+  2026-09-14); the always-load set is five skills, and the cost surfaces and
+  over-minimum triggers it used to cite are stated inline. `references/skill-map.md`
+  drops the `payments:payments` row for the same reason.
+
 ## 0.13.18
 
 ### Changed
@@ -153,7 +213,7 @@ All notable changes to the code-architecture plugin.
 - **`lane.tsv`** — declares the territory, phase and definite trigger for this plugin's
   agent and Stop hook, so `pc_lanes_territory` can prove no sibling silently claims the
   same job. `architecture-reviewer` owns `code-structure-review` and yields to
-  `system-design:system-design-reviewer` on system topology.
+  `system-design:system-design-reviewer` on system topology. <!-- removed-ok -->
 
 ### Changed
 - **`evidence-gate` is declared `phase: any`**, not `verify`. A Stop gate has to fire

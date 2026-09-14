@@ -32,17 +32,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/completion-gate.sh",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit|Bash",
@@ -51,6 +40,17 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rv-consent.sh",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ultra-assess.sh",
+            "timeout": 5
           }
         ]
       }

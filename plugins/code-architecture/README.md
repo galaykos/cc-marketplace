@@ -7,9 +7,13 @@ assumptions, every changed line traces to the request, clean up your own
 orphans — after Karpathy's LLM-coding guidelines) travel as references of the
 two skills that own them, not as separate always-on triggers.
 
-Owns code-level structure — units, interfaces, file placement. Defers system-
-level topology (service boundaries, scaling, caching) to the `system-design`
-plugin.
+Owns structure at both levels. Code: units, interfaces, file placement. System:
+service boundaries drawn on data ownership, scaling paths, cache placement, sync vs
+async integration and its failure modes, single points of failure, and domain
+modeling (bounded contexts, aggregates, ubiquitous language) — the `system-design`
+and `domain-modeling` skills and the `system-architect` worker (the system-design
+plugin was merged into this one on 2026-09-14). Message-driven architecture (delivery
+semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 
 ## Install
 
@@ -31,8 +35,12 @@ plugin.
 
 Best-practice skills auto-trigger by context — `plan-before-code`,
 `low-cognitive-load`, `solid-principles`, `yagni-check`,
-`work-verification`, and `drift-review`. The `architecture-reviewer` agent reviews
-structural changes for boundaries, cohesion, and cognitive load.
+`work-verification`, `drift-review`, `system-design`, and `domain-modeling`. The
+`architecture-reviewer` agent reviews structural changes for boundaries, cohesion,
+and cognitive load, and on a design doc or service topology audits against the
+system-design rubric. The `system-architect` worker (opus floor) designs and
+implements system-level structure: how services split, who owns which data, how
+load scales, where caches sit, which integrations run async.
 
 Two skills were merged away in 0.10.0 rather than deleted: KISS/DRY is now
 `low-cognitive-load/references/kiss-dry.md`, and the surgical-edit discipline is
@@ -46,20 +54,21 @@ different questions: `work-verification` asks whether the evidence backs the cla
 `drift-review` asks whether the work that produced it stayed on the task that was
 asked. Cooperative, not tamper-proof — neither is a security boundary.
 
-## Hook: the evidence gate
+## The evidence gate lives in candor
 
 `work-verification`'s "never assert without output" rule has mechanical teeth: a
-**Stop hook** (`hooks/evidence-gate.sh`) blocks a turn that claims completion
-(done / fixed / implemented / verified / passes) after editing files when **no
-command was executed after the last edit** — the exact shape of the later
-apology "you're right, I didn't actually do it." The escape is honesty: prose
-that names what is unverified ("not tested — run `npm test` to verify") passes.
+**Stop hook** blocks a turn that claims completion (done / fixed / implemented /
+verified / passes) after editing files when **no command was executed after the
+last edit** — the exact shape of the later apology "you're right, I didn't
+actually do it." The escape is honesty: prose that names what is unverified
+("not tested — run `npm test` to verify") passes.
 
-Honest limits, stated up front: silence evades it (no claim, no judgment), and
-any post-edit execution satisfies it — it proves *something* ran, not that the
-right verification ran. One block per distinct claim; fail-open without jq or a
-readable transcript. Downgrade with `CC_EVIDENCE_GATE=warn`, disable with
-`CC_EVIDENCE_GATE=off`.
+Until 2026-09-14 that hook shipped here as `hooks/evidence-gate.sh`. It is now
+clause 3 of `candor`'s one Stop gate (`plugins/candor/hooks/gate.sh`), so this
+plugin ships no hook and the rule has teeth only with candor installed —
+`workflow-suite` carries both. Honest limits, unchanged:
+silence evades it, and any post-edit execution satisfies it. `CC_EVIDENCE_GATE=warn|off`
+still downgrades that clause alone.
 
 ## Example
 
@@ -71,9 +80,9 @@ readable transcript. Downgrade with `CC_EVIDENCE_GATE=warn`, disable with
 
 ## Pairs well with
 
-- **system-design** — hands off service boundaries, scaling, and caching topology
+- **resilience** — owns the `event-driven` skill (brokers, outbox, sagas, DLQ) and
+  the failure modes of the topology this plugin draws
 - **taskmaster** — supplies the plan-before-code and work-verification gates the pipeline runs
 - **task-runner** — applies the work-verification discipline across a task run
-- **candor** — its Stop gate (`candor:gate`, unresolved `file:line` citations and
-  unbacked reversals) yields to this plugin's evidence gate on the same Stop
-  (`candor/lane.tsv`)
+- **candor** — carries the Stop gate whose clause 3 is this plugin's evidence
+  rule; install it or the rule is prose

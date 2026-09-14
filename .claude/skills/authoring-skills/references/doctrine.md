@@ -32,7 +32,7 @@ Its corollary was, as of the sweep, written **verbatim at three unlifted
 sites**:
 *"counts are ceilings, not quotas"* — `taskmaster/skills/spec-redteam/SKILL.md`,
 `taskmaster/skills/ultra/references/dispatch-tiers.md`,
-`orchestration/commands/review.md`.
+`orchestration/commands/review.md` (retired 2026-09-14 with the merge into task-runner). <!-- removed-ok -->
 
 The local numbers stay local. Proportionality is the law; the thresholds in
 grill, spec-redteam, erd, experience-walkthrough and parallel-planning are each
@@ -50,7 +50,7 @@ fix, and a one-question interrogation of a twelve-file migration.
 prose obligation.**
 
 Re-derived at **11 sites** (the frozen table's count, which includes
-`task-runner/hooks/completion-gate.sh` and `agents/task-executor.md` and excludes
+`candor/hooks/gate.sh` clause 4 (task-runner's completion-gate.sh at the time) and `agents/task-executor.md` and excludes
 the teeth table's own two copies), in three mutually unaware vocabularies:
 
 - the declarative teeth table (`CLAUDE.md`, and the body of this skill);
@@ -63,7 +63,7 @@ the teeth table's own two copies), in three mutually unaware vocabularies:
   `task-runner/skills/task-execution/references/negative-control.md`,
   "The residual is named, not hidden" in `task-runner/skills/behavioral-gate/`
   `SKILL.md`, `Residual —` in
-  `orchestration/skills/delegation-contracts/references/role-floors.md`.
+  `task-runner/skills/delegation-contracts/references/role-floors.md`.
 
 Best-stated, and the sharpest sentence in the repo on the subject —
 `taskmaster/scripts/goal-ledger-check.sh`:
@@ -87,7 +87,7 @@ unflattering.
 **Ceremony whose mechanism is absent is waste, however thorough it looks.**
 
 Named 16 times across 13 files, always with the same meaning. Best-stated,
-`orchestration/skills/verification-panels/SKILL.md`:
+`task-runner/skills/verification-panels/SKILL.md`:
 
 > …five-agent panel voting on a typo fix is theater: it costs real tokens,
 

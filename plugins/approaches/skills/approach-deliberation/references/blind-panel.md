@@ -56,7 +56,7 @@ Each take returns in a fixed shape:
 No dissent field. A blind agent cannot dissent from takes it never saw;
 disagreement is computed at synthesis, never reported by a persona.
 
-When the orchestration plugin is installed, phrase the dispatches per its
+When the task-runner plugin is installed, phrase the dispatches per its
 delegation-contracts skill; otherwise the contract above suffices.
 
 ## Synthesis — inline, main thread

@@ -45,7 +45,7 @@ configuration and never runs deploys.
 ## Pairs well with
 
 - **stack-scan** — when installed, `/devops:init` reuses its inventory instead of re-scanning
-- **resilience** — in-code instrumentation (`/resilience:observability-review`); devops owns only the infra-layer wiring
+- **resilience** — in-code instrumentation (`/resilience:review --concern observability`); devops owns only the infra-layer wiring
 - **secret-scanning** — sweeps for already-committed secrets while devops reviews secret injection
 - **approaches** — its rollout-planning skill covers staged rollout planning around the deploy-with-rollback strategy this plugin reviews
 - **database** — the services `/devops:init` wires up are the ones its review covers

@@ -286,7 +286,7 @@ for f in plugins/*/agents/*.md; do
       || err "$f: bestpractices-skill '$d' has no matching plugins/*/skills/$d"
   done
 done
-DC=plugins/orchestration/skills/delegation-contracts/SKILL.md
+DC=plugins/task-runner/skills/delegation-contracts/SKILL.md
 if [ -f "$DC" ]; then
   { grep -q 'Skill priming' "$DC" && grep -q 'find ~/.claude/plugins' "$DC"; } \
     || err "$DC: skill-priming doctrine (resolve+inject) missing"
@@ -533,7 +533,7 @@ fi
 # keywords gate (hard): scripts/taxonomy.txt is the controlled discovery vocabulary.
 # Every plugin.json must carry a non-empty keywords[] whose every element is a
 # taxonomy term. A missing/empty keywords[] or an off-vocab term fails the build —
-# the generated plugin-scout catalog and keyword-driven discovery rely on it.
+# the generated scout catalog (stack-scan's plugin-scout skill) and keyword-driven discovery rely on it.
 # Orphan taxonomy terms (declared but used by no plugin) are WARN only.
 TAX=scripts/taxonomy.txt
 if [ ! -f "$TAX" ]; then
@@ -768,13 +768,6 @@ harness_gap=$(pc_harness_payload .) || true
 prime_gap=$(pc_prime_coverage plugins) || true
 [ -n "$prime_gap" ] && lane_err "$prime_gap" "prime.sh names a skill coding-entry/references/skill-map.md does not — add the row to that map, or mark the line '# prime-ok: <skill>' in prime.sh"
 
-# The two scout plugins must ship the same picker script: `${CLAUDE_PLUGIN_ROOT}` is
-# per-plugin, so the duplication is required by the plugin boundary and a checksum is
-# the only available discipline. Gates the script only — the prose copies have already
-# drifted and nothing checks those.
-pick_gap=$(pc_pick_parity plugins) || true
-[ -n "$pick_gap" ] && lane_err "$pick_gap" "the scout plugins' pick.sh files have diverged — they must stay byte-identical; neither can read the other's copy at runtime"
-
 # A hook runs inside the user's turn, so the plugin must say how long it may hold
 # it. Gates that a number EXISTS, not that it is right, and says nothing about
 # what a killed hook does — both residuals are stated in pc_hook_timeout's header.
@@ -812,12 +805,12 @@ listing_decl_gap=$(pc_listing_declaration plugins) || true
 bundle_readme_gap=$(pc_bundle_readme_members plugins) || true
 [ -n "$bundle_readme_gap" ] && lane_err "$bundle_readme_gap" "bundle README does not name a plugin its plugin.json installs — add a line for each name listed"
 
-# plugin-scout's suggestion tables are hand-written and feed `--yes`, which INSTALLS
-# what they name — so a name that outlived its plugin is an install command against
-# nothing. Repo root, not `plugins`: the live set comes from marketplace.json.
+# The plugin-scout skill's suggestion tables are hand-written and feed `--yes`, which
+# INSTALLS what they name — so a name that outlived its plugin is an install command
+# against nothing. Repo root, not `plugins`: the live set comes from marketplace.json.
 # Column-scoped and liveness-only; both residuals are in pc_scout_names' header.
 scout_name_gap=$(pc_scout_names .) || true
-[ -n "$scout_name_gap" ] && lane_err "$scout_name_gap" "plugin-scout suggests a plugin marketplace.json does not list — retarget the row, use the '—' no-plugin idiom, or mark the line '<!-- scout-name-ok: <why> -->'"
+[ -n "$scout_name_gap" ] && lane_err "$scout_name_gap" "the plugin-scout skill suggests a plugin marketplace.json does not list — retarget the row, use the '—' no-plugin idiom, or mark the line '<!-- scout-name-ok: <why> -->'"
 
 # Handoff resolution over plugin.json DESCRIPTIONS. Ten of them carry "Defers X to Y"
 # claims — the densest ownership statements the marketplace ships, and the only ones a
@@ -841,7 +834,7 @@ done
 # `done < <(...)` not `| while read` (a subshell would discard fail=1), grep -qxF
 # not `case` (a key containing * would glob-match in pattern position), and bash
 # 3.2 / BSD-safe constructs only.
-RF=plugins/orchestration/skills/delegation-contracts/references/role-floors.md
+RF=plugins/task-runner/skills/delegation-contracts/references/role-floors.md
 rf_rows=""; rf_keys=""; rf_ok=1; rf_exempt=""
 if [ -f "$RF" ]; then
   rf_rows=$(awk '/^```/{f=!f; next} f' "$RF" | grep -v '^[[:space:]]*$' || true)

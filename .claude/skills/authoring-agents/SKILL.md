@@ -30,7 +30,7 @@ missing one of the four required keys:
 - `effort:` — required here even though agents default to xhigh.
 
 **A pinned agent needs a fifth thing: a classification.** If `model:` is anything other than
-`inherit`, the validator requires either a row in `orchestration:delegation-contracts`
+`inherit`, the validator requires either a row in `task-runner:delegation-contracts`
 `references/role-floors.md` (the pin is a FLOOR — dispatch at `max(session, pin)`, never
 below) **or** `floor: none` plus a non-empty `floor-reason:` in the frontmatter (the pin is
 deliberate and must NOT track the session). A row and `floor: none` together is an error —
@@ -85,7 +85,7 @@ reason — escalating it multiplies cost for no depth. The current roster of bot
 lives in `role-floors.md` and its exemption rows; do not restate it here.
 
 Effort is separate and is never floored: `context-scout` ships `inherit` at
-`effort: high`, and fresh-take's `consultant` ships `inherit` because its caller
+`effort: high`, and approaches' `consultant` ships `inherit` because its caller
 escalates it at dispatch — neither is a registry candidate.
 
 ## Description as dispatch trigger

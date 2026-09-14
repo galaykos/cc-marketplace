@@ -135,7 +135,7 @@ run pc_plugin_corpus "$FIX/pcx" "$FIX/cbase.json"
 clean "count below baseline — passes (ratchet, not equality)"
 
 # The generated exclusion is the whole reason marketplace growth cannot fail this
-# gate inside plugin-scout. A generated file of the same size must not count.
+# gate inside stack-scan (host of the scout catalog). A generated file of the same size must not count.
 rm -f "$FIX/pcx/big/skills/s1/references/heavy.md"
 mkref big s1 catalog.md 170000 gen
 cbase 0
@@ -152,21 +152,6 @@ clean "a 170,000 B runtime .html does not count"
 
 run pc_plugin_corpus "$FIX/pcx" "$FIX/does-not-exist.json"
 clean "missing baseline file is not a violation"
-
-# ------------------------------------------------------------------ pc_pick_parity
-mkdir -p "$FIX/pp/plugin-scout/scripts" "$FIX/pp/vercel-skills-scout/scripts"
-printf 'same\n' > "$FIX/pp/plugin-scout/scripts/pick.sh"
-printf 'same\n' > "$FIX/pp/vercel-skills-scout/scripts/pick.sh"
-run pc_pick_parity "$FIX/pp"
-clean "identical pickers — passes"
-
-printf 'same\n# drift\n' > "$FIX/pp/vercel-skills-scout/scripts/pick.sh"
-run pc_pick_parity "$FIX/pp"
-fails "diverged pickers — fails" "pick-parity"
-
-rm -f "$FIX/pp/vercel-skills-scout/scripts/pick.sh"
-run pc_pick_parity "$FIX/pp"
-clean "one picker absent is not a violation"
 
 # --------------------------------------------------- pc_listing_declaration
 # A bundle over the 6,000-char floor without a README mention of
@@ -209,8 +194,6 @@ run pc_hook_timeout plugins
 clean "shipped tree: every hook entry declares a timeout"
 run pc_budget_crowding plugins scripts/skill-crowding-baseline.json
 clean "shipped tree: crowding at or below the committed baseline"
-run pc_pick_parity plugins
-clean "shipped tree: the two scout pickers are byte-identical"
 run pc_listing_declaration plugins
 clean "shipped tree: every over-floor bundle declares the requirement"
 

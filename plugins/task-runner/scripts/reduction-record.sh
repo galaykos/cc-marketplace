@@ -15,7 +15,7 @@
 # reviewers dropped on 7 of 8 cards to save context, reported as "all 8 done", found
 # only because the user asked afterwards.
 #
-# So a reduction leaves three traces: this record (which completion-gate.sh counts and
+# So a reduction leaves three traces: this record (which candor's Stop gate counts and
 # whose existence makes the closing report's disclosure mandatory), the reason echoed
 # to stderr at the moment of the decision so it lands in the transcript where it
 # happened, and — in an interactive session — a permission prompt from

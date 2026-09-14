@@ -4,8 +4,10 @@ Laravel best practices — Eloquent N+1 prevention and eager loading, form reque
 validation, thin controllers with service/action classes, queued jobs, authorization
 policies, additive-first migrations, a per-version leverage map for Laravel 11/12/13 —
 and the **Inertia.js** skill it pairs with (v1/v2/v3, Vue/React/Svelte adapters:
-partial reloads, deferred and lazy props, `useForm`, shared data, SSR), behind one
-`/laravel:review` that loads Inertia when the manifests show it.
+partial reloads, deferred and lazy props, `useForm`, shared data, SSR). Review runs
+through `/code-review:review`, the fan-in that loads the Laravel skill on `.php` /
+`.blade.php` and the Inertia skill when the manifests show it (the plugin's own
+review entry was retired on 2026-09-14 — it was a second name for that pass).
 
 ## Install
 
@@ -14,17 +16,18 @@ partial reloads, deferred and lazy props, `useForm`, shared data, SSR), behind o
 /plugin install laravel@cc-plugins-marketplace
 ```
 
-## Commands
-
-| Command | What it does |
-|---------|--------------|
-| `/laravel:review [files-or-diff]` | Review controllers, models, jobs, migrations — and Inertia pages and shared-data setup when `inertiajs/inertia-laravel` or an `@inertiajs/*` adapter is installed — pinned to the versions in `composer.lock` and the JS lockfile |
+## Review
 
 ```bash
-/laravel:review app/Http/Controllers/OrderController.php
-/laravel:review resources/js/Pages/Orders/Index.vue app/Http/Controllers/OrderController.php
-/laravel:review         # reviews the current diff
+/code-review:review app/Http/Controllers/OrderController.php
+/code-review:review resources/js/Pages/Orders/Index.vue app/Http/Controllers/OrderController.php
+/code-review:review         # reviews the current diff
 ```
+
+`/code-review:review` (the code-review plugin) reviews controllers, models, jobs,
+migrations — and Inertia pages and shared-data setup when `inertiajs/inertia-laravel`
+or an `@inertiajs/*` adapter is installed — pinned to the versions in `composer.lock`
+and the JS lockfile, with fixes routed to the `backend-engineer` worker on apply.
 
 ## Skills
 
@@ -40,5 +43,5 @@ matching files are edited.
 ## Pairs well with
 
 - **web-dev** — the JS side: its `frontend-reviewer` loads `inertia-best-practices` from here when installed
-- **database** — the queries under the models: `/database:review`, the sql and mariadb skills, and the schema worker
+- **database** — the queries under the models: the sql and mariadb skills (loaded by the fan-in on SQL and migrations) and the schema worker
 - **api-design** — REST contract shape and spec-first scaffolding

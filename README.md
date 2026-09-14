@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **37 leaf plugins** and **8 bundles** covering
+A Claude Code plugin marketplace: **27 leaf plugins** and **4 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -21,15 +21,16 @@ with an exit code, a gate that blocks a turn.
 Not sure what you need? Install one plugin and let it tell you:
 
 ```bash
-/plugin install plugin-scout@cc-plugins-marketplace
-/plugin-scout:suggest              # scans your manifests, suggests a set, installs your picks
-/plugin-scout:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
-/plugin-scout:suggest --full       # everything relevant to the detected stack, leaves only, after a plan and one confirm
-/plugin-scout:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
-/plugin-scout:suggest --persist    # project scope: teammates who clone get the same set
-/plugin-scout:suggest --global     # user scope: every repo on this machine
-/plugin-scout:suggest --all        # page every row as an explicit option instead of one question
-/reload-plugins                    # nothing installed this run is active until you do
+/plugin install stack-scan@cc-plugins-marketplace
+/stack-scan:suggest              # scans your manifests, suggests a set, installs your picks
+/stack-scan:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
+/stack-scan:suggest --full       # everything relevant to the detected stack, leaves only, after a plan and one confirm
+/stack-scan:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
+/stack-scan:suggest --persist    # project scope: teammates who clone get the same set
+/stack-scan:suggest --global     # user scope: every repo on this machine
+/stack-scan:suggest --all        # page every row as an explicit option instead of one question
+/stack-scan:suggest --skills     # third-party skills on skills.sh for the stack this marketplace does not cover
+/reload-plugins                  # nothing installed this run is active until you do
 ```
 
 What the scout prints, in order:
@@ -64,16 +65,12 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~4.3k tokens | ~32 tokens | ~2.5k tokens |
-| `craft-suite` | 4 | ~3.0k tokens | — | — |
-| `process-suite` | 13 | ~2.8k tokens | ~169 tokens | ~2.4k tokens |
-| `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
-| `always-on-suite` | 9 | ~1.8k tokens | ~1.2k tokens | ~2.4k tokens |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.3k tokens |
-| `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
-| `php-suite` | 3 | ~1.0k tokens | — | — |
+| `workflow-suite` | 15 | ~6.0k tokens | ~1.2k tokens | ~2.1k tokens |
+| `craft-suite` | 3 | ~3.0k tokens | — | — |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.9k tokens |
+| `core-suite` | 7 | ~1.7k tokens | ~1.2k tokens | ~1.9k tokens |
 
-Every row is a curated subset. The marketplace ships all 37 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 27 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -82,7 +79,7 @@ not a constant — read out of the shipped CLI (2.1.251), not from documentation
 
 `skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.
 If you install a bundle flagged over the 200k floor, set it to the value that bundle's README
-names (0.02-0.03) in the settings.json of the PROJECT where you use it — the fraction is a
+names (0.02 for core-suite, 0.04 for workflow-suite) in the settings.json of the PROJECT where you use it — the fraction is a
 ceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the
 descriptions being evicted.
 `bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including
@@ -103,18 +100,16 @@ that as an order-of-magnitude correction, never as a coefficient
 
 | Bundle | Take it when |
 |--------|--------------|
-| **[taskmaster-suite](plugins/taskmaster-suite)** | You want the full clarify → spec → cards → execute pipeline. Ten members, trimmed from 32 to fit the host's skill listing; install other plugins alongside it. |
+| **[core-suite](plugins/core-suite)** | The user-scope baseline, on in every repo: secret block, candor's Stop gate, the one review entry, routing, git discipline, friction mining, the scout. Seven members. |
+| **[workflow-suite](plugins/workflow-suite)** | You want the whole clarify → spec → cards → execute pipeline: core-suite plus taskmaster, task-runner, approaches, code-architecture, testing, debugging, ui-ux and security. Fifteen members; over the 200k listing floor by design — its README names the settings line. |
 | **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight; code-review's no-comment default and write-time denies ride along. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
-| **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, web-dev (Vite review and the shared worker), plus code-review's no-comment default and write-time denies. |
-| **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
-| **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
-| **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
-| **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, lean, routing, git discipline — on in every repo. |
 
-Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
-`/php-suite:uninstall`, and so on — which removes the bundle **and** prunes the
-plugins it auto-installed, leaving anything you installed yourself alone.
+Four bundles since 2026-09-14 — eight were rebuilt into these (the consolidation
+plan, `rationale/marketplace-consolidation-plan-2026-09-14.md` §3.3). Each ships
+its own uninstall command — `/craft-suite:uninstall`, `/core-suite:uninstall`,
+and so on — which removes the bundle **and** prunes the plugins it
+auto-installed, leaving anything you installed yourself alone.
 
 ---
 
@@ -138,8 +133,8 @@ early:
 
 - **skill-router** auto-loads the matching best-practice skill when you edit a
   matching file, so you do not have to remember which one applies.
-- **terse** reshapes Claude's chat replies into a budget — useful in long
-  sessions, invisible to the code it writes.
+- **candor**'s terse reply mode (`/candor:level`) reshapes Claude's chat replies
+  into a budget — useful in long sessions, invisible to the code it writes.
 
 ---
 
@@ -151,38 +146,39 @@ early:
 - [Review and code quality](#review-and-code-quality)
 - [Safety and security](#safety-and-security)
 - [Architecture and APIs](#architecture-and-apis)
-- [Product domains](#product-domains)
 - [Workflow: idea to shipped](#workflow-idea-to-shipped)
 - [Infrastructure and environments](#infrastructure-and-environments)
 - [Meta: steering Claude Code itself](#meta-steering-claude-code-itself)
 
-Suites are curated starting points, not coverage: five leaves belong to no suite
-on purpose. Four are stack-matched — `database`, `devops`, `llm-app`, `payments` —
-and `/plugin-scout:suggest` names each when the project's manifests earn it; the
-fifth, `system-design`, is any-stack and deliberately unbundled (it surfaces in
-the scout's universal tier). Install them by name.
+Suites are curated starting points, not coverage: the stack and domain leaves
+that belong to no suite — `laravel`, `database`, `devops`, `api-design`,
+`resilience` — are named by `/stack-scan:suggest` when the project's manifests
+earn them, and `brain`, `command-guard`, `overseer` and `ultra-deep-research` are
+per-project or per-user opt-ins. Install them by name.
 
 ---
 
 ## Stacks and frameworks
 
-Each of these ships a best-practice skill plus a review command (`/laravel:review`, `/web-dev:review`, and so on). The
-skill is what Claude applies while writing; the command is what you run over a
-diff, a path, or a branch. All of them pin their advice to the version in your
-lockfile rather than to the version the model happens to remember.
+Each of these ships best-practice skills and a worker. The skill is what Claude
+applies while writing; `/code-review:review` is what you run over a diff, a path, or a
+branch — it detects the stack and loads every matching skill in one pass (the
+per-plugin `/…:review` entries were retired on 2026-09-14 as second names for that
+pass). All of them pin their advice to the version in your lockfile rather than to
+the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[laravel](plugins/laravel)** | Eloquent N+1 and eager loading, FormRequests, thin controllers, queued jobs, policies, the Laravel 11/12/13 map | Controllers, models, jobs, migrations — the daily Laravel surface |
-| **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) behind one `/web-dev:review`, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
+| **[web-dev](plugins/web-dev)** | Next.js (server/client boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (`VITE_` env security, `manualChunks`, `base`, `server.proxy`, 5→8) skills, plus a generalist `web-developer` worker and an opus-floored `frontend-reviewer` | App Router, RN screens, `vite.config.*`, and cross-cutting web work no framework owns |
 
 **Using them.** Three entry points, in rising order of ceremony:
 
 1. Just work. With `skill-router` installed, editing `app/Models/Order.php`
    loads the Laravel skill on its own.
-2. Review a change: `/laravel:review`, `/web-dev:review` — each
-   takes an optional path or diff reference and returns severity-sorted
-   one-line findings with fixes.
+2. Review a change: `/code-review:review` — takes an optional path or diff
+   reference, loads the Laravel, Inertia, Next.js, Vite or SQL skills the scope
+   touches, and returns severity-sorted one-line findings with fixes.
 3. Review a change that spans stacks: `/code-review:review` is the fan-in. It
    loads every matching stack skill in one pass, which is what stops the same
    finding arriving three times from three commands.
@@ -201,17 +197,17 @@ lockfile rather than to the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill behind one `/database:review` that detects the engine first, a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
+| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill (the fan-in detects the engine first), a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
 
-**Using them.** `/database:review` detects the engine first, runs the
-engine-agnostic pass over statements and the shape that persists them, and adds
-the MariaDB dialect rules when the compose image or DSN says MariaDB. The worker
-and the destructive-SQL guard ride in the same plugin.
+**Using them.** On SQL or a migration `/code-review:review` detects the engine first,
+runs the engine-agnostic pass over statements and the shape that persists them, and
+adds the MariaDB dialect rules when the compose image or DSN says MariaDB. The worker
+and the destructive-SQL guard ride in the database plugin.
 
 **Worked example.** Adding a column to a hot table on MariaDB:
 
 ```
-/database:review database/migrations/2026_08_21_add_status.php   # engine detected → sql + mariadb rules
+/code-review:review database/migrations/2026_08_21_add_status.php   # engine detected → sql + mariadb rules
 ```
 
 The expand → migrate → contract sequence, the rollback-path rule, and the
@@ -224,8 +220,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind, any other React component library via `component-libraries`), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
-| **[design-lab](plugins/design-lab)** | `/design-lab:preview` renders 2–3 variants with the project's OWN components on its own dev server, with a shell-mockup fallback for greenfield; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Seeing real components before a visual decision, and installing registry components from the source |
-| **[theme-design](plugins/theme-design)** | `/theme-design:init` opens a browser design session: chat, select, drag, resize, edit text and pick colours on standalone HTML prototypes or on your running dev server, with this Claude Code session applying every gesture to real files and live-reloading; `/theme-design:export` writes tokens, pages, a brief, and optionally the project theme file | Shaping how something should look by talking and moving things, before or instead of a spec |
+| **[design-studio](plugins/design-studio)** | `/design-studio:init` opens a browser design session: chat, select, drag, resize, edit text and pick colours on HTML prototypes or your running dev server, with this Claude Code session applying every gesture to real files and live-reloading, and `/design-studio:export` writing tokens, pages and a brief; `/design-studio:preview` renders 2–3 variants with the project's OWN components on its own dev server, with a shell-mockup fallback for greenfield; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Shaping how something should look by talking and moving things, seeing real components before a visual decision, and installing registry components from the source |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated |
 
 **Using them.**
@@ -233,12 +228,11 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 ```bash
 /ui-ux:theme                  # create or restyle a colour theme, live preview URL
 /ui-ux:build                  # build or restyle a component/layout
-/ui-ux:review                 # audit markup and styles
 /ui-ux:audit                   # WCAG 2.2 AA, one line per violation with the fix
 /craft-layer:craft            # the full studio pipeline, end to end
 /craft-layer:sections         # decide a page section by section, with you
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
-/design-lab:preview       # variants rendered with your real components
+/design-studio:preview       # variants rendered with your real components
 ```
 
 **Worked example — a landing page that must not look templated:**
@@ -256,7 +250,7 @@ that computes WCAG ratios from your token source.
 **Worked example — one component, real fidelity:**
 
 ```
-/design-lab:preview "three card treatments for the dashboard"
+/design-studio:preview "three card treatments for the dashboard"
 ```
 
 Renders three variants side by side using your own components, on a scratch
@@ -270,10 +264,9 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
-| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review — and a **Stop hook** that refuses a completion claim when files were edited and nothing ran afterwards | Structure decisions, and any "it's done" that has no evidence behind it |
+| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling; the Stop hook that refuses a completion claim with nothing run after the edits is clause 3 of candor's gate since 2026-09-14 | Structure decisions at code or system level |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
-| **[candor](plugins/candor)** | a blocking Stop gate on the two dishonesty shapes a script can prove: a `file:line` citation that resolves to nothing, and a position retracted under pushback with no tool call in between | You want the honesty rule to have teeth rather than tone |
-| **[lean](plugins/lean)** | one bar per cost surface — code, tests, comments, files, actions — and four named triggers that buy more than the minimum | Scope keeps growing and nobody can say which requirement bought it |
+| **[candor](plugins/candor)** | the marketplace's one blocking Stop gate, four clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
 | **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
 
@@ -288,13 +281,11 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 /testing:review                        # test design and coverage gaps
 /testing:flake-hunt                    # chase a flaky test to its cause
 /code-review:comment-review            # comment noise, one line per finding
-/candor:check                          # measure this session against the candour axes
+/candor:check                          # measure this session against the candour axes (and the terse budget)
+/candor:level ultra                    # set the terse reply level; /candor:level off to stop
 /debugging:debug "<symptom>"           # root cause before any fix
-/resilience:performance-review                    # hotspots and cache correctness
-/resilience:review                     # timeouts, retries, degradation
-/resilience:error-review               # catch placement, cause chains
-/resilience:concurrency-review         # races, locking, retry idempotency
-/resilience:observability-review                  # logging and instrumentation gaps
+/resilience:review                     # runtime quality: failure modes, errors, concurrency, observability, performance, events
+/resilience:review --concern performance   # one rubric only: hotspots and cache correctness
 /stack-scan:audit                      # vulnerabilities, outdated, licences
 ```
 
@@ -336,13 +327,11 @@ grant stays granted on your terms.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[system-design](plugins/system-design)** | service boundaries from data ownership, scaling paths, cache placement, sync vs async and its failure modes, single points of failure — plus domain modeling (bounded contexts, aggregates) and event-driven design (delivery semantics, outbox, sagas, DLQ) | The question is topology, not code: what service owns what, and what happens when the queue is down |
 | **[api-design](plugins/api-design)** | resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning, `Idempotency-Key`, Laravel `apiResource` mapping — plus GraphQL/gRPC (DataLoader, resolver authz, depth limits, proto field-number safety) | Designing or reviewing an API you own |
 
 **Using them.**
 
 ```bash
-/system-design:review              # boundaries, ownership, scaling, async failure modes
 /api-design:review                 # routes, controllers, or an OpenAPI spec
 /api-design:scaffold               # spec-first: OpenAPI → Laravel routes/FormRequests/Resources
 /api-design:check                  # do current docs back the integration you are about to write?
@@ -354,21 +343,7 @@ grant stays granted on your terms.
 ```
 /api-design:check stripe subscriptions
 # → verifies the current SDK surface before a line is written
-/payments:review                   # then the domain rules: idempotency, money, webhooks
-```
-
----
-
-## Product domains
-
-| Plugin | What it carries | Reach for it when |
-|--------|-----------------|-------------------|
-| **[payments](plugins/payments)** | PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, an append-only ledger with reconciliation | Stripe / Paddle / Braintree work. The failure class here is double-charges and revenue leaks |
-| **[llm-app](plugins/llm-app)** | eval harnesses and regression gates, RAG (chunking, embeddings, retrieval quality, re-ranking, grounding and citation), prompt versioning, prompt-injection defence, token-cost control | Building an LLM feature — where "it looked right in the demo" is not a test |
-
-```bash
-/payments:review        # webhook idempotency, money representation, subscription races
-/llm-app:review         # eval coverage, retrieval quality, injection surface, cost
+/api-design:review                 # then the contract: idempotency keys, error shape, versioning
 ```
 
 ---
@@ -381,13 +356,11 @@ take a fuzzy request to a verified branch.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[taskmaster](plugins/taskmaster)** | brainstorm a fuzzy idea into an approved design, grill requirements to zero ambiguity against an ambiguity ledger, decide visuals with mockups, red-team the frozen spec, then emit single-prompt task cards with a coverage check and a verify-teeth lint | The request is vague, large, or has five plausible readings |
-| **[task-runner](plugins/task-runner)** | one task at a time, scope locked, a bounded verify-fix loop per task, halt-with-evidence instead of drift, a completion gate that actually runs the artifact, plus parallel planning and a `--tracks` mode | You have a task list and want it executed without drift |
+| **[task-runner](plugins/task-runner)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation, the role-floor registry) and verification panels (refuter voting, judge panels, completeness critic) for any subagent fan-out — the orchestration plugin until 2026-09-14 — plus one task at a time, scope locked, a bounded verify-fix loop per task, halt-with-evidence instead of drift, a completion gate that actually runs the artifact, plus parallel planning and a `--tracks` mode | You have a task list and want it executed without drift |
 | **[overseer](plugins/overseer)** | a program-level product owner: `/overseer:start "Build a CRM"` inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, briefs taskmaster and task-runner per milestone on its own branch, and closes a milestone only after a browser walk at three widths with a clean console — `program.sh accept` refuses a green suite alone; `/overseer:resume` continues across sessions | A whole product to deliver over many sessions and branches, with someone owning the roadmap and the acceptance |
 | **[approaches](plugins/approaches)** | 2–3 structurally different approaches with a trade-off table and a kill-trigger — or four **blind** persona subagents when the work is a refactor/rewrite — plus build-vs-buy, S/M/L/XL estimation, rollout planning, and design-pattern selection | Before implementing anything non-trivial, and especially before a rewrite |
 | **[git-workflow](plugins/git-workflow)** | worktree isolation, a branch-finish protocol (verify → merge / PR / keep / discard, no zombie branches), and review-exchange rigor | Starting isolated work, or finishing a branch |
-| **[orchestration](plugins/orchestration)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry) | Fanning out subagents, or deciding whether to trust what one returned |
 | **[hindsight](plugins/hindsight)** | mines past session transcripts for recurring friction and proposes CLAUDE.md rules, skill ideas, and failed-approach warnings — applied only on approval | Periodically. It is the only plugin that learns from your history |
-| **[fresh-take](plugins/fresh-take)** | a facts-only brief and a **blind** stronger-model consultant returning a Take, Risks, and one Alternative — advice only, never blocks | Stuck after repeated failed fixes, or about to do something irreversible |
 | **[ultra-deep-research](plugins/ultra-deep-research)** | parallel web-search fan-out, source tiering by provenance, date-stamped claims, adversarial refutation before synthesis, a cited report with a contradiction ledger | A question where being confidently wrong is expensive |
 
 **Using them — the full pipeline:**
@@ -416,9 +389,8 @@ take a fuzzy request to a verified branch.
 /approaches:rollout               # flags, exposure stages, rollback trigger
 /approaches:pattern               # suggest — or reject — a design pattern
 /task-runner:plan                 # subagents or inline? with a speedup estimate
-/orchestration:review             # audit a delegation or a fan-out plan
 /hindsight:harvest                # mine transcripts for recurring friction
-/fresh-take:consult "<topic>"     # blind second opinion from a stronger model
+/approaches:consult "<topic>"    # blind second opinion from a stronger model
 /ultra-deep-research:research "<question>"
 /git-workflow:finish              # the branch gets a destination, with evidence
 ```
@@ -448,7 +420,7 @@ bill you did not agree to.
 
 ```
 /stack-scan:report        # PHP 8.3 / Laravel 12 / MariaDB 11.4 / Node 22 + pnpm
-/plugin-scout:suggest     # → suggests laravel, mariadb, web-dev, …
+/stack-scan:suggest       # → suggests laravel, mariadb, web-dev, …
 /devops:init              # → compose file pinned to those exact versions
 ```
 
@@ -459,20 +431,13 @@ bill you did not agree to.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
-| **[terse](plugins/terse)** | chat-message brevity as a shape contract: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list. Levels `lite` / `full` / `ultra`, plus classical-Chinese novelty variants | Long sessions where the narration costs more than the work |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
-| **[plugin-scout](plugins/plugin-scout)** | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks | First session in a repo |
-| **[vercel-skills-scout](plugins/vercel-skills-scout)** | searches skills.sh — Vercel's open agent-skills directory — for third-party skills matching your stack, with provenance, previewing each before it lands | This marketplace has no plugin for what you need |
+| **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
 
 ```bash
-/terse:level ultra          # set brevity; /terse:level off to stop
-/terse:level status         # active level + reference card: budgets, commands, what it never touches
-/terse:check                # measure this session against the active budget
-/terse:commit               # a Conventional Commits message from the staged diff
-/terse:compress <file>      # shrink a prose memory file, backed up first
 /brain:brain                # print the map; /brain:brain index refreshes it
-/plugin-scout:suggest
-/vercel-skills-scout:suggest
+/stack-scan:suggest
+/stack-scan:suggest --skills
 ```
 
 **Worked example — the chore that keeps coming back:**
@@ -488,16 +453,16 @@ plugin — the authoring doctrine has one user, this repository.)
 
 | If you… | Install |
 |---------|---------|
-| just cloned an unfamiliar repo | `plugin-scout`, then whatever it suggests |
-| want a global baseline in every repo | `always-on-suite`, at user scope |
-| write Laravel every day | `php-suite` + `database` |
+| just cloned an unfamiliar repo | `stack-scan`, then whatever `/stack-scan:suggest` suggests |
+| want a global baseline in every repo | `core-suite`, at user scope |
+| write Laravel every day | `laravel` + `database` (+ `web-dev` for Inertia's client side) |
 | write React/Vue apps | `frontend-suite` |
 | are building something design-led | `craft-suite` |
-| want reviews that catch real bugs | `quality-suite` (enforcing) and/or `quality-principles-suite` (advisory) |
-| keep getting half-finished work | `code-architecture` (Stop gate) + `task-runner` |
+| want reviews that catch real bugs | `core-suite` (the enforcing gates) + `security`, `resilience`, `testing` by name (the advisory rubrics) |
+| keep getting half-finished work | `candor` (Stop gate) + `code-architecture` + `task-runner` |
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
-| want the whole pipeline | `taskmaster-suite` |
+| want the whole pipeline | `workflow-suite` |
 
 ---
 
@@ -518,8 +483,7 @@ advertisement:
   and reachability starts.
 - **Most rules are agent-graded, not enforced.** A handful are gates that block
   a turn — `command-guard`, `secret-scanning`, `code-review`'s narrow
-  comment-discipline deny lane, `code-architecture`'s and `candor`'s Stop hooks, `task-runner`'s
-  completion gate. The rest are instructions a competent model chooses to
+  comment-discipline deny lane, `candor`'s four-clause Stop hook. The rest are instructions a competent model chooses to
   follow. Each plugin's own docs say which tier it is in; where they say
   `recorded`, nothing reads it back.
 

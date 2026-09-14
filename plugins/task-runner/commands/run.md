@@ -85,7 +85,7 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    blocked → park the task with a reason. Prose that announces the next task and then
    ends the turn ("starting card 01 now") binds nothing — the run reads live, is dead,
    and the user waits on a turn that already ended. Register the run for the
-   completion-gate Stop hook: write `.claude/task-runner/active-run.json`
+   completion-gate clause of candor's Stop hook: write `.claude/task-runner/active-run.json`
    (`{"slug":"<tasks-dir-name>","base":"<merge-base with the default branch>",`
    `"branch":"<git rev-parse --abbrev-ref HEAD>"}`; for a taskmaster-index run also
    include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in

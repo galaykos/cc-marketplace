@@ -5,7 +5,7 @@ argument-hint: [what-to-build]
 
 Build the UI described in $ARGUMENTS (if empty, ask what to build and where). This is
 the explicit entry point to the ui-ux-engineer worker — a build verb to complement
-/ui-ux:review and /ui-ux:theme.
+/ui-ux:theme; review runs through the /code-review:review fan-in.
 
 **A decided spec in $ARGUMENTS BINDS.** When the request carries decided lines —
 `Composition:`, `Graphic system:`, `Signature:`, `Copy voice:`, `Banned vocabulary:`,
@@ -26,7 +26,7 @@ convention.
    the one the project has rather than beside it; the UI layer is library-agnostic and no
    skill here gets to pick a second one.
 
-2. When the stack is ReUI or Aceternity and design-lab's registry-source MCP tools
+2. When the stack is ReUI or Aceternity and design-studio's registry-source MCP tools
    are available (`registry_search` / `registry_get` — load via ToolSearch), query
    them BEFORE proposing or writing any component: real current names, props, and
    install commands come from the registry, never from memory — reciting a
@@ -46,7 +46,7 @@ convention.
    Two conditional injections ride the same dispatch — the worker has no Skill tool, so
    a skill not injected here never reaches it:
    - **Motion.** When the request or target files carry animation signals — the same list
-     /ui-ux:review step 2 detects (`framer-motion`/`motion`/`gsap`/`animejs` imports,
+     the review fan-in detects (`framer-motion`/`motion`/`gsap`/`animejs` imports,
      `@keyframes`, `transition-*`/`animate-*` utilities, `animation-timeline`,
      `@starting-style`, `document.startViewTransition`) — inject the Read path to
      `skills/motion-best-practices/SKILL.md` plus the matching library digest
@@ -64,14 +64,14 @@ convention.
 5. Return the changed files with a one-line rationale each, and note any visual decision
    that was assumed rather than specified — surface it for confirmation rather than
    silently choosing. Then offer the reviewer twin as a selectable choice
-   (AskUserQuestion): "Run /ui-ux:review on the result now (Recommended)" / "Skip" —
+   (AskUserQuestion): "Run /code-review:review on the result now (Recommended)" / "Skip" —
    a standalone build otherwise ships self-graded, and the reviewer's adversarial
    pass plus Checked/Not-checked inventory is a check the builder never runs on
    itself. Headless: skip the question and name the review as not run.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to
-   `/design-lab:preview` when installed, else fall back
+   `/design-studio:preview` when installed, else fall back
    to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
    via ASCII options inline — so the choice is made on concrete mockups without dead-ending
    on a missing command. Headless: take the decided lines above as binding, resolve what

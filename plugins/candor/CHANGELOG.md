@@ -2,6 +2,52 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.1
+
+### Fixed
+- **A bounded clause 4 silenced clauses 1-3.** In 0.3.0 the gate reported one
+  verdict per stop and clause 4 ran first, so once a registered task-runner run had
+  been blocked at a HEAD (per-HEAD nudge written) — or whenever
+  `TASK_RUNNER_STOP_GATE=warn` — every later stop at that HEAD exited 0 before the
+  citation, reversal and evidence clauses ran. On master those were three
+  independent Stop hooks, each evaluated every stop; the merge lost that for the
+  whole of every card. Clause 4 still blocks first and alone; when it is bounded or
+  warn-mode it prints and falls through. Six regression cases in
+  `scripts/__tests__/gate.test.sh` (clause independence), four of which fail on
+  0.3.0. Found by a post-merge review; no harness case had combined a live run with
+  a clause 1-3 shape at a second stop.
+
+## 0.3.0
+
+### Added
+- **The marketplace's one Stop gate.** `hooks/gate.sh` gains clause 3 (a completion
+  claim after edits with nothing executed since — code-architecture's
+  `evidence-gate.sh` until now) and clause 4 (a registered task-runner run stopping
+  without its recorded gate pass, card counts, per-card control and reviewer records,
+  red-team panel or reduction disclosure — task-runner's `completion-gate.sh` until
+  now). Both clauses keep their env overrides (`CC_EVIDENCE_GATE`,
+  `TASK_RUNNER_STOP_GATE`), their messages and their harnesses
+  (`scripts/smoke/{evidence,completion}-gate-hook-tests.sh` now drive this script).
+  The three-script namespaced-disarm protocol is gone: one script records WHICH
+  clause blocked (`.claude/candor-blocked` now carries the clause name) and skips
+  only that clause on its own continuation; clause 4 keeps its per-HEAD nudge.
+  (2026-09-14 consolidation plan, §4.2.)
+- **The terse reply mode**, merged in from the terse plugin: `hooks/activate.sh` <!-- removed-ok -->
+  (SessionStart), `hooks/mode.sh` (UserPromptSubmit), the `terse-output` skill,
+  `/candor:level`, `scripts/measure.sh` behind `/candor:check --brevity` (also
+  automatic while a level is active), the statusline badge and the MCP catalog
+  shrinker. The level file (`~/.claude/terse-mode`) and `CC_TERSE` keep their names,
+  so a level set under the old plugin stays set. Dropped with the merge: the
+  terse-crew, terse-commit and terse-compress skills, the three crew agents and <!-- removed-ok -->
+  `/terse:commit` / `/terse:compress` (the host's `/commit` covers the first). <!-- removed-ok -->
+
+### Changed
+- `lane.tsv`: `candor:gate` no longer yields to code-architecture's evidence gate —
+  there is nothing left to yield to; rows for the mode hook, `/candor:level` and
+  `terse-output`.
+- `/candor:check` argument list grows the brevity flags; the candour scan is
+  unchanged.
+
 ## 0.2.0
 
 ### Added

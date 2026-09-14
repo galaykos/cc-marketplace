@@ -4,6 +4,23 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.22.2
+
+### Changed
+- Every hand-off to the real-component preview and the registry MCP names
+  `design-studio` — theme-design and design-lab were merged into it (2026-09-14
+  consolidation plan). `/design-studio:preview`, `/design-studio:init`; the
+  registry tools are unchanged. No behaviour change.
+
+## 0.22.1
+
+### Removed
+- `/ui-ux:review`. The code-review fan-in already loads the matching ui-ux stack skill <!-- removed-ok -->
+  and `a11y-audit` for any diff touching markup or utility classes, so the entry was a
+  second name for the same pass (2026-09-14 consolidation plan). `ui-ux-reviewer`,
+  `/ui-ux:audit`, `/ui-ux:build` and `/ui-ux:theme` are unchanged; `/ui-ux:build` now
+  offers `/code-review:review` as its post-build step.
+
 ## 0.21.0
 
 ### Changed
@@ -82,7 +99,7 @@ rather than invented ones.
 ## 0.19.5
 
 ### Changed
-- `/ui-ux:build` routes an undecided visual choice to `/design-lab:preview` only;
+- `/ui-ux:build` routes an undecided visual choice to `/design-lab:preview` only; <!-- removed-ok -->
   `/design-lab:stage` (the shadcn-only sandbox) was removed from design-lab 0.2.0
   because the UI layer is library-agnostic — shadcn, a registry, MUI, Astryx or
   vanilla Tailwind — and a sandbox that ships one library decides nothing about
@@ -100,7 +117,7 @@ rather than invented ones.
 ## 0.19.3
 
 ### Changed
-- Registry and preview hand-offs name design-lab (`/design-lab:preview`, `/design-lab:stage`,
+- Registry and preview hand-offs name design-lab (`/design-lab:preview`, `/design-lab:stage`, <!-- removed-ok -->
   its `registry-source` MCP); design-preview, shadcn-studio and registry-source merged <!-- removed-ok -->
   into it on 2026-09-02.
 

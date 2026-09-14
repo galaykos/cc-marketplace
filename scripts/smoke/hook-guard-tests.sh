@@ -11,7 +11,7 @@
 # and the regenerated `command -v jq || exit 0` guard. Companion to (and does NOT touch)
 # scripts/smoke/guard-tests.sh, which covers the authoring-guard.
 #
-# Second section: the three BOOST hooks (taskmaster ultra.sh, orchestration
+# Second section: the three BOOST hooks (taskmaster ultra.sh, task-runner
 # ultra-assess.sh, craft-layer ultra-craft.sh). Same guard question, opposite default —
 # a boost hook must SPEAK on a real invocation and stay silent on a pasted banner. The
 # regression it pins: the self-echo guard was `ultra-?[a-z]+ +active`, which also matched
@@ -181,12 +181,12 @@ if [ -f "$TM" ] && [ -f "$AP" ]; then
   [ -z "$(ls -A "$SW")" ] && pass "precedence: flat markers are reclaimed by the existing sweep" \
     || fail "precedence: flat markers are reclaimed by the existing sweep" "leaked: $(ls "$SW")"
 
-  # No privileged plugin: process-suite ships reminder hooks and no taskmaster.
+  # No privileged plugin: reminder hooks installed with no taskmaster (a bundle-less install).
   if [ -f "$AD" ]; then
     NA="$(mktemp -d "$WORK/na.XXXXXX")"; na1=$(rk_fire "$ROOT/plugins/approaches" "$NA")
     NB="$(mktemp -d "$WORK/nb.XXXXXX")"; nb1=$(rk_fire "$ROOT/plugins/approaches" "$NB")
     { [ -n "$na1" ] && [ -n "$nb1" ]; } \
-      && pass "precedence: resolves with no taskmaster installed (S4, the process-suite shape)" \
+      && pass "precedence: resolves with no taskmaster installed (S4, reminder hooks without taskmaster)" \
       || fail "precedence: resolves with no taskmaster installed" "a1=[$na1] b1=[$nb1]"
   fi
 fi
@@ -212,7 +212,7 @@ boost_found=0
 for spec in \
   "taskmaster/hooks/ultra.sh|ultra-task|ULTRA-TASK ACTIVE" \
   "taskmaster/hooks/ultra.sh|ultra-goal|ULTRA-GOAL ACTIVE" \
-  "orchestration/hooks/ultra-assess.sh|ultra-assess|ULTRA-ASSESS ACTIVE" \
+  "task-runner/hooks/ultra-assess.sh|ultra-assess|ULTRA-ASSESS ACTIVE" \
   "craft-layer/hooks/ultra-craft.sh|ultra-craft|ULTRA-CRAFT ACTIVE"
 do
   rel="${spec%%|*}"; rest="${spec#*|}"; tok="${rest%%|*}"; banner="${rest#*|}"
@@ -245,9 +245,9 @@ fi
 # Why staleness is asserted on BOTH sides: a sentinel that never expires mutes the
 # channel in every future session of that project with no symptom, which is worse
 # than the defect it fixes. The precedent it replaces says so itself —
-# completion-gate.sh:71, "Nothing clears it".
+# candor's Stop gate, clause 4 (completion-gate.sh:71 at the time), "Nothing clears it".
 TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
-FT="$ROOT/plugins/fresh-take/hooks/remind.sh"
+FT="$ROOT/plugins/approaches/hooks/consult-remind.sh"   # fresh-take's reminder until 2026-09-14
 if [ -f "$TM" ] && [ -f "$FT" ]; then
   PP='implement a stripe billing integration'
   ph_dir() { PD="$WORK/phase-$1"; mkdir -p "$PD/.claude"; }
@@ -293,7 +293,7 @@ if [ -f "$TM" ] && [ -f "$FT" ]; then
   ph_dir anylane
   ph_write x '{"phase":"build","owner":"x","session_id":"ph-A","started_at":"z"}'
   ph_expect "lane=any is a guard -> never stands down" speak \
-    "$(ph_fire "$ROOT/plugins/fresh-take" "$FT" 'rm -rf node_modules')"
+    "$(ph_fire "$ROOT/plugins/approaches" "$FT" 'rm -rf node_modules')"
 fi
 
 # ---- THE ARC ACTUALLY ADVANCES ----------------------------------------------
@@ -306,19 +306,24 @@ fi
 # fixtures could not see it because they fed `understand` and `decide`, values nothing
 # in the tree ever writes. Fixtures must use values the shipped writers actually emit.
 ARC_PL="$ROOT/plugins"
-if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -d "$ARC_PL/fresh-take/hooks" ]; then
+if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -f "$ARC_PL/approaches/hooks/consult-remind.sh" ]; then
   ARC_P='implement a rate limiter for our billing api, the docs integration is still failing, rm -rf node_modules'
   arc_speaks() { # $1 phase ("" = no sentinel) -> space-joined plugin names that spoke
     local ph="$1" d out spoke=""
     d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.claude"
     [ -n "$ph" ] && printf '{"phase":"%s","owner":"x","session_id":"ARC","started_at":"z"}' "$ph" \
       > "$d/.claude/cc-phase.json"
-    for pl in taskmaster approaches api-design debugging fresh-take; do
-      [ -f "$ARC_PL/$pl/hooks/remind.sh" ] || continue
+    # approaches carries two reminder hooks since fresh-take merged in (2026-09-14):
+    # its any-lane consult guard is listed under its own name so the ship-phase
+    # assertion below still names a guard, not the plugin's decide-phase voice.
+    local pl hook
+    for hook in taskmaster:remind approaches:remind approaches:consult-remind api-design:remind debugging:remind; do
+      pl=${hook%%:*}
+      [ -f "$ARC_PL/$pl/hooks/${hook#*:}.sh" ] || continue
       out=$(printf '{"prompt":"%s","session_id":"ARC","cwd":"%s"}' "$ARC_P" "$d" \
         | CLAUDE_PLUGIN_ROOT="$ARC_PL/$pl" TMPDIR="$(mktemp -d "$WORK/at.XXXXXX")" \
-          "$BASH_BIN" "$ARC_PL/$pl/hooks/remind.sh" 2>/dev/null)
-      [ -n "$out" ] && spoke="$spoke $pl"
+          "$BASH_BIN" "$ARC_PL/$pl/hooks/${hook#*:}.sh" 2>/dev/null)
+      [ -n "$out" ] && spoke="$spoke $hook"
     done
     printf '%s' "$spoke"
   }
@@ -338,7 +343,7 @@ if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -d "$ARC_PL/fresh-take/hooks" ]; then
   case "$arc_build" in *api-design*) pass "arc: phase=build still lets a build-phase voice speak" ;;
     *) fail "arc: phase=build still lets a build-phase voice speak" "nothing but guards spoke at build: [$arc_build] — the arc is a mute, not a rota" ;; esac
 
-  case "$arc_ship" in *fresh-take*) pass "arc: an any-lane guard speaks at every phase" ;;
+  case "$arc_ship" in *consult-remind*) pass "arc: an any-lane guard speaks at every phase" ;;
     *) fail "arc: an any-lane guard speaks at every phase" "guards silent at ship: [$arc_ship]" ;; esac
 
   if [ "$arc_none" = "$arc_build" ]; then

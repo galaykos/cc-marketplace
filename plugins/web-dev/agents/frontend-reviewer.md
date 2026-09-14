@@ -30,7 +30,7 @@ idiom maps ablated to zero against the base model (`rationale/stack-skill-baseli
 Grade them with the vocabulary in step 2 for THEIR framework, never React's vocabulary
 on a `.vue` file. On a Laravel + Inertia app the `inertia-best-practices` skill is the
 one carrying version-pinned rules; the page component is graded here, the controller
-and props shape belong to `/laravel:review`.
+and props shape belong to the laravel skills `/code-review:review` loads.
 
 ## What you check
 
@@ -60,7 +60,8 @@ low-severity; the dispatcher filters, you do not. Say which you could not confir
 
 - Accessibility (semantics, ARIA, focus, contrast) → `/ui-ux:audit`; flag its presence
   do not audit it here.
-- Visual/design-system correctness (spacing, tokens, layout) → `/ui-ux:review`.
+- Visual/design-system correctness (spacing, tokens, layout) → ui-ux's `ui-ux-reviewer`
+  via `/code-review:review`.
 - Backend/API code behind the component → the backend engineer and `/api-design:review`.
 
 ## Checklist before finishing

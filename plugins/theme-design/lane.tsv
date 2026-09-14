@@ -1,9 +1,0 @@
-# lane declaration — who owns which territory, at which phase, and who outranks them.
-# artifact	kind	phase	owns	definite_trigger	yields_to
-# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
-# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
-# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
-theme-design:pending-events	hook	any	browser-design-event-delivery	a running .theme-design session (live pid in state.json) has events past the cursor when a non-slash prompt is submitted	-
-theme-design:design-session	skill	shape	interactive-design-loop	/theme-design:init, a pending-browser-events line, or a request to design a look interactively in the browser	-
-theme-design:init	command	shape	interactive-design-session-entry	invoked as /theme-design:init	-
-theme-design:export	command	decide	design-session-export	invoked as /theme-design:export or an `end` event from the browser	-

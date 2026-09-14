@@ -38,10 +38,18 @@ no language plugin, the baseline covers language-level review; web-dev's
 react-native and vite skills per their manifest markers; markup/utility classes touched → the matching ui-ux stack
 skill + a11y-audit; `.php`/`.blade.php` → laravel per composer.json;
 `next.config.*`/`app/` routes → web-dev's nextjs skill; `.sql`/migrations → database's sql skill, plus its
-mariadb skill when that engine is detected). Load each skill whose plugin IS installed and apply it inside the
+mariadb skill when that engine is detected; test files, fixtures, or production code
+changed with no covering test → testing's testing-best-practices; `.github/workflows/`,
+`Dockerfile*`, `compose*.y*ml` → devops-practices, plus docker-best-practices for the
+container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
+api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices).
+Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name
-relevant-but-uninstalled plugins in one closing line instead.
+relevant-but-uninstalled plugins in one closing line instead. This list is the
+contract behind every per-stack command's hand-up clause ("the aggregator reaches
+this plugin's rubric too"): a plugin that ships a review command and is not named
+here is a defect in this file, not in that command.
 
 Then:
 
@@ -103,15 +111,19 @@ Output rules:
   - **Stack axis** — idiom detail is already loaded inline when the plugin is
     installed; when absent, name the plugin in the closing line rather than
     guessing its idioms.
-  - **Concern axis** — three plugins claim things step 2 also claims. When one is
-    installed, IT owns that finding and this review does not duplicate it:
-    `resilience` (missing timeouts, unsafe retries, absent degradation paths;
-    empty/over-broad catches, swallowed exceptions, missing cause chains;
-    check-then-act races, retry idempotency, unguarded parallel writes),
-    `resilience` also owns observability (silent catch blocks, correlation IDs, secrets in logs) and performance,
-    this plugin's own `comment-discipline` skill (comment volume and placement).
-    Report the finding once and name the owner; when none is installed, this
-    review keeps it. The swallowed catch alone had four claimants.
+  - **Concern axis** — two plugins claim things step 2 also claims: `resilience`
+    (missing timeouts, unsafe retries, absent degradation paths; empty/over-broad
+    catches, swallowed exceptions, missing cause chains; check-then-act races, retry
+    idempotency, unguarded parallel writes; silent catch blocks, correlation IDs,
+    secrets in logs; performance hotspots) and this plugin's own `comment-discipline`
+    skill (comment volume and placement). When `resilience` is installed, LOAD its
+    matching skills (resilience-design, error-handling-design, concurrency-safety,
+    observability-design, performance-tuning) in this same pass and report each such
+    finding once, tagged with the owning skill — never defer it to a `/resilience:*`
+    command, because those commands hand their whole scope back here and a deferral
+    is a loop in which nobody runs the rubric. When `resilience` is absent, this
+    review keeps the finding under step 2. The swallowed catch alone had four
+    claimants; it is reported once, under one owner.
   - Structural/YAGNI → `/code-architecture:yagni` or the architecture-reviewer
     agent; security-deep issues → `/security:review`.
 

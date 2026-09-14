@@ -55,7 +55,7 @@ For each row in scope, with the digest open beside the live page:
   is the drift this repo already shipped once.
 - Check the neighbours that name the library: `lane.tsv`, the router's
   `rules.tsv`, `component-libraries/references/library-map.md`, commands
-  that detect the stack, plugin-scout's `signals.md`. `grep -rn <pkg>` is
+  that detect the stack, the plugin-scout skill's `signals.md` (in stack-scan). `grep -rn <pkg>` is
   the list; each hit is a claim too.
 
 ## 3. Rewrite, then stamp

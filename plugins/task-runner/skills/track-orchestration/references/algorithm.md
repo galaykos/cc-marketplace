@@ -77,7 +77,7 @@ Repeat until no eligible milestone remains:
 The prompt to each track-worker contains, in order:
 
 1. The delegation-contracts **discipline preamble** verbatim (Read
-   `plugins/orchestration/skills/delegation-contracts/references/discipline-preamble.md`
+   `plugins/task-runner/skills/delegation-contracts/references/discipline-preamble.md`
    and paste it).
 2. The worktree **absolute path**, and: *"Your cwd resets between bash calls. Pin every
    command to this worktree with `git -C <abs>` or absolute paths. Do NOT touch any path

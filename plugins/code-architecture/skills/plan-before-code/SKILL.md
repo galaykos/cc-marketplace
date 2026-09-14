@@ -56,7 +56,7 @@ letting them build on it.
 Worth doing whenever the work is larger than one sitting or is about to be
 dispatched to several workers; the moment you say "and also" while describing a
 task is the seam. Worked decomposition: `references/task-decomposition.md`.
-Phrasing and verifying the dispatch is orchestration:delegation-contracts;
+Phrasing and verifying the dispatch is task-runner:delegation-contracts;
 pricing the parallelism is task-runner:parallel-planning.
 
 ## Worked example

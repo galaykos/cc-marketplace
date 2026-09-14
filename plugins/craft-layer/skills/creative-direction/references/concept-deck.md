@@ -89,7 +89,7 @@ Banned vocabulary: SHEET, TITLE BLOCK, "REV A", "DRAWN BY", SCALE 1:1, first ang
   than ~4 characters, or one that is an ordinary English word on its own, must therefore be
   given as a **quoted phrase** carrying the context that makes it the banned thing — `"REV A"`
   and `"DRAWN BY"` above, never bare `REV` and `DRAWN`. A quoted phrase is matched whole,
-  quotes stripped. `/craft-layer:audit`, `craft-reviewer` and `orchestration`'s
+  quotes stripped. `/craft-layer:audit`, `craft-reviewer` and `task-runner`'s
   `tree-wide-gates.md` all CITE this paragraph rather than restating it: a second statement of
   match semantics is a second semantics, and the two disagree the first time either is edited.
 - **NEVER restate a constraint as an axis line.** A line reading `Motion role: not
@@ -120,7 +120,7 @@ and both are required:
    tree, after every parallel builder has finished. N builders each grepping their own
    files is not that check: each reports green over its own subset and the ban is verified
    nowhere. The general form of that rule — one cross-cutting gate, run by the
-   orchestrator after fan-in — is `orchestration:delegation-contracts`'
+   orchestrator after fan-in — is `task-runner:delegation-contracts`'
    `references/tree-wide-gates.md`.
 
 ## Axis 1 — Composition strategy

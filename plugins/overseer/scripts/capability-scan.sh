@@ -22,15 +22,15 @@ while [ $# -gt 0 ]; do case "$1" in --root) root="${2:-}"; shift 2;; --json) jso
 root=$(cd "$root" 2>/dev/null && pwd -P) || root="$PWD"
 
 # phase|preferred marketplace plugins|fallback
-MAP='understand|stack-scan,brain,plugin-scout|read manifests, lockfiles, routes, pages, models, tests, CI workflows directly
-shape|taskmaster,approaches,design-lab,theme-design|write the spec inline: goal, criteria, non-goals, ASCII wireframe
+MAP='understand|stack-scan,brain|read manifests, lockfiles, routes, pages, models, tests, CI workflows directly
+shape|taskmaster,approaches,design-studio|write the spec inline: goal, criteria, non-goals, ASCII wireframe
 decide|approaches|one paragraph per option + pick + kill-trigger in decisions.md
 plan|taskmaster,code-architecture|write cards inline: file set, verify command, done-criterion each
 build|task-runner,laravel,web-dev,ui-ux,database,security,testing,craft-layer|dispatch scope-locked general-purpose workers with the discipline preamble
 verify|testing,code-architecture,task-runner|run the suite yourself; browser via the official playwright plugin, Chrome MCP, or npx playwright
 review|code-review,ui-ux,security,laravel,web-dev,resilience,api-design,database|one read-only reviewer subagent per diff
 ship|git-workflow|offer merge / PR / keep via AskUserQuestion; headless keeps the branch
-guard|command-guard,secret-scanning,candor,lean|none — say in the charter that no destructive-command guard is active'
+guard|command-guard,secret-scanning,candor|none — say in the charter that no destructive-command guard is active'
 
 installed=""
 cli=0

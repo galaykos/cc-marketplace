@@ -89,7 +89,7 @@ two readings existed and which you took — that is information, not defence.
 | --- | --- |
 | §1 file:line citations resolve | **gate** — `hooks/gate.sh` clause 1 blocks a Stop whose final message cites a path that does not exist, or a line past the file's end |
 | §3 reversal after bare pushback | **gate** — `hooks/gate.sh` clause 2 blocks a Stop that retracts after challenge-shaped pushback with no tool call in between |
-| §5 completion claims | **gate**, owned elsewhere — `code-architecture`'s evidence-gate blocks a completion claim when files were edited and nothing ran afterward |
+| §5 completion claims | **gate** — `hooks/gate.sh` clause 3 blocks a completion claim when files were edited and nothing ran afterward (code-architecture's evidence-gate until 2026-09-14) |
 | §2, §4, §6 | **recorded** — `/candor:check` counts flattery openers, apologies, defensive phrases and emotional intensifiers in the session transcript. Nothing blocks them |
 
 The rules with no gate are the majority, and saying so is the point: a tone rule

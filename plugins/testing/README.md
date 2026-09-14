@@ -27,8 +27,10 @@ mocking boundaries, flaky-test causes, coverage traps.
 It reports locations, never a verdict, and it deliberately does **not** score a
 test count or a test:code ratio — there is no correct ratio, so a threshold would
 fire on legitimately dense work and wave through a bloated suite sitting under it.
-That reasoning is on the record in the `lean` plugin's `cost-model` skill and in
-`testing-best-practices/references/proportionality.md`; naming three specific
+That reasoning is on the record in
+`testing-best-practices/references/proportionality.md` (it was also in the `lean`
+plugin's `cost-model` skill until that plugin was removed on 2026-09-14) <!-- removed-ok -->;
+naming three specific
 shapes at a line is a different claim from scoring a number.
 
 Silence it with `CC_TEST_SHAPE=off`, or `CC_REMIND=off` for every advisory nudge

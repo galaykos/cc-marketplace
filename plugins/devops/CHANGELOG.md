@@ -2,6 +2,13 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.5
+
+### Changed
+- `devops-practices` hands in-code instrumentation to `/resilience:review --concern
+  observability`: resilience collapsed its five review commands into one on 2026-09-14.
+  The boundary (application emits, devops wires) is unchanged.
+
 ## 0.6.4
 
 ### Changed

@@ -39,7 +39,7 @@ and picks the first present in its available-agent-types list.
    e.g. `<cwd>/.claude/task-runner/scope-<cardId>.json` (the runner's own — NOT the
    legacy fixed `scope.json`, which stays the inline path's soft tripwire).
 4. **Inject discipline + prime stack skills.** Read
-   `orchestration/skills/delegation-contracts/references/discipline-preamble.md` and
+   `task-runner/skills/delegation-contracts/references/discipline-preamble.md` and
    paste its text **verbatim** into the dispatch prompt, together with the card, its
    allowed-files, and the index's `## Upgraded statement` block when one is present.
    The preamble overrides the worker's own default procedure. THEN, for

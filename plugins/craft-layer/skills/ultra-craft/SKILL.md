@@ -6,7 +6,7 @@ description: Use when a craft run is EXPLICITLY boosted — "ultra-craft"/"ultra
 # Ultra-craft — Extreme Boost for a craft run
 
 Ultra-craft is a per-run intensity mode for build-shaped design work — the craft
-sibling of `taskmaster:ultra` (a planning pipeline) and `orchestration:ultra-assess`
+sibling of `taskmaster:ultra` (a planning pipeline) and `task-runner:ultra-assess`
 (an audit). Each stays in its lane; neither auto-triggers the other, because those
 three run shapes fail in different places.
 
@@ -52,8 +52,8 @@ response — output-level only, see the residual at the end.
 `haiku < sonnet < opus < fable`: **escalate, never downgrade**. `effort` is settable
 ONLY on the Workflow `agent()` path — inline Agent dispatch escalates model only.
 It is a FLOOR, so it never lowers an agent below its shipped frontmatter. Stated
-here rather than cited because craft-layer does not depend on orchestration; the
-owning copy is `orchestration:verification-panels` `references/dispatch-tier.md`. Never edit agent
+here rather than cited because craft-layer does not depend on task-runner; the
+owning copy is `task-runner:verification-panels` `references/dispatch-tier.md`. Never edit agent
 frontmatter to achieve this — the boost is a dispatch-time override.
 
 REASONING roles escalate: `creative-director` (concept divergence) and `craft-reviewer` (the
@@ -93,7 +93,7 @@ asset lookups — stay NATIVE. Escalating a builder buys latency, not craft.
 
 5. **Red-team the shipped result, AND the fixes.** After step 7's audit, blind refuters
    attack the built tree against the contract and the divergence record, N=3 as a CEILING
-   sized to blast radius, each told to REFUTE. Compose `orchestration:verification-panels`
+   sized to blast radius, each told to REFUTE. Compose `task-runner:verification-panels`
    when installed; no Workflow tool → ONE inline pass, labeled `inline heuristic pass —
    single model, uncorroborated`. Never report a panel that did not run. Three rules the
    panel owes — SWEEP an interactive signature's reachable state space instead of reasoning

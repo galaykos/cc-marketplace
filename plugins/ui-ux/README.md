@@ -33,7 +33,6 @@ by a second library installed beside it.
 
 | Command | What it does |
 |---------|--------------|
-| `/ui-ux:review [files-or-diff]` | Review UI code against the per-stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind, any other library via component-libraries) |
 | `/ui-ux:theme [brand-color-vibe-or-reference]` | Create or restyle a UI colour theme — shadcn/ReUI/Aceternity, Tailwind, or Bootstrap — with a live preview URL |
 | `/ui-ux:build [what-to-build]` | Build or restyle a UI component/layout via the ui-ux-engineer worker, applying the stack best-practice and token skills |
 | `/ui-ux:audit [files-or-diff]` | Audit UI code against WCAG 2.2 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix, blockers first, a manual-test list at the end, and the `a11y-engineer` worker offered to apply the fixes |
@@ -92,7 +91,7 @@ that looks great as a swatch can fail hard as a button.
 
 - **taskmaster** — its visual-decisions skill uses the same always-live mockup
   pattern for layout/flow choices
-- **theme-design** — the same three-way line from its side: `/ui-ux:theme` is
-  candidate-driven colour theming, `/design-lab:preview` is real-component variants,
-  theme-design is session-driven direct manipulation on one surface
+- **design-studio** — the same three-way line from its side: `/ui-ux:theme` is
+  candidate-driven colour theming, `/design-studio:preview` is real-component variants,
+  `/design-studio:init` is session-driven direct manipulation on one surface; its registry MCP tools are what the stack skills here call
 - **vue3 / web-dev** — component-logic review alongside the visual layer

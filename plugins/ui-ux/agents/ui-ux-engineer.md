@@ -123,7 +123,8 @@ applying it (WCAG contrast and touch-target rules stay here).
 ## Defer rule
 
 - Post-implementation review belongs to the ui-ux-reviewer agent and
-  `/ui-ux:review` — do not review your own work beyond the checklist above.
+  `/code-review:review` (the fan-in loads the matching ui-ux stack skill and
+  a11y-audit) — do not review your own work beyond the checklist above.
 - Theme generation belongs to `/ui-ux:theme` — do not hand-roll palettes when
   the user wants a theme.
 

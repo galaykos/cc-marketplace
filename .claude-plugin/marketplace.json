@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.101.0"
+    "version": "0.102.0"
   },
   "plugins": [
     {
@@ -22,12 +22,12 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with — behind one /laravel:review that loads Inertia when the manifests show it, plus the backend-engineer worker (PHP/Laravel) the review routes its fixes to."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with, loaded by the code-review fan-in when the manifests show it — plus the backend-engineer worker (PHP/Laravel) that applies the review's fixes."
     },
     {
       "name": "code-architecture",
       "source": "./plugins/code-architecture",
-      "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — enforced by a blocking Stop hook that refuses a completion claim when files were edited but nothing ran afterward — low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin."
+      "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — held at Stop by candor's gate (clause 3, refusing a completion claim when files were edited but nothing ran afterward) when candor is installed; without it the rule is prose — low-cognitive-load code, KISS/DRY simplicity principles. Owns structure at both levels: code (units, interfaces, file placement) and system (service boundaries on data ownership, scaling paths, cache placement, sync vs async integration, domain modeling) via the system-design and domain-modeling skills and the system-architect worker."
     },
     {
       "name": "taskmaster",
@@ -47,7 +47,7 @@
     {
       "name": "task-runner",
       "source": "./plugins/task-runner",
-      "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — and a PostToolUse scope-lock tripwire that flags edits outside the current task's declared files. Includes parallel-planning: computed subagents-vs-inline verdict with dependency levels, agent count, and speedup estimate via /task-runner:plan."
+      "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence — held at Stop by candor's gate (clause 4) when candor is installed; without it a run can end by narration. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts, verification panels, scripts/dispatch-lint.sh, and the ultra-assess boost hook."
     },
     {
       "name": "overseer",
@@ -57,17 +57,7 @@
     {
       "name": "stack-scan",
       "source": "./plugins/stack-scan",
-      "description": "Know what is actually installed, then keep it healthy: /stack-scan:report inventories manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged; /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene: semver strategy, lockfile discipline, upgrade lanes, licences against the distribution mode) — report-only. Whether to add a dependency at all is approaches' build-vs-buy."
-    },
-    {
-      "name": "plugin-scout",
-      "source": "./plugins/plugin-scout",
-      "description": "Scan the current project's manifests and suggest every cc-plugins-marketplace plugin in three tiers — stack-matched, the curated any-project core, and the universal remainder — then install the picked ones after confirmation; --yes auto-installs the first two tiers, --full installs everything relevant to the detected stack after one plan confirm (--stack a,b,c fills in a stack the manifests do not show yet), --all offers every row explicitly, --persist/--global choose scope. Includes /plugin-scout:suggest."
-    },
-    {
-      "name": "vercel-skills-scout",
-      "source": "./plugins/vercel-skills-scout",
-      "description": "Scout skills.sh — Vercel's open agent-skills directory — for third-party skills matching the project's stack: scans manifests, queries the skills.sh search API, reports each hit with provenance (source repo, install count, skills.sh URL), previews the picked skills' SKILL.md before anything lands, then installs only explicit picks via npx skills add — project-level, never global, never auto-installed. Includes /vercel-skills-scout:suggest."
+      "description": "Know what is installed, keep it healthy, find what to add. /stack-scan:report inventories manifests, lockfiles (composer, npm/yarn/pnpm/bun), runtimes and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged. /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene) — report-only. /stack-scan:suggest reads the same manifests and suggests every marketplace plugin in three tiers with cited evidence (--yes auto-installs tiers 1-2, --full the whole stack-relevant set after one confirm, --persist/--global set scope); --skills searches skills.sh for third-party skills instead — provenance, preview, explicit picks only. Add-at-all is approaches' build-vs-buy."
     },
     {
       "name": "testing",
@@ -87,12 +77,12 @@
     {
       "name": "web-dev",
       "source": "./plugins/web-dev",
-      "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — with /web-dev:review detecting the stack from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill."
+      "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — loaded by the code-review fan-in from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill."
     },
     {
-      "name": "system-design",
-      "source": "./plugins/system-design",
-      "description": "System-level design: service boundaries on data ownership, scaling paths, cache placement, sync vs async integration and its failure modes, single points of failure, plus domain modeling (bounded contexts, aggregates, ubiquitous language) and an event-driven skill (delivery semantics, outbox, sagas, DLQ) — firing system-design, domain-modeling, and event-driven skills, a /system-design:review command, and a system-architect worker + system-design-reviewer pair. Complements code-architecture (code-level structure) without overlapping it."
+      "name": "design-studio",
+      "source": "./plugins/design-studio",
+      "description": "Design in the browser, decide with real components, source from registries. /design-studio:init opens a design session — chat, select, drag, resize, edit text and pick colours on HTML prototypes or your running dev server, with this Claude Code session applying every gesture to real files and live-reloading; skins show one wireframe in the feel of shadcn, Bootstrap, MUI or Astryx (lookalikes, never the library); /design-studio:export writes tokens, pages and a brief. /design-studio:preview renders 2-3 variants with the project's OWN components on its dev server, consent-gated, cleaned up after. Two MCP servers read the Aceternity, shadcn, Magic UI and ReUI registries live, never from memory."
     },
     {
       "name": "devops",
@@ -102,7 +92,7 @@
     {
       "name": "database",
       "source": "./plugins/database",
-      "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera), one /database:review that detects the engine and loads the dialect skill only for MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands."
+      "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera) that the code-review fan-in loads only when the detected engine is MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands."
     },
     {
       "name": "code-review",
@@ -112,7 +102,7 @@
     {
       "name": "approaches",
       "source": "./plugins/approaches",
-      "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, S/M/L/XL estimation, rollout planning, and design-pattern selection. Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:size, /approaches:rollout, /approaches:pattern."
+      "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, S/M/L/XL estimation, rollout planning, design-pattern selection, and /approaches:consult, a blind stronger-model second opinion when a session is stuck or about to do something irreversible (fresh-take merged in). Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:size, /approaches:rollout, /approaches:pattern."
     },
     {
       "name": "hindsight",
@@ -127,62 +117,32 @@
     {
       "name": "resilience",
       "source": "./plugins/resilience",
-      "description": "Runtime quality in one plugin — does it stay up, can you see it, is it fast. Failure-mode design for integration points (timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics) with the merged error-handling and concurrency disciplines; application observability (structured logs with correlation IDs, RED/USE metrics without cardinality bombs, trace propagation, honest health checks); and measure-first performance (N+1, payload, bundle, Core Web Vitals, cache correctness, percentile load tests). Five audits — /resilience:review, :error-review, :concurrency-review, :observability-review, :performance-review — and two workers, observability-engineer and performance-engineer, that apply only what a measurement or a finding proves."
-    },
-    {
-      "name": "orchestration",
-      "source": "./plugins/orchestration",
-      "description": "Subagent orchestration discipline: delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, scout-then-fanout, writer isolation), verification panels (refuter voting, judge panels, loop-until-dry, completeness critic), plus the shared contract review commands route their fix lists through. Includes /orchestration:review."
+      "description": "Runtime quality in one plugin — does it stay up, can you see it, is it fast. Failure-mode design for integration points (timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics) with the merged error-handling and concurrency disciplines and the event-driven skill (brokers, outbox, sagas, DLQ, consumer idempotency); application observability (structured logs with correlation IDs, RED/USE metrics without cardinality bombs, trace propagation, honest health checks); and measure-first performance (N+1, payload, bundle, Core Web Vitals, cache correctness, percentile load tests). One audit, /resilience:review, over all six rubrics or one of them via --concern, and two workers, observability-engineer and performance-engineer, that apply only what a measurement or a finding proves."
     },
     {
       "name": "candor",
       "source": "./plugins/candor",
-      "description": "Candour as a mechanism, not a pep talk. A blocking Stop gate carries the two dishonesty shapes a script can prove: a file:line citation resolving to no file under cwd or to a line past the file's end, and a position retracted after challenge-shaped pushback with no tool call in between. Flattery openers, apologies, defensive phrasing and emotional intensifiers are counted by /candor:check and blocked by nothing, on purpose. Ships the straight-talk skill: six orderings, not sentiments. Completion claims stay with code-architecture."
-    },
-    {
-      "name": "lean",
-      "source": "./plugins/lean",
-      "description": "Prices every output as a debit and asks how much. Five surfaces, one bar each: code, tests, comments, files, and actions — a tool call, subagent spawn or verify pass whose result cannot change the next step is a paid no-op, and nothing else here prices that. Only four things buy more than the minimum: blast radius, an observed defect, a stated criterion, the user asking; the excess must name which, where it happens. Minimum means risk coverage, not count — never delete a test to hit a ratio."
+      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, four clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a registered task-runner run stopping without its recorded gate pass. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
     },
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (install by name). The creative-build studio — craft-layer (with its Three.js skill) and design-studio — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+    },
+    {
+      "name": "core-suite",
+      "source": "./plugins/core-suite",
+      "description": "Meta-bundle: the user-scope baseline — the plugins worth enabling once, globally, and keeping on in every repo: secret-scanning's write-time block, candor's four-clause Stop gate and dormant terse mode, code-review's fan-in review with comment discipline, git-workflow's branch finish, hindsight's friction mining, skill-router's file-aware routing, and stack-scan's report, audit and project-tier scout. Replaces always-on-suite and quality-suite (2026-09-14). Membership rule: project-agnostic, safe as a permanent fixture, adds no interruption you did not ask for — why command-guard's ask tier is not here. Uninstall with /core-suite:uninstall. 200k windows: read the README first."
+    },
+    {
+      "name": "workflow-suite",
+      "source": "./plugins/workflow-suite",
+      "description": "Meta-bundle: the whole idea-to-shipped pipeline in one install — the core-suite baseline (candor, code-review, git-workflow, hindsight, secret-scanning, skill-router, stack-scan) plus taskmaster clarification and cards, task-runner execution with delegation contracts, approaches deliberation, code-architecture plan-before-code and verification, testing, debugging, and the ui-ux and security lanes the cards dispatch into. Replaces taskmaster-suite, process-suite and quality-principles-suite (2026-09-14). Fifteen members: over the host's 200k skill-listing floor by design — the README names the settings line. Uninstall cleanly with /workflow-suite:uninstall."
     },
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
-      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-lab) — WebGL/Three.js effects now ship inside craft-layer — plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "php-suite",
-      "source": "./plugins/php-suite",
-      "description": "Meta-bundle: the PHP category in one install — laravel (Laravel best practices and the Inertia.js skill behind one /laravel:review, plus the backend-engineer worker), web-dev (the generalist worker, the frontend-reviewer, and the Vite skill for Laravel's default asset bundler via /web-dev:review) and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Uninstall cleanly with /php-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
-    },
-    {
-      "name": "quality-suite",
-      "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, candor's citation-and-reversal Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, a token-cost warn hook (lean), and file-aware skill auto-routing. The advisory nine live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall."
-    },
-    {
-      "name": "quality-principles-suite",
-      "source": "./plugins/quality-principles-suite",
-      "description": "Meta-bundle: the code-quality disciplines that advise rather than enforce — approach deliberation and design patterns, OWASP security review and threat modeling, systematic debugging, resilience (failure modes, error handling, concurrency, observability, measure-first performance), dependency hygiene and stack inventory (stack-scan), and test design and coverage review. Accessibility auditing lives in ui-ux (frontend-suite, craft-suite). Split out of quality-suite so a project can take the enforcing half without the advisory half's always-on context; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-principles-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "process-suite",
-      "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution, stack scanning, plugin scouting, a token-cost warn hook (lean), file-aware skill auto-routing (skill-router), a stronger-model second opinion when stuck (fresh-take), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "taskmaster-suite",
-      "source": "./plugins/taskmaster-suite",
-      "description": "Meta-bundle (10 plugins): the clarification-to-execution pipeline and only what it dispatches into — taskmaster planning, task-runner execution, orchestration, code-architecture, approaches, stack-scan, skill-router, plus the ui-ux, testing and security lanes its cards route to. Trimmed from 32 on 2026-08-31 to fit the host's skill-listing budget: over that cap the host drops descriptions name-only and the surviving set varies per reload, so the extra members cost reachability for every member. Install the rest individually. Uninstall cleanly with /taskmaster-suite:uninstall. 200k-window installs: see the README's context-window requirement first."
-    },
-    {
-      "name": "always-on-suite",
-      "source": "./plugins/always-on-suite",
-      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, lean's output pricing, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and two scouts for what this bundle leaves out (plugin-scout, vercel-skills-scout) — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer); browser design sessions, visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-studio); plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "skill-router",
@@ -200,39 +160,9 @@
       "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape."
     },
     {
-      "name": "payments",
-      "source": "./plugins/payments",
-      "description": "Payments and billing discipline (Stripe/Paddle/Braintree): PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, and an append-only ledger with reconciliation — a firing payments skill and a /payments:review command. The failure class is double-charges and revenue leaks."
-    },
-    {
-      "name": "llm-app",
-      "source": "./plugins/llm-app",
-      "description": "LLM application engineering: eval harnesses and regression gates (evaluate, don't eyeball), RAG pipelines (chunking, embeddings, retrieval quality + re-ranking, grounding and citation), prompt versioning, prompt-injection defense, token-cost control, and context management — a firing llm-app skill and a /llm-app:review command. Defers provider API specifics to Claude Code's built-in claude-api skill (harness-provided, not part of this marketplace)."
-    },
-    {
       "name": "ultra-deep-research",
       "source": "./plugins/ultra-deep-research",
       "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Writes the report inline and to research/<topic>-<date>.md."
-    },
-    {
-      "name": "fresh-take",
-      "source": "./plugins/fresh-take",
-      "description": "Independent stronger-model second opinion at key moments — stuck debugging or an imminent irreversible action. /fresh-take:consult composes a facts-only brief (no leaning) and dispatches a blind stronger-model consultant with read-only repo access; it returns a Take, Risks, and one Alternative. A UserPromptSubmit reminder hook nudges the command on key-moment phrases. Advice only — it never blocks, gates, or edits anything."
-    },
-    {
-      "name": "terse",
-      "source": "./plugins/terse",
-      "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker."
-    },
-    {
-      "name": "design-lab",
-      "source": "./plugins/design-lab",
-      "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate, shell-mockup fallback for greenfield); and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in."
-    },
-    {
-      "name": "theme-design",
-      "source": "./plugins/theme-design",
-      "description": "Interactive UI, theme and prototype design in the browser, driven by this Claude Code session on the subscription: /theme-design:init serves standalone HTML prototypes or your running dev server with a chat + direct-manipulation editor injected (select, move, resize, edit text, pick colours), Claude long-polls the local bridge, applies every gesture to real files (tokens.css, pages, or project source), replies in-panel and live-reloads; multi-page flows walked with a Go tool and recorded in flow.json for the brief; a skin selector shows the same wireframe in the feel of shadcn, Bootstrap, MUI or Astryx (lookalikes, never the library) and a rich dial adds imagery, chart shapes, depth and motion on the same files; /theme-design:export writes tokens, pages, a design brief and optionally the project's theme file."
     }
   ]
 }

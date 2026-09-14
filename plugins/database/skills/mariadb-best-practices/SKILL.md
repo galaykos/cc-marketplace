@@ -121,6 +121,7 @@ SST/IST, quorum, and TOI-vs-RSU DDL each invert single-primary intuition.
 ## Scope by model tier
 
 **All models** — every rule above: the engine gates, the design floor, the footguns.
-**Compensation (worker-tier)** — the detect-engine → load → pin order in
-`/database:review` step 3, followed literally; a Fable-class session may compress it
-once the engine is known. **Skip** — a diff touching no MariaDB-specific type, function, or clause and no Galera topology earns a one-line verdict.
+**Compensation (worker-tier)** — the detect-engine → load → pin order the
+`/code-review:review` fan-in runs (engine from the compose image or DSN, never from a
+`.sql` file alone; this skill only when it says MariaDB), followed literally; a
+Fable-class session may compress it once the engine is known. **Skip** — a diff touching no MariaDB-specific type, function, or clause and no Galera topology earns a one-line verdict.

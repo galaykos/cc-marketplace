@@ -241,14 +241,14 @@ pc_budget_crowding() {
 # loading ~28k tokens of bodies alone — more than the whole always-on floor of a
 # 40-plugin install. This check is the only thing that watches that number.
 #
-# WHY GENERATED FILES ARE EXCLUDED. plugins/plugin-scout/skills/plugin-scout/
+# WHY GENERATED FILES ARE EXCLUDED. plugins/stack-scan/skills/plugin-scout/
 # references/catalog.md is emitted by scripts/generate.sh with one row per
 # marketplace plugin, and generate.sh --check byte-gates it. Counting it would
 # convert "someone added a plugin to the marketplace" into a CI failure inside an
 # unrelated plugin — a gate that fires on growth it cannot be fixed by. Any .md
-# whose first 400 bytes say "generated" is skipped for the same reason; that is
-# 4.7k tokens in craft-layer and 7.3k in plugin-scout, and plugin-scout drops
-# from ~18.1k to ~10.9k once excluded, which is the point.
+# whose first 400 bytes say "generated" is skipped for the same reason; that was
+# 4.7k tokens in craft-layer and 7.3k in the then-separate plugin-scout plugin,
+# which dropped from ~18.1k to ~10.9k once excluded, which is the point.
 #
 # WHY A RATCHET AND NOT A CEILING. A flat cap set at today's honest number fails
 # the build on the commit that introduces it; set above craft-layer it blesses
@@ -309,40 +309,11 @@ pc_plugin_corpus() {
   return 0
 }
 
-# pc_pick_parity <plugins_root>
-# The two scout plugins ship a byte-identical picker script. Fails if they diverge.
-# Prints "pick-parity <a> != <b>" and returns 1; identical or either missing returns 0.
-#
-# WHY THE DUPLICATION IS CORRECT, and therefore why it needs a gate. plugin-scout and
-# vercel-skills-scout both resolve their scripts from `${CLAUDE_PLUGIN_ROOT}`, which is
-# per-plugin: neither can read the other's file, and either may be installed alone. A
-# shared copy would privilege whichever plugin happened to be present — the same
-# reasoning CLAUDE.md gives for keeping lane.tsv per-plugin rather than central. So the
-# duplication is required by the plugin boundary, not an oversight, and the only
-# available discipline is asserting the copies stay in step.
-#
-# THE DRIFT IS NOT HYPOTHETICAL. Measured 2026-08-27: the two PROSE descriptions of this
-# picker have already diverged — plugin-scout's references/picker.md carries an "under the
-# same rules as Other" clause that vercel-skills-scout's references/mechanics.md dropped.
-# The scripts were still identical at that point. This gate catches the half that changes
-# behaviour before it goes the same way.
-#
-# LIMITATION (honest scope), two residuals:
-#   1. It gates the SCRIPT only. The prose copies that have already drifted are not
-#      checked here and are not checked anywhere — comparing prose for meaning is not a
-#      thing a checksum does, and a byte-compare of prose would fire on every reword.
-#   2. It gates SAMENESS, not correctness. Two identically wrong pickers pass.
-pc_pick_parity() {
-  local root="${1:-plugins}" a b
-  a="$root/plugin-scout/scripts/pick.sh"
-  b="$root/vercel-skills-scout/scripts/pick.sh"
-  [ -f "$a" ] && [ -f "$b" ] || return 0
-  if ! cmp -s "$a" "$b"; then
-    printf 'pick-parity %s != %s\n' "$a" "$b"
-    return 1
-  fi
-  return 0
-}
+# pc_pick_parity was retired 2026-09-14: it held the two scout plugins' copies of
+# pick.sh byte-identical because `${CLAUDE_PLUGIN_ROOT}` is per-plugin and neither
+# could read the other's file. Both scouts are skills of stack-scan now and share
+# ONE copy (plugins/stack-scan/scripts/pick.sh), so there is nothing to keep in
+# step; its harness (scripts/__tests__/pick.test.sh) still runs on every PR.
 
 # pc_jargon <md_path>
 # Internal-taskmaster-vocabulary denylist with an ordinary-English rescue list.
@@ -439,13 +410,49 @@ pc_removed_refs() {
   # ~45 shipped citations were rewritten to `.claude/skills/authoring-*/…` paths,
   # which carry no `claude-authoring` token; only a live reference shape trips it.
   # History lines in CHANGELOGs keep the name behind "Removed:" or <!-- removed-ok -->.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring'
+  # payments, llm-app added 2026-09-14 (marketplace-consolidation-plan): removed
+  # outright, no skill moved. Both are ordinary English in prose ("a payments
+  # webhook", "3 of them in payments") and are SAFE here for the same reason as
+  # `everything`: only the reference shapes match. lean was removed the same day
+  # and is deliberately NOT listed: `lean` is overseer's rigour tier
+  # (`lean|standard|adversarial`, "→ `lean`") and taskmaster's `goal-lean` token,
+  # so the backtick and arrow shapes would fire on live vocabulary. Its residual
+  # is real: a doc naming the removed lean PLUGIN in a reference shape slips through.
+  # terse added 2026-09-14: merged into candor (the mode, the skill, /candor:level and
+  # /candor:check --brevity survive; the crew agents and commit/compress commands do not).
+  # Bare "terse" is ordinary English ("a terse table", brain's README) and the level
+  # file, env var and skill are still named terse-mode / CC_TERSE / terse-output, so it
+  # is SAFE here only because $shapes matches reference forms; those tokens carry a
+  # hyphen or underscore boundary and match no shape.
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite'
   # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
   # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
   # shapes in $shapes are deliberately NOT applied: `vite` and `react-native` are npm
   # package names the surviving skills must keep naming in prose.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source'
+  # system-design MOVED 2026-09-14: its skills keep their names inside code-architecture
+  # (system-design, domain-modeling) and resilience (event-driven); only the PLUGIN forms
+  # are stale, and `code-architecture:system-design` stays legal for the same reason
+  # `web-dev:react-native-best-practices` does.
+  # plugin-scout, vercel-skills-scout MOVED 2026-09-14 into stack-scan as skills of the
+  # same names behind one /stack-scan:suggest command; only the PLUGIN forms are stale.
+  # theme-design, design-lab MOVED 2026-09-14 into design-studio (a rename plus a merge):
+  # the skills keep their names (design-session, real-preview), the commands are
+  # /design-studio:init|export|preview and the working dir is .design-studio/. Only the
+  # PLUGIN forms are stale; `.theme-design/` in an old changelog line matches no shape.
+  # fresh-take MOVED 2026-09-14 into approaches: the consult skill, the consultant agent
+  # and the reminder keep their names; /approaches:consult is the command.
+  # orchestration MOVED 2026-09-14 into task-runner: delegation-contracts and
+  # verification-panels keep their names, ultra-assess became a reference of the
+  # latter, /orchestration:review was retired. Bare "orchestration" is ordinary
+  # English (scroll orchestration, track-orchestration) and the hyphen boundary
+  # keeps those skill names out of every shape.
+  # Bundles rebuilt 2026-09-14 (consolidation plan §3.3): always-on-suite + quality-suite
+  # MOVED into core-suite; taskmaster-suite + process-suite + quality-principles-suite
+  # MOVED into workflow-suite. php-suite is in `plug` (removed outright — its three
+  # members are install-by-name). Every retired name is a hyphenated token, so the
+  # hyphen boundary keeps the live `-suite` bundles out of every shape.
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take|orchestration|always-on-suite|quality-suite|process-suite|taskmaster-suite|quality-principles-suite'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick
@@ -472,7 +479,9 @@ pc_removed_refs() {
   # ordinary technical English everywhere, so its coverage rides the plugin
   # shapes only. That residual is real: a doc naming the removed SKILL as bare
   # "i18n" outside a reference shape slips through.
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid'
+  # terse-crew, terse-commit, terse-compress added 2026-09-14: dropped with the terse
+  # merge into candor; the three crew agents went with the crew skill.
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress'
   # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that
@@ -1220,7 +1229,7 @@ pc_lanes_coverage() {
 # SHIPS, which is the part a repo can hold; the runtime half stays `agent-graded` and the
 # run-report line in routing.md step 5 is what makes it visible after the fact.
 #
-# BOUNDARY. `orchestration/scripts/dispatch-lint.sh` checks the CONTENT of a drafted
+# BOUNDARY. `task-runner/scripts/dispatch-lint.sh` (orchestration's until 2026-09-14) checks the CONTENT of a drafted
 # prompt (absolute path, scope lock, return shape, closing data instruction). This checks
 # WHICH AGENT the call binds. A prompt can pass all four of those elements and still be
 # handed to the wrong agent — that is the gap here, and nothing else looks at it.
@@ -1346,7 +1355,7 @@ pc_phase_guard() {
       # EXEMPTION, tied to the declaration rather than to a hand-kept list: an
       # artifact whose lane says `any` is a guard, not a phase step, and guards
       # must fire in every phase. The boost hooks (ultra, ultra-craft,
-      # ultra-assess) answer an explicit user keyword and terse:mode is an
+      # ultra-assess) answer an explicit user keyword and candor:mode is an
       # output-shape contract — none of them takes a turn, so demanding a
       # sentinel read would be ceremony that catches nothing. An artifact with no
       # row at all is pc_lanes_coverage's problem, not this gate's.
@@ -1895,9 +1904,10 @@ pc_bundle_readme_members() {
 #      is covered too, so a placeholder row there needs the blessing. Fenced
 #      blocks are not tracked either, so a `|`-shaped table INSIDE one would be
 #      read as a real table; none exists today, and the blessing is the recourse.
-#   4. plugin-scout-specific by construction. vercel-skills-scout ships its own
-#      hand-written lists and nothing here reads them — those name third-party
-#      skills, for which marketplace.json is not ground truth.
+#   4. plugin-scout-skill-specific by construction. The sibling vercel-skills-scout
+#      skill ships its own hand-written lists and nothing here reads them — those
+#      name third-party skills, for which marketplace.json is not ground truth.
+#      Both skills live under plugins/stack-scan since 2026-09-14.
 #
 # Bless a line with `scout-name-ok: <why>`, written as an HTML comment
 # (`<!-- scout-name-ok: … -->`) so it does not render inside the table.
@@ -1911,7 +1921,7 @@ pc_scout_names() {
   [ -f "$mp" ] || return 0
   live=$(jq -r '.plugins[].name' "$mp" 2>/dev/null) || return 0
   [ -n "$live" ] || return 0
-  skill="$root/plugins/plugin-scout/skills/plugin-scout"
+  skill="$root/plugins/stack-scan/skills/plugin-scout"
   for f in "$skill/SKILL.md" "$skill/references/signals.md" "$skill/references/any-core.md" "$skill/references/stack-relevance.md"; do
     [ -f "$f" ] || continue
     while IFS=$'\t' read -r ln kind val; do

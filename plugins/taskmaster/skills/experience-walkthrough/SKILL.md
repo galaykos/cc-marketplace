@@ -18,7 +18,7 @@ itself is a requirement. A single widget or page stays in visual-decisions. (Pro
 
 ## The demo artifact
 
-**If a theme-design session is open** (`.theme-design/flow.json` in the project
+**If a design-studio session is open** (`.design-studio/flow.json` in the project
 root), its pages already are the clickable demo: hand over that session's URL
 and read its flow record for the coverage rules below instead of assembling a
 second file. Gaps still go to the ambiguity ledger; the session's brief is not

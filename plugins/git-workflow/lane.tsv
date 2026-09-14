@@ -4,3 +4,5 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 git-workflow:no-ai-trailer	hook	any	ai-attribution-in-git-history	a git commit/merge/tag or gh pr command, or a write into a git message file, carries a Co-Authored-By Claude trailer or a Generated-with-Claude-Code line	-
+git-workflow:finish	command	ship	development-branch-completion	invoked as /git-workflow:finish	git-workflow:branch-completion
+git-workflow:branch-completion	skill	ship	development-branch-completion	implementation on a development branch is finished and the work needs a destination — full-suite verification with state evidence, then merge, PR, keep or discard, executed end to end	-

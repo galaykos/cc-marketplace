@@ -129,7 +129,7 @@ fresh session or `claude "$(cat 01-*.md)"`. Update the status column as cards
 land; the index is the only file that mutates during execution. Boosted runs also stamp `Ultra:`/`Goal:` markers and the upgraded statement into the index — `references/index-markers.md`.
 
 When cards are executed by subagents, the dispatch-prompt and return-format
-contract is the orchestration plugin's delegation-contracts skill.
+contract is the task-runner plugin's delegation-contracts skill.
 
 ## After the index — verify coverage, then suggest a skill
 

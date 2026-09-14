@@ -466,7 +466,7 @@ case "$cmd" in
     pre="${OVERSEER_PREAMBLE:-}"
     # resolved like a skill pin (skill-path.sh: the CLI's enabled install, else the newest cache dir that has the file) —
     # `find | sort -V | tail -1` across two marketplaces picked the alphabetically later marketplace's older version
-    if [ -z "$pre" ]; then sp=$(bash "$(dirname "$0")/skill-path.sh" orchestration delegation-contracts --project "$root" 2>/dev/null) && pre="$(dirname "$sp")/references/discipline-preamble.md"; fi
+    if [ -z "$pre" ]; then sp=$(bash "$(dirname "$0")/skill-path.sh" task-runner delegation-contracts --project "$root" 2>/dev/null) && pre="$(dirname "$sp")/references/discipline-preamble.md"; fi
     if [ "$kind" = followup ]; then
       # a message to a worker that is still alive: the preamble is already in its context, so the
       # follow-up must SAY it still binds, keep the scope lock, verify and return shape, and name the

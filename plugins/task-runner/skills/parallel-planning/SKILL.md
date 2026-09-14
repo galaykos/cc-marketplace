@@ -148,5 +148,5 @@ the unit is a whole milestone, matching the `track-orchestration` skill's eligib
 
 Standing: recorded — takes a decomposition as given and prices execution.
 Decomposing into tasks is code-architecture's `plan-before-code`; scope lock, bounded
-fix loops and evidence are `task-execution`; dispatch prompts are the orchestration
+fix loops and evidence are `task-execution`; dispatch prompts are this plugin's
 plugin's `delegation-contracts`, adversarial review its `verification-panels`.

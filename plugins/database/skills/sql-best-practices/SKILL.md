@@ -143,6 +143,7 @@ evidence; the plan is the evidence.
 ## Scope by model tier
 
 **All models** — every rule above: the engine gates, the design floor, the footguns.
-**Compensation (worker-tier)** — the detect-engine → load → pin order in
-`/database:review` step 3, followed literally; a Fable-class session may compress it
-once the engine is known. **Skip** — a diff touching no statement, no index, no migration and no transaction boundary earns a one-line verdict.
+**Compensation (worker-tier)** — the detect-engine → load → pin order the
+`/code-review:review` fan-in runs (engine from the compose image or DSN, never from a
+`.sql` file alone; then this skill, plus mariadb-best-practices for MariaDB), followed
+literally; a Fable-class session may compress it once the engine is known. **Skip** — a diff touching no statement, no index, no migration and no transaction boundary earns a one-line verdict.

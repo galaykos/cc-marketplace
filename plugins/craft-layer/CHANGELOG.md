@@ -7,6 +7,29 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.6
+
+- `agents/craft-reviewer.md`: the performance defer line repeated
+  `/resilience:review --concern performance` twice (a rename artifact from 0.49.4).
+  Wording only.
+
+## 0.49.5
+
+### Changed
+- Preview hand-offs name `/design-studio:preview` and the registry MCP is
+  design-studio's — theme-design and design-lab were merged into that plugin
+  (2026-09-14 consolidation plan). Fallback order is unchanged: a running design
+  session, then the real-component preview, then taskmaster's shell mockup.
+
+## 0.49.4
+
+### Changed
+- The performance delegation in `/craft-layer:audit`, `craft-reviewer` and the
+  asset-sourcing reference now names `/resilience:review --concern performance`:
+  resilience collapsed its five review commands into one on 2026-09-14. Same rubric,
+  same optional-delegation rule (skipped when resilience is not installed);
+  `lane.tsv` yields to `resilience:review`.
+
 ## 0.49.3
 
 ### Changed
@@ -50,7 +73,7 @@ than an honest starting point.
 
 ### Changed
 - Every staging hand-off (`/craft-layer:craft`, `/craft-layer:sections`,
-  `section-decisions`, README) names `/design-lab:preview` alone; `/design-lab:stage`
+  `section-decisions`, README) names `/design-lab:preview` alone; `/design-lab:stage` <!-- removed-ok -->
   was removed from design-lab 0.2.0. Greenfield decisions degrade to
   `taskmaster:visual-decisions` as they already did without design-lab.
 
@@ -101,7 +124,7 @@ than an honest starting point.
 - **`ultra-craft` names the owning copy of the dispatch-tier rule.** The rule is
   restored inline (0.47.8) because craft-layer does not depend on orchestration and the
   hook that carries it exits on slash prompts; this adds the provenance line pointing at
-  `orchestration:verification-panels` `references/dispatch-tier.md`, which is where the
+  `orchestration:verification-panels` `references/dispatch-tier.md`, which is where the <!-- removed-ok -->
   marketplace states it once. The original citation named § Panel width, which owns
   panel width N and states none of it.
 
@@ -111,7 +134,7 @@ than an honest starting point.
 - **`ultra-craft` regains the `auto` model-resolution rule** — `haiku < sonnet <
   opus < fable`, escalate never downgrade, `effort` settable only on the Workflow
   `agent()` path. Deleted at `8899d48` ("would not fit twice under the 150-line
-  ceiling") and replaced by a pointer to `orchestration:verification-panels` §
+  ceiling") and replaced by a pointer to `orchestration:verification-panels` § <!-- removed-ok -->
   Panel width. **That pointer never resolved**: the named section owns panel width
   N and contains no mention of `haiku`, `auto` or downgrading. Meanwhile the body
   at `:43` orders "substitute `<model>` with the RESOLVED tier, never the word

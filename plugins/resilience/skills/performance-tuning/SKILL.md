@@ -88,10 +88,10 @@ check the failure modes:
 
 ## Defer rule
 
-- SQL query-shape and indexing idioms → `/database:review` (which adds the MariaDB dialect skill when detected). This
-  skill counts the queries and reads the plan; the SQL skills fix the statement.
-- Framework-idiom performance (React re-renders, Eloquent hydration) → the stack review command,
-  `/laravel:review`. Recommend, do not duplicate.
+- SQL query-shape and indexing idioms → `/code-review:review`, which loads database's sql skill (and the
+  MariaDB dialect skill when detected). This skill counts the queries and reads the plan; the SQL skills fix the statement.
+- Framework-idiom performance (React re-renders, Eloquent hydration) → the same fan-in, which loads the
+  laravel and web-dev stack skills. Recommend, do not duplicate.
 - Applying a batch of fixes → the shared `task-executor`; this skill decides *what* is
   slow and *why*, not the mechanical application.
 

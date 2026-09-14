@@ -1,0 +1,18 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# Two surfaces, two phases. The design session (shape) is direct manipulation on a
+# canvas this plugin serves; the real-component preview (decide) renders variants on
+# the project's own dev server. A running session owns the preview surface, so the
+# preview yields to it; the preview's other yield is the fallback its README states —
+# a greenfield dir or a stack with no Vite/Laravel host hands the decision to
+# taskmaster's shell mockup. /design-studio:preview is a dispatcher — every rule lives
+# in the real-preview skill — so both rows claim ONE territory and the command yields.
+design-studio:pending-events	hook	any	browser-design-event-delivery	a running .design-studio session (live pid in state.json) has events past the cursor when a non-slash prompt is submitted	-
+design-studio:design-session	skill	shape	interactive-design-loop	/design-studio:init, a pending-browser-events line, or a request to design a look interactively in the browser	-
+design-studio:init	command	shape	interactive-design-session-entry	invoked as /design-studio:init	-
+design-studio:export	command	decide	design-session-export	invoked as /design-studio:export or an `end` event from the browser	-
+design-studio:preview	command	decide	real-component-visual-preview	invoked as /design-studio:preview [decision-description]	design-studio:real-preview
+design-studio:real-preview	skill	decide	real-component-visual-preview	a visual or UI decision needs the project's actual components, typography, spacing and states rendered on its own Vite (React/Vue/Nuxt) or Laravel Blade/Livewire dev server	design-studio:design-session,taskmaster:visual-decisions

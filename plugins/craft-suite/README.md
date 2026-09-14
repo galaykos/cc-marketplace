@@ -1,9 +1,10 @@
 # craft-suite
 
 Meta-bundle: the creative-build studio in one install — concept-first
-creative direction with a tiered motion catalog, real-component visual
-decisions in whatever UI library the project runs, live registry sourcing, WebGL/Three.js
-effects, browser-driven design sessions (theme-design), and the companion the studio requires (ui-ux, which carries the WCAG audit). Split out
+creative direction with a tiered motion catalog and WebGL/Three.js effects
+(craft-layer); browser-driven design sessions, real-component visual decisions in
+whatever UI library the project runs and live registry sourcing (design-studio);
+and the companion the studio requires (ui-ux, which carries the WCAG audit). Split out
 of frontend-suite so ordinary frontend app work does not pay the studio's
 always-on context. Uninstalls cleanly: `/craft-suite:uninstall` removes the
 bundle and prunes the plugins it auto-installed.
@@ -43,19 +44,18 @@ text that was previously being evicted.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (4):
+One bullet per bundled plugin, in dependency order (3):
 
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
-- **design-lab** — visual decisions rendered with the project's OWN components
-  (`/design-lab:preview`) and live component-registry MCP servers
-  (Aceternity, shadcn, Magic UI local; ReUI hosted)
-- **theme-design** — session-driven direct manipulation in the browser
-  (`/theme-design:init`, `/theme-design:export`): the tightest overlap with
-  design-lab in the tree, which is why it rides in the design bundle
+- **design-studio** — session-driven direct manipulation in the browser
+  (`/design-studio:init`, `/design-studio:export`), visual decisions rendered with
+  the project's OWN components (`/design-studio:preview`) and live
+  component-registry MCP servers (Aceternity, shadcn, Magic UI local; ReUI hosted).
+  theme-design and design-lab were merged into it on 2026-09-14
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
   Tailwind) and the library-agnostic `component-libraries` floor for any other
-  React component library, plus `/ui-ux:build`, `/ui-ux:review`, `/ui-ux:theme`
+  React component library, plus `/ui-ux:build`, `/ui-ux:audit`, `/ui-ux:theme`
 
 ui-ux is listed here AND in frontend-suite on purpose: craft-layer
 delegates theming to ui-ux and auditing to `/ui-ux:audit`, so a standalone
@@ -70,4 +70,4 @@ companion once.
 
 - **frontend-suite** — the stack half: Next.js/React Native/Vite reviews and
   the generalist web worker for the app the studio decorates
-- **resilience** — its `/resilience:performance-review`: motion and WebGL work is exactly where frame budgets die
+- **resilience** — its `/resilience:review --concern performance`: motion and WebGL work is exactly where frame budgets die

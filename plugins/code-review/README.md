@@ -57,7 +57,7 @@ option to apply the fixes. Since 0.17.0 the generic pass is delegated to Claude
 Code's built-in `/code-review` skill when the session has it; this command is
 the stack fan-in over it, and runs the generic pass itself only when the
 built-in is absent. The plugin also ships a `code-reviewer` agent — the
-dispatchable reviewer task-runner, terse-crew and the per-stack review commands
+dispatchable reviewer task-runner and the per-stack review commands
 route to (a built-in skill cannot be dispatched as a subagent, which is why the
 agent stays) — and two skills: `code-smells`
 — the smell catalog, with when-it-is-NOT-a-smell judgment — and
