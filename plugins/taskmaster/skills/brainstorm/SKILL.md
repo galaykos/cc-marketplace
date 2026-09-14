@@ -70,7 +70,7 @@ already answered (shell = "Full mockups", ASCII = "Quick ASCII only", never
 
 | Decision | Tier |
 |----------|------|
-| Design, runnable Vite/Laravel host with components | design-lab preview (real components) |
+| Design, runnable Vite/Laravel host with components | design-studio preview (real components) |
 | Design, structure/density/flow only | visual-decisions shell |
 | Design, trivial layout | ASCII wireframe |
 | Creative/concept | interactive tier only, else describe-only |

@@ -66,7 +66,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.8k tokens | ~32 tokens | ~2.3k tokens |
-| `craft-suite` | 4 | ~3.0k tokens | — | — |
+| `craft-suite` | 3 | ~3.0k tokens | — | — |
 | `process-suite` | 11 | ~2.8k tokens | ~170 tokens | ~2.1k tokens |
 | `quality-principles-suite` | 6 | ~2.3k tokens | — | ~127 tokens |
 | `always-on-suite` | 7 | ~2.0k tokens | ~1.2k tokens | ~2.1k tokens |
@@ -74,7 +74,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `quality-suite` | 6 | ~1.5k tokens | ~32 tokens | ~2.1k tokens |
 | `php-suite` | 3 | ~956 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 31 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 30 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -225,8 +225,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind, any other React component library via `component-libraries`), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
-| **[design-lab](plugins/design-lab)** | `/design-lab:preview` renders 2–3 variants with the project's OWN components on its own dev server, with a shell-mockup fallback for greenfield; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Seeing real components before a visual decision, and installing registry components from the source |
-| **[theme-design](plugins/theme-design)** | `/theme-design:init` opens a browser design session: chat, select, drag, resize, edit text and pick colours on standalone HTML prototypes or on your running dev server, with this Claude Code session applying every gesture to real files and live-reloading; `/theme-design:export` writes tokens, pages, a brief, and optionally the project theme file | Shaping how something should look by talking and moving things, before or instead of a spec |
+| **[design-studio](plugins/design-studio)** | `/design-studio:init` opens a browser design session: chat, select, drag, resize, edit text and pick colours on HTML prototypes or your running dev server, with this Claude Code session applying every gesture to real files and live-reloading, and `/design-studio:export` writing tokens, pages and a brief; `/design-studio:preview` renders 2–3 variants with the project's OWN components on its own dev server, with a shell-mockup fallback for greenfield; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Shaping how something should look by talking and moving things, seeing real components before a visual decision, and installing registry components from the source |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated |
 
 **Using them.**
@@ -238,7 +237,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 /craft-layer:craft            # the full studio pipeline, end to end
 /craft-layer:sections         # decide a page section by section, with you
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
-/design-lab:preview       # variants rendered with your real components
+/design-studio:preview       # variants rendered with your real components
 ```
 
 **Worked example — a landing page that must not look templated:**
@@ -256,7 +255,7 @@ that computes WCAG ratios from your token source.
 **Worked example — one component, real fidelity:**
 
 ```
-/design-lab:preview "three card treatments for the dashboard"
+/design-studio:preview "three card treatments for the dashboard"
 ```
 
 Renders three variants side by side using your own components, on a scratch

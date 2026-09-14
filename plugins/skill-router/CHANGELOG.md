@@ -2,6 +2,13 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.15.3
+
+### Changed
+- `rules.tsv`: the `design-session` glob row is `**/.design-studio/**` owned by
+  `design-studio` — theme-design was renamed and merged into that plugin and its
+  working directory moved with it (2026-09-14 consolidation plan).
+
 ## 0.15.2
 
 ### Removed

@@ -430,7 +430,11 @@ pc_removed_refs() {
   # `web-dev:react-native-best-practices` does.
   # plugin-scout, vercel-skills-scout MOVED 2026-09-14 into stack-scan as skills of the
   # same names behind one /stack-scan:suggest command; only the PLUGIN forms are stale.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout'
+  # theme-design, design-lab MOVED 2026-09-14 into design-studio (a rename plus a merge):
+  # the skills keep their names (design-session, real-preview), the commands are
+  # /design-studio:init|export|preview and the working dir is .design-studio/. Only the
+  # PLUGIN forms are stale; `.theme-design/` in an old changelog line matches no shape.
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick

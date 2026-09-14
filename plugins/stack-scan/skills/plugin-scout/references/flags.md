@@ -67,7 +67,7 @@ rule and the typed-token rule; this section does not restate them.
 
 - What it includes, by name so no later reader has to infer it: every
   **any-stack** leaf whether or not its signal fired — the four stack-bound leaves
-  (`laravel`, `web-dev`, `craft-layer`, `design-lab`)
+  (`laravel`, `web-dev`, `craft-layer`, `design-studio`)
   follow `references/stack-relevance.md` and are the only tier-1 or tier-3 rows
   `--full` can skip. Any-stack covers the whole of tier 2 and, from tier 3, the
   process/pipeline group (taskmaster, task-runner, orchestration, approaches),
@@ -98,7 +98,7 @@ rule and the typed-token rule; this section does not restate them.
   - One count line for the bundles and `stack-scan` (by construction).
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names
-    (ui-ux / craft-layer / design-lab, taskmaster / task-runner / orchestration,
+    (ui-ux / craft-layer / design-studio, taskmaster / task-runner / orchestration,
     web-dev / laravel) that are in the set. Named, not resolved — the picker was
     the only place overlap was surfaced and it does not run here.
   - `Hooks added:` hook-bearing plugins grouped by event — every event key present
@@ -108,7 +108,7 @@ rule and the typed-token rule; this section does not restate them.
     writing; recount, never quote). `secret-scanning` and `command-guard` are
     always named, as under `--yes`: the user did not see a picker for them.
   - `MCP servers added:` each server from a plugin's `.mcp.json`, marked local or
-    remote with its URL — `design-lab` ships a hosted `https://mcp.reui.io` endpoint
+    remote with its URL — `design-studio` ships a hosted `https://mcp.reui.io` endpoint
     that needs a browser sign-in, and a remote server is a trust decision the plan
     must show before the confirm.
   - The listing-cap paragraph, last, because it is the one line most likely to

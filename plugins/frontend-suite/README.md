@@ -5,7 +5,7 @@ web-dev (Next.js, React Native and Vite skills, the generalist worker and the
 opus-floored frontend-reviewer), file-aware skill
 auto-routing, the WCAG audit inside ui-ux, and code-review (the review fan-in
 plus comment discipline: the no-comment default and its write-time denies).
-Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-lab) moved to the craft-suite bundle, so
+Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-studio) moved to the craft-suite bundle, so
 ordinary frontend app work does not pay the studio's always-on context.
 Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and
 prunes the plugins it auto-installed.
@@ -71,7 +71,7 @@ One bullet per bundled plugin, in dependency order (4):
 ## Pairs well with
 
 - **craft-suite** — the creative-build studio half: craft-layer's design
-  pipeline and motion catalog, design-lab's preview and registry MCP
+  pipeline and motion catalog, design-studio's preview and registry MCP
 - **laravel** — the backend that Inertia frontends sit on
 - **resilience** — `/resilience:review --concern performance`, hotspot and cache-correctness review beyond the UI layer
 - **testing** — test review for the components these stacks produce

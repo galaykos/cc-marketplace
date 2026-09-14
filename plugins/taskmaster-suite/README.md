@@ -87,7 +87,7 @@ several are near-core — `code-review` and `git-workflow` especially — but a
 bundle that cannot surface its own members' descriptions is not doing them a
 favour by listing them. Take the ones your work actually needs.
 
-Still excluded for the older reasons: **design-lab** (real-component preview)
+Still excluded for the older reasons: **design-studio** (design session, real-component preview, registry MCP)
 — the optional full-fidelity escalation above taskmaster's built-in mockup
 preview, a "when installed" upgrade and stack-specific; **laravel** and the
 other stack plugins — stack-specific; **secret-scanning** — hook-heavy and
@@ -103,4 +103,4 @@ research harness, opt-in.
 ## Pairs well with
 
 - **php-suite** — PHP/Laravel/Inertia stack specifics the bundle leaves out
-- **frontend-suite** — React/Vue/TS framework specifics left out of this bundle; its sibling **craft-suite** carries the design-lab real-component fidelity escalation
+- **frontend-suite** — React/Vue/TS framework specifics left out of this bundle; its sibling **craft-suite** carries the design-studio real-component fidelity escalation

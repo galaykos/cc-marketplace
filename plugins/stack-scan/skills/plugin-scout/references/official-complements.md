@@ -44,7 +44,7 @@ nothing local replaces it (`context7`).
 | `typescript-lsp` <!-- removed-ok --> | `tsconfig.json` or `package.json` dep `typescript` | Language-server code intelligence (definitions, references, diagnostics) via an `lspServers` entry; needs `npm i -g typescript-language-server typescript` | none |
 | `php-lsp` | `composer.json` | Same, via Intelephense; needs `npm i -g intelephense` | none |
 | `pyright-lsp`, `gopls-lsp`, `rust-analyzer-lsp`, `jdtls-lsp`, `kotlin-lsp`, `ruby-lsp`, `swift-lsp`, `clangd-lsp`, `csharp-lsp`, `lua-lsp` | `pyproject.toml` / `go.mod` / `Cargo.toml` / `build.gradle*` or `pom.xml` / `*.kt` / `Gemfile` / `Package.swift` / `CMakeLists.txt` / `*.csproj` / `*.lua` | The same mechanism for a stack this marketplace does not cover; print only the one the manifest earned | none — pairs with the `stack-scan` row in `signals.md` |
-| `playwright` | dep `@playwright/test` or `playwright`, or `playwright.config.*` | Microsoft's open-source browser MCP: navigate, click, fill, screenshot, so e2e and visual checks run from the session | `testing` carries Playwright doctrine only; `design-lab` defers screenshots to the host browser |
+| `playwright` | dep `@playwright/test` or `playwright`, or `playwright.config.*` | Microsoft's open-source browser MCP: navigate, click, fill, screenshot, so e2e and visual checks run from the session | `testing` carries Playwright doctrine only; `design-studio` defers screenshots to the host browser |
 | `serena` | more than ~500 source files, or an LSP row above fired | Open-source LSP-backed MCP for symbol-level navigation and refactoring; needs `uvx` | `brain` is a committed markdown map built by grep, complementary rather than duplicate |
 | `context7` (hosted, Upstash) | any `package.json` or `composer.json` | Version-pinned library docs over a remote MCP; the only row here that calls a third-party service, kept because nothing local supplies live docs | `api-design:api-docs-first` mandates verifying docs against the locked version but ships no source; this is the source it asks for |
 | `ralph-loop` | opt-in, never by signal | A Stop-hook loop that re-feeds one prompt until a literal completion promise appears, with a max-iteration cap | `task-runner` bounds its inner loop by design; installing both is a doctrine conflict the user must choose deliberately |
@@ -78,7 +78,7 @@ as a suggestion, because installing both loads two doctrines for one job.
   keeps its authoring doctrine as project skills of its own repository, not as a
   plugin, so `plugin-dev` is the one to install for plugin authoring elsewhere.
 - `skill-creator` — Claude Code now ships this as a built-in skill; nothing to install.
-- `playground` — single-file HTML control panels; `design-lab:preview` and
+- `playground` — single-file HTML control panels; `design-studio:preview` and
   `taskmaster:visual-decisions` render against the project's own components.
 - `explanatory-output-style`, `learning-output-style` — SessionStart persona
   injections; orthogonal to `terse`, not a gap, and each costs tokens every turn.

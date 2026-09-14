@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3 — 2026-09-14
+
+- `scripts/capability-scan.sh` and `references/capability-map.md`: the shape row
+  lists design-studio in place of design-lab and theme-design, which were merged
+  into it. No behaviour change beyond the name.
+
 ## 0.4.2 — 2026-09-14
 
 - `scripts/capability-scan.sh` and `references/capability-map.md`: the understand row

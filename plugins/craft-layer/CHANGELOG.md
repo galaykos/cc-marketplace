@@ -7,6 +7,14 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.5
+
+### Changed
+- Preview hand-offs name `/design-studio:preview` and the registry MCP is
+  design-studio's — theme-design and design-lab were merged into that plugin
+  (2026-09-14 consolidation plan). Fallback order is unchanged: a running design
+  session, then the real-component preview, then taskmaster's shell mockup.
+
 ## 0.49.4
 
 ### Changed
@@ -59,7 +67,7 @@ than an honest starting point.
 
 ### Changed
 - Every staging hand-off (`/craft-layer:craft`, `/craft-layer:sections`,
-  `section-decisions`, README) names `/design-lab:preview` alone; `/design-lab:stage`
+  `section-decisions`, README) names `/design-lab:preview` alone; `/design-lab:stage` <!-- removed-ok -->
   was removed from design-lab 0.2.0. Greenfield decisions degrade to
   `taskmaster:visual-decisions` as they already did without design-lab.
 

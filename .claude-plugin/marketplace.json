@@ -80,6 +80,11 @@
       "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — loaded by the code-review fan-in from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill."
     },
     {
+      "name": "design-studio",
+      "source": "./plugins/design-studio",
+      "description": "Design in the browser, decide with real components, source from registries. /design-studio:init opens a design session — chat, select, drag, resize, edit text and pick colours on HTML prototypes or your running dev server, with this Claude Code session applying every gesture to real files and live-reloading; skins show one wireframe in the feel of shadcn, Bootstrap, MUI or Astryx (lookalikes, never the library); /design-studio:export writes tokens, pages and a brief. /design-studio:preview renders 2-3 variants with the project's OWN components on its dev server, consent-gated, cleaned up after. Two MCP servers read the Aceternity, shadcn, Magic UI and ReUI registries live, never from memory."
+    },
+    {
       "name": "devops",
       "source": "./plugins/devops",
       "description": "Infrastructure in one plugin: CI/CD ordering, container/image hygiene, Kubernetes limits and probes, deploy strategy with rollback, and secrets handling (devops-practices); Dockerfile and compose discipline (docker-best-practices); and local dev environments generated from evidence — manifests, lockfiles, .env DSNs, CI images — via /devops:init (compose-init). One /devops:review loads the Docker skill when a Dockerfile or compose file is in scope, backed by a PreToolUse guard on workflow files and a devops-engineer worker + devops-reviewer pair. Owns infra-layer observability wiring; defers in-code instrumentation to resilience's observability skill."
@@ -127,12 +132,12 @@
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-studio — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
-      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog (craft-layer), visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-lab) — WebGL/Three.js effects now ship inside craft-layer — plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer); browser design sessions, visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-studio); plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "php-suite",
@@ -193,16 +198,6 @@
       "name": "terse",
       "source": "./plugins/terse",
       "description": "Chat-message brevity as a shape contract, not a word filter: prose-line budgets per turn kind, a fixed work-done skeleton (verdict → artifacts → max 5 findings → blocker → next), and a named cut list. Levels lite/full/ultra plus wenyan (classical-Chinese novelty) variants, hook-reinforced each turn. Out of scope: code, files written, subagent prompts, and how much work a turn does. Ships /terse:commit, /terse:compress, /terse:check, three compressed-return agents, and an opt-in MCP catalog shrinker."
-    },
-    {
-      "name": "design-lab",
-      "source": "./plugins/design-lab",
-      "description": "See real components before deciding: /design-lab:preview renders 2-3 candidate variants with the project's OWN components on its own dev server (Vite React/Vue/Nuxt or Laravel Blade/Livewire, scratch surface removed at cleanup, strict consent gate, shell-mockup fallback for greenfield); and two MCP servers read component registries from the source, never from memory — a dependency-free local one for Aceternity, shadcn and Magic UI (24h-cached, every answer carrying its source URL, fetch date and stale flag, 3D/particle runtimes flagged) plus ReUI's own hosted server, delivered by install and authenticated by the user's own browser sign-in."
-    },
-    {
-      "name": "theme-design",
-      "source": "./plugins/theme-design",
-      "description": "Interactive UI, theme and prototype design in the browser, driven by this Claude Code session on the subscription: /theme-design:init serves standalone HTML prototypes or your running dev server with a chat + direct-manipulation editor injected (select, move, resize, edit text, pick colours), Claude long-polls the local bridge, applies every gesture to real files (tokens.css, pages, or project source), replies in-panel and live-reloads; multi-page flows walked with a Go tool and recorded in flow.json for the brief; a skin selector shows the same wireframe in the feel of shadcn, Bootstrap, MUI or Astryx (lookalikes, never the library) and a rich dial adds imagery, chart shapes, depth and motion on the same files; /theme-design:export writes tokens, pages, a design brief and optionally the project's theme file."
     }
   ]
 }

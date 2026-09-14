@@ -26,7 +26,7 @@ convention.
    the one the project has rather than beside it; the UI layer is library-agnostic and no
    skill here gets to pick a second one.
 
-2. When the stack is ReUI or Aceternity and design-lab's registry-source MCP tools
+2. When the stack is ReUI or Aceternity and design-studio's registry-source MCP tools
    are available (`registry_search` / `registry_get` — load via ToolSearch), query
    them BEFORE proposing or writing any component: real current names, props, and
    install commands come from the registry, never from memory — reciting a
@@ -71,7 +71,7 @@ convention.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to
-   `/design-lab:preview` when installed, else fall back
+   `/design-studio:preview` when installed, else fall back
    to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
    via ASCII options inline — so the choice is made on concrete mockups without dead-ending
    on a missing command. Headless: take the decided lines above as binding, resolve what

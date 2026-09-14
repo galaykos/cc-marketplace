@@ -4,6 +4,14 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.1
+
+### Changed
+- plugin-scout references (`signals.md`, `stack-relevance.md`, `picker.md`, `flags.md`,
+  `official-complements.md`) suggest `design-studio` where they suggested
+  design-lab — theme-design and design-lab were merged into it (2026-09-14
+  consolidation plan). `catalog.md` regenerated.
+
 ## 0.7.0
 
 ### Added
