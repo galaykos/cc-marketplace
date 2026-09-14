@@ -112,7 +112,7 @@ live. Loop instead:
    Stop at **3 rounds** regardless — a capped-at-3-rounds ceiling, whichever comes
    first. Two-dry is the quality exit; the cap is the bound that keeps a diff which
    keeps surfacing findings from looping forever. Consumers that already state a cap
-   (`taskmaster:ultra`, `orchestration:ultra-assess`) match this; consumers that
+   (`taskmaster:ultra`, `task-runner:ultra-assess`) match this; consumers that
    re-derive their own loop do not inherit it.
 
 The dedup rule is load-bearing. Dedup against confirmed findings only,

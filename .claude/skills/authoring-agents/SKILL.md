@@ -30,7 +30,7 @@ missing one of the four required keys:
 - `effort:` — required here even though agents default to xhigh.
 
 **A pinned agent needs a fifth thing: a classification.** If `model:` is anything other than
-`inherit`, the validator requires either a row in `orchestration:delegation-contracts`
+`inherit`, the validator requires either a row in `task-runner:delegation-contracts`
 `references/role-floors.md` (the pin is a FLOOR — dispatch at `max(session, pin)`, never
 below) **or** `floor: none` plus a non-empty `floor-reason:` in the frontmatter (the pin is
 deliberate and must NOT track the session). A row and `floor: none` together is an error —

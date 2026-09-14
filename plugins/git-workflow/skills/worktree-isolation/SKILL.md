@@ -131,7 +131,7 @@ harness via `EnterWorktree`, or a live `task-runner --tracks` run holding its
 `<run-branch>-track-*` trees until the final gate — is not yours to remove, and
 `git worktree list` is the check that tells you which is which.
 
-Per-agent worktrees for parallel subagent WRITERS are the orchestration
+Per-agent worktrees for parallel subagent WRITERS are the task-runner
 plugin's delegation-contracts skill; this skill covers feature branches.
 
 ## Anti-patterns

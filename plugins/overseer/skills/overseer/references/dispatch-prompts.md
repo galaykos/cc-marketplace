@@ -1,6 +1,6 @@
 # Dispatch prompts — the brief, the worker, the reviewer, the browser tester
 
-The orchestrator's prompt is the only thing a delegate ever sees. When `orchestration`
+The orchestrator's prompt is the only thing a delegate ever sees. When `task-runner`
 is installed, `cat` its `delegation-contracts/references/discipline-preamble.md` into the
 prompt — never retype it; a retyped preamble shed one clause per dispatch in the first
 simulation. Write each prompt to `milestones/<id>/dispatch/<n>.md` and run

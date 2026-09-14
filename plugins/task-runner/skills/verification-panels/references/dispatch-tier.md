@@ -13,9 +13,9 @@ boost; the override belongs to dispatch.
 effort knob, so inline dispatch escalates the model only — a contract that promises
 `effort=xhigh` inline is promising something the tool cannot do.
 
-Consumers — `taskmaster:ultra`, `orchestration:ultra-assess`, `craft-layer:ultra-craft`
+Consumers — `taskmaster:ultra`, `task-runner:ultra-assess`, `craft-layer:ultra-craft`
 — cite this file. Each keeps only what is genuinely its own: taskmaster the goal-mode
-ledger and the `Ultra:`/`Goal:` index markers, orchestration the assessment recipe and
+ledger and the `Ultra:`/`Goal:` index markers, task-runner (orchestration until 2026-09-14) the assessment recipe and
 its "never emits task cards" rule, craft-layer the six bindings and the live-research
 mandate.
 
@@ -67,7 +67,7 @@ strings agree.
 
 ## Residual: no cross-plugin activation guard
 
-`taskmaster`, `orchestration` and `craft-layer` install independently, declare no
+`taskmaster`, `task-runner` and `craft-layer` install independently, declare no
 dependencies on each other, and share no writable location — each hook is a separate
 process holding only its own `$CLAUDE_PLUGIN_ROOT`. A prompt naming two boost tokens
 injects both directives and **nothing can stop it**. `ultra-craft` carries a one-line

@@ -70,7 +70,7 @@ rule and the typed-token rule; this section does not restate them.
   (`laravel`, `web-dev`, `craft-layer`, `design-studio`)
   follow `references/stack-relevance.md` and are the only tier-1 or tier-3 rows
   `--full` can skip. Any-stack covers the whole of tier 2 and, from tier 3, the
-  process/pipeline group (taskmaster, task-runner, orchestration, approaches),
+  process/pipeline group (taskmaster, task-runner, approaches),
   the session-wide group (candor, lean, hindsight and
   skill-router — the four `references/any-core.md` routes to `--global` for `--yes`;
   `--full` is the flag that bullet does not bind) and the research/tooling group
@@ -98,7 +98,7 @@ rule and the typed-token rule; this section does not restate them.
   - One count line for the bundles and `stack-scan` (by construction).
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names
-    (ui-ux / craft-layer / design-studio, taskmaster / task-runner / orchestration,
+    (ui-ux / craft-layer / design-studio, taskmaster / task-runner,
     web-dev / laravel) that are in the set. Named, not resolved — the picker was
     the only place overlap was surfaced and it does not run here.
   - `Hooks added:` hook-bearing plugins grouped by event — every event key present

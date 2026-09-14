@@ -118,7 +118,7 @@ than an honest starting point.
 - **`ultra-craft` names the owning copy of the dispatch-tier rule.** The rule is
   restored inline (0.47.8) because craft-layer does not depend on orchestration and the
   hook that carries it exits on slash prompts; this adds the provenance line pointing at
-  `orchestration:verification-panels` `references/dispatch-tier.md`, which is where the
+  `orchestration:verification-panels` `references/dispatch-tier.md`, which is where the <!-- removed-ok -->
   marketplace states it once. The original citation named § Panel width, which owns
   panel width N and states none of it.
 
@@ -128,7 +128,7 @@ than an honest starting point.
 - **`ultra-craft` regains the `auto` model-resolution rule** — `haiku < sonnet <
   opus < fable`, escalate never downgrade, `effort` settable only on the Workflow
   `agent()` path. Deleted at `8899d48` ("would not fit twice under the 150-line
-  ceiling") and replaced by a pointer to `orchestration:verification-panels` §
+  ceiling") and replaced by a pointer to `orchestration:verification-panels` § <!-- removed-ok -->
   Panel width. **That pointer never resolved**: the named section owns panel width
   N and contains no mention of `haiku`, `auto` or downgrading. Meanwhile the body
   at `:43` orders "substitute `<model>` with the RESOLVED tier, never the word

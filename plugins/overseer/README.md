@@ -54,7 +54,7 @@ The overseer writes prompts; other plugins do the work. `capability-scan.sh` rep
 phase what is installed, and the skill's `references/capability-map.md` names the inline
 fallback for each gap. Best with `taskmaster` (grill → spec → cards; `ultra` for the boost,
 `goal-lean`/`goal` for hands-off by rigour), `task-runner` (scope-locked execution, `--tracks`), `git-workflow` (branch
-finish), `orchestration` (delegation contracts), the stack plugins (`laravel`, `web-dev`,
+finish), `task-runner` (delegation contracts), the stack plugins (`laravel`, `web-dev`,
 `ui-ux`, `testing`, `security`) and the official `playwright` plugin or the Chrome MCP for
 the browser walk. With none of them it still runs: specs, cards and reviews inline, workers
 dispatched directly — weaker, and said so in the charter.

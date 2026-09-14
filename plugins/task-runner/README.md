@@ -16,6 +16,30 @@ full-suite completion gate.
 | Command | What it does |
 |---------|--------------|
 | `/task-runner:run [tasks-dir-index-or-list] [--tracks[=N]] [--crew] [--sweep]` | Execute a task list — a taskmaster `00-INDEX.md`, a plan's task sequence, or an inline list |
+| `/task-runner:plan [task-or-list]` | The computed subagents-vs-inline verdict: dependency levels, agent count, speedup estimate |
+
+## Subagent discipline
+
+The orchestration plugin was merged into this one on 2026-09-14: it shipped no
+agent, and every one of its readers was already here. Two skills load on demand —
+**delegation-contracts** when dispatching subagents, writing an agent prompt or
+reading a report back (self-contained prompts, compressed evidence-backed returns,
+model/effort tiering, scout-then-fanout, writer isolation, the role-floor registry
+in `references/role-floors.md`, the tree-wide gate an orchestrator runs after
+fan-in in `references/tree-wide-gates.md`), and **verification-panels** when
+deciding whether an agent's findings can be trusted or judging competing attempts
+(refuter voting, judge panels, loop-until-dry, completeness critic). The
+`ultra-assess` boost hook is armed by writing "ultra-assess" in a prompt: it
+injects the Extreme Boost directive for assessment-shaped runs (inventory, audit,
+gap-analysis) and points at `verification-panels/references/ultra-assess.md`.
+
+What has teeth there: the four string-checkable prompt-contract elements
+(absolute path, scope lock, return shape, data-not-prose closer) are checked by
+`scripts/dispatch-lint.sh` — run it over any drafted prompt file before
+dispatch; a fixture harness runs in CI. Whether the scope lock locks the RIGHT
+scope stays agent-graded. Orchestration's review command, which used to wrap
+the lint, was retired with the merge: it reviewed prompts, not code, and the
+lint plus the skill's own checklist are what it ran.
 
 ## Which model runs your cards
 
@@ -25,7 +49,7 @@ full-suite completion gate.
   at `max(marker tier if present ELSE the session model, its floor)` — so a reviewer pinned to
   a stronger tier is never weaker than the session that wrote the code, and never caps it
   either. Registry and full rule:
-  `plugins/orchestration/skills/delegation-contracts/references/role-floors.md`.
+  `plugins/task-runner/skills/delegation-contracts/references/role-floors.md`.
 - **A boost raises further.** An `Ultra: true` / `Goal: true` marker in `00-INDEX.md` carries a
   `(model=…, effort=…)` tier into execution; workers and reviewers are dispatched at it. A
   `Goal: true (boost=off)` marker (taskmaster `goal-lean`, since 0.32.0) raises nothing and

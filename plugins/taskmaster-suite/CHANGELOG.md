@@ -3,6 +3,13 @@
 Consumer-facing changes only. Newest first. Started at 0.17.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.19.0
+
+### Changed
+- `orchestration` merged into `task-runner` on 2026-09-14 (consolidation plan §3.1); <!-- removed-ok -->
+  the bundle lists 10 members and loses nothing — the two skills, the lint and the
+  ultra-assess hook ship in task-runner.
+
 ## 0.18.0
 
 ### Added

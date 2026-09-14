@@ -286,7 +286,7 @@ for f in plugins/*/agents/*.md; do
       || err "$f: bestpractices-skill '$d' has no matching plugins/*/skills/$d"
   done
 done
-DC=plugins/orchestration/skills/delegation-contracts/SKILL.md
+DC=plugins/task-runner/skills/delegation-contracts/SKILL.md
 if [ -f "$DC" ]; then
   { grep -q 'Skill priming' "$DC" && grep -q 'find ~/.claude/plugins' "$DC"; } \
     || err "$DC: skill-priming doctrine (resolve+inject) missing"
@@ -834,7 +834,7 @@ done
 # `done < <(...)` not `| while read` (a subshell would discard fail=1), grep -qxF
 # not `case` (a key containing * would glob-match in pattern position), and bash
 # 3.2 / BSD-safe constructs only.
-RF=plugins/orchestration/skills/delegation-contracts/references/role-floors.md
+RF=plugins/task-runner/skills/delegation-contracts/references/role-floors.md
 rf_rows=""; rf_keys=""; rf_ok=1; rf_exempt=""
 if [ -f "$RF" ]; then
   rf_rows=$(awk '/^```/{f=!f; next} f' "$RF" | grep -v '^[[:space:]]*$' || true)

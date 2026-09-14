@@ -121,7 +121,7 @@ TIER 3 — no signal in this repo (40)
   | Row | Overlaps |
   |---|---|
   | `ui-ux` | `craft-layer`, `design-studio` |
-  | `taskmaster` | `task-runner`, `orchestration` |
+  | `taskmaster` | `task-runner` |
   | `web-dev` | `laravel` |
 
   A row on no pair is never annotated. A deprioritized row sorts last within its

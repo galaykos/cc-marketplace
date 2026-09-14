@@ -2,6 +2,28 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.34.0
+
+### Added
+- **orchestration merged in** (2026-09-14 consolidation plan §3.1): the
+  `delegation-contracts` and `verification-panels` skills with every reference
+  (role-floors, discipline-preamble, fleet-and-apply, tree-wide-gates,
+  dispatch-tier), `scripts/dispatch-lint.sh` with its harness, and the `ultra-assess`
+  boost hook re-rendered from the boost-hook chassis as `task-runner:ultra-assess`
+  (`ORCHESTRATION_BOOST` keeps its name). Every `orchestration:<skill>` citation in
+  the marketplace now reads `task-runner:<skill>`; the role-floors resolution ladder
+  probes this plugin's own root first. `lane.tsv` rows for both skills.
+
+### Changed
+- The `ultra-assess` skill body is `skills/verification-panels/references/ultra-assess.md`:
+  the boost hook's directive names the path, so a listing entry was a second trigger
+  for the same text.
+
+### Removed
+- Orchestration's review command. It reviewed prompts, not code; what it ran mechanically
+  (`dispatch-lint.sh`) ships here, and its eight-point checklist is the
+  delegation-contracts skill's own § Prompt contract.
+
 ## 0.33.0
 
 ### Removed

@@ -11,7 +11,7 @@
 # and the regenerated `command -v jq || exit 0` guard. Companion to (and does NOT touch)
 # scripts/smoke/guard-tests.sh, which covers the authoring-guard.
 #
-# Second section: the three BOOST hooks (taskmaster ultra.sh, orchestration
+# Second section: the three BOOST hooks (taskmaster ultra.sh, task-runner
 # ultra-assess.sh, craft-layer ultra-craft.sh). Same guard question, opposite default —
 # a boost hook must SPEAK on a real invocation and stay silent on a pasted banner. The
 # regression it pins: the self-echo guard was `ultra-?[a-z]+ +active`, which also matched
@@ -212,7 +212,7 @@ boost_found=0
 for spec in \
   "taskmaster/hooks/ultra.sh|ultra-task|ULTRA-TASK ACTIVE" \
   "taskmaster/hooks/ultra.sh|ultra-goal|ULTRA-GOAL ACTIVE" \
-  "orchestration/hooks/ultra-assess.sh|ultra-assess|ULTRA-ASSESS ACTIVE" \
+  "task-runner/hooks/ultra-assess.sh|ultra-assess|ULTRA-ASSESS ACTIVE" \
   "craft-layer/hooks/ultra-craft.sh|ultra-craft|ULTRA-CRAFT ACTIVE"
 do
   rel="${spec%%|*}"; rest="${spec#*|}"; tok="${rest%%|*}"; banner="${rest#*|}"

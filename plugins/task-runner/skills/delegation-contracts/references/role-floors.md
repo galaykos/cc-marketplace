@@ -73,12 +73,14 @@ stands. Effort remains a `Workflow`-path concern.
 
 ## Resolving this file
 
-It lives in `orchestration`, which a consumer plugin may not have installed. Probe in order:
+It lives in `task-runner` (in `orchestration` until 2026-09-14), which a consumer
+plugin may not have installed. Probe in order:
 
-1. `${CLAUDE_PLUGIN_ROOT}/../orchestration/skills/delegation-contracts/references/role-floors.md`
-2. `find ~/.claude/plugins/cache -path '*/delegation-contracts/references/role-floors.md'`
-3. `plugins/orchestration/skills/delegation-contracts/references/role-floors.md`
-4. Miss → omit `model:` and log one line on the dispatch site's own output surface (a
+1. `${CLAUDE_PLUGIN_ROOT}/skills/delegation-contracts/references/role-floors.md` (task-runner itself)
+2. `${CLAUDE_PLUGIN_ROOT}/../task-runner/skills/delegation-contracts/references/role-floors.md`
+3. `find ~/.claude/plugins/cache -path '*/delegation-contracts/references/role-floors.md'`
+4. `plugins/task-runner/skills/delegation-contracts/references/role-floors.md`
+5. Miss → omit `model:` and log one line on the dispatch site's own output surface (a
    task-runner run report, else the run's status output):
    `role-floors.md unresolved — floors not applied`
 

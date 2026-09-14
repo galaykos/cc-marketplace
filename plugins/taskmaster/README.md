@@ -103,7 +103,7 @@ Three rules that catch people out:
 Without any `Workflow` path every fan-out phase degrades to a single inline agent,
 reported as `inline heuristic pass — single model, uncorroborated` — never as a panel.
 Full rules, including the workflow-size ceiling and why interactive phases never fan
-out: the `orchestration` plugin's `verification-panels` skill,
+out: the `task-runner` plugin's `verification-panels` skill,
 `references/dispatch-tier.md` § Native harness interop.
 
 ## Ultra-goal — hands-off mode

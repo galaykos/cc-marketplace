@@ -79,7 +79,7 @@ consumes nothing else and holds no opinion about the code.
   choice — on approval only. No `/brain index` is needed after a note; the indexer
   carries `## Notes` over verbatim when it rewrites an area.
 
-**Consumers (read `brain/INDEX.md`):** taskmaster's `context-scout` and orchestration's
+**Consumers (read `brain/INDEX.md`):** taskmaster's `context-scout` and task-runner's
 `delegation-contracts` hand readers the map as an orientation prior and trust the code
 over a stale map; git-workflow's `branch-completion` offers `/brain index` at finish when
 the `built:` stamp is behind the merged result.

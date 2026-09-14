@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+
+- `lane.tsv` comment names `approaches:consult-remind` as the prompt-time nudge on
+  irreversible tokens — fresh-take merged into approaches on 2026-09-14. No
+  behaviour change.
+
 ## 0.5.2
 
 ### Added

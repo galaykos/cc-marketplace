@@ -1,8 +1,9 @@
 # taskmaster-suite
 
 Meta-bundle: the clarification-to-execution pipeline and only what it dispatches
-into — taskmaster planning, task-runner execution, orchestration,
-code-architecture, approaches, stack-scan, skill-router and candor (the Stop
+into — taskmaster planning, task-runner execution (carrying the delegation
+contracts and verification panels; the orchestration plugin was merged into it
+on 2026-09-14), code-architecture, approaches, stack-scan, skill-router and candor (the Stop
 gate that holds a run to its gate pass), plus the ui-ux, testing and security
 lanes its cards route to. Trimmed from 32 members to 10 on
 2026-08-31 so the bundle fits the host's skill-listing budget; see "What's
@@ -47,7 +48,6 @@ text that was previously being evicted.
 
 - **taskmaster** — clarification-to-spec pipeline: grill, brainstorm, red-team, coverage, task cards (`/taskmaster:task`)
 - **task-runner** — executes task lists with scope lock and bounded verify-fix loops (`/task-runner:run`)
-- **orchestration** — delegation contracts and verification panels for fan-outs
 - **code-architecture** — plan-before-code, SOLID/YAGNI audits, work verification
 - **approaches** — compares structurally different approaches before implementation; also owns the merged build-vs-buy, estimation, rollout, and pattern-selection disciplines
 - **stack-scan** — inventories what is actually installed before version-dependent advice

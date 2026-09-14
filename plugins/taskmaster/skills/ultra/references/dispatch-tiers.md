@@ -6,7 +6,7 @@ lines: *reasoning roles get the boost, mechanical/breadth roles stay native*
 
 The boost tier (`model:<model>`, and `effort:<effort>` on the Workflow path) is
 an **override you apply to the depth stages**, not a blanket the whole run wears.
-This is not a new policy — it is `orchestration:delegation-contracts`' own rule:
+This is not a new policy — it is `task-runner:delegation-contracts`' own rule:
 tiering is *per-stage, not per-run* (one pipeline dispatches a cheap scout,
 mid workers, an expensive judge), and its first anti-pattern is "uniform model
 for every stage — judge-tier prices for a rename sweep." Flat-escalating every
@@ -35,7 +35,7 @@ The converse also holds, and it applies **unboosted** as well: for a Reasoning-c
 agent a `model:` pin is a **floor**, not a ceiling — dispatch it at
 `max(marker tier if present ELSE the session model, its floor)` so a pinned judge is
 never weaker than the session that wrote the code. The registry of which agents carry a
-floor, and the full rule, live in `orchestration:delegation-contracts`
+floor, and the full rule, live in `task-runner:delegation-contracts`
 `references/role-floors.md` — the authoritative roster of which pins floor and which are
 exempt; do not maintain a second copy of that list here. The boost's "declines to raise"
 behavior above is unchanged; breadth/mechanical pins carry no floor by design.
@@ -55,7 +55,7 @@ blast radius; the mandatory phases still always run — sizing tunes N, never dr
 a phase to zero.
 
 The **Red-team panel** column below is not owned here: panel width is
-`orchestration:verification-panels` § Panel width, and this table maps taskmaster's
+`task-runner:verification-panels` § Panel width, and this table maps taskmaster's
 radius rows onto it. Recon lenses and the coverage loop ARE owned here — they are
 pipeline phases no other plugin runs. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
@@ -103,7 +103,7 @@ two compatible:
 - **Shrink, never drop, and say so.** A stage that cannot fit shrinks toward its inline
   fallback (down to N=1); red-team and coverage still always run. `log()` the shrink and the
   deferred count — a silent truncation reads as full coverage, which is exactly the
-  over-claim the honest-limitation law forbids. (`orchestration:verification-panels`
+  over-claim the honest-limitation law forbids. (`task-runner:verification-panels`
   `references/dispatch-tier.md` § Native harness interop owns this rule for all three boosts.)
 
 ## What does NOT change

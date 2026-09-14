@@ -84,7 +84,7 @@ hands accessibility to `/ui-ux:audit` and design-system concerns to ui-ux's revi
 ## Model tiers — why the reviewer is floored
 
 `frontend-reviewer` pins `model: opus` as a **floor** (row in
-`orchestration:delegation-contracts` `references/role-floors.md`): dispatch runs it at
+`task-runner:delegation-contracts` `references/role-floors.md`): dispatch runs it at
 `max(session model, opus)`. In an Opus or Fable session that changes nothing. In a
 Sonnet session the verdict is still produced by an Opus-class judge, which is the
 mechanism this marketplace uses to keep review quality constant while the session

@@ -32,7 +32,7 @@ for _f in CLAUDE.md README.md skills-lock.json; do
 done
 cd "$MIRROR" || exit 2
 
-RF=plugins/orchestration/skills/delegation-contracts/references/role-floors.md
+RF=plugins/task-runner/skills/delegation-contracts/references/role-floors.md
 CR=plugins/code-review/agents/code-reviewer.md
 HOST=plugins/debugging/agents
 SX="$HOST/_rf_scratch_x.md"

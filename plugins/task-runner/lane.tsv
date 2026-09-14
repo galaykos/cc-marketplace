@@ -4,4 +4,9 @@
 # yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 task-runner:task-executor	agent	build	decided-fix-list-application	a fix list or card list exists whose changes are already decided, plus a scope lock	-
+task-runner:delegation-contracts	skill	any	subagent-dispatch-contract	spawning a subagent, writing an agent prompt, planning a fan-out, or reading a subagent report back	-
+task-runner:verification-panels	skill	verify	agent-output-trust-decision	deciding whether agent findings can be trusted, judging competing solutions, or discovery may have stopped too early	-
 task-runner:drift	hook	any	ad-hoc-breadth-question	PostToolUse with no scope.json, >=12 distinct files edited since the last typed request, no breadth marker in it, and half of them unnamed	-
+# generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
+task-runner:ultra-assess	hook	any	ultra-assess-boost-directive	prompt head matches ultra-?assess(ment)? with no negation and no active-banner echo	-
+# generated:end

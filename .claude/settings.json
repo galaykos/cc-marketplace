@@ -42,7 +42,6 @@
     "database@cc-plugins-marketplace": true,
     "approaches@cc-plugins-marketplace": true,
     "resilience@cc-plugins-marketplace": true,
-    "orchestration@cc-plugins-marketplace": true,
     "skill-router@cc-plugins-marketplace": true,
     "brain@cc-plugins-marketplace": true,
     "secret-scanning@cc-plugins-marketplace": true,

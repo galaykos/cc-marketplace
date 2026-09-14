@@ -65,17 +65,17 @@ one the model may never follow.
 
 | Rule | Owner |
 |---|---|
-| Never two writers on one file | `orchestration:delegation-contracts` |
+| Never two writers on one file | `task-runner:delegation-contracts` |
 | Topo-sort into levels, then group disjoint file sets | `task-runner:parallel-planning` |
 | The fresh-session test | `taskmaster:task-cards` |
 | A subagent's "done" is a claim, not evidence | `task-runner:task-execution` |
-| Panel WIDTH (how many refuters) | `orchestration:verification-panels` § Panel width |
+| Panel WIDTH (how many refuters) | `task-runner:verification-panels` § Panel width |
 
-The split is by ACT, not by plugin convenience: delegation mechanics to orchestration,
+The split is by ACT, not by plugin convenience: delegation mechanics to delegation-contracts,
 execution-time scheduling to task-runner, card authoring to taskmaster.
 
 Panel width moved here from `taskmaster/skills/ultra/references/dispatch-tiers.md`,
-which orchestration's own review command used to cite as the sizing authority — the
+which orchestration's review command (retired 2026-09-14) used to cite as the sizing authority — the
 plugin that owns panels was deferring panel width into a consumer. `dispatch-tiers`
 still owns recon lenses and the coverage loop; those are pipeline phases no other
 plugin runs.

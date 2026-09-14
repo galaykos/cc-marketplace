@@ -12,7 +12,7 @@
 #
 # Exit 0: all four present. Exit 1: each missing element printed.
 # Residual: presence-of-phrase, not quality-of-contract — a scope lock that
-# locks the wrong scope passes. /orchestration:review judges that part.
+# locks the wrong scope passes. The delegation-contracts skill's reader judges that part.
 set -u
 
 input=$(cat "${1:-/dev/stdin}") || exit 2

@@ -442,7 +442,12 @@ pc_removed_refs() {
   # PLUGIN forms are stale; `.theme-design/` in an old changelog line matches no shape.
   # fresh-take MOVED 2026-09-14 into approaches: the consult skill, the consultant agent
   # and the reminder keep their names; /approaches:consult is the command.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take'
+  # orchestration MOVED 2026-09-14 into task-runner: delegation-contracts and
+  # verification-panels keep their names, ultra-assess became a reference of the
+  # latter, /orchestration:review was retired. Bare "orchestration" is ordinary
+  # English (scroll orchestration, track-orchestration) and the hyphen boundary
+  # keeps those skill names out of every shape.
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take|orchestration'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick
@@ -1219,7 +1224,7 @@ pc_lanes_coverage() {
 # SHIPS, which is the part a repo can hold; the runtime half stays `agent-graded` and the
 # run-report line in routing.md step 5 is what makes it visible after the fact.
 #
-# BOUNDARY. `orchestration/scripts/dispatch-lint.sh` checks the CONTENT of a drafted
+# BOUNDARY. `task-runner/scripts/dispatch-lint.sh` (orchestration's until 2026-09-14) checks the CONTENT of a drafted
 # prompt (absolute path, scope lock, return shape, closing data instruction). This checks
 # WHICH AGENT the call binds. A prompt can pass all four of those elements and still be
 # handed to the wrong agent — that is the gap here, and nothing else looks at it.

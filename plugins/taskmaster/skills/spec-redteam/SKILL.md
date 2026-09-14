@@ -40,7 +40,7 @@ its value is that it reads the requirements cold and finds what the dialogue mis
 Passing it the conversation re-imports the blind spots you are trying to escape.
 
 **Role-tier floor — boosted or not.** `spec-adversary` carries a row in
-`orchestration:delegation-contracts` `references/role-floors.md`, so dispatch it at
+`task-runner:delegation-contracts` `references/role-floors.md`, so dispatch it at
 `max(marker tier if present ELSE the session model, opus)`. Never omit `model:` in a
 session above opus: an adversary weaker than the model that wrote the spec is a weak
 gate on exactly the specs that most need one. Registry unresolved → omit `model:` and
@@ -68,7 +68,7 @@ first match wins:
 
 Count the four bullets as four; the security bullet is ONE disjunction counted once, not
 once per surface named in it. These counts are ceilings, not quotas. Panel MECHANICS —
-blindness, dedupe, the no-`Workflow` label — are `orchestration:verification-panels`; do
+blindness, dedupe, the no-`Workflow` label — are `task-runner:verification-panels`; do
 not re-derive them. This ladder only maps this gate's bullets onto that skill's radius
 rows, as `code-redteam` does.
 

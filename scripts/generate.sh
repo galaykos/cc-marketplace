@@ -316,7 +316,7 @@ render_reminder_hook() { # obj plugin-dir
 }
 
 render_boost_hook() { # obj plugin-dir
-  # Boost injectors (taskmaster ultra.sh, orchestration ultra-assess.sh, craft-layer
+  # Boost injectors (taskmaster ultra.sh, task-runner ultra-assess.sh, craft-layer
   # ultra-craft.sh) shared one hand-copied 35-line skeleton — off switch, fence
   # scrub, 200-char head, negation guard, enumerated self-echo guard — and differed
   # only in env var, token regex and directive text. The self-echo guard had been

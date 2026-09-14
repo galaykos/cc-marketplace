@@ -1,7 +1,11 @@
----
-name: ultra-assess
-description: Use when an assessment run is triggered with "ultra-assess"/"ultraassess"/"ultra-assessment" in a prompt — the Extreme Boost contract for assessment-shaped work (inventory, audit, gap-analysis, survey, review-at-scale); returns findings/backlog, not task cards.
----
+# ultra-assess — the Extreme Boost contract for assessment-shaped runs
+
+Read when the `ultra-assess` boost hook (`hooks/ultra-assess.sh`) has printed its
+banner — a prompt carried "ultra-assess" / "ultraassess" / "ultra-assessment" —
+for inventory, audit, gap-analysis, survey or review-at-scale work. Output is
+findings/backlog, never task cards. It was the `task-runner:ultra-assess` skill
+until 2026-09-14; the hook directive names this path, so a listing entry was a
+second trigger for the same text.
 
 # Ultra-assess — Extreme Boost for an assessment run
 
@@ -80,7 +84,7 @@ ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this 
 
 ## The recipe
 
-The recipe composes two orchestration skills already in this plugin — read them:
+The recipe composes two skills of this plugin — read them:
 
 - **delegation-contracts** — how to write each reader's dispatch prompt
   (self-contained, compressed evidence-backed return) and tier it by model/effort.
@@ -144,5 +148,5 @@ half. Rules, including the workflow-size ceiling and the interactive-phase rule:
 Standing: unenforceable — three independently-installed plugins share no writable
 state, so two boost tokens inject two directives. The off switch (`CC_BOOST=off`, or
 `ORCHESTRATION_BOOST=off`) is what IS implementable; full statement with the
-trigger-narrowing limits: `orchestration:verification-panels`
+trigger-narrowing limits: `task-runner:verification-panels`
 `references/dispatch-tier.md`.

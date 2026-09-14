@@ -65,7 +65,7 @@ passes, so a clean lint is necessary, never sufficient; reread for framing.
 
 Spawn the `consultant` agent from this plugin with the brief as its prompt.
 One consultant per consult — never a panel, never a retry-for-a-better-answer.
-The house cost rule applies (orchestration verification-panels: the default for
+The house cost rule applies (task-runner's verification-panels: the default for
 any output is ONE reviewer); a user who wants adversarial voting composes
 verification-panels deliberately, paying that cost on purpose.
 

@@ -65,8 +65,8 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 11 | ~5.2k tokens | ~1.2k tokens | ~2.2k tokens |
-| `process-suite` | 11 | ~3.1k tokens | ~1.3k tokens | ~2.1k tokens |
+| `taskmaster-suite` | 10 | ~5.1k tokens | ~1.2k tokens | ~2.2k tokens |
+| `process-suite` | 10 | ~3.0k tokens | ~1.3k tokens | ~2.0k tokens |
 | `craft-suite` | 3 | ~3.0k tokens | — | — |
 | `quality-principles-suite` | 6 | ~2.4k tokens | — | ~127 tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.0k tokens |
@@ -74,7 +74,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `always-on-suite` | 6 | ~1.3k tokens | ~1.2k tokens | ~2.0k tokens |
 | `php-suite` | 3 | ~956 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 28 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 27 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -110,7 +110,7 @@ that as an order-of-magnitude correction, never as a coefficient
 | **[php-suite](plugins/php-suite)** | A Laravel codebase: Laravel, Inertia, web-dev (Vite review and the shared worker), plus code-review's no-comment default and write-time denies. |
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
-| **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
+| **[process-suite](plugins/process-suite)** | Git workflow, deliberation, task execution with subagent discipline, scouting. |
 | **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, routing, git discipline — on in every repo. |
 
 Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
@@ -361,11 +361,10 @@ take a fuzzy request to a verified branch.
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[taskmaster](plugins/taskmaster)** | brainstorm a fuzzy idea into an approved design, grill requirements to zero ambiguity against an ambiguity ledger, decide visuals with mockups, red-team the frozen spec, then emit single-prompt task cards with a coverage check and a verify-teeth lint | The request is vague, large, or has five plausible readings |
-| **[task-runner](plugins/task-runner)** | one task at a time, scope locked, a bounded verify-fix loop per task, halt-with-evidence instead of drift, a completion gate that actually runs the artifact, plus parallel planning and a `--tracks` mode | You have a task list and want it executed without drift |
+| **[task-runner](plugins/task-runner)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation, the role-floor registry) and verification panels (refuter voting, judge panels, completeness critic) for any subagent fan-out — the orchestration plugin until 2026-09-14 — plus one task at a time, scope locked, a bounded verify-fix loop per task, halt-with-evidence instead of drift, a completion gate that actually runs the artifact, plus parallel planning and a `--tracks` mode | You have a task list and want it executed without drift |
 | **[overseer](plugins/overseer)** | a program-level product owner: `/overseer:start "Build a CRM"` inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, briefs taskmaster and task-runner per milestone on its own branch, and closes a milestone only after a browser walk at three widths with a clean console — `program.sh accept` refuses a green suite alone; `/overseer:resume` continues across sessions | A whole product to deliver over many sessions and branches, with someone owning the roadmap and the acceptance |
 | **[approaches](plugins/approaches)** | 2–3 structurally different approaches with a trade-off table and a kill-trigger — or four **blind** persona subagents when the work is a refactor/rewrite — plus build-vs-buy, S/M/L/XL estimation, rollout planning, and design-pattern selection | Before implementing anything non-trivial, and especially before a rewrite |
 | **[git-workflow](plugins/git-workflow)** | worktree isolation, a branch-finish protocol (verify → merge / PR / keep / discard, no zombie branches), and review-exchange rigor | Starting isolated work, or finishing a branch |
-| **[orchestration](plugins/orchestration)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry) | Fanning out subagents, or deciding whether to trust what one returned |
 | **[hindsight](plugins/hindsight)** | mines past session transcripts for recurring friction and proposes CLAUDE.md rules, skill ideas, and failed-approach warnings — applied only on approval | Periodically. It is the only plugin that learns from your history |
 | **[ultra-deep-research](plugins/ultra-deep-research)** | parallel web-search fan-out, source tiering by provenance, date-stamped claims, adversarial refutation before synthesis, a cited report with a contradiction ledger | A question where being confidently wrong is expensive |
 
@@ -395,7 +394,6 @@ take a fuzzy request to a verified branch.
 /approaches:rollout               # flags, exposure stages, rollback trigger
 /approaches:pattern               # suggest — or reject — a design pattern
 /task-runner:plan                 # subagents or inline? with a speedup estimate
-/orchestration:review             # audit a delegation or a fan-out plan
 /hindsight:harvest                # mine transcripts for recurring friction
 /approaches:consult "<topic>"    # blind second opinion from a stronger model
 /ultra-deep-research:research "<question>"

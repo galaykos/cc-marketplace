@@ -1,7 +1,7 @@
 {
   "name": "process-suite",
-  "version": "0.13.0",
-  "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection and the fresh-take second opinion folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution with candor's Stop gate holding a run to its gate pass, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first.",
+  "version": "0.14.0",
+  "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection and the fresh-take second opinion folded in), hindsight mining, docs discipline (api-design), task execution with its subagent delegation contracts and verification panels (the orchestration plugin was merged into task-runner) and candor's Stop gate holding a run to its gate pass, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
@@ -11,7 +11,6 @@
     "approaches",
     "hindsight",
     "api-design",
-    "orchestration",
     "task-runner",
     "candor",
     "stack-scan",

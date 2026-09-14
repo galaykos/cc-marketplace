@@ -1,15 +1,15 @@
 # Agent naming and PROACTIVE-trigger arbitration
 
-Read on demand from `../SKILL.md`. Was the `orchestration:agent-conventions` skill
+Read on demand from `../SKILL.md`. Was the `orchestration:agent-conventions` skill <!-- removed-ok -->
 until 2026-07-27: it fired on the same moments as `authoring-agents` (both matched
 "write me a new reviewer agent"), restated the same tool lists, the same hybrid-agent
 ban and the same PROACTIVELY rule, and neither body referenced the other. The seam
-existed only in `orchestration/README.md`, which is not loaded when either skill fires
+existed only in the README of orchestration (task-runner's since the plugin was merged in, 2026-09-14), which is not loaded when either skill fires
 — the coin-flip dispatch `../SKILL.md` warns about, committed by the two skills that
 warn about it.
 
 Merged here because writing an agent file is an authoring act. What stayed in
-`orchestration` is the runtime side: which fleet gaps exist, how to retrofit
+`task-runner` (orchestration until 2026-09-14) is the runtime side: which fleet gaps exist, how to retrofit
 delegation onto a review-only plugin, and the shared apply-fixes contract.
 
 ---

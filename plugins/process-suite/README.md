@@ -1,7 +1,7 @@
 # process-suite
 
 Meta-bundle: the engineering-process category in one install — git workflow,
-approach deliberation, hindsight mining, docs upkeep, subagent orchestration,
+approach deliberation, hindsight mining, docs upkeep,
 task execution, stack scanning, plugin scouting, skill routing, a stronger-model
 second opinion (now `/approaches:consult`), a refuting research harness (ultra-deep-research),
 and a committed codebase map (brain). Uninstalls
@@ -57,10 +57,10 @@ text that was previously being evicted.
 - **api-design** — REST/GraphQL/gRPC design review and spec-first scaffolding, docs
   verified before integration code, and the docs-upkeep drift scan after a change,
   plus `/api-design:check` and `/api-design:drift`
-- **orchestration** — delegation contracts and verification panels for
-  subagent fan-outs, plus `/orchestration:review`
 - **task-runner** — scope-locked task execution with bounded verify-fix loops,
-  plus `/task-runner:plan` and `/task-runner:run`
+  plus `/task-runner:plan` and `/task-runner:run`; carries the delegation
+  contracts and verification panels for subagent fan-outs (the orchestration
+  plugin was merged into it on 2026-09-14)
 - **candor** — the Stop gate whose clause 4 refuses to let a registered run end
   without its recorded gate pass (task-runner's own hook until 2026-09-14), and
   whose clause 3 refuses a completion claim with nothing executed after the last edit

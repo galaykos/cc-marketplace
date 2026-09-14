@@ -8,15 +8,15 @@ description: Use when a boosted (ultra/goal) run produced code and the diff must
 The ultra/goal boost red-teams the *input* — the spec and the task cards — hard, then
 ships the *output* code unexamined. A card that verified green locally can still carry a
 subtle defect the per-card verify never exercised. This skill closes that gap: it points
-an independent adversarial panel at the produced diff, the same way `orchestration:ultra-assess`
+an independent adversarial panel at the produced diff, the same way `task-runner:ultra-assess`
 red-teams its own findings before returning them.
 
-It is deliberately thin. All panel mechanics live in `orchestration:verification-panels` —
+It is deliberately thin. All panel mechanics live in `task-runner:verification-panels` —
 this skill only supplies the target (the code diff), the lenses, and the reopen rule.
 
 ## What this skill composes — do not reimplement
 
-Read `orchestration:verification-panels` and reuse it wholesale:
+Read `task-runner:verification-panels` and reuse it wholesale:
 
 - **Refuter voting** — N independent skeptics, each told to REFUTE, diverse lenses.
 - **Completeness-critic** — a closing pass asking only "what defect was never looked for?"
@@ -118,7 +118,7 @@ single card's scope is a new card, not a silent edit.
 
 ## Inline fallback — never a silent skip
 
-If `orchestration:verification-panels` or the `Workflow` fan-out tool is unavailable
+If `task-runner:verification-panels` or the `Workflow` fan-out tool is unavailable
 (headless, cron, or the opt-in gate is unmet), do NOT skip the red-team. Run one inline
 single-agent code-redteam pass over the same diff from the harness: one agent walks the
 three lenses in sequence, records evidence-backed defects, and dedups them via
