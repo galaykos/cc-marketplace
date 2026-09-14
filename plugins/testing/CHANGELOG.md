@@ -8,6 +8,20 @@ file whose job is history is worse than an honest starting point.
 
 ## 0.10.0
 
+### Added
+- **`protect-tests`, a PreToolUse guard against fake green.** It denies an edit that
+  adds a skip or exclusive marker to a test file with no reason on the same line
+  (`.skip`, `.only`, `.todo`, `xit`, `xdescribe`, `@pytest.mark.skip`,
+  `markTestSkipped`, `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`), and an edit that
+  rewrites a test file into one with no tests left. Skipping the failing test is the
+  best-documented way a run reports success it did not earn, and it is invisible in a
+  summary: the suite passes and the count quietly drops. The reason requirement is the
+  whole mechanism — a quarantined flake has one (`it.skip('…') // skip: flaky on CI,
+  #1421`, which this allows), a fake-green skip does not. It does not catch a test
+  weakened rather than skipped; that stays agent-graded. `CC_PROTECT_TESTS=off`
+  disables it; `scripts/__tests__/protect-tests.test.sh` drives 18 cases.
+## 0.10.0
+
 ### Removed
 - **`/testing:review` is retired.** `/code-review:review` loads `testing-best-practices`
   for any diff touching tests or untested production code, in one pass with every other

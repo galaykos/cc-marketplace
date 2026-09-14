@@ -4,6 +4,39 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.105.0] - 2026-09-14
+
+**Five new guards, each one a mechanism nothing in this marketplace or the surveyed
+community collections carried, and each one driven by a harness.**
+
+- `testing` **protect-tests** — denies a skip or exclusive marker added to a test with
+  no reason on its line, and a rewrite that empties a test file. Skipping the failing
+  test is how a run reports success it did not earn, and the dropped count is invisible
+  in a summary.
+- `command-guard` **config-guard** — asks before the agent edits settings, a hooks
+  file, a hook script, a plugin manifest or a lint/type/test config. Editing the gate
+  is the cheapest way past it.
+- `candor` **clause 5** — blocks a Stop when a manifest's dependency map changed and
+  its lockfile did not. The next clone resolves different versions and CI blames
+  whoever ran it.
+- `task-runner` **spawn-cap** — asks at 20 subagent dispatches, then at each doubling.
+  Subagent turns are invisible in the transcript and are billed; nothing counted them.
+- `secret-scanning` **unicode-scan** — warns on zero-width, bidi-override and Unicode
+  tag characters in files this session wrote or read. The one rule here whose subject
+  the model cannot see.
+
+Three more were designed and **declined rather than shipped**: a Stop-time diff review
+and a red-before-green TDD gate both need `type: "agent"` hooks, which the host ships
+as experimental with no documented output schema — a gate whose verdict format is
+unverified may be a silent no-op, and no synthetic payload can drive it. A desktop
+notification carries no rule. Reasons in
+`rationale/marketplace-endgame-review-2026-09-14.md` §8.
+
+Also fixed: `scripts/smoke/validate-fixtures/parity-check.sh` plants two lines in a
+shipped README and restores them on exit — but `trap EXIT` does not run on SIGKILL, so
+a timed-out run left them behind and they reached a commit. It now traps INT/TERM/HUP
+and strips known debris before taking its backup.
+
 ## [0.104.0] - 2026-09-14
 
 **design-studio retired; the marketplace is 26 leaves and 4 bundles.** Its browser

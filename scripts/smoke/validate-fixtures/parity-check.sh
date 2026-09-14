@@ -12,6 +12,19 @@ SK="$P/skills/_parity_scratch"
 DOC="$P/_parity_scratch.md"
 RM="$P/README.md"
 RBAK=$(mktemp) || exit 2
+# SELF-HEAL BEFORE BACKUP. This harness plants two lines into the LIVE README and
+# restores them from $RBAK on exit. `trap ... EXIT` does not run on SIGKILL, which is
+# exactly what a test-runner timeout sends — so a killed run leaves the planted lines
+# in a shipped file, and the next `git add -A` commits them. That happened on
+# 2026-09-14: both lines reached a commit and were caught by validate.sh's own jargon
+# and removed-refs checks, one wave later. Stripping known debris before taking the
+# backup means a killed run costs a re-run, never a bad commit. SIGKILL still cannot be
+# trapped; this is the mitigation, not a fix for that.
+if grep -qE '^Track cards 03 and 05 here\.$|^- \*\*typescript\*\* — planted stale member row$' "$RM" 2>/dev/null; then
+  grep -vE '^Track cards 03 and 05 here\.$|^- \*\*typescript\*\* — planted stale member row$' "$RM" > "$RM.heal" \
+    && mv "$RM.heal" "$RM" \
+    && echo "NOTE: removed planted lines left by an earlier killed run of this harness"
+fi
 cp "$RM" "$RBAK" || exit 2
 cleanup() {
   rm -rf "$SK" "$DOC"
@@ -23,7 +36,9 @@ cleanup() {
   fi
   [ "$bad" -eq 0 ] || exit 1
 }
-trap cleanup EXIT
+# INT/TERM/HUP as well as EXIT: a Ctrl-C or a `kill` during the run must restore the
+# README. SIGKILL remains untrappable — the self-heal above is what covers it.
+trap cleanup EXIT INT TERM HUP
 mkdir -p "$SK"
 {
   echo '---'; echo 'name: _parity_scratch'
@@ -80,7 +95,7 @@ printf '%s\n' "$out" | grep -qF "$RM: references removed marketplace artifact [*
 . scripts/lib/plugin-checks.sh
 JTMP=$(mktemp)
 cleanup_j() { rm -f "$JTMP"; }
-trap 'cleanup; cleanup_j' EXIT
+trap 'cleanup; cleanup_j' EXIT INT TERM HUP
 
 jseed() { printf '%s\n' "$1" > "$JTMP"; }
 

@@ -589,6 +589,78 @@ if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && 
   fi
 fi
 
+# ---------------------------------------------------------------------------
+# CLAUSE 5 — LOCKFILE DRIFT. A dependency manifest was edited in this turn and the
+# lockfile it governs is not in the working tree's changes. The install step was
+# skipped, and the next person to clone gets a tree whose manifest and lockfile
+# disagree — a CI failure attributed to them, not to the turn that caused it.
+#
+# WHY A CLAUSE AND NOT PROSE. `stack-scan:package-hygiene` states the rule already:
+# hand-editing a manifest without running the installer is a defect. The model
+# agrees and then does it anyway, because adding a dependency line LOOKS complete —
+# nothing in the edit's own result says a second step is owed. This clause is the
+# only thing in the tree that reads the pair.
+#
+# WHY IT CANNOT FALSELY FIRE ON A DELIBERATE MANIFEST-ONLY EDIT: it requires a
+# dependency-shaped change. Bumping a `version` field, editing `scripts`, or
+# rewriting a description never touches a lockfile and never arms this.
+#
+# Last of the clauses because it is the cheapest to satisfy and the least severe:
+# a citation or a naked completion claim is a false report, this is an unfinished
+# step. It never blocks twice on the same HEAD+manifest pair.
+if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "${CC_LOCKFILE_GATE:-on}" != "off" ]; then
+  if command -v git >/dev/null 2>&1 && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
+    changed=$(git -C "$cwd" status --porcelain 2>/dev/null | awk '{print $NF}')
+    if [ -n "$changed" ]; then
+      lock_detail=""
+      # manifest -> the lockfile(s) that satisfy it. First match wins per manifest.
+      while IFS='|' read -r man locks; do
+        printf '%s\n' "$changed" | grep -qx "$man" || continue
+        # A DEPENDENCY-shaped change only. For a JSON manifest this compares the parsed
+        # dependency maps at HEAD against the working tree, because a line diff cannot:
+        # package.json is frequently one line, so bumping `version` rewrites the same
+        # line that holds `dependencies` and every version bump would block. (The
+        # harness caught exactly that; a hand test missed it because the loop guard was
+        # still holding the previous verdict.) Non-JSON manifests keep the line-diff
+        # heuristic — their dependency sections are line-oriented by construction.
+        case "$man" in
+          package.json|composer.json)
+            head_deps=$(git -C "$cwd" show "HEAD:$man" 2>/dev/null \
+              | jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' 2>/dev/null)
+            work_deps=$(jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' "$cwd/$man" 2>/dev/null)
+            # Unparseable either side → fall through to the line heuristic rather than
+            # silently allowing: a manifest mid-edit is exactly when this matters.
+            if [ -n "$head_deps" ] && [ -n "$work_deps" ]; then
+              [ "$head_deps" = "$work_deps" ] && continue
+            else
+              git -C "$cwd" diff -U0 -- "$man" 2>/dev/null | grep -qE '^[+-].*"(dependencies|devDependencies|peerDependencies|optionalDependencies|require|require-dev)"' || continue
+            fi
+            ;;
+          *)
+            git -C "$cwd" diff -U0 -- "$man" 2>/dev/null | grep -qE '^[+-]' || continue
+            ;;
+        esac
+        satisfied=0
+        for l in $locks; do printf '%s\n' "$changed" | grep -qx "$l" && satisfied=1; done
+        [ "$satisfied" -eq 1 ] && continue
+        [ -n "$lock_detail" ] && lock_detail="$lock_detail, "
+        lock_detail="$lock_detail$man (expected one of: $(printf '%s' "$locks" | tr ' ' '/'))"
+      done <<'MANIFESTS'
+package.json|package-lock.json npm-shrinkwrap.json yarn.lock pnpm-lock.yaml bun.lock bun.lockb
+composer.json|composer.lock
+Gemfile|Gemfile.lock
+pyproject.toml|poetry.lock uv.lock pdm.lock requirements.txt
+Cargo.toml|Cargo.lock
+go.mod|go.sum
+MANIFESTS
+      if [ -n "$lock_detail" ]; then
+        verdict="lockfile"
+        detail="$lock_detail"
+      fi
+    fi
+  fi
+fi
+
 [ -n "$verdict" ] || exit 0
 
 # ---------------------------------------------------------------------------
@@ -635,6 +707,13 @@ case "$verdict" in
     printf '  Do one of two things. Re-check: run the command or read the file that would settle it,\n' >&2
     printf '  then report what it showed. Or hold: say you still believe what you said, and why.\n' >&2
     printf '  "You are right" is a finding. It needs the same evidence as any other finding.\n' >&2 ;;
+  lockfile)
+    printf '[candor] gate: a dependency manifest changed and its lockfile did not — %s.\n' "$detail" >&2
+    printf '  The install step was skipped, so the tree you are leaving has a manifest and a lockfile\n' >&2
+    printf '  that disagree. The next clone resolves different versions, and CI blames whoever ran it.\n' >&2
+    printf '  Run the installer (npm/pnpm/yarn install, composer update <pkg>, bundle install, cargo\n' >&2
+    printf '  build, go mod tidy) and commit the lockfile with the manifest — or say plainly that the\n' >&2
+    printf '  lockfile is deliberately unchanged and why. CC_LOCKFILE_GATE=off disables this clause.\n' >&2 ;;
   evidence)
     printf '[candor] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
     printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2

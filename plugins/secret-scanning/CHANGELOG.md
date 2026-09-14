@@ -5,6 +5,22 @@ releases were not recorded here and are not reconstructed.
 
 ## 0.6.0
 
+### Added
+- **`unicode-scan`: a PostToolUse warning for invisible characters** in any file this
+  session wrote or read — zero-width space/joiner/non-joiner, word joiner, soft hyphen,
+  a mid-file BOM, the Unicode tag block, and the bidirectional overrides that make
+  source display in an order different from the one it executes (the Trojan Source
+  class, CVE-2021-42574), which get their own message because the consequence is
+  different. This is the one rule here whose subject the model cannot see: the bytes do
+  not render, they survive copy-paste, and no instruction helps with a character that is
+  never shown. Warn, not deny, and on PostToolUse rather than Pre, for two measured
+  reasons: zero-width joiners are legitimate in emoji sequences and in Arabic, Persian
+  and Indic text, and the interesting case is usually a file being READ, where blocking
+  the read helps nobody. A leading BOM is an encoding, not a hider, and is exempt. It
+  does not catch homoglyphs. `CC_UNICODE_SCAN=off` (or `CC_REMIND=off`) disables it;
+  `scripts/__tests__/unicode-scan.test.sh` drives 16 cases.
+## 0.6.0
+
 ### Fixed
 - **A secret written through an MCP file tool is blocked.** The matcher was
   `Write|Edit|MultiEdit`, so a session driving an IDE — which writes every file through

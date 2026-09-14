@@ -4,6 +4,21 @@ All notable changes to the `candor` plugin.
 
 ## 0.3.3
 
+### Added
+- **Clause 5: lockfile drift.** A Stop is blocked when a dependency manifest's
+  dependency map changed in the working tree and the lockfile that governs it did not —
+  npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. The install step was
+  skipped, so the tree being left has a manifest and a lockfile that disagree; the next
+  clone resolves different versions and CI blames whoever ran it.
+  `stack-scan:package-hygiene` has stated the rule in prose all along, and the model
+  agrees and does it anyway, because adding a dependency line looks complete. For JSON
+  manifests it compares PARSED dependency maps rather than diff lines: package.json is
+  frequently one line, so a line diff makes every `version` bump look like a dependency
+  change — the harness caught exactly that, and a hand test had missed it because the
+  loop guard was still holding the previous verdict. Disarmed for subagents.
+  `CC_LOCKFILE_GATE=off` disables it.
+## 0.3.3
+
 ### Fixed
 - **Clause 3 arms on an MCP file write.** Its evidence scan counted only
   `Edit|Write|MultiEdit|NotebookEdit`, so a session that edited exclusively through an

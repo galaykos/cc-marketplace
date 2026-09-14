@@ -2,6 +2,20 @@
 
 ## 0.6.1
 
+### Added
+- **`config-guard`: an `ask` before the agent edits its own guardrails.** Settings
+  files, any `hooks.json`, any hook script, plugin manifests, and lint/type-check/test
+  configs (eslint, biome, rubocop, ruff, phpstan, psalm, golangci, pytest, tsconfig,
+  clippy). Given a gate it cannot satisfy, the cheapest path out is to edit the gate —
+  turn off the rule, add an ignore, delete the hook — and it reads in a diff summary as
+  "updated config". `ask`, not `deny`, because editing these is often exactly the task;
+  the point is that it becomes a decision someone made. It reads the PATH, not the
+  diff: it cannot tell adding a rule from deleting one, and says so in the prompt. It
+  self-exempts inside a marketplace repository, which edits these files as its product.
+  `CC_CONFIG_GUARD=off` disables it; `scripts/__tests__/config-guard.test.sh` drives
+  21 cases.
+## 0.6.1
+
 ### Fixed
 - **The allow-file cannot be edited through an MCP file tool.** The second matcher
   protecting `.claude/destructive-guard-allow` covered the four host write tools only;

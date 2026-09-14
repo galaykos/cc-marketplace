@@ -382,6 +382,26 @@ can refuse work. Every one lands with a harness under `scripts/__tests__/` and a
 | C7 | hidden-Unicode / zero-width scan of loaded instructions (`InstructionsLoaded`) | secret-scanning | cannot see the bytes |
 | C8 | `Notification` hook on `permission_prompt\|idle_prompt` → desktop notify | candor | — (no model error; pure mechanism, and the event is unused here) |
 
+### Execution record — wave C, 2026-09-14
+
+**Five of eight shipped, each with a harness that drives it. Three declined on
+measurement, and the reasons are the point.**
+
+| # | outcome | evidence |
+|---|---|---|
+| C1 protect-tests | **shipped** — `testing` 0.10.0, PreToolUse deny on a skip/exclusive marker added with no same-line reason, and on a rewrite that empties a test file. 18 asserts | the reason requirement is what makes it survivable: an intentional skip has one, a fake-green skip does not |
+| C2 config-guard | **shipped** — `command-guard` 0.6.1, PreToolUse `ask` on a write to settings, any `hooks.json`, a hook script, a plugin manifest, or a lint/type/test config. 21 asserts | `ask` not `deny`: editing these is often the task. Self-exempts inside a marketplace repo, which edits them as its product |
+| C3 lockfile drift | **shipped** — `candor` 0.3.3 clause 5, Stop-tier block when a manifest's dependency map changed and its lockfile did not. 5 asserts inside the existing gate harness | the harness caught a real defect a hand test missed: package.json is often ONE line, so a line diff makes every `version` bump look like a dependency change. It now compares parsed dependency maps |
+| C6 spawn cap | **shipped** — `task-runner` 0.35.0, PreToolUse `ask` at 20 dispatches then each doubling. 11 asserts | `turn-cost.sh` already states the fact — subagent turns are invisible and billed — and nothing counted them |
+| C7 unicode scan | **shipped** — `secret-scanning` 0.6.0, PostToolUse warn naming codepoint and line; bidi overrides get their own Trojan Source message. 16 asserts | the one rule here whose subject is invisible by definition; a leading BOM is exempt, emoji ZWJ and Indic text are named as legitimate |
+| C4 Stop-time diff review | **declined** | it needs a `type: "agent"` hook. The live hooks reference (read 2026-09-14) marks agent hooks **experimental and may change**, and documents neither the output schema that blocks nor which events accept them. A gate whose verdict format is unverified is a gate that may be a silent no-op — and unlike C1-C3 and C6-C7, no synthetic payload can drive it, so it would ship untested and tiered `gate` on faith. Queued behind the schema being documented |
+| C5 red-before-green | **declined** | the deny condition cannot distinguish new behaviour from a refactor, a rename, or a typo fix. With a sibling test green, it fires on nearly every ordinary edit — a guard users turn off in a week, which is worse than no guard. `tdd-guard` solves this with an LLM judge, i.e. the same agent-hook mechanism C4 is blocked on. The ledger half (recording each runner invocation's result) is cheap and useful on its own; it is worth building only once something reads it |
+| C8 desktop notification | **declined** | it carries no rule. The marketplace's bar is a mechanism that carries a rule the model gets wrong, and a notification is a preference the host's own settings already express. Shipping it would put a personal toggle in a marketplace that refuses checklists on the same grounds |
+
+Two of the three declines share one cause: the mechanism that would make them honest
+is `type: "agent"`, which the host ships as experimental and underdocumented. That is
+worth recording as the single largest thing blocking new work here.
+
 **Wave D — measure, then decide.** `claude plugin eval --ablation with-without`,
 n ≥ 3, is unblocked as of 2.1.269. Queue, in order of the leaf it could retire:
 `ultra-deep-research` vs `/deep-research`; `task-runner` tracks vs `/batch`; then the

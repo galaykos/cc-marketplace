@@ -11,6 +11,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Read|.*apply_patch|.*create_new_file|.*read_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/unicode-scan.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

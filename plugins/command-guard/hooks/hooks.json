@@ -20,6 +20,16 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|.*apply_patch|.*create_new_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/config-guard.sh",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }

@@ -2,6 +2,21 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.35.0
+
+### Added
+- **`spawn-cap`: an `ask` at 20 subagent dispatches, then at every doubling.**
+  `scripts/turn-cost.sh` already states the fact this acts on — subagent turns do not
+  appear in the transcript and they are billed — and nothing in this marketplace
+  counted them, so a fan-out planned as three agents and grown to thirty was invisible
+  until the invoice. `ask`, not `deny`: a large fan-out is sometimes right, and the
+  claim is not that thirty is wrong but that thirty should be a decision. Thresholds
+  double rather than firing every time, because asking at 21, 22, 23 trains reflexive
+  approval, which is the same as not asking. It counts dispatches, not cost — twenty
+  haiku calls and twenty opus calls are the same number here and not the same bill.
+  `CC_SPAWN_CAP=<n>` moves the first threshold, `CC_SPAWN_CAP=off` disables it;
+  `scripts/__tests__/spawn-cap.test.sh` drives 11 cases.
+
 ## 0.34.4
 
 ### Changed
