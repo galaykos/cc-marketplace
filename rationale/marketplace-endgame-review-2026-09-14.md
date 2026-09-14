@@ -402,6 +402,53 @@ Two of the three declines share one cause: the mechanism that would make them ho
 is `type: "agent"`, which the host ships as experimental and underdocumented. That is
 worth recording as the single largest thing blocking new work here.
 
+### Execution record — wave D, 2026-09-14
+
+**The infrastructure was broken, and fixing it produced the first control-armed
+numbers this repo has beyond the 2026-08-20 hand measurement.**
+
+`claude plugin eval` shipped in 2.1.269 and defaults to `--ablation with-without`
+whenever a plugin resolves. Running it exposed the thing that matters most here:
+
+> **Two of the three shipped eval suites had never run.** `resilience` and `web-dev`
+> used the `prompt.md` + `graders/*.md` shape that `CLAUDE.md` documented as
+> functional. On CLI 2.1.270 the runner rejects it — `invalid case.yaml: graders:
+> Required`, 0 cases loaded. Only `overseer`, which uses `case.yaml`, ever executed.
+> Nothing runs any suite in CI, so nothing said so. Both were converted to `case.yaml`
+> and `CLAUDE.md` corrected.
+
+Then the measurements, all with a no-plugin control arm, haiku judge, 3 judge votes
+per arm:
+
+| suite | with | without | Δ | runs |
+|---|---|---|---|---|
+| `resilience` / timeout-and-retry | **0** (FAIL, 3 judges: F/F/F) | 1 (PASS, P/P/P) | **−1.00** | 3 independent runs, same direction every time |
+| `web-dev` / caching-inversion | 1 (PASS, P/P/P) | 1 (PASS, P/P/P) | **0** | 1 |
+
+**The resilience result is the finding.** Loading the plugin made the review
+measurably WORSE on its own case: the base model names the double-charge hazard in a
+retried payment POST; the plugin arm does not. The turn counts say where it goes — the
+with-plugin arm spends 14-15 turns against the baseline's 3, and arrives somewhere
+worse. The first run was against `max_turns: 8`, so the obvious explanation was a
+ceiling the plugin's procedure could not fit in; raising it to 25 changed nothing (14
+turns used, 3-0 FAIL), which rules that out.
+
+What this does NOT license: deleting `resilience`. It is one case, one rubric, one
+judge model. The honest reading is that on this prompt the skill's process displaces
+the single argument the grader wants, and that is a hypothesis with a clean next
+experiment (more cases; and a look at whether the fan-in's structure crowds out the
+finding). It is recorded here rather than acted on because acting on n=1 case is the
+reflex this repo's own `measured-zero-shapes.md` was written against. The `web-dev`
+zero is the ordinary result and the expected one — the Next 15 caching inversion is
+something the base model already knows.
+
+**Wave D's remaining queue is blocked on cases that do not exist.** Its two headline
+questions — `ultra-deep-research` against the host's `/deep-research`, and
+`task-runner --tracks` against `/batch` — have no eval suites at all, and neither do
+the seven plugins whose bodies the consolidation plan queued for ablation. Writing a
+case for a body you intend to delete is backwards; the cheaper order is to write cases
+where the answer would change what ships, starting with the resilience result above.
+
 **Wave D — measure, then decide.** `claude plugin eval --ablation with-without`,
 n ≥ 3, is unblocked as of 2.1.269. Queue, in order of the leaf it could retire:
 `ultra-deep-research` vs `/deep-research`; `task-runner` tracks vs `/batch`; then the

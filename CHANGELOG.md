@@ -4,6 +4,22 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.106.0] - 2026-09-14
+
+**Two of the three shipped eval suites had never run.** `resilience` and `web-dev`
+used a case shape the runner rejects on CLI 2.1.270 (`invalid case.yaml: graders:
+Required`, 0 cases loaded); only `overseer` ever executed, and nothing runs any suite
+in CI, so nothing said so. Both converted to `case.yaml`; `CLAUDE.md`, which
+documented the dead shape as functional, corrected.
+
+With the runner working, the first control-armed numbers this repo has beyond the
+2026-08-20 hand measurement: `web-dev`/caching-inversion scores Δ 0 (both arms pass —
+the base model already knows the Next 15 inversion), and `resilience`/timeout-and-retry
+scores **Δ −1.00 across three independent runs** — the plugin arm fails the case the
+no-plugin baseline passes, and raising the turn ceiling from 8 to 25 does not change
+it. That is recorded, not acted on: one case is not a verdict on a plugin. Details in
+`rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D.
+
 ## [0.105.0] - 2026-09-14
 
 **Five new guards, each one a mechanism nothing in this marketplace or the surveyed
