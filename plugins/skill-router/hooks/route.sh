@@ -27,7 +27,10 @@
   # is the one context this never speaks in. Pattern and rationale: code-review/hooks/conventions.sh (context-key one-shot).
   session_id=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // empty' 2>/dev/null) || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0
-  file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
+  # `pathInProject` is the JetBrains-MCP create_new_file key (schema read 2026-09-14);
+  # an IDE-driven session writes every file through it and would otherwise route nothing.
+  # apply_patch carries no single path, so it stays unrouted — stated, not hidden.
+  file_path=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null) || exit 0
   [ -n "$file_path" ] || exit 0
   [ -n "$session_id" ] || exit 0
   [ -n "$cwd" ] || exit 0

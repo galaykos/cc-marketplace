@@ -2,6 +2,13 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.16.1
+
+### Removed
+- **The `**/.design-studio/**` routing row.** Its target skill, `design-session`, was
+  retired with its plugin on 2026-09-14; the row would have routed an edit to a skill
+  no install can resolve. <!-- removed-ok -->
+
 ## 0.16.0 — 2026-09-14
 
 - **`@base` stack-marker alternative.** `@base~<ERE>` in the manifest position matches

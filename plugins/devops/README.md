@@ -8,6 +8,18 @@ Ships a `devops-engineer` worker + `devops-reviewer` read-only pair and a PreToo
 guard on workflow files. Owns infra-layer observability wiring, but defers in-code
 instrumentation to **resilience** (its observability skill).
 
+## What has teeth
+
+| Rule | Standing |
+|---|---|
+| A write to `.github/workflows/` that triggers on `pull_request_target`/`workflow_run` **and** checks out the untrusted head ref | **gate** — PreToolUse deny; GitHub's own documented critical anti-pattern |
+| A write to `.github/workflows/` interpolating a `${{ github.event.* }}` field an author can type directly into a `run:` block | **gate** — PreToolUse deny; the shell substitution happens before the shell runs |
+| Every other CI/CD, Kubernetes, deploy and secrets rule in `devops-practices` | **agent-graded** — a reviewer applies them; no script does |
+| The warn-level workflow findings | **recorded** — `scripts/workflow-audit.sh` reports them (exit 2 on a finding, 3 on usage) and is invoked by `/devops:review`, never by a hook |
+
+The guard blocks two shapes and nothing else. Everything the audit script finds
+beyond them is a report you have to run.
+
 ## Install
 
 ```bash

@@ -4,6 +4,18 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.5
+
+### Changed
+- **`design-studio` removed from every scout reference** (`signals.md`, <!-- removed-ok -->
+  `stack-relevance.md`, `picker.md`, `flags.md`, `official-complements.md`): the plugin
+  was retired on 2026-09-14. The two `components.json` signal rows now earn `ui-ux` and
+  print shadcn's own MCP install line, which is what a configured registry actually
+  calls for; the JS/web stack class lists two plugins, not three; and the `MCP servers
+  added:` plan line says out loud that no plugin in this marketplace ships one today,
+  while the `Beyond this marketplace` block still prints playwright, context7 and
+  serena as the user's own trust decision. <!-- removed-ok -->
+
 ## 0.7.4
 
 - `plugin-scout` references recounted after the 2026-09-14 consolidation:
@@ -31,7 +43,7 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
 
 ### Changed
 - plugin-scout references (`signals.md`, `stack-relevance.md`, `picker.md`, `flags.md`,
-  `official-complements.md`) suggest `design-studio` where they suggested
+  `official-complements.md`) suggest `design-studio` where they suggested <!-- removed-ok -->
   design-lab — theme-design and design-lab were merged into it (2026-09-14
   consolidation plan). `catalog.md` regenerated.
 

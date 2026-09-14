@@ -2,6 +2,20 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.3
+
+### Fixed
+- **Clause 3 arms on an MCP file write.** Its evidence scan counted only
+  `Edit|Write|MultiEdit|NotebookEdit`, so a session that edited exclusively through an
+  IDE's MCP server never armed the clause that blocks a done-claim after a mutation with
+  nothing executed. It now also counts `apply_patch` and `create_new_file`.
+- **The terse findings skeleton no longer collides with clause 1.** `path:line — problem`
+  was mandatory; clause 1 blocks a citation into a file the turn just deleted or
+  shortened, so a finding about a removed file failed the turn. The line number is now
+  droppable in exactly that case.
+- **The no-emoji rule yields to a mandated protocol banner.** taskmaster prints a
+  byte-identical status line that `validate.sh` gates for parity; a terse level shortens
+  prose, it does not rewrite another plugin's contract.
 ## 0.3.2
 
 ### Fixed

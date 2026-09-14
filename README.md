@@ -65,12 +65,12 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `workflow-suite` | 15 | ~6.0k tokens | ~1.2k tokens | ~2.1k tokens |
-| `craft-suite` | 3 | ~3.0k tokens | — | — |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.9k tokens |
-| `core-suite` | 7 | ~1.7k tokens | ~1.2k tokens | ~1.9k tokens |
+| `workflow-suite` | 15 | ~6.0k tokens | ~1.3k tokens | ~2.0k tokens |
+| `craft-suite` | 2 | ~2.1k tokens | — | — |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.8k tokens |
+| `core-suite` | 7 | ~1.7k tokens | ~1.3k tokens | ~1.8k tokens |
 
-Every row is a curated subset. The marketplace ships all 27 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 26 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -102,14 +102,17 @@ that as an order-of-magnitude correction, never as a coefficient
 |--------|--------------|
 | **[core-suite](plugins/core-suite)** | The user-scope baseline, on in every repo: secret block, candor's Stop gate, the one review entry, routing, git discipline, friction mining, the scout. Seven members. |
 | **[workflow-suite](plugins/workflow-suite)** | You want the whole clarify → spec → cards → execute pipeline: core-suite plus taskmaster, task-runner, approaches, code-architecture, testing, debugging, ui-ux and security. Fifteen members; over the 200k listing floor by design — its README names the settings line. |
-| **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite/Inertia app work, without the design-studio weight; code-review's no-comment default and write-time denies ride along. |
+| **[frontend-suite](plugins/frontend-suite)** | Next.js/React Native/Vite app work, without the creative-studio weight; code-review's no-comment default and write-time denies ride along. Inertia lives in `laravel`. |
 | **[craft-suite](plugins/craft-suite)** | You are building something that has to *look* designed: motion, concept, staged variants. |
 
 Four bundles since 2026-09-14 — eight were rebuilt into these (the consolidation
 plan, `rationale/marketplace-consolidation-plan-2026-09-14.md` §3.3). Each ships
 its own uninstall command — `/craft-suite:uninstall`, `/core-suite:uninstall`,
-and so on — which removes the bundle **and** prunes the plugins it
-auto-installed, leaving anything you installed yourself alone.
+and so on — which removes the bundle **and** every plugin it lists as a dependency
+at the same scope, minus anything another installed suite also lists. It cannot tell
+an auto-install from one you made yourself (install records routinely carry no
+marker), so a hand-installed dependency shows up in the removal list and the confirm
+step is what protects it — read the list before you accept it.
 
 ---
 
@@ -220,7 +223,6 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind, any other React component library via `component-libraries`), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
-| **[design-studio](plugins/design-studio)** | `/design-studio:init` opens a browser design session: chat, select, drag, resize, edit text and pick colours on HTML prototypes or your running dev server, with this Claude Code session applying every gesture to real files and live-reloading, and `/design-studio:export` writing tokens, pages and a brief; `/design-studio:preview` renders 2–3 variants with the project's OWN components on its own dev server, with a shell-mockup fallback for greenfield; two MCP servers read the Aceternity / shadcn / Magic UI / ReUI registries live, every answer dated and sourced | Shaping how something should look by talking and moving things, seeing real components before a visual decision, and installing registry components from the source |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated |
 
 **Using them.**
@@ -232,7 +234,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 /craft-layer:craft            # the full studio pipeline, end to end
 /craft-layer:sections         # decide a page section by section, with you
 /craft-layer:audit            # audit a shipped tree: motion, assets, divergence gates
-/design-studio:preview       # variants rendered with your real components
+/taskmaster:task              # mockups, and its real-component rung when you have a host
 ```
 
 **Worked example — a landing page that must not look templated:**
@@ -249,13 +251,12 @@ that computes WCAG ratios from your token source.
 
 **Worked example — one component, real fidelity:**
 
-```
-/design-studio:preview "three card treatments for the dashboard"
-```
-
-Renders three variants side by side using your own components, on a scratch
-entry that is deleted afterwards. In a greenfield repo with nothing to render
-in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox.
+Ask for three card treatments for the dashboard during a taskmaster visual
+decision. When the repo has a running Vite or Laravel host, `visual-decisions`
+escalates to its real-component rung: three variants side by side built from your
+own components, on a scratch entry deleted afterwards and verified gone by
+`preview-cleanup.sh`. In a greenfield repo with nothing to render in, it stays on
+the shell mockup rather than scaffolding a sandbox.
 
 ---
 
@@ -278,7 +279,7 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 /code-architecture:solid               # SOLID audit of a design or class
 /code-architecture:yagni               # speculative-generality audit
 /code-architecture:verify              # verify completed work against criteria, with evidence
-/testing:review                        # test design and coverage gaps
+/testing:flake-hunt                    # classify flaky tests by cause, with a fix lane
 /testing:flake-hunt                    # chase a flaky test to its cause
 /code-review:comment-review            # comment noise, one line per finding
 /candor:check                          # measure this session against the candour axes (and the terse budget)
@@ -481,11 +482,26 @@ advertisement:
   all-in bundle was removed rather than repriced: past the host's listing budget
   the descriptions are dropped name-only, so the tokens stop being the problem
   and reachability starts.
-- **Most rules are agent-graded, not enforced.** A handful are gates that block
-  a turn — `command-guard`, `secret-scanning`, `code-review`'s narrow
-  comment-discipline deny lane, `candor`'s four-clause Stop hook. The rest are instructions a competent model chooses to
-  follow. Each plugin's own docs say which tier it is in; where they say
-  `recorded`, nothing reads it back.
+- **Most rules are agent-graded, not enforced.** A handful are gates that block a
+  turn. This sentence used to enumerate them and named four while six shipped —
+  `git-workflow`'s attribution-trailer deny and `devops`' workflow deny were missing
+  — so recount instead of trusting a list:
+
+  ```bash
+  grep -lE 'permissionDecision[": ]+deny' plugins/*/hooks/*.sh  # PreToolUse blocks
+  grep -lE 'permissionDecision[": ]+ask'  plugins/*/hooks/*.sh  # blocks until you answer
+  grep -lE 'exit 2' plugins/*/hooks/*.sh                        # Stop-tier blocks
+  ```
+
+  Two things the recount itself cannot tell you, so they are written down once:
+  `command-guard` builds its verdict dynamically (`jq --arg d "$decision"`) and matches
+  none of the three greps while being the broadest blocker here; and an `ask` stops the
+  tool call just as hard as a `deny` — mis-tiering one as advisory is the mistake
+  `ui-ux`'s README made until 2026-09-14.
+
+  Everything else is an instruction a competent model chooses to follow. Each
+  plugin's own docs say which tier it is in; where they say `recorded`, nothing
+  reads it back.
 
 ---
 

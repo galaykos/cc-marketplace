@@ -55,6 +55,8 @@
   command -v awk >/dev/null 2>&1 || exit 0
 
   input=$(cat)
+  # Warn-only hook, so the marketplace-wide advisory switch silences it outright.
+  [ "${CC_REMIND:-on}" = "off" ] && exit 0
 
   tp=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null) || exit 0
   [ -n "$tp" ] && [ -r "$tp" ] || exit 0

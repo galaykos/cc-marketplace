@@ -26,11 +26,13 @@ convention.
    the one the project has rather than beside it; the UI layer is library-agnostic and no
    skill here gets to pick a second one.
 
-2. When the stack is ReUI or Aceternity and design-studio's registry-source MCP tools
-   are available (`registry_search` / `registry_get` — load via ToolSearch), query
-   them BEFORE proposing or writing any component: real current names, props, and
-   install commands come from the registry, never from memory — reciting a
-   remembered component API is the exact failure the registry MCP exists to stop.
+2. When the stack is shadcn, ReUI or Aceternity and a registry MCP is connected
+   (shadcn's own server, or ReUI's hosted `mcp.reui.io` — load its tools via
+   ToolSearch), query it BEFORE proposing or writing any component: real current
+   names, props, and install commands come from the registry, never from memory —
+   reciting a remembered component API is the exact failure a registry MCP exists to
+   stop. No server connected: the fallback is the library's own docs URL in
+   `component-libraries/references/library-map.md`, never recall.
    Unavailable → say so and verify against the live docs URL instead.
 
 3. Dispatch the `ui-ux-engineer` worker with the request, instructing it to apply this
@@ -71,7 +73,7 @@ convention.
 
 6. When the build maps to real files, proceed via the ui-ux-engineer; if the request is
    still a visual decision between options (not yet decided), route to
-   `/design-studio:preview` when installed, else fall back
+   the real-component rung of `taskmaster:visual-decisions` when installed, else fall back
    to taskmaster's `visual-decisions` mockup path when taskmaster is present, else decide
    via ASCII options inline — so the choice is made on concrete mockups without dead-ending
    on a missing command. Headless: take the decided lines above as binding, resolve what

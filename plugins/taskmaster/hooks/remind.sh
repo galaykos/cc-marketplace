@@ -201,10 +201,10 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
     # Gated on an explicit manifest flag, not on rank, so exactly one plugin arms
     # it — making it unconditional would widen a deny gate's trigger to five hooks.
     mkdir "${TMPDIR:-/tmp}/cc-workprompt-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)" 2>/dev/null
-    mkdir "${TMPDIR:-/tmp}/cc-remind-$key-rank-90" 2>/dev/null
+    mkdir "${TMPDIR:-/tmp}/cc-remind-$key-rank-25" 2>/dev/null
     best=$(ls -d "${TMPDIR:-/tmp}/cc-remind-$key-rank-"* 2>/dev/null \
              | sed 's/.*-rank-//' | sort -n | head -1)
-    if [ -z "$best" ] || [ "$best" = '90' ]; then
+    if [ -z "$best" ] || [ "$best" = '25' ]; then
       printf '%s (%s).\n' 'taskmaster: work-shaped prompt — before the first code edit, run one batched clarifying round to zero ambiguity, or state in one line why this task is trivial enough to skip it; the inline route is /code-architecture:coding-task' '/taskmaster:task'
     fi
     find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'cc-remind-*' -o -name 'cc-workprompt-*' \) -type d -mmin +1440 -exec rmdir {} + 2>/dev/null

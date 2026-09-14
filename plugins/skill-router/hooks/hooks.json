@@ -34,7 +34,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Edit|Write|MultiEdit|.*create_new_file",
         "hooks": [
           {
             "type": "command",

@@ -88,10 +88,14 @@ url_status() {
 [ "$inventory" -eq 1 ] && printf 'age_d\tverified\tstamped_npm\tlive_npm\turl_status\tfile\turl\n'
 
 while IFS= read -r f; do
-  # Binding stamp grammar: within the first 6 lines, first match wins.
-  stamp=$(head -6 "$f" | grep -E '^> Last verified: [0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
+  # Binding stamp grammar: within the first 6 lines, first match wins. The bold form
+  # (`> **Last verified: …**`) is accepted because seven shipped craft-layer references
+  # used it and were invisible to this script for weeks — a staleness checker that
+  # silently skips files is worse than one that reports them, and the marker is for
+  # humans, who bold things. Both forms are canonical; neither is preferred.
+  stamp=$(head -6 "$f" | grep -E '^> \*{0,2}Last verified: ?\*{0,2} ?[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
   [ -n "$stamp" ] || continue
-  d=$(printf '%s' "$stamp" | sed -E 's/^> Last verified: ([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/')
+  d=$(printf '%s' "$stamp" | sed -E 's/^> \*{0,2}Last verified: ?\*{0,2} ?([0-9]{4}-[0-9]{2}-[0-9]{2}).*/\1/')
   epoch=$(to_epoch "$d")
   if [ -z "$epoch" ]; then
     echo "info: unparsable stamp date '$d' in $f — skipping"

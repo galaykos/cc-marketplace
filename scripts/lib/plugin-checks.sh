@@ -424,7 +424,12 @@ pc_removed_refs() {
   # file, env var and skill are still named terse-mode / CC_TERSE / terse-output, so it
   # is SAFE here only because $shapes matches reference forms; those tokens carry a
   # hyphen or underscore boundary and match no shape.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite'
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite|dev-env|design-studio'
+  # dev-env and design-studio were ABSORBED/RETIRED (2026-08, 2026-09-14). Both are
+  # hyphenated, so they match no bare-English shape and are safe in the $plug list —
+  # unlike `observability`, `lean` and `a11y`, which are ordinary words this check
+  # cannot tell from a plugin name, and which is why two of them sat wrong in shipped
+  # listing bytes for weeks (devops' skill description, security's README).
   # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
   # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow

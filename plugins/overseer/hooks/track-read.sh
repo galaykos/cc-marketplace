@@ -21,6 +21,9 @@
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
+  # `.*read_file` covers an IDE-MCP read, which uses the same `file_path` key (JetBrains
+  # MCP schema, read 2026-09-14). A session reading every artifact through the IDE would
+  # otherwise satisfy no evidence kind that requires the artifact to have been opened.
   f=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null) || exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null) || exit 0

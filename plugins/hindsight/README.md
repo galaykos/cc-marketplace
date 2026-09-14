@@ -103,9 +103,10 @@ row is a retraction candidate, not a verdict.
 
 ## Contents
 
-- **Hook**: SessionEnd stats collector (`hooks/collect.sh`) — bash + jq,
-  fail-silent by design
-- **Command**: `/hindsight:harvest` — ledger-first mining with raw-transcript
-  fallback
+- **Hooks**, two: the SessionEnd stats collector (`hooks/collect.sh`) and the
+  PostToolUse `Skill` invocation ledger (`hooks/skill-use.sh`, `CC_SKILL_LOG=off`) —
+  bash + jq, fail-silent by design
+- **Command**: `/hindsight:claude-md` — the CLAUDE.md audit. There is one command;
+  `/hindsight:harvest` in the table above is the SKILL's name, invoked the same way
 - **Skill**: harvest — ranking, recurrence gate, four-section report, apply gate
 - **Agent**: transcript-miner — read-only per-session mining, compressed findings

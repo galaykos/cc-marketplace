@@ -6,6 +6,14 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.10.0
+
+### Removed
+- **`/testing:review` is retired.** `/code-review:review` loads `testing-best-practices`
+  for any diff touching tests or untested production code, in one pass with every other
+  matching rubric — the fan-in this command handed its whole scope to anyway. The rubric
+  did not change; one listing entry did. `/testing:flake-hunt` stays: it runs a suite
+  repeatedly and classifies failures, which no fan-in does.
 ## 0.9.2
 
 ### Changed

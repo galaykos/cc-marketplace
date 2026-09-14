@@ -58,11 +58,10 @@ date cannot detect that, so re-dating this file would have preserved the error
 with a fresher stamp on it. A count in a static file is a count that will be
 wrong; the registry index is the only thing that knows.
 
-Get it live instead. `registry_list({registry:"aceternity"})` from the
-`design-studio` plugin's registry-source MCP returns the current inventory with per-item
-dependencies and a `heavy` flag for anything pulling a 3D/particle runtime —
-which also prices a block's bundle cost before it is installed. Without that
-plugin, `https://ui.aceternity.com/registry.json` is the same data raw.
+Get it live instead. `https://ui.aceternity.com/registry.json` is the current
+inventory, raw: per-item dependencies, and the 3D/particle runtimes that price a
+block's bundle cost before it is installed. Aceternity ships no MCP server of its
+own — fetch the JSON, do not recite a count.
 
 ## Not in this digest — live-fetch-only
 

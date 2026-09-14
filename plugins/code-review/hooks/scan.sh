@@ -42,6 +42,10 @@
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Edit|Write|MultiEdit) ;; *) exit 0 ;; esac
+  # CC_REMIND is the marketplace-wide advisory switch, and the README promised it here
+  # for two releases while nothing read it. It silences the WARN lane only: a PreToolUse
+  # deny is not an advisory, so an env var must not be able to turn a block into a pass.
+  [ "$event" = "PostToolUse" ] && [ "${CC_REMIND:-on}" = "off" ] && exit 0
 
   fp=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null) || exit 0
   [ -n "$fp" ] || exit 0

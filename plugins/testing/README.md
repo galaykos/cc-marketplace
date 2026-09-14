@@ -15,7 +15,7 @@ mocking boundaries, flaky-test causes, coverage traps.
 
 | Command | What it does |
 |---------|--------------|
-| `/testing:review [files-or-diff]` | Review tests (and untested production changes) against the testing-best-practices skill; findings as `path:line — problem — fix` by severity |
+| `testing:review` — **retired in 0.10.0** | `/code-review:review` loads `testing-best-practices` for any diff touching tests or untested production code — one pass, no second entry. The rubric did not change; the door did. Review tests (and untested production changes) against the testing-best-practices skill; findings as `path:line — problem — fix` by severity |
 | `/testing:flake-hunt [--runs N] [--shuffle "<runner flag>"] [--baseline FILE]` | Hunt and classify flaky tests — repeated runs in fixed and randomized order, set-diffed into order-dependent / non-deterministic / broken, each with its fix lane |
 
 ## Hook
@@ -39,8 +39,8 @@ in this marketplace.
 ## Example
 
 ```bash
-/testing:review tests/Feature/OrderExportTest.php
-/testing:review            # reviews the current diff
+/code-review:review tests/Feature/OrderExportTest.php   # loads testing-best-practices
+/code-review:review        # reviews the current diff, test rubric folded in
 ```
 
 The skill also auto-triggers when writing or refactoring tests, keeping advice

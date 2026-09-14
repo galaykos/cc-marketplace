@@ -193,10 +193,10 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
     # The key carries the PHASE, so a voice that stood down earlier gets a fresh
     # claim namespace when its own phase arrives instead of meeting a stale claim.
     key=$(printf '%s%s%s' "$sid" "$prompt" "$cc_phase_now" | cksum | cut -d' ' -f1)
-    mkdir "${TMPDIR:-/tmp}/cc-remind-$key-rank-20" 2>/dev/null
+    mkdir "${TMPDIR:-/tmp}/cc-remind-$key-rank-10" 2>/dev/null
     best=$(ls -d "${TMPDIR:-/tmp}/cc-remind-$key-rank-"* 2>/dev/null \
              | sed 's/.*-rank-//' | sort -n | head -1)
-    if [ -z "$best" ] || [ "$best" = '20' ]; then
+    if [ -z "$best" ] || [ "$best" = '10' ]; then
       printf '%s (%s).\n' 'ℹ debugging: a fix that did not hold is a hypothesis that was never tested — reproduce first, read the actual error, isolate one variable, and stop guessing after three failed attempts' '/debugging:debug'
     fi
     find "${TMPDIR:-/tmp}" -maxdepth 1 \( -name 'cc-remind-*' -o -name 'cc-workprompt-*' \) -type d -mmin +1440 -exec rmdir {} + 2>/dev/null

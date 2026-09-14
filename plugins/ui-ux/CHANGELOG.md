@@ -4,6 +4,31 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.23.0
+
+### Changed
+- **Registry lookups route to the registries' own MCP servers.** The stack skills used
+  to name design-studio's bundled `registry-source` server; that plugin is gone, so <!-- removed-ok -->
+  `shadcn-best-practices`, `component-libraries`, `reui`, `aceternity` and `/ui-ux:build`
+  now name shadcn's own server (`npx shadcn@latest mcp init`), ReUI's hosted
+  `mcp.reui.io` with its `claude mcp add` line, and Aceternity's raw
+  `registry.json` — it publishes no server. The rule is unchanged and is the point:
+  component APIs come from a registry, never from memory. What a user loses is one
+  install delivering the servers; what they gain is a server its own maintainers ship.
+  <!-- removed-ok -->
+- **The real-component preview landed in taskmaster, not here.** design-studio's <!-- removed-ok -->
+  `real-preview` was headed for this plugin; ui-ux's on-invoke prose corpus measured
+  159,517 B against a 160,000 B ratchet, so absorbing a 17 KB skill would have meant
+  cutting 17 KB of skills people use to fund one measured at a single invocation.
+  It is now the real-component rung of `taskmaster:visual-decisions`, the skill that
+  already owns the mockup fidelity ladder. What a ui-ux-only install loses: the
+  escalation above a shell mockup. `/ui-ux:build` names where it went.
+- **The two hooks are tiered apart in the README.** It said "Both advisory";
+  `preview-guard` returns `permissionDecision: "ask"`, which stops the tool call until
+  a human answers — this repo's own vocabulary calls that a gate with a human in it.
+  `palette-default` is the advisory one. Neither script changed; the sentence
+  describing them did.
+
 ## 0.22.3
 
 ### Changed
@@ -13,8 +38,8 @@ rather than invented ones.
 
 ### Changed
 - Every hand-off to the real-component preview and the registry MCP names
-  `design-studio` — theme-design and design-lab were merged into it (2026-09-14
-  consolidation plan). `/design-studio:preview`, `/design-studio:init`; the
+  `design-studio` — theme-design and design-lab were merged into it (2026-09-14 <!-- removed-ok -->
+  consolidation plan). the real-component rung of `taskmaster:visual-decisions`, `/design-studio:init`; the <!-- removed-ok -->
   registry tools are unchanged. No behaviour change.
 
 ## 0.22.1

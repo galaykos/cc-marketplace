@@ -16,7 +16,7 @@ edit.
    versions instead of parsing them yourself, and say which path you took. No network
    calls, no subagents — this step is a few file reads.
 
-3. Load the six always-relevant skills named in `coding-entry`, and prime the
+3. Load the five always-relevant skills named in `coding-entry`, and prime the
    stack-matched ones per `coding-entry/references/skill-map.md`. Name every signal whose
    owning plugin is not installed; a silent skip reads as "nothing applies".
 

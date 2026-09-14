@@ -3,6 +3,24 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.6.0
+
+### Fixed
+- **A secret written through an MCP file tool is blocked.** The matcher was
+  `Write|Edit|MultiEdit`, so a session driving an IDE — which writes every file through
+  its own MCP server — wrote past this guard entirely, while the README read as
+  universal. It now also matches `NotebookEdit` and any tool whose name ends
+  `apply_patch` or `create_new_file`, and reads their payloads: `pathInProject` + `text`
+  for a created file, and the whole patch body for `apply_patch`, whose added lines are
+  what a secret rides in on. Keys verified against the shipped JetBrains MCP schema on
+  2026-09-14. Residual, now stated in the README: a server using different key names
+  still writes past it.
+
+### Added
+- **A "What has teeth" table.** This was the one guard plugin whose README named no
+  tier for any of its rules, while the convention it follows is this marketplace's own.
+  Five rows, including the two things it cannot catch (a shell heredoc, an unlisted MCP
+  key shape) and the one it deliberately refuses (an allow-file).
 ## 0.5.0
 
 ### Fixed

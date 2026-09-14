@@ -2,10 +2,10 @@
 
 Meta-bundle: the creative-build studio in one install — concept-first
 creative direction with a tiered motion catalog and WebGL/Three.js effects
-(craft-layer); browser-driven design sessions, real-component visual decisions in
-whatever UI library the project runs and live registry sourcing (design-studio);
-and the companion the studio requires (ui-ux, which carries the WCAG audit). Split out
-of frontend-suite so ordinary frontend app work does not pay the studio's
+(craft-layer), and the companion it requires: ui-ux, which carries the per-library
+stack skills, the WCAG audit, CSS-variable theming, and the real-component preview
+that renders 2-3 variants with the project's OWN components on its dev server. Split
+out of frontend-suite so ordinary frontend app work does not pay the studio's
 always-on context. Uninstalls cleanly: `/craft-suite:uninstall` removes the
 bundle and prunes the plugins it auto-installed.
 
@@ -44,18 +44,17 @@ text that was previously being evicted.
 
 ## What's included
 
-One bullet per bundled plugin, in dependency order (3):
+One bullet per bundled plugin, in dependency order (2):
 
 - **craft-layer** — creative direction, section decisions, asset sourcing,
   and tiered motion for distinctive builds, via `/craft-layer:craft`
-- **design-studio** — session-driven direct manipulation in the browser
-  (`/design-studio:init`, `/design-studio:export`), visual decisions rendered with
-  the project's OWN components (`/design-studio:preview`) and live
-  component-registry MCP servers (Aceternity, shadcn, Magic UI local; ReUI hosted).
-  theme-design and design-lab were merged into it on 2026-09-14
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
-  Tailwind) and the library-agnostic `component-libraries` floor for any other
-  React component library, plus `/ui-ux:build`, `/ui-ux:audit`, `/ui-ux:theme`
+  Tailwind) and the library-agnostic `component-libraries` floor for any other React or
+  Vue component library, plus `/ui-ux:build`, `/ui-ux:audit`, `/ui-ux:theme` and the
+  `/ui-ux:theme`. design-studio was retired 2026-09-14: its browser design session
+  measured one real use, its real-component preview became a rung of
+  `taskmaster:visual-decisions`, and live registry lookups now go to shadcn's own MCP
+  server and ReUI's hosted one, named in the stack skills <!-- removed-ok -->
 
 ui-ux is listed here AND in frontend-suite on purpose: craft-layer
 delegates theming to ui-ux and auditing to `/ui-ux:audit`, so a standalone
@@ -64,7 +63,7 @@ companion once.
 
 | Command | What it does |
 |---------|--------------|
-| `/craft-suite:uninstall` | Uninstall the bundle AND prune every plugin it auto-installed — one step, no orphans; manually installed plugins are never touched |
+| `/craft-suite:uninstall` | Uninstall the bundle AND remove every plugin it lists as a dependency at the same scope, minus anything another installed suite also lists — one step, no orphans. It cannot tell an auto-install from one you made yourself: install records routinely carry no marker, so a dependency you installed by hand appears in the removal list and the confirm step is what protects it |
 
 ## Pairs well with
 

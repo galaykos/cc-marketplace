@@ -70,15 +70,17 @@ that looks great as a swatch can fail hard as a button.
 - **Agents**: ui-ux-reviewer, ui-ux-engineer, a11y-engineer (applies an audit's fix
   list, preferring native semantics over ARIA patches, each change tagged with its
   WCAG criterion)
-- **Hooks**: `preview-guard` (PreToolUse on `Artifact` — pushes a visual decision
-  to a real preview URL instead of an artifact); `palette-default` (PostToolUse on
-  a written UI file — names the indigo/violet/purple category default when it
-  arrives through Tailwind class strings or a literal default swatch, once per
-  session). **Both advisory.** A violet brand is a legitimate answer; the only
-  thing separating "chose it" from "reached for the default" is intent, which no
-  script reads — so `palette-default` says so once and never blocks. Silence it
-  with `CC_PALETTE=off`, or `CC_REMIND=off` for every advisory in this
-  marketplace.
+- **Hooks**, and they are not the same tier:
+  - `preview-guard` (PreToolUse on `Artifact`) — **gate, with a human in it.** It
+    returns `permissionDecision: "ask"`, which stops the tool call until you answer:
+    every time for a strongly visual artifact, once per session for a weak signal.
+    It never decides for you, but calling it advisory was wrong — an ask blocks.
+  - `palette-default` (PostToolUse on a written UI file) — **advisory.** It names the
+    indigo/violet/purple category default when it arrives through Tailwind class
+    strings or a literal default swatch, once per session, and never blocks. A violet
+    brand is a legitimate answer; the only thing separating "chose it" from "reached
+    for the default" is intent, which no script reads. Silence it with
+    `CC_PALETTE=off`, or `CC_REMIND=off` for every advisory in this marketplace.
 
   It exists because craft-layer's stricter equivalent (`utility-palette`, a gate
   with a waiver lane) runs only inside `/craft-layer:craft` and
@@ -91,7 +93,10 @@ that looks great as a swatch can fail hard as a button.
 
 - **taskmaster** — its visual-decisions skill uses the same always-live mockup
   pattern for layout/flow choices
-- **design-studio** — the same three-way line from its side: `/ui-ux:theme` is
-  candidate-driven colour theming, `/design-studio:preview` is real-component variants,
-  `/design-studio:init` is session-driven direct manipulation on one surface; its registry MCP tools are what the stack skills here call
-- **vue3 / web-dev** — component-logic review alongside the visual layer
+- **A live component registry** — the stack skills here read component APIs from a
+  registry MCP rather than from memory: shadcn's own server (`npx shadcn@latest mcp init`)
+  and ReUI's hosted one (`https://mcp.reui.io`, one-time browser sign-in). Neither is
+  shipped by this marketplace; `/stack-scan:suggest` prints the install line when the
+  manifests show the stack. <!-- removed-ok --> (design-studio, retired 2026-09-14,
+  used to declare them.)
+- **web-dev** — component-logic review (React and Vue 3) alongside the visual layer

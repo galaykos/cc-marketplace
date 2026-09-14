@@ -272,12 +272,12 @@ Cite the one that answers the question being asked.
 **Enumerate, then pick.** Before the class decision in "The four classes" runs for a
 surface, the run needs the registry's actual index in front of it, not its memory of one:
 
-- **The `design-studio` plugin's registry-source MCP in this marketplace exists for exactly this step.** Install
-  it and `registry_list` / `registry_search` / `registry_get` answer from the registries'
-  own indexes, cached 24h, with the source URL, fetch date and a `stale` flag on every
-  answer — plus a `heavy` flag naming anything that would pull a 3D/particle runtime. It
-  also ships ReUI's own hosted MCP server, which needs a one-time browser sign-in the user
-  completes. It is in `craft-suite`.
+- **A registry MCP is the tool for exactly this step, and this marketplace ships none.**
+  shadcn's own server (`npx shadcn@latest mcp init`) and ReUI's hosted one
+  (`claude mcp add --transport http reui https://mcp.reui.io`, then a one-time browser
+  sign-in under `/mcp`) answer from the registries' own indexes. Aceternity publishes no
+  server: `https://ui.aceternity.com/registry.json` is the same data raw, including the
+  3D/particle runtimes that price a block before it is installed.
 - **Or the shadcn MCP server**, which works with any shadcn-compatible registry —
   `npx shadcn@latest mcp init --client claude`, with third-party registries declared in
   `components.json` under `registries` (`{"@acme": "https://…/{name}.json"}`).

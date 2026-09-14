@@ -1,6 +1,6 @@
 # skill-router
 
-File-aware skill auto-routing. The marketplace ships ~50 best-practice skills, but a skill only helps if it fires at the right moment. This plugin surfaces the relevant one automatically, driven by the file you actually touch — not by whether the prompt happened to name it.
+File-aware skill auto-routing. The marketplace ships the marketplace's best-practice skills, but a skill only helps if it fires at the right moment. This plugin surfaces the relevant one automatically, driven by the file you actually touch — not by whether the prompt happened to name it.
 
 ## Install
 

@@ -80,7 +80,7 @@ ceiling, not a purchase — it only admits description text that was being evict
 
 | Command | What it does |
 |---------|--------------|
-| `/core-suite:uninstall` | Uninstall the bundle AND prune every plugin it auto-installed — one step, no orphans; manually installed plugins are never touched |
+| `/core-suite:uninstall` | Uninstall the bundle AND remove every plugin it lists as a dependency at the same scope, minus anything another installed suite also lists — one step, no orphans. It cannot tell an auto-install from one you made yourself: install records routinely carry no marker, so a dependency you installed by hand appears in the removal list and the confirm step is what protects it |
 
 ## What this costs, honestly
 

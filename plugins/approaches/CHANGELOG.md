@@ -3,6 +3,15 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.7.1
+
+### Fixed
+- **`consult-remind` no longer outranks `debugging`'s nudge on the repeated-attempt
+  phrases.** Its own README said those phrases belong to debugging and its lane yields to
+  `systematic-debugging`, while its arcRank of 10 beat debugging's 20 and took them. The
+  ranks are swapped; rank now backs what the lane and the README always claimed.
+- The Commands table is labelled for what it is: five command files plus two skills
+  (`build-vs-buy`, `consult`) invoked the same way.
 ## 0.7.0
 
 ### Added

@@ -570,7 +570,7 @@ if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && 
     ev=$(printf '%s' "$tail_jsonl" \
       | jq -r 'select(.type=="assistant")
                | [.message.content[]? | select(.type=="tool_use")
-                  | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$"))
+                  | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$|apply_patch$|create_new_file$"))
                              then "@" + ((.input.file_path // "") | ascii_downcase | (if test("\\.[a-z0-9]+$") then sub(".*\\."; "") else "" end))
                              else "" end)]
                | join(" ")' 2>/dev/null \

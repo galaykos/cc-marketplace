@@ -76,6 +76,8 @@
   case "$event" in PostToolUse|PreToolUse) ;; *) exit 0 ;; esac
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Edit|Write|MultiEdit) ;; *) exit 0 ;; esac
+  # WARN lane only — see scan.sh's note; the PreToolUse deny ignores this switch.
+  [ "$event" = "PostToolUse" ] && [ "${CC_REMIND:-on}" = "off" ] && exit 0
   # Only a whole file has a ratio, and only a Write carries a whole file.
   [ "$event" = "PreToolUse" ] && [ "$tool" != "Write" ] && exit 0
 

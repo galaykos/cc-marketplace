@@ -5,8 +5,9 @@ web-dev (Next.js, React Native and Vite skills, the generalist worker and the
 opus-floored frontend-reviewer), file-aware skill
 auto-routing, the WCAG audit inside ui-ux, and code-review (the review fan-in
 plus comment discipline: the no-comment default and its write-time denies).
-Inertia lives in the laravel plugin. The creative-build studio (craft-layer, design-studio) moved to the craft-suite bundle, so
-ordinary frontend app work does not pay the studio's always-on context.
+Inertia lives in the laravel plugin. The creative-build studio (craft-layer) moved to
+the craft-suite bundle, so ordinary frontend app work does not pay the studio's
+always-on context.
 Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and
 prunes the plugins it auto-installed.
 
@@ -66,12 +67,12 @@ One bullet per bundled plugin, in dependency order (4):
 
 | Command | What it does |
 |---------|--------------|
-| `/frontend-suite:uninstall` | Uninstall the bundle AND prune every plugin it auto-installed — one step, no orphans; manually installed plugins are never touched |
+| `/frontend-suite:uninstall` | Uninstall the bundle AND remove every plugin it lists as a dependency at the same scope, minus anything another installed suite also lists — one step, no orphans. It cannot tell an auto-install from one you made yourself: install records routinely carry no marker, so a dependency you installed by hand appears in the removal list and the confirm step is what protects it |
 
 ## Pairs well with
 
 - **craft-suite** — the creative-build studio half: craft-layer's design
-  pipeline and motion catalog, design-studio's preview and registry MCP
+  pipeline, motion catalog and WebGL effects
 - **laravel** — the backend that Inertia frontends sit on
 - **resilience** — `/resilience:review --concern performance`, hotspot and cache-correctness review beyond the UI layer
 - **testing** — test review for the components these stacks produce

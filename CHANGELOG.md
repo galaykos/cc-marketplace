@@ -4,6 +4,26 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.104.0] - 2026-09-14
+
+**design-studio retired; the marketplace is 26 leaves and 4 bundles.** Its browser
+design session measured one real invocation across every project it was installed in,
+and its bundled component-registry MCP measured none — while costing 793 always-on
+tokens, five listing entries and 140 KB of server code. The two parts that carried a
+mechanism survive: the real-component preview is now a rung of
+`taskmaster:visual-decisions` (`references/real-components.md`), with
+`preview-cleanup.sh` and its harness moved to taskmaster, and live registry lookups
+route to the registries' own servers — shadcn's (`npx shadcn@latest mcp init`) and
+ReUI's hosted `mcp.reui.io` — named in ui-ux's stack skills. What you lose: pointing
+and dragging on a canvas, the four lookalike skins, and one install delivering the MCP
+servers.
+
+`craft-suite` is two members (craft-layer, ui-ux). `ui-ux` also re-tiers its two
+hooks: `preview-guard` returns `permissionDecision: "ask"`, which blocks a tool call
+until a human answers, so the README's "both advisory" was wrong about one of them.
+
+Recount: `ls -d plugins/*/ | wc -l` → 30.
+
 ## [0.103.0] - 2026-09-14
 
 **A product review of every plugin as installed: hooks driven with real payloads,

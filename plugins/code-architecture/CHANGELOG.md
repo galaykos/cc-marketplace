@@ -2,6 +2,15 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.15.4
+
+### Fixed
+- **`/code-architecture:coding-task` asked for six always-relevant skills; `coding-entry`
+  names five.** The sixth was `lean:cost-model`, whose plugin was removed on 2026-09-14.
+- **`work-verification` and `drift-review` are no longer both called "gates".** They are
+  different tiers and saying so is the point: `work-verification` is a gate wherever
+  candor is installed (its clause 3 blocks the claim), `drift-review` is agent-graded and
+  nothing runs it. The README also listed four of five commands and eight of nine skills.
 ## 0.15.3 — 2026-09-14
 
 - `skills/system-design/SKILL.md` no longer says the delivery-semantics detail (outbox,

@@ -13,7 +13,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Read",
+        "matcher": "Read|.*read_file",
         "hooks": [
           {
             "type": "command",

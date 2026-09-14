@@ -78,4 +78,4 @@ dependency audit) stays review-time via `/security:review`.
 ## Pairs well with
 
 - **testing** — turn each confirmed finding into a regression test
-- **php / laravel** — general code-quality review; security:review goes deeper on the attack surface
+- **laravel** — general code-quality review; security:review goes deeper on the attack surface

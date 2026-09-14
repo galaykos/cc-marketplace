@@ -5,7 +5,7 @@
   "command": "/debugging:debug",
   "extraGuard": null,
   "artifact": "debugging:remind",
-  "arcRank": 20,
+  "arcRank": 10,
   "lane": {
     "owns": "stuck-loop-signal",
     "trigger": "UserPromptSubmit prompt head matches a stuck-loop phrase: still failing/broken/crashing, same error, didn't work, not working, keeps failing/breaking/crashing, failing/broke again, nothing works, or a second/third/fourth time|attempt|try",

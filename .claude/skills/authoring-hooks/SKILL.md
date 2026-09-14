@@ -112,8 +112,13 @@ event and your script. Design for that:
   the trigger genuinely matches; most firings should emit nothing.
 - Keep it fast. The script runs inline with the user's action; a slow
   hook is latency added to everything, forever.
-- Keep it deterministic. Same input, same output — no network calls, no
-  clock-dependent branches, nothing that makes firings unreproducible.
+- Keep it deterministic. Same input, same output — no network calls, nothing
+  that makes firings unreproducible. One clock-dependent branch is allowed and
+  shipped: a TTL expiring a LEAKED marker (every chassis reminder hook sweeps
+  `-mmin +1440`, and expires its phase sentinel at `-mmin +120`), because the
+  alternative to a stale marker is a permanent gag. The rule is about the
+  VERDICT, not wall time: a branch whose outcomes are "speak" and "speak later"
+  is fine; one whose outcomes are "allow" and "deny" is not.
 - Fail open. Wrap the body, swallow stderr, exit 0 on any error. A
   buggy hook must degrade to a no-op, never block the user.
 

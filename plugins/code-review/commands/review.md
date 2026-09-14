@@ -36,7 +36,9 @@ Stack fan-in — one pass, no duplicate reviews: from the changed files' types a
 manifests, list every matching best-practice skill (`.ts`/`.tsx`/`.jsx`/`.vue` →
 no language plugin, the baseline covers language-level review; web-dev's
 react-native and vite skills per their manifest markers; markup/utility classes touched → the matching ui-ux stack
-skill + a11y-audit; `.php`/`.blade.php` → laravel per composer.json;
+skill + a11y-audit; `.php`/`.blade.php` → laravel per composer.json, plus its
+inertia skill when `inertiajs/inertia-laravel` or `@inertiajs/*` is in the manifests
+(an Inertia page is a `.vue`/`.tsx` file the language row above sends nowhere);
 `next.config.*`/`app/` routes → web-dev's nextjs skill; `.sql`/migrations → database's sql skill, plus its
 mariadb skill when that engine is detected; test files, fixtures, or production code
 changed with no covering test → testing's testing-best-practices; `.github/workflows/`,
@@ -115,10 +117,12 @@ Output rules:
     (missing timeouts, unsafe retries, absent degradation paths; empty/over-broad
     catches, swallowed exceptions, missing cause chains; check-then-act races, retry
     idempotency, unguarded parallel writes; silent catch blocks, correlation IDs,
-    secrets in logs; performance hotspots) and this plugin's own `comment-discipline`
+    secrets in logs; performance hotspots; at-least-once delivery, idempotent
+    consumers, ordering and poison messages on a broker or queue) and this plugin's own `comment-discipline`
     skill (comment volume and placement). When `resilience` is installed, LOAD its
     matching skills (resilience-design, error-handling-design, concurrency-safety,
-    observability-design, performance-tuning) in this same pass and report each such
+    observability-design, performance-tuning, and event-driven when the diff touches a
+    broker, queue, consumer or event schema — all six) in this same pass and report each such
     finding once, tagged with the owning skill — never defer it to a `/resilience:*`
     command, because those commands hand their whole scope back here and a deferral
     is a loop in which nobody runs the rubric. When `resilience` is absent, this

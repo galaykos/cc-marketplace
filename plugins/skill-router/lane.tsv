@@ -6,7 +6,9 @@
 # route-prompt offers WHICH tool; the reminder hooks nudge about WHAT to do — different jobs,
 # so no shared territory. The yield is not invented here: the charter this hook injects already
 # says "clarification outranks tool-fit" (hooks/route-prompt.sh, rule 3), so the row records a
-# deference the plugin already ships. prime.sh (SessionStart), route.sh (PostToolUse) and
+# deference the plugin already ships. That charter is now backed by rank as well as prose —
+# taskmaster:remind holds arcRank 25, ahead of every other arc voice — where until 2026-09-14
+# it held 90 and lost to all of them. prime.sh (SessionStart), route.sh (PostToolUse) and
 # summary.sh (SessionEnd) are outside the gated channel and carry no row this run.
 skill-router:route-prompt	hook	any	tool-fit-catalog	prompt head passes the work-shaped gate (a making verb, or a symptom token bound by a state verb) AND no catalog marker exists for this session	taskmaster:remind
 skill-router:compact-capsule	hook	any	post-compaction-state-recall	SessionStart fires with source=compact AND at least one of .claude/cc-phase.json, .claude/task-runner/active-run.json, .claude/task-runner/scope.json, .claude/taskmaster/ledger-*.md exists	-

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1
+
+### Fixed
+- **The allow-file cannot be edited through an MCP file tool.** The second matcher
+  protecting `.claude/destructive-guard-allow` covered the four host write tools only;
+  an IDE-MCP write bypassed the protection on the file that disarms this guard.
+- **"187 assertions" in the README is 217** — the harness has printed the larger number
+  since 0.6.0 added thirty.
 ## 0.6.0
 
 ### Fixed

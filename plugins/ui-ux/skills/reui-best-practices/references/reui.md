@@ -45,8 +45,9 @@ https://reui.io/docs for those; the pages ARE the version, no npm to pin.
 
    Never state a count or a catalogue for this registry from a static file —
    including this one. Ask the registry: ReUI ships its own MCP server
-   (`mcp.reui.io`, declared by the `design-studio` plugin, unlocked by a
-   one-time browser sign-in), and `list_components` / `search` / `get_component`
+   (`mcp.reui.io` — add it with `claude mcp add --transport http reui
+   https://mcp.reui.io`, then unlock it with the one-time browser sign-in under
+   `/mcp`), and `list_components` / `search` / `get_component`
    answer with the type named beside every number.
 4. Premium items: put `REUI_LICENSE_KEY=...` in `.env.local`, switch the
    registry entry to the object form with an `Authorization: Bearer

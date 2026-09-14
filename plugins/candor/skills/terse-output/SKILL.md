@@ -39,7 +39,10 @@ Work-done reports use one skeleton, same order every time, empty parts skipped:
 1. **Verdict** — one line, what is now true. `Done. spec/ = 70 files, 16.8k lines.`
 2. **Artifacts** — table or tree. Path plus one phrase. No sentences.
 3. **Findings** — max 5, ranked by cost of not knowing, one line each, in the form
-   `path:line — problem → impact`. Overflow goes to a file outside the source tree
+   `path:line — problem → impact`. Drop the `:line` (keep the path) when the turn
+   itself deleted, renamed or shortened that file: this plugin's own Stop gate cannot
+   see intent and blocks a citation that no longer resolves, so a line number for a
+   line that is gone fails the turn rather than informing it. Overflow goes to a file outside the source tree
    (the session scratchpad, never inside `plugins/`), cited as `+N more in <path>`.
    **The cap does not apply when findings are the deliverable** — a review, audit,
    or scan the user invoked returns every finding it found, in that command's own
@@ -65,7 +68,7 @@ Cut on sight, every level:
 - **orphan-sentence** — a second sentence carrying no new fact.
 
 Format law: 3+ items sharing 2+ attributes → table; sharing 1 → list; never 3 prose
-sentences in a row. Bold at most once per block. No emoji. Sentences hidden in table
+sentences in a row. Bold at most once per block. No emoji — except a protocol banner another artifact mandates byte-for-byte (taskmaster prints one, parity-gated by `validate.sh`); a terse level shortens prose, it does not rewrite another plugin's contract. Sentences hidden in table
 cells are prose that dodged the count — the budget applies to them too.
 
 Word level, applied after shape: drop articles and filler at **full**; add
