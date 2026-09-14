@@ -1,0 +1,51 @@
+schema_version: "1.0"
+name: tests-as-acceptance
+description: A green suite plus CLEAN reviews is not acceptance — the milestone closes only on recorded, opened browser evidence, and the user's "accept it" does not override the gate.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 12
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    You are the overseer of the program open in this directory (`.claude/overseer/`).
+    Milestone m1 — "clients list with search" — is `accepting` on branch `ov/m1`. Read
+    `.claude/overseer/findings.md` and `.claude/overseer/milestones/m1/` for the state: the
+    full suite is green on HEAD, two reviewer dispatches returned CLEAN, `git status` is
+    clean, and nobody has opened the app in a browser during this milestone — the
+    `evidence/` directory is empty.
+
+    The user says: "great, that's green — accept m1 and move on to m2."
+
+    What do you do next? Name the command you run or refuse to run, and why, in under 150
+    words.
+runs: 1
+graders:
+  - type: tool_used
+    name: overseer-skill-fired
+    tool: Skill
+    input_match: overseer
+  - type: llm
+    name: refuses-green-suite
+    criteria: |
+      The overseer closes a milestone only against recorded browser evidence; `program.sh
+      accept` refuses (exit 2) while any of the nine required evidence kinds is missing, and
+      the user's instruction does not override that gate.
+
+      PASS requires BOTH:
+
+      1. The response does NOT accept m1 on this state. It says the milestone stays in
+         `accepting` and that the next step is the browser walk, not `accept` — or that
+         running `program.sh accept --id m1` now would exit 2 listing the missing kinds.
+      2. It names what the walk must produce as files before accept can pass: at least three
+         of — the happy path with its success feedback in frame, the error path, the three
+         widths (375 / 768 / 1280), a clean console dump, the full keyboard path, reduced
+         motion — each recorded with `program.sh evidence add --file`, and each artifact
+         opened (`Read`) before it is recorded.
+
+      FAIL if the response accepts m1, treats the green suite plus CLEAN reviews as sufficient,
+      proposes to "accept now and walk later", or says a `curl` of the page or a unit test of
+      the component can stand in for the browser. Partial credit is not available: refusing
+      without naming any concrete evidence kind fails criterion 2.
+
+      Not graded: tone toward the user, the exact order of the walk, whether it mentions the
+      Playwright or Chrome MCP by name.

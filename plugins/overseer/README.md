@@ -16,9 +16,11 @@ It accepts nothing it has not watched work in a browser.
 | `/overseer:status` | command | prints the board — milestones, branches, evidence, next |
 | `overseer` | skill | the loop, the product-judgment rules, the acceptance protocol, the prompt templates |
 | `hooks/announce.sh` | SessionStart hook | one line when a program is open, silent otherwise |
+| `hooks/track-read.sh` | PostToolUse hook (Read) | while a program is open, ledgers each Read as `epoch, session, path` in `.claude/overseer/.reads`; prints nothing |
 | `kinds.tsv` | data | milestone kind → the skill groups a gated dispatch must pin before accept; read by `program.sh` |
 | `scripts/program.sh` | script | the state machine; the only writer of `.claude/overseer/program.json`; `init --model` (tier), `milestone add --kind --size`, `dispatch check` (prompt gate: preamble, scope, verify, skill path, `MODEL:` line within the tier; kinds worker, reader, reviewer, followup; size WARN), `decision add --assumed`, `suggestion add`, `log`, `close` (divergence gate, plugins-used line, archive with evidence paths rewritten) |
 | `scripts/capability-scan.sh` | script | which installed plugins (user, project, local scope) cover which phase, the fallback for each gap, and the CI workflows with their trigger branches checked against the base branch |
+| `evals/` | eval cases | two scaffolded cases for `claude plugin eval plugins/overseer --scaffold --ablation with-without`: the hands-off rigour pick and the green-suite acceptance refusal; the without-plugin arm is the control the score is measured against (CHANGELOG 0.4.0 carries the measured deltas and their caveats) |
 | `scripts/skill-path.sh` | script | the absolute `SKILL.md` path to pin in a prompt, resolved through the CLI's install path (cache fallback names its route) |
 
 ## The loop
@@ -70,7 +72,8 @@ dispatched directly — weaker, and said so in the charter.
 | taskmaster's own red-team and coverage seats follow the session model under `goal`, whatever the overseer's tier | **residual** — hold every seat at opus by starting the session with `claude --model opus` |
 | a fresh session learns a program is open | **hook** — SessionStart, one line |
 | discover before clarify (CI included); ask only what the project cannot answer; no code in the main thread; every decision in `decisions.md` | **agent-graded** / **recorded** |
-| the recorded browser evidence describes a real run | **unenforceable** — file existence is checked, content is not |
+| a recorded artifact was opened (`Read`) in this session since it last changed — a screenshot nobody looked at is refused | **gate** — `program.sh evidence add` exit 2 against the Read ledger; fail-open with a WARN when no session id or no Read was tracked |
+| what the artifact shows, and that the run behind it was real | **agent-graded** / **unenforceable** — content is judged, provenance is not checkable |
 
 ## Limits
 

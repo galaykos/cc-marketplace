@@ -88,7 +88,9 @@ Evidence kinds (fixed vocabulary, **gate**): required — `tests`, `browser-happ
 `browser-error`, `viewport:mobile`, `viewport:tablet`, `viewport:desktop`, `console-clean`,
 `keyboard`, `motion`; optional — `a11y`, `review`, `perf`, `dark-mode`, `progress`. Every
 required kind needs `--file`, a non-empty regular file, stored as an absolute path and
-re-checked by `accept`; every required row must be newer than the last gated worker or
+re-checked by `accept`, and Read in this session since it last changed (**gate** — the
+`.reads` ledger `hooks/track-read.sh` writes; no session id or no row for the session → a
+WARN and the row is recorded); every required row must be newer than the last gated worker or
 follow-up dispatch (**gate** — a walk before the last fix cycle walked older code; record
 the kinds again, the newest row counts). Nine kinds on one file draws a WARN. See
 `acceptance.md` for what each must contain.
