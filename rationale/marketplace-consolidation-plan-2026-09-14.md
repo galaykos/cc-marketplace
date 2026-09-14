@@ -5,7 +5,8 @@ is redundant — while still tackling any software task, and say how it differs 
 what the ecosystem ships.
 
 **Standing of this document: `recorded`.** Nothing reads it back. Every number
-carries a recount command. Nothing here has been executed; §8 is the order to do it in.
+carries a recount command. Waves 0 and 1 were executed on this branch on 2026-09-14
+(records in §8); waves 2–4 are not, and §8 is the order to do them in.
 
 **Method.** Six read-only reviews fanned out over the tree on branch
 `feat/marketplace-consolidation-plan`: UI/UX, architecture, team lead, developer
@@ -286,6 +287,36 @@ chassis items were dropped on inspection — §4.5 says why.
 `resilience`) · `vercel-skills-scout` + `plugin-scout` → `stack-scan` · `lean` removed
 · `resilience` 5 → 1 command · four `/…:review` entries removed (after wave 0's fan-in
 fix). Sequence the two `code-architecture`-touching PRs; do not parallelise them.
+
+**Wave 1 — executed 2026-09-14 on this branch, six commits, every gate and harness
+green at each.** What shipped, and where it deviated from the row above:
+
+- `lean`, `payments`, `llm-app` removed (`3301c87`). `lean` is deliberately NOT in
+  `pc_removed_refs`' list — the token is overseer's rigour tier and taskmaster's
+  `goal-lean`; the residual is stated in the check's header.
+- `system-design` → `code-architecture` 0.14.0, `event-driven` → `resilience` 0.5.0
+  (`db97e51`). `architecture-reviewer` absorbs the read-only reviewer; the
+  `system-architect` opus floor moves with it.
+- `plugin-scout` + `vercel-skills-scout` → `stack-scan` 0.7.0 (`65f31f4`). Both skills
+  keep their names behind one `/stack-scan:suggest`; `--skills [query]` is the
+  third-party mode and refuses every plugin-mode flag, so the no-auto-install floor
+  is a mode rule. `pc_pick_parity` retired — one picker copy, nothing to keep in step.
+  `always-on-suite` 0.5.0 and `process-suite` 0.11.0 install stack-scan in the scouts'
+  place. Net always-on for a set that had all three: −13 tokens.
+- `resilience` 0.6.0: five commands → `/resilience:review [--concern
+  failure|errors|concurrency|observability|performance|events|all]` (`0f7db15`).
+  Six rubrics, not five — `event-driven` arrived in item C. Without the flag it loads
+  `resilience-design` and adds each rubric whose surface the scope touches, naming
+  the loaded set in its Checked line. −111 always-on, −78 on every dynamic channel.
+- `/web-dev:review`, `/laravel:review`, `/database:review`, `/ui-ux:review` retired
+  (`be81b86`). `web-dev` 0.7.0, `laravel` 0.8.0 and `database` 0.8.0 now ship no
+  command at all — skills, workers, and database's guard — which the row above did
+  not say out loud. The router's stack-relevance filter keeps working on the stack
+  reviews that remain (devops, api-design); its harness moved to those.
+
+Recount after wave 1 (the §10 commands): 39 plugin directories = 31 leaves + 8
+bundles; 68 commands; 108 skills; 31 agents; always-on total 11,243 tokens
+(`bash scripts/context-budget.sh | grep ^TOTAL`). Bundles are untouched until wave 3.
 
 **Wave 2 — hooks move, go together.** `theme-design` + `design-lab` → `design-studio`
 (one PR; both are craft-suite members) · `terse` → `candor` and the unified Stop gate
