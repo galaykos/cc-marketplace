@@ -2,6 +2,13 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.34.2
+
+### Changed
+- `plugin.json` description says what the README already said: the run-completion Stop
+  gate is candor's clause 4 since 2026-09-14, so a by-name install without candor has no
+  gate — the catalog and `/stack-scan:suggest` show the description, not the README.
+
 ## 0.34.1
 
 ### Changed

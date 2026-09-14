@@ -112,6 +112,7 @@ glob	**/workflows/**	devops-practices	devops	high
 content	\b(async|await|Promise\.all|mutex|goroutine|\.lock\(|queue)\b	concurrency-safety	resilience	low
 content	\b(catch|throw|rescue)\b	error-handling-design	resilience	low
 content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
+content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	security-review	security	low
 content	\b(fetch\(|axios|http\.(get|post)|HttpClient)\b	resilience-design	resilience	low
 content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|OpenTelemetry|correlation[_-]?id|trace_id|\bspan\b)\b	observability-design	resilience	low
 content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-ux	low

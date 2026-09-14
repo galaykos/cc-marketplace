@@ -80,10 +80,10 @@ each wave).**
 | `lean` | **removed** | its PostToolUse fires on every edit with no path or content filter — the doctrine-injection shape that measured negative; `/simplify` is a host built-in | 73 always-on tokens of pricing doctrine |
 | `fresh-take` | → `approaches` | consultant agent + stuck-loop UserPromptSubmit hook; both are `decide`-phase blind second opinions | standalone install |
 | `resilience` | **kept**, 5 commands → 1 `/resilience:review [--concern]` | `event-driven` arrives from system-design | per-concern slash names |
-| `approaches` | **kept**, trimmed | drop `estimation`, `pattern-selection`, `rollout-planning`, `build-vs-buy` skills (checklists); keep `approach-deliberation` (marker mechanism) + `opinions` | four checklist skills |
-| `code-architecture` | **kept**, trimmed | drop `solid-principles`, `yagni-check`, `low-cognitive-load` as entries (fold to one reference); `evidence-gate.sh` clause moves to the unified Stop gate (§4.2) | three slash names |
-| `ui-ux` | **kept**, 12 skills → 8 | `tailwind-best-practices` removed; `reui` + `aceternity` + shadcn's two live paragraphs fold into `component-libraries`; `/ui-ux:review` removed as entry (fan-in loads the skill) | one loose router glob (`**/components/**`), which mostly fired as noise |
-| `craft-layer` | **kept**, 14 skills → 9 | `interaction-fx`, `physics-motion`, `kinetic-typography`, `page-transitions` → `motion-tiers/references/`; `webgl-effects` → `threejs-best-practices` | five entry names; bodies survive as references |
+| `approaches` | **kept**; trim → wave 4 (measure first) | drop `estimation`, `pattern-selection`, `rollout-planning`, `build-vs-buy` skills (checklists); keep `approach-deliberation` (marker mechanism) + `opinions` | four checklist skills |
+| `code-architecture` | **kept**; skill fold → wave 4 (measure first); the gate move is done | drop `solid-principles`, `yagni-check`, `low-cognitive-load` as entries (fold to one reference); `evidence-gate.sh` clause moves to the unified Stop gate (§4.2) | three slash names |
+| `ui-ux` | **kept**; 12 skills → 8 is wave 4 (measure first); `/ui-ux:review` removal is done | `tailwind-best-practices` removed; `reui` + `aceternity` + shadcn's two live paragraphs fold into `component-libraries`; `/ui-ux:review` removed as entry (fan-in loads the skill) | one loose router glob (`**/components/**`), which mostly fired as noise |
+| `craft-layer` | **kept**; 14 skills → 9 is wave 4 (measure first) | `interaction-fx`, `physics-motion`, `kinetic-typography`, `page-transitions` → `motion-tiers/references/`; `webgl-effects` → `threejs-best-practices` | five entry names; bodies survive as references |
 | `laravel`, `web-dev`, `database` | **kept**, `/…:review` removed as entries | the fan-in already loads their skills | a cheap single-rubric pass without the full fan-in |
 | `testing`, `devops`, `api-design`, `security`, `debugging`, `git-workflow`, `code-review`, `stack-scan`, `command-guard`, `secret-scanning`, `skill-router`, `hindsight`, `brain`, `ultra-deep-research`, `taskmaster`, `task-runner` | **kept** | see §4 for the mechanism changes inside them | — |
 
@@ -452,7 +452,9 @@ until wave 4 measures what taskmaster's or its own bodies are worth.
 
 **Wave 4 — measure, then cut bodies.** `claude plugin eval --ablation with-without`,
 n ≥ 3, on: the five `resilience` bodies, the four `security` bodies, the six ui-ux
-per-library skills, `approaches`, `code-architecture`, `taskmaster`. A zero result is a
+per-library skills, `approaches`, `code-architecture`, `taskmaster`, and craft-layer's
+four motion bodies (§3.1's 14 → 9). The §3.1 rows marked "measure first" are this wave's
+queue, not done work. A zero result is a
 result: fold the body to a reference and keep only what the control arm missed.
 Also run the §6.9 advisory-stack fixture before and after wave 2.
 

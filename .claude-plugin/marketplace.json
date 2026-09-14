@@ -27,7 +27,7 @@
     {
       "name": "code-architecture",
       "source": "./plugins/code-architecture",
-      "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — enforced by a blocking Stop hook that refuses a completion claim when files were edited but nothing ran afterward — low-cognitive-load code, KISS/DRY simplicity principles. Owns structure at both levels: code (units, interfaces, file placement) and system (service boundaries on data ownership, scaling paths, cache placement, sync vs async integration, domain modeling) via the system-design and domain-modeling skills and the system-architect worker."
+      "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — held at Stop by candor's gate (clause 3, refusing a completion claim when files were edited but nothing ran afterward) when candor is installed; without it the rule is prose — low-cognitive-load code, KISS/DRY simplicity principles. Owns structure at both levels: code (units, interfaces, file placement) and system (service boundaries on data ownership, scaling paths, cache placement, sync vs async integration, domain modeling) via the system-design and domain-modeling skills and the system-architect worker."
     },
     {
       "name": "taskmaster",
@@ -47,7 +47,7 @@
     {
       "name": "task-runner",
       "source": "./plugins/task-runner",
-      "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts (self-contained prompts, evidence-backed compressed returns, model/effort tiering, the role-floor registry), verification panels (refuter voting, judge panels, completeness critic), scripts/dispatch-lint.sh, and the ultra-assess boost hook."
+      "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence — held at Stop by candor's gate (clause 4) when candor is installed; without it a run can end by narration. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts, verification panels, scripts/dispatch-lint.sh, and the ultra-assess boost hook."
     },
     {
       "name": "overseer",

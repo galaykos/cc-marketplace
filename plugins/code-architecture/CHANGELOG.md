@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.2 — 2026-09-14
+
+- `plugin.json` description no longer claims this plugin ships "a blocking Stop hook": the
+  evidence clause is candor's gate (clause 3) since 2026-09-14, so a by-name install
+  without candor has the rule as prose. The README said so; the description — what the
+  catalog and `/stack-scan:suggest` show — did not.
+
 ## 0.15.1 — 2026-09-14
 
 - `lane.tsv`: `/code-architecture:plan` and `plan-before-code` declare the `plan` phase
