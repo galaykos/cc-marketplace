@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.2
+
+### Fixed
+- **The allow-file guard now covers MCP file writes.** 0.6.1 widened the matcher to
+  `*apply_patch|*create_new_file` but left the script gating on the four host tool
+  names, so the matcher fired and the script exited — silent coverage, and the file
+  that disarms this guard stayed editable through any MCP server while the host tools
+  were blocked. `create_new_file` is read from `pathInProject`; `apply_patch` carries
+  no single path, so its patch body is checked for the basename. Four assertions.
+
 ## 0.6.1
 
 ### Added

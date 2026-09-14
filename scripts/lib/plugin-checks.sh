@@ -441,10 +441,12 @@ pc_removed_refs() {
   # `web-dev:react-native-best-practices` does.
   # plugin-scout, vercel-skills-scout MOVED 2026-09-14 into stack-scan as skills of the
   # same names behind one /stack-scan:suggest command; only the PLUGIN forms are stale.
-  # theme-design, design-lab MOVED 2026-09-14 into design-studio (a rename plus a merge):
-  # the skills keep their names (design-session, real-preview), the commands are
-  # /design-studio:init|export|preview and the working dir is .design-studio/. Only the
-  # PLUGIN forms are stale; `.theme-design/` in an old changelog line matches no shape.
+  # theme-design, design-lab MOVED 2026-09-14 into design-studio, which was itself
+  # RETIRED the same day. Nothing survives under those three names except the
+  # real-component preview, now a reference of taskmaster's visual-decisions skill
+  # (references/real-components.md) with preview-cleanup.sh beside it. `design-studio`
+  # is in the $plug list above; `.theme-design/` and `.design-studio/` in an old
+  # changelog line match no shape and stay legal.
   # fresh-take MOVED 2026-09-14 into approaches: the consult skill, the consultant agent
   # and the reminder keep their names; /approaches:consult is the command.
   # orchestration MOVED 2026-09-14 into task-runner: delegation-contracts and

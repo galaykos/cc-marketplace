@@ -4,6 +4,16 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.106.1] - 2026-09-15
+
+Self-review of the branch, before merge. Two defects found in my own work:
+`command-guard`'s allow-file matcher was widened to the MCP write tools while the
+script still gated on the four host names — the matcher fired and the script exited,
+which is silent coverage on the one file that disarms the guard. And `craft-suite`'s
+description carried the design-studio retirement note in always-on listing bytes,
+which is exactly the defect 0.104.0 fixed for `devops`: history belongs in a
+changelog, not in text the CLI sends every session.
+
 ## [0.106.0] - 2026-09-14
 
 **Two of the three shipped eval suites had never run.** `resilience` and `web-dev`

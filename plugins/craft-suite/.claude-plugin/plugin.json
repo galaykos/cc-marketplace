@@ -1,7 +1,7 @@
 {
   "name": "craft-suite",
-  "version": "0.7.0",
-  "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux: per-library stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind), the WCAG audit, CSS-variable theming with a live colour preview, and the real-component preview that renders 2-3 variants with the project's OWN components on its dev server. design-studio was retired 2026-09-14; live registry lookups route to shadcn's official MCP and ReUI's hosted server, named in ui-ux's stack skills. Uninstall with /craft-suite:uninstall.",
+  "version": "0.7.1",
+  "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux: per-library stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind), the WCAG audit, CSS-variable theming with a live colour preview, and the accessibility engineer that applies an audit's fix list. Live component-registry lookups route to the registries' own MCP servers — shadcn's and ReUI's — named in ui-ux's stack skills; this marketplace ships none. Uninstall with /craft-suite:uninstall.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

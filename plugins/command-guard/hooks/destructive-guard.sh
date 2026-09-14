@@ -619,9 +619,19 @@ if [ "${1:-}" = "--version" ]; then printf 'command-guard %s\n' "$GUARD_VERSION"
 
   # Write/Edit branch: the allow-file is a human artefact. Denying the model's
   # edit is what makes it an opt-out rather than a formality.
+  # `*apply_patch|*create_new_file` are the MCP file-write tools an IDE-driven session
+  # uses instead of the four host names. Without them the allow-file — the one file that
+  # disarms this guard — was editable through any MCP server while the host tools were
+  # blocked, which is the protection inverted. `pathInProject` is create_new_file's key;
+  # apply_patch carries no single path, so the patch BODY is checked for the basename
+  # instead (a patch that rewrites the allow-file must name it in its header).
   case "$tool" in
-    Write|Edit|MultiEdit|NotebookEdit)
-      f=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+    Write|Edit|MultiEdit|NotebookEdit|*apply_patch|*create_new_file)
+      f=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
+      if [ -z "$f" ]; then
+        patch=$(printf '%s' "$input" | jq -r '.tool_input.input // .tool_input.patch // empty' 2>/dev/null)
+        case "$patch" in *"$ALLOW_BASENAME"*) f="$ALLOW_BASENAME" ;; esac
+      fi
       case "$f" in
         *"$ALLOW_BASENAME") emit deny "BLOCKED by command-guard — ${ALLOW_BASENAME} is the user's standing exemption list for destructive commands. An agent that can edit it can exempt itself. Ask the user to add the line; tell them the exact regex you want." ;;
       esac
