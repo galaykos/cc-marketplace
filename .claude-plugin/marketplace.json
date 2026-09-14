@@ -57,17 +57,7 @@
     {
       "name": "stack-scan",
       "source": "./plugins/stack-scan",
-      "description": "Know what is actually installed, then keep it healthy: /stack-scan:report inventories manifests and lockfiles (composer, npm/yarn/pnpm/bun), runtimes, engine constraints and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged; /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene: semver strategy, lockfile discipline, upgrade lanes, licences against the distribution mode) — report-only. Whether to add a dependency at all is approaches' build-vs-buy."
-    },
-    {
-      "name": "plugin-scout",
-      "source": "./plugins/plugin-scout",
-      "description": "Scan the current project's manifests and suggest every cc-plugins-marketplace plugin in three tiers — stack-matched, the curated any-project core, and the universal remainder — then install the picked ones after confirmation; --yes auto-installs the first two tiers, --full installs everything relevant to the detected stack after one plan confirm (--stack a,b,c fills in a stack the manifests do not show yet), --all offers every row explicitly, --persist/--global choose scope. Includes /plugin-scout:suggest."
-    },
-    {
-      "name": "vercel-skills-scout",
-      "source": "./plugins/vercel-skills-scout",
-      "description": "Scout skills.sh — Vercel's open agent-skills directory — for third-party skills matching the project's stack: scans manifests, queries the skills.sh search API, reports each hit with provenance (source repo, install count, skills.sh URL), previews the picked skills' SKILL.md before anything lands, then installs only explicit picks via npx skills add — project-level, never global, never auto-installed. Includes /vercel-skills-scout:suggest."
+      "description": "Know what is installed, keep it healthy, find what to add. /stack-scan:report inventories manifests, lockfiles (composer, npm/yarn/pnpm/bun), runtimes and docker images into a required-vs-installed table with drift, missing locks and EOL majors flagged. /stack-scan:audit runs the composer/npm vulnerability, outdated and licence checks (package-hygiene) — report-only. /stack-scan:suggest reads the same manifests and suggests every marketplace plugin in three tiers with cited evidence (--yes auto-installs tiers 1-2, --full the whole stack-relevant set after one confirm, --persist/--global set scope); --skills searches skills.sh for third-party skills instead — provenance, preview, explicit picks only. Add-at-all is approaches' build-vs-buy."
     },
     {
       "name": "testing",
@@ -172,7 +162,7 @@
     {
       "name": "always-on-suite",
       "source": "./plugins/always-on-suite",
-      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and two scouts for what this bundle leaves out (plugin-scout, vercel-skills-scout) — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
+      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and stack-scan, whose /stack-scan:suggest scouts what this bundle leaves out — marketplace plugins per repo, and third-party skills on skills.sh with --skills — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
     },
     {
       "name": "skill-router",

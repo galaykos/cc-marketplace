@@ -1,24 +1,21 @@
 {
   "name": "always-on-suite",
-  "version": "0.4.0",
-  "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and two scouts for what this bundle leaves out (plugin-scout, vercel-skills-scout) — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed.",
+  "version": "0.5.0",
+  "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and stack-scan, whose /stack-scan:suggest scouts what this bundle leaves out — marketplace plugins per repo, and third-party skills on skills.sh with --skills — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
   },
+  "keywords": [
+    "tooling"
+  ],
   "dependencies": [
     "candor",
     "git-workflow",
     "hindsight",
-    "plugin-scout",
     "secret-scanning",
     "skill-router",
-    "terse",
-    "vercel-skills-scout"
-  ],
-  "keywords": [
-    "suite",
-    "generic",
-    "hooks"
+    "stack-scan",
+    "terse"
   ]
 }

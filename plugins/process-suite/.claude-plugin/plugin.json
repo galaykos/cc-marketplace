@@ -1,6 +1,6 @@
 {
   "name": "process-suite",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a stronger-model second opinion when stuck (fresh-take), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first.",
   "author": {
     "name": "Ivan-WG",
@@ -14,7 +14,6 @@
     "orchestration",
     "task-runner",
     "stack-scan",
-    "plugin-scout",
     "skill-router",
     "fresh-take",
     "ultra-deep-research",

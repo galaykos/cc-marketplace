@@ -11,7 +11,7 @@ third-party skills — each with provenance — then install exactly the ones
 the user picks. Nothing installs without an explicit pick, and there is no
 auto-install flag: skills.sh content is unvetted third-party instruction
 text, so the explicit-pick floor is absolute (deliberate divergence from
-plugin-scout's `--yes`).
+the sibling `plugin-scout` skill's `--yes`).
 
 ## Preflight
 
@@ -25,7 +25,7 @@ plugin-scout's `--yes`).
 ## Detection
 
 Read composer.json, package.json, tsconfig.json, .env, and
-Dockerfile/docker-compose files. Same rules as plugin-scout: read-only,
+Dockerfile/docker-compose files. Same rules as the `plugin-scout` skill: read-only,
 never run package managers, and a query is earned only by cited evidence
 (file plus dependency or line). Map signals to search queries:
 
@@ -65,7 +65,7 @@ this — skills.sh is the intended path" rather than leaving it implicit:
 | `deno.json` / `deno.jsonc` | `deno` |
 | `*.tf` / `*.tofu` | `terraform` |
 
-An explicit query argument (`/vercel-skills-scout:suggest <query>`)
+An explicit query argument (`/stack-scan:suggest --skills <query>`)
 replaces detection entirely. Zero signals and no argument: ask the user
 for a free-text query via AskUserQuestion; headless, report "no stack
 signals" plus a hint to rerun with a query argument, and stop.

@@ -22,7 +22,7 @@ while [ $# -gt 0 ]; do case "$1" in --root) root="${2:-}"; shift 2;; --json) jso
 root=$(cd "$root" 2>/dev/null && pwd -P) || root="$PWD"
 
 # phase|preferred marketplace plugins|fallback
-MAP='understand|stack-scan,brain,plugin-scout|read manifests, lockfiles, routes, pages, models, tests, CI workflows directly
+MAP='understand|stack-scan,brain|read manifests, lockfiles, routes, pages, models, tests, CI workflows directly
 shape|taskmaster,approaches,design-lab,theme-design|write the spec inline: goal, criteria, non-goals, ASCII wireframe
 decide|approaches|one paragraph per option + pick + kill-trigger in decisions.md
 plan|taskmaster,code-architecture|write cards inline: file set, verify command, done-criterion each

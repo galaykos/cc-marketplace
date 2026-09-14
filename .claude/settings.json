@@ -28,7 +28,6 @@
     "taskmaster@cc-plugins-marketplace": true,
     "task-runner@cc-plugins-marketplace": true,
     "stack-scan@cc-plugins-marketplace": true,
-    "plugin-scout@cc-plugins-marketplace": true,
     "code-architecture@cc-plugins-marketplace": true,
     "git-workflow@cc-plugins-marketplace": true,
     "hindsight@cc-plugins-marketplace": true,

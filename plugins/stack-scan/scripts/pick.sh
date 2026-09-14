@@ -28,9 +28,9 @@
 # `set -e` and leaked a raw `Permission denied` in place of the usage line.
 #
 # PICK_TTY overrides the device the numbered prompt reads from — the seam that
-# lets the harness drive the parser headless. Standing: gate — plugin-scout's
-# scripts/__tests__/pick.test.sh covers both copies of this script (kept
-# byte-identical by pc_pick_parity) and runs on every PR.
+# lets the harness drive the parser headless. Standing: gate — this plugin's
+# scripts/__tests__/pick.test.sh covers it and runs on every PR. Until 2026-09-14
+# two plugins shipped byte-identical copies; both scouts live here now, one copy.
 set -euo pipefail
 
 ROWS_FILE="${1:-}"

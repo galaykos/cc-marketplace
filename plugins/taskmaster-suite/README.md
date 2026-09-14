@@ -82,7 +82,7 @@ testing and security stay because task cards dispatch into both.
 21 removed: a11y (now in ui-ux), api-design, <!-- removed-ok --> api-docs-first, brain, claude-authoring (removed from the marketplace 2026-09-03 — now a project skill of the marketplace repository, not installable),
 code-review, database, debugging, devops,
 git-workflow, hindsight,
-plugin-scout, resilience, sql, system-design (since folded into code-architecture), web-dev. Several are excellent and
+plugin-scout (since folded into stack-scan), resilience, sql, system-design (since folded into code-architecture), web-dev. Several are excellent and
 several are near-core — `code-review` and `git-workflow` especially — but a
 bundle that cannot surface its own members' descriptions is not doing them a
 favour by listing them. Take the ones your work actually needs.

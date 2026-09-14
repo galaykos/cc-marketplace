@@ -69,7 +69,7 @@ warning at the apply gate (a brain note goes into the brain plugin's committed
 `brain/` map, again only on a pick). That one is **team-shared and must be committed** — a
 CLAUDE.md pointer references it, and ignoring it breaks the pointer for teammates.
 Do not ignore `.claude/` wholesale to be safe: other plugins keep team files there
-too, e.g. plugin-scout's `--persist` writes `.claude/settings.json`.
+too, e.g. `/stack-scan:suggest --persist` writes `.claude/settings.json`.
 
 **Upgrading from a project-local ledger?** Nothing is migrated. An existing
 `<project>/.claude/hindsight/ledger.jsonl` is simply no longer read — harvest falls
@@ -96,7 +96,7 @@ row is a retraction candidate, not a verdict.
   was invoked) and the router's `surfaced.jsonl` (what was offered) are joined by
   `scripts/turn-cost.sh --skills`, a maintainer path in the marketplace repository.
   Neither plugin reads the other's ledger at runtime.
-- **plugin-scout** — suggests hindsight in its session-wide tier and, in its
+- **stack-scan** (plugin-scout skill) — suggests hindsight in its session-wide tier and, in its
   official-complements table, names `/hindsight:claude-md` as the overlap with the
   host's `claude-md-management`.
 

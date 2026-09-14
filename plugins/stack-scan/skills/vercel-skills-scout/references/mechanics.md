@@ -103,7 +103,7 @@ treat those numbers as row picks. Offer it when rows exceed two pages
 
 ## Why no --yes / auto-install exists
 
-plugin-scout auto-installs its tier-1 picks under `--yes` because those
+The sibling `plugin-scout` skill auto-installs its tier-1 picks under `--yes` because those
 plugins are curated in this marketplace and baseline-tested. skills.sh
 content is arbitrary third-party instruction text that will be injected
 into future sessions — popularity rank is not review, and a scouting tool

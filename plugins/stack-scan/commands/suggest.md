@@ -1,18 +1,28 @@
 ---
-description: Scan manifests and suggest every marketplace plugin in three tiers, then install the picks; --yes auto-installs tiers 1-2, --full installs everything stack-relevant after one confirm, --all pages every row, --persist/--global set scope.
-argument-hint: [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist | --global]
+description: Scan manifests and suggest every marketplace plugin in three tiers, then install the picks; --yes auto-installs tiers 1-2, --full installs everything stack-relevant after one confirm, --all pages every row, --persist/--global set scope. --skills [query] searches skills.sh for third-party skills instead — explicit picks only, never auto.
+argument-hint: [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist | --global] | --skills [query]
 ---
 
-Invoke the plugin-scout skill from this plugin against $ARGUMENTS (or the
-repository root if no argument), parsing any `--yes`, `--all`, `--full`,
-`--stack <tokens>` (also `--stack=<tokens>`), `--persist`, and `--global` flags
-out of $ARGUMENTS first — the token after `--stack` is consumed before the
-remainder becomes the path. `--persist` and `--global` together are a conflict:
-abort before anything else, including the marketplace-add prompt, with one line
-asking for exactly one of them. A bare `--stack`, an empty token, a token outside
-`references/stack-relevance.md`'s token column aborts the same way, printing the
-accepted list; a positional argument that is itself a token (`--stack laravel, react`)
-aborts with the hint `did you mean --stack laravel,react`. Steps:
+Two modes, one command. Parse `--skills` out of $ARGUMENTS first: present, the
+rest of $ARGUMENTS is a free-text skills.sh query and the **skills mode** below
+runs; absent, the **plugin mode** runs against $ARGUMENTS (or the repository
+root if no argument). The two modes never combine: `--skills` beside `--yes`,
+`--full`, `--all`, `--stack`, `--persist` or `--global` aborts with one line —
+skills.sh content is unvetted, so no auto-install or scope flag exists on that
+side, and that is a rule of the `vercel-skills-scout` skill, not an omission.
+
+## Plugin mode (default)
+
+Invoke the `plugin-scout` skill from this plugin, parsing any `--yes`, `--all`,
+`--full`, `--stack <tokens>` (also `--stack=<tokens>`), `--persist`, and
+`--global` flags out of $ARGUMENTS first — the token after `--stack` is consumed
+before the remainder becomes the path. `--persist` and `--global` together are a
+conflict: abort before anything else, including the marketplace-add prompt, with
+one line asking for exactly one of them. A bare `--stack`, an empty token, a
+token outside `references/stack-relevance.md`'s token column aborts the same way,
+printing the accepted list; a positional argument that is itself a token
+(`--stack laravel, react`) aborts with the hint `did you mean --stack laravel,react`.
+Steps:
 
 1. Preflight per the skill: check that the marketplace is registered, then
    detect the installed set — `claude plugin list --json` filtered to this
@@ -20,8 +30,8 @@ aborts with the hint `did you mean --stack laravel,react`. Steps:
    `enabledPlugins` keys of the project's settings files.
 2. Detect the stack per the skill: resolve the path argument as the scan
    root, scan its manifests (plus workspace members one level deep), and
-   use stack-scan's report as a version-truth supplement when that plugin
-   is installed — never as a replacement, and never accepting its offer to
+   fold in this plugin's `/stack-scan:report` inventory as a version-truth
+   supplement — never as a replacement, and never accepting its offer to
    fix red flags from inside detection.
 3. Output the numbered three-tier inventory as defined by the skill's Report
    section and `references/picker.md` — a header line plus one block per
@@ -29,7 +39,7 @@ aborts with the hint `did you mean --stack laravel,react`. Steps:
    core (`references/any-core.md`), tier 3 the universal remainder grouped
    by keyword, including unfired tier-1 candidates from either signal source
    marked "no signal detected". Every catalog leaf except bundles and
-   plugin-scout itself appears exactly once, untruncated; if a
+   stack-scan itself appears exactly once, untruncated; if a
    `references/signals.md` `—` row fired, lead with its routing line. Then run
    the tier-3 relevance pass per `references/relevance.md`: lift 3-5 remainder
    rows that fit THIS repo into a `worth a look here` group leading the tier-3
@@ -81,3 +91,36 @@ aborts with the hint `did you mean --stack laravel,react`. Steps:
    missing entry rather than authoring one. With `--global`: no settings
    step — print the required machine-wide notice instead
    (`references/flags.md` for the full rules of both).
+
+## Skills mode (`--skills [query]`)
+
+Invoke the `vercel-skills-scout` skill from this plugin. The query, when
+present, is a free-text search that replaces stack detection. Steps:
+
+1. Preflight per the skill: check `npx` availability, list installed
+   skills.sh skills via `npx -y skills ls` (fail-open), and record
+   installed marketplace plugins via `claude plugin list` for the overlap
+   column.
+2. Detect per the skill: with a query, use it as the only query; otherwise
+   self-scan the project's manifests and derive queries from the signal
+   table. Zero signals and no query: ask for one (headless: report "no
+   stack signals" with a rerun hint and stop).
+3. Query `https://www.skills.sh/api/search?q=<query>` per query and print
+   the numbered provenance table (# | skill | source repo | installs |
+   evidence | overlap | installed) as defined by the skill, top 5 per
+   query, deduplicated. On API failure, stop and point at browsing
+   https://www.skills.sh.
+4. Run the picker per the skill's Install section: max density — each
+   AskUserQuestion call fills 4 multiSelect questions x 4 options (16
+   slots), one "Stop — skip remaining" slot per call, paging until every
+   eligible row was offered. Installed rows are never options;
+   overlap-with-installed rows sort last, overlap named. Other takes
+   numbers and/or `source/skillId` (ranges OK); >32 rows, offer the
+   `scripts/pick.sh` TTY picker per `references/mechanics.md`. No
+   recommended-set option: nothing on skills.sh is vetted. Headless:
+   print the exact `npx -y skills add <owner>/<repo> --skill <skillId> -y`
+   commands and stop. There is no auto-install in this mode — see the
+   skill's Boundaries.
+5. For each pick: preview its SKILL.md per the skill's Install section,
+   then run the install command, reporting per-skill success or failure
+   and the final installed/failed/skipped summary line.

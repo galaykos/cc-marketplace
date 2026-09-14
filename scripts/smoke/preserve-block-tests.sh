@@ -29,10 +29,10 @@ bad()  { echo "FAIL: $1"; rc=1; }
 
 mkdir -p "$FX/templates/blocks" "$FX/root/.claude-plugin" \
          "$FX/root/plugins/fixture/.claude-plugin" "$FX/root/plugins/fixture/commands" \
-         "$FX/root/plugins/plugin-scout/skills/plugin-scout/references"
+         "$FX/root/plugins/stack-scan/skills/plugin-scout/references"
 
 # generate.sh always runs its repo-level catalog step, which reads marketplace.json
-# and writes plugin-scout's catalog. Without these the run dies before any
+# and writes the scout catalog under stack-scan. Without these the run dies before any
 # comparison and a naive "non-zero exit means drift" test reports a mechanism
 # failure that is really a missing fixture file.
 cat > "$FX/root/.claude-plugin/marketplace.json" <<'EOF'

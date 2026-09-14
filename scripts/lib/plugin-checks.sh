@@ -241,14 +241,14 @@ pc_budget_crowding() {
 # loading ~28k tokens of bodies alone — more than the whole always-on floor of a
 # 40-plugin install. This check is the only thing that watches that number.
 #
-# WHY GENERATED FILES ARE EXCLUDED. plugins/plugin-scout/skills/plugin-scout/
+# WHY GENERATED FILES ARE EXCLUDED. plugins/stack-scan/skills/plugin-scout/
 # references/catalog.md is emitted by scripts/generate.sh with one row per
 # marketplace plugin, and generate.sh --check byte-gates it. Counting it would
 # convert "someone added a plugin to the marketplace" into a CI failure inside an
 # unrelated plugin — a gate that fires on growth it cannot be fixed by. Any .md
-# whose first 400 bytes say "generated" is skipped for the same reason; that is
-# 4.7k tokens in craft-layer and 7.3k in plugin-scout, and plugin-scout drops
-# from ~18.1k to ~10.9k once excluded, which is the point.
+# whose first 400 bytes say "generated" is skipped for the same reason; that was
+# 4.7k tokens in craft-layer and 7.3k in the then-separate plugin-scout plugin,
+# which dropped from ~18.1k to ~10.9k once excluded, which is the point.
 #
 # WHY A RATCHET AND NOT A CEILING. A flat cap set at today's honest number fails
 # the build on the commit that introduces it; set above craft-layer it blesses
@@ -309,40 +309,11 @@ pc_plugin_corpus() {
   return 0
 }
 
-# pc_pick_parity <plugins_root>
-# The two scout plugins ship a byte-identical picker script. Fails if they diverge.
-# Prints "pick-parity <a> != <b>" and returns 1; identical or either missing returns 0.
-#
-# WHY THE DUPLICATION IS CORRECT, and therefore why it needs a gate. plugin-scout and
-# vercel-skills-scout both resolve their scripts from `${CLAUDE_PLUGIN_ROOT}`, which is
-# per-plugin: neither can read the other's file, and either may be installed alone. A
-# shared copy would privilege whichever plugin happened to be present — the same
-# reasoning CLAUDE.md gives for keeping lane.tsv per-plugin rather than central. So the
-# duplication is required by the plugin boundary, not an oversight, and the only
-# available discipline is asserting the copies stay in step.
-#
-# THE DRIFT IS NOT HYPOTHETICAL. Measured 2026-08-27: the two PROSE descriptions of this
-# picker have already diverged — plugin-scout's references/picker.md carries an "under the
-# same rules as Other" clause that vercel-skills-scout's references/mechanics.md dropped.
-# The scripts were still identical at that point. This gate catches the half that changes
-# behaviour before it goes the same way.
-#
-# LIMITATION (honest scope), two residuals:
-#   1. It gates the SCRIPT only. The prose copies that have already drifted are not
-#      checked here and are not checked anywhere — comparing prose for meaning is not a
-#      thing a checksum does, and a byte-compare of prose would fire on every reword.
-#   2. It gates SAMENESS, not correctness. Two identically wrong pickers pass.
-pc_pick_parity() {
-  local root="${1:-plugins}" a b
-  a="$root/plugin-scout/scripts/pick.sh"
-  b="$root/vercel-skills-scout/scripts/pick.sh"
-  [ -f "$a" ] && [ -f "$b" ] || return 0
-  if ! cmp -s "$a" "$b"; then
-    printf 'pick-parity %s != %s\n' "$a" "$b"
-    return 1
-  fi
-  return 0
-}
+# pc_pick_parity was retired 2026-09-14: it held the two scout plugins' copies of
+# pick.sh byte-identical because `${CLAUDE_PLUGIN_ROOT}` is per-plugin and neither
+# could read the other's file. Both scouts are skills of stack-scan now and share
+# ONE copy (plugins/stack-scan/scripts/pick.sh), so there is nothing to keep in
+# step; its harness (scripts/__tests__/pick.test.sh) still runs on every PR.
 
 # pc_jargon <md_path>
 # Internal-taskmaster-vocabulary denylist with an ordinary-English rescue list.
@@ -457,7 +428,9 @@ pc_removed_refs() {
   # (system-design, domain-modeling) and resilience (event-driven); only the PLUGIN forms
   # are stale, and `code-architecture:system-design` stays legal for the same reason
   # `web-dev:react-native-best-practices` does.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design'
+  # plugin-scout, vercel-skills-scout MOVED 2026-09-14 into stack-scan as skills of the
+  # same names behind one /stack-scan:suggest command; only the PLUGIN forms are stale.
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick
@@ -1907,9 +1880,10 @@ pc_bundle_readme_members() {
 #      is covered too, so a placeholder row there needs the blessing. Fenced
 #      blocks are not tracked either, so a `|`-shaped table INSIDE one would be
 #      read as a real table; none exists today, and the blessing is the recourse.
-#   4. plugin-scout-specific by construction. vercel-skills-scout ships its own
-#      hand-written lists and nothing here reads them — those name third-party
-#      skills, for which marketplace.json is not ground truth.
+#   4. plugin-scout-skill-specific by construction. The sibling vercel-skills-scout
+#      skill ships its own hand-written lists and nothing here reads them — those
+#      name third-party skills, for which marketplace.json is not ground truth.
+#      Both skills live under plugins/stack-scan since 2026-09-14.
 #
 # Bless a line with `scout-name-ok: <why>`, written as an HTML comment
 # (`<!-- scout-name-ok: … -->`) so it does not render inside the table.
@@ -1923,7 +1897,7 @@ pc_scout_names() {
   [ -f "$mp" ] || return 0
   live=$(jq -r '.plugins[].name' "$mp" 2>/dev/null) || return 0
   [ -n "$live" ] || return 0
-  skill="$root/plugins/plugin-scout/skills/plugin-scout"
+  skill="$root/plugins/stack-scan/skills/plugin-scout"
   for f in "$skill/SKILL.md" "$skill/references/signals.md" "$skill/references/any-core.md" "$skill/references/stack-relevance.md"; do
     [ -f "$f" ] || continue
     while IFS=$'\t' read -r ln kind val; do

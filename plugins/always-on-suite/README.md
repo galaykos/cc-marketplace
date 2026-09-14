@@ -19,10 +19,10 @@ prose — no script checks it:
 What that buys you always-on: the write-time secret block, candor's honesty
 Stop gate, terse's chat-brevity contract (inert until
 you set a level), file-aware skill auto-routing, git workflow discipline,
-cross-session friction mining, and the two scouts — marketplace plugins, and
-third-party skills on skills.sh — that suggest what this bundle deliberately
-leaves out — install it globally and `/plugin-scout:suggest` bridges to the
-stack-matched tier per repo.
+cross-session friction mining, and stack-scan's two scout modes — marketplace
+plugins, and third-party skills on skills.sh — that suggest what this bundle
+deliberately leaves out — install it globally and `/stack-scan:suggest` bridges to
+the stack-matched tier per repo.
 
 ## Install
 
@@ -50,7 +50,7 @@ fraction 0.01). On the default 200k window with a current-tokenizer model that i
 **6,000 chars**, and this bundle's listing costs **~6,664 chars** (LC_ALL=C bytes
 — the marketplace's deterministic measure, ~1% above what the CLI counts; recount
 with `bash scripts/context-budget.sh`, listing channel): over the floor since
-0.3.0 added vercel-skills-scout's two entries. Over it the host reduces entries to name-only in priority
+0.3.0 added the skills.sh scout's two entries (now part of stack-scan). Over it the host reduces entries to name-only in priority
 order, silently, so skills stop being reachable without any error — and because
 this bundle is installed at user scope, every repo pays.
 
@@ -72,8 +72,7 @@ ceiling, not a purchase — it only admits description text that was being evict
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit, in whatever language the file turns out to be
 - **git-workflow** — worktree isolation, the branch finish protocol, and review-exchange rigor, plus `/git-workflow:finish`
 - **hindsight** — mines session transcripts for recurring friction and proposes CLAUDE.md rules and skill ideas, applied only on approval; its ledgers already live under `~/.claude`, so user scope is its native home
-- **plugin-scout** — `/plugin-scout:suggest` scans each project and suggests the stack-matched plugins this bundle intentionally excludes
-- **vercel-skills-scout** — `/vercel-skills-scout:suggest` does the same for third-party skills on skills.sh, matched to the project's stack; project-agnostic and inert until invoked
+- **stack-scan** — `/stack-scan:suggest` scans each project and suggests the stack-matched plugins this bundle intentionally excludes; `--skills` does the same for third-party skills on skills.sh. Its `/stack-scan:report` and `/stack-scan:audit` are project-agnostic and inert until invoked. (The two scouts were separate plugins, plugin-scout and vercel-skills-scout, until 2026-09-14) <!-- removed-ok -->
 
 | Command | What it does |
 |---------|--------------|
@@ -84,8 +83,10 @@ ceiling, not a purchase — it only admits description text that was being evict
 Adding terse and dropping command-guard moved the bundle from **943 to 1,641**
 always-on tokens, and from **975 to 2,715** with everything switched on. Both
 figures are re-baselined in `scripts/context-budget-*baseline.json`; neither
-number is hidden, and the growth is one member's. 0.3.0 added vercel-skills-scout:
+number is hidden, and the growth is one member's. 0.3.0 added the skills.sh scout:
 **+146** always-on tokens (its two descriptions), nothing per prompt until invoked.
+0.5.0 swapped the two scout plugins for stack-scan, which carries both scouts plus its
+report and audit commands; recount the delta rather than trusting a number here.
 
 - **terse** is that member and the largest single line in the bundle: **848**
   tokens of descriptions with no level set, **1,891** once you commit to one.
@@ -103,7 +104,7 @@ number is hidden, and the growth is one member's. 0.3.0 added vercel-skills-scou
 
 One consequence worth stating: **none of skill-router's 126 routing rows names a
 plugin in this bundle.** On a bare always-on install its `PostToolUse` router has
-nothing to route to. It is here forward-looking — `/plugin-scout:suggest` installs
+nothing to route to. It is here forward-looking — `/stack-scan:suggest` installs
 the project tier, and skill-router is what then surfaces those skills on edit.
 
 ## Deliberately not included
@@ -126,8 +127,6 @@ install, not a fork of the bundle:
   twice: it scaffolds a committed `brain/` directory, and until you run
   `/brain index` its `SessionStart` hook greets you in every un-indexed repo
   you open. Install it per project, where the map is worth committing.
-- **stack-scan** — universal across stacks but per-project in what it reads;
-  plugin-scout invokes it where it helps, so it arrives with the project tier.
 - **code-review** (with its comment-discipline hooks) and the rest of quality-suite's
   enforcement half — quality gates you may want per project; that suite already
   exists for exactly that scope. The comment-discipline lane is the closest call: its

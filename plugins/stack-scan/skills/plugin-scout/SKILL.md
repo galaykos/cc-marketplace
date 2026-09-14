@@ -42,7 +42,7 @@ manifests one level deep and cite `<member>/package.json` — otherwise a Turbor
 whose apps hold every framework reports "no stack signals found". Installs always
 target the session's project root regardless of `[path]`.
 
-If stack-scan is installed, run `/stack-scan:report` for version truth (EOL majors,
+Run this plugin's `/stack-scan:report` for version truth (EOL majors,
 lockfile drift) and fold it into the evidence — but **run the signal table anyway**; it is
 not a replacement (nine dependency names, no `.env`, no `react-native`). Take its inventory
 only, never its offer to fix red flags: that deletes a lockfile inside a read-only step.
@@ -90,7 +90,7 @@ it against `references/catalog.md` when plugins land or leave.
 
 Read `references/catalog.md` (generated — one `name — [keywords] — description` row per
 marketplace plugin). Tier 3 is **every catalog plugin not already in tier 1 or 2**, excluding
-the bundles (any `*-suite`) and `plugin-scout` itself, plus every unfired tier-1 candidate
+the bundles (any `*-suite`) and `stack-scan` itself, plus every unfired tier-1 candidate
 from **either** the table above or `references/signals.md` (evidence: "no signal detected" —
 a missed signal demotes, never drops). Suggest all of it, "universal" as the evidence for the
 rest, reading each row's keywords and description to phrase the suggestion. Do not hard-code
@@ -121,7 +121,7 @@ sample, layout, and why that table is the wrong rendering: `references/picker.md
   a line number when the scan produced one. Tier 2 is "core" and tier 3 "universal" by
   definition; neither needs a repeated cell. A lifted row prints its reason instead.
 - Installed rows carry `✓` inline and are not pickable; the header count replaces a column.
-- **Completeness rule:** every catalog plugin except the bundles and plugin-scout itself
+- **Completeness rule:** every catalog plugin except the bundles and stack-scan itself
   appears exactly once — no leaf omitted, no group truncated with "and N more". Recount
   from `references/catalog.md`, never from a number written here.
 - Under the inventory, list each not-installed suite whose dependencies cover 3+
@@ -195,6 +195,6 @@ relevance pass gave reasons instead of padding. Gated by name only: catalog fres
 `references/signals.md`, `references/any-core.md` and `references/stack-relevance.md` (`pc_scout_names` — it reads neither
 `references/relevance.md` nor `references/official-complements.md`; the latter's names are
 foreign to this marketplace by construction and are checked by hand against the live
-directory), `scripts/pick.sh` parity (`pc_pick_parity`) and its parser
+directory), `scripts/pick.sh`'s parser
 (`scripts/__tests__/pick.test.sh`), body budget (`pc_skill_budget`), token cost
 (`context-budget.sh`). The evidence rule binds tier 1 only.

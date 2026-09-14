@@ -47,9 +47,9 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `design-lab` | a shadcn setup that already exists is what the real-component preview renders in; `components.json` alone also earns `ui-ux`, and both are correct together |
 | devDep `lighthouse`, `@lhci/cli`, `k6`, `artillery`, `autocannon`, or dep `web-vitals` | `resilience` | a measurement tool already in the manifest is someone having decided performance is a concern here |
 | dep `p-retry`, `cockatiel`, `opossum`, `bullmq`, `bull`; or composer require `laravel/horizon` | `resilience` | retry/breaker/queue libraries are integration points with failure modes, which is the whole subject |
-| any of the above **plus** no tier-1 hit | also `vercel-skills-scout` | say so explicitly: this marketplace has no plugin for that stack, and the scout for third-party skills is the intended next step |
-| `*.tf`, `*.tofu`, `.terraform/` | — | **no plugin covers this.** Do not pad the list; route to `/vercel-skills-scout:suggest terraform` |
-| `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | — | **no plugin covers this** — the i18n plugin was removed from this marketplace on 2026-08-26. Route to `/vercel-skills-scout:suggest i18n` |
+| any of the above **plus** no tier-1 hit | — | say so explicitly: this marketplace has no plugin for that stack, and `/stack-scan:suggest --skills` (third-party skills on skills.sh) is the intended next step |
+| `*.tf`, `*.tofu`, `.terraform/` | — | **no plugin covers this.** Do not pad the list; route to `/stack-scan:suggest --skills terraform` |
+| `locales/`, `lang/`, `*.po`, `messages/*.json`, `i18n` dep | — | **no plugin covers this** — the i18n plugin was removed from this marketplace on 2026-08-26. Route to `/stack-scan:suggest --skills i18n` |
 
 ## The uncovered-stack rows are the point
 

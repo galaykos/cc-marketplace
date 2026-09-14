@@ -21,7 +21,7 @@ re-run the hand-dispatch path every earlier simulation took. Standing: agent-gra
 
 | Phase | Preferred (cc-plugins-marketplace) | Also counts | Fallback when nothing is installed |
 | --- | --- | --- | --- |
-| understand | `stack-scan` (`/stack-scan:report`), `brain` (`/brain`, the map), `plugin-scout` | — | read manifests and lockfiles yourself; `find` the routes, pages, models, tests |
+| understand | `stack-scan` (`/stack-scan:report`, `/stack-scan:suggest`), `brain` (`/brain`, the map) | — | read manifests and lockfiles yourself; `find` the routes, pages, models, tests |
 | shape | `taskmaster` (grill, visual-decisions, erd, walkthrough), `approaches` (compare, size), `design-lab`, `theme-design` | official `frontend-design` | write the spec yourself from the brief: goal, criteria, non-goals, ASCII wireframe; no mockup server |
 | decide | `approaches` (approach-deliberation, build-vs-buy) | — | one paragraph per option, pick, kill-trigger, in `decisions.md` |
 | plan | `taskmaster` (task-cards, coverage-check, verify-teeth), `code-architecture` (plan-before-code) | — | write cards yourself: one file set, one verify command, one done-criterion each |
@@ -38,8 +38,8 @@ Rules:
   `capabilities.tsv`; the charter names each fallback so the user can install the plugin
   and resume at full strength.
 - **Offer installs once.** Interactive: one AskUserQuestion listing the missing preferred
-  plugins with `/plugin install <name>@cc-plugins-marketplace` (or `/plugin-scout:suggest
-  --full` when the scout is installed). Hands-off: record the commands in the charter, use
+  plugins with `/plugin install <name>@cc-plugins-marketplace` (or `/stack-scan:suggest
+  --full` when stack-scan is installed). Hands-off: record the commands in the charter, use
   the fallback, move on. Never run an install unasked, and remind that `/reload-plugins`
   is needed before a fresh install is active.
 - **Project skills count.** A `.claude/skills/<name>/SKILL.md` in the target project (Laravel

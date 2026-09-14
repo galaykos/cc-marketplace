@@ -60,9 +60,8 @@ text that was previously being evicted.
 - **task-runner** — scope-locked task execution with bounded verify-fix loops,
   plus `/task-runner:plan` and `/task-runner:run`
 - **stack-scan** — inventory of installed runtimes, frameworks, and packages
-  vs manifests, plus `/stack-scan:report`
-- **plugin-scout** — stack-matched marketplace plugin suggestions, plus
-  `/plugin-scout:suggest`
+  vs manifests, plus `/stack-scan:report`; and the stack-matched marketplace plugin
+  suggestions of `/stack-scan:suggest` (plugin-scout was merged into stack-scan on 2026-09-14)
 - **skill-router** — hook that auto-loads the matching best-practice skill on
   edit
 - **fresh-take** — a blind stronger-model second opinion when a session is stuck or

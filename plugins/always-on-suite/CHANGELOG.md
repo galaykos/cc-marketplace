@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+
+### Changed
+- `plugin-scout` and `vercel-skills-scout` merged into `stack-scan` on 2026-09-14, so the <!-- removed-ok -->
+  bundle now installs `stack-scan` in their place: `/stack-scan:suggest` carries both
+  scouts (plugin mode and `--skills`). stack-scan was previously a deliberate exclusion
+  ("per-project in what it reads"); it is a member now because the scout that bridged to
+  the project tier lives inside it, and its report/audit commands are inert until invoked.
+  Seven members.
+
 ## 0.4.0
 
 ### Removed
@@ -82,7 +92,7 @@
 - README records a limitation nothing else stated: **none of skill-router's 126
   routing rows names a plugin in this bundle**, so on a bare always-on install its
   `PostToolUse` router has nothing to route to. It is a forward-looking member —
-  `/plugin-scout:suggest` brings the project tier, and skill-router is what makes
+  `/plugin-scout:suggest` brings the project tier, and skill-router is what makes <!-- removed-ok -->
   those skills fire on edit.
 - **brain** is now named in "Deliberately not included" with its reason, rather than
   being unmentioned. It fails rule 2 twice: it scaffolds a committed `brain/`

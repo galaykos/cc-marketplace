@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **33 leaf plugins** and **8 bundles** covering
+A Claude Code plugin marketplace: **31 leaf plugins** and **8 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -21,15 +21,16 @@ with an exit code, a gate that blocks a turn.
 Not sure what you need? Install one plugin and let it tell you:
 
 ```bash
-/plugin install plugin-scout@cc-plugins-marketplace
-/plugin-scout:suggest              # scans your manifests, suggests a set, installs your picks
-/plugin-scout:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
-/plugin-scout:suggest --full       # everything relevant to the detected stack, leaves only, after a plan and one confirm
-/plugin-scout:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
-/plugin-scout:suggest --persist    # project scope: teammates who clone get the same set
-/plugin-scout:suggest --global     # user scope: every repo on this machine
-/plugin-scout:suggest --all        # page every row as an explicit option instead of one question
-/reload-plugins                    # nothing installed this run is active until you do
+/plugin install stack-scan@cc-plugins-marketplace
+/stack-scan:suggest              # scans your manifests, suggests a set, installs your picks
+/stack-scan:suggest --yes        # installs the stack-matched tier plus the any-project core, without asking
+/stack-scan:suggest --full       # everything relevant to the detected stack, leaves only, after a plan and one confirm
+/stack-scan:suggest --full --stack laravel,inertia,react   # greenfield: name the stack the manifests do not show yet
+/stack-scan:suggest --persist    # project scope: teammates who clone get the same set
+/stack-scan:suggest --global     # user scope: every repo on this machine
+/stack-scan:suggest --all        # page every row as an explicit option instead of one question
+/stack-scan:suggest --skills     # third-party skills on skills.sh for the stack this marketplace does not cover
+/reload-plugins                  # nothing installed this run is active until you do
 ```
 
 What the scout prints, in order:
@@ -64,16 +65,16 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~4.5k tokens | ~32 tokens | ~2.4k tokens |
+| `taskmaster-suite` | 10 | ~4.8k tokens | ~32 tokens | ~2.3k tokens |
 | `craft-suite` | 4 | ~3.0k tokens | — | — |
-| `process-suite` | 12 | ~2.7k tokens | ~169 tokens | ~2.2k tokens |
-| `quality-principles-suite` | 6 | ~2.1k tokens | — | ~127 tokens |
+| `process-suite` | 11 | ~2.8k tokens | ~170 tokens | ~2.2k tokens |
+| `quality-principles-suite` | 6 | ~2.4k tokens | — | ~127 tokens |
+| `always-on-suite` | 7 | ~2.0k tokens | ~1.2k tokens | ~2.2k tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.2k tokens |
-| `always-on-suite` | 8 | ~1.8k tokens | ~1.2k tokens | ~2.2k tokens |
 | `quality-suite` | 6 | ~1.5k tokens | ~32 tokens | ~2.2k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 33 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 31 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -157,7 +158,7 @@ early:
 
 Suites are curated starting points, not coverage: two leaves belong to no suite
 on purpose, both stack-matched — `database`, `devops` — and
-`/plugin-scout:suggest` names each when the project's manifests earn it. Install
+`/stack-scan:suggest` names each when the project's manifests earn it. Install
 them by name.
 
 ---
@@ -429,7 +430,7 @@ bill you did not agree to.
 
 ```
 /stack-scan:report        # PHP 8.3 / Laravel 12 / MariaDB 11.4 / Node 22 + pnpm
-/plugin-scout:suggest     # → suggests laravel, mariadb, web-dev, …
+/stack-scan:suggest       # → suggests laravel, mariadb, web-dev, …
 /devops:init              # → compose file pinned to those exact versions
 ```
 
@@ -442,8 +443,7 @@ bill you did not agree to.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[terse](plugins/terse)** | chat-message brevity as a shape contract: prose-line budgets per turn kind, a fixed work-done skeleton, a named cut list. Levels `lite` / `full` / `ultra`, plus classical-Chinese novelty variants | Long sessions where the narration costs more than the work |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
-| **[plugin-scout](plugins/plugin-scout)** | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks | First session in a repo |
-| **[vercel-skills-scout](plugins/vercel-skills-scout)** | searches skills.sh — Vercel's open agent-skills directory — for third-party skills matching your stack, with provenance, previewing each before it lands | This marketplace has no plugin for what you need |
+| **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
 
 ```bash
 /terse:level ultra          # set brevity; /terse:level off to stop
@@ -452,8 +452,8 @@ bill you did not agree to.
 /terse:commit               # a Conventional Commits message from the staged diff
 /terse:compress <file>      # shrink a prose memory file, backed up first
 /brain:brain                # print the map; /brain:brain index refreshes it
-/plugin-scout:suggest
-/vercel-skills-scout:suggest
+/stack-scan:suggest
+/stack-scan:suggest --skills
 ```
 
 **Worked example — the chore that keeps coming back:**
@@ -469,7 +469,7 @@ plugin — the authoring doctrine has one user, this repository.)
 
 | If you… | Install |
 |---------|---------|
-| just cloned an unfamiliar repo | `plugin-scout`, then whatever it suggests |
+| just cloned an unfamiliar repo | `stack-scan`, then whatever `/stack-scan:suggest` suggests |
 | want a global baseline in every repo | `always-on-suite`, at user scope |
 | write Laravel every day | `php-suite` + `database` |
 | write React/Vue apps | `frontend-suite` |

@@ -35,10 +35,10 @@ those rows exist because three tokens share a name with plugins removed on
 ## Everything else
 
 Every leaf not named above is **any stack** and is always in the plan — 29 of the
-35 eligible leaves (36 minus `plugin-scout`) at the time of writing; recount from
+35 eligible leaves (36 minus `stack-scan`) at the time of writing; recount from
 `references/catalog.md`, never from this number. That includes `ui-ux`: its a11y-audit, design-tokens and
 theming-system skills are stack-agnostic, so a server-rendered app with no
-JavaScript framework still gets it. The eight `*-suite` bundles and `plugin-scout`
+JavaScript framework still gets it. The eight `*-suite` bundles and `stack-scan`
 itself are excluded by construction and never listed one by one. Already-installed
 leaves are skipped and counted in the plan's `Already installed (K)` line.
 
@@ -49,8 +49,7 @@ in a repo before any SDK or key lands in it — were removed on 2026-09-14; thei
 signals.md rows now route onward instead of to a plugin.
 
 Every signal-earned leaf NOT named in the table above — devops, api-design,
-security, resilience, database, vercel-skills-scout, and
-stack-scan — installs under `--full` whether or not its signal fired. That list is
+security, resilience, and database — installs under `--full` whether or not its signal fired. That list is
 illustrative of "any stack", not a fifth class: a missing CI file does not make CI
 discipline irrelevant, it makes it absent. `stack-scan` is the honest edge:
 `references/any-core.md` keeps it OUT of the stack-agnostic core because its rubric
@@ -69,7 +68,7 @@ installs candor — the user asked for everything.
   installs exactly what `--yes` installs.
 - Stacks this marketplace does not cover — Django, Rails, Go, Rust — need no
   token: absent evidence already excludes both stack classes, and
-  `references/signals.md` routes them to `vercel-skills-scout`.
+  `references/signals.md` routes them to `--skills` (the `vercel-skills-scout` skill).
 - Form, casing and the abort on an unknown token: `references/flags.md` `--stack`.
 
 ## Worked examples
@@ -77,7 +76,7 @@ installs candor — the user asked for everything.
 **Laravel + Inertia + React** — composer.json requires `laravel/framework`,
 package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
-- Excluded by construction: the eight bundles, `plugin-scout`.
+- Excluded by construction: the eight bundles, `stack-scan`.
 - **No stack-mismatched leaf.** Both stack classes are satisfied, so 33 of the 34
   eligible leaves install.
 - `web-dev` brings the Next.js and React Native skill descriptions into the

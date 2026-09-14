@@ -1,6 +1,6 @@
 # Flags: --yes, --full, --stack, --persist, --global, --all
 
-Full semantics for the `/plugin-scout:suggest` flags. `SKILL.md`'s Flags section
+Full semantics for the `/stack-scan:suggest` plugin-mode flags. `SKILL.md`'s Flags section
 is the short pointer; this file is the source of truth a reviewer checks against.
 
 ## What "headless" means
@@ -74,12 +74,12 @@ rule and the typed-token rule; this section does not restate them.
   the session-wide group (terse, plus candor, lean, hindsight and
   skill-router — the four `references/any-core.md` routes to `--global` for `--yes`;
   `--full` is the flag that bullet does not bind) and the research/tooling group
-  (brain, fresh-take, ultra-deep-research, and vercel-skills-scout
-  when its signal has not fired — they are tier 1 when it has).
+  (brain, fresh-take, and ultra-deep-research
+  when their signal has not fired — they are tier 1 when it has).
   Leaves only, never a suite.
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
   absent and whose `--stack` token was not typed); the
-  bundles and `plugin-scout` by construction; already-installed leaves.
+  bundles and `stack-scan` by construction; already-installed leaves.
 - What prints, in this order: the report header line (eligible count, installed
   count, detected stack with evidence); any fired `references/signals.md` `—`
   routing line; the **plan block** below; then the `Beyond this marketplace` block
@@ -95,7 +95,7 @@ rule and the typed-token rule; this section does not restate them.
   - `Excluded:` one line per excluded leaf — the class's evidence negated plus the
     token that would include it, e.g. `laravel — PHP / Laravel evidence absent (no
     laravel/framework, no @inertiajs/*); --stack laravel includes`.
-  - One count line for the bundles and `plugin-scout` (by construction).
+  - One count line for the bundles and `stack-scan` (by construction).
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names
     (ui-ux / craft-layer / design-lab, taskmaster / task-runner / orchestration,
@@ -200,7 +200,7 @@ covers only what actually got installed this run. Mutually exclusive with
 
 - Install scope: with `--persist`, every `claude plugin install` this run uses
   `--scope project` instead of this skill's default `--scope local`. Note the
-  CLI's OWN default is `user` (machine-wide): plugin-scout always passes
+  CLI's OWN default is `user` (machine-wide): this skill always passes
   `--scope` explicitly and must never omit it, or an install silently goes
   machine-wide.
 - Marketplace scope follows: run the Preflight add as

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2 — 2026-09-14
+
+- `scripts/capability-scan.sh` and `references/capability-map.md`: the understand row
+  no longer lists plugin-scout as a separate plugin — it merged into stack-scan, whose
+  `/stack-scan:suggest` now carries the install offer. No behaviour change beyond the
+  name.
+
 ## 0.4.1 — 2026-09-14
 
 - `references/capability-map.md`: the guard row no longer lists `lean` (removed from

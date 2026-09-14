@@ -31,7 +31,7 @@ MP=.claude-plugin/marketplace.json
 # not broken, and stay only so that reintroducing an aggregate bundle does not need
 # them rewritten. If you are sure that will never happen, they are safe to delete.
 EV=plugins/everything/.claude-plugin/plugin.json
-CAT=plugins/plugin-scout/skills/plugin-scout/references/catalog.md
+CAT=plugins/stack-scan/skills/plugin-scout/references/catalog.md
 BASELINE=scripts/context-budget-baseline.json
 
 pdir="plugins/$name"
@@ -82,7 +82,7 @@ if [ "$is_bundle" -eq 0 ] && [ -f "$EV" ] && jq -e --arg n "$name" '.dependencie
   fi
 fi
 
-# 4. plugin-scout catalog is GENERATED from marketplace.json (generate.sh catalog
+# 4. the scout catalog is GENERATED from marketplace.json (generate.sh catalog
 # step) — regenerate it instead of grep-editing a "do not edit" file.
 if [ -f "$CAT" ] && grep -qw "$name" "$CAT"; then
   say "$CAT: regenerate via scripts/generate.sh --write (catalog step)"

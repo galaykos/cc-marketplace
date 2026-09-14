@@ -1,0 +1,35 @@
+# Changelog
+
+All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) were not
+recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
+0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
+
+## 0.7.0
+
+### Added
+- **The plugin-scout and vercel-skills-scout plugins merged into this one** (2026-09-14
+  consolidation plan, `rationale/marketplace-consolidation-plan-2026-09-14.md`). Both
+  read the same manifests this plugin already inventories, and the plugin boundary had
+  forced two byte-identical copies of the TTY picker script.
+- `/stack-scan:suggest` — the three-tier marketplace suggestion with every flag
+  `/plugin-scout:suggest` carried (`--yes`, `--full`, `--stack`, `--all`, `--persist`, <!-- removed-ok -->
+  `--global`), plus a `--skills [query]` mode that runs the former
+  `/vercel-skills-scout:suggest` — skills.sh search with provenance, preview and <!-- removed-ok -->
+  explicit picks only. The two modes never combine: `--skills` beside any plugin-mode
+  flag aborts, so the third-party side keeps its no-auto-install floor as a mode rule
+  rather than a plugin boundary.
+- Skills `plugin-scout` and `vercel-skills-scout` ship here under their old names, with
+  every reference file; `scripts/pick.sh` and its harness ship once.
+- The generated marketplace catalog now renders to
+  `skills/plugin-scout/references/catalog.md` under this plugin.
+
+### Changed
+- Detection in the plugin-scout skill runs this plugin's own `/stack-scan:report` for
+  version truth instead of checking whether a sibling is installed.
+- The `--full` exclusion-by-construction is now `stack-scan` itself (the host of the
+  scout), not `plugin-scout`.
+- Keyword `research` added for the skills.sh mode.
+
+### Removed (marketplace-wide)
+- `pc_pick_parity` and its harness cases: with one copy of the picker there is nothing
+  to keep in step.

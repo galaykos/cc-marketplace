@@ -24,19 +24,21 @@ ok()  { pass=$((pass+1)); printf 'PASS  %s\n' "$1"; }
 bad() { fail=$((fail+1)); printf 'FAIL  %s\n      %s\n' "$1" "$2"; }
 
 # A fake root with a three-plugin marketplace. `laravel`, `devops` and
-# `vercel-skills-scout` are live; `i18n` is not — the real removal this check exists for.
+# `stack-scan` are live; `i18n` is not — the real removal this check exists for.
+# The scout skill lives under plugins/stack-scan since 2026-09-14 (it was its own
+# plugin, plugin-scout, before); the check reads that path.
 mkroot() {
   rm -rf "$WORK/root"
-  mkdir -p "$WORK/root/.claude-plugin" "$WORK/root/plugins/plugin-scout/skills/plugin-scout/references"
+  mkdir -p "$WORK/root/.claude-plugin" "$WORK/root/plugins/stack-scan/skills/plugin-scout/references"
   cat > "$WORK/root/.claude-plugin/marketplace.json" <<'EOF'
-{"name":"t","plugins":[{"name":"laravel"},{"name":"devops"},{"name":"vercel-skills-scout"}]}
+{"name":"t","plugins":[{"name":"laravel"},{"name":"devops"},{"name":"stack-scan"}]}
 EOF
 }
 
 # $1 = one of SKILL.md / signals.md / any-core.md / stack-relevance.md, $2… = body lines
 mkfile() {
   local which="$1"; shift
-  local dir="$WORK/root/plugins/plugin-scout/skills/plugin-scout"
+  local dir="$WORK/root/plugins/stack-scan/skills/plugin-scout"
   case "$which" in
     SKILL.md) printf '%s\n' "$@" > "$dir/SKILL.md" ;;
     *)        printf '%s\n' "$@" > "$dir/references/$which" ;;
@@ -111,10 +113,10 @@ mkfile signals.md '| Signal | Suggest | Note |' '|---|---|---|' \
 expect 1 "a live name in the signal column does not rescue a dead Suggest cell"
 
 printf '== backticked cells yield backticked tokens only\n'
-# `also `vercel-skills-scout`` must resolve to one name, not to "also" as well.
+# `also `stack-scan`` must resolve to one name, not to "also" as well.
 mkroot
 mkfile signals.md '| Signal | Suggest | Note |' '|---|---|---|' \
-  '| any of the above **plus** no tier-1 hit | also `vercel-skills-scout` | say so explicitly |'
+  '| any of the above **plus** no tier-1 hit | also `stack-scan` | say so explicitly |'
 expect 0 "prose around a backticked name is ignored"
 mkroot
 mkfile signals.md '| Signal | Suggest | Note |' '|---|---|---|' \
@@ -169,7 +171,7 @@ rm -f "$WORK/root/.claude-plugin/marketplace.json"
 mkfile signals.md '| Signal | Suggest | Note |' '|---|---|---|' '| x | `i18n` | |'
 expect 0 "no marketplace.json: cannot know the live set, so nothing is claimed"
 mkroot
-expect 0 "no plugin-scout files: nothing to read"
+expect 0 "no scout skill files: nothing to read"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

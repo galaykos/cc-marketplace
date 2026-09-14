@@ -11,7 +11,7 @@ offers **15 suggestions, not 16**. Each question also carries a required short
 `header` (a few words, truncated hard in the UI): use the tier and group —
 `Tier 1`, `Core 1/2`, `The rest`.
 
-The eligible set is every catalog leaf minus the bundles and plugin-scout itself
+The eligible set is every catalog leaf minus the bundles and stack-scan itself
 — recount it, never write the number down. At 15 per call that is **4 calls and
 16 blocking questions**, on every run, in every repo — including a Django repo
 being asked to consider `laravel` and `mariadb` four pages deep. This file used

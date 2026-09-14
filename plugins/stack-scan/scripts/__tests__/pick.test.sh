@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Fixture tests for scripts/pick.sh — the TTY multi-select both scout plugins ship.
-# pc_pick_parity keeps the two copies byte-identical, so this one harness covers both.
+# Fixture tests for scripts/pick.sh — the TTY multi-select both scout skills of this
+# plugin share (one copy since the two scout plugins merged into stack-scan, 2026-09-14).
 # Picked up by the shared CI step globbing plugins/*/scripts/__tests__/*.test.sh.
 #
 # WHY THIS FILE EXISTS. The picker's entire contract with the calling skill is ONE
