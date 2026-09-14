@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.103.0"
+    "version": "0.104.0"
   },
   "plugins": [
     {
@@ -107,7 +107,7 @@
     {
       "name": "hindsight",
       "source": "./plugins/hindsight",
-      "description": "Cross-session self-improvement loop: mines session transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings — applied only on approval."
+      "description": "Cross-session self-improvement loop: mines session and subagent transcripts for recurring friction and proposes CLAUDE.md rules, skill/plugin ideas, and defects against the plugin artifact that was running — applied only on approval."
     },
     {
       "name": "brain",

@@ -33,6 +33,15 @@ expect "errors move"   "6 → 1"
 expect "direction"     "improved"
 expect "caveat"        "Correlational only"
 
+# Agent rows (kind:"agent") are not sessions: three high-friction agent rows
+# after the apply must not flip "improved" and must not count toward n.
+for i in 6 7 8; do
+  printf '{"v":1,"kind":"agent","agent_type":"x:reviewer","ts_end":"2026-08-0%sT11:00:00Z","friction_events":40,"errors":40}\n' "$i" >> "$dir/ledger.jsonl"
+done
+OUT=$(bash "$SCRIPT" "$proj")
+expect "agents skipped: n"   "| 3/3 |"
+expect "agents skipped: dir" "improved"
+
 # Insufficient data: applied ts too recent (0 after-rows).
 printf '{"v":1,"ts":"2026-08-09T12:00:00Z","kind":"rule","text":"newest rule"}\n' >> "$dir/applied.jsonl"
 OUT=$(bash "$SCRIPT" "$proj")

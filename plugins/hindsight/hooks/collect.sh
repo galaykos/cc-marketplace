@@ -7,6 +7,18 @@
 # never inside the project tree (D2, D4-D6).
 # Transcript JSONL format is officially unstable (D13) — every parse is
 # defensive and prefers undercounting over crashing.
+#
+# Subagents (0.9.0): every agent the session spawned left its own transcript at
+# <transcript_path minus .jsonl>/subagents/agent-<id>.jsonl with a sibling
+# .meta.json naming its agentType. Those are the only record of what an agent
+# hit, and no other channel reaches them: turn-cost.sh calls subagent turns
+# invisible for exactly this reason. One row per agent, same stats, tagged
+# kind:"agent" so readers that predate the tag (outcome.sh's per-session means)
+# can filter them out; rows without kind are sessions. Dedup by agent_id keeps a
+# resumed session's second SessionEnd from re-appending the same agents. A
+# session with many agents can outrun the hook timeout — the session row is
+# written FIRST and each agent row is one append, so a timeout loses only the
+# tail of the agents, never the session, and never noises the exit.
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
@@ -21,9 +33,10 @@
   [ -f "$transcript_path" ] || exit 0
   [ -r "$transcript_path" ] || exit 0
 
-  # One pass over the transcript: keep raw lines for marker greps and
+  # One pass over a transcript: keep raw lines for marker greps and
   # parsed lines (malformed ones silently dropped) for structural counts.
-  stats=$(jq -c -n -R '
+  # Shared by the session and every agent transcript below.
+  stats_prog='
     [inputs] as $raw
     | [$raw[] | fromjson? // empty] as $lines
     | [$lines[] | .timestamp? | select(type == "string")] as $ts
@@ -45,7 +58,8 @@
               test("\"is_error\"\\s*:\\s*true")
               or test("rejected"; "i")
             )] | length)
-      }' <"$transcript_path" 2>/dev/null) || exit 0
+      }'
+  stats=$(jq -c -n -R "$stats_prog" <"$transcript_path" 2>/dev/null) || exit 0
   [ -n "$stats" ] || exit 0
 
   row=$(jq -c -n \
@@ -82,5 +96,43 @@
   dir="$HOME/.claude/hindsight/$slug"
   mkdir -p "$dir" 2>/dev/null || exit 0
   printf '%s\n' "$row" >>"$dir/ledger.jsonl" 2>/dev/null || exit 0
+
+  agents_dir="${transcript_path%.jsonl}/subagents"
+  [ -d "$agents_dir" ] || exit 0
+  for agent_file in "$agents_dir"/agent-*.jsonl; do
+    [ -f "$agent_file" ] && [ -r "$agent_file" ] || continue
+    agent_id=$(basename "$agent_file" .jsonl)
+    grep -qF "\"agent_id\":\"$agent_id\"" "$dir/ledger.jsonl" 2>/dev/null && continue
+    meta="${agent_file%.jsonl}.meta.json"
+    agent_type=""
+    [ -r "$meta" ] && agent_type=$(jq -r '.agentType // empty' "$meta" 2>/dev/null)
+    stats=$(jq -c -n -R "$stats_prog" <"$agent_file" 2>/dev/null) || continue
+    [ -n "$stats" ] || continue
+    row=$(jq -c -n \
+      --arg session_id "$session_id" \
+      --arg agent_id "$agent_id" \
+      --arg agent_type "${agent_type:-unknown}" \
+      --arg reason "$reason" \
+      --arg transcript_path "$agent_file" \
+      --argjson stats "$stats" \
+      '{
+        v: 1,
+        kind: "agent",
+        session_id: $session_id,
+        agent_id: $agent_id,
+        agent_type: $agent_type,
+        ts_start: $stats.ts_start,
+        ts_end: $stats.ts_end,
+        turns: $stats.turns,
+        friction_events: $stats.friction_events,
+        errors: $stats.errors,
+        user_msgs: $stats.user_msgs,
+        reason: $reason,
+        transcript_path: $transcript_path,
+        mined: false
+      }' 2>/dev/null) || continue
+    [ -n "$row" ] || continue
+    printf '%s\n' "$row" >>"$dir/ledger.jsonl" 2>/dev/null || exit 0
+  done
 } 2>/dev/null
 exit 0
