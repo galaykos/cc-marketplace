@@ -275,11 +275,11 @@ done
 [ -z "$blessed" ] && pass "[tree] no blessing rescues a reviewer-class agent — the territories are distinct or an explicit yields_to carries the pair (S2c)" \
                   || bad "[tree] a co-fire blessing covers reviewer-class agent(s):$blessed"
 
-# Coverage over the real tree. Scoped to the plugins this change owns: debugging,
-# fresh-take and skill-router are written by the card running beside it, so their
-# gaps are reported, not asserted. TIGHTEN THIS to a bare "no lane-missing" once
-# that card has landed.
-PENDING='^lane-missing [a-z]* \(debugging\|fresh-take\|skill-router\):'
+# Coverage over the real tree. Scoped to the plugins this change owns: debugging
+# and skill-router are written by the card running beside it, so their gaps are
+# reported, not asserted. TIGHTEN THIS to a bare "no lane-missing" once that card
+# has landed. (fresh-take was in this list until it merged into approaches, 2026-09-14.)
+PENDING='^lane-missing [a-z]* \(debugging\|skill-router\):'
 cov=$(pc_lanes_coverage plugins) || true
 gaps=$(printf '%s\n' "$cov" | grep '^lane-missing ' | grep -v "$PENDING" || true)
 [ -z "$gaps" ] && pass "[tree] every agent and prompt/Stop hook outside the sibling card's plugins has a row" \

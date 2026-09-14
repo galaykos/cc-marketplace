@@ -440,7 +440,9 @@ pc_removed_refs() {
   # the skills keep their names (design-session, real-preview), the commands are
   # /design-studio:init|export|preview and the working dir is .design-studio/. Only the
   # PLUGIN forms are stale; `.theme-design/` in an old changelog line matches no shape.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab'
+  # fresh-take MOVED 2026-09-14 into approaches: the consult skill, the consultant agent
+  # and the reminder keep their names; /approaches:consult is the command.
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design|plugin-scout|vercel-skills-scout|theme-design|design-lab|fresh-take'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick

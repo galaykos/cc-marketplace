@@ -74,7 +74,7 @@ rule and the typed-token rule; this section does not restate them.
   the session-wide group (candor, lean, hindsight and
   skill-router — the four `references/any-core.md` routes to `--global` for `--yes`;
   `--full` is the flag that bullet does not bind) and the research/tooling group
-  (brain, fresh-take, and ultra-deep-research
+  (brain, and ultra-deep-research
   when their signal has not fired — they are tier 1 when it has).
   Leaves only, never a suite.
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is

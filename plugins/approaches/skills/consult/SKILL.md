@@ -27,7 +27,7 @@ to the session's leaning is the session's leaning, restated slower.
   is "what does this action foreclose, and is there a reversible route?"
 
 Anything else — style debates, approach picks before code exists, routine
-review — belongs to other tools (approaches, code-review), not a consult.
+review — belongs to other tools (this plugin's `approach-deliberation`, code-review), not a consult.
 
 ## The brief contract (command → consultant)
 

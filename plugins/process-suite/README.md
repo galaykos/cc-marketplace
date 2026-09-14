@@ -3,7 +3,7 @@
 Meta-bundle: the engineering-process category in one install — git workflow,
 approach deliberation, hindsight mining, docs upkeep, subagent orchestration,
 task execution, stack scanning, plugin scouting, skill routing, a stronger-model
-second opinion (fresh-take), a refuting research harness (ultra-deep-research),
+second opinion (now `/approaches:consult`), a refuting research harness (ultra-deep-research),
 and a committed codebase map (brain). Uninstalls
 cleanly: `/process-suite:uninstall` removes the bundle and prunes the plugins
 it auto-installed.
@@ -49,7 +49,9 @@ text that was previously being evicted.
   before implementing, plus the merged build-vs-buy, estimation, rollout, and
   pattern-selection disciplines: `/approaches:compare`, `/approaches:opinions`,
   `/approaches:build-vs-buy`, `/approaches:size`, `/approaches:rollout`,
-  `/approaches:pattern`
+  `/approaches:pattern`; and, since fresh-take merged in on 2026-09-14,
+  `/approaches:consult` — a blind stronger-model second opinion when a session is
+  stuck or about to do something irreversible
 - **hindsight** — mines session transcripts for cross-session friction,
   applied only on approval, plus `/hindsight:harvest`
 - **api-design** — REST/GraphQL/gRPC design review and spec-first scaffolding, docs
@@ -67,8 +69,6 @@ text that was previously being evicted.
   suggestions of `/stack-scan:suggest` (plugin-scout was merged into stack-scan on 2026-09-14)
 - **skill-router** — hook that auto-loads the matching best-practice skill on
   edit
-- **fresh-take** — a blind stronger-model second opinion when a session is stuck or
-  about to do something irreversible, plus `/fresh-take:consult`
 - **ultra-deep-research** — parallel web research with provenance tiers and an
   adversarial refute pass before synthesis, plus `/ultra-deep-research:research`
 - **brain** — a committed Obsidian-style codebase map a fresh session reads first,

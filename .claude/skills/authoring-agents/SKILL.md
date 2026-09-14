@@ -85,7 +85,7 @@ reason — escalating it multiplies cost for no depth. The current roster of bot
 lives in `role-floors.md` and its exemption rows; do not restate it here.
 
 Effort is separate and is never floored: `context-scout` ships `inherit` at
-`effort: high`, and fresh-take's `consultant` ships `inherit` because its caller
+`effort: high`, and approaches' `consultant` ships `inherit` because its caller
 escalates it at dispatch — neither is a registry candidate.
 
 ## Description as dispatch trigger

@@ -300,11 +300,18 @@ render_reminder_hook() { # obj plugin-dir
   # plugin is not installed (process-suite ships two reminder hooks and no taskmaster).
   # armsClarifyGate replaces budgetExempt's SIDE EFFECT only: dropping the
   # cross-plugin cc-workprompt marker. Defaults keep a bare manifest renderable.
+  # `file` (optional, default hooks/remind.sh) names the target the way boost-hook's
+  # does: a plugin carrying TWO reminder hooks with different phases renders each
+  # to its own file (approaches: remind.sh for build-vs-buy at `decide`,
+  # consult-remind.sh for the irreversible-command guard at `any`, since fresh-take
+  # merged in on 2026-09-14). hooks.json must list both by hand.
+  local file
+  file="$(printf '%s' "$obj" | jq -r '.file // "hooks/remind.sh"')"
   printf '%s' "$obj" | jq \
     '{arcRank: 50, armsClarifyGate: false} + .' > "$dfile"
   ensure_engine
-  render_template "$TEMPLATES/reminder-hook.sh.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} remind.sh"
-  emit "$rfile" "$pdir/hooks/remind.sh" 1 "$pdir"
+  render_template "$TEMPLATES/reminder-hook.sh.tmpl" "$dfile" > "$rfile" || die "render failed: ${2#$ROOT/} $file"
+  emit "$rfile" "$pdir/$file" 1 "$pdir"
   lane_row "$obj" "$pdir" "$(printf '%s' "$obj" | jq -r '.artifact // empty')" hook ""
 }
 

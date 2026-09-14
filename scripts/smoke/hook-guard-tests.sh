@@ -247,7 +247,7 @@ fi
 # than the defect it fixes. The precedent it replaces says so itself —
 # candor's Stop gate, clause 4 (completion-gate.sh:71 at the time), "Nothing clears it".
 TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
-FT="$ROOT/plugins/fresh-take/hooks/remind.sh"
+FT="$ROOT/plugins/approaches/hooks/consult-remind.sh"   # fresh-take's reminder until 2026-09-14
 if [ -f "$TM" ] && [ -f "$FT" ]; then
   PP='implement a stripe billing integration'
   ph_dir() { PD="$WORK/phase-$1"; mkdir -p "$PD/.claude"; }
@@ -293,7 +293,7 @@ if [ -f "$TM" ] && [ -f "$FT" ]; then
   ph_dir anylane
   ph_write x '{"phase":"build","owner":"x","session_id":"ph-A","started_at":"z"}'
   ph_expect "lane=any is a guard -> never stands down" speak \
-    "$(ph_fire "$ROOT/plugins/fresh-take" "$FT" 'rm -rf node_modules')"
+    "$(ph_fire "$ROOT/plugins/approaches" "$FT" 'rm -rf node_modules')"
 fi
 
 # ---- THE ARC ACTUALLY ADVANCES ----------------------------------------------
@@ -306,19 +306,24 @@ fi
 # fixtures could not see it because they fed `understand` and `decide`, values nothing
 # in the tree ever writes. Fixtures must use values the shipped writers actually emit.
 ARC_PL="$ROOT/plugins"
-if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -d "$ARC_PL/fresh-take/hooks" ]; then
+if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -f "$ARC_PL/approaches/hooks/consult-remind.sh" ]; then
   ARC_P='implement a rate limiter for our billing api, the docs integration is still failing, rm -rf node_modules'
   arc_speaks() { # $1 phase ("" = no sentinel) -> space-joined plugin names that spoke
     local ph="$1" d out spoke=""
     d="$(mktemp -d "$WORK/arc.XXXXXX")"; mkdir -p "$d/.claude"
     [ -n "$ph" ] && printf '{"phase":"%s","owner":"x","session_id":"ARC","started_at":"z"}' "$ph" \
       > "$d/.claude/cc-phase.json"
-    for pl in taskmaster approaches api-design debugging fresh-take; do
-      [ -f "$ARC_PL/$pl/hooks/remind.sh" ] || continue
+    # approaches carries two reminder hooks since fresh-take merged in (2026-09-14):
+    # its any-lane consult guard is listed under its own name so the ship-phase
+    # assertion below still names a guard, not the plugin's decide-phase voice.
+    local pl hook
+    for hook in taskmaster:remind approaches:remind approaches:consult-remind api-design:remind debugging:remind; do
+      pl=${hook%%:*}
+      [ -f "$ARC_PL/$pl/hooks/${hook#*:}.sh" ] || continue
       out=$(printf '{"prompt":"%s","session_id":"ARC","cwd":"%s"}' "$ARC_P" "$d" \
         | CLAUDE_PLUGIN_ROOT="$ARC_PL/$pl" TMPDIR="$(mktemp -d "$WORK/at.XXXXXX")" \
-          "$BASH_BIN" "$ARC_PL/$pl/hooks/remind.sh" 2>/dev/null)
-      [ -n "$out" ] && spoke="$spoke $pl"
+          "$BASH_BIN" "$ARC_PL/$pl/hooks/${hook#*:}.sh" 2>/dev/null)
+      [ -n "$out" ] && spoke="$spoke $hook"
     done
     printf '%s' "$spoke"
   }
@@ -338,7 +343,7 @@ if [ -d "$ARC_PL/taskmaster/hooks" ] && [ -d "$ARC_PL/fresh-take/hooks" ]; then
   case "$arc_build" in *api-design*) pass "arc: phase=build still lets a build-phase voice speak" ;;
     *) fail "arc: phase=build still lets a build-phase voice speak" "nothing but guards spoke at build: [$arc_build] — the arc is a mute, not a rota" ;; esac
 
-  case "$arc_ship" in *fresh-take*) pass "arc: an any-lane guard speaks at every phase" ;;
+  case "$arc_ship" in *consult-remind*) pass "arc: an any-lane guard speaks at every phase" ;;
     *) fail "arc: an any-lane guard speaks at every phase" "guards silent at ship: [$arc_ship]" ;; esac
 
   if [ "$arc_none" = "$arc_build" ]; then

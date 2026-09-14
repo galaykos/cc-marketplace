@@ -119,9 +119,9 @@ install, not a fork of the bundle:
   permanently. That is rule 3. The plugin ships the split itself:
   `CLAUDE_DESTRUCTIVE_GUARD=deny-only` keeps the hard stops and silences the
   prompts, which is the shape worth installing globally by hand.
-- **fresh-take** — project-agnostic, but its consult dispatches a
-  stronger-model subagent; a spend decision that should be opted into, not
-  baselined.
+- **approaches** (which carries the former fresh-take consult) — project-agnostic,
+  but `/approaches:consult` dispatches a stronger-model subagent; a spend decision
+  that should be opted into, not baselined.
 - **brain** — project-agnostic and cheap (~89 tokens off), but it fails rule 2
   twice: it scaffolds a committed `brain/` directory, and until you run
   `/brain index` its `SessionStart` hook greets you in every un-indexed repo

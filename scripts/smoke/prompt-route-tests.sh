@@ -221,7 +221,7 @@ printf '== half C: the incident moment has an owner ==\n'
 # mkdir marker, so a shared sandbox would measure scheduling order instead of the
 # trigger, which is the exact confusion this split was made to remove.
 DBG="$ROOT/plugins/debugging/hooks/remind.sh"
-FT="$ROOT/plugins/fresh-take/hooks/remind.sh"
+FT="$ROOT/plugins/approaches/hooks/consult-remind.sh"   # fresh-take's reminder until 2026-09-14
 
 run_remind() { # run_remind <hook> <prompt> -> hook stdout
   local hook="$1" prompt="$2"
@@ -240,8 +240,8 @@ if [ -f "$DBG" ] && [ -f "$FT" ]; then
     && pass "debugging fires on the stuck moment and names its command" \
     || fail "debugging fires on the stuck moment" "wanted /debugging:debug, got: ${out:-<silence>}"
   out="$(run_remind "$FT" "$STUCK")"
-  [ -z "$out" ] && pass "fresh-take yields the stuck moment to debugging" \
-    || fail "fresh-take yields the stuck moment" "both plugins still claim it: $out"
+  [ -z "$out" ] && pass "the consult reminder yields the stuck moment to debugging" \
+    || fail "the consult reminder yields the stuck moment" "both hooks still claim it: $out"
 
   # The destructive branch is KEPT, deliberately. command-guard is PreToolUse and so
   # fires only once the model has already composed the call; this is the only signal
@@ -249,12 +249,12 @@ if [ -f "$DBG" ] && [ -f "$FT" ]; then
   # trigger — deleting the branch would have been the cheaper edit and the wrong one.
   out="$(run_remind "$FT" "rm -rf node_modules")"
   if [ -n "$out" ]; then
-    pass "fresh-take still fires on a destructive token"
+    pass "the consult reminder still fires on a destructive token"
     printf '%s' "$out" | grep -qF 'stronger-model' \
       && fail "destructive line is re-pointed" "still sells a stronger-model take: $out" \
       || pass "destructive line no longer sells a stronger-model take"
   else
-    fail "fresh-take still fires on a destructive token" "the sole pre-proposal signal is gone"
+    fail "the consult reminder still fires on a destructive token" "the sole pre-proposal signal is gone"
   fi
 else
   fail "incident-moment hooks present" "missing $DBG or $FT"

@@ -47,7 +47,6 @@
     "brain@cc-plugins-marketplace": true,
     "secret-scanning@cc-plugins-marketplace": true,
     "process-suite@cc-plugins-marketplace": false,
-    "fresh-take@cc-plugins-marketplace": true,
     "ultra-deep-research@cc-plugins-marketplace": false,
     "candor@cc-plugins-marketplace": true
   },

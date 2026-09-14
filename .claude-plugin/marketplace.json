@@ -102,7 +102,7 @@
     {
       "name": "approaches",
       "source": "./plugins/approaches",
-      "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, S/M/L/XL estimation, rollout planning, and design-pattern selection. Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:size, /approaches:rollout, /approaches:pattern."
+      "description": "Solution-approach deliberation before non-trivial implementation: 2-3 structurally different approaches with trade-offs and a kill-trigger, a strategy catalog mapped to the risk each beats, a four-persona blind opinion round for refactor-shaped tasks — plus the merged pre-code disciplines: build-vs-buy checks, S/M/L/XL estimation, rollout planning, design-pattern selection, and /approaches:consult, a blind stronger-model second opinion when a session is stuck or about to do something irreversible (fresh-take merged in). Includes /approaches:compare, /approaches:opinions, /approaches:build-vs-buy, /approaches:size, /approaches:rollout, /approaches:pattern."
     },
     {
       "name": "hindsight",
@@ -157,7 +157,7 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution with candor's Stop gate holding a run to its gate pass, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a stronger-model second opinion when stuck (fresh-take), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection and the fresh-take second opinion folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution with candor's Stop gate holding a run to its gate pass, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "taskmaster-suite",
@@ -188,11 +188,6 @@
       "name": "ultra-deep-research",
       "source": "./plugins/ultra-deep-research",
       "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Writes the report inline and to research/<topic>-<date>.md."
-    },
-    {
-      "name": "fresh-take",
-      "source": "./plugins/fresh-take",
-      "description": "Independent stronger-model second opinion at key moments — stuck debugging or an imminent irreversible action. /fresh-take:consult composes a facts-only brief (no leaning) and dispatches a blind stronger-model consultant with read-only repo access; it returns a Take, Risks, and one Alternative. A UserPromptSubmit reminder hook nudges the command on key-moment phrases. Advice only — it never blocks, gates, or edits anything."
     }
   ]
 }

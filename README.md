@@ -65,16 +65,16 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 11 | ~5.0k tokens | ~1.2k tokens | ~2.2k tokens |
-| `process-suite` | 12 | ~3.1k tokens | ~1.3k tokens | ~2.1k tokens |
+| `taskmaster-suite` | 11 | ~5.2k tokens | ~1.2k tokens | ~2.2k tokens |
+| `process-suite` | 11 | ~3.1k tokens | ~1.3k tokens | ~2.1k tokens |
 | `craft-suite` | 3 | ~3.0k tokens | — | — |
-| `quality-principles-suite` | 6 | ~2.3k tokens | — | ~127 tokens |
+| `quality-principles-suite` | 6 | ~2.4k tokens | — | ~127 tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.0k tokens |
 | `quality-suite` | 6 | ~1.6k tokens | ~1.2k tokens | ~2.0k tokens |
 | `always-on-suite` | 6 | ~1.3k tokens | ~1.2k tokens | ~2.0k tokens |
 | `php-suite` | 3 | ~956 tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 29 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 28 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -367,7 +367,6 @@ take a fuzzy request to a verified branch.
 | **[git-workflow](plugins/git-workflow)** | worktree isolation, a branch-finish protocol (verify → merge / PR / keep / discard, no zombie branches), and review-exchange rigor | Starting isolated work, or finishing a branch |
 | **[orchestration](plugins/orchestration)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation) and verification panels (refuter voting, judge panels, loop-until-dry) | Fanning out subagents, or deciding whether to trust what one returned |
 | **[hindsight](plugins/hindsight)** | mines past session transcripts for recurring friction and proposes CLAUDE.md rules, skill ideas, and failed-approach warnings — applied only on approval | Periodically. It is the only plugin that learns from your history |
-| **[fresh-take](plugins/fresh-take)** | a facts-only brief and a **blind** stronger-model consultant returning a Take, Risks, and one Alternative — advice only, never blocks | Stuck after repeated failed fixes, or about to do something irreversible |
 | **[ultra-deep-research](plugins/ultra-deep-research)** | parallel web-search fan-out, source tiering by provenance, date-stamped claims, adversarial refutation before synthesis, a cited report with a contradiction ledger | A question where being confidently wrong is expensive |
 
 **Using them — the full pipeline:**
@@ -398,7 +397,7 @@ take a fuzzy request to a verified branch.
 /task-runner:plan                 # subagents or inline? with a speedup estimate
 /orchestration:review             # audit a delegation or a fan-out plan
 /hindsight:harvest                # mine transcripts for recurring friction
-/fresh-take:consult "<topic>"     # blind second opinion from a stronger model
+/approaches:consult "<topic>"    # blind second opinion from a stronger model
 /ultra-deep-research:research "<question>"
 /git-workflow:finish              # the branch gets a destination, with evidence
 ```
