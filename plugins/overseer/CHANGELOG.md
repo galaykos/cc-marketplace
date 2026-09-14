@@ -5,8 +5,8 @@
 ### Changed
 - **`shape`-phase capability map points at `ui-ux` instead of `design-studio`** <!-- removed-ok -->
   (`scripts/capability-scan.sh`, `references/capability-map.md`) — the plugin was
-  retired on 2026-09-14 and the mockup escalation it named is now ui-ux's
-  `real-preview` skill. `dispatch check` resolves again on a machine without the old
+  retired on 2026-09-14 and the mockup escalation it named is now the real-component
+  rung of `taskmaster:visual-decisions`. `dispatch check` resolves again on a machine without the old
   plugin installed. <!-- removed-ok -->
 
 ## 0.4.6 — 2026-09-14

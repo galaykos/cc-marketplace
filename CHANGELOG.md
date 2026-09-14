@@ -4,6 +4,38 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.107.0] - 2026-09-15
+
+**A read-only review of the branch, before merge, found nine defects in it — one a
+blocker in a guard shipped hours earlier.** All four gates, the host validator, the full
+smoke set and all 43 harnesses had passed; every one of these lives in territory no gate
+models.
+
+- `candor` 0.3.4 — **clause 5 never stood down.** It was missing the `$skip` term every
+  other clause carries, so it re-blocked its own continuation and the escape its message
+  offers was unreachable: a turn that hit it could not be finished. It also armed on ANY
+  line change in a non-JSON manifest, so a `version` bump in `pyproject.toml` or a
+  comment in a `Gemfile` blocked a Stop — the exact false fire its header promised could
+  not happen. And the README, description and hook table all still said "four clauses"
+  about a gate that now has five.
+- `testing` 0.10.1 — **`protect-tests` denied ordinary code.** An unanchored `.skip(`
+  matched `list.stream().skip(1)` in Java and `items.iter().skip(2)` in Rust, two
+  languages the hook deliberately covers. The documented escape hatch also failed in the
+  one situation where it is used: a reasoned new skip beside an unchanged unreasoned one.
+- `craft-layer` 0.50.1 — its description shipped a sentence fragment left by the
+  `/craft-layer:review` removal, and that text renders in the install listing.
+- Six shipped files cited a `ui-ux:real-preview` skill that exists nowhere. The gate
+  could not see them: `pc_removed_refs` guards the PLUGIN half of `plugin:artifact` and
+  these were the artifact half. `real-preview` and `design-session` are in the
+  removed-SKILL list now, which fails the build on the next one.
+- Doc debris: a duplicated changelog section, a duplicated README row, and three bundle
+  READMEs still claiming an uninstall "prunes the plugins it auto-installed" while the
+  same files' own uninstall sections say it cannot tell an auto-install from a hand one.
+
+Marker collision in `spawn-cap` closed (mkdir-based, retries instead of undercounting).
+One nit documented rather than fixed: a skip marker inside a string literal denies, and
+guessing code from string with a line regex is how a guard becomes decoration.
+
 ## [0.106.1] - 2026-09-15
 
 Self-review of the branch, before merge. Two defects found in my own work:

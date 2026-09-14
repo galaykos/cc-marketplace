@@ -3,11 +3,13 @@
 Meta-bundle: the creative-build studio in one install — concept-first
 creative direction with a tiered motion catalog and WebGL/Three.js effects
 (craft-layer), and the companion it requires: ui-ux, which carries the per-library
-stack skills, the WCAG audit, CSS-variable theming, and the real-component preview
-that renders 2-3 variants with the project's OWN components on its dev server. Split
-out of frontend-suite so ordinary frontend app work does not pay the studio's
-always-on context. Uninstalls cleanly: `/craft-suite:uninstall` removes the
-bundle and prunes the plugins it auto-installed.
+stack skills, the WCAG audit, CSS-variable theming with a live colour preview, and the
+accessibility engineer that applies an audit's fix list. Split out of frontend-suite so
+ordinary frontend app work does not pay the studio's always-on context. Uninstalls
+cleanly: `/craft-suite:uninstall` removes the bundle and every plugin it lists as a
+dependency at the same scope, minus anything another installed suite also lists — read
+the list it prints before accepting it, because it cannot tell a hand-install from an
+auto-install.
 
 ## Install
 
@@ -50,8 +52,8 @@ One bullet per bundled plugin, in dependency order (2):
   and tiered motion for distinctive builds, via `/craft-layer:craft`
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
   Tailwind) and the library-agnostic `component-libraries` floor for any other React or
-  Vue component library, plus `/ui-ux:build`, `/ui-ux:audit`, `/ui-ux:theme` and the
-  `/ui-ux:theme`. design-studio was retired 2026-09-14: its browser design session
+  Vue component library, plus `/ui-ux:build`, `/ui-ux:audit` and `/ui-ux:theme`.
+  design-studio was retired 2026-09-14: its browser design session
   measured one real use, its real-component preview became a rung of
   `taskmaster:visual-decisions`, and live registry lookups now go to shadcn's own MCP
   server and ReUI's hosted one, named in the stack skills <!-- removed-ok -->

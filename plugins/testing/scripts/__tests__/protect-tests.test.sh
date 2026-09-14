@@ -63,6 +63,30 @@ allows "a rewrite that keeps its tests" Write \
 allows "a brand-new test file with no skip" Write \
   "{\"file_path\":\"$T/new.test.ts\",\"content\":\"it('a',()=>{});\"}"
 
+# An iterator/stream adapter named skip is not a test skip. These languages are
+# deliberately covered (*Test.java, *_test.rs), so an unanchored pattern denied
+# ordinary code in them — the regression a branch review caught before merge.
+printf 'class UserTest {}\n' > "$T/UserTest.java"
+printf 'fn t(){}\n'          > "$T/parser_test.rs"
+printf 'def test_a(): pass\n' > "$T/test_seq.py"
+allows "java stream().skip(1) is not a test skip" Edit \
+  "{\"file_path\":\"$T/UserTest.java\",\"old_string\":\"zz\",\"new_string\":\"var rest = list.stream().skip(1).toList();\"}"
+allows "rust iter().skip(2) is not a test skip" Edit \
+  "{\"file_path\":\"$T/parser_test.rs\",\"old_string\":\"zz\",\"new_string\":\"items.iter().skip(2).collect()\"}"
+allows "python itertools islice-style .skip is not a test skip" Edit \
+  "{\"file_path\":\"$T/test_seq.py\",\"old_string\":\"zz\",\"new_string\":\"rows = cursor.skip(10).limit(5)\"}"
+# but the anchored spellings still deny, including a chained one
+denies "it.each([...]).skip still denies" Edit \
+  "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"zz\",\"new_string\":\"it.each([1]).skip('a',()=>{});\"}"
+denies "describe.skip still denies" Edit \
+  "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"zz\",\"new_string\":\"describe.skip('g',()=>{});\"}"
+
+# The escape hatch must work when the same hunk carries an OLD unreasoned marker
+# through unchanged: only the ADDED marker is judged.
+printf "it.skip('b',()=>{});\n" > "$T/pre.test.ts"
+allows "a reasoned NEW skip beside an unchanged unreasoned one" Edit \
+  "{\"file_path\":\"$T/pre.test.ts\",\"old_string\":\"it.skip('b',()=>{});\",\"new_string\":\"it.skip('a',()=>{}) // skip: flaky #42\nit.skip('b',()=>{});\"}"
+
 # CC_PROTECT_TESTS=off
 out_off=$(python3 - <<PY | CC_PROTECT_TESTS=off "${BASH:-bash}" "$HOOK" 2>/dev/null
 import json

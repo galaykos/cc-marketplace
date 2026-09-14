@@ -7,6 +7,14 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.50.1
+
+### Fixed
+- **The plugin description shipped a sentence fragment.** Removing `/craft-layer:review`
+  in 0.50.0 left "…behind and Three.js review through /code-review:review" in the text
+  the CLI renders in its install listing. It now reads "behind `/craft-layer:craft`;
+  Three.js review arrives through `/code-review:review`".
+
 ## 0.50.0
 
 ### Removed

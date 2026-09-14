@@ -2,7 +2,7 @@
 # Absolute-path shebang, not `/usr/bin/env bash`: the fail-open guarantee must
 # hold under a stripped PATH where `env bash` exits 127.
 #
-# candor-gate — THE Stop gate of this marketplace: four clauses, each falsifiable
+# candor-gate — THE Stop gate of this marketplace: five clauses, each falsifiable
 # on disk or in the transcript, none a tone judgement (tone is measured by
 # /candor:check and blocked by nothing). Until 2026-09-14 clauses 3 and 4 were two
 # sibling scripts, code-architecture/hooks/evidence-gate.sh and
@@ -607,8 +607,15 @@ fi
 #
 # Last of the clauses because it is the cheapest to satisfy and the least severe:
 # a citation or a naked completion claim is a false report, this is an unfinished
-# step. It never blocks twice on the same HEAD+manifest pair.
-if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "${CC_LOCKFILE_GATE:-on}" != "off" ]; then
+# step.
+#
+# `$skip` is LOAD-BEARING and was missing in the first version of this clause: without
+# it the clause re-fires on its own continuation, and because the loop guard keys on the
+# final assistant TEXT, a second turn with different text blocks again — so the escape
+# this clause's own message offers ("say plainly that the lockfile is deliberately
+# unchanged and why") could never be taken, and the turn was unblockable. Found by a
+# branch review before merge; clauses 1-3 each carry the same term at :387, :470, :537.
+if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "${CC_LOCKFILE_GATE:-on}" != "off" ]; then
   if command -v git >/dev/null 2>&1 && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
     changed=$(git -C "$cwd" status --porcelain 2>/dev/null | awk '{print $NF}')
     if [ -n "$changed" ]; then
@@ -637,7 +644,36 @@ if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "${CC_LOCKFILE_GATE:-o
             fi
             ;;
           *)
-            git -C "$cwd" diff -U0 -- "$man" 2>/dev/null | grep -qE '^[+-]' || continue
+            # A DEPENDENCY line, not any line. The first version armed on `^[+-]`, so a
+            # version bump in pyproject.toml, a `[tool.ruff]` edit, or a comment added to
+            # a Gemfile all blocked a Stop — measured in a branch review before merge,
+            # and the exact false fire the header above promises cannot happen. Each
+            # manifest's dependency grammar is line-oriented, so a line test is the right
+            # shape; it just has to test the right lines. Residual, stated: a dependency
+            # written in a form none of these patterns matches arms nothing, which is the
+            # safe direction for a Stop-tier block.
+            # TOML's `key = "value"` is ambiguous at line level: `requests = "^2.28"` is a
+            # poetry dependency and `version = "2.0.0"` is metadata, and a line regex
+            # cannot see which table it sits in. So the metadata keys are excluded by
+            # name — a short, closed list — rather than guessed at.
+            meta_re='^[+-][[:space:]]*(version|name|description|readme|license|authors|maintainers|homepage|repository|documentation|keywords|classifiers|requires-python|edition|rust-version|publish|include|exclude|packages|scripts|urls)[[:space:]]*='
+            case "$man" in
+              pyproject.toml)
+                dep_re='^[+-][[:space:]]*("[^"]+"[[:space:]]*,?[[:space:]]*$|[A-Za-z0-9._-]+[[:space:]]*=[[:space:]]*[{"^~>=<*]|dependencies[[:space:]]*=|\[(tool\.poetry\.(dev-)?dependencies|project\.optional-dependencies|build-system)\])' ;;
+              Gemfile)
+                dep_re='^[+-][[:space:]]*(gem[[:space:]]|gemspec|source[[:space:]]|git[[:space:]]|path[[:space:]])'
+                meta_re='^$' ;;
+              Cargo.toml)
+                dep_re='^[+-][[:space:]]*([A-Za-z0-9._-]+[[:space:]]*=[[:space:]]*[{"^~>=<*]|\[(dependencies|dev-dependencies|build-dependencies|workspace\.dependencies)\])' ;;
+              go.mod)
+                dep_re='^[+-][[:space:]]*(require|replace|exclude|retract)?[[:space:]]*[a-z0-9.-]+\.[a-z]{2,}/'
+                meta_re='^[+-][[:space:]]*(module|go|toolchain)[[:space:]]' ;;
+              *)
+                dep_re='^[+-]'
+                meta_re='^$' ;;
+            esac
+            git -C "$cwd" diff -U0 -- "$man" 2>/dev/null \
+              | grep -E "$dep_re" 2>/dev/null | grep -qvE "$meta_re" || continue
             ;;
         esac
         satisfied=0

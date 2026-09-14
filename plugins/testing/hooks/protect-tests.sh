@@ -28,6 +28,13 @@
 #     editing a legitimately-skipped test is never blocked.
 #   - Deleting a test file with `rm` — that is a Bash command, and command-guard's
 #     territory, not a write tool's.
+#   - A marker inside a STRING LITERAL rather than in code — a meta-test asserting
+#     `expect(src).toContain("it.skip(")` denies. Deliberately not fixed: telling code
+#     from a string with a line regex is guesswork, and guessing wrong in the permissive
+#     direction is how a guard becomes decoration. The same-line reason comment clears
+#     it in one keystroke, which is the same escape every other case uses. (A marker in
+#     a PROSE comment is mostly already exempt: `// TODO: drop the it.skip below` matches
+#     the reason pattern.)
 #
 # ESCAPE HATCH. A skip is sometimes right: a quarantined flake, an unimplemented
 # feature, a platform-specific case. The deny reason names the two ways through —
@@ -79,7 +86,16 @@
       ( .tool_input.edits // [] | map(.old_string // empty) | join("\n") )
     ] | join("\n")' 2>/dev/null)
 
-  skip_re='(\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context)[[:space:]]*\(|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\.skipIf[[:space:]]*\()'
+  # `.skip(` and `.only(` must be anchored to a TEST identifier. Unanchored they match
+  # `list.stream().skip(1)` in Java, `items.iter().skip(2)` in Rust, and every other
+  # iterator/stream adapter of that name — languages this hook deliberately covers, so
+  # an ordinary edit to a Java or Rust test file was denied. Found by a branch review
+  # before merge. The anchored forms below still catch every real spelling
+  # (`it.skip`, `test.only`, `describe.skip`, `Scenario.only`, `it.each(...).skip`)
+  # because a test framework's skip always hangs off a test keyword. The `\b` after the
+  # keyword list is load-bearing too: `[A-Za-z]*` there let `it` match inside `iter`, so
+  # `items.iter().skip(2)` denied — the same false positive one layer down.
+  skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context)[[:space:]]*\(|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\.skipIf[[:space:]]*\()'
 
   hit=""
   if printf '%s' "$new" | grep -qE "$skip_re"; then
@@ -97,10 +113,21 @@
       fi
     fi
     if [ "$n_new" -gt "$n_old" ]; then
-      # An intentional skip carries its reason on the same line. Accept those.
-      unreasoned=$(printf '%s' "$new" | grep -E "$skip_re" \
-        | grep -ivE '(#|//|/\*|\*)[[:space:]]*(skip|todo|reason|why|flaky|quarantin|pending|because)|reason[[:space:]]*[:=]' \
-        | grep -c . || true)
+      # An intentional skip carries its reason on the same line. Accept those — but
+      # judge only the ADDED marker lines. Counting every marker line in `new` denied an
+      # edit whose own new marker was properly reasoned whenever the same hunk carried a
+      # pre-existing unreasoned one through unchanged, which made the documented escape
+      # hatch fail exactly when it was used. Found by a branch review before merge.
+      reason_re='(#|//|/\*|\*)[[:space:]]*(skip|todo|reason|why|flaky|quarantin|pending|because)|reason[[:space:]]*[:=]'
+      prior="$old"
+      if [ "$tool" = "Write" ] || [ -z "$old" ]; then
+        [ -f "$file" ] && prior=$(cat "$file" 2>/dev/null)
+      fi
+      # Lines carrying a marker, minus the ones that were already there verbatim.
+      added_markers=$(printf '%s\n' "$new" | grep -E "$skip_re" \
+        | grep -vxF "$(printf '%s\n' "$prior" | grep -E "$skip_re")" 2>/dev/null)
+      [ -z "$added_markers" ] && added_markers=$(printf '%s\n' "$new" | grep -E "$skip_re")
+      unreasoned=$(printf '%s\n' "$added_markers" | grep -ivE "$reason_re" | grep -c . || true)
       case "$unreasoned" in ''|*[!0-9]*) unreasoned=0 ;; esac
       [ "$unreasoned" -gt 0 ] && hit="a test skip/exclusive marker with no reason on its line"
     fi

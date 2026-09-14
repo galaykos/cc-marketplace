@@ -2,6 +2,25 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.4
+
+### Fixed
+- **Clause 5 never stood down, so a blocked turn could not be unblocked.** It was
+  missing the `$skip` term every other clause carries, and the loop guard keys on the
+  final assistant text — so the continuation re-blocked, and a third turn with different
+  text blocked again. The escape the clause's own message offers ("say plainly that the
+  lockfile is deliberately unchanged and why") was unreachable. Found by a branch review
+  before merge; 0.3.3 shipped for a few hours with it.
+- **Clause 5 armed on ANY line change in a non-JSON manifest**, so a `version` bump in
+  `pyproject.toml`, a `[tool.ruff]` edit, or a comment added to a `Gemfile` blocked a
+  Stop — the exact false fire its own header promised could not happen. Each of the four
+  now tests dependency-shaped lines and excludes metadata keys by name. Nine cases
+  measured across pyproject/Gemfile/Cargo/go.mod, in both directions.
+
+### Changed
+- The README, the plugin description and the hook table say **five** clauses, and the
+  clause table documents clause 5 and `CC_LOCKFILE_GATE`. 0.3.3 added a blocking clause
+  and left every count at four.
 ## 0.3.3
 
 ### Added

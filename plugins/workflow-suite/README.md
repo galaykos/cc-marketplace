@@ -8,8 +8,10 @@ and verification panels, approaches deliberation, code-architecture
 plan-before-code and work verification, testing, debugging, and the ui-ux and
 security lanes the cards route to. It was `taskmaster-suite` until 2026-09-14,
 when process-suite and quality-principles-suite were merged into it and the three
-names retired. Uninstalls cleanly: `/workflow-suite:uninstall` removes the bundle
-and prunes the plugins it auto-installed.
+names retired. Uninstalls cleanly: `/workflow-suite:uninstall` removes the bundle and
+every plugin it lists as a dependency at the same scope, minus anything another
+installed suite also lists — it cannot tell a hand-install from an auto-install, so
+read the list it prints.
 
 ## Install
 

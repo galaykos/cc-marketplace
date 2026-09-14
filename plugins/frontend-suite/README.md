@@ -8,8 +8,9 @@ plus comment discipline: the no-comment default and its write-time denies).
 Inertia lives in the laravel plugin. The creative-build studio (craft-layer) moved to
 the craft-suite bundle, so ordinary frontend app work does not pay the studio's
 always-on context.
-Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and
-prunes the plugins it auto-installed.
+Uninstalls cleanly: `/frontend-suite:uninstall` removes the bundle and every plugin it
+lists as a dependency at the same scope, minus anything another installed suite also
+lists — it cannot tell a hand-install from an auto-install, so read the list it prints.
 
 ## Install
 

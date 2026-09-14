@@ -5,7 +5,7 @@ All notable changes to the skill-router plugin.
 ## 0.16.1
 
 ### Removed
-- **The `**/.design-studio/**` routing row.** Its target skill, `design-session`, was
+- **The `**/.design-studio/**` routing row.** Its target skill, `design-session`, was <!-- removed-ok -->
   retired with its plugin on 2026-09-14; the row would have routed an edit to a skill
   no install can resolve. <!-- removed-ok -->
 
@@ -42,7 +42,7 @@ All notable changes to the skill-router plugin.
 ## 0.15.3
 
 ### Changed
-- `rules.tsv`: the `design-session` glob row is `**/.design-studio/**` owned by
+- `rules.tsv`: the `design-session` glob row is `**/.design-studio/**` owned by <!-- removed-ok -->
   `design-studio` — theme-design was renamed and merged into that plugin and its
   working directory moved with it (2026-09-14 consolidation plan).
 
@@ -58,7 +58,7 @@ All notable changes to the skill-router plugin.
 ## 0.15.1
 
 ### Added
-- `rules.tsv`: edits under `.theme-design/` route the `design-session` skill
+- `rules.tsv`: edits under `.theme-design/` route the `design-session` skill <!-- removed-ok -->
   (theme-design), so a session's token or page edits made from the terminal load
   the loop contract instead of only the slash command reaching it.
 

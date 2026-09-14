@@ -8,8 +8,8 @@ rather than invented ones).
 ## 0.2.0
 
 ### Changed
-- **The full-fidelity mockup escalation is `ui-ux`'s `real-preview` skill**, not
-  design-studio, which was retired on 2026-09-14. Members are unchanged; ui-ux was
+- **The full-fidelity mockup escalation is a rung of `taskmaster:visual-decisions`**,
+  not design-studio, which was retired on 2026-09-14. Members are unchanged; ui-ux was
   already one of the fifteen, so nothing installs or uninstalls differently.
   <!-- removed-ok -->
 

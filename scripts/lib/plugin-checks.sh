@@ -488,7 +488,14 @@ pc_removed_refs() {
   # "i18n" outside a reference shape slips through.
   # terse-crew, terse-commit, terse-compress added 2026-09-14: dropped with the terse
   # merge into candor; the three crew agents went with the crew skill.
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress'
+  # real-preview, design-session added 2026-09-15: design-studio's two skills, retired
+  # with it. real-preview's BODY survives as taskmaster's
+  # visual-decisions/references/real-components.md — under a different name, so every
+  # citation of the old skill name resolves to nothing. Six shipped files carried one
+  # after the retirement and no shape saw them: the names sat in neither list, and the
+  # `moved` list would not have helped because it guards the PLUGIN half of
+  # `plugin:artifact`, while these appeared as the artifact half (`ui-ux:real-preview`).
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session'
   # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that

@@ -15,13 +15,14 @@ mocking boundaries, flaky-test causes, coverage traps.
 
 | Command | What it does |
 |---------|--------------|
-| `testing:review` — **retired in 0.10.0** | `/code-review:review` loads `testing-best-practices` for any diff touching tests or untested production code — one pass, no second entry. The rubric did not change; the door did. Review tests (and untested production changes) against the testing-best-practices skill; findings as `path:line — problem — fix` by severity |
+| `testing:review` — **retired in 0.10.0** | `/code-review:review` loads `testing-best-practices` for any diff touching tests or untested production code, in one pass with every other matching rubric. The rubric did not change; one listing entry did |
 | `/testing:flake-hunt [--runs N] [--shuffle "<runner flag>"] [--baseline FILE]` | Hunt and classify flaky tests — repeated runs in fixed and randomized order, set-diffed into order-dependent / non-deterministic / broken, each with its fix lane |
 
 ## Hook
 
 | Hook | Event | What it does | Standing |
 |------|-------|--------------|----------|
+| `protect-tests.sh` | `PreToolUse` on a write to a test path | Denies a skip/exclusive marker added with no reason on its line (`it.skip`, `test.only`, `xit`, `@pytest.mark.skip`, `markTestSkipped`, `t.Skip(`, `#[ignore]`, `@Disabled`), and a rewrite that leaves a test file with no tests. A same-line reason (`// skip: flaky on CI, #1421`) is accepted — that is the mechanism. `CC_PROTECT_TESTS=off` disables it | **gate** — `permissionDecision: "deny"`; 24 assertions in `scripts/__tests__/protect-tests.test.sh`. Does NOT catch a test weakened rather than skipped |
 | `test-shape.sh` | `PostToolUse` on `Edit\|Write\|MultiEdit` of a test path | Reads the written test file's **body** and names blocks that may not earn their place: assertion-free blocks, three-or-more near-identical blocks differing only in a literal, and reflection reaches into a non-public member. At most 4 findings per file, 3 files per context. | advisory |
 
 It reports locations, never a verdict, and it deliberately does **not** score a

@@ -54,11 +54,18 @@
   dir="${TMPDIR:-/tmp}/cc-spawn-$key"
   mkdir -p "$dir" 2>/dev/null || exit 0
 
-  # One marker file per dispatch: an atomic create with no read-modify-write, so two
-  # dispatches racing cannot lose a count. The file name is the nanosecond-ish unique
-  # part; its content is never read.
-  : > "$dir/$$-$(date +%s)-$RANDOM" 2>/dev/null || exit 0
-  n=$(ls -1 "$dir" 2>/dev/null | grep -c . || true)
+  # One marker per dispatch, created with mkdir — atomic, no read-modify-write, so two
+  # dispatches racing cannot lose a count. `$$-$(date +%s)-$RANDOM` alone can collide:
+  # same PID, same second, and $RANDOM repeats within a seeded shell, which silently
+  # undercounts. mkdir FAILS on collision, so the loop retries instead of losing the
+  # count; ten attempts then give up (fail-open) rather than spin.
+  n_try=0
+  while :; do
+    mkdir "$dir/d-$$-$(date +%s)-$RANDOM-$n_try" 2>/dev/null && break
+    n_try=$((n_try + 1))
+    [ "$n_try" -ge 10 ] && exit 0
+  done
+  n=$(ls -1 "$dir" 2>/dev/null | grep -c '^d-' || true)
   case "$n" in ''|*[!0-9]*) exit 0 ;; esac
 
   # Sweep sessions older than a day so /tmp does not accumulate one dir per session.

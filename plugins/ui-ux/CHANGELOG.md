@@ -17,7 +17,7 @@ rather than invented ones.
   install delivering the servers; what they gain is a server its own maintainers ship.
   <!-- removed-ok -->
 - **The real-component preview landed in taskmaster, not here.** design-studio's <!-- removed-ok -->
-  `real-preview` was headed for this plugin; ui-ux's on-invoke prose corpus measured
+  `real-preview` was headed for this plugin; ui-ux's on-invoke prose corpus measured <!-- removed-ok -->
   159,517 B against a 160,000 B ratchet, so absorbing a 17 KB skill would have meant
   cutting 17 KB of skills people use to fund one measured at a single invocation.
   It is now the real-component rung of `taskmaster:visual-decisions`, the skill that
