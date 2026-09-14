@@ -200,15 +200,17 @@ for phrase in "Silence is the default" "AskUserQuestion" "(Recommended)" "as ask
     && pass "directive carries: $phrase" || fail "directive carries: $phrase" "missing"
 done
 
-# installed-scoping: a tree holding two plugins must yield a catalog of only those
+# installed-scoping: a tree holding two plugins must yield a catalog of only those.
+# Fixture plugin: secret-scanning (one command, content-only routing) — the
+# payments plugin this case used to copy was removed 2026-09-14.
 SOLO="$WORK/solo/plugins"; mkdir -p "$SOLO/skill-router/hooks"
-cp -R plugins/payments "$SOLO/payments"
+cp -R plugins/secret-scanning "$SOLO/secret-scanning"
 cp "$HOOK" "$SOLO/skill-router/hooks/route-prompt.sh"
-solo_out="$(run_hook "review the checkout and payment flow" "$SOLO/skill-router")"
+solo_out="$(run_hook "review the repo for committed secrets before I push" "$SOLO/skill-router")"
 solo_lines=$(printf '%s' "$solo_out" | grep -c '^- /' || true)
-foreign=$(printf '%s' "$solo_out" | grep '^- /' | grep -vc '^- /payments:' || true)
+foreign=$(printf '%s' "$solo_out" | grep '^- /' | grep -vc '^- /secret-scanning:' || true)
 if [ "$solo_lines" -ge 1 ] && [ "$foreign" -eq 0 ]; then
-  pass "catalog is installed-scoped ($solo_lines entries, all payments)"
+  pass "catalog is installed-scoped ($solo_lines entries, all secret-scanning)"
 else
   fail "catalog is installed-scoped" "$solo_lines entries, $foreign from uninstalled plugins"
 fi

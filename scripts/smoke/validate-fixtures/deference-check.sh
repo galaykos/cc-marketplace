@@ -52,10 +52,13 @@ case "$g:$out" in
   *) echo "FAIL: unbacked claim not flagged (rc=$g; out=$out)"; rc=1 ;;
 esac
 
-# 3. SKIP path — llm-app defers to "Claude Code's built-in claude-api skill";
-#    no plugin directory is named, so the clause must produce no output and no failure.
-rm -rf "$T/plugins"; mkdir -p "$T/plugins"
-cp -R plugins/llm-app "$T/plugins/"
+# 3. SKIP path — a description that defers to "Claude Code's built-in claude-api skill"
+#    names no plugin directory, so the clause must produce no output and no failure.
+#    Synthesized fixture: the shipped plugin that carried this wording (llm-app) was
+#    removed 2026-09-14, and the check must keep proving the skip path without it.
+rm -rf "$T/plugins"; mkdir -p "$T/plugins/defer-fixture/.claude-plugin"
+printf '%s\n' '{"name":"defer-fixture","version":"0.0.1","description":"Fixture: defers provider API specifics to Claude Code'"'"'s built-in claude-api skill (harness-provided, not part of this marketplace)."}' \
+  > "$T/plugins/defer-fixture/.claude-plugin/plugin.json"
 out=$(pc_deference_edges "$T/plugins") && g=0 || g=$?
 if [ "$g" -eq 0 ] && [ -z "$out" ]; then
   echo "PASS: host-built-in deference target is skipped, not failed"

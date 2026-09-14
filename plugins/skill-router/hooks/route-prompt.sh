@@ -173,8 +173,9 @@
   #   * NOT the stack_marker column. It is populated on 15 of 67 data rows and is
   #     absent on exactly the Next.js, Nuxt, Vite and Three.js rows — the stacks the
   #     filter is FOR (now owned by web-dev and craft-layer). A stack_marker predicate would silently do nothing for them.
-  #   * NOT glob rows alone. Seven plugins ship ONLY content rows (llm-app,
-  #     node-backend, observability, payments, resilience, security, craft-layer's threejs row), so a
+  #   * NOT glob rows alone. Several plugins ship ONLY content rows (resilience,
+  #     security, craft-layer's threejs row; payments and llm-app did too before their
+  #     2026-09-14 removal), so a
   #     glob-only predicate matches nothing for them in ANY repo and would delete
   #     /security:review from every repository on earth. A plugin with no rows, or
   #     with no glob rows, is stack-NEUTRAL and always kept.

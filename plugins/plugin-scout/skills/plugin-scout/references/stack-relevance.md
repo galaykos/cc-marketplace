@@ -31,8 +31,6 @@ those rows exist because three tokens share a name with plugins removed on
 |---|---|---|---|
 | PHP / Laravel | `laravel` | composer.json require `laravel/framework` or `inertiajs/inertia-laravel`, or package.json dep `@inertiajs/*` — the SKILL.md tier-1 keys. Bare composer.json never earns it: a Symfony or WordPress repo must not install laravel | `php`, `laravel`, `inertia` <!-- removed-ok --> |
 | JS / web frontend | `web-dev`, `craft-layer`, `design-lab` | package.json (scan root, or a workspace member one level deep under SKILL.md's Detection precondition — root `workspaces`, `pnpm-workspace.yaml` or `turbo.json`) declaring an exact dep among `react`, `react-dom`, `vue`, `svelte`, `@angular/core`, `next`, `nuxt`, `react-native`, `vite`, `@inertiajs/*`, `@react-three/fiber`, `tailwindcss`, `three`; or a `components.json` at the scan root. Bare package.json never earns it: a Go repo with prettier must not install web-dev | `react`, `vue`, `next`, `nuxt`, `react-native`, `vite`, `node`, `inertia` <!-- removed-ok --> |
-| Payments domain | `payments` | the `references/signals.md` payments row fires (`STRIPE_`/`PADDLE_`/`BRAINTREE_` env key, or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`, or composer `stripe/stripe-php`, `laravel/cashier`) | `stripe`, `paddle`, `braintree`, `payments` |
-| LLM domain | `llm-app` | the `references/signals.md` LLM row fires (env `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*`) | `llm`, `anthropic`, `openai` |
 
 ## Everything else
 
@@ -46,10 +44,9 @@ leaves are skipped and counted in the plan's `Already installed (K)` line.
 
 ## The domain-bound rule
 
-A leaf is **domain-bound** when its usefulness depends on a domain no manifest can
-rule OUT — payments and LLM work exist in a repo before any SDK or key lands in it.
-Exactly two leaves qualify: `payments` and `llm-app`. They install under `--full`
-only when their signals.md row fires or a `--stack` token in their class is typed.
+No leaf is **domain-bound** any more. The two that were — payments and LLM work exist
+in a repo before any SDK or key lands in it — were removed on 2026-09-14; their
+signals.md rows now route onward instead of to a plugin.
 
 Every signal-earned leaf NOT named in the table above — devops, api-design,
 security, resilience, database, vercel-skills-scout, and
@@ -58,7 +55,7 @@ illustrative of "any stack", not a fifth class: a missing CI file does not make 
 discipline irrelevant, it makes it absent. `stack-scan` is the honest edge:
 `references/any-core.md` keeps it OUT of the stack-agnostic core because its rubric
 is Composer/npm-specific, and `--full` installs it anyway for the same reason it
-installs candor and lean — the user asked for everything.
+installs candor — the user asked for everything.
 
 ## Typed tokens
 
@@ -80,10 +77,8 @@ installs candor and lean — the user asked for everything.
 **Laravel + Inertia + React** — composer.json requires `laravel/framework`,
 package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
-- Excluded: `payments` — Payments domain signal absent; `--stack stripe` includes.
-  `llm-app` — LLM domain signal absent; `--stack llm` includes.
 - Excluded by construction: the eight bundles, `plugin-scout`.
-- **No stack-mismatched leaf.** Both stack classes are satisfied, so 33 of the 35
+- **No stack-mismatched leaf.** Both stack classes are satisfied, so 33 of the 34
   eligible leaves install.
 - `web-dev` brings the Next.js and React Native skill descriptions into the
   model's skill listing regardless — no level of this marketplace skips them for a

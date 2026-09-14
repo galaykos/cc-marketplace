@@ -2,6 +2,15 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.15.2
+
+### Removed
+- `rules.tsv`: the `payments` and `llm-app` content rows and their eight <!-- removed-ok -->
+  `co-fire-ok` blessings — both plugins were removed from the marketplace
+  (2026-09-14 consolidation plan). Payment-provider and LLM-provider edits now
+  route through the co-firing skills that remain: `security-review`,
+  `concurrency-safety`, `error-handling-design`, `resilience-design`.
+
 ## 0.15.1
 
 ### Added

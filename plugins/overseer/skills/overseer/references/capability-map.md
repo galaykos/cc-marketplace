@@ -29,7 +29,7 @@ re-run the hand-dispatch path every earlier simulation took. Standing: agent-gra
 | verify | `testing`, `code-architecture` (work-verification, drift-review), `task-runner` (behavioral-gate) | official `playwright` (not a marketplace plugin — the scan never lists it as installable), `claude-in-chrome` MCP | run the suite yourself; browser via Playwright MCP, Chrome MCP, or `npx playwright` — see acceptance.md |
 | review | `code-review`, `ui-ux` (review, audit), `security`, `laravel`/`web-dev` review, `resilience`, `api-design`, `database` | — | one read-only reviewer subagent with the diff, `path:line — severity — problem — fix` |
 | ship | `git-workflow` (`/git-workflow:finish`, skills `branch-completion`, `worktree-isolation`) | official `commit-commands` | offer merge / PR / keep via AskUserQuestion; headless: keep and print the command |
-| guard | `command-guard`, `secret-scanning`, `candor`, `lean` | — | none — say in the charter that no destructive-command guard is active |
+| guard | `command-guard`, `secret-scanning`, `candor` | — | none — say in the charter that no destructive-command guard is active |
 
 Rules:
 

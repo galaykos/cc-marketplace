@@ -57,7 +57,6 @@ Engines without a dialect plugin (MySQL, PostgreSQL, …) prime only the sql row
 | `Dockerfile*` or a compose file | `devops:docker-best-practices` |
 | `.github/workflows/` | `devops:devops-practices` |
 | the ASK mentions auth, login, token, session, permission, or payment | `security:security-review` |
-| the ASK mentions Stripe, billing, subscription, invoice, or checkout | `payments:payments` |
 | the ASK mentions an external API, webhook, retry, or queue | `resilience:resilience-design` |
 
 The last four rows key off the request, not the repository — they are the surfaces where

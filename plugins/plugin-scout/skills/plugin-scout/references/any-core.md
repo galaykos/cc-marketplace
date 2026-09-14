@@ -49,8 +49,8 @@ A row belongs here only if it passes both:
 - `taskmaster`, `task-runner` — workflow pipelines, not floors; fails membership
   test 2. Adopting a planning pipeline is a decision the user should make
   explicitly.
-- `candor`, `lean`, `skill-router`, `hindsight` — these change how the model
-  talks, prices output, or routes across every session rather than how this
+- `candor`, `skill-router`, `hindsight` — these change how the model
+  talks or routes across every session rather than how this
   project's code is checked, so per-project installation is the wrong unit for
   them. Point at the always-on-suite bundle or a `--global` run. Under `--full` they install
   at the run's scope anyway — the user asked for everything; that is the one flag

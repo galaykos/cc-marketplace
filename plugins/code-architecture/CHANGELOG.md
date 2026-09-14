@@ -2,6 +2,14 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.13.19
+
+### Changed
+- `coding-entry` no longer loads `lean:cost-model` (the lean plugin was removed
+  2026-09-14); the always-load set is five skills, and the cost surfaces and
+  over-minimum triggers it used to cite are stated inline. `references/skill-map.md`
+  drops the `payments:payments` row for the same reason.
+
 ## 0.13.18
 
 ### Changed

@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **37 leaf plugins** and **8 bundles** covering
+A Claude Code plugin marketplace: **34 leaf plugins** and **8 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -66,14 +66,14 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.3k tokens | ~32 tokens | ~2.5k tokens |
 | `craft-suite` | 4 | ~3.0k tokens | — | — |
-| `process-suite` | 13 | ~2.8k tokens | ~169 tokens | ~2.4k tokens |
+| `process-suite` | 12 | ~2.8k tokens | ~169 tokens | ~2.4k tokens |
 | `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
-| `always-on-suite` | 9 | ~1.8k tokens | ~1.2k tokens | ~2.4k tokens |
+| `always-on-suite` | 8 | ~1.8k tokens | ~1.2k tokens | ~2.4k tokens |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.3k tokens |
-| `quality-suite` | 7 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
+| `quality-suite` | 6 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 37 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 34 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -110,7 +110,7 @@ that as an order-of-magnitude correction, never as a coefficient
 | **[quality-suite](plugins/quality-suite)** | The review plugins that *enforce* — Stop gates, PreToolUse denies, write-time scans. |
 | **[quality-principles-suite](plugins/quality-principles-suite)** | The review plugins that *advise* — security, a11y, performance, resilience, testing. |
 | **[process-suite](plugins/process-suite)** | Git workflow, deliberation, orchestration, task execution, scouting. |
-| **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, lean, routing, git discipline — on in every repo. |
+| **[always-on-suite](plugins/always-on-suite)** | The user-scope baseline: safety guards, candor, routing, git discipline — on in every repo. |
 
 Each bundle ships its own uninstall command — `/craft-suite:uninstall`,
 `/php-suite:uninstall`, and so on — which removes the bundle **and** prunes the
@@ -151,15 +151,14 @@ early:
 - [Review and code quality](#review-and-code-quality)
 - [Safety and security](#safety-and-security)
 - [Architecture and APIs](#architecture-and-apis)
-- [Product domains](#product-domains)
 - [Workflow: idea to shipped](#workflow-idea-to-shipped)
 - [Infrastructure and environments](#infrastructure-and-environments)
 - [Meta: steering Claude Code itself](#meta-steering-claude-code-itself)
 
-Suites are curated starting points, not coverage: five leaves belong to no suite
-on purpose. Four are stack-matched — `database`, `devops`, `llm-app`, `payments` —
-and `/plugin-scout:suggest` names each when the project's manifests earn it; the
-fifth, `system-design`, is any-stack and deliberately unbundled (it surfaces in
+Suites are curated starting points, not coverage: three leaves belong to no suite
+on purpose. Two are stack-matched — `database`, `devops` — and
+`/plugin-scout:suggest` names each when the project's manifests earn it; the
+third, `system-design`, is any-stack and deliberately unbundled (it surfaces in
 the scout's universal tier). Install them by name.
 
 ---
@@ -273,7 +272,6 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 | **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review — and a **Stop hook** that refuses a completion claim when files were edited and nothing ran afterwards | Structure decisions, and any "it's done" that has no evidence behind it |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
 | **[candor](plugins/candor)** | a blocking Stop gate on the two dishonesty shapes a script can prove: a `file:line` citation that resolves to nothing, and a position retracted under pushback with no tool call in between | You want the honesty rule to have teeth rather than tone |
-| **[lean](plugins/lean)** | one bar per cost surface — code, tests, comments, files, actions — and four named triggers that buy more than the minimum | Scope keeps growing and nobody can say which requirement bought it |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
 | **[resilience](plugins/resilience)** | timeouts, retries with backoff and idempotency, circuit breaking, degradation, delivery semantics — plus error-handling design and concurrency safety | Code crosses a process boundary, or two writers can race |
 
@@ -354,21 +352,7 @@ grant stays granted on your terms.
 ```
 /api-design:check stripe subscriptions
 # → verifies the current SDK surface before a line is written
-/payments:review                   # then the domain rules: idempotency, money, webhooks
-```
-
----
-
-## Product domains
-
-| Plugin | What it carries | Reach for it when |
-|--------|-----------------|-------------------|
-| **[payments](plugins/payments)** | PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, an append-only ledger with reconciliation | Stripe / Paddle / Braintree work. The failure class here is double-charges and revenue leaks |
-| **[llm-app](plugins/llm-app)** | eval harnesses and regression gates, RAG (chunking, embeddings, retrieval quality, re-ranking, grounding and citation), prompt versioning, prompt-injection defence, token-cost control | Building an LLM feature — where "it looked right in the demo" is not a test |
-
-```bash
-/payments:review        # webhook idempotency, money representation, subscription races
-/llm-app:review         # eval coverage, retrieval quality, injection surface, cost
+/api-design:review                 # then the contract: idempotency keys, error shape, versioning
 ```
 
 ---

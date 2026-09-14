@@ -75,11 +75,9 @@ stack the repo does not have. The stack→plugin table is
 `skills/plugin-scout/references/flags.md`.
 
 In a Laravel + Inertia + React app (composer.json requires `laravel/framework`,
-package.json declares `@inertiajs/react`) that means everything except the two
-domain leaves — 33 of 35 eligible at the time of writing; recount from the
-catalog, never from this number. Excluded: `payments` and `llm-app` unless a
-payments/LLM signal fires (or you type `--stack stripe` / `--stack llm`), plus the
-bundles and plugin-scout itself. **Nothing is stack-mismatched** — no Vue or Nuxt
+package.json declares `@inertiajs/react`) that means every leaf but this one —
+33 of 34 eligible at the time of writing; recount from the catalog, never from
+this number. Excluded: the bundles and plugin-scout itself. **Nothing is stack-mismatched** — no Vue or Nuxt
 plugin exists anywhere in this marketplace, and Next.js and React Native live as
 skills inside `web-dev`, so installing it lists their descriptions too. Where the
 table earns its keep: a Next.js

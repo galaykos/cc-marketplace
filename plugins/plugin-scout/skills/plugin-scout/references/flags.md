@@ -66,8 +66,8 @@ whose class the manifests (or `--stack`) satisfy, per
 rule and the typed-token rule; this section does not restate them.
 
 - What it includes, by name so no later reader has to infer it: every
-  **any-stack** leaf whether or not its signal fired — the six stack-bound leaves
-  (`laravel`, `web-dev`, `craft-layer`, `design-lab`, `payments`, `llm-app`)
+  **any-stack** leaf whether or not its signal fired — the four stack-bound leaves
+  (`laravel`, `web-dev`, `craft-layer`, `design-lab`)
   follow `references/stack-relevance.md` and are the only tier-1 or tier-3 rows
   `--full` can skip. Any-stack covers the whole of tier 2 and, from tier 3, the
   process/pipeline group (taskmaster, task-runner, orchestration, approaches,
@@ -78,8 +78,7 @@ rule and the typed-token rule; this section does not restate them.
   when its signal has not fired — they are tier 1 when it has).
   Leaves only, never a suite.
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
-  absent and whose `--stack` token was not typed); `payments` and `llm-app` when
-  their domain signal is absent and no token in their class was typed; the
+  absent and whose `--stack` token was not typed); the
   bundles and `plugin-scout` by construction; already-installed leaves.
 - What prints, in this order: the report header line (eligible count, installed
   count, detected stack with evidence); any fired `references/signals.md` `—`
@@ -95,9 +94,7 @@ rule and the typed-token rule; this section does not restate them.
     installs for a bundle's members (`references/picker.md` "installed in effect").
   - `Excluded:` one line per excluded leaf — the class's evidence negated plus the
     token that would include it, e.g. `laravel — PHP / Laravel evidence absent (no
-    laravel/framework, no @inertiajs/*); --stack laravel includes`, or
-    `payments — Payments domain signal absent (no STRIPE_ key, no stripe dep);
-    --stack stripe includes`.
+    laravel/framework, no @inertiajs/*); --stack laravel includes`.
   - One count line for the bundles and `plugin-scout` (by construction).
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names

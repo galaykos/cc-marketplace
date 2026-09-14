@@ -17,7 +17,7 @@ prose — no script checks it:
    repo, forever; that is a per-user opt-in, not a baseline.
 
 What that buys you always-on: the write-time secret block, candor's honesty
-Stop gate, lean's output pricing, terse's chat-brevity contract (inert until
+Stop gate, terse's chat-brevity contract (inert until
 you set a level), file-aware skill auto-routing, git workflow discipline,
 cross-session friction mining, and the two scouts — marketplace plugins, and
 third-party skills on skills.sh — that suggest what this bundle deliberately
@@ -68,17 +68,12 @@ ceiling, not a purchase — it only admits description text that was being evict
 
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
 - **candor** — a Stop gate on the two dishonesty shapes a script can prove: a file:line citation resolving to nothing, and a position retracted under pushback with no tool call in between, plus `/candor:check`
-- **lean** — prices every line, test, comment and file as a debit, so the smallest change that satisfies the requirement is the one that ships
 - **terse** — the same discipline one surface over: chat-message brevity as a shape contract. Inert until you run `/terse:commit` and pick a level, which is exactly why it is safe here — see the cost note below
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit, in whatever language the file turns out to be
 - **git-workflow** — worktree isolation, the branch finish protocol, and review-exchange rigor, plus `/git-workflow:finish`
 - **hindsight** — mines session transcripts for recurring friction and proposes CLAUDE.md rules and skill ideas, applied only on approval; its ledgers already live under `~/.claude`, so user scope is its native home
 - **plugin-scout** — `/plugin-scout:suggest` scans each project and suggests the stack-matched plugins this bundle intentionally excludes
 - **vercel-skills-scout** — `/vercel-skills-scout:suggest` does the same for third-party skills on skills.sh, matched to the project's stack; project-agnostic and inert until invoked
-
-lean and terse do not overlap: lean prices what gets **written to disk** (code,
-tests, comments, files, tool calls), terse shapes what gets **said in chat**,
-and terse's own description puts code and files explicitly out of scope.
 
 | Command | What it does |
 |---------|--------------|

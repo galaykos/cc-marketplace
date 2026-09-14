@@ -140,11 +140,6 @@
       "description": "Candour as a mechanism, not a pep talk. A blocking Stop gate carries the two dishonesty shapes a script can prove: a file:line citation resolving to no file under cwd or to a line past the file's end, and a position retracted after challenge-shaped pushback with no tool call in between. Flattery openers, apologies, defensive phrasing and emotional intensifiers are counted by /candor:check and blocked by nothing, on purpose. Ships the straight-talk skill: six orderings, not sentiments. Completion claims stay with code-architecture."
     },
     {
-      "name": "lean",
-      "source": "./plugins/lean",
-      "description": "Prices every output as a debit and asks how much. Five surfaces, one bar each: code, tests, comments, files, and actions — a tool call, subagent spawn or verify pass whose result cannot change the next step is a paid no-op, and nothing else here prices that. Only four things buy more than the minimum: blast radius, an observed defect, a stated criterion, the user asking; the excess must name which, where it happens. Minimum means risk coverage, not count — never delete a test to hit a ratio."
-    },
-    {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
       "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills with /web-dev:review, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (php-suite). The creative-build studio — craft-layer (with its Three.js skill) and design-lab — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
@@ -162,7 +157,7 @@
     {
       "name": "quality-suite",
       "source": "./plugins/quality-suite",
-      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, candor's citation-and-reversal Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, a token-cost warn hook (lean), and file-aware skill auto-routing. The advisory nine live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall."
+      "description": "Meta-bundle: the code-quality plugins that carry an enforcement mechanism — review and code smells with the single-pass fan-in, architecture's evidence-at-claim Stop gate, candor's citation-and-reversal Stop gate, comment discipline (warn-on-write plus a narrow pre-write deny), destructive-command blocking, secret-leak prevention, and file-aware skill auto-routing. The advisory nine live in quality-principles-suite; the membership rule is prose, not script-checked. Uninstall cleanly with /quality-suite:uninstall."
     },
     {
       "name": "quality-principles-suite",
@@ -172,7 +167,7 @@
     {
       "name": "process-suite",
       "source": "./plugins/process-suite",
-      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution, stack scanning, plugin scouting, a token-cost warn hook (lean), file-aware skill auto-routing (skill-router), a stronger-model second opinion when stuck (fresh-take), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the engineering-process category in one install — git workflow, approach deliberation (build-vs-buy, estimation, rollout, pattern selection folded in), hindsight mining, docs discipline (api-design), subagent orchestration, task execution, stack scanning, plugin scouting, file-aware skill auto-routing (skill-router), a stronger-model second opinion when stuck (fresh-take), a refuting research harness (ultra-deep-research), and a committed codebase map (brain). Uninstall cleanly with /process-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
     },
     {
       "name": "taskmaster-suite",
@@ -182,7 +177,7 @@
     {
       "name": "always-on-suite",
       "source": "./plugins/always-on-suite",
-      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, lean's output pricing, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and two scouts for what this bundle leaves out (plugin-scout, vercel-skills-scout) — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
+      "description": "Meta-bundle: the user-scope baseline — project-agnostic plugins worth enabling once in ~/.claude/settings.json and keeping on everywhere. secret-scanning's write-time secret block, candor's honesty Stop gate, terse's chat-brevity contract (inert until you set a level), file-aware skill auto-routing (skill-router), git-workflow discipline, cross-session friction mining (hindsight), and two scouts for what this bundle leaves out (plugin-scout, vercel-skills-scout) — command-guard among them, whose ask tier replaces the host's own permission classifier. Membership is prose, unchecked. /always-on-suite:uninstall removes the bundle and prunes what it installed."
     },
     {
       "name": "skill-router",
@@ -198,16 +193,6 @@
       "name": "secret-scanning",
       "source": "./plugins/secret-scanning",
       "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape."
-    },
-    {
-      "name": "payments",
-      "source": "./plugins/payments",
-      "description": "Payments and billing discipline (Stripe/Paddle/Braintree): PCI scope minimization via tokenization, integer-minor-unit money, signature-verified idempotent webhooks, subscription state machines and activation races, dunning and proration, and an append-only ledger with reconciliation — a firing payments skill and a /payments:review command. The failure class is double-charges and revenue leaks."
-    },
-    {
-      "name": "llm-app",
-      "source": "./plugins/llm-app",
-      "description": "LLM application engineering: eval harnesses and regression gates (evaluate, don't eyeball), RAG pipelines (chunking, embeddings, retrieval quality + re-ranking, grounding and citation), prompt versioning, prompt-injection defense, token-cost control, and context management — a firing llm-app skill and a /llm-app:review command. Defers provider API specifics to Claude Code's built-in claude-api skill (harness-provided, not part of this marketplace)."
     },
     {
       "name": "ultra-deep-research",

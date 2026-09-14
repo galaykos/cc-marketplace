@@ -32,5 +32,5 @@ Installing the bundle pulls in every plugin below as a dependency.
 ## Pairs well with
 
 - **database** — the persistence side of a PHP app: `/database:review`, the sql and mariadb skills, the schema worker
-- **quality-suite** — the rest of the enforcing-mechanism bundle (architecture's evidence gate, candor, command guard, secret scanning, lean; testing and security now live in **quality-principles-suite**) on top of the stack rules
+- **quality-suite** — the rest of the enforcing-mechanism bundle (architecture's evidence gate, candor, command guard, secret scanning; testing and security now live in **quality-principles-suite**) on top of the stack rules
 - **devops** — `/devops:init` compose scaffolding and Docker review for the services a PHP app runs against

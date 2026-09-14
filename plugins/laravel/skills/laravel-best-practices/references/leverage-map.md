@@ -35,8 +35,8 @@
   the file's existing style (one app, one idiom).
 - **First-party AI SDK**: unified text generation, tool-calling agents, embeddings,
   and vector-store integration in the framework. Before hand-wiring an HTTP client to
-  a model provider in a 13 app, check whether the SDK covers it (and defer provider
-  specifics to the llm-app plugin, and model facts to the built-in claude-api skill).
+  a model provider in a 13 app, check whether the SDK covers it (and defer model
+  facts to the built-in claude-api skill).
 - **First-party JSON:API resources**: spec-compliant serialization, relationship
   inclusion, sparse fieldsets out of the box — on a 13 floor, prefer these over
   hand-rolled JSON:API layers; on lower floors do not imitate their shape by hand.

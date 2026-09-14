@@ -7,6 +7,15 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.9
+
+### Removed
+- `payments` and `llm-app` rows from `references/signals.md`, `stack-relevance.md`, <!-- removed-ok -->
+  `flags.md` and the picker example — both plugins were removed from the marketplace
+  on 2026-09-14. Their signal rows stay, rewritten to the no-plugin idiom, so a Stripe
+  key or an Anthropic dep still gets an honest "nothing here covers this" line
+  instead of a dead suggestion. Regenerated catalog.
+
 ## 0.15.8
 
 ### Changed
@@ -62,7 +71,7 @@ this file is what makes an upgrade readable. Newest first.
 - `--full` — the stack-aware mass installer: every catalog leaf that is any-stack
   or matches the detected stack, leaves only, never a suite; all of tier 3 by name
   (process/pipeline, session-wide, research/tooling). Excludes stack-mismatched
-  leaves, `payments`/`llm-app` when their domain signal is absent, the bundles and
+  leaves, `payments`/`llm-app` when their domain signal is absent, the bundles and <!-- removed-ok -->
   plugin-scout itself. Prints a plan first — install list, installed count,
   every exclusion with its reason and the `--stack` token that includes it,
   overlap pairs, hooks by event, MCP servers local/remote, and the listing-cap
@@ -76,7 +85,7 @@ this file is what makes an upgrade readable. Newest first.
   Preflight with the accepted list. `references/flags.md` `--stack`.
 - `references/stack-relevance.md` — the ONLY stack→plugin exclusion source: four
   classes (PHP / Laravel → `laravel`; JS / web frontend → `web-dev`, `craft-layer`,
-  `design-lab`; Payments → `payments`; LLM → `llm-app`) with manifest evidence and
+  `design-lab`; Payments → `payments`; LLM → `llm-app`) with manifest evidence and <!-- removed-ok -->
   tokens, the domain-bound rule, a fired-signal-always-wins rule so `--full`
   never installs less than `--yes`, and two worked examples (Laravel + Inertia +
   React excludes only the two domain leaves; a Next.js app excludes `laravel`).
@@ -419,7 +428,7 @@ the catalog (`generate.sh --check`). Residual named in `flags.md`: headless
   (the pre-0.12 default). Picker-only; no effect under `--yes`.
 - **Eleven new detection signals** in `references/signals.md`: `threejs`,
   `ui-ux`, `registry-source`, `a11y`, `sql`, `security`, `packages`, plus
-  dependency evidence for `payments`. Detection covered 6 of 52 leaf plugins;
+  dependency evidence for `payments`. Detection covered 6 of 52 leaf plugins; <!-- removed-ok -->
   these are the cheap high-precision manifest signals the marketplace already
   trusts elsewhere.
 - `lane.tsv` — the plugin declares its territory (`understand` phase,

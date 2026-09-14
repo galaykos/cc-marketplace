@@ -42,9 +42,8 @@ mariadb skill when that engine is detected; test files, fixtures, or production 
 changed with no covering test → testing's testing-best-practices; `.github/workflows/`,
 `Dockerfile*`, `compose*.y*ml` → devops-practices, plus docker-best-practices for the
 container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
-api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices;
-payment-provider SDK calls or webhook handlers → payments; LLM provider calls, prompts,
-tool schemas, eval harnesses → llm-app). Load each skill whose plugin IS installed and apply it inside the
+api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices).
+Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name
 relevant-but-uninstalled plugins in one closing line instead. This list is the

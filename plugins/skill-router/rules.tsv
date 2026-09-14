@@ -18,15 +18,7 @@
 # co-fire-ok: content error-handling-design observability-design
 # co-fire-ok: content security-review observability-design
 # 2026-08-12 additions (same digest channel, same rationale as the seven above):
-# co-fire-ok: content payments concurrency-safety
-# co-fire-ok: content payments error-handling-design
-# co-fire-ok: content payments security-review
-# co-fire-ok: content payments observability-design
-# co-fire-ok: content payments resilience-design
 # co-fire-ok: content threejs-best-practices motion-best-practices
-# co-fire-ok: content llm-app resilience-design
-# co-fire-ok: content llm-app error-handling-design
-# co-fire-ok: content llm-app security-review
 # Engine-specific DB rows co-fire with the generic ones by design: sql-best-practices
 # owns portable SQL, the engine skill owns what only that engine does (MVCC/vacuum,
 # lock-aware migrations, engine-specific index types). Both are wanted on one file;
@@ -125,7 +117,5 @@ content	\b(logger|logging|Log::(info|error|warning|debug)|console\.(log|error)|O
 content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-ux	low
 content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-ux	low
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
-content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	payments	payments	low
 content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	craft-layer	low
-content	(\bmessages\.create\b|\bchat\.completions\b|\bembeddings\.create\b|\bgenerateText\()	llm-app	llm-app	low
 glob	**/.theme-design/**	design-session	theme-design	high

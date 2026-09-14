@@ -31,7 +31,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `k8s/`, `helm/`, `*.yaml` with `apiVersion:` + `kind:` | `devops` | |
 | `Dockerfile*`, `docker-compose*.y{a,}ml`, `compose*.y{a,}ml` | `devops` | mirrors rules.tsv, which covers `.yml` only — a repo with `compose.yaml` (the Compose Spec's preferred name) is suggested here and not routed there |
 | `openapi*.y{a,}ml`, `swagger*.json`, `*.proto`, `*.graphql` | `api-design` | mirrors rules.tsv, forked both ways: `swagger*.json` is only here, `api.php` is only there |
-| `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | `payments` | key name only — never read the value |
+| `.env` / `.env.example` key matching `STRIPE_`, `PADDLE_`, `BRAINTREE_`; or dep `stripe`, `@stripe/stripe-js`, `braintree`, `@paddle/*`; or composer require `stripe/stripe-php`, `laravel/cashier` | — | **no plugin covers this** — the payments plugin was removed from this marketplace on 2026-09-14; `security` and `resilience` skills co-fire on provider calls. Key name only — never read the value |
 | dep `three` or `@react-three/fiber` | `craft-layer` | |
 | `tailwind.config.*`, `components.json`, or dep `tailwindcss` | `ui-ux` | |
 | `components.json` carrying a `registries` or `aliases` key | `design-lab` | the same file also earns `ui-ux`; both are correct |
@@ -40,7 +40,7 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
 | a `package.json` or `composer.json` exists | `stack-scan` | its package-hygiene rubric is Composer/npm-specific, so it is signal-earned rather than any-project core — a Python repo must not auto-install it |
-| `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | `llm-app` | |
+| `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | — | **no plugin covers this** — the llm-app plugin was removed on 2026-09-14; `security`'s write-scan keeps the LLM-sink patterns, and the host's built-in `claude-api` skill carries provider facts |
 | `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `resilience` | |
 | `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | `stack-scan` | the version-truth plugin is the ONE always-right answer for a stack this marketplace does not cover |
 | dep `prisma`, `@prisma/client`, `typeorm`, `sequelize`, `mongoose`, `drizzle-orm`; or composer require `doctrine/orm`; or `**/migrations/**` | `database` | the schema/migration/pooling half, and it ships a PreToolUse guard. The `sql` row above fires on some of the same evidence and owns statements; `references/picker.md` already pairs the two as overlapping, so both rows firing is correct, not a duplicate |

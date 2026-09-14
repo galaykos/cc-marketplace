@@ -3,6 +3,13 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.18.1
+
+### Changed
+- The fan-in list no longer names `payments` or `llm-app`; both plugins were removed
+  from the marketplace on 2026-09-14. A `hooks/density.sh` comment no longer cites the
+  removed lean plugin's hook as its pattern source; behaviour unchanged.
+
 ## 0.18.0
 
 ### Fixed

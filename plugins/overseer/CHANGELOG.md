@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 — 2026-09-14
+
+- `references/capability-map.md`: the guard row no longer lists `lean` (removed from
+  the marketplace). No behaviour change.
+
 ## 0.4.0 — 2026-09-13
 
 - **Read before you record.** A new PostToolUse hook, `hooks/track-read.sh`, ledgers every

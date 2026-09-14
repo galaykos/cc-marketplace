@@ -34,7 +34,6 @@ in taskmaster-suite.
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit
 - **candor** — a Stop gate on the two dishonesty shapes a script can prove: an unverified claim stated as done, and a silent scope reduction, plus `/candor:check`
-- **lean** — prices every line, test, comment and file as a debit, so the smallest change that satisfies the requirement is the one that ships
 
 | Command | What it does |
 |---------|--------------|
