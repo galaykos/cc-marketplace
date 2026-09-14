@@ -3,6 +3,23 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.18.0
+
+### Fixed
+- **The fan-in now names every rubric the per-stack commands hand up to.** Every
+  generated review command tells the model "the aggregator reaches this plugin's
+  rubric too" — and for testing, devops, api-design, craft-layer (three.js),
+  payments and llm-app the fan-in list never named their skills, so a mixed diff
+  with tests silently lost the test rubric. The stack fan-in list now carries all
+  of them, with the file or content shape that triggers each, and states that a
+  review command not named there is a defect in this file.
+- **The resilience deferral loop is closed.** The concern-axis rule said resilience
+  owns failure-mode, error-handling, concurrency, observability and performance
+  findings and this review "does not duplicate" them, while every `/resilience:*`
+  command hands its whole scope back to this one — a loop in which nobody ran the
+  rubric. The fan-in now LOADS resilience's skills in the same pass and reports each
+  finding once under the owning skill; when resilience is absent, step 2 keeps it.
+
 ## 0.17.0
 
 ### Changed

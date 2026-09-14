@@ -155,16 +155,25 @@ chassis outputs differing only in regex and message; taskmaster's is 213. Move t
 rule rows into `skill-router/hooks/route-prompt.sh`, which owns the event and costs 0
 listing chars. A `workflow` install goes from 7 processes per prompt to 2.
 
-### 4.5 Chassis for the hand-copied hooks (wave 0, unblocks everything)
+### 4.5 Hand-copied hooks — corrected on execution
 
-`boost-hook` already exists as a chassis type (`scripts/generate.sh:365`) and the three
-boost injectors do not use it (diff after token substitution: 8 lines). Six PreToolUse
-write guards share one `tool_input → regex → permissionDecision` shape
-(`secret-scanning`, `database`, `devops`, `git-workflow`, `taskmaster`, `code-review`,
-45–376 lines). Land `write-guard.sh.tmpl` first: after that, a hook changing plugins is
-a `.chassis.json` edit and `${CLAUDE_PLUGIN_ROOT}` is regenerated, not hand-fixed.
-The byte-identical `preview-guard.sh` twins (ui-ux, taskmaster) stay: their in-source
-argument (`ui-ux/hooks/preview-guard.sh:46-58`) holds and was re-checked.
+**Correction (wave 0, 2026-09-14).** The architecture lens claimed the three boost
+injectors bypass the `boost-hook` chassis. They do not: all three carry the
+`generated from templates/boost-hook.sh.tmpl` header and their `.chassis.json`
+entries drive them (`plugins/craft-layer/.chassis.json`, `taskmaster`, `orchestration`).
+The 8-line diff between them is the manifest payload. Nothing to do.
+
+**Declined: `write-guard.sh.tmpl`.** The six PreToolUse write guards share a 15-line
+prelude (read input, `jq` check, tool filter, text extraction) and a 4-line emit tail.
+Everything between is bespoke — `database/hooks/guard.sh` has three detection stages
+and a NoSQL branch, `devops/hooks/workflow-guard.sh` is an `awk` state machine. A
+template would carry 40–350 lines of quoted bash per guard inside a JSON string, which
+is less maintainable than six readable scripts sharing a convention. When a guard
+moves plugins in wave 2, `${CLAUDE_PLUGIN_ROOT}` is not referenced inside any of them
+(checked: `grep -l CLAUDE_PLUGIN_ROOT` over the six returns none), so the move is a
+file move plus a `hooks.json` row. The byte-identical `preview-guard.sh` twins (ui-ux,
+taskmaster) stay: their in-source argument (`ui-ux/hooks/preview-guard.sh:46-58`)
+holds and was re-checked.
 
 ### 4.6 Worker agents, 10 → 7
 
@@ -267,9 +276,10 @@ Each wave is one or more PRs; each PR runs the four gates, the smoke set and
 `official-validate.sh` per CLAUDE.md. Baselines are updated per plugin with
 `--update-baseline`, never blanket.
 
-**Wave 0 — chassis, no merge.** `write-guard.sh.tmpl`; re-render the three boost
-injectors from `boost-hook`. Run `scripts/smoke/chassis-template-tests.sh`. Fix the
-fan-in load list (§4.1). Update CLAUDE.md's stale eval-gating line.
+**Wave 0 — no merge. Executed 2026-09-14 on this branch.** Fan-in load list and the
+resilience deferral loop fixed in `plugins/code-review/commands/review.md`
+(0.18.0, changelog entry). CLAUDE.md's eval-gating paragraph corrected. The two
+chassis items were dropped on inspection — §4.5 says why.
 
 **Wave 1 — independent, one PR each, zero hook movement.** `payments` removed ·
 `llm-app` removed · `system-design` → `code-architecture` (+ `event-driven` →
