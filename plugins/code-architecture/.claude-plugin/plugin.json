@@ -1,7 +1,7 @@
 {
   "name": "code-architecture",
-  "version": "0.13.19",
-  "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — enforced by a blocking Stop hook that refuses a completion claim when files were edited but nothing ran afterward — low-cognitive-load code, KISS/DRY simplicity principles. Owns code-level structure — units, interfaces, file placement; defers system-level topology (service boundaries, scaling, caching) to the system-design plugin.",
+  "version": "0.14.0",
+  "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — enforced by a blocking Stop hook that refuses a completion claim when files were edited but nothing ran afterward — low-cognitive-load code, KISS/DRY simplicity principles. Owns structure at both levels: code (units, interfaces, file placement) and system (service boundaries on data ownership, scaling paths, cache placement, sync vs async integration, domain modeling) via the system-design and domain-modeling skills and the system-architect worker.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

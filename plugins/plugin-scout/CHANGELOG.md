@@ -7,6 +7,12 @@ entry below. Those entries say "regenerated catalog" and carry no behaviour
 change — skip them on an upgrade. A version bump with nothing here is a number;
 this file is what makes an upgrade readable. Newest first.
 
+## 0.15.10
+
+### Changed
+- `system-design` folded into `code-architecture` (2026-09-14); the flags and picker
+  references drop the standalone name. Regenerated catalog.
+
 ## 0.15.9
 
 ### Removed

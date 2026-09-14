@@ -7,9 +7,13 @@ assumptions, every changed line traces to the request, clean up your own
 orphans — after Karpathy's LLM-coding guidelines) travel as references of the
 two skills that own them, not as separate always-on triggers.
 
-Owns code-level structure — units, interfaces, file placement. Defers system-
-level topology (service boundaries, scaling, caching) to the `system-design`
-plugin.
+Owns structure at both levels. Code: units, interfaces, file placement. System:
+service boundaries drawn on data ownership, scaling paths, cache placement, sync vs
+async integration and its failure modes, single points of failure, and domain
+modeling (bounded contexts, aggregates, ubiquitous language) — the `system-design`
+and `domain-modeling` skills and the `system-architect` worker (the system-design
+plugin was merged into this one on 2026-09-14). Message-driven architecture (delivery
+semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 
 ## Install
 
@@ -31,8 +35,12 @@ plugin.
 
 Best-practice skills auto-trigger by context — `plan-before-code`,
 `low-cognitive-load`, `solid-principles`, `yagni-check`,
-`work-verification`, and `drift-review`. The `architecture-reviewer` agent reviews
-structural changes for boundaries, cohesion, and cognitive load.
+`work-verification`, `drift-review`, `system-design`, and `domain-modeling`. The
+`architecture-reviewer` agent reviews structural changes for boundaries, cohesion,
+and cognitive load, and on a design doc or service topology audits against the
+system-design rubric. The `system-architect` worker (opus floor) designs and
+implements system-level structure: how services split, who owns which data, how
+load scales, where caches sit, which integrations run async.
 
 Two skills were merged away in 0.10.0 rather than deleted: KISS/DRY is now
 `low-cognitive-load/references/kiss-dry.md`, and the surgical-edit discipline is
@@ -71,7 +79,8 @@ readable transcript. Downgrade with `CC_EVIDENCE_GATE=warn`, disable with
 
 ## Pairs well with
 
-- **system-design** — hands off service boundaries, scaling, and caching topology
+- **resilience** — owns the `event-driven` skill (brokers, outbox, sagas, DLQ) and
+  the failure modes of the topology this plugin draws
 - **taskmaster** — supplies the plan-before-code and work-verification gates the pipeline runs
 - **task-runner** — applies the work-verification discipline across a task run
 - **candor** — its Stop gate (`candor:gate`, unresolved `file:line` citations and

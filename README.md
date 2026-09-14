@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **34 leaf plugins** and **8 bundles** covering
+A Claude Code plugin marketplace: **33 leaf plugins** and **8 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -64,16 +64,16 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `taskmaster-suite` | 10 | ~4.3k tokens | ~32 tokens | ~2.5k tokens |
+| `taskmaster-suite` | 10 | ~4.5k tokens | ~32 tokens | ~2.4k tokens |
 | `craft-suite` | 4 | ~3.0k tokens | — | — |
-| `process-suite` | 12 | ~2.8k tokens | ~169 tokens | ~2.4k tokens |
-| `quality-principles-suite` | 6 | ~2.0k tokens | — | ~127 tokens |
-| `always-on-suite` | 8 | ~1.8k tokens | ~1.2k tokens | ~2.4k tokens |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.3k tokens |
-| `quality-suite` | 6 | ~1.3k tokens | ~32 tokens | ~2.4k tokens |
+| `process-suite` | 12 | ~2.7k tokens | ~169 tokens | ~2.2k tokens |
+| `quality-principles-suite` | 6 | ~2.1k tokens | — | ~127 tokens |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.2k tokens |
+| `always-on-suite` | 8 | ~1.8k tokens | ~1.2k tokens | ~2.2k tokens |
+| `quality-suite` | 6 | ~1.5k tokens | ~32 tokens | ~2.2k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
-Every row is a curated subset. The marketplace ships all 34 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 33 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -155,11 +155,10 @@ early:
 - [Infrastructure and environments](#infrastructure-and-environments)
 - [Meta: steering Claude Code itself](#meta-steering-claude-code-itself)
 
-Suites are curated starting points, not coverage: three leaves belong to no suite
-on purpose. Two are stack-matched — `database`, `devops` — and
-`/plugin-scout:suggest` names each when the project's manifests earn it; the
-third, `system-design`, is any-stack and deliberately unbundled (it surfaces in
-the scout's universal tier). Install them by name.
+Suites are curated starting points, not coverage: two leaves belong to no suite
+on purpose, both stack-matched — `database`, `devops` — and
+`/plugin-scout:suggest` names each when the project's manifests earn it. Install
+them by name.
 
 ---
 
@@ -269,7 +268,7 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
-| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review — and a **Stop hook** that refuses a completion claim when files were edited and nothing ran afterwards | Structure decisions, and any "it's done" that has no evidence behind it |
+| **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling — and a **Stop hook** that refuses a completion claim when files were edited and nothing ran afterwards | Structure decisions at code or system level, and any "it's done" that has no evidence behind it |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
 | **[candor](plugins/candor)** | a blocking Stop gate on the two dishonesty shapes a script can prove: a `file:line` citation that resolves to nothing, and a position retracted under pushback with no tool call in between | You want the honesty rule to have teeth rather than tone |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |
@@ -334,13 +333,11 @@ grant stays granted on your terms.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[system-design](plugins/system-design)** | service boundaries from data ownership, scaling paths, cache placement, sync vs async and its failure modes, single points of failure — plus domain modeling (bounded contexts, aggregates) and event-driven design (delivery semantics, outbox, sagas, DLQ) | The question is topology, not code: what service owns what, and what happens when the queue is down |
 | **[api-design](plugins/api-design)** | resource naming, honest status codes, RFC 9457 problem+json, cursor vs page pagination, whitelisted filtering, versioning, `Idempotency-Key`, Laravel `apiResource` mapping — plus GraphQL/gRPC (DataLoader, resolver authz, depth limits, proto field-number safety) | Designing or reviewing an API you own |
 
 **Using them.**
 
 ```bash
-/system-design:review              # boundaries, ownership, scaling, async failure modes
 /api-design:review                 # routes, controllers, or an OpenAPI spec
 /api-design:scaffold               # spec-first: OpenAPI → Laravel routes/FormRequests/Resources
 /api-design:check                  # do current docs back the integration you are about to write?

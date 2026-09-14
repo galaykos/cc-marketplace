@@ -43,7 +43,7 @@ behavior above is unchanged; breadth/mechanical pins carry no floor by design.
 Do not edit any agent's `model:`/`effort:` frontmatter to achieve this — the tier
 is a dispatch-time override on the reasoning roles only; frontmatter ships as-is.
 
-Outside the reachable set entirely: `system-design/agents/system-architect.md` and
+Outside the reachable set entirely: `code-architecture/agents/system-architect.md` and
 `code-architecture/agents/architecture-reviewer.md` — the spec and card phases never
 dispatch them; execution boosts architecture-reviewer separately via task-execution.
 

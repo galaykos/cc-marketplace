@@ -47,6 +47,7 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 | `concurrency-safety` | Code has concurrent writers or retried operations |
 | `observability-design` | Code emits logs, metrics, spans, or health signals |
 | `performance-tuning` | Something is measurably slow or heavy, or a cache is being designed |
+| `event-driven` | Message-driven architecture is designed or reviewed — brokers, topics, schema versioning, delivery semantics, outbox, sagas, DLQ, consumer idempotency (system-design was merged into code-architecture on 2026-09-14 and this skill moved here) |
 
 ## Agents
 
@@ -59,7 +60,7 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 
 ## Pairs well with
 
-- **system-design** (event-driven skill) — delivery semantics, outbox, and DLQ review for message-driven designs
+- **code-architecture** (system-design skill) — the service boundaries whose failure modes this plugin reviews
 - **devops** — infra-layer wiring (collectors, dashboards, deploy config) the observability engineer defers to
 - **database** — SQL statement and index idioms (`/database:review`) the performance review defers to instead of duplicating
 - **task-runner** — the apply-now path hands findings to its executor when installed

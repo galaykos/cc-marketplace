@@ -70,8 +70,8 @@ rule and the typed-token rule; this section does not restate them.
   (`laravel`, `web-dev`, `craft-layer`, `design-lab`)
   follow `references/stack-relevance.md` and are the only tier-1 or tier-3 rows
   `--full` can skip. Any-stack covers the whole of tier 2 and, from tier 3, the
-  process/pipeline group (taskmaster, task-runner, orchestration, approaches,
-  system-design), the session-wide group (terse, plus candor, lean, hindsight and
+  process/pipeline group (taskmaster, task-runner, orchestration, approaches),
+  the session-wide group (terse, plus candor, lean, hindsight and
   skill-router — the four `references/any-core.md` routes to `--global` for `--yes`;
   `--full` is the flag that bullet does not bind) and the research/tooling group
   (brain, fresh-take, ultra-deep-research, and vercel-skills-scout

@@ -1,6 +1,6 @@
 ---
 name: concurrency-safety
-description: Use when code has concurrent writers or retried operations — race conditions, check-then-act, optimistic vs pessimistic locking, distributed locks, retry idempotency. Broker delivery, outbox, DLQ → system-design:event-driven.
+description: Use when code has concurrent writers or retried operations — race conditions, check-then-act, optimistic vs pessimistic locking, distributed locks, retry idempotency. Broker delivery, outbox, DLQ → this plugin's event-driven skill.
 ---
 
 ## Core rule

@@ -97,7 +97,7 @@ Contexts must talk; the map names *how*:
   → `system-design`.
 - Persisting aggregates (schema, migrations, transaction mechanics) →
   `database-engineer` and the SQL plugins.
-- The event delivery machinery (broker, outbox, saga, DLQ) → the event-driven skill (this plugin).
+- The event delivery machinery (broker, outbox, saga, DLQ) → resilience's `event-driven` skill.
 
 ## Anti-patterns
 

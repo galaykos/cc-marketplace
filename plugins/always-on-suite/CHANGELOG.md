@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+### Removed
+- `lean` leaves the bundle: the plugin was removed from the marketplace on
+  2026-09-14 (consolidation plan, `rationale/marketplace-consolidation-plan-2026-09-14.md`).
+  Its cost-model rule is stated inline by `code-architecture:coding-entry`; the
+  goal-lean rigour tier is overseer's. Eight members remain. <!-- removed-ok -->
+
 ## 0.3.0
 
 ### Added

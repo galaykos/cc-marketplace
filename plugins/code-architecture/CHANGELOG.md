@@ -2,6 +2,21 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.14.0
+
+### Added
+- **The system-design plugin was merged into this one** (2026-09-14 consolidation plan): the
+  `system-design` and `domain-modeling` skills and the opus-floored
+  `system-architect` worker now ship here. Its `event-driven` skill went to
+  `resilience`, whose failure-mode review already owned delivery semantics.
+  `architecture-reviewer` absorbs the read-only `system-design-reviewer`: on a design
+  doc, RFC, or service topology it loads the system-design rubric and reports.
+  `/system-design:review` is gone; `/code-architecture:plan` and the reviewer cover it. <!-- removed-ok -->
+
+### Changed
+- Description no longer defers topology to another plugin; this one owns structure at
+  both levels.
+
 ## 0.13.19
 
 ### Changed
@@ -161,7 +176,7 @@ All notable changes to the code-architecture plugin.
 - **`lane.tsv`** — declares the territory, phase and definite trigger for this plugin's
   agent and Stop hook, so `pc_lanes_territory` can prove no sibling silently claims the
   same job. `architecture-reviewer` owns `code-structure-review` and yields to
-  `system-design:system-design-reviewer` on system topology.
+  `system-design:system-design-reviewer` on system topology. <!-- removed-ok -->
 
 ### Changed
 - **`evidence-gate` is declared `phase: any`**, not `verify`. A Stop gate has to fire

@@ -18,8 +18,7 @@ Reasoning-class agents whose frontmatter tier is a FLOOR, not a ceiling:
 code-review:code-reviewer                 opus
 web-dev:frontend-reviewer                 opus
 code-architecture:architecture-reviewer   opus
-system-design:system-design-reviewer      opus
-system-design:system-architect            opus
+code-architecture:system-architect        opus
 taskmaster:spec-adversary                 opus
 ultra-deep-research:verifier              sonnet
 ```
@@ -104,7 +103,7 @@ the work differs, not because one was missed.
 
 ## Residual — main-thread PROACTIVE dispatch is not covered (Honest limitation law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
-`system-design-reviewer` has no dispatcher file anywhere; it is auto-dispatched by the main
+`system-architect` has no dispatcher file anywhere; it is auto-dispatched by the main
 thread from its `Use PROACTIVELY` description, and `code-reviewer` / `architecture-reviewer`
 are likewise auto-dispatchable outside task-runner. No skill mediates those dispatches, so no
 registry read happens and no floor applies. This registry governs **skill-mediated dispatch**.

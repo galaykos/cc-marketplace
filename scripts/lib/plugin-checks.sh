@@ -453,7 +453,11 @@ pc_removed_refs() {
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
   # shapes in $shapes are deliberately NOT applied: `vite` and `react-native` are npm
   # package names the surviving skills must keep naming in prose.
-  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source'
+  # system-design MOVED 2026-09-14: its skills keep their names inside code-architecture
+  # (system-design, domain-modeling) and resilience (event-driven); only the PLUGIN forms
+  # are stale, and `code-architecture:system-design` stays legal for the same reason
+  # `web-dev:react-native-best-practices` does.
+  moved='nextjs|react-native|vite|inertia|sql|mariadb|dev-env|packages|a11y|threejs|api-docs-first|observability|performance|comment-discipline|design-preview|shadcn-studio|registry-source|system-design'
   bm='[^[:alnum:]/@.-]'   # moved-name boundary: `@inertiajs/vite plugin` is a package, not ours
   # `\`($moved):[a-z][a-z0-9-]*` added 2026-09-02: three craft-layer files cited
   # `a11y:a11y-audit` / `performance:performance-engineer` — the backtick

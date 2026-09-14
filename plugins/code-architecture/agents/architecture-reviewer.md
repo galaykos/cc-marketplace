@@ -17,8 +17,12 @@ You are an architecture reviewer. Given a diff or module:
 
 - Line-level correctness bugs and code smells → the code-review plugin's
   code-reviewer; flag structure only.
-- Service boundaries, data ownership, system topology → the system-design
-  plugin's reviewer.
+- Service boundaries, data ownership, system topology: when the scope is a design
+  doc, RFC, or service topology rather than a code diff, load this plugin's
+  `system-design` skill (and `domain-modeling` when a domain model is present) and
+  audit against it — exactly one writer per datum, a named measured bottleneck behind
+  any scaling path, an invalidation answer for every cache, the failure modes of every
+  async hop, every kept single point of failure named. Report findings, never a plan.
 - Security posture of the structure → `/security:review`.
 
 ## Checklist before finishing
