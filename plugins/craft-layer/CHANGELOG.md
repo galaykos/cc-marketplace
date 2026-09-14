@@ -7,7 +7,13 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
-## 0.49.7
+## 0.50.0
+
+### Removed
+- **`/craft-layer:review` is retired.** `/code-review:review` already loads
+  `threejs-best-practices` when a diff imports `three` or `@react-three/fiber` — the
+  fan-in this command handed its whole scope to. One listing entry fewer; the rubric is
+  unchanged and reaches more diffs than a command nobody typed.
 
 ### Changed
 - **Every `/design-studio:preview` reference is now the real-component rung of `taskmaster:visual-decisions`** (README, <!-- removed-ok -->
