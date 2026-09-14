@@ -25,18 +25,19 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 
 | Command | What it does |
 |---------|--------------|
-| `/resilience:review [path-diff-or-design-doc]` | Review code or a design for failure-mode gaps — missing timeouts, unsafe retries, absent degradation paths — one line per finding |
-| `/resilience:error-review [path-diff-or-design-doc]` | Audit error handling — empty or over-broad catches, swallowed exceptions, missing cause chains — one line per finding |
-| `/resilience:concurrency-review [path-diff-or-design-doc]` | Audit concurrency hazards — check-then-act races, missing idempotency on retried paths, locks without TTL or fencing — one line per finding |
-| `/resilience:observability-review [path-diff-or-design-doc]` | Audit code for observability gaps — unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks — one line per finding |
-| `/resilience:performance-review [path-diff-or-endpoint]` | Review code or a change for performance hotspots and cache-correctness gaps; each finding **measured** when a number backs it or **suspected** with the measurement that would confirm it |
+| `/resilience:review [path-diff-or-design-doc] [--concern …]` | One runtime-quality audit, one line per finding. Without `--concern` it loads the failure-mode rubric and adds each other rubric whose surface the scope touches; `--concern failure\|errors\|concurrency\|observability\|performance\|events\|all` loads exactly one (or all). Performance findings are **measured** when a number backs them or **suspected** with the measurement that would confirm them. Findings route by rubric: observability → the observability-engineer worker, performance → the performance-engineer worker, the rest → task-runner |
 
 ```bash
 /resilience:review app/Services/PaymentGateway.php
-/resilience:observability-review src/api/
-/resilience:performance-review app/Services/ReportBuilder.php
-/resilience:review        # reviews the current diff
+/resilience:review --concern observability src/api/
+/resilience:review --concern performance app/Services/ReportBuilder.php
+/resilience:review        # reviews the current diff, rubrics chosen by what it touches
 ```
+
+Until 2026-09-14 each concern was its own command (`error-review`, `concurrency-review`,
+`observability-review`, `performance-review`); one entry with a flag costs the host's
+skill listing one line instead of five, and the code-review fan-in already loads all six
+rubrics in one pass.
 
 ## Skills
 
@@ -51,7 +52,7 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 
 ## Agents
 
-- **observability-engineer** (worker) — applies an observability audit's fix list as a
+- **observability-engineer** (worker) — applies the observability findings of a review as a
   diff: structured logs, request IDs, RED/USE metrics, trace spans, health signals —
   leaving infra-layer wiring to devops.
 - **performance-engineer** (worker) — profiling, bundle size, caching, Core Web
@@ -65,7 +66,7 @@ Runtime quality in one plugin — does it stay up, can you see it, is it fast.
 - **database** — SQL statement and index idioms (`/database:review`) the performance review defers to instead of duplicating
 - **task-runner** — the apply-now path hands findings to its executor when installed
 - **craft-layer** — a consumer: its `craft-reviewer` yields to
-  `/resilience:performance-review` for the audit step (`craft-layer/lane.tsv`).
+  `/resilience:review --concern performance` for the audit step (`craft-layer/lane.tsv`).
   Frame-budget, `requestAnimationFrame` and compositor questions route to ui-ux's
   `motion-best-practices` skill instead — `performance-tuning` carries no
   frame-budget material (grep it before trusting this line)

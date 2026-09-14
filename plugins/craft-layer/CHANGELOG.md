@@ -7,6 +7,15 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.49.4
+
+### Changed
+- The performance delegation in `/craft-layer:audit`, `craft-reviewer` and the
+  asset-sourcing reference now names `/resilience:review --concern performance`:
+  resilience collapsed its five review commands into one on 2026-09-14. Same rubric,
+  same optional-delegation rule (skipped when resilience is not installed);
+  `lane.tsv` yields to `resilience:review`.
+
 ## 0.49.3
 
 ### Changed

@@ -67,11 +67,11 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 |--------|---------|-------------------|--------------------|----------------------------|
 | `taskmaster-suite` | 10 | ~4.8k tokens | ~32 tokens | ~2.3k tokens |
 | `craft-suite` | 4 | ~3.0k tokens | — | — |
-| `process-suite` | 11 | ~2.8k tokens | ~170 tokens | ~2.2k tokens |
-| `quality-principles-suite` | 6 | ~2.4k tokens | — | ~127 tokens |
-| `always-on-suite` | 7 | ~2.0k tokens | ~1.2k tokens | ~2.2k tokens |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.2k tokens |
-| `quality-suite` | 6 | ~1.5k tokens | ~32 tokens | ~2.2k tokens |
+| `process-suite` | 11 | ~2.8k tokens | ~170 tokens | ~2.1k tokens |
+| `quality-principles-suite` | 6 | ~2.3k tokens | — | ~127 tokens |
+| `always-on-suite` | 7 | ~2.0k tokens | ~1.2k tokens | ~2.1k tokens |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~2.1k tokens |
+| `quality-suite` | 6 | ~1.5k tokens | ~32 tokens | ~2.1k tokens |
 | `php-suite` | 3 | ~1.0k tokens | — | — |
 
 Every row is a curated subset. The marketplace ships all 31 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
@@ -288,11 +288,8 @@ in, it falls back to taskmaster's shell mockup rather than scaffolding a sandbox
 /code-review:comment-review            # comment noise, one line per finding
 /candor:check                          # measure this session against the candour axes
 /debugging:debug "<symptom>"           # root cause before any fix
-/resilience:performance-review                    # hotspots and cache correctness
-/resilience:review                     # timeouts, retries, degradation
-/resilience:error-review               # catch placement, cause chains
-/resilience:concurrency-review         # races, locking, retry idempotency
-/resilience:observability-review                  # logging and instrumentation gaps
+/resilience:review                     # runtime quality: failure modes, errors, concurrency, observability, performance, events
+/resilience:review --concern performance   # one rubric only: hotspots and cache correctness
 /stack-scan:audit                      # vulnerabilities, outdated, licences
 ```
 

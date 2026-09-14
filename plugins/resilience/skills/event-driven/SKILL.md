@@ -92,7 +92,7 @@ no one watching is a silent data-loss bucket; monitor its depth.
 - In-process framework queues (Laravel queues, Sidekiq, Celery) as *usage* → the
   stack plugin. This skill owns the cross-broker architecture, not the API.
 - The service-boundary decision (which service owns which event) → code-architecture's `system-design` skill.
-- Concurrency hazards inside a single consumer → `/resilience:concurrency-review`.
+- Concurrency hazards inside a single consumer → `/resilience:review --concern concurrency`.
 
 ## Anti-patterns
 

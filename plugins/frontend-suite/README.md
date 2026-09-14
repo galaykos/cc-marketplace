@@ -72,5 +72,5 @@ One bullet per bundled plugin, in dependency order (4):
 - **craft-suite** — the creative-build studio half: craft-layer's design
   pipeline and motion catalog, design-lab's preview and registry MCP
 - **laravel** — the backend that Inertia frontends sit on
-- **resilience** — `/resilience:performance-review`, hotspot and cache-correctness review beyond the UI layer
+- **resilience** — `/resilience:review --concern performance`, hotspot and cache-correctness review beyond the UI layer
 - **testing** — test review for the components these stacks produce

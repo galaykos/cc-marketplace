@@ -1,77 +1,14 @@
 [
   {
-    "chassis": "stack-review",
-    "variant": "concern",
-    "skill": "resilience-design",
-    "tag": "generic",
-    "worker": null,
-    "applyExtra": [],
-    "description": "Review code or a design for failure-mode gaps — missing timeouts, unsafe retries, absent degradation paths — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]",
-    "lane": {
-      "owns": "failure-mode-review",
-      "trigger": "invoked as /resilience:review, or a change crosses a process boundary",
-      "yieldsTo": "-"
-    }
-  },
-  {
-    "chassis": "stack-review",
-    "variant": "concern",
-    "skill": "error-handling-design",
-    "tag": "generic",
-    "worker": null,
-    "applyExtra": [],
-    "outfile": "commands/error-review.md",
-    "description": "Audit error handling — empty or over-broad catches, swallowed exceptions, message-string branching, missing cause chains, internals leaking to users — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]",
-    "lane": {
-      "owns": "error-handling-review",
-      "trigger": "invoked as /resilience:error-review",
-      "yieldsTo": "-"
-    }
-  },
-  {
-    "chassis": "stack-review",
-    "variant": "concern",
-    "skill": "concurrency-safety",
-    "tag": "generic",
-    "worker": null,
-    "applyExtra": [],
-    "outfile": "commands/concurrency-review.md",
-    "description": "Audit code for concurrency hazards — check-then-act races, missing idempotency on retried paths, unguarded parallel writes, locks without TTL or fencing — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]",
-    "lane": {
-      "owns": "concurrency-review",
-      "trigger": "invoked as /resilience:concurrency-review",
-      "yieldsTo": "-"
-    }
-  },
-  {
-    "chassis": "stack-review",
-    "variant": "concern",
-    "skill": "observability-design",
-    "tag": "observability",
-    "worker": null,
-    "applyExtra": [],
-    "outfile": "commands/observability-review.md",
-    "description": "Audit code for observability gaps — unstructured logs, missing correlation IDs, secrets in logs, silent catch blocks — one line per finding.",
-    "argumentHint": "[path-diff-or-design-doc]",
-    "lane": {
-      "owns": "observability-review",
-      "trigger": "invoked as /resilience:observability-review",
-      "yieldsTo": "-"
-    }
-  },
-  {
     "chassis": "optout",
-    "file": "commands/performance-review.md",
-    "reason": "Bespoke hotspot/cache-correctness review format predating the fable payload; measurement-driven structure distinct from the checklist-shaped stack-review chassis."
+    "file": "commands/review.md",
+    "reason": "One review command over six rubrics selected by --concern (failure, errors, concurrency, observability, performance, events) with per-rubric apply chains and the measured/suspected field on performance findings; the single-skill stack-review chassis cannot express six skills behind one command, the same reason web-dev and ui-ux opt out. Until 2026-09-14 four of the concerns were chassis-rendered commands of their own and performance-review was a bespoke fifth."
   },
   {
     "chassis": "worker-agent",
     "agentFile": "agents/observability-engineer.md",
     "name": "observability-engineer",
-    "description": "Use PROACTIVELY when adding instrumentation to application code — structured logs, correlation/request IDs, RED/USE metrics, trace spans, health signals — the worker /resilience:observability-review routes fixes to. Defers infra-layer wiring to devops.",
+    "description": "Use PROACTIVELY when adding instrumentation to application code — structured logs, correlation/request IDs, RED/USE metrics, trace spans, health signals — the worker /resilience:review --concern observability routes fixes to. Defers infra-layer wiring to devops.",
     "tools": "Read, Write, Edit, Bash, Grep, Glob",
     "model": "inherit",
     "effort": "xhigh",
