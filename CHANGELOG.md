@@ -4,6 +4,18 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.103.0] - 2026-09-14
+
+**hindsight 0.9.0 sees subagents.** The SessionEnd hook now writes one ledger row per
+subagent transcript the session spawned (`kind:"agent"`, `agent_type` from the sibling
+`.meta.json`) — the channel `turn-cost.sh` calls invisible. `/hindsight:harvest` ranks
+and mines agent rows alongside sessions, reports friction per `agent_type`, files a
+finding whose evidence is an agent row as a **defect against that plugin's artifact**
+rather than a new idea, and tiers every proposal's evidence: *defect* (one transcript
+quote), *recurrence* (≥2 sessions, control arm still owed), *outcome* (correlational).
+`outcome.sh` skips agent rows so a fan-out does not count as ninety sessions.
+`collect.sh` gains a fixture harness. stack-scan 0.7.5 is the regenerated catalog row.
+
 ## [0.102.0] - 2026-09-14
 
 **The consolidation: 37 leaves and 8 bundles become 27 leaves and 4 bundles.** The

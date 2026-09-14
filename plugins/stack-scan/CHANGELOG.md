@@ -4,6 +4,12 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.5
+
+- `plugin-scout` catalog regenerated: the hindsight row now says it mines session AND
+  subagent transcripts and files defects against the running plugin artifact
+  (hindsight 0.9.0). Generated file, no behaviour change in the scan.
+
 ## 0.7.4
 
 - `plugin-scout` references recounted after the 2026-09-14 consolidation:
