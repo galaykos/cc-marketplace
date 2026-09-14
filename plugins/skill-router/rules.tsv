@@ -1,4 +1,7 @@
 # signal_type	pattern	skill	owning_plugin	confidence	stack_marker
+# stack_marker: `[!]<manifest>~<ERE>` alternatives joined by `||`; `@base` as the manifest
+# matches the ERE against the edited file's BASENAME (route.sh marker_ok), which is how a
+# bare-extension row excludes tool configs, rc files, .d.ts and minified bundles.
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
 # co-fire-ok: *.tsx a11y-audit nextjs-best-practices
 # co-fire-ok: *.tsx nextjs-best-practices react-native-best-practices
@@ -68,10 +71,10 @@ glob	*.sql	sql-best-practices	database	high
 glob	**/migrations/**	sql-best-practices	database	high
 glob	*.sql	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
 glob	**/migrations/**	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
-glob	*.ts	low-cognitive-load	code-architecture	high
-glob	*.ts	solid-principles	code-architecture	high
-glob	*.js	low-cognitive-load	code-architecture	high
-glob	*.js	solid-principles	code-architecture	high
+glob	*.ts	low-cognitive-load	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
+glob	*.ts	solid-principles	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
+glob	*.js	low-cognitive-load	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
+glob	*.js	solid-principles	code-architecture	high	!@base~(^[a-z0-9_.-]*\.(config|conf|setup)\.[cm]?[jt]s$|^[a-z0-9_.-]*rc\.[cm]?js$|\.d\.ts$|\.min\.[cm]?js$|^\.)
 glob	*.py	low-cognitive-load	code-architecture	high
 glob	*.py	solid-principles	code-architecture	high
 glob	*.go	low-cognitive-load	code-architecture	high

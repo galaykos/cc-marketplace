@@ -2,6 +2,17 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.34.4
+
+### Changed
+- **`.claude/task-runner/` ignores itself.** The directory now writes a self-ignoring `.gitignore` (`*`) the first time a hook creates it. Plugin state under the user's `.claude/` showed up as untracked in `git status` in every repo without a hand-written ignore line — observed live, and named by overseer's acceptance protocol as "other plugins' scratch" — one `git add -A` away from being committed. One harness assertion per plugin. `hooks/scope.sh` and
+  `hooks/drift.sh` drop the file as soon as they see the directory (a registered
+  run's first edit), `scripts/review-skip.sh` and `scripts/reduction-record.sh` when
+  a record lands under the default root (never under a `--record-dir` override), and
+  `/task-runner:run` step 1 writes it at registration so a run interrupted before any
+  hook fires leaves no untracked state either.
+- A header comment in `hooks/drift.sh` no longer cites the removed `lean` plugin's hook.
+
 ## 0.34.3
 
 ### Changed

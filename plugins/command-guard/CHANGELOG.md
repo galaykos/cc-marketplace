@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.6.0
+
+### Fixed
+- **`git push -f` was allowed.** The deny rule ` git push .*(--force( |$)| -f( |$))`
+  could not match `-f` as the first word after `push`: the pattern's own literal
+  space consumed the only space, so `git push -f origin main` — the commonest
+  spelling of a force push — fell through to allow while `git push origin main -f`
+  denied. The rule is now ` git push( [^ ]+)* (--force|-[a-eg-z]*f[a-z]*)( |$)`, which
+  also catches clustered short flags (`-uf`, `-fu`). `--force-with-lease` stays on
+  the ask tier. Found by classifying a corpus of common commands through `--check`.
+- **git global options bypassed every git rule.** Each rule is written
+  ` git <subcommand> …`, so `git -C /path push --force`, `git -c core.pager=cat
+  reset --hard` and `git --git-dir=… clean -fd` matched nothing. `-C`, `-c`,
+  `--git-dir`, `--work-tree`, `--namespace`, `--no-pager`, `--no-optional-locks`,
+  `--literal-pathspecs` and `--bare` are now stripped from the normalised segment
+  before matching. `-C` is the form an agent reaches for whenever it works outside
+  its cwd, so this was the live gap, not a theoretical one.
+
+### Changed
+- **`git clean -n` / `--dry-run` no longer asks.** A dry run deletes nothing; it is
+  the preview the ask tier's own alternative text recommends, so prompting on it
+  trained a click-through on the one command that makes the real one safe.
+  `-fdxn` and `-fdx --dry-run` are dry runs too and skip the `-x` deny.
+- `git checkout .` now asks, as `git checkout -- .` already did — same act, different
+  spelling. `git checkout -f` / `--force` (throws away local changes to switch) and
+  `git restore --source=<rev> .` / `--worktree .` join the ask tier; `git restore
+  --staged .` (index only) stays allowed.
+- `crontab -r` asks: it removes every cron job for the user with no confirmation and
+  no backup, one key away from `crontab -e`.
+- The `DELETE FROM` ask reason no longer claims "no WHERE on this line": the rule
+  asks on every shell-run DELETE and always did. The message now says so.
+- `GUARD_VERSION` 0.6.0. 30 new classification assertions in the harness cover each
+  of the above in both directions.
+
 ## 0.5.3
 
 - `lane.tsv` comment names `approaches:consult-remind` as the prompt-time nudge on

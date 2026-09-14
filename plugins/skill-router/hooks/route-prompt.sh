@@ -119,9 +119,8 @@
   # `.session_id` RAW is correct here and is NOT the pc_context_key defect. That gate
   # exists because a subagent shares its parent's session_id, so a one-shot keyed on it
   # dedups the worker against a nudge only the parent saw — but UserPromptSubmit never
-  # fires in a subagent at all (route.sh:23, lean/hooks/budget.sh:14,
-  # testing/hooks/test-shape.sh:90 all state PostToolUse is the only channel that
-  # reaches one). There is no second context to starve. The flush block at :46 keys on
+  # fires in a subagent at all (route.sh:23 and testing/hooks/test-shape.sh:90
+  # both state PostToolUse is the only channel that reaches one). There is no second context to starve. The flush block at :46 keys on
   # `.transcript_path // .session_id` for a different reason: it READS the state file
   # route.sh writes, so it must spell the key exactly as route.sh does.
   sid=$(printf '%s' "$input" | jq -r '.session_id // "nosession"' 2>/dev/null)

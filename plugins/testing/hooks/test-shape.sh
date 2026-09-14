@@ -34,8 +34,8 @@
 # .claude/skills/authoring-skills/SKILL.md (in the marketplace repository) "The four laws"):
 #   - PostToolUse: the file is already on disk. This informs the NEXT write.
 #   - ONE FILE, NO DIFF. It cannot see test count growing faster than behaviour count —
-#     the aggregate blind spot density.sh and lean/hooks/budget.sh each name for
-#     themselves. That question stays agent-graded, deliberately.
+#     the aggregate blind spot code-review/hooks/density.sh names for itself. That
+#     question stays agent-graded, deliberately.
 #   - It cannot see duplicate-layer assertions (the same rule proved at the action, the
 #     controller and the browser): those blocks live in different files and each asserts
 #     something real.
@@ -107,6 +107,7 @@
   # warning on every edit for the rest of the run. Same rule as comment-discipline.
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
+  [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
   if [ -r "$state" ]; then
     grep -qxF "$fp" "$state" 2>/dev/null && exit 0          # this file already reported
     [ "$(grep -c . "$state" 2>/dev/null || echo 0)" -ge "$MAX_FILES" ] && exit 0

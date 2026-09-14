@@ -54,6 +54,9 @@ case "$EXEMPT" in
 esac
 
 mkdir -p "$DIR" 2>/dev/null || { printf '%s: cannot create %s\n' "$PROG" "$DIR" >&2; exit 5; }
+# The run's state root ignores itself (see hooks/scope.sh); only when this record
+# lands under the default .claude/task-runner/, never under a --record-dir override.
+case "${DIR%/*}" in */.claude/task-runner) [ -e "${DIR%/*}/.gitignore" ] || printf '*\n' > "${DIR%/*}/.gitignore" 2>/dev/null ;; esac
 
 # Strips control characters as well as escaping: a newline in --reason wrote a record
 # that is not valid JSON, which nothing reads back today but breaks the first tool that does.

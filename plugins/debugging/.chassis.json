@@ -1,6 +1,6 @@
 {
   "chassis": "reminder-hook",
-  "regex": "(still failing|same error|didn.?t work|not working|keeps failing)",
+  "regex": "(still (failing|broken|crash(es|ing)?|fails|not working)|same error|didn.?t work|not working|keeps (failing|breaking|crashing)|failing again|broke again|nothing works|(second|third|2nd|3rd|fourth|4th) (time|attempt|try))",
   "message": "ℹ debugging: a fix that did not hold is a hypothesis that was never tested — reproduce first, read the actual error, isolate one variable, and stop guessing after three failed attempts",
   "command": "/debugging:debug",
   "extraGuard": null,
@@ -8,7 +8,7 @@
   "arcRank": 20,
   "lane": {
     "owns": "stuck-loop-signal",
-    "trigger": "UserPromptSubmit prompt head matches (still failing|same error|didn.?t work|not working|keeps failing)",
+    "trigger": "UserPromptSubmit prompt head matches a stuck-loop phrase: still failing/broken/crashing, same error, didn't work, not working, keeps failing/breaking/crashing, failing/broke again, nothing works, or a second/third/fourth time|attempt|try",
     "yieldsTo": "-",
     "phase": "any"
   }

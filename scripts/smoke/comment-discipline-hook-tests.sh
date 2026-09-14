@@ -358,6 +358,8 @@ else fail "transcript_path present: second edit of the same file is bounded" "fi
 if [ -n "$(find "$TP_DIR/.claude/comment-discipline" -name 'blocked-*' -type f 2>/dev/null)" ]
 then pass "transcript_path present: the marker actually landed on disk"
 else fail "transcript_path present: the marker actually landed on disk" "no marker under $TP_DIR"; fi
+if [ "$(cat "$TP_DIR/.claude/comment-discipline/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
+else fail "the state dir ignores itself" ".claude/comment-discipline/.gitignore missing or not '*'"; fi
 rm -rf "$TP_DIR"
 
 printf '\n'

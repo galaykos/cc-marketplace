@@ -21,8 +21,8 @@ command -v jq >/dev/null 2>&1 || { echo "SKIP: jq not available (hook fails open
 pass=0; fail=0
 WS="$(mktemp -d)"; trap 'rm -rf "$WS"' EXIT
 CWD="$WS/proj"; mkdir -p "$CWD/src" "$CWD/deep/nested"
-MARKER="$CWD/.claude/candor-last"
-CLAIMED="$CWD/.claude/candor-blocked"
+MARKER="$CWD/.claude/candor/last"
+CLAIMED="$CWD/.claude/candor/blocked"
 
 # Real files the citations can resolve against.
 printf 'a\nb\nc\nd\ne\n' > "$CWD/src/real.ts"           # 5 lines
@@ -66,6 +66,22 @@ check "resolving citation passes"                     "" "$T" 0 "__NONE__"
 
 T="$WS/c3.jsonl"; { user "where"; asst "See src/real.ts:900 for the guard."; } > "$T"
 check "citation past EOF blocks"                      "" "$T" 2 "$CITE_SUB"
+
+# 0.3.2: the block above created the state dir; it must carry a self-ignoring
+# .gitignore so the markers never appear in the user's `git status`.
+if [ "$(cat "$CWD/.claude/candor/.gitignore" 2>/dev/null)" = "*" ]; then pass=$((pass+1)); printf 'PASS  state dir ignores itself\n'
+else fail=$((fail+1)); printf 'FAIL  state dir ignores itself (.claude/candor/.gitignore missing or not "*")\n'; fi
+
+# 0.3.2: a `~/` citation is a real location in the user's home, not the absolute
+# path `/.claude/...` the old extraction class made of it. HOME is pointed at a
+# scratch dir so the case is hermetic either way.
+FAKEHOME="$WS/home"; mkdir -p "$FAKEHOME/.claude"; printf '{\n  "model": "x"\n}\n' > "$FAKEHOME/.claude/settings.json"
+T="$WS/c3b.jsonl"; { user "where is my model set"; asst "Your model is set in ~/.claude/settings.json:2."; } > "$T"
+check "~/ citation into a real home file passes"     "HOME=$FAKEHOME" "$T" 0 "__NONE__"
+T="$WS/c3c.jsonl"; { user "where"; asst "See ~/.claude/settings.json:40 for it."; } > "$T"
+check "~/ citation past EOF blocks"                   "HOME=$FAKEHOME" "$T" 2 "$CITE_SUB"
+T="$WS/c3d.jsonl"; { user "where"; asst "See ~/nowhere/ghost.py:3 for it."; } > "$T"
+check "~/ citation into a missing file blocks"        "HOME=$FAKEHOME" "$T" 2 "$CITE_SUB"
 
 T="$WS/c4.jsonl"; { user "where"; asst "See src/real.ts:6 — the last line."; } > "$T"
 check "one line past wc -l tolerated (no trailing newline)" "" "$T" 0 "__NONE__"
@@ -189,8 +205,8 @@ sub_payload() { # agent-transcript  last-msg  [stop_hook_active]
 }
 { user "main thread prompt"; } > "$WS/parent.jsonl"
 A="$WS/agent.jsonl"; { user "find the bug"; asst "placeholder"; } > "$A"
-SUB_MARKER="$CWD/.claude/candor-last-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
-SUB_CLAIMED="$CWD/.claude/candor-blocked-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
+SUB_MARKER="$CWD/.claude/candor/last-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
+SUB_CLAIMED="$CWD/.claude/candor/blocked-$(printf '%s' aac4725192b90da07 | cksum | cut -d' ' -f1)"
 sub_check() { # desc  last-msg  exp_rc  exp_sub
   local desc="$1" msg="$2" exp_rc="$3" exp_sub="$4" err rc ok=1
   rm -f "$MARKER" "$CLAIMED" "$SUB_MARKER" "$SUB_CLAIMED"

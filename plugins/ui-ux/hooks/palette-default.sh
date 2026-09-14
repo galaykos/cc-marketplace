@@ -88,6 +88,7 @@
   # than the same nudge on every edit for the rest of the run.
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
+  [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
   [ -e "$state" ] && exit 0
   : > "$state" 2>/dev/null || exit 0
   [ -e "$state" ] || exit 0

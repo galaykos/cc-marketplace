@@ -54,7 +54,7 @@
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Pattern and rationale: lean/hooks/budget.sh:10.
+  # is the one context this never speaks in. Pattern and rationale: the context-key one-shot in hooks/scan.sh.
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
   seen="${TMPDIR:-/tmp}/cc-conventions-$(printf '%s' "$sid" | cksum | cut -d' ' -f1)"
   mkdir "$seen" 2>/dev/null || exit 0

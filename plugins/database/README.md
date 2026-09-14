@@ -43,7 +43,8 @@ because its rules diverge from what the model assumes is MySQL.
 ## Destructive-SQL guard
 
 A PreToolUse hook on Write/Edit inspects new file content and pauses for your
-confirmation when it introduces `DROP TABLE/DATABASE/SCHEMA`, `TRUNCATE`, or an
+confirmation when it introduces `DROP TABLE/DATABASE/SCHEMA` (or Laravel's spelling
+of it, `Schema::drop*(`), `TRUNCATE`, or an
 unqualified `DELETE`/`UPDATE` with no `WHERE` — and, in the same warn lane,
 lock hazards like `CREATE INDEX` without `CONCURRENTLY` or a table-rewriting
 `ALTER`. It asks, never hard-denies (down-migrations legitimately drop), and
