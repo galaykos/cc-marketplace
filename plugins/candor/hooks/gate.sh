@@ -61,7 +61,9 @@
 #     bleeds in BOTH directions (measured; documented in the clause).
 #   - CLAUSE 3: saying nothing evades it; ANY post-edit execution satisfies it
 #     (a `git status` counts — it proves something ran, not the right thing); an
-#     Agent/Task call counts as execution.
+#     Agent/Task call counts as execution. Edits to PROSE files (.md, .txt, .rst,
+#     .adoc) do not arm it — nothing executable proves a README right — so a
+#     docs-only turn that says "done" passes on the claim alone.
 #   - CLAUSE 4 enforces only a run that REGISTERED itself. A run that never
 #     writes active-run.json is not enforced (fail-open) — the same residual the
 #     behavioral-gate skill names. It never executes tests: it is a records check.
@@ -125,7 +127,14 @@ agent_id=$(printf '%s' "$input" | jq -r '.agent_id // empty' 2>/dev/null)
 # the record names the CLAUSE that blocked, and only that clause stands down on
 # the continuation — the others still run. Clause 4 never stands down this way:
 # its bound is the per-HEAD nudge, which is stable across turns.
-claimed="$cwd/.claude/candor-blocked$agent_sfx"
+# STATE DIR. Both markers live under .claude/candor/, which carries a self-ignoring
+# .gitignore the first time it is created. Until 0.3.2 they were bare files at
+# .claude/candor-last and .claude/candor-blocked — and showed up as untracked in
+# every user's `git status` (observed in a live repo, and named as "other plugins'
+# scratch" by overseer's own acceptance protocol), one `git add -A` away from being
+# committed. A directory can ignore itself; a bare file cannot.
+state_dir="$cwd/.claude/candor"
+claimed="$state_dir/blocked$agent_sfx"
 skip=""
 if [ "$sha_active" = "true" ] && [ -f "$claimed" ]; then
   skip=$(cat "$claimed" 2>/dev/null)
@@ -378,7 +387,7 @@ last_msg=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/de
 if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
   cites=$(printf '%s' "$last_msg" \
     | sed -E 's#[a-zA-Z][a-zA-Z0-9+.-]*://[^[:space:])"]*##g' \
-    | grep -oE '[A-Za-z0-9_.][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
+    | grep -oE '[A-Za-z0-9_.~][A-Za-z0-9_./-]*\.[A-Za-z][A-Za-z0-9]{0,9}:[0-9]+' 2>/dev/null \
     | grep -vEi '\.(com|net|org|io|co|ai|app|gg|me):[0-9]+$' \
     | grep -vF '...' \
     | sort -u)
@@ -406,6 +415,11 @@ if [ -z "$verdict" ] && [ -n "$last_msg" ] && [ "$skip" != "citation" ]; then
   # that residual is deliberate.
   resolve() {
     local p="$1" m b n
+    # `~/.claude/settings.json:12` is a real location in the user's home. Before
+    # 0.3.2 the `~` was outside the extraction class, so the citation was read as
+    # the absolute path `/.claude/settings.json`, resolved to nothing, and blocked —
+    # on the exact file a settings question is answered from.
+    case "$p" in "~/"*) p="${HOME:-}/${p#\~/}" ;; esac
     case "$p" in
       /*) [ -f "$p" ] && { printf 'FILE %s' "$p"; return 0; } ;;
     esac
@@ -545,11 +559,24 @@ if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && 
     # 2+3. MUTATION AND EVIDENCE ORDER: one row of tool names per assistant entry
     # (blank when none) preserves order without line numbers; awk finds whether an
     # execution tool ran after the LAST file mutation.
+    # Each mutation token carries the edited file's extension (`Edit@md`), and a
+    # mutation of a PROSE file — .md/.mdx/.markdown/.txt/.rst/.adoc — does not arm
+    # the clause. There is no command whose failure would prove a README typo fix
+    # wrong, so "run something" bought a `git diff` and a turn, never a check; the
+    # same reasoning clause 4 already applies as its `no-executable-surface` verdict.
+    # A mutation with no file_path, no extension, or any other extension (json,
+    # yaml, sh, code) still arms it. RESIDUAL: a prose edit that lies about content
+    # ("documented and verified") passes — there was nothing to execute either way.
     ev=$(printf '%s' "$tail_jsonl" \
-      | jq -r 'select(.type=="assistant") | [.message.content[]? | select(.type=="tool_use") | .name] | join(" ")' 2>/dev/null \
+      | jq -r 'select(.type=="assistant")
+               | [.message.content[]? | select(.type=="tool_use")
+                  | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$"))
+                             then "@" + ((.input.file_path // "") | ascii_downcase | (if test("\\.[a-z0-9]+$") then sub(".*\\."; "") else "" end))
+                             else "" end)]
+               | join(" ")' 2>/dev/null \
       | awk '
           { for (i = 1; i <= NF; i++) { n++
-              if ($i ~ /^(Edit|Write|MultiEdit|NotebookEdit)$/) last_edit = n
+              if ($i ~ /^(Edit|Write|MultiEdit|NotebookEdit)(@|$)/ && $i !~ /@(md|mdx|markdown|txt|rst|adoc|asciidoc)$/) last_edit = n
               if ($i ~ /^(Bash|Agent|Task)$/)                   last_exec = n } }
           END {
             if (!last_edit)               print "no-edits"
@@ -576,12 +603,12 @@ esac
 
 # LOOP GUARD for clauses 1-3: block once per distinct final text. The marker is
 # state a mid-work turn cannot fake — a genuinely new turn produces new text.
-marker="$cwd/.claude/candor-last$agent_sfx"
+marker="$state_dir/last$agent_sfx"
 state=$(printf '%s|%s' "$verdict" "$detail$last_msg" | (command -v shasum >/dev/null 2>&1 && shasum | cut -d' ' -f1 || cksum | cut -d' ' -f1))
 if [ -r "$marker" ] && [ "$(cat "$marker" 2>/dev/null)" = "$state" ]; then
   exit 0
 fi
-if ! { mkdir -p "$cwd/.claude" 2>/dev/null && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
+if ! { mkdir -p "$state_dir" 2>/dev/null && { [ -e "$state_dir/.gitignore" ] || printf '*\n' > "$state_dir/.gitignore" 2>/dev/null || :; } && printf '%s' "$state" > "$marker" 2>/dev/null; }; then
   # No marker means no per-text bound this turn. THIS is where the shared flag
   # earns its keep: without both, a gate that blocks on unwritable state blocks
   # the same turn forever. Honouring it only here costs at most one unenforced
@@ -591,7 +618,7 @@ fi
 
 # Record which clause blocked, so only that clause stands down on the continuation.
 if [ "$mode" = "block" ]; then
-  mkdir -p "$cwd/.claude" 2>/dev/null && printf '%s' "$verdict" > "$claimed" 2>/dev/null
+  mkdir -p "$state_dir" 2>/dev/null && printf '%s' "$verdict" > "$claimed" 2>/dev/null
 fi
 
 case "$verdict" in

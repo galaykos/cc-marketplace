@@ -3,6 +3,14 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.18.3
+
+### Changed
+- **`.claude/comment-discipline/` ignores itself.** The directory now writes a self-ignoring `.gitignore` (`*`) the first time a hook creates it. Plugin state under the user's `.claude/` showed up as untracked in `git status` in every repo without a hand-written ignore line — observed live, and named by overseer's acceptance protocol as "other plugins' scratch" — one `git add -A` away from being committed. One harness assertion per plugin. Written by `scan.sh`
+  (deny markers), `density.sh` and `verbosity.sh` (per-session state).
+- Hook comments no longer cite the removed `lean` plugin's hook as a pattern source;
+  the idiom is cited from `hooks/conventions.sh`. No behaviour change.
+
 ## 0.18.2
 
 ### Changed

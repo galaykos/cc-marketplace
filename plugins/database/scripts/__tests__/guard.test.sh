@@ -32,6 +32,11 @@ check "DROP TABLE"                    ask   db/migrate.sql   'DROP TABLE users;'
 check "TRUNCATE"                      ask   db/migrate.sql   'TRUNCATE TABLE sessions;'
 check "DELETE with no WHERE"          ask   db/migrate.sql   'DELETE FROM orders;'
 check "DELETE with WHERE"             allow db/migrate.sql   'DELETE FROM orders WHERE id = 1;'
+# 0.8.3: Laravel's schema builder spells DROP TABLE without the keywords.
+check "Schema::dropIfExists (Laravel)" ask   database/migrations/2026_01_01_000000_x.php "Schema::dropIfExists('users');"
+check "Schema::drop (Laravel)"         ask   database/migrations/2026_01_01_000000_x.php "Schema::drop('users');"
+check "Schema::table add index"        allow database/migrations/2026_01_01_000000_x.php "Schema::table('users', fn (\$t) => \$t->index('email'));"
+check "Schema::dropColumns is not a table drop" allow database/migrations/2026_01_01_000000_x.php "Schema::table('users', fn (\$t) => \$t->dropColumn('legacy'));"
 check "CREATE INDEX, no CONCURRENTLY" ask   db/migrate.sql   'CREATE INDEX idx_a ON t (a);'
 check "CREATE INDEX CONCURRENTLY"     allow db/migrate.sql   'CREATE INDEX CONCURRENTLY idx_a ON t (a);'
 

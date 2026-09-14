@@ -17,6 +17,9 @@ importantly, what is not.
    `rg`, `ls`, `git log`, …) is skipped, so searching for `migrate:fresh` is not
    running it. The exemption is dropped for the whole command when output is
    piped into a shell or `xargs` — there the reader's output is the program.
+   git's global options (`-C <dir>`, `-c k=v`, `--git-dir`, `--work-tree`,
+   `--no-pager`) are stripped first, so `git -C /x push --force` is judged as
+   `git push --force`; `git clean` with `-n`/`--dry-run` is a reader and skipped.
 4. **Match.** First hit wins, `deny` before `ask`. Rules containing an uppercase
    letter match case-sensitively; that is the only way `git branch -D` can be
    distinguished from `git branch -d`.
@@ -45,8 +48,9 @@ any `aws … delete-*|terminate-*`, `gcloud|az|doctl|pscale|wrangler|flyctl|hero
 
 **ask** — destructive, commonly intended, and either scoped or recoverable, so
 the user is the right decider: `git reset --hard`, `git clean -fd`,
-`git branch -D`, `git stash clear/drop`, `checkout -- .`, `push
---force-with-lease` · `artisan migrate --force` · `DELETE FROM` in a SQL client
+`git branch -D`, `git stash clear/drop`, `checkout .` / `checkout -- .` /
+`checkout -f`, `restore .` (not `--staged`), `push --force-with-lease` ·
+`crontab -r` · `artisan migrate --force` · `DELETE FROM` in a SQL client
 · `rm -rf` on a project-relative path, a deep absolute path, or a path built
 from a variable · `kubectl delete <pod>`, `helm uninstall`, `terraform apply
 -auto-approve`, `docker system prune`, `docker rm -f` · `npm publish` ·

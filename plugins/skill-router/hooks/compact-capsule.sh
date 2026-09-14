@@ -102,7 +102,7 @@
   if [ -n "$sentinel_sid" ] && [ -n "$sid" ]; then
     match=false; [ "$sentinel_sid" = "$sid" ] && match=true
     dir="$cwd/.claude/skill-router"
-    mkdir -p "$dir" 2>/dev/null && printf '{"event":"compact","sentinel_session_matches_payload":%s}\n' "$match" >> "$dir/compact-log.jsonl" 2>/dev/null
+    mkdir -p "$dir" 2>/dev/null && { [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null; } && printf '{"event":"compact","sentinel_session_matches_payload":%s}\n' "$match" >> "$dir/compact-log.jsonl" 2>/dev/null
   fi
 } 2>/dev/null || exit 0
 exit 0

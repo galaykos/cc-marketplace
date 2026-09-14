@@ -4,7 +4,7 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
-## [0.103.0] - 2026-09-14
+## [0.104.0] - 2026-09-14
 
 **hindsight 0.9.0 sees subagents.** The SessionEnd hook now writes one ledger row per
 subagent transcript the session spawned (`kind:"agent"`, `agent_type` from the sibling
@@ -15,6 +15,65 @@ rather than a new idea, and tiers every proposal's evidence: *defect* (one trans
 quote), *recurrence* (≥2 sessions, control arm still owed), *outcome* (correlational).
 `outcome.sh` skips agent rows so a fan-out does not count as ninety sessions.
 `collect.sh` gains a fixture harness. stack-scan 0.7.5 is the regenerated catalog row.
+
+## [0.103.0] - 2026-09-14
+
+**A product review of every plugin as installed: hooks driven with real payloads,
+guards classified over a command corpus, the Stop gate fed synthetic transcripts.**
+No new process; every change removes a wrong verdict, a false block, or untracked
+noise. What was found and what each fix proves is in the per-plugin changelogs;
+this entry is the installer's view.
+
+- **command-guard 0.6.0 — a safety gap and three false prompts.** `git push -f`
+  (the commonest force-push spelling) was *allowed*: the deny regex could not match
+  `-f` as the first word after `push`. git global options bypassed every git rule
+  (`git -C /path push --force`, `git -c … reset --hard`) — the form an agent uses
+  whenever it works outside its cwd. Both deny now. `git clean -n`/`--dry-run` no
+  longer asks (it is the preview the ask tier itself recommends); `git checkout .`,
+  `checkout -f`, `restore --source … .` and `crontab -r` join the ask tier; the
+  `DELETE FROM` reason no longer claims a WHERE check the rule never made. 30 new
+  classification assertions.
+- **candor 0.3.2 — two Stop-gate false blocks.** A `~/…:NN` citation was read as
+  `/…` and blocked as fabricated; it now resolves under `$HOME`. A docs-only turn
+  ("Fixed the typo in README.md" after one `.md` edit) blocked until *any* command
+  ran — a turn spent on ceremony, since nothing executable proves prose right; prose
+  extensions no longer arm clause 3. Gate state moved into `.claude/candor/`.
+- **secret-scanning 0.5.0 — a deny with no exit.** The unbounded deny refused AWS's own
+  documentation key (`AKIAIOSFODNN7EXAMPLE`) and `.env.example` placeholder lines on
+  every retry, with no allow-file; the only ways through were a heredoc around the
+  guard or uninstalling it. A matched value that announces itself as a placeholder
+  (ends in `EXAMPLE`, one repeated character, a placeholder word) is released; the
+  variable name is never consulted, and a placeholder beside a real key still denies.
+- **skill-router 0.16.0 — `@base` marker.** Editing `tailwind.config.js`,
+  `eslint.config.mjs`, `.eslintrc.js`, `global.d.ts` or `app.min.js` told the model
+  to load two design-principle skills (~14.6 KB) and review a tool config against
+  SOLID. A `!@base~<ERE>` alternative on the `*.js`/`*.ts` rows suppresses those
+  shapes; source files route as before. Backward-compatible with an older `route.sh`.
+- **State hygiene across seven plugins** (candor, code-review 0.18.3, skill-router,
+  task-runner 0.34.4, testing 0.9.2, ui-ux 0.22.3, and `/task-runner:run`'s
+  registration step): every state directory a hook writes under the user's
+  `.claude/` now carries a self-ignoring `.gitignore`. Observed live: a user repo
+  with eight hand-written ignore lines for plugin state and still two untracked
+  entries in `git status`; overseer's own acceptance protocol names the same files
+  as "other plugins' scratch". One harness assertion per plugin. Residual: state the
+  MODEL writes from skill prose (`.claude/taskmaster/`, `.claude/approaches/`,
+  `.claude/cc-phase.json`) is not covered; task-runner's is, via a prose line at
+  registration plus the hooks that fire on a run's first edit.
+- **database 0.8.3** — the destructive-SQL guard now asks on Laravel's
+  `Schema::drop*(` (the spelling of `DROP TABLE` it was blind to).
+- **debugging 0.3.18** — the stuck-loop reminder recognises *failing again*, *nothing
+  works*, *still crashing*, *third time*; questions stay silent. Its README now
+  documents that it ships a hook at all, and the `CC_REMIND=off` switch.
+- Hook comments in six plugins no longer cite the removed `lean` plugin's hook as a
+  pattern source.
+
+**Reviewed and left alone, recorded here so nobody re-derives it:** the taskmaster
+clarify reminder fires on "fix the typo in the README" (its own one-line "trivial"
+escape is the designed cost); the skill-router tool-fit catalog costs ~1.6k tokens once
+per session; skill BODIES loaded by routing rules remain the unmetered channel the
+budget script names; every bundle is OVER the 200k skill-listing floor as documented.
+Nothing here claims a measured speed or quality gain — the evidence is verdict tables
+and harness cases, not sessions.
 
 ## [0.102.0] - 2026-09-14
 

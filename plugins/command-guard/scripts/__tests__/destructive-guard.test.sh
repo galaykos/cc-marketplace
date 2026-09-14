@@ -80,6 +80,18 @@ expect deny 'rm .env'
 expect deny 'rm -f .env.local'
 expect deny 'git clean -fdx'
 expect deny 'git push --force origin main'
+# 0.6.0: the short flag. ` git push .*(--force| -f)` could not match `-f` as the
+# FIRST word after push (the pattern's own literal space consumed the only space),
+# so `git push -f origin main` — the commonest spelling — was allowed.
+expect deny 'git push -f origin main'
+expect deny 'git push -f'
+expect deny 'git push -uf origin main'
+expect deny 'git push -fu origin main'
+# 0.6.0: git GLOBAL OPTIONS between `git` and the subcommand. Every git rule is
+# written ` git <sub>`, so `git -C <dir> push --force` matched nothing and was
+# allowed — and `-C` is how an agent addresses a repo outside its cwd.
+expect deny 'git -C /tmp/x push --force origin main'
+expect deny 'git --git-dir /x/.git push -f'
 expect deny 'git push origin --delete feature'
 # a leading + on the refspec is the same force push wearing git's other syntax
 expect deny 'git push origin +main'
@@ -110,6 +122,15 @@ expect deny 'mkfs.ext4 /dev/sda1'
 printf '== classification: ask\n'
 expect ask 'git reset --hard HEAD~1'
 expect ask 'git clean -fd'
+expect ask 'git -C /tmp/x reset --hard'
+expect ask 'git -c core.pager=cat clean -fd'
+expect ask 'git --git-dir=/x/.git --work-tree=/x checkout -- .'
+expect ask 'git checkout .'                                        # same act as `checkout -- .`
+expect ask 'git checkout -f main'                                  # -f throws away local changes to switch
+expect ask 'git restore --source=HEAD .'
+expect ask 'git restore -s HEAD~1 -- .'
+expect ask 'git restore --staged --worktree .'                    # --worktree anywhere on the line touches the tree
+expect ask 'crontab -r'                                            # the -e/-r footgun: no confirmation, no backup
 expect ask 'git branch -D feature/old'
 expect ask 'git stash clear'
 expect ask 'git push --force-with-lease origin feature'
@@ -148,6 +169,21 @@ expect allow 'git diff --stat'
 expect allow 'git commit -m "remove the drop table step from the migration"'
 expect allow 'git commit -am "fix: truncate long titles"'
 expect allow 'git push origin feature/x'
+expect allow 'git push -u origin feature/x'                        # -u is upstream, not force
+expect allow 'git push -n origin feature/x'
+expect allow 'git -C /tmp/x push origin main'                      # global option on a plain push
+expect allow 'git -C /tmp/x log --oneline'
+expect allow 'git -C /tmp/x commit -m "drop table users"'          # prose in a commit message, -C stripped first
+expect allow 'git clean -n'                                        # dry run deletes nothing: the preview the ask tier recommends
+expect allow 'git clean -fdn'
+expect allow 'git clean --dry-run'
+expect allow 'git clean -fdx --dry-run'                            # dry run beats the -x deny too
+expect allow 'git checkout main'
+expect allow 'git checkout -b feat'
+expect allow 'git checkout -- src/x.js'                            # one file, scoped
+expect allow 'git restore --staged .'                              # index only; the working tree is untouched
+expect allow 'crontab -l'
+expect allow 'crontab -e'
 expect allow 'npm test -- --grep "delete from users"'
 expect allow 'echo "DROP TABLE users" > database/migrations/down.sql'
 expect allow 'echo hello > notes.txt'                           # a redirect alone is not destruction

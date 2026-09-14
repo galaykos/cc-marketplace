@@ -132,7 +132,7 @@
   # `warned` stays 0, MAX_WARN never engages, the per-file dedup never engages, and the
   # self-output filter below never engages — so a track run raises the sibling median to
   # match its own dense output and certifies the drift it just wrote. Same idiom as
-  # code-review/hooks/conventions.sh:59 and lean/hooks/budget.sh:64.
+  # code-review/hooks/conventions.sh:59.
   ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
   state="$dir/density-$ctx"
@@ -141,6 +141,7 @@
   # warning on every single edit for the rest of the session.
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
+  [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
   # ---- one shared counter, applied identically to the file and to its siblings ----
   ratio_of() { # $@ files (none = stdin) -> "<comment> <code>"
     awk '

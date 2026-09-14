@@ -30,6 +30,12 @@ suite is green; the reproduction graduates into a regression test. Three
 failed fix cycles stop the run and question the diagnosis instead of
 attempting a fourth.
 
+## Hooks
+
+| Event | Script | What it does |
+|-------|--------|--------------|
+| `UserPromptSubmit` | `hooks/remind.sh` | one advisory line naming `/debugging:debug` when the prompt head reads like a stuck loop — *still failing / broken / crashing*, *same error*, *didn't work*, *keeps failing*, *failing again*, *nothing works*, *third time* — and is a report, not a question ("why does it keep failing?" stays silent). Fires once per prompt, yields to a better-ranked reminder on the same prompt (approaches' irreversible-command guard), and `CC_REMIND=off` silences every reminder hook in the marketplace. Advisory only: it adds one line of context and blocks nothing. |
+
 ## Pairs well with
 
 - **task-runner** — its three-cycle park rule and this plugin's three-failed-fixes escalation are the same discipline

@@ -32,6 +32,11 @@ printf 'glob\t*.go\tcrlfplain-canary\tmisc\thigh\r\n' >> "$PR/rules.tsv"
 # Uppercase directory glob: the casing rules.tsv actually ships for inertia
 # (`**/resources/js/Pages/**`). Both casings of the real directory must fire.
 printf 'glob\t**/Pages/**\tcase-canary\tmisc\thigh\n' >> "$PR/rules.tsv"
+# @base marker (0.16.0): the ERE is matched against the edited file's BASENAME, so a
+# bare-extension row can exclude a file shape. Negated form suppresses on a match.
+printf 'glob\t*.js\tbase-canary\tmisc\thigh\t!@base~(^[a-z0-9_.-]*\\.config\\.[cm]?js$|\\.min\\.js$)\n' >> "$PR/rules.tsv"
+# positive form: fire ONLY on a basename shape, chained after a manifest alternative
+printf 'glob\t*.py\tbasepos-canary\tmisc\thigh\tnosuchfile.json~x||@base~^test_\n' >> "$PR/rules.tsv"
 
 mkdir -p "$TMP/vue3cwd" "$TMP/vue2cwd" "$TMP/emptycwd" "$TMP/laravelcwd"
 echo '{"dependencies":{"vue":"^3.2.4"}}'   > "$TMP/vue3cwd/package.json"
@@ -75,6 +80,26 @@ expect "markered row with absent manifest fires (6-field read guard)" "$out" 'gh
 
 out=$(route "$TMP/emptycwd" a.css)
 expect "markerless 5-column row fires unchanged" "$out" 'plain-canary' ''
+
+out=$(route "$TMP/emptycwd" src/app.js)
+expect "@base negated: plain source basename fires" "$out" 'base-canary' ''
+out=$(route "$TMP/emptycwd" tailwind.config.js)
+expect "@base negated: tool config basename suppressed" "$out" '' 'base-canary'
+out=$(route "$TMP/emptycwd" dist/app.min.js)
+expect "@base negated: minified basename suppressed" "$out" '' 'base-canary'
+out=$(route "$TMP/emptycwd" src/app.config.service.js)
+expect "@base negated: '.config.' mid-name is source, fires" "$out" 'base-canary' ''
+out=$(route "$TMP/emptycwd" tests/test_thing.py)
+expect "@base positive after indecisive manifest alt: fires on shape" "$out" 'basepos-canary' ''
+out=$(route "$TMP/emptycwd" src/thing.py)
+expect "@base positive: non-matching shape suppressed" "$out" '' 'basepos-canary'
+# The state dir must ignore itself (0.16.0) — the README claimed "(gitignored)" for
+# as long as the file existed and nothing made it so.
+printf '{"session_id":"s%s","cwd":"%s","tool_input":{"file_path":"%s"}}' "$RANDOM$RANDOM" "$TMP/emptycwd" src/state.js \
+  | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" >/dev/null
+if [ "$(cat "$TMP/emptycwd/.claude/skill-router/.gitignore" 2>/dev/null)" = "*" ]; then echo "PASS: state dir ignores itself"
+else echo "FAIL: state dir ignores itself — .claude/skill-router/.gitignore missing or not '*'"; rc=1; fi
+rm -rf "$TMP/emptycwd/.claude"
 
 # ||-chain: workspace:* declared version is indecisive for the semver alt; the
 # installed node_modules version must decide the pair

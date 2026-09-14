@@ -31,6 +31,12 @@
 
   hit=""
   [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\bdrop[[:space:]]+(table|database|schema)\b' && hit="DROP TABLE/DATABASE/SCHEMA"
+  # Laravel's schema builder spells the same statement without the SQL keywords:
+  # `Schema::dropIfExists('users')` in a migration's up() IS `DROP TABLE users`. The
+  # rule above was blind to it, so the one migration shape an agent writes most in a
+  # Laravel repo was the one this guard never asked about. Same ask tier, same escape
+  # (a down() legitimately drops).
+  [ -z "$hit" ] && printf '%s' "$text" | grep -qE 'Schema::(drop|dropIfExists|dropAllTables|dropAllViews|dropDatabase|dropDatabaseIfExists)[[:space:]]*\(' && hit="a Schema::drop* call (Laravel's DROP TABLE)"
   [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+(table[[:space:]]+)?[^;]' && hit="TRUNCATE"
   # unqualified DELETE/UPDATE: a line with DELETE FROM or UPDATE … SET and no WHERE on it
   if [ -z "$hit" ]; then

@@ -96,6 +96,7 @@
   # cannot be recorded is not a bound.
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
+  [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null   # the state dir ignores itself
 
   last=0
   if [ -r "$state" ]; then
