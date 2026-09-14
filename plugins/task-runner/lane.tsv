@@ -7,6 +7,9 @@ task-runner:task-executor	agent	build	decided-fix-list-application	a fix list or
 task-runner:delegation-contracts	skill	any	subagent-dispatch-contract	spawning a subagent, writing an agent prompt, planning a fan-out, or reading a subagent report back	-
 task-runner:verification-panels	skill	verify	agent-output-trust-decision	deciding whether agent findings can be trusted, judging competing solutions, or discovery may have stopped too early	-
 task-runner:drift	hook	any	ad-hoc-breadth-question	PostToolUse with no scope.json, >=12 distinct files edited since the last typed request, no breadth marker in it, and half of them unnamed	-
+task-runner:plan	command	plan	task-list-parallelization-plan	invoked as /task-runner:plan with a task list or card index	task-runner:parallel-planning
+task-runner:parallel-planning	skill	plan	task-list-parallelization-plan	a task list of three-plus tasks is about to be executed, or "subagents or inline?" is asked: dependency levels, disjoint-file groups, agent count, inline-vs-delegate verdict	-
+task-runner:behavioral-gate	skill	verify	produced-artifact-execution	a run is completing, or a --tracks merged branch reaches its final gate: the produced artifact is actually run — the suite through a real runner plus a smoke of each shell entrypoint, not a re-lint	-
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 task-runner:ultra-assess	hook	any	ultra-assess-boost-directive	prompt head matches ultra-?assess(ment)? with no negation and no active-banner echo	-
 # generated:end

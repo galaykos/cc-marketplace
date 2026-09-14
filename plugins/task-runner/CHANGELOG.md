@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.34.1
+
+### Changed
+- `lane.tsv`: `/task-runner:plan` and `parallel-planning` declare the `plan` phase (the
+  command yields to the skill); `behavioral-gate` declares `verify`. No behaviour change.
+
 ## 0.34.0
 
 ### Added

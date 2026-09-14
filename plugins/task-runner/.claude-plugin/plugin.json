@@ -1,6 +1,6 @@
 {
   "name": "task-runner",
-  "version": "0.34.0",
+  "version": "0.34.1",
   "description": "Disciplined task execution: one task at a time, scope locked to the task, bounded verify-fix inner loop per task, no drift, no unbounded outer loop. Completion means every check passed with evidence. Ships the shared task-executor agent — the delegatable 'apply the fixes' sink every review routes to — a PostToolUse scope-lock tripwire, parallel-planning (/task-runner:plan), and the subagent discipline (the orchestration plugin was merged in on 2026-09-14): delegation contracts (self-contained prompts, evidence-backed compressed returns, model/effort tiering, the role-floor registry), verification panels (refuter voting, judge panels, completeness critic), scripts/dispatch-lint.sh, and the ultra-assess boost hook.",
   "author": {
     "name": "Ivan-WG",

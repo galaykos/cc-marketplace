@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.15.1 — 2026-09-14
+
+- `lane.tsv`: `/code-architecture:plan` and `plan-before-code` declare the `plan` phase
+  (the command yields to the skill; the skill yields to `approaches:approach-deliberation`
+  on the change shape), `/code-architecture:verify` and `work-verification` the `verify`
+  phase (the skill yields to `candor:gate`, which enforces its rule at Stop). Until now
+  `plan` had no row anywhere in the marketplace while three artifacts did plan work. No
+  behaviour change.
+
 All notable changes to the code-architecture plugin.
 
 ## 0.15.0

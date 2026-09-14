@@ -5,3 +5,7 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 code-architecture:architecture-reviewer	agent	review	code-structure-review	diff adds or moves a module, an interface, or a public unit boundary, or a design doc / service topology was drafted or changed	-
 code-architecture:system-architect	agent	shape	system-topology-design	work spans more than one service, store, or async boundary	code-architecture:plan
+code-architecture:plan	command	plan	file-level-implementation-plan	invoked as /code-architecture:plan with a task or spec	code-architecture:plan-before-code
+code-architecture:plan-before-code	skill	plan	file-level-implementation-plan	non-trivial code is about to be written and the change shape is already settled: which files change, what each new unit owns, the interfaces, where code lives	approaches:approach-deliberation
+code-architecture:verify	command	verify	work-verification-evidence	invoked as /code-architecture:verify with success criteria or a task	code-architecture:work-verification
+code-architecture:work-verification	skill	verify	work-verification-evidence	work is about to be called done: success criteria stated up front, the verification run, evidence shown, never an assertion without output	candor:gate
