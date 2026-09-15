@@ -460,6 +460,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | write React/Vue apps | `frontend-suite` |
 | are building something design-led | `craft-suite` |
 | want reviews that catch real bugs | `core-suite` (the enforcing gates) + `security`, `resilience`, `testing` by name (the advisory rubrics) |
+| have phpstan / tsc / eslint configured and want their real output triaged | `toolchain-experts` (it reports what the analyzer cannot see, not a checklist) |
 | keep getting half-finished work | `candor` (Stop gate) + `code-architecture` + `task-runner` |
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
