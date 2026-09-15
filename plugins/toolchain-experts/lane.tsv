@@ -1,0 +1,15 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+#
+# Every row here is scoped to RUNNING a configured analyzer and triaging its output.
+# The judgment rubrics next door — component logic, WCAG, library idioms — are owned
+# by web-dev and ui-ux, and every row below yields to them on their territory.
+toolchain-experts:analyzer-triage	skill	review	analyzer-output-triage	analyzer output needs grading, or a project analyzer config must be read before reporting a defect	-
+toolchain-experts:php-expert	agent	review	php-static-analysis-run	a PHP diff in a project configuring phpstan, psalm, phpcs or rector	laravel:backend-engineer
+toolchain-experts:ts-expert	agent	review	typecheck-and-lint-run	a JS/TS diff in a project configuring tsc, eslint, biome or oxlint	web-dev:frontend-reviewer
+toolchain-experts:react-expert	agent	review	react-hook-rules-run	a React component diff in a project configuring eslint	web-dev:frontend-reviewer
+toolchain-experts:vue-expert	agent	review	vue-sfc-analysis-run	a single-file Vue component diff in a project configuring vue-tsc or eslint-plugin-vue	web-dev:frontend-reviewer
+toolchain-experts:ui-expert	agent	review	style-and-a11y-tool-run	a CSS or markup diff in a project configuring stylelint, pa11y, lighthouse-ci or axe	ui-ux:ui-ux-reviewer

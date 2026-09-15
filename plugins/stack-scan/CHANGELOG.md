@@ -4,6 +4,13 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.7
+
+### Changed
+- **Scout catalogue regenerated** for the new `toolchain-experts` plugin, so
+  `/stack-scan:suggest` can offer it to a repo that has analyzers configured. Generated
+  by `scripts/generate.sh --write`; edit the marketplace entry, never the catalogue row.
+
 ## 0.7.6
 
 ### Changed

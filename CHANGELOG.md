@@ -4,6 +4,57 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.109.0] - 2026-09-15
+
+**A stack-expert team that runs the analyzer instead of reciting one.** New plugin
+`toolchain-experts` (0.1.0): five read-only reviewers for PHP, TypeScript/JavaScript,
+React, Vue and CSS, each of which RUNS the project's configured static analysis and
+triages the real output.
+
+- **Built against this repository's own negative result, not around it.** The obvious
+  version of this plugin already existed and was removed after baseline testing
+  (`rationale/stack-skill-baselines.md`): the TypeScript, JavaScript and Vue 2 idiom
+  checklists each scored Δ 0 against a blind control, and the React doctrine checklist
+  scored NEGATIVE — five findings, every one a subset of the control's twelve, while the
+  control alone caught a state-overwrite logic bug, a missing fetch abort and an
+  undefined-prop crash. The checklist narrowed the review.
+- **So every artifact here is one of the four shapes that has not measured zero**
+  (`rationale/measured-zero-shapes.md`): a mechanism with an exit code
+  (`scripts/detect-analyzers.sh`), a decision procedure whose ORDER is the content (the
+  `analyzer-triage` skill), manifest-reading behaviour, and installation-specific
+  knowledge.
+- **The headline output is the analyzer's blind spot** — which config CI actually
+  enforces, how many defects the baseline already forgives, and which rules are switched
+  off: `strict: false` hiding every null-safety defect, `react-hooks/exhaustive-deps`
+  demoted to a warning so stale closures ship through a green build, a plain typecheck
+  that silently skips every single-file Vue component. None of that is derivable from
+  memory, which is the whole argument for the plugin existing.
+- **Exit 1 when no analyzer is configured**, and the agents are instructed to report that
+  and stop. The fallback-to-checklist path is the measured-negative behaviour; the exit
+  code is what closes it.
+- **Read-only.** All five agents are `Read, Grep, Glob, Bash`. Fixes route to the workers
+  that already exist — `task-runner`'s task-executor, `laravel`'s backend-engineer,
+  `web-dev`'s web-developer, `ui-ux`'s a11y-engineer. Component logic stays with
+  `web-dev`'s frontend-reviewer; the WCAG judgment pass stays with `/ui-ux:audit`.
+- **Three defects in the mechanism were found by running it on a real project, not by
+  review.** (1) It grepped `tsconfig.json` raw — JSONC — and read COMMENTED-OUT flags as
+  enabled, claiming `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` were on
+  where `tsc --showConfig` resolves both absent. For a detector whose deliverable is
+  naming what the checker cannot see, a false "covered" is the worst reachable output.
+  (2) It printed `npx eslint . --format=unix`, which exits non-zero on every ESLint 9
+  project — the formatter was removed from core — so the one command it emitted could
+  not be run. (3) It grepped CI workflows for tool names and reported zero enforcement
+  for a repo whose `composer ci:check` chains through npm scripts to four enforced tools.
+  All three are fixed, each pinned by a fixture built from the real case; the suite is 33
+  assertions. A fourth was cosmetic and in the harness itself: a `grep` needle starting
+  with `-` was parsed as an option, so one refutation silently tested nothing.
+- **Standing, stated rather than implied: recorded, not measured.** The claim that these
+  five beat a blind control has not itself been ablated. A plugin whose README opens with
+  an ablation table owes that admission. What IS measured is narrower and worth separating:
+  the mechanism's output was checked against `tsc --showConfig` on a real project and now
+  matches it.
+- `stack-scan` 0.7.7: the generated scout catalogue picks up the new plugin.
+
 ## [0.108.2] - 2026-09-15
 
 **A measurement withdrawn, and the two rules that paid for it.** 0.106.0 recorded

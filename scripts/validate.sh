@@ -265,11 +265,20 @@ done
 # ("all 72 leaf plugins"), so rc came back empty and the check passed vacuously
 # — shipping the exact 72-vs-69 drift it was written to catch. A missing count
 # is now an error too, not a silent pass.
-rc=$(grep -oE 'all [0-9]+ (leaf )?plugins' README.md | grep -oE '[0-9]+' | head -1)
-if [ -z "$rc" ]; then
+# Widened again 2026-09-15, same lesson one layer down: this checked only the
+# FIRST match and only the `all N …` wording, so README.md's opening line
+# ("**27 leaf plugins**") was never covered. It carried 27 while the gated line
+# carried 26 — one file disagreeing with itself, and the gate reporting green.
+# Every leaf-count claim is now checked, not just the first one that parses.
+rc_all=$(grep -oE '(all [0-9]+ (leaf )?plugins|[0-9]+ leaf plugins)' README.md | grep -oE '[0-9]+')
+if [ -z "$rc_all" ]; then
   err "README.md has no 'all N leaf plugins' count — the leaf-count claim must exist to be checkable"
-elif [ "$rc" != "$nonsuite" ]; then
-  err "README.md's leaf count says $rc but there are $nonsuite non-suite plugins"
+else
+  while IFS= read -r rc; do
+    [ -n "$rc" ] || continue
+    [ "$rc" = "$nonsuite" ] \
+      || err "README.md's leaf count says $rc but there are $nonsuite non-suite plugins"
+  done <<< "$rc_all"
 fi
 
 # Stack-authoring-gap guard: a worker agent declaring `bestpractices-skill: <dir[,dir]>`
