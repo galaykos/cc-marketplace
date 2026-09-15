@@ -188,9 +188,14 @@ denied() { printf '%s' "$1" | jq -e '.hookSpecificOutput.permissionDecision == "
 out=$(pre "$R4" "$R4/app/Fat.php" p1 "$TMP/dense.txt")
 denied "$out" && echo "PASS: PreToolUse denies a dense Write" || { echo "FAIL: PreToolUse denies a dense Write — got: ${out:-<silent>}"; rc=1; }
 expect "  …and the reason names the ceiling" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""')" "the ceiling is 0.4:1"
-expect "one-shot: the same file again is allowed" "$(pre "$R4" "$R4/app/Fat.php" p1 "$TMP/dense.txt")" ""
+# The bound is TWO denies, not one (2026-09-15): a sibling PreToolUse hook denying the
+# same call blocks the write too, so a one-shot spent on attempt 1 left the next write
+# of that file unchecked. Attempt 2 denies; attempt 3 is silent, which bounds the session.
+out=$(pre "$R4" "$R4/app/Fat.php" p1 "$TMP/dense.txt")
+denied "$out" && echo "PASS: bound is TWO denies: the same file again still denies" || { echo "FAIL: second dense Write should deny — got: ${out:-<silent>}"; rc=1; }
+expect "bound is TWO denies: the same file a third time is allowed" "$(pre "$R4" "$R4/app/Fat.php" p1 "$TMP/dense.txt")" ""
 out=$(pre "$R4" "$R4/app/Other.php" p1 "$TMP/house.txt")
-denied "$out" && echo "PASS: one-shot is per FILE: a 1:1 Write to a new file still denies" || { echo "FAIL: per-file one-shot — got: ${out:-<silent>}"; rc=1; }
+denied "$out" && echo "PASS: the bound is per FILE: a 1:1 Write to a new file still denies" || { echo "FAIL: per-file bound — got: ${out:-<silent>}"; rc=1; }
 expect "lean Write is allowed" "$(pre "$R4" "$R4/app/Lean.php" p1 "$TMP/lean.txt")" ""
 expect "ceiling off: dense Write is allowed" "$(COMMENT_DISCIPLINE_CEILING_TENTHS=0 pre "$R4" "$R4/app/Fat2.php" p2 "$TMP/dense.txt")" ""
 out=$(jq -n --arg fp "$R4/app/Fat3.php" --arg cwd "$R4" --rawfile c "$TMP/dense.txt" \

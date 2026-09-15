@@ -22,6 +22,10 @@
 # Fail-open: any error, missing jq, or unparseable input allows the write.
 {
   input=$(cat)
+  # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
+  # uninstalling the plugin. Every other guard in the marketplace ships one,
+  # and a global install makes "turn it off here" a real need.
+  [ "${CC_WORKFLOW_GUARD:-on}" = "off" ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit) ;; *) exit 0 ;; esac
@@ -63,6 +67,8 @@
 
   [ -n "$reason" ] || exit 0
   reason="$reason (file: $file)  Run plugins/devops/scripts/workflow-audit.sh for the full report, including the warn-level findings this hook deliberately does not block."
+  # Name the escape in the message that blocks you.
+  reason="$reason CC_WORKFLOW_GUARD=off disables this guard for the session."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null

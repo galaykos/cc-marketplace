@@ -4,6 +4,12 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.23.1
+
+### Fixed
+- **`preview-guard` now has an off-switch**, `CC_PREVIEW_GUARD=off` — it previously had none, and with taskmaster also installed it asks twice on a strong signal.
+- **The twin is now gated.** This file and taskmaster's copy are one guard shipped twice, and their correctness as a pair depends on byte-identity (both hash the same session id to the same marker, which is what leaves exactly one asker). A new `pc_twin_files` check fails the build if they drift.
+
 ## 0.23.0
 
 ### Changed

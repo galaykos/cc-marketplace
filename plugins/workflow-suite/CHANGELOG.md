@@ -5,6 +5,18 @@ taskmaster-suite became on 2026-09-14; the entries below 0.1.0 are taskmaster-su
 own, with its version numbers (started at 0.17.0; earlier versions have no entries
 rather than invented ones).
 
+## 0.2.5
+
+### Fixed
+- **The uninstall no longer deletes the plugins you just chose to keep.** Step 6 passed `--prune` on the bundle line unconditionally, described in the command as "a harmless no-op otherwise" — but `claude plugin uninstall --prune` also removes auto-installed dependencies that are no longer needed, which is exactly the set you decline on any pick other than "remove the bundle and its N auto-installed plugins". It was a no-op only when N was 0, the common case, which is how it survived. `--prune` is now conditional on the pick.
+- **Provenance is now read from the record for YOUR scope.** `installed_plugins.json` maps each plugin id to an ARRAY of records, one per scope/project, and the step said "check each candidate's record" — so a plugin auto-installed in some other project read as auto-installed here. Measured 2026-09-15 on one machine: 67 of 74 plugin ids carried more than one record and 30 had records that DISAGREE about `auto`, every disagreement in the delete-it direction.
+
+## 0.2.3
+
+### Fixed
+- **The uninstall no longer offers to delete plugins you installed yourself** — same provenance split as the other bundles; it defaults to keeping anything it cannot prove it installed.
+- **The README now warns against installing `core-suite` alongside this bundle**, which is a strict subset of it.
+
 ## 0.2.0
 
 ### Changed

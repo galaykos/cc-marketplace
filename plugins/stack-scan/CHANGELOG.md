@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.7.8
+
+### Changed
+- **The scout catalog re-renders `code-review`'s description.** That plugin corrected the deny bound its description had stated as "once per file per session" when the hooks had moved to twice; this catalog is generated from the marketplace manifest, so it carried the stale figure until regenerated. No behaviour here changed.
+
 ## 0.7.7
 
 ### Changed

@@ -8,3 +8,4 @@ database:mariadb-best-practices	skill	build	mariadb-idioms	an edit to a .sql fil
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 database:database-engineer	agent	build	relational-schema-and-query-implementation	work names a schema, migration, index, query shape, or connection pool in a relational store	code-review:code-reviewer
 # generated:end
+database:guard	hook	any	destructive-schema-consent	a Write/Edit introduces a destructive schema statement (drop/truncate/rename column or table) in a migration	command-guard:destructive-guard

@@ -2,6 +2,11 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.7
+
+### Fixed
+- **`workflow-guard` now has an off-switch**, `CC_WORKFLOW_GUARD=off`. It previously had none.
+
 ## 0.6.6
 
 ### Fixed

@@ -10,7 +10,7 @@
     "lane": {
       "owns": "build-vs-buy-advice",
       "trigger": "prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)",
-      "yieldsTo": "-",
+      "yieldsTo": "approaches:build-vs-buy",
       "phase": "decide"
     }
   },

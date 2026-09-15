@@ -99,7 +99,7 @@ and misses evaporate with the transcript. Persist them to a durable, append-only
 ledger so the next run inherits real local anchors instead of starting from
 optimism:
 
-- Append each sized item to `taskmaster-docs/estimation-ledger.md` (the gitignored
+- Append each sized item to `taskmaster-docs/estimation-ledger.md` (a scratch
   working area) as one row: date, task, class, anchor, and — when it completes —
   actual and the miss delta. Append-only; never rewrite a past row (that is the
   mid-task-revision anti-pattern at file scale).

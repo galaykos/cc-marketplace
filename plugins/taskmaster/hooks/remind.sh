@@ -143,7 +143,10 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   scrub=$(printf '%s' "$prompt" | awk '/^```/{f=!f; next} !f' | sed 's/`[^`]*`//g')
   head=$(printf '%s' "$scrub" | tr '\n' ' ' | cut -c1-400)
   printf '%s' "$head" | grep -qiE 'hook (success|feedback|output)|task-notification|SYSTEM NOTIFICATION|UserPromptSubmit' && exit 0
-  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)[a-z -]{0,40}(plugin|hook|reminder|trigger)' && exit 0
+  # The noun must START a word: `[ -]` before it, or the verb abutting it directly.
+  # Without that separator `fix the webhook handler` matched `...web`+`hook` and
+  # silently disarmed the nudge on any webhook/API prompt — measured 2026-09-15.
+  printf '%s' "$head" | grep -qiE '(delete|remove|uninstall|disable|install|list|which|audit|fix|update|change|write|rewrite|edit)([a-z -]{0,39}[ -])?(plugin|hook|reminder|trigger)' && exit 0
   printf '%s' "$head" | grep -qF '/taskmaster:task' && exit 0 # own suggestion quoted back = transcript, not intent
   # QUESTION-SHAPED PROMPTS (misfire regression, live transcript 2026-08-25). The
   # trigger is a bare verb list matched anywhere in the head, so "can I BUILD a

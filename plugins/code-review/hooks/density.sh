@@ -5,8 +5,8 @@
 # Comment-VOLUME guard, two lanes. PostToolUse (warn-only, at most 3 warnings per
 # session) compares the file just written against the comment density of its OWN
 # siblings AND against an absolute ceiling, and says so when it is over either.
-# PreToolUse (deny, Write only, once per file per session) refuses a whole new file
-# whose comment-to-code ratio is over the ceiling before it lands. Silence is the
+# PreToolUse (deny, Write only, at most TWICE per file per session) refuses a whole new
+# file whose comment-to-code ratio is over the ceiling before it lands. Silence is the
 # common case.
 #
 # WHY THIS EXISTS — the gap scan.sh cannot close by design. scan.sh detects KINDS of
@@ -41,9 +41,11 @@
 #   - The PostToolUse lane is WARN-ONLY: `additionalContext` is not a blocking key. The
 #     file is already on disk. It informs the next write, never the one that tripped it.
 #     The PreToolUse lane denies, but only a `Write` (an Edit carries a fragment, and a
-#     fragment's ratio says nothing about the file), only over CEIL, and only ONCE per
-#     file per session with the same marker-on-disk bound as scan.sh — so a false
-#     positive costs one turn and the second attempt goes through with a warning.
+#     fragment's ratio says nothing about the file), only over CEIL, and at most TWICE
+#     per file per session with the same marker-on-disk bound as scan.sh — so a false
+#     positive costs up to two turns and the third attempt goes through with a warning.
+#     The bound was one until 2026-09-15; a sibling hook denying the same call spent it
+#     without the write ever landing, which cost this guard its only enforcement.
 #   - A ratio is not a judgment. A file legitimately denser than its siblings (the one
 #     driver full of vendor workarounds) trips this, and that is a false positive the
 #     author should overrule by keeping the comments and moving on — the message says so.
@@ -155,10 +157,10 @@
       END { printf "%d %d\n", c+0, code+0 }' "$@" 2>/dev/null
   }
 
-  # ---- PreToolUse lane: deny a whole new file over CEIL, ONCE per file ----------
+  # ---- PreToolUse lane: deny a whole new file over CEIL, at most TWICE per file ----
   # Same bound and the same reasoning as scan.sh's deny: the model wrote it, so the
   # model is the audience; `ask` would interrupt the human for a style call; and a
-  # deny that cannot record its one-shot marker is withheld rather than left unbounded.
+  # deny that cannot record its bounding marker is withheld rather than left unbounded.
   if [ "$event" = "PreToolUse" ]; then
     [ "$CEIL" -gt 0 ] || exit 0
     content=$(printf '%s' "$input" | jq -r '.tool_input.content // empty' 2>/dev/null) || exit 0
@@ -175,11 +177,23 @@ EOF
     key=$(printf '%s' "$fp" | (command -v shasum >/dev/null 2>&1 && shasum || cksum) 2>/dev/null | cut -d' ' -f1)
     [ -n "$key" ] || exit 0
     marker="$dir/density-blocked-$ctx-$key"
-    [ -e "$marker" ] && exit 0
-    : > "$marker" 2>/dev/null || exit 0
-    [ -e "$marker" ] || exit 0
+    # BOUNDED RETRIES, not a one-shot — same defect and same fix as scan.sh: a sibling
+    # PreToolUse deny blocks the write too, and the old one-shot was spent on a write
+    # that never landed, so the next edit of this file went through unchecked.
+    DENY_CAP=2
+    # ATOMIC (0.19.1): `mkdir` either creates or fails, so parallel subagents editing one
+    # file cannot both read the same count and both write it back. A legacy zero-byte
+    # marker counts as one try so an upgrade mid-session does not grant a fresh budget.
+    # Residual, same as scan.sh: the bound is spent on a DENY, which does not prove the
+    # write landed — two co-firing siblings can still exhaust it.
+    tries=0
+    [ -e "$marker" ] && tries=1
+    i=1
+    while [ "$i" -le "$DENY_CAP" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
+    [ "$tries" -ge "$DENY_CAP" ] && exit 0
+    mkdir "$marker.d$((tries + 1))" 2>/dev/null || exit 0
     reason=$(awk -v f="$(basename "$fp")" -v c="$pc" -v cd="$pcode" -v r="$pratio" -v l="$CEIL" \
-      'BEGIN { printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws) — and move the rest to a name, a type, or a test. Blocked once per file; a repeat write goes through with a warning instead.", f, r/10, c, cd, l/10 }')
+      'BEGIN { printf "comment-discipline: %s would be %.1f:1 comment-to-code (%d comment lines, %d code); the ceiling is %.1f:1. Write it again with the code carrying the meaning: keep only a why-this-not-the-obvious, an external constraint with a link, a deliberate no-op, or a contract fact the signature cannot state (units, ownership, what throws) — and move the rest to a name, a type, or a test. Blocked at most twice per file; after that a write goes through with a warning instead.", f, r/10, c, cd, l/10 }')
     jq -cn --arg r "$reason" \
       '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
     exit 0

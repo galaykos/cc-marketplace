@@ -9,3 +9,4 @@ craft-layer:threejs-best-practices	skill	build	threejs-idioms	an import of three
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 craft-layer:ultra-craft	hook	any	ultra-craft-boost-directive	prompt head matches ultra-?craft with no negation and no active-banner echo	-
 # generated:end
+craft-layer:audit	command	review	motion-and-asset-gate-audit	a built creative surface needs its motion tiers, asset budgets and reduced-motion handling audited	craft-layer:craft-reviewer

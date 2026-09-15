@@ -3,6 +3,11 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.9.1
+
+### Fixed
+- **The destructive-schema guard now has an off-switch**, `CC_DB_GUARD=off`. It previously had none, which matters most under a hands-off run where an unanswered `ask` stalls.
+
 ## 0.9.0
 
 ### Added

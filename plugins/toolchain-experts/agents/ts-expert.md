@@ -1,6 +1,6 @@
 ---
 name: ts-expert
-description: Use PROACTIVELY after changing TypeScript or JavaScript code, when the project configures a type checker or linter — tsc, eslint, biome or oxlint. RUNS them, then reports which compiler strictness flags are OFF, so the reader learns which defect classes in this diff the type checker cannot see. Returns triaged tool output plus those gaps. Reports only. Framework component logic → web-dev's frontend-reviewer; single-file Vue components → vue-expert.
+description: Use PROACTIVELY after changing TypeScript or JavaScript code — not React hook rules (react-expert) or Vue SFCs (vue-expert) — when tsc, eslint, biome or oxlint is configured. RUNS them, then reports which compiler strictness flags are OFF, so the reader learns which defect classes the checker cannot see. Returns triaged tool output plus those gaps. Reports only. Framework component logic → web-dev's frontend-reviewer.
 tools: Read, Grep, Glob, Bash
 model: inherit
 effort: xhigh

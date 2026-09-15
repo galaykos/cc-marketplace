@@ -52,6 +52,10 @@
 # the cheap side of the trade against leaving ui-ux unguarded. On the WEAK tier
 # not even that: both copies hash the same session_id to the same marker, so the
 # mkdir race leaves exactly one asker.
+# OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
+# uninstalling the plugin. With BOTH twins installed it asks twice on a strong
+# signal (see TWIN above), which makes "turn it off here" a real need.
+[ "${CC_PREVIEW_GUARD:-on}" = "off" ] && exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 {
   input=$(cat)
@@ -67,8 +71,9 @@ command -v jq >/dev/null 2>&1 || exit 0
   [ -n "$cwd" ] || cwd="$PWD"
 
   # Walk UP looking for the docroot. A git worktree or a session started in a
-  # subdirectory would otherwise miss it — taskmaster-docs is gitignored, so a
-  # worktree never carries one even while the shared server is live.
+  # subdirectory would otherwise miss it — taskmaster-docs is untracked wherever the
+  # project ignores it (as this marketplace does), so a worktree may not carry one
+  # even while the shared server is live. The walk does not depend on that either way.
   docroot=""
   d="$cwd"
   while [ -n "$d" ] && [ "$d" != "/" ]; do
@@ -119,7 +124,8 @@ command -v jq >/dev/null 2>&1 || exit 0
            + "preview server at http://localhost:" + $p + "/ — it carries the viewport "
            + "presets, the version picker, and push-reload that a published page does "
            + "not, and it keeps unreleased design work off a remote host. Publish only "
-           + "if the point is sharing with someone who cannot reach this machine.")
+           + "if the point is sharing with someone who cannot reach this machine. "
+           + "CC_PREVIEW_GUARD=off disables this guard for the session.")
       }
     }'
   else
@@ -133,7 +139,7 @@ command -v jq >/dev/null 2>&1 || exit 0
            + "convention here: the server carries the viewport presets, the version "
            + "picker, and push-reload a published page loses, and keeps the work off an "
            + "external host. Publish remotely ONLY if someone who cannot reach this "
-           + "machine must open it.")
+           + "machine must open it. " + "CC_PREVIEW_GUARD=off disables this guard for the session.")
       }
     }'
   fi

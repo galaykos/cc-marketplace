@@ -78,6 +78,12 @@ string cannot reach the hook's environment, so
 | `CLAUDE_DESTRUCTIVE_GUARD=deny-only` | the hard stops only; the ask tier goes silent |
 | `CLAUDE_DESTRUCTIVE_GUARD=ask` | every deny becomes a prompt instead of a block |
 | `CLAUDE_DESTRUCTIVE_GUARD=off` | guard disabled |
+| `CC_CONFIG_GUARD=off` | the config-file-write ask only; leaves the command guard on |
+
+`CLAUDE_DESTRUCTIVE_GUARD=deny-only` and `=off` silence **config-guard** too, since
+both mean "no ask tier". Until 0.6.3 they did not: config-guard read only its own
+variable, so the setting core-suite's README recommends for a global install left an
+ask running on every `tsconfig.json`, `pyproject.toml` or `hooks.json` write.
 
 ### Why you might want `deny-only`
 

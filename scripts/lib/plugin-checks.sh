@@ -748,7 +748,7 @@ pc_rules_owner() {
 # that costs tokens — a plugin re-implementing a capability the user already has,
 # paying always-on description cost to compete with it for the same trigger.
 #
-# The name list is the host skill roster as of 2026-08-02. It is a NAME collision
+# The name list is the host skill roster as of 2026-09-15. It is a NAME collision
 # check only: a plugin may still cover adjacent ground, and should say so as a
 # deferral. Mark a legitimate mention with <!-- host-ok --> on the line, matching
 # the rescue idiom pc_removed_refs already uses.
@@ -760,7 +760,12 @@ pc_rules_owner() {
 pc_host_overlap() {
   local f="$1" bad=0 name host
   [ -f "$f" ] || return 0
-  local hosts="dataviz artifact-design artifact-capabilities skill-creator claude-api update-config keybindings-help fewer-permission-prompts claude-in-chrome simplify"
+  # Roster refreshed 2026-09-15 against a live session's skill listing. The six
+  # added then — code-review security-review run init loop schedule — had shipped
+  # in the host while this list still read 2026-08-02, so `security/skills/
+  # security-review` collided with a built-in for 44 days without tripping. That
+  # one is deliberate and carries <!-- host-ok -->; the gate simply could not see it.
+  local hosts="dataviz artifact-design artifact-capabilities skill-creator claude-api update-config keybindings-help fewer-permission-prompts claude-in-chrome simplify code-review security-review run init loop schedule"
   # SKILLS ONLY. Commands are namespaced at the call site (`/code-review:review`
   # cannot be typed for the host's bare `/review`), so a command-name collision is
   # not a collision. A skill competes on its DESCRIPTION for the same trigger
@@ -775,6 +780,92 @@ pc_host_overlap() {
       printf 'hostoverlap %s %s\n' "$f" "$name"; bad=1
     fi
   done
+  return $bad
+}
+
+# pc_lanes_vocabulary [plugins-root] [vocab-file] — an `owns` noun must be declared.
+#
+# WHAT IT CATCHES. pc_lanes_territory compares `owns` as a string, so two artifacts doing
+# one job slip past it by choosing different nouns — which is what every plugin here had
+# done. Twelve review-phase agents each picked a unique noun and the territory gate stayed
+# green while they contended for the same `.tsx` diff. This check does not merge them; it
+# makes INVENTING a noun a reviewed act, because the new one has to be typed into
+# scripts/lane-vocabulary.txt directly beneath the twelve already there.
+#
+# HONEST LIMITATION, and it is the whole of the check's weakness: nothing here proves two
+# nouns MEAN different things, and nothing stops an author adding a near-duplicate line.
+# The catch is social — a human reading the grouped list — with a gate only on the
+# bookkeeping. A semantic check is not available to a shell script, and pretending
+# otherwise is the tier over-claim this repo's own convention forbids.
+pc_lanes_vocabulary() {
+  local root="${1:-plugins}" vocab="${2:-scripts/lane-vocabulary.txt}" bad=0 f line owns
+  # A MISSING VOCABULARY IS A FAILURE, NOT A PASS. The first version returned 0 here,
+  # so deleting the file silently disabled a blocking gate while its own header still
+  # said `Standing: gate` — the same shape as the two eval suites CLAUDE.md records as
+  # having loaded zero cases for weeks with nobody noticing.
+  if [ ! -f "$vocab" ]; then printf 'lane-vocab MISSING %s\n' "$vocab"; return 1; fi
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    # `|| [ -n "$line" ]`: a lane.tsv with no trailing newline otherwise loses its LAST
+    # row here while every sibling lane check (all awk-based) still sees it — so the final
+    # row of an unterminated file was schema-checked and territory-checked but exempt from
+    # the vocabulary gate. The inconsistency is the bug; the missing newline is not.
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in ''|'#'*) continue ;; esac
+      line=${line%$'\r'}
+      # -s: a line with no tab is skipped rather than returned whole. Without it a
+      # malformed row reports its entire text as an undeclared noun.
+      owns=$(printf '%s' "$line" | cut -s -f4)
+      [ -n "$owns" ] || continue
+      case "$owns" in owns) continue ;; esac
+      grep -qxF "$owns" "$vocab" 2>/dev/null && continue
+      printf 'lane-vocab %s %s\n' "$f" "$owns"; bad=1
+    done < "$f"
+  done < <(find "$root" -mindepth 2 -maxdepth 2 -name lane.tsv 2>/dev/null | sort)
+  return $bad
+}
+
+# pc_twin_files [plugins-root] — a file that DECLARES itself a twin must still be one.
+#
+# WHAT IT CATCHES. `plugins/taskmaster/hooks/preview-guard.sh` and
+# `plugins/ui-ux/hooks/preview-guard.sh` are one guard shipped twice: ${CLAUDE_PLUGIN_ROOT}
+# is per-plugin so the file cannot be shared, and ui-ux is installed alone by
+# frontend-suite, so without its own copy that path has no guard at all. Their
+# correctness as a PAIR depends on byte-identity: both hash the same session_id to the
+# same marker, and that shared key is what leaves exactly one asker on the weak tier.
+# Let them drift and the marker keys diverge, so both ask — silently, on every call, with
+# the header still claiming one does.
+#
+# HOW. Any file carrying `# TWIN: <path> is an identical copy save this line.` must match
+# its named partner on every line EXCEPT the two TWIN lines themselves, which name each
+# other and therefore cannot match. Prints `twin <a> <b>` per drifted pair, returns 1.
+#
+# HONEST LIMITATION. It gates SAMENESS, not correctness — two identically wrong copies
+# pass. It also cannot tell you WHICH copy is authoritative: the fix is always "make them
+# match", never "make them match the right one". And it only sees pairs that declare
+# themselves; an undeclared copy-paste twin is invisible, the same residual pc_host_overlap
+# carries for its hardcoded roster.
+pc_twin_files() {
+  local root="${1:-plugins}" f partner bad=0 a b
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    partner=$(sed -n 's/^# TWIN: \([^ ]*\) is an identical copy save this line.*/\1/p' "$f" | head -1)
+    # A NEAR MISS IS LOUD, NOT SILENT. The extraction wants one exact sentence; any reword
+    # left `partner` empty and skipped the file with no output, so editing the comment on
+    # BOTH copies would retire the gate while both files still read to a human as a
+    # declared pair. Same failure shape as a vocabulary file that goes missing.
+    if [ -z "$partner" ]; then
+      printf 'twin %s (unparseable marker — expected: # TWIN: <path> is an identical copy save this line)\n' "$f"
+      bad=1; continue
+    fi
+    if [ "$partner" = "$f" ]; then printf 'twin %s (declares itself)\n' "$f"; bad=1; continue; fi
+    if [ ! -f "$partner" ]; then
+      printf 'twin %s %s\n' "$f" "$partner(missing)"; bad=1; continue
+    fi
+    a=$(grep -vF '# TWIN:' "$f")
+    b=$(grep -vF '# TWIN:' "$partner")
+    if [ "$a" != "$b" ]; then printf 'twin %s %s\n' "$f" "$partner"; bad=1; fi
+  done < <(grep -rlF '# TWIN:' "$root" 2>/dev/null | sort)
   return $bad
 }
 
@@ -1130,17 +1221,20 @@ pc_lanes_territory() {
 }
 
 # pc_lanes_coverage [plugins_root]
-# Every agent, and every UserPromptSubmit/Stop hook script, must carry a row in
-# its own plugin's lane.tsv — those are the GATE tier. Commands and skills are
-# WARN this run. Prints `lane-missing agent|hook <plugin>:<name>` (gate) and
+# Every agent, every UserPromptSubmit/Stop hook script, and every Pre/PostToolUse
+# hook script that can return a DENY verdict, must carry a row in its own plugin's
+# lane.tsv — those are the GATE tier. Commands and skills are WARN this run. Prints `lane-missing agent|hook <plugin>:<name>` (gate) and
 # `lane-warn command|skill <plugin>:<name>` (advisory), and returns 1 only when
 # something at gate tier is missing.
 #
-# WHY THOSE TWO ARE THE TEETH. Agents are the surface where ownership is
+# WHY THOSE THREE ARE THE TEETH. Agents are the surface where ownership is
 # contested by the MODEL rather than by a script: 8 of the 32 are reviewer-class
 # with distinct filenames, and the model picks between them from descriptions
 # alone. Prompt-channel and Stop hooks are the surface where two plugins speak
-# on one turn and the winner is decided by scheduling order. Gating all 99
+# on one turn and the winner is decided by scheduling order. Deny-capable tool-channel
+# hooks were added to the tier on 2026-09-15: with all 31 plugins installed, three of
+# them return a verdict on one Edit and two had no row, so the pair that actually
+# collides was invisible to pc_lanes_territory. Gating all 99
 # commands instead would have forced ~66 version bumps in one change for rows
 # nothing yet arbitrates.
 #
@@ -1186,6 +1280,38 @@ pc_lanes_coverage() {
         esac
       done < <(jq -r '.hooks | to_entries[]
                       | select(.key=="UserPromptSubmit" or .key=="Stop")
+                      | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
+      # DENY-CAPABLE TOOL-CHANNEL HOOKS ARE GATED TOO (2026-09-15). The two events above
+      # were the whole hook half of this check, which left the most contended surface in
+      # the marketplace undeclared: 14 hooks can return a permissionDecision on one tool
+      # call and only 3 had a lane row, so pc_lanes_territory could not see the pair that
+      # actually collides. Measured with all 31 plugins installed — on one Edit,
+      # code-review:scan (deny), secret-scanning:scan (deny) and database:guard (ask) all
+      # return a verdict and two of the three were invisible.
+      #
+      # THE TEST IS THE SCRIPT'S OWN TEXT, not the event name. Two verdict channels count,
+      # because a PreToolUse hook denies EITHER by emitting `permissionDecision` OR by
+      # exiting 2 — an earlier revision tested only the first and said a hook without it
+      # "cannot block anything", which is false and would have exempted an exit-2 denier
+      # from a blocking gate. Measured 2026-09-15: of 27 shipped Pre/PostToolUse hooks, 14
+      # emit the key and 0 deny by exit 2 alone, so widening the test costs nothing today
+      # and closes the hole for the next one.
+      #
+      # Honest limitation: grep, not parsing — a hook that builds the key dynamically, or
+      # exits 2 through a variable or a trap, is still missed; a hook that only MENTIONS
+      # either form in a comment, or exits 2 for a usage error rather than a verdict, is
+      # over-reported. Both fail toward declaring a row, which is the cheap direction.
+      while IFS= read -r cmd; do
+        case "$cmd" in '${CLAUDE_PLUGIN_ROOT}/hooks/'*.sh) ;; *) continue ;; esac
+        n=$(basename "$cmd" .sh)
+        [ -f "$d/hooks/$n.sh" ] || continue
+        grep -qE 'permissionDecision|^[[:space:]]*exit 2([[:space:]]|$)' "$d/hooks/$n.sh" 2>/dev/null || continue
+        case "$NL$rows$NL" in
+          *"$NL$p:$n${TAB}hook$NL"*) ;;
+          *) printf 'lane-missing hook %s:%s (returns a permissionDecision)\n' "$p" "$n"; bad=1 ;;
+        esac
+      done < <(jq -r '.hooks | to_entries[]
+                      | select(.key=="PreToolUse" or .key=="PostToolUse")
                       | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
     fi
     while IFS= read -r a; do
@@ -1337,6 +1463,13 @@ EOF_CLAUSE
 }
 
 # pc_phase_guard <plugins-root> — spec §4.3, C4.
+#
+# SCOPE FOLLOWS pc_lanes_coverage, 2026-09-15. It read UserPromptSubmit and Stop only,
+# which was right while those were the whole gate tier. When deny-capable Pre/PostToolUse
+# hooks joined that tier, 11 hooks were forced to carry a lane row and nothing checked
+# the phase those rows claimed — two of them named a specific phase and never read the
+# sentinel. Adding rows to a tier without widening its companion gate is how a rule gets
+# trusted as a guarantee while nothing enforces it.
 # A script wired to UserPromptSubmit or Stop must READ the phase sentinel, or it
 # cannot take turns: it speaks in every phase forever, which is the defect the
 # sentinel exists to fix (taskmaster's "before the first code edit" directive
@@ -1380,7 +1513,8 @@ pc_phase_guard() {
       printf 'phase-unguarded %s:%s\n' "$p" "$rel"
       bad=1
     done <<EOF
-$(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // []))
+$(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // [])
+          + (.hooks.PreToolUse // []) + (.hooks.PostToolUse // []))
          | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
@@ -2032,7 +2166,12 @@ pc_listing_entry_cost() {
 # x skillListingBudgetFraction (defaults 0.01; read out of CLI 2.1.251, not docs). The
 # worst realistic case is a 3-bytes-per-token model at the default 200k window: 6,000
 # chars. Over budget the CLI reduces entries to name-only and buys descriptions back in
-# priority order — no error, no log; skills silently stop being reachable. Four shipped
+# priority order — no error, no log. Whether that makes a skill stop FIRING was measured
+# on 2026-09-15 and it does not: 47/50 vs 47/50 name-only
+# (rationale/2026-09-15-listing-eviction-probe.md). This gate is kept anyway — one
+# measurement at n=50 on one model is not grounds to delete a gate, and this repo has
+# already withdrawn a delta that three runs agreed on. Treat the README declaration it
+# forces as a disclosure, not as a fix for a proven defect. Four shipped
 # bundles overflow that floor while fitting comfortably at 1M, so whether an install is
 # broken depends on which tier the USER runs — a fact only the bundle can warn about,
 # and on 2026-08-31 none did.

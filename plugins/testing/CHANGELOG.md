@@ -6,6 +6,11 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.10.2
+
+### Changed
+- **`protect-tests` is now declared in `lane.tsv`.** It can deny a tool call, and until now the marketplace's territory gate could not see it — 14 hooks could return a permission verdict and only 3 were declared.
+
 ## 0.10.1
 
 ### Fixed

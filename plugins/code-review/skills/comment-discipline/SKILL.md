@@ -1,6 +1,6 @@
 ---
 name: comment-discipline
-description: Use when writing or reviewing code and deciding whether a comment or docblock should exist — the default is none; the code carries the meaning through names, types, tests and extraction. Keep only why-comments, linked external constraints, intentional-silence markers, and one-line docblock facts a signature cannot state. A project house style in CLAUDE.md overrides the default; nothing else does.
+description: Use when writing or reviewing code and deciding whether a comment or docblock should exist — the default is none; the code carries the meaning through names, types, tests and extraction. Keep only why-comments, linked external constraints, intentional-silence markers, and one-line docblock facts a signature cannot state. Density ceiling only: COMMENT_DISCIPLINE_CEILING_TENTHS in env, not CLAUDE.md.
 ---
 
 ## Core rule
@@ -141,8 +141,8 @@ section, so a fan-out cannot re-import the surrounding file's habits.
   lane of `hooks/scan.sh`: a comment restating the next line, commented-out code, and
   a docblock tag repeating the signature. And `hooks/density.sh` denies a whole
   `Write` whose comment-to-code ratio is over the ceiling (0.4:1 by default). Both
-  are bounded: one deny per file per session, so a false positive costs one turn and
-  never wedges a run.
+  are bounded: at most two denies per file per session, so a false positive costs at
+  most two turns and never wedges a run.
 - **agent-graded** — banners, bare TODOs, change-narration and missing why-comments
   are `PostToolUse` warnings. Whether a kept why-comment was necessary is a reviewer's
   judgment; the `code-reviewer` agent makes it.
@@ -153,7 +153,10 @@ min(2x its committed siblings' median, the ceiling), and judges a file with no
 committed siblings against the ceiling alone. A project that specifies a heavier
 style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (10 for 1:1;
 0 keeps only the sibling test). That is the "unless specified" escape hatch, and it
-is per project on purpose.
+is per project on purpose. It is also the ONLY one the hooks read: neither
+`scan.sh` nor `density.sh` parses CLAUDE.md, so a house style written only in prose
+there is recorded, not enforced, and its first tag-carrying write is still denied.
+The description said otherwise until 2026-09-15.
 
 ## Anti-patterns
 

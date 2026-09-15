@@ -1,6 +1,6 @@
 ---
 name: approach-deliberation
-description: Use before starting any non-trivial implementation, FIRST — multi-file changes, new capabilities, a refactor/rewrite/restructure/migrate/rework request, two-plus viable shapes: 2-3 structurally different approaches (or four blind persona takes on rework-shaped work), trade-offs, a pick with kill-trigger surfaced for one-question approval. One deliberation per task. Picks the SHAPE; file-level planning is code-architecture:plan-before-code.
+description: Use before file-level planning of a non-trivial change — new capabilities, a refactor/rewrite/restructure/migrate/rework request, two-plus viable shapes: 2-3 structurally different approaches (or four blind persona takes on rework-shaped work), trade-offs, a pick with kill-trigger surfaced for one-question approval. One deliberation per task. Picks the SHAPE; file-level planning is code-architecture:plan-before-code.
 ---
 
 Two failure modes, one decision. **First-idea anchoring:** the first plausible
@@ -14,7 +14,11 @@ implementation costs the whole branch.
 
 Deliberate when ANY of these holds:
 
-- The change spans multiple files or introduces a new capability.
+- The change introduces a new capability, or is a refactor/rewrite/migrate request.
+  File COUNT alone is not the trigger: a few mechanical lines across a few files is
+  already-decided work, and `code-architecture:coding-entry` sends it straight to the
+  edit. Claiming it here put two artifacts on one ordinary prompt saying opposite
+  things — `lane.tsv` always said "two-plus viable shapes"; this line did not.
 - Two or more shapes are genuinely viable (new module vs extend existing, sync vs
   async, rewrite vs strangler, migrate vs wrap, extract vs restructure in place).
 - The territory is unfamiliar — new subsystem, new dependency, new domain.

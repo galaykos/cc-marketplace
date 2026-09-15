@@ -3,6 +3,11 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.6.1
+
+### Fixed
+- **The write-time block now has an off-switch.** `CC_SECRET_SCAN=off` disables it for a session. Until now the only way out was uninstalling the plugin — the one deny in the marketplace with no escape at all.
+
 ## 0.6.0
 
 ### Added

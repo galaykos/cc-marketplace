@@ -814,6 +814,17 @@ listing_decl_gap=$(pc_listing_declaration plugins) || true
 bundle_readme_gap=$(pc_bundle_readme_members plugins) || true
 [ -n "$bundle_readme_gap" ] && lane_err "$bundle_readme_gap" "bundle README does not name a plugin its plugin.json installs — add a line for each name listed"
 
+# An `owns` noun must be declared in scripts/lane-vocabulary.txt, so inventing one is a
+# reviewed act rather than the invisible default. pc_lanes_vocabulary's header is candid
+# that the catch is social; the gate is only on the bookkeeping.
+vocab_gap=$(pc_lanes_vocabulary plugins scripts/lane-vocabulary.txt) || true
+[ -n "$vocab_gap" ] && lane_err "$vocab_gap" "a lane row uses an owns noun that scripts/lane-vocabulary.txt does not declare — add it under its phase, next to the nouns it sits beside, or reuse one of those"
+
+# A self-declared twin must still be identical: the pair's shared marker key is what
+# makes exactly one of them ask. pc_twin_files' header carries the residuals.
+twin_gap=$(pc_twin_files plugins) || true
+[ -n "$twin_gap" ] && lane_err "$twin_gap" "a file declaring itself a TWIN has drifted from its partner — re-copy it so both differ only in the TWIN line"
+
 # The plugin-scout skill's suggestion tables are hand-written and feed `--yes`, which
 # INSTALLS what they name — so a name that outlived its plugin is an install command
 # against nothing. Repo root, not `plugins`: the live set comes from marketplace.json.

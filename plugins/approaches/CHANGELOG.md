@@ -3,6 +3,12 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.7.3
+
+### Fixed
+- **`approach-deliberation` no longer fires on every multi-file change.** Its description claimed primacy ("FIRST") and its body triggered on "spans multiple files", while its own `lane.tsv` had always said "two-plus viable shapes". The wide reading collided head-on with `code-architecture:coding-entry`, which sends small mechanical work straight to the edit — so an ordinary three-file change got "proceed now" and "stop for a slate" in one turn.
+- **The reminder no longer goes silent on the word "webhook".** The anti-self-reference guard matched `hook` inside `webhook`, so `fix the webhook handler` disarmed the nudge on exactly the API-integration prompts it exists for.
+
 ## 0.7.1
 
 ### Fixed

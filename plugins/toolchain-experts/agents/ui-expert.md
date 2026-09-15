@@ -1,6 +1,6 @@
 ---
 name: ui-expert
-description: Use PROACTIVELY after changing CSS, styles or markup, when the project configures stylelint, pa11y, lighthouse-ci or axe. RUNS them and triages real output, and reports which accessibility and style rules the project has switched off. Returns tool findings plus those gaps. Reports only. The WCAG 2.2 judgment pass nothing can automate is /ui-ux:audit; design-system and component-library correctness is ui-ux's ui-ux-reviewer.
+description: Use PROACTIVELY after changing CSS, styles or markup, to RUN the project's configured tools (stylelint, pa11y, lighthouse-ci, axe) — never as the judgment pass, which is ui-ux's reviewers. RUNS them and triages real output, and reports which accessibility and style rules the project has switched off. Returns tool findings plus those gaps. Reports only. WCAG 2.2 judgment → /ui-ux:audit; design-system correctness → ui-ux-reviewer.
 tools: Read, Grep, Glob, Bash
 model: inherit
 effort: high

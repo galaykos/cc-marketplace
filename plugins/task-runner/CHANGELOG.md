@@ -2,6 +2,12 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.35.1
+
+### Fixed
+- **`rv-consent`'s lane now declares `any`, not `build`.** It is armed by run state — a registered task-runner run whose reviewer verdict is unconsented — not by where you are in the arc, so a phase-specific claim was one no gate could check and no behaviour honoured. `pc_phase_guard` was widened the same day to cover deny-capable tool-channel hooks, which is what surfaced it.
+- **`verification-panels` contradicted itself about when a panel is real.** One line keyed the inline fallback on the `Workflow` tool being absent, another correctly keyed it on whether N agents actually dispatched. The Agent tool is a real dispatch path, so the first line sent ordinary sessions to an uncorroborated single pass while `approach-deliberation` spawned the panel — the two disagreed on the same turn.
+
 ## 0.35.0
 
 ### Added

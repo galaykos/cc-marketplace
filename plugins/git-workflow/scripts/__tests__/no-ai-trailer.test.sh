@@ -66,6 +66,102 @@ expect deny "cd /repo && git add -A && git commit -m \"x
 $TRAILER\""
 expect deny "git commit -m 'x' -m 'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>'"
 
+printf '== classification: deny — git global options before the verb\n'
+# Every one of these reaches a real commit and every one was ALLOWED until
+# 2026-09-15. The bug hid because the then-current prefix matched the literal
+# `.git` inside `--git-dir=/repo/.git commit` — right verdict, wrong reason — so
+# the single form anyone had tested passed while the other eight did not.
+expect deny "git --git-dir=/repo/.git commit -m \"x
+
+$TRAILER\""
+expect deny "git --git-dir /repo/bare commit -m \"x
+
+$TRAILER\""
+expect deny "git --work-tree=/tmp/wt commit -m \"x
+
+$TRAILER\""
+expect deny "git --work-tree /tmp/wt commit -m \"x
+
+$TRAILER\""
+expect deny "git --no-pager commit -m \"x
+
+$TRAILER\""
+expect deny "git -P commit -m \"x
+
+$TRAILER\""
+expect deny "git --namespace=ns commit -m \"x
+
+$TRAILER\""
+expect deny "git --exec-path=/usr/lib/git-core commit -m \"x
+
+$TRAILER\""
+expect deny "git -c user.email=x@y --no-pager commit -m \"x
+
+$TRAILER\""
+expect deny "git -C /repo --no-pager tag -a v1 -m \"x
+
+$TRAILER\""
+expect deny "bash -c 'git --no-pager commit -m \"x
+
+$TRAILER\"'"
+
+printf '== classification: deny — keyword and assignment command positions\n'
+# The four shapes classify_command's own comment names as the reason the keyword/assignment
+# prefix exists. The comment claimed they were "verified both directions by fixture" while
+# none of them had one.
+expect deny "if true; then git commit -m \"x
+
+$TRAILER\"; fi"
+expect deny "for f in a; do git commit -m \"x
+
+$TRAILER\"; done"
+expect deny "while :; do git commit -m \"x
+
+$TRAILER\"; break; done"
+expect deny "sudo git commit -m \"x
+
+$TRAILER\""
+expect deny "VAR=1 git commit -m \"x
+
+$TRAILER\""
+expect deny "GIT_AUTHOR_NAME=x GIT_AUTHOR_EMAIL=y git commit -m \"x
+
+$TRAILER\""
+expect deny "nohup timeout 30 git commit -m \"x
+
+$TRAILER\""
+expect deny "echo . | xargs git commit -m \"x
+
+$TRAILER\""
+
+printf '== classification: deny — the binary spelled with a path\n'
+# The command-position anchor lists no `/`, so every one of these bypassed it. The
+# pre-2026-09-15 loose prefix caught them by accident, which is the only reason the
+# regression was visible at all: tightening the anchor turned the guard OFF for the
+# most obvious wrapper there is — spelling out where git lives.
+expect deny "/usr/bin/git commit -m \"x
+
+$TRAILER\""
+expect deny "/usr/local/bin/git commit -m \"x
+
+$TRAILER\""
+expect deny "./bin/git commit -m \"x
+
+$TRAILER\""
+expect deny "../git commit -m \"x
+
+$TRAILER\""
+expect deny "~/bin/git commit -m \"x
+
+$TRAILER\""
+expect deny "sudo /usr/bin/git commit -m \"x
+
+$TRAILER\""
+expect deny "cd /repo; /usr/bin/git --no-pager commit -m \"x
+
+$TRAILER\""
+expect deny "/opt/homebrew/bin/gh pr create --title t --body \"$TRAILER\""
+
 printf '== classification: allow\n'
 expect allow 'git commit -m "fix: drop the co-authored-by trailer from the release script"'
 expect allow 'git log --format=%B | grep -i "co-authored-by: claude"'
@@ -74,9 +170,27 @@ expect allow 'git commit -m "docs: credit" --trailer "Co-authored-by: Jane Doe <
 expect allow 'git commit -m "feat: add claude api client"'
 expect allow 'git commit -m "chore: regenerate with claude-code chassis"'
 expect allow 'git push origin HEAD'
+# The path prefix must end in `/`, and `echo` is not a command position — neither of
+# these runs git, and denying them would be the false positive the anchor exists to stop.
+expect allow '/usr/share/digit commit -m "x co-authored-by: claude <noreply@anthropic.com>"'
+expect allow 'echo "run /usr/bin/git commit later"  # co-authored-by: claude <noreply@anthropic.com>'
+expect allow '/usr/bin/git --no-pager log | grep "co-authored-by: claude <noreply@anthropic.com>"'
+# The option run accepts dash / path / assignment tokens only. It must not swallow a
+# bare word, or `git --no-pager log | grep <trailer>` starts denying a read.
+expect allow 'git --no-pager log --format=%B | grep -i "co-authored-by: claude"'
+expect allow 'git status --short && echo "co-authored-by: claude was removed"'
+expect allow 'git rev-parse HEAD  # co-authored-by: claude'
+expect allow 'git show master:NOTES.md | grep "Generated with [Claude Code]"'
 expect allow 'gh pr view 12 --json body'
 expect allow 'echo "Co-Authored-By: Claude" > /tmp/scratch.txt'
 expect allow ''
+
+# The `(` delimiter is a stated residual, pinned in BOTH directions so a future
+# "simplification" cannot quietly trade the guard's teeth for the false positive.
+expect deny "echo \"see (git commit -m 'x $TRAILER')\""   # residual FP, documented in the header
+expect deny "bash -c 'git commit -m \"x $TRAILER\"'"      # must stay denied: the quote tokens earn their place
+expect deny "sh -c 'git commit -m \"x $TRAILER\"'"
+expect deny "eval 'git commit -m \"x $TRAILER\"'"
 
 printf '== hook protocol\n'
 payload() { # tool_name command

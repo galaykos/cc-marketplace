@@ -10,3 +10,5 @@ taskmaster:task-cards	skill	plan	spec-to-task-cards	a frozen taskmaster spec exi
 taskmaster:remind	hook	shape	requirements-clarification	prompt head carries a making verb (build|create|add|implement|develop|rewrite|refactor|fix|update|change|write)	-
 taskmaster:ultra	hook	any	ultra-task-boost-directive	prompt head matches ultra-?(task|goal) with no negation and no active-banner echo	-
 # generated:end
+taskmaster:clarify-gate	hook	any	pre-edit-clarification-gate	off by default; when armed, a Write/Edit lands before the task's ambiguity ledger is resolved	taskmaster:grill
+taskmaster:preview-guard	hook	any	mockup-preview-consent	an Artifact call carries mockup-shaped content, or targets taskmaster-docs/mockups, while a live preview server is the declared route	taskmaster:visual-decisions

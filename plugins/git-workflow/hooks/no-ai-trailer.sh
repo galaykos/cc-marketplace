@@ -24,6 +24,12 @@
 # in the repo, a rewrite via `git filter-repo`, and any commit made outside the
 # session. Silence means "no known shape matched", not "history is clean".
 #
+# The one false deny it keeps on purpose: a commit whose own PROSE quotes a full
+# trailer line verbatim, address included, is denied. That text really does enter
+# git history, and a later `git log | grep` audit would flag it either way. Paraphrase
+# it, or use CLAUDE_AI_TRAILER=allow for that one command. Measured identical on the
+# pre-2026-09-15 guard, so it is inherent to matching text and not a new cost.
+#
 # CLAUDE_AI_TRAILER, read from the hook's own environment:
 #   unset   deny, as above
 #   allow   disabled — for a user who WANTS the trailer (then also clear the
@@ -41,7 +47,26 @@ set -u
 # LC_ALL=C: the emoji is matched as a byte sequence, locale-independent.
 export LC_ALL=C
 TRAILER_RE='co-authored-by:.*(claude|anthropic)|generated with \[?claude code|🤖 generated with'
-GIT_WRITE_RE='(^|[^a-z0-9_-])(git([[:space:]]+-[cC][[:space:]]*[^[:space:]]+|[[:space:]]+-[cC][^[:space:]]*)*[[:space:]]+(commit|merge|tag|notes|rebase|cherry-pick|am)|gh[[:space:]]+(pr|release|repo)[[:space:]]+(create|merge|edit|comment))([[:space:]]|$)'
+# The binary may be spelled with a path. `/usr/bin/git commit`, `./bin/git commit`,
+# `~/bin/git commit` and `/opt/homebrew/bin/gh pr create` are all ordinary invocations
+# and all bypassed the command-position anchor, which lists no `/`. The old loose prefix
+# caught them by accident (a `/` satisfies `[^a-z0-9_-]`), so tightening the anchor
+# turned the guard OFF for the most obvious wrapper there is — spelling out the path.
+# The optional prefix must end in `/`, so `/usr/share/digit commit` still does not match.
+# Between `git` and the write verb, ANY global option may appear — not just -c/-C.
+# `git --git-dir=… commit`, `git --work-tree … commit`, `git --no-pager commit` and
+# `git -P commit` all reach a real commit, and every one of them was ALLOWED by this
+# guard until 2026-09-15. It was never caught because the old loose `[^a-z0-9_-]`
+# prefix matched the `.git` inside `--git-dir=/repo/.git commit` — the right verdict
+# for the wrong reason, which survived only while the path happened to end in `.git`.
+# The option run therefore accepts a dash token, a path-like token (a separated value
+# for --git-dir/--work-tree/-C) and an assignment token (the value of -c). It does NOT
+# accept a bare word, so `git log | grep commit` stays allowed. Measured both
+# directions by fixture in scripts/__tests__/no-ai-trailer.test.sh — no count is
+# recorded here on purpose; the one that was, 73, was the size of a throwaway corpus
+# and never the harness's, which is the stale-number failure this repo keeps paying for.
+# Run the harness and read its total.
+GIT_WRITE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash|sh|zsh|dash|ksh|eval|exec|command|sudo|doas|env|nohup|timeout|nice|time|xargs|then|do|else|elif|if|while|until|-[-a-z0-9]*|[0-9]+|"|'"'"')[[:space:]]*)*(([^[:space:]]*/)?git([[:space:]]+(-[^[:space:]]*|[/.~][^[:space:]]*|[^[:space:]]*=[^[:space:]]*))*[[:space:]]+(commit|merge|tag|notes|rebase|cherry-pick|am)|([^[:space:]]*/)?gh[[:space:]]+(pr|release|repo)[[:space:]]+(create|merge|edit|comment))([[:space:]]|$)'
 
 lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
@@ -49,7 +74,27 @@ lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 classify_command() {
   local c; c=$(lc "$1")
   printf '%s' "$c" | grep -qE "$TRAILER_RE" || return 0
-  printf '%s' "$c" | grep -qE "$GIT_WRITE_RE" || return 0
+  # THE VERB MUST BE AT A COMMAND POSITION. The prefix used to be `[^a-z0-9_-]`, which
+  # a plain space satisfies — so any command whose TEXT merely mentioned both the
+  # trailer and the words "git commit" was denied though no git ran: a heredoc writing
+  # a JSON fixture, a grep for the trailer, an audit script quoting it. Measured
+  # 2026-09-15, when this guard denied an audit agent for building its own payload.
+  #
+  # ONE OF THOSE THREE IS ONLY HALF FIXED, and saying so is cheaper than pretending:
+  # `(` is a command delimiter, so a `(` ANYWHERE in the text — including inside a
+  # quoted string — restarts command position. `echo "see (git commit -m '<trailer>')"`
+  # is still denied. The tempting fix, dropping `"`/`'` from the prefix tokens, was
+  # tested on 2026-09-15 and is wrong twice over: it opens `bash -c "git commit …"`,
+  # `sh -c`, and `eval "…"` as bypasses, and it does not even clear the false positive,
+  # because the `(` delimiter matches with or without a quote token. Telling the truth
+  # about a residual beats trading a DENY guard's teeth for it. Paraphrase the line,
+  # or set CLAUDE_AI_TRAILER=allow for that one command.
+  # Newlines separate commands too, so normalise them into the delimiter class. The
+  # keyword/assignment prefix is not decoration: without it `if git commit`,
+  # `; do git commit`, `sudo git commit` and `VAR=1 git commit` all escaped, which
+  # the old loose prefix did catch. Each of those four shapes has its own fixture —
+  # the claim said "verified by fixture" for eight days before any of them did.
+  printf '%s' "$c" | tr '\n' ';' | grep -qE "$GIT_WRITE_RE" || return 0
   return 1
 }
 
