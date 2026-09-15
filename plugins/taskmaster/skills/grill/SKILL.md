@@ -64,18 +64,17 @@ UNKNOWN row — no re-scout, no re-asking resolved rows. Delete when the spec is
 
 ## Question dimensions
 
-Walk these ten dimensions; skip any the scout or the prompt already settled:
+Walk ten dimensions; skip any the scout or the prompt already settled: outcome,
+scope in, scope out, actors, inputs and outputs, constraints, edge cases and failure
+behavior, success criteria, integration points, priority and sequencing. Three of
+them are not generic — they are the spec sections downstream keys off, so a
+dimension left unwalked is a section left empty:
 
-1. Outcome — what changes for whom when this ships; the one-sentence "done" story.
-2. Scope in — the concrete capabilities included.
-3. Scope out / non-goals — what is explicitly NOT being built this round.
-4. Actors — user roles, permissions, external systems that touch the feature.
-5. Inputs and outputs — data shapes at every boundary, with real examples.
-6. Constraints — stack, versions, performance budgets, compatibility floors.
-7. Edge cases and failure behavior — empty states, conflicts, retries, limits.
-8. Success criteria — the checks (tests, commands, observations) that prove "done".
-9. Integration points — what existing code this must call, extend, or not break.
-10. Priority and sequencing — what must land first, what can trail.
+- **Scope out** → the spec's `## Non-goals`; coverage-check refuses to demand cards for them.
+- **Success criteria** → the spec's `## Success criteria`; `spec-ledger-lint.sh` blocks a spec
+  without that heading, and coverage-check walks criteria ONLY — never Decisions.
+- **Constraints** → CLEAR rows that bound every option set you offer, sourced from
+  lockfiles and configs, never from memory of what a version supports.
 
 ## Question mechanics
 

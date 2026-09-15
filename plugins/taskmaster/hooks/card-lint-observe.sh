@@ -19,8 +19,9 @@
 #
 # WHY PostToolUse AND NOT Stop. Stop reaches the model only by BLOCKING (exit 2);
 # an exit-0 Stop hook prints into a turn that has already ended, so a warn-only Stop
-# hook would be a message nobody acts on (candor's gate.sh clause 4, task-runner/hooks/completion-gate.sh until 2026-09-14
-# states the same constraint from the blocking side). PostToolUse is also the only
+# hook would be a message nobody acts on (candor's gate.sh clause 4 — where the run
+# completion gate lives; task-runner ships no hook of its own for it — states the same
+# constraint from the blocking side). PostToolUse is also the only
 # event that runs inside SUBAGENTS, which is where a fanned-out card is actually
 # implemented.
 #
@@ -71,7 +72,10 @@
 
   # Shared identity with the writers. CLAUDE_PLUGIN_ROOT when installed; the
   # relative path is what makes the harness able to drive this file directly.
-  . "${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}/scripts/card-lint-record.sh" 2>/dev/null || exit 0
+  # The same root is what the warning quotes: "in the plugin's scripts/ dir" left
+  # the reader to hunt for a path this hook already holds.
+  tmroot="${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}"
+  . "$tmroot/scripts/card-lint-record.sh" 2>/dev/null || exit 0
   command -v cardlint_has >/dev/null 2>&1 || exit 0
 
   set_dir=$(dirname "$index")
@@ -106,8 +110,8 @@
     -exec rmdir {} + 2>/dev/null
 
   [ "$miss_n" -gt 4 ] && named="$named; +$((miss_n - 4)) more"
-  msg=$(printf '[taskmaster] card-lint: %s of %s card(s) in %s reached this run with no recorded lint — %s. Per card, before executing it: verify-teeth-lint.sh --card <card> (blocks a toothless Verify line) and skills-stamp-lint.sh --card <card> (blocks a framework card stamped "none"), both in the taskmaster plugin scripts/ dir. Warning only, nothing is blocked.' \
-    "$miss_n" "$total" "$(basename "$set_dir")" "$named")
+  msg=$(printf '[taskmaster] card-lint: %s of %s card(s) in %s reached this run with no recorded lint — %s. Per card, before executing it: %s/scripts/verify-teeth-lint.sh --card <card> (blocks a toothless Verify line) and %s/scripts/skills-stamp-lint.sh --card <card> (blocks a framework card stamped "none"). Warning only, nothing is blocked.' \
+    "$miss_n" "$total" "$(basename "$set_dir")" "$named" "$tmroot" "$tmroot")
   jq -cn --arg r "$msg" \
     '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$r}}'
 } 2>/dev/null

@@ -10,8 +10,17 @@ false-green. Before a card flips to done, the negative control proves the verify
 After the card's verify passes and before the status flips, run:
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh --verify "<the card's exact verify>" --target <impl-file> --auto
+${CLAUDE_PLUGIN_ROOT}/scripts/negative-control.sh --verify "<the card's exact verify>" \
+  --target <impl-file> --auto --record-dir .claude/task-runner/nc --card <cardId>
 ```
+
+**`--record-dir` and `--card` are not optional.** They are what writes
+`nc-pass-<cardId>.json`, and the completion gate refuses a clean stop when done cards
+outnumber the records in `.claude/task-runner/nc/` — so a control that RAN without them
+counts as a control that never ran, and the run blocks having done nothing wrong. A
+documented skip (`--skip "<reason>"`, same flags) writes `nc-skip-<cardId>.json` and counts
+the same. Pass the record dir as an ABSOLUTE path whenever the control runs against a copy
+of the tree (`--root`, a track worktree): the gate reads the live repo's dir, not the copy's.
 
 It works entirely in an isolated temp copy — the live working tree is never mutated. It
 applies a targeted disabling of the feature under test, re-runs the verify there, and
@@ -27,6 +36,11 @@ on the un-mutated copy and discards the temp.
 | 4 | invalid-control — the red was a build/collection/import error, not an assertion | back into the same loop: the mutation or verify is wrong, not the feature |
 | 5 | isolation/restore failure | halt-with-evidence (do not flip; the gate could not run safely) |
 | 3 | usage | fix the invocation |
+
+**Branch on the EXIT CODE, not on stdout.** Exits 0/2/4 each echo their verdict word
+(`discriminating` / `vacuous` / `invalid-control`) on stdout, but exits 5 and 3 print prose
+to **stderr and leave stdout empty** — there is no `isolation-halt` token anywhere in the
+script. A caller matching stdout for one falls through its halt branch instead of taking it.
 
 A `vacuous` or `invalid-control` result consumes the card's existing 3-cycle budget — it does
 NOT open a new loop. On the third failed cycle, halt the card as usual.
@@ -57,5 +71,5 @@ rather than a claimed hard block.
 
 A `vacuous` result is NOT auto-taken. Under `Goal:`, a card that cannot pass the negative
 control after its bounded budget **parks-and-stops** with evidence — the hands-off run does
-not close a card whose verify has no teeth. `isolation-halt` (exit 5) always halts,
+not close a card whose verify has no teeth. An isolation failure (exit 5) always halts,
 regardless of mode.

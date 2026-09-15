@@ -83,7 +83,7 @@ verify that had teeth pre-crew. The authored-test set is **frozen after authorin
 ```
 0. card verify command RED, or a `vacuous`/`invalid-control` negative-control on the
                                post-fix diff → HALT the card (never close red or teeth-less),
-                               regardless of the rest; control `isolation-halt` (exit 5) halts always
+                               regardless of the rest; a control isolation failure (exit 5) halts always
 1. else live reviewer blocker/major → HALT the card (dominates tests)
 2. else unsatisfied authored test   → remove it (case-level if the file has passing
                                        siblings, else the file — an allowed orchestrator

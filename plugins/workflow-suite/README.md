@@ -33,8 +33,9 @@ bundle still overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **~23,900 chars** (LC_ALL=C bytes
-— the marketplace's deterministic measure, ~1% above what the CLI counts) — over
+**6,000 chars**, and this bundle's listing costs **23,775 chars** (LC_ALL=C bytes
+— the marketplace's deterministic measure, ~1% above what the CLI counts; measured
+2026-09-15, `bash scripts/context-budget.sh`, listing channel) — over
 budget, the host reduces entries to name-only in priority order, silently, so
 skills stop being reachable without any error.
 
@@ -48,6 +49,11 @@ On the 1M-context tier (30,000 chars) this bundle fits. If you run the default
 That raises the listing budget to 24,000 chars at 200k. The cost is real but
 small: the fraction is a ceiling, not a purchase — it only admits description
 text that was previously being evicted.
+
+**The margin at 0.04 is 225 chars** — 23,775 against 24,000, under 1%. One new
+skill in any of the fifteen members spends it, and the symptom is silent eviction,
+not an error. Recount before assuming it still fits, or set `0.05` and stop
+thinking about it.
 
 ## What's included
 
@@ -76,7 +82,7 @@ The pipeline:
 - **task-runner** — executes task lists with scope lock and bounded verify-fix loops (`/task-runner:run`), the delegation contracts every dispatch is held to, the verification panels, `--tracks` for concurrent milestones
 - **approaches** — deliberates the change shape before implementation (`/approaches:opinions`, `/approaches:compare`), the build-vs-buy, estimation, rollout and pattern-selection disciplines, and `/approaches:consult` — a blind stronger-model second opinion when stuck
 - **code-architecture** — plan-before-code (the `plan` phase), SOLID/YAGNI audits, drift review, work verification (the `verify` phase, enforced at Stop by candor)
-- **testing** — TDD discipline, test review, `/testing:flake-hunt`
+- **testing** — TDD discipline, the test-engineer agent cards dispatch to, and `/testing:flake-hunt`, its only command: test review rides the code-review fan-in, not a per-plugin review entry
 - **debugging** — `/debugging:debug`, root cause with evidence before any fix
 - **ui-ux** — the engineer and reviewer agents the pipeline's visual cards route to, `/ui-ux:theme`, the WCAG audit
 - **security** — `/security:review`, threat modeling, the engineer the pipeline's security cards dispatch to
@@ -95,7 +101,7 @@ recorded rule with a reason and the table gave none, so they stay.)
 listing by the formula above — **6,000 chars on the default 200k window, 30,000 at
 1M** — and past it the host drops descriptions, leaving names only. The overflow
 is never a token cost (dropped text is never sent) — it is **reachability**, paid
-by every member including the pipeline core. At fifteen members (~23,900
+by every member including the pipeline core. At fifteen members (23,775
 entry-chars) the bundle fits at 1M outright and at 200k with the settings line
 above; the measurement and the cost model are in
 `rationale/2026-08-31-token-cost-review.md`.
@@ -120,5 +126,5 @@ is a per-user opt-in (core-suite's README says why).
 ## Pairs well with
 
 - **frontend-suite** — React/Vue/TS framework specifics (web-dev) left out of this bundle
-- **craft-suite** — the creative-build studio and ui-ux's real-component preview
+- **craft-suite** — the creative-build studio: craft-layer's creative direction, tiered motion catalog and WebGL effects, plus ui-ux. (Not the real-component preview — that is a rung of `taskmaster:visual-decisions`, which this bundle already ships.)
 - **database**, **laravel**, **devops** — the stack leaves, by name

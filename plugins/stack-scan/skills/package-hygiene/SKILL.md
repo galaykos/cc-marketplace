@@ -1,6 +1,6 @@
 ---
 name: package-hygiene
-description: Use when editing composer.json or package.json, adding/updating/removing a dependency, bumping versions, resolving lockfile conflicts, or acting on audit output — semver strategy, lockfile discipline, audit triage, upgrade lanes. Add-at-all is build-vs-buy; docs before integration is api-docs-first.
+description: Use when editing composer.json or package.json, adding/updating/removing a dependency, bumping versions, resolving a lockfile conflict, or triaging `npm audit`/`composer audit` output — semver strategy, lockfile discipline, upgrade lanes. Add-at-all is build-vs-buy; docs first is api-docs-first.
 ---
 
 # Package Hygiene (composer + npm)
@@ -11,13 +11,8 @@ ignored, and upgrades routed into lanes sized to their risk.
 
 ## Version-constraint strategy
 
-Semver in one line: `MAJOR.MINOR.PATCH` — major breaks, minor adds, patch
-fixes. A constraint declares how much drift you accept between resolutions;
-the lockfile decides what is actually installed.
-
 - Default for applications: caret (`^1.2.3`) backed by a committed lockfile.
-  The lockfile pins exact versions; the caret only defines the window that
-  `update` may move within. Tight pins without a reason just delay patches.
+  Tight pins without a reason just delay patches.
 - Exact-pin (`1.2.3`) only with a stated reason in the commit or a manifest
   comment: a known-bad upstream range you must steer around, a
   security-critical package where every bump gets reviewed, or
@@ -34,15 +29,12 @@ the lockfile decides what is actually installed.
 
 ## Lockfile discipline
 
-The manifest states intent; the lockfile states fact. The lockfile is what
-you ship.
+The manifest states intent; the lockfile states fact. Commit it, never
+hand-edit it: resolved graphs and integrity hashes are generated artifacts.
 
-- Commit it, always (`composer.lock`, `package-lock.json`). Never hand-edit
-  it — resolved graphs and integrity hashes are generated artifacts; edit
-  the manifest and regenerate.
 - CI installs from the lockfile and never resolves fresh: `npm ci` and
-  `composer install`. Running `npm install` or `composer update` in CI means
-  CI tests a different dependency graph than the one you deploy.
+  `composer install`. `npm install` or `composer update` in CI tests a
+  different dependency graph than the one you deploy.
 - Merge conflicts in a lockfile are never hand-merged. Resolve the manifest
   conflict normally, check out one side of the lockfile, and regenerate:
 
@@ -94,36 +86,18 @@ package into a lane:
 - **Major** — its own task with the package's migration/UPGRADE notes in
   hand. One major per PR; budget for code changes, not just a version bump.
 
-Regular small cadence beats big-bang: a weekly patch/minor pass keeps every
-diff bisectable. A 40-package bump that breaks something tells you nothing
-about which package broke it.
+## Anti-patterns, by name
 
-## Anti-patterns
+The handles a review cites; each one's rule is above. Hand-edited lockfile ·
+`npm install` in CI · mixed package managers · `npm audit fix --force` ·
+upgrade-everything-at-once PRs · undocumented overrides (no advisory ID, no
+removal condition) · wildcard `*` constraints, which claim "any future
+breaking change is fine" and never mean it.
 
-- **Hand-edited lockfile** — integrity hashes and resolved graphs are
-  generated; editing them by hand produces a file no tool ever verified.
-- **`npm install` in CI** — resolves fresh instead of reproducing the
-  lockfile; CI silently tests a graph nobody committed. Use `npm ci`.
-- **Mixed package managers** — npm one day, yarn the next; each rewrites
-  its own lockfile and the two truths drift apart.
-- **Wildcard `*` constraints** — "any future breaking change is fine",
-  which nobody actually means.
-- **`npm audit fix --force`** — unreviewed major upgrades across the whole
-  tree, justified by a severity badge.
-- **Upgrade-everything-at-once PRs** — one giant bump, zero bisectability;
-  when it breaks, every package is a suspect.
-- **Undocumented overrides** — a pinned transitive dep with no advisory ID
-  or removal condition outlives the vulnerability it patched.
+## Verify version-sensitive flags before quoting them
 
-## Verify Against Current Docs
-
-Audit output formats, CLI flags (`--omit=dev` vs the older `--production`),
-and override syntax shift across package-manager major versions. Before
-relying on memory for version-sensitive flags or audit JSON shapes, check
-what is actually installed —
-
-    npm -v
-    composer --version
-
-— then verify against the current docs for that version:
-https://docs.npmjs.com and https://getcomposer.org/doc/
+Audit output shapes and CLI flags move across package-manager majors —
+`--omit=dev` replaced `--production`, and override syntax differs by
+composer/npm major. Read `npm -v` / `composer --version` first, then check
+that version's docs (https://docs.npmjs.com, https://getcomposer.org/doc/)
+rather than answering from memory.

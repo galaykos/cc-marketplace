@@ -1,6 +1,6 @@
 ---
 name: verifier
-description: Use PROACTIVELY in an ultra-deep-research run to adversarially refute one load-bearing claim before it is trusted — re-opens sources, hunts counter-evidence and circular citations; verdict confirmed/refuted/contested/unverifiable. Breaks claims, never blesses them.
+description: Use PROACTIVELY in an ultra-deep-research run to adversarially refute one load-bearing claim — re-opens sources, hunts counter-evidence and circular citations; verdict confirmed/refuted/contested/unverifiable. Breaks claims, never blesses them.
 tools: WebSearch, WebFetch, Read
 model: sonnet
 effort: high

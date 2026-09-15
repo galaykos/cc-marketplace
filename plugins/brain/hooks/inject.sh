@@ -44,16 +44,28 @@
       case "$head_full" in
         "$built"*) ;;  # current HEAD begins with the built prefix → map is fresh
         *)
-          drift=$(git -C "$cwd" diff --name-only "$built"..HEAD 2>/dev/null | wc -l | tr -d ' ') || drift=""
+          # The count must come from git's OWN exit status, not the pipeline's: piping to
+          # `wc -l` made the status wc's, so a `built:` hash no longer reachable in the
+          # repo (rebased, squashed, shallow clone, hand-edited stamp) fell through as
+          # drift=0 and the hint read "behind HEAD (built <hash>, 0 files changed)" —
+          # a number that contradicts the warning beside it. Unknown drift now prints no
+          # count, and a real 0 (an empty or reverted commit) prints none either.
+          if changed=$(git -C "$cwd" diff --name-only "$built"..HEAD 2>/dev/null); then
+            drift=$(printf '%s' "$changed" | grep -c . | tr -d ' ')
+          else
+            drift=""
+          fi
+          count=""
+          [ -n "$drift" ] && [ "$drift" -ge 1 ] 2>/dev/null && count=", $drift files changed"
           # An active task-runner run advances HEAD per card; its scope-lock hook would
           # flag a brain/*.md write as out-of-scope and order it reverted. During a run,
           # demote the "refresh now" imperative to the passive offer so the two hooks
           # never issue opposite instructions on the same edit.
-          if [ -n "$drift" ] && [ "$drift" -ge 1 ] 2>/dev/null && [ "$drift" -le 5 ] \
+          if [ -n "$count" ] && [ "$drift" -le 5 ] \
              && [ ! -f "$cwd/.claude/task-runner/scope.json" ]; then
-            hint="⚠ brain map is behind HEAD (built $built, $drift files changed) — Claude: run the incremental /brain index refresh now, before other work; no need to ask."
+            hint="⚠ brain map is behind HEAD (built $built$count) — Claude: run the incremental /brain index refresh now, before other work; no need to ask."
           else
-            hint="⚠ brain map is behind HEAD (built $built${drift:+, $drift files changed}) — offer /brain index to refresh."
+            hint="⚠ brain map is behind HEAD (built $built$count) — offer /brain index to refresh."
           fi
           ;;
       esac

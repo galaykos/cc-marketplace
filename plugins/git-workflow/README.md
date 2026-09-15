@@ -37,12 +37,16 @@ report options and touch nothing.
 
 ## No AI attribution in git history
 
-A `PreToolUse` hook, `hooks/no-ai-trailer.sh`, denies any `git commit`, `git
-merge`, `git tag`, `gh pr create` / `gh pr merge` whose message carries a
-`Co-Authored-By: Claude …` trailer or a "Generated with Claude Code" line, and
-any `Write`/`Edit` that plants the same text into a git message file
-(`COMMIT_EDITMSG`, `MERGE_MSG`, anything under `.git/`). The deny reason tells
-the model to drop the lines and run the same command again.
+A `PreToolUse` hook, `hooks/no-ai-trailer.sh`, denies any history-writing git or
+`gh` command whose message carries a `Co-Authored-By: Claude …` trailer or a
+"Generated with Claude Code" line — `git commit`, `merge`, `tag`, `notes`,
+`rebase`, `cherry-pick`, `am`, and `gh pr` / `gh release` / `gh repo`
+`create|merge|edit|comment` — and any `Write`/`Edit` that plants the same text
+into a git message file (`COMMIT_EDITMSG`, `MERGE_MSG`, `SQUASH_MSG`,
+`TAG_EDITMSG`, anything under `.git/`). It matches at a command position, so a
+wrapper (`sudo`, `bash -c`, `VAR=1 …`, an absolute path, any `git` global option)
+does not get past it. The deny reason tells the model to drop the lines and run
+the same command again.
 
 Why a hook and not a sentence: the host setting `attribution.commit: ""` in
 `~/.claude/settings.json` switches off the host's own trailer, and nothing else.
@@ -68,7 +72,7 @@ Standing markers per the marketplace convention (see
 
 | Control | Standing | What actually happens |
 |---|---|---|
-| AI trailer in a commit/merge/tag/PR command | **gate** — blocks the tool call | `permissionDecision: deny`; the command does not run |
+| AI trailer in a commit/merge/tag/notes/rebase/cherry-pick/am or `gh` pr/release/repo command | **gate** — blocks the tool call | `permissionDecision: deny`; the command does not run |
 | AI trailer written into a git message file | **gate** | denied on `Write`/`Edit` whose path is a git message file |
 | the matching rules | **gate**, tested | `scripts/__tests__/no-ai-trailer.test.sh`, run in CI with every plugin harness (recount the assertions there; none is quoted here) |
 | a human `Co-authored-by:` trailer | **allowed by design** | only trailers naming Claude or Anthropic match |

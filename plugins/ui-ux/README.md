@@ -2,10 +2,11 @@
 
 UI/UX best practices with per-stack skills — shadcn/ui, ReUI, Aceternity UI,
 Astryx (Meta's agent-ready design system), Material UI, and Tailwind — and a
-library-agnostic `component-libraries` skill for every other React component
-library (Base UI, Radix, React Aria, Ark, Mantine, Chakra, Ant Design, HeroUI…)
+library-agnostic `component-libraries` skill for every other React or Vue component
+library (Base UI, Radix, Reka UI, React Aria, Ark, Mantine, Chakra, Ant Design,
+HeroUI, PrimeVue, Vuetify…)
 with a per-library map of signals, theme channels and docs — plus a theme builder
-(shadcn/ReUI/Aceternity, Tailwind, or Bootstrap) with a live colour-preview URL
+(shadcn/ReUI/Aceternity, Tailwind, Astryx, or Bootstrap) with a live colour-preview URL
 and a ui-ux-reviewer agent. Generic CSS3/Grid/Flexbox/Bootstrap skills were
 removed after baseline tests showed the model covers them unaided — see
 rationale/stack-skill-baselines.md.
@@ -33,7 +34,7 @@ by a second library installed beside it.
 
 | Command | What it does |
 |---------|--------------|
-| `/ui-ux:theme [brand-color-vibe-or-reference]` | Create or restyle a UI colour theme — shadcn/ReUI/Aceternity, Tailwind, or Bootstrap — with a live preview URL |
+| `/ui-ux:theme [brand-color-vibe-or-reference]` | Create or restyle a UI colour theme — shadcn/ReUI/Aceternity, Tailwind, Astryx (`defineTheme()`), or Bootstrap — with a live preview URL |
 | `/ui-ux:build [what-to-build]` | Build or restyle a UI component/layout via the ui-ux-engineer worker, applying the stack best-practice and token skills |
 | `/ui-ux:audit [files-or-diff]` | Audit UI code against WCAG 2.2 AA — semantic structure, contrast, keyboard, focus, forms, ARIA — one line per violation with fix, blockers first, a manual-test list at the end, and the `a11y-engineer` worker offered to apply the fixes |
 
@@ -83,11 +84,12 @@ that looks great as a swatch can fail hard as a button.
     `CC_PALETTE=off`, or `CC_REMIND=off` for every advisory in this marketplace.
 
   It exists because craft-layer's stricter equivalent (`utility-palette`, a gate
-  with a waiver lane) runs only inside `/craft-layer:craft` and
-  `/craft-layer:audit`. A plain "build me an app" turn runs neither: in a measured
-  run on 2026-08-17 a Laravel build shipped 23 indigo utilities across 5 views
-  with every gate green. This is the reach half of a rule craft-layer owns the
-  depth of.
+  with a waiver lane) is invoked by `/craft-layer:audit` only — a `/craft-layer:craft`
+  run reaches it because craft's own step 7 calls that command, so one call site, not
+  two. A plain "build me an app" turn runs neither: in a measured run on 2026-08-17 a
+  Laravel build shipped 23 indigo utilities across 5 Blade views with every gate
+  green. This is the reach half of a rule craft-layer owns the depth of; the hook's
+  own header carries the derivation.
 
 ## Pairs well with
 

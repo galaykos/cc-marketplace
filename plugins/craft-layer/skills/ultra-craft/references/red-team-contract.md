@@ -3,10 +3,10 @@
 The audit grades GATES: is there a signature, does reduced motion have a path, does the
 manifest declare what shipped. A gate is a checklist, and a checklist cannot ask the question
 that matters most — *does the thing mean what it claims to mean?* That is the red-team's job,
-and two rules below exist because a run cleared every gate and still shipped a page whose
-central instrument argued the opposite of its thesis.
+and the three rules below exist because a run cleared every gate and still shipped a page
+whose central instrument argued the opposite of its thesis.
 
-Both are binding at `ultra-craft`.
+All three are binding at `ultra-craft`.
 
 ## Rule 1 — sweep the state space, do not reason about it
 

@@ -5,8 +5,10 @@
 # SessionStart, matcher `compact` ONLY. Re-asserts the deliberation marker after a
 # compaction has taken the decision out of the model's context.
 #
-# WHY THIS HOOK EXISTS. approach-deliberation's own SKILL.md:40 says "Check the
-# MARKER, never memory" — the marker is `.claude/approaches/deliberated.json` and
+# WHY THIS HOOK EXISTS. approach-deliberation's own SKILL.md says, under "Double-run
+# guard", "Check the MARKER, never memory" — a heading citation, not a line number,
+# because the line number here was 4 rows stale by 2026-09-15. The marker is
+# `.claude/approaches/deliberated.json` and
 # it survives compaction perfectly well. What does NOT survive is the model's
 # knowledge that a deliberation happened at all, so it never thinks to look. The
 # documented failure is a compacted session re-litigating a shape that was already

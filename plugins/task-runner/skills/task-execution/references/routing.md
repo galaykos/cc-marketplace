@@ -91,7 +91,7 @@ and picks the first present in its available-agent-types list.
    `discriminating` closes the card; `vacuous`/`invalid-control` counts as a failed
    re-verification under the two-strike rule (§ Delegating parallel groups): one
    re-dispatch, then reclaim the card for inline execution where the inner-loop 3-cycle
-   ceiling applies; `isolation-halt` halts. The standard exemptions apply (manual/visual
+   ceiling applies; exit 5 (isolation failure) halts. The standard exemptions apply (manual/visual
    lines → the recorded why-non-automatable note; an unresolvable `--target` → record
    control-not-applicable (`references/negative-control.md`) — never a silent pass.
    This runs on every delegated return, so a delegated/parallel-group card gets the teeth
@@ -147,7 +147,8 @@ applied per member. Differences:
    A genuine cost lever for mechanical work is still possible later, but it must gate on an
    actual mechanicalness signal (a `generic` tag plus a rename/scaffold/sweep `Change` line),
    not on card size — and note the `effort` half only ever worked on the `Workflow` path: the
-   plain Agent tool has no `effort` parameter (`ultra/SKILL.md` § Model and effort rules), so
+   plain Agent tool has no `effort` parameter (this plugin's
+   `verification-panels/references/dispatch-tier.md`, which owns that rule), so
    on the default dispatch path it was inert.
 4. **Mid-batch failure is park-one-continue-rest.** A member hitting its 3-cycle halt or a
    park is parked; the worker continues the remaining disjoint members and returns

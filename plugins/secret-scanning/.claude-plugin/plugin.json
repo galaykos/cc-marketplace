@@ -1,7 +1,7 @@
 {
   "name": "secret-scanning",
-  "version": "0.6.1",
-  "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape.",
+  "version": "0.7.0",
+  "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

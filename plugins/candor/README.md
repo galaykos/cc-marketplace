@@ -116,7 +116,8 @@ this gate's clause 3 greps the assistant's own words.
 prompts on the same turn are not designed to coexist.
 
 Optional, wire them yourself: `scripts/statusline.sh` (or `.ps1`) renders
-`[TERSE:ULTRA]` in a `statusLine` setting; `scripts/shrink.mjs` is a stdio proxy
+`[TERSE:ULTRA]` in a `statusLine` setting — it reads the level **file** only, so a
+level set purely through `CC_TERSE` is active but unbadged; `scripts/shrink.mjs` is a stdio proxy
 that trims prose out of an MCP server's tool descriptions (`node shrink.mjs
 <command> [args…]`), leaving names, schemas and every request untouched.
 
@@ -140,7 +141,7 @@ so the injected card and the skill body cannot drift.
 | --- | --- | --- |
 | `Stop`, `SubagentStop` | `hooks/gate.sh` | the five clauses above; exit 2 blocks |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
-| `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~120 tokens per prompt, nothing when off) |
+| `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
 
 `mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
 nudge, so it neither claims the one-nudge-per-prompt marker nor answers to that
@@ -191,9 +192,9 @@ commands and two skills; the terse hooks inject nothing until a level is set.
 ## Author-time checks
 
 ```bash
-bash plugins/candor/scripts/__tests__/gate.test.sh          # clauses 1-2, modes, SubagentStop
-bash scripts/smoke/evidence-gate-hook-tests.sh              # clause 3 (30 cases)
-bash scripts/smoke/completion-gate-hook-tests.sh            # clause 4 (70 cases, drives task-runner's record writers too)
+bash plugins/candor/scripts/__tests__/gate.test.sh          # clauses 1, 2, 5, clause independence, modes, SubagentStop
+bash scripts/smoke/evidence-gate-hook-tests.sh              # clause 3
+bash scripts/smoke/completion-gate-hook-tests.sh            # clause 4 (drives task-runner's record writers too)
 bash plugins/candor/scripts/__tests__/candor-scan.test.sh   # the six axes
 bash plugins/candor/scripts/__tests__/install.test.sh       # install shape, non-git consumer project
 bash plugins/candor/scripts/__tests__/mode-hook.test.sh     # level switching and per-turn reinforcement

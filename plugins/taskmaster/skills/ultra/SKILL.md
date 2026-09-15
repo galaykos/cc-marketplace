@@ -76,8 +76,10 @@ REMOVED — bare tokens only, one fixed tier.)
   3-round cap.
 - recon: up to 3 parallel lenses via Workflow, else one inline scout (NATIVE).
 - card-verify: one fan-out pass per card when Workflow is present.
-- task-cards writes the marker verbatim: `Ultra: true (model=auto, effort=xhigh)` (goal mode:
-  `Goal: true (model=auto, effort=xhigh)`). The executing session re-resolves `auto` against
+- task-cards writes the index markers verbatim. Which lines, in which order, and the
+  ledger check that must pass first are owned by `task-cards/references/index-markers.md`
+  — cited, not restated (boosted goal writes BOTH an `Ultra:` and a `Goal:` line; goal-lean
+  writes `Goal:` only). The executing session re-resolves `auto` against
   ITS model, never below opus; an older runner parses legacy forms as opus/xhigh. Hands-off
   execution needs task-runner ≥0.11.0; older runners fall back to interactive.
 - Fan-out counts are CEILINGS sized to blast radius, additionally gated by `budget.remaining()`

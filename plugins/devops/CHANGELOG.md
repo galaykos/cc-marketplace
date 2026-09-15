@@ -2,6 +2,26 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.8
+
+### Fixed
+- **`devops-engineer`'s defer rule was unreadable.** A search-and-replace had turned
+  "dev environment" into "devopsironment", so the one line telling the worker to hand
+  local compose generation to `/devops:init` named nothing a reader could parse. Fixed
+  in `.chassis.json` and the rendered agent.
+
+### Changed
+- **The README's has-teeth table said warn findings exit 2; they exit 0.** Only a
+  CRITICAL finding exits 2 from `workflow-audit.sh`, and 3 means it could not read —
+  verified by running it. `devops-practices` had this right all along, so the two
+  surfaces contradicted each other; the README now matches the script, names which
+  four findings are warn-level, and states the residual the script's own header
+  carries (a line scan, not a YAML parser: a clean run is "none of the six known
+  shapes", never "safe").
+- `devops-practices` drops the `# DevOps practices` heading that restated its own
+  title — no rule removed. Four of the marketplace's skill bodies carried one; the
+  other seven in this sweep never did.
+
 ## 0.6.7
 
 ### Fixed

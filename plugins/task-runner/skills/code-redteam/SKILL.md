@@ -52,7 +52,7 @@ verdict), each handed the same diff but a DIFFERENT attack lens.
 **N is fixed** while `verification-panels` sizes N to radius — that skill's one blessed
 exception, not an invention: N is the lens count, so 2 deletes a lens, and a small diff
 still hides what that lens alone hunts. `reduction-record.sh --kind redteam` records a
-degraded run (no `Workflow`), never a sized-down panel.
+degraded run (no dispatch mechanism at all — see § Inline fallback), never a sized-down panel.
 
 **Coverage markers.** Each refuter's prompt opens with `RT-LENS: <lens>`, the critic's
 with `RT-CRITIC: <ref>`. `hooks/rv-observe.sh` records those dispatches; candor's Stop gate
@@ -64,9 +64,9 @@ or a recorded degradation.
 resolved** `(model, effort)` in, so `auto` is resolved before it reaches here per
 `task-execution/SKILL.md`'s resolution rule. Dispatch the refuters **and** the
 completeness-critic with those values as `agent()` parameters: `model:` and `effort:` on
-the `Workflow` panel path, `model:` **only** on the inline fallback below — the plain Agent
-tool has **no effort knob** (`ultra/references/dispatch-tiers.md`). Absent a supplied tier,
-run native rather than guessing.
+the `Workflow` panel path, `model:` **only** on the Agent-tool path — the plain Agent
+tool has **no effort knob** (`verification-panels` `references/dispatch-tier.md`, which owns
+this rule). Absent a supplied tier, run native rather than guessing.
 
 The lenses:
 
@@ -116,10 +116,17 @@ as any other task.
 Map each finding to the narrowest card that owns the touched lines; a finding that spans no
 single card's scope is a new card, not a silent edit.
 
-## Inline fallback — never a silent skip
+## Inline fallback — only with NO dispatch mechanism
 
-If `task-runner:verification-panels` or the `Workflow` fan-out tool is unavailable
-(headless, cron, or the opt-in gate is unmet), do NOT skip the red-team. Run one inline
+The fallback trigger is **no dispatch mechanism at all** — neither the `Workflow` tool nor
+the Agent tool (`verification-panels` § A panel verdict is a claim about process owns this;
+do not re-derive it). A missing `Workflow` tool is NOT the trigger: the Agent tool is a real
+dispatch path, so with it present the three refuters and the critic spawn as separate agents
+and the panel is real — `model:` only, no `effort:` (`verification-panels`
+`references/dispatch-tier.md`). Keying the fallback on `Workflow` alone downgrades the
+ordinary interactive session, which is the case a boosted run is most often invoked from.
+
+With no mechanism at all (headless, cron, a refused budget), do NOT skip the red-team. Run one inline
 single-agent code-redteam pass over the same diff from the harness: one agent walks the
 three lenses in sequence, records evidence-backed defects, and dedups them via
 `--dedup`. A code red-team always runs — but the degraded pass is NOT the panel and must

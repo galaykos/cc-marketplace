@@ -30,7 +30,7 @@ Per task, loop — but with a hard ceiling:
    with `--record-dir .claude/task-runner/nc --card <cardId>` — the pass record lands
    mechanically, and the completion gate (candor's clause 4, when candor is installed)
    refuses a clean stop when done cards outnumber nc records: `discriminating` → flip; `vacuous`/`invalid-control` → back into this
-   loop (no teeth); `isolation-halt` → halt. Manual/visual: `--skip "<reason>"`, same flags.
+   loop (no teeth); exit 5 → halt (stderr prose, empty stdout — branch on the code). Manual/visual: `--skip "<reason>"`, same flags.
 4. Fail → diagnose from the actual output, fix, go to 2.
 5. **Three failed fix cycles → halt the task.** Before halting, make ONE bounded dispatch to
    `debugging:debugger` if installed and attach its diagnosis to the evidence — three failures

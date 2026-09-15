@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.110.0"
+    "version": "0.111.0"
   },
   "plugins": [
     {
@@ -22,7 +22,7 @@
     {
       "name": "laravel",
       "source": "./plugins/laravel",
-      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with, loaded by the code-review fan-in when the manifests show it — plus the backend-engineer worker (PHP/Laravel) that applies the review's fixes."
+      "description": "Laravel best practices: Eloquent N+1 prevention, form requests, service layer, queues, policies, a per-version leverage map (Laravel 11/12/13), mass-assignment security — and the Inertia.js skill (v1/v2/v3, Vue/React/Svelte adapters: partial reloads, deferred props, useForm, shared data, SSR) it pairs with, loaded by the code-review fan-in when the manifests show it — plus the backend-engineer worker (PHP/Laravel) for implementation work; review fix lists go through task-runner's executor or inline, not this worker."
     },
     {
       "name": "code-architecture",
@@ -87,7 +87,7 @@
     {
       "name": "database",
       "source": "./plugins/database",
-      "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera) that the code-review fan-in loads only when the detected engine is MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE) lands."
+      "description": "Relational databases in one plugin: the engine-agnostic sql-best-practices skill (sargable predicates, joins, indexes, NULL logic, transactions, keyset pagination, safe migrations, parameterization), the mariadb-best-practices dialect skill (10.6+ divergences, RETURNING, sequences, system-versioned tables, Galera) that the code-review fan-in loads only when the detected engine is MariaDB, a database-engineer worker that applies schema, migration, indexing and pooling work, and a PreToolUse guard that asks before a destructive statement (DROP/TRUNCATE/unqualified DELETE-UPDATE, migration-DSL drops, CREATE INDEX without CONCURRENTLY, NoSQL deleteMany/dropDatabase) lands."
     },
     {
       "name": "code-review",
@@ -147,17 +147,17 @@
     {
       "name": "command-guard",
       "source": "./plugins/command-guard",
-      "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, db:wipe, DROP DATABASE, rm -rf /, git clean -fdx, docker compose down -v, terraform destroy, cloud deletes) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf ./dir, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. Ships /command-guard:check and a user-owned allow-file the agent cannot edit."
+      "description": "Destructive-command prevention: a PreToolUse hook that classifies every Bash (and MCP shell/SQL) command before it runs — denying irreversible data loss (migrate:fresh, db:wipe, DROP DATABASE, rm -rf /, git clean -fdx, docker compose down -v, terraform destroy, cloud deletes) and prompting on scoped-but-destructive ones (git reset --hard, rm -rf on a path git cannot restore, kubectl delete pod). Reads through quotes, wrappers and heredocs; skips read-only commands; fail-open. A second PreToolUse config-guard asks before a write weakens settings, hooks, manifests or lint/test config. Ships /command-guard:check and a user-owned allow-file the agent cannot edit."
     },
     {
       "name": "secret-scanning",
       "source": "./plugins/secret-scanning",
-      "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape."
+      "description": "Secret-leak prevention: a PreToolUse hook that blocks a Write/Edit introducing a high-confidence secret (cloud keys, private-key blocks, provider tokens, assigned secret literals) before it reaches disk, plus a /secret-scanning:scan command to sweep a path or diff on demand. Fail-open, high-confidence-only, with a fixture escape and CC_SECRET_SCAN=off. A PostToolUse unicode-scan warns on invisible and bidi characters (zero-width, U+202A-E, tag block) in text just written or read."
     },
     {
       "name": "ultra-deep-research",
       "source": "./plugins/ultra-deep-research",
-      "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Writes the report inline and to research/<topic>-<date>.md."
+      "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Hand it a contract, RFP, standard, filing or long PDF and it swaps corroboration for coverage of that local corpus. Writes the report inline and to research/<topic>-<date>.md."
     },
     {
       "name": "toolchain-experts",

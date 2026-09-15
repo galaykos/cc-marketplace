@@ -118,9 +118,12 @@ present, is a free-text search that replaces stack detection. Steps:
    numbers and/or `source/skillId` (ranges OK); >32 rows, offer the
    `scripts/pick.sh` TTY picker per `references/mechanics.md`. No
    recommended-set option: nothing on skills.sh is vetted. Headless:
-   print the exact `npx -y skills add <owner>/<repo> --skill <skillId> -y`
-   commands and stop. There is no auto-install in this mode — see the
-   skill's Boundaries.
+   print the exact `npx -y skills add` commands from the skill's Install
+   section — both of them, the `-l` listing step included — and stop.
+   There is no auto-install in this mode — see the skill's Boundaries.
 5. For each pick: preview its SKILL.md per the skill's Install section,
-   then run the install command, reporting per-skill success or failure
-   and the final installed/failed/skipped summary line.
+   then run the install pair it defines (`-l` to read the exact listed
+   name, then `--skill '<listed name>' -y` — the skills.sh `skillId`
+   installs nothing), confirm with `npx -y skills ls`, and report
+   per-skill success or failure plus the final
+   installed/failed/skipped summary line.

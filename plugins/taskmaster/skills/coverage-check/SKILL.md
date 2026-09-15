@@ -5,7 +5,10 @@ description: Use after task-cards splits a spec into cards — verifies every sp
 
 ## Where this sits
 
-Standing: recorded — runs at the tail of `task-cards`, once `00-INDEX.md` and the
+Standing: the INVOCATION is `recorded` — nothing schedules or observes it (the
+card-lint observer reads verify-teeth and skills-stamp records only, never this
+skill's), and the resolution hold below is `agent-graded`. Runs at the tail of
+`task-cards`, once `00-INDEX.md` and the
 cards are written and before the execution handoff. It verifies task-cards' own output
 with fresh eyes, which is why the matrix build is dispatched to a subagent. It checks
 documents against documents; `work-verification` and `task-runner` check delivered

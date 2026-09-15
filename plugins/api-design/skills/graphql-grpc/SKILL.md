@@ -70,20 +70,6 @@ the viewer's right to it. "Authenticated" is not "authorized to see this node".
 - **Status codes** — use the canonical gRPC codes (`NOT_FOUND`, `INVALID_ARGUMENT`,
   `DEADLINE_EXCEEDED`), not a string in the message.
 
-## Reviewing the API
-
-GraphQL:
-- Every data-source relationship resolver batches through a DataLoader (no N+1).
-- Authorization is enforced per field/object in resolvers, against the viewer.
-- Query depth and complexity are capped; no unbounded collection fields.
-- Cursor pagination on lists; typed error codes; no internals in error messages.
-
-gRPC:
-- No proto field number is ever reused/renumbered; retired ones are `reserved`.
-- New fields are optional with defaults; rolling deploys stay compatible.
-- Every call sets and propagates a deadline; streams have flow control + termination.
-- Canonical status codes, not error strings.
-
 ## Defer rule
 
 - REST contract design (paths, verbs, status codes, RFC 9457 problems) → the `api-design` skill (this plugin).

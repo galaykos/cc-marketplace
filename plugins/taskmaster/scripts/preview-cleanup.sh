@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# cleanup.sh — mechanical cleanup + verification for design-preview scratch
+# preview-cleanup.sh — mechanical cleanup + verification for design-preview scratch
 # artifacts. The skill's cleanup guarantee was prose ("a repo-wide search must
 # come back empty"); this is the command that prose described.
 #
-# Usage: cleanup.sh [--verify] [project-root]
+# Usage: preview-cleanup.sh [--verify] [project-root]
 #   --verify  search only, remove nothing; exit 1 if any artifact remains.
 # Default mode removes every known scratch artifact, strips any line referencing
 # the marker from routes/web.php, then runs the same verification.

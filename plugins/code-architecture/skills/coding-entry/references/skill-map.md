@@ -8,7 +8,7 @@ only what the router cannot see at prompt time: what the PROJECT is, before any 
 been touched.
 
 Read a signal, prime the skills on its row. Priming is one `Read <abs-path>` line, not a
-body load; § Priming in the skill body has the form.
+body load; the skill body's § Load, then prime has the form.
 
 ## Backend / language
 
@@ -70,5 +70,5 @@ A signal whose plugin is not installed primes nothing and is **named in the outp
 "nothing applies here", which is the opposite of true. Same reasoning as
 `task-execution/references/routing.md`'s degraded-worker line.
 
-A repo with no recognisable manifest gets tier 1 only, and the command says so rather
-than guessing from directory names.
+A repo with no recognisable manifest primes nothing — the five always-loaded skills are
+all it gets — and the command says so rather than guessing from directory names.

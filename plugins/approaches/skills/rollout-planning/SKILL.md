@@ -1,6 +1,6 @@
 ---
 name: rollout-planning
-description: Use before shipping any user-facing or data-touching change — to plan flags, backward compatibility, staged exposure, and the rollback path while it is still cheap to have one.
+description: Use before shipping or rolling out any user-facing or data-touching change — a rollout plan: feature flags, backward compatibility, migration sequencing, staged and canary exposure, and the rollback path while it is still cheap to have one.
 ---
 
 ## Core rule

@@ -1,10 +1,41 @@
 #!/bin/bash
 # Absolute-path shebang: the fail-open guarantee must hold under a stripped PATH.
-# PreToolUse destructive-SQL guard. On a Write/Edit that introduces a destructive
-# statement (DROP TABLE/DATABASE/SCHEMA, TRUNCATE, or an unqualified DELETE/UPDATE),
-# returns permissionDecision "ask" so the user confirms a backup/rollback exists first
-# — it does NOT hard-deny, because down-migrations legitimately drop. Fail-open: any
-# error or missing jq allows the write.
+# PreToolUse destructive-SQL guard — the name its ask message and the README use. On a
+# Write/Edit that introduces one of the shapes below it returns permissionDecision
+# "ask", so the user confirms a backup or a tested rollback exists first. It does NOT
+# hard-deny: a down-migration legitimately drops, and a deny that fires on the
+# legitimate case is a deny that gets turned off.
+#
+# WHAT IT MATCHES, in priority order (the first hit wins the message; relational data
+# loss outranks a lock hazard, which outranks the NoSQL analogues):
+#   1. DATA LOSS — DROP TABLE/DATABASE/SCHEMA, TRUNCATE, an unqualified DELETE/UPDATE
+#      with no WHERE on the line; Laravel's `Schema::drop*(`; and the same statement
+#      as spelled by every other migration DSL (`dropTable`, `dropTableIfExists`,
+#      `drop_table`, `dropSchema`, `drop_schema`, `dropAll`, `drop_all`) — Prisma,
+#      Drizzle, TypeORM, Doctrine, Knex, Alembic. Plus the NoSQL twins: `deleteMany`
+#      / `updateMany` / `remove` with an EMPTY filter `({})`, and `.drop()` /
+#      `.dropCollection()` / `.dropDatabase()` / `.dropIndexes()` called with no
+#      arguments.
+#   2. LOCK HAZARD — `CREATE [UNIQUE] INDEX` with no `CONCURRENTLY`, a table-rewriting
+#      `ALTER` (column TYPE change or `SET NOT NULL`), and a DynamoDB `Scan` whose path
+#      does not look like a script (`script`, `migration`, `seed`, `backfill`, `bin/`,
+#      `tools/`, `__tests__`, `.test.`, `.spec.`). Same ask tier, a different message:
+#      these do not lose data, they hold a lock or read the whole table per request.
+#
+# WHAT IT DOES NOT MATCH, stated because the README tiers this an ask:
+#   - A RENAME of a column or table. The expand→migrate→contract rule for that lives
+#     in `sql-best-practices` § Migrations and is agent-graded; no regex here reads it.
+#   - Documentation surfaces. `.md`, `.mdx`, `.markdown`, `.txt`, `.rst` and anything
+#     under `taskmaster-docs/` exit early: a card or spec that QUOTES a migration
+#     executes nothing, and gating them would storm one permission prompt per card and
+#     stall a headless run that has nobody to answer "ask".
+#   - A destructive statement run through Bash rather than written to a file — that is
+#     `command-guard`'s territory, which is why this row yields to it in lane.tsv.
+#   - Single-line matching: a DELETE whose WHERE sits on the next line still asks
+#     (false positive, accepted), and a filter built across lines never does.
+#
+# CC_DB_GUARD=off disables it for the session, and the ask message says so.
+# Fail-open: any error or missing jq allows the write.
 {
   input=$(cat)
   # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was

@@ -168,8 +168,8 @@ for (const mode of ['light', 'dark'] as const) {
    carries the right string, computes the right colour, and is unreadable.
 
    This trigger only TAKES the pictures. The gate is not discharged until an
-   agent or a human opens them and says what is visible — `commands/craft.md`
-   step 7 owns that half, and a shot nobody opened is not a look.
+   agent or a human opens them and says what is visible — `commands/audit.md`
+   step 5 owns that half, and a shot nobody opened is not a look.
 
    Two rules about where, both load-bearing:
    - The breakpoints are explicit, and they are NOT the zoom trigger's

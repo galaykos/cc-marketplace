@@ -94,7 +94,8 @@ The prompt to each track-worker contains, in order:
    a Workflow `agent()` dispatch). This line documents the tier; it never sets it.
 6. *"Before reporting any card done, run the per-card negative-control —
    `<abs-negative-control.sh> --verify "<the card's exact verify>" --target
-   <card's declared impl file> --root <worktree-abs> --auto` (standard exemptions:
+   <card's declared impl file> --root <worktree-abs> --auto --record-dir <abs-main-repo-nc>
+   --card <cardId>` (standard exemptions:
    manual/visual lines → the recorded why-non-automatable note; a card that declares
    no single implementation file → record control-not-applicable — never a silent
    skip). When done: `git -C <abs> add -A && git -C <abs> commit -m '<milestone>
@@ -106,6 +107,14 @@ The prompt to each track-worker contains, in order:
    `CLAUDE_PLUGIN_ROOT` and a bare script name is command-not-found in its worktree —
    same absolute-path rule as the primed `Read <abs-path>` lines in item 4), and
    `--root` with the worktree's absolute path.
+
+   **`<abs-main-repo-nc>` is the MAIN repo's `.claude/task-runner/nc`, absolute — never the
+   worktree's.** The completion gate counts nc records under the session's own cwd, and
+   `.claude/` is gitignored, so a record written inside a worktree merges nowhere and is
+   invisible to the gate. Omit these two flags and a tracks run reaches completion with N
+   done cards and zero controls recorded, and the gate refuses the stop — the same
+   blocks-having-done-nothing-wrong failure § Coverage records exists to prevent, arriving
+   through the other record channel.
 
 ## Merge (per track, on the orchestrator)
 

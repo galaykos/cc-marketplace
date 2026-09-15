@@ -49,10 +49,15 @@ implementation and reused as the fixture source for tests.
 | `api-docs-first` | About to write code that calls an external API, SDK, or library — identify the exact installed version from the lockfile, verify against current official docs, stop and ask for a URL or file when none are accessible |
 | `docs-upkeep` | A change altered behavior, interfaces, setup steps, or commands that the docs describe — fix the docs in the same change |
 
-The **UserPromptSubmit hook** watches prompts for integration keywords (sdk,
-endpoint, integrate, webhook, oauth, graphql) with a making verb and prints a
-one-line reminder to verify docs first. It never blocks the prompt and skips slash
-commands.
+The **UserPromptSubmit hook** prints a one-line reminder to verify docs first when
+the prompt HEAD (first 400 chars, fenced code and backticked spans dropped) carries
+an integration noun — `library`, `sdk`, `integrate`/`integration`, `webhook`,
+`oauth`, `graphql`, `external`/`third-party`/`public`/`vendor api`, or `api`
+followed by `client`/`key`/`token`/`docs`/`reference` — together with a making or
+calling verb. `endpoint` alone does NOT fire it; nor does a question ("how do I
+integrate oauth?"), a prompt about the hook itself, or a slash command. It never
+blocks the prompt. `CC_REMIND=off` in the hook's environment silences it and every
+other reminder hook in the marketplace.
 
 ## Pairs well with
 

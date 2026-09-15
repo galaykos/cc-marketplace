@@ -4,6 +4,64 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.24.1
+
+### Changed
+- **`tailwind-best-practices` is now the v3/v4 inversion skill it should always have
+  been.** Its body was a style-rule catalogue — class ordering, `@apply` vs components,
+  mobile-first, `dark:`, `@layer components` — the shape `rationale/measured-zero-shapes.md`
+  §3 measured at 0 or worse for the four ui-ux style-rule skills it got removed (named
+  there, not here), and that this skill was never tested against. Replaced with
+  the facts a v3-shaped memory gets WRONG on a v4 project, each re-read from
+  tailwindcss.com on 2026-09-15 rather than recalled: `@import "tailwindcss"` for the
+  `@tailwind` directives; the config file no longer auto-detected (`@config` opts back
+  in), so `theme.extend`, `darkMode: 'class'`, `content:`, `safelist`, `corePlugins` and
+  `separator` advice lands nowhere; `@custom-variant dark (&:where(.dark, .dark *))`;
+  `@source` / `@source inline()`; `@tailwindcss/postcss` and `@tailwindcss/vite`;
+  `@apply` in a `<style>` block or CSS module silently producing nothing without
+  `@reference`; and the quiet one — `shadow-sm`, `rounded`, `blur`, `drop-shadow`,
+  `backdrop-blur` and `ring` all renamed a step, so a v3 class string still compiles and
+  renders a DIFFERENT value. The description now carries `tailwind.config.js`, `@theme`,
+  `@custom-variant`, `@source` and the renamed utilities as trigger vocabulary; it used
+  to say only "utility ordering, components vs @apply, responsive/dark variants, config
+  tokens", which matched no phrasing a v4 problem is reported in. Body: 109 → 96 lines.
+- **`/ui-ux:theme` and `shadcn-theming` now say Astryx.** Both handle it as a target
+  with a structurally different write (`defineTheme()` tuples, not CSS variables) and
+  neither description named it, so an Astryx project asking for a theme matched nothing.
+  The README's two stack lists were at five targets for the same reason.
+- **Descriptions cut where they recapped work instead of naming a trigger**
+  (`component-libraries`, `astryx-`, `mui-best-practices`) — the always-on channel pays
+  for every one, and the dispatcher only ever matches the trigger half. Net effect of
+  every description change in this release: +3 chars.
+
+### Fixed
+- **`palette-default`'s header claimed "ui-ux ships in 10 bundles to craft-layer's 4".**
+  The marketplace has four bundles in total, so the number was never reachable; the true
+  counts are three and one. Replaced with the asymmetry that cannot drift — craft-layer
+  DEPENDS on ui-ux — plus the recount command. The same sentence was in this file's
+  0.22.x entry and is corrected there too.
+- **Two `theming-system` references cited `shadcn-theming` by LINE RANGE, and all four
+  citations were wrong** (`:74-82` for a section that starts at 80; `:24-25` and
+  `:25-26`, in the same file, for one bullet at 26). They now cite the section and token
+  row by name, which cannot go stale when the file above them grows.
+- **`shadcn-best-practices` named Base UI the default base, then called the CLI's
+  per-component dependency "its Radix dependency" 38 lines later.** The install rule is
+  now base-agnostic.
+- **The body measure had two different bounds in one plugin** — `design-tokens` said
+  60–75 characters, `ui-ux-engineer`'s checklist said 45–75. `design-tokens` is now the
+  single source at 45–75 and the agent cites it.
+- **The `component-libraries` lane row triggered on React only** while the skill, its
+  description and its `library-map.md` all cover Vue.
+- **The test-case count in this file said 10; the harness has 11.**
+
+### Removed
+- Restated blocks, for corpus headroom against the 160,000 B per-plugin ratchet:
+  `design-tokens`' "Reviewing a token system" checklist (a third statement of rules its
+  scales section and anti-patterns already carry), and the restated halves of
+  `shadcn-best-practices`' and `a11y-audit`' anti-pattern lists. ui-ux' on-invoke prose
+  corpus: 159,890 → 159,816 B, so this release adds the Tailwind v4 content and still
+  leaves more headroom than it started with.
+
 ## 0.23.1
 
 ### Fixed
@@ -254,8 +312,13 @@ rather than invented ones.
   and `/craft-layer:audit` step 4. A plain "build me an app" turn runs neither. In a
   measured control/treatment run on 2026-08-17, a Laravel build shipped **23 indigo
   utilities across 5 Blade views** with every gate in this marketplace green,
-  because none of them was on that path. ui-ux ships in 10 bundles to craft-layer's
-  4, so this is the reach half of a rule craft-layer owns the depth of.
+  because none of them was on that path. craft-layer DEPENDS on ui-ux, so every
+  craft-layer install already carries this hook while the reverse does not hold, and
+  ui-ux additionally ships in bundles craft-layer is absent from — the reach half of a
+  rule craft-layer owns the depth of. (This paragraph named "10 bundles to
+  craft-layer's 4" until 2026-09-15; the marketplace has four bundles in total, so the
+  number was never reachable. Recount, do not quote:
+  `grep -l '"ui-ux"' plugins/*/.claude-plugin/plugin.json | grep -v '/ui-ux/'`.)
 
   Silence with `CC_PALETTE=off`, or `CC_REMIND=off` for every advisory nudge here.
 
@@ -268,7 +331,7 @@ rather than invented ones.
   occupy in oklch; and its token cost is unmetered, because `context-budget.sh`
   probes the dynamic channel with a synthetic `Edit` that is not a UI file.
 
-- **`scripts/__tests__/palette-default.test.sh`** — 10 cases. The first is the
+- **`scripts/__tests__/palette-default.test.sh`** — 11 cases. The first is the
   observed Blade regression verbatim: if it stops firing, the hook has lost the
   only failure it is known to catch. Four are silence cases, including hues just
   outside the band (`blue-500`, `fuchsia-500`) — without those the family list

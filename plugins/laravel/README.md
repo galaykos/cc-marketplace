@@ -27,7 +27,13 @@ review entry was retired on 2026-09-14 — it was a second name for that pass).
 `/code-review:review` (the code-review plugin) reviews controllers, models, jobs,
 migrations — and Inertia pages and shared-data setup when `inertiajs/inertia-laravel`
 or an `@inertiajs/*` adapter is installed — pinned to the versions in `composer.lock`
-and the JS lockfile, with fixes routed to the `backend-engineer` worker on apply.
+and the JS lockfile.
+
+On an apply pick that command dispatches its finding list down its **own** static
+chain — `task-runner:task-executor` if installed, else inline — not to this plugin's
+worker (`plugins/code-review/commands/review.md`, "This plugin ships a REVIEWER, not a
+worker"). `backend-engineer` is reached by dispatching it directly, which is what its
+PROACTIVELY-phrased description asks for; it is not wired into the review's apply path.
 
 ## Skills
 

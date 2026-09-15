@@ -1,6 +1,6 @@
 ---
 name: researcher
-description: Use PROACTIVELY as one shard of an ultra-deep-research fan-out — several search angles on one assigned facet, returning atomic, date-stamped, source-tiered claims with verbatim quotes. Never synthesizes the report, never fabricates a URL.
+description: Use PROACTIVELY as one shard of an ultra-deep-research fan-out — several search angles on one assigned facet, returning atomic, date-stamped, source-tiered claims with verbatim quotes. Never synthesizes, never fabricates a URL.
 tools: WebSearch, WebFetch, Read, Grep, Glob
 model: sonnet
 effort: high

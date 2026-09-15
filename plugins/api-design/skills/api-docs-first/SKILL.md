@@ -3,15 +3,6 @@ name: api-docs-first
 description: Use before writing any code that calls an external API, SDK, or third-party library — verify current official docs first; no accessible docs, stop and ask for a URL. Never code an integration from memory. Designing your own REST APIs is api-design.
 ---
 
-## Why this exists
-
-Training data has a cutoff. Libraries and APIs do not stop shipping releases on that date —
-method signatures get renamed, auth flows get replaced, pagination styles change, error
-response shapes are restructured, whole endpoints are deprecated. Writing integration code
-from memory means writing code against a version of the API that may no longer exist. The
-fix is cheap: check the docs for the version actually in use before writing the call, not
-after it fails in review or in production.
-
 ## The procedure
 
 1. **Identify the exact library/API and version — from the lockfile or manifest, not from
@@ -72,23 +63,6 @@ Treat any of these as a hard stop — go back to step 2 or 4:
   actually show (or you haven't fetched anything to compare against).
 - You find yourself writing "this should still work" instead of "the docs confirm this works."
 
-## Worked example
-
-Task: "Integrate Stripe subscription creation."
-
-- Step 1: `package-lock.json` shows `"stripe": "14.x"`. Memory strongly associates Stripe
-  calls with `stripe.subscriptions.create({...})` using patterns common around v10 — but v14
-  has moved through several breaking changes since (e.g., API version pinning via
-  `apiVersion`, changes to expand behavior, updated error classes).
-- Step 2: WebFetch the official Stripe API reference for subscriptions, or open the vendored
-  TypeScript types under `node_modules/stripe` if network access isn't available.
-- Step 3: Confirm the exact `subscriptions.create` parameter names and required fields for
-  v14, not the v10 shape recalled from memory — field names, expansion syntax, and default
-  behaviors are all candidates for drift.
-- Step 4: Only after that confirmation, write the integration code.
-- Result: version mismatch caught before writing a single line, instead of after a runtime
-  error surfaces the drift.
-
 ## How to ask the user for docs
 
 When no docs are reachable, ask for one of:
@@ -98,9 +72,9 @@ When no docs are reachable, ask for one of:
   repo or provided by the user).
 - An OpenAPI/GraphQL spec file, if the API is internal or undocumented publicly.
 
-State plainly which library/API and version you need docs for, and why (e.g., "the lockfile
-pins `stripe@14.x`; I don't have verified current docs for that major version's subscription
-API and don't want to guess at parameter names").
+State plainly which library/API and version you need docs for, and why: "the lockfile pins
+`<pkg>@<major>`; I have no verified current docs for that major version's `<operation>` and
+will not guess at parameter names."
 
 While waiting: write nothing that calls the external API or SDK. Do not scaffold function
 signatures "to be filled in later" based on guessed parameters — a plausible-looking stub

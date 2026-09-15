@@ -8,20 +8,15 @@ arbitration) moved to `.claude/skills/authoring-agents/references/naming-and-tri
 
 ## Mapping the existing fleet
 
-The taxonomy already holds where agents exist; the gaps are where it does not:
+Recount it; do not read it from here. `ls plugins/*/agents/` IS the map, and the
+inventory table this section used to carry went stale in the worst direction — it named
+a11y, debugging and observability as having *neither* half wired, long after all three
+shipped a worker agent, which would have sent a reader to build what already existed.
 
-| Domain | Engineer (worker) | Reviewer (read-only) |
-|---|---|---|
-| ui-ux | `ui-ux-engineer` | `ui-ux-reviewer` |
-| code | shared executor (task-runner) | `code-reviewer` |
-| testing | `test-engineer` | — (code-reviewer covers) |
-| security | `security-engineer` | — |
-| database | `database-engineer` | — |
-
-Most review-only plugins (a11y, debugging, observability, the reliability trio, the
-stack plugins) have **neither** half wired for delegation — their `/…:review`
-produces a fix list with nothing to hand it to. That is the review-without-worker
-gap; close it with the shared executor, or a domain engineer only where idioms demand.
+What survives the table is the decision it was for. A domain with a reviewer and no
+worker has the **review-without-worker gap**: its `/…:review` produces a fix list with
+nothing to hand it to. Close it with the shared executor — a domain engineer only where
+the fix carries idioms a generic executor lacks.
 
 
 ## Adding delegation to a review-only plugin

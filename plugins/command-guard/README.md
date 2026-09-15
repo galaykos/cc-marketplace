@@ -17,7 +17,7 @@ that classifies the command string itself.
 | Verdict | When | Effect |
 |---|---|---|
 | `deny` | irreversible loss whose blast radius is not visible in the command — `migrate:fresh`, `db:wipe`, `DROP DATABASE`, `rm -rf /`, `rm .env`, `git clean -fdx`, `git push --force`, `docker compose down -v`, `kubectl delete pvc`, `terraform destroy`, `aws s3 rb`, `gcloud … delete` | the call is blocked; the model is told not to rephrase it, and to hand the command to the user |
-| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir`, `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh` | the user gets a permission prompt naming what is lost |
+| `ask` | destructive but scoped and commonly intended — `git reset --hard`, `git clean -fd`, `rm -rf ./some-dir` *when git cannot restore it* (see below), `DELETE FROM`, `kubectl delete pod`, `terraform apply -auto-approve`, `curl … \| sh` | the user gets a permission prompt naming what is lost |
 | `allow` | everything else, including `rm -rf node_modules`, `rm -rf /tmp/scratch-dir`, `git commit -m "drop the table step"`, `grep -r migrate:fresh .` | silent; normal permissions apply |
 
 `rm -rf` **inside the OS temp directory** is silent — under `/tmp`,
@@ -43,6 +43,34 @@ SQL, which are the same hole under a different tool name.
 
 Full rule list, the reading algorithm, and the guard's stated limits:
 [`skills/destructive-commands/references/rules.md`](skills/destructive-commands/references/rules.md).
+
+## The second hook: an ask before the agent edits its own guardrails
+
+`hooks/config-guard.sh` is a separate `PreToolUse` hook on file writes, not on
+commands. It returns **`ask`** — never a deny — when a `Write`/`Edit` (or an MCP
+`apply_patch` / `create_new_file`) targets an **existing** file that decides what the
+agent may do: `.claude/settings.json` and its variants, any `hooks.json`, any hook
+script under a `hooks/` dir, `plugin.json` / `marketplace.json`, and the lint,
+type-check and test configs a build fails on (`.eslintrc*`, `eslint.config.*`,
+`biome.json`, `.rubocop.yml`, `ruff.toml`, `.flake8`, `setup.cfg`, `pytest.ini`,
+`pyproject.toml`, `phpstan.neon[.dist]`, `psalm.xml[.dist]`, `.php-cs-fixer*.php`,
+`.golangci.y[a]ml`, `clippy.toml`, `tsconfig.json`).
+
+Why: given a gate it cannot satisfy, the cheapest path out is to edit the gate — turn
+off the rule, add an ignore, delete the hook — and in a diff summary that reads
+"updated config". `ask` and not `deny`, because editing these is often exactly the
+task; the point is that it becomes a decision someone made.
+
+What it does not do, stated because an ask reads stronger than it is: it reads the
+**path, not the diff**, so adding a rule and deleting one look identical to it and the
+prompt says so. A file that does not exist yet is allowed through — creating a config
+is not relaxing one. A weakening applied through Bash (`sed -i` on `.eslintrc`, `rm` of
+a hook script) is the command guard's matcher, not this one's. And it self-exempts
+inside a marketplace repository — one with `.claude-plugin/marketplace.json` at the git
+root — which edits these files as its product.
+
+`CC_CONFIG_GUARD=off` disables it, and so does either `CLAUDE_DESTRUCTIVE_GUARD` value
+that means "no ask tier" (`off`, `deny-only`).
 
 ## Install
 
@@ -142,6 +170,7 @@ Standing markers per the marketplace convention (see
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit` and on shell redirects/`sed -i` |
+| agent writes to a settings / hooks / lint config file | **gate**, with a human in it — `config-guard.sh` | a permission prompt on an existing listed file; it reads the path, so whether the edit *weakens* anything is **agent-graded** |
 | the classification rules themselves | **gate**, tested | 221 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
 | `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |

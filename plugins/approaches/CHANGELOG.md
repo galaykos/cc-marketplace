@@ -3,6 +3,22 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.8.0
+
+### Changed
+- **`estimation` and `rollout-planning` catch their own vocabulary now.** "estimate", "how
+  long will this take" and "S/M/L/XL" were all absent from the estimation description, and
+  "rollout", "feature flag", "canary" and "migration sequencing" were absent from the
+  rollout one — every one of them a phrase a user opens with, and every one of them already
+  in the body being routed to. Triggers only; no behaviour changed.
+- **`/approaches:compare`, `:opinions` and `:size` show their arguments in the slash menu.**
+  All three took input and shipped no `argument-hint`.
+
+### Fixed
+- **`compact-recovery.sh` cited a line number that had moved.** It pointed at
+  `approach-deliberation`'s SKILL.md:40 for "Check the MARKER, never memory"; the line was
+  44. It now cites the heading, which does not drift.
+
 ## 0.7.3
 
 ### Fixed

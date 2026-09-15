@@ -1,5 +1,6 @@
 ---
 description: Deliberate the change shape as a blind panel — four parallel opinion-lens personas, one pick + kill-trigger — before implementation.
+argument-hint: "[task]"
 ---
 
 Run the `approach-deliberation` skill on $ARGUMENTS in its BLIND PANEL mechanism

@@ -119,18 +119,22 @@ Print one numbered table, all queries merged, deduplicated by
    name the source URL — the install still needs the user's go-ahead in
    that case. Standing: this preview is recorded discipline, not a gate —
    no script blocks a skipped preview.
-3. Per confirmed pick:
+3. Per confirmed pick, TWO commands — `--skill` matches the display name
+   the CLI itself lists, not the skills.sh `skillId`, and passing the
+   skillId prints the repo's skill list and **exits 0 without installing**:
 
    ```bash
-   npx -y skills add <owner>/<repo> --skill <skillId> -y
+   npx -y skills add <owner>/<repo> -l                      # copy the exact listed name
+   npx -y skills add <owner>/<repo> --skill '<listed name>' -y
    ```
 
    Project-level (the CLI's default inside a project) — never pass
    `-g`/`--global`. The `-y` only skips the CLI's own prompt; consent
-   already happened at the pick.
-4. Report per-skill success or failure as each finishes; one failure does
-   not abort the rest. Finish with one line: installed n, failed m,
-   skipped k (already installed).
+   already happened at the pick. Fuller gotcha: `references/mechanics.md`.
+4. Confirm each install with `npx -y skills ls` — exit 0 does not prove a
+   skill landed (see step 3). Report per-skill success or failure as each
+   finishes; one failure does not abort the rest. Finish with one line:
+   installed n, failed m, skipped k (already installed).
 
 ## Boundaries
 

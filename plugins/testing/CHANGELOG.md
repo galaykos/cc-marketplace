@@ -6,6 +6,21 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.10.3
+
+### Fixed
+- **`flake-hunt --help` documented a class the script never emits.** Its header taught
+  `leaky` ("passes alone, fails in the full suite") as the third shape, while the script
+  classifies into `BROKEN` / `NON-DETERMINISTIC` / `ORDER-DEPENDENT` — the same
+  invented-taxonomy defect 0.8.3 fixed in the README, still live in the file `--help`
+  prints. A user reading `--help` looked for a class no run can produce.
+- **The no-shuffle hint gave the opposite pytest flag to the command's own table.** The
+  script suggested `"-p no:randomly" inverted`, which DISABLES randomization;
+  `/testing:flake-hunt`'s runner table says `-p randomly`. The script now matches the table.
+- `--update-baseline` is a real flag and was documented nowhere. The README row and the
+  command's `argument-hint` now name it, alongside what `--baseline FILE` actually does
+  (exit 2 only on a flake that is not already in the file).
+
 ## 0.10.2
 
 ### Changed

@@ -5,7 +5,7 @@
 # Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
 # review is one command over six rubrics (--concern); until 2026-09-14 the five
 # per-concern commands each held a territory of their own. One row, one territory.
-resilience:review	command	review	runtime-quality-review	invoked as /resilience:review [--concern …], a change crosses a process boundary, or a measured slowness is reported	-
+resilience:review	command	review	runtime-quality-review	invoked as /resilience:review [--concern …], a change crosses a process boundary, or a measured slowness is reported	code-review:review
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 resilience:observability-engineer	agent	build	in-code-instrumentation	diff adds logs, correlation IDs, metrics, spans, or health signals inside application code	devops:devops-engineer
 resilience:performance-engineer	agent	build	performance-optimization	a measured number exists (profile, bundle report, query log, Core Web Vital) and the work is to move it	-

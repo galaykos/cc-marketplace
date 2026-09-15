@@ -81,32 +81,33 @@ frame's own bar remains as a secondary override that affects only that frame.
 
 ## Max-3 rule
 
-At most 3 variants (frames A/B/C), differing on ONE axis at a time. Two axes
-varying together is two decisions and two mockup passes, not one; more than
-3 variants produces "whichever" instead of an attributable pick. This holds
-for every pass regardless of source — hand-authored, starter-seeded, or a
-gallery re-use.
+At most 3 variants (frames A/B/C), differing on ONE axis — the SKILL's own
+anti-patterns say why. What this file adds: it holds for every pass regardless
+of source — hand-authored, starter-seeded, or a gallery re-use.
 
 ## Realistic-data discipline
 
-Populate every state with specific, real-shaped data — an invoice with a
-number, a customer with a name, an amount with cents, a date that could be
-today's — never lorem ipsum and never a generic "Item 1 / Item 2" filler.
-Placeholders that read like production data expose real layout and density
-problems (a name that wraps, an amount that doesn't right-align, a status
-chip that clips) that lorem-shaped filler hides entirely. Equal fidelity
+Populate every state with specific, real-shaped data — never lorem ipsum, never
+"Item 1 / Item 2". Production-shaped placeholders expose the layout failures
+filler hides: a name that wraps, an amount that does not right-align, a status
+chip that clips. Equal fidelity
 across variants matters as much as realism within one: if A gets a fully
 fleshed table and B gets three placeholder rows, the pick is about effort,
-not about the axis under test. A theme-axis pass (see Theme-axis passes)
-satisfies this rule by construction rather than by exception: its content is
-required to be byte-identical across frames, so fidelity is automatically
-equal — only the token preset differs, never the data.
+not about the axis under test. A theme-axis pass satisfies that by
+construction — its content must be byte-identical across frames, so only the
+token preset differs, never the data.
 
 ## Starters as copy-paste content
 
 `references/starters/*.html` are curated, self-contained variant fragments —
-one pattern each (landing — hero vs proof emphasis; dashboard — kpi vs table emphasis; crud-form — single vs multi-step; onboarding-flow — progress vs checklist; settings — tabs vs single scroll; dialog — inline vs modal edit; admin-table — bulk vs row actions; app-shell — sidenav vs topbar),
-already state-tagged and realistic-data populated. They are reference
+one pattern each (landing — hero vs proof emphasis; dashboard — kpi vs table emphasis; crud-form — list-detail vs modal edit, or field density; onboarding-flow — linear steps vs checklist; settings — tabs vs single scroll; dialog — inline vs modal edit; admin-table — bulk vs row actions; app-shell — sidenav vs topbar),
+already state-tagged and realistic-data populated. Each starter's own opening
+comment is authoritative for the axes it suits. One known gap: `landing.html`
+predates the marketing cluster and builds its hero/proof/pricing out of
+`vd-kpis`/`vd-cards`/`vd-toolbar`, not `vd-hero`/`vd-tiers`/`vd-features`/
+`vd-footer` or the type ramp — author a landing pass from the Marketing cluster
+and Type ramp below, not from that starter's shape.
+They are reference
 material, not a full-catalog splash: offer at most two, matching the
 decision's direction, and only after the variants for THIS decision already
 exist — a starter anchors a pass, it doesn't replace drafting one.
@@ -118,12 +119,16 @@ discussion — a starter's placeholder data is realistic on purpose, but it is
 still not this decision's data, and shipping it verbatim reads as a canned
 demo instead of the user's own product. A frame built from a starter obeys
 every rule above exactly like a hand-authored one (states, chrome, no
-inline styles, equal fidelity with its sibling frames), EXCEPT the sanctioned
-theme-axis token presets on `.vd-content` (see Theme-axis passes).
+inline styles, equal fidelity with its sibling frames), with two sanctioned
+exceptions: the theme-axis token presets on `.vd-content` (see Theme-axis
+passes), and the one inline style the shell has no class for — a
+`vd-progress` fill's `style="width:N%"` (see Content primitives), which
+`onboarding-flow.html` ships and which is not a rule violation.
 
 ## Content primitives
 
-`vd-app`, `vd-nav`/`vd-brand`, `vd-sidenav`, `vd-tabs`/`vd-tab`, `vd-toolbar`,
+`vd-app`, `vd-nav`/`vd-brand`, `vd-layout` (the two-column grid wrapper
+`vd-sidenav` needs — `app-shell.html` uses it), `vd-sidenav`, `vd-tabs`/`vd-tab`, `vd-toolbar`,
 `vd-table`, `vd-cards`/`vd-card`/`vd-meta`, `vd-split`,
 `vd-list`/`vd-row`/`vd-detail`,
 `vd-kpis`/`vd-kpi`, `vd-form`/`vd-field`, `vd-btn` (+`vd-primary`),
@@ -142,33 +147,25 @@ The three stateful primitives carry no native role, so the shell injects one at
 load — additively, with no visual change: `vd-check` becomes `role="checkbox"`,
 `vd-switch` becomes `role="switch"`, each with `aria-checked` mirrored from its
 `vd-on` class (drop `vd-on` for the unchecked/off look and the state follows).
-`vd-progress` becomes `role="progressbar"`; always set its `aria-valuenow`
-yourself on the `.vd-progress` element to match the fill you author — the shell
-injects the role but not the value, and a determinate bar with no
-`aria-valuenow` announces as INDETERMINATE (`aria-valuenow="60"`, optionally
-`aria-valuemin`/`aria-valuemax`, and an `aria-label` naming what's progressing,
-e.g. `aria-label="Profile completion"` — otherwise it announces a bare
-"progressbar 60%" with no subject):
+`vd-progress` becomes `role="progressbar"` — the shell injects the role but NOT
+the value, so author `aria-valuenow` and an `aria-label` yourself or the bar
+announces as indeterminate:
 
 ```html
 <div class="vd-progress" aria-valuenow="60" aria-label="Profile completion"><i style="width:60%"></i></div>
 ```
 
-These three elements stay non-focusable `<span>`/`<div>` — the injected role is
-a STATIC, non-interactive representation for mockup fidelity, not a working
-control. Assistive tech will announce an operable checkbox/switch/progressbar
-that cannot actually be toggled; that mismatch is accepted for a throwaway
-mockup (the real feature, not the preview, ships the working control) but is
-NOT something to carry into production markup.
+All three stay non-focusable `<span>`/`<div>`: the injected role is a static
+representation for mockup fidelity, so AT announces an operable control that
+cannot be toggled. Accepted for a throwaway mockup, never carried into
+production markup.
 
 Icons — `vd-i` pulls one of 12 hand-authored glyphs from the inline sprite:
 `<svg class="vd-i" aria-hidden="true" focusable="false"><use href="#vd-i-NAME"/></svg>`, where `NAME` is one of
 `menu`, `search`, `chevron`, `check`, `close`, `bell`, `user`, `plus`, `filter`,
 `star`, `settings`, `home`. A glyph sizes to the surrounding text (`1em`) and
 paints via `currentColor` (no fill), so it inherits the frame's ink in both
-schemes and under any theme with no per-scheme rule. An icon-only control still
-needs an accessible label (`aria-label` on its trigger); a purely decorative
-glyph carries `aria-hidden="true"`.
+schemes and under any theme with no per-scheme rule.
 
 - Even-application rule: icons are applied EVENLY across ALL frames or not at
   all — an icon-decorated favorite next to text-only rivals is a sales pitch
@@ -178,10 +175,8 @@ glyph carries `aria-hidden="true"`.
   per-primitive default icon — authors opt in explicitly, so a mixed set is
   never an accident.
 
-Never rely on chip or alert hue alone to carry status — the five chip
-semantics sit close together once desaturated, so pair the color with the
-chip's text label (and the alert's built-in severity glyph) so status still
-reads in grayscale and for color-blind viewers.
+The five chip semantics sit close together once desaturated, so always pair the
+hue with the chip's text label; alerts already ship a severity glyph.
 
 Type ramp & prose — text primitives for editorial/marketing and reading
 content. Editorial/marketing hierarchy uses the ramp — never hand-set font
@@ -195,8 +190,7 @@ sizes.
 - `vd-small` — fine print / captions (.78rem, ink-soft).
 - `vd-prose` — a measured reading column (max 65ch) for article/landing copy;
   it styles the `h3`/`p`/`ul`/`blockquote` inside it (the blockquote gets an
-  inline-start accent bar). Heading discipline: the frame owns the h2, so
-  prose content starts at h3, never h1/h2.
+  inline-start accent bar). Heading discipline per § Semantics applies.
 - `vd-lede` — an article's opening paragraph inside `vd-prose` (slightly
   larger, softened) to set the intro apart without a heading.
 
@@ -222,8 +216,7 @@ Marketing cluster — whole landing/pricing sections. They add structure only, s
 headings still come from the ramp and color/size are never hand-set; a marketing
 pass (landing copy, pricing) is static content and needs only `populated`/`empty`
 states at minimum (see Data-state conventions — it may skip `loading`/`error`).
-Heading discipline holds here too: the frame owns the `h2`, so hero/tier/feature
-titles start at `h3` (footer column titles at `h4`).
+Heading discipline per § Semantics applies, footer column titles at `h4`.
 
 - `vd-hero` — a centered headline/tagline/CTA stack (heading via the ramp,
   buttons via `vd-btn`); add `vd-hero-split` to set the copy beside a `vd-media`
@@ -284,8 +277,10 @@ the control sizes whatever content the frames already hold, so build
 variants at real density and flip presets to check them.
 
 Hand-built pages on the shared preview server (`diagram.html`,
-`walkthrough.html`, `api.html`) are not shell instances and so do not inherit
-this control. (`theme.html` is NOT one of them — it comes from ui-ux's
+`walkthrough.html`) are not shell instances and so do not inherit
+this control. `api.html` is NOT in that group — data-shape passes are authored
+in this shell (see Data-shape passes below), so it inherits the control like any
+other shell instance. (`theme.html` is also not one of them — it comes from ui-ux's
 `shadcn-theming/assets/theme-shell.html`, which inlines the axis already;
 pasting it there too gives two sticky bars and a duplicate `vd-vp-bar` id.)
 They get the same axis by pasting `assets/preview-toolbar.html`
@@ -304,7 +299,8 @@ the theme page and the ERD leaves three tabs wearing the same icon. The shell
 ships a `SLOT: favicon` — one emoji drawn into an inline SVG data URI, nothing
 fetched. Swap the glyph per purpose so the tab strip stays readable:
 `current.html` 🖼 (the shell default), `theme.html` 🎨, `diagram.html` 🗂,
-`walkthrough.html` 🚶, `api.html` 🧾. Two constraints, both from the data URI:
+`walkthrough.html` 🚶, `api.html` 🧾, `modules.html` 🧩, `compose.html` 🐳 —
+one per reserved file, all six plus the default. Two constraints, both from the data URI:
 exactly one plain codepoint (a `#` ends the URI early, and a variation selector
 renders as a stray box in some tab strips).
 
@@ -319,9 +315,11 @@ files (`theme.html`, `walkthrough.html`, `diagram.html`, `api.html`, `modules.ht
 destinations, not history, so they are excluded from the list and rejected by
 restore; the ledger is passes of `current.html` only.
 
-Nothing to author — the control appears when the ledger has at least two
-entries and stays hidden on the static rungs and over `file://`, where the
-route does not exist. Restore is the server's ONLY write, so it is gated on a
+Nothing to author — the control appears as soon as the ledger holds ONE entry
+(`shell.html`: `if (!versions.length) return;`) and stays hidden on the static
+rungs and over `file://`, where the
+route does not exist. Restore is the server's only write PER REQUEST — startup
+also `mkdir`s the docroot — so it is gated on a
 local `Origin`/`Host`, a `X-Preview-Restore` header no cross-origin form can
 set (another localhost PORT would otherwise pass the host check), a bounded
 body, and a name that must be a bare basename resolving inside the docroot.
@@ -331,8 +329,7 @@ body, and a name that must be a bare basename resolving inside the docroot.
 Direction (LTR/RTL) is a preview axis, like width and scheme: the header's
 `Direction` toggle sets `dir`/`data-vd-dir` on `<html>` and every frame
 mirrors at once. Nothing to author and nothing to hand-flip — content built
-from the primitives mirrors automatically because they use logical properties
-(borders, insets, indents, alignment all resolve from inline-start/-end). Do
+from the primitives mirrors automatically: every one uses logical properties. Do
 NOT translate copy or lay out a frame differently for RTL; that is a separate
 decision, not this axis. Two deliberate exceptions stay physical in both
 directions: numeric cells (`vd-num`) keep right alignment (tabular convention),
@@ -350,8 +347,10 @@ instead of hunting for it. It is static by design (no pulse or motion —
 decorative animation is banned), and the button appears only when the
 document carries at least one `data-vd-diff`. One caveat: the tint paints
 via `background-image`, so don't tag elements whose fill IS a background
-image (`.vd-donut`, `.vd-media`, `.vd-thumb`, `.vd-spark`) — tag their
+image — `.vd-donut` (conic gradient) and `.vd-media`/`.vd-thumb`
+(`background-image`); tag their
 wrapper instead, or the placeholder's gradient is replaced by the tint.
+`.vd-spark` and `.vd-bars` are safe: their bars use a solid `background` color.
 
 ## Motion passes
 
@@ -397,12 +396,13 @@ Three sanctioned axes, one per pass:
   banned — a hard constraint: no `@font-face`, no font `<link>`.
 
 One axis per pass; content identical across frames. The page-global project
-toggle (`html[data-vd-theme]`) sets these same tokens (`--vd-radius`,
-`--vd-space`, `--vd-font`) at `html`, and the per-frame preset re-declares them
-directly on `.vd-content`. Both touch the same tokens — the reason they do not
-conflict is ordinary cascade behavior, not separate scopes: a value declared
-directly on an element always wins over one the element only inherited from an
-ancestor, regardless of either rule's specificity. So the frame preset governs
+toggle (`html[data-vd-theme="project"]`) ships EMPTY — it is a `SLOT:
+theme-project` the author fills, and per the SKILL's Theme-tokens rules it
+normally carries chrome and accent tokens only. When an author does put
+`--vd-radius`/`--vd-space`/`--vd-font` there, they land at `html` while the
+per-frame preset re-declares them
+directly on `.vd-content`. Both then touch the same tokens and do not conflict by
+ordinary cascade: the frame preset governs
 inside `.vd-content`; the project theme still governs everything outside it
 (chrome, scaffolding, header) where no preset re-declares the token. Never
 combine a theme axis with a layout axis: that is two decisions and two passes
@@ -422,45 +422,18 @@ Out of scope here: a type-SCALE multiplier axis (scaling font sizes per frame) �
 font sizes stay fixed rem, so that is not a sanctioned mockup pass.
 
 Machine gate — a theme-axis pass is only honest if the content really is
-identical. Extract each frame's `.vd-content` inner HTML (the preset lives in
-the `SLOT: custom-css` style block, outside `.vd-content`, so it is stripped by
-construction) and diff every frame against the first; empty output = pass:
+identical. Run the shipped checker over the mockup; exit 0 = pass, exit 1 names
+the first frame that differs:
 
 ```bash
-python3 - taskmaster-docs/mockups/<file>.html <<'PY'
-import sys
-from html.parser import HTMLParser
-VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
-        'link', 'meta', 'param', 'source', 'track', 'wbr'}
-class Content(HTMLParser):
-    # convert_charrefs defaults to True: entities resolve into handle_data,
-    # so a frame differing only by &mdash; vs &ndash; still shows up as a diff.
-    def __init__(self):
-        super().__init__()
-        self.depth = 0; self.parts = []; self.blocks = []
-    def handle_starttag(self, tag, attrs):
-        if self.depth:
-            self.parts.append(self.get_starttag_text())
-            if tag not in VOID: self.depth += 1
-        elif 'vd-content' in dict(attrs).get('class', '').split():
-            self.depth = 1; self.parts = []
-    def handle_startendtag(self, tag, attrs):
-        if self.depth: self.parts.append(self.get_starttag_text())
-    def handle_endtag(self, tag):
-        if not self.depth: return
-        self.depth -= 1
-        if self.depth == 0: self.blocks.append(''.join(self.parts).strip())
-        else: self.parts.append('</%s>' % tag)
-    def handle_data(self, data):
-        if self.depth: self.parts.append(data)
-    def handle_comment(self, data):
-        if self.depth: self.parts.append('<!--%s-->' % data)
-p = Content(); p.feed(open(sys.argv[1], encoding='utf-8').read())
-for i, b in enumerate(p.blocks[1:], 1):
-    if b != p.blocks[0]:
-        print('vd-content[%d] differs from vd-content[0]' % i); sys.exit(1)
-PY
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/theme-axis-check.py taskmaster-docs/mockups/<file>.html
 ```
+
+It extracts each frame's `.vd-content` inner HTML and diffs every frame against
+the first. The preset lives in the `SLOT: custom-css` block, outside
+`.vd-content`, so it is stripped by construction. Standing: `gate` when you run
+it — nothing invokes it for you, and it proves the CONTENT matched, never that
+the token preset is a single axis.
 
 ## Data-shape passes
 

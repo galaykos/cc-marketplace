@@ -4,6 +4,61 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.8.0
+
+### Fixed
+- **The `--skills` install command now actually installs.** The skill, the command and
+  the README all printed `npx -y skills add <owner>/<repo> --skill <skillId> -y`, and
+  `skills/vercel-skills-scout/references/mechanics.md` had already recorded that
+  `--skill` matches the CLI's own DISPLAY name — passing the skills.sh `skillId` prints
+  the repo's skill list and exits 0 **without installing**. All three call sites now
+  print the two-command pair (`-l` to read the exact listed name, then
+  `--skill '<listed name>' -y`) and confirm with `npx -y skills ls`, because exit 0
+  proves nothing on that path.
+- **`stack-scan` no longer suggests itself.** Two `references/signals.md` rows offered
+  the plugin that is running the scout (a leftover from when `plugin-scout` was its own
+  plugin, merged in 2026-09-14) — and the Report rule excludes `stack-scan` by
+  construction, so neither row had anywhere to print. They are `—` routing rows now:
+  a manifest names `/stack-scan:audit`, and an uncovered-stack manifest (`go.mod`,
+  `pyproject.toml`, `Cargo.toml`, …) names `/stack-scan:report` plus
+  `--skills`. `references/stack-relevance.md` said `--full` excluded `stack-scan` by
+  construction in one paragraph and installed it anyway in another; settled to the
+  first.
+
+### Changed
+- **`toolchain-experts` is a tier-1 signal.** A repo carrying `phpstan.neon`,
+  `psalm.xml`, `eslint.config.*`, `biome.json`, `.stylelintrc*`, `tsconfig.json` or
+  the matching devDependency now earns it with cited evidence and it joins the `--yes`
+  set. It previously sat in the universal remainder — in the repos whose configured
+  analyzers are the entire reason it exists.
+- **The listing-cap warning stopped over-claiming.** "Skills stop being reachable" was
+  measured false on 2026-09-15: removing a description outright changed firing by
+  nothing (47/50 vs 47/50, `rationale/2026-09-15-listing-eviction-probe.md`). The cost
+  figure still prints — it prices the SET, and the same probe found firing does drop
+  when several adjacent skills contest one territory. Overlap, not bytes.
+- **Scout references recounted after the 2026-09-14 consolidation**, which halved the
+  catalog and left the arithmetic behind: `picker.md` billed the exhaustive picker at
+  "4 calls and 16 blocking questions" over "51 rows" (in the same paragraph that
+  criticises a frozen number), its sample report offered `a11y`, `performance`, `sql`,
+  `mariadb`, `stack-scan` and a duplicated `database`, and its overlap argument quoted
+  "26 of 63 rows"; `relevance.md` carried the same stale sample and a "0.12 picker cut"
+  this plugin never had; `flags.md` said 21 of 27 leaves ship a hook (20 do) and still
+  billed `--all` at "~5 calls and ~20 questions"; `stack-relevance.md` said 22 of 26
+  leaves are any-stack (23). Every one of those is now derived at run time from
+  `references/catalog.md` or stated as a ratio, not frozen as an integer.
+- **`package-hygiene` is 27 lines shorter.** Cut: the semver definition, "commit the
+  lockfile", and an Anti-patterns section that re-explained six rules the body already
+  stated — all shapes `rationale/measured-zero-shapes.md` measured at zero delta. Kept:
+  the two-segment tilde trap (composer `~1.2` ≠ npm `~1.2`), the three fix lanes, the
+  override-expiry rule, and the `--omit=dev` flag drift. The anti-pattern NAMES stay as
+  review handles.
+- **Two descriptions now carry the phrasings users actually type** — `installed-versions`
+  catches "what version of X is installed" and "which PHP/Node/framework does this
+  project run"; `package-hygiene` catches `npm audit` / `composer audit` verbatim.
+- `installed-versions`' ecosystem reference stopped naming the downstream consumers of
+  a resolved pnpm `catalog:` version as `vite`, `nextjs`, `vue3` and `react` — all four were removed as
+  plugins — so it points at `web-dev`, which ships the skills that branch on a major.
+
 ## 0.7.8
 
 ### Changed

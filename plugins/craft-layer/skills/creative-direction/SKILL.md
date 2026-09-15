@@ -60,7 +60,9 @@ rule live in `references/archetypes.md`.
 The concept is DIVERGENT reasoning, so it is an agent, not a checklist: dispatch the
 `creative-director` agent (`agents/creative-director.md`). It generates N blind concepts —
 each a central metaphor, an editorial voice, and ONE signature interaction — seeded by the
-anti-corpus differential (each must break ≥1 sameness-fingerprint default), scores them on
+anti-corpus differential (each must break K sameness-fingerprint defaults on K DIFFERENT
+axes — K scales with the pinned ambition, `restrained` 1 / `standard` 2 / `maximal` 3; a flat
+floor of one let a single departure discharge the whole gate), scores them on
 distinctiveness × brief-fit × feasibility (feasibility includes a usability floor), and
 returns the winner plus a **structured divergence record** the audit later checks. The
 agent owns the rubric; this skill only says WHEN to run it and WHAT it feeds.

@@ -97,7 +97,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    turn 40 of a run that is already executing. It is a different file from
    `active-run.json` on purpose: that one registers a RUN for the Stop gate, this one
    declares a PHASE for every installed reminder hook, and a plugin that has neither
-   task-runner nor taskmaster installed still reads it. Both are cleared at step 9.
+   task-runner nor taskmaster installed still reads it. Both are cleared in step 4, and
+   only after its two gates are green and every card is accounted for.
    Registering the run lets the hook enforce that a behavioral-gate pass is recorded before
    the run stops clean. `branch` scopes enforcement to the run's own branch, so a
    sentinel left by an abandoned run never blocks unrelated work elsewhere in the repo. Create `.claude/task-runner/rv/`, `rt/`, `bg/` and `reductions/` in the same

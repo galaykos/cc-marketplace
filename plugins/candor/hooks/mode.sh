@@ -17,8 +17,12 @@
 # LIMITATION (honest scope):
 #   - Advisory. `additionalContext` is not a blocking key; this can inform a turn,
 #     never stop one.
-#   - Costs ~120 tokens of input per prompt while active (measured: 476 chars),
-#     and nothing when off.
+#   - Costs ~150 tokens of input per prompt while active — measured 2026-09-15 by
+#     driving this hook: 596-597 chars at lite/full/ultra, 693 at a wenyan level
+#     (~173 tok), and nothing when off. It read "~120 tokens (476 chars)" until the
+#     findings-cap waiver and the wenyan clause were added to the emitted line and
+#     the figure was not re-measured; a stated cost is a claim, so re-run the hook
+#     rather than editing the number by eye.
 #     That is the price of persistence; `/candor:level off` stops paying it.
 #   - Natural-language switching is a narrow heuristic, not parsing. The slash
 #     command is the reliable path and the one the docs name.

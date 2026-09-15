@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: Use when the request is still an idea rather than a task — no concrete capability list, an "I want something like…", a thought that could go five directions: dialogue to an approved design, then hands off to grill. Never writes code.
+description: Use when the ask is still an idea, not a task — "brainstorm this", a rough idea, exploring what to build, not sure yet what it should be, no capability list: one question at a time to an approved design doc. Never writes code.
 ---
 
 ## Where this sits in the pipeline
@@ -10,7 +10,8 @@ requirements, `task-cards` requirements → work. Run this while the shape is un
 where interrogating for edge cases would sharpen a thing that may not survive its
 first alternative.
 
-Hard gate, no exceptions: no implementation code, no scaffolding, no file
+Hard rule, no exceptions — and `unenforceable`, so it holds only because you hold
+it: no implementation code, no scaffolding, no file
 creation beyond the design doc until the design is approved. "Too simple to
 need a design" is the classic leak — simple ideas carry the most unexamined
 assumptions; their design can be five sentences, but it gets written and
@@ -107,11 +108,10 @@ every capability the idea does not need this round; moved-to-later is a decision
 When the shape is settled, present the design incrementally — architecture,
 components and their single responsibilities, data flow, error handling,
 testing approach — each section scaled to its complexity, approval collected
-per section rather than as one big "looks good?" at the end. Design units for
-isolation: one purpose per unit, communication through named interfaces, and
-for every unit an answer to "what does it do, how is it used, what does it
-depend on". A unit whose internals must be read to be understood has a
-boundary problem worth fixing on the whiteboard, not in the code.
+per section rather than as one big "looks good?" at the end. Unit boundaries are
+`code-architecture:solid-principles` and `code-architecture:system-design` when that
+plugin is installed; brainstorm's own job is that the boundary gets DECIDED on the
+whiteboard, not discovered mid-card.
 
 ## The design doc
 

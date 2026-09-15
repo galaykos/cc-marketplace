@@ -40,7 +40,7 @@ sandbox rendering components the project does not have decides nothing about it.
 This writes into the user's source tree. Before ANY write, ask via
 `AskUserQuestion`, naming the exact artifacts:
 
-> Render real-component preview? Writes `design-preview.html` (project root) and
+> Render real-component preview? Writes `__design-preview__.html` (project root) and
 > `src/__design-preview__/main.tsx`, then runs `npm run dev`. Both files are deleted
 > after the pick.
 
@@ -48,8 +48,12 @@ On the Laravel path the prompt must name the route file too, because a scratch R
 is reachable in a way a scratch HTML file is not:
 
 > Render real-component preview? Writes
-> `resources/views/__design-preview__.blade.php` and one route in `routes/web.php`
-> inside a marked block, then runs the dev server. Both are removed after the pick.
+> `resources/views/__design-preview__.blade.php` and `routes/__design-preview__.php`,
+> plus ONE marker-carrying `require` line in `routes/web.php`, then runs the dev
+> server. All three are removed after the pick.
+
+Three artifacts, and the route lives in its OWN file — never describe it as a
+block inside `routes/web.php`; that wording contradicts the scratch surface below.
 
 Options: proceed / use the static shell mockup instead / skip. This gate is separate
 from the mockup fidelity consent — that one covered throwaway files in
@@ -60,7 +64,7 @@ from the mockup fidelity consent — that one covered throwaway files in
 Vite serves extra HTML entries in dev with their own module graph, so no router or
 config integration is needed:
 
-- `design-preview.html` at the project root: minimal HTML, `<div id="dp-root">`,
+- `__design-preview__.html` at the project root: minimal HTML, `<div id="dp-root">`,
   `<script type="module" src="/src/__design-preview__/main.tsx">`.
 - `src/__design-preview__/main.tsx`: imports the project's global stylesheet
   (whatever `src/main.tsx` imports), mounts, renders the variants.
@@ -106,30 +110,28 @@ and two lanes is two previews:
   the project → not a dataviz preview. Chart form and encoding are governed by the
   host's bundled `dataviz` skill. <!-- host-ok -->
 
-Data lanes render every meaningful state, switchable from the preview header:
-`populated` (realistic data, full interactivity), `empty` (the honest empty state,
-not a blank box), `loading` (a skeleton in the real layout's shape), `error` (a clear
-failure with a retry affordance). Each variant renders its OWN states — one that
-omits `loading` or `error` falls through silently to whatever branch catches it, a
-bug no compiler catches. Populate with specific, real-shaped data ("Invoice #4821 —
-Northwind Traders — $1,240.00 — overdue 12 days"), never lorem ipsum: placeholders
-that read like production data expose density problems lorem hides. Theme is a
+Data lanes render the same four states the shell uses, switchable from the preview
+header, under `shell-authoring.md`'s Data-state and Realistic-data rules unchanged —
+cited, not restated. The one rule this rung adds: each variant renders its OWN
+states, because these are REAL components with real branches — a variant that omits
+`loading` or `error` falls through silently to whatever branch catches it, a bug no
+compiler catches. Theme is a
 constant backdrop, never a variant axis — colour decisions belong to `/ui-ux:theme`.
 
 ## Server lifecycle
 
 - A dev server already running (detected port in use with a Vite response)? Reuse it
-  — the entry appears at `/design-preview.html` without a restart. NEVER kill or
+  — the entry appears at `/__design-preview__.html` without a restart. NEVER kill or
   restart a server this flow did not start.
 - **Where the harness owns servers, start it there.** Claude Code's desktop app ships
   `mcp__Claude_Browser__preview_start`, which runs a dev server named in
   `.claude/launch.json`, reuses one already running, and opens the Browser pane on it
   — its own instruction is to use it instead of Bash for running servers. Add the
   project's dev script as a `launch.json` configuration if absent, start it by name,
-  navigate to `/design-preview.html`, and stop it with `preview_stop` in place of the
+  navigate to `/__design-preview__.html`, and stop it with `preview_stop` in place of the
   PID kill — only if this flow started it. <!-- host-ok -->
 - Otherwise start the dev script in the background, note the PID, wait for the ready
-  line, and hand over `http://localhost:<port>/design-preview.html`.
+  line, and hand over `http://localhost:<port>/__design-preview__.html`.
 - Iteration: edit the entry in place — HMR updates the open tab; no new entries, no
   new ports, at most two passes.
 

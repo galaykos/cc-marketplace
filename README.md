@@ -65,8 +65,8 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `workflow-suite` | 15 | ~6.0k tokens | ~1.3k tokens | ~2.0k tokens |
-| `craft-suite` | 2 | ~2.1k tokens | — | — |
+| `workflow-suite` | 15 | ~6.1k tokens | ~1.3k tokens | ~2.0k tokens |
+| `craft-suite` | 2 | ~2.2k tokens | — | — |
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.8k tokens |
 | `core-suite` | 7 | ~1.7k tokens | ~1.3k tokens | ~1.8k tokens |
 

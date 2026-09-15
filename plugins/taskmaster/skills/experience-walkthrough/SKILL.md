@@ -80,7 +80,8 @@ steps stack into a scroll, the "next" button falls below the fold. When the
 experience will be used on mobile:
 
 - Walk the demo once more at ~375px (resize the window, or open the preview
-  URL on a phone via the LAN-bind option in visual-decisions).
+  URL on a phone — restart visual-decisions' `assets/serve.py` with `--lan`,
+  which binds 0.0.0.0 and accepts `/events` from a non-localhost Origin).
 - Mockup-grade responsiveness is enough — stacked sections, readable tap
   targets. The question is "does the SEQUENCE still work this narrow", not
   "is the CSS production-ready".

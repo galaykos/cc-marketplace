@@ -1,6 +1,6 @@
 ---
 name: analyzer-triage
-description: Use when grading PHP, TypeScript, JavaScript, React, Vue or CSS code against the project's own static analysis — phpstan, psalm, tsc, vue-tsc, eslint, biome, stylelint — before reporting any defect: which config CI actually enforces, what the baseline already forgives, and which rules are switched off. Also when analyzer output needs triage, or a project has no analyzer at all.
+description: Use when grading PHP, TypeScript, JavaScript, React, Vue or CSS code against the project's own static analysis, lint or typecheck — phpstan, psalm, tsc, vue-tsc, eslint, biome, stylelint — before reporting any defect: which config CI enforces, what the baseline forgives, and which rules are switched off. Also when that output needs triage, or a project has no analyzer.
 ---
 
 The rule this skill exists for: **grade against the project's configuration, never

@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when facing any bug, failing test, or unexpected behavior, BEFORE proposing or applying a fix — root-cause-first discipline: reproduce, read the first error, one-hypothesis-one-experiment, bisect, verify against the original reproduction.
+description: Use when asked to debug, or facing a bug, crash, stack trace, failing test or unexpected behavior, BEFORE proposing or applying a fix — reproduce, read the FIRST error, one hypothesis one experiment, bisect, verify against the original repro.
 ---
 
 ## The iron law

@@ -147,4 +147,8 @@ for every project, which is almost never what anyone wants.
 
 Environment (set in the user's shell, before starting the session — a command
 string cannot reach it): `CLAUDE_DESTRUCTIVE_GUARD=ask` turns every deny into a
-prompt, `=off` disables the guard entirely.
+prompt, `=deny-only` keeps every hard stop and drops the ask tier, `=off` disables
+the guard entirely. The plugin's other hook — `config-guard.sh`, an `ask` on a write
+to an existing settings / `hooks.json` / hook-script / plugin-manifest / lint-config
+file — is silenced by `CC_CONFIG_GUARD=off` and by either of the two values above
+that mean "no ask tier" (`off`, `deny-only`).

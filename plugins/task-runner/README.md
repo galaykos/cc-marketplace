@@ -88,6 +88,22 @@ local edit-turns), no breadth word in the request, half of them never named in i
 Advisory, and it counts **breadth only**: an unasked refactor inside a file you did
 name is invisible to it. `CC_DRIFT=off` silences it.
 
+## Counting the subagents a fan-out actually spawned
+
+`spawn-cap.sh` counts subagent dispatches per session and **asks** — a permission prompt,
+never a refusal — once the count crosses 20, then at every doubling (40, 80, …). Subagent
+turns do not appear in the transcript and they are billed, so a fan-out planned as three
+agents and grown to thirty is invisible until the invoice; this is the only place it gets
+counted. `ask` rather than `deny` because a large fan-out is sometimes right — the claim is
+not that thirty is wrong, only that thirty should be a decision somebody made. Thresholds
+double instead of firing every time, because asking at 21, 22, 23 trains reflexive approval.
+
+It counts dispatches, not cost: twenty haiku calls and twenty opus calls are one number
+here and not one bill. It cannot see an agent a subagent spawns through another mechanism,
+and it says nothing about whether the fan-out was a good idea — that is
+`/task-runner:plan`, which is prose. `CC_SPAWN_CAP=<n>` moves the first threshold;
+`CC_SPAWN_CAP=off` disables it.
+
 ## The run cannot end by narration
 
 A run registers itself at start, and a Stop hook — clause 4 of candor's gate since
@@ -115,8 +131,9 @@ So the mandated passes now leave evidence a run cannot author for itself:
 | red-team panel (boosted runs that shipped code) | `rt-lens-*` / `rt-critic-*` from the same observer | 3 lenses + 1 critic, or a recorded degradation |
 
 Skips stay possible and stop being silent. `scripts/review-skip.sh` (per card) and
-`scripts/reduction-record.sh` (a degraded panel, a downgraded dispatch, a narrowed
-suite) record the cut with its reason and print it to the transcript at the moment of the
+`scripts/reduction-record.sh` (`--kind redteam|dispatch|suite|coverage|other` — a degraded
+panel, a downgraded dispatch, a narrowed suite, a dropped coverage pass, anything
+else) record the cut with its reason and print it to the transcript at the moment of the
 decision; in an interactive session a PreToolUse hook asks you to approve it first. The
 completion gate then refuses a clean stop unless the closing report names each recorded
 id. Design carve-outs — a track leaf, a reviewer plugin that is not installed — record an

@@ -122,25 +122,8 @@ bloat/fragility risk is loaded relations (serialized recursively, re-fetched too
 appended/non-Eloquent properties; keep payloads to ids/scalars. Jobs run more than once — write
 `handle()` so it's safe to run twice.
 
-```php
-// Bad: hydrated model in the constructor, non-idempotent charge
-class ChargeOrder implements ShouldQueue {
-    public function __construct(public Order $order) {}
-    public function handle(): void { Payment::charge($this->order); } // charges again on retry
-}
-
-// Good: pass the id, guard against duplicate execution
-class ChargeOrder implements ShouldQueue {
-    public function __construct(public int $orderId) {}
-    public function handle(): void {
-        $order = Order::findOrFail($this->orderId);
-        if ($order->isPaid()) return;
-        Payment::charge($order);
-    }
-}
-```
-
-Serialization edge cases and the retry/backoff matrix: `references/queue-payloads.md`.
+The worked bad→good pair, the serialization edge cases and the retry/backoff matrix:
+`references/queue-payloads.md`.
 
 ## Config/env discipline — `config()`, not `env()`, outside config files
 

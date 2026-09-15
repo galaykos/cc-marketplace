@@ -3,8 +3,6 @@ name: api-auth
 description: Use when building or reviewing API authentication and authorization — session/opaque/JWT tokens, Laravel Sanctum vs Passport, OAuth2/OIDC flows, scopes, refresh-token rotation, storage and transport, revocation, expiry.
 ---
 
-# API authentication & authorization
-
 Auth is the control plane for everything else — get it wrong and every other control
 is moot. Two questions frame every design: **what is the token** (and can you revoke
 it), and **where does it live** (and who can steal it). Answer those deliberately; most

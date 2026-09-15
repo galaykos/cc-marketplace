@@ -97,14 +97,18 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    `not checked` on the ordinary case, which reads as a clean run rather than an ungraded one.
    `CLAUDE_PLUGIN_ROOT` keeps both corpora live rather than the frozen snapshots it prints without it.
    `CRAFT_TOKEN_SOURCE` is required whenever the tokens are not where the gates look — `contrast.mjs`
-   treats a missing token source as a FAILURE and three `divergence.mjs` assertions cannot resolve
-   without it. `CRAFT_EXPECT_TITLE` is the only thing proving the server on that port is THIS build; the
+   treats a missing token source as a FAILURE, and `divergence.mjs` exits 2 at the token resolution, so
+   its five token-dependent assertions (`accent-default-band`, `hue-repeat`, `font-anti-corpus`,
+   `font-repeat`, `draw-repeat`) never run; the seven source-only ones print first and their verdicts
+   stand. `CRAFT_EXPECT_TITLE` is the only thing proving the server on that port is THIS build; the
    suite runs inside the target and cannot read the contract, and without it reports `IDENTITY NOT
    MEASURED` and captures anyway — carry that phrase into the `Visual:` line rather than dropping it.
 
    Carry the verdicts into the table: **exit 1 is a FINDING** to resolve or waive in
-   `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`** · a gate never run
-   is `not checked`. None of the three is a pass.
+   `<project>/.craft-layer/waivers.json` with a reason · **exit 2 is `not measured`, EXCEPT from
+   `contrast.mjs`, where the script's own contract makes it a FAILURE** (see above — a contrast gate
+   that cannot see the build has not cleared it) · a gate never run is `not checked`. None of the four
+   is a pass.
 
 5. **CAPTURE and OPEN the images — at EVERY tier, not just a boosted run.** A DOM assertion proves an
    element exists, carries the right text and computes the right colour. It cannot see text running off

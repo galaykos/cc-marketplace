@@ -58,8 +58,9 @@ entries to name-only in priority order, silently, so skills stop being reachable
 without any error — and because this bundle is installed at user scope, every
 repo pays.
 
-
-`workflow-suite` contains all seven of these. Install one or the other, never
+The seven members are `secret-scanning`, `candor`, `code-review`, `skill-router`,
+`git-workflow`, `hindsight` and `stack-scan` (detailed under "What's included"
+below), and `workflow-suite` contains all seven. Install one or the other, never
 both: with workflow-suite present **at the same scope**, `/core-suite:uninstall`
 keeps every member (another installed bundle at that scope lists them) and
 removes only this bundle's own manifest — a no-op that reads like a cleanup. The

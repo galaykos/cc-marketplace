@@ -2,6 +2,30 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.6
+
+### Fixed
+- **The per-prompt cost of the terse mode was understated by a quarter.** `mode.sh`'s
+  header and the README both said "~120 tokens per prompt (measured: 476 chars)". Driven
+  against a real `UserPromptSubmit` payload on 2026-09-15 the injected line is **596-597
+  chars at `lite`/`full`/`ultra` (~150 tok) and 693 at a `wenyan-*` level (~173 tok)** —
+  it grew when the findings-cap waiver and the wenyan clause were added to the emitted
+  string and nobody re-measured. The one number a user weighs against `/candor:level off`
+  was the stale one. Both now carry the measured figures and the method.
+- **The README's author-time check list carried a wrong case count and an incomplete
+  scope.** `evidence-gate-hook-tests.sh` was labelled "30 cases" and prints 35;
+  `gate.test.sh` was labelled "clauses 1-2" and also pins clause 5 and clause
+  independence. The counts are gone rather than corrected — each harness prints its own,
+  so a second copy here is only a thing to drift.
+- **`CHANGELOG.md` carried two `## 0.3.3` sections.** Clause 5 (a blocking clause) landed
+  under the version number the previous release had already used, so a consumer reading
+  0.3.3 could not tell which of two feature sets they had. Merged under one heading that
+  says so.
+- **The statusline badge reads the level file only.** A level set purely through
+  `CC_TERSE` is active and unbadged; the README implied the badge tracks the active level.
+  Stated, not changed: the badge is opt-in, unwired by default, and its Windows twin
+  would have to move with it.
+
 ## 0.3.5
 
 ### Fixed
@@ -31,7 +55,12 @@ All notable changes to the `candor` plugin.
 - The README, the plugin description and the hook table say **five** clauses, and the
   clause table documents clause 5 and `CC_LOCKFILE_GATE`. 0.3.3 added a blocking clause
   and left every count at four.
+
 ## 0.3.3
+
+Two releases shipped under this one version number — the clause-5 change below landed
+after the three fixes without a bump, so the entries are merged here rather than split
+across two `0.3.3` headings that a consumer could not order or tell apart.
 
 ### Added
 - **Clause 5: lockfile drift.** A Stop is blocked when a dependency manifest's
@@ -46,7 +75,6 @@ All notable changes to the `candor` plugin.
   change — the harness caught exactly that, and a hand test had missed it because the
   loop guard was still holding the previous verdict. Disarmed for subagents.
   `CC_LOCKFILE_GATE=off` disables it.
-## 0.3.3
 
 ### Fixed
 - **Clause 3 arms on an MCP file write.** Its evidence scan counted only
@@ -60,6 +88,7 @@ All notable changes to the `candor` plugin.
 - **The no-emoji rule yields to a mandated protocol banner.** taskmaster prints a
   byte-identical status line that `validate.sh` gates for parity; a terse level shortens
   prose, it does not rewrite another plugin's contract.
+
 ## 0.3.2
 
 ### Fixed

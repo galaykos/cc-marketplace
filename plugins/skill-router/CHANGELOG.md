@@ -2,6 +2,49 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.17.0 — 2026-09-15
+
+### Fixed
+- **`CC_REMIND=off` now silences the per-edit nudges.** `route.sh` — this plugin's
+  headline advisory channel — read no off switch at all, while this plugin's README
+  and eight sibling READMEs promised `CC_REMIND=off` silences "every advisory nudge
+  in this marketplace". Muting the marketplace still produced a nudge on every Edit.
+  `CC_ROUTE=off` keeps its documented narrow scope (the prompt-level tool-fit check
+  only); there is deliberately no file-routing-only switch, and the README now says
+  which switch covers which channel.
+- **The ReUI content row could not match a ReUI import.** `\b(@reui/|…)` put a word
+  boundary immediately before `@`, so it matched only where a word character preceded
+  the `@` (`x@reui/bar`) — never in `from "@reui/core"`. A project installing ReUI by
+  package name got no `reui-best-practices` nudge unless the file also mentioned
+  `reui.io` or imported from the `@/components/ui/data-grid` alias. Now
+  `(@reui/|\breui\.io|\bfrom …)`.
+- **The concurrency row's `.lock(` alternative needed an argument.** The trailing `\b`
+  sat after `(`, so `mu.Lock()` and `data.lock().unwrap()` — the Go and Rust spellings
+  — never matched, only `lock(key)` did. The alternations now carry their own
+  boundaries and `\.[lL]ock\(` covers Go's capitalised form, which is the real signal
+  in a Go file (source says `go func()`, not the word `goroutine`).
+
+### Added
+- **`tailwind.config.*` routes to `tailwind-best-practices`.** `next.config.*` and
+  `vite.config.*` had their own rows; tailwind did not, and the `@base` exclusion
+  added in 0.16.0 correctly suppresses the design-principle rows on any `*.config.*`
+  — so editing `tailwind.config.js` routed nothing, even though `prime.sh` already
+  sniffs that file for the SessionStart index. Verified end to end: one nudge,
+  `tailwind-best-practices` only. Tailwind v4 is CSS-first and may ship no config
+  file; there `**/components/**` remains its only route, stated in `rules.tsv`.
+
+### Changed
+- README: the dynamic-channel cost reads **1836 tokens**, the committed figure in
+  `scripts/context-budget-dynamic-baseline.json`, instead of the stale "~2.6k"; the
+  prompt-route harness is described as asserting six discipline *phrases* rather than
+  "all six rules" (rules 3 and 4 have no assertion of their own); and the
+  machine-local `surfaced.jsonl` ledger plus its `CC_SURFACED_LOG=off` switch are
+  documented for the first time.
+- `rules.tsv`: the craft-layer comment claimed "only information-design is routed" one
+  screen above a blessing that names the second routed craft-layer skill,
+  `threejs-best-practices`. Both are now named, and the motion row's corpus co-fire
+  count is re-measured (still zero).
+
 ## 0.16.1
 
 ### Removed

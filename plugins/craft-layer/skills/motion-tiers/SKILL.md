@@ -1,6 +1,6 @@
 ---
 name: motion-tiers
-description: Use when deciding HOW to animate a web-app surface — Framer Motion vs anime.js vs Three.js/R3F vs sprite-sheets — or when a motion review flags a missing perf budget, prefers-reduced-motion path, or reduced-bundle fallback.
+description: Use when deciding HOW to animate a web-app surface — Framer Motion, anime.js, Three.js/R3F, Lottie/Rive, or sprite-sheets — or when a motion review flags a missing perf budget, prefers-reduced-motion path, or reduced-bundle fallback.
 ---
 
 ## What this decides
@@ -60,8 +60,9 @@ are **gate** (`pc_source_of_truth`); prose agreement is **recorded** — nothing
   disposal, and a loop paused off-screen. reduced-motion: freeze the loop, one static frame.
   reduced-bundle: a static hero image or `<video poster>`; the 3D chunk loads only
   when visible.
-- **Tier 4 — Sprites / sprite-sheets**: looping character / mascot motion. Budget ≈
-  one packed WebP/AVIF sheet ≤ 150KB; CSS `steps()` or a `requestAnimationFrame` loop
+- **Tier 4 — Sprites / sprite-sheets**: looping character / mascot motion. Budget per SHEET:
+  ≤ 150KB may load eagerly, ≤ 500KB must lazy-load, over 500KB switch to a looping WebM/AV1
+  video — the sheet is the wrong tier. CSS `steps()` or a `requestAnimationFrame` loop
   — compositor-cheap. reduced-motion: pause on a single poster frame. reduced-bundle:
   ship the static poster frame and defer the sheet. Authoring detail: `references/sprite.md`.
 - **Tier 5 — Vector** (Lottie / Rive): designer-authored vector motion. Lottie

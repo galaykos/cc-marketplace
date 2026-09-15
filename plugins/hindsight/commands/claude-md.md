@@ -16,7 +16,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/claude-md-check.sh ${ARGUMENTS:-.}
 ```
 
 Include its output verbatim: per file, line and byte counts, then every backticked
-path or `npm run` / `composer` / `make` script that no longer resolves, with the line
+path or `npm`/`pnpm`/`yarn`/`bun run X`, `composer X` or `make X` that no longer resolves, with the line
 it sits on. These are defects, not judgments — a command a reader cannot run is worse
 than no command. The script says what it does not read (prose paths, architecture
 claims); repeat that line rather than implying the file is clean.

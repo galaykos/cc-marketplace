@@ -1,6 +1,6 @@
 ---
 name: plan-before-code
-description: Use before writing any non-trivial code, AFTER the approach shape is settled — which files change, what each new unit owns, the interfaces, where code lives.
+description: Use before writing any non-trivial code, AFTER the approach shape is settled — the implementation plan: which files change, what each new unit owns, the interfaces, where code lives.
 ---
 
 ## The procedure: file map, then interfaces, then code — Compensation (worker-tier)

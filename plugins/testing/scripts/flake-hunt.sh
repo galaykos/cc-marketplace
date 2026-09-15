@@ -14,8 +14,8 @@
 #                     → shared state between tests; fix per-test isolation
 #   non-deterministic fails in FIXED order across different seeds/runs
 #                     → clock, network, concurrency; freeze time, stub the network
-#   leaky             passes alone, fails in the full suite
-#                     → a neighbour leaves global state behind
+#   broken            failed in EVERY fixed run — red, not intermittent
+#                     → read the failure; this one is not a flake at all
 #
 #   flake-hunt.sh --cmd "<test command>" [--runs N] [--shuffle "<flag>"]
 #                 [--baseline FILE] [--update-baseline]
@@ -123,7 +123,7 @@ if [ -z "$shuffle" ]; then
   printf '\nnote: no --shuffle flag given, so ORDER-DEPENDENCE was not tested — the\n'
   printf '      single most common flake class is invisible in this run. Pass your\n'
   printf '      runner'"'"'s randomize flag, e.g. --shuffle "--sequence.shuffle" (vitest),\n'
-  printf '      "-p no:randomly" inverted (pytest), "-shuffle=on" (go test).\n'
+  printf '      "-p randomly" (pytest-randomly), "-shuffle=on" (go test).\n'
 fi
 printf '\nnote: %s runs per axis. A 1-in-3 flake shows up reliably at this N; a\n' "$runs"
 printf '      1-in-50 flake almost never does. No finding is not a stable suite.\n'

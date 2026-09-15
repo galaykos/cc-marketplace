@@ -3,6 +3,15 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.20.0
+
+### Changed
+- **`reuse-hygiene` now fires on the words you actually type.** Its description promised "the deep pass" without naming what the deep pass is, so "find the unused exports in this module" or "run knip on this repo" routed nowhere. It now names unused exports, export-aware orphan detection, and the three tools it shells out to (knip, vulture, deadcode) — all of which its body already documented.
+- **`/code-review:review` shows its arguments in the slash menu.** It was the only command here with no `argument-hint`, so the UI gave no sign that a path, a PR number, a branch, or `--debt` is accepted.
+
+### Fixed
+- **The README documented three of the four hooks this plugin ships.** `conventions.sh` — the `PostToolUse` one-shot that emits the paths of your formatter/linter configs and the CI command that invokes them — was described only in this changelog, so an installer had no way to learn it exists, what it emits, or that `CC_CONVENTIONS=off` silences it alone. Also fixed the closing verdict: the README called the middle verdict `merge-after-blockers` while the command and the agent that emit it both say `merge-after-criticals`.
+
 ## 0.19.1
 
 ### Fixed

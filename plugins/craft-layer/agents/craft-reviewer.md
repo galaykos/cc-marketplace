@@ -81,8 +81,14 @@ without exception:
 - [ ] Every sprite/asset is within its size budget.
 - [ ] The accent clears contrast on every surface AND size — small text/marks resolve to the
       darker accent step on light surfaces (text ≥4.5:1, non-text marks ≥3:1).
-- [ ] page-transitions / webgl-effects / interaction-fx / physics-motion each meet
-      their done-ness mandate (step 8) when used.
+- [ ] page-transitions / webgl-effects / interaction-fx / physics-motion each meet the sections
+      their own SKILL.md marks non-negotiable when used — beyond the reduced-motion and budget
+      rows above: `page-transitions` § Unsupported browsers (feature-detect and fall through) plus
+      § Shared-element choreography (one live `view-transition-name`, not one per card),
+      `webgl-effects` § WebGPU/TSL default, WebGL fallback (a GLSL-only effect that never runs
+      on WebGPU is a finding), `interaction-fx`
+      § Accessibility (real cursor kept, `pointer: coarse` off, `:focus-visible` parity), and
+      `physics-motion` § Accessibility (a non-dragging route to the same outcome).
 - [ ] The concept's divergence record breaks K sameness-fingerprint defaults on K DIFFERENT
       axes (K = 1 `restrained` / 2 `standard` / 3 `maximal`, from the contract's `Ambition`
       row), or a conventional design was explicitly requested; AND every entry it claims was
@@ -182,8 +188,8 @@ Do not re-implement accessibility or performance checks — they are owned elsew
 and duplicated rules drift:
 
 - Full accessibility (labels, focus, keyboard, ARIA, comprehensive contrast) → defer to
-  `/ui-ux:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (step 6) IS a craft
-  gate — run it here; defer the rest of a11y.
+  `/ui-ux:audit`. EXCEPTION: the accent-vs-surface contrast pre-check (How to work, step 4) IS a
+  craft gate — run it here; defer the rest of a11y.
 - Performance / Lighthouse / Core Web Vitals / load timing → defer to
   `/resilience:review --concern performance` (requires the `resilience` plugin; skipped if not
   installed).

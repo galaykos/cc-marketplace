@@ -3,7 +3,8 @@
 # stripped or broken PATH, where `env bash` itself exits 127.
 #
 # PostToolUse. The AD-HOC complement to scope.sh, which is a provable no-op on most turns:
-# scope.sh:32 is `[ -r "$scope" ] || exit 0`, so when there is no task-runner card — a
+# scope.sh guards on `[ -r "$scope" ] || exit 0` (grep it — a line number here went stale
+# once already), so when there is no task-runner card — a
 # one-line request typed straight into a session, which is the common case — nothing in
 # this marketplace watches whether the work stayed near the ask. This is the only surface
 # here that is stack-agnostic by construction: it counts FILES against a REQUEST, so it

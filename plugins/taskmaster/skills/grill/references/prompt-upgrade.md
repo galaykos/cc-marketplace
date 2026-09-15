@@ -84,7 +84,8 @@ one execution path but is absent, contradictory, or unenforceable on another —
 prioritizing ultra-deep-research's refutation/verification teeth. Additionally, give
 the taskmaster pipeline a prompt-upgrade step that derives exactly this kind of
 improved task statement from any raw prompt plus the scout's findings. Every fix must pass
-validate.sh, check-version-bumps.sh, generate.sh --check, and the CI smoke suites.*
+validate.sh, check-version-bumps.sh, context-budget.sh, generate.sh --check, and the CI
+smoke suites.*
 
 Notice what the upgrade added and what it did not. It **added**: the concrete
 surface (which file kinds count as prompt-content), the precise defect shape (a

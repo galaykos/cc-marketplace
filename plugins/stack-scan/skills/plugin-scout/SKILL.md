@@ -170,7 +170,7 @@ not yet installed, instead of showing the picker; the full report still prints f
 only, with a hint to rerun without `--yes`. Full rules: `references/flags.md`.
 - `--full` — installs every leaf that is any-stack or matches the detected stack (`references/stack-relevance.md`), leaves only; a plan (exclusions with reasons, hooks
 and MCP servers added, listing-cap cost) replaces the inventory, relevance pass and picker, then one confirm — `--full --yes` skips the confirm, the plan still prints. `--stack a,b,c` restores a class with no manifest evidence. Rules: `references/flags.md`.
-- `--all` — offers every eligible row as an explicit picker option, paging until all appeared (the pre-0.12 default). Picker-only; no effect under `--yes` or `--full`.
+- `--all` — offers every eligible row as an explicit picker option, paging until all appeared (the default before the one-call picker landed). Picker-only; no effect under `--yes` or `--full`.
 - `--persist` — switches installs to `--scope project` and verifies the marketplace entry and the CLI's `enabledPlugins` writes
 in the project's `.claude/settings.json`, so teammates who clone get the same set; covers only what actually installed this run.
 Never hand-author an entry for a failed install. Full rules: `references/flags.md`.

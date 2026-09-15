@@ -216,7 +216,6 @@ it (recorded; the router is the only nudge).
   chart/media/type/prose/marketing/code/stepper/icon primitive library, 8 starter
   layouts, and dedicated preview pages), experience-walkthrough
   (interactive clickable demo of the whole assembled flow), task-cards
-  (spec → milestone-grouped single-prompt cards)
   (spec → milestone-grouped single-prompt cards), coverage-check (every success
   criterion has a card, no card proves what the spec never asked), verify-teeth
   (a card's Verify line names an assertion that would fail were the feature absent),
@@ -231,5 +230,13 @@ it (recorded; the router is the only nudge).
   (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer
   (warn) on PostToolUse
 - **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
-  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh` — each with a
-  harness under `scripts/__tests__/`
+  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`,
+  `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
+  (`card-lint-record.sh` is covered by `card-lint-observability.test.sh`, which
+  drives both its writers and its reader)
+
+Every hook fails open and every one has an off switch. `CC_REMIND=off` silences the
+clarify directive, the clarify gate and the card observer; `CC_CARDLINT=off` just the
+observer; `CC_PREVIEW_GUARD=off` the artifact guard; `CC_BOOST=off` (or
+`TASKMASTER_BOOST=off`) the boost detector. The clarify gate is additionally off
+unless `CC_CLARIFY_GATE=block`. `PREVIEW_PORT` moves the preview server off 8123.

@@ -2,6 +2,63 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.36.1
+
+### Changed
+- **A boosted run now fans out on the Agent tool, not only on `Workflow`.** 0.35.1 fixed
+  this in `verification-panels` and left it wrong in the two files that consume it plus the
+  boost hook's own injected directive: `code-redteam`, `references/ultra-assess.md` and
+  `.chassis.json` all keyed the uncorroborated inline fallback on the `Workflow` tool being
+  absent. `Workflow` needs an explicit `ultracode` opt-in, so in an ordinary interactive
+  session it usually IS absent — which meant the commonest way to invoke `ultra-assess` or a
+  boosted red-team silently downgraded to one single-model pass while `verification-panels`
+  said, correctly, to spawn the real panel through the Agent tool. The trigger is now what
+  that skill already owned: no dispatch mechanism **at all**. Re-run
+  `scripts/generate.sh --write` — `hooks/ultra-assess.sh` renders from the manifest.
+- **`spawn-cap` is documented.** 0.35.0 shipped a `PreToolUse` hook that puts a permission
+  prompt in front of subagent dispatch #20 and named it in no README, no description and no
+  skill, so the first visible sign of it was an unexplained prompt mid-fan-out with no
+  discoverable off switch. The README now states the thresholds, what it cannot see, and
+  `CC_SPAWN_CAP`.
+- `scripts/reduction-record.sh` accepts five `--kind` values (`redteam`, `dispatch`, `suite`,
+  `coverage`, `other`); the README named the narrowed-suite case in prose while the only flag
+  list on offer showed two of them.
+
+### Fixed
+- **`isolation-halt` was never a string the script prints.** Four files listed it beside
+  `discriminating` / `vacuous` / `invalid-control` as if all four were stdout verdicts.
+  The first three are echoed on stdout; `negative-control.sh`'s exit-5 path prints prose to
+  **stderr with stdout empty**, and the token appears nowhere in the script — so a caller
+  branching on stdout falls straight past its halt branch on the one result that must halt.
+  All four sites now branch on the exit code, and `references/negative-control.md` says why.
+- **A `--tracks` run could not stop clean.** The track-worker's negative-control invocation
+  in `references/algorithm.md` omitted `--record-dir`/`--card`, so N done cards inside track
+  leaves recorded zero controls and the completion gate refused the stop — the exact
+  blocks-having-done-nothing-wrong failure that section's reviewer-record half exists to
+  prevent. The record now goes to the MAIN repo's `nc/` by absolute path, because `.claude/`
+  is gitignored and a worktree-local record merges nowhere.
+- `references/negative-control.md`'s own copy-pasteable invocation dropped the two flags that
+  write the record, so following it literally produced a control that ran and did not count.
+- **The `task-executor` agent claimed "~40 chassis-generated `/…:review` commands" dispatch
+  it without a discipline preamble.** One command in this marketplace is generated from
+  `templates/review-command.md.tmpl`, and the commands that dispatch the executor are
+  hand-written. The residual is real — none of them injects a preamble — so it now states
+  that and gives the recount instead of a number.
+- `delegation-contracts`' fleet-inventory table listed a11y, debugging and observability as
+  having *neither* a worker nor a reviewer wired, long after all three shipped a worker
+  agent — a stale table that would send a reader to build what already exists. Replaced by
+  the decision it was for plus `ls plugins/*/agents/`.
+- `role-floors.md` said "the seven above" over a six-row registry, and resolved `auto`
+  through a taskmaster section heading that does not exist; both now point at this plugin's
+  `verification-panels/references/dispatch-tier.md`, which owns the tier rule.
+- `hooks/drift.sh` cited `scope.sh:32` for a guard that sits on line 40; `commands/run.md`
+  said its two sentinels clear "at step 9" in a five-step procedure (they clear in step 4);
+  `parallel-planning` said "this plugin's plugin's".
+
+### Removed
+- `scripts/_placeholder.sh`, which existed to reserve a directory that now holds seven
+  shipped scripts.
+
 ## 0.35.1
 
 ### Fixed

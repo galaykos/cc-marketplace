@@ -1,6 +1,6 @@
 ---
 name: threejs-best-practices
-description: Use when building or reviewing Three.js code — scenes, renderers, shaders, react-three-fiber, WebGPU/WebGL choice, TSL, asset loading, disposal/leak discipline, render-loop performance. Resolve the locked rXXX revision before advising.
+description: Use when building or reviewing Three.js or R3F code — scenes, renderers, TSL/GLSL shaders, react-three-fiber and drei, WebGPU vs WebGL choice, glTF/GLB asset loading, disposal and GPU leaks, render-loop performance.
 ---
 
 > Last verified: 2026-08-02 — https://web.dev/blog/webgpu-supported-major-browsers

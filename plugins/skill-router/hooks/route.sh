@@ -20,6 +20,17 @@
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
 
+  # OFF SWITCH. `CC_REMIND=off` is the marketplace-wide advisory mute, and eight
+  # sibling READMEs promise it silences "every advisory nudge in this marketplace"
+  # — a promise this plugin's own README repeated while this hook, its headline
+  # advisory channel, never read the variable. route-prompt.sh has honoured it
+  # since it shipped; the per-edit nudges did not, so a user who muted the
+  # marketplace still got them on every Edit. `CC_ROUTE` is deliberately NOT read
+  # here: it names the prompt-level tool-fit check only (route-prompt.sh:26), and
+  # widening an existing switch silently is worse than the gap it closes. There is
+  # no file-routing-only switch, and the README says so.
+  case "${CC_REMIND:-on}" in off) exit 0 ;; esac
+
   # CONTEXT KEY, not session key. PostToolUse is the only hook channel that reaches
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against

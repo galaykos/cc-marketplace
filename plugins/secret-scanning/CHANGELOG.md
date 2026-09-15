@@ -3,12 +3,60 @@
 All notable changes to the `secret-scanning` plugin. Entries start at 0.5.0; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.7.0
+
+### Fixed
+- **The skill told the model the opposite of what the hook does.** Since 0.5.0 a matched
+  value that announces itself as a placeholder is RELEASED, and the skill still said
+  `AKIAIOSFODNN7EXAMPLE` "is denied … this is the guard's commonest false positive",
+  then offered "splitting the literal so the written text never contains the full
+  pattern" as a working escape. Measured against the shipped hook: that write returns no
+  decision, exit 0. So the one artifact the model actually reads on a deny was pointing
+  it at the one move this guard exists to catch, while the real escape — named in the
+  deny message itself — went unmentioned. The skill now states the placeholder test (the
+  value, never the variable name), names `CC_SECRET_SCAN=off`, and forbids literal
+  splitting outright. The residual moved with it: the anti-pattern list now names
+  dressing a real value in a placeholder word, which is the bypass the exemption bought.
+- **The README named a harness file that does not exist** — `scripts/__tests__/scan.test.sh`;
+  the file is `scan-hook.test.sh`.
+- **The "one character repeated" escape was documented wider than it is.** The README
+  offered a run of zeros as a placeholder form; the test reads the WHOLE matched value,
+  so a provider pattern's literal prefix breaks the repetition. Measured: `SECRET=` plus
+  26 zeros passes, `AKIA` plus sixteen zeros denies. Both README and skill now say a
+  provider-shaped fixture needs a word, and the deny reason already only offered words.
+  (Found by the guard denying the edit that spelled the denying value out — the same
+  mention-versus-write blindness `command-guard` documents. The examples here are
+  described, not spelled, the way `hooks/scan.sh`'s own header handles its Stripe case.)
+- **`unicode-scan` was undocumented in the README.** 0.6.0 added a second hook — a
+  PostToolUse warning for invisible and bidirectional characters in any file the session
+  wrote or read — and the README's "What's included" and "What has teeth" listed neither
+  it nor `CC_UNICODE_SCAN=off`. Both now carry it, at the advisory tier it actually has.
+- **The README described the deny as having no escape** in the present tense
+  ("the deny is unbounded and has no allow-file") one release after `CC_SECRET_SCAN=off`
+  shipped. Reworded as history, with the live escapes named.
+
+### Changed
+- The skill's description adds the triggers it was missing — "hardcoded credential",
+  "API key or token", "connection string with a password", and the denied-write case,
+  which is the moment the body is most needed and the one phrasing that never routed to
+  it. The body dropped 12 lines of design argument — the "Why a hook, not a rule"
+  section and the opening paragraph told a reader who cannot act on it why a hook beats
+  prose (`rationale/measured-zero-shapes.md`, shape 4), and the README already carries
+  that case. Measured net after the corrections above: 113 → 112 lines, 6,155 → 6,372
+  bytes. The always-on cost of the description moved with it — **+14 tokens over
+  `scripts/context-budget-baseline.json`, which needs a targeted `--update-baseline`
+  for this one entry.**
+
 ## 0.6.1
 
 ### Fixed
 - **The write-time block now has an off-switch.** `CC_SECRET_SCAN=off` disables it for a session. Until now the only way out was uninstalling the plugin — the one deny in the marketplace with no escape at all.
 
 ## 0.6.0
+
+Two releases shipped under this one version number — `unicode-scan` landed after the
+MCP write fix without a bump, so the entries are merged here rather than split across
+two `0.6.0` headings that a consumer could not order or tell apart.
 
 ### Added
 - **`unicode-scan`: a PostToolUse warning for invisible characters** in any file this
@@ -24,7 +72,10 @@ releases were not recorded here and are not reconstructed.
   the read helps nobody. A leading BOM is an encoding, not a hider, and is exempt. It
   does not catch homoglyphs. `CC_UNICODE_SCAN=off` (or `CC_REMIND=off`) disables it;
   `scripts/__tests__/unicode-scan.test.sh` drives 16 cases.
-## 0.6.0
+- **A "What has teeth" table.** This was the one guard plugin whose README named no
+  tier for any of its rules, while the convention it follows is this marketplace's own.
+  Five rows, including the two things it cannot catch (a shell heredoc, an unlisted MCP
+  key shape) and the one it deliberately refuses (an allow-file).
 
 ### Fixed
 - **A secret written through an MCP file tool is blocked.** The matcher was
@@ -37,11 +88,6 @@ releases were not recorded here and are not reconstructed.
   2026-09-14. Residual, now stated in the README: a server using different key names
   still writes past it.
 
-### Added
-- **A "What has teeth" table.** This was the one guard plugin whose README named no
-  tier for any of its rules, while the convention it follows is this marketplace's own.
-  Five rows, including the two things it cannot catch (a shell heredoc, an unlisted MCP
-  key shape) and the one it deliberately refuses (an allow-file).
 ## 0.5.0
 
 ### Fixed

@@ -14,7 +14,7 @@
     "arcRank": 40,
     "lane": {
       "owns": "third-party-api-doc-reminder",
-      "trigger": "prompt head carries an integration noun (sdk|endpoint|integration|webhook|oauth|graphql) AND a making or calling verb",
+      "trigger": "prompt head carries an integration noun (library|sdk|integrate|webhook|oauth|graphql|external/third-party/public/vendor api|api client/key/token/docs/reference) AND a making or calling verb",
       "yieldsTo": "-",
       "phase": "build"
     }

@@ -1,5 +1,6 @@
 ---
 description: Compare 2-3 structurally different approaches to a task — trade-off table, pick, kill-trigger — before any implementation.
+argument-hint: "[task]"
 ---
 
 Run approach deliberation on $ARGUMENTS (if empty, ask for a one-paragraph task
