@@ -245,6 +245,16 @@ bash scripts/generate.sh --check
 bash scripts/official-validate.sh   # the host's validator, --strict; CI runs it last
 ```
 
+**`check-version-bumps.sh` reads `HEAD`, not your working tree** (`:36`,
+`git diff "$base"...HEAD`). Every other gate above reads the files on disk. So running it
+before you commit is structurally blind to the commit you are about to make: a plugin file
+you have edited but not committed draws no FAIL locally and does draw one in CI. **Run it
+again after committing, before pushing.** Measured 2026-09-15 — a `generate.sh --write`
+regenerated stack-scan's scout catalog, the local pass was green because the change was
+still uncommitted, and CI went red on the next push. This is the same "the gate you run and
+the gate that breaks can read different inputs" lesson as the chassis-sample case below,
+reached by a different route: there the INPUTS differ, here the REVISION does.
+
 **The four are not sufficient, and here is the case that proves it.** On
 2026-08-25 a change added a `{{skillHome}}` key to
 `templates/review-command.md.tmpl` and did not update
