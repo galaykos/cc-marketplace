@@ -82,6 +82,28 @@ mkdir -p "$FX/php"
 printf '{"packages":[{"name":"a/b","license":["MIT"]},{"name":"c/d","license":["AGPL-3.0"]}],"packages-dev":[]}\n' > "$FX/php/composer.lock"
 ec "composer.lock array licences are read"       2 --dir "$FX/php" --distribution saas
 
+# --- lockfiles this lane cannot read ----------------------------------------
+# A pnpm/yarn/bun repo HAS dependencies; this scanner cannot see their licences because
+# those lockfiles carry no per-package `license` field. Exit 3 is right, but the message
+# must say which of the two it is — "nothing found" and "I cannot read yours" are
+# different facts and the old text only had words for the first.
+mkdir -p "$FX/pnpm"
+printf 'lockfileVersion: 9\n' > "$FX/pnpm/pnpm-lock.yaml"
+ec "a pnpm-only repo exits 3 (no readable lockfile)"  3 --dir "$FX/pnpm" --distribution saas
+msg=$(bash "$S" --dir "$FX/pnpm" --distribution saas 2>&1 >/dev/null)
+case "$msg" in
+  *"pnpm-lock.yaml"*"no per-package license field"*)
+    echo "PASS: the message names the lockfile it found and why it is unreadable" ;;
+  *) echo "FAIL: pnpm message did not name the file and the reason — got: $msg"; rc=1 ;;
+esac
+mkdir -p "$FX/empty"
+msg=$(bash "$S" --dir "$FX/empty" --distribution saas 2>&1 >/dev/null)
+case "$msg" in
+  *"no package-lock.json or composer.lock found"*)
+    echo "PASS: a genuinely empty dir still says nothing was found" ;;
+  *) echo "FAIL: empty-dir message changed — got: $msg"; rc=1 ;;
+esac
+
 # --- transitivity, on real in-repo data -------------------------------------
 REAL=plugins/stack-scan/scripts/__tests__/fixtures/transitive-mpl
 if [ -f "$REAL/package-lock.json" ]; then

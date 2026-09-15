@@ -4,6 +4,34 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.108.1] - 2026-09-15
+
+A second read-only review, after the `master` merge. Five defects, two of them in the
+merge itself — which is the point: a correct branch and a correct master can still
+produce a wrong result, and no gate models a merge.
+
+- **Both budget baselines kept stale numbers that passed.** Where both lines had moved a
+  key, the resolution took ours and dropped master's delta; the right rule is additive,
+  since the two changes are independent. Three keys sat 4 tokens below measured — inside
+  the gate's tolerance, so CI was green on a baseline that lied. The `design-studio` key
+  came back from master's side for a plugin this branch retired; nothing reads it, and a
+  baseline listing 793 always-on tokens for a plugin that ships none is exactly the
+  `5192047a` failure this file's own conventions name. Four keys corrected by hand; every
+  per-plugin delta is 0 now.
+- **`core-suite` 0.1.1 — the bundle that ships `candor` still called its gate
+  "four-clause".** 0.108.0 fixed that word in candor's own README, description and hook
+  table; the bundle description, which is always-on text a user reads before installing,
+  was not in that sweep. `lane.tsv`'s comment carried it too.
+- **`candor` 0.3.5 — the description announced five clauses and listed four.** 0.108.0
+  changed the count and not the enumeration, so clause 5 (lockfile drift) was absent from
+  the one surface that introduces the gate.
+- **`stack-scan` 0.7.6 shipped a `licence-scan.sh` change with no changelog line.** The
+  entry-exists gate passed because 0.7.6 existed, not because it was complete. Entry
+  added, plus the harness case it should have had: a pnpm-only repo must exit 3 with a
+  message that names the lockfile it found, because "nothing found" and "I cannot read
+  yours" are different facts.
+- A changelog citation pointed at an entry that never named its subject.
+
 ## [0.108.0] - 2026-09-15
 
 **A read-only review of the branch, before merge, found nine defects in it — one a
@@ -38,8 +66,10 @@ guessing code from string with a line regex is how a guard becomes decoration.
 
 Merged `master` at 0.104.0 (hindsight 0.9.0) on the way in. Both lines minted a
 0.104.0; master's shipped first, so this branch's five entries were renumbered up one
-minor — what was 0.104.0-0.107.0 here is 0.105.0-0.108.0 above. `hindsight` lands at
-0.9.1 and `stack-scan` at 0.7.6 for the same reason: master released those numbers.
+minor — what was 0.104.0-0.107.0 here is 0.105.0-0.108.0 above. `stack-scan` lands at 0.7.6 for
+the same reason — both lines minted 0.7.5. `hindsight` is 0.9.1 for a different one:
+master released 0.9.0 while this branch was on 0.8.1, so its work is kept and this
+branch's one-line edit rides on top.
 
 ## [0.107.1] - 2026-09-15
 
@@ -48,7 +78,7 @@ Self-review of the branch, before merge. Two defects found in my own work:
 script still gated on the four host names — the matcher fired and the script exited,
 which is silent coverage on the one file that disarms the guard. And `craft-suite`'s
 description carried the design-studio retirement note in always-on listing bytes,
-which is exactly the defect 0.105.0 fixed for `devops`: history belongs in a
+which is exactly the defect `devops` 0.6.6 fixed (0.105.0 here): history belongs in a
 changelog, not in text the CLI sends every session.
 
 ## [0.107.0] - 2026-09-14
@@ -119,6 +149,7 @@ hooks: `preview-guard` returns `permissionDecision: "ask"`, which blocks a tool 
 until a human answers, so the README's "both advisory" was wrong about one of them.
 
 Recount: `ls -d plugins/*/ | wc -l` → 30.
+
 ## [0.104.0] - 2026-09-14
 
 **hindsight 0.9.0 sees subagents.** The SessionEnd hook now writes one ledger row per

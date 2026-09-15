@@ -2,6 +2,16 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.5
+
+### Fixed
+- **The description announced five clauses and then listed four.** Clause 5 (lockfile
+  drift) was missing from its own enumeration — 0.3.4 changed the count word and not the
+  list, so the always-on text a user reads at install described a gate with one fewer
+  rule than it has. The clause is named now, and `task-runner run` lost the redundant
+  "registered" so the whole description stays under the 700-char clarity guideline.
+  Found by a second branch review.
+
 ## 0.3.4
 
 ### Fixed

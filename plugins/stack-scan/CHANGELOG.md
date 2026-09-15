@@ -16,6 +16,15 @@ recorded; plugin-scout, which was merged into this plugin, kept its own changelo
   while the `Beyond this marketplace` block still prints playwright, context7 and
   serena as the user's own trust decision. <!-- removed-ok -->
 
+- `licence-scan.sh` says which lockfiles it reads. A pnpm/yarn/bun repo exited 3 with a
+  message naming only `package-lock.json` and `composer.lock`, which reads as "no
+  dependencies here" when the truth is "this lane cannot see yours" — those lockfiles
+  carry no per-package `license` field. It now names the lockfile it found and points at
+  `npm install --package-lock-only` or the package manager's own licence tooling.
+  Harness case added. (Shipped in 0.7.6 with no entry; added by a second branch review.)
+- `plugin-scout` catalog regenerated for the corrected `candor` and `core-suite`
+  descriptions (five-clause gate). Generated file, no behaviour change in the scan.
+
 ## 0.7.5
 
 - `plugin-scout` catalog regenerated: the hindsight row now says it mines session AND

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.108.0"
+    "version": "0.108.1"
   },
   "plugins": [
     {
@@ -117,7 +117,7 @@
     {
       "name": "candor",
       "source": "./plugins/candor",
-      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, five clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a registered task-runner run stopping without its recorded gate pass. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
+      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, five clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a task-runner run stopping without its recorded gate pass; a dependency map changed with an untouched lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
     },
     {
       "name": "frontend-suite",
@@ -127,7 +127,7 @@
     {
       "name": "core-suite",
       "source": "./plugins/core-suite",
-      "description": "Meta-bundle: the user-scope baseline — the plugins worth enabling once, globally, and keeping on in every repo: secret-scanning's write-time block, candor's four-clause Stop gate and dormant terse mode, code-review's fan-in review with comment discipline, git-workflow's branch finish, hindsight's friction mining, skill-router's file-aware routing, and stack-scan's report, audit and project-tier scout. Replaces always-on-suite and quality-suite (2026-09-14). Membership rule: project-agnostic, safe as a permanent fixture, adds no interruption you did not ask for — why command-guard's ask tier is not here. Uninstall with /core-suite:uninstall. 200k windows: read the README first."
+      "description": "Meta-bundle: the user-scope baseline — the plugins worth enabling once, globally, and keeping on in every repo: secret-scanning's write-time block, candor's five-clause Stop gate and dormant terse mode, code-review's fan-in review with comment discipline, git-workflow's branch finish, hindsight's friction mining, skill-router's file-aware routing, and stack-scan's report, audit and project-tier scout. Replaces always-on-suite and quality-suite (2026-09-14). Membership rule: project-agnostic, safe as a permanent fixture, adds no interruption you did not ask for — why command-guard's ask tier is not here. Uninstall with /core-suite:uninstall. 200k windows: read the README first."
     },
     {
       "name": "workflow-suite",

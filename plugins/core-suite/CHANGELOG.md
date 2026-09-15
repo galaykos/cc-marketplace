@@ -3,6 +3,14 @@
 core-suite is the bundle always-on-suite became on 2026-09-14; the entries below 0.1.0 <!-- removed-ok -->
 are always-on-suite's own, with its version numbers. <!-- removed-ok -->
 
+## 0.1.1 — 2026-09-15
+
+- **Called candor's Stop gate "four-clause" after it grew a fifth.** The bundle
+  description is always-on text; every other surface (candor's own description, its
+  README and hook header, and this bundle's own README) already said five, so the one
+  artifact a user reads before installing was the one that was wrong. Found by a second
+  branch review.
+
 ## 0.1.0 — 2026-09-14
 
 - **Renamed from always-on-suite, and quality-suite folded in** (consolidation plan §3.3, <!-- removed-ok -->

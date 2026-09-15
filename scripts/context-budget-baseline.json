@@ -11,7 +11,6 @@
   "craft-suite": 2149,
   "database": 205,
   "debugging": 144,
-  "design-studio": 793,
   "devops": 381,
   "frontend-suite": 1768,
   "git-workflow": 211,
@@ -29,5 +28,5 @@
   "ui-ux": 996,
   "ultra-deep-research": 223,
   "web-dev": 337,
-  "workflow-suite": 6010
+  "workflow-suite": 6014
 }
