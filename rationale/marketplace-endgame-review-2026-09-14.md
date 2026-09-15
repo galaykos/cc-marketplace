@@ -422,25 +422,60 @@ per arm:
 
 | suite | with | without | Δ | runs |
 |---|---|---|---|---|
-| `resilience` / timeout-and-retry | **0** (FAIL, 3 judges: F/F/F) | 1 (PASS, P/P/P) | **−1.00** | 3 independent runs, same direction every time |
+| `resilience` / timeout-and-retry | **0** (FAIL, 3 judges: F/F/F) | 1 (PASS, P/P/P) | **−1.00** | 3 runs, same direction each time |
 | `web-dev` / caching-inversion | 1 (PASS, P/P/P) | 1 (PASS, P/P/P) | **0** | 1 |
 
-**The resilience result is the finding.** Loading the plugin made the review
-measurably WORSE on its own case: the base model names the double-charge hazard in a
-retried payment POST; the plugin arm does not. The turn counts say where it goes — the
-with-plugin arm spends 14-15 turns against the baseline's 3, and arrives somewhere
-worse. The first run was against `max_turns: 8`, so the obvious explanation was a
-ceiling the plugin's procedure could not fit in; raising it to 25 changed nothing (14
-turns used, 3-0 FAIL), which rules that out.
+That table stood for one day. **It did not replicate, and the correction is the more
+useful result.** See the amendment below before citing any number in it.
 
-What this does NOT license: deleting `resilience`. It is one case, one rubric, one
-judge model. The honest reading is that on this prompt the skill's process displaces
-the single argument the grader wants, and that is a hypothesis with a clean next
-experiment (more cases; and a look at whether the fan-in's structure crowds out the
-finding). It is recorded here rather than acted on because acting on n=1 case is the
-reflex this repo's own `measured-zero-shapes.md` was written against. The `web-dev`
-zero is the ordinary result and the expected one — the Next 15 caching inversion is
-something the base model already knows.
+### Amendment — 2026-09-15: the −1.00 was variance, and every case is at the ceiling
+
+The 2026-09-14 reading was that `resilience` made a review measurably WORSE on its own
+case, and the proposed explanation was that the skill's six-rubric process displaces the
+single argument the grader wants. Four cases were written to test that hypothesis
+directly and the whole suite was re-run at 3 runs per case, both arms — 30 agent runs,
+$10.13, CLI 2.1.272, resilience 0.6.3:
+
+| case | stack | isolates | with | without | Δ |
+|---|---|---|---|---|---|
+| `timeout-and-retry` | PHP | *(the original)* | **0.67** | 1.00 | **−0.33** |
+| `idempotency-only` | PHP | one required defect instead of two | 1.00 | 1.00 | 0 |
+| `idempotency-only-ts` | TS | the same rubric on another stack | 1.00 | 1.00 | 0 |
+| `breadth-review` | PHP | 4-of-6 hazards — breadth, no load-bearing claim | 1.00 | 1.00 | 0 |
+| `retry-amplification` | TS | a rule picked to be absent from the base model's priors | 1.00 | 1.00 | 0 |
+
+**The −1.00 does not reproduce.** The same case, same prompt, same judge: the
+with-plugin arm passed 2 of 3 runs (P/P/P, F/F/F, P/P/P). Three runs agreeing on
+2026-09-14 and three runs disagreeing on 2026-09-15 is a **one-in-three flake**, not a
+plugin that degrades a review. The original entry's "same direction every time" was an
+accurate report of the runs in hand and a wrong claim about the effect; three runs is
+simply too few to separate a regression from variance, and nothing here said so at the
+time.
+
+**The crowding-out hypothesis is disconfirmed.** It predicted `breadth-review` would go
+POSITIVE — if the skill trades depth for coverage, a rubric wanting coverage is the one
+it should win. It scored 0: the base model names four-plus of the six hazards on its own,
+3/3.
+
+**The finding that replaced it: every case is at the ceiling.** The control arm passes
+all five, including the two written specifically to be hard for it. `retry-amplification`
+was built so that "add exponential backoff" is the trap answer and the real finding is
+that 2,000 rps × 5 attempts multiplies load on a failing dependency — the base model
+produced that argument unprompted, 3/3. **A case whose control arm passes cannot measure
+a skill.** It is a regression guard: it will catch the plugin actively breaking something,
+and it can never show the plugin helping, because there is no headroom above 1.00.
+
+So the standing of `resilience` on this rubric is **not measured**, which is different
+from both "it helps" and the 2026-09-14 reading of "it hurts". Getting a real answer needs
+cases the base model FAILS, and the two best guesses at a rule it lacks both came back
+3/3 in the control arm. That is the honest state: five cases, none of them able to answer
+the question they were written for, and the reason recorded so the next attempt starts
+from it rather than repeating it.
+
+Kept anyway, deliberately: the five cases are cheap regression guards, and the suite is
+now the only one in the repo with a replication behind it. What changed as a result is a
+convention, not the plugin — `CLAUDE.md`'s eval-surface paragraph now states the ceiling
+rule and the run-count rule, so the next person reads them before spending $10.
 
 **Wave D's remaining queue is blocked on cases that do not exist.** Its two headline
 questions — `ultra-deep-research` against the host's `/deep-research`, and

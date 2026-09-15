@@ -4,6 +4,43 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.108.2] - 2026-09-15
+
+**A measurement withdrawn, and the two rules that paid for it.** 0.106.0 recorded
+`resilience`/timeout-and-retry at Δ −1.00 over three runs. Four diagnostic cases were
+written to explain it and the suite re-run at 3 runs per case, both arms — 30 agent
+runs, $10.13, CLI 2.1.272.
+
+- **The −1.00 did not replicate.** Same case, same prompt, same judge: the with-plugin
+  arm passed 2 of 3 (P/P/P, F/F/F, P/P/P), putting the case at −0.33. Three agreeing runs
+  were too few to tell a regression from a flake. The 0.106.0 entry now carries a
+  withdrawal note and `rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D an
+  amendment; `CLAUDE.md` no longer advertises a NEGATIVE delta it cannot support.
+- **The hypothesis it was recorded under is disconfirmed.** `breadth-review` was written
+  so that a skill trading depth for coverage would WIN it. It scored 0 — the base model
+  names four-plus of the six hazards unaided.
+- **What replaced it: every case is at the ceiling.** The control arm passes all five,
+  including `retry-amplification`, written so "add exponential backoff" is the trap and
+  the real finding is load multiplication at 2,000 rps. The base model produced that
+  argument 3/3. A case whose control arm passes is a regression guard, not a measurement;
+  it can never show a plugin helping. `resilience` on this rubric is therefore **not
+  measured** — which is not "it helps" and not the 0.106.0 reading either.
+- `resilience` 0.6.4 ships the four cases anyway, as regression guards, and the suite is
+  now the only one here with a replication behind it.
+
+**Two new CI steps, and neither runs a model.** `scripts/eval-cases.sh` asserts every
+shipped suite LOADS — the failure that actually happened on 2026-09-14, when two suites
+resolved to zero cases and looked maintained for weeks. It catches the dead
+`prompt.md` + `graders/` shape, a missing or empty `graders` key, an empty prompt, a
+name that does not match its directory, and a suite directory with no case at all. It
+costs nothing and needs no credential; running the evals is a separate paid decision and
+stays one. `scripts/smoke/eval-case-tests.sh` is its fixture harness, 12 assertions over
+a synthetic tree — the first draft of it invoked the repo's own copy of the gate and so
+tested the real `plugins/` directory, passing every assertion for the wrong reason.
+
+`CLAUDE.md` gains the ceiling rule and the run-count rule in its eval-surface paragraph,
+and its CI step count moves 34/33/32 → 36/35/34.
+
 ## [0.108.1] - 2026-09-15
 
 A second read-only review, after the `master` merge. Five defects, two of them in the
@@ -96,6 +133,11 @@ scores **Δ −1.00 across three independent runs** — the plugin arm fails the
 no-plugin baseline passes, and raising the turn ceiling from 8 to 25 does not change
 it. That is recorded, not acted on: one case is not a verdict on a plugin. Details in
 `rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D.
+
+> **Withdrawn 2026-09-15 (0.108.2).** The −1.00 did not replicate: 30 runs across five
+> cases put the same case at −0.33, the with-plugin arm passing 2 of 3. Three agreeing
+> runs were too few to tell a regression from a flake. The corrected record, and the
+> ceiling problem that replaced it, are in that section's amendment.
 
 ## [0.106.0] - 2026-09-14
 

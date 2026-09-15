@@ -1,0 +1,67 @@
+schema_version: "1.0"
+name: retry-amplification
+description: Retries that multiply load against an already-degraded dependency, where "add exponential backoff" is the trap answer rather than the fix. Probes whether the skill helps on a rule the base model does NOT already hold — the opposite end from timeout-and-retry, where it plainly does.
+execution:
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `src/gateway/profileGateway.ts`:
+
+    ```ts
+    import pRetry from "p-retry";
+
+    const PROFILE_URL = "https://profiles.internal/v1/users";
+
+    export async function getProfile(userId: string) {
+      return pRetry(
+        async () => {
+          const res = await fetch(`${PROFILE_URL}/${userId}`, {
+            signal: AbortSignal.timeout(2_000),
+          });
+          if (!res.ok) throw new Error(`profile ${res.status}`);
+          return res.json();
+        },
+        { retries: 4, minTimeout: 100, factor: 2 },
+      );
+    }
+    ```
+
+    This is called once per request by our API gateway, which serves about 2,000
+    requests/second across 40 pods. Review it.
+runs: 3
+graders:
+  - type: llm
+    name: amplification-argument
+    criteria: |
+      The load-bearing finding here is NOT "add backoff" — backoff is already configured
+      (`minTimeout: 100, factor: 2`). The defect is what those retries do to a dependency
+      that is already failing, at this call volume.
+
+      PASS requires BOTH:
+
+      1. **Retry amplification / metastable failure.** The response must state that when the
+         profile service degrades, every one of the 2,000 rps turns into up to 5 attempts, so
+         the gateway multiplies load on the failing dependency by roughly 5x at exactly the
+         moment it is least able to serve it — turning a partial outage into a sustained one
+         that persists after the original trigger is gone. Naming it as a retry storm,
+         thundering herd, congestive collapse, retry amplification, or metastable failure all
+         count, provided the MULTIPLICATION and its direction are stated, not just the label.
+      2. **A fix that actually bounds the load**, at least one of: a circuit breaker that
+         stops calling the failing dependency, a retry budget / token bucket capping retries
+         as a fraction of total requests, load shedding, or explicit degradation (serve a
+         partial profile). "Reduce the retry count" alone is NOT sufficient — it scales the
+         problem down without bounding it.
+
+      FAIL if the response only recommends exponential backoff (already present), only adds
+      jitter, only tunes `retries` or `minTimeout`, only suggests caching, or reviews the code
+      for style and types without reaching the amplification argument.
+
+      **Jitter is the near-miss to watch.** Jitter fixes SYNCHRONIZATION, not VOLUME — it
+      de-correlates the retries without reducing how many arrive. A response that offers
+      jitter as the answer to the load problem FAILS criterion 1; a response that names
+      amplification correctly and ALSO suggests jitter passes.
+
+      Also credit, but do not require: a 2s timeout multiplied across 5 attempts means a
+      single request can hang ~10s plus backoff, blowing the gateway's own latency budget and
+      occupying a connection the whole time; retrying non-idempotent verbs would be unsafe
+      (this GET is not); and that a 4xx should not be retried at all.

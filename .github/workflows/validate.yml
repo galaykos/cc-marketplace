@@ -108,6 +108,14 @@ jobs:
         run: bash scripts/smoke/source-of-truth-tests.sh
       - name: scout-name gate smoke tests (a dead plugin name fails the build)
         run: bash scripts/smoke/scout-names-tests.sh
+      # An eval suite that loads ZERO cases is indistinguishable from a passing one
+      # when nothing executes it — two suites sat dead for weeks that way. This LOADS
+      # every case.yaml and never runs a model, so it costs nothing and needs no
+      # credential; running the evals themselves is a separate, paid decision.
+      - name: eval suites load (a suite with zero cases fails the build)
+        run: bash scripts/eval-cases.sh
+      - name: eval-case gate smoke tests
+        run: bash scripts/smoke/eval-case-tests.sh
       # The host's own validator, pinned to the CLI this repo was measured against —
       # scripts/official-validate.sh is the local twin and carries the derivation.
       # LAST among the fail-capable steps on purpose: the install is a ~217 MB native
