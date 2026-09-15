@@ -70,7 +70,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.8k tokens |
 | `core-suite` | 7 | ~1.7k tokens | ~1.3k tokens | ~1.8k tokens |
 
-Every row is a curated subset. The marketplace ships all 26 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 27 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -266,6 +266,7 @@ the shell mockup rather than scaffolding a sandbox.
 |--------|-----------------|-------------------|
 | **[code-review](plugins/code-review)** | the stack-agnostic pass — correctness bugs, code smells, convention drift — and the **fan-in** that loads every matching stack skill in one pass; plus a reuse-hygiene skill for deprecated or orphaned symbols | Any diff, PR, or branch — start here when a change spans stacks |
 | **[code-architecture](plugins/code-architecture)** | plan-before-code (now including how to split work into independently verifiable tasks), YAGNI, SOLID with judgment, low-cognitive-load, work verification, drift review, system design (service boundaries from data ownership, scaling paths, cache placement, async failure modes) and domain modeling; the Stop hook that refuses a completion claim with nothing run after the edits is clause 3 of candor's gate since 2026-09-14 | Structure decisions at code or system level |
+| **[toolchain-experts](plugins/toolchain-experts)** | five reviewers that RUN the project's configured static analysis rather than reciting a checklist — phpstan/psalm/phpcs/rector, tsc/eslint/biome, the React hook rules, vue-tsc/eslint-plugin-vue, stylelint/pa11y/lighthouse-ci — and report which config CI enforces, what the baseline forgives, and which rules are switched off | A diff in a repo that has analyzers configured, and you want their real output triaged rather than a second opinion |
 | **[testing](plugins/testing)** | the pyramid and what to actually test, Pest/PHPUnit, Vitest/Jest, Playwright/Dusk, mocking at owned boundaries, flaky-test causes, coverage traps, TDD | Writing tests, reviewing tests, or chasing a flake |
 | **[candor](plugins/candor)** | the marketplace's one blocking Stop gate, five clauses a script can prove: a `file:line` citation that resolves to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass; plus the terse reply mode — chat-message brevity as a shape contract, `lite` / `full` / `ultra` | You want the honesty rule to have teeth rather than tone; long sessions where the narration costs more than the work |
 | **[debugging](plugins/debugging)** | reproduce first, read the actual error, one hypothesis per experiment, bisect, verify against the original symptom, escalate after three failed fixes; plus a delegatable `debugger` agent | A bug, a failing test, or the third failed fix in a row |

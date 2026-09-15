@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.108.2"
+    "version": "0.109.0"
   },
   "plugins": [
     {
@@ -158,6 +158,11 @@
       "name": "ultra-deep-research",
       "source": "./plugins/ultra-deep-research",
       "description": "Deep-research harness that fans out parallel web searches, tiers sources by provenance, extracts date-stamped claims, and adversarially refutes them before synthesizing a cited report with a contradiction ledger and per-section confidence. Trigger 'ultra-deep-research' escalates to a Workflow-driven loop-until-dry fan-out with multi-vote refutation panels; standard depth runs a portable parallel-Agent fan-out. Ships /ultra-deep-research:research plus researcher and verifier subagents. Writes the report inline and to research/<topic>-<date>.md."
+    },
+    {
+      "name": "toolchain-experts",
+      "source": "./plugins/toolchain-experts",
+      "description": "Five expert reviewers that RUN the project's own static analysis instead of reciting a best-practice checklist: php-expert (phpstan, psalm, phpcs, rector), ts-expert (tsc, eslint, biome, oxlint), react-expert (the hook rules), vue-expert (vue-tsc, eslint-plugin-vue) and ui-expert (stylelint, pa11y, lighthouse-ci, axe). A detect-analyzers.sh mechanism reports which tool is configured, which one CI actually enforces, what the baseline already forgives and which rules are switched off — so the headline finding is the analyzer's blind spot, which no remembered rubric can produce. Read-only; fixes route to the existing workers."
     }
   ]
 }
