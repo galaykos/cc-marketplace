@@ -35,8 +35,9 @@ genuinely visual choice exists and a build is imminent, never at task intake.
    hierarchy, density, or motion drives the choice and boxes cannot carry it.
 3. **Inline SVG inside a variant slot** — for flows and topology diagrams; complex topology may compile author-time mermaid→inline-SVG when a local mermaid CLI is available, the shipped mockup holding zero runtime includes — otherwise stay on hand SVG/ASCII.
 
-Real-component fidelity beyond the shell: design-studio's preview (an existing Vite or
-Laravel host with components), when installed. Colour/theme IS the decision →
+Real-component fidelity beyond the shell — the project's OWN components on its own
+dev server, behind a consent gate and a verified cleanup, when an existing Vite or
+Laravel host is detected: `references/real-components.md`. Colour/theme IS the decision →
 /ui-ux:theme when installed; greenfield tops out at shell fidelity. Entity/
 relation modeling: the `erd` skill. No prototype rung — mockups die at the pick;
 validating the ASSEMBLED experience afterwards is the experience-walkthrough skill.

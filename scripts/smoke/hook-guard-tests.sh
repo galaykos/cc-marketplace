@@ -140,9 +140,16 @@ fi
 # hook, stated in the template header. Asserting single-voice would require a settle
 # window and latency on every prompt.
 #
-# Ranks are trigger specificity: approaches 30 (build-vs-buy on a solved capability)
-# outranks taskmaster 90 (clarify, which matches nearly every work-shaped prompt).
-# This inverts the retired budgetExempt privilege on purpose.
+# Ranks are ARC POSITION, not trigger specificity, and this comment claimed the
+# opposite until 2026-09-14. Under the specificity reading taskmaster held 90 — last —
+# so the clarify directive, this marketplace's headline rule, lost every work-shaped
+# prompt to whichever other voice also matched; measured on `build auth for the app`
+# and `implement the payment endpoint`, both of which printed build-vs-buy and no
+# clarify line. Corrected order: the two `any`-phase guards first because they are
+# emergencies (debugging 10, a stuck loop; consult-remind 20, an irreversible command),
+# then the arc — taskmaster 25 (`shape`: clarify before anything), approaches 30
+# (`decide`), api-design 40 (`build`). No plugin is privileged: taskmaster earns first
+# place among the arc voices by being first in the arc, and still yields to both guards.
 AD="$ROOT/plugins/api-design/hooks/remind.sh"
 TM="$ROOT/plugins/taskmaster/hooks/remind.sh"
 AP="$ROOT/plugins/approaches/hooks/remind.sh"
@@ -157,12 +164,12 @@ if [ -f "$TM" ] && [ -f "$AP" ]; then
   OB="$(mktemp -d "$WORK/ob.XXXXXX")"
   ob_tm=$(rk_fire "$ROOT/plugins/taskmaster" "$OB"); ob_ap=$(rk_fire "$ROOT/plugins/approaches" "$OB")
 
-  [ -n "$oa_ap" ] && pass "precedence: best rank speaks, advisory-first order" \
-    || fail "precedence: best rank speaks, advisory-first order" "approaches (rank 30) was silent"
-  [ -n "$ob_ap" ] && pass "precedence: best rank speaks, directive-first order (same winner both orders)" \
-    || fail "precedence: best rank speaks, directive-first order" "approaches (rank 30) was silent"
-  [ -z "$oa_tm" ] && pass "precedence: worse rank YIELDS when the better one claimed first" \
-    || fail "precedence: worse rank yields" "taskmaster (rank 90) spoke over approaches (rank 30): $oa_tm"
+  [ -n "$oa_tm" ] && pass "precedence: best rank speaks, advisory-first order" \
+    || fail "precedence: best rank speaks, advisory-first order" "taskmaster (rank 25) was silent"
+  [ -n "$ob_tm" ] && pass "precedence: best rank speaks, directive-first order (same winner both orders)" \
+    || fail "precedence: best rank speaks, directive-first order" "taskmaster (rank 25) was silent"
+  [ -z "$ob_ap" ] && pass "precedence: worse rank YIELDS when the better one claimed first" \
+    || fail "precedence: worse rank yields" "approaches (rank 30) spoke over taskmaster (rank 25): $ob_ap"
 
   # The cross-plugin clarify-gate signal must survive the budgetExempt retirement,
   # including on the turn where taskmaster yielded. It is the sole producer for

@@ -2,7 +2,7 @@
 # Absolute-path shebang, not `/usr/bin/env bash`: the fail-open guarantee must
 # hold under a stripped PATH where `env bash` exits 127.
 #
-# candor-gate — THE Stop gate of this marketplace: four clauses, each falsifiable
+# candor-gate — THE Stop gate of this marketplace: five clauses, each falsifiable
 # on disk or in the transcript, none a tone judgement (tone is measured by
 # /candor:check and blocked by nothing). Until 2026-09-14 clauses 3 and 4 were two
 # sibling scripts, code-architecture/hooks/evidence-gate.sh and
@@ -570,7 +570,7 @@ if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && 
     ev=$(printf '%s' "$tail_jsonl" \
       | jq -r 'select(.type=="assistant")
                | [.message.content[]? | select(.type=="tool_use")
-                  | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$"))
+                  | .name + (if (.name | test("^(Edit|Write|MultiEdit|NotebookEdit)$|apply_patch$|create_new_file$"))
                              then "@" + ((.input.file_path // "") | ascii_downcase | (if test("\\.[a-z0-9]+$") then sub(".*\\."; "") else "" end))
                              else "" end)]
                | join(" ")' 2>/dev/null \
@@ -585,6 +585,114 @@ if [ -z "$verdict" ] && [ -n "$tail_jsonl" ] && [ "$evt" != "SubagentStop" ] && 
     if [ "$ev" = "naked-claim" ]; then
       verdict="evidence"
       detail="$said"
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# CLAUSE 5 — LOCKFILE DRIFT. A dependency manifest was edited in this turn and the
+# lockfile it governs is not in the working tree's changes. The install step was
+# skipped, and the next person to clone gets a tree whose manifest and lockfile
+# disagree — a CI failure attributed to them, not to the turn that caused it.
+#
+# WHY A CLAUSE AND NOT PROSE. `stack-scan:package-hygiene` states the rule already:
+# hand-editing a manifest without running the installer is a defect. The model
+# agrees and then does it anyway, because adding a dependency line LOOKS complete —
+# nothing in the edit's own result says a second step is owed. This clause is the
+# only thing in the tree that reads the pair.
+#
+# WHY IT CANNOT FALSELY FIRE ON A DELIBERATE MANIFEST-ONLY EDIT: it requires a
+# dependency-shaped change. Bumping a `version` field, editing `scripts`, or
+# rewriting a description never touches a lockfile and never arms this.
+#
+# Last of the clauses because it is the cheapest to satisfy and the least severe:
+# a citation or a naked completion claim is a false report, this is an unfinished
+# step.
+#
+# `$skip` is LOAD-BEARING and was missing in the first version of this clause: without
+# it the clause re-fires on its own continuation, and because the loop guard keys on the
+# final assistant TEXT, a second turn with different text blocks again — so the escape
+# this clause's own message offers ("say plainly that the lockfile is deliberately
+# unchanged and why") could never be taken, and the turn was unblockable. Found by a
+# branch review before merge; clauses 1-3 each carry the same term at :387, :470, :537.
+if [ -z "$verdict" ] && [ "$evt" != "SubagentStop" ] && [ "$skip" != "lockfile" ] && [ "${CC_LOCKFILE_GATE:-on}" != "off" ]; then
+  if command -v git >/dev/null 2>&1 && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
+    changed=$(git -C "$cwd" status --porcelain 2>/dev/null | awk '{print $NF}')
+    if [ -n "$changed" ]; then
+      lock_detail=""
+      # manifest -> the lockfile(s) that satisfy it. First match wins per manifest.
+      while IFS='|' read -r man locks; do
+        printf '%s\n' "$changed" | grep -qx "$man" || continue
+        # A DEPENDENCY-shaped change only. For a JSON manifest this compares the parsed
+        # dependency maps at HEAD against the working tree, because a line diff cannot:
+        # package.json is frequently one line, so bumping `version` rewrites the same
+        # line that holds `dependencies` and every version bump would block. (The
+        # harness caught exactly that; a hand test missed it because the loop guard was
+        # still holding the previous verdict.) Non-JSON manifests keep the line-diff
+        # heuristic — their dependency sections are line-oriented by construction.
+        case "$man" in
+          package.json|composer.json)
+            head_deps=$(git -C "$cwd" show "HEAD:$man" 2>/dev/null \
+              | jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' 2>/dev/null)
+            work_deps=$(jq -cS '{d:(.dependencies//{}),dd:(.devDependencies//{}),p:(.peerDependencies//{}),o:(.optionalDependencies//{}),r:(.require//{}),rd:(."require-dev"//{})}' "$cwd/$man" 2>/dev/null)
+            # Unparseable either side → fall through to the line heuristic rather than
+            # silently allowing: a manifest mid-edit is exactly when this matters.
+            if [ -n "$head_deps" ] && [ -n "$work_deps" ]; then
+              [ "$head_deps" = "$work_deps" ] && continue
+            else
+              git -C "$cwd" diff -U0 -- "$man" 2>/dev/null | grep -qE '^[+-].*"(dependencies|devDependencies|peerDependencies|optionalDependencies|require|require-dev)"' || continue
+            fi
+            ;;
+          *)
+            # A DEPENDENCY line, not any line. The first version armed on `^[+-]`, so a
+            # version bump in pyproject.toml, a `[tool.ruff]` edit, or a comment added to
+            # a Gemfile all blocked a Stop — measured in a branch review before merge,
+            # and the exact false fire the header above promises cannot happen. Each
+            # manifest's dependency grammar is line-oriented, so a line test is the right
+            # shape; it just has to test the right lines. Residual, stated: a dependency
+            # written in a form none of these patterns matches arms nothing, which is the
+            # safe direction for a Stop-tier block.
+            # TOML's `key = "value"` is ambiguous at line level: `requests = "^2.28"` is a
+            # poetry dependency and `version = "2.0.0"` is metadata, and a line regex
+            # cannot see which table it sits in. So the metadata keys are excluded by
+            # name — a short, closed list — rather than guessed at.
+            meta_re='^[+-][[:space:]]*(version|name|description|readme|license|authors|maintainers|homepage|repository|documentation|keywords|classifiers|requires-python|edition|rust-version|publish|include|exclude|packages|scripts|urls)[[:space:]]*='
+            case "$man" in
+              pyproject.toml)
+                dep_re='^[+-][[:space:]]*("[^"]+"[[:space:]]*,?[[:space:]]*$|[A-Za-z0-9._-]+[[:space:]]*=[[:space:]]*[{"^~>=<*]|dependencies[[:space:]]*=|\[(tool\.poetry\.(dev-)?dependencies|project\.optional-dependencies|build-system)\])' ;;
+              Gemfile)
+                dep_re='^[+-][[:space:]]*(gem[[:space:]]|gemspec|source[[:space:]]|git[[:space:]]|path[[:space:]])'
+                meta_re='^$' ;;
+              Cargo.toml)
+                dep_re='^[+-][[:space:]]*([A-Za-z0-9._-]+[[:space:]]*=[[:space:]]*[{"^~>=<*]|\[(dependencies|dev-dependencies|build-dependencies|workspace\.dependencies)\])' ;;
+              go.mod)
+                dep_re='^[+-][[:space:]]*(require|replace|exclude|retract)?[[:space:]]*[a-z0-9.-]+\.[a-z]{2,}/'
+                meta_re='^[+-][[:space:]]*(module|go|toolchain)[[:space:]]' ;;
+              *)
+                dep_re='^[+-]'
+                meta_re='^$' ;;
+            esac
+            git -C "$cwd" diff -U0 -- "$man" 2>/dev/null \
+              | grep -E "$dep_re" 2>/dev/null | grep -qvE "$meta_re" || continue
+            ;;
+        esac
+        satisfied=0
+        for l in $locks; do printf '%s\n' "$changed" | grep -qx "$l" && satisfied=1; done
+        [ "$satisfied" -eq 1 ] && continue
+        [ -n "$lock_detail" ] && lock_detail="$lock_detail, "
+        lock_detail="$lock_detail$man (expected one of: $(printf '%s' "$locks" | tr ' ' '/'))"
+      done <<'MANIFESTS'
+package.json|package-lock.json npm-shrinkwrap.json yarn.lock pnpm-lock.yaml bun.lock bun.lockb
+composer.json|composer.lock
+Gemfile|Gemfile.lock
+pyproject.toml|poetry.lock uv.lock pdm.lock requirements.txt
+Cargo.toml|Cargo.lock
+go.mod|go.sum
+MANIFESTS
+      if [ -n "$lock_detail" ]; then
+        verdict="lockfile"
+        detail="$lock_detail"
+      fi
     fi
   fi
 fi
@@ -635,6 +743,13 @@ case "$verdict" in
     printf '  Do one of two things. Re-check: run the command or read the file that would settle it,\n' >&2
     printf '  then report what it showed. Or hold: say you still believe what you said, and why.\n' >&2
     printf '  "You are right" is a finding. It needs the same evidence as any other finding.\n' >&2 ;;
+  lockfile)
+    printf '[candor] gate: a dependency manifest changed and its lockfile did not — %s.\n' "$detail" >&2
+    printf '  The install step was skipped, so the tree you are leaving has a manifest and a lockfile\n' >&2
+    printf '  that disagree. The next clone resolves different versions, and CI blames whoever ran it.\n' >&2
+    printf '  Run the installer (npm/pnpm/yarn install, composer update <pkg>, bundle install, cargo\n' >&2
+    printf '  build, go mod tidy) and commit the lockfile with the manifest — or say plainly that the\n' >&2
+    printf '  lockfile is deliberately unchanged and why. CC_LOCKFILE_GATE=off disables this clause.\n' >&2 ;;
   evidence)
     printf '[candor] evidence-gate: this turn claims completion, files were edited, and no command ran after the last edit — nothing verified the change.\n' >&2
     printf '  Either run the check that would FAIL if the change were broken (test, build, lint, or execute\n' >&2

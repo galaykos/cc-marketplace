@@ -28,16 +28,32 @@
   command -v jq >/dev/null 2>&1 || exit 0
 
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
-  case "$tool" in Write|Edit|MultiEdit) ;; *) exit 0 ;; esac
+  case "$tool" in
+    Write|Edit|MultiEdit|NotebookEdit) ;;
+    # An MCP server that writes files bypasses the four host tool names entirely, and
+    # a session driving the IDE writes every file through one. Keys verified against
+    # the shipped tool schemas on 2026-09-14 (JetBrains MCP): create_new_file takes
+    # `pathInProject` + `text`; apply_patch takes `input` (alias `patch`) carrying the
+    # whole patch, whose added lines are what a secret would ride in on, and no single
+    # path — hence the empty `file` below, which only affects the message, not the deny.
+    # Residual, stated: this covers the servers whose key names are listed here. A
+    # server using different keys writes past this guard, as every non-listed tool did
+    # before. The matcher in hooks.json and this case must widen together.
+    *apply_patch|*create_new_file) ;;
+    *) exit 0 ;;
+  esac
 
-  # Collect the text being written across the three tool shapes.
+  # Collect the text being written across the tool shapes.
   text=$(printf '%s' "$input" | jq -r '
     [ .tool_input.content // empty,
       .tool_input.new_string // empty,
+      .tool_input.text // empty,
+      .tool_input.input // empty,
+      .tool_input.patch // empty,
       ( .tool_input.edits // [] | map(.new_string // empty) | join("\n") )
     ] | join("\n")' 2>/dev/null) || exit 0
   [ -n "$text" ] || exit 0
-  file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+  file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // .tool_input.pathInProject // empty' 2>/dev/null)
 
   hit=""
   # `--` is load-bearing: the private-key pattern starts with dashes, and without

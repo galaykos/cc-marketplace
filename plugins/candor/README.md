@@ -15,7 +15,7 @@ dropped (the host's `/commit` covers the first; the second had one user).
 
 ## What blocks
 
-`hooks/gate.sh`, wired to `Stop` and `SubagentStop`. **One gate, four clauses**,
+`hooks/gate.sh`, wired to `Stop` and `SubagentStop`. **One gate, five clauses**,
 each decidable. Until 2026-09-14 clauses 3 and 4 were separate Stop hooks in
 `code-architecture` and `task-runner`; three scripts on one event each had to
 namespace the host's shared `stop_hook_active` flag so no sibling could spend
@@ -28,6 +28,7 @@ that clause on its own continuation.
 | **2 Unevidenced reversal** | the last user message is challenge-shaped pushback carrying no correction of its own, the final message retracts, and no tool ran in between | re-check and report what it showed, or hold the position and say why |
 | **3 Naked completion claim** | the assistant tail claims completion (done / fixed / implemented / verified / passes), a non-prose file was edited this session (`.md`/`.txt`/`.rst`/`.adoc` edits do not arm it — nothing executable proves a README right), and nothing was executed after the last such edit | run the check that would fail if the change were broken, or say what was not verified and the command that would verify it |
 | **4 Registered run not complete** | a task-runner run registered itself (`.claude/task-runner/active-run.json`) and is stopping with no recorded gate pass for HEAD, cards neither done nor parked, short per-card control or reviewer records, a short red-team panel on a boosted run, or an undisclosed recorded reduction | continue with a tool call, ask with `AskUserQuestion`, park the card, or run the gate and record the pass |
+| **5 Lockfile drift** | a dependency manifest's dependency map changed in the working tree and the lockfile that governs it did not — npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. For JSON manifests the parsed dependency maps are compared, not diff lines, so a `version` bump never arms it; the other four test dependency-shaped lines and exclude metadata keys by name | run the installer and commit the lockfile with the manifest, or say plainly that the lockfile is deliberately unchanged and why |
 
 The gate's own state — the one-block-per-text marker and the which-clause-blocked
 record — lives in `.claude/candor/`, which carries a self-ignoring `.gitignore`, so
@@ -47,7 +48,8 @@ the caveat before the summary.
 
 Modes: `CC_CANDOR_GATE=block` (default) `| warn | off` for the whole gate;
 `CC_EVIDENCE_GATE` and `TASK_RUNNER_STOP_GATE` still downgrade clauses 3 and 4
-alone, as they did when those were separate scripts. Fails open on missing `jq`,
+alone, as they did when those were separate scripts; `CC_LOCKFILE_GATE=off`
+disables clause 5. Fails open on missing `jq`,
 an unreadable transcript, or empty text. One block per distinct final message
 (clauses 1-3) or per HEAD (clause 4), so a disagreement cannot loop — and a clause
 that is bounded (or in warn mode) prints without silencing the others: a run held
@@ -136,7 +138,7 @@ so the injected card and the skill body cannot drift.
 
 | Event | Script | Does |
 | --- | --- | --- |
-| `Stop`, `SubagentStop` | `hooks/gate.sh` | the four clauses above; exit 2 blocks |
+| `Stop`, `SubagentStop` | `hooks/gate.sh` | the five clauses above; exit 2 blocks |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~120 tokens per prompt, nothing when off) |
 

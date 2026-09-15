@@ -39,7 +39,7 @@ exist, or to re-decide one section later.
    exchange, most consequential first), Signature (at most one) — under the exchange cap that
    reference sets; "decide the rest for me" offered at every one. Stage options
    through the surfaces that own staging — `taskmaster:visual-decisions` for the
-   consent gate and mockups, `/design-studio:preview` for real components, `/ui-ux:theme` when colour is the decision — and degrade
+   consent gate and mockups, the real-component rung of `taskmaster:visual-decisions` for real components, `/ui-ux:theme` when colour is the decision — and degrade
    to written multiple-choice when none is installed. Headless: auto-decide the
    whole agenda, mark every row `auto`, print the result.
 

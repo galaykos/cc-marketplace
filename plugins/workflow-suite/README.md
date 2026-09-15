@@ -8,8 +8,10 @@ and verification panels, approaches deliberation, code-architecture
 plan-before-code and work verification, testing, debugging, and the ui-ux and
 security lanes the cards route to. It was `taskmaster-suite` until 2026-09-14,
 when process-suite and quality-principles-suite were merged into it and the three
-names retired. Uninstalls cleanly: `/workflow-suite:uninstall` removes the bundle
-and prunes the plugins it auto-installed.
+names retired. Uninstalls cleanly: `/workflow-suite:uninstall` removes the bundle and
+every plugin it lists as a dependency at the same scope, minus anything another
+installed suite also lists — it cannot tell a hand-install from an auto-install, so
+read the list it prints.
 
 ## Install
 
@@ -96,18 +98,18 @@ map; its SessionStart hook greets every un-indexed repo). From
 quality-principles-suite: `resilience` (one review command over six concern <!-- removed-ok -->
 rubrics). Stack leaves — `laravel`, `web-dev`, `database`, `devops` — are
 stack-specific; `/stack-scan:suggest` names each when the project's manifests
-earn it. `design-studio` is the optional full-fidelity escalation above
-taskmaster's built-in mockup preview and rides in `craft-suite`. `command-guard`
+earn it. The full-fidelity escalation above taskmaster's shell mockup is a rung of
+that same skill, not a separate install. `command-guard`
 is a per-user opt-in (core-suite's README says why).
 
 ## Uninstall
 
 | Command | What it does |
 |---------|--------------|
-| `/workflow-suite:uninstall` | Uninstall the bundle AND prune every plugin it auto-installed — one step, no orphans; manually installed plugins are never touched |
+| `/workflow-suite:uninstall` | Uninstall the bundle AND remove every plugin it lists as a dependency at the same scope, minus anything another installed suite also lists — one step, no orphans. It cannot tell an auto-install from one you made yourself: install records routinely carry no marker, so a dependency you installed by hand appears in the removal list and the confirm step is what protects it |
 
 ## Pairs well with
 
 - **frontend-suite** — React/Vue/TS framework specifics (web-dev) left out of this bundle
-- **craft-suite** — the creative-build studio and design-studio's real-component preview
+- **craft-suite** — the creative-build studio and ui-ux's real-component preview
 - **database**, **laravel**, **devops** — the stack leaves, by name

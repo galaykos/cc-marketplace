@@ -23,7 +23,7 @@ root=$(cd "$root" 2>/dev/null && pwd -P) || root="$PWD"
 
 # phase|preferred marketplace plugins|fallback
 MAP='understand|stack-scan,brain|read manifests, lockfiles, routes, pages, models, tests, CI workflows directly
-shape|taskmaster,approaches,design-studio|write the spec inline: goal, criteria, non-goals, ASCII wireframe
+shape|taskmaster,approaches,ui-ux|write the spec inline: goal, criteria, non-goals, ASCII wireframe
 decide|approaches|one paragraph per option + pick + kill-trigger in decisions.md
 plan|taskmaster,code-architecture|write cards inline: file set, verify command, done-criterion each
 build|task-runner,laravel,web-dev,ui-ux,database,security,testing,craft-layer|dispatch scope-locked general-purpose workers with the discipline preamble

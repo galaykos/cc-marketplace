@@ -7,6 +7,32 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.50.1
+
+### Fixed
+- **The plugin description shipped a sentence fragment.** Removing `/craft-layer:review`
+  in 0.50.0 left "…behind and Three.js review through /code-review:review" in the text
+  the CLI renders in its install listing. It now reads "behind `/craft-layer:craft`;
+  Three.js review arrives through `/code-review:review`".
+
+## 0.50.0
+
+### Removed
+- **`/craft-layer:review` is retired.** `/code-review:review` already loads
+  `threejs-best-practices` when a diff imports `three` or `@react-three/fiber` — the
+  fan-in this command handed its whole scope to. One listing entry fewer; the rubric is
+  unchanged and reaches more diffs than a command nobody typed.
+
+### Changed
+- **Every `/design-studio:preview` reference is now the real-component rung of `taskmaster:visual-decisions`** (README, <!-- removed-ok -->
+  `/craft-layer:craft`, `:sections`, `:research`, `design-research`,
+  `section-decisions`): the design-studio plugin was retired on 2026-09-14 and its <!-- removed-ok -->
+  preview skill moved into ui-ux. The install section drops it from the optional
+  pairings and names ui-ux once, correctly, for both the theme/build chain and the
+  accessibility delegation — the row that said `a11y` named a plugin removed on
+  2026-08-26. `asset-sourcing`'s component-sourcing reference now names shadcn's and
+  ReUI's own MCP servers instead of the bundled one. <!-- removed-ok -->
+
 ## 0.49.6
 
 - `agents/craft-reviewer.md`: the performance defer line repeated
@@ -16,8 +42,8 @@ than an honest starting point.
 ## 0.49.5
 
 ### Changed
-- Preview hand-offs name `/design-studio:preview` and the registry MCP is
-  design-studio's — theme-design and design-lab were merged into that plugin
+- Preview hand-offs name the real-component rung of `taskmaster:visual-decisions` and the registry MCP is
+  design-studio's — theme-design and design-lab were merged into that plugin <!-- removed-ok -->
   (2026-09-14 consolidation plan). Fallback order is unchanged: a running design
   session, then the real-component preview, then taskmaster's shell mockup.
 

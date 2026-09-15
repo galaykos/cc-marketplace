@@ -2,6 +2,20 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.6
+
+### Fixed
+- **Two removed plugins were named in always-on listing bytes.** `devops-practices`'
+  description and the `devops-engineer` agent's routed work to `dev-env` and <!-- removed-ok -->
+  `observability`, both absorbed into other plugins — text the CLI sends every session.
+  They now name this plugin's own `compose-init` skill and `resilience`. `pc_removed_refs`
+  gained `dev-env` so the next one fails the build instead of shipping. <!-- removed-ok -->
+
+### Added
+- **A "What has teeth" table.** The README described the PreToolUse guard in one clause
+  and never said what it denies (two shapes: a `pull_request_target`/`workflow_run`
+  workflow that checks out the untrusted head ref, and a `${{ github.event.* }}` field
+  interpolated into a `run:` block), nor that `workflow-audit.sh` exists at all.
 ## 0.6.5
 
 ### Changed

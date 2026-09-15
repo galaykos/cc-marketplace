@@ -24,18 +24,36 @@ the edit is out of scope, and that includes polishing this file. **Standing:
   - `README.md` (and optionally `CHANGELOG.md` / `ROADMAP.md`) at the plugin root
   - `skills/<name>/SKILL.md` (+ a `references/` dir for material the skill reads)
   - `commands/*.md`, `agents/*.md`, `hooks/`
-  - `evals/<case>/prompt.md` + `evals/<case>/graders/*.md` — prose, but functional:
-    `claude plugin eval` reads them as the case definition. Allowed since
-    2026-08-20; a design doc parked under `evals/` is still a violation in spirit
-    and no script can tell the two apart.
+  - `evals/<case>/case.yaml` (+ an optional `scaffold.sh`) — the case definition
+    `claude plugin eval` reads. **The `prompt.md` + `graders/*.md` shape this line
+    used to name was measured DEAD on 2026-09-14** against CLI 2.1.270: both suites
+    using it loaded zero cases (`invalid case.yaml: graders: Required`), so two of the
+    three shipped suites had never run and nobody noticed, because nothing runs them
+    in CI. Both were converted. A `.md` under `evals/` is still allowed — a grader
+    body may want its own file — but a design doc parked there is a violation in
+    spirit and no script can tell the two apart.
 
-    **Standing of the eval surface itself: `recorded`, mostly unverified.** Few
-    plugins ship an eval, and the control arm is supplied by the runner's
-    `--ablation with-without` flag, not by any shipped `case.yaml`. The runner is
-    NOT gated on this account any more: it ran on 2026-09-13 against overseer's
-    suite (`plugins/overseer/CHANGELOG.md`, n=1, haiku judge), which is the only
-    shipped suite that has been executed. "Functional" above describes the
-    intended contract; one suite has checked it. The consequence that matters: a
+    **Standing of the eval surface itself: `recorded`, and now partly measured.**
+    Few plugins ship an eval, and the control arm is supplied by the runner's
+    `--ablation with-without` flag (its default when a plugin resolves), not by any
+    shipped `case.yaml`. All three suites have now been executed with a control arm
+    on CLI 2.1.270 — the numbers are in
+    `rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D, where the one
+    NEGATIVE delta was WITHDRAWN a day later: it did not replicate. Read the amendment,
+    not the table above it. Nothing runs them in CI, which is how two dead suites
+    survived; a `case.yaml` schema check is a CI step, so a suite that loads zero cases
+    fails the build even though no eval is executed there. Two rules that cost $10 to
+    learn and are cheap to read:
+
+    - **A case whose CONTROL arm passes cannot measure the skill.** It is a regression
+      guard — it catches the plugin breaking something and can never show it helping,
+      because there is no headroom above 1.00. All five `resilience` cases are in that
+      state, including two written specifically to be hard for the base model.
+    - **Three runs cannot separate a regression from a flake.** The −1.00 above was three
+      runs agreeing; three more runs a day later disagreed. State the run count and the
+      vote spread with any delta, or do not state the delta.
+
+    The consequence that matters: a
     grader passing proves nothing about the SKILL unless a control arm shows the
     base model failing the same prompt — and the one time that was measured by
     hand (`rationale/eval-ablation-2026-08-20.md`), the skill under test scored
@@ -261,8 +279,8 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **34 named steps;
-33 can fail the build**, and on a push to `master` only **32** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **36 named steps;
+35 can fail the build**, and on a push to `master` only **34** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else —
 `scripts/done-gate.sh:7` says why: two files carrying one number is how they

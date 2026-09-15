@@ -85,7 +85,7 @@ you decline and offer the defensive equivalent (a fix plus a regression test).
 ## Defer rule
 
 Full-application auditing belongs to `/security:review`; test-suite
-construction follows `/testing:review` guidance. This agent fixes findings —
+construction follows `the `testing-best-practices` skill` guidance. This agent fixes findings —
 it does not re-audit the whole app or build test infrastructure from scratch.
 
 ## Kill-trigger (three strikes)

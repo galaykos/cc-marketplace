@@ -30,12 +30,14 @@ semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 | `/code-architecture:yagni` | Audit code or a design for speculative generality |
 | `/code-architecture:solid` | Audit code or a design for SOLID violations |
 | `/code-architecture:verify` | Verify completed work against its success criteria, with evidence |
+| `/code-architecture:coding-task` | Start ad-hoc coding work with the house rules already loaded — detects the stack, loads the always-relevant skills, and says in one line whether the task proceeds inline or belongs in the taskmaster pipeline |
 
 ## Skills & agent
 
 Best-practice skills auto-trigger by context — `plan-before-code`,
 `low-cognitive-load`, `solid-principles`, `yagni-check`,
-`work-verification`, `drift-review`, `system-design`, and `domain-modeling`. The
+`work-verification`, `drift-review`, `system-design`, `domain-modeling`, and
+`coding-entry` (the one `/code-architecture:coding-task` invokes). The
 `architecture-reviewer` agent reviews structural changes for boundaries, cohesion,
 and cognitive load, and on a design doc or service topology audits against the
 system-design rubric. The `system-architect` worker (opus floor) designs and
@@ -49,10 +51,14 @@ Two skills were merged away in 0.10.0 rather than deleted: KISS/DRY is now
 nothing; folding them cut two always-on triggers while keeping every line of the
 material.
 
-`work-verification` and `drift-review` are the two done-time gates and they ask
+`work-verification` and `drift-review` are the two done-time disciplines and they ask
 different questions: `work-verification` asks whether the evidence backs the claim,
 `drift-review` asks whether the work that produced it stayed on the task that was
-asked. Cooperative, not tamper-proof — neither is a security boundary.
+asked. Their standing differs, and calling both "gates" hid it: `work-verification`
+is a **gate** wherever candor is installed — its clause 3 blocks a done-claim made
+after a mutation with nothing executed — while `drift-review` is **agent-graded**,
+read when the model reaches for it and run by nothing. Cooperative, not tamper-proof;
+neither is a security boundary.
 
 ## The evidence gate lives in candor
 

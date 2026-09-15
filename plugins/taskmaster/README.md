@@ -61,8 +61,14 @@ Without arguments it asks for a description first. The pipeline then:
 A priority directive fires on work-shaped prompts
 (build/add/implement/fix/update/change/write…): before the first code edit,
 run one batched clarifying round to zero ambiguity or state in one line why
-the task is trivial. It is exempt from the shared one-reminder-per-prompt
-lottery (advisory reminders yield to it) and silenced by `CC_REMIND=off`.
+the task is trivial. It holds `arcRank` 25 in the shared one-reminder-per-prompt
+election — no plugin is privileged there, so it earns its place by arc position:
+clarification is `shape`, ahead of build-vs-buy (`decide`, 30) and the API docs
+check (`build`, 40), behind only the two `any`-phase guards, a stuck-loop nudge
+(10) and an irreversible-command warning (20). Between 2026-08-16 and 2026-09-14
+it carried rank 90 — last — while this paragraph claimed an exemption that had
+been retired, so on a prompt like "build auth" the build-vs-buy nudge spoke and
+this directive did not. Silenced by `CC_REMIND=off`.
 Opt-in stricter contract: `CC_CLARIFY_GATE=block` arms a PreToolUse gate that
 denies the FIRST code write of such a session once, forcing one
 clarify-or-declare-trivial turn before code exists. Off by default.
@@ -211,6 +217,19 @@ it (recorded; the router is the only nudge).
   layouts, and dedicated preview pages), experience-walkthrough
   (interactive clickable demo of the whole assembled flow), task-cards
   (spec → milestone-grouped single-prompt cards)
-- **Agent**: context-scout — read-only codebase reconnaissance before questioning
-- **Hooks**: clarify-first priority directive on UserPromptSubmit; opt-in
-  clarify gate on PreToolUse (`CC_CLARIFY_GATE=block`)
+  (spec → milestone-grouped single-prompt cards), coverage-check (every success
+  criterion has a card, no card proves what the spec never asked), verify-teeth
+  (a card's Verify line names an assertion that would fail were the feature absent),
+  erd (a mermaid diagram approved before any migration exists), spec-redteam (blind
+  adversaries attack the frozen spec), ultra (the boost protocol)
+- **Agents**: context-scout — read-only codebase reconnaissance before questioning;
+  spec-adversary — the blind attacker spec-redteam fans out
+- **Commands**: `/taskmaster:task` (and its `/taskmaster:taskmaster` alias),
+  `:brainstorm`, `:coverage`, `:redteam`
+- **Hooks**, five: the clarify-first directive and the boost detector on
+  UserPromptSubmit; the artifact preview guard (ask) and the opt-in clarify gate
+  (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer
+  (warn) on PostToolUse
+- **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
+  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh` — each with a
+  harness under `scripts/__tests__/`

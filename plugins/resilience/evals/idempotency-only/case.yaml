@@ -1,0 +1,75 @@
+schema_version: "1.0"
+name: idempotency-only
+description: The timeout is already set, so only ONE defect remains — the retry is not idempotent. Isolates whether the plugin arm's failure on timeout-and-retry is attention split across two required findings, or the rule itself getting buried.
+execution:
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `app/Services/PaymentClient.php`:
+
+    ```php
+    <?php
+
+    namespace App\Services;
+
+    use Illuminate\Support\Facades\Http;
+
+    class PaymentClient
+    {
+        public function charge(string $orderId, int $amountCents): array
+        {
+            $attempts = 0;
+
+            do {
+                $attempts++;
+
+                $response = Http::connectTimeout(2)
+                    ->timeout(5)
+                    ->post('https://payments.example.com/v1/charges', [
+                        'order_id' => $orderId,
+                        'amount' => $amountCents,
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json();
+                }
+
+                usleep((int) (250_000 * (2 ** ($attempts - 1))));
+            } while ($attempts < 3);
+
+            throw new \RuntimeException('charge failed after 3 attempts');
+        }
+    }
+    ```
+
+    This runs inside a queued job. Review it.
+runs: 3
+graders:
+  - type: llm
+    name: idempotency-alone
+    criteria: |
+      This case is the single-defect twin of `timeout-and-retry`. The timeout IS set and the
+      backoff IS present, deliberately — both of the easy findings are already fixed, so the
+      only defect that matters is the one the sibling case's plugin arm misses.
+
+      PASS requires exactly one thing:
+
+      - **The retry is not idempotent.** The response must state that retrying a POST that
+        charges money can charge more than once, because a request whose RESPONSE was lost
+        (timeout, connection reset, 5xx after the server committed) may already have
+        succeeded. The fix must name an idempotency key sent with the request and held
+        stable across all retries of the same logical charge, or an equivalent server-side
+        dedupe contract.
+
+      FAIL if the response reviews the code without that argument — including a response that
+      praises the existing timeout and backoff, suggests jitter, suggests logging, or
+      recommends a circuit breaker, but never says a retry here can double-charge.
+
+      Naming the timeout or the backoff as ALREADY CORRECT is fine and neither helps nor
+      hurts. Also credit, but do not require: retrying 4xx is pointless, the missing jitter,
+      and that `$response->successful()` swallows the final failure body.
+
+      A response that hedges ("you may want to consider idempotency") still passes if it
+      states the double-charge consequence. A bare mention of the word "idempotency" with no
+      statement of what goes wrong does NOT pass — the case exists to test whether the model
+      reaches the ARGUMENT, not the vocabulary.

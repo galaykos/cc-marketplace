@@ -3,6 +3,15 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.9.0
+
+### Added
+- **The guard recognises migration DSLs other than Laravel's.** It knew SQL keywords and
+  `Schema::drop*`, which meant a Prisma, Drizzle, TypeORM, Doctrine, Knex or Alembic
+  repo — every JS/TS and Python project this plugin claims to serve — got no ask on a
+  drop, because none of those tools emits the SQL this guard was reading. `dropTable`,
+  `dropTableIfExists`, `drop_table`, `dropSchema`, `drop_schema`, `dropAll` and
+  `drop_all` now fire the same ask, with the same escape: a `down()` legitimately drops.
 ## 0.8.3
 
 ### Fixed

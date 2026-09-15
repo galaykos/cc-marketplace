@@ -343,6 +343,21 @@ out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"f
 out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"/p/src/app.ts","content":"rm -rf /"}}')
 [ -z "$out" ] && ok || bad "ordinary Write must be untouched" "$out"
 
+# An IDE-driven session writes every file through an MCP server, not through the four
+# host tool names. Until 2026-09-14 the allow-file — the one file that disarms this
+# guard — was editable that way while the host tools were blocked: the protection
+# inverted. apply_patch carries no single path, so the patch BODY is what names it.
+out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__create_new_file","tool_input":{"pathInProject":"/p/.claude/destructive-guard-allow","text":"x"}}')
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "deny" ] \
+  && ok || bad "MCP create_new_file to allow-file must be denied" "$out"
+out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__apply_patch","tool_input":{"input":"*** Update File: .claude/destructive-guard-allow\n+^rm -rf .*"}}')
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "deny" ] \
+  && ok || bad "MCP apply_patch naming the allow-file must be denied" "$out"
+out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__create_new_file","tool_input":{"pathInProject":"/p/src/app.ts","text":"rm -rf /"}}')
+[ -z "$out" ] && ok || bad "ordinary MCP write must be untouched" "$out"
+out=$(hook '{"hook_event_name":"PreToolUse","tool_name":"mcp__phpstorm__apply_patch","tool_input":{"input":"*** Update File: src/app.ts\n+const a = 1;"}}')
+[ -z "$out" ] && ok || bad "ordinary MCP patch must be untouched" "$out"
+
 # env modes
 out=$(hook "$(bash_json 'php artisan migrate:fresh')" CLAUDE_DESTRUCTIVE_GUARD=off)
 [ -z "$out" ] && ok || bad "CLAUDE_DESTRUCTIVE_GUARD=off must disable the guard" "$out"

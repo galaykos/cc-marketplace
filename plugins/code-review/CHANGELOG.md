@@ -3,6 +3,23 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.19.0
+
+### Fixed
+- **The fan-in now reaches two rubrics that claimed it already did.** `resilience`'s
+  `event-driven` skill (which arrived in 0.6.0) and `laravel`'s `inertia-best-practices`
+  were named by their own plugins as loaded by this command and were not in its load
+  list: a broker-touching diff lost the delivery/ordering rubric, and a Laravel+Inertia
+  diff lost the Inertia rubric because an Inertia page is a `.vue`/`.tsx` file the
+  language row sends nowhere. Both are now loaded, Inertia gated on the manifest.
+- **`CC_REMIND=off` works on every advisory this plugin ships.** The README promised it
+  marketplace-wide while only `conventions.sh` read it; `scan.sh`, `density.sh` and
+  `verbosity.sh` ignored it. They honour it now in their WARN lanes only — a PreToolUse
+  deny is not an advisory, and an env var must not turn a block into a pass.
+
+### Changed
+- **MCP file writes reach the comment-discipline detectors.** Nothing here; see
+  `secret-scanning` 0.6.0 for the same change to the write guards.
 ## 0.18.3
 
 ### Changed

@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.6.2
+
+### Fixed
+- **The allow-file guard now covers MCP file writes.** 0.6.1 widened the matcher to
+  `*apply_patch|*create_new_file` but left the script gating on the four host tool
+  names, so the matcher fired and the script exited — silent coverage, and the file
+  that disarms this guard stayed editable through any MCP server while the host tools
+  were blocked. `create_new_file` is read from `pathInProject`; `apply_patch` carries
+  no single path, so its patch body is checked for the basename. Four assertions.
+
+## 0.6.1
+
+### Added
+- **`config-guard`: an `ask` before the agent edits its own guardrails.** Settings
+  files, any `hooks.json`, any hook script, plugin manifests, and lint/type-check/test
+  configs (eslint, biome, rubocop, ruff, phpstan, psalm, golangci, pytest, tsconfig,
+  clippy). Given a gate it cannot satisfy, the cheapest path out is to edit the gate —
+  turn off the rule, add an ignore, delete the hook — and it reads in a diff summary as
+  "updated config". `ask`, not `deny`, because editing these is often exactly the task;
+  the point is that it becomes a decision someone made. It reads the PATH, not the
+  diff: it cannot tell adding a rule from deleting one, and says so in the prompt. It
+  self-exempts inside a marketplace repository, which edits these files as its product.
+  `CC_CONFIG_GUARD=off` disables it; `scripts/__tests__/config-guard.test.sh` drives
+  21 cases.
+## 0.6.1
+
+### Fixed
+- **The allow-file cannot be edited through an MCP file tool.** The second matcher
+  protecting `.claude/destructive-guard-allow` covered the four host write tools only;
+  an IDE-MCP write bypassed the protection on the file that disarms this guard.
+- **"187 assertions" in the README is 217** — the harness has printed the larger number
+  since 0.6.0 added thirty.
 ## 0.6.0
 
 ### Fixed

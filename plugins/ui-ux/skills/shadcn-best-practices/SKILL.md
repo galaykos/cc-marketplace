@@ -121,10 +121,9 @@ paths then follow this skill's owned-code and CSS-variable rules above.
 
 ## Component APIs from the registry, never from memory
 
-When design-studio's `registry-source` MCP tools are available (`registry_list`,
-`registry_search`, `registry_get`), read a component's actual props/variants/dependencies
-from them BEFORE writing usage code — a component API written from recall is the failure
-those tools exist to stop. Each answer carries `source` and `fetched_at`; prefer a fresh
-fetch (`refresh: true`) when `stale` is set. Without the tools, the fallback is the current
-docs at https://ui.shadcn.com — CLI flags, registry structure and props change between
-releases, and memory does not.
+shadcn ships its own MCP server — `npx shadcn@latest mcp init` wires it into this
+project. When its tools are connected, read a component's actual
+props/variants/dependencies from them BEFORE writing usage code: a component API
+written from recall is the failure that server exists to stop. Without it, the fallback
+is the current docs at https://ui.shadcn.com — CLI flags, registry structure and props
+change between releases, and memory does not.

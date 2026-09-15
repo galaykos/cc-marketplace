@@ -6,6 +6,45 @@ Started at 0.8.0, the release that added this plugin's first hook. Earlier
 versions have no entries rather than invented ones — a backfilled history in the
 file whose job is history is worse than an honest starting point.
 
+## 0.10.1
+
+### Fixed
+- **`protect-tests` denied ordinary code in two languages it deliberately covers.** An
+  unanchored `.skip(` matched `list.stream().skip(1)` in a `*Test.java` and
+  `items.iter().skip(2)` in a `*_test.rs`; a first fix that allowed trailing letters
+  after the keyword still matched `iter` inside `items.iter()`. The pattern now requires
+  a word-bounded test keyword (`it`, `test`, `describe`, `context`, …) with optional
+  chained calls, which still catches `it.each([1]).skip(`.
+- **The documented escape hatch failed when it was used.** A reasoned new skip was
+  denied if the same hunk carried a pre-existing unreasoned marker through unchanged,
+  because every marker line in the new text was judged rather than only the added ones.
+- The README documents the hook, its standing and `CC_PROTECT_TESTS`; the 0.10.0
+  changelog section was duplicated.
+## 0.10.0
+
+### Added
+- **`protect-tests`, a PreToolUse guard against fake green.** It denies an edit that
+  adds a skip or exclusive marker to a test file with no reason on the same line
+  (`.skip`, `.only`, `.todo`, `xit`, `xdescribe`, `@pytest.mark.skip`,
+  `markTestSkipped`, `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`), and an edit that
+  rewrites a test file into one with no tests left. Skipping the failing test is the
+  best-documented way a run reports success it did not earn, and it is invisible in a
+  summary: the suite passes and the count quietly drops. The reason requirement is the
+  whole mechanism — a quarantined flake has one (`it.skip('…') // skip: flaky on CI,
+  #1421`, which this allows), a fake-green skip does not. It does not catch a test
+  weakened rather than skipped; that stays agent-graded. `CC_PROTECT_TESTS=off`
+  disables it; `scripts/__tests__/protect-tests.test.sh` drives 24 cases — including
+  the regression a branch review caught before merge: an unanchored `.skip(` matched
+  `list.stream().skip(1)` in Java and `items.iter().skip(2)` in Rust, denying ordinary
+  edits in two languages this hook deliberately covers.
+
+### Removed
+- **`/testing:review` is retired.** `/code-review:review` loads `testing-best-practices`
+  for any diff touching tests or untested production code, in one pass with every other
+  matching rubric — the fan-in this command handed its whole scope to anyway. The rubric
+  did not change; one listing entry did. `/testing:flake-hunt` stays: it runs a suite
+  repeatedly and classifies failures, which no fan-in does.
+
 ## 0.9.2
 
 ### Changed

@@ -4,6 +4,15 @@
 # bare-extension row excludes tool configs, rc files, .d.ts and minified bundles.
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
 # co-fire-ok: *.tsx a11y-audit nextjs-best-practices
+# Accessibility is orthogonal to every stack skill: the WCAG checklist and a library's
+# idioms answer different questions about the same file, and one suppressing the other
+# is the failure, not the co-fire. The Blade pair is the case that proves it — the lane
+# declared a11y-audit's trigger as including .blade.php while the only Blade row routed
+# to laravel, so a Blade edit got the framework rubric and never the checklist.
+# co-fire-ok: *.tsx a11y-audit shadcn-best-practices
+# co-fire-ok: *.jsx a11y-audit shadcn-best-practices
+# co-fire-ok: *.vue a11y-audit shadcn-best-practices
+# co-fire-ok: *.blade.php a11y-audit laravel-best-practices
 # co-fire-ok: *.tsx nextjs-best-practices react-native-best-practices
 # co-fire-ok: *.ts low-cognitive-load solid-principles
 # co-fire-ok: *.js low-cognitive-load solid-principles
@@ -84,11 +93,19 @@ glob	*.rb	solid-principles	code-architecture	high
 glob	*.rs	low-cognitive-load	code-architecture	high
 glob	*.rs	solid-principles	code-architecture	high
 glob	**/components/**	tailwind-best-practices	ui-ux	high
+glob	*.tsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
+glob	*.jsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
+glob	*.vue	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
+content	\b(@reui/|reui\.io|from ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-ux	low
+content	\b(aceternity|ui\.aceternity\.com|motion/react|framer-motion)\b	aceternity-best-practices	ui-ux	low
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
 glob	*.tsx	a11y-audit	ui-ux	high
 glob	*.jsx	a11y-audit	ui-ux	high
 glob	*.vue	a11y-audit	ui-ux	high
+glob	*.blade.php	a11y-audit	ui-ux	high
+glob	*.svelte	a11y-audit	ui-ux	high
+glob	*.astro	a11y-audit	ui-ux	high
 glob	*.tsx	react-native-best-practices	web-dev	high	package.json~"react-native"
 glob	*.tsx	nextjs-best-practices	web-dev	high	package.json~"next"
 glob	**/resources/js/Pages/**	inertia-best-practices	laravel	high
@@ -122,4 +139,3 @@ content	@mui/(material|icons-material|x-[a-z-]+|lab)\b	mui-best-practices	ui-ux	
 content	@astryxdesign/(core|cli|theme-[a-z0-9-]+)\b	astryx-best-practices	ui-ux	low
 content	\b(framer-motion|motion/react|animejs|gsap|ScrollTrigger|lenis|react-three|keyframes|animation-timeline|starting-style|startViewTransition)\b	motion-best-practices	ui-ux	low
 content	(\bWebGPURenderer\b|three/webgpu|\bnew THREE\.)	threejs-best-practices	craft-layer	low
-glob	**/.design-studio/**	design-session	design-studio	high

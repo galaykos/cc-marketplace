@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.7
+
+### Changed
+- **`shape`-phase capability map points at `ui-ux` instead of `design-studio`** <!-- removed-ok -->
+  (`scripts/capability-scan.sh`, `references/capability-map.md`) — the plugin was
+  retired on 2026-09-14 and the mockup escalation it named is now the real-component
+  rung of `taskmaster:visual-decisions`. `dispatch check` resolves again on a machine without the old
+  plugin installed. <!-- removed-ok -->
+
 ## 0.4.6 — 2026-09-14
 
 - `references/capability-map.md`: the review row no longer names `ui-ux` review and the
@@ -24,7 +33,7 @@
 ## 0.4.3 — 2026-09-14
 
 - `scripts/capability-scan.sh` and `references/capability-map.md`: the shape row
-  lists design-studio in place of design-lab and theme-design, which were merged
+  lists design-studio in place of design-lab and theme-design, which were merged <!-- removed-ok -->
   into it. No behaviour change beyond the name.
 
 ## 0.4.2 — 2026-09-14

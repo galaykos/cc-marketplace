@@ -1,0 +1,86 @@
+schema_version: "1.0"
+name: idempotency-only-ts
+description: The TypeScript replicate of idempotency-only — same single defect, same rubric, different language. Isolates whether the plugin's effect on a sharp-claim review is stack-dependent or not.
+execution:
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `src/services/paymentClient.ts`:
+
+    ```ts
+    const PAYMENTS_URL = "https://payments.example.com/v1/charges";
+
+    export interface ChargeResult {
+      id: string;
+      status: string;
+    }
+
+    export async function charge(
+      orderId: string,
+      amountCents: number,
+    ): Promise<ChargeResult> {
+      let attempt = 0;
+
+      while (attempt < 3) {
+        attempt++;
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5_000);
+
+        try {
+          const res = await fetch(PAYMENTS_URL, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ order_id: orderId, amount: amountCents }),
+            signal: controller.signal,
+          });
+
+          if (res.ok) {
+            return (await res.json()) as ChargeResult;
+          }
+        } catch {
+          // retry
+        } finally {
+          clearTimeout(timer);
+        }
+
+        await new Promise((r) => setTimeout(r, 250 * 2 ** (attempt - 1)));
+      }
+
+      throw new Error("charge failed after 3 attempts");
+    }
+    ```
+
+    This is called from a BullMQ worker. Review it.
+runs: 3
+graders:
+  - type: llm
+    name: idempotency-alone-ts
+    criteria: |
+      The TypeScript twin of `idempotency-only`. The timeout IS set (AbortController, cleared
+      in `finally`) and the backoff IS present, deliberately — the easy findings are already
+      fixed so that only one defect matters.
+
+      PASS requires exactly one thing:
+
+      - **The retry is not idempotent.** The response must state that retrying a POST that
+        charges money can charge more than once, because a request whose RESPONSE was lost
+        (abort on timeout, connection reset, 5xx after the server committed) may already have
+        succeeded. The fix must name an idempotency key sent with the request — stable across
+        all retries of the same logical charge — or an equivalent server-side dedupe contract.
+
+      Note the abort case makes this sharper, not softer: `controller.abort()` tears down the
+      client's view of a request the server may still be processing. A response that says the
+      abort is safe because the request "was cancelled" is actively wrong and FAILS.
+
+      FAIL if the response reviews the code without the double-charge argument — including one
+      that praises the existing timeout handling, suggests jitter, suggests a typed error
+      instead of the empty `catch`, or recommends a circuit breaker, but never says a retry
+      here can charge twice.
+
+      Also credit, but do not require: the bare `catch {}` swallowing non-abort errors,
+      retrying 4xx being pointless, the missing jitter, and that a failed `res` body is never
+      read so the final error loses the server's reason.
+
+      A bare mention of "idempotency" with no statement of what goes wrong does NOT pass —
+      the case tests whether the model reaches the ARGUMENT, not the vocabulary.

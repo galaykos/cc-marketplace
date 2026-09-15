@@ -424,7 +424,12 @@ pc_removed_refs() {
   # file, env var and skill are still named terse-mode / CC_TERSE / terse-output, so it
   # is SAFE here only because $shapes matches reference forms; those tokens carry a
   # hyphen or underscore boundary and match no shape.
-  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite'
+  plug='typescript|javascript|vue2|design-patterns|intent-guard|rollout|error-handling|concurrency|react|php|mysql|postgresql|vue3|nuxt|livewire|node-backend|i18n|everything|db-suite|product-suite|claude-authoring|payments|llm-app|terse|php-suite|dev-env|design-studio'
+  # dev-env and design-studio were ABSORBED/RETIRED (2026-08, 2026-09-14). Both are
+  # hyphenated, so they match no bare-English shape and are safe in the $plug list —
+  # unlike `observability`, `lean` and `a11y`, which are ordinary words this check
+  # cannot tell from a plugin name, and which is why two of them sat wrong in shipped
+  # listing bytes for weeks (devops' skill description, security's README).
   # nextjs, react-native, vite MOVED 2026-09-02: their skills live in web-dev now and
   # keep their skill names, so only the PLUGIN forms are stale — `/vite:review`,
   # `plugins/vite`, `vite@`, `**vite**`, "vite plugin". The bare-backtick and arrow
@@ -436,10 +441,12 @@ pc_removed_refs() {
   # `web-dev:react-native-best-practices` does.
   # plugin-scout, vercel-skills-scout MOVED 2026-09-14 into stack-scan as skills of the
   # same names behind one /stack-scan:suggest command; only the PLUGIN forms are stale.
-  # theme-design, design-lab MOVED 2026-09-14 into design-studio (a rename plus a merge):
-  # the skills keep their names (design-session, real-preview), the commands are
-  # /design-studio:init|export|preview and the working dir is .design-studio/. Only the
-  # PLUGIN forms are stale; `.theme-design/` in an old changelog line matches no shape.
+  # theme-design, design-lab MOVED 2026-09-14 into design-studio, which was itself
+  # RETIRED the same day. Nothing survives under those three names except the
+  # real-component preview, now a reference of taskmaster's visual-decisions skill
+  # (references/real-components.md) with preview-cleanup.sh beside it. `design-studio`
+  # is in the $plug list above; `.theme-design/` and `.design-studio/` in an old
+  # changelog line match no shape and stay legal.
   # fresh-take MOVED 2026-09-14 into approaches: the consult skill, the consultant agent
   # and the reminder keep their names; /approaches:consult is the command.
   # orchestration MOVED 2026-09-14 into task-runner: delegation-contracts and
@@ -481,7 +488,14 @@ pc_removed_refs() {
   # "i18n" outside a reference shape slips through.
   # terse-crew, terse-commit, terse-compress added 2026-09-14: dropped with the terse
   # merge into candor; the three crew agents went with the crew skill.
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress'
+  # real-preview, design-session added 2026-09-15: design-studio's two skills, retired
+  # with it. real-preview's BODY survives as taskmaster's
+  # visual-decisions/references/real-components.md — under a different name, so every
+  # citation of the old skill name resolves to nothing. Six shipped files carried one
+  # after the retirement and no shape saw them: the names sat in neither list, and the
+  # `moved` list would not have helped because it guards the PLUGIN half of
+  # `plugin:artifact`, while these appeared as the artifact half (`ui-ux:real-preview`).
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session'
   # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that

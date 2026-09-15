@@ -1,14 +1,13 @@
 {
   "name": "craft-suite",
-  "version": "0.6.0",
-  "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer); browser design sessions, visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-studio); plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first.",
+  "version": "0.7.1",
+  "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux: per-library stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind), the WCAG audit, CSS-variable theming with a live colour preview, and the accessibility engineer that applies an audit's fix list. Live component-registry lookups route to the registries' own MCP servers — shadcn's and ReUI's — named in ui-ux's stack skills; this marketplace ships none. Uninstall with /craft-suite:uninstall.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"
   },
   "dependencies": [
     "craft-layer",
-    "design-studio",
     "ui-ux"
   ],
   "keywords": [

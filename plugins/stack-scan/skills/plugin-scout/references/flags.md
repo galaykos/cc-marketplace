@@ -66,13 +66,13 @@ whose class the manifests (or `--stack`) satisfy, per
 rule and the typed-token rule; this section does not restate them.
 
 - What it includes, by name so no later reader has to infer it: every
-  **any-stack** leaf whether or not its signal fired — the four stack-bound leaves
-  (`laravel`, `web-dev`, `craft-layer`, `design-studio`)
+  **any-stack** leaf whether or not its signal fired — the three stack-bound leaves
+  (`laravel`, `web-dev`, `craft-layer`)
   follow `references/stack-relevance.md` and are the only tier-1 or tier-3 rows
   `--full` can skip. Any-stack covers the whole of tier 2 and, from tier 3, the
   process/pipeline group (taskmaster, task-runner, approaches),
-  the session-wide group (candor, lean, hindsight and
-  skill-router — the four `references/any-core.md` routes to `--global` for `--yes`;
+  the session-wide group (candor, hindsight and
+  skill-router — the three `references/any-core.md` routes to `--global` for `--yes`;
   `--full` is the flag that bullet does not bind) and the research/tooling group
   (brain, and ultra-deep-research
   when their signal has not fired — they are tier 1 when it has).
@@ -98,7 +98,7 @@ rule and the typed-token rule; this section does not restate them.
   - One count line for the bundles and `stack-scan` (by construction).
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names
-    (ui-ux / craft-layer / design-studio, taskmaster / task-runner,
+    (ui-ux / craft-layer, taskmaster / task-runner,
     web-dev / laravel) that are in the set. Named, not resolved — the picker was
     the only place overlap was surfaced and it does not run here.
   - `Hooks added:` hook-bearing plugins grouped by event — every event key present
@@ -108,9 +108,10 @@ rule and the typed-token rule; this section does not restate them.
     writing; recount, never quote). `secret-scanning` and `command-guard` are
     always named, as under `--yes`: the user did not see a picker for them.
   - `MCP servers added:` each server from a plugin's `.mcp.json`, marked local or
-    remote with its URL — `design-studio` ships a hosted `https://mcp.reui.io` endpoint
-    that needs a browser sign-in, and a remote server is a trust decision the plan
-    must show before the confirm.
+    remote with its URL. No plugin in this marketplace ships one today, so the line is
+    usually absent — it stays because a remote server is a trust decision the plan must
+    show before the confirm, and the `Beyond this marketplace` block does print MCP
+    rows (playwright, context7, serena) the user installs themselves.
   - The listing-cap paragraph, last, because it is the one line most likely to
     change the answer: Claude Code budgets the skill listing it sends the model at
     `contextWindowTokens × bytesPerToken × skillListingBudgetFraction` (default

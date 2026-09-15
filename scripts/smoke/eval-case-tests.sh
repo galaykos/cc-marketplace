@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# Fixtures for scripts/eval-cases.sh — the gate that a shipped eval suite LOADS.
+#
+# The case that matters is the FIRST one: a suite directory that resolves to zero cases.
+# That is not hypothetical here — `resilience` and `web-dev` were in exactly that state
+# for weeks while looking maintained, and the only reason anybody found out was a manual
+# run. Every other assertion below is a narrower version of the same failure: the suite
+# is present, and the runner gets nothing out of it.
+#
+# The gate is run against a SYNTHETIC tree, not the repo's own plugins, so a fixture
+# cannot be satisfied by a real suite happening to be correct.
+set -u
+cd "$(dirname "$0")/../.." || exit 1
+GATE=$(pwd)/scripts/eval-cases.sh
+rc=0; pass=0
+T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+
+ok()  { pass=$((pass+1)); printf 'PASS: %s\n' "$1"; }
+bad() { printf 'FAIL: %s\n      %s\n' "$1" "$2"; rc=1; }
+
+# Drive the gate over a synthetic plugins/ tree.
+# Run the COPY inside the fixture tree: the gate resolves its root from its own
+# path, so invoking the repo's copy would silently check the repo's real plugins/
+# and every assertion below would pass for the wrong reason. It did, once.
+run_gate() { bash "$T/scripts/eval-cases.sh" 2>&1; }
+
+good_case() { mkdir -p "$1"; cat > "$1/case.yaml" <<YAML
+schema_version: "1.0"
+name: $(basename "$1")
+execution:
+  max_turns: 25
+  prompt: |
+    Review this.
+runs: 3
+graders:
+  - type: llm
+    name: g
+    criteria: |
+      PASS if it says anything.
+YAML
+}
+
+mkdir -p "$T/scripts" && cp scripts/eval-cases.sh "$T/scripts/"
+
+expect_fail() { # label needle
+  out=$(run_gate); st=$?
+  if [ "$st" -eq 0 ]; then bad "$1" "gate passed; it must fail"; return; fi
+  case "$out" in *"$2"*) ok "$1" ;; *) bad "$1" "no match for '$2' in: $out" ;; esac
+}
+
+# --- the baseline: a well-formed suite passes ---------------------------------
+good_case "$T/plugins/alpha/evals/one"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a well-formed suite passes" || bad "a well-formed suite passes" "$out"
+
+# --- THE bug: a suite directory that loads zero cases -------------------------
+mkdir -p "$T/plugins/beta/evals"
+expect_fail "an evals/ dir with no case.yaml fails (the 2026-09-14 bug)" "loads ZERO cases"
+rm -rf "$T/plugins/beta"
+
+# --- the dead shape -----------------------------------------------------------
+mkdir -p "$T/plugins/beta/evals"; : > "$T/plugins/beta/evals/prompt.md"
+expect_fail "the prompt.md shape fails" "the runner rejects"
+rm -rf "$T/plugins/beta"
+mkdir -p "$T/plugins/beta/evals/graders"; good_case "$T/plugins/beta/evals/c"
+expect_fail "a graders/ directory fails even beside a valid case" "the runner rejects"
+rm -rf "$T/plugins/beta"
+
+# --- per-case schema ----------------------------------------------------------
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys,re
+p=sys.argv[1]; s=open(p).read()
+open(p,'w').write(re.sub(r'graders:.*', '', s, flags=re.S))
+PY
+expect_fail "a case with no graders fails" "loaded 0 cases on 2026-09-14"
+
+good_case "$T/plugins/beta/evals/c"
+printf 'graders: []\n' >> "$T/plugins/beta/evals/c/case.yaml"
+expect_fail "an empty graders list fails" "non-empty list"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; s=open(p).read().replace("  - type: llm\n","  - name: nope\n")
+open(p,'w').write(s)
+PY
+expect_fail "a grader with no type fails" "has no \`type\`"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; s=open(p).read()
+open(p,'w').write(s.split("    criteria:")[0]+"    criteria: \"\"\n")
+PY
+expect_fail "an llm grader with empty criteria fails" "empty \`criteria\`"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; s=open(p).read().replace("  prompt: |\n    Review this.\n","  prompt: \"\"\n")
+open(p,'w').write(s)
+PY
+expect_fail "an empty prompt fails" "\`execution.prompt\` is empty"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; s=open(p).read().replace("name: c","name: mismatched")
+open(p,'w').write(s)
+PY
+expect_fail "a name that does not match its directory fails" "does not match its directory"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; s=open(p).read().replace("runs: 3","runs: 0")
+open(p,'w').write(s)
+PY
+expect_fail "runs: 0 fails" "positive integer"
+
+good_case "$T/plugins/beta/evals/c"
+printf 'this: [is not\n' >> "$T/plugins/beta/evals/c/case.yaml"
+expect_fail "malformed YAML fails" "is not valid YAML"
+
+printf '\n%s assertion(s) passed\n' "$pass"
+exit "$rc"

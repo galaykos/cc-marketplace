@@ -1,0 +1,91 @@
+schema_version: "1.0"
+name: breadth-review
+description: Six independent runtime hazards in one class, and the grader wants coverage rather than one load-bearing claim. The control for the crowding-out hypothesis — if the plugin's six-rubric process trades depth for breadth, this is the case it should WIN.
+execution:
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `app/Services/OrderSyncService.php`:
+
+    ```php
+    <?php
+
+    namespace App\Services;
+
+    use App\Models\Order;
+    use Illuminate\Support\Facades\Cache;
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Support\Facades\Log;
+
+    class OrderSyncService
+    {
+        public function syncPending(): void
+        {
+            $orders = Order::where('status', 'pending')->get();
+
+            foreach ($orders as $order) {
+                try {
+                    $inventory = Cache::rememberForever(
+                        'inventory:' . $order->sku,
+                        fn () => Http::get('https://inventory.example.com/v1/stock/' . $order->sku)->json()
+                    );
+
+                    if ($inventory['available'] < $order->quantity) {
+                        $order->status = 'backordered';
+                        $order->save();
+                        continue;
+                    }
+
+                    $res = Http::post('https://warehouse.example.com/v1/reservations', [
+                        'sku' => $order->sku,
+                        'qty' => $order->quantity,
+                    ]);
+
+                    $order->status = 'reserved';
+                    $order->reservation_id = $res->json()['id'];
+                    $order->save();
+                } catch (\Throwable $e) {
+                    Log::error('sync failed: ' . $e->getMessage());
+                }
+            }
+        }
+    }
+    ```
+
+    This runs every minute from the scheduler. Review it.
+runs: 3
+graders:
+  - type: llm
+    name: hazard-coverage
+    criteria: |
+      This case is scored on BREADTH, on purpose. There is no single load-bearing finding;
+      six independent runtime hazards are present and a good review names most of them.
+
+      The six:
+
+      1. **No timeout on either HTTP call** — a hung dependency stalls the whole scheduled
+         run, and the next tick piles on behind it.
+      2. **`rememberForever` on stock levels** — inventory is volatile data cached with no
+         TTL and no invalidation, so a single read pins a wrong value permanently. (Naming
+         it as a stale-cache or cache-correctness bug counts.)
+      3. **Unbounded `->get()`** — the whole pending set is loaded into memory at once and
+         processed serially; it should chunk/cursor, and the run has no time budget.
+      4. **`catch (\Throwable)` swallowing every failure per order** — the loop continues,
+         the order silently stays `pending`, and the only trace is an unstructured log line
+         with no order id, no SKU, and no stack.
+      5. **Overlapping runs** — a minutely schedule with no `withoutOverlapping()` / lock
+         means two runs can process the same pending order concurrently and double-reserve.
+      6. **The reservation POST's response is trusted blind** — no status check before
+         `$res->json()['id']`, so a 5xx or a rate-limit body writes a null reservation id
+         onto an order marked `reserved`.
+
+      PASS requires **at least FOUR of the six**, each stated as a concrete consequence
+      rather than a label. "Add timeouts" alone is not #1; "a hung inventory call stalls
+      every later order in the run" is.
+
+      FAIL if fewer than four are named, or if the response is a style/structure review
+      (naming, SRP, extracting methods, adding types) that never reaches runtime behaviour.
+
+      Do NOT require: idempotency keys, circuit breakers, retry policy, metrics, or tracing.
+      Credit them if present, but this case is not about them — a response naming four of
+      the six above passes whether or not it goes further.

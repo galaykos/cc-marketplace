@@ -136,7 +136,7 @@ Standing markers per the marketplace convention (see
 | deny tier on `Bash` | **gate** — blocks the tool call | the hook returns `permissionDecision: deny`; the command does not run |
 | ask tier on `Bash` | **gate**, with a human in it | a permission prompt; the user decides |
 | agent writes to the allow-file | **gate** | denied on `Write`/`Edit` and on shell redirects/`sed -i` |
-| the classification rules themselves | **gate**, tested | 187 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
+| the classification rules themselves | **gate**, tested | 221 assertions in `scripts/__tests__/destructive-guard.test.sh`, run in CI for every plugin harness |
 | `rm -rf` recoverability | **gate**, tested | asserted against a throwaway git repo fixture, not a mock; fails closed to `ask` on any git error |
 | "do not rephrase a denied command" | **recorded** | it is instruction text in the deny reason and in the skill; nothing detects a rephrase attempt |
 | coverage of destructive shapes | **unenforceable** | the rule table matches known shapes; a command inside a script, a Makefile target, an npm script, or application code is invisible to it |

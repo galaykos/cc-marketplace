@@ -7,12 +7,11 @@
   "code-review": 366,
   "command-guard": 151,
   "core-suite": 1667,
-  "craft-layer": 1129,
-  "craft-suite": 2987,
+  "craft-layer": 1084,
+  "craft-suite": 2149,
   "database": 205,
   "debugging": 144,
-  "design-studio": 793,
-  "devops": 368,
+  "devops": 381,
   "frontend-suite": 1768,
   "git-workflow": 211,
   "hindsight": 158,
@@ -25,9 +24,9 @@
   "stack-scan": 499,
   "task-runner": 533,
   "taskmaster": 874,
-  "testing": 211,
+  "testing": 196,
   "ui-ux": 996,
   "ultra-deep-research": 223,
   "web-dev": 337,
-  "workflow-suite": 6029
+  "workflow-suite": 6014
 }

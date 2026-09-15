@@ -2,6 +2,19 @@
 
 Blocks secrets before they reach disk.
 
+## What has teeth
+
+| Rule | Standing |
+|---|---|
+| A `Write`/`Edit`/`MultiEdit`/`NotebookEdit`, or an MCP `create_new_file`/`apply_patch`, whose new text matches a high-confidence secret pattern | **gate** — PreToolUse `permissionDecision: "deny"`; the write never happens |
+| The pattern set itself (which shapes count as high-confidence) | **recorded** — `hooks/scan.sh`'s header argues each one; `scripts/__tests__/scan.test.sh` pins the behaviour, nothing pins the coverage |
+| A secret written through a shell heredoc (`cat > .env <<EOF`) | **unenforceable here** — no file-write tool is involved, so no PreToolUse matcher sees it. `command-guard` classifies the command, not its content |
+| A secret introduced by an MCP server whose write tool uses key names this hook does not list | **unenforceable** — the extraction in `scan.sh` names the keys it knows (verified against the JetBrains MCP schema, 2026-09-14); a different server writes past it |
+| Secrets already committed before this plugin was installed | **out of scope** — that is `/secret-scanning:scan`, a command you run, not a hook |
+
+There is no allow-file, deliberately: `hooks/scan.sh` explains why a
+per-repo exception list is the wrong shape for this guard.
+
 ## Install
 
 ```bash

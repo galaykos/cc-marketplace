@@ -37,6 +37,14 @@
   # Laravel repo was the one this guard never asked about. Same ask tier, same escape
   # (a down() legitimately drops).
   [ -z "$hit" ] && printf '%s' "$text" | grep -qE 'Schema::(drop|dropIfExists|dropAllTables|dropAllViews|dropDatabase|dropDatabaseIfExists)[[:space:]]*\(' && hit="a Schema::drop* call (Laravel's DROP TABLE)"
+  # Every other migration DSL spells the same statement its own way, and until 2026-09-14
+  # this guard recognised exactly one of them — so a Prisma, Drizzle, TypeORM, Doctrine,
+  # Knex or Alembic repo got the SQL-keyword rule only, which their DSLs never emit.
+  # Shapes, one per tool: Prisma/Drizzle/Knex/Alembic all spell a drop as a call whose
+  # name contains `dropTable`/`drop_table`/`dropSchema`/`drop_all`; TypeORM and Doctrine
+  # write `dropTable(` / `->dropTable(` in a migration class. Ask tier and escape are
+  # identical to the Laravel row: a down()/rollback legitimately drops.
+  [ -z "$hit" ] && printf '%s' "$text" | grep -qE '(\.|->|\b)(dropTable|dropTableIfExists|drop_table|dropSchema|drop_schema|dropAll|drop_all)[[:space:]]*\(' && hit="a drop-table call in a migration DSL (Prisma/Drizzle/TypeORM/Doctrine/Knex/Alembic)"
   [ -z "$hit" ] && printf '%s' "$text" | grep -qiE '\btruncate[[:space:]]+(table[[:space:]]+)?[^;]' && hit="TRUNCATE"
   # unqualified DELETE/UPDATE: a line with DELETE FROM or UPDATE … SET and no WHERE on it
   if [ -z "$hit" ]; then

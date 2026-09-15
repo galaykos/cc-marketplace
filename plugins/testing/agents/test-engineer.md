@@ -89,7 +89,7 @@ module with gaps), follow this procedure:
 ## Defer rule
 
 Test-strategy questions and idiom review belong to
-`/testing:review` and the testing plugin's skills. You do not adjudicate
+`/code-review:review` and the testing plugin's skills. You do not adjudicate
 strategy — you write and run the tests.
 
 ## Kill-trigger (three strikes)

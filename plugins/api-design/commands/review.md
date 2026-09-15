@@ -18,13 +18,21 @@ Review branch:
 
 1. Resolve scope — the route files, controllers, FormRequests, API Resources, and
    OpenAPI/JSON Schema specs named in $ARGUMENTS, or the current diff if no argument.
-2. Judge the contract the consumer sees (paths, methods, status codes, error shape,
+
+2. **Hand up when the scope is wider than this rubric.** If the scope includes files
+   outside this plugin's surface and `/code-review:review` is installed, hand the WHOLE
+   scope to it and stop. It is the fan-in for overlapping review surfaces and loads
+   every matching stack skill — this plugin's included — in one pass; running the
+   per-stack commands separately is what produces the duplicate findings the fan-in
+   exists to prevent, and leaves the stacks nobody happened to invoke unreviewed.
+   Deferring is not a smaller answer — the aggregator reaches this plugin's rubric too.
+3. Judge the contract the consumer sees (paths, methods, status codes, error shape,
    pagination, filtering, versioning, idempotency), not internal code style. When
    uncertain about semantics, verify against the RFCs (9110 for methods/status codes,
    9457 for problem details) instead of answering from memory. Report findings as
    `path:line — problem — fix`, ordered by severity. Skip naming nits unless they leak
    into the public contract.
-3. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
+4. Close with a coverage inventory and a self-refute pass: state `Checked: …` and
    `Not checked: … (why)` so it is explicit what was covered, what was clean, and what
    was skipped — not only what broke. Then run one adversarial self-refute pass over
    your highest-severity findings; if a finding does not survive it, drop or downgrade

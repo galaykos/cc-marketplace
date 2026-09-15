@@ -28,9 +28,13 @@ opinions, the same shape as the opinion panel; the plugin boundary carried nothi
 /plugin install approaches@cc-plugins-marketplace
 ```
 
-## Commands
+## Commands and skill entries
 
-| Command | What it does |
+Five of these are `commands/*.md`; `build-vs-buy` and `consult` are SKILLS invoked
+the same way (`/approaches:<skill>`), which is why they carry no command file. The
+row shape is identical to a reader and the distinction matters only when editing.
+
+| Entry | What it does |
 |---------|--------------|
 | `/approaches:compare [task]` | Compare 2-3 structurally different approaches to a task — trade-off table, pick, kill-trigger — before any implementation |
 | `/approaches:opinions [task]` | Deliberate a task's shape as a blind panel — four parallel opinion-lens personas argue it, synthesized inline to one pick + kill-trigger — before any implementation |
@@ -52,7 +56,7 @@ opinions, the same shape as the opinion panel; the plugin boundary carried nothi
 | Event | Script | Does |
 | --- | --- | --- |
 | `UserPromptSubmit` | `hooks/remind.sh` | build-vs-buy nudge when the prompt carries a making verb and a commodity-capability noun; `decide` phase, stands down once the arc has moved on |
-| `UserPromptSubmit` | `hooks/consult-remind.sh` | one advisory line naming `/approaches:consult` on an irreversible-command token (`rm -rf`, `reset --hard`, `drop table`, `migrate:fresh`, `force push`) or a repeated-attempt phrase; `any` phase — a guard, not a step. The stuck-loop phrases belong to debugging's reminder |
+| `UserPromptSubmit` | `hooks/consult-remind.sh` | one advisory line naming `/approaches:consult` on an irreversible-command token (`rm -rf`, `reset --hard`, `drop table`, `migrate:fresh`, `force push`) or a repeated-attempt phrase; `any` phase — a guard, not a step. On the repeated-attempt phrases `debugging`'s reminder outranks this one (arcRank 10 against 20), so where both match, the debugging nudge is the one guaranteed to speak — matching the lane edge that has `consult` yield to `systematic-debugging` |
 | `SessionStart` (compact) | `hooks/compact-recovery.sh` | re-injects the deliberation marker after a compaction so a settled shape is not re-deliberated |
 
 The consult nudge only suggests the command; it may repeat on later matching

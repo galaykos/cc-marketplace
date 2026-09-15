@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.104.0"
+    "version": "0.108.2"
   },
   "plugins": [
     {
@@ -17,7 +17,7 @@
     {
       "name": "craft-layer",
       "source": "./plugins/craft-layer",
-      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, and ultra-craft escalates a run with live web research and a red-team of the result. Ships the Three.js/R3F skill (WebGPU-first, TSL, asset pipelines, disposal) behind /craft-layer:review. Requires ui-ux, which carries the WCAG audit."
+      "description": "Create unique, animated, informative web apps (CRM, SaaS, landing pages) across React, Tailwind, Vue, Next, Nuxt, and Laravel. /craft-layer:craft runs the studio pipeline end to end — creative direction, design research, asset sourcing with a licence gate, theming and component build via ui-ux, and a tiered motion system (Framer, anime.js, Three.js/R3F, Lottie/Rive, sprites) with reduced-motion and reduced-bundle fallbacks. /craft-layer:sections guides per-section decisions, /craft-layer:audit reviews a shipped tree, and ultra-craft escalates a run with live web research and a red-team of the result. Ships the Three.js/R3F skill (WebGPU-first, TSL, asset pipelines, disposal) behind /craft-layer:craft; Three.js review arrives through /code-review:review. Requires ui-ux, which carries the WCAG audit."
     },
     {
       "name": "laravel",
@@ -62,7 +62,7 @@
     {
       "name": "testing",
       "source": "./plugins/testing",
-      "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:review, /testing:flake-hunt and a test-engineer worker agent."
+      "description": "Testing best practices: test pyramid and what to actually test, Pest/PHPUnit and Vitest/Jest idioms, Playwright/Dusk e2e discipline, factories and fixtures, mocking boundaries, flaky-test causes, coverage traps — plus the TDD workflow (red-green-refactor, red-green regression proof for bug fixes). Includes /testing:flake-hunt and a test-engineer worker agent; the test rubric reaches any diff through /code-review:review."
     },
     {
       "name": "security",
@@ -78,11 +78,6 @@
       "name": "web-dev",
       "source": "./plugins/web-dev",
       "description": "Web development in one plugin: a web-developer worker (routing, REST/API integration, forms, state, SSR/CSR), an opus-floored frontend-reviewer for component and view logic, and three version-pinned stack skills — Next.js (App Router boundaries, opt-in caching, server actions, 14→16), React Native (lists, navigation, native-driver animation, Expo inversions), Vite (VITE_ env security, chunking, base, proxy, 5→8) — loaded by the code-review fan-in from the lockfile. Inertia and Laravel stay in their own plugins; plain JS/TS needs no skill."
-    },
-    {
-      "name": "design-studio",
-      "source": "./plugins/design-studio",
-      "description": "Design in the browser, decide with real components, source from registries. /design-studio:init opens a design session — chat, select, drag, resize, edit text and pick colours on HTML prototypes or your running dev server, with this Claude Code session applying every gesture to real files and live-reloading; skins show one wireframe in the feel of shadcn, Bootstrap, MUI or Astryx (lookalikes, never the library); /design-studio:export writes tokens, pages and a brief. /design-studio:preview renders 2-3 variants with the project's OWN components on its dev server, consent-gated, cleaned up after. Two MCP servers read the Aceternity, shadcn, Magic UI and ReUI registries live, never from memory."
     },
     {
       "name": "devops",
@@ -122,17 +117,17 @@
     {
       "name": "candor",
       "source": "./plugins/candor",
-      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, four clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a registered task-runner run stopping without its recorded gate pass. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
+      "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, five clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a task-runner run stopping without its recorded gate pass; a dependency map changed with an untouched lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
     },
     {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
-      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (install by name). The creative-build studio — craft-layer (with its Three.js skill) and design-studio — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
+      "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline: no-comment default, write-time denies for restatement, commented-out code, signature-repeating docblocks and files over the comment ceiling). Inertia lives in the laravel plugin (install by name). The creative-build studio — craft-layer, with its Three.js skill — moved to craft-suite, so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins."
     },
     {
       "name": "core-suite",
       "source": "./plugins/core-suite",
-      "description": "Meta-bundle: the user-scope baseline — the plugins worth enabling once, globally, and keeping on in every repo: secret-scanning's write-time block, candor's four-clause Stop gate and dormant terse mode, code-review's fan-in review with comment discipline, git-workflow's branch finish, hindsight's friction mining, skill-router's file-aware routing, and stack-scan's report, audit and project-tier scout. Replaces always-on-suite and quality-suite (2026-09-14). Membership rule: project-agnostic, safe as a permanent fixture, adds no interruption you did not ask for — why command-guard's ask tier is not here. Uninstall with /core-suite:uninstall. 200k windows: read the README first."
+      "description": "Meta-bundle: the user-scope baseline — the plugins worth enabling once, globally, and keeping on in every repo: secret-scanning's write-time block, candor's five-clause Stop gate and dormant terse mode, code-review's fan-in review with comment discipline, git-workflow's branch finish, hindsight's friction mining, skill-router's file-aware routing, and stack-scan's report, audit and project-tier scout. Replaces always-on-suite and quality-suite (2026-09-14). Membership rule: project-agnostic, safe as a permanent fixture, adds no interruption you did not ask for — why command-guard's ask tier is not here. Uninstall with /core-suite:uninstall. 200k windows: read the README first."
     },
     {
       "name": "workflow-suite",
@@ -142,12 +137,12 @@
     {
       "name": "craft-suite",
       "source": "./plugins/craft-suite",
-      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer); browser design sessions, visual decisions rendered with the project's own components in any UI library, and live component-registry MCP sourcing (design-studio); plus the companion the studio requires: ui-ux, which carries the WCAG audit. Split out of frontend-suite so ordinary frontend app work does not pay the studio's always-on context. Uninstall cleanly with /craft-suite:uninstall — removes the bundle and prunes its auto-installed plugins. 200k-window installs: see the README's context-window requirement first."
+      "description": "Meta-bundle: the creative-build studio in one install — concept-first creative direction with a tiered motion catalog and WebGL/Three.js effects (craft-layer), plus ui-ux: per-library stack skills (shadcn, ReUI, Aceternity, Astryx, MUI, Tailwind), the WCAG audit, CSS-variable theming with a live colour preview, and the accessibility engineer that applies an audit's fix list. Live component-registry lookups route to the registries' own MCP servers — shadcn's and ReUI's — named in ui-ux's stack skills; this marketplace ships none. Uninstall with /craft-suite:uninstall."
     },
     {
       "name": "skill-router",
       "source": "./plugins/skill-router",
-      "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations with engine-aware MySQL/MariaDB/PostgreSQL rows, components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session."
+      "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations (one engine-agnostic rubric, plus a MariaDB row where that engine is detected), components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session."
     },
     {
       "name": "command-guard",

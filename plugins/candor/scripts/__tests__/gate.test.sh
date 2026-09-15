@@ -297,5 +297,59 @@ else
   printf 'SKIP  clause-independence cases (git not available)\n'
 fi
 
+# ---------------------------------------------------------------------------
+# CLAUSE 5 — lockfile drift. Needs a real git worktree: the clause reads
+# `git status --porcelain` and `git diff -U0` on the manifest, so a fixture that
+# faked either would grade a branch the hook never takes.
+# ---------------------------------------------------------------------------
+if command -v git >/dev/null 2>&1; then
+  LW="$WS/lockproj"; mkdir -p "$LW"
+  ( cd "$LW" && git init -q . && git config user.email t@t && git config user.name t \
+    && printf '{"name":"x","dependencies":{"a":"^1.0.0"}}\n' > package.json \
+    && printf '{"lockfileVersion":3}\n' > package-lock.json \
+    && git add -A && git commit -qm init ) >/dev/null 2>&1
+
+  lock_payload() { jq -cn --arg cwd "$LW" '{transcript_path:"/nonexistent",cwd:$cwd,stop_hook_active:false}'; }
+  clear_lock_state() { rm -rf "$LW/.claude/candor"; }
+
+  ( cd "$LW" && printf '{"name":"x","dependencies":{"a":"^1.0.0","b":"^2.0.0"}}\n' > package.json )
+  clear_lock_state
+  err=$(lock_payload | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 2 ] && printf '%s' "$err" | grep -qF 'lockfile did not'; then
+    pass=$((pass+1)); printf 'PASS  clause 5: a dependency added with no lockfile change blocks\n'
+  else fail=$((fail+1)); printf 'FAIL  clause 5 blocks on drift (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  ( cd "$LW" && printf '{"lockfileVersion":3,"packages":{}}\n' > package-lock.json )
+  clear_lock_state
+  err=$(lock_payload | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$err" ]; then
+    pass=$((pass+1)); printf 'PASS  clause 5: manifest AND lockfile changed together is silent\n'
+  else fail=$((fail+1)); printf 'FAIL  clause 5 silent on a matched pair (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  ( cd "$LW" && git checkout -q -- . && printf '{"name":"x","version":"2.0.0","dependencies":{"a":"^1.0.0"}}\n' > package.json )
+  clear_lock_state
+  err=$(lock_payload | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$err" ]; then
+    pass=$((pass+1)); printf 'PASS  clause 5: a version bump is not a dependency change\n'
+  else fail=$((fail+1)); printf 'FAIL  clause 5 silent on a version-only edit (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  ( cd "$LW" && git checkout -q -- . && printf '{"name":"x","dependencies":{"a":"^1.0.0","c":"^3.0.0"}}\n' > package.json )
+  clear_lock_state
+  err=$(lock_payload | CC_LOCKFILE_GATE=off bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 0 ] && [ -z "$err" ]; then
+    pass=$((pass+1)); printf 'PASS  clause 5: CC_LOCKFILE_GATE=off silences it\n'
+  else fail=$((fail+1)); printf 'FAIL  clause 5 off switch (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  err=$(jq -cn --arg cwd "$LW" '{agent_transcript_path:"/nonexistent",cwd:$cwd,hook_event_name:"SubagentStop",last_assistant_message:"done"}' \
+        | bash "$HOOK" 2>&1 >/dev/null); rc=$?
+  if [ "$rc" -eq 0 ]; then
+    pass=$((pass+1)); printf 'PASS  clause 5: disarmed for a subagent (no user turn to answer it)\n'
+  else fail=$((fail+1)); printf 'FAIL  clause 5 subagent disarm (rc=%s stderr=%s)\n' "$rc" "$err"; fi
+
+  ( cd "$LW" && git checkout -q -- . )
+else
+  printf 'SKIP  clause 5 cases (git not available)\n'
+fi
+
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

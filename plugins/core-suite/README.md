@@ -17,7 +17,7 @@ rule is three-part, and it is prose — no script checks it:
    into a permission click is paid for on every prompt in every repo, forever;
    that is a per-user opt-in, not a baseline.
 
-What that buys you always-on: the write-time secret block, candor's four-clause
+What that buys you always-on: the write-time secret block, candor's five-clause
 honesty Stop gate and its terse reply mode (inert until you set a level), the
 one review entry (`/code-review:review`, which loads whatever stack rubrics you
 have installed) with its comment discipline, file-aware skill auto-routing, git
@@ -71,7 +71,7 @@ ceiling, not a purchase — it only admits description text that was being evict
 ## What's included
 
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
-- **candor** — the marketplace's one Stop gate, four clauses a script can prove: a file:line citation resolving to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass; plus the terse reply mode (inert until you run `/candor:level` and pick a level — which is exactly why it is safe here) and `/candor:check`
+- **candor** — the marketplace's one Stop gate, five clauses a script can prove: a file:line citation resolving to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass; plus the terse reply mode (inert until you run `/candor:level` and pick a level — which is exactly why it is safe here) and `/candor:check`
 - **code-review** — `/code-review:review`, the one review entry: it loads every stack rubric you have installed for whatever the diff touches, and carries the comment discipline (no-comment default; write-time denies for restatement, commented-out code and signature-repeating docblocks). Rule 3 holds because its PreToolUse lane denies only an edit that adds a banned comment — a gate on a defect, never a click per prompt
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit, in whatever language the file turns out to be
 - **git-workflow** — worktree isolation, the branch finish protocol, and review-exchange rigor, plus `/git-workflow:finish`
@@ -80,7 +80,7 @@ ceiling, not a purchase — it only admits description text that was being evict
 
 | Command | What it does |
 |---------|--------------|
-| `/core-suite:uninstall` | Uninstall the bundle AND prune every plugin it auto-installed — one step, no orphans; manually installed plugins are never touched |
+| `/core-suite:uninstall` | Uninstall the bundle AND remove every plugin it lists as a dependency at the same scope, minus anything another installed suite also lists — one step, no orphans. It cannot tell an auto-install from one you made yourself: install records routinely carry no marker, so a dependency you installed by hand appears in the removal list and the confirm step is what protects it |
 
 ## What this costs, honestly
 

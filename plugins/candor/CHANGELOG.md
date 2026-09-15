@@ -2,6 +2,64 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.5
+
+### Fixed
+- **The description announced five clauses and then listed four.** Clause 5 (lockfile
+  drift) was missing from its own enumeration — 0.3.4 changed the count word and not the
+  list, so the always-on text a user reads at install described a gate with one fewer
+  rule than it has. The clause is named now, and `task-runner run` lost the redundant
+  "registered" so the whole description stays under the 700-char clarity guideline.
+  Found by a second branch review.
+
+## 0.3.4
+
+### Fixed
+- **Clause 5 never stood down, so a blocked turn could not be unblocked.** It was
+  missing the `$skip` term every other clause carries, and the loop guard keys on the
+  final assistant text — so the continuation re-blocked, and a third turn with different
+  text blocked again. The escape the clause's own message offers ("say plainly that the
+  lockfile is deliberately unchanged and why") was unreachable. Found by a branch review
+  before merge; 0.3.3 shipped for a few hours with it.
+- **Clause 5 armed on ANY line change in a non-JSON manifest**, so a `version` bump in
+  `pyproject.toml`, a `[tool.ruff]` edit, or a comment added to a `Gemfile` blocked a
+  Stop — the exact false fire its own header promised could not happen. Each of the four
+  now tests dependency-shaped lines and excludes metadata keys by name. Nine cases
+  measured across pyproject/Gemfile/Cargo/go.mod, in both directions.
+
+### Changed
+- The README, the plugin description and the hook table say **five** clauses, and the
+  clause table documents clause 5 and `CC_LOCKFILE_GATE`. 0.3.3 added a blocking clause
+  and left every count at four.
+## 0.3.3
+
+### Added
+- **Clause 5: lockfile drift.** A Stop is blocked when a dependency manifest's
+  dependency map changed in the working tree and the lockfile that governs it did not —
+  npm/pnpm/yarn/bun, Composer, Bundler, Poetry/uv/pdm, Cargo, Go. The install step was
+  skipped, so the tree being left has a manifest and a lockfile that disagree; the next
+  clone resolves different versions and CI blames whoever ran it.
+  `stack-scan:package-hygiene` has stated the rule in prose all along, and the model
+  agrees and does it anyway, because adding a dependency line looks complete. For JSON
+  manifests it compares PARSED dependency maps rather than diff lines: package.json is
+  frequently one line, so a line diff makes every `version` bump look like a dependency
+  change — the harness caught exactly that, and a hand test had missed it because the
+  loop guard was still holding the previous verdict. Disarmed for subagents.
+  `CC_LOCKFILE_GATE=off` disables it.
+## 0.3.3
+
+### Fixed
+- **Clause 3 arms on an MCP file write.** Its evidence scan counted only
+  `Edit|Write|MultiEdit|NotebookEdit`, so a session that edited exclusively through an
+  IDE's MCP server never armed the clause that blocks a done-claim after a mutation with
+  nothing executed. It now also counts `apply_patch` and `create_new_file`.
+- **The terse findings skeleton no longer collides with clause 1.** `path:line — problem`
+  was mandatory; clause 1 blocks a citation into a file the turn just deleted or
+  shortened, so a finding about a removed file failed the turn. The line number is now
+  droppable in exactly that case.
+- **The no-emoji rule yields to a mandated protocol banner.** taskmaster prints a
+  byte-identical status line that `validate.sh` gates for parity; a terse level shortens
+  prose, it does not rewrite another plugin's contract.
 ## 0.3.2
 
 ### Fixed

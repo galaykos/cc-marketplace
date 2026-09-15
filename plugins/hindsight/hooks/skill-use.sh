@@ -7,7 +7,7 @@
 # $HOME/.claude/hindsight/<slug>/skills.jsonl — machine-local, never inside the
 # project tree, same slug rule and same fail-silent contract as collect.sh.
 #
-# WHY. This marketplace ships 126 skills against roughly four real gates, and
+# WHY. This marketplace ships ~100 skills against roughly four real gates, and
 # every removal it has ever made was argued from description tokens and trigger
 # overlap because nothing recorded which skills a session actually used. The
 # skill-router's own state file (route.sh's fired-<sid>.json) knows what was

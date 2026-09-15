@@ -30,7 +30,7 @@ those rows exist because three tokens share a name with plugins removed on
 | Class | Plugin | Manifest evidence that satisfies it | `--stack` tokens that satisfy it |
 |---|---|---|---|
 | PHP / Laravel | `laravel` | composer.json require `laravel/framework` or `inertiajs/inertia-laravel`, or package.json dep `@inertiajs/*` — the SKILL.md tier-1 keys. Bare composer.json never earns it: a Symfony or WordPress repo must not install laravel | `php`, `laravel`, `inertia` <!-- removed-ok --> |
-| JS / web frontend | `web-dev`, `craft-layer`, `design-studio` | package.json (scan root, or a workspace member one level deep under SKILL.md's Detection precondition — root `workspaces`, `pnpm-workspace.yaml` or `turbo.json`) declaring an exact dep among `react`, `react-dom`, `vue`, `svelte`, `@angular/core`, `next`, `nuxt`, `react-native`, `vite`, `@inertiajs/*`, `@react-three/fiber`, `tailwindcss`, `three`; or a `components.json` at the scan root. Bare package.json never earns it: a Go repo with prettier must not install web-dev | `react`, `vue`, `next`, `nuxt`, `react-native`, `vite`, `node`, `inertia` <!-- removed-ok --> |
+| JS / web frontend | `web-dev`, `craft-layer` | package.json (scan root, or a workspace member one level deep under SKILL.md's Detection precondition — root `workspaces`, `pnpm-workspace.yaml` or `turbo.json`) declaring an exact dep among `react`, `react-dom`, `vue`, `svelte`, `@angular/core`, `next`, `nuxt`, `react-native`, `vite`, `@inertiajs/*`, `@react-three/fiber`, `tailwindcss`, `three`; or a `components.json` at the scan root. Bare package.json never earns it: a Go repo with prettier must not install web-dev | `react`, `vue`, `next`, `nuxt`, `react-native`, `vite`, `node`, `inertia` <!-- removed-ok --> |
 
 ## Everything else
 

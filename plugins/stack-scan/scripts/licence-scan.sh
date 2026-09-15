@@ -136,7 +136,19 @@ while IFS= read -r lock; do
 done < <(find "$dir" -maxdepth 3 -name composer.lock -not -path '*/vendor/*' 2>/dev/null)
 
 if [ "$sources" -eq 0 ]; then
-  printf '%s: no package-lock.json or composer.lock found under %s\n' "$PROG" "$dir" >&2
+  # Say which lockfiles this lane reads and which it does not. npm and Composer record a
+  # `license` field per resolved package; pnpm, yarn and bun lockfiles do not, so there is
+  # nothing to read without resolving the registry — out of scope for an offline scan.
+  # A pnpm/yarn/bun repo used to exit 3 with a message naming only two filenames, reading
+  # as "no dependencies here" when the truth is "this lane cannot see yours".
+  other=$(find "$dir" -maxdepth 3 \( -name pnpm-lock.yaml -o -name yarn.lock -o -name bun.lock -o -name bun.lockb \) -not -path '*/node_modules/*' 2>/dev/null | head -3)
+  if [ -n "$other" ]; then
+    printf '%s: found %s, which carries no per-package license field — this lane reads package-lock.json and composer.lock only.\n' \
+      "$PROG" "$(printf '%s' "$other" | xargs -n1 basename 2>/dev/null | paste -sd, - 2>/dev/null)" >&2
+    printf '%s: run `npm install --package-lock-only` for a readable lockfile, or use the package manager'"'"'s own licence tooling.\n' "$PROG" >&2
+  else
+    printf '%s: no package-lock.json or composer.lock found under %s\n' "$PROG" "$dir" >&2
+  fi
   exit 3
 fi
 

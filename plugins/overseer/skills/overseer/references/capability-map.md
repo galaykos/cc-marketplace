@@ -22,7 +22,7 @@ re-run the hand-dispatch path every earlier simulation took. Standing: agent-gra
 | Phase | Preferred (cc-plugins-marketplace) | Also counts | Fallback when nothing is installed |
 | --- | --- | --- | --- |
 | understand | `stack-scan` (`/stack-scan:report`, `/stack-scan:suggest`), `brain` (`/brain`, the map) | — | read manifests and lockfiles yourself; `find` the routes, pages, models, tests |
-| shape | `taskmaster` (grill, visual-decisions, erd, walkthrough), `approaches` (compare, size), `design-studio` | official `frontend-design` | write the spec yourself from the brief: goal, criteria, non-goals, ASCII wireframe; no mockup server |
+| shape | `taskmaster` (grill, visual-decisions, erd, walkthrough), `approaches` (compare, size), `ui-ux` (theme, build) | official `frontend-design` | write the spec yourself from the brief: goal, criteria, non-goals, ASCII wireframe; no mockup server |
 | decide | `approaches` (approach-deliberation, build-vs-buy) | — | one paragraph per option, pick, kill-trigger, in `decisions.md` |
 | plan | `taskmaster` (task-cards, coverage-check, verify-teeth), `code-architecture` (plan-before-code) | — | write cards yourself: one file set, one verify command, one done-criterion each |
 | build | `task-runner` (run, --tracks, task-executor), `laravel`, `web-dev`, `ui-ux` (ui-ux-engineer), `database`, `security`, `testing` (test-engineer), `craft-layer` (a per-milestone build tool for a crafted surface — a landing or marketing page; it consumes a spec, it never owns the program) | project `.claude/skills/*` | dispatch general-purpose workers with the discipline preamble; one per disjoint file set |

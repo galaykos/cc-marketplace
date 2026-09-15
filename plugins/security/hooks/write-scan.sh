@@ -25,6 +25,9 @@
 # statements later, never fires — and no regex detects injection IN the data.
 {
   [ "${CC_SECURITY_SCAN:-on}" = "off" ] && exit 0
+  # Also honour the marketplace-wide advisory switch other plugins' READMEs advertise.
+  # This hook is warn-only, so there is no deny lane to protect from it.
+  [ "${CC_REMIND:-on}" = "off" ] && exit 0
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
 
@@ -42,7 +45,7 @@
   # subagents at all, and a subagent shares its parent's session_id while getting its
   # own transcript. Keying a one-shot on session_id therefore dedups the worker against
   # nudges only the PARENT ever saw, so the context where most fan-out code is written
-  # is the one context this never speaks in. Pattern and rationale: lean/hooks/budget.sh:10.
+  # is the one context this never speaks in. Pattern and rationale: code-review/hooks/conventions.sh (context-key one-shot).
   sid=$(printf '%s' "$input" | jq -r '.transcript_path // .session_id // "nosession"' 2>/dev/null)
 
   hits=""

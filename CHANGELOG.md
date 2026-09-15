@@ -4,6 +4,194 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.108.2] - 2026-09-15
+
+**A measurement withdrawn, and the two rules that paid for it.** 0.106.0 recorded
+`resilience`/timeout-and-retry at Δ −1.00 over three runs. Four diagnostic cases were
+written to explain it and the suite re-run at 3 runs per case, both arms — 30 agent
+runs, $10.13, CLI 2.1.272.
+
+- **The −1.00 did not replicate.** Same case, same prompt, same judge: the with-plugin
+  arm passed 2 of 3 (P/P/P, F/F/F, P/P/P), putting the case at −0.33. Three agreeing runs
+  were too few to tell a regression from a flake. The 0.106.0 entry now carries a
+  withdrawal note and `rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D an
+  amendment; `CLAUDE.md` no longer advertises a NEGATIVE delta it cannot support.
+- **The hypothesis it was recorded under is disconfirmed.** `breadth-review` was written
+  so that a skill trading depth for coverage would WIN it. It scored 0 — the base model
+  names four-plus of the six hazards unaided.
+- **What replaced it: every case is at the ceiling.** The control arm passes all five,
+  including `retry-amplification`, written so "add exponential backoff" is the trap and
+  the real finding is load multiplication at 2,000 rps. The base model produced that
+  argument 3/3. A case whose control arm passes is a regression guard, not a measurement;
+  it can never show a plugin helping. `resilience` on this rubric is therefore **not
+  measured** — which is not "it helps" and not the 0.106.0 reading either.
+- `resilience` 0.6.4 ships the four cases anyway, as regression guards, and the suite is
+  now the only one here with a replication behind it.
+
+**Two new CI steps, and neither runs a model.** `scripts/eval-cases.sh` asserts every
+shipped suite LOADS — the failure that actually happened on 2026-09-14, when two suites
+resolved to zero cases and looked maintained for weeks. It catches the dead
+`prompt.md` + `graders/` shape, a missing or empty `graders` key, an empty prompt, a
+name that does not match its directory, and a suite directory with no case at all. It
+costs nothing and needs no credential; running the evals is a separate paid decision and
+stays one. `scripts/smoke/eval-case-tests.sh` is its fixture harness, 12 assertions over
+a synthetic tree — the first draft of it invoked the repo's own copy of the gate and so
+tested the real `plugins/` directory, passing every assertion for the wrong reason.
+
+`CLAUDE.md` gains the ceiling rule and the run-count rule in its eval-surface paragraph,
+and its CI step count moves 34/33/32 → 36/35/34.
+
+## [0.108.1] - 2026-09-15
+
+A second read-only review, after the `master` merge. Five defects, two of them in the
+merge itself — which is the point: a correct branch and a correct master can still
+produce a wrong result, and no gate models a merge.
+
+- **Both budget baselines kept stale numbers that passed.** Where both lines had moved a
+  key, the resolution took ours and dropped master's delta; the right rule is additive,
+  since the two changes are independent. Three keys sat 4 tokens below measured — inside
+  the gate's tolerance, so CI was green on a baseline that lied. The `design-studio` key
+  came back from master's side for a plugin this branch retired; nothing reads it, and a
+  baseline listing 793 always-on tokens for a plugin that ships none is exactly the
+  `5192047a` failure this file's own conventions name. Four keys corrected by hand; every
+  per-plugin delta is 0 now.
+- **`core-suite` 0.1.1 — the bundle that ships `candor` still called its gate
+  "four-clause".** 0.108.0 fixed that word in candor's own README, description and hook
+  table; the bundle description, which is always-on text a user reads before installing,
+  was not in that sweep. `lane.tsv`'s comment carried it too.
+- **`candor` 0.3.5 — the description announced five clauses and listed four.** 0.108.0
+  changed the count and not the enumeration, so clause 5 (lockfile drift) was absent from
+  the one surface that introduces the gate.
+- **`stack-scan` 0.7.6 shipped a `licence-scan.sh` change with no changelog line.** The
+  entry-exists gate passed because 0.7.6 existed, not because it was complete. Entry
+  added, plus the harness case it should have had: a pnpm-only repo must exit 3 with a
+  message that names the lockfile it found, because "nothing found" and "I cannot read
+  yours" are different facts.
+- A changelog citation pointed at an entry that never named its subject.
+
+## [0.108.0] - 2026-09-15
+
+**A read-only review of the branch, before merge, found nine defects in it — one a
+blocker in a guard shipped hours earlier.** All four gates, the host validator, the full
+smoke set and all 43 harnesses had passed; every one of these lives in territory no gate
+models.
+
+- `candor` 0.3.4 — **clause 5 never stood down.** It was missing the `$skip` term every
+  other clause carries, so it re-blocked its own continuation and the escape its message
+  offers was unreachable: a turn that hit it could not be finished. It also armed on ANY
+  line change in a non-JSON manifest, so a `version` bump in `pyproject.toml` or a
+  comment in a `Gemfile` blocked a Stop — the exact false fire its header promised could
+  not happen. And the README, description and hook table all still said "four clauses"
+  about a gate that now has five.
+- `testing` 0.10.1 — **`protect-tests` denied ordinary code.** An unanchored `.skip(`
+  matched `list.stream().skip(1)` in Java and `items.iter().skip(2)` in Rust, two
+  languages the hook deliberately covers. The documented escape hatch also failed in the
+  one situation where it is used: a reasoned new skip beside an unchanged unreasoned one.
+- `craft-layer` 0.50.1 — its description shipped a sentence fragment left by the
+  `/craft-layer:review` removal, and that text renders in the install listing.
+- Six shipped files cited a `ui-ux:real-preview` skill that exists nowhere. The gate
+  could not see them: `pc_removed_refs` guards the PLUGIN half of `plugin:artifact` and
+  these were the artifact half. `real-preview` and `design-session` are in the
+  removed-SKILL list now, which fails the build on the next one.
+- Doc debris: a duplicated changelog section, a duplicated README row, and three bundle
+  READMEs still claiming an uninstall "prunes the plugins it auto-installed" while the
+  same files' own uninstall sections say it cannot tell an auto-install from a hand one.
+
+Marker collision in `spawn-cap` closed (mkdir-based, retries instead of undercounting).
+One nit documented rather than fixed: a skip marker inside a string literal denies, and
+guessing code from string with a line regex is how a guard becomes decoration.
+
+Merged `master` at 0.104.0 (hindsight 0.9.0) on the way in. Both lines minted a
+0.104.0; master's shipped first, so this branch's five entries were renumbered up one
+minor — what was 0.104.0-0.107.0 here is 0.105.0-0.108.0 above. `stack-scan` lands at 0.7.6 for
+the same reason — both lines minted 0.7.5. `hindsight` is 0.9.1 for a different one:
+master released 0.9.0 while this branch was on 0.8.1, so its work is kept and this
+branch's one-line edit rides on top.
+
+## [0.107.1] - 2026-09-15
+
+Self-review of the branch, before merge. Two defects found in my own work:
+`command-guard`'s allow-file matcher was widened to the MCP write tools while the
+script still gated on the four host names — the matcher fired and the script exited,
+which is silent coverage on the one file that disarms the guard. And `craft-suite`'s
+description carried the design-studio retirement note in always-on listing bytes,
+which is exactly the defect `devops` 0.6.6 fixed (0.105.0 here): history belongs in a
+changelog, not in text the CLI sends every session.
+
+## [0.107.0] - 2026-09-14
+
+**Two of the three shipped eval suites had never run.** `resilience` and `web-dev`
+used a case shape the runner rejects on CLI 2.1.270 (`invalid case.yaml: graders:
+Required`, 0 cases loaded); only `overseer` ever executed, and nothing runs any suite
+in CI, so nothing said so. Both converted to `case.yaml`; `CLAUDE.md`, which
+documented the dead shape as functional, corrected.
+
+With the runner working, the first control-armed numbers this repo has beyond the
+2026-08-20 hand measurement: `web-dev`/caching-inversion scores Δ 0 (both arms pass —
+the base model already knows the Next 15 inversion), and `resilience`/timeout-and-retry
+scores **Δ −1.00 across three independent runs** — the plugin arm fails the case the
+no-plugin baseline passes, and raising the turn ceiling from 8 to 25 does not change
+it. That is recorded, not acted on: one case is not a verdict on a plugin. Details in
+`rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D.
+
+> **Withdrawn 2026-09-15 (0.108.2).** The −1.00 did not replicate: 30 runs across five
+> cases put the same case at −0.33, the with-plugin arm passing 2 of 3. Three agreeing
+> runs were too few to tell a regression from a flake. The corrected record, and the
+> ceiling problem that replaced it, are in that section's amendment.
+
+## [0.106.0] - 2026-09-14
+
+**Five new guards, each one a mechanism nothing in this marketplace or the surveyed
+community collections carried, and each one driven by a harness.**
+
+- `testing` **protect-tests** — denies a skip or exclusive marker added to a test with
+  no reason on its line, and a rewrite that empties a test file. Skipping the failing
+  test is how a run reports success it did not earn, and the dropped count is invisible
+  in a summary.
+- `command-guard` **config-guard** — asks before the agent edits settings, a hooks
+  file, a hook script, a plugin manifest or a lint/type/test config. Editing the gate
+  is the cheapest way past it.
+- `candor` **clause 5** — blocks a Stop when a manifest's dependency map changed and
+  its lockfile did not. The next clone resolves different versions and CI blames
+  whoever ran it.
+- `task-runner` **spawn-cap** — asks at 20 subagent dispatches, then at each doubling.
+  Subagent turns are invisible in the transcript and are billed; nothing counted them.
+- `secret-scanning` **unicode-scan** — warns on zero-width, bidi-override and Unicode
+  tag characters in files this session wrote or read. The one rule here whose subject
+  the model cannot see.
+
+Three more were designed and **declined rather than shipped**: a Stop-time diff review
+and a red-before-green TDD gate both need `type: "agent"` hooks, which the host ships
+as experimental with no documented output schema — a gate whose verdict format is
+unverified may be a silent no-op, and no synthetic payload can drive it. A desktop
+notification carries no rule. Reasons in
+`rationale/marketplace-endgame-review-2026-09-14.md` §8.
+
+Also fixed: `scripts/smoke/validate-fixtures/parity-check.sh` plants two lines in a
+shipped README and restores them on exit — but `trap EXIT` does not run on SIGKILL, so
+a timed-out run left them behind and they reached a commit. It now traps INT/TERM/HUP
+and strips known debris before taking its backup.
+
+## [0.105.0] - 2026-09-14
+
+**design-studio retired; the marketplace is 26 leaves and 4 bundles.** Its browser
+design session measured one real invocation across every project it was installed in,
+and its bundled component-registry MCP measured none — while costing 793 always-on
+tokens, five listing entries and 140 KB of server code. The two parts that carried a
+mechanism survive: the real-component preview is now a rung of
+`taskmaster:visual-decisions` (`references/real-components.md`), with
+`preview-cleanup.sh` and its harness moved to taskmaster, and live registry lookups
+route to the registries' own servers — shadcn's (`npx shadcn@latest mcp init`) and
+ReUI's hosted `mcp.reui.io` — named in ui-ux's stack skills. What you lose: pointing
+and dragging on a canvas, the four lookalike skins, and one install delivering the MCP
+servers.
+
+`craft-suite` is two members (craft-layer, ui-ux). `ui-ux` also re-tiers its two
+hooks: `preview-guard` returns `permissionDecision: "ask"`, which blocks a tool call
+until a human answers, so the README's "both advisory" was wrong about one of them.
+
+Recount: `ls -d plugins/*/ | wc -l` → 30.
+
 ## [0.104.0] - 2026-09-14
 
 **hindsight 0.9.0 sees subagents.** The SessionEnd hook now writes one ledger row per

@@ -120,7 +120,7 @@ TIER 3 — no signal in this repo (40)
 
   | Row | Overlaps |
   |---|---|
-  | `ui-ux` | `craft-layer`, `design-studio` |
+  | `ui-ux` | `craft-layer` |
   | `taskmaster` | `task-runner` |
   | `web-dev` | `laravel` |
 
