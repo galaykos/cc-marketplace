@@ -4,7 +4,7 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
-## [0.107.0] - 2026-09-15
+## [0.108.0] - 2026-09-15
 
 **A read-only review of the branch, before merge, found nine defects in it — one a
 blocker in a guard shipped hours earlier.** All four gates, the host validator, the full
@@ -36,17 +36,22 @@ Marker collision in `spawn-cap` closed (mkdir-based, retries instead of undercou
 One nit documented rather than fixed: a skip marker inside a string literal denies, and
 guessing code from string with a line regex is how a guard becomes decoration.
 
-## [0.106.1] - 2026-09-15
+Merged `master` at 0.104.0 (hindsight 0.9.0) on the way in. Both lines minted a
+0.104.0; master's shipped first, so this branch's five entries were renumbered up one
+minor — what was 0.104.0-0.107.0 here is 0.105.0-0.108.0 above. `hindsight` lands at
+0.9.1 and `stack-scan` at 0.7.6 for the same reason: master released those numbers.
+
+## [0.107.1] - 2026-09-15
 
 Self-review of the branch, before merge. Two defects found in my own work:
 `command-guard`'s allow-file matcher was widened to the MCP write tools while the
 script still gated on the four host names — the matcher fired and the script exited,
 which is silent coverage on the one file that disarms the guard. And `craft-suite`'s
 description carried the design-studio retirement note in always-on listing bytes,
-which is exactly the defect 0.104.0 fixed for `devops`: history belongs in a
+which is exactly the defect 0.105.0 fixed for `devops`: history belongs in a
 changelog, not in text the CLI sends every session.
 
-## [0.106.0] - 2026-09-14
+## [0.107.0] - 2026-09-14
 
 **Two of the three shipped eval suites had never run.** `resilience` and `web-dev`
 used a case shape the runner rejects on CLI 2.1.270 (`invalid case.yaml: graders:
@@ -62,7 +67,7 @@ no-plugin baseline passes, and raising the turn ceiling from 8 to 25 does not ch
 it. That is recorded, not acted on: one case is not a verdict on a plugin. Details in
 `rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D.
 
-## [0.105.0] - 2026-09-14
+## [0.106.0] - 2026-09-14
 
 **Five new guards, each one a mechanism nothing in this marketplace or the surveyed
 community collections carried, and each one driven by a harness.**
@@ -95,7 +100,7 @@ shipped README and restores them on exit — but `trap EXIT` does not run on SIG
 a timed-out run left them behind and they reached a commit. It now traps INT/TERM/HUP
 and strips known debris before taking its backup.
 
-## [0.104.0] - 2026-09-14
+## [0.105.0] - 2026-09-14
 
 **design-studio retired; the marketplace is 26 leaves and 4 bundles.** Its browser
 design session measured one real invocation across every project it was installed in,
@@ -114,6 +119,17 @@ hooks: `preview-guard` returns `permissionDecision: "ask"`, which blocks a tool 
 until a human answers, so the README's "both advisory" was wrong about one of them.
 
 Recount: `ls -d plugins/*/ | wc -l` → 30.
+## [0.104.0] - 2026-09-14
+
+**hindsight 0.9.0 sees subagents.** The SessionEnd hook now writes one ledger row per
+subagent transcript the session spawned (`kind:"agent"`, `agent_type` from the sibling
+`.meta.json`) — the channel `turn-cost.sh` calls invisible. `/hindsight:harvest` ranks
+and mines agent rows alongside sessions, reports friction per `agent_type`, files a
+finding whose evidence is an agent row as a **defect against that plugin's artifact**
+rather than a new idea, and tiers every proposal's evidence: *defect* (one transcript
+quote), *recurrence* (≥2 sessions, control arm still owed), *outcome* (correlational).
+`outcome.sh` skips agent rows so a fan-out does not count as ninety sessions.
+`collect.sh` gains a fixture harness. stack-scan 0.7.5 is the regenerated catalog row.
 
 ## [0.103.0] - 2026-09-14
 

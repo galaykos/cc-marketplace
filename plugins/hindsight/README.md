@@ -1,10 +1,11 @@
 # hindsight
 
 Cross-session self-improvement loop: a SessionEnd hook records cheap friction
-stats for every ended session into a project-local ledger, and `/hindsight:harvest`
-mines the worst offenders' transcripts for recurring friction — proposing
-CLAUDE.md rules, skill/plugin ideas, and failed-approach warnings. Nothing is
-applied without your explicit approval.
+stats for every ended session — and, since 0.9.0, for every subagent that session
+spawned — into a machine-local ledger, and `/hindsight:harvest` mines the worst
+offenders' transcripts for recurring friction — proposing CLAUDE.md rules,
+skill/plugin ideas, defects against the plugin artifact that was running, and
+failed-approach warnings. Nothing is applied without your explicit approval.
 
 ## Install
 
@@ -24,8 +25,13 @@ applied without your explicit approval.
 
 1. **Collect (automatic)** — on every SessionEnd, a fail-silent hook parses the
    session transcript and appends one stats row (`turns`, `user_msgs`, `errors`,
-   `friction_events`, timestamps) to the ledger. Malformed transcripts, missing
-   `jq`, or unreadable files never produce errors or block session end.
+   `friction_events`, timestamps) to the ledger, then one more row per subagent
+   transcript under `<session_id>/subagents/`, tagged `kind:"agent"` with the
+   `agent_type` from its `.meta.json` — the only record of what a spawned
+   reviewer or worker hit. Malformed transcripts, missing `jq`, or unreadable
+   files never produce errors or block session end; a session with hundreds of
+   agents may hit the hook timeout, which loses the tail of the agent rows and
+   never the session row.
 2. **Harvest (on demand)** — `/hindsight:harvest` picks the highest-friction
    unmined sessions from the ledger, fans out one read-only `transcript-miner`
    agent per session, and synthesizes findings under a two-session recurrence
@@ -54,9 +60,22 @@ session:
 {"v":1,"session_id":"...","ts_start":"...","ts_end":"...","turns":12,"friction_events":3,"errors":1,"user_msgs":9,"reason":"exit","transcript_path":"...","mined":false}
 ```
 
+Agent rows carry the same fields plus `"kind":"agent"`, `"agent_id"`, and
+`"agent_type"` (e.g. `code-review:code-reviewer`); a row without `kind` is a
+session. `outcome.sh` skips agent rows so a session that fanned out 90 reviewers
+does not count as 91 sessions.
+
 `friction_events` is a best-effort heuristic count of tool-result
 error/rejection markers — it undercounts rather than crashes, and low-signal
 sessions simply rank low at harvest time.
+
+**What counts as an improvement** (standing: recorded — the harvest report tiers
+it, no script grades it): a *defect* needs one transcript quote showing the
+artifact's own rule or tool active and failing; a *recurrence* proposal needs ≥2
+sessions and still owes a control arm; an *outcome* row is correlational. A
+change to a shipped plugin earns "improvement" only when an eval case built from
+the friction (prompt = the request, grader = the correction) fails without the
+artifact and passes with it — `claude plugin eval --ablation with-without`.
 
 **There is nothing to gitignore.** The ledger and the per-run reports are
 machine-local by construction — absolute transcript paths and per-machine session
@@ -103,9 +122,10 @@ row is a retraction candidate, not a verdict.
 
 ## Contents
 
-- **Hooks**, two: the SessionEnd stats collector (`hooks/collect.sh`) and the
-  PostToolUse `Skill` invocation ledger (`hooks/skill-use.sh`, `CC_SKILL_LOG=off`) —
-  bash + jq, fail-silent by design
+- **Hooks**, two: the SessionEnd stats collector (`hooks/collect.sh`) — a session row
+  plus one row per subagent transcript (fixture harness:
+  `scripts/__tests__/collect.test.sh`) — and the PostToolUse `Skill` invocation ledger
+  (`hooks/skill-use.sh`, `CC_SKILL_LOG=off`); both bash + jq, fail-silent by design
 - **Command**: `/hindsight:claude-md` — the CLAUDE.md audit. There is one command;
   `/hindsight:harvest` in the table above is the SKILL's name, invoked the same way
 - **Skill**: harvest — ranking, recurrence gate, four-section report, apply gate
