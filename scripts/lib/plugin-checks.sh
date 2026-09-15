@@ -2135,7 +2135,12 @@ pc_listing_entry_cost() {
 # x skillListingBudgetFraction (defaults 0.01; read out of CLI 2.1.251, not docs). The
 # worst realistic case is a 3-bytes-per-token model at the default 200k window: 6,000
 # chars. Over budget the CLI reduces entries to name-only and buys descriptions back in
-# priority order — no error, no log; skills silently stop being reachable. Four shipped
+# priority order — no error, no log. Whether that makes a skill stop FIRING was measured
+# on 2026-09-15 and it does not: 47/55 vs 47/55 name-only
+# (rationale/2026-09-15-listing-eviction-probe.md). This gate is kept anyway — one
+# measurement at n=55 on one model is not grounds to delete a gate, and this repo has
+# already withdrawn a delta that three runs agreed on. Treat the README declaration it
+# forces as a disclosure, not as a fix for a proven defect. Four shipped
 # bundles overflow that floor while fitting comfortably at 1M, so whether an install is
 # broken depends on which tier the USER runs — a fact only the bundle can warn about,
 # and on 2026-08-31 none did.

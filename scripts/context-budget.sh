@@ -691,12 +691,25 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # never charged: an over-cap install pays the same description cost as any install
 # sitting at the cap. Trimming descriptions above the cap therefore saves ~nothing
 # (measured twice: 2.8% catalogue-wide at distillation-2026-08-23.md:206-214, 1.8%
-# for taskmaster-suite specifically). What overflow costs is DISPATCH — the dropped
-# descriptions arrive name-only and the surviving set is nondeterministic across
-# reloads (observed live, marketplace-necessity-review-2026-08-26.md:262-287). That
-# is the reasoning that retired the `everything` bundle on 2026-08-31, and it is a
-# membership argument, not a token one: the only route under the cap is fewer
-# artifacts. Full derivation: rationale/2026-08-31-token-cost-review.md.
+# for taskmaster-suite specifically). What overflow was ASSUMED to cost is DISPATCH — the
+# dropped descriptions arrive name-only and the surviving set is nondeterministic
+# across reloads (observed live, marketplace-necessity-review-2026-08-26.md:262-287).
+#
+# THAT ASSUMPTION WAS MEASURED ON 2026-09-15 AND DID NOT HOLD. Stripping a skill's
+# description changed how often it fired by nothing: 47/55 with descriptions against
+# 47/55 name-only, across five conditions from one installed skill up to 226, and in
+# the hardest condition the name-only arm scored HIGHER. Method, per-condition table
+# and — importantly — what it does NOT establish: rationale/2026-09-15-listing-eviction-probe.md;
+# re-runnable via scripts/smoke/listing-eviction-probe.sh. What DID cost firing was
+# OVERLAP: eight skills contesting one territory took BOTH arms from 100% to ~75%.
+#
+# So this row is still worth printing — it is the honest measure of what the host
+# will load — but it is not evidence that anything became unreachable, and nobody
+# should trim a description or raise skillListingBudgetFraction on the strength of
+# it. The membership argument that retired the `everything` bundle on 2026-08-31
+# survives, on the overlap finding rather than the eviction one: fewer artifacts,
+# because adjacent artifacts compete. Full cost derivation:
+# rationale/2026-08-31-token-cost-review.md.
 echo
 echo "listing channel (CLI entry cost: name + 4 + min(desc,${LISTING_MAX_DESC}), skills + commands)"
 echo "  budget = ctxTokens x bytesPerToken x fraction; showing ${LISTING_CTX_TOKENS} tok x ${LISTING_BYTES_PER_TOKEN} x ${LISTING_FRACTION} = ${LISTING_CAP} chars (a 1M-context session gets ${LISTING_CAP_1M})"
@@ -717,10 +730,12 @@ echo "    this is the union of every plugin dir, counted once each — NOT the s
 echo "    above, which double-counts any leaf that several bundles list."
 if [ -n "${listing_had_rows:-}" ]; then
   echo "  every install not listed above is under the cap and loses nothing to eviction"
-  echo "  OVER = a REACHABILITY warning, never a cost one: over budget the CLI reduces entries"
+  echo "  OVER = a LOADING warning, never a cost one: over budget the CLI reduces entries"
   echo "  to name-only and buys descriptions back in PRIORITY order, so the text is never sent"
   echo "  and never charged. Artifact NAME + 4 chars is charged per artifact, which is why the"
   echo "  fix is fewer artifacts and not shorter descriptions."
+  echo "  It is NOT evidence anything became unreachable: stripping a description was measured"
+  echo "  on 2026-09-15 to change firing by nothing (47/55 vs 47/55) — rationale/2026-09-15-listing-eviction-probe.md."
   echo "  Both numbers are real: the same install can be OVER at 200k and comfortably under at 1M."
   echo "  Levers, in settings.json: skillListingBudgetFraction (default 0.01), skillListingMaxDescChars (1536)."
 else

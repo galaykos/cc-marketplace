@@ -9,13 +9,29 @@ version in their `plugin.json`.
 **Fixes from a six-agent audit of "can all 31 plugins be installed globally, always on."**
 The verdict was DEGRADED, not blocking, on every axis — and the degradation is concentrated
 in defects that are *unreachable with one plugin installed*, which is how they survived.
-One arithmetic fact frames the rest: installing all 31 costs several times the host's
-skill-listing budget at a 200k window, and fits at 1M. That is not a bug to fix, it is a
-setting to choose. The exact chars, the multiple and the `skillListingBudgetFraction`
-that clears it are printed by `bash scripts/context-budget.sh` — deliberately not copied
-here, because a number in two files is how the two disagree.
+One arithmetic fact framed the audit, and then measurement removed it. Installing all 31
+costs several times the host's skill-listing budget at a 200k window; over budget the CLI
+reduces entries to name-only. Every artifact in this repo that mentions that — four bundle
+READMEs, the listing channel, `pc_listing_declaration` — asserted the consequence was that
+skills "silently stop being reachable". **Measured 2026-09-15: they do not.** Stripping a
+skill's description changed how often it fired by nothing — 47/55 against 47/55 name-only,
+across five conditions from one installed skill up to 226, and in the hardest condition the
+name-only arm scored higher. Write-up, limits and a re-runnable harness:
+`rationale/2026-09-15-listing-eviction-probe.md`, `scripts/smoke/listing-eviction-probe.sh`.
+
+**Do not raise `skillListingBudgetFraction` on the strength of a listing figure, and do not
+trim descriptions to fit one.** What DID cost firing was overlap: eight skills contesting one
+territory took both arms from 100% to ~75%. That is the real argument for fewer artifacts, and
+it is a different argument than the one this marketplace has been making.
+
+Nothing was deleted on the strength of n=55 on one model. The gate and the README advice stay;
+their claims are now re-tiered to say what is measured and what is assumed.
 
 ### Added
+- **A measured answer to whether listing eviction matters** —
+  `rationale/2026-09-15-listing-eviction-probe.md` plus
+  `scripts/smoke/listing-eviction-probe.sh`, a re-runnable control/treatment harness.
+  Deliberately not a CI step: it needs a live model, the same reason `canary.sh` is not one.
 - **`scripts/context-budget.sh` now prints the whole-marketplace listing row.** Every row
   in that channel answered "if you installed only this one thing" — the all-31 figure
   existed in no tooling here, and two independent audits had to recompute it by hand.
