@@ -342,7 +342,7 @@ tp() { # file_path  added-text  -> stdout
 d=json.load(sys.stdin); d["hook_event_name"]="PreToolUse"
 d["session_id"]="11111111-2222-3333-4444-555555555555"; d["cwd"]=sys.argv[1]
 d["transcript_path"]="/Users/x/.claude/projects/-Users-x-proj/abcdef01-2345-6789.jsonl"
-print(json.dumps(d))' "$TP_DIR" \
+print(json.dumps(d))' "${TP_CWD:-$TP_DIR}" \
     | "$BASH_BIN" "$HOOK" 2>/dev/null
 }
 tp1="$(tp /tmp/proj/tp.js '// increment the counter
@@ -374,6 +374,36 @@ then pass "transcript_path present: the marker actually landed on disk"
 else fail "transcript_path present: the marker actually landed on disk" "no marker under $TP_DIR"; fi
 if [ "$(cat "$TP_DIR/.claude/comment-discipline/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"
 else fail "the state dir ignores itself" ".claude/comment-discipline/.gitignore missing or not '*'"; fi
+# ---- the legacy marker, the <=0.19.0 shape -----------------------------------
+# `[ -e "$marker" ] && tries=1` is the only thing stopping a mid-session UPGRADE from
+# handing an already-denied file a fresh pair of denies: the old hook wrote a zero-byte
+# FILE at the bare marker path, the new one writes `.d1`/`.d2` directories. scan.sh
+# claims in a comment that the legacy marker counts as one try. Nothing tested it —
+# delete that line and every other assertion in this file stays green.
+LEG_DIR="$(mktemp -d)"
+TP_CWD="$LEG_DIR"
+tp /tmp/proj/leg.js '// increment the counter
+counter++;' >/dev/null
+leg_d1="$(find "$LEG_DIR/.claude/comment-discipline" -name 'blocked-*.d1' -type d 2>/dev/null | head -1)"
+if [ -n "$leg_d1" ]; then
+  rmdir "$leg_d1"; : > "${leg_d1%.d1}"      # collapse .d1 back to the pre-0.19.1 shape
+  leg1="$(tp /tmp/proj/leg.js '// increment the counter
+counter++;')"
+  leg2="$(tp /tmp/proj/leg.js '// increment the counter
+counter++;')"
+  leg1_deny=$(printf '%s' "$leg1" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 && echo 1 || echo 0)
+  leg2_deny=$(printf '%s' "$leg2" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1 && echo 1 || echo 0)
+  if [ "$leg1_deny" = 1 ] && [ "$leg2_deny" = 0 ]; then
+    pass "a legacy marker counts as one try: an upgrade mid-session buys ONE more deny, not two"
+  else
+    fail "a legacy marker counts as one try" "first=$leg1_deny second=$leg2_deny (want 1 then 0)"
+  fi
+else
+  fail "a legacy marker counts as one try" "no .d1 marker landed under $LEG_DIR to collapse"
+fi
+unset TP_CWD
+rm -rf "$LEG_DIR"
+
 rm -rf "$TP_DIR"
 
 printf '\n'

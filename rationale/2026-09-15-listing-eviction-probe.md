@@ -1,6 +1,6 @@
 # Does skill-listing eviction actually stop a skill from firing?
 
-**Measured 2026-09-15, CLI 2.1.272. Answer: no — 47/55 vs 47/55, zero delta.**
+**Measured 2026-09-15, CLI 2.1.272. Answer: no — 47/50 vs 47/50, zero delta.**
 
 ## Why this was measured
 
@@ -43,7 +43,7 @@ going to call it from the new checkout page I am writing."*
 | 3 | 13 skills — 12 described decoys | 20/20 | 19/20 |
 | 4 | 226 skills — 225 described decoys | 10/10 | 10/10 |
 | 5 | 205 skills — 8 rivals contesting the SAME territory | 7/10 | **8/10** |
-| | **total** | **47/55** | **47/55** |
+| | **total (5+5+20+10+10 runs)** | **47/50** | **47/50** |
 
 Negative control: the target fired 0/3 on "What is the capital of Portugal?", so the harness
 discriminates rather than always-fires.
@@ -65,13 +65,13 @@ claiming "animate this". The case for consolidating `craft-layer`'s 18 entries, 
 and `taskmaster`'s 15 is real — but the reason is disambiguation, and the byte framing would
 have led someone to trim DESCRIPTIONS, which this measures as useless.
 
-**Not established.** One model, one target skill, one prompt shape per condition, n=55 total.
+**Not established.** One model, one target skill, one prompt shape per condition, n=50 per arm.
 It measures TRIGGERING only — not whether the work that followed was as good, which is the
 thing descriptions might plausibly help with and which this does not touch. The target's name
 stayed meaningful in every arm, so this is evidence that a good NAME carries the trigger, not
 that names are free. A skill named `sk-0042` would very likely behave differently.
 
-**Deliberately not acted on.** Nothing was ripped out on the strength of n=55. The bundle
+**Deliberately not acted on.** Nothing was ripped out on the strength of n=50. The bundle
 READMEs still recommend `skillListingBudgetFraction`, and `pc_listing_declaration` still gates
 that a bundle over the floor says so. That advice is now known to rest on a weaker premise than
 it claims, and the honest response to one measurement contradicting doctrine is to record it
@@ -83,4 +83,16 @@ delta that three runs agreed on and three more runs a day later did not
 
 `bash scripts/smoke/listing-eviction-probe.sh` — deliberately NOT a CI step, for the same
 reason `scripts/smoke/canary.sh` is not: it needs a live model and costs real tokens. It builds
-all five conditions, runs both arms, and prints the table above.
+all five conditions at their individual run counts, runs both arms, prints the table above and
+then the negative control.
+
+**It did not, when this document was first written.** As shipped it built three of the five
+conditions at one flat `N`, omitted the self-describing-name condition, the 225-decoy condition
+and the negative control, so a sentence claiming the harness reproduces this table pointed at a
+different experiment. Caught by review the same day and corrected; the conditions, their run
+counts and condition 1's prompt are now encoded in the script rather than living only here.
+`N_OVERRIDE=1` runs the whole design cheaply to check the wiring — those totals are not the
+shipped design and must not be quoted.
+
+The reason this mattered enough to fix rather than to footnote: a re-runnable harness is the only
+thing standing between this measurement and the class of claim it was written to retire.

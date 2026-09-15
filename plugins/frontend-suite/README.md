@@ -64,7 +64,7 @@ One bullet per bundled plugin, in dependency order (4):
 - **code-review** — `/code-review:review`, the stack-agnostic fan-in, plus
   comment discipline: the default is no comment, and write-time hooks deny
   restatement, commented-out code, signature-repeating JSDoc tags and any new
-  file over the 0.4:1 comment ceiling, once per file per session
+  file over the 0.4:1 comment ceiling, at most twice per file per session
 
 | Command | What it does |
 |---------|--------------|

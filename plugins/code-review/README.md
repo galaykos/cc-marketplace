@@ -80,9 +80,9 @@ the default; a heavily commented neighbour does not.
 **The write-time hooks.** `scan.sh` inspects the text each `Edit` / `Write` /
 `MultiEdit` adds, on two lanes. `PostToolUse` warns, at most one line, for any of the
 seven categories. `PreToolUse` denies the three strictest — a comment restating the
-next line, commented-out code, and a docblock tag repeating the signature — once per
-file per session, then stands down. `density.sh` denies a whole `Write` over the
-comment ceiling (0.4:1 comment-to-code by default), once per file, and after any edit
+next line, commented-out code, and a docblock tag repeating the signature — at most
+twice per file per session, then stands down. `density.sh` denies a whole `Write` over
+the comment ceiling (0.4:1 comment-to-code by default), at most twice per file, and after any edit
 warns when a file is over min(2x its committed siblings' median, the ceiling); a file
 with no committed siblings is judged against the ceiling alone. A project that specifies
 a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (10 for

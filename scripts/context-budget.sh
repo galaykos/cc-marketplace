@@ -696,8 +696,8 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # across reloads (observed live, marketplace-necessity-review-2026-08-26.md:262-287).
 #
 # THAT ASSUMPTION WAS MEASURED ON 2026-09-15 AND DID NOT HOLD. Stripping a skill's
-# description changed how often it fired by nothing: 47/55 with descriptions against
-# 47/55 name-only, across five conditions from one installed skill up to 226, and in
+# description changed how often it fired by nothing: 47/50 with descriptions against
+# 47/50 name-only, across five conditions from one installed skill up to 226, and in
 # the hardest condition the name-only arm scored HIGHER. Method, per-condition table
 # and — importantly — what it does NOT establish: rationale/2026-09-15-listing-eviction-probe.md;
 # re-runnable via scripts/smoke/listing-eviction-probe.sh. What DID cost firing was
@@ -722,10 +722,15 @@ fi
 [ "${union_n:-0}" -gt 1 ] && union_chars=$((union_chars + union_n - 1))
 echo
 echo "  EVERYTHING INSTALLED (all ${union_plugins} plugins, ${union_n} entries): ${union_chars} chars"
+# ceil3: round the recommendation UP to the precision it is PRINTED at. The old margin
+# was a flat x1.02, which is smaller than one ulp of %.3f at the 1M tier — so the printed
+# fraction could round DOWN to a value that does not fit, and the margin meant to prevent
+# exactly that was invisible at the only tier where it mattered. The ceiling IS the margin.
 awk -v a="$union_chars" -v c="$LISTING_CAP" -v c1="$LISTING_CAP_1M" -v f="$LISTING_FRACTION" -v b="$LISTING_BYTES_PER_TOKEN" 'BEGIN{
   printf "    %.2fx the %d-char cap here; %.2fx the %d-char cap at 1M\n", a/c, c, a/c1, c1;
-  printf "    to fit WITHOUT eviction set skillListingBudgetFraction to %.3f here, or %.3f at 1M\n", (a/c)*f*1.02, (a/c1)*f*1.02;
-  printf "    cost of doing so: about %d system-prompt tokens every turn\n", a/b }'
+  printf "    to fit WITHOUT eviction set skillListingBudgetFraction to %.3f here, or %.3f at 1M\n", ceil3((a/c)*f), ceil3((a/c1)*f);
+  printf "    cost of doing so: about %d system-prompt tokens every turn\n", a/b }
+  function ceil3(v,  t){ t = int(v * 1000); return (v * 1000 > t + 1e-9 ? t + 1 : t) / 1000 }'
 echo "    this is the union of every plugin dir, counted once each — NOT the sum of the rows"
 echo "    above, which double-counts any leaf that several bundles list."
 if [ -n "${listing_had_rows:-}" ]; then
@@ -735,7 +740,7 @@ if [ -n "${listing_had_rows:-}" ]; then
   echo "  and never charged. Artifact NAME + 4 chars is charged per artifact, which is why the"
   echo "  fix is fewer artifacts and not shorter descriptions."
   echo "  It is NOT evidence anything became unreachable: stripping a description was measured"
-  echo "  on 2026-09-15 to change firing by nothing (47/55 vs 47/55) — rationale/2026-09-15-listing-eviction-probe.md."
+  echo "  on 2026-09-15 to change firing by nothing (47/50 vs 47/50) — rationale/2026-09-15-listing-eviction-probe.md."
   echo "  Both numbers are real: the same install can be OVER at 200k and comfortably under at 1M."
   echo "  Levers, in settings.json: skillListingBudgetFraction (default 0.01), skillListingMaxDescChars (1536)."
 else

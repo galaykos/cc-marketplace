@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Smoke tests for the lane-declaration gates in scripts/lib/plugin-checks.sh —
-# pc_lanes_schema, pc_lanes_authority, pc_lanes_resolve, pc_lanes_territory and
-# pc_lanes_coverage — plus the validate.sh wiring that reports them.
+# pc_lanes_schema, pc_lanes_authority, pc_lanes_resolve, pc_lanes_territory,
+# pc_lanes_coverage, pc_lanes_vocabulary, pc_twin_files and pc_phase_guard — plus the
+# validate.sh wiring that reports them.
 #
 # EVERY GATE IS DEMONSTRATED FAILING ON PURPOSE. A gate nobody has watched fail
 # is indistinguishable from a gate that returns 0 unconditionally; the territory
@@ -237,6 +238,39 @@ else
   bad "[coverage] a missing skill row should warn, not fail (rc=$grc, output: $out)"
 fi
 
+# ---- pc_lanes_coverage: the deny-capable tool-channel arm ----------------------
+# Added to the GATE tier 2026-09-15 and landed with no fixture, which is the shape the
+# vocabulary/twin block below refuses in the same breath. Its own mktemp dir, so the
+# shared $FIX tree and every later pc_lanes_* assertion are untouched.
+#
+# The first and last cases carry as much weight as the middle two: the first pins the
+# NEGATIVE, so the widened arm cannot quietly become "every tool hook needs a row", and
+# the last pins the `exit 2` alternation the check's header argues for.
+DC=$(mktemp -d) || exit 2
+mkdir -p "$DC/foo/hooks"
+cat > "$DC/foo/hooks/hooks.json" <<'EOF'
+{"hooks":{"PreToolUse":[{"matcher":"Edit","hooks":[{"type":"command","command":"${CLAUDE_PLUGIN_ROOT}/hooks/scan.sh"}]}]}}
+EOF
+: > "$DC/foo/lane.tsv"
+
+printf '#!/bin/sh\necho advisory\n' > "$DC/foo/hooks/scan.sh"
+run pc_lanes_coverage "$DC"
+clean "[coverage] a Pre/PostToolUse hook that returns no verdict needs no row"
+
+printf '#!/bin/sh\nprintf %%s "{\\"hookSpecificOutput\\":{\\"permissionDecision\\":\\"deny\\"}}"\n' > "$DC/foo/hooks/scan.sh"
+run pc_lanes_coverage "$DC"
+fails "[coverage] a deny-capable PreToolUse hook with no row fails (S1)" "lane-missing hook foo:scan (returns a permissionDecision)"
+
+printf 'foo:scan\thook\tany\tscan-territory\ta checkable condition\t-\n' > "$DC/foo/lane.tsv"
+run pc_lanes_coverage "$DC"
+clean "[coverage] declaring the row clears it"
+
+: > "$DC/foo/lane.tsv"
+printf '#!/bin/sh\nif bad; then\n  exit 2\nfi\n' > "$DC/foo/hooks/scan.sh"
+run pc_lanes_coverage "$DC"
+fails "[coverage] an exit-2 denier counts as a verdict channel too" "lane-missing hook foo:scan"
+rm -rf "$DC"
+
 # ---- the real tree -----------------------------------------------------------
 LANES=$(find plugins -maxdepth 2 -name lane.tsv | sort)
 lrc=0
@@ -349,6 +383,52 @@ printf 'a b c d e f\n' > "$FIX/foo/lane.tsv"
 run pc_lanes_vocabulary "$FIX" "$VOC"
 clean "[vocab] a malformed space-separated row is left to the schema gate"
 
+# An unterminated final line. Every sibling lane check parses with awk and still sees this
+# row; a bare `read` loop drops it, so the LAST row of such a file was schema-checked and
+# territory-checked yet exempt from the vocabulary gate. Verified 2026-09-15 against the
+# pre-fix function: exit 0, no output.
+printf 'foo:alpha\tagent\treview\tundeclared-tail-noun\ta checkable condition\t-' > "$FIX/foo/lane.tsv"
+run pc_lanes_vocabulary "$FIX" "$VOC"
+fails "[vocab] the last row of a file with no trailing newline is still checked" "undeclared-tail-noun"
+
+# A CRLF file must not report the carriage return as part of the noun.
+printf 'foo:alpha\tagent\treview\tapproved-noun\ta checkable condition\t-\r\n' > "$FIX/foo/lane.tsv"
+run pc_lanes_vocabulary "$FIX" "$VOC"
+clean "[vocab] a CRLF row resolves to the same noun as an LF row"
+
+# ------------------------------------------------------------------- pc_phase_guard
+# This gate had NO harness at all before 2026-09-15 — gate-coverage.sh reported NONE —
+# and on that day its SCOPE was widened from {UserPromptSubmit, Stop} to also cover
+# Pre/PostToolUse, following pc_lanes_coverage into the same tier. A widened gate with no
+# fixture is exactly the shape this file exists to refuse.
+PG=$(mktemp -d) || exit 2
+mkdir -p "$PG/foo/hooks"
+: > "$PG/foo/hooks/guard.sh"
+cat > "$PG/foo/hooks/hooks.json" <<'EOF'
+{"hooks":{"PreToolUse":[{"matcher":"Write","hooks":[{"type":"command","command":"${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]}]}}
+EOF
+
+printf 'foo:guard\thook\tbuild\tsome-noun\ta checkable condition\t-\n' > "$PG/foo/lane.tsv"
+run pc_phase_guard "$PG"
+fails "[phase] a PreToolUse hook naming a phase without reading the sentinel fails" "phase-unguarded foo:guard.sh"
+
+printf 'foo:guard\thook\tany\tsome-noun\ta checkable condition\t-\n' > "$PG/foo/lane.tsv"
+run pc_phase_guard "$PG"
+clean "[phase] the same hook declared \`any\` is exempt — a guard fires in every phase"
+
+printf 'foo:guard\thook\tbuild\tsome-noun\ta checkable condition\t-\n' > "$PG/foo/lane.tsv"
+printf '#!/bin/sh\n# reads .claude/cc-phase.json\n' > "$PG/foo/hooks/guard.sh"
+run pc_phase_guard "$PG"
+clean "[phase] a hook that reads the sentinel may name a specific phase"
+
+cat > "$PG/foo/hooks/hooks.json" <<'EOF'
+{"hooks":{"PostToolUse":[{"matcher":"Edit","hooks":[{"type":"command","command":"${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh"}]}]}}
+EOF
+: > "$PG/foo/hooks/guard.sh"
+run pc_phase_guard "$PG"
+fails "[phase] PostToolUse is in scope too, not only PreToolUse" "phase-unguarded foo:guard.sh"
+rm -rf "$PG"
+
 # --------------------------------------------------------------------- pc_twin_files
 TW=$(mktemp -d) || exit 2
 mkdir -p "$TW/a/hooks" "$TW/b/hooks"
@@ -365,6 +445,18 @@ printf '#!/bin/sh\n# TWIN: %s/nope.sh is an identical copy save this line.\n' "$
 rm -f "$TW/b/hooks/g.sh"
 run pc_twin_files "$TW"
 fails "[twin] a partner that does not exist fails" "(missing)"
+
+# A REWORDED marker must be loud. The extraction wants one exact sentence, so editing the
+# comment on both copies previously retired the gate in silence while both files still read
+# to a human as a declared pair.
+printf '#!/bin/sh\n# TWIN: %s/b/hooks/g.sh - identical copy apart from this line\necho hi\n' "$TW" > "$TW/a/hooks/g.sh"
+run pc_twin_files "$TW"
+fails "[twin] a reworded marker fails rather than skipping the file" "unparseable marker"
+
+printf '#!/bin/sh\n# TWIN: %s/a/hooks/g.sh is an identical copy save this line.\necho hi\n' "$TW/a/hooks/g.sh" > /dev/null
+printf '#!/bin/sh\n# TWIN: %s is an identical copy save this line.\necho hi\n' "$TW/a/hooks/g.sh" > "$TW/a/hooks/g.sh"
+run pc_twin_files "$TW"
+fails "[twin] a file declaring itself its own twin fails" "declares itself"
 rm -rf "$TW"
 
 [ "$rc" -eq 0 ] && echo "All lane-declaration smoke tests passed."

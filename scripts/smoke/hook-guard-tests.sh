@@ -104,6 +104,12 @@ if [ -f "$TMR" ]; then
     '{"prompt":"that looks wrong. fix the parser"}'
   assert_speaks "taskmaster [plain imperative]" "$TMR" \
     '{"prompt":"add a caching layer to the user repository and refactor the service"}'
+  # The anti-self-reference exemption must not fire on a word that merely CONTAINS
+  # "hook". It did, on "webhook", which disarmed the reminder on ordinary work — found
+  # by hand 2026-09-15, after shipping silently. The silent direction (a genuine
+  # meta-prompt about the plugin machinery) is already covered by the META fixture above.
+  assert_speaks "taskmaster [webhook is not the reminder machinery]" "$TMR" \
+    '{"prompt":"fix the webhook handler for billing retries"}'
 fi
 
 # debugging 0.3.18: the stuck-loop trigger covers the phrases a stuck user actually

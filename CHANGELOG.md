@@ -14,17 +14,46 @@ costs several times the host's skill-listing budget at a 200k window; over budge
 reduces entries to name-only. Every artifact in this repo that mentions that — four bundle
 READMEs, the listing channel, `pc_listing_declaration` — asserted the consequence was that
 skills "silently stop being reachable". **Measured 2026-09-15: they do not.** Stripping a
-skill's description changed how often it fired by nothing — 47/55 against 47/55 name-only,
+skill's description changed how often it fired by nothing — 47/50 against 47/50 name-only,
 across five conditions from one installed skill up to 226, and in the hardest condition the
 name-only arm scored higher. Write-up, limits and a re-runnable harness:
 `rationale/2026-09-15-listing-eviction-probe.md`, `scripts/smoke/listing-eviction-probe.sh`.
+
+**The install was also run end to end, not only reasoned about.** Nine sessions — no plugins,
+all 31 at master, all 31 at this branch — built the same graded tic-tac-toe engine with hooks
+enabled. All 9 scored 1.00 with zero denied commands and zero tool errors, so a full install
+does not break ordinary work; it costs about +65% per session and doubles cache reads on a task
+that uses none of it. The one defect that run found was the `--git-dir` bypass below, and it was
+found by the deterministic companion rather than by the model sessions:
+`rationale/2026-09-15-always-on-regression-simulation.md`.
+
+**A review of this branch then found the defects the run could not.** Eight adversarial
+dimensions over the 92-file diff, every finding verified by two independent lenses. Fourteen
+survived and are fixed here: the path-qualified-git bypass above, a `--prune` that deleted the
+plugins a user had just chosen to keep, a probe harness that reproduced a different experiment
+than the one its own write-up reported, a run count that was wrong in five files, four
+statements of a deny bound that still said "once" after it became twice, a vocabulary gate that
+skipped the last row of any file without a trailing newline, and a deny-channel test that called
+an exit-2 denier harmless.
+
+**A second pass then verified the 29 findings the first one dropped at its cap.** Eleven were
+already fixed, never real, or pre-existing; ten more fell to an independent skeptic. Eight survived
+and are also fixed here — a fifth statement of the deny bound inside `comment-discipline`'s own
+has-teeth block, a fixture count in a hook comment that was never the harness's, a budget
+recommendation whose safety margin was smaller than one unit of the precision it printed at, and
+four harness gaps: the deny-capable arm of `pc_lanes_coverage`, `pc_phase_guard`, the anti-self-
+reference regex, and the legacy-marker upgrade path. Every new fixture was checked in both
+directions — each one fails when the code it covers is reverted.
+
+The cap itself is the lesson worth keeping: reporting "14 findings, 0 refuted" while 29 sat
+unexamined describes the instrument, not the branch.
 
 **Do not raise `skillListingBudgetFraction` on the strength of a listing figure, and do not
 trim descriptions to fit one.** What DID cost firing was overlap: eight skills contesting one
 territory took both arms from 100% to ~75%. That is the real argument for fewer artifacts, and
 it is a different argument than the one this marketplace has been making.
 
-Nothing was deleted on the strength of n=55 on one model. The gate and the README advice stay;
+Nothing was deleted on the strength of n=50 on one model. The gate and the README advice stay;
 their claims are now re-tiered to say what is measured and what is assumed.
 
 ### Added
@@ -56,7 +85,16 @@ their claims are now re-tiered to say what is measured and what is assumed.
 - **`git-workflow`'s AI-attribution guard stops denying text that merely mentions a
   trailer.** It required both regexes to match anywhere in the command string, so a
   heredoc writing a JSON fixture was denied with no git command running. The git verb must
-  now sit at a command position.
+  now sit at a command position. **And it now sees git's global options, and git
+  spelled with a path.** Only `-c`/`-C` were allowed between `git` and the verb, so
+  `--git-dir`, `--work-tree`, `--no-pager`, `-P`, `--namespace` and `--exec-path` all
+  reached a real commit unguarded — and the new command-position anchor lists no `/`, so
+  `/usr/bin/git commit`, `./bin/git commit` and `/opt/homebrew/bin/gh pr create` stopped
+  being seen at all. Both hid the same way: the old loose prefix caught them by accident,
+  matching the `/` in a path or the literal `.git` inside `--git-dir=/repo/.git`, so the
+  one form anybody tested passed. Across 7,938 generated must-deny commands master
+  bypasses 60.5% and this branch 0%; across 44 must-allow commands this branch falsely
+  denies none. Fixture count is not recorded here — run the harness.
 - **Five deny/ask hooks gained an off-switch** (`secret-scanning`, `devops`,
   `database`, both `preview-guard` twins). They had none; the only escape was uninstalling.
 - **`command-guard`'s `config-guard` honours `CLAUDE_DESTRUCTIVE_GUARD=deny-only`**, which

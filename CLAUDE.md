@@ -218,13 +218,18 @@ bundle includes.
 command warning). Declaring `any` is a real claim, not an escape hatch — it exempts
 the artifact from the phase sentinel.
 
-**Standing: `gate` for agents and for plugins shipping a `UserPromptSubmit`/`Stop`
-hook; `WARN` for commands and skills** (most commands and skills are not yet
-declared — adopting them is incremental, not a sweep). Five checks in
-`scripts/lib/plugin-checks.sh`: `pc_lanes_schema`, `pc_lanes_authority` (a plugin
+**Standing: `gate` for agents, for plugins shipping a `UserPromptSubmit`/`Stop`
+hook, and for Pre/PostToolUse hooks that can return a DENY verdict; `WARN` for
+commands and skills** (most commands and skills are not yet
+declared — adopting them is incremental, not a sweep). The checks live in
+`scripts/lib/plugin-checks.sh` — `pc_lanes_schema`, `pc_lanes_authority` (a plugin
 may declare only its OWN artifacts), `pc_lanes_resolve`, `pc_lanes_territory` (two
 artifacts must not claim one `owns` in one `phase` without a `yields_to` edge or a
-`# lane-cofire-ok:` blessing in either file), and `pc_lanes_coverage`. Plus
+`# lane-cofire-ok:` blessing in either file), `pc_lanes_coverage`, and
+`pc_lanes_vocabulary` (an `owns` noun must be declared in
+`scripts/lane-vocabulary.txt`). **This paragraph used to carry a count, and the
+count was wrong within a day of a check being added** — recount instead:
+`grep -c '^pc_lanes_[a-z_]*() {' scripts/lib/plugin-checks.sh`. Plus
 `pc_phase_guard`: a hook whose lane names a specific phase must read
 `.claude/cc-phase.json`. That last one gates the READ only — no gate can prove an
 artifact honours the verdict on every branch, so the behaviour half is
@@ -265,7 +270,7 @@ that breaks can read different inputs.** So:
   failure this note exists to prevent:
 
 ```bash
-for t in scripts/smoke/*.sh scripts/smoke/validate-fixtures/*.sh; do [ "$(basename "$t")" = canary.sh ] && continue; bash "$t" >/dev/null || echo "FAIL $t"; done
+for t in scripts/smoke/*.sh scripts/smoke/validate-fixtures/*.sh; do [ "$(basename "$t")" = canary.sh ] && continue; bash "$t" >/dev/null || echo "FAIL $t"; done   # live-model scripts skip themselves; see below
 for t in plugins/*/scripts/__tests__/*.test.sh; do bash "$t" >/dev/null || echo "FAIL $t"; done
 ```
 
@@ -310,7 +315,12 @@ bash scripts/gate-coverage.sh   # which author-time checks a harness exercises
 The glob is the right fix precisely because a counted list here is not — this
 paragraph carried a wrong count three times before it stopped carrying one.
 (`scripts/smoke/canary.sh` is deliberately NOT a CI step: its own header says it
-needs a live model; it stays a local authoring harness.)
+needs a live model; it stays a local authoring harness. **A live-model script under
+`scripts/smoke/` must refuse to run without an explicit opt-in env var** —
+`listing-eviction-probe.sh` needs `LISTING_PROBE=1` — because the pre-push loop above
+skips exactly one file BY NAME, so the second such script silently spent real model
+calls on anyone who followed the instruction. The skip list is not the mechanism; the
+script defending itself is.)
 CI can still be red after a green local four-script pass: several of those
 harnesses assert **exact gate message strings**, so rewording a gate's error
 breaks CI even when the gate itself still works.

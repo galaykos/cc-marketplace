@@ -60,9 +60,12 @@ repo pays.
 
 
 `workflow-suite` contains all seven of these. Install one or the other, never
-both: with workflow-suite present, `/core-suite:uninstall` keeps every member
-(another installed bundle lists them) and removes only this bundle's own
-manifest — a no-op that reads like a cleanup.
+both: with workflow-suite present **at the same scope**, `/core-suite:uninstall`
+keeps every member (another installed bundle at that scope lists them) and
+removes only this bundle's own manifest — a no-op that reads like a cleanup. The
+scope qualifier is not pedantry: the uninstall command decides per scope, so
+workflow-suite installed in one project does not spare core-suite's members at
+user scope, and the reverse is equally true.
 
 On the default 200k window this bundle is over the floor on its own, so add to
 your user `settings.json` (the 1M tier fits with room to spare):

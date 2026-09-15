@@ -806,8 +806,13 @@ pc_lanes_vocabulary() {
   if [ ! -f "$vocab" ]; then printf 'lane-vocab MISSING %s\n' "$vocab"; return 1; fi
   while IFS= read -r f; do
     [ -f "$f" ] || continue
-    while IFS= read -r line; do
+    # `|| [ -n "$line" ]`: a lane.tsv with no trailing newline otherwise loses its LAST
+    # row here while every sibling lane check (all awk-based) still sees it — so the final
+    # row of an unterminated file was schema-checked and territory-checked but exempt from
+    # the vocabulary gate. The inconsistency is the bug; the missing newline is not.
+    while IFS= read -r line || [ -n "$line" ]; do
       case "$line" in ''|'#'*) continue ;; esac
+      line=${line%$'\r'}
       # -s: a line with no tab is skipped rather than returned whole. Without it a
       # malformed row reports its entire text as an undeclared noun.
       owns=$(printf '%s' "$line" | cut -s -f4)
@@ -845,7 +850,15 @@ pc_twin_files() {
   while IFS= read -r f; do
     [ -f "$f" ] || continue
     partner=$(sed -n 's/^# TWIN: \([^ ]*\) is an identical copy save this line.*/\1/p' "$f" | head -1)
-    [ -n "$partner" ] || continue
+    # A NEAR MISS IS LOUD, NOT SILENT. The extraction wants one exact sentence; any reword
+    # left `partner` empty and skipped the file with no output, so editing the comment on
+    # BOTH copies would retire the gate while both files still read to a human as a
+    # declared pair. Same failure shape as a vocabulary file that goes missing.
+    if [ -z "$partner" ]; then
+      printf 'twin %s (unparseable marker — expected: # TWIN: <path> is an identical copy save this line)\n' "$f"
+      bad=1; continue
+    fi
+    if [ "$partner" = "$f" ]; then printf 'twin %s (declares itself)\n' "$f"; bad=1; continue; fi
     if [ ! -f "$partner" ]; then
       printf 'twin %s %s\n' "$f" "$partner(missing)"; bad=1; continue
     fi
@@ -1208,17 +1221,20 @@ pc_lanes_territory() {
 }
 
 # pc_lanes_coverage [plugins_root]
-# Every agent, and every UserPromptSubmit/Stop hook script, must carry a row in
-# its own plugin's lane.tsv — those are the GATE tier. Commands and skills are
-# WARN this run. Prints `lane-missing agent|hook <plugin>:<name>` (gate) and
+# Every agent, every UserPromptSubmit/Stop hook script, and every Pre/PostToolUse
+# hook script that can return a DENY verdict, must carry a row in its own plugin's
+# lane.tsv — those are the GATE tier. Commands and skills are WARN this run. Prints `lane-missing agent|hook <plugin>:<name>` (gate) and
 # `lane-warn command|skill <plugin>:<name>` (advisory), and returns 1 only when
 # something at gate tier is missing.
 #
-# WHY THOSE TWO ARE THE TEETH. Agents are the surface where ownership is
+# WHY THOSE THREE ARE THE TEETH. Agents are the surface where ownership is
 # contested by the MODEL rather than by a script: 8 of the 32 are reviewer-class
 # with distinct filenames, and the model picks between them from descriptions
 # alone. Prompt-channel and Stop hooks are the surface where two plugins speak
-# on one turn and the winner is decided by scheduling order. Gating all 99
+# on one turn and the winner is decided by scheduling order. Deny-capable tool-channel
+# hooks were added to the tier on 2026-09-15: with all 31 plugins installed, three of
+# them return a verdict on one Edit and two had no row, so the pair that actually
+# collides was invisible to pc_lanes_territory. Gating all 99
 # commands instead would have forced ~66 version bumps in one change for rows
 # nothing yet arbitrates.
 #
@@ -1273,16 +1289,23 @@ pc_lanes_coverage() {
       # code-review:scan (deny), secret-scanning:scan (deny) and database:guard (ask) all
       # return a verdict and two of the three were invisible.
       #
-      # THE TEST IS THE SCRIPT'S OWN TEXT, not the event name: a Pre/PostToolUse hook that
-      # never emits `permissionDecision` cannot block anything and stays WARN-free. Honest
-      # limitation: grep, not parsing — a hook that builds the key dynamically is missed,
-      # and a hook that only MENTIONS the word in a comment is over-reported. Both fail
-      # toward declaring a row, which is the cheap direction.
+      # THE TEST IS THE SCRIPT'S OWN TEXT, not the event name. Two verdict channels count,
+      # because a PreToolUse hook denies EITHER by emitting `permissionDecision` OR by
+      # exiting 2 — an earlier revision tested only the first and said a hook without it
+      # "cannot block anything", which is false and would have exempted an exit-2 denier
+      # from a blocking gate. Measured 2026-09-15: of 27 shipped Pre/PostToolUse hooks, 14
+      # emit the key and 0 deny by exit 2 alone, so widening the test costs nothing today
+      # and closes the hole for the next one.
+      #
+      # Honest limitation: grep, not parsing — a hook that builds the key dynamically, or
+      # exits 2 through a variable or a trap, is still missed; a hook that only MENTIONS
+      # either form in a comment, or exits 2 for a usage error rather than a verdict, is
+      # over-reported. Both fail toward declaring a row, which is the cheap direction.
       while IFS= read -r cmd; do
         case "$cmd" in '${CLAUDE_PLUGIN_ROOT}/hooks/'*.sh) ;; *) continue ;; esac
         n=$(basename "$cmd" .sh)
         [ -f "$d/hooks/$n.sh" ] || continue
-        grep -q 'permissionDecision' "$d/hooks/$n.sh" 2>/dev/null || continue
+        grep -qE 'permissionDecision|^[[:space:]]*exit 2([[:space:]]|$)' "$d/hooks/$n.sh" 2>/dev/null || continue
         case "$NL$rows$NL" in
           *"$NL$p:$n${TAB}hook$NL"*) ;;
           *) printf 'lane-missing hook %s:%s (returns a permissionDecision)\n' "$p" "$n"; bad=1 ;;
@@ -1440,6 +1463,13 @@ EOF_CLAUSE
 }
 
 # pc_phase_guard <plugins-root> — spec §4.3, C4.
+#
+# SCOPE FOLLOWS pc_lanes_coverage, 2026-09-15. It read UserPromptSubmit and Stop only,
+# which was right while those were the whole gate tier. When deny-capable Pre/PostToolUse
+# hooks joined that tier, 11 hooks were forced to carry a lane row and nothing checked
+# the phase those rows claimed — two of them named a specific phase and never read the
+# sentinel. Adding rows to a tier without widening its companion gate is how a rule gets
+# trusted as a guarantee while nothing enforces it.
 # A script wired to UserPromptSubmit or Stop must READ the phase sentinel, or it
 # cannot take turns: it speaks in every phase forever, which is the defect the
 # sentinel exists to fix (taskmaster's "before the first code edit" directive
@@ -1483,7 +1513,8 @@ pc_phase_guard() {
       printf 'phase-unguarded %s:%s\n' "$p" "$rel"
       bad=1
     done <<EOF
-$(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // []))
+$(jq -r '((.hooks.UserPromptSubmit // []) + (.hooks.Stop // [])
+          + (.hooks.PreToolUse // []) + (.hooks.PostToolUse // []))
          | .[]? | .hooks[]? | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
 EOF
   done <<EOF
@@ -2136,9 +2167,9 @@ pc_listing_entry_cost() {
 # worst realistic case is a 3-bytes-per-token model at the default 200k window: 6,000
 # chars. Over budget the CLI reduces entries to name-only and buys descriptions back in
 # priority order — no error, no log. Whether that makes a skill stop FIRING was measured
-# on 2026-09-15 and it does not: 47/55 vs 47/55 name-only
+# on 2026-09-15 and it does not: 47/50 vs 47/50 name-only
 # (rationale/2026-09-15-listing-eviction-probe.md). This gate is kept anyway — one
-# measurement at n=55 on one model is not grounds to delete a gate, and this repo has
+# measurement at n=50 on one model is not grounds to delete a gate, and this repo has
 # already withdrawn a delta that three runs agreed on. Treat the README declaration it
 # forces as a disclosure, not as a fix for a proven defect. Four shipped
 # bundles overflow that floor while fitting comfortably at 1M, so whether an install is

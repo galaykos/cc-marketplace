@@ -47,7 +47,11 @@ if [ "$init" = 1 ]; then
   # .gitignore — in a consumer repo it showed up untracked, the same thing
   # task-runner/hooks/scope.sh:31-35 recorded and fixed. A directory can ignore
   # itself, so drop a `.gitignore` holding `*` the first time we create it.
-  [ -e "$base/.gitignore" ] || printf '*\n' > "$base/.gitignore" 2>/dev/null
+  # `|| :` is load-bearing HERE and nowhere else this idiom appears: every sibling copy
+  # lives in a hook that is fail-open by construction, this script runs under
+  # `set -euo pipefail`, so on a read-only state dir the bare `||` list returns non-zero
+  # and takes the whole precondition check down before it can report anything useful.
+  [ -e "$base/.gitignore" ] || printf '*\n' > "$base/.gitignore" 2>/dev/null || :
   [ -f "$ledger" ] || printf '# Goal ledger — %s\n\n' "$slug" > "$ledger" 2>/dev/null \
     || violation "init-failed: cannot create $ledger"
   # writability probe: append + remove one line; a failed append here is the

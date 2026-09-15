@@ -5,8 +5,8 @@
 # Comment-VOLUME guard, two lanes. PostToolUse (warn-only, at most 3 warnings per
 # session) compares the file just written against the comment density of its OWN
 # siblings AND against an absolute ceiling, and says so when it is over either.
-# PreToolUse (deny, Write only, once per file per session) refuses a whole new file
-# whose comment-to-code ratio is over the ceiling before it lands. Silence is the
+# PreToolUse (deny, Write only, at most TWICE per file per session) refuses a whole new
+# file whose comment-to-code ratio is over the ceiling before it lands. Silence is the
 # common case.
 #
 # WHY THIS EXISTS — the gap scan.sh cannot close by design. scan.sh detects KINDS of
@@ -41,9 +41,11 @@
 #   - The PostToolUse lane is WARN-ONLY: `additionalContext` is not a blocking key. The
 #     file is already on disk. It informs the next write, never the one that tripped it.
 #     The PreToolUse lane denies, but only a `Write` (an Edit carries a fragment, and a
-#     fragment's ratio says nothing about the file), only over CEIL, and only ONCE per
-#     file per session with the same marker-on-disk bound as scan.sh — so a false
-#     positive costs one turn and the second attempt goes through with a warning.
+#     fragment's ratio says nothing about the file), only over CEIL, and at most TWICE
+#     per file per session with the same marker-on-disk bound as scan.sh — so a false
+#     positive costs up to two turns and the third attempt goes through with a warning.
+#     The bound was one until 2026-09-15; a sibling hook denying the same call spent it
+#     without the write ever landing, which cost this guard its only enforcement.
 #   - A ratio is not a judgment. A file legitimately denser than its siblings (the one
 #     driver full of vendor workarounds) trips this, and that is a false positive the
 #     author should overrule by keeping the comments and moving on — the message says so.
@@ -155,10 +157,10 @@
       END { printf "%d %d\n", c+0, code+0 }' "$@" 2>/dev/null
   }
 
-  # ---- PreToolUse lane: deny a whole new file over CEIL, ONCE per file ----------
+  # ---- PreToolUse lane: deny a whole new file over CEIL, at most TWICE per file ----
   # Same bound and the same reasoning as scan.sh's deny: the model wrote it, so the
   # model is the audience; `ask` would interrupt the human for a style call; and a
-  # deny that cannot record its one-shot marker is withheld rather than left unbounded.
+  # deny that cannot record its bounding marker is withheld rather than left unbounded.
   if [ "$event" = "PreToolUse" ]; then
     [ "$CEIL" -gt 0 ] || exit 0
     content=$(printf '%s' "$input" | jq -r '.tool_input.content // empty' 2>/dev/null) || exit 0

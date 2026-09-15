@@ -26,8 +26,25 @@ yourself:
    scope (another `*-suite`) also lists it in ITS manifest's
    dependencies.
 3. SPLIT THE CANDIDATES BY PROVENANCE, and default to keeping. Read
-   `~/.claude/plugins/installed_plugins.json` and check each candidate's record
-   for an `auto` marker:
+   `~/.claude/plugins/installed_plugins.json`. **Each plugin id maps to an ARRAY
+   of records, one per scope/project — not to a single record.** Select the one
+   for the scope you are uninstalling from before reading any marker:
+
+   ```bash
+   jq --arg id "<name>@<marketplace>" --arg scope "<scope>" --arg proj "$PWD" '
+     .plugins[$id] // [] | map(select(.scope == $scope and (.projectPath // $proj) == $proj))' \
+     ~/.claude/plugins/installed_plugins.json
+   ```
+
+   A candidate with no record at THIS scope is provenance-unknown regardless of
+   what its records in other projects say — reading the array as a whole makes a
+   plugin auto-installed once anywhere look auto-installed everywhere, which
+   aims the removal list at exactly the hand installs this step exists to
+   protect. Measured 2026-09-15 on one real machine: **67 of 74 plugin ids
+   carried more than one record, and 30 of them had records that DISAGREE about
+   `auto`** — so on that machine the whole-array reading is wrong for 30
+   plugins, every one of them in the delete-it direction. Then check the
+   selected record for an `auto` marker:
 
    - **auto-installed** (record carries `auto`): this bundle put it there.
      Propose removing it, pre-selected.
@@ -67,15 +84,28 @@ yourself:
    explicit pick, and never pre-select a plugin whose provenance you could not
    establish.
 6. On confirm, per scope: uninstall the bundle first, then each confirmed
-   dependency, always passing the scope explicitly:
+   dependency, always passing the scope explicitly. **`--prune` is conditional
+   on the pick in step 5, not a constant.** `claude plugin uninstall --prune`
+   also removes auto-installed dependencies that are no longer needed — which is
+   precisely the set the user declined on any pick other than the first — so
+   passing it unconditionally silently overrides the answer and deletes N
+   plugins the user asked to keep. It reads as a no-op only because it IS one
+   when N is 0, the common case, which is how it would survive testing.
+
+   On "Remove the bundle and its N auto-installed plugins":
 
    ```bash
    claude plugin uninstall core-suite -s <scope> --prune -y
    claude plugin uninstall <dependency> -s <scope> -y
    ```
 
-   (`--prune` on the bundle line is kept for installs that DO carry auto
-   markers — it is a harmless no-op otherwise.)
+   On "Remove the bundle only", or on any partial pick from the full list —
+   no `--prune`, then remove exactly the plugins that were picked, one by one:
+
+   ```bash
+   claude plugin uninstall core-suite -s <scope> -y
+   claude plugin uninstall <explicitly-picked-plugin> -s <scope> -y
+   ```
 7. Verify with `claude plugin list --json` again. Report four lists: removed,
    kept-because-another-bundle-needs-it, kept-because-provenance-unknown (say
    "you may have installed these yourself — remove any with
