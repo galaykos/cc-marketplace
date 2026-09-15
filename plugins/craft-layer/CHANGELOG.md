@@ -7,6 +7,11 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.50.2
+
+### Changed
+- **`/craft-layer:audit` is now declared in `lane.tsv`**, so the review-phase territory gate can see it alongside the other review-shaped commands.
+
 ## 0.50.1
 
 ### Fixed

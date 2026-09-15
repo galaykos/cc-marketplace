@@ -15,6 +15,7 @@ approaches:consult	skill	decide	key-moment-second-opinion	stuck after two failed
 approaches:approach-deliberation	skill	decide	change-shape-deliberation	a non-trivial change with two-plus viable shapes, or a refactor/rewrite/migrate request, AND no deliberation marker exists for this task	-
 approaches:compact-recovery	hook	any	post-compaction-decision-recall	SessionStart fires with source=compact AND .claude/approaches/deliberated.json exists	-
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
-approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)	-
+approaches:remind	hook	decide	build-vs-buy-advice	prompt head carries a making verb AND a commodity-capability noun (auth, queue, cache, parser, rate-limiter, ...)	approaches:build-vs-buy
 approaches:consult-remind	hook	any	irreversible-command-or-repeated-attempt	prompt head matches (tried everything|third time) OR an irreversible command token (rm -rf|reset --hard|drop table|migrate:fresh|delete all|force.push)	-
 # generated:end
+approaches:build-vs-buy	skill	decide	build-vs-buy-advice	a commodity capability is about to be hand-written and no take/wrap/write verdict exists yet	-

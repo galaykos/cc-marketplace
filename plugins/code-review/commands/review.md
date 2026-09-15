@@ -44,14 +44,19 @@ mariadb skill when that engine is detected; test files, fixtures, or production 
 changed with no covering test → testing's testing-best-practices; `.github/workflows/`,
 `Dockerfile*`, `compose*.y*ml` → devops-practices, plus docker-best-practices for the
 container files; routes, controllers, API resources, OpenAPI/GraphQL/proto files →
-api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices).
+api-design; Three.js / react-three-fiber imports → craft-layer's threejs-best-practices;
+a configured analyzer for the changed language (phpstan/psalm/phpcs, tsc/eslint/biome,
+vue-tsc) → toolchain-experts' matching expert agent, which RUNS it rather than reciting
+it, plus its analyzer-triage skill to say whether CI enforces the result).
 Load each skill whose plugin IS installed and apply it inside the
 single pass below — never tell the user to run the per-stack review commands
 separately; this command is the fan-in for the overlapping review surfaces. Name
 relevant-but-uninstalled plugins in one closing line instead. This list is the
 contract behind every per-stack command's hand-up clause ("the aggregator reaches
 this plugin's rubric too"): a plugin that ships a review command and is not named
-here is a defect in this file, not in that command.
+here is a defect in this file, not in that command. That holds for a plugin shipping
+review AGENTS and no review command too — toolchain-experts was missing here for the
+12 days it existed, and the letter of the old sentence excused it.
 
 Then:
 
@@ -140,8 +145,11 @@ dropped, not downgraded:
 
 - pre-existing: the problem is on a line the diff did not touch, or existed before it
 - silenced: the code carries a lint-ignore / suppression comment for exactly this
-- tooling-caught: a linter, type-checker, compiler, or the test suite would report it
-  (missing import, type error, formatting) — CI runs those; this review does not
+- tooling-caught: a linter, type-checker, compiler, or the test suite ACTUALLY RUN BY CI
+  would report it (missing import, type error, formatting) — those are CI's job, not
+  this review's. Check before dropping: a configured-but-unenforced analyzer (no CI
+  workflow invokes it) catches nothing, so the finding stands. toolchain-experts'
+  analyzer-triage skill reads the workflow and labels exactly this case.
 - intentional: a behaviour change that is the point of the diff, not a side effect
 - a nit a senior reviewer would not raise, or a general-quality wish (more tests,
   more docs) that no project rule asks for

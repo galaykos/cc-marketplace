@@ -41,6 +41,14 @@
 # Off with CC_CONFIG_GUARD=off. Fail-open on every error path.
 {
   [ "${CC_CONFIG_GUARD:-on}" = "off" ] && exit 0
+  # HONOUR THE SIBLING'S SWITCH. core-suite/README.md tells an installer that
+  # CLAUDE_DESTRUCTIVE_GUARD=deny-only buys "the free half" — no clicks — but this
+  # guard is the plugin's OTHER ask tier and read only its own variable, so the
+  # documented setting did not deliver what it promised. Both values that mean
+  # "no ask tier" now silence this hook too. Measured 2026-09-15.
+  case "$(printf '%s' "${CLAUDE_DESTRUCTIVE_GUARD:-}" | tr '[:upper:]' '[:lower:]')" in
+    off | deny-only) exit 0 ;;
+  esac
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0
 
@@ -86,7 +94,7 @@
     [ -f "$root/.claude-plugin/marketplace.json" ] && exit 0
   fi
 
-  reason="command-guard: this writes to $kind (\`$base\`). Editing it is often the task — and it is also the cheapest way past a gate that just refused something, which is why you are being asked rather than told. Confirm you intend a configuration change here, not a way around a check. If a rule is wrong, say so in the change; if a check is in the way, the check is the thing to argue with. This guard reads the PATH, not the diff: it cannot tell adding a rule from deleting one. CC_CONFIG_GUARD=off disables it for the session."
+  reason="command-guard: this writes to $kind (\`$base\`). Editing it is often the task — and it is also the cheapest way past a gate that just refused something, which is why you are being asked rather than told. Confirm you intend a configuration change here, not a way around a check. If a rule is wrong, say so in the change; if a check is in the way, the check is the thing to argue with. This guard reads the PATH, not the diff: it cannot tell adding a rule from deleting one. CC_CONFIG_GUARD=off disables it for the session; so does CLAUDE_DESTRUCTIVE_GUARD=deny-only."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

@@ -13,3 +13,11 @@ ui-ux:component-libraries	skill	build	component-library-floor	the project depend
 ui-ux:ui-ux-engineer	agent	build	ui-implementation	work changes layout, breakpoints, spacing, colour, hierarchy, or component placement	-
 ui-ux:a11y-engineer	agent	build	accessibility-remediation	fix list names a WCAG/ARIA/keyboard/focus/label/contrast defect in markup or component files	-
 # generated:end
+ui-ux:preview-guard	hook	any	mockup-preview-consent	an Artifact call carries mockup-shaped content while a live preview server is the declared route (twin of taskmaster's copy; ui-ux ships alone in frontend-suite)	ui-ux:shadcn-theming
+# lane-cofire-ok: taskmaster:preview-guard ui-ux:preview-guard
+# One guard shipped twice on purpose: ${CLAUDE_PLUGIN_ROOT} is per-plugin so the file
+# cannot be shared, and frontend-suite installs ui-ux WITHOUT taskmaster — without its
+# own copy that path has no mockup guard at all. Both copies hash the same session_id
+# to the same marker, so on the weak tier exactly one asks; on the strong tier both ask,
+# which their shared header calls the cheap side of the trade. Byte-identity is gated by
+# pc_twin_files, so this blessing cannot outlive the pair drifting apart.

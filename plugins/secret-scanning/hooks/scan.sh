@@ -25,6 +25,10 @@
 # VALUE only, never to the variable name, so `EXAMPLE_TOKEN=<real>` still denies.
 {
   input=$(cat)
+  # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
+  # uninstalling the plugin. Every other guard in the marketplace ships one,
+  # and a global install makes "turn it off here" a real need.
+  [ "${CC_SECRET_SCAN:-on}" = "off" ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0
 
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
@@ -126,6 +130,9 @@ EOF_M
 
   reason="secret-scanning: this write appears to contain ${hit}. Blocked before it reaches disk. Move the value to an environment variable or a secret store and reference it by name; if this is a deliberate fixture, make the value announce itself — end it in EXAMPLE, or use a placeholder word (example, placeholder, changeme, dummy, xxxx) — and the guard lets it through."
   [ -n "$file" ] && reason="$reason (file: $file)"
+  # Name the escape in the message that blocks you: an off-switch documented only in a
+  # CHANGELOG is not reachable by the person it exists for.
+  reason="$reason CC_SECRET_SCAN=off disables this guard for the session."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}' 2>/dev/null

@@ -6,3 +6,4 @@
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 testing:test-engineer	agent	verify	test-authoring	changed code has no covering test, or the request names tests, coverage, fixtures, or mocks	-
 # generated:end
+testing:protect-tests	hook	any	test-weakening-write-block	a Write/Edit skips, deletes or loosens an existing test assertion rather than changing the code under test	testing:testing-best-practices

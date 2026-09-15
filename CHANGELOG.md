@@ -4,6 +4,74 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.110.0] - 2026-09-15
+
+**Fixes from a six-agent audit of "can all 31 plugins be installed globally, always on."**
+The verdict was DEGRADED, not blocking, on every axis — and the degradation is concentrated
+in defects that are *unreachable with one plugin installed*, which is how they survived.
+One arithmetic fact frames the rest: installing all 31 costs several times the host's
+skill-listing budget at a 200k window, and fits at 1M. That is not a bug to fix, it is a
+setting to choose. The exact chars, the multiple and the `skillListingBudgetFraction`
+that clears it are printed by `bash scripts/context-budget.sh` — deliberately not copied
+here, because a number in two files is how the two disagree.
+
+### Added
+- **`scripts/context-budget.sh` now prints the whole-marketplace listing row.** Every row
+  in that channel answered "if you installed only this one thing" — the all-31 figure
+  existed in no tooling here, and two independent audits had to recompute it by hand.
+  The row names the required `skillListingBudgetFraction` and what it costs per turn.
+- **`pc_twin_files`** — a file declaring itself a TWIN must still be byte-identical to its
+  partner. The `preview-guard.sh` pair's correctness depends on it: both hash the same
+  session id to the same marker, which is what leaves exactly one asker.
+- **`scripts/lane-vocabulary.txt` + `pc_lanes_vocabulary`** — an `owns` noun must be
+  declared. `pc_lanes_territory` compares `owns` as a string, so twelve review-phase
+  agents passed it green by each inventing a unique noun while contending for one `.tsx`
+  diff. This does not merge them; it makes inventing a noun a reviewed act. The catch is
+  social, and the check's header says so.
+- **`pc_lanes_coverage` now gates deny-capable tool-channel hooks.** It covered only
+  `UserPromptSubmit` and `Stop`, leaving the most contended surface in the marketplace
+  undeclared: 14 hooks can return a `permissionDecision` and only 3 had a lane row. All
+  14 are now declared, including the first genuine `# lane-cofire-ok:` blessing in the repo.
+
+### Fixed
+- **A co-firing deny no longer costs another plugin's enforcement.** code-review's write
+  guards spent their once-per-file bound when they denied, but a sibling hook denying the
+  same call means the write never landed. Bound is now two denies per file.
+- **`git-workflow`'s AI-attribution guard stops denying text that merely mentions a
+  trailer.** It required both regexes to match anywhere in the command string, so a
+  heredoc writing a JSON fixture was denied with no git command running. The git verb must
+  now sit at a command position.
+- **Five deny/ask hooks gained an off-switch** (`secret-scanning`, `devops`,
+  `database`, both `preview-guard` twins). They had none; the only escape was uninstalling.
+- **`command-guard`'s `config-guard` honours `CLAUDE_DESTRUCTIVE_GUARD=deny-only`**, which
+  core-suite's README had promised buys the click-free half.
+- **Bundle uninstall defaults to KEEPING what it cannot prove it installed.** The `auto`
+  marker was present on 40 of 725 install records on one real machine; the old default
+  aimed the removal list at hand-installed plugins.
+- **Three artifacts shipped this repository's `.gitignore` as a universal fact.**
+  `.claude/taskmaster/` now ignores itself, the way task-runner's state dir already did.
+- **`pc_host_overlap`'s host roster was 44 days stale** — it missed the host's own
+  `code-review`, `security-review`, `run`, `init`, `loop` and `schedule` skills.
+- **Four `yields_to` edges pointed at artifacts with no lane row**, so the deference could
+  never be evaluated. All four targets are now declared.
+- **Contradictions between artifacts that only collide when both are installed:**
+  `approach-deliberation` vs `coding-entry` on whether a small multi-file change needs a
+  slate; `comment-discipline`'s description vs its own hooks on where the override lives;
+  `verification-panels` vs `taskmaster:ultra` on when a blind panel is real;
+  `/code-review:review` dropping findings on the premise that CI runs analyzers it does
+  not; `toolchain-experts` missing from the roster that calls itself the contract.
+- **The README called candor's Stop clauses "five" and listed four.**
+
+### Not fixed, deliberately
+- **73 of 103 skills are unrouted** in `skill-router`. This is a metric artifact, not a
+  gap: the router triggers on file paths, and the top five contributors (craft-layer,
+  taskmaster, code-architecture, task-runner, approaches — 42 of the 73) are prompt-shaped
+  by design, which `rules.tsv:74-78` already documents for craft-layer.
+- **24 commands and 63 skills still carry no lane row.** Every review-shaped command and
+  every deny-capable hook now does; the rest is incremental adoption, not a sweep.
+- **`config-guard` still exempts this repository.** Deliberate — it is keyed on
+  `marketplace.json` so a consumer repo vendoring a plugin is still guarded.
+
 ## [0.109.0] - 2026-09-15
 
 **A stack-expert team that runs the analyzer instead of reciting one.** New plugin

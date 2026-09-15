@@ -3,6 +3,14 @@
 Consumer-facing changes only. A version bump with nothing here is a number; this
 file is what makes an upgrade readable. Newest first.
 
+## 0.19.1
+
+### Fixed
+- **A co-firing deny no longer costs you the comment check.** `scan.sh` and `density.sh` recorded their once-per-file bound when they DENIED — but a deny does not mean the write landed. Any sibling PreToolUse hook denying the same call (testing's test guard, secret-scanning, command-guard) blocked it too, the bound was already spent, and the next edit of that file went through unchecked. Measured with all 31 marketplace plugins installed; unreachable with this plugin alone, which is how it survived. The bound is now two denies per file, which survives one co-firing deny and bounds a loop exactly as before, and it is kept in atomic `mkdir` markers rather than a counter file — the read-modify-write version let two parallel subagents editing one file both read the same count and exceed the cap. Residual, stated in the hook: the bound is still spent on a DENY, so two co-firing siblings can exhaust it.
+- **`/code-review:review` stops dropping findings CI never catches.** Its refute list dropped anything a linter or type-checker "would report", on the premise that CI runs those. In a repo with a configured-but-unenforced analyzer, CI runs nothing and the finding was dropped anyway. The row now requires the tool to be one CI ACTUALLY runs, and points at toolchain-experts' analyzer-triage, which reads the workflow to decide.
+- **`toolchain-experts` added to the fan-in roster.** The roster calls itself the contract and says an unnamed review plugin is a defect in that file; the letter of it excused a plugin shipping review AGENTS and no review command, so toolchain-experts was missing for the 12 days it existed.
+- **`comment-discipline`'s description named an override that does not exist.** It promised a house style in CLAUDE.md overrides the default; neither hook parses CLAUDE.md. The real lever is `COMMENT_DISCIPLINE_CEILING_TENTHS`, which the skill body already documented.
+
 ## 0.19.0
 
 ### Fixed

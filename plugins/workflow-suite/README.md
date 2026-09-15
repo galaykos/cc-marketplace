@@ -53,6 +53,15 @@ text that was previously being evicted.
 
 The baseline, in every repo (see `core-suite`'s README for the membership rule):
 
+> **Do not install `core-suite` alongside this one.** Every one of core-suite's
+> seven members is already in the list below — it is a strict subset, not an
+> overlap. Installing both buys nothing and breaks the exit: `/core-suite:uninstall`
+> keeps a member whenever another installed bundle lists it, so with this bundle
+> present it keeps all seven and removes only the core-suite manifest. Pick the
+> bundle that matches the repo; use core-suite at user scope for the machine-wide
+> baseline, this one at project scope where the whole pipeline is wanted.
+
+
 - **candor** — the Stop gate: its clauses 3 and 4 are the evidence-at-claim gate and the registered-run gate, so a run in this bundle cannot end by narration; plus the terse reply mode, inert until set
 - **code-review** — `/code-review:review`, the one review entry, loading every installed stack rubric; comment discipline on write
 - **git-workflow** — worktree isolation, `/git-workflow:finish` (the ship phase), review-exchange rigor

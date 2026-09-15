@@ -54,8 +54,10 @@ decision, a newcomer's silence is a gap.
 
 After reprinting the ledger each round, also write it — a header carrying the raw +
 upgraded statement pair plus the table — to `.claude/taskmaster/ledger-<slug>.md`
-(gitignored; `<slug>` a kebab of the task description), so an interrupted
-interrogation is not lost. At grill start, an unfinished
+(`<slug>` a kebab of the task description), so an interrupted
+interrogation is not lost. Creating that directory, drop a `.gitignore` holding `*`
+into it if one is not there — this is scratch and belongs in no commit, and only
+THIS repo's .gitignore covers it otherwise. At grill start, an unfinished
 `.claude/taskmaster/ledger-*.md` offers Resume / Start fresh; Resume reuses the
 stored statement (never re-derived), loads the table, continues from the first
 UNKNOWN row — no re-scout, no re-asking resolved rows. Delete when the spec is written.

@@ -42,6 +42,12 @@ ledger="$base/goal-ledger-$slug.md"
 
 if [ "$init" = 1 ]; then
   mkdir -p "$base" 2>/dev/null || violation "init-failed: cannot create $base"
+  # STATE HYGIENE. This dir is scratch and belongs in no commit. Three shipped
+  # artifacts called it "gitignored", which is true only of THIS marketplace's own
+  # .gitignore — in a consumer repo it showed up untracked, the same thing
+  # task-runner/hooks/scope.sh:31-35 recorded and fixed. A directory can ignore
+  # itself, so drop a `.gitignore` holding `*` the first time we create it.
+  [ -e "$base/.gitignore" ] || printf '*\n' > "$base/.gitignore" 2>/dev/null
   [ -f "$ledger" ] || printf '# Goal ledger — %s\n\n' "$slug" > "$ledger" 2>/dev/null \
     || violation "init-failed: cannot create $ledger"
   # writability probe: append + remove one line; a failed append here is the

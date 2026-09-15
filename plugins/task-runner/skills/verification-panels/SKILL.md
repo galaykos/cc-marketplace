@@ -40,7 +40,7 @@ consumer; one that re-derives its own N does not inherit corrections to this.
 | **Large** — irreversible, security/auth/data, or cross-module | 3, and round up one row when two risk factors stack |
 | **Lens-fixed** — `task-runner:code-redteam` alone | 3 at any radius: its N is a lens taxonomy, not a radius call. The one blessed exception; a new one belongs in this table or it is an invention |
 
-No `Workflow` tool → 1 inline pass, reported as **"inline heuristic pass — single
+No dispatch mechanism (no `Workflow` tool AND no Agent tool) → 1 inline pass, reported as **"inline heuristic pass — single
 model, uncorroborated"**, never as a panel or an adversary count. That label and the
 boost dispatch tier (`references/dispatch-tier.md`) are owned here; consumers cite,
 never restate.

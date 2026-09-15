@@ -1,0 +1,158 @@
+# lane vocabulary — every `owns` noun any plugins/*/lane.tsv may use.
+#
+# WHY THIS FILE EXISTS. pc_lanes_territory compares `owns` as a STRING, so two
+# artifacts doing one job pass the gate by picking different nouns — and every
+# plugin here had done exactly that. The clearest case: twelve review-phase
+# agents, each with a unique noun (stack-agnostic-diff-review,
+# markup-and-style-review, component-logic-review, typecheck-and-lint-run, ...),
+# all green, all contending for one `.tsx` diff. The gate could not see it, and
+# its own header names that as the defect it was built for.
+#
+# WHAT THIS CHANGES. It does not merge anyone's territory — it makes INVENTING a
+# noun a deliberate, reviewed act instead of the invisible default. Adding a
+# thirteenth reviewer now means opening this file and typing the new noun
+# directly beneath the twelve that already exist. That is a social catch, not a
+# mechanical one, and saying so is the point: nothing here proves two nouns mean
+# different things.
+#
+# Grouped by phase so near-neighbours sit together. Alphabetical within a phase.
+# Standing: gate — validate.sh fails on an `owns` value absent from this file.
+
+# --- understand ---
+incident-diagnosis
+installed-stack-inventory
+marketplace-plugin-suggestion
+pre-question-codebase-scan
+program-charter-and-roadmap
+project-brain-index
+reproduce-and-bisect-investigation
+research-facet-sharding
+third-party-skill-suggestion
+
+# --- shape ---
+creative-concept-divergence
+pre-edit-clarification-gate
+requirements-clarification
+system-topology-design
+
+# --- decide ---
+build-vs-buy-advice
+change-shape-deliberation
+key-moment-second-opinion
+persona-opinion-shard
+spec-hole-adversary
+unanchored-second-opinion
+
+# --- plan ---
+file-level-implementation-plan
+spec-to-task-cards
+task-list-parallelization-plan
+
+# --- build ---
+accessibility-remediation
+astryx-idioms
+comment-placement-rule
+component-library-floor
+compose-generation-procedure
+decided-fix-list-application
+defensive-security-remediation
+dependency-management-discipline
+dockerfile-and-compose-idioms
+in-code-instrumentation
+inertia-idioms
+laravel-idioms
+local-dev-environment-generation
+mariadb-idioms
+mui-idioms
+nextjs-idioms
+performance-optimization
+php-laravel-backend-implementation
+pipeline-and-infra-implementation
+react-native-idioms
+relational-schema-and-query-implementation
+reviewer-verdict-consent
+secret-handling-discipline
+sql-idioms
+stack-neutral-web-implementation
+third-party-api-doc-reminder
+third-party-api-doc-verification
+threejs-idioms
+ui-implementation
+vite-idioms
+wcag-checklist
+
+# --- verify ---
+agent-output-trust-decision
+candour-transcript-measurement
+load-bearing-claim-refutation
+own-docs-drift-scan
+produced-artifact-execution
+test-authoring
+work-verification-evidence
+
+# --- review ---
+analyzer-output-triage
+api-surface-review
+claude-md-audit
+code-structure-review
+comment-placement-review
+committed-secret-sweep
+component-logic-review
+cross-stack-review-fan-in
+dependency-audit
+infra-config-review
+markup-and-style-review
+motion-and-asset-gate-audit
+owasp-diff-security-review
+php-static-analysis-run
+pipeline-and-deploy-config-review
+react-hook-rules-run
+runtime-quality-review
+session-transcript-mining
+stack-agnostic-diff-review
+style-and-a11y-tool-run
+typecheck-and-lint-run
+vue-sfc-analysis-run
+wcag-audit
+
+# --- ship ---
+core-suite-uninstall
+craft-suite-uninstall
+development-branch-completion
+frontend-suite-uninstall
+workflow-suite-uninstall
+
+# --- any ---
+ad-hoc-breadth-question
+ai-attribution-in-git-history
+ci-workflow-write-block
+claim-reversal-discipline
+comment-noise-write-block
+comment-volume-write-block
+config-file-write-consent
+destructive-command-classification
+destructive-command-execution
+destructive-schema-consent
+irreversible-command-or-repeated-attempt
+mockup-preview-consent
+non-destructive-command-equivalents
+open-program-announcement
+post-compaction-decision-recall
+post-compaction-state-recall
+program-board
+program-level-delivery-ownership
+program-resume
+read-ledger-for-evidence
+reply-shape-contract
+reply-verbosity-level
+reply-verbosity-mode
+secret-write-denial
+stop-turn-honesty
+stuck-loop-signal
+subagent-dispatch-contract
+subagent-spawn-cap
+test-weakening-write-block
+tool-fit-catalog
+ultra-assess-boost-directive
+ultra-craft-boost-directive
+ultra-task-boost-directive

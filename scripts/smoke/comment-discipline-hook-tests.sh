@@ -261,9 +261,11 @@ assert_allows() { # desc  session  path  text
 
 assert_denies "PreToolUse denies a restatement comment" s1 /tmp/proj/a.js '// increment the counter
 counter++;'
-assert_allows "one-shot: same file again is allowed" s1 /tmp/proj/a.js '// increment the counter
+assert_denies "bound is TWO denies: same file a second time still denies" s1 /tmp/proj/a.js '// increment the counter
 counter++;'
-assert_denies "one-shot is per FILE: a new file in the same session still denies" s1 /tmp/proj/b.js '// increment the counter
+assert_allows "bound is TWO denies: same file a third time is allowed" s1 /tmp/proj/a.js '// increment the counter
+counter++;'
+assert_denies "the bound is per FILE: a new file in the same session still denies" s1 /tmp/proj/b.js '// increment the counter
 counter++;'
 assert_denies "PreToolUse denies commented-out code" s2 /tmp/proj/c.js '// doThing(a, b);
 doThing(a, c);'
@@ -349,13 +351,25 @@ if printf '%s' "$tp1" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
 then pass "transcript_path present: the deny still fires"
 else fail "transcript_path present: the deny still fires" "wanted deny, got: $tp1"; fi
 
+# THE BOUND IS TWO DENIES, NOT ONE (0.18.x → 2026-09-15). A sibling PreToolUse hook
+# denying the same call blocks the write too, so spending the whole bound on attempt 1
+# left the next edit of that file unchecked — measured with all 31 plugins installed.
+# Attempt 2 must still deny; attempt 3 must be silent, which is what bounds the session.
 tp2="$(tp /tmp/proj/tp.js '// increment the counter
 counter++;')"
-if [ -z "$tp2" ]; then pass "transcript_path present: second edit of the same file is bounded"
-else fail "transcript_path present: second edit of the same file is bounded" "fired twice: $tp2"; fi
+if printf '%s' "$tp2" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' >/dev/null 2>&1
+then pass "second edit of the same file still denies (survives one co-firing deny)"
+else fail "second edit of the same file still denies (survives one co-firing deny)" "wanted deny, got: $tp2"; fi
 
-# The bound must be a real file, not an accident of the deny path failing earlier.
-if [ -n "$(find "$TP_DIR/.claude/comment-discipline" -name 'blocked-*' -type f 2>/dev/null)" ]
+tp3="$(tp /tmp/proj/tp.js '// increment the counter
+counter++;')"
+if [ -z "$tp3" ]; then pass "third edit of the same file is bounded (no wedge)"
+else fail "third edit of the same file is bounded (no wedge)" "fired a third time: $tp3"; fi
+
+# The bound must be real state on disk, not an accident of the deny path failing earlier.
+# It is a DIRECTORY since 0.19.1: `mkdir` is atomic, a read-modify-write counter file was
+# not, and two parallel subagents editing one file could both read 0 and both write 1.
+if [ -n "$(find "$TP_DIR/.claude/comment-discipline" -name 'blocked-*.d[0-9]' -type d 2>/dev/null)" ]
 then pass "transcript_path present: the marker actually landed on disk"
 else fail "transcript_path present: the marker actually landed on disk" "no marker under $TP_DIR"; fi
 if [ "$(cat "$TP_DIR/.claude/comment-discipline/.gitignore" 2>/dev/null)" = "*" ]; then pass "the state dir ignores itself"

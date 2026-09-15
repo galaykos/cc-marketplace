@@ -10,3 +10,4 @@ api-design:docs-upkeep	skill	verify	own-docs-drift-scan	a change altered behavio
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 api-design:remind	hook	build	third-party-api-doc-reminder	prompt head carries an integration noun (sdk|endpoint|integration|webhook|oauth|graphql) AND a making or calling verb	-
 # generated:end
+api-design:review	command	review	api-surface-review	routes, controllers, API resources or an OpenAPI/GraphQL/proto spec changed and the contract needs reviewing	code-review:review

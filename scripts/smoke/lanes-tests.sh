@@ -320,5 +320,52 @@ cmp -s "$VLIVE" "$VT" && pass "[wiring] the live $VT was never written to" \
                       || bad "[wiring] the harness mutated the real tree"
 rm -f "$VLIVE"
 
+# ---------------------------------------------------------------- pc_lanes_vocabulary
+# Both gates below were added 2026-09-15 and shipped with NO harness, in a repo whose CI
+# asserts exact gate strings — gate-coverage.sh reported them as NONE. These are that
+# coverage. The vocabulary check's most important property is the one a fail-open would
+# destroy silently: a MISSING vocabulary file must fail, not pass.
+VOC="$FIX/vocab.txt"
+printf '# --- review ---\napproved-noun\n' > "$VOC"
+
+lane foo <<'EOF'
+foo:alpha@@agent@@review@@approved-noun@@a checkable condition@@-
+EOF
+rm -f "$FIX/bar/lane.tsv"
+run pc_lanes_vocabulary "$FIX" "$VOC"
+clean "[vocab] a declared owns noun passes"
+
+lane foo <<'EOF'
+foo:alpha@@agent@@review@@yet-another-diff-review@@a checkable condition@@-
+EOF
+run pc_lanes_vocabulary "$FIX" "$VOC"
+fails "[vocab] an undeclared owns noun fails" "lane-vocab $FIX/foo/lane.tsv yet-another-diff-review"
+
+run pc_lanes_vocabulary "$FIX" "$FIX/does-not-exist.txt"
+fails "[vocab] a MISSING vocabulary file fails rather than passing silently" "lane-vocab MISSING"
+
+# A row with spaces instead of tabs belongs to pc_lanes_schema, not to this check.
+printf 'a b c d e f\n' > "$FIX/foo/lane.tsv"
+run pc_lanes_vocabulary "$FIX" "$VOC"
+clean "[vocab] a malformed space-separated row is left to the schema gate"
+
+# --------------------------------------------------------------------- pc_twin_files
+TW=$(mktemp -d) || exit 2
+mkdir -p "$TW/a/hooks" "$TW/b/hooks"
+printf '#!/bin/sh\n# TWIN: %s/b/hooks/g.sh is an identical copy save this line.\necho hi\n' "$TW" > "$TW/a/hooks/g.sh"
+printf '#!/bin/sh\n# TWIN: %s/a/hooks/g.sh is an identical copy save this line.\necho hi\n' "$TW" > "$TW/b/hooks/g.sh"
+run pc_twin_files "$TW"
+clean "[twin] a matching declared pair passes"
+
+printf 'echo drift\n' >> "$TW/b/hooks/g.sh"
+run pc_twin_files "$TW"
+fails "[twin] a drifted pair fails" "twin $TW/a/hooks/g.sh"
+
+printf '#!/bin/sh\n# TWIN: %s/nope.sh is an identical copy save this line.\n' "$TW" > "$TW/a/hooks/g.sh"
+rm -f "$TW/b/hooks/g.sh"
+run pc_twin_files "$TW"
+fails "[twin] a partner that does not exist fails" "(missing)"
+rm -rf "$TW"
+
 [ "$rc" -eq 0 ] && echo "All lane-declaration smoke tests passed."
 exit "$rc"

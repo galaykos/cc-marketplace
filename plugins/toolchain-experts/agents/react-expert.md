@@ -1,6 +1,6 @@
 ---
 name: react-expert
-description: Use PROACTIVELY after changing React components, when the project configures eslint. RUNS the hook-rules lint over the changed files and reports whether react-hooks/exhaustive-deps is enforced, demoted to a warning, or absent — the config gap that lets stale-closure and missing-dependency bugs ship through a green build. Returns triaged lint output plus that gap. Reports only. Broader component logic → web-dev's frontend-reviewer; types → ts-expert.
+description: Use PROACTIVELY after changing React components, for HOOK RULES (types and general TS/JS lint → ts-expert), when the project configures eslint. RUNS the hook-rules lint and reports whether react-hooks/exhaustive-deps is enforced, demoted, or absent — the config gap that lets stale-closure and missing-dependency bugs ship through a green build. Returns triaged lint output plus that gap. Reports only. Broader component logic → web-dev's frontend-reviewer.
 tools: Read, Grep, Glob, Bash
 model: inherit
 effort: xhigh

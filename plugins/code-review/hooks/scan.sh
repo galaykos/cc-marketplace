@@ -368,15 +368,37 @@
   ctx=$(printf '%s' "$sid" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
   marker="$cwd/.claude/comment-discipline/blocked-$ctx-$key"
-  [ -e "$marker" ] && exit 0
+  # BOUNDED RETRIES, not a one-shot. The bound is spent when this hook DENIES, but a
+  # deny does not mean the write landed: any sibling PreToolUse hook denying the same
+  # call (testing:protect-tests, secret-scanning/scan, command-guard, …) blocks it too,
+  # and the old one-shot was already gone. The model then fixed the sibling's complaint,
+  # re-wrote, and this hook was silent — the comment noise shipped. Measured 2026-09-15
+  # with all 31 plugins installed; unreachable with this plugin alone, which is why it
+  # survived. Two denies per file per session bounds a pathological loop exactly as the
+  # one-shot did while surviving one co-firing deny.
+  DENY_CAP=2
+  # ATOMIC, because a counter file is not. `mkdir` either creates or fails, so two
+  # parallel subagents editing one file cannot both read 0 and both write 1 — a
+  # read-modify-write counter let the file be denied more than DENY_CAP times.
+  # A legacy zero-byte marker from <=0.19.0 counts as one try, so an upgrade
+  # mid-session does not hand a file a fresh budget.
+  tries=0
+  [ -e "$marker" ] && tries=1
+  i=1
+  while [ "$i" -le "$DENY_CAP" ]; do [ -d "$marker.d$i" ] && tries=$i; i=$((i + 1)); done
+  [ "$tries" -ge "$DENY_CAP" ] && exit 0
   mkdir -p "$cwd/.claude/comment-discipline" 2>/dev/null || exit 0
   # The state dir ignores itself (0.18.3): a marker per denied file showed up as
   # untracked in every repo without a hand-written ignore line.
   [ -e "$cwd/.claude/comment-discipline/.gitignore" ] || printf '*\n' > "$cwd/.claude/comment-discipline/.gitignore" 2>/dev/null
-  : > "$marker" 2>/dev/null || exit 0
-  [ -e "$marker" ] || exit 0                  # marker did not land → deny stays unbounded → withhold
-
-  reason=$(printf '%s Write the edit again without them: a comment restating the next line, a line of commented-out code, or a docblock tag that only repeats the signature has no fact to carry — delete it or move the fact to a name, a type, or a test. The default is no comment; a docblock earns a line only for what the signature cannot state. Blocked once per file; a repeat edit to this file goes through with a warning instead.' "$warn")
+  mkdir "$marker.d$((tries + 1))" 2>/dev/null || exit 0   # lost the race → a sibling instance denied
+  # RESIDUAL, stated rather than hidden: the bound is spent when this hook DENIES, and a
+  # deny does not prove the write landed. Two co-firing siblings can still exhaust both
+  # tries on writes that never happened, and the third edit then ships unchecked. Spending
+  # the bound only on an observed write needs a PostToolUse handshake, which is a larger
+  # change to a guard with 55 assertions; two tries survives the measured single-sibling
+  # case, which is the one reproduced with all 31 plugins installed.
+  reason=$(printf '%s Write the edit again without them: a comment restating the next line, a line of commented-out code, or a docblock tag that only repeats the signature has no fact to carry — delete it or move the fact to a name, a type, or a test. The default is no comment; a docblock earns a line only for what the signature cannot state. Blocked at most twice per file; after that an edit goes through with a warning instead.' "$warn")
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
 } 2>/dev/null

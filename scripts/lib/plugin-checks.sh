@@ -748,7 +748,7 @@ pc_rules_owner() {
 # that costs tokens — a plugin re-implementing a capability the user already has,
 # paying always-on description cost to compete with it for the same trigger.
 #
-# The name list is the host skill roster as of 2026-08-02. It is a NAME collision
+# The name list is the host skill roster as of 2026-09-15. It is a NAME collision
 # check only: a plugin may still cover adjacent ground, and should say so as a
 # deferral. Mark a legitimate mention with <!-- host-ok --> on the line, matching
 # the rescue idiom pc_removed_refs already uses.
@@ -760,7 +760,12 @@ pc_rules_owner() {
 pc_host_overlap() {
   local f="$1" bad=0 name host
   [ -f "$f" ] || return 0
-  local hosts="dataviz artifact-design artifact-capabilities skill-creator claude-api update-config keybindings-help fewer-permission-prompts claude-in-chrome simplify"
+  # Roster refreshed 2026-09-15 against a live session's skill listing. The six
+  # added then — code-review security-review run init loop schedule — had shipped
+  # in the host while this list still read 2026-08-02, so `security/skills/
+  # security-review` collided with a built-in for 44 days without tripping. That
+  # one is deliberate and carries <!-- host-ok -->; the gate simply could not see it.
+  local hosts="dataviz artifact-design artifact-capabilities skill-creator claude-api update-config keybindings-help fewer-permission-prompts claude-in-chrome simplify code-review security-review run init loop schedule"
   # SKILLS ONLY. Commands are namespaced at the call site (`/code-review:review`
   # cannot be typed for the host's bare `/review`), so a command-name collision is
   # not a collision. A skill competes on its DESCRIPTION for the same trigger
@@ -775,6 +780,79 @@ pc_host_overlap() {
       printf 'hostoverlap %s %s\n' "$f" "$name"; bad=1
     fi
   done
+  return $bad
+}
+
+# pc_lanes_vocabulary [plugins-root] [vocab-file] — an `owns` noun must be declared.
+#
+# WHAT IT CATCHES. pc_lanes_territory compares `owns` as a string, so two artifacts doing
+# one job slip past it by choosing different nouns — which is what every plugin here had
+# done. Twelve review-phase agents each picked a unique noun and the territory gate stayed
+# green while they contended for the same `.tsx` diff. This check does not merge them; it
+# makes INVENTING a noun a reviewed act, because the new one has to be typed into
+# scripts/lane-vocabulary.txt directly beneath the twelve already there.
+#
+# HONEST LIMITATION, and it is the whole of the check's weakness: nothing here proves two
+# nouns MEAN different things, and nothing stops an author adding a near-duplicate line.
+# The catch is social — a human reading the grouped list — with a gate only on the
+# bookkeeping. A semantic check is not available to a shell script, and pretending
+# otherwise is the tier over-claim this repo's own convention forbids.
+pc_lanes_vocabulary() {
+  local root="${1:-plugins}" vocab="${2:-scripts/lane-vocabulary.txt}" bad=0 f line owns
+  # A MISSING VOCABULARY IS A FAILURE, NOT A PASS. The first version returned 0 here,
+  # so deleting the file silently disabled a blocking gate while its own header still
+  # said `Standing: gate` — the same shape as the two eval suites CLAUDE.md records as
+  # having loaded zero cases for weeks with nobody noticing.
+  if [ ! -f "$vocab" ]; then printf 'lane-vocab MISSING %s\n' "$vocab"; return 1; fi
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    while IFS= read -r line; do
+      case "$line" in ''|'#'*) continue ;; esac
+      # -s: a line with no tab is skipped rather than returned whole. Without it a
+      # malformed row reports its entire text as an undeclared noun.
+      owns=$(printf '%s' "$line" | cut -s -f4)
+      [ -n "$owns" ] || continue
+      case "$owns" in owns) continue ;; esac
+      grep -qxF "$owns" "$vocab" 2>/dev/null && continue
+      printf 'lane-vocab %s %s\n' "$f" "$owns"; bad=1
+    done < "$f"
+  done < <(find "$root" -mindepth 2 -maxdepth 2 -name lane.tsv 2>/dev/null | sort)
+  return $bad
+}
+
+# pc_twin_files [plugins-root] — a file that DECLARES itself a twin must still be one.
+#
+# WHAT IT CATCHES. `plugins/taskmaster/hooks/preview-guard.sh` and
+# `plugins/ui-ux/hooks/preview-guard.sh` are one guard shipped twice: ${CLAUDE_PLUGIN_ROOT}
+# is per-plugin so the file cannot be shared, and ui-ux is installed alone by
+# frontend-suite, so without its own copy that path has no guard at all. Their
+# correctness as a PAIR depends on byte-identity: both hash the same session_id to the
+# same marker, and that shared key is what leaves exactly one asker on the weak tier.
+# Let them drift and the marker keys diverge, so both ask — silently, on every call, with
+# the header still claiming one does.
+#
+# HOW. Any file carrying `# TWIN: <path> is an identical copy save this line.` must match
+# its named partner on every line EXCEPT the two TWIN lines themselves, which name each
+# other and therefore cannot match. Prints `twin <a> <b>` per drifted pair, returns 1.
+#
+# HONEST LIMITATION. It gates SAMENESS, not correctness — two identically wrong copies
+# pass. It also cannot tell you WHICH copy is authoritative: the fix is always "make them
+# match", never "make them match the right one". And it only sees pairs that declare
+# themselves; an undeclared copy-paste twin is invisible, the same residual pc_host_overlap
+# carries for its hardcoded roster.
+pc_twin_files() {
+  local root="${1:-plugins}" f partner bad=0 a b
+  while IFS= read -r f; do
+    [ -f "$f" ] || continue
+    partner=$(sed -n 's/^# TWIN: \([^ ]*\) is an identical copy save this line.*/\1/p' "$f" | head -1)
+    [ -n "$partner" ] || continue
+    if [ ! -f "$partner" ]; then
+      printf 'twin %s %s\n' "$f" "$partner(missing)"; bad=1; continue
+    fi
+    a=$(grep -vF '# TWIN:' "$f")
+    b=$(grep -vF '# TWIN:' "$partner")
+    if [ "$a" != "$b" ]; then printf 'twin %s %s\n' "$f" "$partner"; bad=1; fi
+  done < <(grep -rlF '# TWIN:' "$root" 2>/dev/null | sort)
   return $bad
 }
 
@@ -1186,6 +1264,31 @@ pc_lanes_coverage() {
         esac
       done < <(jq -r '.hooks | to_entries[]
                       | select(.key=="UserPromptSubmit" or .key=="Stop")
+                      | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
+      # DENY-CAPABLE TOOL-CHANNEL HOOKS ARE GATED TOO (2026-09-15). The two events above
+      # were the whole hook half of this check, which left the most contended surface in
+      # the marketplace undeclared: 14 hooks can return a permissionDecision on one tool
+      # call and only 3 had a lane row, so pc_lanes_territory could not see the pair that
+      # actually collides. Measured with all 31 plugins installed — on one Edit,
+      # code-review:scan (deny), secret-scanning:scan (deny) and database:guard (ask) all
+      # return a verdict and two of the three were invisible.
+      #
+      # THE TEST IS THE SCRIPT'S OWN TEXT, not the event name: a Pre/PostToolUse hook that
+      # never emits `permissionDecision` cannot block anything and stays WARN-free. Honest
+      # limitation: grep, not parsing — a hook that builds the key dynamically is missed,
+      # and a hook that only MENTIONS the word in a comment is over-reported. Both fail
+      # toward declaring a row, which is the cheap direction.
+      while IFS= read -r cmd; do
+        case "$cmd" in '${CLAUDE_PLUGIN_ROOT}/hooks/'*.sh) ;; *) continue ;; esac
+        n=$(basename "$cmd" .sh)
+        [ -f "$d/hooks/$n.sh" ] || continue
+        grep -q 'permissionDecision' "$d/hooks/$n.sh" 2>/dev/null || continue
+        case "$NL$rows$NL" in
+          *"$NL$p:$n${TAB}hook$NL"*) ;;
+          *) printf 'lane-missing hook %s:%s (returns a permissionDecision)\n' "$p" "$n"; bad=1 ;;
+        esac
+      done < <(jq -r '.hooks | to_entries[]
+                      | select(.key=="PreToolUse" or .key=="PostToolUse")
                       | .value[].hooks[].command // empty' "$hj" 2>/dev/null | sort -u)
     fi
     while IFS= read -r a; do

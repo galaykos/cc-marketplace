@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.35.1
+
+### Fixed
+- **`verification-panels` contradicted itself about when a panel is real.** One line keyed the inline fallback on the `Workflow` tool being absent, another correctly keyed it on whether N agents actually dispatched. The Agent tool is a real dispatch path, so the first line sent ordinary sessions to an uncorroborated single pass while `approach-deliberation` spawned the panel — the two disagreed on the same turn.
+
 ## 0.35.0
 
 ### Added

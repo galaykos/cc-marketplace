@@ -7,6 +7,10 @@
 # error or missing jq allows the write.
 {
   input=$(cat)
+  # OFF-SWITCH. Until 2026-09-15 this guard had none: the only way out was
+  # uninstalling the plugin. Every other guard in the marketplace ships one,
+  # and a global install makes "turn it off here" a real need.
+  [ "${CC_DB_GUARD:-on}" = "off" ] && exit 0
   command -v jq >/dev/null 2>&1 || exit 0
   tool=$(printf '%s' "$input" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
   case "$tool" in Write|Edit|MultiEdit) ;; *) exit 0 ;; esac
@@ -93,6 +97,8 @@
     reason="destructive-SQL guard: this change introduces ${lockhit}. On a large table this holds a lock that blocks concurrent reads/writes for the whole operation; prefer the non-blocking path (CREATE INDEX CONCURRENTLY; for a type change or NOT NULL, backfill then validate in a separate step, or add-column-and-copy). Proceed only if the table is small or a maintenance window is planned."
   fi
   [ -n "$file" ] && reason="$reason (file: $file)"
+  # Name the escape in the message that blocks you.
+  reason="$reason CC_DB_GUARD=off disables this guard for the session."
 
   jq -cn --arg r "$reason" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}' 2>/dev/null

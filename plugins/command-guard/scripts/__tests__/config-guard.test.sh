@@ -66,6 +66,26 @@ print(json.dumps({'session_id':'cg','cwd':'$T','tool_name':'Edit','tool_input':{
 " | CC_CONFIG_GUARD=off "$BASH_BIN" "$HOOK" 2>/dev/null)
 [ -z "$out" ] && ok "CC_CONFIG_GUARD=off silences it" || bad "CC_CONFIG_GUARD=off silences it" "$out"
 
+# The SIBLING's switch, added 0.6.3. core-suite's README sells
+# CLAUDE_DESTRUCTIVE_GUARD=deny-only as buying the click-free half of this plugin; this
+# hook is its other ask tier and read only its own variable, so the documented setting
+# left an ask on every config write. Both values that mean "no ask tier" must silence it,
+# and the value that does NOT mean that (`ask`) must leave it running.
+for v in off deny-only DENY-ONLY Off; do
+  out=$(python3 -c "
+import json
+print(json.dumps({'session_id':'cg','cwd':'$T','tool_name':'Edit','tool_input':{'file_path':'$T/.claude/settings.json','old_string':'a','new_string':'b'}}))
+" | CLAUDE_DESTRUCTIVE_GUARD="$v" "$BASH_BIN" "$HOOK" 2>/dev/null)
+  [ -z "$out" ] && ok "CLAUDE_DESTRUCTIVE_GUARD=$v silences config-guard" \
+    || bad "CLAUDE_DESTRUCTIVE_GUARD=$v silences config-guard" "$out"
+done
+out=$(python3 -c "
+import json
+print(json.dumps({'session_id':'cg','cwd':'$T','tool_name':'Edit','tool_input':{'file_path':'$T/.claude/settings.json','old_string':'a','new_string':'b'}}))
+" | CLAUDE_DESTRUCTIVE_GUARD=ask "$BASH_BIN" "$HOOK" 2>/dev/null)
+[ -n "$out" ] && ok "CLAUDE_DESTRUCTIVE_GUARD=ask leaves config-guard running" \
+  || bad "CLAUDE_DESTRUCTIVE_GUARD=ask leaves config-guard running" "silenced"
+
 # --- fail-open ---------------------------------------------------------------
 out=$(printf 'garbage' | "$BASH_BIN" "$HOOK" 2>/dev/null); rc=$?
 [ "$rc" -eq 0 ] && [ -z "$out" ] && ok "fail-open on malformed input" || bad "fail-open on malformed input" "rc=$rc"

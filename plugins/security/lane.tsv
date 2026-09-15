@@ -6,3 +6,5 @@
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 security:security-engineer	agent	build	defensive-security-remediation	work applies an auth, OWASP, header/CSP, input-validation, or dependency-audit fix	-
 # generated:end
+security:review	command	review	owasp-diff-security-review	invoked on a diff or path, or a change touches auth, input handling, uploads, secrets or session transport	security:security-review
+security:security-review	skill	review	owasp-diff-security-review	web application code is being security-reviewed: authz/authn, injection, XSS, mass assignment, uploads, CSRF, secrets, session transport	secret-scanning:secret-scanning

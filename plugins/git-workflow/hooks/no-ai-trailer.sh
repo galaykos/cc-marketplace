@@ -41,7 +41,7 @@ set -u
 # LC_ALL=C: the emoji is matched as a byte sequence, locale-independent.
 export LC_ALL=C
 TRAILER_RE='co-authored-by:.*(claude|anthropic)|generated with \[?claude code|🤖 generated with'
-GIT_WRITE_RE='(^|[^a-z0-9_-])(git([[:space:]]+-[cC][[:space:]]*[^[:space:]]+|[[:space:]]+-[cC][^[:space:]]*)*[[:space:]]+(commit|merge|tag|notes|rebase|cherry-pick|am)|gh[[:space:]]+(pr|release|repo)[[:space:]]+(create|merge|edit|comment))([[:space:]]|$)'
+GIT_WRITE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash|sh|zsh|dash|ksh|eval|exec|command|sudo|doas|env|nohup|timeout|nice|time|xargs|then|do|else|elif|if|while|until|-[-a-z0-9]*|[0-9]+|"|'"'"')[[:space:]]*)*(git([[:space:]]+-[cC][[:space:]]*[^[:space:]]+|[[:space:]]+-[cC][^[:space:]]*)*[[:space:]]+(commit|merge|tag|notes|rebase|cherry-pick|am)|gh[[:space:]]+(pr|release|repo)[[:space:]]+(create|merge|edit|comment))([[:space:]]|$)'
 
 lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 
@@ -49,7 +49,16 @@ lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 classify_command() {
   local c; c=$(lc "$1")
   printf '%s' "$c" | grep -qE "$TRAILER_RE" || return 0
-  printf '%s' "$c" | grep -qE "$GIT_WRITE_RE" || return 0
+  # THE VERB MUST BE AT A COMMAND POSITION. The prefix used to be `[^a-z0-9_-]`, which
+  # a plain space satisfies — so any command whose TEXT merely mentioned both the
+  # trailer and the words "git commit" was denied though no git ran: a heredoc writing
+  # a JSON fixture, a grep for the trailer, an audit script quoting it. Measured
+  # 2026-09-15, when this guard denied an audit agent for building its own payload.
+  # Newlines separate commands too, so normalise them into the delimiter class. The
+  # keyword/assignment prefix is not decoration: without it `if git commit`,
+  # `; do git commit`, `sudo git commit` and `VAR=1 git commit` all escaped, which
+  # the old loose prefix did catch. Verified both directions by fixture.
+  printf '%s' "$c" | tr '\n' ';' | grep -qE "$GIT_WRITE_RE" || return 0
   return 1
 }
 

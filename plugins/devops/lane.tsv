@@ -11,3 +11,4 @@ devops:compose-init	skill	build	compose-generation-procedure	dispatched by /devo
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 devops:devops-engineer	agent	build	pipeline-and-infra-implementation	work targets CI config, a Dockerfile, a Kubernetes manifest, deploy config, or secrets wiring	resilience:observability-engineer
 # generated:end
+devops:workflow-guard	hook	any	ci-workflow-write-block	a Write/Edit under .github/workflows/ weakens the pipeline in one of the two shapes the guard recognises	devops:devops-reviewer

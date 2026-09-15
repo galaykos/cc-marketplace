@@ -58,6 +58,12 @@ entries to name-only in priority order, silently, so skills stop being reachable
 without any error — and because this bundle is installed at user scope, every
 repo pays.
 
+
+`workflow-suite` contains all seven of these. Install one or the other, never
+both: with workflow-suite present, `/core-suite:uninstall` keeps every member
+(another installed bundle lists them) and removes only this bundle's own
+manifest — a no-op that reads like a cleanup.
+
 On the default 200k window this bundle is over the floor on its own, so add to
 your user `settings.json` (the 1M tier fits with room to spare):
 
@@ -71,7 +77,7 @@ ceiling, not a purchase — it only admits description text that was being evict
 ## What's included
 
 - **secret-scanning** — PreToolUse hook that blocks high-confidence secrets at write time, plus `/secret-scanning:scan`
-- **candor** — the marketplace's one Stop gate, five clauses a script can prove: a file:line citation resolving to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass; plus the terse reply mode (inert until you run `/candor:level` and pick a level — which is exactly why it is safe here) and `/candor:check`
+- **candor** — the marketplace's one Stop gate, five clauses a script can prove: a file:line citation resolving to nothing, a position retracted under pushback with no tool call in between, a completion claim with nothing executed after the last edit, a registered task-runner run ending without its gate pass, a dependency manifest changed without its lockfile; plus the terse reply mode (inert until you run `/candor:level` and pick a level — which is exactly why it is safe here) and `/candor:check`
 - **code-review** — `/code-review:review`, the one review entry: it loads every stack rubric you have installed for whatever the diff touches, and carries the comment discipline (no-comment default; write-time denies for restatement, commented-out code and signature-repeating docblocks). Rule 3 holds because its PreToolUse lane denies only an edit that adds a banned comment — a gate on a defect, never a click per prompt
 - **skill-router** — hook that auto-loads the matching best-practice skill on edit, in whatever language the file turns out to be
 - **git-workflow** — worktree isolation, the branch finish protocol, and review-exchange rigor, plus `/git-workflow:finish`

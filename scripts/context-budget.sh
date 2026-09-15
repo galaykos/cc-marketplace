@@ -471,6 +471,9 @@ LISTING_CAP_1M=$(awk -v b="$LISTING_BYTES_PER_TOKEN" -v f="$LISTING_FRACTION" 'B
 case "$LISTING_CAP" in ''|*[!0-9]*|0) LISTING_CAP=6000; LISTING_CAP_1M=30000 ;; esac
 LISTING_MAX_DESC=1536
 listing_rows=""
+union_chars=0
+union_n=0
+union_plugins=0
 leaf_tokens_total=0
 leaf_dyn_total=0
 leaf_act_total=0
@@ -518,6 +521,15 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     is_leaf=1
     members=1
   fi
+  # This plugin's OWN artifacts, for the union row. The leaf branch already walked them
+  # into listing_chars/listing_n; only a bundle (whose row counts its MEMBERS) needs a
+  # second walk. Calling unconditionally re-walked every file of every leaf.
+  if [ "$is_leaf" -eq 1 ]; then
+    own_chars=$listing_chars; own_n=$listing_n
+  else
+    set -- $(pc_listing_entry_cost "${pj%/.claude-plugin/plugin.json}")
+    own_chars=$1; own_n=$2
+  fi
   tokens=$(( (total_bytes + 2) / 4 ))
   dyn_tokens=$(( (dyn_bytes + 2) / 4 ))
   act_tokens=$(( (act_bytes + 2) / 4 ))
@@ -542,6 +554,15 @@ for pj in plugins/*/.claude-plugin/plugin.json; do
     listing_rows="${listing_rows}$(printf '%-24s %9s  NEAR (%s%% of cap, no headroom)' "$bname" "$listing_chars" "$(awk -v a="$listing_chars" -v c="$LISTING_CAP" 'BEGIN{printf "%.0f", 100*a/c}')")
 "
   fi
+  # UNION (all-31). Every row above answers "if you installed only this one thing",
+  # which is the question nobody asks of a marketplace they install whole. The
+  # all-plugins-installed figure appeared in NO tooling here until 2026-09-15, so two
+  # independent audits each had to recompute it by hand. The number is deliberately NOT
+  # written down here or in any README: this line is the one place that computes it.
+  # Walk plugins/ directly rather than summing the rows: a bundle's row already
+  # includes its members, so summing rows double-counts every multi-owned leaf.
+  union_chars=$((union_chars + own_chars)); union_n=$((union_n + own_n))
+  union_plugins=$((union_plugins + 1))
   # TOTAL sums leaves only — bundles would double-count their members.
   [ "$is_leaf" -eq 1 ] && leaf_tokens_total=$((leaf_tokens_total + tokens))
   [ "$is_leaf" -eq 1 ] && leaf_dyn_total=$((leaf_dyn_total + dyn_tokens))
@@ -682,6 +703,19 @@ echo "  budget = ctxTokens x bytesPerToken x fraction; showing ${LISTING_CTX_TOK
 if [ -n "$listing_rows" ]; then
   printf '%-24s %9s  %s\n' "install" "chars" "status"
   printf '%s' "$listing_rows"
+  listing_had_rows=1
+fi
+# THE WHOLE-MARKETPLACE ROW. Report-only, like every other line in this channel.
+[ "${union_n:-0}" -gt 1 ] && union_chars=$((union_chars + union_n - 1))
+echo
+echo "  EVERYTHING INSTALLED (all ${union_plugins} plugins, ${union_n} entries): ${union_chars} chars"
+awk -v a="$union_chars" -v c="$LISTING_CAP" -v c1="$LISTING_CAP_1M" -v f="$LISTING_FRACTION" -v b="$LISTING_BYTES_PER_TOKEN" 'BEGIN{
+  printf "    %.2fx the %d-char cap here; %.2fx the %d-char cap at 1M\n", a/c, c, a/c1, c1;
+  printf "    to fit WITHOUT eviction set skillListingBudgetFraction to %.3f here, or %.3f at 1M\n", (a/c)*f*1.02, (a/c1)*f*1.02;
+  printf "    cost of doing so: about %d system-prompt tokens every turn\n", a/b }'
+echo "    this is the union of every plugin dir, counted once each — NOT the sum of the rows"
+echo "    above, which double-counts any leaf that several bundles list."
+if [ -n "${listing_had_rows:-}" ]; then
   echo "  every install not listed above is under the cap and loses nothing to eviction"
   echo "  OVER = a REACHABILITY warning, never a cost one: over budget the CLI reduces entries"
   echo "  to name-only and buys descriptions back in PRIORITY order, so the text is never sent"

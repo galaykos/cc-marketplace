@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3
+
+### Fixed
+- **`config-guard` now honours `CLAUDE_DESTRUCTIVE_GUARD=deny-only`.** core-suite's README tells installers that variable buys the click-free half of this plugin, but config-guard read only its own `CC_CONFIG_GUARD` — so the documented setting left an ask tier running on every config write. Both values that mean "no ask tier" (`off`, `deny-only`) now silence it.
+
 ## 0.6.2
 
 ### Fixed

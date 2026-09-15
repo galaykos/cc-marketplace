@@ -5,6 +5,12 @@ taskmaster-suite became on 2026-09-14; the entries below 0.1.0 are taskmaster-su
 own, with its version numbers (started at 0.17.0; earlier versions have no entries
 rather than invented ones).
 
+## 0.2.3
+
+### Fixed
+- **The uninstall no longer offers to delete plugins you installed yourself** — same provenance split as the other bundles; it defaults to keeping anything it cannot prove it installed.
+- **The README now warns against installing `core-suite` alongside this bundle**, which is a strict subset of it.
+
 ## 0.2.0
 
 ### Changed

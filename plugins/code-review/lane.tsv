@@ -8,3 +8,6 @@ code-review:comment-discipline	skill	build	comment-placement-rule	writing or rev
 # generated:start — rows rendered by scripts/generate.sh from .chassis.json `lane` keys; edit the manifest, not these rows
 code-review:comment-review	command	review	comment-placement-review	invoked as /code-review:comment-review	-
 # generated:end
+code-review:scan	hook	any	comment-noise-write-block	a Write/Edit adds a comment restating the next line, a line of commented-out code, or a docblock tag repeating the signature	code-review:comment-discipline
+code-review:density	hook	any	comment-volume-write-block	a Write/Edit puts a file over min(2x its committed siblings' median, the ceiling) comment-to-code	code-review:comment-discipline
+code-review:review	command	review	cross-stack-review-fan-in	a diff, PR, branch or path needs reviewing — the single entry that loads every installed stack rubric for whatever the diff touches	code-review:code-reviewer

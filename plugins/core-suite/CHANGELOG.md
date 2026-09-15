@@ -3,6 +3,13 @@
 core-suite is the bundle always-on-suite became on 2026-09-14; the entries below 0.1.0 <!-- removed-ok -->
 are always-on-suite's own, with its version numbers. <!-- removed-ok -->
 
+## 0.1.4
+
+### Fixed
+- **The uninstall no longer offers to delete plugins you installed yourself.** It now splits candidates by provenance and defaults to KEEPING anything without an auto-install marker. Measured 2026-09-15: that marker was present on 40 of 725 install records on one real machine, and four projects with a suite installed carried zero — so the old "remove every dependency" default was aimed squarely at hand-installed plugins.
+- **The README named four of candor's five Stop clauses while calling them five.** The fifth (lockfile drift) is now named.
+- **The README now warns against installing `workflow-suite` alongside this bundle.** All seven members here are in that one; with both installed, `/core-suite:uninstall` keeps every member and removes only this manifest — a no-op that reads like a cleanup.
+
 ## 0.1.1 — 2026-09-15
 
 - **Called candor's Stop gate "four-clause" after it grew a fifth.** The bundle
