@@ -16,7 +16,7 @@ The verdict lint referenced below landed in 0.5.0, before that.
   is declared at step 1 of the loop instead of being wedged between steps 6 and 7, and
   the README carries a two-engine table. **Budget-neutral by construction**: the four
   metered descriptions total 878 bytes against 893 before, so the always-on baseline
-  does not move. Honest limitation — `rationale/2026-09-15-listing-eviction-probe.md`
+  falls by 3 tokens. Honest limitation — `rationale/2026-09-15-listing-eviction-probe.md`
   measured description TEXT as making no difference to firing (47/50 both arms) with a
   meaningful skill name; `ultra-deep-research` is not a name that suggests reading a
   contract, which is why this was worth the bytes, but the benefit is reasoned, not

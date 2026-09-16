@@ -7,6 +7,11 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.51.1
+
+### Fixed
+- **The boost hook keyed the inline red-team fallback on a missing `Workflow` tool.** The Agent tool is a real dispatch path, so in an ordinary interactive session the panel should spawn; only with no dispatch mechanism at all does the run fall to one inline pass. `ultra-craft.sh` (rendered from `.chassis.json`) and the `ultra-craft` skill now state the rule `task-runner:verification-panels` owns.
+
 ## 0.51.0
 
 ### Fixed

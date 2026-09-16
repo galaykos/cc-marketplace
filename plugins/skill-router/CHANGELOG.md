@@ -2,6 +2,11 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.17.1 — 2026-09-16
+
+### Fixed
+- README named 1836 as the committed dynamic-channel figure; the baseline it cites reads 1822. Corrected; the sentence still tells you to recount rather than quote it.
+
 ## 0.17.0 — 2026-09-15
 
 ### Fixed

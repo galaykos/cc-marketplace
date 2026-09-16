@@ -29,7 +29,7 @@ bundle still overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **6,313 chars** (LC_ALL=C bytes —
+**6,000 chars**, and this bundle's listing costs **6,471 chars** (LC_ALL=C bytes —
 the marketplace's deterministic measure, ~1% above what the CLI counts; measured
 2026-09-15, `bash scripts/context-budget.sh`, listing channel) — over
 budget since ui-ux 0.20.0 added the Material UI and library-agnostic skills, so

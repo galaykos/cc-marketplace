@@ -149,8 +149,8 @@ auto-approved contracts as the checkpoint; a post-hoc veto of a ledger line re-r
 
 ## Degradation, and the half the harness owns
 
-Never hard-fails. Without a usable `Workflow` path every fan-out phase falls back to its
-inline single-agent form, still model-escalated, and per `task-runner:verification-panels`
+Never hard-fails. With no dispatch mechanism at all — no `Workflow` tool AND no Agent tool —
+every fan-out phase falls back to its inline single-agent form, still model-escalated, and per `task-runner:verification-panels`
 that fallback is reported as **"inline heuristic pass — single model, uncorroborated"**,
 never as a panel or adversary count. Auto-take, ledger, and markers operate identically inline.
 

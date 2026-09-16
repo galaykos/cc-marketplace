@@ -94,7 +94,8 @@ asset lookups — stay NATIVE. Escalating a builder buys latency, not craft.
 5. **Red-team the shipped result, AND the fixes.** After step 7's audit, blind refuters
    attack the built tree against the contract and the divergence record, N=3 as a CEILING
    sized to blast radius, each told to REFUTE. Compose `task-runner:verification-panels`
-   when installed; no Workflow tool → ONE inline pass, labeled `inline heuristic pass —
+   when installed; no dispatch mechanism (no Workflow tool AND no Agent tool) → ONE inline
+   pass, labeled `inline heuristic pass —
    single model, uncorroborated`. Never report a panel that did not run. Three rules the
    panel owes — SWEEP an interactive signature's reachable state space instead of reasoning
    about representative values, attack the post-audit FIX LIST as its own claim set, and

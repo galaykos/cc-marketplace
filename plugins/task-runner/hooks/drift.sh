@@ -36,7 +36,8 @@
 #   - Whether a given extra file was NECESSARY needs a reader. That judgment stays
 #     agent-graded, and is why the message ends in a question.
 #
-# Off switches: CC_REMIND=off silences every advisory nudge here; CC_DRIFT=off only this.
+# Off switches: CC_REMIND=off silences this and the other reminder hooks; CC_DRIFT=off only
+# this. scope.sh, the run-scoped tripwire, reads only the run's scope file and is not muted.
 #
 # FAIL-OPEN: missing jq, unreadable transcript, unwritable state, or any error exits 0.
 {

@@ -42,8 +42,8 @@ PROACTIVELY-phrased description asks for; it is not wired into the review's appl
 | `laravel-best-practices` | Controllers, models, jobs, migrations — the daily Laravel surface; advice pinned to the installed `laravel/framework` |
 | `inertia-best-practices` | Inertia pages, props, partial reloads, `useForm`, shared data, SSR; v2 features (deferred props, prefetching, polling, merge props) only when the lockfile shows v2+, v3 leverage (the `@inertiajs/vite` plugin owning entry/SSR wiring, ESM-only, axios removed) only on v3; adapter idiom matched from the lockfile |
 
-Also ships the shared `backend-engineer` worker agent (PHP/Laravel) that the review
-routes its fixes to. With `skill-router` installed the skills load on their own as
+Also ships the shared `backend-engineer` worker agent (PHP/Laravel) for implementation
+work; the review's fix list does not route to it (see above). With `skill-router` installed the skills load on their own as
 matching files are edited.
 
 ## Pairs well with

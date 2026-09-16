@@ -51,7 +51,7 @@ bundle overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **~6,880 chars** (LC_ALL=C bytes
+**6,000 chars**, and this bundle's listing costs **7,008 chars** (LC_ALL=C bytes
 — the marketplace's deterministic measure, ~1% above what the CLI counts; recount
 with `bash scripts/context-budget.sh`, listing channel). Over it the host reduces
 entries to name-only in priority order, silently, so skills stop being reachable

@@ -4,6 +4,11 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.24.2
+
+### Fixed
+- README promised `CC_REMIND=off` silences "every advisory in this marketplace"; it silences every reminder hook, and task-runner's scope tripwire is an advisory that deliberately reads no switch. Reworded to the promise that is true.
+
 ## 0.24.1
 
 ### Changed

@@ -22,7 +22,7 @@ reproduced, every happy path orphaned a file). secret-scanning's skill told the 
 shipped guard denies `AKIAIOSFODNN7EXAMPLE` and offered literal-splitting as the escape;
 measured, that write is released by the placeholder exemption and splitting is the move the
 guard exists to catch. skill-router's `route.sh` ignored `CC_REMIND=off` while nine READMEs
-promised it silences every nudge; two rules regexes could never match (`\b@reui`, `.lock(\b`).
+promised it silences every nudge; one rules regex could never match (`\b@reui`) and one needed an argument (`.lock(\b`).
 task-runner's three consumers of the panel fallback keyed on a `Workflow` tool that needs an
 explicit opt-in, so every ordinary session silently ran one single-model pass. brain's drift
 hint printed "0 files changed" beside a warning that the map was behind. api-design's
@@ -44,20 +44,27 @@ ships `unicode-scan`; ultra-deep-research has had a local-corpus engine since 20
   diff, by the rule that a changelog is not backfilled.
 - Chassis regenerated for laravel, task-runner and ui-ux after their manifests changed.
 
+**Follow-up in the same release, after a review of the branch.** The five `plugin.json`
+descriptions over the 700-char guideline were trimmed in both files with no claim removed.
+candor's clause-4 negative-control count now filters on the run sentinel like its siblings
+(a stale record from a previous run satisfied the gate; measured). command-guard's harness
+scopes its git-status snapshot to its own directory. The phase-guard template cites its
+smoke assertion by name. `rationale/` live-routing cites moved off the retired
+`claude-authoring` path. A contradiction audit then found taskmaster and craft-layer still
+keying the inline fallback on a missing `Workflow` tool — the rule task-runner fixed one
+side of in 0.110.0 — and both now state the owner's rule: no dispatch mechanism at all.
+Four bundle READMEs re-measured their listing figures after the description growth
+above; workflow-suite now recommends `0.05`, since `0.04` is 165 chars short.
+
 ### Not fixed, deliberately
-- Five `plugin.json` descriptions remain over the 700-char WARN guideline (code-review,
-  craft-layer, frontend-suite, resilience, stack-scan). Trimming them is a paired edit each
-  and none of them is false.
 - taskmaster (1,228 B) and ui-ux (184 B) sit under their corpus ratchets by less than one
   paragraph. The next substantive addition to either is a split-or-retire decision.
 - Three shape-#2 skill families (security's api-auth/data-privacy/threat-modeling,
   code-architecture's solid/yagni/low-cognitive-load, craft-layer's threejs performance
   checklist) were flagged by their workers as canonical doctrine and left: cutting them
   needs a control arm, not a sweep.
-- Worker-observed, out of every worker's scope: `rationale/measured-zero-shapes.md` cites
-  the retired `claude-authoring` path; `templates/blocks/phase-guard.md` cites a smoke
-  assertion by a stale line number; command-guard's harness asserts repo-wide `git status`
-  stability, which fails under any concurrent editor.
+- Dated review documents under `rationale/` still cite the retired `claude-authoring`
+  path as history; rewriting them would falsify the record they exist to keep.
 
 ## [0.110.0] - 2026-09-15
 

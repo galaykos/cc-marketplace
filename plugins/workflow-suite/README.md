@@ -33,7 +33,7 @@ bundle still overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **23,775 chars** (LC_ALL=C bytes
+**6,000 chars**, and this bundle's listing costs **24,165 chars** (LC_ALL=C bytes
 — the marketplace's deterministic measure, ~1% above what the CLI counts; measured
 2026-09-15, `bash scripts/context-budget.sh`, listing channel) — over
 budget, the host reduces entries to name-only in priority order, silently, so
@@ -43,17 +43,18 @@ On the 1M-context tier (30,000 chars) this bundle fits. If you run the default
 200k window, add to the `settings.json` of the project where you use this bundle:
 
 ```json
-{ "skillListingBudgetFraction": 0.04 }
+{ "skillListingBudgetFraction": 0.05 }
 ```
 
-That raises the listing budget to 24,000 chars at 200k. The cost is real but
+That raises the listing budget to 30,000 chars at 200k. The cost is real but
 small: the fraction is a ceiling, not a purchase — it only admits description
 text that was previously being evicted.
 
-**The margin at 0.04 is 225 chars** — 23,775 against 24,000, under 1%. One new
-skill in any of the fifteen members spends it, and the symptom is silent eviction,
-not an error. Recount before assuming it still fits, or set `0.05` and stop
-thinking about it.
+**Why 0.05 and not 0.04:** 0.04 is 24,000 chars, and this bundle measured 24,165 on
+2026-09-15 after four members grew their descriptions in one release — it had
+225 chars of headroom the day before. One new skill in any of the fifteen members
+moves the figure, and the symptom is silent eviction, not an error. Recount before
+trusting any number on this page.
 
 ## What's included
 
@@ -101,7 +102,7 @@ recorded rule with a reason and the table gave none, so they stay.)
 listing by the formula above — **6,000 chars on the default 200k window, 30,000 at
 1M** — and past it the host drops descriptions, leaving names only. The overflow
 is never a token cost (dropped text is never sent) — it is **reachability**, paid
-by every member including the pipeline core. At fifteen members (23,775
+by every member including the pipeline core. At fifteen members (24,165
 entry-chars) the bundle fits at 1M outright and at 200k with the settings line
 above; the measurement and the cost model are in
 `rationale/2026-08-31-token-cost-review.md`.

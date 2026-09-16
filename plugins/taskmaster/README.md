@@ -61,8 +61,8 @@ Without arguments it asks for a description first. The pipeline then:
 A priority directive fires on work-shaped prompts
 (build/add/implement/fix/update/change/write…): before the first code edit,
 run one batched clarifying round to zero ambiguity or state in one line why
-the task is trivial. It holds `arcRank` 25 in the shared one-reminder-per-prompt
-election — no plugin is privileged there, so it earns its place by arc position:
+the task is trivial. It holds `arcRank` 25 in the shared reminder-rank election
+(bounded at one line per eligible hook, never a guarantee of one per prompt) — no plugin is privileged there, so it earns its place by arc position:
 clarification is `shape`, ahead of build-vs-buy (`decide`, 30) and the API docs
 check (`build`, 40), behind only the two `any`-phase guards, a stuck-loop nudge
 (10) and an irreversible-command warning (20). Between 2026-08-16 and 2026-09-14
@@ -106,7 +106,8 @@ Three rules that catch people out:
   clarifying rounds interleave. Run them separately, or state the dependency explicitly
   so the split produces ordered milestones.
 
-Without any `Workflow` path every fan-out phase degrades to a single inline agent,
+With no dispatch mechanism at all (no `Workflow` tool and no Agent tool) every fan-out
+phase degrades to a single inline agent,
 reported as `inline heuristic pass — single model, uncorroborated` — never as a panel.
 Full rules, including the workflow-size ceiling and why interactive phases never fan
 out: the `task-runner` plugin's `verification-panels` skill,

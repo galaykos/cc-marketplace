@@ -60,9 +60,11 @@ change touches*, which does not exist yet at
 spec-freeze. The four gate bullets are the radius proxy at this step. Apply in order,
 first match wins:
 
-1. **No `Workflow` tool → 1 inline adversary.** Tested FIRST so it wins over every branch
-   below — including a zero-bullet boosted run, which would otherwise fall into a
-   Workflow-gated section that does not apply to it. Today's path, unchanged.
+1. **No dispatch mechanism (no `Workflow` tool AND no Agent tool) → 1 inline adversary.**
+   Tested FIRST so it wins over every branch below — including a zero-bullet boosted run,
+   which would otherwise fall into a fan-out section that does not apply to it. The Agent
+   tool is a real dispatch path: with it present the adversaries spawn as separate agents.
+   `task-runner:verification-panels` owns this rule; cite it, never restate it narrower.
 2. The **security/auth/data/external-surface** bullet fires, **or two or more** bullets
    fire → **3 adversaries**.
 3. Exactly one non-security bullet fires → **2 adversaries**.

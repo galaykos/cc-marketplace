@@ -81,7 +81,7 @@ that looks great as a swatch can fail hard as a button.
     strings or a literal default swatch, once per session, and never blocks. A violet
     brand is a legitimate answer; the only thing separating "chose it" from "reached
     for the default" is intent, which no script reads. Silence it with
-    `CC_PALETTE=off`, or `CC_REMIND=off` for every advisory in this marketplace.
+    `CC_PALETTE=off`, or `CC_REMIND=off` for every reminder hook in this marketplace.
 
   It exists because craft-layer's stricter equivalent (`utility-palette`, a gate
   with a waiver lane) is invoked by `/craft-layer:audit` only — a `/craft-layer:craft`

@@ -2,6 +2,11 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.36.2
+
+### Fixed
+- `drift.sh`'s header said `CC_REMIND=off` silences "every advisory nudge here"; `scope.sh`, the run-scoped tripwire, reads no switch by design. The header now says which hooks the switch covers and that the tripwire is not among them.
+
 ## 0.36.1
 
 ### Changed
