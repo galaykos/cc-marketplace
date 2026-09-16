@@ -1,7 +1,7 @@
 {
   "name": "all-plugins",
   "version": "0.1.0",
-  "description": "Installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, and uninstalls them again — one script with an exit code (0 done, 1 a plugin failed, 2 the marketplace is not added), driven by /all-plugins:install and /all-plugins:uninstall or run straight from the marketplace clone. The cost is measured, not guessed: with everything installed the host's skill listing overflows its budget, so autonomous dispatch of some skills is lost on any given reload while naming a skill explicitly still works (rationale/2026-08-31-token-cost-review.md). Never installs a bundle, never prompts, never picks for you — that is /stack-scan:suggest.",
+  "description": "Installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, and uninstalls them again — one script with an exit code (0 done, 1 a plugin failed, 2 the marketplace is not added), driven by /all-plugins:install and /all-plugins:uninstall or run straight from the marketplace clone. The cost is measured, not guessed: with everything installed the host's skill listing overflows its budget (~6.6x at 200k, ~1.3x at 1M) and the overflow goes name-only; whether that changes what fires was measured once at zero delta (rationale/2026-09-15-listing-eviction-probe.md). Never installs a bundle, never prompts, never picks for you — that is /stack-scan:suggest.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

@@ -16,10 +16,13 @@ line names the fix). `--dry-run` prints the plan; `--scope project|user` moves i
 - **This is the want the deleted `everything` bundle served, and it is shipped with the
   reason that bundle was removed stated up front, not enforced by a gate it cannot
   reach.** A bundle is subject to `pc_listing_declaration`; a leaf that installs leaves
-  is not. So the plugin's README carries the measurement instead: with every leaf
-  installed the host's skill listing overflows its budget and the overflow goes
-  name-only — autonomous dispatch of those skills is lost on any given reload, naming
-  one explicitly still works (`rationale/2026-08-31-token-cost-review.md`).
+  is not. So the plugin's README carries the measurement instead, both halves of it:
+  with every leaf installed the host's skill listing overflows its budget ~6.6x at 200k
+  and the overflow goes name-only (`rationale/2026-08-31-token-cost-review.md`); whether
+  a name-only skill fires less was measured 2026-09-15 at zero delta, 47/50 vs 47/50,
+  n=50, triggering only (`rationale/2026-09-15-listing-eviction-probe.md`). The first
+  cut of this entry restated the pre-probe "autonomous dispatch is lost" claim the
+  0.110.x entries below had already retired; corrected before merge.
 - **Leaves only, this marketplace only, no prompts, no reload.** It reads the plugin
   list from `marketplace.json` and skips every manifest with a `dependencies` key; it
   never picks for you — `/stack-scan:suggest` is the curated path and the README says so.

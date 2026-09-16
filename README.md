@@ -75,7 +75,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 | `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.9k tokens |
 | `core-suite` | 7 | ~1.7k tokens | ~1.3k tokens | ~1.9k tokens |
 
-Every row is a curated subset. The marketplace ships all 28 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and its README states the listing-cap consequence a bundle would have had to declare.
+Every row is a curated subset. The marketplace ships all 28 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and its README states the listing overflow AND the one measurement (2026-09-15, n=50) that found it changes nothing detectable.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -471,7 +471,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
 | want the whole pipeline | `workflow-suite` |
-| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf at local scope, no questions; its README states what the skill-listing cap drops) |
+| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf at local scope, no questions; its README states the listing overflow and the one n=50 measurement that found it changes nothing detectable) |
 
 ---
 

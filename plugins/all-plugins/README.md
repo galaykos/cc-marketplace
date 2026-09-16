@@ -62,20 +62,30 @@ disk before any plugin is installed.
 |---|---|
 | The exit codes, the leaves-only list, the scope flag, zero prompts | **gate** — a mechanism, not prose: `scripts/all-plugins.sh` returns them, and a shim-driven harness, `scripts/__tests__/all-plugins.test.sh` (CI-globbed with every other plugin harness), fails the build if they drift |
 | The commands relay the script instead of running `claude plugin install` themselves | **agent-graded** — it is instruction text in `commands/*.md`; nothing detects a substituted loop |
-| The reachability caveat below | **recorded** — measured once and written down; no script re-measures it on your machine |
+| The cost paragraph below | **recorded** — the overflow arithmetic is reproduced by `scripts/context-budget.sh`; the zero-delta firing result is one n=50 measurement, and nothing re-runs it in CI (`scripts/smoke/listing-eviction-probe.sh` needs a live model and `LISTING_PROBE=1`) |
 
-## The cost, stated
+## The cost, stated — and how much of it is measured
 
 With every leaf installed, the host's skill listing overflows its budget — a formula,
-`contextWindowTokens x bytesPerToken x skillListingBudgetFraction`, about 6,000 chars
-on a 200k window — and the host reduces the overflow to name-only entries. A name-only
-skill is not gone: naming it explicitly still reaches it. What is lost is **autonomous
-dispatch** — the model can no longer pick that skill from its description, and which
-skills lose it varies per reload. The measurement, the cap and the argument are in
-`rationale/2026-08-31-token-cost-review.md`; raising `skillListingBudgetFraction` in
-`settings.json` is the lever it names.
+`contextWindowTokens x bytesPerToken x skillListingBudgetFraction`, 6,000 chars on a 200k
+window and 30,000 at 1M — by about 6.6x and 1.3x respectively (`scripts/context-budget.sh`
+prints the live figure as its EVERYTHING INSTALLED row). Over budget the host reduces
+entries to name-only and buys descriptions back in priority order; hooks and agents are
+not in that budget and load regardless. That arithmetic is reproduced and not in doubt.
 
-The `everything` bundle that once existed served this same want and was removed for
-that reason. This plugin is a script, not a bundle: it has no `dependencies` key, so
+What the overflow DOES is the part that was believed and then measured. This marketplace
+said for weeks that a name-only skill "silently stops being reachable". On 2026-09-15 that
+was tested with a control arm — the same skill with and without its description, at 1, 13,
+226 and 205-with-rivals skills — and firing did not change: 47/50 against 47/50
+(`rationale/2026-09-15-listing-eviction-probe.md`). What did move firing, in both arms, was
+eight skills contesting the same territory. So the honest statement is: the listing
+overflows, one measurement says that costs nothing you can detect, and that measurement is
+one model, one target skill, one prompt shape, n=50 per arm, and it scored triggering only —
+not whether the work that followed was as good. Raising `skillListingBudgetFraction` in
+`settings.json` (0.066 at 200k, 0.014 at 1M) buys the descriptions back for roughly 13k
+system-prompt tokens per turn; on that evidence it is not obviously worth paying.
+
+The `everything` bundle that once existed served this same want and was removed on the
+"unreachable" reading, before the probe. This plugin is a script, not a bundle: it has no `dependencies` key, so
 the bundle listing gates (`pc_listing_declaration`, the README member check) do not
 apply to it — which is why the cost is stated here instead of enforced by one.

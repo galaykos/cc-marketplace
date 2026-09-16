@@ -13,9 +13,10 @@
 # prompts — this marketplace declares no install commands, so nothing asks and `-y`
 # is never passed; does not reload the session (the hint names /reload-plugins).
 #
-# Reachability caveat, measured in rationale/2026-08-31-token-cost-review.md: with
-# every leaf installed the host's skill listing overflows its budget, so some
-# skills lose autonomous dispatch on any given reload — an explicit name still works.
+# Cost caveat: with every leaf installed the host's skill listing overflows its
+# budget (rationale/2026-08-31-token-cost-review.md) and the overflow goes name-only.
+# Whether that changes what fires was measured once at zero delta, n=50
+# (rationale/2026-09-15-listing-eviction-probe.md) — the README states both halves.
 #
 # Discovery is never a hardcoded list: `claude plugin marketplace list --json`
 # locates the clone, its marketplace.json names the plugins, and `claude plugin
