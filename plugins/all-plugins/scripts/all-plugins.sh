@@ -6,17 +6,27 @@
 # failure is reported; 2 = usage error or a missing prerequisite.
 #
 # Usage: all-plugins.sh <install|uninstall|list> [--scope local|project|user]
-#                       [--dry-run] [--self] [--marketplace NAME]
+#                       [--dry-run] [--self] [--no-budget] [--marketplace NAME]
+#
+# The listing budget is part of the job. Claude Code caps the skill+command listing
+# it sends the model at contextWindowTokens x bytesPerToken x skillListingBudgetFraction
+# (default 0.01 — 6,000 chars at 200k on a 3-byte model) and past it drops entries to
+# name-only. Every leaf here costs several times that, so `install` computes the
+# listing cost the way scripts/lib/plugin-checks.sh's pc_listing_entry_cost does
+# (name + 4 + min(desc,1536) per skill/command), and raises skillListingBudgetFraction
+# in the SCOPE's settings file to the smallest 0.01 step that covers it at the 200k
+# floor — a cap, not a fill, so a 1M window pays nothing extra. `uninstall` removes
+# the key again, but only when it still holds the value this script would set; any
+# other value is somebody's and is left alone. --no-budget skips both.
 #
 # What it does NOT do: never touches another marketplace; never installs a bundle
 # (a plugin.json with `dependencies` — the rule scripts/validate.sh applies); never
 # prompts — this marketplace declares no install commands, so nothing asks and `-y`
 # is never passed; does not reload the session (the hint names /reload-plugins).
 #
-# Cost caveat: with every leaf installed the host's skill listing overflows its
-# budget (rationale/2026-08-31-token-cost-review.md) and the overflow goes name-only.
-# Whether that changes what fires was measured once at zero delta, n=50
-# (rationale/2026-09-15-listing-eviction-probe.md) — the README states both halves.
+# Whether an overflowed listing changes what fires was measured once at zero delta,
+# n=50 (rationale/2026-09-15-listing-eviction-probe.md); the budget step exists
+# because sending every description is the only way to make the question moot.
 #
 # Discovery is never a hardcoded list: `claude plugin marketplace list --json`
 # locates the clone, its marketplace.json names the plugins, and `claude plugin
@@ -32,14 +42,19 @@ MARKETPLACE="cc-plugins-marketplace"
 SCOPE="local"
 DRY=0
 SELF=0
+BUDGET=1
+FLOOR_TOKENS=200000   # the default window; the fraction is a cap, so 1M costs no more
+FLOOR_BYTES_PER_TOKEN=3   # the newer tokenizer set; 4-byte models need a smaller fraction
+BUDGET_KEY=skillListingBudgetFraction
 CMD=""
 LEAVES=""
 STATES=""
 WIDTH=0
 REASON=""
+ROOT=""
 
 usage() {
-  printf 'usage: all-plugins.sh <install|uninstall|list> [--scope local|project|user] [--dry-run] [--self] [--marketplace NAME]\n'
+  printf 'usage: all-plugins.sh <install|uninstall|list> [--scope local|project|user] [--dry-run] [--self] [--no-budget] [--marketplace NAME]\n'
 }
 
 die() { # die <rc> <message> — every error names its fix and goes to stderr
@@ -64,6 +79,7 @@ parse_args() {
       --marketplace=*) MARKETPLACE="${1#--marketplace=}" ;;
       --dry-run) DRY=1 ;;
       --self) SELF=1 ;;
+      --no-budget) BUDGET=0 ;;
       -h|--help) usage; exit 0 ;;
       *) usage >&2; die 2 "unknown argument '$1'" ;;
     esac
@@ -172,6 +188,100 @@ report_failures() { # report_failures <count> <lines>
   return 1
 }
 
+settings_file() { # stdout: the settings file the CLI writes for SCOPE — measured: local and
+  local top          # project land at the git toplevel even when installing from a subdir
+  case "$SCOPE" in
+    user) printf '%s/.claude/settings.json' "$HOME" ;;
+    *) top=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)
+       if [ "$SCOPE" = local ]; then printf '%s/.claude/settings.local.json' "$top"; else printf '%s/.claude/settings.json' "$top"; fi ;;
+  esac
+}
+
+listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc_listing_entry_cost's rule
+  local root="$1" mj name src pdir f desc dl total=0
+  mj="$root/.claude-plugin/marketplace.json"
+  while read -r name; do
+    src=$(jq -r --arg n "$name" '.plugins[] | select(.name == $n) | .source | if type == "string" then . else "" end' "$mj" | head -n 1)
+    [ -n "$src" ] || continue
+    pdir="$root/$src"
+    for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md; do
+      [ -f "$f" ] || continue
+      case "$f" in
+        */skills/*) name="$(basename "$pdir"):$(basename "$(dirname "$f")")" ;;
+        *)          name="$(basename "$pdir"):$(basename "$f" .md)" ;;
+      esac
+      desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null | sed -n 's/^description:[[:space:]]*//p' | head -1)
+      dl=$(printf '%s' "$desc" | LC_ALL=C wc -c | tr -d ' ')
+      [ "$dl" -gt 1536 ] && dl=1536
+      total=$(( total + ${#name} + 4 + dl ))
+    done
+  done <<<"$LEAVES"
+  printf '%s' "$total"
+}
+
+needed_fraction() { # needed_fraction <chars> — smallest 0.01 step covering chars x 1.05 at the floor
+  awk -v c="$1" -v t="$FLOOR_TOKENS" -v b="$FLOOR_BYTES_PER_TOKEN" 'BEGIN {
+    f = (c * 1.05) / (t * b); s = int(f * 100); if (s / 100 < f) s++; if (s < 1) s = 1;
+    printf "%.2f", s / 100 }'
+}
+
+current_fraction() { # current_fraction <file> — the key's value, or the CLI default when absent
+  [ -f "$1" ] || { printf '0.01'; return; }
+  jq -r --arg k "$BUDGET_KEY" 'if type == "object" and has($k) then .[$k] else 0.01 end' "$1" 2>/dev/null || printf 'invalid'
+}
+
+write_settings() { # write_settings <file> <jq filter> — atomic, creates the file and dir
+  local file="$1" filter="$2" tmp
+  mkdir -p "$(dirname "$file")" || return 1
+  tmp="$file.all-plugins.$$"
+  if [ -f "$file" ]; then
+    jq --arg k "$BUDGET_KEY" "$filter" "$file" > "$tmp" || { rm -f "$tmp"; return 1; }
+  else
+    jq -n --arg k "$BUDGET_KEY" "$filter" > "$tmp" || { rm -f "$tmp"; return 1; }
+  fi
+  mv "$tmp" "$file"
+}
+
+budget_raise() { # after install: make the scope's settings cover the whole listing
+  local root="$1" file cost need cur tokens
+  [ "$BUDGET" -eq 1 ] || return 0
+  file=$(settings_file); cost=$(listing_cost "$root"); need=$(needed_fraction "$cost")
+  cur=$(current_fraction "$file")
+  tokens=$(( cost / FLOOR_BYTES_PER_TOKEN ))
+  if [ "$cur" = invalid ]; then
+    printf 'all-plugins: %s is not valid JSON — %s left untouched; set it to %s by hand\n' "$file" "$BUDGET_KEY" "$need" >&2; return 0
+  fi
+  if awk -v a="$cur" -v b="$need" 'BEGIN { exit !(a + 0 >= b + 0) }'; then
+    printf '%s %s in %s already covers the %s-char listing\n' "$BUDGET_KEY" "$cur" "$file" "$cost"; return 0
+  fi
+  if [ "$DRY" -eq 1 ]; then
+    printf 'DRY  set %s %s -> %s in %s (listing %s chars; default budget at 200k is %s)\n' "$BUDGET_KEY" "$cur" "$need" "$file" "$cost" $((FLOOR_TOKENS * FLOOR_BYTES_PER_TOKEN / 100)); return 0
+  fi
+  if write_settings "$file" ". + {(\$k): $need}"; then
+    printf '%s %s -> %s in %s: the listing is %s chars against a %s-char default budget at 200k; every description is now sent, about %s system-prompt tokens per turn\n' \
+      "$BUDGET_KEY" "$cur" "$need" "$file" "$cost" $((FLOOR_TOKENS * FLOOR_BYTES_PER_TOKEN / 100)) "$tokens"
+  else
+    printf 'all-plugins: could not write %s — set %s to %s by hand\n' "$file" "$BUDGET_KEY" "$need" >&2
+  fi
+}
+
+budget_revert() { # after uninstall: drop the key only if it still holds the value install sets
+  local root="$1" file cost need cur
+  [ "$BUDGET" -eq 1 ] || return 0
+  file=$(settings_file)
+  [ -f "$file" ] && jq -e --arg k "$BUDGET_KEY" 'type == "object" and has($k)' "$file" >/dev/null 2>&1 || return 0
+  cost=$(listing_cost "$root"); need=$(needed_fraction "$cost"); cur=$(current_fraction "$file")
+  if ! awk -v a="$cur" -v b="$need" 'BEGIN { exit !(a + 0 == b + 0) }'; then
+    printf '%s %s in %s left alone — not the value this script sets (%s)\n' "$BUDGET_KEY" "$cur" "$file" "$need"; return 0
+  fi
+  if [ "$DRY" -eq 1 ]; then printf 'DRY  remove %s %s from %s\n' "$BUDGET_KEY" "$cur" "$file"; return 0; fi
+  if write_settings "$file" "del(.[\$k])"; then
+    printf '%s %s removed from %s\n' "$BUDGET_KEY" "$cur" "$file"
+  else
+    printf 'all-plugins: could not write %s — remove %s by hand\n' "$file" "$BUDGET_KEY" >&2
+  fi
+}
+
 do_install() {
   local name st n_inst=0 n_en=0 n_skip=0 n_fail=0 total=0 failures="" verb done_as
   while read -r name; do
@@ -192,9 +302,12 @@ do_install() {
   done <<<"$LEAVES"
   if [ "$DRY" -eq 1 ]; then
     printf 'dry-run: would install %s, enable %s, skip %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$n_skip" "$total" "$SCOPE"
+    budget_raise "$ROOT"
     return 0
   fi
   printf 'installed %s, enabled %s, skipped %s, failed %s of %s leaves at scope %s\n' "$n_inst" "$n_en" "$n_skip" "$n_fail" "$total" "$SCOPE"
+  # Something from this marketplace is at this scope now (or was already): cover its listing.
+  [ $((n_inst + n_en + n_skip)) -eq 0 ] || budget_raise "$ROOT"
   [ $((n_inst + n_en)) -eq 0 ] || printf 'Run /reload-plugins — nothing installed this run is active until you do.\n'
   report_failures "$n_fail" "$failures"
 }
@@ -226,6 +339,7 @@ do_uninstall() {
   else
     printf 'uninstalled %s, skipped %s, failed %s of %s leaves at scope %s\n' "$n_un" "$n_skip" "$n_fail" "$total" "$SCOPE"
   fi
+  budget_revert "$ROOT"
   if [ "$SELF" -eq 0 ] && [ "$self_here" -eq 1 ] && [ "$(state_of "$SELF_NAME")" != absent ]; then
     printf '%s itself kept; remove it with: claude plugin uninstall %s@%s -s %s\n' "$SELF_NAME" "$SELF_NAME" "$MARKETPLACE" "$SCOPE"
   fi
@@ -252,6 +366,7 @@ main() {
   parse_args "$@"
   check_prereqs
   root=$(marketplace_root) || exit $?
+  ROOT="$root"
   LEAVES=$(leaves "$root") || exit $?
   [ -n "$LEAVES" ] || { printf 'no leaf plugins in marketplace %s — nothing to do\n' "$MARKETPLACE"; exit 0; }
   STATES=$(installed_states) || exit $?

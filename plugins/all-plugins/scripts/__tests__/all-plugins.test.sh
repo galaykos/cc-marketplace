@@ -12,8 +12,12 @@
 # installed here); one failing plugin never stops the walk and still exits 1;
 # `uninstall` keeps all-plugins unless --self, and with --self removes it LAST;
 # --dry-run and list mutate nothing; every usage and prerequisite error exits 2
-# with the fix on stderr; and `main "$@"` is the script's last line, which is what
-# makes self-uninstall safe.
+# with the fix on stderr; `main "$@"` is the script's last line, which is what
+# makes self-uninstall safe; and the listing-budget step: install raises
+# skillListingBudgetFraction in the SCOPE's settings file to the 0.01 step that
+# covers the leaves' entry cost (pc_listing_entry_cost's rule), never lowers a
+# higher value, keeps every other key, and uninstall removes only the value install
+# sets — a foreign value, invalid JSON and --no-budget all leave the file alone.
 #
 # WHAT IS NOT COVERED. Nothing here runs the real CLI: whether `claude plugin
 # install` accepts these flags on the installed version, what `--json` actually
@@ -50,6 +54,14 @@ jq -n '{name:"cc-plugins-marketplace",plugins:[
   {name:"some-suite",source:"./plugins/some-suite"},
   {name:"all-plugins",source:"./plugins/all-plugins"},
   {name:"alpha",source:"./plugins/alpha"}]}' > "$MK/.claude-plugin/marketplace.json"
+
+# Six 1,500-char descriptions on alpha: (8+4+1500)x6 = 9,072 chars, x1.05 / 600,000 = 0.0159,
+# so the budget step must land on 0.02 — above the 0.01 default and below a 0.5 someone set.
+mkdir -p "$MK/plugins/alpha/commands"
+BIG=$(printf 'x%.0s' $(seq 1 1500))
+for c in c1 c2 c3 c4 c5 c6; do printf -- '---\ndescription: %s\n---\nbody\n' "$BIG" > "$MK/plugins/alpha/commands/$c.md"; done
+SETTINGS="$PROJ_PHYS/.claude/settings.local.json"   # the script prints git's physical toplevel
+fraction() { jq -r '.skillListingBudgetFraction // "absent"' "$1" 2>/dev/null || printf 'unreadable'; }
 
 MARKETS="$WS/marketplaces.json"; MARKETS_NONE="$WS/marketplaces-none.json"
 jq -n --arg loc "$MK" '[{name:"other",source:"github",repo:"x/y",installLocation:"/nowhere"},
@@ -265,6 +277,82 @@ else
   err_has "unreadable marketplace.json names the update command" "claude plugin marketplace update $MK_NAME"
 fi
 chmod 644 "$MK/.claude-plugin/marketplace.json"
+
+# ---- 11. the listing-budget step ---------------------------------------------------------
+rm -rf "$PROJ/.claude"
+installed
+run -- install
+if [ "$(fraction "$SETTINGS")" = "0.02" ]; then ok "install writes the covering fraction to the local settings file"
+else bad "install writes the covering fraction to the local settings file" "got $(fraction "$SETTINGS")"; fi
+out_has "install reports the raise with the listing size" "skillListingBudgetFraction 0.01 -> 0.02 in $SETTINGS: the listing is 9072 chars"
+
+jq -n '{enabledPlugins:{"keep@x":true},skillListingBudgetFraction:0.5}' > "$SETTINGS"
+run -- install
+out_has "a higher value already covers and is not lowered" "skillListingBudgetFraction 0.5 in $SETTINGS already covers the 9072-char listing"
+if [ "$(fraction "$SETTINGS")" = "0.5" ]; then ok "higher value untouched"; else bad "higher value untouched" "got $(fraction "$SETTINGS")"; fi
+
+jq -n '{enabledPlugins:{"keep@x":true},skillListingBudgetFraction:0.015}' > "$SETTINGS"
+run -- install
+if [ "$(fraction "$SETTINGS")" = "0.02" ]; then ok "a lower value is raised"; else bad "a lower value is raised" "got $(fraction "$SETTINGS")"; fi
+if jq -e '.enabledPlugins["keep@x"] == true' "$SETTINGS" >/dev/null; then ok "other settings keys survive the raise"
+else bad "other settings keys survive the raise" "$(cat "$SETTINGS")"; fi
+
+installed "$(entry alpha local true "$PROJ")" "$(entry beta local true "$PROJ")" "$(entry all-plugins local true "$PROJ")"
+jq -n '{}' > "$SETTINGS"
+run -- install
+out_has "an all-skips run still covers the listing" "skillListingBudgetFraction 0.01 -> 0.02"
+
+rm -rf "$PROJ/.claude"; installed
+run -- install --no-budget
+if [ ! -e "$SETTINGS" ]; then ok "--no-budget writes nothing"; else bad "--no-budget writes nothing" "$(cat "$SETTINGS")"; fi
+out_not "--no-budget says nothing about the budget" "skillListingBudgetFraction"
+
+run -- install --dry-run
+if [ ! -e "$SETTINGS" ]; then ok "--dry-run writes no settings"; else bad "--dry-run writes no settings" "$(cat "$SETTINGS")"; fi
+out_has "--dry-run prints the raise it would make" "DRY  set skillListingBudgetFraction 0.01 -> 0.02 in $SETTINGS"
+
+mkdir -p "$WS/home"
+HOME="$WS/home" run -- install --scope user
+if [ "$(fraction "$WS/home/.claude/settings.json")" = "0.02" ]; then ok "--scope user writes ~/.claude/settings.json"
+else bad "--scope user writes ~/.claude/settings.json" "got $(fraction "$WS/home/.claude/settings.json")"; fi
+if [ ! -e "$SETTINGS" ]; then ok "--scope user leaves the project file alone"; else bad "--scope user leaves the project file alone" "$(cat "$SETTINGS")"; fi
+
+run "$PROJ/sub" -- install --scope project
+if [ "$(fraction "$PROJ/.claude/settings.json")" = "0.02" ]; then ok "--scope project from a subdir writes the toplevel .claude/settings.json"
+else bad "--scope project from a subdir writes the toplevel .claude/settings.json" "got $(fraction "$PROJ/.claude/settings.json")"; fi
+rm -f "$PROJ/.claude/settings.json"
+
+mkdir -p "$PROJ/.claude"; printf '{ not json' > "$SETTINGS"
+run -- install
+rc_is "invalid settings JSON does not change the exit code" 0
+err_has "invalid settings JSON is named on stderr with the value to set" "$SETTINGS is not valid JSON — skillListingBudgetFraction left untouched; set it to 0.02 by hand"
+if [ "$(cat "$SETTINGS")" = '{ not json' ]; then ok "invalid settings JSON is not clobbered"; else bad "invalid settings JSON is not clobbered" "$(cat "$SETTINGS")"; fi
+
+# uninstall: remove the value install sets, keep anything else
+installed "$(entry alpha local true "$PROJ")" "$(entry beta local true "$PROJ")" "$(entry all-plugins local true "$PROJ")"
+jq -n '{enabledPlugins:{"keep@x":true},skillListingBudgetFraction:0.02}' > "$SETTINGS"
+run -- uninstall
+out_has "uninstall removes the fraction it set" "skillListingBudgetFraction 0.02 removed from $SETTINGS"
+if [ "$(fraction "$SETTINGS")" = "absent" ] && jq -e '.enabledPlugins["keep@x"] == true' "$SETTINGS" >/dev/null; then ok "key gone, other keys kept"
+else bad "key gone, other keys kept" "$(cat "$SETTINGS")"; fi
+
+jq -n '{skillListingBudgetFraction:0.5}' > "$SETTINGS"
+run -- uninstall
+out_has "uninstall leaves a foreign value alone and says so" "skillListingBudgetFraction 0.5 in $SETTINGS left alone — not the value this script sets (0.02)"
+if [ "$(fraction "$SETTINGS")" = "0.5" ]; then ok "foreign value untouched"; else bad "foreign value untouched" "got $(fraction "$SETTINGS")"; fi
+
+jq -n '{skillListingBudgetFraction:0.02}' > "$SETTINGS"
+run -- uninstall --dry-run
+out_has "uninstall --dry-run prints the removal" "DRY  remove skillListingBudgetFraction 0.02 from $SETTINGS"
+if [ "$(fraction "$SETTINGS")" = "0.02" ]; then ok "uninstall --dry-run removes nothing"; else bad "uninstall --dry-run removes nothing" "got $(fraction "$SETTINGS")"; fi
+
+run -- uninstall --no-budget
+if [ "$(fraction "$SETTINGS")" = "0.02" ]; then ok "uninstall --no-budget removes nothing"; else bad "uninstall --no-budget removes nothing" "got $(fraction "$SETTINGS")"; fi
+
+jq -n '{enabledPlugins:{}}' > "$SETTINGS"
+run -- uninstall
+out_not "uninstall with no key says nothing about the budget" "skillListingBudgetFraction"
+rm -rf "$PROJ/.claude"
 
 # ---- 10. the structural property that makes --self safe ---------------------------------
 if [ "$(tail -n 1 "$SCRIPT")" = 'main "$@"' ]; then ok 'main "$@" is the last line of the script'

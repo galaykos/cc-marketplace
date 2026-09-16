@@ -1,6 +1,6 @@
 ---
 description: Uninstall every leaf plugin of this marketplace from one scope with zero prompts — local by default; --self removes all-plugins too; runs the plugin's script and relays its exit code: 0 done, 1 lists the plugins that failed, 2 names the missing precondition.
-argument-hint: [--scope local|project|user] [--dry-run] [--self]
+argument-hint: [--scope local|project|user] [--dry-run] [--self] [--no-budget]
 ---
 
 Run the plugin's uninstall script through the Bash tool, exactly as written, with the
@@ -19,7 +19,10 @@ Then:
    and failed; do not summarise it into a count.
 3. Read the exit code:
    - **0** — every uninstall succeeded (or `--dry-run` printed the plan). Tell the user
-     the removals take effect in a new session or after `/reload-plugins`.
+     the removals take effect in a new session or after `/reload-plugins`. A
+     `skillListingBudgetFraction … removed` or `… left alone` line is the budget key
+     install wrote being undone, or deliberately kept because the value is not the
+     script's own; relay it as printed and never edit that key yourself.
    - **1** — at least one plugin failed. List the `FAIL` lines from the output and stop;
      do not retry them.
    - **2** — a precondition is missing. Show the stderr line — it names the fix, usually

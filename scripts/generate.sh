@@ -477,7 +477,7 @@ render_bundle_table() {
       [ -f "$lp" ] || continue
       jq -e 'has("dependencies")' "$lp" >/dev/null 2>&1 || nonsuite=$((nonsuite+1))
     done
-    printf '\nEvery row is a curated subset. The marketplace ships all %s leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and its README states the listing overflow AND the one measurement (2026-09-15, n=50) that found it changes nothing detectable.\n' "$nonsuite"
+    printf '\nEvery row is a curated subset. The marketplace ships all %s leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.\n' "$nonsuite"
     # The budget these numbers are measured AGAINST, stated once, with its source.
     # Claude Code budgets the skill listing at 1%% of the model context window and,
     # on overflow, drops descriptions starting with the skills you invoke least —

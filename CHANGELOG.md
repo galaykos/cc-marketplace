@@ -23,6 +23,15 @@ line names the fix). `--dry-run` prints the plan; `--scope project|user` moves i
   n=50, triggering only (`rationale/2026-09-15-listing-eviction-probe.md`). The first
   cut of this entry restated the pre-probe "autonomous dispatch is lost" claim the
   0.110.x entries below had already retired; corrected before merge.
+- **The listing budget is part of the job.** `install` finishes by computing the leaves'
+  entry cost (`pc_listing_entry_cost`'s rule) and writing `skillListingBudgetFraction`
+  into the scope's settings file at the smallest 0.01 step that covers it at the 200k
+  floor — 0.07 today; a cap, so a 1M window pays no more. Never lowers a covering value,
+  keeps every other key, refuses invalid JSON with the value to set on stderr. `uninstall`
+  removes the key only when it still holds the script's own value; `--no-budget` skips
+  both. Asked for as "do what is needed to not go over" and answered with the one lever
+  that keeps everything installed: the name+4 floor alone is 71% of the 200k cap, so
+  trimming descriptions cannot get there.
 - **Leaves only, this marketplace only, no prompts, no reload.** It reads the plugin
   list from `marketplace.json` and skips every manifest with a `dependencies` key; it
   never picks for you — `/stack-scan:suggest` is the curated path and the README says so.
