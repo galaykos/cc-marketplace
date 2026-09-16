@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.8.1
+
+### Changed
+- **The scout catalog gains the `all-plugins` row, and `--full` excludes it by construction.** A new leaf plugin registered in the marketplace manifest; this catalog is generated from it, so the row arrives here by `generate.sh --write`. It still appears once in the tier-3 remainder like every leaf (completeness rule), but `references/stack-relevance.md` and `references/flags.md` now list it beside `stack-scan` in the `--full` exclusion: an installer of everything inside a curated plan defeats the plan, so `--full` names `/all-plugins:install` as the everything-door instead of installing it.
+
 ## 0.8.0
 
 ### Fixed

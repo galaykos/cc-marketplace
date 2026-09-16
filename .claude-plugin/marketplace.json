@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.111.0"
+    "version": "0.112.0"
   },
   "plugins": [
     {
@@ -163,6 +163,11 @@
       "name": "toolchain-experts",
       "source": "./plugins/toolchain-experts",
       "description": "Five expert reviewers that RUN the project's own static analysis instead of reciting a best-practice checklist: php-expert (phpstan, psalm, phpcs, rector), ts-expert (tsc, eslint, biome, oxlint), react-expert (the hook rules), vue-expert (vue-tsc, eslint-plugin-vue) and ui-expert (stylelint, pa11y, lighthouse-ci, axe). A detect-analyzers.sh mechanism reports which tool is configured, which one CI actually enforces, what the baseline already forgives and which rules are switched off — so the headline finding is the analyzer's blind spot, which no remembered rubric can produce. Read-only; fixes route to the existing workers."
+    },
+    {
+      "name": "all-plugins",
+      "source": "./plugins/all-plugins",
+      "description": "Installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, and uninstalls them again — one script with an exit code (0 done, 1 a plugin failed, 2 the marketplace is not added), driven by /all-plugins:install and /all-plugins:uninstall or run straight from the marketplace clone. The cost is measured, not guessed: with everything installed the host's skill listing overflows its budget, so autonomous dispatch of some skills is lost on any given reload while naming a skill explicitly still works (rationale/2026-08-31-token-cost-review.md). Never installs a bundle, never prompts, never picks for you — that is /stack-scan:suggest."
     }
   ]
 }

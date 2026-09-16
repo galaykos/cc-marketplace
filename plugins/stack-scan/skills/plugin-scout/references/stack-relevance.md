@@ -36,11 +36,13 @@ those rows exist because three tokens share a name with plugins removed on
 
 Every leaf not named above is **any stack** and is always in the plan — every eligible
 leaf except the three in the table above. Count them from `references/catalog.md` at run
-time (leaves, minus `stack-scan`); no number is written here, because the one that used to
+time (leaves, minus `stack-scan` and `all-plugins`); no number is written here, because the one that used to
 be was wrong within a day of a plugin landing. That includes `ui-ux`: its a11y-audit, design-tokens and
 theming-system skills are stack-agnostic, so a server-rendered app with no
-JavaScript framework still gets it. The four `*-suite` bundles and `stack-scan`
-itself are excluded by construction and never listed one by one. Already-installed
+JavaScript framework still gets it. The four `*-suite` bundles, `stack-scan`
+itself and `all-plugins` are excluded by construction and never listed one by one —
+`all-plugins` because an installer of everything inside a curated plan defeats the
+plan; a user who wants everything is pointed at `/all-plugins:install` instead. Already-installed
 leaves are skipped and counted in the plan's `Already installed (K)` line.
 
 ## The domain-bound rule
