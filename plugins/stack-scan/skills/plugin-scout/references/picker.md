@@ -12,12 +12,14 @@ offers **15 suggestions, not 16**. Each question also carries a required short
 `Tier 1`, `Core 1/2`, `The rest`.
 
 The eligible set is every catalog leaf minus the bundles and stack-scan itself
-— recount it, never write the number down. At 15 per call that is **4 calls and
-16 blocking questions**, on every run, in every repo — including a Django repo
-being asked to consider `laravel` and `mariadb` four pages deep. This file used
-to require exactly that, under the name "full coverage". (It billed the cost at
-5 and 20 for months, in two files, neither of which derived it from the 15-per-
-call rule stated one paragraph up.)
+— recount it, never write the number down. At 15 per call the bill is **one call
+and four blocking questions per 15 eligible rows**: two calls and eight questions
+at today's catalog size, four and sixteen when the catalog was fifty rows — on
+every run, in every repo, including a Django repo being asked to consider
+`laravel` and `database` two pages deep. This file used to require exactly that,
+under the name "full coverage". (It billed the cost at a frozen 5 and 20 for
+months, in two files, neither of which derived it from the 15-per-call rule
+stated one paragraph up. Deriving it is the fix; a fresh frozen number is not.)
 
 ## The contract
 
@@ -49,13 +51,14 @@ pick — stated in this file for months, never argued.
 ## Report layout
 
 `SKILL.md`'s Report section is the short pointer; this is the shape it means. A
-51-row five-column markdown table is the wrong rendering: the evidence column is
-one of three constants in ~45 rows, the installed column is usually constant
-across all of them, and the whole thing scrolls roughly two screens before the
-first question — to carry real information in four rows.
+five-column markdown table over every eligible row is the wrong rendering: the
+evidence column is one of three constants in all but the few signal-backed rows,
+the installed column is usually constant across all of them, and the whole thing
+scrolls roughly two screens before the first question — to carry real information
+in four rows.
 
 ```
-51 marketplace plugins · 3 installed · Laravel + Inertia detected
+26 eligible · 3 installed · Laravel + Inertia detected
 
 TIER 1 — earned by a signal in this repo
    1  laravel   composer.json — laravel/framework ^11
@@ -64,21 +67,23 @@ TIER 1 — earned by a signal in this repo
 TIER 2 — any-project core (7)
    4  code-review ✓  5  debugging  6  testing  7  git-workflow
    8  code-architecture  9  secret-scanning  10 command-guard
-TIER 3 — no signal in this repo (40)
-  stack, unfired:  12 web-dev  13 database  14 craft-layer
-  quality/review:  16 a11y  17 performance  18 resilience  19 security
-  data:            21 database  22 sql  23 stack-scan
-  tooling:         24 brain  25 hindsight  26 stack-scan
+TIER 3 — no signal in this repo
+  worth a look here:  11 brain  12 approaches
+  quality/review:     13 toolchain-experts  14 resilience  15 security  16 api-design
+  process/planning:   17 taskmaster  18 task-runner  19 overseer
+  session-wide:       20 candor  21 hindsight  22 skill-router
+  ui:                 23 ui-ux  24 craft-layer
   ...
-  bundles:  frontend-suite (#12,#16,+2) · workflow-suite (#4,#6,#19,+12)
+  bundles:  frontend-suite (#2,#23,+2) · workflow-suite (#4,#17,#18,+3)
 ```
 
 - Header line: eligible count, installed count, detected stack. The installed
-  count replaces a column that would otherwise repeat one value 51 times.
+  count replaces a column that would otherwise repeat one value on every row.
 - Tier 3 groups by catalog keyword, one group per line, and is **never** truncated
   with "and N more" — the completeness rule is about the report, which is what
-  makes the one-call picker honest. The `...` above elides groups for brevity in
-  this sample only.
+  makes the one-call picker honest. The `...` elides groups and every count above
+  is illustrative: a run recounts from `references/catalog.md`, which is the only
+  place the numbers are real.
 - Numbers are stable across the whole run: the picker's option text, the Other
   channel and `pick.sh` all address rows by these numbers.
 
@@ -113,10 +118,12 @@ TIER 3 — no signal in this repo (40)
   "skipped (already installed)".
 - **Overlap deprioritizes, never hides — and only on a named pair.** Overlap
   means *same job*, not same keyword. Catalog keywords are marketplace taxonomy:
-  `review` alone appears on 26 of 63 rows, so intersecting them flags 30 of the
-  51 eligible rows as conflicts, `laravel` and `nextjs` included, the moment
-  `code-review` is installed — which `--yes` does on the first run. Deprioritize
-  only on an explicit pair:
+  `review` is the commonest one, carried by better than a third of the catalog, so
+  intersecting keywords flags more than half the eligible rows as conflicts —
+  `laravel` and `database` among them — the moment `code-review` is installed,
+  which `--yes` does on the first run. Recount both figures from
+  `references/catalog.md`; the ratio is the argument, not the integers.
+  Deprioritize only on an explicit pair:
 
   | Row | Overlaps |
   |---|---|

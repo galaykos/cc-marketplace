@@ -25,47 +25,12 @@ Deep nesting forces the reader to track multiple simultaneously-true conditions 
 any inner line. Invert conditions and return/continue early so the main body is flat and
 represents the "normal" path with preconditions handled up front.
 
-```js
-// Deep nesting — by the time you reach the core logic you're tracking 3 conditions
-function processOrder(order) {
-  if (order) {
-    if (order.items.length > 0) {
-      if (order.paymentConfirmed) {
-        // actual logic, 4 levels deep
-        return ship(order);
-      }
-    }
-  }
-  return null;
-}
-
-// Guard clauses — each precondition is handled and dismissed, main path is flat
-function processOrder(order) {
-  if (!order) return null;
-  if (order.items.length === 0) return null;
-  if (!order.paymentConfirmed) return null;
-  return ship(order);
-}
-```
-
 ## Avoid boolean params
 
 A boolean parameter forces the reader (and every call site) to decode what `true` means without
 looking it up, and it silently signals the function does two different things depending on the
 flag. Split into two named functions, or use a named-options object where the key documents
-itself.
-
-```js
-// Call site is opaque — what does `true` mean here?
-renderList(items, true);
-
-// Split by behavior — self-documenting call sites
-renderCompactList(items);
-renderExpandedList(items);
-
-// Or, when the branching is minor, a named option beats a bare boolean:
-renderList(items, { expanded: true });
-```
+itself — `renderList(items, true)` against `renderCompactList(items)`.
 
 If the function starts accumulating multiple boolean flags, that's a stronger signal it's
 secretly several functions glued together — split it before adding a third flag. The
@@ -77,21 +42,6 @@ today; yagni-check's options-object red flag targets speculative fields, not thi
 A reader shouldn't have to keep a private lookup table in their head ("`d` is the user, `x` is
 the count of active sessions"). Name things for what they hold or do, in the vocabulary of the
 problem domain, not the vocabulary of the implementation ("`temp`", "`data2`", "`flag`").
-
-```js
-// Reader must remember what each short name means for the rest of the function
-function calc(u, d, f) {
-  return f ? u.balance - d : u.balance + d;
-}
-
-// Names carry the meaning; no lookup table needed
-function applyTransaction(user, amount, isWithdrawal) {
-  return isWithdrawal ? user.balance - amount : user.balance + amount;
-}
-```
-
-(Note `isWithdrawal` here is still a boolean param smell per above — in real code this would
-likely split into `withdraw(user, amount)` / `deposit(user, amount)`.)
 
 Names also read against their neighbors: match the surrounding file's naming, idiom, and
 comment density rather than importing a house style of your own. A file where one function

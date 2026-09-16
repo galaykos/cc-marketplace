@@ -1,5 +1,5 @@
 ---
-description: Create or restyle a CSS-variable UI theme (shadcn/ReUI/Aceternity, Tailwind, or Bootstrap) with a live preview URL for the colours
+description: Create or restyle a UI colour theme (shadcn/ReUI/Aceternity CSS variables, Tailwind, Astryx `defineTheme()`, or Bootstrap Sass) with a live preview URL for the colours
 argument-hint: [brand-color-vibe-or-reference]
 ---
 

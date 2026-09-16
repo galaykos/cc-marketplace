@@ -2,6 +2,32 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.16.0
+
+### Changed
+- **Three skills now catch the words a user actually types.** `yagni-check` never contained
+  "over-engineered", "premature" or "YAGNI"; `work-verification` never contained "fixed" or
+  "tests pass"; `plan-before-code` never contained "implementation plan". Each of those is a
+  routine opening phrase, and a skill that does not carry it loses the dispatch to a
+  neighbour. Triggers only — no behaviour in any body changed.
+- **`low-cognitive-load` is 50 lines and 1.3 kB smaller.** The canonical guard-clause,
+  boolean-param and short-name before/after snippets are gone; every rule, and every local
+  boundary note they were wrapped around (the yagni-check options-object split, the
+  match-the-surrounding-file convention, locality-over-indirection), is kept verbatim.
+  `rationale/measured-zero-shapes.md` §3 measured that shape of content at or below zero
+  delta — a model emits guard clauses from memory, so the example was paying body budget to
+  teach nothing.
+
+### Fixed
+- **`coding-entry` compared its load cost against a number that matched no channel.** The
+  body said the eager load measures 17.9k/37k "against 12.4k for this marketplace's entire
+  always-on budget"; the always-on leaf sum is ~10.3k, and 12.4k only matched always-on plus
+  the dynamic channel added together. The comparison now names its source
+  (`scripts/context-budget-baseline.json`) and tells the reader to recount rather than quote.
+- **Two dangling cross-references in `coding-entry/references/skill-map.md`.** It pointed at
+  a "§ Priming" section the skill body does not have, and used an undefined term ("tier 1")
+  that appears nowhere else in the plugin.
+
 ## 0.15.4
 
 ### Fixed

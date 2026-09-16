@@ -8,9 +8,14 @@
 #   settings           .claude/settings.json, settings.local.json, ~/.claude/settings.json
 #   hooks              any hooks.json, any plugins/*/hooks/*.sh
 #   plugin manifests   .claude-plugin/plugin.json, marketplace.json
-#   lint/test config   .eslintrc*, eslint.config.*, .rubocop.yml, ruff.toml, phpstan.neon,
-#                      psalm.xml, .php-cs-fixer*, tsconfig.json, .golangci.yml, pytest.ini,
-#                      setup.cfg, .flake8, biome.json, clippy.toml
+#   lint/test config   .eslintrc*, eslint.config.*, .rubocop.yml, ruff.toml, pyproject.toml,
+#                      phpstan.neon[.dist], psalm.xml[.dist], .php-cs-fixer[.dist].php,
+#                      tsconfig.json, .golangci.y[a]ml, pytest.ini, setup.cfg, .flake8,
+#                      biome.json, clippy.toml
+#
+# The list above is the `case` below, spelled out: the two must be read together, because
+# a file named here and absent there is a promise nothing keeps. pyproject.toml was in
+# the code and missing from this list for its first four releases.
 #
 # WHY. Given a gate it cannot satisfy, the cheapest path out is to edit the gate — turn
 # off the rule, lower `strict`, add the file to an ignore list, delete the hook. It is

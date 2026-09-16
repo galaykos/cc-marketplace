@@ -1,15 +1,11 @@
 ---
 name: harvest
-description: Use when the user runs /hindsight:harvest or asks to mine PAST session transcripts for cross-session friction — fans out read-only transcript miners, applies a two-session recurrence gate, proposes CLAUDE.md rules, Claude Code memory entries, and skill ideas on explicit approval.
+description: Use when /hindsight:harvest runs, or the user asks what keeps going wrong across PAST sessions — recurring friction in session and subagent transcripts: corrections repeated, chores redone, fixes abandoned twice, proposed as CLAUDE.md rules, memory entries and skill ideas on approval.
 ---
 
-## Purpose
-
-Mine this project's Claude Code session history for recurring friction and
-turn it into apply-on-approval proposals: CLAUDE.md rule candidates,
-skill/plugin ideas, and failed-approach warnings, plus a friction stats
-digest. Deep mining happens here on demand; the SessionEnd hook only
-collects cheap stats. Nothing is written without an explicit user pick.
+Deep mining happens here, on demand: the SessionEnd hook only collects cheap
+stats, so the ledger ranks candidates and every FINDING is read out of a
+transcript. Nothing is written without an explicit user pick.
 
 ## Locate data
 

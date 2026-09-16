@@ -26,8 +26,8 @@ Otherwise the spec is trivial for this purpose — note "spec trivial for red-te
 skipped" in one line and let the handoff proceed. Matches grill's own scale-to-
 blast-radius doctrine; a one-file, two-criterion spec does not earn a subagent. (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
-**Exception — a boosted run never skips.** Under `ULTRA-TASK ACTIVE` **or** `ULTRA-GOAL ACTIVE` the red-team runs regardless of the bullets (`ultra/SKILL.md` "run ALWAYS";
-`ultra-goal/SKILL.md` "ALWAYS runs under goal"). Both directives count — goal injects `ULTRA-GOAL ACTIVE`, not the ultra-task string, and goal is hands-off, so no user is
+**Exception — a boosted run never skips.** Under `ULTRA-TASK ACTIVE` **or** `ULTRA-GOAL ACTIVE` the red-team runs regardless of the bullets (`ultra/SKILL.md`: "spec-redteam:
+runs ALWAYS" in § The boost contract, "spec-redteam always runs under goal" in § Goal audit trail). Both directives count — goal injects `ULTRA-GOAL ACTIVE`, not the ultra-task string, and goal is hands-off, so no user is
 present to catch a wrong skip. Zero bullets under a boost still runs; § The panel sizes N.
 `ULTRA-GOAL ACTIVE (boost=off)` (goal-lean) is hands-off WITHOUT the boost: the bullets
 decide as on a standard run, and a skip is written to the goal ledger, not only inline.
@@ -53,14 +53,18 @@ panel**, not a single adversary — the width `ultra/SKILL.md` and `/taskmaster:
 already promise. Unboosted runs keep the single adversary above; nothing here changes a
 standard run.
 
-Size N by the gate conditions already computed above — `dispatch-tiers.md` § Fan-out
-sizing owns panel N, but keys off *files the change touches*, which does not exist yet at
+Size N by the gate conditions already computed above. Panel width is owned by
+`task-runner:verification-panels` § Panel width; `ultra/references/dispatch-tiers.md`
+§ Fan-out sizing maps taskmaster's blast-radius rows onto it, but keys off *files the
+change touches*, which does not exist yet at
 spec-freeze. The four gate bullets are the radius proxy at this step. Apply in order,
 first match wins:
 
-1. **No `Workflow` tool → 1 inline adversary.** Tested FIRST so it wins over every branch
-   below — including a zero-bullet boosted run, which would otherwise fall into a
-   Workflow-gated section that does not apply to it. Today's path, unchanged.
+1. **No dispatch mechanism (no `Workflow` tool AND no Agent tool) → 1 inline adversary.**
+   Tested FIRST so it wins over every branch below — including a zero-bullet boosted run,
+   which would otherwise fall into a fan-out section that does not apply to it. The Agent
+   tool is a real dispatch path: with it present the adversaries spawn as separate agents.
+   `task-runner:verification-panels` owns this rule; cite it, never restate it narrower.
 2. The **security/auth/data/external-surface** bullet fires, **or two or more** bullets
    fire → **3 adversaries**.
 3. Exactly one non-security bullet fires → **2 adversaries**.

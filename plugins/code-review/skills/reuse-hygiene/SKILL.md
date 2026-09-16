@@ -1,6 +1,6 @@
 ---
 name: reuse-hygiene
-description: Use before reusing an existing function, class, or symbol — confirm it is not deprecated or an abandoned orphan — and when a change removes the last caller of something, so no new dead code is left behind. Covers the deep pass when a quick read cannot settle it.
+description: Use before reusing an existing function, class, or symbol — confirm it is not deprecated or an abandoned orphan — and when a change removes the last caller of something, so no new dead code is left behind. Deep pass when a quick read cannot settle it: unused exports and export-aware orphan detection via knip, vulture or deadcode.
 ---
 
 Reuse is the cheapest way to write code and the cheapest way to inherit a bug.

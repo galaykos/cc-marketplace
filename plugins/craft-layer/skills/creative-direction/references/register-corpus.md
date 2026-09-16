@@ -85,7 +85,8 @@ where a buyer's answer belongs.
 | `internal-service-name` | this build's own service/queue/worker names | **agent-graded** — build-specific, so no pattern can carry it |
 
 The six machine classes below are what `divergence.mjs` compiles. The seventh has no pattern
-by construction and is graded by `craft-reviewer` (step 11), which reads the build's own
+by construction and is graded by `craft-reviewer`'s buyer-slots checklist item, which reads
+the build's own
 vocabulary; saying which half is which is worth more than a check pretending to cover both.
 
 <!-- register-corpus:start -->

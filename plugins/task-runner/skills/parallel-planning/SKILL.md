@@ -1,6 +1,6 @@
 ---
 name: parallel-planning
-description: Use before executing any task list of three-plus tasks — or when asked "subagents or inline?": computes dependency levels, disjoint-file groups, agent count, estimated speedup, and an inline-vs-delegate verdict the user can override.
+description: Use before executing any task list of three-plus tasks, or when asked to parallelize one — "subagents or inline?": dependency levels, disjoint-file groups, agent count, speedup estimate, inline-vs-delegate verdict you can override.
 ---
 
 "Subagents or inline?" is a calculation, not a preference question. The task
@@ -149,4 +149,4 @@ the unit is a whole milestone, matching the `track-orchestration` skill's eligib
 Standing: recorded — takes a decomposition as given and prices execution.
 Decomposing into tasks is code-architecture's `plan-before-code`; scope lock, bounded
 fix loops and evidence are `task-execution`; dispatch prompts are this plugin's
-plugin's `delegation-contracts`, adversarial review its `verification-panels`.
+`delegation-contracts`, adversarial review its `verification-panels`.

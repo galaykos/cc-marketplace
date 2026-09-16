@@ -6,7 +6,8 @@ flip of the other. It emits no colour value; it states a rule, a WHEN, and a sea
 
 The generation MECHANICS of dark mode — accent lightening, the elevation shadow↔border
 flip, `card` sitting a step above `background` — are already owned by
-`plugins/ui-ux/skills/shadcn-theming/SKILL.md` (lines 74–82). This file CITES them; it does
+`plugins/ui-ux/skills/shadcn-theming/SKILL.md`, "Dark mode is a second design, not an
+inversion". This file CITES them; it does
 NOT restate them. Its job is to REQUIRE that both modes are derived, to say WHEN, and to say
 HOW that requirement enters the token-system direction.
 
@@ -45,7 +46,8 @@ the no-auto-flip rule forbids.
 ## What this file does not do
 
 - It does not restate the dark-mode generation mechanics (accent lightening, the elevation
-  shadow↔border flip, `card`-above-`background`) — `shadcn-theming` (`:74-82`) owns those;
+  shadow↔border flip, `card`-above-`background`) — `shadcn-theming`'s "Dark mode is a
+  second design" section owns those;
   this file cites them.
 - It does not emit a colour value — no hex, no functional-colour scalar, no named colour used
   as a value.

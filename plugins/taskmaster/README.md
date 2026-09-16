@@ -61,8 +61,8 @@ Without arguments it asks for a description first. The pipeline then:
 A priority directive fires on work-shaped prompts
 (build/add/implement/fix/update/change/write…): before the first code edit,
 run one batched clarifying round to zero ambiguity or state in one line why
-the task is trivial. It holds `arcRank` 25 in the shared one-reminder-per-prompt
-election — no plugin is privileged there, so it earns its place by arc position:
+the task is trivial. It holds `arcRank` 25 in the shared reminder-rank election
+(bounded at one line per eligible hook, never a guarantee of one per prompt) — no plugin is privileged there, so it earns its place by arc position:
 clarification is `shape`, ahead of build-vs-buy (`decide`, 30) and the API docs
 check (`build`, 40), behind only the two `any`-phase guards, a stuck-loop nudge
 (10) and an irreversible-command warning (20). Between 2026-08-16 and 2026-09-14
@@ -106,7 +106,8 @@ Three rules that catch people out:
   clarifying rounds interleave. Run them separately, or state the dependency explicitly
   so the split produces ordered milestones.
 
-Without any `Workflow` path every fan-out phase degrades to a single inline agent,
+With no dispatch mechanism at all (no `Workflow` tool and no Agent tool) every fan-out
+phase degrades to a single inline agent,
 reported as `inline heuristic pass — single model, uncorroborated` — never as a panel.
 Full rules, including the workflow-size ceiling and why interactive phases never fan
 out: the `task-runner` plugin's `verification-panels` skill,
@@ -216,7 +217,6 @@ it (recorded; the router is the only nudge).
   chart/media/type/prose/marketing/code/stepper/icon primitive library, 8 starter
   layouts, and dedicated preview pages), experience-walkthrough
   (interactive clickable demo of the whole assembled flow), task-cards
-  (spec → milestone-grouped single-prompt cards)
   (spec → milestone-grouped single-prompt cards), coverage-check (every success
   criterion has a card, no card proves what the spec never asked), verify-teeth
   (a card's Verify line names an assertion that would fail were the feature absent),
@@ -231,5 +231,13 @@ it (recorded; the router is the only nudge).
   (`CC_CLARIFY_GATE=block`, deny once) on PreToolUse; the card-shape observer
   (warn) on PostToolUse
 - **Scripts**: `verify-teeth-lint.sh`, `spec-ledger-lint.sh`, `goal-ledger-check.sh`,
-  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh` — each with a
-  harness under `scripts/__tests__/`
+  `skills-stamp-lint.sh`, `card-lint-record.sh`, `preview-cleanup.sh`,
+  `theme-axis-check.py` — each with a harness under `scripts/__tests__/`
+  (`card-lint-record.sh` is covered by `card-lint-observability.test.sh`, which
+  drives both its writers and its reader)
+
+Every hook fails open and every one has an off switch. `CC_REMIND=off` silences the
+clarify directive, the clarify gate and the card observer; `CC_CARDLINT=off` just the
+observer; `CC_PREVIEW_GUARD=off` the artifact guard; `CC_BOOST=off` (or
+`TASKMASTER_BOOST=off`) the boost detector. The clarify gate is additionally off
+unless `CC_CLARIFY_GATE=block`. `PREVIEW_PORT` moves the preview server off 8123.

@@ -71,11 +71,16 @@
 #      Laravel used the mysql driver for MariaDB for years. It misses the mariadb skill.
 #   2. A database running outside the compose file: the compose file is decisive-no and
 #      suppresses before `DB_CONNECTION` is ever read.
-# Of the craft-layer family only information-design is routed (**/dashboard/** +
-# **/admin/**); the rest (creative-direction, motion-tiers, …) deliberately reach
-# sessions via /craft-layer:craft and the catalog channel, not per-file rules —
-# their triggers are prompt-shaped, not file-shaped. Motion CODE routes via the
-# motion-best-practices content row below (zero corpus co-fires as of 2026-08-11).
+# Of craft-layer's 14 skills exactly TWO are routed: information-design
+# (**/dashboard/** + **/admin/**) and threejs-best-practices (the `new THREE.` /
+# WebGPU content row, last line of this file). This comment claimed
+# "only information-design" for as long as the threejs row has existed, one screen
+# below a blessing that names it. The other twelve (creative-direction,
+# motion-tiers, …) deliberately reach sessions via /craft-layer:craft and the
+# catalog channel, not per-file rules — their triggers are prompt-shaped, not
+# file-shaped. Motion CODE routes via the motion-best-practices content row below;
+# re-measured 2026-09-15, no file in scripts/smoke/router-corpus matches it, so
+# the threejs/motion blessing above is precautionary, not observed.
 glob	*.sql	sql-best-practices	database	high
 glob	**/migrations/**	sql-best-practices	database	high
 glob	*.sql	mariadb-best-practices	database	high	docker-compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||compose.yml~image:[[:space:]]*"?[a-z0-9./-]*mariadb||.env.example~DB_CONNECTION=mariadb||composer.json~mariadb||package.json~mariadb
@@ -96,7 +101,7 @@ glob	**/components/**	tailwind-best-practices	ui-ux	high
 glob	*.tsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
 glob	*.jsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
 glob	*.vue	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
-content	\b(@reui/|reui\.io|from ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-ux	low
+content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-ux	low
 content	\b(aceternity|ui\.aceternity\.com|motion/react|framer-motion)\b	aceternity-best-practices	ui-ux	low
 glob	**/dashboard/**	information-design	craft-layer	high
 glob	**/admin/**	information-design	craft-layer	high
@@ -124,12 +129,19 @@ glob	package.json	package-hygiene	stack-scan	high
 glob	composer.json	package-hygiene	stack-scan	high
 glob	next.config.*	nextjs-best-practices	web-dev	high
 glob	vite.config.*	vite-best-practices	web-dev	high
+# The @base exclusion on the *.js/*.ts rows suppresses design-principle nudges on
+# `*.config.*`, so a tool config routes ONLY via its own row — next and vite had one,
+# tailwind did not, and tailwind-best-practices' own description names "config tokens".
+# prime.sh already sniffs `tailwind.config.*` for the SessionStart index, so the two
+# signals now agree. LIMITATION: Tailwind v4 is CSS-first and a v4 project may ship no
+# config file at all; there its only route stays the **/components/** row above.
+glob	tailwind.config.*	tailwind-best-practices	ui-ux	high
 glob	app.config.*	react-native-best-practices	web-dev	high	package.json~"expo"
 glob	eas.json	react-native-best-practices	web-dev	high	package.json~"expo"
 glob	*.graphql	graphql-grpc	api-design	high
 glob	*.proto	graphql-grpc	api-design	high
 glob	**/workflows/**	devops-practices	devops	high
-content	\b(async|await|Promise\.all|mutex|goroutine|\.lock\(|queue)\b	concurrency-safety	resilience	low
+content	(\b(async|await|mutex|goroutine|queue)\b|\bPromise\.all\b|\.[lL]ock\()	concurrency-safety	resilience	low
 content	\b(catch|throw|rescue)\b	error-handling-design	resilience	low
 content	\b(password|token|secret|jwt|api[_-]?key|authenticate)\b	security-review	security	low
 content	\b(Stripe-Signature|constructEvent|stripe\.webhooks|paddle|braintree)\b	security-review	security	low

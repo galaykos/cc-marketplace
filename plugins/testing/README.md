@@ -16,7 +16,7 @@ mocking boundaries, flaky-test causes, coverage traps.
 | Command | What it does |
 |---------|--------------|
 | `testing:review` — **retired in 0.10.0** | `/code-review:review` loads `testing-best-practices` for any diff touching tests or untested production code, in one pass with every other matching rubric. The rubric did not change; one listing entry did |
-| `/testing:flake-hunt [--runs N] [--shuffle "<runner flag>"] [--baseline FILE]` | Hunt and classify flaky tests — repeated runs in fixed and randomized order, set-diffed into order-dependent / non-deterministic / broken, each with its fix lane |
+| `/testing:flake-hunt [--runs N] [--shuffle "<runner flag>"] [--baseline FILE] [--update-baseline]` | Hunt and classify flaky tests — repeated runs in fixed and randomized order, set-diffed into order-dependent / non-deterministic / broken, each with its fix lane. `--baseline FILE` exits 2 only on a flake not already in that file; `--update-baseline` rewrites it |
 
 ## Hook
 

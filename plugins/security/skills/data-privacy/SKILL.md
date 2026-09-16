@@ -3,8 +3,6 @@ name: data-privacy
 description: Use when handling personal data or building for GDPR/CCPA compliance — PII classification, data-subject rights (access, erasure, portability), consent, retention and deletion, minimization, pseudonymization. The regulatory layer above code-level security review.
 ---
 
-# Data privacy & compliance
-
 Privacy law treats personal data as something you are a custodian of, not an owner —
 you must know what you hold, why, for how long, and be able to hand it back or delete
 it on request. This is a *design* concern: a system that cannot answer "where is all

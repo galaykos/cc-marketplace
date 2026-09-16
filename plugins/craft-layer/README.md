@@ -54,9 +54,9 @@ it orchestrates existing surfaces:
    the newer-skill gates; delegating full a11y + performance). It measures asset and chunk
    sizes itself before dispatching, and any gate it cannot measure is reported
    `not measured` rather than guessed — then offers to route the findings to a worker.
-   **The run is not complete until this step ran**, and its final line says so:
-   `Craft audit: <ran | NOT RUN> · Gates: <n> checked · <n> not checked · <n> not measured`.
-   A green project suite is not this step — it proves the code is correct and proves nothing
+   **The run is not complete until this step ran**, and its report leads with the coverage
+   it achieved: `Gates: <n> checked · <n> not checked · <n> not measured`, then
+   `Triggers fired:` and `Visual:` lines. A green project suite is not this step — it proves the code is correct and proves nothing
    about whether the signature shipped or the contract was honored, which is the way this
    chain most often ends one step early.
 
@@ -96,19 +96,26 @@ one of the names the licence gate globs for — `ASSETS`, `CREDITS`, `PROVENANCE
 `THIRD-PARTY-NOTICES`. A manifest at any other path reads as absent to the gate. An
 all-in-code build still owes one, as a first-party declaration.
 
-A second thing lands in the project, and it is deliberately not one of the three above:
+A second thing lands in the project, and it is deliberately not one of the manifest names above:
 `.craft-layer/`, carrying a `.gitignore` holding `*`. It is git-invisible, and it is the only
 craft artifact that must OUTLIVE the session — a run log in session scratch has no memory to
-offer the next run, which is the whole point of it. It holds `run-log.md` (the project memory)
-and `waivers.json` (see the divergence gate below).
+offer the next run, which is the whole point of it. It holds `run-log.md` (the project memory),
+`waivers.json` (see the divergence gate below), and `shots/` — the audit's captured screenshots,
+two per breakpoint at 390/768/1280 in light and dark.
 
 
 ## Modes, ambition, and boost
 
 - **Mode** — `guided` asks at each decision point; `one-shot` takes the
-  recommendation and keeps going. Default is guided.
-- **Ambition tier** — how far the concept reaches: `restrained`, `expressive`,
-  `maximal`. Sets how many sameness-fingerprint defaults the concept must break.
+  recommendation and keeps going. **`one-shot` is the default**; `guided` is
+  entered by saying so ("guided", "section by section", "ask me as you go") or by
+  running `/craft-layer:sections`. A `one-shot` run still carves out exactly one
+  exchange — the concept fork
+  (`skills/creative-direction/references/offer-contract.md` Part 6).
+- **Ambition tier** — how far the concept reaches: `restrained`, `standard`
+  (the default), `maximal`. Sets how many sameness-fingerprint defaults the
+  concept must break. The three tokens are the only ones that pin the row —
+  `skills/creative-direction/references/ambition-tiers.md` owns them.
 - **Boost** — `/craft-layer:craft ultra-craft …` pins ambition `maximal` and mode
   `guided`, mandates live dated research echoed as a reference board before any
   file is written, escalates the concept and review tiers, and red-teams the

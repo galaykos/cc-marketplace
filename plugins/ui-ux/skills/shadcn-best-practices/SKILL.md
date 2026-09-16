@@ -93,7 +93,8 @@ file. Inconsistent one-offs are how design systems rot.
 
 ## Install only what you use, and re-run the CLI for updates deliberately
 
-The CLI adds one component (and its Radix dependency) at a time. Don't bulk-copy the entire
+The CLI adds one component (and whatever primitive its configured base needs — Base UI,
+Radix or React Aria; see above) at a time. Don't bulk-copy the entire
 registry "just in case." If you want to pull in upstream fixes later, re-run
 `npx shadcn add <component> --overwrite` deliberately and diff the result — don't silently
 overwrite local customizations.
@@ -111,13 +112,14 @@ paths then follow this skill's owned-code and CSS-variable rules above.
 
 ## Common mistakes
 
-- Wrapping components in `!important`-laden CSS instead of editing the source file.
-- Deleting the primitive base's `Portal`/`Root` wrappers, breaking focus management and z-index stacking.
-- Hardcoding colors instead of referencing theme CSS variables, breaking dark mode.
-- Letting `components/ui` drift from the rest of the codebase's lint/format rules because "it's
-  generated code."
-- Adding boolean-prop soup to a component instead of composing existing subparts.
-- Forgetting to run `npx shadcn add` for a new primitive and hand-rolling a base-primitive wrapper instead.
+Names only — every rule is stated once above, in the section that owns it. These three
+are NOT stated above and live here:
+
+- Deleting the primitive base's `Portal`/`Root` wrappers — breaks focus management and
+  z-index stacking, not just semantics.
+- Exempting `components/ui` from the project's lint/format rules because "it's generated
+  code." You own it; it is first-party source.
+- Hand-rolling a base-primitive wrapper instead of running `npx shadcn add` for it.
 
 ## Component APIs from the registry, never from memory
 

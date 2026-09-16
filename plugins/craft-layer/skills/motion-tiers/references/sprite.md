@@ -109,13 +109,13 @@ Do not merely slow the loop or drop to instant looping — hold a single static 
 
 Bytes are the sprite's failure mode; set a ceiling before you export.
 
-- **Soft ceiling: ~150 KB** for a decorative loop (spinner, small idle). Comfortable on
-  any connection, so it can load eagerly.
-- **Hard ceiling: ~500 KB** for a hero/feature sprite. Past this, lazy-load it below the
-  fold and never block first paint on it.
-- **Over ~500 KB, the sprite is the wrong tier.** A big raster sheet that heavy almost
-  always loses to a muted looping WebM/AV1 video, which compresses inter-frame
-  redundancy the sheet cannot. Switch tiers rather than shipping the megabyte.
+**`tier-budgets.md` owns the numbers** — it is the Tier-4 row the craft audit injects into
+`craft-reviewer`, so building to a ceiling stated only here is how an author passes their own
+review and fails the audit. The pair it states: **≤ 150KB** may load eagerly (decorative
+loop — spinner, small idle), **≤ 500KB** must lazy-load below the fold (hero/feature) and
+never block first paint. Over 500KB the sprite is the WRONG tier: a big raster sheet that
+heavy almost always loses to a muted looping WebM/AV1 video, which compresses inter-frame
+redundancy the sheet cannot. Switch tiers rather than shipping the megabyte.
 
 Estimate up front: `cell_w × cell_h × frames`, then apply your codec's rough
 compression ratio. If the estimate clears the ceiling, cut frames, shrink the cell, drop

@@ -1,6 +1,37 @@
 # Changelog
 
-All notable changes to the ultra-deep-research plugin.
+All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, when
+this file was created; earlier releases have no entries rather than invented ones.
+The verdict lint referenced below landed in 0.5.0, before that.
+
+## 0.7.0 — 2026-09-15
+
+### Changed
+- **The single-document mode is now reachable from the skill's description.** The
+  plugin has carried a whole second engine since `references/local-corpus.md` shipped —
+  hand it a contract, RFP, standard, filing or long PDF and it swaps corroboration for
+  coverage — and the description, which is the only thing that decides whether a skill
+  fires, named none of those words. The mode shipped reachable only by naming the
+  plugin. `contract, RFP, standard, filing, PDF` are in the description now, the fork
+  is declared at step 1 of the loop instead of being wedged between steps 6 and 7, and
+  the README carries a two-engine table. **Budget-neutral by construction**: the four
+  metered descriptions total 878 bytes against 893 before, so the always-on baseline
+  falls by 3 tokens. Honest limitation — `rationale/2026-09-15-listing-eviction-probe.md`
+  measured description TEXT as making no difference to firing (47/50 both arms) with a
+  meaningful skill name; `ultra-deep-research` is not a name that suggests reading a
+  contract, which is why this was worth the bytes, but the benefit is reasoned, not
+  measured.
+- **`/ultra-deep-research:research` is a thin entry point again.** It restated the
+  skill's whole loop, and the copy had already drifted: no verdict lint, no
+  local-corpus fork, so invoking the command was weaker than reading the skill. It now
+  resolves the depth flag, carries the caller's constraints, names the fork, and hands
+  off. It also states what to do with an empty `$ARGUMENTS`, which it did not.
+- **The skill body no longer keeps a third copy of the prompt-hardening rules.** Those
+  rules live in `agents/researcher.md` and `agents/verifier.md`, and since 0.6.0 both
+  dispatch paths bind those files, so a shard already carries them. The body now states
+  what the ORCHESTRATOR owes on top — the caller's domain constraints, the confidence
+  rubric, not laundering a labelled inference into a fact — and says re-pasting the
+  shard rules into a prompt is wrong. Body: 140 lines → 134, with a duplicated section removed and the fork moved.
 
 ## 0.6.3
 

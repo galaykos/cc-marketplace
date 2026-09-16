@@ -1,6 +1,6 @@
 ---
 name: performance-tuning
-description: Use when code is measurably slow or heavy, or when reviewing a change for performance — measure-before-and-after, N+1, payload, bundle, Core Web Vitals, cache correctness (stampede, TTL, eviction), percentile load testing. Index/schema design belongs to database; statement shape to sql.
+description: Use when optimizing or profiling what is slow or heavy — endpoint, query, job, page, bundle, memory — or reviewing a change for performance: measure before/after, N+1, payload, Core Web Vitals, cache correctness (stampede, TTL, eviction), load tests. Index/schema design is database's.
 ---
 
 # Performance tuning

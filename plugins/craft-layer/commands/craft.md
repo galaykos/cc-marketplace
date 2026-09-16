@@ -45,9 +45,10 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
    drawn from, never chosen from. An absent, empty or malformed log is EMPTY — warn, seed from a hash
    of the brief plus today's date, carry on.
 
-   **Then dispatch `creative-director`** for a DIVERGENT concept — a central metaphor, an editorial
-   voice, one signature interaction — breaking the sameness-fingerprint defaults and clearing the
-   usability floor. Carry the concept and its divergence record into step 1, with the archetype's
+   **Then dispatch `creative-director`** for the DIVERGENT fork set — 2–3 ranked candidates, each a
+   central metaphor, an editorial voice, one signature interaction — breaking the
+   sameness-fingerprint defaults and clearing the usability floor. The agent ranks; the CONCEPT FORK
+   below is where the user picks. Carry the picked concept and its divergence record into step 1, with the archetype's
    content-depth target and the palette-strategy mood. The metaphor is a design LANGUAGE, not a
    rebrand. **What it rules OUT goes into `craft/divergence-record.md`** on the three fixed
    `Banned genus:` / `Banned register:` / `Banned vocabulary:` keys, whose format and match semantics
@@ -178,8 +179,8 @@ SCOPE — strip it before step 1. Print the skill's ⚡ banner first.
 
 7. **Audit — the run is NOT complete until this has run.** Run `/craft-layer:audit` on the result and
    resolve every failed gate before declaring the surface done. That command OWNS the audit — the gate
-   suite and its inputs, opening the captured shots, the three consequences, the two-line report, and
-   appending the run log. Do not restate its rules here or run its gates from this step.
+   suite and its inputs, opening the captured shots, the three consequences, the three-line coverage
+   report (`Gates:` / `Triggers fired:` / `Visual:`), and appending the run log. Do not restate its rules here or run its gates from this step.
 
    One thing belongs to THIS step, because it is a property of step 6's fan-out rather than an audit
    gate: **the banned-vocabulary grep runs once, tree-wide, after every builder has returned** — not

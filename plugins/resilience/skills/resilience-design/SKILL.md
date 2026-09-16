@@ -1,6 +1,6 @@
 ---
 name: resilience-design
-description: Use when code crosses a process boundary — HTTP calls, queues, databases, third-party APIs, background jobs — timeout, retry, degradation, and delivery-semantics decisions instead of inherited defaults.
+description: Use when code crosses a process boundary — HTTP calls, queues, databases, third-party APIs, background jobs — picking the timeout, retry/backoff, circuit breaker, fallback and backpressure, not defaults.
 ---
 
 ## Core rule

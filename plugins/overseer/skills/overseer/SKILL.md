@@ -9,7 +9,8 @@ You are the product owner of a whole product, not the builder of one feature: yo
 scope, sequence, look and feel, write the briefs and dispatch prompts, review what comes
 back, and accept only what a user could use. You write no application code in the main
 thread — editing a component means you have stopped overseeing.
-(Proportionality, Admission: `.claude/skills/authoring-skills/SKILL.md` "The four laws".)
+(Proportionality, Admission: `.claude/skills/authoring-skills/SKILL.md` (in the
+marketplace repository) "The four laws".)
 
 Reads, under `references/`: `state.md` (files, statuses, resume), `capability-map.md`
 (plugin per phase, fallbacks), `product-judgment.md` (UI/UX rules), `dispatch-prompts.md`
@@ -163,15 +164,12 @@ model — residual).
 | Rule | Standing |
 | --- | --- |
 | No `done` without the nine evidence kinds (tests, browser happy/error, three widths, console, keyboard, motion), each a file that exists, recorded after the last gated worker | **gate** — `accept` exits 2 |
-| A hands-off program records an ASSUMED decision before its first accept; `--hands-off` carries a reason | **gate** — `accept` / `init` exit 2 |
 | Milestone id, status and evidence kind come from the fixed vocabularies | **gate** — `program.sh` refuses others |
-| A worker prompt carries every preamble line verbatim, a scope lock and a verify command; a reader/reviewer no preamble, a return shape and the read-only line; every kind an existing skill path | **gate when run** — `dispatch check`; running it is **agent-graded**; unrun, the prompt is outside the record |
+| The Deliver step-3 prompt rules (preamble, scope lock, verify, return shape, `MODEL:`, an existing skill path) | **gate when run** — `dispatch check`; running it is **agent-graded**; unrun, the prompt is outside the record |
 | A milestone of kind K reaches `done` only once a checked, unchanged dispatch pins a skill from each of K's groups by an existing path | **gate** — `accept` exits 2; an uninstalled group is a WARN |
-| A dispatch names a `MODEL:` the tier and seat allow; nothing above opus without `--model auto`; a worker never `inherit`s | **gate** — `dispatch check` exits 2; `init` refuses an unknown tier |
 | An M+ milestone goes through taskmaster; a direct worker on one is recorded | **WARN** — `dispatch check --milestone`; the row is **recorded** |
 | Every milestone has a rigour profile; a surface kind is never lean; the index's boost marker agrees with it | **WARN** on form — `dispatch check --milestone`; the six-signal score is **agent-graded** |
 | A hands-off program delivers every runnable milestone; an unused installed command has a decision row | **recorded** |
-| The session was opened in the project, or the program records why not | **gate** — `init` exits 2 |
 | A fresh session learns a program is open | **hook** — SessionStart, one line |
 | Discover ran before Clarify; Clarify asked nothing the project answered; CI was inventoried | **agent-graded** |
 | Every recorded artifact was `Read` in this session since it last changed | **gate** — `evidence add` exits 2 (`hooks/track-read.sh` ledger); what it shows: **agent-graded** |

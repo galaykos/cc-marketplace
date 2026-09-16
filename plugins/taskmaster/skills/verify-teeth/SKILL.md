@@ -61,8 +61,15 @@ re-implement the list in prose here.
   like it covers. `tsc -b` is the check that runs; the linter prints this as a NOTE when it
   spots that shape in the working directory's `tsconfig.json`, and a NOTE is advice, not a
   block: it reads line text, so it cannot see which config a build actually uses.
+- `migration-run-only` (a migration command — `artisan migrate`, `alembic upgrade`,
+  `db:migrate`, `flyway`, `goose`, `prisma migrate deploy` — whose whole check is that it
+  ran) → that proves the DDL parsed, not that the schema is right; assert the resulting
+  column/constraint or a behavior that needs it.
 - `bare-suite-pass` (a runner invoked with no named test / assertion token) → name the new
   test or the asserted outcome, e.g. `pytest -k reject_malicious_host asserts 422`.
+
+Each bullet's leading token is the exact `verify-teeth: <reason>` the script prints, so a
+block routes to its fix by name. The script owns the patterns; this is only the fix table.
 
 A line that names its assertion — `jest -t "rejects bad host" asserts throw`, or
 `npm test -- invoice → all pass, including new test totals_rounds_half_up` — passes.

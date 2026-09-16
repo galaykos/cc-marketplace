@@ -15,10 +15,13 @@ instrumentation to **resilience** (its observability skill).
 | A write to `.github/workflows/` that triggers on `pull_request_target`/`workflow_run` **and** checks out the untrusted head ref | **gate** — PreToolUse deny; GitHub's own documented critical anti-pattern |
 | A write to `.github/workflows/` interpolating a `${{ github.event.* }}` field an author can type directly into a `run:` block | **gate** — PreToolUse deny; the shell substitution happens before the shell runs |
 | Every other CI/CD, Kubernetes, deploy and secrets rule in `devops-practices` | **agent-graded** — a reviewer applies them; no script does |
-| The warn-level workflow findings | **recorded** — `scripts/workflow-audit.sh` reports them (exit 2 on a finding, 3 on usage) and is invoked by `/devops:review`, never by a hook |
+| The warn-level workflow findings (unpinned action tag, no top-level `permissions:`, self-hosted runner on a fork trigger, secrets in a `pull_request_target` workflow) | **recorded** — `scripts/workflow-audit.sh` prints them and **exits 0**; only a CRITICAL finding exits 2, and 3 means it could not read (bad argument, missing dir, no workflow files). Reached through the mechanical-check table in `devops-practices`, which `/devops:review` loads — never by a hook |
 
 The guard blocks two shapes and nothing else. Everything the audit script finds
-beyond them is a report you have to run.
+beyond them is a report you have to run — and a clean run means "none of the six
+shapes it knows are present in these files", not "this pipeline is safe": it is a
+line scan, not a YAML parser, so a composite action or a `secrets: inherit`
+reusable workflow hides the sink one level down where it cannot look.
 
 ## Install
 

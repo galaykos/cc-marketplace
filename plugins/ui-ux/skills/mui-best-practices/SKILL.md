@@ -1,6 +1,6 @@
 ---
 name: mui-best-practices
-description: Use when building or reviewing UI with Material UI (@mui/material, @mui/icons-material, @mui/x-*). Resolve the installed major from the lockfile first — v7 and v9 removed APIs a v5/v6 memory still recites. Covers imports, createTheme with CSS variables and colorSchemes, sx/styled/slotProps, dark mode via useColorScheme, MUI X versioning, and Base UI as MUI's headless sibling.
+description: Use when building or reviewing UI with Material UI (@mui/material, @mui/icons-material, @mui/x-*) — imports, createTheme with CSS variables and colorSchemes, sx/styled/slotProps, dark mode via useColorScheme, MUI X versioning, Base UI as MUI's headless sibling; v7 and v9 removed APIs a v5/v6 memory still recites.
 ---
 
 # Material UI best practices

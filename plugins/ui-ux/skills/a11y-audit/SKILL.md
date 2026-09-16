@@ -141,10 +141,10 @@ necessary, not sufficient.
 
 ## Anti-patterns
 
-- ARIA-sprinkling to silence linters — attributes added without checking
-  the role they land on.
-- `outline: none` with no replacement focus style.
-- Div soup with click handlers standing in for buttons and links.
-- Contrast fixed only on the default state, with hover, focus, and
-  disabled states forgotten.
-- `alt="image"`, `alt="photo"`, or the filename as alt text.
+Named for citing in a finding; each rule is stated once above.
+
+- **ARIA-sprinkling** — attributes added to quiet a linter, role unchecked.
+- **Naked `outline: none`** — no replacement focus style.
+- **Div soup** — click handlers standing in for buttons and links.
+- **Default-state-only contrast** — hover, focus, disabled forgotten.
+- **Filename alt** — `alt="image"`, `alt="photo"`, or the filename itself.

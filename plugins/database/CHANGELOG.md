@@ -3,6 +3,22 @@
 All notable changes to the `database` plugin. Entries start at 0.8.3; earlier
 releases were not recorded here and are not reconstructed.
 
+## 0.9.2
+
+### Fixed
+- **The guard's own documentation described a guard three releases out of date.** Its
+  header, the README section and the `lane.tsv` trigger all named only
+  `DROP`/`TRUNCATE`/unqualified `DELETE`-`UPDATE`, so nothing told a reader that it
+  also asks on a Prisma/Drizzle/TypeORM/Doctrine/Knex/Alembic drop (0.9.0), on a
+  lock-taking `CREATE INDEX` or table-rewriting `ALTER`, or on the NoSQL twins
+  (`deleteMany({})`, `.dropDatabase()`, an off-script DynamoDB `Scan`) — and the
+  `lane.tsv` trigger additionally claimed a **column/table RENAME**, which this guard
+  has never matched and which stays agent-graded in `sql-best-practices`.
+- **The README never named the off-switch.** `CC_DB_GUARD=off` shipped in 0.9.1 and was
+  reachable only from the ask message. It is now in the README, with the
+  documentation-surface exemption (`.md`, `.txt`, `taskmaster-docs/`) and the
+  `command-guard` boundary that `lane.tsv` already encoded.
+
 ## 0.9.1
 
 ### Fixed

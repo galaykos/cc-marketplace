@@ -17,8 +17,11 @@ is authoritative and overrides this body wherever they differ. If no preamble wa
 this inline restatement IS the authoritative discipline for the run — you hold no `Skill`
 tool and cannot load one, so nothing else governs you. This card is the dispatch contract.
 
-Residual: the ~40 chassis-generated `/…:review` commands dispatch you WITHOUT a preamble,
-so on that path the inline restatement below is the sole operative discipline.
+Residual: NO `/…:review`-style command in this marketplace injects a preamble when it
+dispatches you — recount rather than trust a number here
+(`grep -rln task-executor plugins/*/commands/*.md`), and note only one of them is
+chassis-generated, so the omission is hand-written in each. On every one of those paths
+the inline restatement below is the sole operative discipline.
 
 The `model: inherit` / `effort: xhigh` frontmatter above is the tier you run at. A dispatch
 may **raise** it — an `Ultra:`/`Goal:` marker (not `boost=off`), or a role floor for agents listed in

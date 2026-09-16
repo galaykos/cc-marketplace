@@ -3,7 +3,7 @@
 Tiers 1 and 2 are lookups: a signal table and a curated list. Tier 3 is defined
 by **subtraction** — "every catalog plugin not already in tier 1 or 2" — so
 before this pass existed, no plugin ever entered the report because of anything
-about the project in front of it. Roughly two fifths of the eligible set can
+about the project in front of it. Roughly a third of the eligible set can
 never be earned by any signal, so those rows printed the literal string
 `universal` in every repo forever, and `--yes` never touched them.
 
@@ -11,9 +11,10 @@ This is the one step where the model judges instead of matching.
 
 ## What it costs, and why that is the right price
 
-The 0.12 picker cut was a proportionality argument about **ceremony**: paging
-every eligible row cost four AskUserQuestion calls and sixteen blocking
-questions in every repo. That argument was right, and this pass does not
+The picker cut that came before this pass was a proportionality argument about
+**ceremony**: paging every eligible row costs one AskUserQuestion call and four
+blocking questions per 15 rows, in every repo (`references/picker.md` owns that
+arithmetic). That argument was right, and this pass does not
 reopen it — **it adds no questions and no calls.** It reorders and annotates
 rows the report already prints.
 
@@ -65,9 +66,9 @@ belong in a pass whose output is labelled a reason.
 ## Worked example — this marketplace repo
 
 Run against `cc-marketplace` itself, detection finds `.github/workflows/` and a
-`.sql` file and reports `devops` and `sql`. Everything that makes the repo what
-it is — 60-odd plugins, skills, agents, hook scripts, generator templates —
-produced nothing, because none of it is a manifest. Before this pass,
+`.sql` file and reports `devops` and `database`. Everything that makes the repo what
+it is — a plugin dir per marketplace entry, skills, agents, hook scripts, generator
+templates — produced nothing, because none of it is a manifest. Before this pass,
 the since-demoted authoring plugin printed as `universal` in a repo whose entire <!-- removed-ok -->
 content is Claude Code artifacts. (The general lesson stands, which is why the
 pass is not just more rows.)
@@ -75,14 +76,14 @@ pass is not just more rows.)
 What the pass should lift there:
 
 ```
-TIER 3 — no signal in this repo (40)
+TIER 3 — no signal in this repo
   worth a look here
-    31 brain          60+ plugin dirs and no map; a fresh session starts cold
-    18 code-review    the repo's own rule is "cite, don't restate" — its
-                           comment-discipline skill is that rule for code
-    44 approaches     most changes here are shape decisions (a gate? a hook?
-                      a reference file?) rather than implementation
-  quality/review:  16 a11y  17 performance  ...
+    11 brain        one dir per marketplace plugin and no map; a session starts cold
+    12 candor       every doctrine file here labels its own standing by hand;
+                    this is that rule with a Stop hook behind it
+    13 approaches   most changes here are shape decisions (a gate? a hook?
+                    a reference file?) rather than implementation
+  quality/review:  14 toolchain-experts  15 resilience  ...
 ```
 
 Each line is an argument someone can disagree with. That is the point: a wrong
@@ -97,7 +98,7 @@ reason is visible and arguable, where `universal` was neither.
   between a Django API and a design-system monorepo, the pass is not running;
   it is a second core list wearing a different label.
 - Writing a reason that restates the catalog description. "brain — builds a
-  codebase map" is the description. "60+ plugin dirs and no map" is a reason.
+  codebase map" is the description. "one dir per plugin and no map" is a reason.
 - Filling to five. Three good ones beat five with two makeweights.
 
 ## Standing

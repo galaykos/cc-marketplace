@@ -1,33 +1,30 @@
 ---
-description: Run a deep, multi-source, fact-checked research pass writing a cited report to research/<topic>-<date>.md; --ultra forces the Workflow loop-until-dry engine, --standard the portable path.
+description: Run a deep, multi-source, fact-checked research pass — writes a cited report to research/<topic>-<date>.md; --ultra forces the Workflow loop-until-dry engine, --standard the portable path.
 argument-hint: <topic or question> [--ultra|--standard]
 ---
 
-Deep-research the topic in `$ARGUMENTS`. Load the `ultra-deep-research` skill and
-follow its loop; the recipes live in that skill's `references/`.
+Invoke the `ultra-deep-research` skill from this plugin and research `$ARGUMENTS`
+under its loop, which owns the method, every threshold and the report shape. **If
+`$ARGUMENTS` is empty, ask what to research first** — never infer a topic from the
+surrounding conversation. The steps below are the only things this command decides;
+the loop is deliberately not restated here, because the copy that used to live here
+had already drifted from the skill in two places: no verdict lint, no local-corpus fork.
 
-1. **Read the flags.** `--ultra` forces the Workflow loop-until-dry engine with
-   refutation panels; `--standard` forces the portable parallel-Agent fan-out. With
-   neither, infer depth from the ask (contested/high-stakes/"latest" → ultra) and state
-   which you chose. The literal phrase `ultra-deep-research` anywhere in the topic also
-   forces ultra.
-2. **Scope.** Restate the question in one line and split it into 4–8 orthogonal facets.
-   Carry any constraints in `$ARGUMENTS` (region, timeframe, language, jurisdiction)
-   into every shard prompt. If the topic is too broad to research well, ask 2–3
-   narrowing questions before fanning out.
-3. **Fan out** one `researcher` per facet (parallel, or a Workflow pipeline for ultra).
-   Require the return shape and prompt-hardening rules from the skill — verbatim quote,
-   fetched URL, publication date, and source tier per claim; no fabricated URLs.
-4. **Corroborate & refute.** Confirm a load-bearing claim only on ≥2 independent
-   Tier-1/2 sources; route each to the `verifier` to be broken, capped at 24 verifier
-   dispatches per round — rank by answer-dependence, carry the overflow `unconfirmed`,
-   and name the deferred count. Ledger every contradiction; adjudicate by provenance
-   and recency, or ship it as open.
-5. **Gap check.** For ultra, loop until two rounds add nothing new, capped at 3 rounds, or the budget is
-   spent; for standard, run one explicit gap pass. Name what stayed uncovered.
-6. **Synthesize** using `references/report-template.md`: answer first, per-section
-   confidence, inline `[n]` citations, contradiction ledger, tiered sources, open
-   questions. Print it inline **and** write `research/<slugged-topic>-<YYYY-MM-DD>.md`
-   (fall back to the scratchpad dir if the project is read-only), then report the path.
+1. **Resolve depth, then say which you picked.** `--ultra` forces the Workflow
+   `loop-until-dry` engine with multi-vote refutation panels; `--standard` forces the
+   portable parallel-Agent fan-out; the literal phrase `ultra-deep-research` anywhere
+   in the topic also forces ultra. With no flag, infer from the ask — contested,
+   high-stakes, or hanging on "the latest" → ultra — and state the choice in one line.
+2. **Carry the caller's constraints into every shard prompt** — region, timeframe,
+   language, jurisdiction. The skill makes this the orchestrator's job because no agent
+   file can know them. If the topic is too broad to research well, ask 2–3 narrowing
+   questions before fanning out.
+3. **Take the local-corpus fork when it applies.** One authoritative document rather
+   than a web-distributed question → the skill's coverage engine, not its corroboration
+   loop.
+4. **Run the loop as written**, verdict lint included
+   (`bash ${CLAUDE_PLUGIN_ROOT}/scripts/verdict-lint.sh` on each verifier return; a
+   failing `confirmed` is demoted, never patched up).
+5. **Print the report inline, then report the path** it was written to.
 
 Do not fabricate sources, dates, or figures. An explicit "not found" beats a guess.

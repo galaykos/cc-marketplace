@@ -23,7 +23,8 @@ is what makes rhythm feel intentional.
 Font sizes come from a scale (e.g. 1.25 ratio: `12, 14, 16, 20, 24, 32, 40`), each paired
 with a deliberate line-height (tighter for headings, ~1.5 for body) and a small set of
 weights. Do not pick font sizes per component; assign a step. Line-length matters too —
-cap body measure around 60–75 characters for readability.
+cap body measure at roughly 45–75 characters. This skill is the single source for that
+bound; `ui-ux-engineer`'s checklist cites it rather than carrying its own number.
 
 **A UI scale is not a display scale.** The steps above size text and CHROME. A 1.25 ratio
 topping out at `40` puts the largest type on the page at 2.5× body — which is a heading,
@@ -93,14 +94,6 @@ A component using `blue-500` directly has broken the tier boundary; it should us
    the generated ramp (shadcn-theming), so components never touch a primitive.
 4. **Wire into the stack** — Tailwind `theme` extension + CSS variables; then use only the
    scale utilities. The system exists the moment arbitrary values stop appearing.
-
-## Reviewing a token system
-
-- Spacing/sizing/radius come from scale steps; no magic numbers or arbitrary utilities.
-- Type sizes are scale steps with deliberate line-heights; body measure is capped.
-- Elevation and motion are token scales, not per-element values.
-- Components reference semantic color tokens, never primitives.
-- `prefers-reduced-motion` has a defined reduced variant.
 
 ## Defer rule
 

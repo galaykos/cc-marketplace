@@ -30,9 +30,12 @@ need no stack skill — that shape measured zero against a blind control
 
 `/code-review:review` (the code-review plugin) detects Next.js / React Native / Vite
 from the manifests, loads every matching skill here, and reviews the scope pinned to
-the installed versions — severity-sorted one-line findings with fixes, routed to the
-`web-developer` worker on apply. The skills also fire on their own while editing when
-`skill-router` is installed.
+the installed versions — severity-sorted one-line findings with fixes. On an apply pick
+it dispatches that list down its **own** static chain (`task-runner:task-executor` if
+installed, else inline), not to `web-developer`: code-review ships a reviewer and no
+worker of its own, and its chain is stack-agnostic by design. Dispatch `web-developer`
+directly for the implementation half. The skills also fire on their own while editing
+when `skill-router` is installed.
 
 ## Skills
 

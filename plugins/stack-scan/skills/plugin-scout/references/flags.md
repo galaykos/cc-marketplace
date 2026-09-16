@@ -74,7 +74,7 @@ rule and the typed-token rule; this section does not restate them.
   the session-wide group (candor, hindsight and
   skill-router — the three `references/any-core.md` routes to `--global` for `--yes`;
   `--full` is the flag that bullet does not bind) and the research/tooling group
-  (brain, and ultra-deep-research
+  (brain, toolchain-experts and ultra-deep-research
   when their signal has not fired — they are tier 1 when it has).
   Leaves only, never a suite.
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
@@ -104,8 +104,8 @@ rule and the typed-token rule; this section does not restate them.
   - `Hooks added:` hook-bearing plugins grouped by event — every event key present
     in the file (Stop, UserPromptSubmit, PreToolUse, PostToolUse, SessionStart,
     SessionEnd, …), never a fixed list — read from each plugin's
-    `hooks/hooks.json` at run time (21 of the 27 leaves ship one at the time of
-    writing; recount, never quote). `secret-scanning` and `command-guard` are
+    `hooks/hooks.json` at run time (most leaves ship one; recount from the installed
+    set, never quote a number). `secret-scanning` and `command-guard` are
     always named, as under `--yes`: the user did not see a picker for them.
   - `MCP servers added:` each server from a plugin's `.mcp.json`, marked local or
     remote with its URL. No plugin in this marketplace ships one today, so the line is
@@ -128,8 +128,12 @@ rule and the typed-token rule; this section does not restate them.
     sum, and print the figure against both caps. If the clone is unreadable, sum the
     catalog descriptions instead and SAY it is a proxy that undercounts the metered
     channel by roughly 40%. Over the cap the host reduces entries to
-    name-only in priority order, silently, so skills stop being reachable with no
-    error. Print the lever with the smallest fraction, in 0.01 steps, that fits at
+    name-only in priority order, silently and with no error. Do NOT tell the user that
+    makes a skill unreachable: removing a description measured zero firing delta on
+    2026-09-15 (47/50 vs 47/50, `rationale/2026-09-15-listing-eviction-probe.md`, one
+    model). The figure is worth printing because it prices the SET, and because the same
+    probe found firing does drop when several adjacent skills contest one territory —
+    overlap, not bytes. Print the lever with the smallest fraction, in 0.01 steps, that fits at
     200k — e.g. `{ "skillListingBudgetFraction": 0.06 }` in settings.json — the fraction
     is a ceiling, not a purchase; it only admits description text that was being
     evicted. Never write it, never trim the set: the scout cannot make an over-cap
@@ -184,9 +188,11 @@ of `references/stack-relevance.md`, nothing else.
 
 Restores exhaustive paging: every eligible row is offered as an explicit
 checkbox, 15 per call, paging until all of them appeared or the user stops.
-That is the pre-0.12 default; it now costs ~5 calls and ~20 questions and is
-opt-in for the user who wants to see everything as options rather than as a
-numbered report plus a door (`references/picker.md`).
+That was the default before the one-call picker landed. Its cost is one call and
+four blocking questions per 15 eligible rows — derive it from the eligible count,
+never from a number written down here or in `references/picker.md`, which is the
+one place that arithmetic lives. Opt-in for the user who wants to see everything
+as options rather than as a numbered report plus a door (`references/picker.md`).
 
 - Changes the picker only. Detection, the report, install scope and the
   auto-install set are untouched.

@@ -1,6 +1,6 @@
 ---
 description: Hunt and CLASSIFY flaky tests — repeated runs across fixed and randomized order, set-diffed into order-dependent / non-deterministic / broken, each with its fix lane.
-argument-hint: [--runs N] [--shuffle "<runner flag>"] [--baseline FILE]
+argument-hint: [--runs N] [--shuffle "<runner flag>"] [--baseline FILE] [--update-baseline]
 ---
 
 Hunt flaky tests in this project. Resolve the test command first from what the

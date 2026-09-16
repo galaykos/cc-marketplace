@@ -19,7 +19,7 @@ this class — it still counts as class evidence here; `vite` needs no `vite.con
 excluding needs the absence of every frontend signal. **A fired signals.md row always
 wins:** a leaf whose own signal fired installs under `--full` whatever its class
 says, so `--full` can never install less than `--yes`. Today that rule is
-belt-and-braces — every signals.md key for the three JS-class leaves
+belt-and-braces — every signals.md key for the JS-class leaves
 (`@react-three/fiber`, `components.json`, `tailwindcss`) is already class evidence
 above — and it exists so the next signals.md row added without a matching entry
 here cannot open the gap. The
@@ -34,9 +34,10 @@ those rows exist because three tokens share a name with plugins removed on
 
 ## Everything else
 
-Every leaf not named above is **any stack** and is always in the plan — 22 of the
-26 eligible leaves (27 minus `stack-scan`) at the time of writing; recount from
-`references/catalog.md`, never from this number. That includes `ui-ux`: its a11y-audit, design-tokens and
+Every leaf not named above is **any stack** and is always in the plan — every eligible
+leaf except the three in the table above. Count them from `references/catalog.md` at run
+time (leaves, minus `stack-scan`); no number is written here, because the one that used to
+be was wrong within a day of a plugin landing. That includes `ui-ux`: its a11y-audit, design-tokens and
 theming-system skills are stack-agnostic, so a server-rendered app with no
 JavaScript framework still gets it. The four `*-suite` bundles and `stack-scan`
 itself are excluded by construction and never listed one by one. Already-installed
@@ -49,12 +50,12 @@ in a repo before any SDK or key lands in it — were removed on 2026-09-14; thei
 signals.md rows now route onward instead of to a plugin.
 
 Every signal-earned leaf NOT named in the table above — devops, api-design,
-security, resilience, and database — installs under `--full` whether or not its signal fired. That list is
+security, resilience, database and toolchain-experts — installs under `--full` whether or not its signal fired. That list is
 illustrative of "any stack", not a fifth class: a missing CI file does not make CI
-discipline irrelevant, it makes it absent. `stack-scan` is the honest edge:
-`references/any-core.md` keeps it OUT of the stack-agnostic core because its rubric
-is Composer/npm-specific, and `--full` installs it anyway for the same reason it
-installs candor — the user asked for everything.
+discipline irrelevant, it makes it absent. `stack-scan` is the honest edge, and it is
+settled by construction rather than by class: this scout ships inside it, so it is
+already installed on every run and never appears in a plan, an exclusion line or a
+count of what `--full` will install.
 
 ## Typed tokens
 
@@ -77,8 +78,8 @@ installs candor — the user asked for everything.
 package.json declares `@inertiajs/react` and `vite`, no Stripe or LLM signal:
 
 - Excluded by construction: the four bundles, `stack-scan`.
-- **No stack-mismatched leaf.** Both stack classes are satisfied, so all 26
-  eligible leaves install.
+- **No stack-mismatched leaf.** Both stack classes are satisfied, so every
+  eligible leaf installs.
 - `web-dev` brings the Next.js and React Native skill descriptions into the
   model's skill listing regardless — no level of this marketplace skips them for a
   React app, and the plan should not read as if it did.

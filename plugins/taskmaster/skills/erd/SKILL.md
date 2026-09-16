@@ -54,13 +54,11 @@ Full-mockups tier: hand-built inline SVG in crow's-foot notation, written to
 the shared preview server's reserved `diagram.html` slot in `taskmaster-docs/mockups/`.
 Server mechanics are visual-decisions' own, reused as-is:
 
-- Server not running? Start
-  `../visual-decisions/assets/serve.py --port "${PREVIEW_PORT:-8123}"` in the
-  background and note the PID (normalized fallback chain: serve.py →
-  `python3 -m http.server "${PREVIEW_PORT:-8123}" --bind 127.0.0.1 -d taskmaster-docs/mockups` →
-  no python3 → `php -S 127.0.0.1:${PREVIEW_PORT:-8123} -t taskmaster-docs/mockups` →
-  `npx serve taskmaster-docs/mockups`). Port busy?
-  `lsof -ti :${PREVIEW_PORT:-8123}` — reuse a prior mockup server, else bump the port.
+- Server not running? Start `../visual-decisions/assets/serve.py --port "${PREVIEW_PORT:-8123}"`
+  in the background and note the PID. The launch chain, its lower rungs, and the
+  port-busy rule are `../visual-decisions/SKILL.md` § Preview — one live URL for the
+  whole session; follow it verbatim rather than a copy here, which is how the rungs
+  drifted apart before.
 - Write every pass to `diagram.html`, with a 🗂 favicon as an inline SVG data
   URI so it is findable among the sibling preview tabs — the user's open tab
   sees each revision in place. The slot is per-purpose: never overwrite

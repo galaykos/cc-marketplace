@@ -51,15 +51,16 @@ bundle overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **~6,880 chars** (LC_ALL=C bytes
+**6,000 chars**, and this bundle's listing costs **7,008 chars** (LC_ALL=C bytes
 — the marketplace's deterministic measure, ~1% above what the CLI counts; recount
 with `bash scripts/context-budget.sh`, listing channel). Over it the host reduces
 entries to name-only in priority order, silently, so skills stop being reachable
 without any error — and because this bundle is installed at user scope, every
 repo pays.
 
-
-`workflow-suite` contains all seven of these. Install one or the other, never
+The seven members are `secret-scanning`, `candor`, `code-review`, `skill-router`,
+`git-workflow`, `hindsight` and `stack-scan` (detailed under "What's included"
+below), and `workflow-suite` contains all seven. Install one or the other, never
 both: with workflow-suite present **at the same scope**, `/core-suite:uninstall`
 keeps every member (another installed bundle at that scope lists them) and
 removes only this bundle's own manifest — a no-op that reads like a cleanup. The

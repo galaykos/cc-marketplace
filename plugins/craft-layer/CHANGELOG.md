@@ -7,6 +7,65 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.51.1
+
+### Fixed
+- **The boost hook keyed the inline red-team fallback on a missing `Workflow` tool.** The Agent tool is a real dispatch path, so in an ordinary interactive session the panel should spawn; only with no dispatch mechanism at all does the run fall to one inline pass. `ultra-craft.sh` (rendered from `.chassis.json`) and the `ultra-craft` skill now state the rule `task-runner:verification-panels` owns.
+
+## 0.51.0
+
+### Fixed
+- **The README told you the wrong default mode.** It said "Default is guided" while
+  `offer-contract.md` Part 6, the `creative-direction` skill and `register-corpus.md` all say
+  **`one-shot` is the default**. Every brief that named no mode was documented as buying guided
+  rounds and a section ledger it never asked for. The README now states `one-shot`, how to enter
+  `guided`, and that `one-shot` still carves out the concept fork.
+- **`creative-director` could not run the fork the flow requires.** Its procedure said "Return
+  the winner" and its Output listed one `Concept`, while `concept-deck.md` § The concept fork
+  requires the dispatch to return **2–3 candidates** for a human pick at every tier, `one-shot`
+  included — the only exchange a `one-shot` run has. The agent now returns a ranked FORK SET
+  with a divergence record per candidate; it ranks, the user picks. `/craft-layer:craft` step 0
+  says the same.
+- **The sprite ceiling disagreed with the gate that grades it.** `sprite.md` permitted a ~500KB
+  hero sheet; `tier-budgets.md` — the declared source of truth, and the row the audit injects
+  into `craft-reviewer` — capped a sheet at 150KB. A 400KB hero built to the authoring guide
+  failed the audit. `tier-budgets.md` now carries the pair (≤ 150KB eager, ≤ 500KB lazy, over
+  500KB switch to looping WebM/AV1) and `sprite.md` cites it instead of restating it.
+- **`creative-direction`'s SKILL body taught the retired flat divergence floor** ("each must
+  break ≥1 default"). `sameness-fingerprint.md` retired it by name; a concept generated from the
+  skill body alone under-reached at `standard` and `maximal`. It now states K = 1/2/3.
+- **`/craft-layer:audit` under-counted what a missing token source costs.** It said three
+  `divergence.mjs` assertions cannot resolve without `CRAFT_TOKEN_SOURCE`; measured, the script
+  exits 2 at the token resolution and **five** never run (`accent-default-band`, `hue-repeat`,
+  `font-anti-corpus`, `font-repeat`, `draw-repeat`) while the seven source-only ones still print.
+  Its exit-code table also carried a blanket "exit 2 is `not measured`" that contradicted its own
+  `contrast.mjs` paragraph twenty lines above — exit 2 from `contrast.mjs` is a FAILURE.
+- **`asset-sourcing` routed video to a contract that does not exist** ("motion-tiers tier 4 owns
+  encode / poster / fallback"). Tier 4 is sprite-sheets; the only video material in motion-tiers
+  is `sprite.md`'s sheet-vs-video crossover. Stated honestly now.
+- Stale cross-references corrected: `craft-reviewer`'s contrast exception pointed at "step 6"
+  (contrast is step 4) and cited a "done-ness mandate (step 8)" that exists in none of the four
+  skills it names; `register-corpus.md` cited `craft-reviewer` "(step 11)"; `gates.spec.ts` and
+  `fixture-sight.html` said `commands/craft.md` step 7 owns opening the shots, which that step
+  explicitly disowns — it is `commands/audit.md` step 5. The README named an audit final line
+  (`Craft audit: <ran | NOT RUN> · …`) the command never prints, listed `expressive` as an
+  ambition tier when the only three tokens are `restrained`/`standard`/`maximal`, and omitted
+  `shots/` from `.craft-layer/`. `red-team-contract.md` said "two rules" and "Both are binding"
+  over three rules. `offer-contract.md` Part 7 said "Two rows" over three.
+
+### Changed
+- **Routing vocabulary the descriptions were missing.** `motion-tiers` owns Tier 5 but never
+  said **Lottie/Rive**, so "should I use Lottie here?" did not reach it; `physics-motion` covers
+  **rapier** in its reference but never named it; `threejs-best-practices` spent description
+  budget on an instruction ("Resolve the locked rXXX revision before advising" — already the
+  first line of its body and its first anti-pattern) instead of the words users type: **R3F**,
+  **drei**, **glTF/GLB**. Net description bytes went DOWN.
+- `scroll-acts.md` no longer restates the six frame-sequence caps it says live in
+  `tier-budgets.md`; the over-cap remedy stays, because it is a design instruction, not a number.
+- `tier-budgets.md` dropped its "Nine files refer to these tiers" count (actual: 12 citing it,
+  15 naming a tier) for a recount command, and un-spliced its `Last verified` blockquote, whose
+  opening sentence had a second block wedged mid-clause.
+
 ## 0.50.2
 
 ### Changed

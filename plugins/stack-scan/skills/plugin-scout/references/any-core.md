@@ -38,11 +38,12 @@ A row belongs here only if it passes both:
 
 ## Deliberate exclusions (near misses)
 
-- `stack-scan` (package-hygiene, formerly the packages plugin) — moved OUT of core to `references/signals.md`, earned by the <!-- removed-ok -->
-  presence of a `package.json` or `composer.json`. Its own description is
-  "Composer/npm dependency hygiene", so it fails membership test 1: a Python or
-  Go repo was auto-installing a plugin whose entire rubric is about two manifests
-  it does not have.
+- `stack-scan` — not a row at all any more, in this file or in
+  `references/signals.md`: this scout ships INSIDE it, so it is installed on every
+  run by construction. It was a core row until its package-hygiene rubric was judged
+  Composer/npm-specific (membership test 1 — a Python or Go repo was auto-installing
+  a plugin about two manifests it does not have), then a signal row, and then the two
+  scouts merged in on 2026-09-14 and there was nothing left to suggest.
 - `security` — its OWASP review is web-app-shaped (the catalog description maps
   it to PHP/Laravel and JS/Vue). It is now signal-earned in
   `references/signals.md` behind an auth dependency, rather than a tier-3 pick.

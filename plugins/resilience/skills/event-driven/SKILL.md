@@ -13,17 +13,10 @@ idempotent.** Everything below serves that.
 
 ## Choosing the transport
 
-Match the tool to the guarantee you need, not the hype:
-
-| Need | Reach for |
-|---|---|
-| Ordered, replayable log; many consumers; high throughput | Kafka / Redpanda |
-| Simple work queue; managed; at-least-once | SQS / RabbitMQ |
-| Lightweight streams already on Redis | Redis Streams |
-| In-process background jobs, one app | the framework queue (Laravel/Sidekiq/Celery) |
-
-Do not reach for Kafka to run three background jobs; do not run a payment saga on
-fire-and-forget. The transport's weakest guarantee is your architecture's guarantee.
+Name the guarantee the design needs — ordering scope, replay, at-least-once — BEFORE
+naming a product; the transport's weakest guarantee becomes the architecture's. Do
+not reach for Kafka to run three background jobs, and do not run a payment saga on
+fire-and-forget.
 
 ## Delivery semantics — name yours
 

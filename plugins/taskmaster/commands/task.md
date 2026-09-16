@@ -41,7 +41,7 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    `{"phase":"shape","owner":"taskmaster:task","session_id":"<this session id>",`
    `"started_at":"<ISO-8601 UTC>"}`. This is what makes the prompt channel take
    turns: reminder hooks that own a later phase stand down while requirements are
-   still being shaped, instead of all four talking over one prompt. **Remove it when
+   still being shaped, instead of every installed one talking over one prompt. **Remove it when
    this command finishes** — on the hand-off to `/task-runner:run` (which writes its
    own `build` sentinel), and equally on an abandoned or interrupted run. A stale
    sentinel is bounded by a TTL rather than trusted, but the clear is still yours.
@@ -80,7 +80,8 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    `**Upgraded statement:**` labels), goal, decisions with sources, accepted
    assumptions, the approach with rejected alternatives and kill-trigger,
    non-goals, success criteria, and the converged ledger embedded as
-   `## Ambiguity ledger (final)`; run `scripts/spec-ledger-lint.sh --spec <file>`
+   `## Ambiguity ledger (final)`; run
+   `${CLAUDE_PLUGIN_ROOT}/scripts/spec-ledger-lint.sh --spec <file>`
    until exit 0 (task-cards re-runs it later as the final gate) — plus the
    walkthrough file path and cross-screen contracts when step 4 ran.
 6. Red-team the spec first when its blast radius warrants — run the `spec-redteam`

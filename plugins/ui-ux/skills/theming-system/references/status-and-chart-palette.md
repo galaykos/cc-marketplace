@@ -46,7 +46,8 @@ theme.
 
 Everything else about charts belongs to a neighbour, cited not restated:
 
-- `plugins/ui-ux/skills/shadcn-theming/SKILL.md` (lines 24–25) owns chart-family COHERENCE —
+- `plugins/ui-ux/skills/shadcn-theming/SKILL.md`, the `Data:` row of its token inventory
+  (`chart-1` … `chart-5`), owns chart-family COHERENCE —
   the `chart-*` token family that reads as one family across any subset. This file requires that
   family to be DERIVED from the theme; shadcn-theming owns how the family itself is made
   coherent.
@@ -63,7 +64,8 @@ Everything else about charts belongs to a neighbour, cited not restated:
   downstream by `/ui-ux:theme`.
 - It does not restate `dataviz`'s categorical/sequential rules or its validator — it cites the
   skill by name and defers to it.
-- It does not restate `shadcn-theming`'s chart-family coherence mechanics — it cites `:25-26` and
+- It does not restate `shadcn-theming`'s chart-family coherence mechanics — it cites that skill's
+  `Data:` token row and
   requires only that the family derive from the theme.
 - It does not step the light/dark modes — `light-dark-duality.md` owns the duality; this file only
   notes the status ladder must hold in both.

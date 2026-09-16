@@ -37,7 +37,7 @@ An agent with no row here is **unfloored** — that is the correct default, not 
 A single formula cannot serve both classes; trying to write one is how an earlier draft
 silently turned an explicit low-tier marker (`Ultra: true (model=haiku)`) into a no-op.
 
-    FLOORED (the seven above):
+    FLOORED (every agent in the registry above — count it there, not here):
         model: = max( marker tier if a marker is present else session model,
                       role floor )
         ladder: haiku < sonnet < opus < fable
@@ -45,9 +45,9 @@ silently turned an explicit low-tier marker (`Ultra: true (model=haiku)`) into a
     UNFLOORED (every other agent): UNCHANGED from today.
         marker tier if a marker is present; otherwise omit `model:` entirely.
 
-`auto` is not an explicit tier — it resolves per `taskmaster/skills/ultra/SKILL.md`
-§ Fixed tier first (session model or opus, whichever is higher), and only the
-resolution enters the max.
+`auto` is not an explicit tier — it resolves per this plugin's
+`verification-panels/references/dispatch-tier.md` (session model or opus, whichever is
+higher), and only the resolution enters the max.
 
 **For a floored agent under a marker this is exactly `ultra/SKILL.md`'s existing
 `max(marker tier, frontmatter tier)`.** The only new behavior is that the *session model*

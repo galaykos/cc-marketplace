@@ -12,9 +12,14 @@
 # because craft step 7 calls that command, which is one call site, not two. A plain
 # "build me an app" turn runs neither. Measured, not assumed: in a control/treatment run
 # on 2026-08-17, a Laravel build shipped 23 indigo utilities across 5 Blade views with
-# every gate green, because none of them was on that path. ui-ux ships in 10 bundles to
-# craft-layer's 4, and PostToolUse fires on any write, so this is the reach half of a rule
-# craft-layer already owns the depth of.
+# every gate green, because none of them was on that path. The reach asymmetry is
+# structural, not a count that can drift: craft-layer DEPENDS on ui-ux, so every
+# craft-layer install already carries this hook while the reverse does not hold, and
+# ui-ux additionally ships in bundles craft-layer is absent from. Recount rather than
+# trusting a number here:
+#   grep -l '"ui-ux"' plugins/*/.claude-plugin/plugin.json | grep -v '/ui-ux/'
+# PostToolUse fires on any write, so this is the reach half of a rule craft-layer
+# already owns the depth of.
 #
 # STANDING: advisory. `additionalContext` is not a blocking key and this exits 0 on every
 # path. It is deliberately NOT a gate: a violet brand is a legitimate answer, and the only

@@ -65,8 +65,10 @@ Every kind then passes the two cross-cutting gates before it ships.
   Lottie / `.riv` / video); reduced-motion + no-jank enter/exit are mandatory.
 - **Font** — selection defers to kinetic-typography; the gate carries its licence
   (SIL-OFL obliges shipping the licence text + Reserved-Font-Name).
-- **Video** — motion-tiers tier 4 owns encode / poster / fallback; the gate carries its
-  licence.
+- **Video** — no motion tier owns a video encode/poster contract; `motion-tiers`
+  `references/sprite.md` covers only the sheet-vs-video crossover (WebM/AV1 beats a raster
+  sheet past ~500KB). Decide encode, poster and fallback on the surface; the gate carries
+  its licence.
 
 ## The source decision (six axes)
 

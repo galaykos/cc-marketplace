@@ -1,6 +1,6 @@
 ---
 name: yagni-check
-description: Use when designing or reviewing for speculative generality — flags abstractions, config options, flexibility nobody asked for.
+description: Use when code or a design looks over-engineered or premature — YAGNI, speculative generality: flags single-implementation interfaces, config nobody sets, unused for-later parameters, flexibility nobody asked for.
 ---
 
 ## The core question

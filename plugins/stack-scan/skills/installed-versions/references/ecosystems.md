@@ -83,7 +83,8 @@ whether each ecosystem's own file agrees, and report the disagreement.
 A dependency written `"react": "catalog:"` (or `catalog:react19`) is **not** a
 version specifier. It resolves through the `catalogs` block of
 `pnpm-workspace.yaml`. Reporting `catalog:` as the version — or giving up — breaks
-every downstream skill that branches on a major (vite, nextjs, vue3, react all do).
+every downstream skill that branches on a major — web-dev's vite and Next.js
+skills both do.
 
 Resolve it, then cite BOTH sources:
 

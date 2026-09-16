@@ -52,7 +52,7 @@ list rather than one per plugin.
 ```
 
 Reviews state their coverage (`Checked:` / `Not checked:`) and close with a
-one-line verdict — merge-ready, merge-after-blockers, or rework — with an
+one-line verdict — merge-ready, merge-after-criticals, or rework — with an
 option to apply the fixes. Since 0.17.0 the generic pass is delegated to Claude
 Code's built-in `/code-review` skill when the session has it; this command is
 the stack fan-in over it, and runs the generic pass itself only when the
@@ -89,6 +89,14 @@ a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (
 1:1, 0 for the sibling test only). `verbosity.sh` applies the same rule to terminal
 prose. Ledgers and markers live under `.claude/comment-discipline/`. Silence any
 advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it.
+
+A fourth hook ships outside the comment lane, and this README omitted it until 0.20.0:
+`conventions.sh` fires `PostToolUse` on the first code write of a session and emits the
+PATHS of the files that define this project's conventions (`.editorconfig`, formatter and
+linter configs) plus the CI command that actually invokes them — locations, so the model
+opens them, and deliberately never a digest of their contents. Once per context — keyed
+on the transcript, so a subagent writing code gets its own copy rather than being deduped
+against a nudge only its parent saw. `CC_CONVENTIONS=off` silences just this one.
 
 ## Pairs well with
 

@@ -59,6 +59,13 @@ immediately — no keystroke needed; you see the refresh happen in-session. Larg
 drift stays an explicit offer (a big reindex spends real tokens — your call). The
 hook itself never writes anything; the model performs the refresh visibly.
 
+Two cases demote the self-heal back to the offer. While a task-runner run is open
+(`.claude/task-runner/scope.json` exists) that run's scope-lock hook would flag a
+`brain/*.md` write as out-of-scope, so the two hooks must not issue opposite
+instructions on one edit. And when the `built:` hash is no longer reachable in the
+repo — rebased, squashed, a shallow clone, a hand-edited stamp — the drift cannot be
+counted, so the hint names no number rather than claiming `0 files changed`.
+
 ## Pairs with
 
 `brain` is a sink for two ledgers and an orientation prior for three readers. It

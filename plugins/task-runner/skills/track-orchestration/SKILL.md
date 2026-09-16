@@ -104,6 +104,10 @@ them — the worker cannot:
 - any reduction forced by preconditions — a downgraded dispatch, a degraded red-team →
   `scripts/reduction-record.sh --kind <dispatch|redteam> --id <ref> --reason "<why>"`,
   which also makes naming it in the report mandatory
+- the per-card **negative-control** records, which the gate counts the same way: the leaf
+  RUNS the control but must be told to write it to the MAIN repo's
+  `.claude/task-runner/nc` by absolute path, because `.claude/` is gitignored and a
+  worktree-local record merges nowhere (`references/algorithm.md` § Dispatch item 6)
 
 Without the exemption records a tracks run blocks at completion having done nothing
 wrong, which is the failure mode this whole mechanism must not add. Records written

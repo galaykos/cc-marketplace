@@ -114,8 +114,8 @@ applying it (WCAG contrast and touch-target rules stay here).
   CONTROLS, not composition — it is not a reason to centre every section or to
   overrule a decided `Composition:` line.
 - Typography: sizes from the scale's steps; line-height suits the size; measure
-  stays readable (roughly 45–75 characters) for BODY copy — a display line is
-  not body copy and the measure rule does not cap it.
+  stays readable for BODY copy — the bound is `design-tokens`' (Type — a modular
+  scale); a display line is not body copy and the measure rule does not cap it.
 
 - Note which breakpoints were checked and how (a code-level presence check,
   not a rendered verification).

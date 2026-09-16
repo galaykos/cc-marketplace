@@ -1,5 +1,6 @@
 ---
 description: Review any diff for bugs and smells, fanning in every installed stack review — severity-sorted one-line findings; never run the per-stack commands separately.
+argument-hint: "[path | PR number | branch | --debt]"
 ---
 
 Review the code change in $ARGUMENTS. Resolve scope in this order:

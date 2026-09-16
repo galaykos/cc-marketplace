@@ -1,7 +1,7 @@
 # Second-tier evidence signals
 
 The SKILL's tier-1 signal table reads `composer.json`, `package.json`, `.env.example`
-DSNs and docker images, and it names six framework plugins. That covers the PHP and
+DSNs and docker images, and it names three plugins across six signals. That covers the PHP and
 JS/TS *framework* surface and nothing else, so a Python, Go, Rust, Terraform or
 infra-shaped repo produces **zero** tier-1 hits and falls through to tier 3 — the
 universal remainder, dozens of rows all carrying the literal evidence string
@@ -39,10 +39,11 @@ substring. `next-auth`, `nextra` and `@next/bundle-analyzer` are not `next`;
 | devDep `eslint-plugin-jsx-a11y` or `@axe-core/*` | `ui-ux` | the dep, not the presence of `.tsx` — every React repo has those |
 | `*.sql`, `**/migrations/**`, `prisma/schema.prisma`, `knexfile.*`, `alembic.ini` | `database` | engine-agnostic floor; mirrors rules.tsv `*.sql` + `**/migrations/**`, which make it the decisive DB fallback |
 | composer require `laravel/sanctum` or `laravel/passport`; or dep `next-auth`, `@auth/core`, `jsonwebtoken`, `passport` | `security` | an auth dependency is the app-shaped evidence its OWASP review wants |
-| a `package.json` or `composer.json` exists | `stack-scan` | its package-hygiene rubric is Composer/npm-specific, so it is signal-earned rather than any-project core — a Python repo must not auto-install it |
+| `phpstan.neon*`, `psalm.xml*`, `phpcs.xml*`, `rector.php`, `eslint.config.*`, `.eslintrc*`, `biome.json*`, `.oxlintrc.json`, `.stylelintrc*`, `lighthouserc*`, `.pa11yci*`, `tsconfig.json`; or the matching composer/npm devDependency | `toolchain-experts` | a configured analyzer is the whole signal: its five reviewers RUN that tool and report what the baseline forgives and which rules are off, and its own `detect-analyzers.sh` exits 1 when nothing is configured, so with no config there is nothing to suggest |
+| a `package.json` or `composer.json` exists | — | the Composer/npm dependency-hygiene rubric ships IN the plugin running this scout, so there is no row to offer: name the lane instead — `/stack-scan:audit` for vulnerabilities, outdated packages and licences |
 | `.env` key `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or dep `langchain*`, `llamaindex`, `@anthropic-ai/*` | — | **no plugin covers this** — the llm-app plugin was removed on 2026-09-14; `security`'s write-scan keeps the LLM-sink patterns, and the host's built-in `claude-api` skill carries provider facts |
 | `prometheus` / `grafana` / `otel-collector` service in compose, or `@opentelemetry/*` dep | `resilience` | |
-| `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | `stack-scan` | the version-truth plugin is the ONE always-right answer for a stack this marketplace does not cover |
+| `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `build.gradle*`, `Gemfile` | — | **no plugin covers this stack.** The version-truth lane is already installed — `/stack-scan:report` reads these manifests, and `references/ecosystems.md` carries their authority conflicts — so route the rest to `/stack-scan:suggest --skills` |
 | dep `prisma`, `@prisma/client`, `typeorm`, `sequelize`, `mongoose`, `drizzle-orm`; or composer require `doctrine/orm`; or `**/migrations/**` | `database` | the schema/migration/pooling half, and it ships a PreToolUse guard. The `sql` row above fires on some of the same evidence and owns statements; `references/picker.md` already pairs the two as overlapping, so both rows firing is correct, not a duplicate |
 | `components.json` **and** a `tailwind.config.*` or `tailwindcss` dep | `ui-ux` | a shadcn setup that already exists is what a real-component preview renders variants in (taskmaster's visual-decisions rung); the `components.json` row above fires on the same file, and one row is enough |
 | devDep `lighthouse`, `@lhci/cli`, `k6`, `artillery`, `autocannon`, or dep `web-vitals` | `resilience` | a measurement tool already in the manifest is someone having decided performance is a concern here |

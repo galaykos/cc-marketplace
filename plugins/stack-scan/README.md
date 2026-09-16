@@ -92,14 +92,17 @@ hook-bearing plugins by event, any MCP server the set adds, and the listing cost
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default fraction
 0.01): **6,000 chars** on the default 200k window, 30,000 on the 1M tier. A full stack
 set costs on the order of 35,000 chars over its skill and command entries, so the host
-silently reduces entries to name-only and skills stop being reachable. The plan prints
-the set's cost against both caps and the smallest fraction that fits, e.g.
-`{ "skillListingBudgetFraction": 0.06 }`. The scout never writes it and never trims the
-set. Standing of the figures: **recorded** — recompute with `bash scripts/context-budget.sh`
-in the marketplace repo before trusting them.
+silently reduces entries to name-only — no error, no log. What that does NOT do is stop a
+skill firing: removing a description outright measured 47/50 vs 47/50
+(`rationale/2026-09-15-listing-eviction-probe.md`, one model, n=50 per arm). Firing dropped
+only where eight adjacent skills contested one territory, so the cost of a big install is
+OVERLAP, not bytes. The plan still prints the set's cost against both caps and the smallest
+fraction that fits, e.g. `{ "skillListingBudgetFraction": 0.06 }`; it never writes it and
+never trims the set. Standing of the figures: **recorded** — recompute with
+`bash scripts/context-budget.sh` in the marketplace repo before trusting them.
 
 **Picking, and why it is one call.** Offering every eligible row as an explicit checkbox
-costs four AskUserQuestion calls in every repo, so the default offers the rows a signal
+costs one blocking AskUserQuestion call per 15 rows in every repo, so the default offers the rows a signal
 or the core list earned and puts the remainder behind one door — every row still prints
 in the numbered inventory and stays pickable by number, name or range, or through the
 unbounded `scripts/pick.sh` TTY picker. `--all` restores exhaustive paging.
@@ -126,8 +129,10 @@ Consequences, all deliberate:
 - **Provenance on every row** — source repo, installs, URL — so you judge the source,
   not the rank.
 - **Preview before install** — the picked skill's SKILL.md is fetched and shown before
-  `npx -y skills add <owner>/<repo> --skill <skillId> -y` runs, project-level, never
-  `--global`.
+  `npx -y skills add` runs, project-level, never `--global`. Two commands, not one:
+  `--skill` takes the display name `npx -y skills add <owner>/<repo> -l` prints, and the
+  skills.sh `skillId` exits 0 without installing, so every install is confirmed with
+  `npx -y skills ls`.
 - Suggests and installs skills.sh skills only; auditing, updating and removal are `npx
   skills update` / `remove`. Never touches `.claude/settings.json`; skills.sh tracks its
   installs in `skills-lock.json`. The search API is unofficial; on failure the mode stops
@@ -136,8 +141,10 @@ Consequences, all deliberate:
 Standing, per this marketplace's has-teeth convention: all of the above is
 recorded/agent-graded — no script gates it. Gated by name only: catalog freshness
 (`generate.sh --check`, which renders `skills/plugin-scout/references/catalog.md`),
-plugin names in the suggestion tables (`pc_scout_names`), the picker's parser
-(`scripts/__tests__/pick.test.sh`).
+plugin names in the suggestion tables (`pc_scout_names`). The three shipped scripts are
+the exception — real harnesses, run on every PR: `scripts/__tests__/pick.test.sh` (the
+picker's parser), `scan.test.sh` (the report's mechanical pass) and
+`licence-scan.test.sh` (the licence lane, including its exit-3 unresolvable path).
 
 ## Pairs well with
 

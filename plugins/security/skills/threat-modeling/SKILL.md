@@ -3,8 +3,6 @@ name: threat-modeling
 description: Use during design — before code exists — to threat-model a feature or system: assets, trust boundaries, STRIDE, abuse cases, mitigations. The design-phase complement to security-review's code-level audit.
 ---
 
-# Threat modeling
-
 Security review finds flaws in code that exists; threat modeling finds them in a design
 before you build it, when they are cheapest to fix. It answers four questions: **what
 are we building, what can go wrong, what are we doing about it, and did we do a good

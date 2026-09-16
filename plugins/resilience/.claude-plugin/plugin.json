@@ -1,7 +1,7 @@
 {
   "name": "resilience",
-  "version": "0.6.4",
-  "description": "Runtime quality in one plugin — does it stay up, can you see it, is it fast. Failure-mode design for integration points (timeouts, retries with backoff and idempotency, circuit breaking, graceful degradation, delivery semantics) with the merged error-handling and concurrency disciplines and the event-driven skill (brokers, outbox, sagas, DLQ, consumer idempotency); application observability (structured logs with correlation IDs, RED/USE metrics without cardinality bombs, trace propagation, honest health checks); and measure-first performance (N+1, payload, bundle, Core Web Vitals, cache correctness, percentile load tests). One audit, /resilience:review, over all six rubrics or one of them via --concern, and two workers, observability-engineer and performance-engineer, that apply only what a measurement or a finding proves.",
+  "version": "0.7.0",
+  "description": "Runtime quality in one plugin — does it stay up, can you see it, is it fast. Failure-mode design for integration points (timeouts, retries with backoff, circuit breaking, graceful degradation) with the error-handling and concurrency disciplines and the event-driven skill (brokers, outbox, sagas, DLQ); application observability (structured logs with correlation IDs, RED/USE metrics, trace propagation, honest health checks); measure-first performance (N+1, payload, bundle, Core Web Vitals, cache correctness). One audit, /resilience:review, over all six rubrics or one via --concern, and two workers, observability-engineer and performance-engineer, that apply only what a finding proves.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

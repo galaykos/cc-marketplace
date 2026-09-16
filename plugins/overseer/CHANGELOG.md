@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.8 — 2026-09-15
+
+### Fixed
+- `skills/overseer/SKILL.md`: the four-laws citation now says the path is **in the
+  marketplace repository**, the form the other 17 citing skills already use. An
+  installer of this plugin has no `.claude/skills/authoring-skills/SKILL.md` in their
+  project, so the bare path read as a file they were missing.
+
+### Changed
+- `skills/overseer/SKILL.md`: three rows left the standing table because the same rule,
+  with the same `(**gate**)` marker, is stated inline in the step that applies it —
+  hands-off needs an ASSUMED row and a reason (Clarify), a dispatch's `MODEL:` must fit
+  the tier (Prompts are the product), the session must be opened in the project
+  (Discover 0). A fourth row keeps its standing and points at Deliver step 3 for the
+  requirements instead of restating them. Body: 191 → 185 lines, 13,991 → 13,491 bytes;
+  it had 9 bytes of headroom under the 14,000-byte gate, so the next word added anywhere
+  would have failed the build. No rule was dropped, and the README's installer-facing
+  table still lists every one.
+
 ## 0.4.7
 
 ### Changed

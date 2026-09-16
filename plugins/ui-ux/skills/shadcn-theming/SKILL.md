@@ -1,6 +1,6 @@
 ---
 name: shadcn-theming
-description: Use when creating or restyling a UI colour theme — shadcn/ReUI/Aceternity CSS variables, Tailwind semantic tokens, or Bootstrap Sass variables: light + dark, contrast checks, live preview on one localhost URL.
+description: Use when creating or restyling a UI colour theme — shadcn/ReUI/Aceternity CSS variables, Tailwind semantic tokens, Astryx `defineTheme()` tuples, or Bootstrap Sass variables: light + dark, contrast checks, live preview on one localhost URL.
 ---
 
 ## A theme is a token set, not sprinkled colors

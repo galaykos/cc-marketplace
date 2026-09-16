@@ -70,7 +70,8 @@ completion / `choices[0]` / `.content` value on the same line as `eval`, `exec`,
 `tool-result-unfenced` (a `tool_result` / `retrieved*` / `chunks` / `documents` name
 interpolated into a `prompt` / `messages` string with no delimiter token on that
 line). Warn — never deny — because each has a legitimate
-form; `CC_SECURITY_SCAN=off` disables. Single-line matching only: a `SafeLoader` on
+form; `CC_SECURITY_SCAN=off` disables it, and `CC_REMIND=off` silences it along with
+every other advisory nudge in this marketplace. Single-line matching only: a `SafeLoader` on
 the next line still warns, a system prompt assembled across lines never does. GitHub Actions expression injection is deliberately not
 here — `devops` denies it pre-write. Everything else (authz logic, cross-file flows,
 dependency audit) stays review-time via `/security:review`.

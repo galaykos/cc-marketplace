@@ -16,7 +16,7 @@ treatment on seeded-defect fixtures, one fixture per skill:
 | JavaScript idiom checklist | 7 | 7/7 + extras | 7/7 | **0** |
 | Vue 2 idiom checklist | 5 | 5/5 + extras | 5/5 | **0** |
 | React doctrine checklist | 6 | 6/6 **+ 6 more** | 5, all a subset of control | **negative** |
-| Four CSS style catalogues | 5-6 | full + extras | equal or worse | **0 to −2** |
+| Four CSS style catalogues | 5-6 | 4/5 to 6/6, plus extras in every arm | equal or worse | **0, and +1/−2 on css-grid** |
 
 All of them were removed after baseline testing. The React result is the one that
 shaped this plugin: the checklist did not merely fail to add, it **narrowed** the

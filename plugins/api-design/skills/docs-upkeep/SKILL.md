@@ -1,6 +1,6 @@
 ---
 name: docs-upkeep
-description: "Use when a change alters behavior, interfaces, setup steps, or commands — to update the documentation that just became a lie, in the same change, before it merges."
+description: Use when a change made docs a lie — README claims, CHANGELOG, docstrings, config/env docs, runnable examples, dead links — fixed in the same change, pre-merge.
 ---
 
 # Documentation Upkeep
@@ -12,10 +12,6 @@ documentation precisely because it is written down — they follow the stale
 setup steps, call the renamed flag, copy the example that no longer runs,
 and act on fiction with full confidence. Missing docs make people ask;
 wrong docs make people fail silently.
-
-The cheapest moment to sync a doc is the change that broke it. Right now
-you know exactly what changed, why, and which claims it invalidates. A
-week later that knowledge is gone and the sync costs an archaeology dig.
 
 ## The drift catalog — what to check after a change
 
@@ -74,22 +70,13 @@ generate future drift:
 Docs earn upkeep only when someone acts on them. If no reader would
 change their behavior based on a doc, delete it instead of syncing it.
 
-## Doc placement ladder
+## One fact, one home
 
 Each fact lives in exactly ONE place; every other mention links to it.
 Duplicated facts drift independently — two copies of a default value are
-a guarantee that one will eventually be wrong.
-
-- **Docstring** — the contract of one unit: what this function/class
-  takes, returns, raises, and guarantees.
-- **README** — how to use and run the project: install, quickstart,
-  common commands.
-- **docs/** — architecture, design rationale, decision records: things
-  that span units and outlive individual functions.
-- **CHANGELOG** — what changed, when, and for whom.
-
-When a fact seems to belong in two rungs, pick the lowest rung where a
-reader would look first, and link from the others.
+a guarantee that one will eventually be wrong. When a fact could sit in
+two documents, pick the narrowest one a reader opens first (docstring
+over README, README over `docs/`) and link from the rest.
 
 ## Freshness signals to scan for
 

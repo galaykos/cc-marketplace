@@ -46,21 +46,17 @@ not restate it.
 
 ### Budget
 
-The numbers are policy caps and live in
-`plugins/craft-layer/skills/motion-tiers/references/tier-budgets.md`. They are SEPARATE from
-the cumulative motion-JS budget: a sequence is images, the budget meters script, and neither
-buys the other. Both bind.
+The six numbers are policy caps and this file does not carry them — read them from
+`plugins/craft-layer/skills/motion-tiers/references/tier-budgets.md`
+§ The frame-sequence budget (total transfer, frame count, format, longest edge, decode-ahead
+window, fetch start). That file says it "owns the numbers only"; a copy here would be the drift
+this split exists to prevent. They are SEPARATE from the cumulative motion-JS budget: a
+sequence is images, the budget meters script, and neither buys the other. Both bind.
 
-- ≤ 1.5 MB transferred for the whole sequence
-- ≤ 90 frames
-- AVIF primary with a WebP fallback
-- longest edge ≤ 1600 px
-- decode-ahead window ≤ 8 frames held as `ImageBitmap`
-- nothing fetched until the act is within one viewport of entry
-
-**Over-cap remedy: fewer frames, never a longer download.** A sequence over budget drops
-frames across the same scroll range — the act gets coarser, not heavier. Rendering at a lower
-resolution or stretching the scroll range does not discharge the cap.
+**Over-cap remedy — a design instruction, not a number, so it is stated here: fewer frames,
+never a longer download.** A sequence over budget drops frames across the same scroll range —
+the act gets coarser, not heavier. Rendering at a lower resolution or stretching the scroll
+range does not discharge the cap.
 
 **Slow networks opt out entirely.** Under `save-data`, or an `effectiveType` of `4g` or below,
 the sequence does not load and the static path ships. A visitor on a metered connection has

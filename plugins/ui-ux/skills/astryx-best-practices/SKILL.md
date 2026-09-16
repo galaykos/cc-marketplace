@@ -1,6 +1,6 @@
 ---
 name: astryx-best-practices
-description: Use when building or reviewing UI with Astryx, Meta's open-source React design system (@astryxdesign/core, @astryxdesign/cli, theme-* packages, StyleX xstyle), or when a project imports from @astryxdesign/* or runs `astryx init|template|theme|component`. BETA 0.x — resolve the installed version from the lockfile and read props from the CLI, never from memory.
+description: Use when building or reviewing UI with Astryx, Meta's open-source React design system — a project importing from `@astryxdesign/*` (core, cli, theme-* packages, StyleX xstyle) or running `astryx init|template|theme|component`. BETA 0.x: pin the installed version before advising.
 ---
 
 # Astryx best practices

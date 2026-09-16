@@ -66,16 +66,15 @@ Published by Vercel Labs; `npx -y skills <command>`.
   repo's whole set — never use it here; one pick, one skill.
 - Install side effects to expect: skill content lands in
   `.agents/skills/<name>/` with symlinks into each agent dir
-  (`.claude/skills/<name>`), and `skills-lock.json` appears at the
-  project root — surface both to the user, who decides whether to commit
-  or gitignore them.
-- `ls` — list installed skills (the report's installed column).
+  (`.claude/skills/<name>`; `--copy` copies instead of linking), and
+  `skills-lock.json` appears at the project root — surface both to the
+  user, who decides whether to commit or gitignore them.
+- `ls` — list installed skills (the report's installed column), and the
+  only proof an `add` landed.
 - `remove`, `update` — lifecycle commands out of this plugin's scope;
   mention them, do not run them.
 - `use <owner>/<repo>@<skill>` — generates a use-without-install prompt;
   an alternative the user can run manually to trial a skill.
-- Installs symlink into agent directories by default (`--copy` to copy)
-  and are tracked in `skills-lock.json` at the project root.
 
 ## TTY picker escape hatch
 

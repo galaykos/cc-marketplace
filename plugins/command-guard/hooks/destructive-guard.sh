@@ -10,7 +10,8 @@
 #           `docker compose down -v`, `aws s3 rb`, `terraform destroy`). The
 #           model is stopped; only a human can run these.
 #   ask   — destructive but commonly intended and scoped (`git reset --hard`,
-#           `rm -rf ./some-dir`, `kubectl delete pod`). The user answers.
+#           `kubectl delete pod`, and `rm -rf ./some-dir` only when git cannot
+#           restore the path — see the recoverability check). The user answers.
 #   allow — everything else. The hook stays silent and normal permissions apply.
 #
 # The failure it exists for: an agent runs a schema-reset command mid-task

@@ -1,113 +1,100 @@
 ---
 name: tailwind-best-practices
-description: Use when writing or reviewing Tailwind CSS — utility ordering, components vs @apply, responsive/dark variants, config tokens.
+description: Use when writing or reviewing Tailwind CSS — utility classes, class order, `@apply`, arbitrary values, dark mode, `tailwind.config.js` vs v4's CSS-first `@theme`/`@custom-variant`/`@source`, and the v4 utility renames (`shadow-sm`, `rounded`, `outline-none`, `ring`, `bg-opacity-*`). Colour values are shadcn-theming; scales are design-tokens.
 ---
 
-## Keep class ordering consistent
+> Last verified: 2026-09-15 — https://tailwindcss.com/docs/upgrade-guide
 
-Unordered utility soup is unreadable and makes diffs noisy. Use a consistent order (layout →
-box model → typography → visual → state/variants) and let a formatter enforce it automatically
-rather than debating it by hand.
+## Resolve the major from the CSS, not from `package.json` alone
 
-- Good: run `prettier-plugin-tailwindcss` so class order is deterministic and diff-friendly.
-- Bad: classes in random order that shifts every time someone touches the line, e.g.
-  `text-sm bg-white p-4 flex hover:bg-gray-50 rounded border`.
+Read the entry stylesheet before advising. It is the only signal that cannot lie:
 
-## Extract repeated patterns into components, not `@apply` soup
+- `@import "tailwindcss";` → **v4**. `@tailwind base/components/utilities;` → **v3**.
+- **A `tailwind.config.js` on disk does NOT mean v3.** v4 no longer detects it; a v4
+  project can still load one with `@config "../../tailwind.config.js";`. Grep for
+  `@config` before concluding anything from the file's existence.
+- Build wiring moved: v4 uses `@tailwindcss/postcss`, `@tailwindcss/vite`, or
+  `@tailwindcss/cli`. A `tailwindcss` entry in a PostCSS plugin list is v3 wiring.
 
-When the same utility cluster shows up in five places, extract a framework-level component
-(React/Vue/etc.) that renders those utilities, not a custom CSS class built from `@apply`.
-`@apply` re-creates the specificity and maintenance problems Tailwind exists to avoid, and it
-hides the utilities from tooling like the IntelliSense plugin and unused-class detection.
+## The v3 answers that land nowhere on v4
 
-```tsx
-// Good: a Button component wraps the repeated utility cluster
-function Button({ variant = "primary", ...props }) {
-  return <button className={cn(base, variants[variant])} {...props} />;
-}
-```
+Each row is a remedy the corpus still recommends and v4 does not have. Recommending
+one produces a confident edit that changes nothing — the expensive failure here.
 
-```css
-/* Bad: @apply soup reintroduces a custom stylesheet to maintain */
-.btn-primary {
-  @apply px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700;
-}
-```
+| The v3 answer | On v4 |
+|---|---|
+| `tailwind.config.js` → `theme.extend` | not read unless `@config` names it; tokens live in `@theme { --color-brand: … }` in CSS |
+| `darkMode: 'class'` in the config | `@custom-variant dark (&:where(.dark, .dark *));` in CSS — data-attribute form: `@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));` |
+| `content: [...]` globs | automatic detection; `.gitignore`d files, `node_modules`, binaries, CSS files and lockfiles are skipped. Add a path with `@source "../node_modules/@acme/ui";` |
+| `safelist: [...]` in the config | unsupported key; use `@source inline("underline")`, with variants as `@source inline("{hover:,focus:,}underline")` |
+| `corePlugins` / `separator` | unsupported keys — no replacement, drop the requirement |
+| `theme('screens.xl')` in CSS | `theme(--breakpoint-xl)`, or read the variable directly: `var(--color-red-500)` |
 
-## Use design tokens via config, not arbitrary values everywhere
-
-Reach for `theme.extend` (colors, spacing, fontSize) so the whole app draws from a shared scale.
-Arbitrary-value syntax (`w-[137px]`, `text-[#1a2b3c]`) is fine for a genuine one-off, but if the
-same arbitrary value appears more than once, it belongs in the config as a token.
+**`@apply` in a second file silently produces nothing on v4.** A CSS module, a
+`<style>` block in a `.vue`/`.svelte` file, or any stylesheet other than the entry one
+is compiled on its own and knows no utilities. It needs an explicit reference:
 
 ```css
-/* Good: v4 (CSS-first, no tailwind.config.js by default) — tokens live in @theme */
-@theme { --color-brand: #1a2b3c; --color-brand-600: #16232f; }
+@reference "../../app.css";
+h1 { @apply text-2xl font-bold; }
 ```
 
-```js
-// v3 legacy projects only: tailwind.config.js → theme.extend.colors.brand
-```
+Without it the rule compiles clean and the element is unstyled — no error to grep for.
 
-```html
-<!-- Bad: the same magic value copy-pasted across files -->
-<div class="bg-[#1a2b3c]">...</div>
-<div class="bg-[#1a2b3c]">...</div>
-```
+## The renames, and which are loud
 
-## Design mobile-first, layer breakpoints upward
+`outline-none` → `outline-hidden`, `flex-shrink-*` → `shrink-*`, `flex-grow-*` →
+`grow-*`, `overflow-ellipsis` → `text-ellipsis`, `decoration-slice`/`-clone` →
+`box-decoration-slice`/`-clone`, and every `*-opacity-*` utility
+(`bg-opacity-50`) → the modifier form (`bg-black/50`). These are loud: the old name
+generates no CSS, so the effect is visibly absent.
 
-Tailwind's responsive variants are min-width by default: unprefixed utilities are the base
-(mobile) style, and `sm:`, `md:`, `lg:` add overrides for larger viewports. Write the mobile
-layout first, then layer breakpoint variants — don't design desktop-first and try to cram it
-down with `max-*` variants everywhere.
+**The scale shift is the quiet one.** v4 renamed the bare and `-sm` steps of five
+families, so a v3 class string still compiles and renders a DIFFERENT value:
 
-- Good: `class="flex flex-col gap-2 md:flex-row md:gap-4"`
-- Bad: designing only for desktop, then bolting on `max-md:flex-col` overrides as an afterthought.
+| v3 | v4 |
+|---|---|
+| `shadow-sm` / `shadow` | `shadow-xs` / `shadow-sm` |
+| `rounded-sm` / `rounded` | `rounded-xs` / `rounded-sm` |
+| `blur-sm` / `blur` | `blur-xs` / `blur-sm` |
+| `drop-shadow-sm` / `drop-shadow` | `drop-shadow-xs` / `drop-shadow-sm` |
+| `backdrop-blur-sm` / `backdrop-blur` | `backdrop-blur-xs` / `backdrop-blur-sm` |
+| `ring` (3px) | `ring-3`; bare `ring` is now 1px |
 
-## Dark mode via the `dark:` variant, not duplicate stylesheets
+So `shadow-sm` copied from a v3 answer into a v4 file is not an error, it is a
+one-step-lighter shadow, and `ring` is a third of the width it used to be. Flag these
+by NAME when a diff mixes eras; no build output will.
 
-Use Tailwind's `dark:` variant (v4: defined via `@custom-variant dark` in CSS; v3: class or
-media-based per config) alongside the light styles in the same markup. Don't maintain a parallel dark-mode CSS file or duplicate component
-trees — that doubles the maintenance surface and will drift.
+## What holds on both majors
 
-```html
-<!-- Good -->
-<div class="bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">...</div>
-```
+- **Complete class strings only.** The compiler scans source text, so
+  `` className={`bg-${color}-600`} `` generates nothing. Use a lookup map of whole
+  strings (`{ blue: "bg-blue-600 hover:bg-blue-500" }`). On v4 the escape for a string
+  that genuinely cannot be static is `@source inline(...)`, not a config safelist.
+- **A repeated arbitrary value is a missing token.** `w-[137px]` once is a one-off;
+  twice is `@theme` (v4) or `theme.extend` (v3). The scales themselves are
+  `design-tokens`; the colour values are `shadcn-theming`.
+- **Class order belongs to the formatter.** Install `prettier-plugin-tailwindcss` and
+  stop reviewing order by hand — hand-sorting is the noisy-diff source, not the fix.
 
-## Avoid dynamic class-name construction that defeats purging
+## Defer rule
 
-Tailwind's build scans source files for complete class strings. Building class names by string
-concatenation at runtime means the compiler never sees the full name and won't generate the CSS.
-Use a lookup map of complete class strings instead.
+- Colour values, ramps, light/dark token blocks → `shadcn-theming` (it owns the v3 HSL
+  vs v4 oklch split; do not restate it here).
+- Spacing, type, radius, elevation and motion SCALES → `design-tokens`.
+- Component structure in `components/ui/` → `shadcn-best-practices`; any other
+  library → `component-libraries`.
+- Contrast, focus visibility and target size → `/ui-ux:audit`.
 
-```tsx
-// Bad: compiler can't statically see "bg-red-500", "bg-green-500", etc.
-<div className={`bg-${color}-500`} />
+## Anti-patterns
 
-// Good: complete strings the scanner can find
-const colorMap = { red: "bg-red-500", green: "bg-green-500" };
-<div className={colorMap[color]} />
-```
+Named for citing in a review; each rule is stated once above.
 
-## Prefer utilities over `@layer components` for one-off styling
+- **Config-file advice to a v4 project** — a `darkMode`, `content:` or `safelist` edit
+  with no `@config` line in the CSS.
+- **Unreferenced `@apply`** — in a `<style>` block or CSS module, silently producing nothing.
+- **Mixed-era scale names** — v3 `shadow`/`rounded`/`ring` left in a v4 file.
+- **`@apply` clusters** standing in for a component.
 
-Tailwind's `@layer components` has legitimate uses (e.g., third-party overrides), but default to
-composing utilities directly in markup for anything specific to one feature. Reserve custom
-layers for truly shared, cross-cutting primitives.
-
-## Common mistakes
-
-- Reformatting class order by hand instead of using the Prettier plugin, causing noisy diffs.
-- Writing `@apply`-heavy stylesheets that recreate a parallel CSS architecture.
-- Repeating the same arbitrary value (`[#1a2b3c]`, `[13px]`) instead of promoting it to a token.
-- Desktop-first markup patched with `max-*` variants instead of mobile-first `sm:`/`md:`/`lg:`.
-- Building class names via string interpolation (`` `text-${size}` ``), silently breaking purge.
-- Maintaining separate dark-mode stylesheets instead of using the `dark:` variant inline.
-
-## Verify Against Current Docs
-
-Config shape, default breakpoints, and variant syntax have changed across Tailwind major
-versions (e.g., v3 → v4 config format). Before relying on memory for config keys or utility
-names, check the current docs: https://tailwindcss.com/docs
+Config keys, variant syntax and utility names move between majors; check
+https://tailwindcss.com/docs for the installed one rather than recalling either.

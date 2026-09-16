@@ -3,7 +3,8 @@
 # stripped or broken PATH, where `env bash` itself exits 127.
 #
 # PostToolUse. The AD-HOC complement to scope.sh, which is a provable no-op on most turns:
-# scope.sh:32 is `[ -r "$scope" ] || exit 0`, so when there is no task-runner card — a
+# scope.sh guards on `[ -r "$scope" ] || exit 0` (grep it — a line number here went stale
+# once already), so when there is no task-runner card — a
 # one-line request typed straight into a session, which is the common case — nothing in
 # this marketplace watches whether the work stayed near the ask. This is the only surface
 # here that is stack-agnostic by construction: it counts FILES against a REQUEST, so it
@@ -35,7 +36,8 @@
 #   - Whether a given extra file was NECESSARY needs a reader. That judgment stays
 #     agent-graded, and is why the message ends in a question.
 #
-# Off switches: CC_REMIND=off silences every advisory nudge here; CC_DRIFT=off only this.
+# Off switches: CC_REMIND=off silences this and the other reminder hooks; CC_DRIFT=off only
+# this. scope.sh, the run-scoped tripwire, reads only the run's scope file and is not muted.
 #
 # FAIL-OPEN: missing jq, unreadable transcript, unwritable state, or any error exits 0.
 {

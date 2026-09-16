@@ -1,6 +1,6 @@
 ---
 name: frontend-reviewer
-description: Use PROACTIVELY after changing component or view LOGIC in any JS/TS framework — React (Inertia, Vite, Next.js, React Native) or Vue 3 (Inertia, Vite) — framework correctness (state, effects, keys, data fetching) against this plugin's Next.js, React Native, and Vite skills, plus inertia when installed. Read-only counterpart to web-developer. Styles-only diffs → ui-ux-reviewer.
+description: Use PROACTIVELY after changing component or view LOGIC in any JS/TS framework — React (Inertia, Vite, Next.js, React Native) or Vue 3 (Inertia, Vite) — framework correctness: state, effects, keys, data fetching. Read-only counterpart to web-developer. Styles-only diffs → ui-ux-reviewer.
 tools: Read, Grep, Glob
 model: opus
 effort: xhigh

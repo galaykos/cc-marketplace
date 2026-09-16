@@ -79,7 +79,8 @@ ULTRA-ASSESS ACTIVE (model=<model>, effort=<effort>) — Extreme Boost for this 
 - Output findings/backlog. Do NOT write task cards or an execution marker.
 - Tier by role, not per-run: readers per their lens (above), opinion-lens native; the
   boost is for the red-team + critic. Fan-out counts are ceilings sized to blast radius.
-- Fan-out only when the Workflow tool is present; else run the inline fallback.
+- Fan out on EITHER dispatch mechanism — `Workflow` `agent()` or the Agent tool; the inline
+  fallback fires only when neither exists (§ Graceful degradation).
 ``` (Proportionality law: `.claude/skills/authoring-skills/SKILL.md` (in the marketplace repository) "The four laws".)
 
 ## The recipe
@@ -116,8 +117,15 @@ nothing to execute. If a finding warrants a build, hand the chosen item to
 
 ## Graceful degradation
 
-Ultra-assess never hard-fails. If the `Workflow` tool is unavailable — headless,
-cron, or the opt-in gate cannot be satisfied — every fan-out phase falls back to a
+Ultra-assess never hard-fails. The degradation trigger is **no dispatch mechanism at
+all** — neither `Workflow` `agent()` nor the Agent tool (`verification-panels`
+§ A panel verdict is a claim about process owns that condition). A missing `Workflow`
+tool alone is NOT it: the Agent tool is a real dispatch path, so with it present every
+phase still fans out for real — `model:` only, no `effort:` — and the words below stay
+earned. Keying degradation on `Workflow` alone would downgrade the ordinary interactive
+session, which is where `ultra-assess` is usually typed.
+
+With neither mechanism — headless, cron, or a refused budget — every fan-out phase falls back to a
 single inline agent at the selected model: one inline scout+reader pass, one inline
 red-team, one inline completeness sweep. The run completes with less parallelism,
 never an error. But the fallback surrenders independence — one model re-examining

@@ -1,6 +1,6 @@
 ---
 name: task-cards
-description: Use after requirements are clarified into a spec — splits the work into single-prompt task cards, one-sitting sized, self-contained for a fresh session with zero context, in an ordered dependency-aware index with parallel groups.
+description: Use after a spec exists, or to "break this down into tasks" / "split the spec into cards" — one-sitting single-prompt cards, self-contained for a fresh session with zero context, in a dependency-ordered index with parallel groups.
 ---
 
 ## What a card is
@@ -137,8 +137,9 @@ Once `00-INDEX.md` is written, before the task-runner handoff, in order:
 
 1. **Verify coverage.** Invoke coverage-check: it cross-checks success criteria ↔ cards
    both ways, blocks on any gap/orphan/drift, and writes `## Coverage` into `00-INDEX.md`.
-2. **Lint each card.** Per card run `verify-teeth-lint.sh --card <file>` (blocks a weak
-   Verify line) and `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
+2. **Lint each card.** All three live in `${CLAUDE_PLUGIN_ROOT}/scripts/` — a bare name
+   resolves nowhere in the user's project. Per card run `verify-teeth-lint.sh --card <file>`
+   (blocks a weak Verify line) and `skills-stamp-lint.sh --card <file>` (blocks a framework card stamped "none").
    Plus `spec-ledger-lint.sh --spec <spec>` once — an unconverged spec (open UNKNOWN, missing/empty ledger) never becomes cards; route holes back to grill.
 3. **Suggest a project skill.** If a `project-skill-suggester` skill is available (the
    marketplace repository keeps one under `.claude/skills/`), it scans the card set (three+ cards on the same uncaptured repo knowledge → offer a skill);

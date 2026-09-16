@@ -4,7 +4,8 @@
 
 This file is deliberately short. It carries only the Expo facts where a competent
 answer given from general knowledge is now WRONG — not an idiom list, which is the
-shape `rationale/stack-skill-baselines.md` measured at zero delta twice. Read the
+shape `rationale/measured-zero-shapes.md` §1 records at zero delta twice (typescript
+and javascript, both 0), and which names this file as the shape's narrow survivor. Read the
 installed `expo` version from `package.json` and the lockfile before applying any
 of it; every item below is version-conditional by nature.
 

@@ -18,7 +18,12 @@ pages that all copied one unverified origin.
 ## Trigger it
 
 - Say **`ultra-deep-research <topic>`** — or "deep research", "research this
-  thoroughly", "what's the latest on…", "fact-check this" — and the skill fires.
+  thoroughly", "what's the latest on…", "fact-check this", a market/competitive/
+  technical scan, a state-of-the-art or literature review — and the skill fires.
+- **Or hand it one document.** "What does this contract/RFP/standard/filing/200-page
+  PDF actually say" routes here too, and switches the engine (below). Those words were
+  missing from the skill's description until 0.7.0 — the coverage engine landed
+  2026-08-02 and spent 44 days reachable only by naming the plugin.
 - Or run the command: **`/ultra-deep-research:research <topic> [--ultra|--standard]`**.
 
 ## Depth
@@ -28,11 +33,25 @@ pages that all copied one unverified origin.
 | **standard** | Portable parallel-Agent fan-out, one refutation pass | Default; runs for any user, no opt-in. |
 | **ultra** | Workflow `loop-until-dry` fan-out + multi-vote refutation panels + completeness critic | `ultra-deep-research` / `--ultra` / contested topics. Needs the Workflow tool; falls back to standard-with-extra-rounds if unavailable. |
 
+## Two engines, one fork
+
+| Subject | Engine | Deliverable |
+|---|---|---|
+| A question whose answer is spread across the web | **corroboration** — fan out, tier, cross-check, adversarially refute | cited report with a contradiction ledger |
+| ONE authoritative document (contract, RFP, standard, filing, long PDF) | **coverage** — nothing can corroborate the only source, so refuting a clause against the web is a category error | coverage manifest FIRST (pages read, pages not read and why, pages unreadable), page/clause anchors on every load-bearing claim, "does not say X" kept apart from "says the opposite" |
+
+The fork is declared at step 1 of the skill's loop; the recipe is
+`skills/ultra-deep-research/references/local-corpus.md`. Both engines share the
+verifier, the contradiction ledger (pointed inward for a document) and the report
+template. Worth knowing before you hand over a long PDF: `Read` takes at most 20 PDF
+pages per request, so one naive call returns a prefix and reports it as the whole —
+which is what the manifest's request count exists to expose.
+
 ## What it ships
 
-- **Skill** `ultra-deep-research` — the methodology and orchestration recipe (the
-  loop, source tiers, accuracy rules, prompt hardening). Detailed scripts and the report
-  template live in its `references/`.
+- **Skill** `ultra-deep-research` — the methodology and orchestration recipe: the
+  loop, source tiers, the orchestrator's accuracy rules, the local-corpus fork.
+  Detailed scripts and the report template live in its `references/`.
 - **Command** `/ultra-deep-research:research` — one-shot entry point with a depth flag.
 - **Agent** `researcher` — one shard of the fan-out: searches, fetches, and returns
   atomic, cited, date-stamped, tiered claims for a single facet.

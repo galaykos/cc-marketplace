@@ -50,6 +50,8 @@ return Inertia::render('Dashboard', [
 ```
 
 - v1: `Inertia::lazy(fn () => ...)` — omitted from first load, fetched explicitly via `only`.
+  v2 RENAMED this to `Inertia::optional`, same semantics; `defer` below is a separate,
+  additional API, not the rename. Conflating the two is the common error here.
 - v2: `Inertia::defer(fn () => ...)` — page renders instantly, the prop arrives in an automatic
   follow-up request; render loading state with `<Deferred data="stats">`. Pass a group name to
   batch several deferred props into one request.

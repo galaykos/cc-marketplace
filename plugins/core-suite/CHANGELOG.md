@@ -3,6 +3,11 @@
 core-suite is the bundle always-on-suite became on 2026-09-14; the entries below 0.1.0 <!-- removed-ok -->
 are always-on-suite's own, with its version numbers. <!-- removed-ok -->
 
+## 0.1.7
+
+### Fixed
+- **The README's "install one or the other, never both" warning had lost its subject.** It opened "`workflow-suite` contains all seven of these" directly after the context-window section, with nothing named in between — the seven members were only listed two sections further down. They are named in the sentence now. No membership change: still `secret-scanning`, `candor`, `code-review`, `skill-router`, `git-workflow`, `hindsight`, `stack-scan`.
+
 ## 0.1.6
 
 ### Fixed

@@ -29,8 +29,9 @@ bundle still overflows; nothing checks the figures below, so recompute them with
 Claude Code budgets the skill listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` (default
 fraction 0.01). On the default 200k window with a current-tokenizer model that is
-**6,000 chars**, and this bundle's listing costs **~6,400 chars** (LC_ALL=C bytes —
-the marketplace's deterministic measure, ~1% above what the CLI counts) — over
+**6,000 chars**, and this bundle's listing costs **6,471 chars** (LC_ALL=C bytes —
+the marketplace's deterministic measure, ~1% above what the CLI counts; measured
+2026-09-15, `bash scripts/context-budget.sh`, listing channel) — over
 budget since ui-ux 0.20.0 added the Material UI and library-agnostic skills, so
 the host reduces entries to name-only in priority order, silently, and the
 evicted skills stop being reachable without any error.
@@ -55,7 +56,8 @@ One bullet per bundled plugin, in dependency order (4):
   best-practice skill(s) as files are edited
 - **ui-ux** — per-stack UI skills (shadcn/ui, ReUI, Aceternity, Astryx, Material UI,
   Tailwind) and the library-agnostic `component-libraries` floor for any other
-  React component library, plus `/ui-ux:build`, `/ui-ux:audit`, `/ui-ux:theme`
+  React or Vue component library — headless or styled — plus `/ui-ux:build`,
+  `/ui-ux:audit`, `/ui-ux:theme`
 - **web-dev** — Next.js (App Router boundaries, opt-in caching, server
   actions), React Native (lists, navigation, Expo inversions) and Vite (env
   security, chunking, `base`) skills, plus the generalist web-developer worker

@@ -5,6 +5,13 @@ taskmaster-suite became on 2026-09-14; the entries below 0.1.0 are taskmaster-su
 own, with its version numbers (started at 0.17.0; earlier versions have no entries
 rather than invented ones).
 
+## 0.2.6
+
+### Fixed
+- **"Pairs well with craft-suite — … and ui-ux's real-component preview" contradicted this README's own exclusions list**, which already said the full-fidelity escalation is a rung of `taskmaster:visual-decisions` — a skill this bundle ships. Installing craft-suite for it bought nothing. The line now names what craft-suite actually adds (craft-layer's creative direction, motion catalog, WebGL) and says where the preview lives.
+- **The testing member was described as shipping "test review".** It ships one command, `/testing:flake-hunt`, plus the test-engineer agent; test review rides the code-review fan-in. Corrected.
+- **Listing-cost figures re-measured**: 24,165 entry-chars, not "~23,900" (both places). The first measurement in this release read 23,775 and recommended `0.04` with a 225-char margin; four members then grew their descriptions in the same release and the bundle crossed 24,000, so the README now recommends `0.05` and says why. One new skill in any member moves the figure, and the symptom is silent eviction rather than an error.
+
 ## 0.2.5
 
 ### Fixed

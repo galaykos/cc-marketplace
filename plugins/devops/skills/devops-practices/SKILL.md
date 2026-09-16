@@ -3,8 +3,6 @@ name: devops-practices
 description: Use when writing or reviewing CI/CD pipelines, Kubernetes manifests, deployment strategy, or secrets handling. Local docker-compose dev environments belong to this plugin's compose-init skill; in-code instrumentation belongs to resilience.
 ---
 
-# DevOps practices
-
 Infrastructure and pipeline configuration has a blast radius the code does not: a bad
 manifest takes down every pod, a leaked secret is permanent. Inventory what exists
 before writing — CI configs (`.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`),

@@ -6,9 +6,12 @@ why it is not in the SKILL body: it was four rules on ONE 1,542-character line
 a line-count ceiling cannot see a line grow.
 
 Under `ULTRA-TASK ACTIVE` (see the `ultra` skill), also write an exact `Ultra: true
-(model=<model>, effort=<effort>)` line near the top of `00-INDEX.md` — copy the directive's
-`model`/`effort` VERBATIM (defaults auto/xhigh; `auto` stays the literal `auto` so execution
-re-resolves it in its own session) — so a fresh-session execution run inherits the boost at the
+(model=auto, effort=xhigh)` line near the top of `00-INDEX.md` — copy the directive's
+`model`/`effort` VERBATIM. The tier is FIXED, not defaulted: `ultra/SKILL.md` § Fixed tier
+makes it `model=auto, effort=xhigh` always, the suffix grammar is removed, and both hook
+directives hardcode it — so those two values are the only ones that can ever appear. `auto`
+stays the literal `auto` so execution
+re-resolves it in its own session. That is how a fresh-session execution run inherits the boost at the
 same tier. Under `ULTRA-GOAL ACTIVE` (the `ultra` skill's Goal mode), FIRST run
 `${CLAUDE_PLUGIN_ROOT}/scripts/goal-ledger-check.sh --slug <slug>` — exit 2 blocks the stamp
 (an unaudited goal run may not hand itself off); then ALSO write an exact `Goal: true

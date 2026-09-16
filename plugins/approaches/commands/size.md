@@ -1,5 +1,6 @@
 ---
 description: Size a task or task list — S/M/L/XL class per item with anchor comparison, uncertainty flag, and split recommendation for anything L+.
+argument-hint: "[task-or-list]"
 ---
 
 Run the estimation skill from this plugin on $ARGUMENTS (a single task

@@ -4,6 +4,68 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.111.0] - 2026-09-15
+
+**Every leaf and bundle swept by eleven parallel agents, one prompt, disjoint write sets.**
+The prompt (kept in the gitignored working area, not shipped) asked each worker for the same
+pass in the same order: routing audit of every description, truth audit of every path,
+flag, count and claim against disk, contradiction audit inside the plugin, cuts of lines
+matching `rationale/measured-zero-shapes.md`, hooks driven with host-shaped stdin, has-teeth
+labels, then a version bump and a changelog entry where one exists. Twenty-seven leaves and
+four bundles bumped; every shipped harness passes before and after; four always-on baselines
+moved on purpose (approaches, code-architecture, code-review, secret-scanning) to buy
+trigger vocabulary the descriptions lacked, and the rest moved by ±3 tokens or fell.
+
+**The defects that mattered were mechanisms, not prose.** taskmaster's documented preview
+path was never cleaned up (`design-preview.html` written, `*__design-preview__*` removed —
+reproduced, every happy path orphaned a file). secret-scanning's skill told the model the
+shipped guard denies `AKIAIOSFODNN7EXAMPLE` and offered literal-splitting as the escape;
+measured, that write is released by the placeholder exemption and splitting is the move the
+guard exists to catch. skill-router's `route.sh` ignored `CC_REMIND=off` while nine READMEs
+promised it silences every nudge; one rules regex could never match (`\b@reui`) and one needed an argument (`.lock(\b`).
+task-runner's three consumers of the panel fallback keyed on a `Workflow` tool that needs an
+explicit opt-in, so every ordinary session silently ran one single-model pass. brain's drift
+hint printed "0 files changed" beside a warning that the map was behind. api-design's
+reminder documented `endpoint` as a trigger (not in the regex) and omitted `library` (in it).
+testing's `flake-hunt.sh --help` taught a class the script cannot emit.
+
+**Paired manifest fixes the workers could not make.** `plugin.json` must byte-match
+`marketplace.json`, and the workers were scoped to their plugin. Five descriptions were
+false or silent about a shipped hook and are corrected in both files: laravel's worker does
+not receive the review's fix list; database's guard covers migration-DSL drops, lock hazards
+and NoSQL twins, not only DROP/TRUNCATE; command-guard ships `config-guard`; secret-scanning
+ships `unicode-scan`; ultra-deep-research has had a local-corpus engine since 2026-08-02.
+
+### Fixed
+- Per-plugin detail lives in each plugin's `CHANGELOG.md` where one exists (approaches,
+  candor, code-architecture, code-review, command-guard, core-suite, craft-layer, database,
+  devops, overseer, secret-scanning, skill-router, stack-scan, task-runner, testing, ui-ux,
+  ultra-deep-research, workflow-suite). Plugins without one carry the change only in the
+  diff, by the rule that a changelog is not backfilled.
+- Chassis regenerated for laravel, task-runner and ui-ux after their manifests changed.
+
+**Follow-up in the same release, after a review of the branch.** The five `plugin.json`
+descriptions over the 700-char guideline were trimmed in both files with no claim removed.
+candor's clause-4 negative-control count now filters on the run sentinel like its siblings
+(a stale record from a previous run satisfied the gate; measured). command-guard's harness
+scopes its git-status snapshot to its own directory. The phase-guard template cites its
+smoke assertion by name. `rationale/` live-routing cites moved off the retired
+`claude-authoring` path. A contradiction audit then found taskmaster and craft-layer still
+keying the inline fallback on a missing `Workflow` tool — the rule task-runner fixed one
+side of in 0.110.0 — and both now state the owner's rule: no dispatch mechanism at all.
+Four bundle READMEs re-measured their listing figures after the description growth
+above; workflow-suite now recommends `0.05`, since `0.04` is 165 chars short.
+
+### Not fixed, deliberately
+- taskmaster (1,228 B) and ui-ux (184 B) sit under their corpus ratchets by less than one
+  paragraph. The next substantive addition to either is a split-or-retire decision.
+- Three shape-#2 skill families (security's api-auth/data-privacy/threat-modeling,
+  code-architecture's solid/yagni/low-cognitive-load, craft-layer's threejs performance
+  checklist) were flagged by their workers as canonical doctrine and left: cutting them
+  needs a control arm, not a sweep.
+- Dated review documents under `rationale/` still cite the retired `claude-authoring`
+  path as history; rewriting them would falsify the record they exist to keep.
+
 ## [0.110.0] - 2026-09-15
 
 **Fixes from a six-agent audit of "can all 31 plugins be installed globally, always on."**

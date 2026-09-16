@@ -3,9 +3,11 @@
 Every card emits `**Agent:**` with exactly one tag from the closed vocabulary below.
 The tag is a routing hint the runner resolves to a specialist worker; it selects
 **aptitude, not authority** (all workers are equally privileged). Keep this vocabulary
-in sync with the resolution map in
-`task-runner/skills/task-execution/references/routing.md` — `scripts/validate.sh`
-fails on drift.
+in sync with **both** resolution maps —
+`task-runner/skills/task-execution/references/routing.md` (implement side) and
+`.../reviewer-routing.md` (verify side). `scripts/validate.sh` compares this list
+against each map separately and fails with a different message per map, so editing
+only one of the two goes red in CI even though the other still matches.
 
 ## Closed vocabulary
 

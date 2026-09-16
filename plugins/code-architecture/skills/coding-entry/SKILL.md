@@ -31,9 +31,11 @@ surface is touched:
            before editing any .php file
 
 Everything stack- or surface-matched is primed, never loaded. Loading the full set eagerly
-measures 17.9k on a Laravel + Inertia + React repo and 37k worst case, against 12.4k for
-this marketplace's entire always-on budget — paid before a line is read, most of it for
-surfaces the task never touches. A primed line costs ~15 tokens and expands to the same
+measures 17.9k on a Laravel + Inertia + React repo and 37k worst case — more, either way,
+than every always-on description in this marketplace combined (~10.3k; recount it as the
+leaf-row sum of `scripts/context-budget-baseline.json`, do not quote this figure — the
+12.4k carried here until 2026-09-15 matched no single channel). Paid before a line is
+read, most of it for surfaces the task never touches. A primed line costs ~15 tokens and expands to the same
 body only if the work reaches that file. The router's post-edit nudge is the backstop when
 a primed path goes unread.
 

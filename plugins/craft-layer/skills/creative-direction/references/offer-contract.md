@@ -275,7 +275,8 @@ holds; the user is choosing between options that already satisfy them.
 
 ## Part 7 — Ambition, and the routes that are not here yet
 
-Two rows that exist because a build kept answering a question the contract could not hold.
+Three rows — **Ambition**, **Boost**, **Route horizon** — that exist because a build kept
+answering a question the contract could not hold.
 
 **Ambition** pins how far the page must REACH — `restrained`, `standard` (the default when
 the user says nothing either way), or `maximal` when the brief asks for reach in any words.

@@ -1,5 +1,5 @@
 ---
-description: Security-review a diff or path against the security-review skill
+description: Security-review a diff or path — injection, XSS, CSRF, IDOR, secrets
 argument-hint: [files-or-diff]
 ---
 
