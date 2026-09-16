@@ -75,9 +75,9 @@ Claude Code caps the skill+command listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` — default fraction
 0.01, so 6,000 chars on a 200k window (3-byte model) and 30,000 at 1M — and past the
 cap it drops entries to name-only, buying descriptions back in priority order. Every
-leaf here costs about 37,600 entry-chars (`name + 4 + min(description, 1536)` per
+leaf here costs about 36,500 entry-chars (`name + 4 + min(description, 1536)` per
 skill and command, the walk `scripts/lib/plugin-checks.sh`'s `pc_listing_entry_cost`
-does): 6.3x the 200k cap, 1.25x the 1M cap. The name+4 floor alone is 71% of the 200k
+does): 6.1x the 200k cap, 1.2x the 1M cap. The name+4 floor alone is 67% of the 200k
 cap, so no amount of description trimming makes everything fit there.
 
 So `install` finishes by computing that cost from the marketplace clone and writing
@@ -87,7 +87,7 @@ smallest 0.01 step that covers cost x 1.05 at the 200k floor: 0.07 today. The fr
 is a cap, not a fill, so a 1M window pays nothing extra for the larger value. It never
 lowers a value that already covers, keeps every other key, refuses to touch a file that
 is not valid JSON (stderr names the value to set by hand), and prints what it did. The
-price is the listing itself: about 12,500 system-prompt tokens per turn, almost all of
+price is the listing itself: about 12,200 system-prompt tokens per turn, almost all of
 it prompt-cache reads. `uninstall` removes the key only when it still holds the value
 `install` would set now — any other value is yours and is left alone, with a line saying
 so. `--no-budget` skips the step in both directions.

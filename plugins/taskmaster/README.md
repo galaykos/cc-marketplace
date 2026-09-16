@@ -120,6 +120,9 @@ Prefix any taskmaster command with a bare `goal` (as its first argument) or drop
 **hands-off**. The tier is fixed at auto/xhigh (the session model or opus,
 whichever is higher — there is no per-token tier suffix); `ultra-goal` implies the
 full `ultra-task` boost. The `ultra` skill (Goal mode) owns the full contract.
+Not the host's built-in `/goal`: that is a session-scoped prompt-based Stop hook
+("keep going until X"), while this `goal` token is a taskmaster argument that
+auto-takes the pipeline's recommendations — the two share a word, not a mechanism.
 
 Under goal the pipeline **auto-takes every recommendation** instead of asking:
 AskUserQuestion gates resolve to the "(Recommended)" option, unmarked forks (variant

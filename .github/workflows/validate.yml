@@ -102,6 +102,8 @@ jobs:
         run: bash scripts/smoke/validate-fixtures/role-floors-check.sh
       - name: deference gate harness (a "defers to <plugin>" claim needs a lane edge)
         run: bash scripts/smoke/validate-fixtures/deference-check.sh
+      - name: stray-directory gate harness (an untracked plugins/<x>/ is one FAIL, not three)
+        run: bash scripts/smoke/validate-fixtures/stray-dir-check.sh
       - name: preview-guard twin + tier smoke tests
         run: bash scripts/smoke/preview-guard-tests.sh
       - name: source-of-truth gate smoke tests
@@ -110,8 +112,9 @@ jobs:
         run: bash scripts/smoke/scout-names-tests.sh
       # An eval suite that loads ZERO cases is indistinguishable from a passing one
       # when nothing executes it — two suites sat dead for weeks that way. This LOADS
-      # every case.yaml and never runs a model, so it costs nothing and needs no
-      # credential; running the evals themselves is a separate, paid decision.
+      # every case (case.yaml, or prompt.md + typed graders) and never runs a model,
+      # so it costs nothing and needs no credential; running the evals themselves is
+      # a separate, paid decision.
       - name: eval suites load (a suite with zero cases fails the build)
         run: bash scripts/eval-cases.sh
       - name: eval-case gate smoke tests
@@ -126,7 +129,7 @@ jobs:
       # are disabled inside the script so the verdict cannot depend on network.
       - name: Official plugin validator (--strict)
         run: |
-          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.259
+          npm install -g --fetch-retries=5 @anthropic-ai/claude-code@2.1.273
           bash scripts/official-validate.sh
       - name: doc staleness (warn-only)
         continue-on-error: true

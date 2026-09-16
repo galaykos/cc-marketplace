@@ -70,10 +70,10 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `workflow-suite` | 15 | ~6.1k tokens | ~1.3k tokens | ~2.1k tokens |
-| `craft-suite` | 2 | ~2.2k tokens | — | — |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.9k tokens |
-| `core-suite` | 7 | ~1.7k tokens | ~1.3k tokens | ~1.9k tokens |
+| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~2.1k tokens |
+| `craft-suite` | 2 | ~2.1k tokens | — | — |
+| `frontend-suite` | 4 | ~1.7k tokens | ~32 tokens | ~1.9k tokens |
+| `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~1.9k tokens |
 
 Every row is a curated subset. The marketplace ships all 28 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.
 
@@ -84,7 +84,7 @@ not a constant — read out of the shipped CLI (2.1.251), not from documentation
 
 `skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.
 If you install a bundle flagged over the 200k floor, set it to the value that bundle's README
-names (0.02 for core-suite, 0.04 for workflow-suite) in the settings.json of the PROJECT where you use it — the fraction is a
+names (0.02 for core-suite, 0.05 for workflow-suite) in the settings.json of the PROJECT where you use it — the fraction is a
 ceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the
 descriptions being evicted.
 `bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including
@@ -160,9 +160,11 @@ early:
 
 Suites are curated starting points, not coverage: the stack and domain leaves
 that belong to no suite — `laravel`, `database`, `devops`, `api-design`,
-`resilience` — are named by `/stack-scan:suggest` when the project's manifests
-earn them, and `brain`, `command-guard`, `overseer` and `ultra-deep-research` are
-per-project or per-user opt-ins. Install them by name.
+`resilience`, `toolchain-experts` — are named by `/stack-scan:suggest` when the
+project's manifests earn them, and `brain`, `command-guard`, `overseer`,
+`ultra-deep-research` and `all-plugins` are per-project or per-user opt-ins. Install
+them by name. (The list has gone stale before — recount it: a leaf is in no suite
+when no bundle's `dependencies` array names it.)
 
 ---
 
@@ -205,7 +207,7 @@ the version the model happens to remember.
 
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
-| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill (the fan-in detects the engine first), a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks before a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` reaches the shell | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
+| **[database](plugins/database)** | the engine-agnostic `sql` skill and the `mariadb` dialect skill (the fan-in detects the engine first), a `database-engineer` worker that applies schema/migration/index/pool work, and a **PreToolUse guard** that asks when a Write/Edit puts a `DROP` / `TRUNCATE` / unqualified `DELETE`-`UPDATE` into a migration or script (the same statement typed at the shell is `command-guard`'s) | Any SQL, migration, or schema work — and a seatbelt on destructive statements |
 
 **Using them.** On SQL or a migration `/code-review:review` detects the engine first,
 runs the engine-agnostic pass over statements and the shape that persists them, and
@@ -439,7 +441,7 @@ bill you did not agree to.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
-| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. Never a bundle, never another marketplace, never a picker — and its README states what the full set costs: the skill listing overflows, so some skills lose autonomous dispatch until you name them | You have already decided you want everything and would rather read the cost than be asked |
+| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. Never a bundle, never another marketplace, never a picker — and its README states what the full set costs: the listing overflows the host's default budget, so the script raises `skillListingBudgetFraction` for that scope and every description is sent; the one measurement of the overflow itself (2026-09-15, n=50) found it changes nothing detectable | You have already decided you want everything and would rather read the cost than be asked |
 
 ```bash
 /brain:brain                # print the map; /brain:brain index refreshes it
@@ -486,10 +488,11 @@ advertisement:
   control-vs-treatment run on two stack skills measured exactly that
   (`rationale/eval-ablation-2026-08-20.md`).
 - **Skills cost context whether or not they fire.** Their descriptions are
-  always loaded. That is why the bundle table above prints tokens — and why the
-  all-in bundle was removed rather than repriced: past the host's listing budget
-  the descriptions are dropped name-only, so the tokens stop being the problem
-  and reachability starts.
+  always loaded. That is why the bundle table above prints tokens. The all-in
+  bundle was removed rather than repriced on the reading that past the host's
+  listing budget the descriptions are dropped name-only, so reachability, not
+  tokens, becomes the problem — a reading made before the one measurement of it
+  (2026-09-15, n=50, zero delta; `all-plugins` raises the budget instead).
 - **Most rules are agent-graded, not enforced.** A handful are gates that block a
   turn. This sentence used to enumerate them and named four while six shipped —
   `git-workflow`'s attribution-trailer deny and `devops`' workflow deny were missing
@@ -522,7 +525,8 @@ bash scripts/context-budget.sh              # always-on / activated / dynamic to
 bash scripts/generate.sh --check            # chassis-generated files must match their template
 ```
 
-All four run in CI, alongside ~20 smoke harnesses and every
+All four run in CI, alongside the smoke harnesses (recount:
+`grep -c 'run: bash scripts/smoke/' .github/workflows/validate.yml`) and every
 `plugins/*/scripts/__tests__/*.test.sh`. Conventions — where documentation
 lives, how to say what a rule actually enforces, the four laws a plugin is
 judged against — are in [CLAUDE.md](CLAUDE.md). Design rationale that must

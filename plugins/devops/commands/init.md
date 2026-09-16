@@ -2,6 +2,7 @@
 description: Scan the project's dependencies, propose a service plan, then generate docker-compose.yml (+ Dockerfile) to run it locally.
 argument-hint: [path]
 ---
+<!-- host-ok --> Shares its name with the host's /init, which writes a CLAUDE.md; this generates docker-compose.yml and a Dockerfile.
 
 Invoke the `compose-init` skill from this plugin against $ARGUMENTS (or the
 repository root if no argument). Steps:

@@ -18,6 +18,14 @@ full-suite completion gate.
 | `/task-runner:run [tasks-dir-index-or-list] [--tracks[=N]] [--crew] [--sweep]` | Execute a task list — a taskmaster `00-INDEX.md`, a plan's task sequence, or an inline list |
 | `/task-runner:plan [task-or-list]` | The computed subagents-vs-inline verdict: dependency levels, agent count, speedup estimate |
 
+## Boundary with Claude Code's built-in `/run` and `/batch`
+
+The host's `/run` launches the project's app to see a change working — unrelated to
+`/task-runner:run`, which executes a task list. The host's `/batch` fans work out as
+one background subagent per worktree and opens a PR for each; `--tracks` also runs
+milestones as worktree tracks but keeps the sole-writer merge rule — one orchestrator
+merges every track, no per-track PR.
+
 ## Subagent discipline
 
 The orchestration plugin was merged into this one on 2026-09-14: it shipped no
@@ -80,10 +88,11 @@ interactive walkthroughs, demos.
 
 ## Staying near the ask when there is no card
 
-`scope.sh` enforces a card's declared file list. Most turns have no card, and there
-its first line exits — so `drift.sh` asks one question, once per request, when a
-narrow ask has produced a wide change: **12+** files edited (p90 of 169 measured
-local edit-turns), no breadth word in the request, half of them never named in it.
+`scope.sh` warns, once per edit outside the set, when a card has declared its file
+list — it never blocks. Most turns have no card, and there its first line exits — so
+`drift.sh` asks one question, once per request, when a narrow ask has produced a wide
+change: **12+** files edited (p90 of 169 measured local edit-turns), no breadth word in
+the request, half of them never named in it.
 
 Advisory, and it counts **breadth only**: an unasked refactor inside a file you did
 name is invisible to it. `CC_DRIFT=off` silences it.

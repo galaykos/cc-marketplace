@@ -11,9 +11,10 @@
 #   ACTIVATED (scripts/context-budget-activated-baseline.json) — the always-on
 #   surface again, but with the state its hooks are WAITING FOR. Added
 #   2026-08-20 because the always-on pass runs against an empty HOME and no env,
-#   which meters the OFF state: candor's terse-mode SessionStart hook emits 4,171 B once a
-#   level is set and 0 in the sandbox, brain's emits ~2 kB once brain/INDEX.md
-#   exists and 75 B without it. That is ~1.5k tokens a real user pays and no
+#   which meters the OFF state: candor's terse-mode SessionStart hook emits ~5 kB once a
+#   level is set and 0 in the sandbox (recount: `CC_TERSE=full CLAUDE_PLUGIN_ROOT=plugins/candor
+#   bash plugins/candor/hooks/activate.sh </dev/null | wc -c`), brain's emits ~2 kB once
+#   brain/INDEX.md exists and 75 B without it. That is ~1.7k tokens a real user pays and no
 #   baseline saw. This channel is a SEPARATE column, not folded into always-on,
 #   because "installed and idle" and "installed and switched on" are two honest
 #   numbers and averaging them would describe neither.
@@ -65,17 +66,22 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "WARN: jq not found, skipping context-budget"; exit 0; }
 
-# Sum of frontmatter description-value bytes across a plugin dir's
+# Sum of frontmatter description-value bytes (plus `when_to_use:` when present — the
+# host shows the pair together, so both are charged) across a plugin dir's
 # skills/*/SKILL.md, commands/*.md, agents/*.md (tolerates missing dirs).
 plugin_desc_bytes() {
-  local pdir="$1" total=0 f desc bytes
+  local pdir="$1" total=0 f fm desc wtu bytes
   for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md "$pdir"/agents/*.md; do
     [ -f "$f" ] || continue
-    desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
-      | sed -n 's/^description:[[:space:]]*//p' | head -1)
-    # single-line description: values only — validate.sh's frontmatter gates keep
-    # descriptions on one line; a YAML block scalar would undercount here
-    bytes=$(printf '%s' "$desc" | wc -c | tr -d ' ')
+    fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null)
+    # `disable-model-invocation: true` keeps the description out of context altogether
+    # (code.claude.com/docs/en/skills, "Description not in context"); a flagged entry costs 0.
+    printf '%s\n' "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true' && continue
+    desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
+    wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
+    # single-line values only — validate.sh's frontmatter gates keep both on one line;
+    # a YAML block scalar would undercount here
+    bytes=$(printf '%s%s' "$desc" "$wtu" | wc -c | tr -d ' ')
     total=$((total + bytes))
   done
   printf '%s' "$total"
@@ -162,7 +168,7 @@ plugin_sessionstart_bytes() {
 #
 # Fixture contents, each with the hook it exists for:
 #   CC_TERSE=full            → candor/hooks/activate.sh (env beats its state file)
-#   brain/INDEX.md           → brain/hooks/inject.sh (clamped at 2048 B by :65)
+#   brain/INDEX.md           → brain/hooks/inject.sh (clamped at 2048 B by its `head -c 2048`)
 #   package.json + composer.json + a src tree
 #                            → skill-router/hooks/prime.sh, which sniffs manifests
 ACT_SANDBOX=$(mktemp -d)

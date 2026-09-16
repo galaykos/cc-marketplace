@@ -1,6 +1,7 @@
 ---
 name: verify-teeth
 description: Use after coverage-check in the task-cards tail — lints every card's Verify line for a named assertion that would fail were the feature absent, blocking compile-only, existence-only, `|| true`, and bare "suite passes" forms.
+disable-model-invocation: true
 ---
 
 # Verify teeth

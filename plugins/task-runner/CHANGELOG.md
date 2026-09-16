@@ -2,6 +2,25 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.36.3
+
+### Changed
+- Marketplace trend audit, 2026-09-16 (`rationale/marketplace-trend-audit-2026-09-16.md`).
+  B4: the README said `scope.sh` "enforces" a card's file list; `hooks/scope.sh` warns, once
+  per edit outside the set, and never blocks — the README now says so. G12: `lane.tsv`'s
+  `spawn-cap` trigger claimed a per-run budget of "20/40/80 by tier"; the hook counts per
+  session against one soft cap (20) and then every doubling, no tiers, and the lane row now
+  says what the hook does. C3: the README gains one boundary sentence each on the host's
+  built-in `/run` (launches the project's app; unrelated to `/task-runner:run`) and `/batch`
+  (one background subagent per worktree, PR each; `--tracks` keeps the sole-writer merge
+  rule). D1: `behavioral-gate` carries `disable-model-invocation: true` — every consumer
+  runs `scripts/behavioral-gate.sh` and nothing loads the skill by description, so its
+  description no longer sits in always-on context. D5: `code-redteam`'s description leads
+  with its gating clause (a boosted task-runner run only; an ad-hoc diff →
+  `/code-review:review`) so an ordinary "red-team this diff" prompt no longer matches it.
+  `commands/run.md` gains a `<!-- host-ok -->` line for the name it shares with the host's
+  `/run`.
+
 ## 0.36.2
 
 ### Fixed

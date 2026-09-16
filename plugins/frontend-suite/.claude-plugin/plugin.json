@@ -1,7 +1,7 @@
 {
   "name": "frontend-suite",
-  "version": "0.14.6",
-  "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline). Inertia lives in the laravel plugin (install by name). The creative-build studio, craft-layer, lives in craft-suite so ordinary frontend work does not pay its always-on context. Uninstall cleanly with /frontend-suite:uninstall — removes the bundle and prunes its auto-installed plugins.",
+  "version": "0.14.7",
+  "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline). Inertia lives in the laravel plugin (install by name). The creative-build studio, craft-layer, lives in craft-suite so ordinary frontend work does not pay its always-on context. Uninstall cleanly with /frontend-suite:uninstall.",
   "author": {
     "name": "Ivan-WG",
     "email": "public@galayko.com"

@@ -4,6 +4,25 @@ All notable changes to the ultra-deep-research plugin. Entries start at 0.6.0, w
 this file was created; earlier releases have no entries rather than invented ones.
 The verdict lint referenced below landed in 0.5.0, before that.
 
+## 0.7.1 — 2026-09-16
+
+### Changed
+- **README gains a boundary section with the host's built-in `/deep-research`** (trend
+  audit C1, `rationale/marketplace-trend-audit-2026-09-16.md`): what the bundled
+  workflow does, read from the 2.1.273 binary — one fixed pass, 5 angles, 15 sources, 25
+  claims through a 3-vote panel, a structured object returned in-session and no file —
+  and what this plugin adds (the contradiction ledger, the gated `confirmed`, `--ultra`
+  loop-until-dry, the report file, the single-document engine), then when to reach for
+  which. Which of the two fires on "deep research" is still unmeasured, and the section
+  says so.
+- **`scripts/verdict-lint.sh` is re-tiered from "one mechanical gate" to agent-graded**
+  (endgame review §5.6 / audit K2): only the skill's and command's prose invokes it, no
+  hook or CI step runs it over a live run, and the fixture harness proves the script,
+  not that a run called it.
+- `agents/researcher.md` and `agents/verifier.md` each state in the body why WebSearch
+  and WebFetch are granted beyond the six default tools (audit E4) — the reason
+  `authoring-agents` requires and neither carried.
+
 ## 0.7.0 — 2026-09-15
 
 ### Changed

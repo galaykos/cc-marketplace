@@ -1,6 +1,7 @@
 ---
 name: behavioral-gate
 description: Use during run completion (and the tracks merged-branch final gate) — actually runs the produced artifact: test suite via a real runner plus a smoke of each shell entrypoint, not just re-linting.
+disable-model-invocation: true
 ---
 
 # Behavioral gate

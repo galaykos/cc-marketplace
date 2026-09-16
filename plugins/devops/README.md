@@ -37,6 +37,9 @@ reusable workflow hides the sink one level down where it cannot look.
 | `/devops:review [path-or-diff]` | Review CI/CD pipelines, Kubernetes manifests, deploy/secret config against `devops-practices`, and any Dockerfile or compose file in scope against `docker-best-practices` |
 | `/devops:init [path]` | Scan the project, propose a service plan as a diagram, generate compose + Dockerfile pinned to the evidence, then boot and smoke-test it |
 
+The host's built-in `/init` writes a `CLAUDE.md` for the repository; `/devops:init`
+generates `docker-compose.yml` — the names collide in the listing and nothing else does.
+
 ```bash
 /devops:review k8s/deployment.yaml
 /devops:review docker-compose.yml Dockerfile

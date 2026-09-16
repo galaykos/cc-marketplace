@@ -1,5 +1,6 @@
 ---
 description: Uninstall the craft-suite bundle AND its bundled dependencies, scope-aware — computes the removal set from the bundle's own manifest (works even when installs carry no auto-install markers), shows the exact list for confirmation first, and never touches plugins you exclude.
+disable-model-invocation: true
 ---
 <!-- generated from templates/suite-uninstall.md.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file -->
 

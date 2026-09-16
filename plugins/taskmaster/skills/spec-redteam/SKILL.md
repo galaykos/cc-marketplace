@@ -48,10 +48,10 @@ note `role-floors.md unresolved — floors not applied`.
 
 ## The panel — ultra only
 
-Under `ULTRA-TASK ACTIVE` and when the `Workflow` tool is present, this is a **blind
-panel**, not a single adversary — the width `ultra/SKILL.md` and `/taskmaster:redteam`
-already promise. Unboosted runs keep the single adversary above; nothing here changes a
-standard run.
+Under `ULTRA-TASK ACTIVE`, via either dispatch mechanism (the Workflow tool or the Agent
+tool), this is a **blind panel**, not a single adversary — the width `ultra/SKILL.md` and
+`/taskmaster:redteam` already promise. Unboosted runs keep the single adversary above;
+nothing here changes a standard run.
 
 Size N by the gate conditions already computed above. Panel width is owned by
 `task-runner:verification-panels` § Panel width; `ultra/references/dispatch-tiers.md`

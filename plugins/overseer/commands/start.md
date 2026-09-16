@@ -1,6 +1,7 @@
 ---
 description: Start an overseer program — one sentence of product intent, delivered milestone by milestone across sessions and branches
 argument-hint: [product-goal] [--hands-off] [--model opus|auto]
+disable-model-invocation: true
 ---
 
 Invoke the `overseer` skill from this plugin and open a program for $ARGUMENTS (if

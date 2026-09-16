@@ -2,6 +2,17 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.16.1 — 2026-09-16
+
+### Changed
+- README states the boundary with two host built-ins that sit beside this plugin's
+  entries in the listing (trend audit C3, `rationale/marketplace-trend-audit-2026-09-16.md`):
+  `/simplify` applies reuse and simplification fixes to the changed code, where
+  `low-cognitive-load` is the rubric and edits nothing; `/verify` drives the affected
+  flow end to end, where `/code-architecture:verify` runs the project's own checks and
+  reports each with its command and output. `commands/verify.md` carries the matching
+  `<!-- host-ok -->` blessing for the extended host-overlap gate (audit C2).
+
 ## 0.16.0
 
 ### Changed

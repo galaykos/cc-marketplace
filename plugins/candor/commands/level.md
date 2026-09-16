@@ -1,6 +1,7 @@
 ---
 description: Set or report the terse output level — lite, full, ultra, wenyan-*, off — a chat-message shape contract that never touches code, files, or how much work the turn does.
 argument-hint: "[lite | full | ultra | wenyan-lite | wenyan-full | wenyan-ultra | off | status]"
+disable-model-invocation: true
 ---
 
 # /candor:level

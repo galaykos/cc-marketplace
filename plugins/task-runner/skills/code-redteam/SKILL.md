@@ -1,6 +1,6 @@
 ---
 name: code-redteam
-description: Use when a boosted (ultra/goal) run produced code and the diff must be red-teamed before trust — N=3 blind refuter panel plus completeness-critic over the SHIPPED code, not just spec/cards.
+description: Use during a boosted (ultra/goal) task-runner run only, when it produced code and the diff must be red-teamed before trust — N=3 blind refuter panel plus completeness-critic over the SHIPPED code, not just spec/cards; an ad-hoc diff → /code-review:review.
 ---
 
 # Code Red-Team

@@ -4,6 +4,83 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.113.0] - 2026-09-16
+
+**Fixes from the marketplace trend audit** (`rationale/marketplace-trend-audit-2026-09-16.md`,
+CLI 2.1.273): inventory every artifact, compare against what the host ships today, and name
+each place a gate or doctrine file states something the host or the tree itself falsifies.
+Executed as four scope-locked workers on disjoint file sets plus one integration pass; the
+finding ids below are the audit's.
+
+- **The eval root cause was misnamed, and the gate encoded the wrong one (A1, A2).**
+  `scripts/eval-cases.sh` failed any `prompt.md` + `graders/*.md` under `evals/` as "the
+  DEAD shape the runner rejects". The shape is valid — a `prompt.md` beside a grader with
+  `type: regex` frontmatter loaded and scored 1.00 on 2.1.273. What the two dead suites
+  shipped was a grader with no frontmatter at all. The gate now accepts both shapes and
+  fails a `graders/*.md` whose frontmatter carries no `type:` from the runner's set;
+  `scripts/smoke/eval-case-tests.sh` pins both directions; CLAUDE.md's sentence names the
+  CLI version the measurement ran on and what was actually malformed.
+- **Commands are skills, and the doctrine now says so (B1, D1, D2).** The host merged
+  custom commands into skills: a command is model-invocable by default and its description
+  sits in the same listing. `authoring-commands` rewrites its frontmatter section around the
+  shared skill fields and when a command carries `disable-model-invocation: true`. Fourteen
+  entries — twelve commands and two pipeline-internal skills — carry it now: the four suite `uninstall`s (via
+  `templates/suite-uninstall.md.tmpl`), `all-plugins:install/uninstall`,
+  `overseer:start/resume/status`, `candor:level/check`, `taskmaster:taskmaster`, and the
+  pipeline-internal `verify-teeth` and `behavioral-gate` skills — each a side-effect or
+  pipeline entry nothing invokes by description. Both meters (`context-budget.sh` and
+  `pc_listing_entry_cost`) now skip a flagged entry's description, which is why nine
+  always-on baseline keys drop in this release; what the host does with the flag on a
+  command rests on its doc sentence (T2) and is labelled recorded.
+- **The host-overlap gate walks commands (C1, C2, C3).** `pc_host_overlap` walked skills
+  only, on the argument that a command is namespaced at the call site; under the merge it
+  competes on its description exactly as a skill does, and three shipped commands collided
+  unseen — `task-runner:run`, `devops:init`, `code-architecture:verify`. Each carries
+  `<!-- host-ok -->` and a README boundary line; the roster gains the five built-ins that
+  shipped since the last refresh; `scripts/smoke/rules-overlap-tests.sh` inverts its
+  commands-are-out-of-scope assertion. `ultra-deep-research` gains a Boundary section with
+  the host's `/deep-research`; task-runner, devops and code-architecture READMEs gain one
+  sentence each on `/run`, `/batch`, `/init`, `/simplify`, `/verify`; taskmaster's README
+  separates its `goal` token from the host's `/goal` Stop-hook loop.
+- **Doctrine the tree already contradicted (B2, B3).** `authoring-hooks` adds the
+  SessionStart matcher vocabulary two shipped hooks already use and the SessionEnd and
+  SubagentStop events three plugins already ship; `authoring-agents` names `floor`,
+  `floor-reason` and `bestpractices-skill` as repo-only keys the host ignores.
+- **Chassis and generator strings (G1, G2, G3).** taskmaster's `ultra.sh` still said
+  "fan-out only when the Workflow tool is present"; the chassis message now carries the
+  owner rule (no dispatch mechanism at all), re-rendered by `generate.sh --write`.
+  `generate.sh`'s bundle-table string said `0.04` for workflow-suite where the bundle's own
+  README measured `0.05`; `--check` was green with both copies of the wrong number agreeing.
+  frontend-suite's description claimed its uninstall "prunes its auto-installed plugins"
+  while the command keeps them unless picked; corrected in both manifests, which re-rendered
+  one row of stack-scan's scout catalog.
+- **Validator pin and root README (G4, G5, G8, G10, G11).** `official-validate.sh` and CI
+  pin CLI 2.1.273, the version every measurement since 2026-09-14 ran on, after a 32/32
+  strict pass. The README's `all-plugins` row and its listing paragraph no longer assert
+  the pre-probe "skills lose autonomous dispatch" claim; the database row says its guard
+  reads Write/Edit, not the shell; the smoke-harness count is a recount command; the
+  no-suite leaf list gains `toolchain-experts` and `all-plugins`.
+- **Stray-directory gate (E1).** An ignored `plugins/<x>/` holding only hook scratch drew
+  three FAILs about a plugin that does not exist; `validate.sh` now reports it as one
+  stray directory to delete, with a fixture harness as a new CI step
+  (`scripts/smoke/validate-fixtures/stray-dir-check.sh`).
+- **Per-plugin minors.** task-runner: `scope.sh` warns, it does not enforce (B4);
+  `spawn-cap`'s lane row matches the hook (G12); `code-redteam` and taskmaster's `erd`,
+  `experience-walkthrough` lead with their gating clause (D5); taskmaster's `ultra` and
+  `spec-redteam` say "either dispatch mechanism" (G6). devops-reviewer and
+  ultra-deep-research's researcher/verifier name the standing of their read-only claim and
+  why WebSearch/WebFetch are granted (E4). skill-router's `route.sh` drops a limitation
+  closed on 2026-08-16 (G13). `validate.sh` caps and meters `description + when_to_use`
+  together and names the host's 1,536/1,024 caps (D3); its lane-coverage strings name
+  deny-capable Pre/PostToolUse hooks (G9); `context-budget.sh`'s header numbers are
+  recounted (E2).
+- **Plugin bumps.** all-plugins 0.1.0 -> 0.1.1, candor 0.3.7 -> 0.3.8, code-architecture
+  0.16.0 -> 0.16.1, core-suite 0.1.7 -> 0.1.8, craft-suite 0.7.7 -> 0.7.8, devops
+  0.6.8 -> 0.6.9, frontend-suite 0.14.6 -> 0.14.7, overseer 0.4.8 -> 0.4.9, skill-router
+  0.17.1 -> 0.17.2, stack-scan 0.8.1 -> 0.8.2, task-runner 0.36.2 -> 0.36.3, taskmaster
+  0.43.2 -> 0.43.3, ultra-deep-research 0.7.0 -> 0.7.1, workflow-suite 0.2.6 -> 0.2.7.
+  Per-plugin detail lives in each plugin's `CHANGELOG.md` where one exists.
+
 ## [0.112.0] - 2026-09-16
 
 **Everything at once, as a script rather than a bundle.** New plugin `all-plugins` (0.1.0):

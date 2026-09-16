@@ -2,6 +2,7 @@
 description: Execute a task list with scope lock, bounded verify-fix loops, and a full-suite completion gate
 argument-hint: [tasks-dir-index-or-list] [--tracks[=N]] [--crew] [--sweep]
 ---
+<!-- host-ok --> Shares its name with the host's /run, which launches and drives the project's app; this executes a task list.
 
 Invoke the task-execution skill from this plugin and run the task list in
 $ARGUMENTS — a taskmaster `00-INDEX.md` path, a tasks directory, a plan's task

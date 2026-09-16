@@ -58,12 +58,28 @@ mkdir -p "$T/plugins/beta/evals"
 expect_fail "an evals/ dir with no case.yaml fails (the 2026-09-14 bug)" "loads ZERO cases"
 rm -rf "$T/plugins/beta"
 
-# --- the dead shape -----------------------------------------------------------
-mkdir -p "$T/plugins/beta/evals"; : > "$T/plugins/beta/evals/prompt.md"
-expect_fail "the prompt.md shape fails" "the runner rejects"
+# --- the prompt.md + graders/*.md shape -----------------------------------------
+# Valid on the runner (measured 2026-09-16, CLI 2.1.273); what killed the two 09-14
+# suites was a grader with no frontmatter, so THAT is what fails here — never the shape.
+prompt_case() { mkdir -p "$1/graders"; printf 'Say hello.\n' > "$1/prompt.md"; }
+prompt_case "$T/plugins/beta/evals/p"
+printf -- '---\ntype: regex\npattern: hello\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a prompt.md case with a typed grader passes" || bad "a prompt.md case with a typed grader passes" "$out"
+
+printf 'PASS if the answer says hello.\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a grader with no type: frontmatter fails (the 2026-09-14 rejection)" "no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"
+
+printf -- '---\ntype: vibes\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a grader type outside the runner's set fails" "is not one of regex|tool_used|tool_order|file_exists|llm|baseline"
+
+rm -rf "$T/plugins/beta/evals/p/graders"
+expect_fail "a prompt.md with no graders/ fails" "graders: Required"
 rm -rf "$T/plugins/beta"
-mkdir -p "$T/plugins/beta/evals/graders"; good_case "$T/plugins/beta/evals/c"
-expect_fail "a graders/ directory fails even beside a valid case" "the runner rejects"
+
+# --- a case directory holding neither file -------------------------------------
+good_case "$T/plugins/beta/evals/c"; mkdir -p "$T/plugins/beta/evals/empty"
+expect_fail "a case dir with neither case.yaml nor prompt.md fails" "holds neither case.yaml nor prompt.md"
 rm -rf "$T/plugins/beta"
 
 # --- per-case schema ----------------------------------------------------------

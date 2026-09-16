@@ -24,9 +24,26 @@ while IFS=$'\t' read -r name source; do
   [ "$jname" = "$name" ] || err "plugin '$name': plugin.json name is '$jname'"
 done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
 
+# A plugins/<x>/ with no manifest and no tracked file is not a plugin that forgot its
+# paperwork — it is scratch. plugins/design-studio/ held only a hook's marker files
+# (code-review/hooks/verbosity.sh writes under the payload cwd) and drew three FAILs
+# about a plugin that never existed, on a clean checkout of master, while CI stayed
+# green because it checks out only tracked files. One message, and the README and
+# plugin-table loops below skip it.
+STRAY_DIRS=""
+for dir in plugins/*/; do
+  name=$(basename "$dir")
+  [ -f "${dir}.claude-plugin/plugin.json" ] && continue
+  [ "$(git ls-files "$dir" 2>/dev/null | wc -l | tr -d ' ')" = 0 ] || continue
+  err "stray directory plugins/$name has no tracked files — delete it (a hook or editor left scratch here)"
+  STRAY_DIRS="$STRAY_DIRS $name "
+done
+is_stray() { case "$STRAY_DIRS" in *" $1 "*) return 0 ;; esac; return 1; }
+
 # Every plugin directory must be listed in the marketplace
 for dir in plugins/*/; do
   name=$(basename "$dir")
+  is_stray "$name" && continue
   jq -e --arg n "$name" '.plugins[] | select(.name == $n)' "$MP" >/dev/null \
     || err "directory plugins/$name not listed in marketplace.json"
 done
@@ -103,17 +120,23 @@ done
 # Description linter (hard): a frontmatter description over 500 chars bloats the
 # always-on context surface every session pays for; a literal "Trigger words:"
 # list restates in-sentence terms. Both fail the build — trim, don't grandfather.
+# 500 is a HOUSE budget, not a host limit. The two host caps it sits under: the CLI
+# truncates `description` + `when_to_use` together at 1,536 chars in the skill listing
+# (code.claude.com/docs/en/skills), and the Agent Skills API rejects a description over
+# 1,024. Both count the pair, so this does too — a `when_to_use:` line is added to the
+# measured length when present (rationale/marketplace-trend-audit-2026-09-16.md D3).
 for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
   # Block-scalar (>/|) descriptions would evade both this cap and the token
   # accounting (each reads the first line only) — reject the form outright.
-  awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" \
-    | grep -qE '^description:[[:space:]]*[>|]' \
-    && err "$f: description uses a YAML block scalar — keep it a single line"
-  dsc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" | sed -n 's/^description:[[:space:]]*//p' | head -1)
+  fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
+  printf '%s\n' "$fm" | grep -qE '^(description|when_to_use):[[:space:]]*[>|]' \
+    && err "$f: description or when_to_use uses a YAML block scalar — keep it a single line"
+  dsc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
   [ -n "$dsc" ] || continue
-  dlen=$(printf '%s' "$dsc" | wc -c | tr -d ' ')
-  [ "$dlen" -le 500 ] || err "$f: description $dlen chars (max 500)"
+  wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
+  dlen=$(printf '%s%s' "$dsc" "$wtu" | wc -c | tr -d ' ')
+  [ "$dlen" -le 500 ] || err "$f: description${wtu:+ + when_to_use} $dlen chars (max 500)"
   printf '%s' "$dsc" | grep -qE 'Trigger( words)?:' \
     && err "$f: description carries a 'Trigger words:' list — fold terms into the trigger sentence"
 done
@@ -161,7 +184,7 @@ while IFS= read -r mdf; do
   rhit=$(pc_removed_refs "$mdf") \
     || err "$mdf: references removed marketplace artifact [$rhit] — reroute to a live plugin/skill or mark the line <!-- removed-ok -->"
   ohit=$(pc_host_overlap "$mdf") \
-    || err "$mdf: skill name collides with a built-in Claude Code skill [${ohit##* }] — defer to the host skill by name instead of re-implementing it, or mark the line <!-- host-ok -->"
+    || err "$mdf: skill or command name collides with a built-in Claude Code skill [${ohit##* }] — defer to the host skill by name instead of re-implementing it, or mark the line <!-- host-ok -->"
   hhit=$(pc_handoff_refs "$mdf") \
     || err "$mdf: unresolved cross-plugin handoff [$(printf '%s' "$hhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] — names no agents/, skills/ or commands/ file in that plugin; fix the name or mark the line <!-- handoff-ok -->"
 done < <(
@@ -576,6 +599,7 @@ missing_readme=""
 rm_count=0
 for d in plugins/*/; do
   [ -f "${d}README.md" ] && continue
+  is_stray "$(basename "$d")" && continue
   missing_readme="${missing_readme} $(basename "$d")"
   rm_count=$((rm_count + 1))
 done
@@ -612,6 +636,7 @@ done
 # table row — a line starting `| **name**` or `| **[name](`.
 for d in plugins/*/; do
   lname=$(basename "$d")
+  is_stray "$lname" && continue
   grep -qE "^\| \*\*(\[)?${lname}(\])?" README.md \
     || err "plugin '$lname' has no README.md plugin-table ROW (a prose mention is not a catalogue entry)"
 done
@@ -723,11 +748,11 @@ if [ -n "$LANE_FILES" ]; then
 fi
 lane_cov=$(pc_lanes_coverage plugins) || true
 lane_gap=$(printf '%s\n' "$lane_cov" | grep '^lane-missing ' || true)
-[ -n "$lane_gap" ] && lane_err "$lane_gap" "every agent and every UserPromptSubmit/Stop hook needs a row in its own plugin's lane.tsv"
+[ -n "$lane_gap" ] && lane_err "$lane_gap" "every agent, every UserPromptSubmit/Stop hook, and every deny-capable Pre/PostToolUse hook needs a row in its own plugin's lane.tsv"
 lane_wc=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn command ' || true)
 lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
-[ "$lane_wc" -gt 0 ] && warn "$lane_wc command(s) have no lane row — WARN tier this run; agents and prompt/Stop hooks are the gate"
-[ "$lane_ws" -gt 0 ] && warn "$lane_ws skill(s) have no lane row — WARN tier this run; agents and prompt/Stop hooks are the gate"
+[ "$lane_wc" -gt 0 ] && warn "$lane_wc command(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
+[ "$lane_ws" -gt 0 ] && warn "$lane_ws skill(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
 
 # A prompt/Stop hook that declared a SPECIFIC phase must read the sentinel, or it
 # speaks in every phase forever. `any` lanes are guards and exempt by declaration.

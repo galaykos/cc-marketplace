@@ -1,6 +1,7 @@
 ---
 description: Resume the open overseer program in this session from its persisted state
 argument-hint: [milestone-id]
+disable-model-invocation: true
 ---
 
 Invoke the `overseer` skill from this plugin and continue the program recorded under

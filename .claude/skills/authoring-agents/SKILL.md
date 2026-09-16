@@ -36,6 +36,13 @@ below) **or** `floor: none` plus a non-empty `floor-reason:` in the frontmatter 
 deliberate and must NOT track the session). A row and `floor: none` together is an error —
 a row means floored. Exemptions are printed on every validate run, so they stay visible.
 
+`floor`, `floor-reason` and `bestpractices-skill` (the rubric key
+`templates/worker-agent.md.tmpl` renders into every chassis worker) are repo-only keys the
+host ignores — `scripts/validate.sh` is their only reader — while the host's own
+optional keys (`permissionMode`, `memory`, `omitClaudeMd`, `isolation`) are not used
+here yet (code.claude.com/docs/en/sub-agents; `omitClaudeMd` is unmeasured, so a
+read-only reviewer still inherits every CLAUDE.md).
+
 `tools:` is optional — but omitting it grants ALL tools. Always list tools
 explicitly; an unscoped agent is a standing permission grant nobody
 reviewed.

@@ -1,6 +1,7 @@
 ---
 description: Measure this session's transcript — the six candour axes (unresolved citations, unevidenced reversals, flattery, apologies, defensiveness, emotion) and, when a terse level is active or --brevity is passed, turn-final prose lines against the level's budget. Report-only.
 argument-hint: "[--session-file PATH] [--last N] [--examples N] [--brevity] [--tokens] [--all] [--since Nd]"
+disable-model-invocation: true
 ---
 
 # /candor:check
