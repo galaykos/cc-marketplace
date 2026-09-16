@@ -4,6 +4,50 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.112.0] - 2026-09-16
+
+**Everything at once, as a script rather than a bundle.** New plugin `all-plugins` (0.1.0):
+`/all-plugins:install` installs every leaf plugin of this marketplace at one scope (local
+by default) with zero prompts, `/all-plugins:uninstall` removes them again (`--self` takes
+the plugin with it), and both are thin relays over `scripts/all-plugins.sh` — exit 0 done,
+1 a plugin failed (the `FAIL` lines are the report), 2 a precondition missing (the stderr
+line names the fix). `--dry-run` prints the plan; `--scope project|user` moves it.
+
+- **This is the want the deleted `everything` bundle served, and it is shipped with the
+  reason that bundle was removed stated up front, not enforced by a gate it cannot
+  reach.** A bundle is subject to `pc_listing_declaration`; a leaf that installs leaves
+  is not. So the plugin's README carries the measurement instead, both halves of it:
+  with every leaf installed the host's skill listing overflows its budget ~6.6x at 200k
+  and the overflow goes name-only (`rationale/2026-08-31-token-cost-review.md`); whether
+  a name-only skill fires less was measured 2026-09-15 at zero delta, 47/50 vs 47/50,
+  n=50, triggering only (`rationale/2026-09-15-listing-eviction-probe.md`). The first
+  cut of this entry restated the pre-probe "autonomous dispatch is lost" claim the
+  0.110.x entries below had already retired; corrected before merge.
+- **The listing budget is part of the job.** `install` finishes by computing the leaves'
+  entry cost (`pc_listing_entry_cost`'s rule) and writing `skillListingBudgetFraction`
+  into the scope's settings file at the smallest 0.01 step that covers it at the 200k
+  floor — 0.07 today; a cap, so a 1M window pays no more. Never lowers a covering value,
+  keeps every other key, refuses invalid JSON with the value to set on stderr. `uninstall`
+  removes the key only when it still holds the script's own value; `--no-budget` skips
+  both. Asked for as "do what is needed to not go over" and answered with the one lever
+  that keeps everything installed: the name+4 floor alone is 71% of the 200k cap, so
+  trimming descriptions cannot get there.
+- **Leaves only, this marketplace only, no prompts, no reload.** It reads the plugin
+  list from `marketplace.json` and skips every manifest with a `dependencies` key; it
+  never picks for you — `/stack-scan:suggest` is the curated path and the README says so.
+- **The script is the artifact with teeth**: a shim-driven harness under
+  `scripts/__tests__/` pins the exit codes and the leaves-only list, CI-globbed with every
+  other plugin harness. The commands' "relay, never substitute your own install loop" is
+  instruction text and labelled agent-graded.
+- The root README's leaf count moves to 28 and its Install section gains the
+  three-line "everything" block; the generated bundle-table sentence now says no
+  *bundle* installs them together and names `all-plugins` as the script that does.
+- `stack-scan` 0.8.0 -> 0.8.1: its generated scout catalog gained the new row (the
+  catalog rides the plugin's own version, by `generate.sh`'s rule), and `--full` now
+  excludes `all-plugins` by construction beside `stack-scan` itself — an installer of
+  everything inside a curated plan defeats the plan, so the plan names
+  `/all-plugins:install` as the everything-door instead.
+
 ## [0.111.0] - 2026-09-15
 
 **Every leaf and bundle swept by eleven parallel agents, one prompt, disjoint write sets.**

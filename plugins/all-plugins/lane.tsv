@@ -1,0 +1,12 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+# Two commands over one script, no skill: the judgment here is an exit code, not prose.
+# stack-scan:plugin-scout owns marketplace-plugin-suggestion at understand — installing a
+# PICKED set after reading the manifests. These rows own the unpicked set at ship, so the
+# nouns and phases differ and pc_lanes_territory sees no pair; the hand-off ("want a
+# curated set? that is /stack-scan:suggest") is stated in the README, not as a yields_to edge.
+all-plugins:install	command	ship	marketplace-wide-install	invoked as /all-plugins:install	-
+all-plugins:uninstall	command	ship	marketplace-wide-uninstall	invoked as /all-plugins:uninstall	-

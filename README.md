@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **27 leaf plugins** and **4 bundles** covering
+A Claude Code plugin marketplace: **28 leaf plugins** and **4 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -31,6 +31,11 @@ Not sure what you need? Install one plugin and let it tell you:
 /stack-scan:suggest --all        # page every row as an explicit option instead of one question
 /stack-scan:suggest --skills     # third-party skills on skills.sh for the stack this marketplace does not cover
 /reload-plugins                  # nothing installed this run is active until you do
+
+# Or everything at once, no questions, local scope:
+/plugin install all-plugins@cc-plugins-marketplace
+/all-plugins:install              # every leaf plugin at local scope; --scope project|user, --dry-run (not found yet? /reload-plugins first)
+/all-plugins:uninstall            # the inverse; --self removes all-plugins too
 ```
 
 What the scout prints, in order:
@@ -65,12 +70,12 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `workflow-suite` | 15 | ~6.1k tokens | ~1.3k tokens | ~2.0k tokens |
+| `workflow-suite` | 15 | ~6.1k tokens | ~1.3k tokens | ~2.1k tokens |
 | `craft-suite` | 2 | ~2.2k tokens | — | — |
-| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.8k tokens |
-| `core-suite` | 7 | ~1.7k tokens | ~1.3k tokens | ~1.8k tokens |
+| `frontend-suite` | 4 | ~1.8k tokens | ~32 tokens | ~1.9k tokens |
+| `core-suite` | 7 | ~1.7k tokens | ~1.3k tokens | ~1.9k tokens |
 
-Every row is a curated subset. The marketplace ships all 27 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`.
+Every row is a curated subset. The marketplace ships all 28 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -434,6 +439,7 @@ bill you did not agree to.
 | **[skill-router](plugins/skill-router)** | a PostToolUse hook that loads the matching best-practice skill when you edit a matching file (PHP/Blade, `.tsx`/`.jsx`/`.vue`, plain source, SQL and migrations with engine-aware rows, components, tests, Dockerfiles, OpenAPI), a SessionStart primer, and a low-confidence digest flushed on your next prompt | Always, if you install more than two stack plugins — it is what makes them fire without you remembering |
 | **[brain](plugins/brain)** | a committed `brain/INDEX.md` codebase map — areas, key files, entrypoints — injected at SessionStart with a staleness hint when it lags HEAD | Large repos where every session starts by re-discovering the layout |
 | **[stack-scan](plugins/stack-scan)** (`suggest`) | scans your manifests and suggests every plugin in this marketplace in three tiers — stack-matched with cited evidence, an any-project core, then the universal remainder — and installs the picks; `--skills` searches skills.sh, Vercel's open agent-skills directory, for third-party skills matching your stack, with provenance, previewing each before it lands | First session in a repo; or this marketplace has no plugin for what you need |
+| **[all-plugins](plugins/all-plugins)** | one script with an exit code that installs every leaf plugin of this marketplace at one scope (local by default) with zero prompts, and uninstalls them again; `/all-plugins:install`, `/all-plugins:uninstall`, `--dry-run`. Never a bundle, never another marketplace, never a picker — and its README states what the full set costs: the skill listing overflows, so some skills lose autonomous dispatch until you name them | You have already decided you want everything and would rather read the cost than be asked |
 
 ```bash
 /brain:brain                # print the map; /brain:brain index refreshes it
@@ -465,6 +471,7 @@ plugin — the authoring doctrine has one user, this repository.)
 | keep re-litigating decisions | `approaches` |
 | give an agent shell access | `command-guard` + `secret-scanning` |
 | want the whole pipeline | `workflow-suite` |
+| want everything and accept the listing cost | `all-plugins`, then `/all-plugins:install` (every leaf at local scope, no questions; it raises `skillListingBudgetFraction` for that scope so the listing is sent whole; its README carries the arithmetic and the one n=50 measurement that found the overflow changes nothing detectable) |
 
 ---
 

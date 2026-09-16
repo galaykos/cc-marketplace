@@ -79,7 +79,9 @@ rule and the typed-token rule; this section does not restate them.
   Leaves only, never a suite.
 - What it excludes: stack-mismatched leaves (a class whose manifest evidence is
   absent and whose `--stack` token was not typed); the
-  bundles and `stack-scan` by construction; already-installed leaves.
+  bundles, `stack-scan` and `all-plugins` by construction (an installer of
+  everything inside a curated plan defeats the plan — name it instead, once, as
+  the door for a user who wants everything); already-installed leaves.
 - What prints, in this order: the report header line (eligible count, installed
   count, detected stack with evidence); any fired `references/signals.md` `—`
   routing line; the **plan block** below; then the `Beyond this marketplace` block
@@ -95,7 +97,8 @@ rule and the typed-token rule; this section does not restate them.
   - `Excluded:` one line per excluded leaf — the class's evidence negated plus the
     token that would include it, e.g. `laravel — PHP / Laravel evidence absent (no
     laravel/framework, no @inertiajs/*); --stack laravel includes`.
-  - One count line for the bundles and `stack-scan` (by construction).
+  - One count line for the bundles, `stack-scan` and `all-plugins` (by construction),
+    ending with the everything-door: `want everything, no plan: /all-plugins:install`.
   - `Restored by --stack:` one line per class a typed token restored (see `--stack`).
   - `Overlap pairs installed together:` the pairs `references/picker.md` names
     (ui-ux / craft-layer, taskmaster / task-runner,

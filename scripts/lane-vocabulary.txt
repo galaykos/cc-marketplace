@@ -120,6 +120,8 @@ core-suite-uninstall
 craft-suite-uninstall
 development-branch-completion
 frontend-suite-uninstall
+marketplace-wide-install
+marketplace-wide-uninstall
 workflow-suite-uninstall
 
 # --- any ---

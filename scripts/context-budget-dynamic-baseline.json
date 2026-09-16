@@ -1,4 +1,5 @@
 {
+  "all-plugins": 0,
   "api-design": 50,
   "approaches": 0,
   "brain": 0,
@@ -6,13 +7,13 @@
   "code-architecture": 0,
   "code-review": 0,
   "command-guard": 0,
-  "core-suite": 1822,
+  "core-suite": 1875,
   "craft-layer": 0,
   "craft-suite": 0,
   "database": 0,
   "debugging": 0,
   "devops": 0,
-  "frontend-suite": 1822,
+  "frontend-suite": 1875,
   "git-workflow": 0,
   "hindsight": 0,
   "laravel": 0,
@@ -20,7 +21,7 @@
   "resilience": 0,
   "secret-scanning": 0,
   "security": 0,
-  "skill-router": 1822,
+  "skill-router": 1875,
   "stack-scan": 0,
   "task-runner": 0,
   "taskmaster": 63,
@@ -29,5 +30,5 @@
   "ui-ux": 0,
   "ultra-deep-research": 0,
   "web-dev": 0,
-  "workflow-suite": 2011
+  "workflow-suite": 2065
 }
