@@ -1,8 +1,9 @@
 # Stack-skill baseline tests — evidence for the W6.5 removals
 
 Date: 2026-07-27. Method: the house baseline loop
-(`claude-authoring/skills/authoring-skills/references/behavioral-testing.md`,
-RED step): for each candidate skill, one seeded-violation fixture was reviewed
+(`.claude/skills/authoring-skills/references/behavioral-testing.md`, RED step —
+a project skill of this repo since the `claude-authoring` plugin was retired
+2026-09-03): for each candidate skill, one seeded-violation fixture was reviewed
 by two blind agents on the same model (claude-sonnet-5) — a CONTROL forbidden
 from reading any skill, and a TREATMENT instructed to read the SKILL.md first
 and apply its checklist, tagging findings it would not have made without it.

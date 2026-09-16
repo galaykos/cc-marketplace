@@ -36,8 +36,10 @@ measured below, not assumed.
    worker stays `inherit` — implementation tracks the session; judgment does not drop
    below it. Cost: a Sonnet user pays Opus for the review verdict only.
 
-3. **Skills carry model-tier markers.** Per `claude-authoring`
-   `references/model-tier-scoping.md`: the facts (version gates, footguns, boundaries)
+3. **Skills carry model-tier markers.** Per
+   `.claude/skills/authoring-skills/references/model-tier-scoping.md` (the
+   `claude-authoring` plugin at the time of writing; a project skill of this repo
+   since 2026-09-03): the facts (version gates, footguns, boundaries)
    are **All models**; the detect → pin → verify order is **Compensation
    (worker-tier)**, followed literally by a Sonnet-class session and compressible by a
    Fable-class one; and each skill names its **Skip** condition so a trivial diff gets a

@@ -63,9 +63,10 @@ TRAILER_RE='co-authored-by:.*(claude|anthropic)|generated with \[?claude code|ðŸ
 # for --git-dir/--work-tree/-C) and an assignment token (the value of -c). It does NOT
 # accept a bare word, so `git log | grep commit` stays allowed. Measured both
 # directions by fixture in scripts/__tests__/no-ai-trailer.test.sh â€” no count is
-# recorded here on purpose; the one that was, 73, was the size of a throwaway corpus
-# and never the harness's, which is the stale-number failure this repo keeps paying for.
-# Run the harness and read its total.
+# recorded here on purpose. The one that used to sit here was copied from a throwaway
+# corpus instead of read off the harness, and a second copy of any total is the
+# stale-number failure this repo keeps paying for: the harness's figure changes with
+# every fixture added, and only the harness can state it. Run it and read its total.
 GIT_WRITE_RE='(^|[;&|`()]|\$\()[[:space:]]*(([a-z_][a-z0-9_]*=[^[:space:]]*|bash|sh|zsh|dash|ksh|eval|exec|command|sudo|doas|env|nohup|timeout|nice|time|xargs|then|do|else|elif|if|while|until|-[-a-z0-9]*|[0-9]+|"|'"'"')[[:space:]]*)*(([^[:space:]]*/)?git([[:space:]]+(-[^[:space:]]*|[/.~][^[:space:]]*|[^[:space:]]*=[^[:space:]]*))*[[:space:]]+(commit|merge|tag|notes|rebase|cherry-pick|am)|([^[:space:]]*/)?gh[[:space:]]+(pr|release|repo)[[:space:]]+(create|merge|edit|comment))([[:space:]]|$)'
 
 lc() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }

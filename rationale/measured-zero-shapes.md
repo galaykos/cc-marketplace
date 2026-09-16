@@ -103,10 +103,12 @@ anything", which is not the lesson:
 
 ## Standing
 
-**Recorded.** No script reads this file. It is cited from
-`claude-authoring/skills/authoring-skills` and from `/claude-authoring:new-skill`
-so it is read at the moment a skill is proposed, which is the only moment it can
-change anything. Making it a gate would mean pattern-matching prose against four
-fuzzy shapes and failing the build on a judgment call — the false-positive class
+**Recorded.** No script reads this file. It is cited from this repo's own project
+skills — `.claude/skills/authoring-skills/SKILL.md` and
+`.claude/skills/new-skill/SKILL.md` (project skills of this repository, not a
+plugin; the `claude-authoring` plugin that used to host them was retired
+2026-09-03) — so it is read at the moment a skill is proposed, which is the only
+moment it can change anything. Making it a gate would mean pattern-matching prose
+against four fuzzy shapes and failing the build on a judgment call — the false-positive class
 that gets a gate switched off. The gate that DOES exist is
 `pc_removed_refs` on the names; this is the argument the names were removed for.

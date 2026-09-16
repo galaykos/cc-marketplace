@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.5
+
+### Fixed
+- **`destructive-guard.test.sh`'s "guard touched nothing" assert failed on other
+  people's edits.** It snapshotted `git status --porcelain` over the whole working tree
+  before and after the run, so any concurrent change anywhere in the repo — a parallel
+  worker, a generator run, an unsaved-then-saved file — reported the guard as having
+  mutated the tree. The snapshot is scoped to `-- plugins/command-guard` now; the assert
+  keeps its intent and states its residual (a write outside this plugin's directory is no
+  longer seen, and the guard's only filesystem reach is reading `.claude/<allowfile>`).
+  221 asserts, 0 failed.
+
 ## 0.6.4
 
 ### Fixed

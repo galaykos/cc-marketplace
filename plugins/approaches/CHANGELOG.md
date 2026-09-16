@@ -3,6 +3,14 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.8.1
+
+### Fixed
+- **Both reminder hooks' phase-guard comment cited a harness line number that had moved.**
+  It pointed at `chassis-template-tests.sh:113` for the leaked-extraGuard assertion; the
+  assertion is at 126, and 113 is an unrelated uninstall check. It now cites the assertion
+  by name (`hook(plain): no extraGuard when null`), which does not drift. Comment only.
+
 ## 0.8.0
 
 ### Changed

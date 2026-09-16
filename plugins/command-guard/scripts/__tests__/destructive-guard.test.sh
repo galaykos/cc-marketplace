@@ -17,9 +17,17 @@
 #   4. FAIL-OPEN — no jq, malformed JSON, empty input. The guard must stay
 #      silent and exit 0; a guard that breaks the session is uninstalled.
 #
-# The harness snapshots `git status --porcelain` before and after and asserts it
-# is byte-identical: these tests drive a script whose entire subject matter is
-# destroying things, so proving it touched nothing is part of the test.
+# The harness snapshots `git status --porcelain -- plugins/command-guard` before
+# and after and asserts it is byte-identical: these tests drive a script whose
+# entire subject matter is destroying things, so proving it touched nothing is
+# part of the test. SCOPED to this plugin's own directory on purpose — an
+# unscoped snapshot reads the WHOLE working tree, so any concurrent editor
+# anywhere in the repo (a parallel worker, an open editor, a generator run)
+# failed this assert with "git status changed" while the guard had done nothing.
+# Honest residual: a write the guard made outside plugins/command-guard is now
+# invisible here. That is a real narrowing, taken because the guard's only
+# filesystem reach is READING `.claude/<allowfile>` (hooks/destructive-guard.sh
+# :566) and the assert's false positives were costing more than the coverage.
 set -u
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -33,7 +41,7 @@ command -v jq >/dev/null 2>&1 || { printf 'SKIP: jq not installed\n'; exit 0; }
 
 WS=$(mktemp -d); trap 'rm -rf "$WS"' EXIT
 pass=0; fail=0
-git_snap() { [ -n "$repo_root" ] && ( cd "$repo_root" && git status --porcelain ) || true; }
+git_snap() { [ -n "$repo_root" ] && ( cd "$repo_root" && git status --porcelain -- plugins/command-guard ) || true; }
 SNAP_BEFORE=$(git_snap)
 
 ok()  { pass=$((pass + 1)); }
@@ -488,7 +496,7 @@ done
 
 # ---------------------------------------------------------------------------
 SNAP_AFTER=$(git_snap)
-[ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated the working tree" "git status changed"
+[ "$SNAP_BEFORE" = "$SNAP_AFTER" ] && ok || bad "the guard mutated plugins/command-guard" "git status --porcelain -- plugins/command-guard changed"
 
 printf '\n%s passed, %s failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

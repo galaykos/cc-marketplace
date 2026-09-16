@@ -67,6 +67,12 @@
 #   - CLAUSE 4 enforces only a run that REGISTERED itself. A run that never
 #     writes active-run.json is not enforced (fail-open) — the same residual the
 #     behavioral-gate skill names. It never executes tests: it is a records check.
+#   - CLAUSE 4's record counts (nc/, rv/, rt/ lenses and critic, reductions) count
+#     only files NEWER than active-run.json, so a record left by a previous run
+#     cannot cover this one — card ids repeat across runs and those dirs are never
+#     cleared. nc/ was the one count missing that bound until 0.3.7. The residual
+#     runs the other way: a legitimate record written BEFORE the run registered
+#     itself is invisible, which blocks rather than passes.
 #   - Tone — flattery, defensiveness, apology spirals — is NOT gated. No regex
 #     separates "you're right" said because it is true from the same words said
 #     to please. /candor:check measures it; the straight-talk skill is where the
@@ -204,10 +210,16 @@ run_clause() {
     fi
     # PER-CARD NEGATIVE-CONTROL COVERAGE (opt-in by presence of nc/): a complete run
     # must have one nc-pass or nc-skip record per DONE card. No nc/ dir → legacy allow.
+    # Bounded the same way as rv/ and rt/ below — only records newer than THIS
+    # registration count, and distinct ids (nc-pass-01 + nc-skip-01 is one card).
+    # Until 0.3.7 this count was unbounded while its three siblings were not, so a
+    # record left in nc/ by a PREVIOUS run (card ids repeat across runs, and the dir
+    # is never cleared) satisfied this run's gate for a card that never had a control.
     local ncdir="$cwd/.claude/task-runner/nc" nc_count
     if [ "$v" = "complete" ] && [ -d "$ncdir" ]; then
       cdone=$(jq -r '.cards_done' "$gatepass" 2>/dev/null)
-      nc_count=$(find "$ncdir" -maxdepth 1 \( -name 'nc-pass-*.json' -o -name 'nc-skip-*.json' \) 2>/dev/null | wc -l | tr -d ' ')
+      nc_count=$(find "$ncdir" -maxdepth 1 \( -name 'nc-pass-*.json' -o -name 'nc-skip-*.json' \) -newer "$sentinel" 2>/dev/null |
+        sed -E 's#.*/nc-(pass|skip)-##; s#\.json$##' | sort -u | wc -l | tr -d ' ')
       if [ "$nc_count" -lt "$cdone" ] 2>/dev/null; then
         run_msg=$(printf '[candor] completion-gate: %s reports %s done cards but only %s per-card negative-control records in .claude/task-runner/nc/.\n  Every done card needs an nc-pass record (negative-control.sh --record-dir --card) or a documented nc-skip. Run the missing controls, then stop.' "$slug" "$cdone" "$nc_count")
         verdict="run"; return 0

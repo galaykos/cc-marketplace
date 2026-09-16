@@ -2,6 +2,21 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.7
+
+### Fixed
+- **Clause 4's negative-control count accepted a record from a PREVIOUS run.** Its three
+  sibling counts (`rv/`, `rt/`, `reductions/`) all bound `find` with `-newer
+  active-run.json`; the `nc-pass-*`/`nc-skip-*` count did not, and `nc/` is never
+  cleared while card ids repeat across runs — so two stale records covered two done
+  cards that had no control at all. Measured against the shipped 0.3.6 hook: stale
+  records, two done cards, every other gate green → **exit 0** (allowed); with the bound
+  → **exit 2** with the missing-controls message, and fresh records still allow. The
+  count is also deduplicated by card id now, like `rv/` (`nc-pass-01` plus `nc-skip-01`
+  is one card, not two). The header's clause-4 limitation states the bound and its
+  residual: a legitimate record written before the run registered itself is invisible,
+  which blocks rather than passes.
+
 ## 0.3.6
 
 ### Fixed

@@ -2,8 +2,9 @@
 
 Moved here from CLAUDE.md on 2026-08-11 — repo history, not an actionable rule;
 CLAUDE.md keeps the one-clause glosses and the pointer to the canonical home
-(the `claude-authoring` plugin's `authoring-skills` skill, "The four laws",
-derivation in its `references/doctrine.md`).
+(`.claude/skills/authoring-skills/SKILL.md`, "The four laws", derivation in its
+`references/doctrine.md` — a tracked project skill of this repo since the
+`claude-authoring` plugin was retired 2026-09-03, not a shipped plugin).
 
 Proportionality, honest limitation, the theater test, admission: each was
 independently re-derived across this marketplace under a different subject

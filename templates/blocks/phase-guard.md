@@ -78,9 +78,11 @@ cc_phase_guard() { # $1 = this artifact's id, e.g. taskmaster:remind. 0 = procee
   cc_phase_now="$have"
 
   # Nested ifs on purpose, never a conjunction of two bracket tests on one line:
-  # chassis-template-tests.sh:113 treats that shape as a leaked extraGuard and
-  # fails the render. Do not quote the shape in a comment either — the assertion
-  # is a substring match over the rendered file, so describing it reintroduces it.
+  # chassis-template-tests.sh's "hook(plain): no extraGuard when null" assertion
+  # treats that shape as a leaked extraGuard and fails the render. Cited by
+  # assertion NAME, not line number — the number went stale once already. Do not
+  # quote the shape in a comment either: the assertion is a substring match over
+  # the rendered file, so describing it reintroduces it.
   ssid=$(jq -r '.session_id // empty' "$sentinel" 2>/dev/null)
   if [ -n "$ssid" ]; then
     if [ -n "${sid:-}" ]; then
