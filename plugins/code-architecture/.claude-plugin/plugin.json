@@ -1,6 +1,6 @@
 {
   "name": "code-architecture",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "Engineering process: plan-before-code, YAGNI, SOLID principles applied with judgment, task orchestration, work verification — held at Stop by candor's gate (clause 3, refusing a completion claim when files were edited but nothing ran afterward) when candor is installed; without it the rule is prose — low-cognitive-load code, KISS/DRY simplicity principles. Owns structure at both levels: code (units, interfaces, file placement) and system (service boundaries on data ownership, scaling paths, cache placement, sync vs async integration, domain modeling) via the system-design and domain-modeling skills and the system-architect worker.",
   "author": {
     "name": "Ivan-WG",

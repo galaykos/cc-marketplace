@@ -70,10 +70,10 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~2.1k tokens |
+| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~2.2k tokens |
 | `craft-suite` | 2 | ~2.1k tokens | — | — |
 | `frontend-suite` | 4 | ~1.7k tokens | ~32 tokens | ~1.9k tokens |
-| `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~1.9k tokens |
+| `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~2.1k tokens |
 
 Every row is a curated subset. The marketplace ships all 28 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.
 

@@ -2,6 +2,15 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.16.2 — 2026-09-17
+
+### Fixed
+- `low-cognitive-load` told the model to match the surrounding file's **comment density**;
+  the worker template, the delegation preamble and code-review's `comment-discipline` all say
+  the opposite (the default is no comment; a commented neighbour is drift). Both texts were
+  loaded together by `coding-entry`. The skill now matches naming and idiom only and points
+  at `comment-discipline` for the comment default (`rationale/fable-distillation-2026-09-17.md` §5).
+
 ## 0.16.1 — 2026-09-16
 
 ### Changed
