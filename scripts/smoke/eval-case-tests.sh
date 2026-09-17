@@ -70,11 +70,46 @@ out=$(run_gate); st=$?
 printf 'PASS if the answer says hello.\n' > "$T/plugins/beta/evals/p/graders/x.md"
 expect_fail "a grader with no type: frontmatter fails (the 2026-09-14 rejection)" "no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"
 
-printf -- '---\ntype: vibes\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
-expect_fail "a grader type outside the runner's set fails" "is not one of regex|tool_used|tool_order|file_exists|llm|baseline"
+# The frontmatter is read as YAML, the way the runner reads it: a quoted, commented,
+# BOM-prefixed or CRLF `type:` is a type. The awk line this replaced rejected all four
+# with the no-frontmatter message, naming the wrong root cause.
+printf -- '\xef\xbb\xbf---\r\ntype: "regex"  # quoted\r\npattern: hello\r\n---\r\n' > "$T/plugins/beta/evals/p/graders/x.md"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a quoted, commented, BOM+CRLF grader type passes" || bad "a quoted, commented, BOM+CRLF grader type passes" "$out"
+
+printf -- '---\ntype: ""\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a grader with an empty type: fails" "no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"
+
+printf -- '---\ntype: regex\npattern: hello\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a grader whose frontmatter never closes fails" "never closed"
 
 rm -rf "$T/plugins/beta/evals/p/graders"
 expect_fail "a prompt.md with no graders/ fails" "graders: Required"
+rm -rf "$T/plugins/beta"
+
+# --- prompt.md + graders/*.md + a context-only case.yaml (both files) ----------------
+# The runner's usage line admits the combination; until 2026-09-17 the case.yaml branch
+# held the sibling to execution.prompt/graders it has no reason to carry.
+prompt_case "$T/plugins/beta/evals/p"
+printf -- '---\ntype: regex\npattern: hello\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
+printf 'schema_version: "1.0"\nname: p\nruns: 2\nexecution:\n  max_turns: 10\n' > "$T/plugins/beta/evals/p/case.yaml"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "prompt.md + graders + a context-only case.yaml passes" || bad "prompt.md + graders + a context-only case.yaml passes" "$out"
+
+printf 'runs: 2\n' > "$T/plugins/beta/evals/p/case.yaml"
+expect_fail "a context-only case.yaml still needs name" "no \`name\`"
+rm -rf "$T/plugins/beta"
+
+# --- only the top level of a case is a case -------------------------------------------
+# A prompt.md under resources/ is a fixture the case reads; the recursive find this
+# replaced counted it as a second case and failed it for having no graders/.
+good_case "$T/plugins/beta/evals/x"
+mkdir -p "$T/plugins/beta/evals/x/resources" && printf 'fixture\n' > "$T/plugins/beta/evals/x/resources/prompt.md"
+out=$(run_gate); st=$?
+case "$st:$out" in
+  0:*"OK: 2 eval case(s) across 2 suite(s) load"*) ok "a resources/prompt.md beside a valid case is ignored and the case counts once" ;;
+  *) bad "a resources/prompt.md beside a valid case is ignored and the case counts once" "$out" ;;
+esac
 rm -rf "$T/plugins/beta"
 
 # --- a case directory holding neither file -------------------------------------

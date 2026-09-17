@@ -12,6 +12,8 @@ each place a gate or doctrine file states something the host or the tree itself 
 Executed as four scope-locked workers on disjoint file sets plus one integration pass; the
 finding ids below are the audit's.
 
+**Finish-time review (audit §3H).** The host's `/code-review` on the branch found two gate bugs in the fixes themselves and both were fixed before the PR: `eval-cases.sh` had rejected the doc's combined case shape (`prompt.md` + graders + a context-only `case.yaml`), and `validate.sh`'s taskmaster/task-runner skip had exempted those plugins from every `pc_*` check, not only the jargon one — so `pc_host_overlap` had never walked `task-runner:run`. Also: grader frontmatter parsed with PyYAML in both shapes, presence-only `type:` in both, top-level case dirs only, a stray-dir message that no longer tells a half-scaffolded plugin to delete itself, one `pc_listing_fields` source for the three in-repo listing walks, the Trigger-words lint over `when_to_use` too.
+
 - **The eval root cause was misnamed, and the gate encoded the wrong one (A1, A2).**
   `scripts/eval-cases.sh` failed any `prompt.md` + `graders/*.md` under `evals/` as "the
   DEAD shape the runner rejects". The shape is valid — a `prompt.md` beside a grader with

@@ -75,7 +75,7 @@ Claude Code caps the skill+command listing it sends the model at
 `contextWindowTokens x bytesPerToken x skillListingBudgetFraction` — default fraction
 0.01, so 6,000 chars on a 200k window (3-byte model) and 30,000 at 1M — and past the
 cap it drops entries to name-only, buying descriptions back in priority order. Every
-leaf here costs about 36,500 entry-chars (`name + 4 + min(description, 1536)` per
+leaf here costs about 36,500 entry-chars (`name + 4 + min(description + when_to_use, 1536)` per
 skill and command, the walk `scripts/lib/plugin-checks.sh`'s `pc_listing_entry_cost`
 does): 6.1x the 200k cap, 1.2x the 1M cap. The name+4 floor alone is 67% of the 200k
 cap, so no amount of description trimming makes everything fit there.

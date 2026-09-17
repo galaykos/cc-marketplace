@@ -283,14 +283,14 @@ All notable changes to the task-runner plugin.
 ### Fixed
 - `task-execution/SKILL.md:66` cited "`references/role-floors.md`" unqualified,
   which reads as this skill's own `references/` dir — where no such file exists.
-  The registry lives in `orchestration:delegation-contracts`. Every sibling
+  The registry lives in `orchestration:delegation-contracts`. Every sibling <!-- removed-ok --> <!-- history: orchestration merged into task-runner 2026-09-14 -->
   mention (`task-executor.md:25`, `routing.md:127`) already qualified it; this one
   did not, so a reader following it found nothing.
 
 ## 0.29.4
 
 ### Changed
-- `code-redteam` now says WHY its N=3 is fixed while `orchestration:verification-panels`
+- `code-redteam` now says WHY its N=3 is fixed while `orchestration:verification-panels` <!-- removed-ok --> <!-- history: same merge -->
   sizes N to blast radius. A conflict audit found the two shipped opposite verdicts on
   the same number: that skill declares itself "the sizing authority for every consumer"
   with 2 refuters for a small radius and forbids a consumer inventing its own N, while
@@ -321,8 +321,8 @@ All notable changes to the task-runner plugin.
 
 ### Changed
 - `task-execution/references/reviewer-routing.md` routes the database track to
-  `sql:sql-best-practices`. Its old target, `database:database-design`, was
-  merged into that skill — the rubric moved, the routing follows it. <!-- removed-ok -->
+  `sql:sql-best-practices`. Its old target, `database:database-design`, was <!-- removed-ok --> <!-- history: sql moved into database, database-design merged away -->
+  merged into that skill — the rubric moved, the routing follows it.
 
 ## 0.29.0
 

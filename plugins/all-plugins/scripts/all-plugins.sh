@@ -210,6 +210,7 @@ listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc
         */skills/*) name="$(basename "$pdir"):$(basename "$(dirname "$f")")" ;;
         *)          name="$(basename "$pdir"):$(basename "$f" .md)" ;;
       esac
+      # mirrors pc_listing_fields in scripts/lib/plugin-checks.sh — copied, not sourced, because this script ships alone
       fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null)
       # disable-model-invocation: true leaves the listing entirely — pc_listing_entry_cost's skip
       printf '%s\n' "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true' && continue

@@ -31,7 +31,11 @@
 #   - a missing `name`, `execution.prompt`, or `graders`
 #   - `graders` present but empty, or a grader with no `type` (the exact rejection above)
 #   - a `prompt.md` with no `graders/*.md`, or a `graders/*.md` whose frontmatter carries
-#     no `type:` from the runner's set (regex tool_used tool_order file_exists llm baseline)
+#     no `type:` (or none at all). The NAME is not checked: until 2026-09-17 this branch
+#     held graders to a six-name allowlist while the case.yaml branch asked only for
+#     presence, so one grader shape was gated by a list the runner never published and
+#     the other was not. The runner is the authority on which types exist; both branches
+#     now ask the same question — is there a non-empty `type`.
 #   - a non-numeric or non-positive `runs` / `max_turns`
 #
 # WHAT IT DOES NOT CATCH, stated because this repo tiers its claims:
@@ -43,8 +47,15 @@
 #   - whether the suite would PASS. This never runs a model and never spends a cent.
 #   - drift between the runner's schema and this checker's idea of it. The runner is the
 #     authority; this asserts the subset whose absence has actually broken a suite here.
-#   - how the runner merges a case that ships BOTH files. Each file is checked on its own
-#     terms; a `case.yaml` beside a `prompt.md` is still held to `execution.prompt`.
+#   - how the runner merges a case that ships BOTH files. The runner's own usage line
+#     admits the combination, so a `case.yaml` beside a `prompt.md` is held to `name`
+#     only: the prompt.md body is the prompt and graders/*.md are the graders, and
+#     demanding `execution.prompt` there (as this did until 2026-09-17) failed a shape
+#     the runner loads. A key that IS present is still shape-checked; whether the runner
+#     prefers the yaml's `graders:` list or the directory when both exist is unmeasured.
+#   - anything below the top level of a case. Only `evals/<case>/prompt.md` and
+#     `evals/<case>/case.yaml` are cases; a `prompt.md` under `resources/` or `mocks/`
+#     is a fixture the case reads, neither counted nor failed.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 rc=0
@@ -55,48 +66,71 @@ python3 -c 'import yaml' 2>/dev/null || {
   exit 1
 }
 
+grader_type_ok() { # grader_type_ok <graders/x.md> — stdout: the defect, exit 1, when its frontmatter has no usable type
+  python3 - "$1" <<'PY'
+import sys, yaml
+path = sys.argv[1]
+raw = open(path, "rb").read()
+if raw.startswith(b"\xef\xbb\xbf"):
+    raw = raw[3:]
+lines = raw.decode("utf-8", "replace").replace("\r\n", "\n").split("\n")
+if not lines or lines[0] != "---":
+    print("no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"); sys.exit(1)
+try:
+    end = lines.index("---", 1)
+except ValueError:
+    print("frontmatter opened on line 1 and never closed"); sys.exit(1)
+try:
+    fm = yaml.safe_load("\n".join(lines[1:end]))
+except Exception as e:
+    print(f"frontmatter is not valid YAML: {e}"); sys.exit(1)
+if not isinstance(fm, dict) or not str(fm.get("type") or "").strip():
+    print("no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"); sys.exit(1)
+PY
+}
+
 suites=0
 cases=0
 for dir in plugins/*/evals; do
   [ -d "$dir" ] || continue
   suites=$((suites + 1))
   plugin=$(basename "$(dirname "$dir")")
-
-  found=$(find "$dir" \( -name case.yaml -o -name prompt.md \) -type f 2>/dev/null | sort)
-  if [ -z "$found" ]; then
-    fail "$plugin: $dir contains no case.yaml or prompt.md — the suite loads ZERO cases and every run of it is a no-op."
-    continue
-  fi
+  ncases=0
 
   # results/ is the runner's output dir and mocks/ its MCP stand-ins; neither is a case.
   for cdir in "$dir"/*/; do
     [ -d "$cdir" ] || continue
-    case "$(basename "$cdir")" in results|mocks) continue ;; esac
-    find "$cdir" \( -name case.yaml -o -name prompt.md \) -type f 2>/dev/null | grep -q . \
-      || fail "$plugin: $cdir holds neither case.yaml nor prompt.md — it is not a case and loads nothing"
-  done
-
-  cases=$((cases + $(printf '%s\n' "$found" | sed 's|/[^/]*$||' | sort -u | wc -l)))
-  while IFS= read -r case_file; do
-    [ -n "$case_file" ] || continue
-    if [ "$(basename "$case_file")" = prompt.md ]; then
-      gdir="$(dirname "$case_file")/graders"
-      graders=$(find "$gdir" -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
-      [ -n "$graders" ] || { fail "$case_file: prompt.md with no graders/*.md — graders: Required (0 cases loaded on 2026-09-14)"; continue; }
-      while IFS= read -r g; do
-        [ -n "$g" ] || continue
-        gtype=$(awk 'NR==1 && $0!="---"{exit} NR>1 && /^---$/{exit} NR>1 && /^type:/{sub(/^type:[[:space:]]*/,""); sub(/[[:space:]]+$/,""); print; exit}' "$g")
-        case "$gtype" in
-          '') fail "$g: no type: frontmatter (the 2026-09-14 rejection, not a dead shape)" ;;
-          regex|tool_used|tool_order|file_exists|llm|baseline) ;;
-          *) fail "$g: type: $gtype is not one of regex|tool_used|tool_order|file_exists|llm|baseline" ;;
-        esac
-      done <<< "$graders"
+    cdir=${cdir%/}
+    case "$(basename "$cdir")" in results|mocks|.*) continue ;; esac
+    has_prompt=0; has_yaml=0
+    [ -f "$cdir/prompt.md" ] && has_prompt=1
+    [ -f "$cdir/case.yaml" ] && has_yaml=1
+    if [ "$has_prompt" -eq 0 ] && [ "$has_yaml" -eq 0 ]; then
+      fail "$plugin: $cdir/ holds neither case.yaml nor prompt.md — it is not a case and loads nothing"
       continue
     fi
-    msg=$(python3 - "$case_file" <<'PY'
+    ncases=$((ncases + 1))
+
+    if [ "$has_prompt" -eq 1 ]; then
+      graders=$(find "$cdir/graders" -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
+      if [ -z "$graders" ]; then
+        fail "$cdir/prompt.md: prompt.md with no graders/*.md — graders: Required (0 cases loaded on 2026-09-14)"
+      else
+        while IFS= read -r g; do
+          [ -n "$g" ] || continue
+          gmsg=$(grader_type_ok "$g") || fail "$g: $gmsg"
+        done <<< "$graders"
+      fi
+    fi
+
+    [ "$has_yaml" -eq 1 ] || continue
+    case_file="$cdir/case.yaml"
+    msg=$(python3 - "$case_file" "$has_prompt" <<'PY'
 import sys, yaml, os
 path = sys.argv[1]
+# A sibling prompt.md supplies the prompt and graders/*.md the graders; only a
+# case.yaml that is the whole case must carry them itself.
+whole = sys.argv[2] == "0"
 try:
     with open(path) as fh:
         d = yaml.safe_load(fh)
@@ -114,10 +148,12 @@ else:
         errs.append(f"`name: {d['name']}` does not match its directory `{want}` — --case globs match the name")
 
 ex = d.get("execution")
-if not isinstance(ex, dict):
+if ex is None and whole:
     errs.append("no `execution` mapping")
-else:
-    if not str(ex.get("prompt") or "").strip():
+elif ex is not None and not isinstance(ex, dict):
+    errs.append("`execution` is not a mapping")
+elif ex is not None:
+    if whole and not str(ex.get("prompt") or "").strip():
         errs.append("`execution.prompt` is empty")
     mt = ex.get("max_turns")
     if mt is not None and (not isinstance(mt, int) or isinstance(mt, bool) or mt < 1):
@@ -125,14 +161,15 @@ else:
 
 g = d.get("graders")
 if g is None:
-    errs.append("no `graders` — this is the exact key whose absence loaded 0 cases on 2026-09-14")
+    if whole:
+        errs.append("no `graders` — this is the exact key whose absence loaded 0 cases on 2026-09-14")
 elif not isinstance(g, list) or not g:
     errs.append("`graders` is not a non-empty list")
 else:
     for i, one in enumerate(g):
         if not isinstance(one, dict):
             errs.append(f"grader {i} is not a mapping")
-        elif not one.get("type"):
+        elif not str(one.get("type") or "").strip():
             errs.append(f"grader {i} has no `type`")
         elif one.get("type") == "llm" and not str(one.get("criteria") or "").strip():
             errs.append(f"grader {i} is `type: llm` with empty `criteria`")
@@ -145,7 +182,11 @@ if errs:
     print("; ".join(errs)); sys.exit(1)
 PY
     ) || fail "$case_file $msg"
-  done <<< "$found"
+  done
+
+  [ "$ncases" -gt 0 ] \
+    || fail "$plugin: $dir contains no case.yaml or prompt.md — the suite loads ZERO cases and every run of it is a no-op."
+  cases=$((cases + ncases))
 done
 
 if [ "$rc" -eq 0 ]; then

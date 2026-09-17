@@ -2132,14 +2132,37 @@ EOF
   return $bad
 }
 
+# pc_listing_fields <md_path> — the three frontmatter fields the skill listing is priced
+# and linted on, as ONE line: description, when_to_use, disable-model-invocation
+# (`true`|`false`), tab-separated. Single-line values only: validate.sh rejects a block
+# scalar on either text field, so a `>`/`|` value never reaches a caller in a tree that
+# passes the rest of the gates. Split with `${line%%$'\t'*}`, not `read` — a tab-only IFS
+# collapses an empty when_to_use into the field after it. Three callers carried this
+# awk+sed walk by value (pc_listing_entry_cost, context-budget.sh's plugin_desc_bytes,
+# validate.sh's description linter) and could drift one sed at a time — the 2026-09-16
+# `when_to_use` addition had to be made three times. all-plugins/scripts/all-plugins.sh
+# keeps a fourth copy because it ships alone, and names this function as its source.
+pc_listing_fields() {
+  local fm dmi=false
+  fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$1" 2>/dev/null)
+  printf '%s\n' "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true' && dmi=true
+  printf '%s\t%s\t%s\n' \
+    "$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)" \
+    "$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)" \
+    "$dmi"
+}
+
 # pc_listing_entry_cost <plugin-dir> — the CLI's per-plugin skill-listing entry cost,
 # THE single implementation. Prints "<chars> <entries>": sum over skills/*/SKILL.md and
 # commands/*.md of `name + 4 + min(desc + when_to_use, 1536)` with NO separator term — the
 # caller owns separators (one per entry minus one per install, matching the CLI's join).
-# An entry flagged `disable-model-invocation: true` is removed from the listing entirely
-# (code.claude.com/docs/en/skills, "Description not in context"), so the walk skips it
-# before charging even name + 4. `when_to_use:` rides with the description: the CLI shows
-# the pair and truncates the pair at 1,536, so the cap applies to the sum. Two callers:
+# An entry flagged `disable-model-invocation: true` is charged nothing — not even
+# name + 4. The doc says its DESCRIPTION is not in context (code.claude.com/docs/en/skills,
+# "Description not in context"); whether the NAME still renders as a name-only entry is
+# unmeasured, so that skip is `recorded — unmeasured`: if the CLI does list the name, this
+# walk undercounts by name + 4 per flagged entry. `when_to_use:` rides with the
+# description: the CLI shows the pair and truncates the pair at 1,536, so the cap applies
+# to the sum. Two callers:
 # pc_listing_declaration below and context-budget.sh's listing channel. They previously
 # carried the walk twice by value and disagreed by the separator model (9 chars on
 # taskmaster-suite), so every bundle README's "recompute with context-budget.sh" step
@@ -2153,7 +2176,7 @@ EOF
 # frontmatter gates already force single-line descriptions, so the shape cannot occur in
 # a tree that passes the rest of this file.
 pc_listing_entry_cost() {
-  local pdir="$1" plug total=0 n=0 f name desc wtu dl
+  local pdir="$1" plug total=0 n=0 f name fields desc wtu dl
   plug=$(basename "$pdir")
   for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md; do
     [ -f "$f" ] || continue
@@ -2161,12 +2184,10 @@ pc_listing_entry_cost() {
       */skills/*) name="$plug:$(basename "$(dirname "$f")")" ;;
       *)          name="$plug:$(basename "$f" .md)" ;;
     esac
-    fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null)
-    # `disable-model-invocation: true` drops the description from the listing entirely
-    # (code.claude.com/docs/en/skills, "Description not in context"), so it costs nothing here.
-    printf '%s\n' "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true' && continue
-    desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
-    wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
+    fields=$(pc_listing_fields "$f")
+    case "$fields" in *$'\t'true) continue ;; esac
+    desc=${fields%%$'\t'*}
+    wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
     dl=$(printf '%s%s' "$desc" "$wtu" | LC_ALL=C wc -c | tr -d ' ')
     [ "$dl" -gt 1536 ] && dl=1536
     total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
@@ -2191,10 +2212,10 @@ pc_listing_entry_cost() {
 # broken depends on which tier the USER runs — a fact only the bundle can warn about,
 # and on 2026-08-31 none did.
 #
-# THE RULE: a bundle whose entry cost (name + 4 + min(desc,1536) per skill/command,
-# members + the bundle's own, plus separators) exceeds 6,000 chars must mention
-# `skillListingBudgetFraction` in its README — the settings.json lever that fixes it —
-# or carry `<!-- listing-floor-ok: <why> -->`.
+# THE RULE: a bundle whose entry cost (name + 4 + min(description + when_to_use, 1536)
+# per skill/command, members + the bundle's own, plus separators) exceeds 6,000 chars
+# must mention `skillListingBudgetFraction` in its README — the settings.json lever that
+# fixes it — or carry `<!-- listing-floor-ok: <why> -->`.
 #
 # HONEST LIMITATION: gates that the STRING appears, not that the declared numbers are
 # right — a README recommending 0.02 where the bundle needs 0.03 passes identically.

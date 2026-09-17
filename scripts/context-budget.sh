@@ -68,19 +68,19 @@ command -v jq >/dev/null 2>&1 || { echo "WARN: jq not found, skipping context-bu
 
 # Sum of frontmatter description-value bytes (plus `when_to_use:` when present — the
 # host shows the pair together, so both are charged) across a plugin dir's
-# skills/*/SKILL.md, commands/*.md, agents/*.md (tolerates missing dirs).
+# skills/*/SKILL.md, commands/*.md, agents/*.md (tolerates missing dirs). The fields
+# come from pc_listing_fields (scripts/lib/plugin-checks.sh, sourced below), the one
+# frontmatter walk every listing meter and linter shares.
 plugin_desc_bytes() {
-  local pdir="$1" total=0 f fm desc wtu bytes
+  local pdir="$1" total=0 f fields desc wtu bytes
   for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md "$pdir"/agents/*.md; do
     [ -f "$f" ] || continue
-    fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null)
+    fields=$(pc_listing_fields "$f")
     # `disable-model-invocation: true` keeps the description out of context altogether
     # (code.claude.com/docs/en/skills, "Description not in context"); a flagged entry costs 0.
-    printf '%s\n' "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true' && continue
-    desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
-    wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
-    # single-line values only — validate.sh's frontmatter gates keep both on one line;
-    # a YAML block scalar would undercount here
+    case "$fields" in *$'\t'true) continue ;; esac
+    desc=${fields%%$'\t'*}
+    wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
     bytes=$(printf '%s%s' "$desc" "$wtu" | wc -c | tr -d ' ')
     total=$((total + bytes))
   done
@@ -451,10 +451,10 @@ fail=0
 #     opus-4-6  @200k = 8,000 chars     opus-4-6  @1M = 40,000 chars
 #
 # AND THE UNIT IS NOT DESCRIPTION TEXT. The CLI costs each entry as
-# `name + 4 + min(desc, 1536)`, joined by one separator each — so the artifact NAME
-# and a 4-char delimiter are charged per artifact. Artifact COUNT is in the measure
-# directly, which is the mechanical reason "fewer artifacts" beats "shorter
-# descriptions" and not merely an empirical one.
+# `name + 4 + min(description + when_to_use, 1536)`, joined by one separator each — so
+# the artifact NAME and a 4-char delimiter are charged per artifact. Artifact COUNT is
+# in the measure directly, which is the mechanical reason "fewer artifacts" beats
+# "shorter descriptions" and not merely an empirical one.
 #
 # Over budget, the CLI does not drop the tail: it reduces every non-protected entry
 # to name-only, then buys descriptions back in PRIORITY order until the budget is
@@ -717,7 +717,7 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # because adjacent artifacts compete. Full cost derivation:
 # rationale/2026-08-31-token-cost-review.md.
 echo
-echo "listing channel (CLI entry cost: name + 4 + min(desc,${LISTING_MAX_DESC}), skills + commands)"
+echo "listing channel (CLI entry cost: name + 4 + min(description + when_to_use,${LISTING_MAX_DESC}), skills + commands)"
 echo "  budget = ctxTokens x bytesPerToken x fraction; showing ${LISTING_CTX_TOKENS} tok x ${LISTING_BYTES_PER_TOKEN} x ${LISTING_FRACTION} = ${LISTING_CAP} chars (a 1M-context session gets ${LISTING_CAP_1M})"
 if [ -n "$listing_rows" ]; then
   printf '%-24s %9s  %s\n' "install" "chars" "status"

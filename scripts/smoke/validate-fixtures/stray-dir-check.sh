@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Stray-directory harness: proves validate.sh draws ONE FAIL for a plugins/<x>/ that has
-# no .claude-plugin/plugin.json and no tracked file, and that the README-presence and
-# plugin-table checks skip it — and that a directory with a TRACKED file but no manifest
-# still draws the three original FAILs, so the skip cannot hide a half-made plugin.
+# no .claude-plugin/plugin.json, no tracked file and no *.md / *.json outside dot-dirs,
+# and that the README-presence and plugin-table checks skip it — and that a directory
+# with a TRACKED file but no manifest, or an UNTRACKED one carrying a README.md, still
+# draws the three original FAILs, so the skip cannot hide a half-made plugin.
 # Cause: plugins/design-studio/ held only a hook's marker files and drew three FAILs about
 # a plugin that never existed (rationale/marketplace-trend-audit-2026-09-16.md E1).
 # CI step: .github/workflows/validate.yml "stray-directory gate harness".
@@ -63,6 +64,22 @@ if printf '%s\n' "$vout" | grep -q 'stray directory plugins/zz-half'; then
   echo "FAIL: a directory with a tracked file was called stray"; rc=1
 else
   echo "PASS: tracked half-plugin — not called stray"
+fi
+
+rm -rf "$MIRROR/plugins/zz-half"
+
+# 3. NOT-stray path — an untracked directory holding a README.md outside its dot-dirs is a
+#    half-scaffolded plugin (2026-09-17 review H7): the checklist FAILs fire, "delete it"
+#    does not. The dot-dir marker beside it is exactly the scratch case 1 catches alone.
+mkdir -p "$MIRROR/plugins/zz-new/.claude/scratch" && : > "$MIRROR/plugins/zz-new/.claude/scratch/marker"
+printf '# zz-new\n' > "$MIRROR/plugins/zz-new/README.md"
+vout=$( cd "$MIRROR" && bash scripts/validate.sh 2>&1 ) || true
+want "untracked half-plugin — marketplace listing FAIL still fires" "directory plugins/zz-new not listed in marketplace.json"
+want "untracked half-plugin — plugin-table FAIL still fires" "plugin 'zz-new' has no README.md plugin-table ROW"
+if printf '%s\n' "$vout" | grep -q 'stray directory plugins/zz-new'; then
+  echo "FAIL: an untracked directory with a README.md was called stray"; rc=1
+else
+  echo "PASS: untracked half-plugin — not called stray"
 fi
 
 [ "$rc" -eq 0 ] && echo "stray-dir-check: all PASS"

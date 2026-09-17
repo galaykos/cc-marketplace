@@ -148,6 +148,27 @@ lane `yields_to` resolves; every README-named hook/env pair is registered/read; 
 200/14,000/300/500/700 agree everywhere; bundle listing figures match the meter; harness counts
 in READMEs match live output.
 
+### H. Found by the finish-time review of this branch's own fixes (host `/code-review`, medium)
+
+Two of the m4 fixes were wrong in ways the m4 reviewer did not catch; both measured, both fixed
+in a second cycle before the PR. Recorded here because they are the audit's own lesson turned
+on itself.
+
+| # | sev | what | fix |
+|---|---|---|---|
+| H1 | high | the corrected `eval-cases.sh` still FAILed the host doc's combined shape (`prompt.md` + `graders/*.md` + a context-only `case.yaml`) | a `case.yaml` beside a `prompt.md` needs only `name`; the whole-case shape still needs `execution.prompt` and `graders` |
+| H2 | high | `validate.sh`'s `taskmaster/*|task-runner/*` skip — meant for `pc_jargon` — skipped all four `pc_*` checks, so `pc_host_overlap` never walked `task-runner:run` and its new `<!-- host-ok -->` was read by nothing. Narrowing it surfaced two `pc_removed_refs` hits the blanket skip had hidden since the check was written | skip only the jargon call; both hits blessed with a reason |
+| H3/H4/H11 | medium | grader `type:` parsed by awk (rejects quoted/commented/CRLF/BOM values); an allowlist in one shape and presence-only in the other; a recursive find counting `resources/prompt.md` as a case | PyYAML for both shapes; presence-only in both; top-level case dirs only |
+| H7 | medium | a half-scaffolded, not-yet-added plugin drew "stray — delete it" | stray only when no `*.md`/`*.json` outside dot-dirs |
+| H8/H9/H10/H12 | medium | a leaked `fm` global; the listing-field extraction copied four times; the Trigger-words lint blind to `when_to_use`; the name+4 skip stated as measured | `pc_listing_fields` (one source for the three in-repo copies); lint the pair; tiered `recorded — unmeasured` |
+| H6 | medium | root cause of E1: eleven hook scripts `mkdir -p "$cwd/.claude/…"` on a payload cwd that no longer exists and resurrect the directory | out of scope (eleven hooks, eight bumps) — follow-up PR; `suggestions.md` |
+
+Standing of the whole report after this: the m4 reviewer read the diff against the audit rows
+(intent); the host's pass read it against the host docs and ran the gates on synthetic trees
+(behaviour). The first found doc drift, the second found the two gate bugs. Neither alone was
+enough, and the second is the one CLAUDE.md's "the gate you run and the gate that breaks can
+read different inputs" lesson names.
+
 ## 4. Where this tree leads, lags, and contradicts the trend
 
 - **Leads:** control-armed evals with the `tool_used: Skill` exclusion understood (T5) before the
@@ -192,7 +213,7 @@ unreachable; no finding rests on them. The eval probe ran once, on one case, wit
 none`; it proves the shape LOADS and a typed regex grader scores — nothing about Δ. D4's cost
 is unmeasured. E3's tool-roster claim is one live session, not a document. The `is_suite`
 column of `inventory.json` over-matches and was not used. The 2026-09-14 review's §7
-consistency list was trusted, not re-walked. §8's majors (G1–G6) were re-verified by grep; its minors and CLEAN list were not.
+consistency list was trusted, not re-walked. §3G's majors (G1–G6) were re-verified by grep; its minors and CLEAN list were not. §3H's two highs were measured by the host review and re-measured by the fix worker's controls.
 
 ## 7. Recount before quoting
 

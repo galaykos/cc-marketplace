@@ -24,17 +24,20 @@ while IFS=$'\t' read -r name source; do
   [ "$jname" = "$name" ] || err "plugin '$name': plugin.json name is '$jname'"
 done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
 
-# A plugins/<x>/ with no manifest and no tracked file is not a plugin that forgot its
-# paperwork — it is scratch. plugins/design-studio/ held only a hook's marker files
-# (code-review/hooks/verbosity.sh writes under the payload cwd) and drew three FAILs
-# about a plugin that never existed, on a clean checkout of master, while CI stayed
-# green because it checks out only tracked files. One message, and the README and
-# plugin-table loops below skip it.
+# A plugins/<x>/ with no manifest, no tracked file and no *.md / *.json outside its
+# dot-directories is not a plugin that forgot its paperwork — it is scratch.
+# plugins/design-studio/ held only a hook's marker files (code-review/hooks/verbosity.sh
+# writes under the payload cwd) and drew three FAILs about a plugin that never existed,
+# on a clean checkout of master, while CI stayed green because it checks out only
+# tracked files. One message, and the README and plugin-table loops below skip it. A
+# half-scaffolded plugin — untracked, but carrying a README or a manifest-shaped file —
+# is NOT scratch: it falls through to those three FAILs, which are its checklist.
 STRAY_DIRS=""
 for dir in plugins/*/; do
   name=$(basename "$dir")
   [ -f "${dir}.claude-plugin/plugin.json" ] && continue
   [ "$(git ls-files "$dir" 2>/dev/null | wc -l | tr -d ' ')" = 0 ] || continue
+  find "$dir" -path '*/.*' -prune -o -type f \( -name '*.md' -o -name '*.json' \) -print 2>/dev/null | grep -q . && continue
   err "stray directory plugins/$name has no tracked files — delete it (a hook or editor left scratch here)"
   STRAY_DIRS="$STRAY_DIRS $name "
 done
@@ -125,20 +128,22 @@ done
 # (code.claude.com/docs/en/skills), and the Agent Skills API rejects a description over
 # 1,024. Both count the pair, so this does too — a `when_to_use:` line is added to the
 # measured length when present (rationale/marketplace-trend-audit-2026-09-16.md D3).
+# The pair is read through pc_listing_fields, the same walk context-budget.sh meters
+# with, so what this caps is exactly what that charges.
 for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
+  fields=$(pc_listing_fields "$f")
+  dsc=${fields%%$'\t'*}
+  wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
   # Block-scalar (>/|) descriptions would evade both this cap and the token
   # accounting (each reads the first line only) — reject the form outright.
-  fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f")
-  printf '%s\n' "$fm" | grep -qE '^(description|when_to_use):[[:space:]]*[>|]' \
+  printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE '^[>|]' \
     && err "$f: description or when_to_use uses a YAML block scalar — keep it a single line"
-  dsc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
   [ -n "$dsc" ] || continue
-  wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
   dlen=$(printf '%s%s' "$dsc" "$wtu" | wc -c | tr -d ' ')
   [ "$dlen" -le 500 ] || err "$f: description${wtu:+ + when_to_use} $dlen chars (max 500)"
-  printf '%s' "$dsc" | grep -qE 'Trigger( words)?:' \
-    && err "$f: description carries a 'Trigger words:' list — fold terms into the trigger sentence"
+  printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE 'Trigger( words)?:' \
+    && err "$f: description${wtu:+ or when_to_use} carries a 'Trigger words:' list — fold terms into the trigger sentence"
 done
 
 # plugin.json description linter (WARN, not err): the frontmatter cap above never
@@ -176,11 +181,15 @@ done
 # these gates and their smoke fixtures. Do not restate them here; two copies of a
 # matcher is a guarantee one goes stale.
 while IFS= read -r mdf; do
+  # The jargon exemption is theirs alone. Until 2026-09-17 this `continue` sat before
+  # every check, so the two plugins that fan out the most were never walked by the
+  # removed-ref, host-overlap or handoff gates — task-runner/commands/run.md carried a
+  # <!-- host-ok --> nothing had read.
   case "$mdf" in
-    plugins/taskmaster/*|plugins/task-runner/*) continue ;;
+    plugins/taskmaster/*|plugins/task-runner/*) ;;
+    *) hit=$(pc_jargon "$mdf") \
+         || err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->" ;;
   esac
-  hit=$(pc_jargon "$mdf") \
-    || err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->"
   rhit=$(pc_removed_refs "$mdf") \
     || err "$mdf: references removed marketplace artifact [$rhit] — reroute to a live plugin/skill or mark the line <!-- removed-ok -->"
   ohit=$(pc_host_overlap "$mdf") \
@@ -202,10 +211,11 @@ done < <(
 # generic subagent and the agent's contract silently does not apply. Detector, guards and
 # honest scope live in pc_dispatch_binding (scripts/lib/plugin-checks.sh).
 #
-# Its own loop, NOT the one above: that loop excludes taskmaster and task-runner because
-# those two own the internal jargon the jargon guard hunts. They are also the plugins that
-# fan out the most, so inheriting that exclusion here would blind this gate to its most
-# likely offender.
+# Its own loop, NOT the one above. When this was written that loop skipped taskmaster and
+# task-runner outright — the two plugins that fan out the most — and inheriting the skip
+# would have blinded this gate to its likeliest offender. The skip is jargon-only since
+# 2026-09-17; the loop stays separate for its narrower file set (no plugin-root docs, no
+# project skills).
 while IFS= read -r mdf; do
   dhit=$(pc_dispatch_binding "$mdf") \
     || err "$mdf: Workflow agent() sample spawns [$(printf '%s' "$dhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] without agentType — the generic workflow subagent runs instead and the agent's contract never applies; pass agentType, or mark the sample <!-- dispatch-ok -->"
