@@ -2,6 +2,22 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.0 — 2026-09-17
+
+### Added
+- `hooks/preamble.sh` (UserPromptSubmit): once per session, on the first imperative
+  work-shaped prompt, injects five working moves before the first edit — smallest change,
+  prove it through the surface the user will use, a stale or load-contaminated green is not
+  evidence, check a limitation before stating it, name the untested/cut/to-configure in the
+  final message. Advisory (`recorded`); the Stop gate remains the only clause with teeth.
+  `CC_PREAMBLE=off` silences it. Derivation and the measurements it rests on:
+  `rationale/fable-distillation-2026-09-17.md`.
+- `evals/first-edit-discipline/case.yaml`: the with/without fixture for that hook — a bare
+  build prompt on which the recorded control arm (Opus 5, 2026-08) shipped no
+  verified/unverified boundary in 3 of 3 runs. Not run in CI.
+- `scripts/__tests__/preamble-hook.test.sh`: 13 cases over the trigger, the one-shot
+  marker, the off switch and fail-open.
+
 ## 0.3.8 — 2026-09-16
 
 ### Changed

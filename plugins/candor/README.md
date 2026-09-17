@@ -142,10 +142,29 @@ so the injected card and the skill body cannot drift.
 | `Stop`, `SubagentStop` | `hooks/gate.sh` | the five clauses above; exit 2 blocks |
 | `SessionStart` | `hooks/activate.sh` | injects the terse contract once, only when a level is active; silent otherwise |
 | `UserPromptSubmit` | `hooks/mode.sh` | owns the level switch (`/candor:level`, and the narrow natural phrasings "terse mode off", "be more verbose"); while a level is active re-injects one line carrying the budgets and the report skeleton (~150 tokens per prompt — measured 596 chars at `lite`/`full`/`ultra`, 693 at a `wenyan-*` level — and nothing when off) |
+| `UserPromptSubmit` | `hooks/preamble.sh` | once per session, on the first prompt whose head carries a making verb in an imperative clause: injects the five working moves before the first edit (649 chars, measured by the hook's own test); silent on every later prompt, on questions, on slash commands, and under `CC_PREAMBLE=off` |
 
 `mode.sh` is **not** a `CC_REMIND` reminder hook: a user-selected mode is not a
 nudge, so it neither claims the one-nudge-per-prompt marker nor answers to that
 switch. Its off switches are the level itself and `CC_TERSE=off`.
+
+## What fires before the first edit
+
+`hooks/preamble.sh` is the before-half of the Stop gate: clause 3 refuses a completion
+claim after edits with nothing executed since, and the preamble is the one line that
+reaches the model *before* it edits. **Standing: `recorded`** — `additionalContext`
+cannot block; the text is advice the model may ignore, and only the Stop gate has teeth.
+
+Why a prompt-time hook and not a skill: three passes shipped working discipline into
+this marketplace (delegation preamble, worker template, `work-verification`,
+`drift-review`, `coding-entry`), and measured on an ordinary "fix this bug" prompt not
+one clause of it reached the main session — the preamble is worker-only by design, the
+router nudges after a file is edited, and the skills are command-gated
+(`rationale/fable-distillation-2026-09-17.md` §3). Why five short lines: nine Opus 5
+runs of one build task moved three observable process moves from 0/3 to 6/6 with a
+535-char preamble, and a 4,362-char catalogue added nothing over it (§2 there). Vote
+counts on nine runs, not a replicated delta; the case under `evals/` is the fixture that
+would measure it, and nothing runs it in CI.
 
 ## What this does not carry
 

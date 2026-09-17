@@ -43,11 +43,13 @@ A reader shouldn't have to keep a private lookup table in their head ("`d` is th
 the count of active sessions"). Name things for what they hold or do, in the vocabulary of the
 problem domain, not the vocabulary of the implementation ("`temp`", "`data2`", "`flag`").
 
-Names also read against their neighbors: match the surrounding file's naming, idiom, and
-comment density rather than importing a house style of your own. A file where one function
-speaks a different dialect makes the reader ask what the difference MEANS — and the answer
+Names also read against their neighbors: match the surrounding file's naming and idiom
+rather than importing a house style of your own. A file where one function speaks a
+different dialect makes the reader ask what the difference MEANS — and the answer
 "nothing, different author" is pure load. When the local convention is itself the problem,
-change it deliberately and everywhere, not as a side effect of one edit.
+change it deliberately and everywhere, not as a side effect of one edit. Comment density is
+the one neighbour habit NOT to match: the default is no comment, and a heavily commented
+file is drift, not a specification — code-review's `comment-discipline` owns that rule.
 
 ## Locality of behavior over scattered indirection
 
