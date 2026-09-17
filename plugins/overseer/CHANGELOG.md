@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.9 — 2026-09-16
+
+### Changed
+- `/overseer:start`, `/overseer:resume` and `/overseer:status` carry
+  `disable-model-invocation: true` (trend audit D1, `rationale/marketplace-trend-audit-2026-09-16.md`).
+  Each is a pipeline entry the user starts by hand — start asks a clarifying round and
+  writes state, resume re-enters recorded state, status reads the board — and nothing
+  in this plugin loads one through the Skill tool; the `announce.sh` hook and the skill
+  name `/overseer:resume` for the USER to type. The three descriptions leave the model's
+  listing (measured on a skill, 2.1.237; on a command it rests on the host doc's "work the
+  same way"); the typed commands run exactly as before.
+
 ## 0.4.8 — 2026-09-15
 
 ### Fixed

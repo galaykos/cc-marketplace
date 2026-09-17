@@ -1,6 +1,7 @@
 ---
 description: Uninstall every leaf plugin of this marketplace from one scope with zero prompts — local by default; --self removes all-plugins too; runs the plugin's script and relays its exit code: 0 done, 1 lists the plugins that failed, 2 names the missing precondition.
 argument-hint: [--scope local|project|user] [--dry-run] [--self] [--no-budget]
+disable-model-invocation: true
 ---
 
 Run the plugin's uninstall script through the Bash tool, exactly as written, with the

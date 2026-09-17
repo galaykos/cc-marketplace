@@ -11,11 +11,9 @@
 # (same channel doctrine as task-runner/hooks/scope.sh and
 # comment-discipline/hooks/scan.sh). Fail-open: any error, or a
 # missing jq, exits silently and never blocks the edit.
-# Honest limitations: (1) state writes are read-modify-write with no lock —
-# two concurrent invocations in one session can drop a pending_low entry
-# (tool calls are serialized in practice; not worth a lock). (2) `fired`
-# dedup is per SESSION while delivery is per CONTEXT — a fresh subagent
-# context can be silently deduped by a nudge the main context already got.
+# Honest limitation: state writes are read-modify-write with no lock — two
+# concurrent invocations in one session can drop a pending_low entry (tool
+# calls are serialized in practice; not worth a lock).
 {
   input=$(cat)
   command -v jq >/dev/null 2>&1 || exit 0

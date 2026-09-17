@@ -11,9 +11,10 @@
 #   ACTIVATED (scripts/context-budget-activated-baseline.json) — the always-on
 #   surface again, but with the state its hooks are WAITING FOR. Added
 #   2026-08-20 because the always-on pass runs against an empty HOME and no env,
-#   which meters the OFF state: candor's terse-mode SessionStart hook emits 4,171 B once a
-#   level is set and 0 in the sandbox, brain's emits ~2 kB once brain/INDEX.md
-#   exists and 75 B without it. That is ~1.5k tokens a real user pays and no
+#   which meters the OFF state: candor's terse-mode SessionStart hook emits ~5 kB once a
+#   level is set and 0 in the sandbox (recount: `CC_TERSE=full CLAUDE_PLUGIN_ROOT=plugins/candor
+#   bash plugins/candor/hooks/activate.sh </dev/null | wc -c`), brain's emits ~2 kB once
+#   brain/INDEX.md exists and 75 B without it. That is ~1.7k tokens a real user pays and no
 #   baseline saw. This channel is a SEPARATE column, not folded into always-on,
 #   because "installed and idle" and "installed and switched on" are two honest
 #   numbers and averaging them would describe neither.
@@ -65,17 +66,23 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "WARN: jq not found, skipping context-budget"; exit 0; }
 
-# Sum of frontmatter description-value bytes across a plugin dir's
-# skills/*/SKILL.md, commands/*.md, agents/*.md (tolerates missing dirs).
+# Sum of frontmatter description-value bytes (plus `when_to_use:` when present, joined by
+# the 3-char " - " the CLI renders between them — the host shows the pair as one string,
+# so all three are charged) across a plugin dir's
+# skills/*/SKILL.md, commands/*.md, agents/*.md (tolerates missing dirs). The fields
+# come from pc_listing_fields (scripts/lib/plugin-checks.sh, sourced below), the one
+# frontmatter walk every listing meter and linter shares.
 plugin_desc_bytes() {
-  local pdir="$1" total=0 f desc bytes
+  local pdir="$1" total=0 f fields desc wtu bytes
   for f in "$pdir"/skills/*/SKILL.md "$pdir"/commands/*.md "$pdir"/agents/*.md; do
     [ -f "$f" ] || continue
-    desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null \
-      | sed -n 's/^description:[[:space:]]*//p' | head -1)
-    # single-line description: values only — validate.sh's frontmatter gates keep
-    # descriptions on one line; a YAML block scalar would undercount here
-    bytes=$(printf '%s' "$desc" | wc -c | tr -d ' ')
+    fields=$(pc_listing_fields "$f")
+    # `disable-model-invocation: true` keeps the description out of context altogether
+    # (code.claude.com/docs/en/skills, "Description not in context"); a flagged entry costs 0.
+    case "$fields" in *$'\t'true) continue ;; esac
+    desc=${fields%%$'\t'*}
+    wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
+    bytes=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | wc -c | tr -d ' ')
     total=$((total + bytes))
   done
   printf '%s' "$total"
@@ -162,7 +169,7 @@ plugin_sessionstart_bytes() {
 #
 # Fixture contents, each with the hook it exists for:
 #   CC_TERSE=full            → candor/hooks/activate.sh (env beats its state file)
-#   brain/INDEX.md           → brain/hooks/inject.sh (clamped at 2048 B by :65)
+#   brain/INDEX.md           → brain/hooks/inject.sh (clamped at 2048 B by its `head -c 2048`)
 #   package.json + composer.json + a src tree
 #                            → skill-router/hooks/prime.sh, which sniffs manifests
 ACT_SANDBOX=$(mktemp -d)
@@ -445,10 +452,10 @@ fail=0
 #     opus-4-6  @200k = 8,000 chars     opus-4-6  @1M = 40,000 chars
 #
 # AND THE UNIT IS NOT DESCRIPTION TEXT. The CLI costs each entry as
-# `name + 4 + min(desc, 1536)`, joined by one separator each — so the artifact NAME
-# and a 4-char delimiter are charged per artifact. Artifact COUNT is in the measure
-# directly, which is the mechanical reason "fewer artifacts" beats "shorter
-# descriptions" and not merely an empirical one.
+# `name + 4 + min(description + " - " + when_to_use, 1536)`, joined by one separator each — so
+# the artifact NAME and a 4-char delimiter are charged per artifact. Artifact COUNT is
+# in the measure directly, which is the mechanical reason "fewer artifacts" beats
+# "shorter descriptions" and not merely an empirical one.
 #
 # Over budget, the CLI does not drop the tail: it reduces every non-protected entry
 # to name-only, then buys descriptions back in PRIORITY order until the budget is
@@ -711,7 +718,7 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # because adjacent artifacts compete. Full cost derivation:
 # rationale/2026-08-31-token-cost-review.md.
 echo
-echo "listing channel (CLI entry cost: name + 4 + min(desc,${LISTING_MAX_DESC}), skills + commands)"
+echo "listing channel (CLI entry cost: name + 4 + min(description + \" - \" + when_to_use,${LISTING_MAX_DESC}), skills + commands)"
 echo "  budget = ctxTokens x bytesPerToken x fraction; showing ${LISTING_CTX_TOKENS} tok x ${LISTING_BYTES_PER_TOKEN} x ${LISTING_FRACTION} = ${LISTING_CAP} chars (a 1M-context session gets ${LISTING_CAP_1M})"
 if [ -n "$listing_rows" ]; then
   printf '%-24s %9s  %s\n' "install" "chars" "status"

@@ -2,6 +2,17 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.3.8 — 2026-09-16
+
+### Changed
+- `/candor:level` and `/candor:check` carry `disable-model-invocation: true` (trend
+  audit D1, `rationale/marketplace-trend-audit-2026-09-16.md`). The level switch is
+  the user's act — `hooks/mode.sh` keys on the literal `/candor:level` in the typed
+  prompt and still does — and the check is a report the user asks for; neither is loaded
+  by name from a skill or hook (`activate.sh`'s fallback line tells the USER to run it).
+  Both descriptions leave the model's listing (measured on a skill, 2.1.237; on a command
+  it rests on the host doc's "work the same way"); the typed commands run as before.
+
 ## 0.3.7
 
 ### Fixed

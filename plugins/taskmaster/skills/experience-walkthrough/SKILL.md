@@ -1,6 +1,6 @@
 ---
 name: experience-walkthrough
-description: Use when a clarified task spans a whole experience — multiple screens, states, or a cross-screen flow — after per-screen visual decisions: one clickable end-to-end demo on the live preview URL, gaps fed to the ambiguity ledger before the spec freezes.
+description: Use after per-screen visual decisions in a taskmaster run only, when the clarified task spans a whole experience — multiple screens, states, or a cross-screen flow: one clickable end-to-end demo on the live preview URL, gaps fed to the ambiguity ledger before the spec freezes.
 ---
 
 ## A different job than visual-decisions

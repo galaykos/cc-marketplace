@@ -24,9 +24,29 @@ while IFS=$'\t' read -r name source; do
   [ "$jname" = "$name" ] || err "plugin '$name': plugin.json name is '$jname'"
 done < <(jq -r '.plugins[] | [.name, .source] | @tsv' "$MP")
 
+# A plugins/<x>/ with no manifest, no tracked file and no *.md / *.json outside its
+# dot-directories is not a plugin that forgot its paperwork — it is scratch.
+# plugins/design-studio/ held only a hook's marker files (code-review/hooks/verbosity.sh
+# writes under the payload cwd) and drew three FAILs about a plugin that never existed,
+# on a clean checkout of master, while CI stayed green because it checks out only
+# tracked files. One message, and the README and plugin-table loops below skip it. A
+# half-scaffolded plugin — untracked, but carrying a README or a manifest-shaped file —
+# is NOT scratch: it falls through to those three FAILs, which are its checklist.
+STRAY_DIRS=""
+for dir in plugins/*/; do
+  name=$(basename "$dir")
+  [ -f "${dir}.claude-plugin/plugin.json" ] && continue
+  [ "$(git ls-files "$dir" 2>/dev/null | wc -l | tr -d ' ')" = 0 ] || continue
+  find "$dir" -path '*/.*' -prune -o -type f \( -name '*.md' -o -name '*.json' \) -print 2>/dev/null | grep -q . && continue
+  err "stray directory plugins/$name has no tracked files — delete it (a hook or editor left scratch here)"
+  STRAY_DIRS="$STRAY_DIRS $name "
+done
+is_stray() { case "$STRAY_DIRS" in *" $1 "*) return 0 ;; esac; return 1; }
+
 # Every plugin directory must be listed in the marketplace
 for dir in plugins/*/; do
   name=$(basename "$dir")
+  is_stray "$name" && continue
   jq -e --arg n "$name" '.plugins[] | select(.name == $n)' "$MP" >/dev/null \
     || err "directory plugins/$name not listed in marketplace.json"
 done
@@ -103,19 +123,27 @@ done
 # Description linter (hard): a frontmatter description over 500 chars bloats the
 # always-on context surface every session pays for; a literal "Trigger words:"
 # list restates in-sentence terms. Both fail the build — trim, don't grandfather.
+# 500 is a HOUSE budget, not a host limit. The two host caps it sits under: the CLI
+# truncates `description` + `when_to_use` together at 1,536 chars in the skill listing
+# (code.claude.com/docs/en/skills), and the Agent Skills API rejects a description over
+# 1,024. Both count the pair, so this does too — a `when_to_use:` line is added to the
+# measured length when present (rationale/marketplace-trend-audit-2026-09-16.md D3).
+# The pair is read through pc_listing_fields, the same walk context-budget.sh meters
+# with, so what this caps is exactly what that charges.
 for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.md; do
   [ -f "$f" ] || continue
+  fields=$(pc_listing_fields "$f")
+  dsc=${fields%%$'\t'*}
+  wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
   # Block-scalar (>/|) descriptions would evade both this cap and the token
   # accounting (each reads the first line only) — reject the form outright.
-  awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" \
-    | grep -qE '^description:[[:space:]]*[>|]' \
-    && err "$f: description uses a YAML block scalar — keep it a single line"
-  dsc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" | sed -n 's/^description:[[:space:]]*//p' | head -1)
+  printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE '^[>|]' \
+    && err "$f: description or when_to_use uses a YAML block scalar — keep it a single line"
   [ -n "$dsc" ] || continue
-  dlen=$(printf '%s' "$dsc" | wc -c | tr -d ' ')
-  [ "$dlen" -le 500 ] || err "$f: description $dlen chars (max 500)"
-  printf '%s' "$dsc" | grep -qE 'Trigger( words)?:' \
-    && err "$f: description carries a 'Trigger words:' list — fold terms into the trigger sentence"
+  dlen=$(printf '%s%s' "$dsc" "${wtu:+ - $wtu}" | wc -c | tr -d ' ')
+  [ "$dlen" -le 500 ] || err "$f: description${wtu:+ + when_to_use} $dlen chars (max 500)"
+  printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE 'Trigger( words)?:' \
+    && err "$f: description${wtu:+ or when_to_use} carries a 'Trigger words:' list — fold terms into the trigger sentence"
 done
 
 # plugin.json description linter (WARN, not err): the frontmatter cap above never
@@ -153,15 +181,19 @@ done
 # these gates and their smoke fixtures. Do not restate them here; two copies of a
 # matcher is a guarantee one goes stale.
 while IFS= read -r mdf; do
+  # The jargon exemption is theirs alone. Until 2026-09-17 this `continue` sat before
+  # every check, so the two plugins that fan out the most were never walked by the
+  # removed-ref, host-overlap or handoff gates — task-runner/commands/run.md carried a
+  # <!-- host-ok --> nothing had read.
   case "$mdf" in
-    plugins/taskmaster/*|plugins/task-runner/*) continue ;;
+    plugins/taskmaster/*|plugins/task-runner/*) ;;
+    *) hit=$(pc_jargon "$mdf") \
+         || err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->" ;;
   esac
-  hit=$(pc_jargon "$mdf") \
-    || err "$mdf: leaked internal taskmaster jargon [$hit] — scrub it or mark the line <!-- jargon-ok -->"
   rhit=$(pc_removed_refs "$mdf") \
     || err "$mdf: references removed marketplace artifact [$rhit] — reroute to a live plugin/skill or mark the line <!-- removed-ok -->"
   ohit=$(pc_host_overlap "$mdf") \
-    || err "$mdf: skill name collides with a built-in Claude Code skill [${ohit##* }] — defer to the host skill by name instead of re-implementing it, or mark the line <!-- host-ok -->"
+    || err "$mdf: skill or command name collides with a built-in Claude Code skill [${ohit##* }] — defer to the host skill by name instead of re-implementing it, or mark the line <!-- host-ok -->"
   hhit=$(pc_handoff_refs "$mdf") \
     || err "$mdf: unresolved cross-plugin handoff [$(printf '%s' "$hhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] — names no agents/, skills/ or commands/ file in that plugin; fix the name or mark the line <!-- handoff-ok -->"
 done < <(
@@ -179,10 +211,11 @@ done < <(
 # generic subagent and the agent's contract silently does not apply. Detector, guards and
 # honest scope live in pc_dispatch_binding (scripts/lib/plugin-checks.sh).
 #
-# Its own loop, NOT the one above: that loop excludes taskmaster and task-runner because
-# those two own the internal jargon the jargon guard hunts. They are also the plugins that
-# fan out the most, so inheriting that exclusion here would blind this gate to its most
-# likely offender.
+# Its own loop, NOT the one above. When this was written that loop skipped taskmaster and
+# task-runner outright — the two plugins that fan out the most — and inheriting the skip
+# would have blinded this gate to its likeliest offender. The skip is jargon-only since
+# 2026-09-17; the loop stays separate for its narrower file set (no plugin-root docs, no
+# project skills).
 while IFS= read -r mdf; do
   dhit=$(pc_dispatch_binding "$mdf") \
     || err "$mdf: Workflow agent() sample spawns [$(printf '%s' "$dhit" | awk '{print $3}' | sort -u | tr '\n' ' ')] without agentType — the generic workflow subagent runs instead and the agent's contract never applies; pass agentType, or mark the sample <!-- dispatch-ok -->"
@@ -576,6 +609,7 @@ missing_readme=""
 rm_count=0
 for d in plugins/*/; do
   [ -f "${d}README.md" ] && continue
+  is_stray "$(basename "$d")" && continue
   missing_readme="${missing_readme} $(basename "$d")"
   rm_count=$((rm_count + 1))
 done
@@ -612,6 +646,7 @@ done
 # table row — a line starting `| **name**` or `| **[name](`.
 for d in plugins/*/; do
   lname=$(basename "$d")
+  is_stray "$lname" && continue
   grep -qE "^\| \*\*(\[)?${lname}(\])?" README.md \
     || err "plugin '$lname' has no README.md plugin-table ROW (a prose mention is not a catalogue entry)"
 done
@@ -723,11 +758,11 @@ if [ -n "$LANE_FILES" ]; then
 fi
 lane_cov=$(pc_lanes_coverage plugins) || true
 lane_gap=$(printf '%s\n' "$lane_cov" | grep '^lane-missing ' || true)
-[ -n "$lane_gap" ] && lane_err "$lane_gap" "every agent and every UserPromptSubmit/Stop hook needs a row in its own plugin's lane.tsv"
+[ -n "$lane_gap" ] && lane_err "$lane_gap" "every agent, every UserPromptSubmit/Stop hook, and every deny-capable Pre/PostToolUse hook needs a row in its own plugin's lane.tsv"
 lane_wc=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn command ' || true)
 lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
-[ "$lane_wc" -gt 0 ] && warn "$lane_wc command(s) have no lane row — WARN tier this run; agents and prompt/Stop hooks are the gate"
-[ "$lane_ws" -gt 0 ] && warn "$lane_ws skill(s) have no lane row — WARN tier this run; agents and prompt/Stop hooks are the gate"
+[ "$lane_wc" -gt 0 ] && warn "$lane_wc command(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
+[ "$lane_ws" -gt 0 ] && warn "$lane_ws skill(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
 
 # A prompt/Stop hook that declared a SPECIFIC phase must read the sentinel, or it
 # speaks in every phase forever. `any` lanes are guards and exempt by declaration.

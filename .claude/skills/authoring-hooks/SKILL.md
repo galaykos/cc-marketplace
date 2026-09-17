@@ -1,6 +1,6 @@
 ---
 name: authoring-hooks
-description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, Pre/PostToolUse, Stop), matchers, ${CLAUDE_PLUGIN_ROOT}, one-shot state and marker files, testing a hook against the real payload, when NOT to hook.
+description: Use when writing or editing hooks.json or hook scripts — event choice (UserPromptSubmit, SessionStart, Pre/PostToolUse, Stop, SubagentStop, SessionEnd), matchers, ${CLAUDE_PLUGIN_ROOT}, one-shot state and marker files, testing a hook against the real payload, when NOT to hook.
 ---
 
 ## Anatomy
@@ -50,12 +50,26 @@ executable file.
   file just written, record the command just run.
 - Stop — fires when the model tries to finish its turn. Use for
   completion gates: refuse "done" until verification evidence exists.
+- SubagentStop — the same moment for a spawned agent's turn. Use to hold
+  a worker to the gate its parent is held to (candor wires one script to both).
+- SessionEnd — fires after the last model turn; nothing printed reaches
+  the model. Use for ledgers and cleanup (hindsight's session stats,
+  skill-router's surfaced-signal ledger).
 
-Matchers belong to the tool events. Set "matcher" to a tool-name
-pattern ("Bash", "Edit|Write") so PreToolUse/PostToolUse fire only for
-those tools; omit it and the hook fires for every tool. Prompt and
-session events take no matcher — note the extra nesting stays either
-way: each event maps to groups, each group to a "hooks" array.
+The host documents more events than this tree uses (seven) — recount in
+the hooks doc's event table (code.claude.com/docs/en/hooks). Reach for
+another only with its real payload in hand.
+
+Matchers: set "matcher" to a tool-name pattern ("Bash", "Edit|Write") so
+PreToolUse/PostToolUse fire only for those tools; omit it and the hook
+fires for every tool. SessionStart matches on its source — `startup`,
+`resume`, `clear`, `compact`, `fork` — so a hook can fire only after a
+compaction has emptied the model's context (approaches and skill-router
+each ship a `"matcher": "compact"` group). SessionEnd matches on why the
+session ended (`clear`, `resume`, `logout`, `prompt_input_exit`, `other`);
+SubagentStop on the agent type. UserPromptSubmit and Stop take no matcher
+(code.claude.com/docs/en/hooks, matcher table) — note the extra nesting
+stays either way: each event maps to groups, each group to a "hooks" array.
 
 ## A real example
 

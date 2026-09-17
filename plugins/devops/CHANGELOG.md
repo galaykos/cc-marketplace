@@ -2,6 +2,17 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.6.9 — 2026-09-16
+
+### Changed
+- `agents/devops-reviewer.md` names the standing of its read-only claim (trend audit
+  E4, `rationale/marketplace-trend-audit-2026-09-16.md`): Bash is granted for dry-runs,
+  so "read-only" is the body's rule, not a tool restriction — recorded, not enforced.
+- README states the boundary with the host's built-in `/init`, which writes a
+  `CLAUDE.md`; `/devops:init` generates docker-compose (audit C3). `commands/init.md`
+  carries the matching `<!-- host-ok -->` blessing for the extended host-overlap gate
+  (audit C2).
+
 ## 0.6.8
 
 ### Fixed

@@ -58,12 +58,63 @@ mkdir -p "$T/plugins/beta/evals"
 expect_fail "an evals/ dir with no case.yaml fails (the 2026-09-14 bug)" "loads ZERO cases"
 rm -rf "$T/plugins/beta"
 
-# --- the dead shape -----------------------------------------------------------
-mkdir -p "$T/plugins/beta/evals"; : > "$T/plugins/beta/evals/prompt.md"
-expect_fail "the prompt.md shape fails" "the runner rejects"
+# --- the prompt.md + graders/*.md shape -----------------------------------------
+# Valid on the runner (measured 2026-09-16, CLI 2.1.273); what killed the two 09-14
+# suites was a grader with no frontmatter, so THAT is what fails here — never the shape.
+prompt_case() { mkdir -p "$1/graders"; printf 'Say hello.\n' > "$1/prompt.md"; }
+prompt_case "$T/plugins/beta/evals/p"
+printf -- '---\ntype: regex\npattern: hello\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a prompt.md case with a typed grader passes" || bad "a prompt.md case with a typed grader passes" "$out"
+
+printf 'PASS if the answer says hello.\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a grader with no type: frontmatter fails (the 2026-09-14 rejection)" "no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"
+
+# The frontmatter is read as YAML, the way the runner reads it: a quoted, commented,
+# BOM-prefixed or CRLF `type:` is a type. The awk line this replaced rejected all four
+# with the no-frontmatter message, naming the wrong root cause.
+printf -- '\xef\xbb\xbf---\r\ntype: "regex"  # quoted\r\npattern: hello\r\n---\r\n' > "$T/plugins/beta/evals/p/graders/x.md"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a quoted, commented, BOM+CRLF grader type passes" || bad "a quoted, commented, BOM+CRLF grader type passes" "$out"
+
+printf -- '---\ntype: ""\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a grader with an empty type: fails" "no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"
+
+printf -- '---\ntype: regex\npattern: hello\n' > "$T/plugins/beta/evals/p/graders/x.md"
+expect_fail "a grader whose frontmatter never closes fails" "never closed"
+
+rm -rf "$T/plugins/beta/evals/p/graders"
+expect_fail "a prompt.md with no graders/ fails" "graders: Required"
 rm -rf "$T/plugins/beta"
-mkdir -p "$T/plugins/beta/evals/graders"; good_case "$T/plugins/beta/evals/c"
-expect_fail "a graders/ directory fails even beside a valid case" "the runner rejects"
+
+# --- prompt.md + graders/*.md + a context-only case.yaml (both files) ----------------
+# The runner's usage line admits the combination; until 2026-09-17 the case.yaml branch
+# held the sibling to execution.prompt/graders it has no reason to carry.
+prompt_case "$T/plugins/beta/evals/p"
+printf -- '---\ntype: regex\npattern: hello\n---\n' > "$T/plugins/beta/evals/p/graders/x.md"
+printf 'schema_version: "1.0"\nname: p\nruns: 2\nexecution:\n  max_turns: 10\n' > "$T/plugins/beta/evals/p/case.yaml"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "prompt.md + graders + a context-only case.yaml passes" || bad "prompt.md + graders + a context-only case.yaml passes" "$out"
+
+printf 'runs: 2\n' > "$T/plugins/beta/evals/p/case.yaml"
+expect_fail "a context-only case.yaml still needs name" "no \`name\`"
+rm -rf "$T/plugins/beta"
+
+# --- only the top level of a case is a case -------------------------------------------
+# A prompt.md under resources/ is a fixture the case reads; the recursive find this
+# replaced counted it as a second case and failed it for having no graders/.
+good_case "$T/plugins/beta/evals/x"
+mkdir -p "$T/plugins/beta/evals/x/resources" && printf 'fixture\n' > "$T/plugins/beta/evals/x/resources/prompt.md"
+out=$(run_gate); st=$?
+case "$st:$out" in
+  0:*"OK: 2 eval case(s) across 2 suite(s) load"*) ok "a resources/prompt.md beside a valid case is ignored and the case counts once" ;;
+  *) bad "a resources/prompt.md beside a valid case is ignored and the case counts once" "$out" ;;
+esac
+rm -rf "$T/plugins/beta"
+
+# --- a case directory holding neither file -------------------------------------
+good_case "$T/plugins/beta/evals/c"; mkdir -p "$T/plugins/beta/evals/empty"
+expect_fail "a case dir with neither case.yaml nor prompt.md fails" "holds neither case.yaml nor prompt.md"
 rm -rf "$T/plugins/beta"
 
 # --- per-case schema ----------------------------------------------------------
@@ -122,6 +173,34 @@ expect_fail "runs: 0 fails" "positive integer"
 good_case "$T/plugins/beta/evals/c"
 printf 'this: [is not\n' >> "$T/plugins/beta/evals/c/case.yaml"
 expect_fail "malformed YAML fails" "is not valid YAML"
+
+rm -rf "$T/plugins/beta"
+
+# --- cases NEST: the runner globs `<eval dir>/**/case.yaml` -----------------------
+# Until 2026-09-17 the gate walked `evals/*/` only, so it FAILED the parent of a
+# nested case as "not a case" — rejecting a layout `claude plugin eval` loads.
+# (`plugins/alpha/evals/one` from the baseline above is still present, so a passing
+# run here reports two cases across two suites, not one.)
+good_case "$T/plugins/beta/evals/group/deep"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a nested case passes and its parent is not flagged" \
+  || bad "a nested case passes and its parent is not flagged" "$out"
+case "$out" in *"2 eval case(s) across 2 suite(s)"*) ok "a nested case is COUNTED, not just tolerated" ;;
+  *) bad "a nested case is COUNTED, not just tolerated" "$out" ;; esac
+# and the per-case schema check still reaches it at depth
+python3 - "$T/plugins/beta/evals/group/deep/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; t=open(p).read().replace("name: deep","name: mismatched")
+open(p,'w').write(t)
+PY
+expect_fail "a nested case is still schema-checked" "does not match its directory"
+rm -rf "$T/plugins/beta"
+
+# --- a branch that bottoms out with no case definition is still scratch -----------
+mkdir -p "$T/plugins/beta/evals/scratch/deeper"
+printf 'notes\n' > "$T/plugins/beta/evals/scratch/deeper/notes.txt"
+expect_fail "a dead branch under evals/ still fails" "holds neither case.yaml nor prompt.md"
+rm -rf "$T/plugins/beta"
 
 printf '\n%s assertion(s) passed\n' "$pass"
 exit "$rc"

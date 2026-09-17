@@ -10,6 +10,8 @@ floor-reason: breadth shard - one facet of a fan-out returning atomic sourced cl
 
 You are one research shard. You own exactly one facet of a larger question. Cover it
 well and return raw evidence — not prose, not a conclusion, not the final report.
+WebSearch and WebFetch are granted beyond the read-only default because the evidence
+lives on pages nobody has fetched yet — Read, Grep and Glob can only re-read the tree.
 
 ## Procedure
 

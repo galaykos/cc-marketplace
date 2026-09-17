@@ -176,6 +176,7 @@ mkdir -p "$HOSTFIX/skills/dataviz" "$HOSTFIX/skills/information-design" "$HOSTFI
 printf -- '---\nname: dataviz\ndescription: x\n---\nbody\n' > "$HOSTFIX/skills/dataviz/SKILL.md"
 printf -- '---\nname: information-design\ndescription: x\n---\nbody\n' > "$HOSTFIX/skills/information-design/SKILL.md"
 printf -- '---\ndescription: x\n---\nbody\n' > "$HOSTFIX/commands/dataviz.md"
+printf -- '---\ndescription: x\n---\n<!-- host-ok --> defers to the built-in\n' > "$HOSTFIX/commands/run.md"
 
 # 8. a skill named after a built-in must fail
 if pc_host_overlap "$HOSTFIX/skills/dataviz/SKILL.md" >/dev/null; then
@@ -191,12 +192,21 @@ else
   echo "FAIL[host]: non-colliding skill wrongly flagged"; rc=1
 fi
 
-# 10. COMMANDS are namespaced at the call site, so a command name is not a
-#     collision — the gate must stay silent, or ~30 /plugin:review commands break
+# 10. COMMANDS are skills since the host merged them: the namespace protects only
+#     the typed `/plugin:name` form, the description competes for a trigger like
+#     any skill's. Until 2026-09-16 this asserted the opposite and three shipped
+#     commands collided unseen (audit C2).
 if pc_host_overlap "$HOSTFIX/commands/dataviz.md" >/dev/null; then
-  echo "PASS[host]: command names are out of scope, as designed"
+  echo "FAIL[host]: command colliding with built-in dataviz went undetected"; rc=1
 else
-  echo "FAIL[host]: gate wrongly flagged a command name"; rc=1
+  echo "PASS[host]: command colliding with a built-in detected"
+fi
+
+# 10b. the same escape a skill gets
+if pc_host_overlap "$HOSTFIX/commands/run.md" >/dev/null; then
+  echo "PASS[host]: <!-- host-ok --> rescue honoured on a command"
+else
+  echo "FAIL[host]: <!-- host-ok --> rescue ignored on a command"; rc=1
 fi
 
 # 11. the documented escape must work

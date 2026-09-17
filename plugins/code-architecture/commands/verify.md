@@ -2,6 +2,7 @@
 description: Verify completed work against success criteria with evidence
 argument-hint: [task-or-change]
 ---
+<!-- host-ok --> Shares its name with the host's /verify, which drives the changed flow end-to-end; this checks declared success criteria with command evidence.
 
 Invoke the work-verification skill from this plugin to verify $ARGUMENTS (the task or change
 described there, or the current uncommitted work if no argument is given). Steps:

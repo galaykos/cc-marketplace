@@ -5,6 +5,14 @@ taskmaster-suite became on 2026-09-14; the entries below 0.1.0 are taskmaster-su
 own, with its version numbers (started at 0.17.0; earlier versions have no entries
 rather than invented ones).
 
+## 0.2.7 — 2026-09-16
+
+### Changed
+- **`/workflow-suite:uninstall` now carries `disable-model-invocation: true`** (audit D1, `rationale/marketplace-trend-audit-2026-09-16.md`). A bundle uninstall is a side-effect workflow the user times, the shape the host's own docs name for the flag (`/deploy`): the model can no longer pick it from its description, and the description leaves the always-on listing. Rendered from `templates/suite-uninstall.md.tmpl`; the command body is unchanged. Standing: the flag's presence is a **gate** (`generate.sh --check` byte-matches the rendered command to the template); what the host does with it is **recorded** — measured once on a plugin skill, 2026-08-21 (`rationale/host-lever-probes-2026-08-21.md`); on a command it rests on the host's doc sentence (audit T2), and nothing re-runs either.
+
+### Fixed
+- **The root README's bundle table said `0.04` for this bundle while this README says `0.05`** (audit G2). The generator string behind the table is corrected; `generate.sh --check` was green with both copies of the wrong number agreeing, which is why the drift survived 0.2.6's re-measurement.
+
 ## 0.2.6
 
 ### Fixed

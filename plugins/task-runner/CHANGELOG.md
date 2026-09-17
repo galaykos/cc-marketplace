@@ -2,6 +2,34 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.36.4
+
+### Fixed
+- `lane.tsv`'s `spawn-cap` trigger said "an Agent dispatch". `hooks/spawn-cap.sh:45`
+  matches `Agent|Task` and `hooks/hooks.json` registers the same matcher, so the row
+  understated the hook it describes — the row 0.36.3 rewrote to "say what the hook
+  does" got the threshold right (one soft cap, then every doubling) and the tool set
+  wrong. Regression review, 2026-09-17.
+
+## 0.36.3
+
+### Changed
+- Marketplace trend audit, 2026-09-16 (`rationale/marketplace-trend-audit-2026-09-16.md`).
+  B4: the README said `scope.sh` "enforces" a card's file list; `hooks/scope.sh` warns, once
+  per edit outside the set, and never blocks — the README now says so. G12: `lane.tsv`'s
+  `spawn-cap` trigger claimed a per-run budget of "20/40/80 by tier"; the hook counts per
+  session against one soft cap (20) and then every doubling, no tiers, and the lane row now
+  says what the hook does. C3: the README gains one boundary sentence each on the host's
+  built-in `/run` (launches the project's app; unrelated to `/task-runner:run`) and `/batch`
+  (one background subagent per worktree, PR each; `--tracks` keeps the sole-writer merge
+  rule). D1: `behavioral-gate` carries `disable-model-invocation: true` — every consumer
+  runs `scripts/behavioral-gate.sh` and nothing loads the skill by description, so its
+  description no longer sits in always-on context. D5: `code-redteam`'s description leads
+  with its gating clause (a boosted task-runner run only; an ad-hoc diff →
+  `/code-review:review`) so an ordinary "red-team this diff" prompt no longer matches it.
+  `commands/run.md` gains a `<!-- host-ok -->` line for the name it shares with the host's
+  `/run`.
+
 ## 0.36.2
 
 ### Fixed
@@ -264,14 +292,14 @@ All notable changes to the task-runner plugin.
 ### Fixed
 - `task-execution/SKILL.md:66` cited "`references/role-floors.md`" unqualified,
   which reads as this skill's own `references/` dir — where no such file exists.
-  The registry lives in `orchestration:delegation-contracts`. Every sibling
+  The registry lives in `orchestration:delegation-contracts`. Every sibling <!-- removed-ok --> <!-- history: orchestration merged into task-runner 2026-09-14 -->
   mention (`task-executor.md:25`, `routing.md:127`) already qualified it; this one
   did not, so a reader following it found nothing.
 
 ## 0.29.4
 
 ### Changed
-- `code-redteam` now says WHY its N=3 is fixed while `orchestration:verification-panels`
+- `code-redteam` now says WHY its N=3 is fixed while `orchestration:verification-panels` <!-- removed-ok --> <!-- history: same merge -->
   sizes N to blast radius. A conflict audit found the two shipped opposite verdicts on
   the same number: that skill declares itself "the sizing authority for every consumer"
   with 2 refuters for a small radius and forbids a consumer inventing its own N, while
@@ -302,8 +330,8 @@ All notable changes to the task-runner plugin.
 
 ### Changed
 - `task-execution/references/reviewer-routing.md` routes the database track to
-  `sql:sql-best-practices`. Its old target, `database:database-design`, was
-  merged into that skill — the rubric moved, the routing follows it. <!-- removed-ok -->
+  `sql:sql-best-practices`. Its old target, `database:database-design`, was <!-- removed-ok --> <!-- history: sql moved into database, database-design merged away -->
+  merged into that skill — the rubric moved, the routing follows it.
 
 ## 0.29.0
 

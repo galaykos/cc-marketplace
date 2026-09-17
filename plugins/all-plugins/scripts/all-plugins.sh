@@ -198,7 +198,7 @@ settings_file() { # stdout: the settings file the CLI writes for SCOPE — measu
 }
 
 listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc_listing_entry_cost's rule
-  local root="$1" mj name src pdir f desc dl total=0
+  local root="$1" mj name src pdir f fm desc wtu dl total=0
   mj="$root/.claude-plugin/marketplace.json"
   while read -r name; do
     src=$(jq -r --arg n "$name" '.plugins[] | select(.name == $n) | .source | if type == "string" then . else "" end' "$mj" | head -n 1)
@@ -210,8 +210,13 @@ listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc
         */skills/*) name="$(basename "$pdir"):$(basename "$(dirname "$f")")" ;;
         *)          name="$(basename "$pdir"):$(basename "$f" .md)" ;;
       esac
-      desc=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null | sed -n 's/^description:[[:space:]]*//p' | head -1)
-      dl=$(printf '%s' "$desc" | LC_ALL=C wc -c | tr -d ' ')
+      # mirrors pc_listing_fields in scripts/lib/plugin-checks.sh — copied, not sourced, because this script ships alone
+      fm=$(awk '/^---$/{c++; next} c==1{print} c==2{exit}' "$f" 2>/dev/null)
+      # disable-model-invocation: true leaves the listing entirely — pc_listing_entry_cost's skip
+      printf '%s\n' "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true' && continue
+      desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
+      wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
+      dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
       [ "$dl" -gt 1536 ] && dl=1536
       total=$(( total + ${#name} + 4 + dl ))
     done

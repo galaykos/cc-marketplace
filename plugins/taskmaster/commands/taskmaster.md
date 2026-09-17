@@ -1,6 +1,7 @@
 ---
 description: Shorthand for /taskmaster:task.
 argument-hint: [task-description]
+disable-model-invocation: true
 ---
 
 Alias of `/taskmaster:task`. Read `${CLAUDE_PLUGIN_ROOT}/commands/task.md` and

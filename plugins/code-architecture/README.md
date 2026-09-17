@@ -32,6 +32,15 @@ semantics, outbox, sagas, DLQ) lives in `resilience`'s `event-driven` skill.
 | `/code-architecture:verify` | Verify completed work against its success criteria, with evidence |
 | `/code-architecture:coding-task` | Start ad-hoc coding work with the house rules already loaded — detects the stack, loads the always-relevant skills, and says in one line whether the task proceeds inline or belongs in the taskmaster pipeline |
 
+Two host built-ins sit beside these in the listing. `/simplify` reviews the changed
+code for reuse, simplification and efficiency and **applies** the fixes; the
+`low-cognitive-load` skill is the rubric a reviewer or author reads (KISS, DRY, the rule
+of three, shallow nesting) and edits nothing on its own. `/verify` drives the affected
+flow end to end and observes behaviour before a commit; `/code-architecture:verify`
+runs the project's own test, lint and build commands and reports each criterion with
+its exact command and output — evidence for a done-claim, not a walkthrough of the
+feature.
+
 ## Skills & agent
 
 Best-practice skills auto-trigger by context — `plan-before-code`,

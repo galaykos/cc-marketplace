@@ -24,14 +24,18 @@ the edit is out of scope, and that includes polishing this file. **Standing:
   - `README.md` (and optionally `CHANGELOG.md` / `ROADMAP.md`) at the plugin root
   - `skills/<name>/SKILL.md` (+ a `references/` dir for material the skill reads)
   - `commands/*.md`, `agents/*.md`, `hooks/`
-  - `evals/<case>/case.yaml` (+ an optional `scaffold.sh`) — the case definition
-    `claude plugin eval` reads. **The `prompt.md` + `graders/*.md` shape this line
-    used to name was measured DEAD on 2026-09-14** against CLI 2.1.270: both suites
-    using it loaded zero cases (`invalid case.yaml: graders: Required`), so two of the
-    three shipped suites had never run and nobody noticed, because nothing runs them
-    in CI. Both were converted. A `.md` under `evals/` is still allowed — a grader
-    body may want its own file — but a design doc parked there is a violation in
-    spirit and no script can tell the two apart.
+  - `evals/<case>/case.yaml`, or `evals/<case>/prompt.md` + `graders/*.md`, or both
+    (+ an optional `scaffold.sh`) — the case definition `claude plugin eval` reads.
+    On CLI 2.1.270 the two suites shipping the `prompt.md` shape loaded zero cases
+    (`invalid case.yaml: graders: Required`) because their `graders/*.md` carried no
+    `type:` frontmatter — prose from line 1 — so two of the three shipped suites had
+    never run and nobody noticed, because nothing runs them in CI. Both were converted
+    to `case.yaml`. The shape itself is valid: a `prompt.md` beside a typed grader
+    loaded and scored on 2.1.273 (measured 2026-09-16,
+    `rationale/marketplace-trend-audit-2026-09-16.md` A1), and `scripts/eval-cases.sh`
+    now gates the frontmatter, not the shape. A `.md` under `evals/` is still allowed —
+    a grader body may want its own file — but a design doc parked there is a violation
+    in spirit and no script can tell the two apart.
 
     **Standing of the eval surface itself: `recorded`, and now partly measured.**
     Few plugins ship an eval, and the control arm is supplied by the runner's
@@ -138,9 +142,10 @@ convention. What follows is only what you need in hand while editing.
 
   Numbers you need while writing: **SKILL.md body ≤ 200 lines, ≤ 14,000 bytes,
   ≤ 300 chars per line** (no floor; frontmatter, fenced code and table rows are
-  exempt from the line-length check). Frontmatter `description:` **≤ 500 chars**,
-  no "Trigger words:" lists; `plugin.json` descriptions draw a WARN-only 700-char
-  guideline.
+  exempt from the line-length check). Frontmatter **`description` + `when_to_use`
+  ≤ 500 chars measured TOGETHER** — the CLI lists the pair as one joined string, so
+  the gate charges the pair and its FAIL names both keys; no "Trigger words:" list in
+  either; `plugin.json` descriptions draw a WARN-only 700-char guideline.
 
   Escape hatches, when a check is wrong about your line — each needs a reason,
   and the check's header says what a good one looks like:
@@ -149,7 +154,7 @@ convention. What follows is only what you need in hand while editing.
   |---|---|
   | `<!-- jargon-ok -->` | leaked taskmaster vocabulary (`card NN`, `Finding #N`, `the backlog`) |
   | `<!-- removed-ok -->` | a reference to a plugin/skill removed from this marketplace |
-  | `<!-- host-ok -->` | a skill dir whose name collides with one Claude Code ships |
+  | `<!-- host-ok -->` | a skill dir or command file whose name collides with one Claude Code ships |
   | `# context-key-ok:` | a PostToolUse one-shot deliberately keyed on `session_id` |
   | `# marker-key-ok:` | a context key deliberately used raw in a path |
   | `# harness-payload-ok:` | a harness deliberately sending no `transcript_path` |
@@ -294,8 +299,8 @@ Those four are the ones you invoke. They are **not** all the enforcement, and
 "run all four" previously read as if they were. Named by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **36 named steps;
-35 can fail the build**, and on a push to `master` only **34** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **37 named steps;
+36 can fail the build**, and on a push to `master` only **35** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else —
 `scripts/done-gate.sh:7` says why: two files carrying one number is how they

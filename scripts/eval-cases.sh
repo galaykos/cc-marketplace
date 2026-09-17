@@ -2,12 +2,22 @@
 # BLOCKING gate: every shipped eval suite must LOAD.
 #
 # WHY THIS EXISTS. On 2026-09-14 two of the three shipped eval suites were found to have
-# never run — `resilience` and `web-dev` used a `prompt.md` + `graders/*.md` shape that
-# `CLAUDE.md` documented as functional and that the runner rejects (`invalid case.yaml:
-# graders: Required`, 0 cases loaded). They sat dead for weeks. Nothing noticed, because
+# never run — `resilience` and `web-dev` loaded 0 cases on CLI 2.1.270 (`invalid
+# case.yaml: graders: Required`). They sat dead for weeks. Nothing noticed, because
 # nothing runs an eval in CI, and a dead suite is indistinguishable from a passing one
 # when nobody executes it: the files are present, `validate.sh` is happy, the directory
 # looks maintained.
+#
+# THE ROOT CAUSE WAS MISNAMED for two days. Both suites used the `prompt.md` +
+# `graders/*.md` shape, and this script's first revision failed that SHAPE as dead. It is
+# not: the runner's own usage line reads `case.yaml or prompt.md + graders/*.md`, and a
+# `prompt.md` beside a `graders/says-hello.md` carrying `type: regex` frontmatter loaded
+# and scored 1.00 on 2.1.273 (measured 2026-09-16,
+# rationale/marketplace-trend-audit-2026-09-16.md A1). What the two suites shipped was a
+# grader with NO frontmatter at all — prose from line 1
+# (`git show 4878150702^:plugins/resilience/evals/timeout-and-retry/graders/retry-idempotency.md`)
+# — so the runner had no `type:` to build a grader from. That is the same defect as a
+# `case.yaml` grader entry with no `type`, reached through a different file.
 #
 # Running the evals in CI is the expensive fix — a full resilience matrix measured
 # $10.13 and 12 minutes on 2026-09-15, it needs a live model and a credential, and its
@@ -16,10 +26,16 @@
 #
 # WHAT IT CATCHES:
 #   - an `evals/` directory that resolves to ZERO cases (the 2026-09-14 bug)
+#   - a case directory holding neither `case.yaml` nor `prompt.md`
 #   - a `case.yaml` that is not valid YAML, or is not a mapping
 #   - a missing `name`, `execution.prompt`, or `graders`
 #   - `graders` present but empty, or a grader with no `type` (the exact rejection above)
-#   - the DEAD shape: a `prompt.md` or a `graders/` directory under `evals/`
+#   - a `prompt.md` with no `graders/*.md`, or a `graders/*.md` whose frontmatter carries
+#     no `type:` (or none at all). The NAME is not checked: until 2026-09-17 this branch
+#     held graders to a six-name allowlist while the case.yaml branch asked only for
+#     presence, so one grader shape was gated by a list the runner never published and
+#     the other was not. The runner is the authority on which types exist; both branches
+#     now ask the same question — is there a non-empty `type`.
 #   - a non-numeric or non-positive `runs` / `max_turns`
 #
 # WHAT IT DOES NOT CATCH, stated because this repo tiers its claims:
@@ -31,6 +47,20 @@
 #   - whether the suite would PASS. This never runs a model and never spends a cent.
 #   - drift between the runner's schema and this checker's idea of it. The runner is the
 #     authority; this asserts the subset whose absence has actually broken a suite here.
+#   - how the runner merges a case that ships BOTH files. The runner's own usage line
+#     admits the combination, so a `case.yaml` beside a `prompt.md` is held to `name`
+#     only: the prompt.md body is the prompt and graders/*.md are the graders, and
+#     demanding `execution.prompt` there (as this did until 2026-09-17) failed a shape
+#     the runner loads. A key that IS present is still shape-checked; whether the runner
+#     prefers the yaml's `graders:` list or the directory when both exist is unmeasured.
+#   - anything INSIDE a case. A case dir is the first directory on a branch holding a
+#     `case.yaml` or a `prompt.md`; the walk stops there, so a `prompt.md` under its
+#     `resources/` or `mocks/` is a fixture the case reads, neither counted nor failed.
+#     Cases NEST: the runner's own usage line globs `<eval dir>/**/case.yaml or
+#     prompt.md + graders/*.md` (`claude plugin eval --help`, 2.1.273), so a case may
+#     sit at any depth. Until 2026-09-17 this walked `evals/*/` only and FAILED the
+#     PARENT of a nested case as "not a case" — a gate rejecting a layout the runner
+#     loads, and a regression against the recursive `find` it replaced.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 rc=0
@@ -41,30 +71,100 @@ python3 -c 'import yaml' 2>/dev/null || {
   exit 1
 }
 
+grader_type_ok() { # grader_type_ok <graders/x.md> — stdout: the defect, exit 1, when its frontmatter has no usable type
+  python3 - "$1" <<'PY'
+import sys, yaml
+path = sys.argv[1]
+raw = open(path, "rb").read()
+if raw.startswith(b"\xef\xbb\xbf"):
+    raw = raw[3:]
+lines = raw.decode("utf-8", "replace").replace("\r\n", "\n").split("\n")
+if not lines or lines[0] != "---":
+    print("no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"); sys.exit(1)
+try:
+    end = lines.index("---", 1)
+except ValueError:
+    print("frontmatter opened on line 1 and never closed"); sys.exit(1)
+try:
+    fm = yaml.safe_load("\n".join(lines[1:end]))
+except Exception as e:
+    print(f"frontmatter is not valid YAML: {e}"); sys.exit(1)
+if not isinstance(fm, dict) or not str(fm.get("type") or "").strip():
+    print("no type: frontmatter (the 2026-09-14 rejection, not a dead shape)"); sys.exit(1)
+PY
+}
+
+case_dirs() { # case_dirs <evals dir> — one `case<TAB><dir>` or `dead<TAB><dir>` line per directory
+  # A case dir is the first directory on a branch carrying a case definition; the walk
+  # does not descend into one, so its fixtures are never mistaken for cases. A branch
+  # that bottoms out with no case definition anywhere on it is `dead` — the scratch dir
+  # that looks like a suite and loads nothing. results/ is the runner's output dir,
+  # mocks/ its MCP stand-ins, and graders/ belongs to the case above it.
+  python3 - "$1" <<'PYCD'
+import os, sys
+root = sys.argv[1]
+SKIP = {"results", "mocks", "graders"}
+def subdirs(d):
+    try:
+        names = os.listdir(d)
+    except OSError:
+        return []
+    return sorted(n for n in names
+                  if n not in SKIP and not n.startswith(".")
+                  and os.path.isdir(os.path.join(d, n)))
+def walk(d):
+    if os.path.isfile(os.path.join(d, "case.yaml")) or os.path.isfile(os.path.join(d, "prompt.md")):
+        print("case\t" + d)
+        return True
+    subs = subdirs(d)
+    if not subs:
+        print("dead\t" + d)
+        return False
+    return any([walk(os.path.join(d, n)) for n in subs])
+for n in subdirs(root):
+    walk(os.path.join(root, n))
+PYCD
+}
+
 suites=0
 cases=0
 for dir in plugins/*/evals; do
   [ -d "$dir" ] || continue
   suites=$((suites + 1))
   plugin=$(basename "$(dirname "$dir")")
+  ncases=0
 
-  # The dead shape, named explicitly: it looks like a suite and loads nothing.
-  if [ -f "$dir/prompt.md" ] || [ -d "$dir/graders" ]; then
-    fail "$plugin: $dir uses the prompt.md + graders/ shape, which the runner rejects (measured 2026-09-14, 0 cases loaded). Convert to <case>/case.yaml."
-  fi
+  while IFS=$'\t' read -r kind cdir; do
+    [ -n "${cdir:-}" ] || continue
+    if [ "$kind" = dead ]; then
+      fail "$plugin: $cdir/ holds neither case.yaml nor prompt.md, and no directory under it does — it is not a case and loads nothing"
+      continue
+    fi
+    has_prompt=0; has_yaml=0
+    [ -f "$cdir/prompt.md" ] && has_prompt=1
+    [ -f "$cdir/case.yaml" ] && has_yaml=1
+    ncases=$((ncases + 1))
 
-  found=$(find "$dir" -name case.yaml -type f 2>/dev/null | sort)
-  if [ -z "$found" ]; then
-    fail "$plugin: $dir contains no case.yaml — the suite loads ZERO cases and every run of it is a no-op."
-    continue
-  fi
+    if [ "$has_prompt" -eq 1 ]; then
+      graders=$(find "$cdir/graders" -maxdepth 1 -name '*.md' -type f 2>/dev/null | sort)
+      if [ -z "$graders" ]; then
+        fail "$cdir/prompt.md: prompt.md with no graders/*.md — graders: Required (0 cases loaded on 2026-09-14)"
+      else
+        while IFS= read -r g; do
+          [ -n "$g" ] || continue
+          gmsg=$(grader_type_ok "$g") || fail "$g: $gmsg"
+        done <<< "$graders"
+      fi
+    fi
 
-  while IFS= read -r case_file; do
-    [ -n "$case_file" ] || continue
-    cases=$((cases + 1))
-    msg=$(python3 - "$case_file" <<'PY'
+    [ "$has_yaml" -eq 1 ] || continue
+    case_file="$cdir/case.yaml"
+    msg=$(python3 - "$case_file" "$has_prompt" <<'PY'
 import sys, yaml, os
 path = sys.argv[1]
+# A sibling prompt.md supplies the prompt and graders/*.md the graders; only a
+# case.yaml that is the whole case must carry them itself.
+whole = sys.argv[2] == "0"
 try:
     with open(path) as fh:
         d = yaml.safe_load(fh)
@@ -82,10 +182,12 @@ else:
         errs.append(f"`name: {d['name']}` does not match its directory `{want}` — --case globs match the name")
 
 ex = d.get("execution")
-if not isinstance(ex, dict):
+if ex is None and whole:
     errs.append("no `execution` mapping")
-else:
-    if not str(ex.get("prompt") or "").strip():
+elif ex is not None and not isinstance(ex, dict):
+    errs.append("`execution` is not a mapping")
+elif ex is not None:
+    if whole and not str(ex.get("prompt") or "").strip():
         errs.append("`execution.prompt` is empty")
     mt = ex.get("max_turns")
     if mt is not None and (not isinstance(mt, int) or isinstance(mt, bool) or mt < 1):
@@ -93,14 +195,15 @@ else:
 
 g = d.get("graders")
 if g is None:
-    errs.append("no `graders` — this is the exact key whose absence loaded 0 cases on 2026-09-14")
+    if whole:
+        errs.append("no `graders` — this is the exact key whose absence loaded 0 cases on 2026-09-14")
 elif not isinstance(g, list) or not g:
     errs.append("`graders` is not a non-empty list")
 else:
     for i, one in enumerate(g):
         if not isinstance(one, dict):
             errs.append(f"grader {i} is not a mapping")
-        elif not one.get("type"):
+        elif not str(one.get("type") or "").strip():
             errs.append(f"grader {i} has no `type`")
         elif one.get("type") == "llm" and not str(one.get("criteria") or "").strip():
             errs.append(f"grader {i} is `type: llm` with empty `criteria`")
@@ -113,7 +216,11 @@ if errs:
     print("; ".join(errs)); sys.exit(1)
 PY
     ) || fail "$case_file $msg"
-  done <<< "$found"
+  done <<< "$(case_dirs "$dir")"
+
+  [ "$ncases" -gt 0 ] \
+    || fail "$plugin: $dir contains no case.yaml or prompt.md — the suite loads ZERO cases and every run of it is a no-op."
+  cases=$((cases + ncases))
 done
 
 if [ "$rc" -eq 0 ]; then

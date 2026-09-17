@@ -2,6 +2,14 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.17.2 — 2026-09-16
+
+### Fixed
+- `hooks/route.sh`'s header still listed a per-session dedup hole as an honest
+  limitation that the context-key one-shot closed on 2026-08-16 (trend audit G13,
+  `rationale/marketplace-trend-audit-2026-09-16.md`). The stale limitation is deleted;
+  the lock-free read-modify-write one stays. Comment only — no behaviour changed.
+
 ## 0.17.1 — 2026-09-16
 
 ### Fixed

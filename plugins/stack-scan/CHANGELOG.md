@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.8.2
+
+### Changed
+- **The scout catalog re-rendered for the frontend-suite description fix (audit G3).** `frontend-suite`'s marketplace description claimed its uninstall "prunes its auto-installed plugins" while the command keeps them unless picked; the fix in `.claude-plugin/marketplace.json` re-rendered the one row here by `generate.sh --write`, which does not bump this plugin — the exact case CLAUDE.md's 2026-09-15 note describes (`rationale/marketplace-trend-audit-2026-09-16.md`). No behaviour change.
+
 ## 0.8.1
 
 ### Changed
