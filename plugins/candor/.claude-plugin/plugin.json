@@ -1,6 +1,6 @@
 {
   "name": "candor",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, five clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a task-runner run stopping without its recorded gate pass; a dependency map changed with an untouched lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn.",
   "author": {
     "name": "Ivan-WG",
