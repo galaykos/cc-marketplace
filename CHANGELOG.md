@@ -4,6 +4,19 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.113.2] - 2026-09-17
+
+- **`eval-cases.sh` now checks `schema_version`** — the item 0.113.1 left open, closed in
+  its own release because 0.113.1 had already merged. It predates the audit rather than
+  regressing from it, but it is the gate's own subject: the runner's `ms(e)` (2.1.273) requires the key to be
+  a STRING and then parseInts the text before the first `.`, so both an absent key and an
+  unquoted `1.0` — a YAML float, not a string — load ZERO cases while the suite looks
+  maintained. That is the 2026-09-14 bug reached by a third route, and nothing in this repo
+  saw it. Three assertions added; the shipped suites all carry a quoted `"1.0"` and were
+  never affected. The runner's third condition, major ≤ the binary's ceiling (`1` on
+  2.1.273), is deliberately NOT modelled — that constant moves with the CLI, and copying
+  it into a gate is how `CLAUDE.md`'s own stale-count rule gets broken again.
+
 ## [0.113.1] - 2026-09-17
 
 **Regression review of the 0.113.0 audit branch** (audit §3I). Every gate, all 27 smoke
@@ -40,7 +53,7 @@ of them were latent — wrong today, reachable tomorrow.
 Still open, and NOT a regression — it predates the audit: `eval-cases.sh` does not check
 `schema_version`, which the runner requires (`missing required field schema_version`). A
 case.yaml without it passes the gate and loads zero cases in the runner, which is the exact
-failure the gate exists to catch. All eight shipped cases carry it.
+failure the gate exists to catch. All eight shipped cases carry it. (Closed in 0.113.2.)
 
 ## [0.113.0] - 2026-09-16
 

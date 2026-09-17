@@ -29,6 +29,8 @@
 #   - a case directory holding neither `case.yaml` nor `prompt.md`
 #   - a `case.yaml` that is not valid YAML, or is not a mapping
 #   - a missing `name`, `execution.prompt`, or `graders`
+#   - a `schema_version` that is absent, or unquoted (a YAML float, not a string), or
+#     whose major does not parseInt — each of which loads ZERO cases
 #   - `graders` present but empty, or a grader with no `type` (the exact rejection above)
 #   - a `prompt.md` with no `graders/*.md`, or a `graders/*.md` whose frontmatter carries
 #     no `type:` (or none at all). The NAME is not checked: until 2026-09-17 this branch
@@ -47,6 +49,10 @@
 #   - whether the suite would PASS. This never runs a model and never spends a cent.
 #   - drift between the runner's schema and this checker's idea of it. The runner is the
 #     authority; this asserts the subset whose absence has actually broken a suite here.
+#   - a `schema_version` MAJOR the installed CLI is too old for. The runner rejects one
+#     above its own ceiling (`1` on 2.1.273); that constant lives in the binary and moves
+#     with it, so this gate checks the shape and leaves the ceiling to the runner —
+#     copying the number here is how CLAUDE.md's stale-count rule gets broken again.
 #   - how the runner merges a case that ships BOTH files. The runner's own usage line
 #     admits the combination, so a `case.yaml` beside a `prompt.md` is held to `name`
 #     only: the prompt.md body is the prompt and graders/*.md are the graders, and
@@ -160,7 +166,7 @@ for dir in plugins/*/evals; do
     [ "$has_yaml" -eq 1 ] || continue
     case_file="$cdir/case.yaml"
     msg=$(python3 - "$case_file" "$has_prompt" <<'PY'
-import sys, yaml, os
+import sys, yaml, os, re
 path = sys.argv[1]
 # A sibling prompt.md supplies the prompt and graders/*.md the graders; only a
 # case.yaml that is the whole case must carry them itself.
@@ -174,6 +180,22 @@ if not isinstance(d, dict):
     print("is not a YAML mapping"); sys.exit(1)
 
 errs = []
+
+# The runner's FIRST check after "is it a mapping", and the one this gate went
+# without until 2026-09-17. Read out of the 2.1.273 binary (`ms(e)`): schema_version
+# must be a STRING — an unquoted `1.0` is a YAML float and draws the identical
+# `missing required field schema_version` rejection — and parseInt of the text before
+# the first `.` must not be NaN. Both load ZERO cases, which is this gate's whole
+# subject. The runner's third condition, major <= the binary's max, is NOT modelled
+# here: that ceiling is a constant inside the CLI (1 on 2.1.273) and copying it into
+# this file is how a number goes stale, per CLAUDE.md's own recount rule.
+sv = d.get("schema_version")
+if not isinstance(sv, str):
+    got = "absent" if sv is None else f"a YAML {type(sv).__name__}, not a string (quote it)"
+    errs.append(f'`schema_version` is {got} — the runner requires `schema_version: "1.0"` and loads 0 cases without it')
+elif not re.match(r"\s*[+-]?\d", sv.split(".", 1)[0]):
+    errs.append(f'`schema_version: "{sv}"` is not a valid version string — the runner parseInts the text before the first `.`')
+
 if not d.get("name"):
     errs.append("no `name`")
 else:

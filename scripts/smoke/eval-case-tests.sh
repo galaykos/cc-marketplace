@@ -202,5 +202,34 @@ printf 'notes\n' > "$T/plugins/beta/evals/scratch/deeper/notes.txt"
 expect_fail "a dead branch under evals/ still fails" "holds neither case.yaml nor prompt.md"
 rm -rf "$T/plugins/beta"
 
+# --- schema_version: the runner's first gate, and this one's until 2026-09-17 ------
+# `ms(e)` in the 2.1.273 binary requires a STRING, then parseInts the text before the
+# first `.`. An unquoted 1.0 is a YAML float and draws the same rejection as no key at
+# all — and both load zero cases, which is the failure this whole gate exists for.
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; t="".join(l for l in open(p) if not l.startswith("schema_version:"))
+open(p,'w').write(t)
+PY
+expect_fail "a case.yaml with no schema_version fails" "\`schema_version\` is absent"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; t=open(p).read().replace('schema_version: "1.0"','schema_version: 1.0')
+open(p,'w').write(t)
+PY
+expect_fail "an UNQUOTED schema_version (a YAML float) fails" "not a string (quote it)"
+
+good_case "$T/plugins/beta/evals/c"
+python3 - "$T/plugins/beta/evals/c/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; t=open(p).read().replace('schema_version: "1.0"','schema_version: "v.2"')
+open(p,'w').write(t)
+PY
+expect_fail "a schema_version whose major does not parseInt fails" "is not a valid version string"
+rm -rf "$T/plugins/beta"
+
 printf '\n%s assertion(s) passed\n' "$pass"
 exit "$rc"

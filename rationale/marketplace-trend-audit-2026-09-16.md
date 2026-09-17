@@ -190,6 +190,14 @@ of this surfaced as a red build. Four findings, three of them latent:
 4. **task-runner's `spawn-cap` lane row** narrowed `Agent|Task` to "an Agent dispatch"
    while claiming to say what the hook does.
 
+5. **`eval-cases.sh` never checked `schema_version`** — not a regression (it predates the
+   audit) but the gate's own subject, so it was fixed here rather than deferred. `ms(e)` in
+   the 2.1.273 binary wants a STRING and parseInts the text before the first `.`; an
+   unquoted `1.0` is a YAML float and dies exactly like a missing key. Zero cases loaded,
+   suite looks maintained — the 2026-09-14 bug by a third route. The major-≤-ceiling
+   condition is left to the runner on purpose: `1` is a constant inside the CLI, and a gate
+   carrying it would go stale the way every copied count in this repo has.
+
 **The lesson, and it is the third distinct one this branch has produced.** §3H recorded
 that two review rounds each caught a class the other missed. This round says what BOTH
 missed: every one of these four is a claim about the HOST, and none of the three rounds
