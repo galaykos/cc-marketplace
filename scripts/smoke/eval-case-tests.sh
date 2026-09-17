@@ -174,5 +174,33 @@ good_case "$T/plugins/beta/evals/c"
 printf 'this: [is not\n' >> "$T/plugins/beta/evals/c/case.yaml"
 expect_fail "malformed YAML fails" "is not valid YAML"
 
+rm -rf "$T/plugins/beta"
+
+# --- cases NEST: the runner globs `<eval dir>/**/case.yaml` -----------------------
+# Until 2026-09-17 the gate walked `evals/*/` only, so it FAILED the parent of a
+# nested case as "not a case" — rejecting a layout `claude plugin eval` loads.
+# (`plugins/alpha/evals/one` from the baseline above is still present, so a passing
+# run here reports two cases across two suites, not one.)
+good_case "$T/plugins/beta/evals/group/deep"
+out=$(run_gate); st=$?
+[ "$st" -eq 0 ] && ok "a nested case passes and its parent is not flagged" \
+  || bad "a nested case passes and its parent is not flagged" "$out"
+case "$out" in *"2 eval case(s) across 2 suite(s)"*) ok "a nested case is COUNTED, not just tolerated" ;;
+  *) bad "a nested case is COUNTED, not just tolerated" "$out" ;; esac
+# and the per-case schema check still reaches it at depth
+python3 - "$T/plugins/beta/evals/group/deep/case.yaml" <<'PY'
+import sys
+p=sys.argv[1]; t=open(p).read().replace("name: deep","name: mismatched")
+open(p,'w').write(t)
+PY
+expect_fail "a nested case is still schema-checked" "does not match its directory"
+rm -rf "$T/plugins/beta"
+
+# --- a branch that bottoms out with no case definition is still scratch -----------
+mkdir -p "$T/plugins/beta/evals/scratch/deeper"
+printf 'notes\n' > "$T/plugins/beta/evals/scratch/deeper/notes.txt"
+expect_fail "a dead branch under evals/ still fails" "holds neither case.yaml nor prompt.md"
+rm -rf "$T/plugins/beta"
+
 printf '\n%s assertion(s) passed\n' "$pass"
 exit "$rc"

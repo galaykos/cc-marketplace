@@ -2154,15 +2154,16 @@ pc_listing_fields() {
 
 # pc_listing_entry_cost <plugin-dir> — the CLI's per-plugin skill-listing entry cost,
 # THE single implementation. Prints "<chars> <entries>": sum over skills/*/SKILL.md and
-# commands/*.md of `name + 4 + min(desc + when_to_use, 1536)` with NO separator term — the
+# commands/*.md of `name + 4 + min(desc + " - " + when_to_use, 1536)` with NO separator term — the
 # caller owns separators (one per entry minus one per install, matching the CLI's join).
 # An entry flagged `disable-model-invocation: true` is charged nothing — not even
 # name + 4. The doc says its DESCRIPTION is not in context (code.claude.com/docs/en/skills,
 # "Description not in context"); whether the NAME still renders as a name-only entry is
 # unmeasured, so that skip is `recorded — unmeasured`: if the CLI does list the name, this
 # walk undercounts by name + 4 per flagged entry. `when_to_use:` rides with the
-# description: the CLI shows the pair and truncates the pair at 1,536, so the cap applies
-# to the sum. Two callers:
+# description: the CLI renders `${description} - ${whenToUse}` (`wWe`, read out of the 2.1.273
+# binary 2026-09-17) and truncates that JOINED string at 1,536 — so the 3-char " - " is
+# charged too, and the cap applies to the sum. Two callers:
 # pc_listing_declaration below and context-budget.sh's listing channel. They previously
 # carried the walk twice by value and disagreed by the separator model (9 chars on
 # taskmaster-suite), so every bundle README's "recompute with context-budget.sh" step
@@ -2188,7 +2189,7 @@ pc_listing_entry_cost() {
     case "$fields" in *$'\t'true) continue ;; esac
     desc=${fields%%$'\t'*}
     wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
-    dl=$(printf '%s%s' "$desc" "$wtu" | LC_ALL=C wc -c | tr -d ' ')
+    dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
     [ "$dl" -gt 1536 ] && dl=1536
     total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
   done
@@ -2212,7 +2213,7 @@ pc_listing_entry_cost() {
 # broken depends on which tier the USER runs — a fact only the bundle can warn about,
 # and on 2026-08-31 none did.
 #
-# THE RULE: a bundle whose entry cost (name + 4 + min(description + when_to_use, 1536)
+# THE RULE: a bundle whose entry cost (name + 4 + min(description + " - " + when_to_use, 1536)
 # per skill/command, members + the bundle's own, plus separators) exceeds 6,000 chars
 # must mention `skillListingBudgetFraction` in its README — the settings.json lever that
 # fixes it — or carry `<!-- listing-floor-ok: <why> -->`.

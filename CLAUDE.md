@@ -142,9 +142,10 @@ convention. What follows is only what you need in hand while editing.
 
   Numbers you need while writing: **SKILL.md body ≤ 200 lines, ≤ 14,000 bytes,
   ≤ 300 chars per line** (no floor; frontmatter, fenced code and table rows are
-  exempt from the line-length check). Frontmatter `description:` **≤ 500 chars**,
-  no "Trigger words:" lists; `plugin.json` descriptions draw a WARN-only 700-char
-  guideline.
+  exempt from the line-length check). Frontmatter **`description` + `when_to_use`
+  ≤ 500 chars measured TOGETHER** — the CLI lists the pair as one joined string, so
+  the gate charges the pair and its FAIL names both keys; no "Trigger words:" list in
+  either; `plugin.json` descriptions draw a WARN-only 700-char guideline.
 
   Escape hatches, when a check is wrong about your line — each needs a reason,
   and the check's header says what a good one looks like:

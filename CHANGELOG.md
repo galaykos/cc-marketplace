@@ -4,6 +4,44 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.113.1] - 2026-09-17
+
+**Regression review of the 0.113.0 audit branch** (audit §3I). Every gate, all 27 smoke
+harnesses and all 47 plugin harnesses were green; the four findings below came from
+reading the diff against the shipped CLI binary rather than from a red build, and three
+of them were latent — wrong today, reachable tomorrow.
+
+- **The rewritten eval gate rejected a layout the runner loads.** `scripts/eval-cases.sh`
+  had traded a recursive `find` for a walk of `evals/*/`, so a nested case
+  (`evals/<group>/<case>/case.yaml`) drew two FAILs: the parent as "not a case", and the
+  suite as loading zero. The runner's own usage line globs `<eval dir>/**/case.yaml or
+  prompt.md + graders/*.md` (`claude plugin eval --help`, 2.1.273) — cases nest. The walk
+  is recursive again and stops at the first directory carrying a case definition, so a
+  case's own `resources/`, `mocks/` and `graders/` are never mistaken for cases; a branch
+  that bottoms out with no case definition anywhere on it is still the scratch-dir FAIL.
+  Four new assertions in `scripts/smoke/eval-case-tests.sh` cover the nested case, that it
+  is COUNTED rather than merely tolerated, that the schema check still reaches it at depth,
+  and that a dead branch still fails.
+- **The listing cost model dropped the join the CLI renders.** `wWe` in the 2.1.273 binary
+  returns `` `${description} - ${whenToUse}` `` and truncates that joined string at 1,536, so
+  the 3-char `" - "` is charged. All four copies of the walk — `pc_listing_entry_cost`,
+  `context-budget.sh`'s `plugin_desc_bytes`, `validate.sh`'s 500-char linter and
+  `all-plugins.sh`'s shipping-alone copy — concatenated with no separator. Inert today (no
+  artifact declares `when_to_use:`), which is exactly why it would have shipped in four
+  places at once.
+- **`CLAUDE.md` still documented the pre-audit cap.** The gate measures
+  `description + when_to_use` against 500 and its FAIL names both keys; the file that is the
+  stated home for that number said `description:` alone. An author adding a `when_to_use:`
+  would have read a FAIL naming a key the convention never mentions is charged.
+- **task-runner `lane.tsv`'s `spawn-cap` trigger understated its own hook** — "an Agent
+  dispatch" against a hook and a `hooks.json` matcher that both read `Agent|Task`. The
+  0.113.0 rewrite fixed the threshold half of that row and broke the tool-set half.
+
+Still open, and NOT a regression — it predates the audit: `eval-cases.sh` does not check
+`schema_version`, which the runner requires (`missing required field schema_version`). A
+case.yaml without it passes the gate and loads zero cases in the runner, which is the exact
+failure the gate exists to catch. All eight shipped cases carry it.
+
 ## [0.113.0] - 2026-09-16
 
 **Fixes from the marketplace trend audit** (`rationale/marketplace-trend-audit-2026-09-16.md`,

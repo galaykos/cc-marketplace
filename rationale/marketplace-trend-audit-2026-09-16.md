@@ -169,6 +169,38 @@ Standing of the whole report after this: the m4 reviewer read the diff against t
 enough, and the second is the one CLAUDE.md's "the gate you run and the gate that breaks can
 read different inputs" lesson names.
 
+### 3I — the regression review (2026-09-17), and what two review rounds still missed
+
+A third pass, asked for after the PR was open, read the diff against the shipped CLI
+binary instead of against the docs. Every gate and all 74 harnesses were green, so none
+of this surfaced as a red build. Four findings, three of them latent:
+
+1. **`eval-cases.sh` rejected nested cases.** The fix for A1/A2 replaced a recursive
+   `find "$dir" -name case.yaml` with a walk of `evals/*/`. The runner's usage line is
+   `<eval dir>/**/case.yaml or prompt.md + graders/*.md` — recursive. Probed: a
+   `evals/group/case1/case.yaml` that master's gate passed drew two FAILs on the branch.
+   Fixed with a walk that stops at the first directory holding a case definition, which is
+   also what makes a case's own `resources/` a fixture rather than a case. Four assertions
+   added.
+2. **The listing walk dropped the `" - "` the CLI renders** between `description` and
+   `when_to_use` (`wWe`, read out of the 2.1.273 binary), in all four copies at once —
+   including the one this branch had just consolidated to stop exactly that drift.
+3. **`CLAUDE.md` kept the pre-audit statement of the 500-char cap** after the gate widened
+   it to the pair.
+4. **task-runner's `spawn-cap` lane row** narrowed `Agent|Task` to "an Agent dispatch"
+   while claiming to say what the hook does.
+
+**The lesson, and it is the third distinct one this branch has produced.** §3H recorded
+that two review rounds each caught a class the other missed. This round says what BOTH
+missed: every one of these four is a claim about the HOST, and none of the three rounds
+before it opened the host binary. The intent reviewer read the diff against the brief, the
+host `/code-review` read it for defects, and both took the branch's statements about
+`wWe`, about `**/case.yaml` and about the cap at their word because the branch cited a doc
+URL for each. Citing a doc is not measuring a binary. `grep -a` on
+`~/.local/share/claude/versions/<pin>` answered all four in one session and is now the
+cheapest verification step this repo has for a host claim — cheaper than the $0.02 eval
+probe that settled A1.
+
 ## 4. Where this tree leads, lags, and contradicts the trend
 
 - **Leads:** control-armed evals with the `tool_used: Skill` exclusion understood (T5) before the

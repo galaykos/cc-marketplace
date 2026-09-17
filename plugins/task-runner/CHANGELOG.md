@@ -2,6 +2,15 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.36.4
+
+### Fixed
+- `lane.tsv`'s `spawn-cap` trigger said "an Agent dispatch". `hooks/spawn-cap.sh:45`
+  matches `Agent|Task` and `hooks/hooks.json` registers the same matcher, so the row
+  understated the hook it describes — the row 0.36.3 rewrote to "say what the hook
+  does" got the threshold right (one soft cap, then every doubling) and the tool set
+  wrong. Regression review, 2026-09-17.
+
 ## 0.36.3
 
 ### Changed

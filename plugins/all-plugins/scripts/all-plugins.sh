@@ -216,7 +216,7 @@ listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc
       printf '%s\n' "$fm" | grep -q '^disable-model-invocation:[[:space:]]*true' && continue
       desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
       wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
-      dl=$(printf '%s%s' "$desc" "$wtu" | LC_ALL=C wc -c | tr -d ' ')
+      dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
       [ "$dl" -gt 1536 ] && dl=1536
       total=$(( total + ${#name} + 4 + dl ))
     done

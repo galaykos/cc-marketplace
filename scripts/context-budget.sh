@@ -66,8 +66,9 @@ done
 
 command -v jq >/dev/null 2>&1 || { echo "WARN: jq not found, skipping context-budget"; exit 0; }
 
-# Sum of frontmatter description-value bytes (plus `when_to_use:` when present — the
-# host shows the pair together, so both are charged) across a plugin dir's
+# Sum of frontmatter description-value bytes (plus `when_to_use:` when present, joined by
+# the 3-char " - " the CLI renders between them — the host shows the pair as one string,
+# so all three are charged) across a plugin dir's
 # skills/*/SKILL.md, commands/*.md, agents/*.md (tolerates missing dirs). The fields
 # come from pc_listing_fields (scripts/lib/plugin-checks.sh, sourced below), the one
 # frontmatter walk every listing meter and linter shares.
@@ -81,7 +82,7 @@ plugin_desc_bytes() {
     case "$fields" in *$'\t'true) continue ;; esac
     desc=${fields%%$'\t'*}
     wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
-    bytes=$(printf '%s%s' "$desc" "$wtu" | wc -c | tr -d ' ')
+    bytes=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | wc -c | tr -d ' ')
     total=$((total + bytes))
   done
   printf '%s' "$total"
@@ -451,7 +452,7 @@ fail=0
 #     opus-4-6  @200k = 8,000 chars     opus-4-6  @1M = 40,000 chars
 #
 # AND THE UNIT IS NOT DESCRIPTION TEXT. The CLI costs each entry as
-# `name + 4 + min(description + when_to_use, 1536)`, joined by one separator each — so
+# `name + 4 + min(description + " - " + when_to_use, 1536)`, joined by one separator each — so
 # the artifact NAME and a 4-char delimiter are charged per artifact. Artifact COUNT is
 # in the measure directly, which is the mechanical reason "fewer artifacts" beats
 # "shorter descriptions" and not merely an empirical one.
@@ -717,7 +718,7 @@ echo "TOTAL: $leaf_tokens_total tokens"
 # because adjacent artifacts compete. Full cost derivation:
 # rationale/2026-08-31-token-cost-review.md.
 echo
-echo "listing channel (CLI entry cost: name + 4 + min(description + when_to_use,${LISTING_MAX_DESC}), skills + commands)"
+echo "listing channel (CLI entry cost: name + 4 + min(description + \" - \" + when_to_use,${LISTING_MAX_DESC}), skills + commands)"
 echo "  budget = ctxTokens x bytesPerToken x fraction; showing ${LISTING_CTX_TOKENS} tok x ${LISTING_BYTES_PER_TOKEN} x ${LISTING_FRACTION} = ${LISTING_CAP} chars (a 1M-context session gets ${LISTING_CAP_1M})"
 if [ -n "$listing_rows" ]; then
   printf '%-24s %9s  %s\n' "install" "chars" "status"

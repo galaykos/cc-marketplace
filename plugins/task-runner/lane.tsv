@@ -14,4 +14,4 @@ task-runner:behavioral-gate	skill	verify	produced-artifact-execution	a run is co
 task-runner:ultra-assess	hook	any	ultra-assess-boost-directive	prompt head matches ultra-?assess(ment)? with no negation and no active-banner echo	-
 # generated:end
 task-runner:rv-consent	hook	any	reviewer-verdict-consent	a Write/Edit/Bash runs under a registered task-runner run whose reviewer verdict has not been consented to	task-runner:task-execution
-task-runner:spawn-cap	hook	any	subagent-spawn-cap	an Agent dispatch crosses the session's soft cap (20, then every doubling)	task-runner:parallel-planning
+task-runner:spawn-cap	hook	any	subagent-spawn-cap	an Agent/Task dispatch crosses the session's soft cap (20, then every doubling)	task-runner:parallel-planning

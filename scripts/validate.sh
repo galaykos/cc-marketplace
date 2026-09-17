@@ -140,7 +140,7 @@ for f in plugins/*/skills/*/SKILL.md plugins/*/commands/*.md plugins/*/agents/*.
   printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE '^[>|]' \
     && err "$f: description or when_to_use uses a YAML block scalar — keep it a single line"
   [ -n "$dsc" ] || continue
-  dlen=$(printf '%s%s' "$dsc" "$wtu" | wc -c | tr -d ' ')
+  dlen=$(printf '%s%s' "$dsc" "${wtu:+ - $wtu}" | wc -c | tr -d ' ')
   [ "$dlen" -le 500 ] || err "$f: description${wtu:+ + when_to_use} $dlen chars (max 500)"
   printf '%s\n%s\n' "$dsc" "$wtu" | grep -qE 'Trigger( words)?:' \
     && err "$f: description${wtu:+ or when_to_use} carries a 'Trigger words:' list — fold terms into the trigger sentence"

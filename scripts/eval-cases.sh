@@ -53,9 +53,14 @@
 #     demanding `execution.prompt` there (as this did until 2026-09-17) failed a shape
 #     the runner loads. A key that IS present is still shape-checked; whether the runner
 #     prefers the yaml's `graders:` list or the directory when both exist is unmeasured.
-#   - anything below the top level of a case. Only `evals/<case>/prompt.md` and
-#     `evals/<case>/case.yaml` are cases; a `prompt.md` under `resources/` or `mocks/`
-#     is a fixture the case reads, neither counted nor failed.
+#   - anything INSIDE a case. A case dir is the first directory on a branch holding a
+#     `case.yaml` or a `prompt.md`; the walk stops there, so a `prompt.md` under its
+#     `resources/` or `mocks/` is a fixture the case reads, neither counted nor failed.
+#     Cases NEST: the runner's own usage line globs `<eval dir>/**/case.yaml or
+#     prompt.md + graders/*.md` (`claude plugin eval --help`, 2.1.273), so a case may
+#     sit at any depth. Until 2026-09-17 this walked `evals/*/` only and FAILED the
+#     PARENT of a nested case as "not a case" — a gate rejecting a layout the runner
+#     loads, and a regression against the recursive `find` it replaced.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 rc=0
@@ -89,6 +94,38 @@ if not isinstance(fm, dict) or not str(fm.get("type") or "").strip():
 PY
 }
 
+case_dirs() { # case_dirs <evals dir> — one `case<TAB><dir>` or `dead<TAB><dir>` line per directory
+  # A case dir is the first directory on a branch carrying a case definition; the walk
+  # does not descend into one, so its fixtures are never mistaken for cases. A branch
+  # that bottoms out with no case definition anywhere on it is `dead` — the scratch dir
+  # that looks like a suite and loads nothing. results/ is the runner's output dir,
+  # mocks/ its MCP stand-ins, and graders/ belongs to the case above it.
+  python3 - "$1" <<'PYCD'
+import os, sys
+root = sys.argv[1]
+SKIP = {"results", "mocks", "graders"}
+def subdirs(d):
+    try:
+        names = os.listdir(d)
+    except OSError:
+        return []
+    return sorted(n for n in names
+                  if n not in SKIP and not n.startswith(".")
+                  and os.path.isdir(os.path.join(d, n)))
+def walk(d):
+    if os.path.isfile(os.path.join(d, "case.yaml")) or os.path.isfile(os.path.join(d, "prompt.md")):
+        print("case\t" + d)
+        return True
+    subs = subdirs(d)
+    if not subs:
+        print("dead\t" + d)
+        return False
+    return any([walk(os.path.join(d, n)) for n in subs])
+for n in subdirs(root):
+    walk(os.path.join(root, n))
+PYCD
+}
+
 suites=0
 cases=0
 for dir in plugins/*/evals; do
@@ -97,18 +134,15 @@ for dir in plugins/*/evals; do
   plugin=$(basename "$(dirname "$dir")")
   ncases=0
 
-  # results/ is the runner's output dir and mocks/ its MCP stand-ins; neither is a case.
-  for cdir in "$dir"/*/; do
-    [ -d "$cdir" ] || continue
-    cdir=${cdir%/}
-    case "$(basename "$cdir")" in results|mocks|.*) continue ;; esac
+  while IFS=$'\t' read -r kind cdir; do
+    [ -n "${cdir:-}" ] || continue
+    if [ "$kind" = dead ]; then
+      fail "$plugin: $cdir/ holds neither case.yaml nor prompt.md, and no directory under it does — it is not a case and loads nothing"
+      continue
+    fi
     has_prompt=0; has_yaml=0
     [ -f "$cdir/prompt.md" ] && has_prompt=1
     [ -f "$cdir/case.yaml" ] && has_yaml=1
-    if [ "$has_prompt" -eq 0 ] && [ "$has_yaml" -eq 0 ]; then
-      fail "$plugin: $cdir/ holds neither case.yaml nor prompt.md — it is not a case and loads nothing"
-      continue
-    fi
     ncases=$((ncases + 1))
 
     if [ "$has_prompt" -eq 1 ]; then
@@ -182,7 +216,7 @@ if errs:
     print("; ".join(errs)); sys.exit(1)
 PY
     ) || fail "$case_file $msg"
-  done
+  done <<< "$(case_dirs "$dir")"
 
   [ "$ncases" -gt 0 ] \
     || fail "$plugin: $dir contains no case.yaml or prompt.md — the suite loads ZERO cases and every run of it is a no-op."
