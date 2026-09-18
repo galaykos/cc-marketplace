@@ -2,6 +2,16 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.1 — 2026-09-17
+
+### Changed
+- `hooks/preamble.sh` move 1 names the admissible triggers again (the user asked, a stated
+  criterion, an observed defect) and says an addition admitted afterwards is not one. The
+  2026-08 arm-C wording carried that list and produced "cut, and why" lists with features left
+  out; the 0.4.0 text ("name the trigger for anything more") produced, in a one-run simulation,
+  an unasked minimax opponent plus a scope note confessing it
+  (`rationale/fable-distillation-2026-09-17.md` §8). Wording change only; standing unchanged.
+
 ## 0.4.0 — 2026-09-17
 
 ### Added
