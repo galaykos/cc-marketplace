@@ -2,6 +2,24 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.5 — 2026-09-18
+
+### Added
+- `hooks/avert.sh`, PreToolUse on Agent, Write, Edit, MultiEdit and Bash: when the text
+  about to reach a worker or disk declares doing less than what was named for a reason
+  the user did not give — a legal/IP reason, a declared substitute (original, invented,
+  generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or
+  precaution language ("to be safe", "as a precaution", "to avoid any legal …") — and no
+  human turn in the session transcript contains that term, the call becomes a permission
+  question (`ask`), once per term per session. `CC_AVERT=notify` makes it a notification
+  instead (the user asked for "a notification or a confirmation", not a trademark filter). Tool results are not human turns, so a worker's
+  report cannot launder a hedge into "the user said it". Trigger: the 0.4.4 avert left its
+  reason in the dispatch it wrote — "NOT copies of trademarked characters" — while no prompt
+  of the user's mentioned trademarks; the user asked whether that intent could be caught.
+  It can, inside this vocabulary: a hedge that never names its reason still passes, and
+  that half stays with move 1 and drift-review. Eleven-case harness. `CC_AVERT=off`.
+  Standing: gate on the call; a guard, not a proof.
+
 ## 0.4.4 — 2026-09-18
 
 ### Changed
