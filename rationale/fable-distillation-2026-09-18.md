@@ -251,16 +251,20 @@ project's history, not here.
   thinking phase (one kept trace: 1,928 `thinking_tokens` events, ~22k tokens, no message)
   — and the one run that finished (a CONTROL run, 10 turns) wrote `digimon.html` with
   Agumon, Gabumon and Patamon named in its own text, which the criteria call a PASS, and was
-  voted FAIL FAIL FAIL with `evidence: ""`. In the one with-arm run that got as far as
-  writing, the hook events are `SessionStart:startup` and nothing else: **no
-  `UserPromptSubmit` fired**, so the preamble under test never reached the with-arm. Three
-  independent reasons this case, and every 0.4.2 case built on the same assumptions, cannot
-  measure the preamble as written on this CLI: the runner does not fire UserPromptSubmit
-  for the case prompt (or did not here), the 300 s default kills most Opus runs before a
-  first tool call, and the judges failed the one transcript that met the criteria without
-  recording why. Total spent on the question: $2.60 over four invocations; delta measured:
-  none. What would settle it is now a runner question before it is a plugin one, and the
-  docs answer is recorded when it arrives.
+  voted FAIL FAIL FAIL with `evidence: ""`. The stream trace lists `SessionStart:startup`
+  as the only hook event, which first read as "UserPromptSubmit never fired"; it is the
+  trace format that omits prompt hooks. The sealed temp of every with-arm run holds the
+  preamble's one-shot marker directory (`cc-preamble-<key>`, created only after every
+  trigger check passes) and no control run does — **reach 3/3 with, 0/3 without**, the
+  cleanest reach measurement the preamble has had. The two defects left are the case's:
+  the runner's default `timeout_seconds: 300` (docs: `code.claude.com/docs/en/plugin-evals`)
+  ended five of six Opus runs, three before a first tool call; and the llm grader's default
+  `target: last_message` showed the judges only the final reply, so criteria that say
+  "judge the files written and every assistant message" were graded against one paragraph.
+  Fixed in candor 0.4.6 for all five cases (`timeout_seconds: 900`, `target: trace`);
+  the operator grant `--allow-tools Write Edit` is still required at the command line.
+  Spent so far on the question: $2.60 over four invocations; delta measured: none. The
+  corrected run is recorded below.
 - The host `skills:` key on a plugin agent: one `--plugin-dir` probe like §1.1's.
 
 ## 5. Residuals
