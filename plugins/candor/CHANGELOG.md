@@ -2,6 +2,19 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.2 — 2026-09-18
+
+### Added
+- Three eval cases for the preamble, one per move the 2026-09-17 simulation showed a
+  differential on, each with a scaffold so the action under test is real and cheap:
+  `limitation-checked-before-stated` (move 4: the prompt asserts node is unavailable; the check
+  must happen before the claim is repeated), `unasked-additions-need-a-trigger` (move 1: one
+  flag asked for; any addition carries a named trigger or is absent),
+  `configuration-named-in-report` (move 5: a stub becomes a Postmark send; the report names the
+  token variable and sender and says the live path is untested). Three runs each; the control
+  arm is `--ablation with-without`. They load on the eval gate; nothing runs them in CI and
+  none has been run.
+
 ## 0.4.1 — 2026-09-17
 
 ### Changed

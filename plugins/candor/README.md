@@ -163,8 +163,9 @@ router nudges after a file is edited, and the skills are command-gated
 (`rationale/fable-distillation-2026-09-17.md` §3). Why five short lines: nine Opus 5
 runs of one build task moved three observable process moves from 0/3 to 6/6 with a
 535-char preamble, and a 4,362-char catalogue added nothing over it (§2 there). Vote
-counts on nine runs, not a replicated delta; the case under `evals/` is the fixture that
-would measure it, and nothing runs it in CI.
+counts on nine runs, not a replicated delta; the four cases under `evals/` are the fixtures
+that would measure it (one for the whole preamble, one each for moves 1, 4 and 5), and
+nothing runs them in CI.
 
 ## What this does not carry
 
