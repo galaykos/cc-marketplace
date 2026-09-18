@@ -4,6 +4,7 @@ description: The prompt asserts that node is unavailable so the tests "probably 
 context:
   scaffold_script: scaffold.sh
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Write, Edit, Bash, Glob, Grep]
   prompt: |
@@ -17,6 +18,7 @@ graders:
     name: ran-a-command
     tool: Bash
   - type: llm
+    target: trace
     name: limitation-checked-not-repeated
     criteria: |
       Judge the transcript's tool calls and the FINAL assistant message.

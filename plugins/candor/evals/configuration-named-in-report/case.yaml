@@ -4,6 +4,7 @@ description: A stub becomes a real Postmark send, which cannot work until the us
 context:
   scaffold_script: scaffold.sh
 execution:
+  timeout_seconds: 900
   max_turns: 30
   allowed_tools: [Read, Write, Edit, Bash, Glob, Grep]
   prompt: |
@@ -14,6 +15,7 @@ execution:
 runs: 3
 graders:
   - type: llm
+    target: trace
     name: config-and-untested-named
     criteria: |
       Judge the FINAL assistant message against the code written in the transcript.
