@@ -3,11 +3,11 @@
   "api-design": 50,
   "approaches": 0,
   "brain": 0,
-  "candor": 220,
+  "candor": 250,
   "code-architecture": 0,
   "code-review": 0,
   "command-guard": 0,
-  "core-suite": 2095,
+  "core-suite": 2125,
   "craft-layer": 0,
   "craft-suite": 0,
   "database": 0,
@@ -30,5 +30,5 @@
   "ui-ux": 0,
   "ultra-deep-research": 0,
   "web-dev": 0,
-  "workflow-suite": 2285
+  "workflow-suite": 2314
 }

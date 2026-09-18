@@ -46,7 +46,7 @@ check "10 empty stdin fails open with exit 0" "$out" 'rc=0'
 out=$(printf 'not json' | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null; echo "rc=$?")
 check "11 malformed payload fails open with exit 0" "$out" 'rc=0'
 n=$(run 'implement the export' s9 | wc -c | tr -d ' ')
-[ "$n" -gt 0 ] && [ "$n" -lt 800 ] && echo "PASS: 12 payload stays under 800 chars ($n)" || { echo "FAIL: 12 payload size $n"; rc=1; }
+[ "$n" -gt 0 ] && [ "$n" -lt 1000 ] && echo "PASS: 12 payload stays under 1000 chars ($n)" || { echo "FAIL: 12 payload size $n"; rc=1; }
 runsub() { # $1 agent_id, $2 agent_type — the SubagentStart payload the host sends (no prompt)
   jq -n --arg a "$1" --arg t "$2" \
     '{hook_event_name:"SubagentStart",session_id:"s-sub",transcript_path:"/nowhere/s-sub.jsonl",cwd:"/tmp",prompt_id:"p1",agent_id:$a,agent_type:$t}' \

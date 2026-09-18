@@ -2,6 +2,19 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.4 — 2026-09-18
+
+### Changed
+- `hooks/preamble.sh` move 1 gains its other half: "and nothing less". Averting part of
+  what the user named — a risk judged for them, a hedge, a safer substitute — is a question
+  before the first edit, not a cut confessed after. The move is the avert, not its subject.
+  Trigger: the same day, the orchestrating session — asked for a Digimon-themed page with
+  2D sprites — decided a trademark hedge on the user's behalf, briefed its sprite worker
+  to draw invented mascots, in a project whose library already showed real Digimon, and
+  named the swap only at the end. The user's words: "the action you did which is avert". Harness cap raised from
+  800 to 1,000 chars. One eval case, `substitution-surfaced-before-build`, with the
+  with/without control arm; not run.
+
 ## 0.4.3 — 2026-09-18
 
 ### Added

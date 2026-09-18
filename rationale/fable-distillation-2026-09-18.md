@@ -144,6 +144,22 @@ green, committed in digimon-lab as `eb6ba59`):
   as self-modification. A subagent's cwd is the session's; a worker on a sibling project
   writes its state into the wrong repo unless told the project path for that too.
 
+### 1.9 The orchestrator averted part of the ask and confessed it last
+
+Asked for "a landing page with 2D Sprites and motion animation, Digimon themed", this
+session briefed its sprite worker to draw "original mascots in a Digimon-like style, NOT
+copies of trademarked characters" — a trademark hedge the user never raised, decided on
+their behalf, in a project whose library page already hotlinks real Digimon artwork by
+name. The swap surfaced once, in the final message's "cut" line. The user's read, quoted:
+*"the inconsistencie with 2D sprite isn't directly targeted at only sprite 2D but rather
+the action you did which is avert."* The move is the avert, not its subject: a risk the
+model judges for the user, applied silently, then admitted as a cut. `drift-review`
+carries the done-time half (clauses c and e: a substituted approach, silently narrowed
+scope) and is command-gated; nothing carried the before-half. Shipped as candor 0.4.4:
+move 1 gains "and nothing less" (§3), plus an eval fixture whose grader passes a
+surfaced-first substitution and fails a confessed-after one. The sprites were redone as
+Agumon, Gabumon, Patamon and Gomamon on the same pipeline.
+
 ## 2. Host check, per the standing instruction
 
 Changelog 2.1.274-276 (installed: 2.1.276; CI pins 2.1.273): 205 bullets, none adding a
@@ -167,6 +183,7 @@ Docs facts that change what this repo may ship, verbatim from `code.claude.com/d
 | plugin | version | change | standing |
 |---|---|---|---|
 | candor | 0.4.3 | `preamble.sh` also runs on `SubagentStart`, once per `agent_id`, no matcher; five harness cases | `recorded` — additionalContext cannot block |
+| candor | 0.4.4 | move 1 "and nothing less": averting part of what the user named is a question before the first edit; eval `substitution-surfaced-before-build` | `recorded`; the eval is unrun |
 | task-runner | 0.36.5 | discipline preamble clause 2: exit codes are evidence only if captured (`PIPESTATUS` empty under zsh); clause 4: blaming an out-of-set file needs the output line naming it; `delegation-contracts` names the report the orchestrator always doubts | `recorded` — pasted into dispatches |
 | laravel | 0.9.2 | `laravel-best-practices`: factories derive from `$attributes`, not the closure's own draw | `recorded` |
 | resilience | 0.7.1 | `performance-tuning` cache correctness: degenerate results (empty/null before data exists) are not cached under a long TTL | `recorded` |
