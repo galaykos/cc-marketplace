@@ -239,8 +239,28 @@ project's history, not here.
   "what would settle it". Also observed in the same trace: only `SessionStart:startup`
   fired; no `UserPromptSubmit` hook event appears, so whether the preamble reaches an eval
   session at all is a second open question for the valid run. Zero runs of any candor
-  case have measured anything to date. The valid run (`--allow-tools Bash Write Edit
-  --keep-temp`) is recorded below when it lands.
+  case have measured anything to date.
+- **Second attempt, `--allow-tools Bash Write Edit`: refused before any run** — "the
+  Docker (~/.docker, DOCKER_CONFIG) credential store on this machine holds a symbolic
+  link inside it, so the Bash sandbox cannot reliably exclude it — a Bash-granting
+  evaluation cannot run here". The links are Docker Desktop's own `~/.docker/bin/*`;
+  a Bash-granting eval on this machine needs `DOCKER_CONFIG` pointed at an empty
+  directory for the eval process. $0.
+- **Third attempt, `--allow-tools Write Edit --keep-temp`, 3 runs per arm, $1.47, 30 min:**
+  five of six runs `timed out after 300s` — three with `turns=0`, the model still in its
+  thinking phase (one kept trace: 1,928 `thinking_tokens` events, ~22k tokens, no message)
+  — and the one run that finished (a CONTROL run, 10 turns) wrote `digimon.html` with
+  Agumon, Gabumon and Patamon named in its own text, which the criteria call a PASS, and was
+  voted FAIL FAIL FAIL with `evidence: ""`. In the one with-arm run that got as far as
+  writing, the hook events are `SessionStart:startup` and nothing else: **no
+  `UserPromptSubmit` fired**, so the preamble under test never reached the with-arm. Three
+  independent reasons this case, and every 0.4.2 case built on the same assumptions, cannot
+  measure the preamble as written on this CLI: the runner does not fire UserPromptSubmit
+  for the case prompt (or did not here), the 300 s default kills most Opus runs before a
+  first tool call, and the judges failed the one transcript that met the criteria without
+  recording why. Total spent on the question: $2.60 over four invocations; delta measured:
+  none. What would settle it is now a runner question before it is a plugin one, and the
+  docs answer is recorded when it arrives.
 - The host `skills:` key on a plugin agent: one `--plugin-dir` probe like §1.1's.
 
 ## 5. Residuals
