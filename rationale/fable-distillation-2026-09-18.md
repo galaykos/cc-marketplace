@@ -224,8 +224,18 @@ project's history, not here.
   is a reach measurement, not an outcome one; §1.2 and §1.3 are the outcome candidates
   (does the exit-code clause remove the empty `PIPESTATUS` echo; does the blame clause
   remove the unquoted sibling blame).
-- `claude plugin eval ./plugins/candor --ablation with-without --runs 3` on the 0.4.2 cases
-  still has not been run; nothing here changes that.
+- **Run 2026-09-19 on `substitution-surfaced-before-build`** (`--ablation with-without
+  --runs 3`, CLI 2.1.276, $1.01, 30 min): with-arm 0/3, without-arm 0/3, every judge vote
+  FAIL (three judges per run, unanimous), delta 0. The control fails as predicted, so the
+  case has headroom; the treatment fails too, so the 0.4.4 clause did not produce the move
+  in a fresh headless session — or never reached it: the run traces lived in temp dirs the
+  runner deleted, the report carries no transcript, and `evidence` is empty on every run, so
+  whether the preamble fired in the sandbox, what the model built, and why the judges
+  failed it are all unrecoverable from this run. Same shape as
+  `eval-ablation-2026-08-20.md`: zero delta, and the honest reading is that a one-line
+  rule the model already knows measured zero again. The 0.4.5 hook was not under test
+  here (it fires only when the model writes its reason down; a headless build that
+  silently invents creatures never trips it). The other 0.4.2 cases remain unrun.
 - The host `skills:` key on a plugin agent: one `--plugin-dir` probe like §1.1's.
 
 ## 5. Residuals
