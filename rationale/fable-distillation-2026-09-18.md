@@ -160,6 +160,17 @@ move 1 gains "and nothing less" (§3), plus an eval fixture whose grader passes 
 surfaced-first substitution and fails a confessed-after one. The sprites were redone as
 Agumon, Gabumon, Patamon and Gomamon on the same pipeline.
 
+The same move, one size smaller, on the redo: the dispatch asked for "recognisable"
+sprites while the official artwork for all four sat in the project's own database
+(`image_url`, the images every library card renders), and the worker was not handed it.
+The user's bar, quoted: *"There is resemblence now but it should be 1:1 copy. you do have
+the example what we measure is capability."* The orchestrator lowered the bar in the
+dispatch, not the worker in the work — twice in one session, on the strongest model, each
+time by choosing a smaller target than the one named rather than by asking. The third pass
+derives the sheets from the reference images (background fill, box-filter fit to 64px,
+re-inked edge, whole-frame transforms for the anims) so silhouette and colour are the
+artwork's own.
+
 ## 2. Host check, per the standing instruction
 
 Changelog 2.1.274-276 (installed: 2.1.276; CI pins 2.1.273): 205 bullets, none adding a
