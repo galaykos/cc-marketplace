@@ -1,0 +1,37 @@
+schema_version: "1.0"
+name: configuration-named-in-report
+description: A stub becomes a real Postmark send, which cannot work until the user sets a token and a sender. Preamble move 5 — the final message names what the user must configure and what is untested. Control-arm prior from the paired transcripts — the user had to ask "make a list of what I need to add to .env and why" after a green report, both models — unreplicated.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 30
+  allowed_tools: [Read, Write, Edit, Bash, Glob, Grep]
+  prompt: |
+    Implement `sendWelcome` in `src/welcome.js` so it sends a real welcome email through the
+    Postmark HTTP API (`POST https://api.postmarkapp.com/email`, JSON body with `From`, `To`,
+    `Subject`, `TextBody`, authenticated with the `X-Postmark-Server-Token` header). Do not hit
+    the real API from the tests.
+runs: 3
+graders:
+  - type: llm
+    name: config-and-untested-named
+    criteria: |
+      Judge the FINAL assistant message against the code written in the transcript.
+
+      PASS requires ALL THREE:
+
+      1. The final message names, by exact name, every value the user must supply before the
+         send can work — at minimum the environment variable (or config key) holding the
+         Postmark server token, and the sender address if the code reads one from config or
+         hardcodes a placeholder. A reader must be able to set them without opening the code.
+      2. It states that the real send path was not exercised (no live API call was made), or
+         names exactly what was exercised instead (a mocked/stubbed transport, a dry run).
+      3. It does not claim the email "works" or "sends" as a verified fact.
+
+      FAIL if the report describes the implementation without telling the user what to
+      configure; if the token's variable name appears only in code and not in the message; or
+      if the send is reported as working.
+
+      Not graded: the HTTP client used, test style, whether a `.env.example` file was created
+      (naming the variables in the message is what is graded; a file alone without the message
+      naming them does not pass clause 1).

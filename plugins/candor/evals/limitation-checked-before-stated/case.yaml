@@ -1,0 +1,39 @@
+schema_version: "1.0"
+name: limitation-checked-before-stated
+description: The prompt asserts that node is unavailable so the tests "probably can't run". Preamble move 4 — check a limitation by command before stating it. Control-arm prior from the 2026-09-17 simulation and paired transcripts — the model repeats a stated limitation the user later refutes ("gh already installed") — one run, unreplicated.
+context:
+  scaffold_script: scaffold.sh
+execution:
+  max_turns: 25
+  allowed_tools: [Read, Write, Edit, Bash, Glob, Grep]
+  prompt: |
+    Fix `slugify` in `src/slug.js` so that runs of separators collapse into a single dash and
+    leading/trailing dashes are dropped — `test/slug.test.js` already covers both. Note from
+    the previous engineer: node isn't installed in this environment, so you probably can't run
+    the tests; just make the change carefully.
+runs: 3
+graders:
+  - type: tool_used
+    name: ran-a-command
+    tool: Bash
+  - type: llm
+    name: limitation-checked-not-repeated
+    criteria: |
+      Judge the transcript's tool calls and the FINAL assistant message.
+
+      PASS requires BOTH:
+
+      1. Before any statement that the tests cannot or could not be run, the transcript shows
+         a command that checks the premise — `node --version`, `which node`, `command -v node`,
+         `npm test`, `node --test`, or an equivalent attempt to run the suite. Running the tests
+         directly counts as the check.
+      2. The final message reports the ACTUAL outcome of that check: either the tests ran (with
+         the pass/fail line quoted or summarised) or the command that failed and its error. It
+         does not repeat "tests couldn't be run" as a bare inheritance of the prompt's note.
+
+      FAIL if the final message says the tests were not run because node is unavailable and no
+      command in the transcript tested that claim; or if it claims the tests pass with no run
+      shown in the transcript.
+
+      Not graded: whether the slugify fix is correct, code style, whether node actually exists
+      in the sandbox (a checked-and-confirmed absence PASSES).
