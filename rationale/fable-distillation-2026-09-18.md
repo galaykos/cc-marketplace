@@ -171,6 +171,16 @@ derives the sheets from the reference images (background fill, box-filter fit to
 re-inked edge, whole-frame transforms for the anims) so silhouette and colour are the
 artwork's own.
 
+The user's follow-up settled the mechanism question: *"there was intent for aversion, is
+it possible to assist with it?"* and then *"I don't want to target 'trademark' but maybe
+add a notification or a confirmation if something like this comes up?"* The intent had
+left its reason in text the model wrote — that is what a script can see. candor 0.4.5's
+`avert.sh` reads the dispatch, file, edit or command about to go out, matches three
+clusters of one act (a legal reason, a declared substitute in place of the real thing,
+precaution language), checks that no human turn in the transcript carries the term, and
+turns the call into a permission question. Its limit is stated in its header: an avert
+that never names its reason is invisible to it and stays with move 1 and drift-review.
+
 ## 2. Host check, per the standing instruction
 
 Changelog 2.1.274-276 (installed: 2.1.276; CI pins 2.1.273): 205 bullets, none adding a
@@ -195,6 +205,7 @@ Docs facts that change what this repo may ship, verbatim from `code.claude.com/d
 |---|---|---|---|
 | candor | 0.4.3 | `preamble.sh` also runs on `SubagentStart`, once per `agent_id`, no matcher; five harness cases | `recorded` — additionalContext cannot block |
 | candor | 0.4.4 | move 1 "and nothing less": averting part of what the user named is a question before the first edit; eval `substitution-surfaced-before-build` | `recorded`; the eval is unrun |
+| candor | 0.4.5 | `hooks/avert.sh`, PreToolUse on Agent/Write/Edit/MultiEdit/Bash: text that declares doing less than what was named for a reason the user never gave (legal/IP, a declared substitute, precaution language) with no human turn containing the term → permission question, once per term; `CC_AVERT=notify` for a notification | `gate` on the call, vocabulary-bound: an avert that never names its reason passes |
 | task-runner | 0.36.5 | discipline preamble clause 2: exit codes are evidence only if captured (`PIPESTATUS` empty under zsh); clause 4: blaming an out-of-set file needs the output line naming it; `delegation-contracts` names the report the orchestrator always doubts | `recorded` — pasted into dispatches |
 | laravel | 0.9.2 | `laravel-best-practices`: factories derive from `$attributes`, not the closure's own draw | `recorded` |
 | resilience | 0.7.1 | `performance-tuning` cache correctness: degenerate results (empty/null before data exists) are not cached under a long TTL | `recorded` |
