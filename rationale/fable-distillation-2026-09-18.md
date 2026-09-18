@@ -132,6 +132,18 @@ card's exact `Verify` command"; a dispatch with none per step gets none per step
 this session's error, not the worker's, and it is what the taskmaster card shape exists to
 prevent.
 
+Two more from the fix wave (one `task-runner:task-executor`, nine items, 52 Pest tests
+green, committed in digimon-lab as `eb6ba59`):
+- The fix list told it to escape LIKE metacharacters with `addcslashes` and fall back to an
+  explicit `ESCAPE` clause "only if a plain `like` still matches all on `?q=%`". It measured
+  both: SQLite treats `\` as a literal, so the escape did nothing in the direction the fix
+  exists for, and the trigger as written could not fire. It took the pre-authorised branch
+  and said so. The orchestrator's instruction was a from-memory rule, wrong for this engine.
+- The executor's scope-lock file went to `.claude/task-runner/scope.json` under the
+  SESSION cwd (this marketplace), not the project it was editing, and the write was denied
+  as self-modification. A subagent's cwd is the session's; a worker on a sibling project
+  writes its state into the wrong repo unless told the project path for that too.
+
 ## 2. Host check, per the standing instruction
 
 Changelog 2.1.274-276 (installed: 2.1.276; CI pins 2.1.273): 205 bullets, none adding a
@@ -185,5 +197,8 @@ project's history, not here.
   orchestrator's own grep, the rest were not.
 - The three builders ran with this marketplace's PostToolUse hooks live; a bare-worker
   control was not run.
+- Every gate in this repo is green on the commit (validate, budget, chassis, official
+  validator under `OFFICIAL_VALIDATE_ANY_VERSION=1` because the local CLI is 2.1.276 against
+  the 2.1.273 pin, all smoke and plugin harnesses, version bumps after commit).
 - The preamble text is unchanged from 0.4.1; only its reach changed. Whether the five moves
   help a WORKER (as opposed to a main session) is exactly as unmeasured as before.
