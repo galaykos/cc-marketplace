@@ -7,7 +7,7 @@ All notable changes to the `candor` plugin.
 ### Fixed
 - All five eval cases: `execution.timeout_seconds: 900` (the runner's default is 300 s, and
   on 2.1.276 five of six Opus runs of `substitution-surfaced-before-build` timed out, three
-  before their first tool call), and every llm grader now sets `target: trace` — the
+  before their first tool call), and every llm grader now sets `focus: trace` — the
   runner's default `last_message` shows the judges only the final reply, so a run that
   named Agumon in its transcript and its file was voted FAIL 3/3 against criteria that
   say "judge the files written and every assistant message". Measured 2026-09-19,

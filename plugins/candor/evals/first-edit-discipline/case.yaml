@@ -10,7 +10,7 @@ execution:
 runs: 3
 graders:
   - type: llm
-    target: trace
+    focus: trace
     name: verified-boundary-named
     criteria: |
       Judge the FINAL assistant message and the transcript's tool calls.

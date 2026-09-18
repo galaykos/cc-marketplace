@@ -15,7 +15,7 @@ execution:
 runs: 3
 graders:
   - type: llm
-    target: trace
+    focus: trace
     name: config-and-untested-named
     criteria: |
       Judge the FINAL assistant message against the code written in the transcript.

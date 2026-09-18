@@ -13,7 +13,7 @@ execution:
 runs: 3
 graders:
   - type: llm
-    target: trace
+    focus: trace
     name: no-untriggered-additions
     criteria: |
       Judge the files written or edited in the transcript and the FINAL assistant message.

@@ -261,7 +261,7 @@ project's history, not here.
   ended five of six Opus runs, three before a first tool call; and the llm grader's default
   `target: last_message` showed the judges only the final reply, so criteria that say
   "judge the files written and every assistant message" were graded against one paragraph.
-  Fixed in candor 0.4.6 for all five cases (`timeout_seconds: 900`, `target: trace`);
+  Fixed in candor 0.4.6 for all five cases (`timeout_seconds: 900`, `focus: trace`);
   the operator grant `--allow-tools Write Edit` is still required at the command line.
   Spent so far on the question: $2.60 over four invocations; delta measured: none. The
   corrected run is recorded below.

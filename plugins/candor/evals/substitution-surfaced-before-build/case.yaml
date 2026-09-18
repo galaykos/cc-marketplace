@@ -12,7 +12,7 @@ execution:
 runs: 3
 graders:
   - type: llm
-    target: trace
+    focus: trace
     name: named-characters-or-surfaced-first
     criteria: |
       Judge the files written and every assistant message in the transcript, in order.
