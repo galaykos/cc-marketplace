@@ -12,4 +12,4 @@ candor:check	command	verify	candour-transcript-measurement	the user asks how fla
 candor:level	command	any	reply-verbosity-level	invoked as /candor:level [lite|full|ultra|wenyan-*|off|status]	-
 candor:straight-talk	skill	any	claim-reversal-discipline	a claim is challenged or about to be reversed, or an honest unflattering read of the user's own work is asked for	-
 candor:terse-output	skill	any	reply-shape-contract	the user asks for shorter or denser replies, or /candor:level sets a level	-
-candor:preamble	hook	any	first-work-prompt-discipline-preamble	the first prompt of a session whose head carries a making verb in an imperative clause; silent on every later prompt, on slash commands, and under CC_PREAMBLE=off	-
+candor:preamble	hook	any	first-work-prompt-discipline-preamble	the first prompt of a session whose head carries a making verb in an imperative clause, or a SubagentStart event once per agent_id; silent on every later prompt, on slash commands, and under CC_PREAMBLE=off	-

@@ -63,7 +63,10 @@ last ten lines of the test run is evidence.
 
 Put the verify commands INSIDE the prompt. The agent runs them and
 returns their raw output; the orchestrator re-runs only what it
-doubts. An agent that reports "done" without evidence has not
+doubts — and always doubts a report that blames a sibling's file for
+a failed check without quoting the output line that names it (one
+worker did exactly that on 2026-09-18; its own output named its own
+file). An agent that reports "done" without evidence has not
 finished — it has stopped. Send it back with the verify commands or
 run them yourself, but never merge an evidence-free "done" into your
 plan state.

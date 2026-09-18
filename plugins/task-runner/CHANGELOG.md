@@ -2,6 +2,16 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.36.5 — 2026-09-18
+
+### Changed
+- `delegation-contracts/references/discipline-preamble.md` clause 2: an exit code is evidence
+  only if captured — the Bash tool may run zsh, where `${PIPESTATUS[0]}` is empty (two of three
+  workers wrote it on 2026-09-18 and reported statuses they never saw). Clause 4: blaming an
+  out-of-set file for a failed check requires the output line naming it. The `SKILL.md`
+  evidence section says which report the orchestrator always doubts
+  (`rationale/fable-distillation-2026-09-18.md`).
+
 ## 0.36.4
 
 ### Fixed

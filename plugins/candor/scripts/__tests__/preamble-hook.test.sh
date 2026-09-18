@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Smoke tests for candor/hooks/preamble.sh — the once-per-session UserPromptSubmit
-# hook that injects the five working moves before the first edit.
+# Smoke tests for candor/hooks/preamble.sh — the UserPromptSubmit (once per session) and
+# SubagentStart (once per agent_id) hook that injects the five working moves before the
+# first edit.
 #
 # WHY THIS FILE EXISTS. The hook's whole value is its trigger discipline: speak once
 # on the first imperative work prompt, never again, never on a question, a slash
@@ -46,6 +47,18 @@ out=$(printf 'not json' | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK"
 check "11 malformed payload fails open with exit 0" "$out" 'rc=0'
 n=$(run 'implement the export' s9 | wc -c | tr -d ' ')
 [ "$n" -gt 0 ] && [ "$n" -lt 800 ] && echo "PASS: 12 payload stays under 800 chars ($n)" || { echo "FAIL: 12 payload size $n"; rc=1; }
+runsub() { # $1 agent_id, $2 agent_type — the SubagentStart payload the host sends (no prompt)
+  jq -n --arg a "$1" --arg t "$2" \
+    '{hook_event_name:"SubagentStart",session_id:"s-sub",transcript_path:"/nowhere/s-sub.jsonl",cwd:"/tmp",prompt_id:"p1",agent_id:$a,agent_type:$t}' \
+    | env -u CC_PREAMBLE CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null
+}
+out=$(runsub ag1 general-purpose)
+check "14 SubagentStart speaks with no prompt field" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty')" 'five moves'
+check "15 SubagentStart names its own event" "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.hookEventName // empty')" 'SubagentStart'
+check "16 same agent_id is silent the second time" "$(runsub ag1 general-purpose)" ''
+check "17 a second agent in the same session speaks" "$(runsub ag2 laravel:backend-engineer | jq -r '.hookSpecificOutput.additionalContext // empty')" 'five moves'
+out=$(jq -n '{hook_event_name:"SubagentStart",session_id:"s-sub"}' | CLAUDE_PLUGIN_ROOT="$ROOT/plugins/candor" bash "$HOOK" 2>/dev/null; echo "rc=$?")
+check "18 SubagentStart without agent_id fails open, silent" "$out" 'rc=0'
 m=$(ls -d "$TMP"/cc-preamble-* 2>/dev/null | wc -l | tr -d ' ')
 [ "$m" -ge 1 ] && echo "PASS: 13 marker is written under TMPDIR ($m)" || { echo "FAIL: 13 no marker written"; rc=1; }
 

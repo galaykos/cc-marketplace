@@ -8,7 +8,10 @@ worker's own default procedure wherever they differ.
 1. Restate the card as discrete ordered steps; one change per step.
 2. Inner loop: implement → run the card's **exact** `Verify` command → pass records
    evidence; fail diagnoses from the real output and retries. This overrides any "run
-   the available tests" or similar default in the worker's own prompt.
+   the available tests" or similar default in the worker's own prompt. An exit code is
+   evidence only if it was captured: the Bash tool may run zsh, where `${PIPESTATUS[0]}`
+   expands to nothing — use `$?` on an unpiped command, or `set -o pipefail`, and never
+   report a status you did not see printed.
 3. Three failed fix cycles on one card → **halt**; report the steps tried, the exact
    failing output, and the current hypothesis. No fourth blind fix; never weaken,
    skip, or swap a check to force a pass.
@@ -16,7 +19,9 @@ worker's own default procedure wherever they differ.
    recorded them and diff-checks the paths you touched against that set on return; an
    out-of-set edit reclaims the card. If your change breaks a file OUTSIDE the set,
    that is blast radius, not an errand: report it with evidence in your return —
-   never edit the out-of-set file.
+   never edit the out-of-set file. Blaming an out-of-set file for a failed check
+   requires the tool-output line that names that file; a failure your own output
+   attributes to your own file is yours.
 5. Run the project's full check suite at the end, not only the per-card verify.
 6. Defer rule: a mis-specified card (wrong file, impossible criterion, a decision you
    were not given) is **reported, not reinterpreted**.

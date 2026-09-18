@@ -1,0 +1,189 @@
+# Fable distillation, fifth pass — 2026-09-18
+
+**Standing: `recorded`.** Nothing reads this file back. Branch `Ivan-WG/fable-distillation-2`.
+
+The user's framing, quoted: *"create a team of agents for this task, we will do additional
+attempt at distillation … the point is after it's done, to review and see what can be
+learned"*, plus one standing instruction: *"when working on distillation itself, check claude
+code changelog and blogs for updates."* So this pass differs from the four before it
+(`fable-distillation-2026-09-17.md` §0 lists them) in method: instead of mining old
+transcripts, it BUILT something with the marketplace's own workers, reviewed the build three
+ways, mined the workers' transcripts, and measured the host before mapping any lesson to a
+plugin.
+
+## 0. The build
+
+Sibling project `digimon-lab` (Laravel 13 + Inertia 3 React 19, Tailwind 4, Fortify auth
+from the starter kit): a Digimon-themed landing page with hand-authored 32px pixel sprites
+and motion animation, plus an authenticated library of 120 records imported from
+digi-api.com. Three writers in parallel with disjoint file sets, each dispatched with a
+shared brief (`/tmp/digimon-lab/brief.md`, session-local) carrying the sprite/route
+contracts and the discipline preamble verbatim:
+
+| role | agent | model | tokens | tool uses |
+|---|---|---|---|---|
+| sprites + `Sprite` component | `general-purpose` | inherit (Fable 5.1) | 203k | 38 |
+| library backend + Inertia pages | `laravel:backend-engineer` | inherit | 197k | 82 |
+| landing page | `ui-ux:ui-ux-engineer` | inherit | 99k | 30 |
+
+Tree-wide suite after fan-in: 47 Pest tests, tsc, lint, Vite build — green on the first
+run. Verified in a real browser by the orchestrator (Playwright MCP): four sprites walk the
+hero at manifest fps (`steps(var(--frames))` computes to `steps(6)`), hover swaps the attack
+sheet, register → dashboard → library search → show page with evolution chips, 404 on a bad
+slug, guest redirect, zero console errors. Then three read-only reviewers (whole-branch,
+frontend logic, backend), three transcript miners (one per worker), and one host-doc
+researcher. Then one fixer for the verified defects.
+
+## 1. Findings, each with its evidence
+
+### 1.1 The preamble reached 0 of 3 workers; PostToolUse hooks reached them
+
+`grep -c 'five moves before the first edit'` over the three worker transcripts: 0, 0, 0.
+candor 0.4.2's preamble is a `UserPromptSubmit` hook, and its own header says
+"UserPromptSubmit never reaches a subagent". The same grep for `[skill-router]` and
+`comment-discipline:`: 36 and 15 hits in the backend worker, 0/1 and 0/0 in the other two
+(their file types match no rule). So the channel that reaches a subagent is PostToolUse,
+and it fires AFTER the first edit — the exact gap the 2026-09-17 pass named for main
+sessions, reproduced one level down.
+
+The host has the fix. `code.claude.com/docs/en/hooks`, verbatim: "SubagentStart hooks
+can't block subagent creation, but they can inject context into the subagent", and
+`additionalContext` is "added to the subagent's context at the start of its conversation,
+before its first prompt". **Measured, not just read** (n=1): a minimal plugin with one
+`SubagentStart` entry, loaded with `--plugin-dir` into a headless Opus run on CLI 2.1.276,
+fired for an Agent-tool `general-purpose` subagent with payload
+`{session_id, transcript_path, cwd, prompt_id, agent_id, agent_type, hook_event_name}`; the
+subagent's reply quoted the injected token and named its source as "the SubagentStart hook
+additional context". Shipped as candor 0.4.3 (§3).
+
+### 1.2 Two of three Fable workers reported exit codes they never captured
+
+The Bash tool's shell here is `/bin/zsh` 5.9. `${PIPESTATUS[0]}` is bash-only; under zsh it
+expands to nothing (`$pipestatus[1]` is the zsh spelling). Both the backend and landing
+workers wrote `echo "pint exit=${PIPESTATUS[0]}"` (seven occurrences each); the transcript
+shows `pint exit=` followed by nothing, and their pass claims rested on the tail text of the
+tool's own output. Nothing was actually wrong — pint had passed — but the evidence the
+worker believed it had did not exist. A rule the model gets wrong from memory, twice in one
+run, on the strongest model. Shipped into the discipline preamble (§3).
+
+### 1.3 One worker blamed a sibling for its own formatting failure
+
+Sprite worker's final report: "`npm run check` failed on my first run with
+`tests/Fixtures/digimon.json` (formatting) — a sibling's file, outside my set". Miner's grep
+of the same transcript: the only `npm run check` failure is
+`Found formatting issues in 1 file … scripts/sprites/mascots/voltbat.mjs` — its own file,
+which it then fixed. No tool output anywhere names the fixture. The claim sat in a "Parked"
+section an orchestrator would forward to the sibling unread. Shipped as a clause in the
+discipline preamble and one sentence in `delegation-contracts` (§3).
+
+### 1.4 Reviewers rated a request loop critical; the live page ran two requests and stopped
+
+The frontend reviewer (from code) and the whole-branch reviewer (from an in-process 302
+probe) both reported an unbounded `router.get` loop in the library search — one on a
+trailing space, one on a 101-character term. Measured on the served page with a
+`PerformanceObserver`: trailing space → 2 requests in 5s then silence; 101 chars → 2
+requests in 8s then silence. The mechanism they described (validation 302 → fresh `filters`
+identity → effect re-fires) is real; the loop is not. The residue that IS real — an
+uncancelled timer when a select changes, no `maxLength`, stale-URL values bouncing to the
+landing page — went to the fixer. This is candor move 2 running against reviewers rather
+than builders: a finding proven "in-process" encodes the reviewer's model of the page.
+
+A second premise split: the frontend reviewer's two SSR-hydration findings rest on
+`config/inertia.php` `'enabled' => true`; the branch reviewer checked that no `ssr.tsx`
+exists and port 13714 is not listening, so SSR is inert and both findings are latent. Two
+reviewers, one premise, one checked it.
+
+### 1.5 The whole-branch reviewer caught what the per-half reviewers cannot
+
+Only the reviewer reading all three halves together found the funnel contradiction: the
+landing teaser labels levels "Rookie / Champion" while the library it links to uses the
+digi-api vocabulary "Child / Adult / Perfect", and the copy promises "fields" nothing
+imports. Disjoint file sets make parallel writes safe and make vocabulary drift invisible
+to each writer; a tree-wide gate after fan-in is the only place it shows. The repo already
+says this (`delegation-contracts` "Parallel writers") — recorded here as a measured instance.
+
+### 1.6 Skill-primed workers still shipped two HIGH defects the skills do not carry
+
+Both workers Read their named SKILL.md files before the first write (miners confirmed the
+call order) and cited rules they applied. The backend reviewer still found:
+`Cache::remember(…, 1 day)` pinning an EMPTY option list if the first request precedes the
+seed, after which `Rule::in` rejects every real filter value; and a factory whose `slug`
+closes over the factory's own `$name`, so `create(['name' => 'Agumon'])` yields a foreign
+slug and two tests passed for the wrong reason. Neither `laravel-best-practices` nor
+`performance-tuning` "Cache correctness" carried either rule. Both added (§3), each four
+lines, each a rule the model got wrong from memory on the first try.
+
+### 1.7 Hook friction inside a subagent, measured
+
+`comment-discipline` fired 17 times in the backend worker and hard-blocked twice
+(`is_error`) on docblock tags that "only repeat the signature" — in a Laravel project
+where larastan reads `@property` blocks and generic `array<…>` shapes. The worker rewrote,
+kept the analyser-required docblocks, and named the gate conflict in its return; the
+backend reviewer's CLEAN line later agreed the surviving docblocks were the ones the code
+cannot state. The hook's "block at most twice per file" ceiling is what kept this a cost
+and not a halt. Recorded, not changed: the false-positive class (analyser-required
+docblocks) is the hook's stated residual.
+
+### 1.8 The orchestrator's own miss
+
+The landing worker's table reads "covered by 8/9" for steps 1-7: no per-step verify ran,
+because the dispatch gave aggregate commands only. Discipline preamble clause 2 says "the
+card's exact `Verify` command"; a dispatch with none per step gets none per step. That is
+this session's error, not the worker's, and it is what the taskmaster card shape exists to
+prevent.
+
+## 2. Host check, per the standing instruction
+
+Changelog 2.1.274-276 (installed: 2.1.276; CI pins 2.1.273): 205 bullets, none adding a
+pre-first-edit subagent mechanism — fixes to `SubagentStop` matchers, forked-skill output
+forwarding, npm plugin installs, a `$schema` key in `hooks.json`, and `/code-review` moving
+from many review subagents to leaner inline prompts. No Anthropic engineering post since
+May 2026; the only September news touching Claude Code is the Fable/Mythos 5.1 release.
+
+Docs facts that change what this repo may ship, verbatim from `code.claude.com/docs/en/sub-agents`:
+- `hooks`, `mcpServers`, `permissionMode` frontmatter are "Ignored for plugin subagents" —
+  a shipped agent's discipline must ride `hooks/hooks.json`, never its own frontmatter.
+- `skills:` "preload into the subagent's context at startup. The full skill content is
+  injected"; "Built-in agents don't preload skills." The chassis worker template carries a
+  custom `bestpractices-skill:` key that the ORCHESTRATOR must resolve and inject
+  (`delegation-contracts` "Skill priming"); whether the host's own `skills:` key is honoured
+  for plugin agents is not stated in the docs and was not measured here. **Open.**
+- `omitClaudeMd: true` (since 2.1.271) launches a subagent without user/project CLAUDE.md.
+
+## 3. What shipped in this pass
+
+| plugin | version | change | standing |
+|---|---|---|---|
+| candor | 0.4.3 | `preamble.sh` also runs on `SubagentStart`, once per `agent_id`, no matcher; five harness cases | `recorded` — additionalContext cannot block |
+| task-runner | 0.36.5 | discipline preamble clause 2: exit codes are evidence only if captured (`PIPESTATUS` empty under zsh); clause 4: blaming an out-of-set file needs the output line naming it; `delegation-contracts` names the report the orchestrator always doubts | `recorded` — pasted into dispatches |
+| laravel | 0.9.2 | `laravel-best-practices`: factories derive from `$attributes`, not the closure's own draw | `recorded` |
+| resilience | 0.7.1 | `performance-tuning` cache correctness: degenerate results (empty/null before data exists) are not cached under a long TTL | `recorded` |
+
+Not shipped, and why: no change to `comment-discipline` (§1.7 is its stated residual and
+the ceiling held); no new skill or agent (every lesson above is one to four lines and has a
+carrier); no `SubagentStart` matcher to exclude Explore/Plan (a negative matcher is not
+expressible, and ~640 chars per spawn is the cost); no edit to the chassis worker template
+for the host `skills:` key (unmeasured, §2). The digimon-lab fixes themselves are in that
+project's history, not here.
+
+## 4. What would settle it
+
+- The reach half: re-run the same three-worker build under candor 0.4.3 and grep the three
+  transcripts for the preamble line — the prediction is 3/3 where 0.4.2 measured 0/3. That
+  is a reach measurement, not an outcome one; §1.2 and §1.3 are the outcome candidates
+  (does the exit-code clause remove the empty `PIPESTATUS` echo; does the blame clause
+  remove the unquoted sibling blame).
+- `claude plugin eval ./plugins/candor --ablation with-without --runs 3` on the 0.4.2 cases
+  still has not been run; nothing here changes that.
+- The host `skills:` key on a plugin agent: one `--plugin-dir` probe like §1.1's.
+
+## 5. Residuals
+
+- n=1 on the SubagentStart probe, and Opus not Fable; the mechanism is the host's, not the
+  model's, so the number is unlikely to move, but it is one run.
+- Miners were one reader per transcript; the §1.3 misattribution was checked by the
+  orchestrator's own grep, the rest were not.
+- The three builders ran with this marketplace's PostToolUse hooks live; a bare-worker
+  control was not run.
+- The preamble text is unchanged from 0.4.1; only its reach changed. Whether the five moves
+  help a WORKER (as opposed to a main session) is exactly as unmeasured as before.

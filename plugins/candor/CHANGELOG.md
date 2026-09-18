@@ -2,6 +2,18 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.3 — 2026-09-18
+
+### Added
+- `hooks/preamble.sh` also runs on `SubagentStart`, once per `agent_id`, unconditionally —
+  a spawn is work by construction, so the prompt-shape trigger is skipped. Measured the
+  same day: three Agent-tool workers built a Laravel/React app under 0.4.2 and the preamble
+  reached 0 of 3 (`UserPromptSubmit` never fires inside a subagent), while a plugin
+  `SubagentStart` entry probed with `--plugin-dir` on CLI 2.1.276 did reach a
+  `general-purpose` subagent, which quoted the injected text and named its source
+  (`rationale/fable-distillation-2026-09-18.md`). No matcher: Explore and Plan spawns pay
+  the ~640 chars too. Five new harness cases (14-18). Standing unchanged: `recorded`.
+
 ## 0.4.2 — 2026-09-18
 
 ### Added
