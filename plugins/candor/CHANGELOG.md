@@ -2,6 +2,62 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.6 — 2026-09-19
+
+### Fixed
+- All five eval cases: `execution.timeout_seconds: 900` (the runner's default is 300 s, and
+  on 2.1.276 five of six Opus runs of `substitution-surfaced-before-build` timed out, three
+  before their first tool call), and every llm grader now sets `focus: trace` — the
+  runner's default `last_message` shows the judges only the final reply, so a run that
+  named Agumon in its transcript and its file was voted FAIL 3/3 against criteria that
+  say "judge the files written and every assistant message". Measured 2026-09-19,
+  `rationale/fable-distillation-2026-09-18.md` §4. Running any of these needs the operator
+  grant `--allow-tools Write Edit` (Bash too where the case's scaffold needs it); the
+  case's `allowed_tools` alone grants nothing.
+
+## 0.4.5 — 2026-09-18
+
+### Added
+- `hooks/avert.sh`, PreToolUse on Agent, Write, Edit, MultiEdit and Bash: when the text
+  about to reach a worker or disk declares doing less than what was named for a reason
+  the user did not give — a legal/IP reason, a declared substitute (original, invented,
+  generic, placeholder, stand-in, look-alike, inspired-by) in place of the real thing, or
+  precaution language ("to be safe", "as a precaution", "to avoid any legal …") — and no
+  human turn in the session transcript contains that term, the call becomes a permission
+  question (`ask`), once per term per session. `CC_AVERT=notify` makes it a notification
+  instead (the user asked for "a notification or a confirmation", not a trademark filter). Tool results are not human turns, so a worker's
+  report cannot launder a hedge into "the user said it". Trigger: the 0.4.4 avert left its
+  reason in the dispatch it wrote — "NOT copies of trademarked characters" — while no prompt
+  of the user's mentioned trademarks; the user asked whether that intent could be caught.
+  It can, inside this vocabulary: a hedge that never names its reason still passes, and
+  that half stays with move 1 and drift-review. Eleven-case harness. `CC_AVERT=off`.
+  Standing: gate on the call; a guard, not a proof.
+
+## 0.4.4 — 2026-09-18
+
+### Changed
+- `hooks/preamble.sh` move 1 gains its other half: "and nothing less". Averting part of
+  what the user named — a risk judged for them, a hedge, a safer substitute — is a question
+  before the first edit, not a cut confessed after. The move is the avert, not its subject.
+  Trigger: the same day, the orchestrating session — asked for a Digimon-themed page with
+  2D sprites — decided a trademark hedge on the user's behalf, briefed its sprite worker
+  to draw invented mascots, in a project whose library already showed real Digimon, and
+  named the swap only at the end. The user's words: "the action you did which is avert". Harness cap raised from
+  800 to 1,000 chars. One eval case, `substitution-surfaced-before-build`, with the
+  with/without control arm; not run.
+
+## 0.4.3 — 2026-09-18
+
+### Added
+- `hooks/preamble.sh` also runs on `SubagentStart`, once per `agent_id`, unconditionally —
+  a spawn is work by construction, so the prompt-shape trigger is skipped. Measured the
+  same day: three Agent-tool workers built a Laravel/React app under 0.4.2 and the preamble
+  reached 0 of 3 (`UserPromptSubmit` never fires inside a subagent), while a plugin
+  `SubagentStart` entry probed with `--plugin-dir` on CLI 2.1.276 did reach a
+  `general-purpose` subagent, which quoted the injected text and named its source
+  (`rationale/fable-distillation-2026-09-18.md`). No matcher: Explore and Plan spawns pay
+  the ~640 chars too. Five new harness cases (14-18). Standing unchanged: `recorded`.
+
 ## 0.4.2 — 2026-09-18
 
 ### Added

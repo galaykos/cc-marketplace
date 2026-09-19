@@ -136,6 +136,7 @@ destructive-command-classification
 destructive-command-execution
 destructive-schema-consent
 first-work-prompt-discipline-preamble
+dispatch-hedge-guard
 irreversible-command-or-repeated-attempt
 mockup-preview-consent
 non-destructive-command-equivalents

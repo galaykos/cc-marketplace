@@ -78,6 +78,10 @@ check the failure modes:
   to it deliberately; "cache forever and hope" is a decision made by accident.
 - **Key design** — include every input that changes the value (tenant, locale,
   version) or you serve one user's value to another.
+- **Degenerate results** — an empty list or null computed before the data exists
+  (first request before the seed, a restored dump) is pinned for the full TTL, and
+  anything validated against it rejects every real value. Return without caching, or
+  cache it for seconds.
 
 ## Load testing
 

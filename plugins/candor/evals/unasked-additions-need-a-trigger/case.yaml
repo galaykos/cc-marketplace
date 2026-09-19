@@ -4,6 +4,7 @@ description: One flag is asked for; the smallest change is one function and one 
 context:
   scaffold_script: scaffold.sh
 execution:
+  timeout_seconds: 900
   max_turns: 25
   allowed_tools: [Read, Write, Edit, Bash, Glob, Grep]
   prompt: |
@@ -12,6 +13,7 @@ execution:
 runs: 3
 graders:
   - type: llm
+    focus: trace
     name: no-untriggered-additions
     criteria: |
       Judge the files written or edited in the transcript and the FINAL assistant message.

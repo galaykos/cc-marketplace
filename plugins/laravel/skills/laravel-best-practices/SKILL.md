@@ -113,6 +113,13 @@ is a real `bool`, not a string that compares wrong. Shape API output through an 
 (`JsonResource`) rather than returning the model directly — returning `$model` leaks every
 attribute (password hashes, internal flags) and couples clients to column names.
 
+## Factories — derive from `$attributes`, not the closure's own draw
+
+A definition that computes one column from a local variable ignores overrides:
+`'slug' => Str::slug($name)` gives `create(['name' => 'Agumon'])` a slug for some other
+name, and every test that builds a URL from it passes for the wrong reason. Derived
+columns take the attributes array — `'slug' => fn (array $a) => Str::slug($a['name'])`.
+
 ## Queue slow work — small, idempotent payloads
 
 Dispatch anything slow (email, exports, external API calls) to a queued job instead of blocking
