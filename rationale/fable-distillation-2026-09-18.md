@@ -204,7 +204,7 @@ Docs facts that change what this repo may ship, verbatim from `code.claude.com/d
 | plugin | version | change | standing |
 |---|---|---|---|
 | candor | 0.4.3 | `preamble.sh` also runs on `SubagentStart`, once per `agent_id`, no matcher; five harness cases | `recorded` — additionalContext cannot block |
-| candor | 0.4.4 | move 1 "and nothing less": averting part of what the user named is a question before the first edit; eval `substitution-surfaced-before-build` | `recorded`; the eval is unrun |
+| candor | 0.4.4 | move 1 "and nothing less": averting part of what the user named is a question before the first edit; eval `substitution-surfaced-before-build` | measured zero (§4), **removed in 0.4.7**; the eval case stays |
 | candor | 0.4.6 | all five eval cases: `timeout_seconds: 900`, llm graders `focus: trace` | `recorded`; one case run, §4 |
 | candor | 0.4.5 | `hooks/avert.sh`, PreToolUse on Agent/Write/Edit/MultiEdit/Bash: text that declares doing less than what was named for a reason the user never gave (legal/IP, a declared substitute, precaution language) with no human turn containing the term → permission question, once per term; `CC_AVERT=notify` for a notification | `gate` on the call, vocabulary-bound: an avert that never names its reason passes |
 | task-runner | 0.36.5 | discipline preamble clause 2: exit codes are evidence only if captured (`PIPESTATUS` empty under zsh); clause 4: blaming an out-of-set file needs the output line naming it; `delegation-contracts` names the report the orchestrator always doubts | `recorded` — pasted into dispatches |

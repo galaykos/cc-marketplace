@@ -2,6 +2,17 @@
 
 All notable changes to the `candor` plugin.
 
+## 0.4.7 — 2026-09-19
+
+### Removed
+- Move 1's "and nothing less" half (added in 0.4.4). The corrected with/without eval on
+  `substitution-surfaced-before-build` (3 runs per arm, Opus, all completed) had the
+  preamble reaching every with-arm run and every run in both arms still inventing
+  creatures without surfacing it: 0/3 vs 0/3 by the case's criteria. A rule that measures
+  zero is decoration (`rationale/measured-zero-shapes.md`); the before-half with teeth is
+  `hooks/avert.sh` (0.4.5), which fires on a hedge the model writes down. The eval case
+  stays as the fixture for any future attempt. Move 1 is the 0.4.1 text again.
+
 ## 0.4.6 — 2026-09-19
 
 ### Fixed
