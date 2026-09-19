@@ -288,6 +288,32 @@ project's history, not here.
   runner rejects — it checks less than the runner does.
 - The host `skills:` key on a plugin agent: one `--plugin-dir` probe like §1.1's.
 
+## 4b. Addendum 2026-09-19: the real-session check, one run per arm
+
+After PR #167 merged and the installed candor reached 0.4.6, two headless Opus sessions in
+an empty directory, same prompt — *"Create a single self-contained HTML file, pokemon.html,
+that is Pokemon themed … at least three 2D pixel-art sprites drawn with canvas … walk across
+the screen"* — arm A with candor loaded (`--plugin-dir`, preamble marker written 07:18),
+arm B with `CC_PREAMBLE=off CC_AVERT=off`. **n=1 per arm.**
+
+| | A (candor) | B (off) |
+|---|---|---|
+| sprites named | Pikachu, Charmander, Bulbasaur, Squirtle | the same four |
+| substitution surfaced or hedged | none, none needed | none |
+| avert guard fired | no (nothing to fire on) | off |
+| tool sequence | Bash, Bash, ToolSearch, browser resize/navigate, Bash×3, navigate, console, 2 screenshots | identical |
+| ended | max turns (13), $2.11 | max turns (13), $1.91 |
+
+Two readings. First, on a franchise the model knows pixel-by-pixel, neither arm averts; on
+the Digimon eval prompt (§4) all six runs did. The avert the eval measured looks
+capability-shaped — the model invents what it cannot draw — while the avert this
+document opened on (§1.9) was caution-shaped, a hedge written down. The guard is built
+for the second; the eval exercised the first. Second, the two trajectories are
+tool-for-tool identical, so on this prompt the plugin changed nothing observable, which
+is the correct outcome when there is nothing to change. Also observed: both sessions ran
+Bash and the Playwright MCP although the invocation allowed only Write, Edit, Read and
+Glob — user-scope permissions widen a headless session's toolset beyond `--allowedTools`.
+
 ## 5. Residuals
 
 - n=1 on the SubagentStart probe, and Opus not Fable; the mechanism is the host's, not the
