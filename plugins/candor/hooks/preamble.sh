@@ -5,12 +5,13 @@
 # UserPromptSubmit, once per session, on the FIRST work-shaped prompt. On SubagentStart,
 # once per agent_id, unconditionally — a spawn is work by construction. ~800 chars.
 #
-# WHY MOVE 1 HAS A "NOTHING LESS" HALF (0.4.4). 2026-09-18: the orchestrating session,
-# asked for a Digimon-themed page with 2D sprites, briefed its sprite worker to draw
-# "original mascots, not trademarked characters" — a hedge the user never asked for, in a
-# project whose library already showed real Digimon — and named it only in the final
-# message under "cut". drift-review carries the done-time check (its clauses c and e);
-# nothing carried the before-half. Same rationale file as SubagentStart.
+# WHY MOVE 1 HAS NO "NOTHING LESS" HALF (0.4.7). 0.4.4 added one — averting part of what
+# the user named is a question before the first edit — after the orchestrating session
+# briefed a worker to draw "original mascots, not trademarked characters" nobody asked
+# for. Measured 2026-09-19 with the with/without eval: the with-arm reached 3/3 runs and
+# all six runs (both arms) still invented creatures without a word. A sentence the model
+# already knows measured zero, again; the before-half with teeth is hooks/avert.sh, which
+# fires on the reason being written down. Same rationale file as SubagentStart.
 #
 # WHY SUBAGENTSTART TOO. Measured 2026-09-18 (rationale/fable-distillation-2026-09-18.md):
 # three Agent-tool workers built a Laravel/React app under 0.4.2 and this text reached
@@ -77,7 +78,7 @@
   find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'cc-preamble-*' -type d -mmin +1440 -exec rmdir {} + 2>/dev/null
   mkdir "${TMPDIR:-/tmp}/cc-preamble-$key" 2>/dev/null || exit 0
 
-  jq -cn --arg m 'candor: five moves before the first edit, this session. (1) Make the smallest change that satisfies the ask — and nothing less: anything more needs a trigger named in place (the user asked, a stated criterion, an observed defect) or is left out, and averting part of what the user named — a risk you judged for them, a hedge, a safer substitute — is a question before the first edit, not a cut confessed after. (2) Prove it through the surface the user will use — the browser, the live endpoint, the real host — never only a double you wrote: it encodes your guess and cannot disagree with you. (3) A green run that predates your last edit, or ran under your own background load, is not evidence; run it again. (4) Before stating a limitation (a tool missing, a host unreachable), run the command that checks it. (5) The final message names what is untested, what you cut, and what the user must configure.' \
+  jq -cn --arg m 'candor: five moves before the first edit, this session. (1) Make the smallest change that satisfies the ask; anything more needs a trigger named in place — the user asked, a stated criterion, an observed defect — or is left out; an unasked feature or file admitted afterwards is not a trigger. (2) Prove it through the surface the user will use — the browser, the live endpoint, the real host — never only a double you wrote: it encodes your guess and cannot disagree with you. (3) A green run that predates your last edit, or ran under your own background load, is not evidence; run it again. (4) Before stating a limitation (a tool missing, a host unreachable), run the command that checks it. (5) The final message names what is untested, what you cut, and what the user must configure.' \
     --arg e "$event" '{hookSpecificOutput:{hookEventName:$e,additionalContext:$m}}' 2>/dev/null
 } 2>/dev/null
 exit 0
