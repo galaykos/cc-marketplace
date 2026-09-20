@@ -120,6 +120,11 @@
       "description": "Candour as a mechanism, not a pep talk. One blocking Stop gate, five clauses a script can prove: a file:line citation resolving to no file or past its end; a position retracted after bare pushback with no tool call in between; a completion claim after edits with nothing executed since; a task-runner run stopping without its recorded gate pass; a dependency map changed with an untouched lockfile. Flattery, apologies and defensive phrasing are counted by /candor:check and blocked by nothing, on purpose. Plus the terse reply mode (/candor:level lite|full|ultra|off): chat-message brevity as a shape contract — prose-line budgets and a fixed report skeleton, never less work in the turn."
     },
     {
+      "name": "ask-ledger",
+      "source": "./plugins/ask-ledger",
+      "description": "Catches the silent avert — work that quietly does less than the ask named, with no reason written anywhere. On the first work-shaped prompt a hook destructures the ask into its named things (proper nouns, quoted terms, 2D/3D-style tokens) and keeps them as a session ledger; a Stop gate refuses a final message that does not account for each one — `<name>: as named | substituted → what, why | omitted → why`. The script proves the accounting exists; whether it is true is the model's word and the reader's eye. Off with CC_ASK_LEDGER=off."
+    },
+    {
       "name": "frontend-suite",
       "source": "./plugins/frontend-suite",
       "description": "Meta-bundle: the frontend stack category in one install — UI/UX stacks, web-dev (Next.js, React Native, Vite skills, the generalist worker and the opus-floored frontend-reviewer), the WCAG audit inside ui-ux, skill auto-routing (skill-router), and code-review (the review fan-in that loads those skills for whatever the diff touches, plus comment discipline). Inertia lives in the laravel plugin (install by name). The creative-build studio, craft-layer, lives in craft-suite so ordinary frontend work does not pay its always-on context. Uninstall cleanly with /frontend-suite:uninstall."
