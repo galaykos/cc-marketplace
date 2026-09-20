@@ -4,6 +4,11 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.8.3 — 2026-09-20
+
+### Changed
+- `plugin-scout/references/catalog.md` regenerated: the `ask-ledger` leaf plugin joins the catalog.
+
 ## 0.8.2
 
 ### Changed
