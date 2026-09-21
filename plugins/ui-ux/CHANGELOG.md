@@ -4,6 +4,13 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.24.3 — 2026-09-22
+
+### Fixed
+- `references/mui.md`'s `Last verified` stamp put the npm tail before a parenthetical, so
+  `check-doc-staleness.sh` reported it malformed on every run and `--live` never saw
+  MUI. Tail moved last; the regex the same 2026-09-09 commit added now parses it.
+
 ## 0.24.2
 
 ### Fixed

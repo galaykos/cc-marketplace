@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Self-hosted best-practice plugins: UI/UX stacks, frameworks, databases, architecture, design patterns, testing, security, API design, dev environments, and the taskmaster clarification-to-execution workflow suite.",
-    "version": "0.113.2"
+    "version": "0.113.3"
   },
   "plugins": [
     {
@@ -147,7 +147,7 @@
     {
       "name": "skill-router",
       "source": "./plugins/skill-router",
-      "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia/Livewire via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations (one engine-agnostic rubric, plus a MariaDB row where that engine is detected), components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session."
+      "description": "File-aware skill auto-routing: a PostToolUse hook injects one additionalContext directive to load the relevant best-practice skill(s) when you edit a matching file (PHP/Laravel/Blade, React/Vue/Inertia via .tsx/.jsx/.vue, plain .ts/.js/.py/.go/.rb/.rs, SQL and migrations (one engine-agnostic rubric, plus a MariaDB row where that engine is detected), components, tests, Dockerfiles, OpenAPI), a SessionStart hook primes a repo-tailored skill index, and low-confidence content signals flush as one digest on your next prompt (SessionEnd keeps the ledger). Every relevant skill co-fires per edit; fail-open, once per skill per session."
     },
     {
       "name": "command-guard",

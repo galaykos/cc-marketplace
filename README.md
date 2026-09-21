@@ -38,6 +38,12 @@ Not sure what you need? Install one plugin and let it tell you:
 /all-plugins:uninstall            # the inverse; --self removes all-plugins too
 ```
 
+After `/plugin marketplace update`, a `N plugins failed to update` line is expected when
+this marketplace has removed or merged plugins since your last update (three waves so
+far: 2026-08-26, 2026-09-02, 2026-09-14). The names are stale entries in your local
+`~/.claude/plugins/installed_plugins.json`; uninstall each named plugin once and the
+message stops. Nothing that still exists is affected.
+
 What the scout prints, in order:
 
 1. **Stack-matched** — plugins earned by a manifest line it cites (`composer.json`

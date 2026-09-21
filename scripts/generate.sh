@@ -173,7 +173,7 @@ lane_row() { # obj plugin-dir artifact kind default-phase
   [ -n "$art" ] || die "$rel/.chassis.json: a $kind object has a lane but no artifact name (reminder hooks need \"artifact\")"
   owns="$(printf '%s' "$obj" | jq -r '.lane.owns // empty')"
   trig="$(printf '%s' "$obj" | jq -r '.lane.trigger // empty')"
-  yt="$(printf '%s' "$obj" | jq -r '.lane.yieldsTo // "-"')"
+  yt="$(printf '%s' "$obj" | jq -r 'if (.lane.yieldsTo // "") == "" then "-" else .lane.yieldsTo end')"
   phase="$(printf '%s' "$obj" | jq -r --arg d "$dphase" '.lane.phase // $d')"
   [ -n "$owns" ] && [ -n "$trig" ] || die "$rel/.chassis.json: lane for $art needs non-empty owns and trigger"
   [ -n "$phase" ] || die "$rel/.chassis.json: lane for $art ($kind) must declare \"phase\" explicitly — hooks and agents have no default (pc_phase_guard reads it; 'any' exempts a hook from the sentinel)"

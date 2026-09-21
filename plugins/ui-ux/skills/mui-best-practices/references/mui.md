@@ -1,8 +1,8 @@
 # Material UI structure digest — packages, imports, theme API, majors
 
-> Last verified: 2026-09-02 — https://mui.com/material-ui/ — npm:@mui/material@9 (stable major: v9;
-> https://mui.com/versions/ and https://mui.com/material-ui/migration/ for the
-> per-major guides)
+> Last verified: 2026-09-02 — https://mui.com/material-ui/ — npm:@mui/material@9
+> (stable major: v9; https://mui.com/versions/ and https://mui.com/material-ui/migration/
+> for the per-major guides)
 
 Read on demand from mui-best-practices. Structure-stable material only:
 package family, import shape, the theme API surface, and what each major

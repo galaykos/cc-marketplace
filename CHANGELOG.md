@@ -4,6 +4,46 @@ All notable changes to this marketplace are documented here. The version below
 is the marketplace `metadata.version`; individual plugins carry their own
 version in their `plugin.json`.
 
+## [0.113.3] - 2026-09-22
+
+Session review: eight specialised agents mined 44 Claude Code session transcripts
+(2026-08-21 to 2026-09-21) and the git history for reversals, rework and drift, then
+every item with residue at HEAD was verified by hand and fixed. Only residue was
+touched; process friction with nothing left in the tree is reported, not patched.
+
+- **`check-version-bumps.sh` changelog coverage anchored to a `##` heading.** It was a
+  bare substring match, so a bundle that inherited its predecessor's changelog
+  (core-suite from always-on-suite, workflow-suite from taskmaster-suite) passed six <!-- removed-ok -->
+  unreleased versions vacuously — measured by running the grep by hand. Both inherited
+  tails now sit under an "Inherited history" heading as `###` entries the gate cannot
+  mistake for a release; core-suite's duplicate `## 0.1.1` heading is gone with it.
+- **CLAUDE.md pre-push block runs `official-validate.sh` with
+  `OFFICIAL_VALIDATE_ANY_VERSION=1`.** Seven sessions hit `claude 2.1.27x is not the
+  pinned 2.1.273` and worked around it by hand; the env var was never written down.
+- **CLAUDE.md escape-hatch table lists every marker the checks honour** — six were
+  missing (`false-standing-ok`, `co-fire-ok`, `prime-ok`, `dispatch-ok`, `handoff-ok`,
+  `scout-name-ok`), open since the 2026-09-16 trend audit.
+- **CLAUDE.md and `turn-cost.sh` no longer claim "both ledgers were empty in every
+  project"** — measured false on 2026-09-01 (records existed under the projects where
+  plugins are used) and left in place for three weeks.
+- **CLAUDE.md** "All three suites have now been executed" dated to 2026-09-14 (five
+  suites exist now, two unrun); the "9-29 lines" header range dropped (the file
+  falsified it at both ends); `pc_version_stamp`'s header no longer cites
+  `validate.sh:559-561` (now the bundle-dependency gate).
+- **`pc_deference_edges` strips whitespace from comma-split `yields_to` tokens** and
+  `generate.sh` treats an empty `yieldsTo` as absent — both flagged 2026-09-04, both
+  latent since.
+- **Plugins:** task-runner 0.36.6 (worker writes per-task scope file, dangling
+  reference path), database 0.9.3 / laravel 0.9.3 (two-skill rubric line rendered as one
+  name — template fixed), ui-ux 0.24.3 (MUI stamp unparseable to the staleness checker),
+  stack-scan 0.8.4 (unstamped vendored snapshot, last frozen picker integer, catalog),
+  skill-router 0.17.3 (Livewire route promised 27 days after the skill was deleted), <!-- removed-ok -->
+  devops 0.6.10 / resilience 0.7.2 (ultra-assess recommendation names its owner).
+- **Repo hooks carry timeouts**; `eval-cases.sh` names the grader-key gap it measured on
+  2026-09-18; the `authoring-hooks` project skill documents `SubagentStart`, the eighth
+  event the tree ships; README tells installers why `N plugins failed to update` appears
+  after a removal wave (asked for on 2026-08-27, recurred twice).
+
 ## [0.113.2] - 2026-09-17
 
 - **`eval-cases.sh` now checks `schema_version`** — the item 0.113.1 left open, closed in

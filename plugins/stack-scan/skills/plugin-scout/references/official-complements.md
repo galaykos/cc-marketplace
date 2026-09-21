@@ -1,5 +1,7 @@
 # Official complements — what to install from `claude-plugins-official`
 
+> Last verified: 2026-09-02 — https://github.com/anthropics/claude-plugins-official
+
 This marketplace does not cover everything a development session needs, and
 several of the gaps are already filled by Anthropic's own directory,
 `anthropics/claude-plugins-official`. The scout says so and points there instead

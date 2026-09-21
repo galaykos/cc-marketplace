@@ -58,14 +58,20 @@ rather than invented ones).
   process-suite or quality-principles-suite install: uninstall it with its own <!-- removed-ok -->
   `uninstall` command, then install this one.
 
-## 0.19.0
+## Inherited history — taskmaster-suite (before 2026-09-14) <!-- removed-ok -->
+
+The entries below carry taskmaster-suite's own version numbers and are not releases of
+this bundle; they are kept as `###` headings so the changelog-coverage gate cannot
+mistake one for a current entry.
+
+### 0.19.0
 
 ### Changed
 - `orchestration` merged into `task-runner` on 2026-09-14 (consolidation plan §3.1); <!-- removed-ok -->
   the bundle lists 10 members and loses nothing — the two skills, the lint and the
   ultra-assess hook ship in task-runner.
 
-## 0.18.0
+### 0.18.0
 
 ### Added
 - `candor` joins the bundle (11 members). The Stop hooks that held a task-runner run
@@ -73,7 +79,7 @@ rather than invented ones).
   on 2026-09-14 (consolidation plan §4.2); without it the pipeline's two done-time
   gates would be prose.
 
-## 0.17.2
+### 0.17.2
 
 ### Changed
 - `lane.tsv` rows for this plugin's chassis-generated artifacts are now rendered by
@@ -82,7 +88,7 @@ rather than invented ones).
   same territory, trigger and yields_to; `generate.sh --check` fails if the two drift.
   No behaviour change for a user of the plugin.
 
-## 0.17.1
+### 0.17.1
 
 ### Added
 - **Context-window requirement declared, and gated.** On the default 200k window
@@ -93,7 +99,7 @@ rather than invented ones).
   declaration disappears while the bundle still overflows. The declared numbers
   themselves are `recorded`, not checked.
 
-## 0.17.0
+### 0.17.0
 
 ### Removed
 - **22 of 32 members.** The bundle now ships the pipeline and only what it

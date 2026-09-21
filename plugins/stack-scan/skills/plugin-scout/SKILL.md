@@ -137,7 +137,7 @@ signal-backed rows (evidence cited) then the tier-2 core rows, 4 options each;
 question 4 is the tier-3 door — browse the remainder / print its install commands /
 just the picks above / stop. Every tier-3 row stays reachable by number, name or range
 through any Other, and via `scripts/pick.sh`. `--all` pages every row as an explicit
-option instead (~5 calls). Installed rows are never options. Full contract:
+option instead (one call per page of 15 rows). Installed rows are never options. Full contract:
 `references/picker.md`. Headless: print install commands for every not-installed
 suggestion, then stop. With `--yes`: skip the picker — see Flags.
 

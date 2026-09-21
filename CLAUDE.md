@@ -40,8 +40,8 @@ the edit is out of scope, and that includes polishing this file. **Standing:
     **Standing of the eval surface itself: `recorded`, and now partly measured.**
     Few plugins ship an eval, and the control arm is supplied by the runner's
     `--ablation with-without` flag (its default when a plugin resolves), not by any
-    shipped `case.yaml`. All three suites have now been executed with a control arm
-    on CLI 2.1.270 — the numbers are in
+    shipped `case.yaml`. The three suites that existed on 2026-09-14 were executed with a
+    control arm on CLI 2.1.270 (suites added since have loaded but not run) — the numbers are in
     `rationale/marketplace-endgame-review-2026-09-14.md` §8 wave D, where the one
     NEGATIVE delta was WITHDRAWN a day later: it did not replicate. Read the amendment,
     not the table above it. Nothing runs them in CI, which is how two dead suites
@@ -127,7 +127,7 @@ and saying so is the point.
 ## Plugin change gates
 
 Four scripts. **Every derivation below lives in the check's own header** — each
-`pc_*` function in `scripts/lib/plugin-checks.sh` carries 9-29 lines explaining
+`pc_*` function in `scripts/lib/plugin-checks.sh` carries a header explaining
 what it catches, what it does not, and what shipped that made it exist. This
 section used to restate them, which put the same argument in two files and let
 the copy here go stale: it described `pc_budget_crowding`'s ceiling as 150 lines
@@ -160,6 +160,12 @@ convention. What follows is only what you need in hand while editing.
   | `# harness-payload-ok:` | a harness deliberately sending no `transcript_path` |
   | `# lane-cofire-ok:` | two artifacts deliberately sharing one `owns` in one phase |
   | `<!-- listing-floor-ok: -->` | a bundle over the floor skill-listing budget that will not declare it |
+  | `<!-- false-standing-ok: -->` | a paragraph that names a gate's standing in a way the standing check misreads |
+  | `# co-fire-ok: content <a> <b>` | two skills deliberately sharing a body-content trigger |
+  | `# prime-ok: <skill>` | a stack skill deliberately primed by more than one entry |
+  | `<!-- dispatch-ok -->` | a chassis sample that deliberately dispatches the generic subagent |
+  | `<!-- handoff-ok -->` | a line that deliberately hands off to a command outside its bundle |
+  | `<!-- scout-name-ok: -->` | a scout catalog row naming a plugin on purpose that the name check rejects |
 
   `claude-api` must be described as Claude Code's built-in skill, never as a
   marketplace artifact.
@@ -247,8 +253,13 @@ bash scripts/validate.sh
 bash scripts/check-version-bumps.sh master
 bash scripts/context-budget.sh
 bash scripts/generate.sh --check
-bash scripts/official-validate.sh   # the host's validator, --strict; CI runs it last
+OFFICIAL_VALIDATE_ANY_VERSION=1 bash scripts/official-validate.sh   # the host's validator, --strict; last fail-capable CI step
 ```
+
+`official-validate.sh` pins the CLI version CI installs and FAILs locally the moment
+your CLI auto-updates past it — which it does every few days. The env var skips only
+the pin check; CI still asserts it. Bump the pin in the script and in
+`.github/workflows/validate.yml` together when the CI version moves.
 
 **`check-version-bumps.sh` reads `HEAD`, not your working tree** (`:36`,
 `git diff "$base"...HEAD`). Every other gate above reads the files on disk. So running it
@@ -367,8 +378,9 @@ instruction and the model requests it took. Always exits 0; withholds any
 per-plugin ratio below `--min-blocks`; prints its own attribution coverage and
 its blind spots (subagent turns are invisible and are billed). **`--skills` is
 the retirement queue** — it absorbed `scripts/retirement-queue.sh` (deleted
-2026-08-31: both ledgers that script read were empty in every project on the
-machine it was folded on, a reader whose writers never fired). The mode joins
+2026-08-31: it defaulted to the current project, where neither ledger had records,
+and answered with an empty table — the records existed in the projects where plugins
+are used, which that default never read). The mode joins
 shipped skills against the router ledger, the hindsight ledger AND transcript
 `attributionSkill` records, names which sources had data, and keeps the original
 doctrine: zero proves nobody used it HERE, non-zero proves it fired and not that
