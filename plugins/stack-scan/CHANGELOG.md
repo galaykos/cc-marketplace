@@ -4,6 +4,13 @@ All notable changes to the stack-scan plugin. Earlier releases (0.1.0–0.6.3) w
 recorded; plugin-scout, which was merged into this plugin, kept its own changelog (up to
 0.15.10) — it is in git history under its old directory, last present at commit `db97e51`.
 
+## 0.8.5 — 2026-09-22
+
+### Changed
+- `references/catalog.md` regenerated: the scout now lists `design-kit` (Slides, Design,
+  Design in codebase, Design System and Artifacts as local commands) among the leaves it
+  can suggest.
+
 ## 0.8.4 — 2026-09-22
 
 ### Fixed

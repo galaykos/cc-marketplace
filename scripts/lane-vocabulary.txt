@@ -19,6 +19,7 @@
 # Standing: gate — validate.sh fails on an `owns` value absent from this file.
 
 # --- understand ---
+design-system-extraction
 incident-diagnosis
 installed-stack-inventory
 marketplace-plugin-suggestion
@@ -41,6 +42,8 @@ change-shape-deliberation
 key-moment-second-opinion
 persona-opinion-shard
 spec-hole-adversary
+ui-direction-artboards
+unread-board-pick-notice
 unanchored-second-opinion
 
 # --- plan ---
@@ -69,9 +72,11 @@ performance-optimization
 php-laravel-backend-implementation
 pipeline-and-infra-implementation
 react-native-idioms
+real-component-design-render
 relational-schema-and-query-implementation
 reviewer-verdict-consent
 secret-handling-discipline
+slide-deck-authoring
 sql-idioms
 stack-neutral-web-implementation
 third-party-api-doc-reminder
@@ -122,6 +127,7 @@ development-branch-completion
 frontend-suite-uninstall
 marketplace-wide-install
 marketplace-wide-uninstall
+self-contained-artifact-bundle
 workflow-suite-uninstall
 
 # --- any ---

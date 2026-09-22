@@ -1,6 +1,6 @@
 # cc-plugins-marketplace
 
-A Claude Code plugin marketplace: **29 leaf plugins** and **4 bundles** covering
+A Claude Code plugin marketplace: **30 leaf plugins** and **4 bundles** covering
 stacks, review, architecture, design, and the whole idea-to-shipped workflow.
 
 Every plugin here exists to change what Claude Code *does*, not to describe what
@@ -76,12 +76,12 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |
 |--------|---------|-------------------|--------------------|----------------------------|
-| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~2.3k tokens |
+| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~2.4k tokens |
 | `craft-suite` | 2 | ~2.1k tokens | — | — |
-| `frontend-suite` | 4 | ~1.7k tokens | ~32 tokens | ~1.9k tokens |
-| `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~2.1k tokens |
+| `frontend-suite` | 4 | ~1.7k tokens | ~32 tokens | ~2.0k tokens |
+| `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~2.2k tokens |
 
-Every row is a curated subset. The marketplace ships all 29 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.
+Every row is a curated subset. The marketplace ships all 30 leaf plugins and no bundle installs them together — see `rationale/2026-08-31-token-cost-review.md`. The `all-plugins` script does, and it also raises `skillListingBudgetFraction` in the scope it installs to, so the listing is sent whole — its README carries the arithmetic and the one measurement (2026-09-15, n=50) that found the overflow changes nothing detectable.
 
 The budget these are measured against is the host's skill listing, and it is a FORMULA,
 not a constant — read out of the shipped CLI (2.1.251), not from documentation:
@@ -236,6 +236,7 @@ The expand → migrate → contract sequence, the rollback-path rule, and the
 | Plugin | What it carries | Reach for it when |
 |--------|-----------------|-------------------|
 | **[ui-ux](plugins/ui-ux)** | per-stack component rules (shadcn, ReUI, Aceternity, Astryx, Material UI, Tailwind, any other React component library via `component-libraries`), design tokens, a theming system, motion best practices, plus `ui-ux-engineer` + `ui-ux-reviewer` | Building or restyling any interface |
+| **[design-kit](plugins/design-kit)** | the Claude Desktop design picker as local, own-your-files commands: an HTML deck with PDF/PPTX export, an artboard canvas with knobs and PNG export, designs rendered with the project's own components plus handoff-bundle intake, a design system extracted from the repo or a URL (DTCG tokens, a record the host reads, a UI kit), and self-contained artifacts in a local gallery | Slides, mockups, a design system or a shareable page without leaving the repo |
 | **[craft-layer](plugins/craft-layer)** | the studio pipeline: creative direction, design research, asset sourcing with a licence gate, information design, and a five-tier motion catalogue with mandatory reduced-motion and reduced-bundle fallbacks | The result has to look designed, not generated |
 
 **Using them.**

@@ -1,0 +1,11 @@
+# lane declaration — who owns which territory, at which phase, and who outranks them.
+# artifact	kind	phase	owns	definite_trigger	yields_to
+# kind: command|hook|agent|skill · phase: understand|shape|decide|plan|build|verify|review|ship|any
+# yields_to: comma-list of artifacts that outrank this one on THEIR territory, or -
+# Contract and gates: scripts/lib/plugin-checks.sh (pc_lanes_*).
+design-kit:slides	command	build	slide-deck-authoring	/design-kit:slides, or "make a deck / slides / a presentation" — writes an outline and builds a self-contained HTML deck under .design-kit/decks/	-
+design-kit:in-codebase	command	build	real-component-design-render	the user runs /design-kit:in-codebase, or asks to see a design "with our real components" / "on our dev server", or hands over a Claude Design handoff folder	-
+design-kit:artifact	command	ship	self-contained-artifact-bundle	the user asks for an artifact, a shareable page, or to bundle a page/markdown into one file; writes only under .design-kit/artifacts/ and, on explicit consent, a pages branch in a scratch worktree	-
+design-kit:design	command	decide	ui-direction-artboards	/design-kit:design <brief> typed; drafts 2-4 artboard directions into .design-kit/boards/ and asks for the pick	-
+design-kit:system	command	understand	design-system-extraction	invoked as /design-kit:system, or a design/deck/artifact must start from the project's real tokens rather than a remembered palette	-
+design-kit:unread-pick	hook	decide	unread-board-pick-notice	.design-kit/decisions.jsonl holds a row with consumed:false and the phase sentinel is absent or at understand/shape/decide	-
