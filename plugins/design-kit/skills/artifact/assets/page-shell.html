@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><!-- SLOT: title --></title>
+<style>
+  /* design-kit artifact shell. Everything inline; no external requests. If the
+     project ships design-system/DESIGN-SYSTEM.md, replace the values in :root with
+     its colours, type and radius before writing content — the shell is a fallback
+     look, not the project's. */
+  :root {
+    --surface: #fbfbf9; --surface-2: #f1f0ec; --ink: #1d1d1b; --ink-2: #5e5d57;
+    --line: #dcdad3; --accent: #2456a4; --accent-ink: #ffffff; --ok: #1f7a4d;
+    --warn: #a86400; --bad: #b3261e; --radius: 8px; --gap: 16px;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --surface: #151514; --surface-2: #1f1f1d; --ink: #ecebe6; --ink-2: #a6a49c;
+            --line: #33322f; --accent: #8fb0ee; --accent-ink: #0f1a33; }
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; font: 16px/1.5 var(--font); color: var(--ink); background: var(--surface); }
+  main { max-width: 72rem; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 .5em; }
+  h2 { font-size: 1.25rem; margin: 2em 0 .5em; }
+  h3 { font-size: 1.05rem; margin: 1.5em 0 .4em; }
+  p, ul, ol, blockquote { margin: 0 0 1em; }
+  a { color: var(--accent); }
+  code { font: .9em var(--mono); background: var(--surface-2); padding: .1em .35em; border-radius: 4px; }
+  pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 1.5em; font-size: .95em; display: block; overflow-x: auto; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; }
+  blockquote { border-left: 3px solid var(--line); padding-left: 12px; color: var(--ink-2); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+  img, svg, video { max-width: 100%; height: auto; }
+  .grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; background: var(--surface-2); }
+  .pill { display: inline-block; font-size: .8em; padding: .1em .6em; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); }
+  .pill.ok { color: var(--ok); border-color: currentColor; }
+  .pill.warn { color: var(--warn); border-color: currentColor; }
+  .pill.bad { color: var(--bad); border-color: currentColor; }
+  .diff { font: .85em/1.45 var(--mono); white-space: pre; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+  .diff .add { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .diff .del { background: color-mix(in srgb, var(--bad) 14%, transparent); }
+  .diff .note { background: var(--surface-2); color: var(--ink-2); white-space: normal; padding: 4px 10px; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
+  button.copy { font: inherit; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  button.copy:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  @media (prefers-reduced-motion: no-preference) { a, button { transition: opacity .15s; } }
+  @media print { main { padding: 0; } .diff { overflow: visible; white-space: pre-wrap; } }
+</style>
+</head>
+<body>
+<main>
+<!-- SLOT: body -->
+</main>
+</body>
+</html>

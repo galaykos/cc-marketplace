@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Drives codebase-scaffold.sh and codebase-cleanup.sh on a Vite React fixture and a
+# Laravel fixture: --detect names the stack, --create writes marked files,
+# --verify fails while they exist and passes after cleanup, routes/web.php keeps
+# its own lines.
+set -euo pipefail
+here="$(cd "$(dirname "$0")/.." && pwd)"
+scaffold="$here/codebase-scaffold.sh"; cleanup="$here/codebase-cleanup.sh"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+fail() { echo "FAIL: $*"; exit 1; }
+
+# --- Vite React (TypeScript) ---
+vite="$tmp/vite"; mkdir -p "$vite/src/components"
+cat > "$vite/package.json" <<'EOF'
+{ "name": "fx", "scripts": { "dev": "vite" }, "dependencies": { "react": "^18.3.0", "react-dom": "^18.3.0" } }
+EOF
+echo 'export default { server: { port: 5180 } }' > "$vite/vite.config.ts"
+echo '{}' > "$vite/tsconfig.json"
+echo 'export function Button() {}' > "$vite/src/components/Button.tsx"
+cd "$vite"
+det="$(bash "$scaffold" --detect)"
+grep -q '^stack=vite-react$' <<<"$det" || fail "vite detect: $det"
+grep -q '^dev_url=http://localhost:5180$' <<<"$det" || fail "vite port from config: $det"
+grep -q '^components=src/components$' <<<"$det" || fail "vite components: $det"
+grep -q '^lang=ts$' <<<"$det" || fail "vite lang: $det"
+out="$(bash "$scaffold" --create hero)"
+[ -f "__design-kit__/hero.html" ] || fail "vite html scratch missing"
+[ -f "src/__design-kit__/hero.tsx" ] || fail "vite tsx scratch missing"
+head -1 "__design-kit__/hero.html" | grep -q '__design-kit__ scratch' || fail "html marker line 1"
+head -1 "src/__design-kit__/hero.tsx" | grep -q '__design-kit__ scratch' || fail "tsx marker line 1"
+grep -q '^open=http://localhost:5180/__design-kit__/hero.html$' <<<"$out" || fail "vite open url: $out"
+bash "$scaffold" --create 'Bad Slug' >/dev/null 2>&1 && fail "slug validation"
+bash "$cleanup" --verify >/dev/null 2>&1 && fail "verify should fail while scratch exists"
+bash "$cleanup" >/dev/null
+bash "$cleanup" --verify >/dev/null || fail "verify should pass after cleanup"
+[ -e "__design-kit__" ] && fail "scratch dir survived cleanup"
+[ -f "src/components/Button.tsx" ] || fail "cleanup touched a real file"
+
+# --- Laravel ---
+lar="$tmp/laravel"; mkdir -p "$lar/resources/views/layouts" "$lar/routes"
+touch "$lar/artisan"
+echo '<html>@vite(["resources/css/app.css"])</html>' > "$lar/resources/views/layouts/app.blade.php"
+printf '<?php\nRoute::get("/", fn () => view("welcome"));\n' > "$lar/routes/web.php"
+cd "$lar"
+det="$(bash "$scaffold" --detect)"
+grep -q '^stack=laravel$' <<<"$det" || fail "laravel detect: $det"
+grep -q '^dev_url=http://127.0.0.1:8000$' <<<"$det" || fail "laravel url: $det"
+out="$(bash "$scaffold" --create pricing)"
+[ -f "resources/views/__design-kit__/pricing.blade.php" ] || fail "blade scratch missing"
+head -1 "resources/views/__design-kit__/pricing.blade.php" | grep -q '__design-kit__ scratch' || fail "blade marker"
+grep -q "Route::view('/__design-kit__/pricing'" routes/web.php || fail "route line not appended"
+grep -q '^open=http://127.0.0.1:8000/__design-kit__/pricing$' <<<"$out" || fail "laravel open url: $out"
+bash "$cleanup" --verify >/dev/null 2>&1 && fail "laravel verify should fail"
+bash "$cleanup" >/dev/null
+bash "$cleanup" --verify >/dev/null || fail "laravel verify should pass after cleanup"
+grep -q '__design-kit__' routes/web.php && fail "route line survived"
+grep -q 'Route::get("/"' routes/web.php || fail "cleanup removed a real route"
+
+# --- unknown stack ---
+mkdir -p "$tmp/empty"; cd "$tmp/empty"
+grep -q '^stack=unknown$' <<<"$(bash "$scaffold" --detect)" || fail "empty dir should be unknown"
+bash "$scaffold" --create x >/dev/null 2>&1 && fail "create on unknown stack should exit non-zero"
+echo "PASS codebase.test.sh"

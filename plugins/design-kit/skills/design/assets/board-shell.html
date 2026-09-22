@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en" data-scheme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{TITLE}}</title>
+<!-- design-kit board shell. Rendered by scripts/board-build.py; every double-brace slot is filled there.
+     No external request of any kind: system fonts, inline CSS and JS only. -->
+{{META}}
+<style>
+:root{
+  --dk-font:{{FONT}};
+  --dk-accent-h:{{ACCENT_H}};--dk-accent-s:{{ACCENT_S}}%;--dk-accent-l:{{ACCENT_L}}%;
+  --dk-space:{{SPACE}}px;--dk-radius:{{RADIUS}}px;--dk-type:1;--dk-density:1;
+  --dk-accent:hsl(var(--dk-accent-h) var(--dk-accent-s) var(--dk-accent-l));
+  --dk-accent-ink:#fff;
+  --dk-bg:#ffffff;--dk-fg:#1b1b1a;--dk-surface:#f5f5f3;--dk-border:#dcdbd6;--dk-muted:#6b6a64;
+  --dk-ok:#2f7d4f;--dk-warn:#a8681c;--dk-danger:#b3312c;
+}
+[data-scheme="dark"]{--dk-bg:#151516;--dk-fg:#ececea;--dk-surface:#202022;--dk-border:#3a3a3d;--dk-muted:#9f9e97;--dk-accent-ink:#0d0d0d}
+.dk-board[data-scheme="dark"]{--dk-bg:#151516;--dk-fg:#ececea;--dk-surface:#202022;--dk-border:#3a3a3d;--dk-muted:#9f9e97;--dk-accent-ink:#0d0d0d}
+.dk-board[data-scheme="light"]{--dk-bg:#ffffff;--dk-fg:#1b1b1a;--dk-surface:#f5f5f3;--dk-border:#dcdbd6;--dk-muted:#6b6a64;--dk-accent-ink:#fff}
+
+/* ---------- chrome (never printed, hidden in isolate mode) ---------- */
+html,body{margin:0;height:100%}
+body{font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#e9e8e3;color:#1b1b1a;overflow:hidden}
+.dk-top{position:fixed;inset:0 0 auto 0;height:48px;display:flex;align-items:center;gap:12px;padding:0 14px;background:#fff;border-bottom:1px solid #d5d4ce;z-index:20}
+.dk-top h1{font-size:14px;margin:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dk-top .brief{color:#6b6a64;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.dk-top button,.dk-knobs button,.dk-board header button{font:inherit;font-size:12px;padding:5px 9px;border:1px solid #c9c8c2;border-radius:6px;background:#fff;cursor:pointer}
+.dk-top button:hover,.dk-knobs button:hover{background:#f1f0eb}
+.dk-top button[aria-pressed="true"]{background:#1b1b1a;color:#fff;border-color:#1b1b1a}
+.dk-knobs{position:fixed;top:60px;right:12px;width:232px;background:#fff;border:1px solid #d5d4ce;border-radius:10px;padding:12px;z-index:20;box-shadow:0 6px 24px rgba(0,0,0,.08)}
+.dk-knobs h2{font-size:12px;margin:0 0 8px;letter-spacing:.02em;text-transform:none;color:#6b6a64}
+.dk-knobs label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:12px;margin:8px 0}
+.dk-knobs label output{color:#6b6a64;font-variant-numeric:tabular-nums}
+.dk-knobs input[type=range]{grid-column:1/-1;width:100%}
+.dk-knobs select{grid-column:1/-1;font:inherit;padding:4px}
+.dk-knobs .row{display:flex;gap:6px;margin-top:10px}
+.dk-knobs .row button{flex:1}
+.dk-canvas-wrap{position:absolute;inset:48px 0 0 0;overflow:hidden;cursor:grab}
+.dk-canvas-wrap.dragging{cursor:grabbing}
+.dk-canvas{position:absolute;left:0;top:0;transform-origin:0 0;display:flex;gap:64px;padding:64px;align-items:flex-start}
+.dk-board{flex:none;display:flex;flex-direction:column;gap:8px}
+.dk-board header{display:flex;align-items:baseline;gap:10px;width:var(--dk-w);max-width:100%}
+.dk-board header h2{font-size:15px;margin:0;font-weight:650}
+.dk-board header p{margin:0;color:#6b6a64;font-size:12px;flex:1}
+.dk-board.picked header h2::after{content:" · picked";color:var(--dk-accent)}
+.dk-frame{width:var(--dk-w);height:var(--dk-h);overflow:auto;display:flex;flex-direction:column;background:var(--dk-bg);color:var(--dk-fg);border:1px solid #bbb9b2;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.dk-screen{flex:1 0 auto;display:flex;flex-direction:column;font-family:var(--dk-font);font-size:calc(15px * var(--dk-type));line-height:calc(1.45 * var(--dk-density))}
+.dk-screen [contenteditable="true"]{outline:1px dashed transparent;outline-offset:2px}
+.dk-screen [contenteditable="true"]:hover{outline-color:var(--dk-accent)}
+.dk-screen [contenteditable="true"]:focus{outline:2px solid var(--dk-accent)}
+.dk-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#1b1b1a;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .2s;z-index:30}
+.dk-toast.show{opacity:1}
+.dk-help{position:fixed;left:12px;bottom:12px;font-size:11px;color:#6b6a64;z-index:20}
+
+/* ---------- isolate mode (#board=N): one artboard, no chrome, body sized to the frame ---------- */
+html.isolate body{background:var(--dk-bg);overflow:visible}
+html.isolate .dk-top,html.isolate .dk-knobs,html.isolate .dk-help,html.isolate .dk-toast,html.isolate .dk-board header{display:none}
+html.isolate .dk-canvas-wrap{position:static;inset:auto;overflow:visible}
+html.isolate .dk-canvas{position:static;transform:none!important;padding:0;gap:0;display:block}
+html.isolate .dk-board{display:none}
+html.isolate .dk-board.isolated{display:block}
+html.isolate .dk-frame{border:0;border-radius:0;box-shadow:none;overflow:hidden}
+
+/* ---------- print: one artboard per page ---------- */
+@media print{
+  body{background:#fff;overflow:visible}
+  .dk-top,.dk-knobs,.dk-help,.dk-toast{display:none!important}
+  .dk-canvas-wrap{position:static;overflow:visible}
+  .dk-canvas{position:static;transform:none!important;display:block;padding:0}
+  .dk-board{page-break-after:always;break-after:page;margin:0 0 24px}
+  .dk-frame{box-shadow:none;overflow:visible;height:auto;min-height:var(--dk-h)}
+}
+
+/* ---------- primitives (documented in references/primitives.md) ---------- */
+.dk-screen *{box-sizing:border-box}
+.dk-screen h1,.dk-screen h2,.dk-screen h3,.dk-screen h4,.dk-screen p,.dk-screen ul{margin:0}
+.dk-screen h1{font-size:1.9em;line-height:1.15;font-weight:700;letter-spacing:-.01em}
+.dk-screen h2{font-size:1.35em;line-height:1.2;font-weight:650}
+.dk-screen h3{font-size:1.05em;font-weight:650}
+.dk-screen .muted{color:var(--dk-muted)}
+.dk-stack{display:flex;flex-direction:column;gap:calc(var(--dk-space)*2)}
+.dk-row{display:flex;align-items:center;gap:calc(var(--dk-space)*1.5)}
+.dk-row.between{justify-content:space-between}
+.dk-grid{display:grid;gap:calc(var(--dk-space)*2);grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.dk-pad{padding:calc(var(--dk-space)*2.5)}
+.dk-nav{display:flex;align-items:center;gap:calc(var(--dk-space)*2);padding:calc(var(--dk-space)*1.5) calc(var(--dk-space)*2.5);border-bottom:1px solid var(--dk-border);background:var(--dk-bg);position:sticky;top:0}
+.dk-nav .brand{font-weight:700}
+.dk-nav a{color:inherit;text-decoration:none;opacity:.8}
+.dk-nav a[aria-current]{opacity:1;border-bottom:2px solid var(--dk-accent)}
+.dk-nav .spacer{flex:1}
+.dk-sidebar{display:grid;grid-template-columns:220px 1fr;flex:1}
+.dk-sidebar>nav{border-right:1px solid var(--dk-border);background:var(--dk-surface);padding:calc(var(--dk-space)*2);display:flex;flex-direction:column;gap:calc(var(--dk-space)*.75)}
+.dk-sidebar>nav a{padding:calc(var(--dk-space)*.75) var(--dk-space);border-radius:calc(var(--dk-radius)*.6);color:inherit;text-decoration:none}
+.dk-sidebar>nav a[aria-current]{background:var(--dk-bg);font-weight:600;box-shadow:inset 3px 0 0 var(--dk-accent)}
+.dk-tabbar{position:sticky;bottom:0;margin-top:auto;display:flex;border-top:1px solid var(--dk-border);background:var(--dk-bg)}
+.dk-tabbar a{flex:1;text-align:center;padding:calc(var(--dk-space)*1.25) 0;font-size:.8em;color:var(--dk-muted);text-decoration:none}
+.dk-tabbar a[aria-current]{color:var(--dk-accent);font-weight:600}
+.dk-hero{padding:calc(var(--dk-space)*6) calc(var(--dk-space)*3);display:flex;flex-direction:column;gap:calc(var(--dk-space)*2);align-items:flex-start}
+.dk-hero.center{align-items:center;text-align:center}
+.dk-hero.split{display:grid;grid-template-columns:1.1fr .9fr;align-items:center}
+.dk-hero .visual{min-height:180px;border-radius:var(--dk-radius);background:linear-gradient(135deg,hsl(var(--dk-accent-h) var(--dk-accent-s) 92%),hsl(var(--dk-accent-h) var(--dk-accent-s) 70%))}
+.dk-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;min-height:44px;padding:0 calc(var(--dk-space)*2);border-radius:var(--dk-radius);border:1px solid var(--dk-accent);background:var(--dk-accent);color:var(--dk-accent-ink);font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.dk-btn.ghost{background:transparent;color:inherit;border-color:var(--dk-border)}
+.dk-btn.small{min-height:34px;padding:0 calc(var(--dk-space)*1.5);font-size:.9em}
+.dk-btn:focus-visible,.dk-input:focus-visible,.dk-nav a:focus-visible{outline:2px solid var(--dk-accent);outline-offset:2px}
+.dk-card{background:var(--dk-surface);border:1px solid var(--dk-border);border-radius:var(--dk-radius);padding:calc(var(--dk-space)*2);display:flex;flex-direction:column;gap:var(--dk-space)}
+.dk-card.plain{background:var(--dk-bg)}
+.dk-list{list-style:none;padding:0;display:flex;flex-direction:column}
+.dk-list li{display:flex;align-items:center;gap:calc(var(--dk-space)*1.5);padding:calc(var(--dk-space)*1.5) 0;border-bottom:1px solid var(--dk-border)}
+.dk-list li:last-child{border-bottom:0}
+.dk-list .avatar{width:36px;height:36px;border-radius:50%;background:hsl(var(--dk-accent-h) 40% 85%);flex:none;display:grid;place-items:center;font-size:.8em;font-weight:700;color:hsl(var(--dk-accent-h) 40% 30%)}
+.dk-list .grow{flex:1;min-width:0}
+.dk-form{display:flex;flex-direction:column;gap:calc(var(--dk-space)*2)}
+.dk-field{display:flex;flex-direction:column;gap:calc(var(--dk-space)*.5)}
+.dk-field label{font-size:.9em;font-weight:600}
+.dk-field .hint{font-size:.8em;color:var(--dk-muted)}
+.dk-field .err{font-size:.8em;color:var(--dk-danger)}
+.dk-input{font:inherit;min-height:44px;padding:0 calc(var(--dk-space)*1.5);border:1px solid var(--dk-border);border-radius:calc(var(--dk-radius)*.75);background:var(--dk-bg);color:inherit;width:100%}
+.dk-input[aria-invalid="true"]{border-color:var(--dk-danger)}
+.dk-table{width:100%;border-collapse:collapse;font-size:.92em}
+.dk-table th,.dk-table td{text-align:left;padding:calc(var(--dk-space)*1.25) var(--dk-space);border-bottom:1px solid var(--dk-border);white-space:nowrap}
+.dk-table th{font-weight:600;color:var(--dk-muted);font-size:.85em}
+.dk-table td.num,.dk-table th.num{text-align:right;font-variant-numeric:tabular-nums}
+.dk-stat{display:flex;flex-direction:column;gap:calc(var(--dk-space)*.5);padding:calc(var(--dk-space)*2);border:1px solid var(--dk-border);border-radius:var(--dk-radius);background:var(--dk-bg)}
+.dk-stat .label{font-size:.8em;color:var(--dk-muted)}
+.dk-stat .value{font-size:1.6em;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.dk-stat .delta{font-size:.8em}
+.dk-stat .delta.up{color:var(--dk-ok)}.dk-stat .delta.down{color:var(--dk-danger)}
+.dk-tabs{display:flex;gap:calc(var(--dk-space)*2);border-bottom:1px solid var(--dk-border)}
+.dk-tabs a{padding:var(--dk-space) 0;color:var(--dk-muted);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+.dk-tabs a[aria-current]{color:inherit;font-weight:600;border-color:var(--dk-accent)}
+.dk-badge{display:inline-block;font-size:.75em;font-weight:600;padding:.15em .6em;border-radius:999px;background:var(--dk-surface);border:1px solid var(--dk-border)}
+.dk-badge.ok{color:var(--dk-ok);border-color:currentColor}.dk-badge.warn{color:var(--dk-warn);border-color:currentColor}.dk-badge.danger{color:var(--dk-danger);border-color:currentColor}
+.dk-dialog{position:absolute;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:calc(var(--dk-space)*3)}
+.dk-dialog>div{background:var(--dk-bg);color:var(--dk-fg);border-radius:var(--dk-radius);padding:calc(var(--dk-space)*3);max-width:420px;width:100%;display:flex;flex-direction:column;gap:calc(var(--dk-space)*2)}
+.dk-empty,.dk-error,.dk-loading{padding:calc(var(--dk-space)*6) calc(var(--dk-space)*3);text-align:center;display:flex;flex-direction:column;gap:var(--dk-space);align-items:center;color:var(--dk-muted)}
+.dk-error{color:var(--dk-danger)}
+.dk-skeleton{display:block;height:1em;border-radius:4px;background:linear-gradient(90deg,var(--dk-surface),var(--dk-border),var(--dk-surface));background-size:200% 100%;animation:dk-shimmer 1.4s infinite}
+@keyframes dk-shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+.dk-media{background:hsl(var(--dk-accent-h) 30% 90%);border-radius:calc(var(--dk-radius)*.75);min-height:120px;display:grid;place-items:center;color:hsl(var(--dk-accent-h) 30% 40%);font-size:.8em}
+@media (prefers-reduced-motion:reduce){.dk-skeleton{animation:none}}
+{{EXTRA_CSS}}
+</style>
+</head>
+<body>
+<div class="dk-top">
+  <h1>{{TITLE}}</h1>
+  <span class="brief">{{BRIEF}}</span>
+  <button type="button" data-act="fit" title="Fit all artboards (F)">Fit</button>
+  <button type="button" data-act="zoom-out" title="Zoom out (-)">−</button>
+  <button type="button" data-act="zoom-in" title="Zoom in (+)">+</button>
+  <button type="button" data-act="edit" aria-pressed="false" title="Toggle text editing (E)">Edit text</button>
+  <button type="button" data-act="knobs" aria-pressed="true" title="Toggle adjustment panel (K)">Knobs</button>
+  <button type="button" data-act="copy" title="Copy your edits and pick as a prompt for the session">Copy edits as prompt</button>
+</div>
+
+<aside class="dk-knobs" id="dk-knobs" aria-label="Adjustment knobs">
+  <h2>Adjust</h2>
+  <label>Scope<select data-knob-scope>{{SCOPE_OPTIONS}}</select></label>
+  <label>Spacing<output data-out="space"></output><input type="range" data-knob="space" min="6" max="14" step="1"></label>
+  <label>Corner radius<output data-out="radius"></output><input type="range" data-knob="radius" min="0" max="24" step="1"></label>
+  <label>Accent hue<output data-out="hue"></output><input type="range" data-knob="hue" min="0" max="360" step="1"></label>
+  <label>Type scale<output data-out="type"></output><input type="range" data-knob="type" min="0.85" max="1.25" step="0.05"></label>
+  <label>Density<output data-out="density"></output><input type="range" data-knob="density" min="0.85" max="1.2" step="0.05"></label>
+  <label>Scheme<select data-knob="scheme"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+  <div class="row"><button type="button" data-act="reset">Reset scope</button><button type="button" data-act="reset-all">Reset all</button></div>
+</aside>
+
+<div class="dk-canvas-wrap" id="dk-wrap">
+  <div class="dk-canvas" id="dk-canvas">
+{{BOARDS}}
+  </div>
+</div>
+<div class="dk-help">Drag to pan · Ctrl/⌘ + wheel to zoom · F fit · E edit text · K knobs · print for PDF</div>
+<div class="dk-toast" id="dk-toast" role="status" aria-live="polite"></div>
+
+<script data-design-kit-board>
+(function () {
+  'use strict';
+  var KEY = 'design-kit:' + location.pathname;
+  var DEFAULTS = {{DEFAULTS_JSON}};
+  var boards = Array.prototype.slice.call(document.querySelectorAll('.dk-board'));
+  var wrap = document.getElementById('dk-wrap'), canvas = document.getElementById('dk-canvas');
+  var toast = document.getElementById('dk-toast');
+  var state = load();
+
+  function load() {
+    try { var s = JSON.parse(localStorage.getItem(KEY) || '{}'); return { knobs: s.knobs || {}, text: s.text || {}, picked: s.picked || null }; }
+    catch (e) { return { knobs: {}, text: {}, picked: null }; }
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function say(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(say.t); say.t = setTimeout(function () { toast.classList.remove('show'); }, 1800); }
+
+  /* ---------- isolate mode for export: #board=N ---------- */
+  function isolate() {
+    var m = /board=(\d+)/.exec(location.hash);
+    document.documentElement.classList.toggle('isolate', !!m);
+    boards.forEach(function (b) { b.classList.remove('isolated'); });
+    if (m) {
+      var b = boards[parseInt(m[1], 10) - 1];
+      if (b) { b.classList.add('isolated'); document.body.style.width = b.style.getPropertyValue('--dk-w'); document.body.style.height = b.style.getPropertyValue('--dk-h'); }
+    } else { document.body.style.width = ''; document.body.style.height = ''; }
+  }
+  window.addEventListener('hashchange', isolate);
+
+  /* ---------- knobs: CSS custom properties, global or per artboard ---------- */
+  var KNOB_VARS = { space: '--dk-space', radius: '--dk-radius', hue: '--dk-accent-h', type: '--dk-type', density: '--dk-density' };
+  var UNITS = { space: 'px', radius: 'px', hue: '', type: '', density: '' };
+  var scopeSel = document.querySelector('[data-knob-scope]');
+  function scopeEl(scope) { return scope === 'all' ? document.documentElement : boards[parseInt(scope, 10) - 1]; }
+  function values(scope) { return Object.assign({}, DEFAULTS, state.knobs.all || {}, scope === 'all' ? {} : (state.knobs[scope] || {})); }
+  function apply() {
+    boards.forEach(function (b, i) {
+      var own = state.knobs[String(i + 1)] || {};
+      Object.keys(KNOB_VARS).forEach(function (k) { if (own[k] !== undefined) b.style.setProperty(KNOB_VARS[k], own[k] + UNITS[k]); else b.style.removeProperty(KNOB_VARS[k]); });
+      if (own.scheme) b.setAttribute('data-scheme', own.scheme); else b.removeAttribute('data-scheme');
+    });
+    var g = state.knobs.all || {};
+    Object.keys(KNOB_VARS).forEach(function (k) { if (g[k] !== undefined) document.documentElement.style.setProperty(KNOB_VARS[k], g[k] + UNITS[k]); else document.documentElement.style.removeProperty(KNOB_VARS[k]); });
+    document.documentElement.setAttribute('data-scheme', g.scheme || DEFAULTS.scheme);
+    refreshPanel();
+  }
+  function refreshPanel() {
+    var v = values(scopeSel.value);
+    document.querySelectorAll('[data-knob]').forEach(function (inp) {
+      var k = inp.getAttribute('data-knob'); inp.value = v[k];
+      var out = document.querySelector('[data-out="' + k + '"]'); if (out) out.value = v[k] + UNITS[k];
+    });
+  }
+  document.querySelectorAll('[data-knob]').forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      var k = inp.getAttribute('data-knob'), scope = scopeSel.value;
+      state.knobs[scope] = state.knobs[scope] || {};
+      var val = inp.type === 'range' ? parseFloat(inp.value) : inp.value;
+      if (val === DEFAULTS[k] && scope === 'all') delete state.knobs[scope][k]; else state.knobs[scope][k] = val;
+      save(); apply();
+    });
+  });
+  scopeSel.addEventListener('change', refreshPanel);
+
+  /* ---------- editable text, persisted ---------- */
+  var EDITABLE = 'h1,h2,h3,h4,p,li,td,th,label,button,a,span,dt,dd,figcaption,small,strong,em'
+    .split(',').map(function (t) { return '.dk-screen ' + t; }).join(',');
+  function path(el) {
+    var parts = [];
+    while (el && el.classList && !el.classList.contains('dk-screen')) {
+      var p = el.parentNode, i = Array.prototype.indexOf.call(p.children, el);
+      parts.unshift(el.tagName.toLowerCase() + ':' + i); el = p;
+    }
+    return parts.join('/');
+  }
+  function textNodes(board) {
+    return Array.prototype.filter.call(board.querySelectorAll(EDITABLE), function (el) {
+      return el.children.length === 0 && el.textContent.trim().length > 0;
+    });
+  }
+  function replayText() {
+    boards.forEach(function (b, i) {
+      var edits = state.text[String(i + 1)] || {};
+      textNodes(b).forEach(function (el) { var k = path(el); if (edits[k] !== undefined) { if (!el.dataset.original) el.dataset.original = el.textContent; el.textContent = edits[k].now; } });
+    });
+  }
+  var editing = false;
+  function setEditing(on) {
+    editing = on;
+    document.querySelector('[data-act="edit"]').setAttribute('aria-pressed', String(on));
+    boards.forEach(function (b, i) {
+      textNodes(b).forEach(function (el) {
+        if (on) {
+          el.setAttribute('contenteditable', 'true');
+          if (!el.dataset.original) el.dataset.original = el.textContent;
+          if (!el.dataset.bound) {
+            el.dataset.bound = '1';
+            el.addEventListener('input', function () {
+              var k = path(el), key = String(i + 1);
+              state.text[key] = state.text[key] || {};
+              if (el.textContent === el.dataset.original) delete state.text[key][k];
+              else state.text[key][k] = { was: el.dataset.original, now: el.textContent };
+              save();
+            });
+            el.addEventListener('keydown', function (e) { if (e.key === 'Enter' && el.tagName !== 'P' && el.tagName !== 'LI') { e.preventDefault(); el.blur(); } });
+          }
+        } else el.removeAttribute('contenteditable');
+      });
+    });
+    say(on ? 'Editing text — click any text in an artboard' : 'Editing off');
+  }
+
+  /* ---------- pick + copy as prompt ---------- */
+  boards.forEach(function (b, i) {
+    var btn = b.querySelector('[data-act="pick"]');
+    if (btn) btn.addEventListener('click', function () {
+      state.picked = state.picked === i + 1 ? null : i + 1; save();
+      boards.forEach(function (x, j) { x.classList.toggle('picked', state.picked === j + 1); });
+      say(state.picked ? 'Picked ' + (b.getAttribute('data-title') || ('artboard ' + (i + 1))) : 'Pick cleared');
+    });
+  });
+  function words(k, v) {
+    return { space: 'spacing base ' + v + 'px', radius: 'corner radius ' + v + 'px', hue: 'accent hue ' + v + '°', type: 'type scale ×' + v, density: 'density ×' + v, scheme: v + ' scheme' }[k];
+  }
+  function prompt() {
+    var lines = [];
+    var title = document.title;
+    if (state.picked) {
+      var pb = boards[state.picked - 1];
+      lines.push('From the design board "' + title + '", implement artboard ' + state.picked + ' ("' + (pb.getAttribute('data-title') || '') + '").');
+    } else lines.push('From the design board "' + title + '" (no artboard picked yet):');
+    var g = state.knobs.all || {}, gk = Object.keys(g).filter(function (k) { return g[k] !== DEFAULTS[k]; });
+    if (gk.length) lines.push('Global adjustments: ' + gk.map(function (k) { return words(k, g[k]); }).join(', ') + '.');
+    boards.forEach(function (b, i) {
+      var key = String(i + 1), own = state.knobs[key] || {}, ok = Object.keys(own);
+      var edits = state.text[key] || {}, ek = Object.keys(edits);
+      if (!ok.length && !ek.length) return;
+      var name = 'Artboard ' + key + (b.getAttribute('data-title') ? ' ("' + b.getAttribute('data-title') + '")' : '');
+      if (ok.length) lines.push(name + ' adjustments: ' + ok.map(function (k) { return words(k, own[k]); }).join(', ') + '.');
+      ek.forEach(function (k) { lines.push(name + ' text: "' + edits[k].was.trim() + '" → "' + edits[k].now.trim() + '".'); });
+    });
+    if (lines.length === 1) lines.push('No adjustments or text edits were made.');
+    return lines.join('\n');
+  }
+  function copy() {
+    var text = prompt();
+    function done() { say('Copied — paste it into the session'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { fallback(text); done(); });
+    else { fallback(text); done(); }
+  }
+  function fallback(text) { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} ta.remove(); }
+
+  /* ---------- pan / zoom ---------- */
+  var view = { x: 0, y: 0, z: 1 }, drag = null;
+  function render() { canvas.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.z + ')'; }
+  function fit() {
+    var r = canvas.getBoundingClientRect(), w = r.width / view.z, h = r.height / view.z;
+    var W = wrap.clientWidth - 260, H = wrap.clientHeight;
+    view.z = Math.min(1, Math.max(0.1, Math.min(W / w, H / h)));
+    view.x = Math.max(0, (W - w * view.z) / 2); view.y = 0; render();
+  }
+  function zoom(f, cx, cy) {
+    var nz = Math.min(3, Math.max(0.1, view.z * f));
+    cx = cx === undefined ? wrap.clientWidth / 2 : cx; cy = cy === undefined ? wrap.clientHeight / 2 : cy;
+    view.x = cx - (cx - view.x) * (nz / view.z); view.y = cy - (cy - view.y) * (nz / view.z); view.z = nz; render();
+  }
+  wrap.addEventListener('wheel', function (e) {
+    if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoom(e.deltaY < 0 ? 1.1 : 0.9, e.clientX, e.clientY - 48); }
+    else { view.x -= e.deltaX; view.y -= e.deltaY; render(); }
+  }, { passive: false });
+  wrap.addEventListener('mousedown', function (e) {
+    if (editing && e.target.closest('.dk-screen')) return;
+    if (e.target.closest('button,select,input,a[href]')) return;
+    drag = { x: e.clientX - view.x, y: e.clientY - view.y }; wrap.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', function (e) { if (drag) { view.x = e.clientX - drag.x; view.y = e.clientY - drag.y; render(); } });
+  window.addEventListener('mouseup', function () { drag = null; wrap.classList.remove('dragging'); });
+
+  /* ---------- top bar + keys ---------- */
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'fit') fit(); else if (act === 'zoom-in') zoom(1.2); else if (act === 'zoom-out') zoom(1 / 1.2);
+    else if (act === 'edit') setEditing(!editing);
+    else if (act === 'knobs') { var k = document.getElementById('dk-knobs'); var on = k.style.display === 'none'; k.style.display = on ? '' : 'none'; b.setAttribute('aria-pressed', String(on)); }
+    else if (act === 'copy') copy();
+    else if (act === 'reset') { delete state.knobs[scopeSel.value]; save(); apply(); }
+    else if (act === 'reset-all') { state.knobs = {}; save(); apply(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.target.isContentEditable || /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key === 'f' || e.key === 'F') fit(); else if (e.key === '+' || e.key === '=') zoom(1.2); else if (e.key === '-') zoom(1 / 1.2);
+    else if (e.key === 'e' || e.key === 'E') setEditing(!editing);
+    else if (e.key === 'k' || e.key === 'K') document.querySelector('[data-act="knobs"]').click();
+  });
+
+  window.designKit = { prompt: prompt, state: function () { return state; } };
+  replayText(); apply(); isolate();
+  boards.forEach(function (x, j) { x.classList.toggle('picked', state.picked === j + 1); });
+  if (!document.documentElement.classList.contains('isolate')) fit();
+  window.addEventListener('resize', function () { if (!document.documentElement.classList.contains('isolate')) fit(); });
+})();
+</script>
+</body>
+</html>

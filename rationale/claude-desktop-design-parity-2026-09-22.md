@@ -5,9 +5,10 @@ codebase, Design System, Artifacts. What does each actually do, what does this
 marketplace already ship in the same capacity for web/app development, and where
 does a plugin of our own earn existence?
 
-**Standing: `recorded`.** A study, not a plugin. Every proposal below is sized and
-named against the README bar (a rule the model gets wrong from memory, or a mechanism
-prose cannot replace) and the Admission law. Nothing here is built yet.
+**Standing: `recorded`.** §1–6 are the study as written before any decision; every
+proposal in §5 is sized against the README bar (a rule the model gets wrong from memory,
+or a mechanism prose cannot replace) and the Admission law. §7 records what the user
+decided the same day and what was built — read it before acting on §5.
 
 **Method.** Four specialists ran in parallel — two web researchers (Slides+Artifacts;
 Design/Design-in-codebase/Design System), the Claude Code docs guide, and a repo
@@ -142,3 +143,34 @@ wants its kit in Claude Design — measure one request before spending L on it.
   `contrast.mjs`, `divergence.mjs`, `gates.spec.ts` were executed in this pass.
 - No usage evidence was gathered for any proposal. `scripts/turn-cost.sh --skills` is
   the retirement queue; P1–P4 should each earn a row there before a second version.
+
+---
+
+## 7. Decision and outcome — same day
+
+The user read §4–5 and reaffirmed: **"we want our own solutions"**, and, on the
+preview server, "creating our own preview server isn't viable?" — it is, and the repo
+already had one. The concern in §3 (a design plugin was retired on usage evidence eight
+days earlier) was stated once and the user's decision stands. Built on this branch as
+**`plugins/design-kit` 0.1.0**, one leaf, five commands mirroring the Desktop picker:
+
+| Desktop option | Command | Own mechanism |
+|---|---|---|
+| Slides | `/design-kit:slides` | `deck-build.py` outline → self-contained HTML deck; `deck-export.sh` PDF via a local Chromium-family browser, PPTX via consent-gated pptxgenjs |
+| Design | `/design-kit:design` | `board-build.py` → artboard canvas (2–4 directions, editable text, knobs, pick + copy-as-prompt); `board-export.sh` PNG/PDF |
+| Design in codebase | `/design-kit:in-codebase` | `codebase-scaffold.sh` marked scratch entry on the project's own dev server (Vite/Next/Nuxt/Laravel), `codebase-cleanup.sh --verify`; `handoff-drift.py` (P1 from §5, folded in) |
+| Design System | `/design-kit:system` | `system-extract.py` repo/URL/brand → `design-system/tokens.json` (DTCG-shaped, sourced), `DESIGN-SYSTEM.md` (P2 from §5, folded in), `@dsCard` UI kit |
+| Artifacts | `/design-kit:artifact` | `artifact-bundle.py` single-file, versioned; `artifact-publish.sh` orphan pages branch in a scratch worktree, push on a second yes |
+| (substrate) | `scripts/serve.py` | own preview server: gallery, SSE reload, `/_index.json`, `--lan`; port 8124 |
+
+Every script has a harness under `scripts/__tests__/` (CI runs the glob). Built by five
+forked specialists in parallel on disjoint files, merged by hand; each returned its
+untested list, carried into the plugin README's per-command limits.
+
+Not done from §5: P3 (host `/design` as a fidelity rung; preview-guard tier change) and
+P5 (official-complements rows) — both are edits to other plugins and were out of the
+"own solutions" scope the user set. P4 is superseded: `/design-kit:system` emits the
+`@dsCard`-marked cards the host's sync indexes, for any stack.
+
+Standing of this section: `recorded`. The Measured section of the plugin README names
+the retirement queue it must appear in before 0.2.0.
