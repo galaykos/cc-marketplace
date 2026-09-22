@@ -210,21 +210,15 @@ def theme_css(theme_path, cwd):
                         for k, v in node.items():
                             walk(v, path + [k])
             walk(doc, [])
-            # primary before brand before accent: the product colour, not the highlight
-            def _rank(item):
-                k = item[0].lower()
-                return 0 if "primary" in k else 1 if "brand" in k else 2 if "accent" in k else 3
-            for key, val in sorted(flat.items(), key=_rank):
+            for key, val in flat.items():
                 k = key.lower()
                 if not isinstance(val, str):
                     continue
                 if "color" in k or "colour" in k:
                     if re.search(r"(^|\.)(background|bg|surface\.?(base|0|default)?|canvas)$", k) and "dk-bg" not in vals:
                         vals["dk-bg"] = val
-                    elif re.search(r"(text|foreground|ink)(\.default|\.primary|\.base)?$", k) and "dk-fg" not in vals:
-                        vals["dk-fg"] = val
-                    elif re.search(r"(primary|accent|brand)(\.default|\.base|\.500)?$", k) and "dk-accent" not in vals:
-                        vals["dk-accent"] = val
+                    elif re.search(r"(^|\.)(text|foreground|ink)(\.default|\.primary|\.base)?$", k) and "dk-fg" not in vals:
+                        vals["dk-fg"] = val  # anchored: brand-ink / primary-ink are ON-colours, not the page text
                     elif re.search(r"(muted|secondary|subtle)", k) and "dk-muted" not in vals:
                         vals["dk-muted"] = val
                     elif re.search(r"(border|line|outline)", k) and "dk-line" not in vals:
@@ -234,6 +228,15 @@ def theme_css(theme_path, cwd):
                         vals.setdefault("dk-mono", val)
                     else:
                         vals.setdefault("dk-font", val)
+            # accent: primary before brand before accent — the product colour, not the highlight
+            def _rank(item):
+                k = item[0].lower()
+                return 0 if "primary" in k else 1 if "brand" in k else 2
+            for key, val in sorted(flat.items(), key=_rank):
+                k = key.lower()
+                if isinstance(val, str) and ("color" in k or "colour" in k) and re.search(r"(^|\.)(primary|accent|brand)(\.default|\.base|\.500)?$", k):
+                    vals.setdefault("dk-accent", val)
+                    break
         else:
             text = open(p, encoding="utf-8", errors="replace").read()
             for m in re.finditer(r"(primary|accent|brand|surface|background|text|ink|foreground|muted|border)\s*[:=]?\s*(#[0-9a-fA-F]{3,8}|oklch\([^)]*\)|hsl\([^)]*\)|rgb\([^)]*\))", text, re.I):
