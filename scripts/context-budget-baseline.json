@@ -1,7 +1,7 @@
 {
   "all-plugins": 0,
   "api-design": 339,
-  "approaches": 640,
+  "approaches": 552,
   "ask-ledger": 0,
   "brain": 89,
   "candor": 174,
@@ -32,5 +32,5 @@
   "ui-ux": 997,
   "ultra-deep-research": 220,
   "web-dev": 336,
-  "workflow-suite": 5834
+  "workflow-suite": 5746
 }

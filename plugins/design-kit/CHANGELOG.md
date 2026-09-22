@@ -2,6 +2,33 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.5.0 — 2026-09-22
+
+### Added
+- **`dk snapshot` and `dk review` — the before/after this plugin could not show.** Every
+  surface here produced a picture of a design and none of them could show what a change
+  did to a screen: the only shots taken anywhere were the current-state ones a craft gate
+  writes, with nothing to compare them to. `scripts/snapshot.sh` adds
+  `dk snapshot [--routes …] [--device desktop|mobile|both] [--base-url …] [--out …]`,
+  which loads each route in the Chromium-family browser `board-export.sh` already locates
+  (asked for as `board-export.sh --which`, so the discovery and its install hint stay in
+  one place) and writes `<out>/<device>/<route-slug>.png` under
+  `.design-kit/shots/<git short sha, else a UTC timestamp>/`; and
+  `dk review --base <dir|git-ref>`, which pairs the newest shot set against that base and
+  writes `.design-kit/reviews/<pair>.html` — before | after | a pixel-diff heatmap per
+  route — served on the same preview URL, with one table row per route carrying the
+  changed-pixel percentage. A second shoot at the same commit writes `<sha>-2` rather than
+  over the set you are about to compare against. The heatmap and the percentage need
+  `python3` with Pillow; without it the page shows the pair alone and every row reads
+  `no diff engine: install Pillow`. No hook, no command, no threshold.
+  Standing: **gate** for the exit codes and the pairing — `0` shot/rendered, `1` bad
+  arguments, `2` browser or server unreachable, printed as `NOT MEASURED` and never as
+  "no change"; `scripts/__tests__/snapshot.test.sh` drives the argument errors, that
+  exit, both diff-engine branches, the pairing over fixture PNG dirs, and one real shoot
+  when a browser is installed, saying so when there is none. Reading the pair is
+  **agent-graded**: nothing here asserts a pixel. Not covered: auth flows, per-component
+  crops, settling past one 3 s budget, device emulation beyond the viewport size.
+
 ## 0.4.0 — 2026-09-22
 
 ### Added

@@ -253,6 +253,40 @@ and unresolved-link reports, and the publisher's worktree isolation are **gates*
 Not here: comments on a page, refresh from live data, runtime asset loads (a page that
 fetches assets from JavaScript keeps those references unreported), `srcset` rewriting.
 
+## Snapshots and review
+
+Two `dk` verbs, no command and no hook — a UI change is easier to judge beside the screen
+it replaced than from a diff:
+
+```bash
+dk snapshot --routes /,/pricing --device both        # one PNG per route per device
+# …change the UI…
+dk snapshot --routes /,/pricing --device both
+dk review --base .design-kit/shots/<the first set>   # or a git ref whose shots were committed
+```
+
+`snapshot` loads each route in the same Chromium-family browser `board-export.sh` finds
+(it asks that script, so one install hint serves both) and writes
+`<out>/<device>/<route-slug>.png` — `<out>` defaults to
+`.design-kit/shots/<git short sha, else a UTC timestamp>/`, desktop is 1440x900, mobile
+390x844, and `--base-url` defaults to the dev URL `dk scratch --detect` reports. A second
+shoot at the same commit writes `<sha>-2` rather than over the set you are about to
+compare against. `review` pairs the newest set (or `--current`) against `--base`, writes
+`.design-kit/reviews/<pair>.html` with **before | after | a pixel-diff heatmap** per
+route, serves it on the same preview URL as everything else, and prints one table row per
+route with the changed-pixel percentage. The heatmap and the percentage need `python3`
+with Pillow; without it the page shows the pair alone and every row reads
+`no diff engine: install Pillow`.
+
+**Exit codes are the contract** — **gate**, `scripts/__tests__/snapshot.test.sh` drives
+each: `0` shot or rendered, `1` bad arguments, `2` the browser or the server was
+unreachable, printed as `NOT MEASURED` and never as "no change" — a shot nobody took is
+not a screen that did not change. Reading the pair is **agent-graded**: nothing here
+asserts a pixel, so there is no threshold and no failing build. Also not here: auth flows
+(a route behind a login shoots the login page), per-component crops, scroll or animation
+settling past one 3 s budget, and device emulation beyond the viewport size — no touch,
+no mobile UA, no DPR change. Two machines' antialiasing counts as changed pixels.
+
 ## Boundary with the host
 
 - `/design`, `/design sync|import|export`, `/design-sync` and the `Artifact` tool are

@@ -2,6 +2,37 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.8.0 — 2026-09-22
+
+### Added
+- **`scripts/plan-audit.sh` — a Terraform/OpenTofu plan reader with an exit code.**
+  `terraform show -json plan.out | bash scripts/plan-audit.sh` (path or stdin) exits **2**
+  when the plan deletes or replaces a resource whose type holds data — RDS, Aurora, S3,
+  DynamoDB, EFS/EBS, Cloud SQL, GCS, Compute Disk, Azure storage account / SQL database /
+  flexible server / managed disk, a PVC, and a `helm_release` only when its values or
+  `set` blocks name one. `--list-types` prints the list with a reason per type. **1** means
+  it could not read the input and nothing was checked; it fails CLOSED, unlike this
+  plugin's hook, because the only other thing a reader can say about a plan it cannot
+  parse is "clean". `/devops:review` runs it when `*.tf`/`*.tofu` or a plan JSON is in
+  scope, and `devops-practices` carries the invocation. No hook: a plan arrives as a
+  file, not as a tool call.
+- The second half, `lifecycle.prevent_destroy = true` removed since `--base`, reads the
+  `.tf` SOURCE in a git work tree (`--tf-dir`, `--base`), not the plan. Terraform does not
+  record `lifecycle` in state and does not emit it in the JSON plan at all, so a
+  plan-only check for it would have been theater; with no work tree to read, the reader
+  prints `prevent_destroy: NOT CHECKED` and never "clean". Fixtures in
+  `scripts/__tests__/plan-audit.test.sh` (28 asserts).
+- What the reader does NOT catch is in its own header and the README: a resource type not
+  on the list, another provider, a module that wraps storage under a type of its own, data
+  loss inside an `update` (a shrunk volume, `skip_final_snapshot` flipped), a `moved`
+  block, whether the destroy is recoverable, and a chart whose PVC never appears in the
+  release's values. Untested against output a real `terraform` binary produced — no
+  binary exists on the machine it was written on; the schema is honoured from
+  HashiCorp's JSON output format docs, re-read 2026-09-22.
+  Panel finding 43 (`rationale/specialist-panel-2026-09-22.md` §2): the marketplace had
+  no IaC lane, and the mechanism-bearing slice of that gap is this reader, not a
+  terraform skill — that shape is `rationale/measured-zero-shapes.md` shape 4.
+
 ## 0.7.1 — 2026-09-22
 
 ### Changed

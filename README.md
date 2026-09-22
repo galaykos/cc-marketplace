@@ -76,7 +76,7 @@ Or take a whole category with a bundle — one install, dependencies pulled in.
 
 | Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt | Skill listing vs the 6000-char floor | Fraction its README names |
 |--------|---------|-------------------|--------------------|----------------------------|------------------------------------|---------------------------|
-| `workflow-suite` | 15 | ~5.8k tokens | ~1.3k tokens | ~1.1k tokens | OVER (3.8x, 22929 chars) | 0.05 |
+| `workflow-suite` | 15 | ~5.7k tokens | ~1.3k tokens | ~1.1k tokens | OVER (3.8x, 22530 chars) | 0.05 |
 | `craft-suite` | 3 | ~2.8k tokens | — | — | OVER (1.9x, 11256 chars) | 0.02 |
 | `frontend-suite` | 4 | ~1.7k tokens | ~43 tokens | ~651 tokens | NEAR (103%, 6163 chars) | 0.02 |
 | `core-suite` | 7 | ~1.5k tokens | ~1.3k tokens | ~870 tokens | OVER (1.0x, 6232 chars) | 0.02 |
@@ -462,7 +462,7 @@ take a fuzzy request to a verified branch.
 | **[taskmaster](plugins/taskmaster)** | brainstorm a fuzzy idea into an approved design, grill requirements to zero ambiguity against an ambiguity ledger, decide visuals with mockups, red-team the frozen spec, then emit single-prompt task cards with a coverage check and a verify-teeth lint | The request is vague, large, or has five plausible readings |
 | **[task-runner](plugins/task-runner)** | delegation contracts (self-contained prompts, compressed evidence-backed returns, model/effort tiering, writer isolation, the role-floor registry) and verification panels (refuter voting, judge panels, completeness critic) for any subagent fan-out — the orchestration plugin until 2026-09-14 — plus one task at a time, scope locked, a bounded verify-fix loop per task, halt-with-evidence instead of drift, a completion gate that actually runs the artifact, plus parallel planning and a `--tracks` mode | You have a task list and want it executed without drift |
 | **[overseer](plugins/overseer)** | a program-level product owner: `/overseer:start "Build a CRM"` inventories the project and every installed plugin, asks one clarifying round, writes a milestone roadmap, briefs taskmaster and task-runner per milestone on its own branch, and closes a milestone only after a browser walk at three widths with a clean console — `program.sh accept` refuses a green suite alone; `/overseer:resume` continues across sessions | A whole product to deliver over many sessions and branches, with someone owning the roadmap and the acceptance |
-| **[approaches](plugins/approaches)** | 2–3 structurally different approaches with a trade-off table and a kill-trigger — or four **blind** persona subagents when the work is a refactor/rewrite — plus build-vs-buy, S/M/L/XL estimation, rollout planning, and design-pattern selection | Before implementing anything non-trivial, and especially before a rewrite |
+| **[approaches](plugins/approaches)** | 2–3 structurally different approaches with a trade-off table and a kill-trigger — or four **blind** persona subagents when the work is a refactor/rewrite — plus build-vs-buy, rollout planning, and design-pattern selection | Before implementing anything non-trivial, and especially before a rewrite |
 | **[git-workflow](plugins/git-workflow)** | worktree isolation, a branch-finish protocol (verify → merge / PR / keep / discard, no zombie branches), and review-exchange rigor | Starting isolated work, or finishing a branch |
 | **[hindsight](plugins/hindsight)** | mines past session transcripts for recurring friction and proposes CLAUDE.md rules, skill ideas, and failed-approach warnings — applied only on approval | Periodically. It is the only plugin that learns from your history |
 | **[ultra-deep-research](plugins/ultra-deep-research)** | parallel web-search fan-out, source tiering by provenance, date-stamped claims, adversarial refutation before synthesis, a cited report with a contradiction ledger | A question where being confidently wrong is expensive |
@@ -489,7 +489,6 @@ take a fuzzy request to a verified branch.
 /approaches:compare               # 2-3 approaches, trade-offs, a kill-trigger
 /approaches:opinions              # four blind personas argue the shape
 /approaches:build-vs-buy          # is there already a library for this?
-/approaches:size                  # S/M/L/XL with an anchor comparison
 /approaches:rollout               # flags, exposure stages, rollback trigger
 /approaches:pattern               # suggest — or reject — a design pattern
 /task-runner:plan                 # subagents or inline? with a speedup estimate

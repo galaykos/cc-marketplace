@@ -85,7 +85,11 @@ Two entry shapes, one procedure:
    empty design system exits 2 (`not measured`) — say so rather than reading it as
    clean. Then iterate on the scratch page while the user looks: one change per request, the
    dev server reloads. Take a screenshot when the environment offers one; say when
-   it does not.
+   it does not. To show what the change did to a screen, `dk.sh snapshot --routes
+   <r> --device both` before and after it, then `dk.sh review --base <the first
+   shot dir>` — before/after/heatmap on the preview URL plus a changed-pixel table.
+   It renders the pair and counts pixels; it asserts nothing (README, "Snapshots
+   and review").
 6. After the pick: record what was decided (which components, which variants,
    which tokens, any gap rows) in the reply and as one line via
    `dk.sh decision --record "…"` (→ `design-system/DECISIONS.md`), then run

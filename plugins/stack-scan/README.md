@@ -74,7 +74,10 @@ git-workflow, and the rest of `skills/plugin-scout/references/any-core.md` — t
 lists the remaining catalog as numbered rows you can take by number, name or range,
 minus whatever is already installed. Where this marketplace has no plugin for your
 stack (Terraform, i18n, Django), the scout says so and routes you to `--skills`
-instead of padding the list.
+instead of padding the list. One Terraform slice is covered and the scout still
+routes the rest: **devops** ships `scripts/plan-audit.sh`, a `terraform show -json`
+plan reader that exits 2 when a plan destroys a stateful resource. That is a
+mechanism, not a terraform rubric — terraform SKILLS remain a `--skills` search.
 
 Tier 3 is defined by subtraction, so a relevance pass lifts a handful of remainder
 plugins that actually fit, each with a one-line **reason** rather than evidence. It

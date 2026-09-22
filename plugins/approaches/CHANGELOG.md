@@ -3,6 +3,22 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.10.0
+
+### Removed
+- **The `estimation` skill and `/approaches:size` are gone.** They were <!-- removed-ok -->
+  measured-zero shape 2 verbatim (`rationale/measured-zero-shapes.md` §2): a checklist
+  with no mechanism, no `Standing:` line and no eval case, whose only side effect was an
+  append to `taskmaster-docs/estimation-ledger.md` — a ledger with exactly one grep hit in
+  the whole marketplace, the instruction to write it. All three downstream citations
+  (taskmaster's `task-cards`, `/taskmaster:task`, its README) were conditional on the
+  plugin being installed, so nothing breaks that was not already the majority path.
+  taskmaster now states the S/M/L/XL anchor rule inline in `task-cards` instead.
+  **The delta was never measured** — this is a removal on shape and on a dead artifact,
+  not on a control-arm result; `rationale/stack-skill-baselines.md` (2026-09-22) records
+  what a measurement would have had to show. `pc_removed_refs` now fails the build on
+  either name so a future doc cannot route a reader to them.
+
 ## 0.9.0
 
 ### Added
@@ -39,8 +55,8 @@ have no entries rather than invented ones.
 ## 0.8.0
 
 ### Changed
-- **`estimation` and `rollout-planning` catch their own vocabulary now.** "estimate", "how
-  long will this take" and "S/M/L/XL" were all absent from the estimation description, and
+- **`estimation` and `rollout-planning` catch their own vocabulary now.** "estimate", "how <!-- removed-ok -->
+  long will this take" and "S/M/L/XL" were all absent from the estimation description, and <!-- removed-ok -->
   "rollout", "feature flag", "canary" and "migration sequencing" were absent from the
   rollout one — every one of them a phrase a user opens with, and every one of them already
   in the body being routed to. Triggers only; no behaviour changed.

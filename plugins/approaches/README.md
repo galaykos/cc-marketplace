@@ -9,10 +9,11 @@ Purist, Quality-over-Speed, Pragmatist-Minimalist, Skeptic-Investigator) argue
 rework-shaped tasks.
 
 The `build-vs-buy`, `estimation`, `rollout`, and `design-patterns` plugins were
-merged into this one: their skills (build-vs-buy, estimation, rollout-planning,
+merged into this one: their skills (build-vs-buy, rollout-planning,
 pattern-selection) now ship here, their commands live on below, and
 build-vs-buy's UserPromptSubmit reminder hook moved over intact — it now nudges
-toward `/approaches:build-vs-buy`. Nothing was dropped in the merge.
+toward `/approaches:build-vs-buy`. Nothing was dropped in the merge itself; the
+`estimation` skill and its `size` command were removed later, on 2026-09-22.
 
 The fresh-take plugin was merged into this one on 2026-09-14: `/approaches:consult` composes a
 facts-only brief and dispatches the blind `consultant` agent (stronger-model,
@@ -30,7 +31,7 @@ opinions, the same shape as the opinion panel; the plugin boundary carried nothi
 
 ## Commands and skill entries
 
-Five of these are `commands/*.md`; `build-vs-buy` and `consult` are SKILLS invoked
+Four of these are `commands/*.md`; `build-vs-buy` and `consult` are SKILLS invoked
 the same way (`/approaches:<skill>`), which is why they carry no command file. The
 row shape is identical to a reader and the distinction matters only when editing.
 
@@ -39,7 +40,6 @@ row shape is identical to a reader and the distinction matters only when editing
 | `/approaches:compare [task]` | Compare 2-3 structurally different approaches to a task — trade-off table, pick, kill-trigger — before any implementation |
 | `/approaches:opinions [task]` | Deliberate a task's shape as a blind panel — four parallel opinion-lens personas argue it, synthesized inline to one pick + kill-trigger — before any implementation |
 | `/approaches:build-vs-buy [capability]` | Build-vs-buy check before implementing a capability — existing-solution search, health table, take/wrap/write verdict |
-| `/approaches:size [task-or-list]` | S/M/L/XL sizing per item with anchor comparison, uncertainty flag, and split recommendation for anything L+ |
 | `/approaches:rollout [feature-description]` | Rollout plan for a feature about to ship — flag strategy, compatibility window, exposure stages, rollback trigger and path |
 | `/approaches:pattern [problem-description]` | Suggest (or reject) a design pattern for a described problem |
 | `/approaches:consult [topic]` | A blind stronger-model second opinion at a key moment — stuck debugging (from the second failed cycle) or an imminent irreversible action. Facts-only brief, `scripts/brief-lint.sh` rejects leaning phrasing mechanically; returns a Take, Risks and one Alternative. Advice only — never blocks, gates or edits |

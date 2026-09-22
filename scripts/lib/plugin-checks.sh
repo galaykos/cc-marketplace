@@ -729,7 +729,7 @@ pc_jargon() {
 # rescue list frees lines DISCUSSING a removal; anything else needs the
 # <!-- removed-ok --> marker.
 pc_removed_refs() {
-  local f="$1" b plug skills shapes rescue hit capi
+  local f="$1" b plug skills cmds shapes rescue hit capi
   [ -f "$f" ] || return 0
   b='[^[:alnum:]-]'
   # Nine stack plugins removed 2026-08-26 (cfef9c1, marketplace-necessity-review):
@@ -836,7 +836,23 @@ pc_removed_refs() {
   # after the retirement and no shape saw them: the names sat in neither list, and the
   # `moved` list would not have helped because it guards the PLUGIN half of
   # `plugin:artifact`, while these appeared as the artifact half (`ui-ux:real-preview`).
-  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session'
+  # estimation added 2026-09-22 (specialist-panel-2026-09-22 §3.2, software finding 12):
+  # approaches' estimation skill was measured-zero shape 2 verbatim — a checklist with no
+  # mechanism, no Standing: line and no eval — and the ledger it appended to had exactly
+  # one grep hit, the instruction to write it. It rides $skills, not $moved, for the
+  # real-preview reason: it is the ARTIFACT half of `approaches:estimation`, which the
+  # $moved list cannot see. It is the first SINGLE BARE WORD in this list, and the i18n
+  # note above is the standing argument against that — so the survey that earned it:
+  # after the removal every word-bounded `estimation` in the scanned .md set was a
+  # dangling pointer, none was ordinary English. WHAT IT DOES NOT CATCH: "estimate",
+  # "sizing" and "S/M/L/XL" name the same dead capability and match nothing here, and a
+  # future skill using "estimation" as ordinary English needs <!-- removed-ok -->.
+  skills='react-best-practices|css3-best-practices|css-grid-best-practices|flexbox-best-practices|bootstrap-best-practices|simplicity-principles|surgical-coding|strategy-catalog|database-design|opinion-round|task-orchestration|php-best-practices|mysql-best-practices|postgresql-best-practices|vue3-best-practices|nuxt-best-practices|livewire-best-practices|node-backend-best-practices|react-server-state|react-data-grid|terse-crew|terse-commit|terse-compress|real-preview|design-session|estimation'
+  # Removed COMMANDS, fully qualified. `/approaches:size` (2026-09-22, same finding) went
+  # with the estimation skill, and no list above can hold it: the plugin half is live, so
+  # $moved would mis-fire on every surviving /approaches: command, and the artifact half
+  # `size` is ordinary English in every table in the repo. Only the joined token matches.
+  cmds='approaches:size'
   # `bundles?` added 2026-08-31: the `everything` removal shipped six shipped-doc
   # references in the form "`everything` bundle(s)" / "`craft-suite` and
   # `everything`" that no existing shape matched — the guard was extended for that
@@ -846,7 +862,7 @@ pc_removed_refs() {
   # the first version of that addition REPLACED the skills clause instead of
   # appending, silently un-guarding every removed skill name; parity-check.sh's
   # violation-skill-name fixture is what caught it.
-  shapes="/($moved):|\\\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)"
+  shapes="/($moved):|\\\`($moved):[a-z][a-z0-9-]*|(^|$b)plugins/($moved)($b|\$)|(^|$bm)($moved)@|\\*\\*($moved)\\*\\*|(^|$bm)($moved)\`? plugins?($b|\$)|\\*\\*($plug)\\*\\*|(^|$b)($plug)\`? (plugins?|bundles?)($b|\$)|(^|$b)plugins/($plug)($b|\$)|(^|$b)($plug)@|(→|->) ?\`?($plug)($b|\$)|/($plug):|(^|$b)\`($plug)\`($b|\$)|(^|$b)($skills)($b|\$)|(^|$b)($cmds)($b|\$)"
   # Lines legitimately discussing the removal itself stay legal without a
   # marker. Every phrase below is quoted from a shipped disclosure:
   #   "it was removed after baseline testing"          (plugin-scout flags.md)
@@ -1577,6 +1593,184 @@ pc_lanes_territory() {
         }
       exit bad
     }' "$@"
+}
+
+# pc_lanes_adjacency [plugins_root] [rules_tsv] [min_cluster]
+# CROWDING, not collision. pc_lanes_territory compares `owns` and `phase` as
+# strings, so two artifacts doing one job pass it by picking two nouns for that job
+# — its own RESIDUAL paragraph says exactly that, and pc_lanes_vocabulary cannot
+# close the hole because it gates that a noun is DECLARED, not that two nouns name
+# two jobs. This check asks what neither can: how many artifacts speak at once
+# about ONE file shape, in one phase, whatever each calls its territory.
+#
+# WHY IT EXISTS. rationale/2026-09-15-listing-eviction-probe.md:60-66 priced the
+# defect: stripping a skill's description changed firing not at all (47/50 in both
+# arms), while EIGHT rivals contesting one territory dropped the target from 100%
+# to ~75%. Overlap is what costs a marketplace, not bytes. The 2026-09-22
+# specialist panel (finding 10) named the shape no gate could see — "twelve
+# review-phase agents whose triggers match one .tsx diff".
+#
+# WHERE THE TRIGGER COMES FROM, since `definite_trigger` is prose no script reads:
+#   skill   — the glob rows routing to it in plugins/skill-router/rules.tsv, keyed
+#             by owning_plugin + skill so the row and the lane artifact agree.
+#   agent   — the globs of every skill its frontmatter names in
+#             `bestpractices-skill`, the only machine-readable file claim an agent
+#             carries in this tree. No agent frontmatter and no .chassis.json field
+#             declares a path or file kind; the worker-agent manifests carry the
+#             same `bestpractices-skill` key and generate.sh --check holds the two
+#             byte-equal, so reading the rendered agent reads both.
+#   command — NOTHING. No command declares a file shape anywhere here, so commands
+#             are invisible to this check and their crowding stays agent-graded.
+#
+# A pair inside a cluster is RESOLVED, and stops counting, when either row
+# `yields_to` the other, when a `# lane-cofire-ok: <a> <b>` blesses it in any
+# lane.tsv, or when the agent names that skill in `bestpractices-skill` — an agent
+# that READS a skill consumes it rather than contesting it, and its shapes were
+# derived from that skill to begin with. An artifact keeping at least one
+# unresolved pair counts toward the cluster; a cluster of `min_cluster` (default 3)
+# or more prints.
+#
+# WHAT IT CANNOT SEE, beyond commands: content rows, which fire on a regex over a
+# file's BODY and never collide by string equality — pc_rules_cofire owns those
+# with a corpus; every skill and command with no lane row at all (pc_lanes_coverage
+# warns, and most skills are in that state); any agent naming no
+# `bestpractices-skill`, 21 of 33 on 2026-09-22, which is why the panel's twelve
+# review-phase agents surface here as ONE pair below the threshold rather than the
+# crowd they are (ui-ux:ui-ux-reviewer and web-dev:frontend-reviewer, on *.tsx);
+# and whether a crowd is actually WRONG,
+# which needs a reader. pc_rules_overlap already fails two skills sharing one glob
+# PATTERN, pairwise, and excuses a pair whose stack_markers differ — this one
+# counts those excused rows, because one Next.js repo with a components.json
+# satisfies three markers at once and the model still sees the crowd.
+#
+# TIER: WARN, and the validate.sh call site says so. It ships as a WARN because the
+# tree had SIX clusters at min 3 the day it landed (build *.tsx N=6, *.blade.php
+# N=5, *.sql N=4, **/migrations/** N=4, *.jsx N=3, *.vue N=3) — a FAIL would have
+# blocked the build on work nobody had scheduled. Flipping the call site from warn
+# to lane_err is the whole follow-up; nothing in this function changes.
+#
+# Prints `lane-adjacency <shape> <phase> <artifact> …` per cluster, sorted, and
+# returns 1 when any printed.
+pc_lanes_adjacency() {
+  local root="${1:-plugins}" rules="${2:-}" min="${3:-3}" out lanes agents f
+  [ -n "$rules" ] || rules="$root/skill-router/rules.tsv"
+  [ -f "$rules" ] || return 0
+  # find, not a glob: an unmatched glob is a literal path under bash and a hard
+  # error under zsh, and this file is sourced by validate.sh and by a hook.
+  lanes=$(find "$root" -maxdepth 2 -name lane.tsv 2>/dev/null | sort)
+  [ -n "$lanes" ] || return 0
+  agents=$(find "$root" -maxdepth 3 -type f -path '*/agents/*.md' 2>/dev/null | sort)
+  # Build the awk argument list positionally rather than by word-splitting an
+  # unquoted expansion: this file is sourced by validate.sh under bash AND by a
+  # hook, and zsh does not word-split unquoted parameters at all.
+  set -- "$rules"
+  while IFS= read -r f; do
+    [ -n "$f" ] && set -- "$@" "$f"
+  done <<EOF_LANE_ADJ_FILES
+$lanes
+$agents
+EOF_LANE_ADJ_FILES
+  out=$(awk -F'\t' -v min="$min" -v rules="$rules" '
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    function yields(list, target,   m, parts, k) {
+      if (list == "" || list == "-") return 0
+      m = split(list, parts, ",")
+      for (k = 1; k <= m; k++) if (trim(parts[k]) == target) return 1
+      return 0
+    }
+    function declares(list, art,   m, parts, k, sn) {
+      sn = art; sub(/^[^:]*:/, "", sn)
+      m = split(list, parts, ",")
+      for (k = 1; k <= m; k++) if (trim(parts[k]) == sn) return 1
+      return 0
+    }
+    function resolved(ck, a, b,   ia, ib) {
+      ia = IDX[ck SUBSEP a]; ib = IDX[ck SUBSEP b]
+      if (yields(Y[ia], b) || yields(Y[ib], a)) return 1
+      if ((a SUBSEP b) in OK) return 1
+      if (K[ia] == "agent" && K[ib] == "skill" && declares(BP[a], b)) return 1
+      if (K[ib] == "agent" && K[ia] == "skill" && declares(BP[b], a)) return 1
+      return 0
+    }
+    FILENAME == rules {
+      sub(/\r$/, "")
+      if ($0 ~ /^#/ || NF < 4 || $1 != "glob") next
+      art = $4 ":" $3
+      if (!((art SUBSEP $2) in aseen)) { aseen[art SUBSEP $2] = 1; ASH[art] = ASH[art] " " $2 }
+      if (!(($3 SUBSEP $2) in sseen)) { sseen[$3 SUBSEP $2] = 1; SSH[$3] = SSH[$3] " " $2 }
+      next
+    }
+    FILENAME ~ /lane\.tsv$/ {
+      sub(/\r$/, "")
+      if ($0 ~ /^#[[:space:]]*lane-cofire-ok:/) {
+        line = $0
+        sub(/^#[[:space:]]*lane-cofire-ok:[[:space:]]*/, "", line)
+        n = split(line, t, /[[:space:]]+/)
+        if (n >= 2) { OK[t[1] SUBSEP t[2]] = 1; OK[t[2] SUBSEP t[1]] = 1 }
+        next
+      }
+      if ($0 ~ /^#/ || NF != 6) next
+      i = ++rows; A[i] = $1; K[i] = $2; P[i] = $3; Y[i] = $6
+      next
+    }
+    {
+      # an agent markdown file: read bestpractices-skill from the FRONTMATTER only
+      if (FNR == 1) { fm = ($0 ~ /^---[[:space:]]*$/); next }
+      if (!fm) next
+      if ($0 ~ /^---[[:space:]]*$/) { fm = 0; next }
+      if ($0 !~ /^bestpractices-skill:/) next
+      line = $0; sub(/^bestpractices-skill:[[:space:]]*/, "", line)
+      n = split(FILENAME, seg, "/")
+      key = seg[n-2] ":" seg[n]; sub(/\.md$/, "", key)
+      BP[key] = line
+    }
+    END {
+      for (i = 1; i <= rows; i++) {
+        shapes = ""
+        if (K[i] == "skill") shapes = ASH[A[i]]
+        else if (K[i] == "agent") {
+          m = split(BP[A[i]], bs, ",")
+          for (j = 1; j <= m; j++) { s = trim(bs[j]); if (s != "") shapes = shapes " " SSH[s] }
+        }
+        if (trim(shapes) == "") continue
+        n = split(shapes, sh, /[[:space:]]+/)
+        for (j = 1; j <= n; j++) {
+          if (sh[j] == "") continue
+          ck = P[i] SUBSEP sh[j]
+          if ((ck SUBSEP A[i]) in mseen) continue
+          mseen[ck SUBSEP A[i]] = 1
+          MEM[ck] = MEM[ck] " " A[i]
+          IDX[ck SUBSEP A[i]] = i
+          SHAPE[ck] = sh[j]; PH[ck] = P[i]
+        }
+      }
+      for (ck in MEM) {
+        c = 0; delete M
+        n = split(MEM[ck], mm, /[[:space:]]+/)
+        for (x = 1; x <= n; x++) if (mm[x] != "") M[++c] = mm[x]
+        if (c < min) continue
+        delete keep
+        for (x = 1; x <= c; x++)
+          for (y = x + 1; y <= c; y++) {
+            if (resolved(ck, M[x], M[y])) continue
+            keep[M[x]] = 1; keep[M[y]] = 1
+          }
+        nk = 0; delete L
+        for (k in keep) L[++nk] = k
+        if (nk < min) continue
+        for (x = 2; x <= nk; x++) {
+          v = L[x]; y = x - 1
+          while (y >= 1 && L[y] > v) { L[y+1] = L[y]; y-- }
+          L[y+1] = v
+        }
+        line = "lane-adjacency " SHAPE[ck] " " PH[ck]
+        for (x = 1; x <= nk; x++) line = line " " L[x]
+        print line
+      }
+    }' "$@" | sort)
+  [ -n "$out" ] || return 0
+  printf '%s\n' "$out"
+  return 1
 }
 
 # pc_lanes_coverage [plugins_root]

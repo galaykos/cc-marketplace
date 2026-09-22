@@ -67,3 +67,56 @@ leverage maps and lockfile-pinning behavior, not idioms.
   deleted or re-pointed (react rows now route `react-server-state`).
 - Model was sonnet; a weaker model might benefit more from the checklists. The
   marketplace's default subagent tier is sonnet-or-better.
+
+---
+
+## 2026-09-22 — `estimation` + `/approaches:size` removed WITHOUT a measurement
+
+**Removed:** `plugins/approaches/skills/estimation/` and
+`plugins/approaches/commands/size.md` (approaches 0.10.0).
+
+**Why.** Two reasons, neither of them a delta:
+
+1. **Shape 2 verbatim** (`rationale/measured-zero-shapes.md` §2 — a checklist with no
+   mechanism). The six-specialist panel's software reviewer scanned the ten checklist
+   skills for bytes, references, a `Standing:` line and any mechanism, and `estimation`
+   scored zero on the last three: prose classes (S/M/L/XL), prose anchors, prose
+   multipliers, nothing that fails, nothing an eval reads
+   (`rationale/specialist-panel-2026-09-22.md` §3.2, detail finding 12).
+2. **Its one side effect was write-only.** The body instructed an append to
+   `taskmaster-docs/estimation-ledger.md`. A repo-wide grep for that path returned
+   exactly one hit — the instruction to write it. Zero readers, no gate, no skill, no
+   script; a ledger nothing reads is a file, not a mechanism.
+
+All three downstream citations (`taskmaster/skills/task-cards/SKILL.md`,
+`taskmaster/commands/task.md`, `taskmaster/README.md`) were guarded by "if the
+approaches plugin is installed", so the removed behaviour was already the fallback for
+every install without approaches — which is most of them.
+
+**Residual.** Card sizing is now unanchored judgment: taskmaster states the S/M/L/XL
+rule inline in `task-cards` (M = a card the same person shipped in one sitting; L+ is
+split or spiked) and nothing carries the uncertainty multipliers or the spike triggers
+the skill listed. That is exactly today's behaviour whenever approaches is absent, so
+the change is a loss only for installs that had it — and the loss is unmeasured in
+both directions.
+
+**The delta was NOT measured.** No control/treatment arm was run on `estimation`, here
+or anywhere; the 2026-07-27 table above is a different set of skills. This removal
+rests on shape and on a dead artifact, which is weaker evidence than the table above
+and is stated as such. The panel offered the alternative explicitly
+(`rationale/specialist-panel-2026-09-22.md` §4): one `--ablation with-without` run,
+5+ runs, vote spread reported, pointed at either `solid-principles` or `estimation`,
+and Software's own note said `estimation` was the cheaper of the two to retire if the
+delta came back zero.
+
+**Recommendation on shape.** Spend the one measurement on `solid-principles`, not on
+this: `estimation` is gone on the write-only-ledger finding, which no eval was needed
+to establish, while `solid-principles` is the largest surviving member of the same
+shape and the result generalises to the other eight. If a future maintainer wants
+`estimation` back, the bar is a control arm that fails a sizing prompt the skill
+passes — not a re-reading of the prose.
+
+**Gate.** `estimation` and `approaches:size` are now in `pc_removed_refs`' denylist
+(`scripts/lib/plugin-checks.sh`), so a shipped doc routing a reader to either fails
+`validate.sh`. Standing: **gate**. What it does not catch: "estimate", "sizing" and
+"S/M/L/XL" name the same dead capability in prose and match nothing.

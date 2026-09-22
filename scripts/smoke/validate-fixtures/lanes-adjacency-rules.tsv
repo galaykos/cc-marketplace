@@ -1,0 +1,11 @@
+# signal_type	pattern	skill	owning_plugin	confidence	stack_marker
+# Fixture for pc_lanes_adjacency, read by scripts/smoke/lanes-tests.sh. A frozen stand-in
+# for plugins/skill-router/rules.tsv: the check derives a skill's file shapes from these
+# glob rows, so the harness needs rows it controls rather than the shipped tree's.
+# `eps-skill` is routed by a CONTENT row on purpose — content patterns are not a file
+# shape and must derive nothing.
+glob	*.qq	alpha-skill	foo	high
+glob	*.qq	beta-skill	foo	high
+glob	*.qq	gamma-skill	bar	high
+glob	*.zz	delta-skill	bar	high
+content	needle	eps-skill	bar	high

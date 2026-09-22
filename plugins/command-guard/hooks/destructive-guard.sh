@@ -207,7 +207,7 @@ ask	 docker (rm|container rm) .*-f	force-removes running containers	stop them fi
 ask	 docker system prune	removes unused containers, networks and images	scope it to one project
 ask	 kubectl delete 	removes a live cluster object	`--dry-run=client` first
 ask	 helm (uninstall|delete) 	removes a release and possibly its storage	`helm get manifest` first
-ask	 terraform apply .*-auto-approve	applies without showing the plan, which may include destroys	apply without -auto-approve and read the plan
+ask	 (terraform|tofu) apply .*-auto-approve	applies without showing the plan, which may include destroys	apply without -auto-approve and read the plan
 ask	 vagrant destroy	deletes the VM and its disk	`vagrant halt`
 ask	 (vercel|railway|netlify) (remove|rm|down)( |$)	removes a deployment or project	do it in the dashboard
 ask	 npm publish	publishes to a public registry; the version can never be reused	`npm publish --dry-run`
@@ -582,8 +582,23 @@ deny_reason() {
   printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. The guard cannot tell a local database from production from the command line, so it does not ask; this is a hard stop. Do NOT retry it with different quoting, a wrapper (bash -c, eval), a script file, or a split-up form — the guard reads those too, and working around a safety gate is not the task. Non-destructive path: ${V_ALT}. If the destructive command is genuinely what the task needs, stop and tell the user exactly which command you want run and why, and let them run it. Standing opt-out (the user's call, not yours): a regex line in .claude/${ALLOW_BASENAME}, or CLAUDE_DESTRUCTIVE_GUARD=off in the SESSION's env (=ask downgrades every hard stop to a prompt) — the env is read from this hook's own process, so putting it in front of the command does nothing."
 }
 
+# An `ask` is only worth the interruption if the person answering can find out what
+# the command would do. For a terraform/tofu apply they can: the devops plugin ships a
+# plan reader that exits 2 when the plan destroys a stateful resource. devops is a
+# SIBLING plugin, so the path is resolved from this hook's own root and named only when
+# the file is actually there — naming a path the reader does not have on disk is the
+# defect ops finding 3 fixed elsewhere in this marketplace. Panel finding 43.
+plan_audit_hint() {
+  case "$V_MATCH" in *"terraform apply"*|*"tofu apply"*) ;; *) return 0 ;; esac
+  [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || return 0
+  local p
+  p="$(dirname "$CLAUDE_PLUGIN_ROOT")/devops/scripts/plan-audit.sh"
+  [ -f "$p" ] || return 0
+  printf ' Read the plan before answering: `terraform show -json plan.out | bash %s` exits 2 when the plan deletes or replaces a resource that holds data.' "$p"
+}
+
 ask_reason() {
-  printf '%s' "command-guard: this command ${V_WHAT}. Confirm that is intended and that anything it removes is either recoverable or not needed. Less destructive path: ${V_ALT}. CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard; =deny-only keeps the hard stops and drops this prompt tier."
+  printf '%s' "command-guard: this command ${V_WHAT}. Confirm that is intended and that anything it removes is either recoverable or not needed. Less destructive path: ${V_ALT}.$(plan_audit_hint) CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard; =deny-only keeps the hard stops and drops this prompt tier."
 }
 
 emit() {

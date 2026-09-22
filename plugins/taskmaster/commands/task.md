@@ -96,8 +96,8 @@ runs through execution to a green suite; branch-finish/merge/PR stay manual.
    the spec. Skip it when the plugin is not installed.
 7. Invoke the task-cards skill to split the spec into single-prompt task cards
    under `taskmaster-docs/tasks/YYYY-MM-DD-<slug>/` with a `00-INDEX.md`, grouped into
-   milestones when the run is large — cards sized per the approaches plugin's estimation
-   skill when it is installed (S/M/L/XL; anything L+ is split).
+   milestones when the run is large — cards sized S/M/L/XL against task-cards' anchor
+   rule (anything L+ is split).
 8. Final output: the ledger summary (counts of CLEAR/ASSUMED), the spec path, and
    the card list in execution order with parallel groups (and milestones) marked.
 9. Handoff — do not just print a command and stop:

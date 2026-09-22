@@ -719,8 +719,9 @@ fi
 # ---- Lane declarations: who owns which territory -----------------------------
 # Every plugin declares, in its own plugins/<name>/lane.tsv, which territory each
 # of its artifacts owns, at which phase of the arc it may speak, the condition
-# that fires it, and who outranks it. Five gates read those files by glob — there
-# is deliberately no generated aggregate, because a concatenation would carry no
+# that fires it, and who outranks it. The pc_lanes_* family reads those files by
+# glob (recount: `grep -c '^pc_lanes_[a-z_]*() {' scripts/lib/plugin-checks.sh`)
+# — there is deliberately no generated aggregate, because a concatenation would carry no
 # rule this glob does not and would add a chassis-drift surface for nothing.
 #
 # THE ONE THAT CARRIES THE MISSION is pc_lanes_territory: it is the only
@@ -763,6 +764,22 @@ lane_wc=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn command ' || true)
 lane_ws=$(printf '%s\n' "$lane_cov" | grep -c '^lane-warn skill ' || true)
 [ "$lane_wc" -gt 0 ] && warn "$lane_wc command(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
 [ "$lane_ws" -gt 0 ] && warn "$lane_ws skill(s) have no lane row — WARN tier this run; agents, prompt/Stop hooks and deny-capable Pre/PostToolUse hooks are the gate"
+
+# The territory gate above fires only on an exact `owns` collision, and the live
+# vocabulary is 1:1 with the claimed nouns, so it has never had a pair. Crowding is
+# the defect the probe actually priced (eight rivals on one territory: firing
+# 100% → ~75%), and it is invisible to a string compare. WARN tier deliberately —
+# the derivation, the six live clusters and the FAIL flip are in the function's
+# header in scripts/lib/plugin-checks.sh.
+lane_adj=$(pc_lanes_adjacency plugins) || true
+if [ -n "$lane_adj" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — artifacts sharing one phase and one file shape; give one a narrower trigger, add a yields_to edge, or bless the pairs with '# lane-cofire-ok: <a> <b>'"
+  done <<EOF_LANE_ADJ
+$lane_adj
+EOF_LANE_ADJ
+fi
 
 # A prompt/Stop hook that declared a SPECIFIC phase must read the sentinel, or it
 # speaks in every phase forever. `any` lanes are guards and exempt by declaration.

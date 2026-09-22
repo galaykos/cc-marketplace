@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.7
+
+### Changed
+- **The `terraform apply -auto-approve` ask now names a way to answer it.** When the
+  **devops** plugin is installed beside this one, the ask reason carries the resolved path
+  to its plan reader — `terraform show -json plan.out | bash <devops>/scripts/plan-audit.sh`,
+  exit 2 when the plan deletes or replaces a resource that holds data — so the prompt is
+  a read rather than a coin flip. The path is resolved from this hook's own
+  `CLAUDE_PLUGIN_ROOT` and named only when the file is actually on disk; with devops
+  absent the reason is unchanged. The verdict stays **ask** (panel finding 43).
+- **`tofu apply -auto-approve` asks too.** The rule matched `terraform` only, so the
+  OpenTofu spelling of the same command was allowed silently.
+
 ## 0.6.6
 
 ### Changed

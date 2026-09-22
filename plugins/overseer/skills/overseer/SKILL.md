@@ -66,7 +66,7 @@ the product decisions `references/product-judgment.md` lists (library, motion, d
 states, primitives the owned library lacks), and the deferred improvements — each also a
 `program.sh suggestion add` row. Then
 split into milestones: shippable increments a user can try, dependency-ordered, sized on
-the milestone scale in `references/state.md` (`/approaches:size` is a card scale).
+the milestone scale in `references/state.md` (a card scale is a different unit).
 Register each with `program.sh milestone add --id mN --title … --branch <slug> --kind
 <kind> --size S|M|L|XL [--depends mK]`; the kind (`kinds.tsv`; a user-data form is `form`,
 never `feature`) names the skill groups a gated dispatch must pin before `accept` closes

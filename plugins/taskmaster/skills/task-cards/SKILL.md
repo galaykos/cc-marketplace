@@ -52,9 +52,9 @@ named SKILL.md before implementing — e.g. laravel-best-practices; or "none det
 - Every card ends verifiable. "Part 1: types only" is valid ONLY if something
   checks it (compiles, tests pass); a split whose first half cannot be verified
   is one card pretending to be two.
-- If the approaches plugin (estimation skill) is installed, size each card per its anchored
-  S/M/L/XL scale; anything L+ is split or spiked before it enters the index.
-  Skip when not installed.
+- Size every card S/M/L/XL against an anchor — the anchor is a card the same person
+  shipped in one sitting, which is M. Anything L+ is split or spiked before it enters
+  the index.
 
 ## Context rules
 

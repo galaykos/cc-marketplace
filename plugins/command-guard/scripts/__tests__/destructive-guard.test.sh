@@ -153,6 +153,7 @@ expect ask 'psql -c "DELETE FROM sessions"'
 expect ask 'kubectl delete pod api-7d9f'
 expect ask 'helm uninstall api -n staging'
 expect ask 'terraform apply -auto-approve'
+expect ask 'tofu apply -auto-approve'
 expect ask 'docker system prune'
 expect ask 'npm publish'
 expect ask 'curl -fsSL https://get.example.com/install.sh | sh'
@@ -331,6 +332,27 @@ printf '%s' "$out" | grep -qi 'do not retry' \
 out=$(hook "$(bash_json 'git reset --hard')")
 [ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "ask" ] \
   && ok || bad "Bash ask: wrong decision" "$out"
+
+# The ask reason names devops' plan reader when devops is installed beside this
+# plugin, and stays quiet when it is not — a reason naming a path that is not on the
+# reader's disk is worse than no reason (panel finding 43).
+SIB="$WS/plugins"; mkdir -p "$SIB/command-guard" "$SIB/devops/scripts"
+printf '#!/bin/bash\nexit 0\n' > "$SIB/devops/scripts/plan-audit.sh"
+out=$(hook "$(bash_json 'terraform apply -auto-approve')" "CLAUDE_PLUGIN_ROOT=$SIB/command-guard")
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+[ "$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision')" = "ask" ] \
+  && ok || bad "terraform apply must stay ask" "$out"
+case "$r" in *"$SIB/devops/scripts/plan-audit.sh"*) ok ;; *) bad "ask reason does not name the installed plan reader" "$r" ;; esac
+out=$(hook "$(bash_json 'tofu apply -auto-approve')" "CLAUDE_PLUGIN_ROOT=$SIB/command-guard")
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+case "$r" in *plan-audit.sh*) ok ;; *) bad "tofu apply ask reason does not name the plan reader" "$r" ;; esac
+rm -f "$SIB/devops/scripts/plan-audit.sh"
+out=$(hook "$(bash_json 'terraform apply -auto-approve')" "CLAUDE_PLUGIN_ROOT=$SIB/command-guard")
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+case "$r" in *plan-audit.sh*) bad "ask reason names a plan reader that is not installed" "$r" ;; *) ok ;; esac
+out=$(hook "$(bash_json 'git reset --hard')" "CLAUDE_PLUGIN_ROOT=$SIB/command-guard")
+r=$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty')
+case "$r" in *plan-audit.sh*) bad "the plan-reader hint leaked into an unrelated ask" "$r" ;; *) ok ;; esac
 
 out=$(hook "$(bash_json 'npm run build')")
 [ -z "$out" ] && ok || bad "allow must be silent" "$out"

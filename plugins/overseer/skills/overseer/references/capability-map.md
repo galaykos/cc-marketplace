@@ -46,7 +46,7 @@ Rules:
   Boost ships several) is a build-phase source; pin it by absolute path in every worker
   prompt that touches its domain, the same as a marketplace skill.
 - **A command you have and do not use is a decision.** `/stack-scan:report`,
-  `/approaches:size`, `/ui-ux:audit`, `/git-workflow:finish` installed and skipped is fine
+  `/ui-ux:audit`, `/git-workflow:finish` installed and skipped is fine
   when the inline route was cheaper — one `decision add` row per skip, so the user can see
   what strength was left on the table.
 - **A missing stack plugin is a finding, not a blocker.** No `laravel` plugin in a Laravel

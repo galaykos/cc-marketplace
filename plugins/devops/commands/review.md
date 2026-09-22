@@ -32,6 +32,16 @@ Before reporting, validate mechanically against the artifact where a tool exists
    | CI config, Kubernetes manifest, deploy or secret config (always in scope) | `devops-practices` |
    | `Dockerfile*`, `docker-compose*.yml`, `compose*.yml` | `docker-best-practices` |
 
+   **Terraform/OpenTofu in scope.** When the scope contains `*.tf`/`*.tofu` files or a
+   plan JSON, run the plan reader and report its lines as findings — exit 2 is a critical
+   finding, exit 1 means it could not read the input and nothing was checked:
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/plan-audit.sh <plan.json> --tf-dir <tf-source-dir> --base <merge-base-ref>`.
+   With no plan JSON to hand, do not run `terraform plan` yourself — it needs credentials
+   and state; ask the user for `terraform show -json plan.out` (or `tofu show -json`)
+   output, and say in the report that the destructive-plan axis went unchecked without it.
+   `--list-types` prints what the reader treats as stateful. This plugin carries no other
+   Terraform rubric — do not write terraform advice into the report from memory.
+
    For the Docker rubric, read the project manifests (composer.json, package.json,
    .env.example) first and pin findings to the actual stack — flag image tags that
    contradict the manifests' version floors, missing `ext-*` requirements, and a compose

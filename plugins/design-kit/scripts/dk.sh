@@ -9,6 +9,10 @@
 #   dk check                                one line: design-system current, moved, or missing
 #   dk drift [PATHS|--staged|--diff REF] [--ci]   literal colours + named Tailwind palette
 #                                           utilities in components that reach no token
+#   dk snapshot [--routes R] [--device desktop|mobile|both] [--base-url U] [--out DIR]
+#                                           one PNG per route per device off the running app
+#   dk review --base <dir|git-ref>          before / after / pixel-diff page for the
+#                                           last two shot sets, served, with a table
 #   dk slides <outline.md> [--theme FILE]   build a deck, record it, print its URL
 #   dk board <spec.json|.md> [--device D]   build a board, record it, print its URL
 #   dk scratch --detect|--create SLUG|--cleanup|--verify [--stack S]
@@ -179,6 +183,14 @@ case "$verb" in
     esac
     exit "$rc" ;;
 
+  snapshot|review)
+    # Both live in snapshot.sh, which owns the exit codes — 0 rendered, 1 bad
+    # arguments, 2 the browser or the server was unreachable — and they pass through
+    # here unchanged, so a wired-up caller reads the same number either way.
+    set +e; bash "$here/snapshot.sh" "$verb" "$@"; rc=$?; set -e
+    case "$rc" in 0) log ok ;; 2) log skip ;; *) log fail ;; esac
+    exit "$rc" ;;
+
   slides)
     outline="${1:-}"; [ -n "$outline" ] || fail "needs an outline path" "" 2; shift
     set +e; out="$(python3 "$here/deck-build.py" "$outline" "$@" 2>&1)"; rc=$?; set -e
@@ -312,6 +324,6 @@ print("server: " + (u or "not running"))
 PY
     log ok ;;
 
-  -h|--help|"") sed -n '2,32p' "$0"; exit 0 ;;
-  *) echo "dk: unknown verb $verb" >&2; sed -n '7,17p' "$0" >&2; exit 2 ;;
+  -h|--help|"") sed -n '2,37p' "$0"; exit 0 ;;
+  *) echo "dk: unknown verb $verb" >&2; sed -n '7,23p' "$0" >&2; exit 2 ;;
 esac
