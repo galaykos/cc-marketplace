@@ -16,7 +16,7 @@ Load the `artifact` skill (this plugin) and follow it exactly. Then act on `$ARG
    (add `--zip` when asked). Read every `network:`, `unresolved-link:` and `WARN:` line
    back to the user in one short list; fix unresolved links before continuing.
 3. **Serve.** `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh` (idempotent), then print
-   `http://127.0.0.1:8124/artifacts/<slug>.html` and the gallery `http://127.0.0.1:8124/`.
+   the URL `preview.sh` printed plus `/artifacts/<slug>.html`, and that base URL alone for the gallery.
    State the version (`v<N>`) and that the page reloads itself on re-bundle.
 4. **Offer sharing once**, via AskUserQuestion with these options in this order:
    "Keep it local (Recommended)" · "Open to my network (LAN)" · "Publish to a pages

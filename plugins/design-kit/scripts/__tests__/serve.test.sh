@@ -20,7 +20,11 @@ sleep 1.0
 printf '<html><body>changed</body></html>' > "$tmp/decks/b.html"
 sleep 2.4
 grep -q "data: reload" "$tmp/.sse" || { echo "FAIL: no reload event after a write"; cat "$tmp/.sse"; exit 1; }
-curl -s "http://127.0.0.1:$port/../../etc/passwd" | grep -q "root:" && { echo "FAIL: path traversal"; exit 1; }
+echo "OUTSIDE" > "$tmp.outside.txt"
+for probe in "/../$(basename "$tmp").outside.txt" "/%2e%2e/$(basename "$tmp").outside.txt" "/../../etc/passwd"; do
+  curl -s --path-as-is "http://127.0.0.1:$port$probe" | grep -qE "OUTSIDE|root:" && { echo "FAIL: path traversal via $probe"; exit 1; }
+done
+rm -f "$tmp.outside.txt"
 out="$(bash "$here/preview.sh" --docroot "$tmp" --stop)"
 case "$out" in *stopped*) ;; *) echo "FAIL: stop: $out"; exit 1 ;; esac
 echo "PASS serve.test.sh"

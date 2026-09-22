@@ -21,9 +21,9 @@ fragments                         ← the word alone on a line: this slide revea
 
 Fenced code blocks (```lang) stay code on the slide and are written into the
 PPTX as monospace text. Inline `code`, **bold**, *italic* and [links](url) work
-everywhere. A link to an external URL is allowed in text; an external `src`
-(a remote image) is not — the build fails, because the deck must open offline
-and on the LAN.
+everywhere — except that no external `src` OR `href` may reach the deck: a remote
+image or an `https://` link makes the build fail, because the deck must open offline
+and on the LAN. Put a URL in the speaker notes as plain text instead.
 
 ## What the builder enforces (exit 2)
 

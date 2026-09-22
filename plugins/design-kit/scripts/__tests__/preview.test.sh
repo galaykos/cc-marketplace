@@ -8,7 +8,7 @@ echo '<h1>ok</h1>' > "$tmp/index.html"
 out="$(bash "$here/preview.sh" --docroot "$tmp" --port "$port")"
 case "$out" in *"http://127.0.0.1:$port/"*) ;; *) echo "FAIL: start output: $out"; exit 1 ;; esac
 body="$(curl -s "http://127.0.0.1:$port/index.html")"
-[ "$body" = '<h1>ok</h1>' ] || { echo "FAIL: served body: $body"; exit 1; }
+case "$body" in "<h1>ok</h1>"*) ;; *) echo "FAIL: served body: $body"; exit 1 ;; esac
 out2="$(bash "$here/preview.sh" --docroot "$tmp" --port "$port")"
 case "$out2" in *"already running"*) ;; *) echo "FAIL: second start not idempotent: $out2"; exit 1 ;; esac
 out3="$(bash "$here/preview.sh" --docroot "$tmp" --stop)"

@@ -26,8 +26,9 @@ WHAT IT DOES (each a gate the harness drives):
 
 WHAT IT DOES NOT DO. It does not execute scripts, so a page that loads assets
 from JavaScript at runtime keeps those references and they are not reported.
-`srcset` attributes are reported as unsupported, not rewritten. It never reads
-outside the input's directory tree except the shell.
+`srcset` attributes are reported as unsupported, not rewritten. A `../` or absolute
+local ref that resolves outside the input's directory tree is never read: it is left
+in the page as-is and reported as a warning, so nothing outside the tree is inlined.
 """
 import argparse
 import base64
@@ -41,7 +42,7 @@ import re
 import sys
 import zipfile
 
-MAX_BYTES = 16 * 1024 * 1024
+MAX_BYTES = int(os.environ.get("DESIGN_KIT_MAX_BYTES", str(16 * 1024 * 1024)))  # env override exists for the harness only
 ABS_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|//)", re.I)
 DATA_RE = re.compile(r"^data:", re.I)
 
@@ -83,9 +84,20 @@ def slugify(s):
     return s or "artifact"
 
 
+INPUT_ROOT = None  # set once per run: the input page's directory; nothing above it is ever read
+
+
 def _resolve(base_dir, ref):
+    """A local path resolved against base_dir (the referring file's directory), or
+    None when it escapes INPUT_ROOT — a `../` or absolute ref that leaves the input
+    page's tree stays external and is reported. A stylesheet in css/ may still reach
+    ../fonts/ because that is inside the page's tree."""
     ref = ref.split("#", 1)[0].split("?", 1)[0]
-    return os.path.normpath(os.path.join(base_dir, ref))
+    root = os.path.realpath(INPUT_ROOT or base_dir)
+    target = os.path.realpath(os.path.join(base_dir, ref))
+    if target != root and not target.startswith(root + os.sep):
+        return None
+    return target
 
 
 def _data_uri(path):
@@ -116,6 +128,9 @@ def inline_css_urls(css, base_dir, report, origin):
         if kind == "skip":
             return m.group(0)
         path = _resolve(base_dir, ref)
+        if path is None:
+            report.warnings.append(f"{origin}: url({ref}) resolves outside the input tree, left external")
+            return m.group(0)
         if not os.path.isfile(path):
             report.warnings.append(f"{origin}: url({ref}) not found")
             return m.group(0)
@@ -147,6 +162,9 @@ def inline_html(doc, base_dir, report):
         if kind == "skip":
             return tag
         path = _resolve(base_dir, href)
+        if path is None:
+            report.warnings.append(f"{href}: resolves outside the input tree, left external")
+            return tag
         if not os.path.isfile(path):
             report.warnings.append(f"stylesheet {href} not found")
             return tag
@@ -169,6 +187,9 @@ def inline_html(doc, base_dir, report):
         if kind == "skip":
             return m.group(0)
         path = _resolve(base_dir, src)
+        if path is None:
+            report.warnings.append(f"{src}: resolves outside the input tree, left external")
+            return tag
         if not os.path.isfile(path):
             report.warnings.append(f"script {src} not found")
             return m.group(0)
@@ -198,6 +219,9 @@ def inline_html(doc, base_dir, report):
         if kind == "skip":
             return tag
         path = _resolve(base_dir, src)
+        if path is None:
+            report.warnings.append(f"{src}: resolves outside the input tree, left external")
+            return tag
         if not os.path.isfile(path):
             report.warnings.append(f"media {src} not found")
             return tag
@@ -330,6 +354,8 @@ def main(argv=None):
         fail(f"no such file: {a.input}")
     slug = slugify(a.name or os.path.splitext(os.path.basename(src))[0])
     base_dir = os.path.dirname(os.path.abspath(src))
+    global INPUT_ROOT
+    INPUT_ROOT = base_dir
     report = Report()
 
     if src.lower().endswith(".md"):

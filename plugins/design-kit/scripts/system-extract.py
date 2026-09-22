@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """system-extract.py — extract a design system from a repo, a live URL, or a brand
-asset directory into design-system/: tokens.json (W3C DTCG), DESIGN-SYSTEM.md
+asset directory into design-system/: tokens.json (DTCG-shaped), DESIGN-SYSTEM.md
 (the plain `## Design system` block plus a component inventory) and kit.html (a
 UI-kit page whose every card carries an `@dsCard` marker).
 

@@ -77,4 +77,16 @@ printf '<html><body>caf\xe9</body></html>' > "$tmp/latin.html"
 if err="$($b "$tmp/latin.html" --out-dir "$out" 2>&1)"; then echo "FAIL: latin-1 accepted"; exit 1; fi
 case "$err" in *"not valid UTF-8 at byte 15 (line 1, column 16)"*) ;; *) echo "FAIL: utf-8 message: $err"; exit 1 ;; esac
 
+# out-of-tree refs stay external and are reported; nothing outside the input tree is inlined
+mkdir -p "$tmp/tree" "$tmp/secret"; echo "SECRET-MARKER-42" > "$tmp/secret/key.txt"
+printf '<html><head><link rel="stylesheet" href="../secret/key.txt"></head><body><img src="/etc/hosts"><p>x</p></body></html>' > "$tmp/tree/probe.html"
+o="$($b "$tmp/tree/probe.html" --out-dir "$out" 2>&1)"
+grep -q "SECRET-MARKER-42" "$out/probe.html" && { echo "FAIL: out-of-tree file inlined"; exit 1; }
+case "$o" in *"resolves outside the input tree"*) ;; *) echo "FAIL: out-of-tree ref not reported: $o"; exit 1 ;; esac
+grep -q 'href="../secret/key.txt"' "$out/probe.html" || { echo "FAIL: out-of-tree ref not left in place"; exit 1; }
+
+# size ceiling warns (exit 0) — ceiling lowered through the harness-only env override
+o="$(DESIGN_KIT_MAX_BYTES=100 $b "$tmp/tree/probe.html" --out-dir "$out" 2>&1)" || { echo "FAIL: over-ceiling should still exit 0"; exit 1; }
+case "$o" in *"over the 16 MiB ceiling"*) ;; *) echo "FAIL: no size warning: $o"; exit 1 ;; esac
+
 echo "PASS artifact-bundle.test.sh"

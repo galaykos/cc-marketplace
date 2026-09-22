@@ -19,7 +19,7 @@ the skill holds the rules.
    URL-mode "without running JavaScript" caveat is part of the answer, not noise.
 4. Show the kit: `mkdir -p .design-kit/previews && cp design-system/kit.html
    .design-kit/previews/kit.html`, then `bash "${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh"`
-   and give the user `http://127.0.0.1:8124/previews/kit.html`. The gallery at `/`
+   and give the user the URL `preview.sh` printed plus `/previews/kit.html`. The gallery at `/`
    lists it too. If `.design-kit/` is not in `.gitignore`, say so once; do not edit
    `.gitignore` unasked.
 5. Offer, with AskUserQuestion, exactly two options: "Append the `## Design system`

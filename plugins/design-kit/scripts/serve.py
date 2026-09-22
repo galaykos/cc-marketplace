@@ -145,8 +145,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self._events()
         if path == "/_index.json":
             return self._json(_walk_pages(self.root))
-        if path in ("/", "/index.html") and not os.path.exists(os.path.join(self.root, "index.html")):
-            return self._html(_gallery_html(_walk_pages(self.root)))
+        if path in ("/", "/index.html"):
+            if not os.path.exists(os.path.join(self.root, "index.html")):
+                return self._html(_gallery_html(_walk_pages(self.root)))
+            path = "/index.html"
         full = self.translate_path(path)
         if os.path.isfile(full) and full.lower().endswith(PAGE_EXT):
             try:

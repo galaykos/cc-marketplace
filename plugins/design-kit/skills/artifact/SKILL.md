@@ -59,7 +59,7 @@ especially images — so leave out interactivity nobody asked for.
    Read its lines: `inlined:`, `network:`, `unresolved-link:`, `WARN:`. Fix every
    unresolved link; decide each network line on purpose.
 3. Start or reuse the preview: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/preview.sh`. Print
-   `http://127.0.0.1:8124/artifacts/<slug>.html` and the gallery URL. The page reloads
+   the URL `preview.sh` printed plus `/artifacts/<slug>.html`, and the gallery URL. The page reloads
    itself when re-bundled.
 4. Revising means re-bundling: the bundler keeps `v1`, `v2`… under
    `.design-kit/artifacts/.versions/<slug>/` and appends to `<slug>.versions.json`.

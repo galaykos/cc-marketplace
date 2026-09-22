@@ -26,7 +26,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --detect) mode=detect ;;
     --create) mode=create; slug="${2:-}"; shift ;;
-    --stack) force_stack="$2"; shift ;;
+    --stack) case "${2:-}" in vite-react|vite-vue|next|nuxt|laravel) force_stack="$2" ;; *) echo "codebase-scaffold.sh: --stack must be vite-react|vite-vue|next|nuxt|laravel" >&2; exit 2 ;; esac; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "codebase-scaffold.sh: unknown argument $1" >&2; exit 2 ;;
   esac
@@ -127,9 +127,9 @@ EOF
     <main data-design-kit="$slug">Fill me with real components.</main>
 </x-app-layout>
 EOF
-    [ -f routes/web.php ] || { echo "<?php" > routes/web.php; echo "wrote=routes/web.php"; }
+    [ -f routes/web.php ] || { mkdir -p routes; echo "<?php" > routes/web.php; echo "wrote=routes/web.php"; }
     printf "Route::view('/__design-kit__/%s', '__design-kit__.%s'); // %s\n" "$slug" "$slug" "$MARK" >> routes/web.php
     echo "appended=routes/web.php"
     echo "open=$d_dev_url/__design-kit__/$slug" ;;
-  *) echo "codebase-scaffold.sh: stack=unknown — pass --stack vite-react|vite-vue|next|nuxt|laravel" >&2; exit 3 ;;
+  *) echo "codebase-scaffold.sh: stack=$d_stack has no scratch template — pass --stack vite-react|vite-vue|next|nuxt|laravel" >&2; exit 3 ;;
 esac
