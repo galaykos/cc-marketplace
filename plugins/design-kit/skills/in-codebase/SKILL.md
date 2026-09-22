@@ -52,6 +52,13 @@ Two entry shapes, one procedure:
    `/design-kit:system` or map it to the nearest — never a literal in the tree.
    Standing: **gate** for the table's existence (the script runs or the command
    stops); the mapping decision is the user's.
+7. **A named palette utility is drift too.** `bg-indigo-500` reaches a colour without
+   passing the token layer at all, so it never appears in a stylesheet and every
+   token-reading check stays green over it. `dk.sh drift <paths>` reads it and the
+   literal colours beside it; `bg-primary` and `var(--primary)` are clean by
+   construction. Run it on what you WROTE before the pick, not on the repo.
+   Standing: **gate** where wired (`--ci` exits 1); nothing in this plugin runs it
+   for you, so not run is not clean.
 
 ## Procedure
 
@@ -73,7 +80,10 @@ Two entry shapes, one procedure:
    keep any commented-out line until its required prop has real data. Start the dev
    server with `dev_cmd=` if it is not running, open `open=`. With no brief, the pick comes from
    `dk.sh decision --latest --consume` — the board's recorded artboard, knobs and edits.
-5. Iterate on the scratch page while the user looks: one change per request, the
+5. `bash ${CLAUDE_PLUGIN_ROOT}/scripts/dk.sh drift <the files the scratch page added>`
+   before showing the page, and fix each hit by reaching for the token instead. An
+   empty design system exits 2 (`not measured`) — say so rather than reading it as
+   clean. Then iterate on the scratch page while the user looks: one change per request, the
    dev server reloads. Take a screenshot when the environment offers one; say when
    it does not.
 6. After the pick: record what was decided (which components, which variants,

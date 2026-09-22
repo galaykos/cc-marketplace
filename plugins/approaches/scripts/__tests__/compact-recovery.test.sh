@@ -72,4 +72,28 @@ out=$(fire compact "/nonexistent/path/xyz"); s=$?
 if [ $s -eq 0 ] && [ -z "$out" ]; then echo "PASS: fail-open on a cwd that does not exist"
 else echo "FAIL: exit=$s output='$out'"; rc=1; fi
 
+# --- 7. TTL (AR 11, 2026-09-22): a marker past 120 minutes is ignored AND deleted.
+# Before 0.9.0 nothing anywhere deleted this file and nothing bounded its age, so one
+# abandoned deliberation announced itself on every compaction of every future session.
+# These two cases fail against that logic: the old hook announced the stale marker and
+# left it on disk.
+STALE="$FX/proj/.claude/approaches/deliberated.json"
+python3 -c 'import os,sys,time; p=sys.argv[1]; os.utime(p,(time.time()-3*3600,)*2)' "$STALE" 2>/dev/null \
+  || touch -t "$(date -v-3H +%Y%m%d%H%M 2>/dev/null || date -d '3 hours ago' +%Y%m%d%H%M)" "$STALE"
+out=$(fire compact "$FX/proj")
+if [ -z "$out" ]; then echo "PASS: silent on a marker past the 120-minute TTL"
+else echo "FAIL: announced a marker past the TTL ($out)"; rc=1; fi
+if [ ! -e "$STALE" ]; then echo "PASS: the expired marker is deleted, not just ignored"
+else echo "FAIL: expired marker still on disk"; rc=1; fi
+
+# --- 8. and the TTL does not eat a live one: 60 minutes still announces ------------
+printf '{"task":"widget-rewrite","by":"approach-deliberation","at":"2026-08-31T00:00:00Z"}\n' > "$STALE"
+python3 -c 'import os,sys,time; p=sys.argv[1]; os.utime(p,(time.time()-3600,)*2)' "$STALE" 2>/dev/null \
+  || touch -t "$(date -v-1H +%Y%m%d%H%M 2>/dev/null || date -d '1 hour ago' +%Y%m%d%H%M)" "$STALE"
+out=$(fire compact "$FX/proj")
+case "$out" in
+  *widget-rewrite*) echo "PASS: a 60-minute-old marker is still inside the TTL" ;;
+  *) echo "FAIL: TTL expired a live marker ($out)"; rc=1 ;;
+esac
+
 exit $rc

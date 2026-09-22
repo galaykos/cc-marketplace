@@ -81,6 +81,24 @@ denies "it.each([...]).skip still denies" Edit \
 denies "describe.skip still denies" Edit \
   "{\"file_path\":\"$T/a.test.ts\",\"old_string\":\"zz\",\"new_string\":\"describe.skip('g',()=>{});\"}"
 
+# RSpec and minitest call without parentheses, so every Ruby arm that required a `(`
+# waved these through while the header claimed Ruby coverage (panel 2026-09-22, SW 4).
+printf 'RSpec.describe Calc do\n  it "adds" do\n    expect(Calc.new.add(1,1)).to eq(2)\n  end\nend\n' > "$T/calc_spec.rb"
+denies "RSpec paren-less xit" Edit \
+  "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"it \\\"adds\\\" do\",\"new_string\":\"xit \\\"adds\\\" do\"}"
+denies "RSpec paren-less xdescribe" Edit \
+  "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"xdescribe \\\"Calc\\\" do\"}"
+denies "RSpec pending with a quoted reason" Edit \
+  "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    pending \\\"not implemented\\\"\"}"
+denies "bare skip with a quoted reason (RSpec/bats)" Edit \
+  "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    skip \\\"needs db\\\"\"}"
+# The quote is what separates a skip declaration from an ordinary method call, and the
+# same-line reason escape must still work on the paren-less form.
+allows "items.skip 2 is not a test skip" Edit \
+  "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    rest = items.skip 2\"}"
+allows "a paren-less skip WITH a same-line reason" Edit \
+  "{\"file_path\":\"$T/calc_spec.rb\",\"old_string\":\"zz\",\"new_string\":\"    skip \\\"needs db\\\" # skip: fixture DB missing, see #99\"}"
+
 # The escape hatch must work when the same hunk carries an OLD unreasoned marker
 # through unchanged: only the ADDED marker is judged.
 printf "it.skip('b',()=>{});\n" > "$T/pre.test.ts"

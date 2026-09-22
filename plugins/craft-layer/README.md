@@ -91,7 +91,7 @@ project has one, otherwise the session scratch area, and **never** in the shippe
 | `craft/content-source.md` | step 0/1, from the copy that already exists | step 1's briefs, the build, and the audit's content-fidelity gate |
 | `craft/section-ledger.md` | step 3 (guided only) | `/ui-ux:build` via the build task, and the audit's conformance gate |
 | `craft/reference-board.md` | step 1 at the `ultra-craft` boost, echoed to you before any file is written | the audit's boost-evidence gate, and step 2's concept work |
-| `craft/build-task.md` | step 5, once its five lines resolve | `/ui-ux:build` at step 6, and the audit's signature, named-escalation, ambition, banned-vocabulary and buyer-REGISTER gates (`Spine regions:` is the register gate's only input) |
+| `craft/build-task.md` | step 5, once its six lines resolve | `/ui-ux:build` at step 6, and the audit's signature, named-escalation, ambition, banned-vocabulary, buyer-REGISTER and VOICE gates (`Spine regions:` is the register gate's only input; `Voice:` is the voice gate's) |
 
 Missing any of them is not a failure — the gates that need them report `not checked` rather
 than passing or failing a build that simply never saved one.
@@ -157,7 +157,15 @@ source; when the rubric moves, fix and re-date it here first.
 - **creative-direction** — the concept-first anti-sameness layer: generates a divergent
   concept (metaphor, editorial voice, one signature interaction), scores blind candidates,
   and records a divergence the audit checks; owns the offer-contract, ambition-tier,
-  content-depth, and sameness-fingerprint gates.
+  content-depth and sameness-fingerprint checks. **Of those four, only sameness-fingerprint
+  has a script behind it.** `template/craft-gates/divergence.mjs` is the entire scripted
+  surface: it reads the registry's type families and copy register LIVE from
+  `skills/creative-direction/references/sameness-fingerprint.md` and encodes the hue band and
+  the repeat window, plus `craft-stamp` and `spine-register` — one slice each of the offer
+  contract. Standing: **gate** for what that file asserts; **agent-graded** for everything
+  else these four own — the ambition tier's K, the content-depth budget, the offer spine's
+  slot coverage, and the registry's spine and vocabulary-move lists — where
+  `/craft-layer:audit` reads the reference and judges, and no script fails a build over it.
 - **section-decisions** — the guided-build checkpoint: derives a decision agenda from the
   offer contract's spine slots (never an invented one), batches it into three capped rounds,
   offers 2–3 structurally different treatments per section, and records the picks in a

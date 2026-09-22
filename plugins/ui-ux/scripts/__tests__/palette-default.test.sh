@@ -98,6 +98,15 @@ printf 'not json' | bash "$HOOK" >/dev/null 2>&1 && pass "malformed stdin exits 
 off=$(CC_PALETTE=off bash -c 'cat | bash "$0"' "$HOOK" <<<'{"tool_name":"Write"}' 2>/dev/null)
 [ -z "$off" ] && pass "CC_PALETTE=off silences it" || fail "CC_PALETTE=off silences it" "got: $off"
 
+# ---- 8. a cwd that no longer exists must not be RECREATED --------------------------------
+# The hook `mkdir -p "$cwd/.claude/ui-ux"`. With only `-n` on the payload field, a session
+# whose project directory was deleted got it resurrected three levels deep — the live
+# repro in the 2026-09-22 panel (architecture finding 1).
+gone="$(mktemp -d "$TMP/gone.XXXXXX")"; rm -rf "$gone"
+out=$(fire "$TMP/views/login.blade.php" "$gone")
+if [ -z "$out" ] && [ ! -e "$gone" ]; then pass "a deleted cwd is neither used nor recreated"
+else fail "a deleted cwd is neither used nor recreated" "output='${out:0:40}' exists=$([ -e "$gone" ] && echo yes || echo no)"; fi
+
 printf '\n'
 [ "$rc" -eq 0 ] && printf 'palette-default.test: all cases passed\n' || printf 'palette-default.test: FAILURES above\n'
 exit "$rc"

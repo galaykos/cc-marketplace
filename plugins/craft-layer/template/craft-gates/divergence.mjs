@@ -492,11 +492,11 @@ function readSpineRegions() {
   let text
   try { text = readFileSync(p, 'utf8') } catch { return null }
   for (const line of text.split('\n')) {
-    /* Accept the bare, list-marker AND heading forms. A build task writes five lines and
-       only THIS one is machine-parsed — the other four are read by an agent, so heading
-       form works for all of them. A task whose five lines are formatted consistently as
-       `## <key>:` therefore had four live lines and one silently dead one, reported as a
-       SKIP that reads like "nothing to check". Found on a live run, by nobody's review. */
+    /* Accept the bare, list-marker AND heading forms. A build task writes six lines and
+       two are machine-parsed — this one and `Voice:` — so heading form works for both.
+       A task whose lines are formatted consistently as `## <key>:` therefore had five live
+       lines and one silently dead one, reported as a SKIP that reads like "nothing to
+       check". Found on a live run, by nobody's review. */
     const m = line.match(/^\s*#{0,6}\s*[-*]?\s*\**\s*Spine regions\s*\**\s*:\s*(.+?)\s*$/i)
     if (!m) continue
     const declared = m[1].replace(/[`*]/g, '').trim()
@@ -777,6 +777,87 @@ function compositionShape() {
     `the page carries spatial structure — ${shape}`)
 }
 
+/* ---------------------------------------------------------- voice contract */
+
+/* THE PRODUCT-SPECIFIC HALF OF THE COPY GRADE.
+ *
+ * `copy-register` below grades a CATEGORY list — phrases any generated page
+ * reaches for. It cannot know that THIS product does not say "everything you
+ * need", because that is a concept decision and not a category default. The
+ * concept records it on `craft/build-task.md`'s `Voice:` line as
+ * `NEVER "<literal>"` items, and those literals join the lexicon for this run.
+ *
+ * Standing, split on purpose (references/voice-contract.md carries the table):
+ *   - the LINE's presence, and that it carries at least one NEVER, is this
+ *     assertion — a GATE, exit 1.
+ *   - the NEVER literals in shipped copy are graded by `copy-register` — a GATE.
+ *   - the voice ITSELF — person, sentence band, what it does with fragments —
+ *     is the craft-reviewer's, agent-graded. Nothing here counts a sentence.
+ *
+ * NO BUILD TASK AT ALL IS A SKIP, never a FAIL: a build is never failed for not
+ * having saved a file, the same rule spine-register and craft-stamp ride. A
+ * build task that EXISTS and omits the line is the finding — that is a resolved
+ * artifact missing a line the flow's own step 5 owes it, which is an ungraded
+ * gate wearing a green rather than a run that never started. */
+
+const NEVER_RE = /NEVER\s+(?:"([^"]{2,80})"|'([^']{2,80})'|\u201c([^\u201d]{2,80})\u201d)/g
+
+/** `Voice: <person> · <band> · <fragments> · NEVER "x", NEVER "y"` */
+function readVoice() {
+  const p = buildTaskPath()
+  if (!p) return null
+  let text
+  try { text = readFileSync(p, 'utf8') } catch { return null }
+  for (const line of text.split('\n')) {
+    /* Same tolerant key shape as `Spine regions:` — bare, list-marker and heading
+       forms all resolve, because a task whose five lines are formatted as
+       `## <key>:` had four live lines and one silently dead one. */
+    const m = line.match(/^\s*#{0,6}\s*[-*]?\s*\**\s*Voice\s*\**\s*:\s*(.+?)\s*$/i)
+    if (!m) continue
+    const nevers = []
+    NEVER_RE.lastIndex = 0
+    let n
+    while ((n = NEVER_RE.exec(m[1]))) {
+      const lit = (n[1] ?? n[2] ?? n[3]).trim()
+      if (lit) nevers.push(lit)
+    }
+    return { path: p, value: m[1], nevers }
+  }
+  return { path: p, value: null, nevers: [] }
+}
+
+function voiceContract(voice) {
+  if (!voice) {
+    return record('voice-contract', 'SKIP',
+      'no build task resolved (tried craft/, taskmaster-docs/craft/, .craft-layer/, CRAFT_BUILD_TASK) — '
+      + 'a build is never failed for not having saved a file. NEVER A PASS.')
+  }
+  if (voice.value === null) {
+    return settle('voice-contract', true, 'absent',
+      `${rel(voice.path)} carries no \`Voice:\` line. The concept's editorial voice reached the build as a `
+      + 'typographic role and nothing else, so the product-specific half of the copy grade has no input and '
+      + 'copy-register falls back to the category lexicon alone. Write the line at step 5, four dimensions '
+      + 'separated by `·`: person and address, a sentence-length band in words, what it does with fragments/'
+      + 'questions/imperatives, and 2-3 `NEVER "<literal>"` items. Shape and standing: '
+      + 'skills/creative-direction/references/voice-contract.md. '
+      + `Reproduce: grep -n '^Voice:' ${rel(voice.path)}`,
+      '')
+  }
+  if (!voice.nevers.length) {
+    return settle('voice-contract', true, 'no-nevers',
+      `${rel(voice.path)}'s \`Voice:\` line carries no \`NEVER "<literal>"\` item, so the line has no `
+      + 'machine-readable half and this run grades the voice with prose only. The NEVERs are the one '
+      + 'dimension a script can check — two or three exact strings THIS product does not say, taken from '
+      + 'the concept rather than from the sameness registry (those are already in the lexicon). '
+      + `Reproduce: grep -n '^Voice:' ${rel(voice.path)}`,
+      '')
+  }
+  record('voice-contract', 'PASS',
+    `${rel(voice.path)} carries a \`Voice:\` line with ${voice.nevers.length} literal NEVER(s) `
+    + `[${voice.nevers.map((v) => JSON.stringify(v)).join(', ')}], graded against shipped copy by copy-register. `
+    + 'Whether the person, the sentence band and the fragment rules were honoured is agent-graded — no script counts a sentence.')
+}
+
 /* ---------------------------------------------------- copy-half fingerprint */
 
 /* THE COPY HALF OF THE FINGERPRINT — MECHANICAL SUBSET ONLY.
@@ -803,18 +884,70 @@ function compositionShape() {
  * banned QUOTES the phrase, and grading the quote fails the test that guards
  * the page. Both are waivable with a reason, the same lane as every assertion. */
 
-const COPY_LEXICON = {
-  /* The mechanical subset of the registry's copy section — refresh the two
-     together, at release cadence like the anti-corpus snapshot above. */
-  date: '2026-08-11',
-  phrases: [
-    ['supercharge your', String.raw`\bsupercharge\s+your\b`],
-    ['seamlessly integrate', String.raw`\bseamlessly\s+integrat\w*`],
-    ['take your * to the next level', String.raw`\btake\s+your\s+[^<>.!?]{0,60}?to\s+the\s+next\s+level\b`],
-    ['effortless. powerful.', String.raw`\beffortless\.\s*powerful\.`],
-    ['unlock the power', String.raw`\bunlock\s+the\s+power\b`],
-    ['game-changing', String.raw`\bgame-chang(?:ing|ers?)\b`],
+/* FROZEN FALLBACK ONLY. The live list is the registry's `copy-lexicon` block in
+   sameness-fingerprint.md — same contract as the anti-corpus and the register
+   corpus above: source, kind and date are printed every run, so a snapshot in use
+   is visible rather than assumed. A frozen copy of a list whose own first
+   anti-pattern is "never refreshing" freezes the gate at this date, which is why
+   the live read is the default and this is the fallback.
+
+   Rows are `label :: flags :: min :: pattern`. `min` is how many DISTINCT copy
+   chunks must match before the label is a finding, and it is what lets the three
+   mechanical chrome rows ride here at all: the registry says the eyebrow sits
+   "above every heading" and the arrow is "appended to every link", so repetition
+   is the tell and one honest `Read more ->` is not. Same judgement as the
+   multi-word rule beside it — a row that fires on correct pages is waived into
+   silence within one run. */
+const COPY_SNAPSHOT = {
+  date: '2026-09-22',
+  rules: [
+    ['supercharge your', 'gi', 1, String.raw`\bsupercharge\s+your\b`],
+    ['seamlessly integrate', 'gi', 1, String.raw`\bseamlessly\s+integrat\w*`],
+    ['take your * to the next level', 'gi', 1, String.raw`\btake\s+your\s+[^<>.!?]{0,60}?to\s+the\s+next\s+level\b`],
+    ['effortless. powerful.', 'gi', 1, String.raw`\beffortless\.\s*powerful\.`],
+    ['unlock the power', 'gi', 1, String.raw`\bunlock\s+the\s+power\b`],
+    ['game-changing', 'gi', 1, String.raw`\bgame-chang(?:ing|ers?)\b`],
+    ['all-caps eyebrow', 'g', 3, String.raw`^\s*[A-Z][A-Z0-9&'\u2019]*(?:\s+[A-Z0-9&'\u2019]+){1,4}\s*$`],
+    ['middle-dot meta string', 'g', 1, String.raw`\u00b7[^\u00b7\n]{1,60}\u00b7`],
+    ['trailing arrow', 'g', 3, String.raw`[^\u2192\n]{0,40}[^\s\u2192]\s*\u2192\s*$`],
   ],
+}
+
+/** The copy lexicon, LIVE from the registry when the plugin root is known. Reads
+    the same `label :: flags :: min :: pattern` rows the reference documents, so
+    adding a mechanical row there arms it here with no code change — the defect
+    this replaced was a frozen six-phrase list beside a registry of 13,951
+    characters, of which the gate read 1,683. */
+function loadCopyLexicon() {
+  const root = process.env.CLAUDE_PLUGIN_ROOT
+  if (root) {
+    const p = join(root, 'skills/creative-direction/references/sameness-fingerprint.md')
+    if (existsSync(p)) {
+      try {
+        const text = readFileSync(p, 'utf8')
+        const m = text.match(/<!--\s*copy-lexicon:start\s*-->([\s\S]*?)<!--\s*copy-lexicon:end\s*-->/)
+        const rules = []
+        for (const line of (m ? m[1] : '').split('\n')) {
+          const t = line.trim()
+          if (!t || t.startsWith('```')) continue
+          const parts = t.split(' :: ')
+          if (parts.length < 4) continue
+          const min = parseInt(parts[2].trim(), 10)
+          rules.push([parts[0].trim(), parts[1].trim(), Number.isFinite(min) && min > 0 ? min : 1,
+            parts.slice(3).join(' :: ').trim()])
+        }
+        if (rules.length) {
+          return { source: p, kind: 'live registry', date: corpusDate(text, p), rules }
+        }
+      } catch { /* fall through to the snapshot */ }
+    }
+  }
+  return {
+    source: 'embedded snapshot (CLAUDE_PLUGIN_ROOT unset or registry missing)',
+    kind: 'frozen snapshot',
+    date: COPY_SNAPSHOT.date,
+    rules: COPY_SNAPSHOT.rules,
+  }
 }
 
 /* Text-default pictographs prose legitimately carries — the legal marks — plus
@@ -879,27 +1012,41 @@ function emojiAsIcon(files) {
       + '(quoted testimonial content and text-style marks excluded by construction)')
 }
 
-function copyRegister(files) {
+const escapeLiteral = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, String.raw`\s+`)
+
+function copyRegister(files, lexicon, voice) {
   if (!files.length) return record('copy-register', 'SKIP', 'no shipped page source found to hold copy')
+  /* The run's own NEVERs ride the category lexicon as extra rows — same chunks,
+     same waiver lane, same one-row-per-label reporting. Whitespace is relaxed so a
+     literal that wrapped in the markup still matches. */
+  const voiceRows = (voice?.nevers ?? []).map((lit) => [`voice NEVER ${JSON.stringify(lit)}`, 'gi', 1, escapeLiteral(lit)])
   const compiled = []
-  for (const [label, source] of COPY_LEXICON.phrases) {
-    try { compiled.push({ label, re: new RegExp(source, 'gi') }) } catch (e) {
+  for (const [label, flags, min, source] of [...lexicon.rules, ...voiceRows]) {
+    try { compiled.push({ label, min, re: new RegExp(source, flags.includes('g') ? flags : `${flags}g`) }) } catch (e) {
       notes.push(`copy lexicon: the '${label}' pattern will not compile (${e.message}) — DROPPED, so that phrase is unchecked`)
     }
   }
   if (!compiled.length) return record('copy-register', 'SKIP', 'the copy lexicon compiled no patterns')
-  const hits = []
+  const raw = []
   for (const { file, src } of files) {
     for (const c of copyChunks(src)) {
-      for (const { label, re } of compiled) {
+      for (const { label, min, re } of compiled) {
         re.lastIndex = 0
         const m = re.exec(c.text)
         /* A phrase can span a source line break; collapse it or the one-row
            reporting shape gains a literal newline. */
-        if (m) hits.push({ label, marker: m[0].trim().replace(/\s+/g, ' '), file: rel(file), line: lineAt(src, c.at) })
+        if (m) raw.push({ label, min, marker: m[0].trim().replace(/\s+/g, ' '), file: rel(file), line: lineAt(src, c.at) })
       }
     }
   }
+  /* A row whose `min` is above 1 is a REPETITION tell, so it becomes a finding
+     only once that many distinct chunks carry it — see the lexicon block's own
+     note. Counted across the whole page set, because "on every heading" is a page
+     property and a build that splits its sections across files has not stopped
+     doing it. */
+  const seenByLabel = new Map()
+  for (const h of raw) seenByLabel.set(h.label, (seenByLabel.get(h.label) ?? 0) + 1)
+  const hits = raw.filter((h) => (seenByLabel.get(h.label) ?? 0) >= h.min)
   const seen = new Set()
   const uniq = hits.filter((h) => {
     const k = `${h.file}|${h.label}`
@@ -910,11 +1057,13 @@ function copyRegister(files) {
   const shown = uniq.slice(0, 6).map((h) => `"${h.marker}" [${h.label}] at ${h.file}:${h.line}`).join('; ')
   settle('copy-register', uniq.length > 0, uniq[0]?.label ?? '',
     `machine-copy lexicon in reader-visible copy — ${shown}${uniq.length > 6 ? ` (+${uniq.length - 6} more)` : ''}. `
-      + 'These are the phrases a reader identifies as generated in one line (sameness-fingerprint.md, '
-      + '"Recurring copy register") — a build leaning on them has authored nothing. Write copy with the '
+      + 'A `voice NEVER` row is a string THIS concept ruled out on the build task\'s `Voice:` line; every other '
+      + 'row is one a reader identifies as generated in one line (sameness-fingerprint.md, the copy register and '
+      + 'the mechanical chrome rows) — a build leaning on either has authored nothing. Write copy with the '
       + `product's own nouns in it, or waive this with the reason. Reproduce: grep -rni ${JSON.stringify(uniq[0]?.marker ?? '')} ${uniq[0]?.file ?? ''}`,
-    `no multi-word machine-copy phrase from the ${compiled.length}-pattern lexicon (${COPY_LEXICON.date}) appears `
-      + `in reader-visible copy across ${files.length} page file(s); single words ("seamless" alone) are not graded by construction`)
+    `no row of the ${compiled.length}-pattern lexicon (${lexicon.kind}, ${lexicon.date}) fires in reader-visible `
+      + `copy across ${files.length} page file(s); single words ("seamless" alone) are not graded by construction, and `
+      + `the repetition rows (eyebrow, trailing arrow) need ${Math.max(...compiled.map((c) => c.min))} distinct chunks before they do`)
 }
 
 /* ------------------------------------------------ utility-layer fingerprint */
@@ -1380,7 +1529,12 @@ compositionShape()
    resolution and its verdicts survive an exit-2 run. One walk feeds both. */
 const shippedCopy = pageCopy()
 emojiAsIcon(shippedCopy)
-copyRegister(shippedCopy)
+const copyLexicon = loadCopyLexicon()
+console.log(`copy lexicon:       ${copyLexicon.source}`)
+console.log(`copy lexicon:       ${copyLexicon.kind} · ${copyLexicon.rules.length} patterns · ${copyLexicon.date}`)
+const voice = readVoice()
+voiceContract(voice)
+copyRegister(shippedCopy, copyLexicon, voice)
 /* Same walk, same reason: the utility-layer pair reads SOURCE only, so its
    verdicts survive the exit-2 path below. A build that ships its palette in
    class strings is the one most likely to have no token stylesheet at all. */

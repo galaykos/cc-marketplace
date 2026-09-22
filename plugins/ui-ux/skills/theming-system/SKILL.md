@@ -80,6 +80,33 @@ duplicating an owner:
   contrast STEPS between them (hue constraints first, then the split). Tiers name; accent-system derives —
   so the two files never duplicate or contradict the same accent.
 
+## Hierarchy the scale cannot give
+
+`design-tokens` owns the numeric scales a value is stepped along. Three rules about them
+are ROLE rules — relationships, not steps — so they are derived here:
+
+- **A UI scale is not a display scale.** A 1.25 type ratio topping out around 2.5× body
+  produces a heading, not a display size, which is why a page built strictly from one
+  reads as competent and forgettable. A hero, section opener or statement moment takes its
+  largest step from a separate DISPLAY tier, set tight (line-height ~0.9–1.05) with
+  negative tracking and fluid via `clamp()` so it holds at phone width. Marketing and
+  editorial surfaces owe one; app shells and dense data surfaces legitimately do not —
+  say which this is.
+- **Scale membership is not hierarchy.** Every size being a legal step makes a page
+  internally consistent and visually flat. Consistency is the floor; CONTRAST between
+  steps is what the reader sees. State the display-to-body ratio the brief asked for, as
+  a rule the way a colour ratio is, and check the built page against it.
+- **One motion source, CSS and JS alike.** Duration and easing are published as CSS
+  variables and JS animation libraries read the SAME ones — `getComputedStyle` or exported
+  constants — so two components animated in different sessions land on the same curves,
+  because the token is the only place a curve lives.
+
+The static type CONTRACT the display tier meets once real fonts arrive — fluid `clamp()`,
+`text-wrap`, optical sizing, WOFF2 subsetting, `font-display`, metric-compatible
+fallbacks, the licence trap — is written once at
+`plugins/craft-layer/skills/kinetic-typography/references/type-system.md`. Read it there;
+with craft-layer absent, say the contract was not consulted rather than rebuilding it.
+
 ## The kill-trigger
 
 If this skill emits a specific colour, a hex, an `oklch`/`hsl`/`rgb` scalar, or a named

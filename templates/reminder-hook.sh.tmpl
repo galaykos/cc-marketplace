@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # generated from templates/reminder-hook.sh.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file
 # Fail open: never block the prompt. Print a reminder only when the prompt reads
 # like the work it nudges about — a mere mention of the words stays silent.

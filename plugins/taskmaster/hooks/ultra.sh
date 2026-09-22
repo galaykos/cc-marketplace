@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # generated from templates/boost-hook.sh.tmpl by scripts/generate.sh — edit the template or .chassis.json, not this file
 # Fail open: never block the prompt. Inject the boost directive when the prompt asks.
 # One hook, two tokens: ultra-task (boost) / ultra-goal (boost + hands-off).

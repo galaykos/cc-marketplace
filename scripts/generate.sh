@@ -12,15 +12,14 @@
 # render nothing — so a chassis agent that pins a non-`inherit` model can emit its own
 # `floor: none`/floor row exemption, and existing agents re-render byte-identical).
 #
-# Routing (D6, build-time): for stack-review manifests the capability `tag` resolves to
-# a worker through decision-maker's map at
-#   plugins/task-runner/skills/task-execution/references/routing.md
-# (a code-fenced `tag → [worker, …]` block). The FIRST element of the preference list
-# wins; an explicit manifest `worker:` overrides; an unresolvable tag is a hard error
-# listing the vocabulary. {{workerChain}} is stamped as
-#   <worker> → task-runner:task-executor if installed → inline
-# Resolution validation (success criterion 3a): every resolved/overridden worker must
-# exist as plugins/<pl>/agents/<name>.md — missing is a hard error in BOTH modes.
+# RETIRED 2026-09-22: the `stack-review` kind and templates/review-command.md.tmpl.
+# It rendered ONE file in the whole marketplace (code-review/commands/comment-review.md)
+# behind a 24-line template, four partials and nine opt-out justifications — more prose
+# in the machinery than in the artifact (panel finding #64,
+# rationale/specialist-panel-2026-09-22.md). That output is inlined and hand-maintained
+# now; the `optout` kind stays, as the plain note it always was. The build-time worker
+# routing through task-execution/references/routing.md went with it — nothing else read
+# that map from here.
 #
 #   --write : byte-compare rendered vs tree; on a delta write the file (chmod +x for
 #             .sh) and patch-bump that plugin's plugin.json ONCE per run. Idempotent.
@@ -44,12 +43,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="${CHASSIS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 TEMPLATES="${CHASSIS_TEMPLATES:-$(cd "$SCRIPT_DIR/../templates" 2>/dev/null && pwd || printf '%s' "$SCRIPT_DIR/../templates")}"
 ENGINE="${TEMPLATE_ENGINE:-$SCRIPT_DIR/lib/template-engine.sh}"
-ROUTING="$ROOT/plugins/task-runner/skills/task-execution/references/routing.md"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 die() { printf 'generate.sh: %s\n' "$1" >&2; exit 1; }
+
+# The README steps below cost the skill listing and quote the host's constants. Both
+# come from the SINGLE implementations — pc_listing_entry_cost (shared with
+# context-budget.sh's listing channel and the pc_listing_declaration gate) and
+# scripts/host-constants.sh (re-read out of the pinned CLI by its own --check).
+# Sourcing is read-only; nothing here runs context-budget.sh.
+. "$SCRIPT_DIR/lib/plugin-checks.sh" || die "cannot source scripts/lib/plugin-checks.sh"
 
 # --- template engine (loaded lazily; only rendering needs it) ---------------------
 ENGINE_LOADED=0
@@ -62,24 +67,10 @@ ensure_engine() {
   ENGINE_LOADED=1
 }
 
-# --- routing map (code-fenced tag → [worker,…] block in routing.md) ---------------
-routing_block() {
-  [ -f "$ROUTING" ] || die "routing map not found: $ROUTING"
-  awk '/^```/{f=!f; next} f' "$ROUTING"
-}
-routing_vocab() { routing_block | sed -nE 's/^[[:space:]]*([A-Za-z][A-Za-z-]*)[[:space:]]+→[[:space:]]*\[.*/\1/p' | paste -sd' ' -; }
-resolve_tag() { # tag -> "plugin:agent" (first preference); empty + rc1 if unknown
-  local tag="$1" line
-  line="$(routing_block | awk -v t="$tag" '$1==t && /→[[:space:]]*\[/' | head -1)"
-  [ -n "$line" ] || return 1
-  printf '%s' "$line" | sed -E 's/^[^[]*\[[[:space:]]*//; s/[],].*$//; s/[[:space:]]+$//'
-}
-
 # --- reports + change tracking ----------------------------------------------------
 CHANGED_PLUGINS=""
 DRIFT=0
 OPTOUT_REPORT=""
-OVERRIDE_REPORT=""
 mark_changed() { case " $CHANGED_PLUGINS " in *" $1 "*) : ;; *) CHANGED_PLUGINS="$CHANGED_PLUGINS $1" ;; esac; }
 
 emit() { # rendered-file target-path is_exec(0|1) plugin-dir
@@ -221,67 +212,6 @@ write_lane_block() { # plugin-dir — called once per manifest after its objects
 }
 
 # --- per-chassis renderers --------------------------------------------------------
-render_stack_review() { # obj plugin-dir
-  local obj="$1" pdir="$2" rel="${2#$ROOT/}"
-  local tag worker resolved wplugin wname workerChain aeb dfile rfile outfile skname skhome skowner
-  tag="$(printf '%s' "$obj" | jq -r '.tag // ""')"
-  worker="$(printf '%s' "$obj" | jq -r 'if (.worker // null)==null then "" else .worker end')"
-  if [ -n "$worker" ]; then
-    resolved="$worker"
-    OVERRIDE_REPORT="$OVERRIDE_REPORT
-  $rel: tag=$tag overridden -> $worker"
-  else
-    resolved="$(resolve_tag "$tag")" || die "unknown routing tag '$tag' in $rel/.chassis.json — valid tags: $(routing_vocab)"
-  fi
-  wplugin="${resolved%%:*}"; wname="${resolved##*:}"
-  [ -f "$ROOT/plugins/$wplugin/agents/$wname.md" ] \
-    || die "worker '$resolved' stamped for $rel has no agent file: plugins/$wplugin/agents/$wname.md"
-  # Chain head rules: (a) a worker living in ANOTHER plugin gets its full
-  # plugin:name form and its own "if installed" — the bare name dangled when
-  # only this plugin was installed, and the qualifier was only guarding rung 2;
-  # (b) a worker in THIS plugin is always installed with it — bare name, no
-  # qualifier; (c) task-runner:task-executor as head IS rung 2 — collapse, the
-  # old chain printed it twice.
-  if [ "$resolved" = "task-runner:task-executor" ]; then
-    workerChain="task-runner:task-executor if installed → inline"
-  elif [ "$wplugin" = "$(basename "$pdir")" ]; then
-    workerChain="$wname → task-runner:task-executor if installed → inline"
-  else
-    workerChain="$wplugin:$wname if installed → task-runner:task-executor if installed → inline"
-  fi
-  aeb="$(printf '%s' "$obj" | jq -r 'if ((.applyExtra // [])|length)>0 then ([.applyExtra[] | " / " + .label]|add) else "" end')"
-  # WHERE THE SKILL ACTUALLY LIVES. The template used to hardcode "from this
-  # plugin", which was false for exactly one generated command: database's, whose
-  # rubric skill `sql-best-practices` lives in plugins/sql. On a standalone
-  # `database` install that sentence sent the model to a skill that is not there,
-  # and validate.sh could not see it — its reference check resolves repo-wide, so
-  # an install-set absence is invisible to it. Resolve the owner instead of
-  # asserting it.
-  skname="$(printf '%s' "$obj" | jq -r '.skill // empty')"
-  skhome="from this plugin"
-  if [ -n "$skname" ] && [ ! -d "$pdir/skills/$skname" ]; then
-    skowner="$(basename "$(dirname "$(dirname "$(find "$ROOT/plugins" -maxdepth 3 -type d -path "*/skills/$skname" 2>/dev/null | head -1)")")")"
-    [ -n "$skowner" ] && [ "$skowner" != "." ] \
-      && skhome="from the \`$skowner\` plugin (install it alongside this one; it is not bundled here)" \
-      || skhome="from whichever installed plugin ships it"
-  fi
-  dfile="$WORK/m.json"; rfile="$WORK/r.out"
-  printf '%s' "$obj" | jq --arg wc "$workerChain" --arg aeb "$aeb" --arg sh "$skhome" \
-    '. + {lang:(.variant=="lang"), concern:(.variant=="concern"), workerChain:$wc, applyExtraBlock:$aeb, skillHome:$sh, divergencePreamble:((.divergence // {}).preamble // "")}' > "$dfile"
-  ensure_engine
-  render_template "$TEMPLATES/review-command.md.tmpl" "$dfile" > "$rfile" || die "render failed: $rel review.md"
-  # OUTFILE, optional. The stack-review chassis emitted only commands/review.md,
-  # so a plugin needing a second concern-scoped review command had to hand-copy the
-  # generated file — which resilience did for error-review and concurrency-review.
-  # Both then drifted: they are missing the 8-line "Hand up when the scope is not
-  # this stack's alone" block their own generated sibling carries, and `--check`
-  # was structurally blind to it because .chassis.json declared only review.md.
-  # An ungated copy of a gated file is the drift the chassis exists to prevent.
-  outfile="$(printf '%s' "$obj" | jq -r '.outfile // "commands/review.md"')"
-  emit "$rfile" "$pdir/$outfile" 0 "$pdir"
-  lane_row "$obj" "$pdir" "$(basename "$pdir"):$(basename "$outfile" .md)" command review
-}
-
 render_suite_uninstall() { # obj plugin-dir
   local obj="$1" pdir="$2" dfile="$WORK/m.json" rfile="$WORK/r.out"
   printf '%s' "$obj" > "$dfile"; ensure_engine
@@ -366,7 +296,6 @@ render_chassis() { # obj plugin-dir
       reason="$(printf '%s' "$obj" | jq -r '.reason // "(no justification)"')"
       OPTOUT_REPORT="$OPTOUT_REPORT
   $rel: $reason" ;;
-    stack-review)    render_stack_review    "$obj" "$pdir" ;;
     suite-uninstall) render_suite_uninstall "$obj" "$pdir" ;;
     reminder-hook)   render_reminder_hook   "$obj" "$pdir" ;;
     boost-hook)      render_boost_hook      "$obj" "$pdir" ;;
@@ -413,6 +342,134 @@ render_catalog() {
   fi
 }
 
+# --- repo-level README block applier ----------------------------------------------
+# Three README regions are generated now, not one, so the substitute-and-diff that was
+# inlined in the bundle-table step is a helper. Each block owns a marker pair and
+# rewrites only its own region; applying them in sequence against the file on disk is
+# safe because the regions do not overlap and --check never writes.
+#
+# A fixture root (CHASSIS_ROOT pointed at a smoke harness tree) has no root README —
+# every caller returns early rather than dying, or each harness that overrides
+# CHASSIS_ROOT would read this step's abort as chassis drift.
+readme_apply() { # start-marker end-marker block-file
+  local start="$1" end="$2" block="$3"
+  local target="$ROOT/README.md" out="$WORK/README.out" rel="README.md"
+  [ -f "$target" ] || return 0
+  grep -qF "$start" "$target" || die "README.md is missing the $start marker"
+  grep -qF "$end"   "$target" || die "README.md is missing the $end marker"
+  awk -v blockfile="$block" -v s="$start" -v e="$end" '
+    index($0, s) == 1 { while ((getline l < blockfile) > 0) print l; close(blockfile); skip=1; next }
+    index($0, e) == 1 { skip=0; next }
+    !skip { print }
+  ' "$target" > "$out"
+  if [ "$MODE" = check ]; then
+    if ! cmp -s "$out" "$target"; then printf 'DRIFT content: %s (%s block)\n' "$rel" "$start" >&2; DRIFT=1; fi
+    return 0
+  fi
+  if ! cmp -s "$out" "$target"; then cp "$out" "$target"; printf 'wrote %s (%s block)\n' "$rel" "$start"; fi
+}
+
+# --- repo-level off-switch table step ---------------------------------------------
+# Every guard in this marketplace fails open and every one of them can be switched off
+# with an environment variable — and on 2026-09-22 the root README named ZERO of them
+# (UX 1, rationale/specialist-panel-2026-09-22.md #5). A user whose turn was just
+# refused had no list to read. Generated rather than typed because the set moves with
+# every hook added: the names are grepped out of plugins/*/hooks/*.sh in the two shapes
+# the hooks actually use (a `${NAME:-default}` read, and the boost chassis' indirect
+# `plugin_switch=NAME`), minus the four host-supplied CLAUDE_* path/session variables,
+# which are not switches.
+#
+# THE THIRD COLUMN is the hook's OWN sentence about the variable — the first comment
+# line in the file that writes `NAME=`, cut at its first sentence end. That is a
+# deterministic read of prose somebody else wrote, so it is sometimes a fragment and
+# says `…` when it was cut mid-sentence; a hook whose header never writes `NAME=` gets
+# "see hook header", which is the honest answer rather than an invented one.
+#
+# WHAT THIS TABLE DOES NOT ESTABLISH: that a variable still works, that `off` is the
+# value it takes (several take block/warn/off or a number), or that the hook prints the
+# name when it refuses you — that last one is pc_offswitch_named's job and it is a WARN.
+render_offswitch_table() {
+  local block="$WORK/offswitch.md" f p v note
+  [ -f "$ROOT/README.md" ] || return 0
+  {
+    printf '%s' '<!-- generated:offswitch-table -->'
+    printf '%s\n\n' '<!-- generated by scripts/generate.sh (off-switch step) from the env reads in plugins/*/hooks/*.sh — do not edit these rows by hand -->'
+    printf '| Variable | Plugins | What the hook says it does |\n'
+    printf '|----------|---------|----------------------------|\n'
+    for f in "$ROOT"/plugins/*/hooks/*.sh; do
+      [ -f "$f" ] || continue
+      p=$(basename "$(dirname "$(dirname "$f")")")
+      {
+        grep -ohE '\$\{(CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE):-' "$f" | sed -E 's/^\$\{//; s/:-$//'
+        grep -ohE '^[[:space:]]*plugin_switch=[A-Z0-9_]+' "$f" | sed -E 's/.*=//'
+      } 2>/dev/null \
+      | grep -vxE 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_CONFIG_DIR|CLAUDE_CODE_SESSION_ID' \
+      | LC_ALL=C sort -u | while IFS= read -r v; do
+          [ -n "$v" ] || continue
+          note=$(grep -m1 -E "^[[:space:]]*#.*$v=" "$f" \
+                 | sed -E "s/.*($v=)/\1/; s/[[:space:]]+/ /g; s/(\. | — ).*$//; s/[[:space:]]*[-—.;,]*[[:space:]]*$//")
+          [ -n "$note" ] || note="see hook header"
+          printf '%s\t%s\t%s\n' "$v" "$p" "$note"
+        done
+    done | LC_ALL=C sort -u | awk -F'\t' '
+      function esc(x) { gsub(/\|/, "\\|", x); return x }
+      { if (!($1 in seen)) { seen[$1]=1; order[++n]=$1 }
+        if (!(($1 SUBSEP $2) in pseen)) { pseen[$1,$2]=1
+          plugins[$1] = (plugins[$1] == "" ? $2 : plugins[$1] ", " $2) }
+        if (note[$1] == "" || note[$1] == "see hook header") note[$1] = $3 }
+      END { for (i = 1; i <= n; i++) {
+              t = note[order[i]]
+              if (length(t) > 104) t = substr(t, 1, 104) " …"
+              printf "| `%s` | %s | %s |\n", order[i], plugins[order[i]], esc(t) } }'
+    printf '\n%s\n' 'Set one in your shell, or in the `env` block of the settings.json for the project or
+user scope you want it to apply to. `CC_REMIND=off` and `CC_BOOST=off` are the two
+marketplace-wide mutes — every reminder and every boost injector respectively; the rest
+silence one hook each. Several take `block` / `warn` / `off` rather than a bare `off`,
+and the sentence in the third column is the hook'"'"'s own, read out of its header and cut
+at the first sentence end — some rows are therefore a clause, not a sentence.
+Turning a guard off is a session-scoped act, not a fix: the guards that can refuse a
+tool call fail open on every error path already, so silence is what a clean install and
+a broken one both look like — `/skill-doctor` and the three read-only checks above are
+how you tell those apart.'
+    printf '\n%s\n' '<!-- end:offswitch-table -->'
+  } > "$block"
+  readme_apply '<!-- generated:offswitch-table -->' '<!-- end:offswitch-table -->' "$block"
+}
+
+# --- repo-level no-suite-leaves step -----------------------------------------------
+# The leaves that belong to no bundle, derived from marketplace.json and each
+# plugin.json's `dependencies`. The hand-written paragraph this replaces warned in its
+# own last sentence that the list goes stale, and it had: design-kit was named in no
+# bundle and in no list (UX 6, rationale/specialist-panel-2026-09-22.md #39). A list
+# that carries its own staleness warning is a list that should be generated.
+render_no_suite_leaves() {
+  local block="$WORK/nosuite.md" mp="$ROOT/.claude-plugin/marketplace.json"
+  local deps names lp n
+  [ -f "$ROOT/README.md" ] || return 0
+  [ -f "$mp" ] || die "no-suite-leaves step: marketplace.json not found: $mp"
+  deps=$(for lp in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
+           [ -f "$lp" ] && jq -r '.dependencies[]?' "$lp" 2>/dev/null
+         done | sed 's/@.*//' | LC_ALL=C sort -u)
+  names=""
+  for n in $(jq -r '.plugins[].name' "$mp" 2>/dev/null | LC_ALL=C sort); do
+    [ -f "$ROOT/plugins/$n/.claude-plugin/plugin.json" ] || continue
+    jq -e 'has("dependencies")' "$ROOT/plugins/$n/.claude-plugin/plugin.json" >/dev/null 2>&1 && continue
+    printf '%s\n' "$deps" | grep -qxF "$n" && continue
+    names="$names, \`$n\`"
+  done
+  names="${names#, }"
+  [ -n "$names" ] || names="none — every leaf is in a bundle"
+  {
+    printf '%s' '<!-- generated:no-suite-leaves -->'
+    printf '%s\n\n' '<!-- generated by scripts/generate.sh (no-suite-leaves step) from .claude-plugin/marketplace.json and each plugin.json'"'"'s dependencies — do not edit this list by hand -->'
+    printf 'Suites are curated starting points, not coverage. These leaves belong to no bundle:\n\n%s.\n\n' "$names"
+    printf '%s\n' 'The stack and domain ones are named by `/stack-scan:suggest` when the project'"'"'s
+manifests earn them; the rest are per-project or per-user opt-ins. Install them by name.'
+    printf '\n%s\n' '<!-- end:no-suite-leaves -->'
+  } > "$block"
+  readme_apply '<!-- generated:no-suite-leaves -->' '<!-- end:no-suite-leaves -->' "$block"
+}
+
 # --- repo-level bundle-table step -------------------------------------------------
 # Rewrites the README region between <!-- generated:bundle-table --> and its closing
 # marker from two committed sources: each bundle's plugin.json .dependencies length,
@@ -424,8 +481,7 @@ render_catalog() {
 # warning nobody generates is a cost warning nobody updates. Enforced by the same
 # blocking --check drift pass as every other generated file.
 render_bundle_table() {
-  local target="$ROOT/README.md" rel="README.md"
-  local out="$WORK/README.md" block="$WORK/bundle-table.md"
+  local target="$ROOT/README.md" block="$WORK/bundle-table.md"
   local base="$ROOT/scripts/context-budget-baseline.json"
   local dyn="$ROOT/scripts/context-budget-dynamic-baseline.json"
   local act="$ROOT/scripts/context-budget-activated-baseline.json"
@@ -434,10 +490,15 @@ render_bundle_table() {
   # reads this step's abort as chassis drift. A REAL repo losing its README is
   # caught by validate.sh's leaf-count gate, which cannot pass without one.
   [ -f "$target" ] || return 0
-  grep -q '^<!-- generated:bundle-table -->' "$target" \
-    || die "bundle-table step: README.md is missing the <!-- generated:bundle-table --> marker"
-  grep -q '^<!-- end:bundle-table -->' "$target" \
-    || die "bundle-table step: README.md is missing the closing bundle-table marker"
+
+  # THE LISTING FLOOR, computed rather than typed: the host's own context window and
+  # budget fraction (scripts/host-constants.sh) against the 3-bytes-per-token tokenizer,
+  # which is the worst realistic case and the one context-budget.sh's listing channel
+  # reports. Derivation and the NEAR band are in that script's LISTING_* header.
+  local floor near_lo near_hi
+  floor=$(awk -v t="$HOST_LISTING_CTX_TOKENS" -v f="$HOST_LISTING_FRACTION" 'BEGIN{printf "%d", t*3*f}')
+  case "$floor" in ''|*[!0-9]*|0) floor=6000 ;; esac
+  near_lo=$((floor * 97 / 100)); near_hi=$((floor * 103 / 100))
 
   # k-tokens, one decimal, from a raw token count. 0 renders as an em dash so an
   # empty cell reads as "measured zero", not "not measured".
@@ -454,8 +515,8 @@ render_bundle_table() {
   {
     printf '%s' '<!-- generated:bundle-table -->'
     printf '%s\n\n' '<!-- generated by scripts/generate.sh (bundle-table step) from each bundle'"'"'s plugin.json dependencies + scripts/context-budget-*baseline.json — do not edit these rows by hand -->'
-    printf '| Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt |\n'
-    printf '|--------|---------|-------------------|--------------------|----------------------------|\n'
+    printf '| Bundle | Plugins | Always-on context | + when switched on | + first work-shaped prompt | Skill listing vs the %s-char floor | Fraction its README names |\n' "$floor"
+    printf '|--------|---------|-------------------|--------------------|----------------------------|------------------------------------|---------------------------|\n'
     for pj in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
       [ -f "$pj" ] || continue
       jq -e 'has("dependencies")' "$pj" >/dev/null 2>&1 || continue
@@ -468,9 +529,30 @@ render_bundle_table() {
       # the part a user cannot predict from the install alone.
       ac=$(jq -r --arg b "$bn" '.[$b] // 0' "$act" 2>/dev/null); ac=${ac:-0}
       ad=0; [ "$ac" -gt "$at" ] && ad=$((ac - at))
-      printf '%s\t%s\t%s\t%s\t%s\n' "$at" "$bn" "$dc" "$dt" "$ad"
-    done | sort -rn -k1,1 | while IFS=$'\t' read -r at bn dc dt ad; do
-      printf '| `%s` | %s | %s | %s | %s |\n' "$bn" "$dc" "$(fmt_k "$at")" "$(fmt_k "$ad")" "$(fmt_k "$dt")"
+      # LISTING COLUMN. Same walk the context-budget listing channel and the
+      # pc_listing_declaration gate use — pc_listing_entry_cost, one implementation —
+      # so the three figures agree by construction rather than by reconciliation.
+      # Members plus the bundle's OWN uninstall command, plus the CLI's n-1 joins.
+      lc=0; ln=0
+      while IFS= read -r member; do
+        [ -n "$member" ] && [ -d "$ROOT/plugins/$member" ] || continue
+        set -- $(pc_listing_entry_cost "$ROOT/plugins/$member")
+        lc=$((lc + $1)); ln=$((ln + $2))
+      done < <(jq -r '.dependencies[]?' "$pj" 2>/dev/null)
+      set -- $(pc_listing_entry_cost "$ROOT/plugins/$bn")
+      lc=$((lc + $1)); ln=$((ln + $2))
+      [ "$ln" -gt 1 ] && lc=$((lc + ln - 1))
+      if   [ "$lc" -gt "$near_hi" ]; then ls_col="OVER ($(awk -v a="$lc" -v c="$floor" 'BEGIN{printf "%.1f", a/c}')x, $lc chars)"
+      elif [ "$lc" -ge "$near_lo" ]; then ls_col="NEAR ($(awk -v a="$lc" -v c="$floor" 'BEGIN{printf "%.0f", 100*a/c}')%, $lc chars)"
+      else                                ls_col="OK ($(awk -v a="$lc" -v c="$floor" 'BEGIN{printf "%.0f", 100*a/c}')%, $lc chars)"
+      fi
+      # The fraction that bundle's OWN README recommends, read out of it. Two of the
+      # four were missing from the hand-written prose; a column cannot skip a row.
+      fr=$(grep -oE '"skillListingBudgetFraction"[[:space:]]*:[[:space:]]*[0-9.]+' "$ROOT/plugins/$bn/README.md" 2>/dev/null \
+           | head -1 | grep -oE '[0-9.]+$')
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$at" "$bn" "$dc" "$dt" "$ad" "$ls_col" "${fr:-—}"
+    done | sort -rn -k1,1 | while IFS=$'\t' read -r at bn dc dt ad ls_col fr; do
+      printf '| `%s` | %s | %s | %s | %s | %s | %s |\n' "$bn" "$dc" "$(fmt_k "$at")" "$(fmt_k "$ad")" "$(fmt_k "$dt")" "$ls_col" "$fr"
     done
     nonsuite=0
     for lp in "$ROOT"/plugins/*/.claude-plugin/plugin.json; do
@@ -505,7 +587,7 @@ render_bundle_table() {
     # history. Our figures also read LOW: `claude plugin details` charges a
     # per-component floor our bytes/4 estimate does not, measured at 1.54x across
     # the 61 leaves on 2026-08-20 (scripts/context-budget-official.json).
-    printf '\nThe budget these are measured against is the host'"'"'s skill listing, and it is a FORMULA,\nnot a constant — read out of the shipped CLI (2.1.251), not from documentation:\n\n    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction\n\n`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.\nIf you install a bundle flagged over the 200k floor, set it to the value that bundle'"'"'s README\nnames (%s) in the settings.json of the PROJECT where you use it — the fraction is a\nceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the\ndescriptions being evicted.\n`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including\nopus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,\n**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single\ndescription past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it\nnever binds. Over budget the CLI reduces entries to name-only and buys descriptions back in\npriority order — text past the budget is never sent, so it costs reachability, never tokens.\nThe cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that\nis the mechanical reason fewer artifacts beats shorter descriptions.\nUnit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token\nmodels this paragraph calls current, add ~33%%. The host also charges a per-component floor\nthis estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat\nthat as an order-of-magnitude correction, never as a coefficient\n(`scripts/context-budget-official.json` header has the derivation and the staleness).\n' "$frac_list"
+    printf '\nThe budget these are measured against is the host'"'"'s skill listing, and it is a FORMULA,\nnot a constant — read out of the shipped CLI, not from documentation, and re-read on every\nCI run by `scripts/host-constants.sh --check` against the pinned build:\n\n    budget_chars = contextWindowTokens x bytesPerToken x skillListingBudgetFraction\n\n`skillListingBudgetFraction` defaults to **0.01** and is a `settings.json` key you can raise.\nIf you install a bundle flagged over the 200k floor, set it to the value that bundle'"'"'s README\nnames (%s) in the settings.json of the PROJECT where you use it — the fraction is a\nceiling, not a purchase: under budget it changes nothing, over budget it readmits exactly the\ndescriptions being evicted.\n`bytesPerToken` is 4 through opus-4-6 / sonnet-4-6 and **3** for newer models including\nopus-5. So the budget spans 6.7x by where you run: **6,000 chars** on opus-5 at 200k,\n**30,000** at 1M, 8,000 / 40,000 on a 4-byte model. A second cap truncates any single\ndescription past **1,536** chars (`skillListingMaxDescChars`); this repo lints at 500, so it\nnever binds. Over budget the CLI reduces entries to name-only and buys descriptions back in\npriority order — text past the budget is never sent, so it costs reachability, never tokens.\nThe cost is per ENTRY, `name + 4 + description`, so artifact COUNT is charged directly: that\nis the mechanical reason fewer artifacts beats shorter descriptions.\nUnit note: the token columns above are estimated at 4 bytes/token; on the 3-bytes-per-token\nmodels this paragraph calls current, add ~33%%. The host also charges a per-component floor\nthis estimate does not — a 2026-08-20 snapshot measured ~1.5x on a now-changed tree; treat\nthat as an order-of-magnitude correction, never as a coefficient\n(`scripts/context-budget-official.json` header has the derivation and the staleness).\n' "$frac_list"
     # THE HOST'S OWN REMEDIES, ordered as the host orders them (`/skills` first) and
     # placed as the LAST word on the subject so it is what a reader leaves with: they
     # are the only lever that reduces the CHARGE rather than buying more ceiling.
@@ -524,18 +606,7 @@ nothing (47/50 both arms), while OVERLAP between skills contesting one territory
 from 100% to ~75%. What costs a marketplace is two skills that sound alike, not long text.'
     printf '\n%s\n' '<!-- end:bundle-table -->'
   } > "$block"
-
-  awk -v blockfile="$block" '
-    /^<!-- generated:bundle-table -->/ { while ((getline l < blockfile) > 0) print l; close(blockfile); skip=1; next }
-    /^<!-- end:bundle-table -->/ { skip=0; next }
-    !skip { print }
-  ' "$target" > "$out"
-
-  if [ "$MODE" = check ]; then
-    if ! cmp -s "$out" "$target"; then printf 'DRIFT content: %s\n' "$rel" >&2; DRIFT=1; fi
-    return 0
-  fi
-  if ! cmp -s "$out" "$target"; then cp "$out" "$target"; printf 'wrote %s\n' "$rel"; fi
+  readme_apply '<!-- generated:bundle-table -->' '<!-- end:bundle-table -->' "$block"
 }
 
 # --- main -------------------------------------------------------------------------
@@ -557,6 +628,8 @@ done
 
 render_catalog
 render_bundle_table
+render_offswitch_table
+render_no_suite_leaves
 
 if [ "$MODE" = write ]; then
   for pdir in $CHANGED_PLUGINS; do bump_plugin "$pdir"; done
@@ -564,7 +637,6 @@ fi
 
 # reports (both modes)
 printf '== opt-out reviews ==%s\n' "${OPTOUT_REPORT:- (none)}"
-printf '== worker overrides ==%s\n' "${OVERRIDE_REPORT:- (none)}"
 
 if [ "$MODE" = check ] && [ "$DRIFT" != 0 ]; then
   printf 'generate.sh --check: drift detected — run scripts/generate.sh --write\n' >&2

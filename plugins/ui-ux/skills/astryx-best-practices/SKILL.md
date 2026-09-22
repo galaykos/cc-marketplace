@@ -3,6 +3,8 @@ name: astryx-best-practices
 description: Use when building or reviewing UI with Astryx, Meta's open-source React design system — a project importing from `@astryxdesign/*` (core, cli, theme-* packages, StyleX xstyle) or running `astryx init|template|theme|component`. BETA 0.x: pin the installed version before advising.
 ---
 
+> Last verified: 2026-09-22 — https://astryx.atmeta.com/docs/getting-started — npm:@astryxdesign/core@0.6
+
 # Astryx best practices
 
 Astryx is Meta's open-source React design system (MIT, grown inside Meta over
@@ -144,8 +146,6 @@ deprecated until 0.7.0 removes them. No hardcoded colours or spacing, no
 
 ## Anti-patterns
 
-- **Beta APIs from memory** — 0.5 knowledge on a 0.6 install ships yesterday's
-  package layout, category names and CSS selectors.
 - **React 18 adoption** — the peer range is 19+; there is no compat build.
 - **Missing CSS trio** — components render unstyled, then get "fixed" with
   hardcoded values.

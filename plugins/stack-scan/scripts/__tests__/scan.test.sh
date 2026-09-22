@@ -65,6 +65,24 @@ expect "control: node row"    "| node runtime | >=99 | v99.1.0 |"
 refute "control: no floor flag" "below the engines floor"
 refute "control: no red flag for node" "node v99.1.0 is below"
 
+# Fixture 1c: a 2026 JS stack the framework loop did not name. An Astro-, Svelte- or
+# Angular-only repo scanned as "node + a lockfile" and produced no framework row at all
+# (panel 2026-09-22, WEB 12) — the report was not wrong, it was empty, which reads the
+# same as a repo with no framework.
+mkdir -p "$T/d"
+cat > "$T/d/package.json" <<'EOF'
+{ "dependencies": { "astro": "^5.2.0", "svelte": "^5.16.0", "@sveltejs/kit": "^2.15.0",
+                    "@angular/core": "^19.0.0", "@remix-run/react": "^2.15.0",
+                    "react-router": "^7.1.0", "hono": "^4.6.0",
+                    "@prisma/client": "^6.1.0", "drizzle-orm": "^0.38.0" } }
+EOF
+touch "$T/d/package-lock.json"
+OUT=$(bash "$SCAN" "$T/d")
+for dep in astro svelte "@sveltejs/kit" "@angular/core" "@remix-run/react" react-router \
+           hono "@prisma/client" drizzle-orm; do
+  expect "framework row $dep" "| $dep | \^"
+done
+
 # Fixture 2: php project, no lock.
 mkdir -p "$T/b"
 cat > "$T/b/composer.json" <<'EOF'

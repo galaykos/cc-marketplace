@@ -2,6 +2,14 @@
 
 All notable changes to the `ask-ledger` plugin.
 
+## 0.2.1 — 2026-09-22
+
+### Changed
+- **`hooks/gate.sh`'s blocking reason names `CC_ASK_LEDGER=off`.** `hooks/ledger.sh`
+  already printed its off switch; the Stop gate — the one that actually refuses the turn
+  — did not, so the only message a blocked reader sees was the one message that never
+  said how to turn it off.
+
 ## 0.2.0 — 2026-09-22
 
 ### Added

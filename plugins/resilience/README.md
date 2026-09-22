@@ -59,6 +59,31 @@ rubrics in one pass.
   Vitals, N+1 queries, load testing — and never ships an optimization without a
   before/after measurement.
 
+## Evals
+
+`evals/` holds six cases. Run them with the control arm — without it a grader
+passing proves nothing about the skills, only that the model can review code:
+
+```bash
+claude plugin eval ./plugins/resilience --ablation with-without --runs 5 \
+  --no-publish --trust-plugin
+```
+
+No `--allow-tools` grant is needed: every case declares `Read, Glob, Grep, Skill`
+and none is gated. No case ships a `scaffold_script`, so `--scaffold` is not part
+of the invocation. Add `--max-cost-usd 0` to load-check the suite for free — that
+is what `scripts/eval-cases.sh` does on every CI run, and it is the only eval step
+CI has; nothing here runs a model.
+
+**Five of the six are regression guards, and that is a limitation, not a result.**
+`timeout-and-retry`, `idempotency-only`, `idempotency-only-ts`, `retry-amplification`
+and `breadth-review` all sit at the control ceiling: the base model passes them
+unaided, so they can catch the plugin breaking something and can never show it
+helping. `liveness-probe-dependency` is the first case written with headroom above
+that ceiling — a liveness probe wired to a dependency check, which the control arm
+reads as a well-instrumented service. Its delta is **unmeasured**; when it is run,
+state the run count and the vote spread with the number or do not state the number.
+
 ## Pairs well with
 
 - **code-architecture** (system-design skill) — the service boundaries whose failure modes this plugin reviews

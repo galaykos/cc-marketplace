@@ -2,6 +2,16 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.7.1 — 2026-09-22
+
+### Changed
+- `compose-init`'s `Last verified` stamp carries a `version-tail-ok:` marker. The stamp
+  points at an EOL calendar, not a package registry — the skill pins container image tags
+  read from the project's manifests and depends on no package of its own — so
+  `check-doc-staleness.sh --live` has nothing to compare and `pc_version_stamp_tail` was
+  warning about a tail that cannot exist. The marker states that, and states that nothing
+  machine-reads the EOL calendar either.
+
 ## 0.7.0 — 2026-09-22
 
 ### Fixed

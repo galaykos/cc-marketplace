@@ -111,7 +111,7 @@ classify_file() { # path content
 }
 
 reason() {
-  printf '%s' 'AI attribution refused by git-workflow: no "Co-Authored-By: Claude …" trailer and no "Generated with Claude Code" line goes into a commit, merge, tag or PR. Drop those lines from the message and run the same command again. Do not move the message into a file to route around this.'
+  printf '%s' 'AI attribution refused by git-workflow: no "Co-Authored-By: Claude …" trailer and no "Generated with Claude Code" line goes into a commit, merge, tag or PR. Drop those lines from the message and run the same command again. Do not move the message into a file to route around this. CLAUDE_AI_TRAILER=allow in this session env disables this guard — that is the user call to make, not a way for you around this block.'
 }
 
 emit_deny() {

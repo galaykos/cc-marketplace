@@ -93,9 +93,12 @@ Ambition: <the contract's pinned tier, and at `maximal` which surface carries th
   system, which capabilities make up the three, and which surface carries the escalation>.
 Banned vocabulary: <copied VERBATIM from the divergence record's negative-constraints block,
   or the literal word `none`>.
-Copy voice: <the concept's editorial voice, made buildable: person and address · sentence-length
-  band · what it does with fragments, questions and imperatives · 2–3 literal NEVERs. An
-  adjective ("confident", "warm") is not a value here — it survives into no sentence>.
+Copy voice: <the run's `Voice:` line, copied from `craft/build-task.md` — person and address ·
+  sentence-length band · what it does with fragments, questions and imperatives · 2–3 literal
+  NEVERs. The four dimensions, the line shape and the standing split are owned by
+  `../../creative-direction/references/voice-contract.md`; this line CARRIES it, never
+  re-derives it. An adjective ("confident", "warm") is not a value here — it survives into no
+  sentence>.
 Spine regions: <slot>=#<anchor> pairs over the contract's eight slots, ON ONE LINE.
 Assets / provenance: <per asset: build-in-code | source | commission, and for anything
   sourced, the manifest entry it must carry>.
@@ -128,19 +131,21 @@ Patterns from stripe.com/pricing (tier hierarchy) and linear.app (restraint).
 
 Rules:
 - Patterns and structure, not colour — colour rides in the theme brief.
-- `Motion:`, `Signature:`, `Ambition:`, `Banned vocabulary:` and `Spine regions:` are the five
-  lines the craft flow's motion step resolves BEFORE the build and then persists at
+- `Motion:`, `Signature:`, `Ambition:`, `Banned vocabulary:`, `Spine regions:` and `Voice:` are
+  the six lines the craft flow's motion step resolves BEFORE the build and then persists at
   `craft/build-task.md` (`/craft-layer:craft` step 5, which owns their exact contents — this
   template describes the SHAPE, that step decides the values). Motion is structural: a scroll
   act, a WebGL surface, a shared-element transition or a physics stage cannot be retrofitted
   onto markup built without it. Exactly ONE section carries `Signature:`; entrance reveals
   belong on `Motion:` and are not a signature.
-- Each of those five is what a craft gate reads afterwards, which is why an omitted line is an
+- Each of those six is what a craft gate reads afterwards, which is why an omitted line is an
   ungraded gate rather than a tidier task: `Signature:` and `Motion:` grade the signature and
   the named escalation, `Ambition:` the reach floors, `Banned vocabulary:` the one tree-wide
-  grep (match semantics in `creative-direction/references/concept-deck.md`), and
+  grep (match semantics in `creative-direction/references/concept-deck.md`),
   `Spine regions:` the buyer-register gate, whose ONLY input it is
-  (`creative-direction/references/register-corpus.md`).
+  (`creative-direction/references/register-corpus.md`), and `Voice:` the voice gate — the one
+  line whose ABSENCE is itself a scripted FAIL rather than a `not checked`
+  (`creative-direction/references/voice-contract.md`).
 - **`Spine regions:` is ONE LINE, never wrapped.** `divergence.mjs` reads the line the key
   sits on and nothing else, so every pair after a wrap is dropped in silence and a wrap before
   a buyer slot skips the gate outright. Same hard rule, same words, as `concept-deck.md`'s

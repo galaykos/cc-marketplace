@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # Shared per-plugin checks, sourced by validate.sh (full sweep) and
-# authoring-guard.sh (single edited file). Pure: sourcing runs no code, functions
-# close over no caller globals (no err/fail/allow_md), and take all inputs as args.
+# authoring-guard.sh (single edited file). Pure: sourcing assigns the host listing
+# constants (scripts/host-constants.sh — variable definitions only) and runs nothing
+# else; functions close over no caller globals (no err/fail/allow_md), and take all
+# inputs as args.
+
+# The `1536` per-entry description cap below is the host's, not ours. One definition,
+# re-read out of the pinned CLI by `scripts/host-constants.sh --check`.
+. "$(dirname "${BASH_SOURCE[0]}")/../host-constants.sh" \
+  || echo "plugin-checks.sh: cannot source scripts/host-constants.sh — the per-entry description cap is unset" >&2
 
 # pc_skill_budget <skill_md_path>
 # On a violation: prints "budget <path> <kind> <n>" and returns 1, where kind is
@@ -175,6 +182,10 @@ pc_hook_timeout() {
 #     a working PATH and is deliberately out of scope.
 #   - jq-dependent, like its siblings here. No jq, no check — it returns 0.
 #
+# TIER: FAIL. It shipped at WARN on 2026-09-22 because 11 hooks failed it that hour;
+# eight were regenerated from the two hook templates and three fixed by hand the same
+# day, and it was promoted once the tree agreed with it.
+#
 # ESCAPE: `# env-shebang-ok: <reason>` on any line of the hook. A reason that
 # earns it names the host or the interpreter — "NixOS has no /bin/bash", "runs
 # under a pinned bash 5 from brew" — not "portability", which is the claim the
@@ -202,6 +213,240 @@ EOF
   done <<EOF
 $(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
 EOF
+  return $bad
+}
+
+# pc_cwd_validated <plugins_root>
+# A hook registered in a hooks.json may not `mkdir -p` a path built from the payload's
+# `cwd` without first proving that directory still exists. Prints one
+# "cwd-unvalidated <plugin>:<script> <line>:<statement>" per offender; returns 1.
+#
+# WHY THIS EXISTS. The Stop/PostToolUse payload's `cwd` is where the SESSION STARTED,
+# and a session outlives the directory. `mkdir -p "$cwd/.claude/<state>"` then does not
+# fail on a deleted project — it REBUILDS it, three levels deep, holding nothing but the
+# hook's own state dir. Measured live on a deleted `work/acme/design-studio`
+# (rationale/specialist-panel-2026-09-22.md #2, AR 1; first reported as trend-audit H6
+# and still open a review later). Eight hooks across six plugins shared the shape;
+# `plugins/overseer/hooks/track-read.sh:30-31` already had the right one. `-n "$cwd"` is
+# not the test — an empty string is not the failure mode, a stale path is.
+#
+# WHAT COUNTS AS VALIDATION, before the first such `mkdir -p`:
+#   - `[ -d "$cwd" ]`, the direct test;
+#   - `-e|-f|-r|-s|-w|-d "$cwd/<something>"`, a test on a path INSIDE cwd, which proves
+#     the directory exists just as well (task-runner/hooks/rv-observe.sh reads
+#     `$cwd/.claude/task-runner/active-run.json` before writing beside it);
+#   - `cd "$cwd"`.
+# Taint follows one hop of path building: `dir="$cwd/.claude/x"` then `mkdir -p "$dir"`
+# is the shape almost every hook here uses, so the check has to see through it.
+#
+# WHAT IT DOES NOT CATCH:
+#   - a cwd that EXISTS but is not this project — a stale session left in a sibling
+#     checkout writes its state there and nothing in the payload can tell.
+#   - taint through a transformation rather than a path join. `slug=$(printf %s "$cwd" |
+#     tr -c '[:alnum:]' -)` then `mkdir -p "$HOME/.claude/x/$slug"` is deliberately NOT
+#     flagged: the target is under $HOME and no project directory can be resurrected by
+#     it (hindsight's two hooks and skill-router's summary.sh are that shape).
+#   - any write that is not `mkdir -p` — a bare `>` redirect into a missing directory
+#     fails rather than resurrecting, which is the behaviour this check wants.
+#   - scripts a hook sources or execs, and non-hook scripts. Like its siblings here it
+#     resolves only the `command` string in hooks.json, and it is jq-dependent: no jq,
+#     no check.
+#
+# ESCAPE: `# cwd-mkdir-ok: <reason>` anywhere in the hook. A reason that earns it says
+# why resurrecting the directory is correct for that hook, not that the path is short.
+pc_cwd_validated() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel out
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      grep -qF 'cwd-mkdir-ok:' "$sh" 2>/dev/null && continue
+      rel=$(basename "$sh")
+      out=$(awk '
+        BEGIN { seeded = 0; validated = 0; tainted["cwd"] = 1 }
+        {
+          line = $0
+          t = line; sub(/^[ \t]+/, "", t)
+          if (t ~ /^#/) next                       # headers DISCUSS the pattern
+          sub(/[ \t]*#.*$/, "", line)              # and so do trailing comments
+          if (line ~ /cwd[ \t]*=.*\.cwd/) { seeded = 1; next }
+          if (!seeded) next
+          if (line ~ /-d[ \t]+"\$\{?cwd\}?"/)         validated = 1
+          if (line ~ /-[defrswx][ \t]+"\$\{?cwd\}?\//) validated = 1
+          if (line ~ /cd[ \t]+"\$\{?cwd\}?"/)         validated = 1
+          if (match(line, /^[ \t]*(local[ \t]+)?[A-Za-z_][A-Za-z0-9_]*=/)) {
+            lhs = substr(line, RSTART, RLENGTH)
+            sub(/^[ \t]*(local[ \t]+)?/, "", lhs); sub(/=$/, "", lhs)
+            rhs = substr(line, RSTART + RLENGTH)
+            for (v in tainted) if (rhs ~ ("\\$" v "/") || rhs ~ ("\\$\\{" v "\\}/")) { tainted[lhs] = 1; break }
+          }
+          if (line ~ /mkdir[ \t]+-p/ && !validated) {
+            for (v in tainted)
+              if (line ~ ("\\$" v "[/\"]") || line ~ ("\\$\\{" v "\\}")) { printf "%d:%s", FNR, t; exit }
+          }
+        }' "$sh")
+      [ -z "$out" ] && continue
+      printf 'cwd-unvalidated %s:%s %s\n' "$p" "$rel" "$out"
+      bad=1
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
+         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}
+
+# pc_offswitch_named <plugins_root>
+# A registered hook that can BLOCK or DENY and reads an environment off switch must name
+# that variable in the text it emits. Prints one
+# "offswitch-unnamed <plugin>:<script> <switches>" per offender; returns 1.
+#
+# WHY THIS EXISTS. Every guard here fails open and every one of them can be switched
+# off, but the person who needs that fact is the person whose turn just got refused —
+# and they are reading the refusal, not the hook's header. Counted 2026-09-22 (UX 1,
+# rationale/specialist-panel-2026-09-22.md #5): the root README documented 0 of 30
+# `CC_*` switches, and the PreToolUse guards named theirs in the message
+# (candor/hooks/avert.sh, database/hooks/guard.sh, secret-scanning/hooks/scan.sh,
+# devops/hooks/workflow-guard.sh) while the Stop gates did not — candor's gate.sh never
+# printed `CC_EVIDENCE_GATE` or `TASK_RUNNER_STOP_GATE`, ask-ledger's gate.sh never
+# printed `CC_ASK_LEDGER` although its own sibling ledger.sh did. The remedy the user
+# cannot find is the remedy they do not have.
+#
+# THE RULE, precisely: a hook is in scope when it emits `permissionDecision` deny/ask or
+# `exit 2` (the two channels that reach the model as a refusal). Its switches are the
+# names read as `${NAME:-…}` matching `CC_*`, `CLAUDE_*`, `*_BOOST` or `*_STOP_GATE`,
+# minus the host-supplied path/session variables, plus the indirect `plugin_switch=NAME`
+# form the boost chassis uses. At least ONE of those names must also appear in prose —
+# an occurrence that is neither `$NAME`/`${NAME}` nor a line-leading assignment.
+#
+# WHAT IT DOES NOT CATCH, and this is the gap that matters:
+#   - WHICH message names it. The contract is per-message ("every reason that blocks");
+#     no static reader can attribute a string constant to one of eight branches, so this
+#     gates the FILE. A hook with eight refusal strings and the switch named in one of
+#     them passes here and still fails the contract. That half is agent-graded.
+#   - whether the name is spelled correctly, or is the switch that actually silences
+#     THAT branch. `CC_ANYTHING=off` in a comment-free string satisfies it. The inverse
+#     is live in this tree: code-review's scan.sh and density.sh read `CC_REMIND` on
+#     their PostToolUse branch only, so their DENY branch has no off switch at all — this
+#     check reports them as "switch not named", which understates it.
+#   - a hook whose off switch is read some other way (a settings file, a marker file).
+#   - jq-dependent, hooks.json-registered scripts only, like its siblings here.
+#
+# ESCAPE: `# offswitch-ok: <reason>` in the hook. A reason that earns it explains why a
+# refused user should not be told how to turn the thing off.
+#
+# TIER, THIS RUN: WARN, not FAIL. Five hooks in four plugins fail it the moment it
+# ships — candor/avert.sh (CC_AVERT), code-review/density.sh and scan.sh (CC_REMIND),
+# command-guard/destructive-guard.sh (CLAUDE_DESTRUCTIVE_GUARD), git-workflow/
+# no-ai-trailer.sh (CLAUDE_AI_TRAILER) — every one of them naming the switch in a
+# comment and in none of its reasons. Promoting this to err() is the follow-up, owed
+# once those five messages carry the name; the rule is not soft, the tree is.
+pc_offswitch_named() {
+  local root="${1:-plugins}" bad=0 hj d p sh rel sw named
+  command -v jq >/dev/null 2>&1 || return 0
+  while IFS= read -r hj; do
+    [ -n "$hj" ] || continue
+    d=$(dirname "$(dirname "$hj")"); p=$(basename "$d")
+    while IFS= read -r sh; do
+      [ -n "$sh" ] || continue
+      sh=${sh//\$\{CLAUDE_PLUGIN_ROOT\}/$d}
+      [ -f "$sh" ] || continue
+      grep -qF 'offswitch-ok:' "$sh" 2>/dev/null && continue
+      # Refusal-capable? Either channel counts. Comments are stripped so a header that
+      # merely DISCUSSES exit 2 (every one of them does) does not put a hook in scope.
+      grep -v '^[[:space:]]*#' "$sh" \
+        | grep -qE 'permissionDecision[^,}]*(deny|ask)|permissionDecision:[[:space:]]*\$|exit 2' || continue
+      sw=$( { grep -ohE '\$\{(CC_[A-Z0-9_]+|CLAUDE_[A-Z0-9_]+|[A-Z0-9_]+_BOOST|[A-Z0-9_]+_STOP_GATE):-' "$sh" \
+                | sed -E 's/^\$\{//; s/:-$//'
+              grep -ohE '^[[:space:]]*plugin_switch=[A-Z0-9_]+' "$sh" | sed -E 's/.*=//'
+            } 2>/dev/null \
+            | grep -vxE 'CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_CONFIG_DIR|CLAUDE_CODE_SESSION_ID' \
+            | sort -u )
+      [ -n "$sw" ] || continue
+      named=0
+      while IFS= read -r v; do
+        [ -n "$v" ] || continue
+        grep -v '^[[:space:]]*#' "$sh" \
+          | grep -qE "[^A-Z_$\{]$v" && { named=1; break; }
+      done <<EOF
+$sw
+EOF
+      [ "$named" -eq 1 ] && continue
+      rel=$(basename "$sh")
+      printf 'offswitch-unnamed %s:%s %s\n' "$p" "$rel" "$(printf '%s' "$sw" | tr '\n' ' ' | sed 's/ $//')"
+      bad=1
+    done <<EOF
+$(jq -r '.hooks // {} | to_entries[] | .value[]? | .hooks[]?
+         | select(.type=="command") | .command' "$hj" 2>/dev/null | sort -u)
+EOF
+  done <<EOF
+$(find "$root" -mindepth 3 -maxdepth 3 -name hooks.json -print 2>/dev/null | sort)
+EOF
+  return $bad
+}
+
+# pc_version_stamp_tail <plugins_root>
+# A SKILL.md whose own description/when_to_use PROMISES version pinning must carry a
+# machine-readable package tail on its `Last verified` stamp. Prints one
+# "version-stamp-tail <plugin>:<skill> <why>" per offender; returns 1.
+#
+# WHY THIS EXISTS. `scripts/check-doc-staleness.sh --live` compares the
+# `npm:<pkg>@<major>` tail of a stamp against the registry; with no tail there is
+# nothing to compare and the skill is invisible to the only instrument that can tell it
+# has gone stale. Measured 2026-09-22 (WEB 4, rationale/specialist-panel-2026-09-22.md
+# #21): five web/laravel skills promised pinning, one reference file in the whole set
+# carried a tail, `--live` printed nothing, and the shipped ceilings were two minor
+# versions behind upstream (next 16.3 against a skill saying 16.2, react-native 0.87
+# against 0.82). The root README sells this as "pins its advice to the version in your
+# lockfile", so the promise is the marketplace's, not one skill's.
+#
+# THE TRIGGER is the skill's own frontmatter claim — `pinned`, `version leverage` or
+# `installed version`. A skill that never claims pinning is not asked for a tail.
+#
+# WHAT IT DOES NOT CATCH:
+#   - whether the tail is TRUE. `npm:next@16` on a skill teaching v14 passes; the tail
+#     makes staleness checkable, it does not check it.
+#   - a pinning promise phrased some other way ("reads your lockfile first", "matches
+#     the installed major"). Three phrases, chosen because they are what the shipped
+#     descriptions actually say; widening them is a follow-up with a re-count.
+#   - a body claim with no frontmatter claim — every skill teaches versions somewhere.
+#   - registries other than npm/composer/pypi, which is why it accepts any of the three
+#     and why a Go or crates skill would need this list extended, not blessed.
+#
+# ESCAPE: `<!-- version-tail-ok: <reason> -->` in the SKILL.md. A reason that earns it
+# names the source the stamp points at instead (an EOL calendar, a vendor release page
+# with no package).
+#
+# TIER, THIS RUN: WARN, not FAIL. Two skills fail it on the day it ships —
+# devops:compose-init (stamp points at endoflife.date, no package tail) and
+# ui-ux:astryx-best-practices (no `Last verified` stamp at all, while its description
+# says "pin the installed version before advising"). Both are other plugins' to fix;
+# err() is the follow-up once they do.
+pc_version_stamp_tail() {
+  local root="${1:-plugins}" bad=0 f p s fm stamp
+  for f in "$root"/*/skills/*/SKILL.md; do
+    [ -f "$f" ] || continue
+    grep -qF 'version-tail-ok:' "$f" && continue
+    fm=$(awk 'BEGIN{n=0} /^---$/{n++; next} n==1{print} n>=2{exit}' "$f")
+    printf '%s\n' "$fm" | grep -qiE 'pinned|version leverage|installed version' || continue
+    p=$(basename "$(dirname "$(dirname "$(dirname "$f")")")")
+    s=$(basename "$(dirname "$f")")
+    stamp=$(grep -m1 'Last verified' "$f")
+    if [ -z "$stamp" ]; then
+      printf 'version-stamp-tail %s:%s no "Last verified" stamp at all\n' "$p" "$s"
+    elif ! printf '%s' "$stamp" | grep -qE '(npm|composer|pypi):'; then
+      printf 'version-stamp-tail %s:%s stamp has no npm:/composer:/pypi: tail\n' "$p" "$s"
+    else
+      continue
+    fi
+    bad=1
+  done
   return $bad
 }
 
@@ -2330,7 +2575,7 @@ pc_listing_entry_cost() {
     desc=${fields%%$'\t'*}
     wtu=${fields#*$'\t'}; wtu=${wtu%%$'\t'*}
     dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
-    [ "$dl" -gt 1536 ] && dl=1536
+    [ "$dl" -gt "$HOST_LISTING_MAX_DESC" ] && dl=$HOST_LISTING_MAX_DESC
     total=$(( total + ${#name} + 4 + dl )); n=$((n+1))
   done
   printf '%s %s' "$total" "$n"

@@ -2,6 +2,28 @@
 
 All notable changes to the code-architecture plugin.
 
+## 0.16.3 — 2026-09-22
+
+### Added
+- **`evals/solid-control`, one measurement for a shape shipped ten times.** Ten
+  checklist skills in this marketplace carry no mechanism, no `Standing:` line and no
+  eval; `solid-principles` is the representative. The case puts one real SRP violation
+  in front of three deliberate decoys a reflex SOLID review flags — a value object that
+  parses and formats, a two-branch `if`, a single-implementation port at a vendor
+  boundary — and requires each decoy to be DECLINED with a reason, because silence is
+  not judgment. `runs: 5`; the README carries the paid invocation with
+  `--ablation with-without`. The expectation on record is that the control arm returns a
+  superset; if both arms pass, the shape is settled for all ten. The delta is unmeasured.
+
+### Changed
+- **`/code-architecture:coding-task` calls taskmaster's phase-sentinel writer instead of
+  hand-writing `.claude/cc-phase.json`.** Four command bodies each carried their own JSON
+  literal, and a mistyped phase name scores 0 in the reader's ordering table — every guard
+  proceeds, which looks exactly like no sentinel at all. Same cross-plugin probe order as
+  `/task-runner:run`: the script under taskmaster, then `~/.claude/plugins/cache`, then the
+  hand-written JSON as the last resort. The clear on the trivial path goes through
+  `phase-sentinel.sh clear` (AR 11).
+
 ## 0.16.2 — 2026-09-17
 
 ### Fixed

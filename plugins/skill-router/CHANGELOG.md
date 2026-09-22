@@ -2,6 +2,42 @@
 
 All notable changes to the skill-router plugin.
 
+## 0.19.0 — 2026-09-22
+
+### Added
+- **`?` marker prefix: a routing row can require its manifest.** `?package.json~"next"`
+  makes an absent or unreadable manifest a decisive **suppress** instead of merely
+  indecisive, so the chain reads "fire only on a manifest that exists and says yes".
+  Until now an absent manifest was skipped and the row fired anyway: a `.tsx` in a repo
+  with **no** `package.json` drew shadcn, React Native and Next.js in one envelope, and a
+  `.tsx`/`.vue` in a Nuxt- or Next-only repo drew shadcn, because `components.json` was
+  absent and absent meant maybe. `?` is per-row and opt-in; an unprefixed alternative
+  keeps the fire-if-uncertain default, which is still the right default for a stack the
+  router cannot see. Probed: `src/Widget.tsx` with no `package.json` → `a11y-audit`
+  alone; the same file in a Nuxt-only repo → no shadcn; with `components.json` present →
+  shadcn fires; an Expo repo still nudges `react-native-best-practices` and a Next repo
+  still nudges `nextjs-best-practices` on `app/api/checkout/route.ts`.
+- `prime.sh` primes `devops-practices` from a `.github/workflows/` directory and
+  `mariadb-best-practices` from a compose file whose `image:` names mariadb — two rows
+  `coding-entry/references/skill-map.md` declares and this hook never had, both standing
+  `map-unprimed` WARNs. Probed: a workflows-only repo now names `devops-practices`
+  (it named nothing before); `image: mariadb:11.4` names the engine skill and
+  `image: mysql:8.4` does not.
+
+### Changed
+- Rows carrying the `||!@base~.` **default-deny tail** added in 0.18.0
+  (`**/components/**` and the three Next.js server rows) now carry `?` instead: same
+  behaviour, one mechanism rather than two spellings of it. The shadcn rows and the
+  `*.tsx` React Native / Next.js rows gained it.
+- `route.sh` exits before touching state when the payload's `cwd` is **not a directory**.
+  It validated `-n` only, and the next write is `mkdir -p "$cwd/.claude/skill-router"` —
+  which RE-CREATED a project directory the session had just deleted, reproduced here
+  three levels deep against the previous revision of the hook (2026-09-22 panel review,
+  architecture #1; `plugins/overseer/hooks/track-read.sh:30` is the pattern). The state
+  root is deliberately still the payload `cwd` and not the git toplevel: the state file's
+  address is a three-hook contract (`route.sh` writes it, `route-prompt.sh` flushes it,
+  `summary.sh` ledgers and removes it), and moving one side of it is a separate change.
+
 ## 0.18.0 — 2026-09-22
 
 ### Added

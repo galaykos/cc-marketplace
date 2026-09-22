@@ -37,12 +37,15 @@ the ⚡ banner, marker `Goal: true (boost=off)`). It has no free-text form.
 first when none is labeled Recommended); the handoff auto-selects "Run now" and
 runs through execution to a green suite; branch-finish/merge/PR stay manual.
 
-1. Write the arc phase sentinel `.claude/cc-phase.json` —
-   `{"phase":"shape","owner":"taskmaster:task","session_id":"<this session id>",`
-   `"started_at":"<ISO-8601 UTC>"}`. This is what makes the prompt channel take
+1. Write the arc phase sentinel by running
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh write shape --owner taskmaster:task --session "<this session id>"`
+   — never by hand-writing the JSON: the script is the one writer that checks the phase
+   name against the vocabulary the reader uses, and a misspelled phase reads to every
+   hook as no sentinel at all, silently. This is what makes the prompt channel take
    turns: reminder hooks that own a later phase stand down while requirements are
-   still being shaped, instead of every installed one talking over one prompt. **Remove it when
-   this command finishes** — on the hand-off to `/task-runner:run` (which writes its
+   still being shaped, instead of every installed one talking over one prompt. **Clear it when
+   this command finishes** — `bash ${CLAUDE_PLUGIN_ROOT}/scripts/phase-sentinel.sh clear` —
+   on the hand-off to `/task-runner:run` (which writes its
    own `build` sentinel), and equally on an abandoned or interrupted run. A stale
    sentinel is bounded by a TTL rather than trusted, but the clear is still yours.
 

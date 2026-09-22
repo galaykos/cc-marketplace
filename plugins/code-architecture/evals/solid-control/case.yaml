@@ -1,0 +1,131 @@
+schema_version: "1.0"
+name: solid-control
+description: >
+  ONE measurement for a shape shipped ten times. Ten checklist skills across this
+  marketplace carry no mechanism, no `Standing:` line and no eval; `solid-principles`
+  is the representative, and its distinctive claim is not the five principles — a base
+  model recites those — but the JUDGMENT half its body is made of: each principle's
+  "Not a violation" clause and the origin test that splits dependency inversion from
+  YAGNI. So the fixture holds ONE real violation among three deliberate decoys that a
+  reflex SOLID review flags. The control arm is expected to produce a SUPERSET: it
+  finds the real violation and also reports the two-case switch as Open/Closed, the
+  parse-and-format value object as SRP, and the single-implementation port as YAGNI or
+  as an unnecessary abstraction. The grader detects that by requiring the decoys to be
+  actively DECLINED with a reason, not merely left unmentioned — silence is not
+  judgment and scores as a FAIL, in both arms. If both arms pass, the skill restates
+  the model and the shape is settled for all ten; state the run count and the vote
+  spread with any delta or do not state the delta.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Review this module for SOLID violations.
+
+    ```python
+    # billing/money.py
+    from dataclasses import dataclass
+
+    @dataclass(frozen=True)
+    class Money:
+        cents: int
+        currency: str
+
+        @classmethod
+        def parse(cls, text: str) -> "Money":
+            amount, currency = text.split(" ")
+            return cls(int(round(float(amount) * 100)), currency)
+
+        def format(self) -> str:
+            return f"{self.cents / 100:.2f} {self.currency}"
+
+
+    # billing/tax.py
+    def rate_for(region: str) -> float:
+        if region == "EU":
+            return 0.21
+        return 0.0
+
+
+    # billing/gateway.py
+    from typing import Protocol
+
+    class PaymentGateway(Protocol):
+        def charge(self, order_id: str, amount: Money) -> str: ...
+
+    class StripeGateway:
+        def __init__(self, client): self._client = client
+        def charge(self, order_id: str, amount: Money) -> str:
+            return self._client.PaymentIntent.create(
+                amount=amount.cents, currency=amount.currency, metadata={"order": order_id}
+            )["id"]
+
+
+    # billing/invoice_service.py
+    import smtplib
+    from reportlab.pdfgen import canvas
+
+    class InvoiceService:
+        def __init__(self, gateway: PaymentGateway):
+            self._gateway = gateway
+
+        def issue(self, order):
+            total = Money(order.subtotal_cents, order.currency)
+            total = Money(int(total.cents * (1 + rate_for(order.region))), total.currency)
+            charge_id = self._gateway.charge(order.id, total)
+
+            c = canvas.Canvas(f"/tmp/{order.id}.pdf")
+            c.drawString(72, 800, f"Invoice {order.id}")
+            c.drawString(72, 780, total.format())
+            c.save()
+
+            server = smtplib.SMTP("smtp.example.com", 587)
+            server.starttls()
+            server.login("billing", "hunter2")
+            server.sendmail("billing@example.com", order.email, f"Invoice {order.id}")
+            server.quit()
+            return charge_id
+    ```
+runs: 5
+graders:
+  - type: llm
+    name: judgment-not-checklist
+    criteria: |
+      The fixture holds ONE real violation and THREE deliberate decoys. A reflex
+      SOLID review flags all four; the skill under test claims to flag one and
+      decline three, with a reason for each.
+
+      PASS requires BOTH parts.
+
+      **Part A — the real violation.** `InvoiceService.issue` must be named as a
+      Single-Responsibility violation with the seam stated: tax arithmetic, PDF
+      rendering and SMTP delivery are three unrelated reasons to change one method,
+      and a layout change, a tax-rule change and an SMTP migration all edit it.
+      Crediting it additionally as a Dependency-Inversion problem (the domain method
+      constructs `smtplib.SMTP` and a `canvas.Canvas` directly, so it cannot be tested
+      without a mail server) is correct and welcome; naming only DIP without the
+      three-reasons split still passes Part A.
+
+      **Part B — the three decoys, DECLINED WITH A REASON.** All three must be
+      addressed and dismissed. Not mentioning one is a FAIL for that decoy: the claim
+      under test is judgment, and silence is not judgment.
+
+        1. `Money.parse` + `Money.format` is NOT an SRP violation — a value object
+           legitimately parses and formats its own data; one conceptual responsibility
+           may span methods.
+        2. `rate_for` is NOT an Open/Closed violation — one branch, in one place, that
+           has not grown. Building a strategy registry for a single region is
+           speculative generality.
+        3. `PaymentGateway` with one implementer is NOT a YAGNI failure or a needless
+           abstraction — it is a consumer-owned port at a genuine process boundary
+           (a vendor SDK, swapped in tests), and it stands with one implementation.
+           Splitting by ORIGIN rather than by implementation count is the argument.
+
+      FAIL if the response recommends splitting `Money`, replacing `rate_for`'s `if`
+      with a dispatch table/strategy map/registry, or deleting or inlining the
+      `PaymentGateway` protocol "until a second gateway exists" — each is the reflex
+      application this skill exists to prevent.
+
+      Do NOT require and do not penalise: comments on the hardcoded SMTP password,
+      the `/tmp` path, missing error handling, float rounding in `parse`, type hints,
+      or Liskov and Interface-Segregation findings (neither has a subject here).

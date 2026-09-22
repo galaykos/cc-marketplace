@@ -376,9 +376,13 @@ they disagree, when one is stamped to another project, or when one carries no st
 sibling does. Steps 1 and 3's agreement clause are therefore SCRIPTED; picking between
 several glob matches spread across directories is graded by the audit reading this list.
 
-## What the audit checks (teeth)
+## What the audit checks (two scripted slices, the rest agent-graded)
 
-`/craft-layer:audit` reads THIS file (injected as a Read path) and verifies:
+**Standing: `gate` for two slices — `divergence.mjs`'s `craft-stamp` (stamp agreement
+across the four artifacts) and `spine-register` (the buyer register inside the regions
+`Spine regions:` names). Everything else below is `agent-graded`**: a reviewing agent reads
+this file and greps the shipped tree, and no script fails a build over scope, identity or
+slot coverage. `/craft-layer:audit` reads THIS file (injected as a Read path) and verifies:
 
 - the artifacts it graded are THIS run's — every glob match is resolved by the Part 8 stamp
   (a match stamped to another project is dropped, the newest agreeing stamp wins, an

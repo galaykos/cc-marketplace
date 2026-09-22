@@ -33,9 +33,12 @@
 #     restore the REASONING — the alternatives weighed, the kill-trigger. Those
 #     live in the transcript the compaction just summarized, and no hook can pull
 #     them back.
-#   - It cannot tell whether the marker's task is still the task in hand. A stale
-#     marker from an abandoned task will be announced exactly like a live one;
-#     the skill's own staleness rules still apply.
+#   - It cannot tell whether the marker's task is still the task in hand. A marker
+#     from an abandoned task is announced exactly like a live one for as long as it
+#     is inside the TTL below; the skill's own staleness rules still apply. What the
+#     TTL removes is only the UNBOUNDED case — a marker with no writer left alive
+#     announcing a decision forever, because nothing but this hook ever read it and
+#     nothing at all ever deleted it (AR 11, 2026-09-22).
 #   - Marker-shaped only. A deliberation that ran and never wrote the marker is
 #     invisible here, the same blind spot the skill already carries.
 {
@@ -52,6 +55,24 @@
 
   marker="$cwd/.claude/approaches/deliberated.json"
   [ -f "$marker" ] || exit 0
+
+  # TTL, mtime, 120 minutes — the same number and the same mechanism as the shared
+  # phase sentinel (templates/blocks/phase-guard.md, cc_phase_ttl_min), deliberately,
+  # because the two files have the same shape of problem: prose writes them, nothing
+  # deletes them, and a silent reader that trusts a dead one has no remedy. mtime, not
+  # a timestamp field: portable shell cannot parse ISO-8601, and the file is rewritten
+  # whenever a new deliberation lands, so mtime IS the decision's age.
+  #
+  # Past the TTL: IGNORE and DELETE. Deleting is the point — leaving it would re-run
+  # this find on every compaction of every future session for a decision nobody can
+  # still act on. Expiring early degrades to today's pre-hook behaviour (the model
+  # re-deliberates, which is a cost in tokens); expiring late re-asserts a decision the
+  # session has moved past, which is a cost in WRONG WORK. The two are not symmetric,
+  # so this errs toward forgetting.
+  if [ -n "$(find "$marker" -maxdepth 0 -mmin +120 2>/dev/null)" ]; then
+    rm -f "$marker" 2>/dev/null
+    exit 0
+  fi
 
   task=$(jq -r '.task // empty' "$marker" 2>/dev/null) || exit 0
   by=$(jq -r '.by // empty' "$marker" 2>/dev/null)

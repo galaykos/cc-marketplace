@@ -3,6 +3,31 @@
 All notable changes to the approaches plugin. Started at 0.7.0; earlier versions
 have no entries rather than invented ones.
 
+## 0.9.0
+
+### Added
+- **`hooks/compact-recovery.sh` gives `.claude/approaches/deliberated.json` a 120-minute
+  mtime TTL, and deletes the marker when it expires.** Nothing anywhere deleted this file
+  and nothing bounded its age, so one abandoned deliberation announced itself on every
+  compaction of every future session in that project — "written by prose, read by one
+  hook, deleted by nobody". Same number and same mechanism as the shared phase sentinel
+  (`templates/blocks/phase-guard.md`), deliberately: mtime, because portable shell cannot
+  parse ISO-8601 and the file is rewritten whenever a new deliberation lands. Expiring
+  early costs a re-deliberation; expiring late re-asserts a decision the session has moved
+  past, so it errs toward forgetting. Three harness cases (3 h expires and unlinks, 1 h
+  does not). The header's staleness limitation now says what the TTL does and does not
+  remove: a marker inside the window from an abandoned task still announces exactly like
+  a live one.
+
+### Fixed
+- **`hooks/remind.sh` and `hooks/consult-remind.sh` start `#!/bin/bash`, not
+  `#!/usr/bin/env bash`.** The fail-open guarantee these hooks assert in their own headers
+  has to hold under a stripped PATH, where `env bash` itself exits 127 — a guard that
+  cannot start is a guard that allows, and the exit code it never produced looks to the
+  host exactly like an allow. Rendered from `templates/reminder-hook.sh.tmpl`, not edited
+  here; `pc_hook_shebang` reads the claim back and fails the build now that every shipped
+  hook agrees with it.
+
 ## 0.8.1
 
 ### Fixed

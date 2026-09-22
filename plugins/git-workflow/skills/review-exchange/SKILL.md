@@ -40,6 +40,16 @@ Three things, none optional:
    "tests pass". The reviewer should be able to distinguish tested from
    hoped-for.
 
+**If the repo ships a PR template, that list is theirs, not this one.** Check
+`.github/PULL_REQUEST_TEMPLATE.md`, `.github/pull_request_template.md` and
+`docs/pull_request_template.md`; when one exists, fill its headings and
+checkboxes and fold the three items above into them rather than appending a
+second structure underneath. Say which file you used. Likewise `CODEOWNERS`
+(`.github/`, repo root, `docs/`): the paths the diff touches decide who must
+review it, so match them and name those teams in the request instead of waiting
+for the platform to work it out. Standing: agent-graded — nothing scripts either
+read.
+
 ## Small diffs get real reviews
 
 Review quality falls off a cliff with size: a 200-line diff gets read, a

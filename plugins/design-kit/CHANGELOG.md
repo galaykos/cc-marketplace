@@ -2,6 +2,30 @@
 
 Consumer-facing changes only. Newest first.
 
+## 0.4.0 — 2026-09-22
+
+### Added
+- **`dk drift` — the literal-colour check on the project's own components.** Until now the
+  only drift reader ran on an imported handoff bundle; `dk check` compared `tokens.json` to
+  its own re-extraction, and the palette nag fired once a session on nine hexes. A component
+  hardcoding `#6366f1`, or reaching a colour through `bg-indigo-500`, went unseen by all
+  three — the named palette utility never reaches a stylesheet, so every token-reading check
+  stays green over it. `handoff-drift.py` gained a `--scan` mode over
+  `.tsx/.jsx/.vue/.blade.php/.css/.scss` sharing the bundle mode's token reader, and
+  `dk drift [PATHS|--staged|--diff <base>] [--ci]` drives it. `--ci` exits 1 on any hit; no
+  token source anywhere exits 2 (`not measured`), never a green; an empty `--staged`/`--diff`
+  selection scans nothing rather than the whole tree. `bg-primary` and `var(--primary)` are
+  clean by construction, a `--name:` declaration line is the token being defined and never a
+  hit, and `href`/`to` values are blanked so a `#dad` anchor is not read as a colour.
+  Standing: **gate where you wire it** — nothing in this plugin runs it for you, so not run
+  is not clean; `scripts/__tests__/drift.test.sh` drives hit, clean, both exits and the git
+  selectors, and CI runs it with every other plugin harness.
+
+### Fixed
+- **`hooks/unread-pick.sh` starts `#!/bin/bash`.** A hook that promises to fail open cannot
+  depend on `/usr/bin/env` resolving: on a stripped PATH the kernel returns 127 before the
+  fail-open code runs.
+
 ## 0.3.0 — 2026-09-22
 
 ### Fixed

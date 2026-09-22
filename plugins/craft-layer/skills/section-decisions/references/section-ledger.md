@@ -59,10 +59,13 @@ A ledger written and left in the working directory, with a build task that does
 not carry it, is the same failure mode as a concept generated and never threaded
 into the briefs — the artifact exists, the build defaults anyway.
 
-## What the audit checks (teeth)
+## What the audit checks (agent-graded)
 
-When a ledger exists for the run, `/craft-layer:audit` reads it and verifies
-CONFORMANCE — the built page against what was chosen:
+**Standing: `agent-graded`.** No script reads the ledger — `divergence.mjs` has no ledger
+assertion — so conformance is a reviewing agent comparing rows to markup, and a run that
+never dispatches the audit is never checked at all. When a ledger exists for the run,
+`/craft-layer:audit` reads it and verifies CONFORMANCE — the built page against what was
+chosen:
 
 - every ledger row has a corresponding section in the build (grep the `section`
   id/anchor); a row with no section is a dropped decision;

@@ -169,6 +169,10 @@ or restating a check's header here; do not add the story back to this file.
   | `<!-- dispatch-ok -->` | a chassis sample that deliberately dispatches the generic subagent |
   | `<!-- handoff-ok -->` | a line that deliberately hands off to a command outside its bundle |
   | `<!-- scout-name-ok: -->` | a scout catalog row naming a plugin on purpose that the name check rejects |
+  | `# env-shebang-ok:` | a registered hook that deliberately keeps `#!/usr/bin/env bash` |
+  | `# cwd-mkdir-ok:` | a hook that deliberately `mkdir`s under a payload `cwd` it did not `-d`-test |
+  | `# offswitch-ok:` | a hook that reads an off-switch and deliberately omits it from a blocking reason |
+  | `<!-- version-tail-ok: -->` | a version-pinning skill whose `Last verified` stamp deliberately carries no `npm:`/`composer:` tail |
 
   `claude-api` must be described as Claude Code's built-in skill, never as a
   marketplace artifact.
@@ -209,12 +213,15 @@ or restating a check's header here; do not add the story back to this file.
   `rationale/2026-08-31-token-cost-review.md`.
 
 - **`scripts/generate.sh --check`** — BLOCKING chassis-drift gate: every
-  chassis-generated file (review commands, worker agents, suite uninstalls,
+  chassis-generated file (worker agents, suite uninstalls,
   reminder hooks, boost hooks) must byte-match its template output. Regenerate with `--write`
-  after editing anything under `templates/` or a `.chassis.json`. Two repo-level
+  after editing anything under `templates/` or a `.chassis.json`. Four repo-level
   steps ride the same gate and are NOT chassis files: stack-scan's scout `catalog.md`,
-  and the README **bundle table** between `<!-- generated:bundle-table -->` and
-  `<!-- end:bundle-table -->` — edit those rows by hand and `--check` fails.
+  and three README blocks — the **bundle table**, the **"Turning things off"** table and
+  the **no-suite leaf list** — each between `<!-- generated:<name> -->` and
+  `<!-- end:<name> -->` markers; edit those rows by hand and `--check` fails. The
+  review-command template was retired 2026-09-22 (it rendered one file); the four
+  surviving renderers are worker agents, reminder hooks, boost hooks, suite uninstalls.
 
 ## Lanes: who owns what, and when (convention + gate)
 
@@ -312,8 +319,8 @@ Those four are the ones you invoke. They are **not** all the enforcement. Named
 by filename and standing,
 per the has-teeth convention above:
 
-**Blocking — fails CI.** `.github/workflows/validate.yml` has **37 named steps;
-36 can fail the build**, and on a push to `master` only **35** can fail
+**Blocking — fails CI.** `.github/workflows/validate.yml` has **39 named steps;
+37 can fail the build**, and on a push to `master` only **36** can fail
 (`check-version-bumps.sh` is gated `if: github.event_name == 'pull_request'`).
 This is the one count deliberately carried here and nowhere else
 (`scripts/done-gate.sh:7` says why); **recount it, do not copy it**:

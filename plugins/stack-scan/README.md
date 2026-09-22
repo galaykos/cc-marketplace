@@ -6,7 +6,9 @@ composer/npm/yarn/pnpm/bun manifests and lockfiles, runtime pins, and docker/CI 
 into a required-vs-installed table with drift, missing-lock, and EOL flags.
 `/stack-scan:audit` runs the dependency hygiene pass — vulnerabilities, outdated
 packages, and licences against the project's distribution mode — from the same
-manifests. `/stack-scan:suggest` reads them once more and suggests **every**
+manifests, plus an image axis (`FROM` and compose/k8s `image:` tags through `trivy`
+when installed, an EOL tag check otherwise) so an infra-only repo is audited rather
+than turned away. `/stack-scan:suggest` reads them once more and suggests **every**
 cc-plugins-marketplace plugin in three tiers — stack-matched with the evidence file and
 key cited, the curated any-project core, and the universal remainder — then installs
 your picks; `--skills` turns the same detection outward and searches
@@ -34,13 +36,13 @@ manifests, and the per-plugin boundary forced two byte-identical picker scripts.
 | Command | What it does |
 |---------|--------------|
 | `/stack-scan:report` | Produce the required-vs-installed table plus red flags (multiple lockfiles, drift, EOL majors, docker-vs-local divergence) |
-| `/stack-scan:audit` | Audit composer/npm dependencies — vulnerabilities, outdated packages, and dependency licences against the project's distribution mode, severity-sorted with a fix lane per finding; report-only, ends by offering the patch-lane fixes as a choice |
+| `/stack-scan:audit` | Audit composer/npm dependencies — vulnerabilities, outdated packages, and dependency licences against the project's distribution mode, severity-sorted with a fix lane per finding, plus container base-image tags (`trivy` when on PATH, otherwise an EOL check stated as a tag check, never a CVE scan); report-only, ends by offering the patch-lane fixes as a choice. Dockerfile and compose judgment beyond the tag is `/devops:review` |
 | `/stack-scan:suggest [path] [--yes] [--all] [--full] [--stack a,b,c] [--persist \| --global]` | Detect the stack, print the numbered three-tier inventory covering every marketplace plugin, then offer the plugins you pick — one question set for the signal-backed and core rows plus a door into the remainder (`--all` pages every row explicitly), or auto-install tier-1 + core picks (`--yes`), or install the whole stack-relevant set after one plan confirm (`--full`, with `--stack a,b,c` for a stack the manifests do not show yet), at project scope (`--persist`) or machine-wide user scope (`--global`) |
 | `/stack-scan:suggest --skills [query]` | Search skills.sh for third-party skills matching the detected stack (or the query) — one provenance table (source repo, installs, evidence, overlap with installed plugins), a picker, a preview of each pick's SKILL.md, then `npx skills add` per confirmed pick. Explicit picks only; no auto-install flag exists in this mode |
 
 ```bash
 /stack-scan:report
-/stack-scan:audit                         # audits composer.json and/or package.json at the project root
+/stack-scan:audit                         # audits composer.json, package.json and container base-image tags
 /stack-scan:suggest                       # scans your manifests, suggests a set, installs your picks
 /stack-scan:suggest --yes                 # stack-matched tier plus the any-project core, without asking
 /stack-scan:suggest --full                # everything relevant to the detected stack, leaves only, after a plan and one confirm

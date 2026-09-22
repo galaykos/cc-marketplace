@@ -1,0 +1,110 @@
+schema_version: "1.0"
+name: liveness-probe-dependency
+description: >
+  A Deployment whose livenessProbe and readinessProbe both hit /health, and a /health
+  handler that pings Postgres before answering. The control arm reads this as a
+  well-instrumented service — health checks are present, both probes are wired, the
+  handler verifies a real dependency — and returns "good, it has health checks" plus
+  generic advice about timeouts or log levels. What it misses is the inversion:
+  liveness answering for a DEPENDENCY means a database blip restarts every pod at
+  once, and the restart makes reconnection strictly less likely. observability-design
+  SKILL.md carries that rule ("Never check dependencies here: a database blip becomes
+  a restart storm") and the split that fixes it. The grader detects the miss by
+  requiring the restart-storm consequence stated as a consequence, plus the two-endpoint
+  split; a response that only says "add more health checks", "tune the thresholds", or
+  "add a startupProbe" fails. This is the first case in this suite with headroom above
+  the control ceiling: the other five are regression guards, which CLAUDE.md's rule says
+  can never show the skill helping.
+execution:
+  timeout_seconds: 900
+  max_turns: 25
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    `k8s/api-deployment.yaml`:
+
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: orders-api
+    spec:
+      replicas: 6
+      template:
+        spec:
+          containers:
+            - name: api
+              image: registry.example.com/orders-api:1.14.2
+              ports:
+                - containerPort: 8080
+              livenessProbe:
+                httpGet:
+                  path: /health
+                  port: 8080
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 2
+                failureThreshold: 3
+              readinessProbe:
+                httpGet:
+                  path: /health
+                  port: 8080
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                timeoutSeconds: 2
+                failureThreshold: 3
+    ```
+
+    `src/routes/health.js`:
+
+    ```js
+    import { Router } from 'express'
+    import { pool } from '../db.js'
+
+    export const health = Router()
+
+    health.get('/health', async (_req, res) => {
+      try {
+        await pool.query('SELECT 1')
+        res.status(200).json({ status: 'ok' })
+      } catch (err) {
+        res.status(503).json({ status: 'degraded', error: String(err) })
+      }
+    })
+    ```
+
+    Six replicas behind one Postgres primary. Review this.
+runs: 5
+graders:
+  - type: llm
+    name: liveness-never-checks-dependencies
+    criteria: |
+      One defect is load-bearing and it is the reason this case exists.
+
+      PASS requires BOTH:
+
+      1. **Liveness must not answer for a dependency.** The response must say that the
+         livenessProbe reaches an endpoint whose 503 is produced by Postgres being
+         unreachable, so a database blip makes the kubelet restart the container —
+         and, because all six replicas share that primary, restart ALL of them at
+         once. The consequence must be stated (mass restart / restart storm / crash
+         loop across the fleet, and a restart that cannot fix a problem outside the
+         process), not just the label "liveness checks the database".
+      2. **The split is the fix.** The response must separate the two questions into
+         two endpoints: liveness answers "should this process be restarted?" from
+         process-local state only (the server is accepting connections, the event loop
+         is not wedged), while readiness answers "should traffic be routed here?" and
+         is where the Postgres check belongs. Naming `/livez` + `/readyz`, or keeping
+         `/health` for readiness and adding a dependency-free liveness path, both count.
+
+      FAIL if the response reads the manifest as correct, or if its only remarks are
+      generic: raise `failureThreshold`, add a `startupProbe`, add `resources` limits,
+      tune `timeoutSeconds`, pin the image by digest, add structured logging, or "add
+      a circuit breaker". Those are the confident-but-inverted review this case
+      measures — every one of them makes the restart storm slower to arrive rather
+      than impossible.
+
+      Also credit, but do NOT require: the handler echoing `String(err)` to an
+      unauthenticated endpoint leaks connection-string detail; the probe has no
+      timeout budget relative to the query; readiness flapping needs its own
+      `failureThreshold`; a dependency check should be cached/bounded rather than
+      run on every probe tick.

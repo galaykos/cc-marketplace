@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.6
+
+### Changed
+- **Both refusals name `CLAUDE_DESTRUCTIVE_GUARD`.** The deny reason named the
+  `.claude/<allowfile>` opt-out and not the environment switch; the ask reason named
+  neither. Each now states the value that silences it (`off`, and `deny-only` for the ask
+  tier), and the deny adds the fact that makes the difference in practice: the variable is
+  read from the hook's own process, so prefixing it to the command does nothing. The
+  person who needs that fact is the one reading the refusal (panel finding UX 1).
+
 ## 0.6.5
 
 ### Fixed

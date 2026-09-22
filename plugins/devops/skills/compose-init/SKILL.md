@@ -4,6 +4,10 @@ description: Use when generating docker-compose.yml and a Dockerfile to run a pr
 ---
 
 > Last verified: 2026-08-02 — https://endoflife.date/nodejs
+<!-- version-tail-ok: the stamp points at an EOL calendar, not a registry. This skill pins
+     CONTAINER IMAGE tags (node, postgres, redis) read from the project's own manifests; it
+     depends on no npm/composer/pypi package of its own, so there is no tail for --live to
+     compare. What goes unchecked, stated: nothing machine-reads the EOL calendar either. -->
 
 ## Evidence before generation
 

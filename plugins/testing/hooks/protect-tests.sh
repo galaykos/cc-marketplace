@@ -7,7 +7,8 @@
 #
 #   1. a skip/exclusive marker being ADDED (`.skip`, `.only`, `xit(`, `xdescribe(`,
 #      `@pytest.mark.skip`, `markTestSkipped`, `$this->markTestIncomplete`, Go's
-#      `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`, `it.todo`)
+#      `t.Skip(`, `#[ignore]`, `@Disabled`, `@Ignore`, `it.todo`, and the paren-less
+#      Ruby/bats spellings `xit "…" do`, `pending "…"`, `skip "…"`)
 #   2. a whole test file being emptied or deleted through Write — content that no
 #      longer contains a single test function while the file on disk did
 #
@@ -24,6 +25,10 @@
 #     loosened to `toBeTruthy`, a `try/except: pass` around the body). That is
 #     `code-architecture:drift-review`'s agent-graded territory and no regex reaches it.
 #   - A skip added through a tool this matcher does not name.
+#   - A paren-less skip whose argument is not a quoted string — `skip` alone on its own
+#     line, or `pending reason_variable`. The quote is what tells a skip declaration from
+#     `items.skip 2`, so dropping it would deny ordinary Ruby; the narrower miss is the
+#     cheaper of the two, and it is a miss, not a false deny.
 #   - A skip that was ALREADY in the file: only a newly introduced marker denies, so
 #     editing a legitimately-skipped test is never blocked.
 #   - Deleting a test file with `rm` — that is a Bash command, and command-guard's
@@ -95,7 +100,13 @@
   # because a test framework's skip always hangs off a test keyword. The `\b` after the
   # keyword list is load-bearing too: `[A-Za-z]*` there let `it` match inside `iter`, so
   # `items.iter().skip(2)` denied — the same false positive one layer down.
-  skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context)[[:space:]]*\(|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\.skipIf[[:space:]]*\()'
+  # RSpec AND minitest CALL WITHOUT PARENTHESES, which is how `xit "adds" do`,
+  # `pending "not ready"` and a bare `skip "needs db"` walked past a guard whose own header
+  # claimed Ruby coverage: every Ruby arm here required a `(`. The paren-less arms below
+  # demand a QUOTE after the keyword, because that is what separates a skip declaration
+  # from `items.skip 2` or an English word — the same reason the `.skip(` arm is anchored
+  # to a test identifier rather than left bare.
+  skip_re='(\b(it|test|describe|context|suite|scenario|feature|bench|fixture|story)\b(\.[A-Za-z]+(\([^)]*\))?)*\.(skip|only|todo|failing)[[:space:]]*\(|\bx(it|describe|test|context|specify)[[:space:]]*[("'\''"]|@pytest\.mark\.skip|markTestSkipped|markTestIncomplete|\bt\.Skip(Now)?[[:space:]]*\(|#\[ignore\]|@Disabled\b|@Ignore\b|\bpending[[:space:]]*\(|\b(pending|skip)[[:space:]]+["'\'']|\.skipIf[[:space:]]*\()'
 
   hit=""
   if printf '%s' "$new" | grep -qE "$skip_re"; then

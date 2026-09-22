@@ -2,9 +2,12 @@
 # Smoke tests for skill-router route.sh stack_marker evaluation: marker match
 # fires / mismatch suppresses / absent manifest fires (fail-open) / negation /
 # malformed regex fires / markerless rows unchanged / hook stays fail-open /
-# `@base` (basename) and `@path` (payload path) pseudo-manifests / the
-# `||!@base~.` default-deny tail, which is the one construct that REVERSES the
-# absent-manifest default and therefore cannot be read off the other cases.
+# `@base` (basename) and `@path` (payload path) pseudo-manifests / the `?`
+# REQUIRED-manifest prefix, which is the one construct that REVERSES the
+# absent-manifest default and therefore cannot be read off the other cases (it
+# replaced the `||!@base~.` default-deny tail, kept here as a second arm because
+# rows in the wild still carry it) / a payload whose cwd has been DELETED, which
+# must leave the directory gone.
 # Uses a scratch CLAUDE_PLUGIN_ROOT and scratch cwds — never the live rules.tsv
 # or any real .claude state.
 set -euo pipefail
@@ -128,6 +131,52 @@ mkdir -p "$TMP/denyothercwd"
 echo '{"dependencies":{"other":"^1.0.0"}}' > "$TMP/denyothercwd/package.json"
 out=$(route "$TMP/denyothercwd" src/App.jsx)
 expect "default-deny tail: manifest present without the dep suppresses" "$out" '' 'deny-canary'
+
+# ---- `?` REQUIRED manifest: absent = decisive SUPPRESS, not "skip and fire" ------
+# The general form of the tail above. `marker_ok` treats an absent/unreadable manifest
+# as indecisive and, with nothing else decisive, FIRES — which put shadcn, react-native
+# and nextjs in one envelope on a `.tsx` in a repo with no package.json at all. `?` says
+# the manifest is required: no manifest is a suppress, not a shrug. Three arms, because
+# the prefix composes with negation and has to leave the malformed-regex escape alone.
+printf 'glob\t*.mts\treq-canary\tmisc\thigh\t?package.json~"reqdep"\n' >> "$PR/rules.tsv"
+printf 'glob\t*.cts\treqneg-canary\tmisc\thigh\t?!package.json~"reqdep"\n' >> "$PR/rules.tsv"
+printf 'glob\t*.txt\treqbad-canary\tmisc\thigh\t?package.json~([bad\n' >> "$PR/rules.tsv"
+mkdir -p "$TMP/reqcwd"
+echo '{"dependencies":{"reqdep":"^1.0.0"}}' > "$TMP/reqcwd/package.json"
+
+out=$(route "$TMP/emptycwd" src/a.mts)
+expect "? required: no manifest suppresses (the fire-if-uncertain default is reversed)" "$out" '' 'req-canary'
+out=$(route "$TMP/reqcwd" src/a.mts)
+expect "? required: manifest present and matching fires" "$out" 'req-canary' ''
+out=$(route "$TMP/denyothercwd" src/a.mts)
+expect "? required: manifest present without the dep suppresses" "$out" '' 'req-canary'
+
+out=$(route "$TMP/emptycwd" src/a.cts)
+expect "?! required+negated: no manifest still suppresses (? outranks the negation)" "$out" '' 'reqneg-canary'
+out=$(route "$TMP/denyothercwd" src/a.cts)
+expect "?! required+negated: manifest present without the dep fires" "$out" 'reqneg-canary' ''
+
+# The documented residual: `?` converts ABSENT to decisive, and nothing else. A broken
+# ERE against a manifest that IS there still skips the alternative and the row fires.
+out=$(route "$TMP/denyothercwd" notes.txt)
+expect "? required: a malformed regex on a present manifest still fires (grep exit >= 2)" "$out" 'reqbad-canary' ''
+
+# ---- deleted cwd: the hook must not rebuild the directory it was handed ----------
+# route.sh writes `$cwd/.claude/skill-router` state, and `mkdir -p` rebuilds every
+# missing parent. A session outlives the directory it started in, so a payload naming a
+# deleted project must exit silently and leave it deleted.
+mkdir -p "$TMP/gonecwd"
+rm -rf "$TMP/gonecwd"
+set +e
+gone_out=$(printf '{"session_id":"sgone","cwd":"%s","tool_input":{"file_path":"%s"}}' "$TMP/gonecwd" src/App.vue \
+  | CLAUDE_PLUGIN_ROOT="$PR" bash "$ROUTE" 2>/dev/null)
+gone_rc=$?
+set -e
+if [ "$gone_rc" -eq 0 ] && [ -z "$gone_out" ] && [ ! -d "$TMP/gonecwd" ]; then
+  echo "PASS: deleted cwd — exit 0, no output, directory not recreated"
+else
+  echo "FAIL: deleted cwd — exit=$gone_rc out='${gone_out:-<empty>}' dir_exists=$([ -d "$TMP/gonecwd" ] && echo yes || echo no)"; rc=1
+fi
 # The state dir must ignore itself (0.16.0) — the README claimed "(gitignored)" for
 # as long as the file existed and nothing made it so.
 printf '{"session_id":"s%s","cwd":"%s","tool_input":{"file_path":"%s"}}' "$RANDOM$RANDOM" "$TMP/emptycwd" src/state.js \

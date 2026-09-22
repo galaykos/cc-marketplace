@@ -244,6 +244,101 @@ for pair in "fixture-copy.html:FAIL" "fixture-copy-clean.html:PASS"; do
   fi
 done
 
+# voice-contract: the four states, in the order they cost. No build task is a
+# SKIP (a build is never failed for not saving a file); a build task that EXISTS
+# and omits the line is the finding; a line with no NEVER has no machine-readable
+# half; a line with NEVERs passes and hands those literals to copy-register.
+mkdir -p "$WS/voice"/{none,noline,nonever,ok}/craft
+for k in none noline nonever ok; do
+  write_tokens "$WS/voice/$k"
+  cat > "$WS/voice/$k/page.html" <<'HTML'
+<!doctype html><html lang="en"><body><main><section id="hero"><h1>Fieldnote for survey crews</h1>
+<p>Everything you need to run a crew.</p></section></main></body></html>
+HTML
+done
+rmdir "$WS/voice/none/craft"
+printf 'Spine regions: plain-what=#hero\n' > "$WS/voice/noline/craft/build-task.md"
+printf 'Spine regions: plain-what=#hero\nVoice: first person plural to a crew lead \xc2\xb7 6-14 words a sentence\n' > "$WS/voice/nonever/craft/build-task.md"
+printf 'Spine regions: plain-what=#hero\nVoice: first person plural to a crew lead \xc2\xb7 6-14 words \xc2\xb7 NEVER "everything you need", NEVER "simple, powerful, flexible"\n' > "$WS/voice/ok/craft/build-task.md"
+for pair in "none:SKIP" "noline:FAIL" "nonever:FAIL" "ok:PASS"; do
+  k=${pair%%:*}; want=${pair##*:}
+  out=$(run_divergence "$WS/voice/$k")
+  got=$(state_of "$out" voice-contract)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "voice-contract on the '$k' shape expected $want, got $got" \
+        "$(printf '%s\n' "$out" | grep -E 'voice-contract' | head -1)"
+  fi
+done
+
+# ...and the NEVER literals must actually reach copy-register. A `Voice:` line the
+# gate parses and then never grades against is the same shape as the frozen
+# lexicon this pair replaced: a rule recorded, read by nothing.
+out=$(run_divergence "$WS/voice/ok")
+got=$(state_of "$out" copy-register)
+if [ "$got" = "FAIL" ] && printf '%s\n' "$out" | grep -q 'voice NEVER'; then ok; else
+  bad "a NEVER literal in shipped copy did not reach copy-register (got $got)" \
+      "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
+fi
+# The control: same page, same line, the banned string rewritten. Both must clear.
+d="$WS/voice-clean"; mkdir -p "$d/craft"; write_tokens "$d"
+cat > "$d/page.html" <<'HTML'
+<!doctype html><html lang="en"><body><main><section id="hero"><h1>Fieldnote for survey crews</h1>
+<p>One sheet per crew, synced at the van.</p></section></main></body></html>
+HTML
+cp "$WS/voice/ok/craft/build-task.md" "$d/craft/build-task.md"
+out=$(run_divergence "$d")
+if [ "$(state_of "$out" copy-register)" = "PASS" ] && [ "$(state_of "$out" voice-contract)" = "PASS" ]; then ok; else
+  bad "the voice control fixture did not come out clean" \
+      "$(printf '%s\n' "$out" | grep -E 'copy-register|voice-contract' | head -2 | tr '\n' ' ')"
+fi
+
+# The three MECHANICAL chrome rows the registry's own note names — the ALL-CAPS
+# eyebrow, the middle-dot meta string and the trailing arrow. Before they were
+# lexicon rows, a page reproducing nine registry entries verbatim cleared every
+# assertion the gate could grade. The clean twin is the false-positive control
+# and the important half: ONE arrow, ONE middle dot, sentence-case labels. A
+# `min`-less pattern reds it, and a red control is a gate nobody keeps on.
+for pair in "fixture-chrome.html:FAIL" "fixture-chrome-clean.html:PASS"; do
+  fx=${pair%%:*}; want=${pair##*:}
+  [ -f "$FIXTURES/$fx" ] || { bad "chrome fixture missing" "$fx"; continue; }
+  d="$WS/chrome-${fx%%.html}"; mkdir -p "$d"
+  write_tokens "$d"
+  cp "$FIXTURES/$fx" "$d/page.html"
+  out=$(run_divergence "$d")
+  got=$(state_of "$out" copy-register)
+  if [ "$got" = "$want" ]; then ok; else
+    bad "copy-register on $fx expected $want, got $got" \
+        "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
+  fi
+done
+
+# ...and all three must be named, not just whichever fires first. A loader that
+# reads one row of three is the defect this replaced, one level down.
+d="$WS/chrome-rows"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-chrome.html" "$d/page.html"
+out=$(run_divergence "$d")
+for row in "all-caps eyebrow" "trailing arrow" "middle-dot meta string"; do
+  if printf '%s\n' "$out" | grep -q "\[$row\]"; then ok; else
+    bad "copy-register did not report the '$row' row on the chrome fixture" \
+        "$(printf '%s\n' "$out" | grep -E 'copy-register' | head -1)"
+  fi
+done
+
+# THE LOADER READS THE REGISTRY, not a frozen copy of it. This is the assertion
+# that would have caught the original finding: the lexicon was six phrases frozen
+# into the script beside a 13,951-char registry it never opened. With the plugin
+# root set the run must say `live registry`, and the pattern count must equal the
+# rows the reference actually carries — a silent fallback to the snapshot reads
+# identical in every other line of the report.
+d="$WS/chrome-live"; mkdir -p "$d"; write_tokens "$d"; cp "$FIXTURES/fixture-chrome.html" "$d/page.html"
+out=$( cd "$d" && CLAUDE_PLUGIN_ROOT="$here/../.." node "$DIVERGENCE" 2>&1; printf 'EXIT=%s\n' "$?" )
+want_rows=$(awk '/<!-- copy-lexicon:start -->/{f=1;next} /<!-- copy-lexicon:end -->/{f=0} f && / :: / {n++} END{print n+0}' \
+  "$here/../../skills/creative-direction/references/sameness-fingerprint.md")
+got_rows=$(printf '%s\n' "$out" | sed -n 's/^copy lexicon: *live registry · \([0-9]*\) patterns.*/\1/p')
+if [ "$got_rows" = "$want_rows" ] && [ "$want_rows" -gt 6 ]; then ok; else
+  bad "copy lexicon did not load live from the registry (wanted $want_rows rows, report said '${got_rows:-nothing}')" \
+      "$(printf '%s\n' "$out" | grep -E '^copy lexicon:' | head -2 | tr '\n' ' ')"
+fi
+
 # font-anti-corpus must see the family however the project declares it. The two
 # forms below are the ones the check was blind to: Tailwind v4 emits no
 # `font-family` line at all, and `font-family: var(--font-sans)` hides the name

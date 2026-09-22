@@ -134,5 +134,46 @@ else
   printf 'FAIL: .claude/task-runner/.gitignore missing or not "*"\n'; fail=$((fail+1))
 fi
 
+# 11) PER-CARD SCOPE FILES (SW 8 of the 2026-09-22 panel). routing.md writes one
+#     scope-<cardId>.json per delegated/tracked card; until 0.38.0 this hook read only
+#     the fixed scope.json, so the delegated path — the one the plugin sells — had no
+#     mechanical tripwire at all. These cases fail against that logic: with NO
+#     scope.json present, the old hook was silent on every path.
+rm -f "$SCOPE"
+printf '{"allow":["src/card-a.js"],"task":"card 01"}' > "$CWD/.claude/task-runner/scope-01.json"
+printf '{"allow":["src/card-b.js"],"task":"card 02"}' > "$CWD/.claude/task-runner/scope-02.json"
+
+run_case "per-card scope only: out-of-union edit -> envelope naming both cards" \
+  "$(stdin_for "$CWD/src/stray.js")" 0 envelope "src/stray.js" "card 01, card 02"
+run_case "per-card scope only: card 01's file -> silent" \
+  "$(stdin_for "$CWD/src/card-a.js")" 0 silent
+run_case "per-card scope only: card 02's file -> silent (union, not first-file-wins)" \
+  "$(stdin_for "$CWD/src/card-b.js")" 0 silent
+run_case "edit to a scope-<cardId>.json itself -> silent" \
+  "$(stdin_for "$CWD/.claude/task-runner/scope-01.json")" 0 silent
+
+# 12) inline scope.json joins the SAME union rather than replacing it.
+printf '{"allow":["src/inline.js"],"task":"inline"}' > "$SCOPE"
+run_case "inline + per-card: inline file -> silent" \
+  "$(stdin_for "$CWD/src/inline.js")" 0 silent
+run_case "inline + per-card: card file still silent" \
+  "$(stdin_for "$CWD/src/card-a.js")" 0 silent
+run_case "inline + per-card: stray still warns" \
+  "$(stdin_for "$CWD/src/stray.js")" 0 envelope "src/stray.js"
+
+# 13) one malformed member disarms the whole call (stated in the header): a partial
+#     union would warn about a path the file it could not parse had allowed.
+printf 'not json' > "$CWD/.claude/task-runner/scope-03.json"
+run_case "one malformed scope file -> whole call not enforced, stdout silent" \
+  "$(stdin_for "$CWD/src/stray.js")" 0 silent
+set +e
+err=$(printf '%s' "$(stdin_for "$CWD/src/stray.js")" | bash "$HOOK" 2>&1 >/dev/null); set +e
+case "$err" in *"scope-03.json is malformed"*)
+  printf 'PASS: malformed member named on stderr\n'; pass=$((pass+1)) ;;
+  *) printf 'FAIL: malformed member not named on stderr: <%s>\n' "$err"; fail=$((fail+1)) ;;
+esac
+rm -f "$CWD/.claude/task-runner/scope-03.json" "$CWD/.claude/task-runner/scope-01.json" \
+      "$CWD/.claude/task-runner/scope-02.json"
+
 printf -- '---- %s passed, %s failed ----\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

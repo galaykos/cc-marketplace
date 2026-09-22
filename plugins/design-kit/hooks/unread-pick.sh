@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # unread-pick.sh — UserPromptSubmit: one line, only when a board pick is waiting.
 #
 # WHAT IT CATCHES. The user picked an artboard on a design-kit board (the board

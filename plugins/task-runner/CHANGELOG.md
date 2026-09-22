@@ -2,6 +2,54 @@
 
 All notable changes to the task-runner plugin.
 
+## 0.38.0 — 2026-09-22
+
+### Added
+- **`scripts/behavioral-gate.sh` resolves a runner for PHP, Rust, Ruby and Java/Kotlin**,
+  and takes `--runner '<cmd>::<empty-output-regex>'` (repeatable) for anything else.
+  Before this the classifier knew `py`/`js`/`go`: every other language fell to
+  `HAS_OPAQUE=1` → `no-behavioral-coverage` → exit 2, with no flag to escape, and candor's
+  Stop gate then refused every close — a gate that could not be passed rather than a rule
+  that could be followed. Driven against REAL toolchains on 2026-09-22 (PHPUnit 13.3.1,
+  cargo 1.98.1, rspec 3.13.6, Gradle 9.7.1): four green-suite fixtures went EXIT=2 → EXIT=0,
+  and four fixtures whose runner executes zero tests still exit 2. Empty-detection per
+  runner is in `skills/behavioral-gate/references/runners.md`; 16 harness cases pin it.
+  Two things the Java row states rather than hides: `--rerun-tasks` is required because
+  the gate runs from a copied checkout carrying `build/`, where a plain `gradle test`
+  reports `:test UP-TO-DATE` and executes nothing (→ `unverifiable-suite`, never a pass);
+  and a green `gradle test` prints no counts at all, so that one path falls back to
+  "test sources exist and the task did not fail" — weaker than every other row.
+  `--runner`'s residual is the caller's: a regex that never matches turns an empty suite
+  green and nothing in the script can tell. The gate still owns the two failures a
+  declaration cannot paper over — a command that never started (126/127/signal) and one
+  that hung (124).
+
+### Changed
+- **`hooks/scope.sh` enforces the union of every `scope*.json`**, not just the fixed
+  `scope.json`. `task-execution/references/routing.md` writes one `scope-<cardId>.json`
+  per delegated or tracked card, so the path the plugin sells was scope-locked by prose
+  only: with per-card files present and no `scope.json`, the hook was silent on every
+  edit. Union rather than per-file because the payload carries a path and not a card id.
+  Residuals now in the header: a worker in another WORKTREE never reaches this hook at
+  all, a stale card file widens the union rather than narrowing it, and one malformed
+  member disarms the whole call (a partial union would warn about a path the file it
+  could not parse had allowed). Nine harness cases.
+- `commands/run.md` names `--runner` in the completion-gate invocation and the seven
+  languages the gate resolves on its own.
+
+### Fixed
+- **`hooks/ultra-assess.sh` starts `#!/bin/bash`, not `#!/usr/bin/env bash`.** The absolute
+  interpreter is what makes the fail-open claim in the hook's own header true under a
+  stripped PATH, where `/usr/bin/env bash` exits 127 and the host reads the miss as an
+  allow. Rendered from `templates/boost-hook.sh.tmpl`, not edited here; `pc_hook_shebang`
+  reads the claim back and fails the build now that every shipped hook agrees with it.
+- **`hooks/drift.sh` validates the payload `cwd` with `[ -d ]` before `mkdir -p`.** It
+  did not, and recreated a project directory the user had just deleted, four levels deep
+  — reproduced against the committed hook. The state dir is now anchored at
+  `git rev-parse --show-toplevel` when there is one (pattern:
+  `overseer/hooks/track-read.sh`). Residual: a cwd that IS a directory but not this
+  project's still gets state — the check proves existence, never identity.
+
 ## 0.37.0 — 2026-09-22
 
 ### Added

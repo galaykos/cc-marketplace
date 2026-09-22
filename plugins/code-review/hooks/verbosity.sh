@@ -64,8 +64,18 @@
   # Subagent transcripts are exempt (see header). Match the path, not the content.
   case "$tp" in */subagents/*) exit 0 ;; esac
 
+  # `-d`, not just `-n`: the payload's cwd is whatever the session STARTED in, and a session
+  # outlives the directory. `mkdir -p` below is happy to rebuild three levels of a project
+  # tree the user has just deleted — measured on a deleted `work/acme/design-studio`, which
+  # came back holding nothing but this hook's state dir. `-d` is the whole fix: the state
+  # address `$cwd/.claude/comment-discipline` is SHARED with density.sh, scan.sh and
+  # conventions.sh, so resolving it through `git rev-parse --show-toplevel` here (the other
+  # half of overseer/hooks/track-read.sh:30-31's shape) would move this hook's bound off the
+  # path its three siblings still write, and a one-shot split across two addresses is no
+  # one-shot at all. Does NOT catch: a cwd that exists but is not the project (a stale
+  # session left in a sibling checkout) — nothing in the payload distinguishes those.
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  [ -n "$cwd" ] || exit 0
+  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
   sid=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
   [ -n "$sid" ] || exit 0
 

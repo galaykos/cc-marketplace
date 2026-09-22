@@ -8,6 +8,22 @@ whose job is history would be worse than the gap. Adding this file opts the plug
 `scripts/check-version-bumps.sh`'s changelog gate permanently — every bump from here on
 must carry an entry.
 
+## 0.7.4 — 2026-09-22
+
+### Added
+- **`evals/liveness-probe-dependency`, the first case in this suite with headroom.** A
+  Deployment whose `livenessProbe` and `readinessProbe` both hit `/health`, and a
+  `/health` handler that pings Postgres — six replicas behind one primary. The control
+  arm reads that as a well-instrumented service; `observability-design` carries the
+  inversion ("never check dependencies here: a database blip becomes a restart storm")
+  and the two-endpoint split that fixes it. The grader requires the consequence stated
+  as a consequence and fails a response whose only advice is a bigger `failureThreshold`
+  or a `startupProbe`. `runs: 5`; the README carries the paid invocation with
+  `--ablation with-without` and states plainly that the other five cases sit at the
+  control ceiling and can only ever be regression guards. The delta is unmeasured.
+- README `## Evals` section: the exact paid invocation, why no `--allow-tools` or
+  `--scaffold` grant is needed, and the free load check CI actually runs.
+
 ## 0.7.3 — 2026-09-22
 
 ### Added

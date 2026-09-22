@@ -18,6 +18,7 @@ seam, and holds the reuse boundaries. It decides:
 - the **palette DIRECTION** (not values) → `references/palette-strategy.md`
 - what a build must **diverge from** (anti-sameness) → `references/sameness-fingerprint.md`
 - the **MOVES taxonomy** it reasons from → `references/moves-taxonomy.md`
+- the **editorial voice**, made buildable → `references/voice-contract.md`
 
 It does NOT generate tokens/palettes (`/ui-ux:theme`, `design-tokens`, `shadcn-theming`)
 or mine references (`design-research`). It produces DIRECTION + a concept; those tools
@@ -99,6 +100,11 @@ those there is cataloguing what to DIVERGE FROM — the anti-corpus — not a pr
 The audit fails a build that reproduces the recurring spine end-to-end AND ships ≥3 named
 vocabulary moves unbroken, when the record it carries is empty or contradicted; an absent
 record is `not checked`, and an explicit request for a conventional design is a justification.
+**Standing: that whole clause is `agent-graded`** — a reviewing agent counts the spine and
+the moves. `gate` covers the slices `divergence.mjs` reads instead: the type families and
+the copy register LIVE from the registry, plus the hue band, the repeat window, emoji as
+icons, and the utility-layer palette and font. The registry's own section headings say
+which is which, row by row.
 
 ## MOVES taxonomy — categories, cached + opt-in live
 
@@ -138,6 +144,8 @@ Concept and DIRECTION belong here; values, mining, and generation belong to thos
   the archetype→strategy table, and the never-name-a-family rule.
 - `references/moves-taxonomy.md` — MOVE categories + when-to-use; the opt-in live pass and
   its probe→degrade fallback.
+- `references/voice-contract.md` — the four voice dimensions, the build task's `Voice:` line,
+  and which half of it a script grades.
 
 ## Anti-patterns
 

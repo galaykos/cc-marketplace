@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
-# Renders the five chassis templates (templates/*.tmpl) with the hand-built sample
+# Renders the four chassis templates (templates/*.tmpl) with the hand-built sample
 # manifests (templates/samples/*.json) through card 01's template engine and asserts
-# the Fable payload contract: frontmatter fence at line 1, generated header after it,
-# payload markers present (triage / CONFIRMED / Checked: / Apply all), lang/concern
-# variants gate correctly, worker-agent carries all six frontmatter fields plus the
-# three-strikes kill-trigger, reminder-hook has shebang line 1 + guards + optional
-# extraGuard, and no {{token}} survives. Engine path overridable via TEMPLATE_ENGINE
-# (default scripts/lib/template-engine.sh) so this runs before card 01 lands in-tree.
+# each one's contract: frontmatter fence at line 1, generated header after it,
+# worker-agent carries all six frontmatter fields plus the three-strikes kill-trigger,
+# suite-uninstall carries its scope discovery and manifest-derived removal set,
+# reminder-hook has shebang line 1 + guards + optional extraGuard, boost-hook gates both
+# branches and behaves, and no {{token}} survives. Engine path overridable via
+# TEMPLATE_ENGINE (default scripts/lib/template-engine.sh).
+#
+# review-command.md.tmpl and its three stack-review samples were RETIRED 2026-09-22
+# (panel finding #64): one rendered file marketplace-wide. Its three sections here went
+# with it, and so did the injected-key-parity assert — that assert read the enrichment
+# `. + {…}` jq expression, which existed only in the stack-review renderer, and covered
+# only stack-review samples. The failure class it guarded (generate.sh computing a key
+# the frozen samples do not carry) has no live instance left: the four surviving
+# renderers pass `{defaults} + .`, so a sample missing a key renders with the default
+# rather than diverging from the tree.
 set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -47,49 +56,6 @@ expect_count() { # file marker expected desc
 expect_has()    { if has "$1" "$2"; then pass "$3"; else fail "$3" "missing: $2"; fi; }
 expect_absent() { if has "$1" "$2"; then fail "$3" "present but should be absent: $2"; else pass "$3"; fi; }
 
-# ---- review command: lang variant ---------------------------------------------
-L="$WORK/review-lang.md"
-if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-lang.json" "$L"; then
-  [[ "$(line1 "$L")" == "---" ]] && pass "lang: line 1 is ---" || fail "lang: line 1 is ---" "got [$(line1 "$L")]"
-  expect_has "$L" "<!-- generated from templates/review-command.md.tmpl" "lang: generated header after fence"
-  expect_count "$L" "triage" 1 "lang: triage marker"
-  expect_count "$L" "CONFIRMED" 2 "lang: CONFIRMED marker (format tag + evidence rule)"
-  expect_count "$L" "Checked:" 1 "lang: Checked: marker"
-  expect_count "$L" "Apply all" 1 "lang: Apply all marker"
-  expect_has "$L" "Apply critical+high only" "lang: apply critical+high option"
-  expect_has "$L" "https://laravel.com/docs" "lang: docsUrl rendered (lang block kept)"
-  expect_has "$L" "backend-engineer → task-runner:task-executor if installed → inline" "lang: workerChain stamped"
-  expect_absent "$L" "design-doc review" "lang: concern affordance dropped"
-  expect_has "$L" "skill from this plugin" "lang: local skillHome branch rendered"
-  expect_absent "$L" "diverges from the house default" "lang: empty divergencePreamble renders nothing"
-fi
-
-# ---- review command: skill owned by ANOTHER plugin -----------------------------
-# The generator resolves where the rubric skill actually lives and emits either
-# "from this plugin" or the owning plugin's name. Only the first branch had a
-# fixture, so the second — the one added because database/review.md claimed a skill
-# from plugins/sql was local — was rendered by nothing and asserted by nothing.
-F="$WORK/review-foreign.md"
-if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-foreign-skill.json" "$F"; then
-  expect_has "$F" "from the \`sql\` plugin" "foreign: names the owning plugin"
-  expect_absent "$F" "skill from this plugin" "foreign: does NOT claim the skill is local"
-  expect_has "$F" "sql-best-practices" "foreign: skill name still rendered"
-fi
-
-# ---- review command: concern variant ------------------------------------------
-C="$WORK/review-concern.md"
-if render "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-concern.json" "$C"; then
-  [[ "$(line1 "$C")" == "---" ]] && pass "concern: line 1 is ---" || fail "concern: line 1 is ---" "got [$(line1 "$C")]"
-  expect_count "$C" "triage" 1 "concern: triage marker"
-  expect_count "$C" "CONFIRMED" 2 "concern: CONFIRMED marker (format tag + evidence rule)"
-  expect_count "$C" "Checked:" 1 "concern: Checked: marker"
-  expect_count "$C" "Apply all" 1 "concern: Apply all marker"
-  expect_has "$C" "section/heading for a design-doc review" "concern: design-doc locator affordance kept"
-  expect_has "$C" "observability-engineer → task-runner:task-executor if installed → inline" "concern: workerChain stamped"
-  expect_absent "$C" "https://laravel.com/docs" "concern: lang block dropped"
-  expect_has "$C" "diverges from the house default" "concern: divergencePreamble rendered inside its {{#if}}"
-fi
-
 # ---- worker agent -------------------------------------------------------------
 W="$WORK/worker.md"
 if render "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" "$W"; then
@@ -120,7 +86,7 @@ fi
 # ---- reminder hook: plain -----------------------------------------------------
 H="$WORK/remind.sh"
 if render "$TPL/reminder-hook.sh.tmpl" "$SAMPLES/reminder-hook.json" "$H"; then
-  [[ "$(line1 "$H")" == "#!/usr/bin/env bash" ]] && pass "hook: line 1 is shebang" || fail "hook: line 1 is shebang" "got [$(line1 "$H")]"
+  [[ "$(line1 "$H")" == "#!/bin/bash" ]] && pass "hook: line 1 is shebang" || fail "hook: line 1 is shebang" "got [$(line1 "$H")]"
   case "$(line_n "$H" 2)" in "# generated"*) pass "hook: line 2 is # generated header" ;; *) fail "hook: line 2 is # generated header" "got [$(line_n "$H" 2)]" ;; esac
   expect_has "$H" "command -v jq" "hook: jq fail-open guard"
   expect_has "$H" 'case "$prompt" in "" | "/"*) exit 0' "hook: empty + slash guards"
@@ -162,7 +128,7 @@ fi
 # owns the shared skeleton and the manifest owns env var, token regex and directive.
 B="$WORK/boost.sh"
 if render "$TPL/boost-hook.sh.tmpl" "$SAMPLES/boost-hook.json" "$B"; then
-  [[ "$(line1 "$B")" == "#!/usr/bin/env bash" ]] && pass "boost: line 1 is shebang" || fail "boost: line 1 is shebang" "got [$(line1 "$B")]"
+  [[ "$(line1 "$B")" == "#!/bin/bash" ]] && pass "boost: line 1 is shebang" || fail "boost: line 1 is shebang" "got [$(line1 "$B")]"
   case "$(line_n "$B" 2)" in "# generated"*) pass "boost: line 2 is # generated header" ;; *) fail "boost: line 2 is # generated header" "got [$(line_n "$B" 2)]" ;; esac
   expect_has "$B" 'case "$prompt" in "/"*) exit 0' "boost: slash-prompt guard"
   expect_has "$B" 'plugin_switch=TASKMASTER_BOOST' "boost: per-plugin off switch envVar substituted"
@@ -197,14 +163,14 @@ if [ -f "$H" ]; then
 fi
 
 # ---- global invariant: no unrendered {{token}} in any output ------------------
-for f in "$L" "$C" "$F" "$W" "$U" "$H" "$HE" "$HX"; do
+for f in "$W" "$U" "$H" "$HE" "$HX" "$B" "$BS"; do
   [[ -f "$f" ]] || continue
   if grep -q '{{' "$f"; then fail "no unrendered token in $(basename "$f")" "$(grep -n '{{' "$f")"; else pass "no unrendered token in $(basename "$f")"; fi
 done
 
 # ---- determinism: second render byte-identical --------------------------------
-render_template "$TPL/review-command.md.tmpl" "$SAMPLES/stack-review-lang.json" > "$WORK/d2.md" 2>/dev/null
-if diff "$L" "$WORK/d2.md" >/dev/null; then pass "determinism (double render byte-identical)"; else fail "determinism" "$(diff -u "$L" "$WORK/d2.md")"; fi
+render_template "$TPL/worker-agent.md.tmpl" "$SAMPLES/worker-agent.json" > "$WORK/d2.md" 2>/dev/null
+if diff "$W" "$WORK/d2.md" >/dev/null; then pass "determinism (double render byte-identical)"; else fail "determinism" "$(diff -u "$W" "$WORK/d2.md")"; fi
 
 # --- lane block drift (generate.sh, not the engine) ---------------------------------
 # A generated lane.tsv row edited by hand must fail --check exactly like a generated
@@ -223,58 +189,6 @@ if bash "$MIR/scripts/generate.sh" --check >/dev/null 2>"$WORK/chk0.err" && ! gr
 else
   fail "lane-block-control" "pristine mirror --check already reports drift: $(grep 'DRIFT' "$WORK/chk0.err" | head -3)"
 fi
-# ---- injected-key parity: the samples must carry what generate.sh ENRICHES ----------
-# THE FAILURE THIS CATCHES. generate.sh computes keys and adds them to the manifest
-# before rendering, so `--check` can never see a manifest missing one and no
-# .chassis.json on disk contains them at all. This harness feeds the FROZEN samples to
-# the engine raw, so the samples must carry every injected key literally — and twice
-# now they have not: `skillHome` on 2026-08-25 (all four gates green, this harness red,
-# the branch pushed that way) and `divergencePreamble` again on 2026-09-22, invisible
-# because review-command.md.tmpl:8-9 wraps it in `{{#if}}`, which renders nothing rather
-# than erroring on an absent key. The key list is READ OUT of generate.sh's enrichment
-# jq, not restated here, so adding a seventh key fails this assert on the next run.
-#
-# WHAT IT DOES NOT CATCH: enrichment done anywhere other than that one jq expression
-# (per-kind renderers compute their own values), whether an injected key is rendered by
-# any template, or whether a sample's VALUE is representative. It asserts presence.
-INJECTED="$(python3 - "$REPO_ROOT/scripts/generate.sh" <<'PY'
-import re, sys
-src = open(sys.argv[1]).read()
-m = re.search(r"'\. \+ \{(.*?)\}' > \"\$dfile\"", src, re.S)
-if not m:
-    sys.stderr.write("no `. + {...}' > \"$dfile\"` enrichment found in generate.sh\n"); sys.exit(1)
-depth, buf, keys = 0, "", []
-for ch in m.group(1):
-    if ch in "({[":
-        depth += 1; continue
-    if ch in ")}]":
-        depth -= 1; continue
-    if depth == 0:
-        if ch == ",":
-            buf = ""; continue
-        if ch == ":":
-            k = buf.strip()
-            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", k):
-                keys.append(k)
-            buf = ""; continue
-        buf += ch
-if "skillHome" not in keys:
-    sys.stderr.write("matched the wrong jq expression: %r\n" % keys); sys.exit(1)
-print(" ".join(keys))
-PY
-)" || fail "injected-key-parity" "could not read the enrichment key list out of generate.sh"
-if [[ -n "$INJECTED" ]]; then
-  inj_ok=1
-  for s in "$SAMPLES"/*.json; do
-    [[ "$(jq -r '.chassis' "$s")" == "stack-review" ]] || continue
-    for k in $INJECTED; do
-      jq -e --arg k "$k" 'has($k)' "$s" >/dev/null 2>&1 && continue
-      fail "injected-key-parity $(basename "$s")" "generate.sh injects \`$k\`; the frozen sample does not carry it"; inj_ok=0
-    done
-  done
-  [[ $inj_ok == 1 ]] && pass "injected-key-parity (every stack-review sample carries all of: $INJECTED)"
-fi
-
 # Sample `lane` keys are inert to the templates (no template names them); assert their
 # schema here so a key rename in generate.sh cannot round-trip green past the samples.
 lane_ok=1

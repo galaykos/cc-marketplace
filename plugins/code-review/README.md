@@ -90,7 +90,10 @@ a heavier style sets `COMMENT_DISCIPLINE_CEILING_TENTHS` in its settings `env` (
 every method gets its first over-ceiling `Write` per file denied until it sets that
 variable; the hook does not read CLAUDE.md. `verbosity.sh` applies the same rule to terminal
 prose. Ledgers and markers live under `.claude/comment-discipline/`. Silence any
-advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it.
+advisory with `CC_REMIND=off`; the denies are not advisories and do not honour it —
+they have their own switch, `CC_COMMENT_GUARD=off`, set in the session's `env` and
+named in every refusal so the person being blocked can read the remedy off the block.
+Turning the deny off leaves the warnings on: the two lanes are switched separately.
 
 A fourth hook ships outside the comment lane, and this README omitted it until 0.20.0:
 `conventions.sh` fires `PostToolUse` on the first code write of a session and emits the

@@ -39,14 +39,26 @@
 #   - It cannot see duplicate-layer assertions (the same rule proved at the action, the
 #     controller and the browser): those blocks live in different files and each asserts
 #     something real.
-#   - An assertion inside a project helper whose name carries neither `assert` nor
-#     `expect` (`verifyOrder($o)`) reads as assertion-free. A false positive, accepted
-#     rather than widening the vocabulary into noise. The vocabulary covers Pest/PHPUnit,
-#     Vitest/Jest, chai should-style and ava/tape/node:test — an adversarial audit on
-#     2026-08-18 found the last two missing, which meant flagging whole correct dialects
-#     while the limitation admitted only the helper case. A dialect absent from that list
-#     will read as assertion-free, and the honest fix is to add it, not to widen to any
-#     function call.
+#   - TWO VOCABULARIES, AND THEY FAIL IN OPPOSITE DIRECTIONS. The OPENER set decides
+#     whether a block exists; the ASSERTION set decides whether it earns its place.
+#     * A dialect missing from the OPENER set reads as NO TEST FILE, not as assertion-free:
+#       zero blocks are found, nothing is compared, and the hook is silent. Silence is also
+#       what a clean file produces, so the gap is invisible from the outside — which is how
+#       `*_test.py`, `*_test.go` and `*_spec.rb` sat inside the path glob at :82 for a year
+#       while the opener set matched only JS and PHP. Openers now covered: JS/TS
+#       (`it(`/`test(`/`describe(`), PHP and JS `function test…(`, pytest/minitest
+#       `def test…`, Go `func Test…`, RSpec/minitest paren-less `it "…" do`, `#[Test]`.
+#       Still absent, and therefore still SILENT rather than wrong: JUnit/Kotlin `@Test` +
+#       `void shouldX()`, Rust `#[test] fn …`, C++ `TEST_F(`, Elixir `test "…" do` (`test`
+#       is only matched with a paren). `*/test/*` admits all of them by path.
+#     * A dialect missing from the ASSERTION set reads as assertion-free — a false positive
+#       on correct code, which is the louder failure. The set covers Pest/PHPUnit,
+#       Vitest/Jest, chai should-style, ava/tape/node:test, pytest's bare `assert`
+#       statement, Go's `t.Error`/`t.Fatal` and testify's `require.`/`assert.`, and RSpec's
+#       `expect`/`is_expected`/`should` forms. An assertion inside a project helper whose
+#       name carries none of those words (`verifyOrder($o)`) still reads as assertion-free:
+#       accepted rather than widening the vocabulary to any function call. The honest fix
+#       for either gap is to add the dialect, not to loosen the pattern.
 #   - It does not judge whether a flagged near-duplicate group is bloat or a boundary
 #     sweep, and does not detect a test that merely restates the spec.
 #   - ITS COST IS UNMETERED, and not because nobody looked. `scripts/context-budget.sh`
@@ -83,8 +95,18 @@
     *) exit 0 ;;
   esac
 
+  # `-d`, not just `-n`: the payload's cwd is where the session STARTED, and a session
+  # outlives the directory — `mkdir -p "$dir"` below rebuilt a deleted three-level project
+  # tree so it could hold this hook's state file. `.claude/testing` has exactly one writer
+  # (this hook), so unlike the code-review battery it is free to re-root: one bound per
+  # REPOSITORY is what "3 files per context" was always meant to mean, and a subagent
+  # running from a subdirectory otherwise gets its own fresh budget. Shape copied from
+  # overseer/hooks/track-read.sh:30-31. Does NOT catch a cwd that exists but is the wrong
+  # checkout, and outside a git repo the root is the cwd exactly as before.
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  [ -n "$cwd" ] || exit 0
+  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+  root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root="$cwd"
+  [ -n "$root" ] || root="$cwd"
 
   # CONTEXT KEY, not session key: a subagent shares its parent's session_id while getting
   # its own transcript, and PostToolUse is the only hook channel that reaches subagents at
@@ -101,7 +123,7 @@
   MAX_FINDINGS=4       # findings reported per file
   DUP_MIN=3            # blocks sharing a normalized body before it is worth saying
 
-  dir="$cwd/.claude/testing"
+  dir="$root/.claude/testing"
   state="$dir/shape-$ctx"
   # A bound that cannot be recorded is not a bound: unwritable state means silence, not a
   # warning on every edit for the rest of the run. Same rule as comment-discipline.
@@ -116,22 +138,48 @@
   findings=$(awk -v maxf="$MAX_FINDINGS" -v dupmin="$DUP_MIN" '
     # Block boundaries only need to be good enough to bucket lines, so there is no brace
     # matching here: a block runs from one test opener to the next.
+    # The FOUR-dialect opener set below is what decides whether this hook sees a file at
+    # all. The path glob at :82 already admits `*_test.py`, `*_test.go` and `*_spec.rb`; for
+    # a year the opener set did not, so all three detected zero blocks and the hook was
+    # silent on them — not wrong, ABSENT, which no limitation disclosed. The paren-less
+    # arm is RSpec/minitest (`it "adds" do`), and it is anchored on `[^[:alnum:]_]` so
+    # `xit "later" do` is not an opener: a skipped block is excluded in every other dialect
+    # and must not become a finding here.
     function is_opener(l) {
       return (l ~ /(^|[^[:alnum:]_])(it|test|describe|context)[[:space:]]*\(/) ||
+             (l ~ /(^|[^[:alnum:]_])(it|describe|context|specify|scenario)[[:space:]]+["\047]/) ||
              (l ~ /function[[:space:]]+test[[:alnum:]_]*[[:space:]]*\(/) ||
+             (l ~ /(^|[^[:alnum:]_])def[[:space:]]+test/) ||
+             (l ~ /(^|[^[:alnum:]_])func[[:space:]]+Test/) ||
              (l ~ /#\[Test\]/)
     }
     # `describe`/`context` GROUP tests; they are boundaries but never findings. Without
     # this they read as assertion-free by construction — a false positive on every
     # correctly written Vitest/Jest/RSpec file, which would have made the hook noise.
     function is_group(l) {
-      return (l ~ /(^|[^[:alnum:]_])(describe|context)[[:space:]]*\(/)
+      return (l ~ /(^|[^[:alnum:]_])(describe|context)[[:space:]]*\(/) ||
+             (l ~ /(^|[^[:alnum:]_])(describe|context)[[:space:]]+["\047]/)
     }
+    # A block that DECLARES it does not run is never a finding. In JS the declaration is on
+    # the opener (`it.skip(`); in Python, Go and Ruby it is a line INSIDE the body
+    # (`pytest.skip(`, `t.Skip(`, RSpec `pending`/bare `skip`) or a decorator on the line
+    # ABOVE (`@pytest.mark.skip`), which is why this is now tested against every line of a
+    # block rather than its first. `func TestMain(m *testing.M)` is the Go suite entry point,
+    # not a test: it wires setup and calls m.Run(), so it carries no assertion by
+    # construction and would be flagged on every Go package that has one.
     function is_excluded(l) {
       return (l ~ /(it|test|describe)[[:space:]]*\.[[:space:]]*(skip|todo|failing)/) ||
              (l ~ /markTestSkipped|expectNotToPerformAssertions/) ||
              (l ~ /(doesNotPerformAssertions|DoesNotPerformAssertions)/) ||
+             (l ~ /(^|[^[:alnum:]_])func[[:space:]]+TestMain[[:space:]]*\(/) ||
+             (l ~ /(^|[^[:alnum:]_])(pytest\.skip|pytest\.xfail)[[:space:]]*\(/) ||
+             (l ~ /(^|[^[:alnum:]_])t[[:space:]]*\.[[:space:]]*Skip(Now)?[[:space:]]*\(/) ||
+             (l ~ /(^|[^[:alnum:]_])(pending|skip)[[:space:]]*(["\047]|$)/) ||
              (l ~ /(^|[^[:alnum:]_])arch[[:space:]]*\(/)
+    }
+    # A decorator sits on the line ABOVE its test, so it has to be carried forward.
+    function is_pre_excluded(l) {
+      return (l ~ /^[[:space:]]*@/) && (l ~ /(skip|xfail|Disabled|Ignore)/)
     }
     function has_assertion(b) {
       return (b ~ /expect[[:space:]]*\(/) ||
@@ -147,7 +195,21 @@
              # chai should-style: `user.name.should.equal("Ann")` carries no `expect`.
              (b ~ /\.should[[:space:]]*[\.\(]/) || (b ~ /\.should\.(not|be|have|eql|equal|deep)/) ||
              # ava / tape / node:test: the assertion IS the test callback argument.
-             (b ~ /(^|[^[:alnum:]_.])t[[:space:]]*\.[[:space:]]*(is|not|deepEqual|notDeepEqual|true|false|truthy|falsy|throws|throwsAsync|notThrows|regex|like|snapshot|pass|fail|plan|end)[[:space:]]*\(/)
+             (b ~ /(^|[^[:alnum:]_.])t[[:space:]]*\.[[:space:]]*(is|not|deepEqual|notDeepEqual|true|false|truthy|falsy|throws|throwsAsync|notThrows|regex|like|snapshot|pass|fail|plan|end)[[:space:]]*\(/) ||
+             # pytest: the assertion is the `assert` STATEMENT, so there is no paren or dot
+             # after the keyword — the clause above cannot see it and every pytest file read
+             # as assertion-free once the Python opener started matching.
+             (b ~ /(^|[^[:alnum:]_])assert[[:space:]]+[^[:space:]]/) ||
+             # Go stdlib testing: a failure is reported, not asserted. Plus testify, whose
+             # `assert.` the generic clause already reaches but whose `require.` it does not.
+             (b ~ /(^|[^[:alnum:]_.])t[[:space:]]*\.[[:space:]]*(Error|Fatal)f?[[:space:]]*\(/) ||
+             (b ~ /(^|[^[:alnum:]_])require[[:space:]]*\.[[:alnum:]_]/) ||
+             # RSpec: `expect(x).to eq(2)` is reached by the expect clause above, but its
+             # block form `expect { … }.to raise_error`, the one-liner `it { is_expected.to
+             # be_valid }` and paren-less `x.should eq(2)` are not.
+             (b ~ /(^|[^[:alnum:]_])expect[[:space:]]*\{/) ||
+             (b ~ /(^|[^[:alnum:]_])is_expected[[:space:]]*\./) ||
+             (b ~ /\.should[[:space:]]+[[:alnum:]_]/)
     }
     function reaches_private(b) {
       return (b ~ /setAccessible/) ||
@@ -186,13 +248,15 @@
     { line = $0 }
     is_opener(line) {
       flush()
-      open = 1; start = NR; excluded = is_excluded(line); isgroup = is_group(line)
+      open = 1; start = NR; excluded = (is_excluded(line) || pre_ex); isgroup = is_group(line)
+      pre_ex = 0
       name = line; sub(/^[[:space:]]+/, "", name)
       if (length(name) > 58) name = substr(name, 1, 55) "..."
       body = line
       next
     }
-    open { body = body "\n" line }
+    open { body = body "\n" line; if (is_excluded(line)) excluded = 1 }
+    { pre_ex = is_pre_excluded(line) ? 1 : 0 }
     END {
       flush()
       n = 0

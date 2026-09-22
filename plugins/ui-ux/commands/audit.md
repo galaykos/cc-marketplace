@@ -28,6 +28,14 @@ argument-hint: [files-or-diff]
    the ARIA rules, keyboard operability, focus management, contrast (AA
    ratios and every interaction state), forms, media, and touch targets.
    Read the actual markup and styles — never infer from file names.
+   **Contrast is measured when a token source exists.** If `src/index.css`,
+   `src/app.css`, `app/globals.css`, `resources/css/app.css` or
+   `assets/css/main.css` holds `oklch()` tokens under `:root`/`.dark`, run
+   `node "${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs"` from the project root
+   (`CRAFT_TOKEN_SOURCE=<path>` for any other location) and report each FAIL line
+   as an SC 1.4.3 / 1.4.11 violation in step 4. It exits 2 when it resolves no
+   token — including every non-`oklch()` colour space — and that is not a clean
+   run: say contrast was read, not measured, and leave it in step 5's manual list.
 4. **Report one line per violation** in the format
    `path:line — severity — WCAG criterion — violation — fix`, sorted by
    severity (critical, high, medium, low) — critical means the surface is

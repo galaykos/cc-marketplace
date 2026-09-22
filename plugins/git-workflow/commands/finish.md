@@ -8,12 +8,19 @@ is given) using the branch-completion skill from this plugin. Invoke the skill
 first. If a branch was named and is not checked out, switch to it (or its
 worktree) before doing anything else.
 
-Write the arc phase sentinel `.claude/cc-phase.json` first —
-`{"phase":"ship","owner":"git-workflow:finish","session_id":"<this session id>",`
-`"started_at":"<ISO-8601 UTC>"}` — so prompt-channel reminder hooks that own an
-earlier phase stand down while the branch is being finished; a clarify-the-
-requirements nudge on a merge decision is noise. **Remove it before this command
-returns, on every path including discard and the red-suite stop below.** A TTL
+Write the arc phase sentinel `.claude/cc-phase.json` first, with taskmaster's writer
+and never by hand —
+`bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write ship --owner git-workflow:finish --session "<this session id>"`.
+It ships in taskmaster, which may not be installed: if that path does not resolve, try
+`find ~/.claude/plugins/cache -name phase-sentinel.sh`, and only if that misses too
+write the JSON yourself —
+`{"phase":"ship","owner":"git-workflow:finish","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
+— spelling `ship` exactly, because the script exists to catch the typo that makes a
+sentinel read to every hook as no sentinel at all. The sentinel is what makes
+prompt-channel reminder hooks that own an earlier phase stand down while the branch is
+being finished; a clarify-the-requirements nudge on a merge decision is noise.
+**Clear it before this command returns — `phase-sentinel.sh clear`, else delete the
+file — on every path: merge, PR, keep, discard, and the red-suite stop below.** A TTL
 bounds a leaked sentinel, but the clear is this command's responsibility.
 
 Before the gate, run `bash ${CLAUDE_PLUGIN_ROOT}/scripts/scratch-ignore.sh --check`.

@@ -4,6 +4,58 @@ Consumer-facing changes only. Newest first. Started at 0.18.0, the release that
 added this plugin's first PostToolUse hook; earlier versions have no entries
 rather than invented ones.
 
+## 0.26.0 — 2026-09-22
+
+### Added
+- **The contrast checker `/ui-ux:theme` has always claimed now ships here.**
+  `scripts/contrast.mjs` is a byte-identical twin of
+  `plugins/craft-layer/template/craft-gates/contrast.mjs`, declared with the
+  marketplace's twin marker and held in step by `pc_twin_files` (**gate** — it checks sameness, not
+  correctness). craft-layer depends on ui-ux and not the reverse, so a bare `ui-ux`,
+  `frontend-suite` or `workflow-suite` install reached NO contrast checker while this
+  command's description, the README and `shadcn-theming` all promised one. `/ui-ux:theme`
+  step 5 now runs it on the accepted token set before offering the diff, and
+  `/ui-ux:audit` runs it whenever a token source exists, folding each FAIL in as an
+  SC 1.4.3 / 1.4.11 violation. It parses `oklch()` under `:root`/`.dark` only — a
+  Tailwind v3 HSL-triplet or Bootstrap Sass target exits 2 and is reported as *not
+  measured*, never as a pass.
+- **First eval suite.** `evals/a11y-older-criteria` is a checkout form whose easy
+  defects are already fixed, leaving SC 1.3.5 (`autocomplete` tokens) and SC 4.1.3 (a
+  live region that must already be in the DOM before the message arrives) — the two
+  criteria 0.25.0 added to `a11y-audit`, and the two a blind review omits.
+  `evals/design-tokens-control` is the opposite kind of case, written down as such: a
+  removal measurement with no headroom by design. Both are `runs: 5`; the README carries
+  the paid invocation with `--ablation with-without`. Neither delta is measured.
+
+### Fixed
+- `hooks/palette-default.sh` validated its payload `cwd` with `-n` and then
+  `mkdir -p "$cwd/.claude/ui-ux"`, which RECREATED a project directory the session had
+  deleted, three levels deep. It now requires `-d` as well
+  (`overseer/hooks/track-read.sh` is the shape it copies), with a fixture in
+  `scripts/__tests__/palette-default.test.sh` that reproduces the resurrection on the
+  old line and not on the new one.
+- `hooks/preview-guard.sh` uses an absolute `#!/bin/bash` shebang. `env bash` itself
+  exits 127 under a stripped PATH, which is precisely when a fail-open guard must still
+  run; this hook can return a `permissionDecision`, so it is one of the two decision-capable
+  hooks that carried the relative form. Its twin in taskmaster must match byte for byte.
+
+### Changed
+- `astryx-best-practices` carries a `Last verified` stamp with an
+  `npm:@astryxdesign/core@0.6` tail, so `check-doc-staleness.sh --live` can see it at all
+  — the skill's own frontmatter promises a pinned version and the plugin's corpus had no
+  stamp to check. The minor, not the bare major, is the tail: on a 0.x package a minor is
+  the breaking release. Paid for in bytes by dropping the **Beta APIs from memory**
+  anti-pattern, which restated the Beta-discipline section above it verbatim; this
+  plugin's on-invoke corpus had 63 B of headroom under `pc_plugin_corpus`'s 160,000 B cap
+  before the stamp, and a stamp is not free. Recount, do not copy:
+  `find plugins/ui-ux/skills -name '*.md' | xargs wc -c | tail -1`.
+- `design-tokens`' display-tier paragraph, the scale-is-not-hierarchy rule, the
+  motion-source line and the `type-system.md` pointer moved into `theming-system`, where
+  they are stated as ROLE rules rather than scale steps. Nothing was deleted: the fold is
+  what makes `evals/design-tokens-control` a decision rather than a loss — the skill is
+  removed only if the measured delta is zero. The move is byte-neutral inside the plugin's
+  corpus budget, paid for by trimming three restatements of neighbouring skills.
+
 ## 0.25.0 — 2026-09-22
 
 ### Added

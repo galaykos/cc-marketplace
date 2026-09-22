@@ -4,11 +4,14 @@
 # bare-extension row excludes tool configs, rc files, .d.ts and minified bundles. `@path`
 # matches it against the file's PATH instead, which is how a row excludes a built-output
 # DIRECTORY (dist/, build/, .next/) that a basename cannot distinguish from its source.
-# A trailing `!@base~.` alternative is the DEFAULT-DENY TAIL: a basename is never empty,
-# so it is always decisive-suppress, and a chain ending in one means "fire only on a
-# manifest that exists and says yes". Without it an ABSENT manifest is merely
-# indecisive and the row fires anyway (route.sh marker_ok) — which is how the Tailwind
-# row nudged a Go module with a components/ directory.
+# A `?` PREFIX on an alternative — `?package.json~"next"`, `?!composer.json~x` — REQUIRES
+# its manifest: absent or unreadable is decisive-suppress instead of merely indecisive,
+# so a chain of `?` alternatives means "fire only on a manifest that exists and says
+# yes". Without it an ABSENT manifest lets the row fire anyway (route.sh marker_ok) —
+# which is how the Tailwind row nudged a Go module with a components/ directory, and how
+# every shadcn row nudged a `.tsx` in a repo with no components.json. Per-row and opt-in;
+# an unprefixed alternative keeps the fire-if-uncertain default. It replaced the
+# `||!@base~.` default-deny tail 0.18.0 put on four rows — same behaviour, one mechanism.
 # co-fire-ok: *.tsx a11y-audit react-native-best-practices
 # co-fire-ok: *.tsx a11y-audit nextjs-best-practices
 # Accessibility is orthogonal to every stack skill: the WCAG checklist and a library's
@@ -105,12 +108,17 @@ glob	*.rb	solid-principles	code-architecture	high
 glob	*.rs	low-cognitive-load	code-architecture	high
 glob	*.rs	solid-principles	code-architecture	high
 # The only stack row that carried no marker at all: a Go module with `components/`,
-# and a Blade app with no Tailwind in it, both drew the Tailwind skill. The
-# default-deny tail is what makes "no package.json" mean no, instead of maybe.
-glob	**/components/**	tailwind-best-practices	ui-ux	high	package.json~"tailwindcss"||!@base~.
-glob	*.tsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
-glob	*.jsx	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
-glob	*.vue	shadcn-best-practices	ui-ux	high	components.json~"(ui|components)"
+# and a Blade app with no Tailwind in it, both drew the Tailwind skill. The `?` prefix
+# is what makes "no package.json" mean no, instead of maybe.
+glob	**/components/**	tailwind-best-practices	ui-ux	high	?package.json~"tailwindcss"
+# shadcn's registry file is the ONLY evidence a project uses shadcn, so an absent
+# `components.json` is a no, not a maybe: without the `?` these three rows nudged the
+# shadcn skill on every `.tsx`/`.jsx`/`.vue` edit in a Nuxt, Next or plain-React repo
+# that had never installed it. LIMITATION: `components.json` is also ReUI's registry
+# file, and a project that keeps one under a workspace subdirectory reads as absent.
+glob	*.tsx	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
+glob	*.jsx	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
+glob	*.vue	shadcn-best-practices	ui-ux	high	?components.json~"(ui|components)"
 content	(@reui/|\breui\.io|\bfrom ['"]@/components/ui/(data-grid|tree))	reui-best-practices	ui-ux	low
 content	\b(aceternity|ui\.aceternity\.com|motion/react|framer-motion)\b	aceternity-best-practices	ui-ux	low
 # The library-agnostic fallback. shadcn, ReUI, Aceternity, MUI and Astryx each have a
@@ -143,21 +151,23 @@ glob	*.astro	a11y-audit	ui-ux	high
 glob	*.html	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
 glob	*.erb	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
 glob	*.twig	a11y-audit	ui-ux	high	!@path~(^|/)(dist|build|out|\.next|_site|coverage|vendor|node_modules)/|\.min\.
-glob	*.tsx	react-native-best-practices	web-dev	high	package.json~"react-native"
-glob	*.tsx	nextjs-best-practices	web-dev	high	package.json~"next"
+# `?` on both: a `.tsx` in a repo with NO package.json is a component in a stack this
+# router cannot name, and firing every framework skill at once was the whole defect.
+glob	*.tsx	react-native-best-practices	web-dev	high	?package.json~"react-native"
+glob	*.tsx	nextjs-best-practices	web-dev	high	?package.json~"next"
 # Next.js SERVER files. The *.tsx row above routes components only, so a route
 # handler, a server action, `middleware.ts` or `proxy.ts` — the files the skill's own
 # server-actions-are-public-endpoints rule is about — reached low-cognitive-load and
 # solid-principles and nothing else. `**/app/**` is broad on purpose and the marker is
 # what makes it safe: a Laravel `app/` or a Rails `app/` has no `"next"` in a
-# package.json, so it suppresses, and the default-deny tail means a repo with no
+# package.json, so it suppresses, and the `?` prefix means a repo with no
 # package.json at all — a Go module with an `app/` directory — suppresses too.
 # LIMITATION: a Next repo whose package.json sits in a
 # workspace subdirectory is invisible to marker_ok, which reads `$cwd/package.json`
 # only, and a pages-router repo has no `app/` at all.
-glob	**/app/**	nextjs-best-practices	web-dev	high	package.json~"next"||!@base~.
-glob	middleware.*	nextjs-best-practices	web-dev	high	package.json~"next"||!@base~.
-glob	proxy.*	nextjs-best-practices	web-dev	high	package.json~"next"||!@base~.
+glob	**/app/**	nextjs-best-practices	web-dev	high	?package.json~"next"
+glob	middleware.*	nextjs-best-practices	web-dev	high	?package.json~"next"
+glob	proxy.*	nextjs-best-practices	web-dev	high	?package.json~"next"
 glob	**/resources/js/Pages/**	inertia-best-practices	laravel	high
 glob	*.blade.php	laravel-best-practices	laravel	high
 glob	*.php	laravel-best-practices	laravel	high	composer.json~laravel/framework

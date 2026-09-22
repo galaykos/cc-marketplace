@@ -838,18 +838,48 @@ hook_to_gap=$(pc_hook_timeout plugins) || true
 arghint_gap=$(pc_command_arg_hint plugins) || true
 [ -n "$arghint_gap" ] && lane_err "$arghint_gap" "a command whose body reads \$ARGUMENTS must declare argument-hint: in its frontmatter — the host shows it in the slash-command menu"
 
-# The fail-open guarantee six hook headers assert in their own words, read back for
-# the first time. WARN TIER THIS RUN, not because the claim is soft but because the
-# 11 offenders it found on 2026-09-22 are spread across seven plugins and land in
-# other hands than the one adding the check; promoting it to err() is a follow-up
-# once those shebangs are fixed. Residuals are in pc_hook_shebang's header.
+# The fail-open guarantee six hook headers assert in their own words, read back. FAIL
+# TIER as of 2026-09-22: all 11 offenders counted that day are fixed — eight were chassis
+# output and went with one line each in templates/reminder-hook.sh.tmpl and
+# templates/boost-hook.sh.tmpl, three (ui-ux and taskmaster preview-guard.sh, design-kit
+# unread-pick.sh) by hand. The check shipped at WARN for exactly as long as the tree
+# disagreed with it. `# env-shebang-ok: <reason>` is the escape for a host with no
+# /bin/bash; the residuals are in pc_hook_shebang's header.
 shebang_gap=$(pc_hook_shebang plugins) || true
-if [ -n "$shebang_gap" ]; then
+[ -n "$shebang_gap" ] && lane_err "$shebang_gap" "a registered hook must start #!/bin/bash so the fail-open guarantee holds under a stripped PATH where \`env bash\` exits 127; or carry '# env-shebang-ok: <reason>'"
+
+# A hook may not `mkdir -p` a path built from the payload's cwd without first proving
+# that directory still exists — the shape that rebuilt a deleted three-level project
+# tree to hold a state dir. FAIL tier: the live tree passes it as it lands. What it
+# cannot see (a cwd that exists but is not this project) is in pc_cwd_validated's header.
+cwdval_gap=$(pc_cwd_validated plugins) || true
+[ -n "$cwdval_gap" ] && lane_err "$cwdval_gap" "a hook mkdir -p's a path built from the payload cwd with nothing proving that directory still exists — add [ -d \"\$cwd\" ] (or a test on a path inside it) before the write, or carry '# cwd-mkdir-ok: <why>'"
+
+# The person who needs to know a guard has an off switch is the person it just refused.
+# WARN TIER THIS RUN — five hooks in four plugins fail it the moment it ships, and they
+# are other hands than the one adding the check. Per-message attribution is out of reach
+# for a static reader; that half is agent-graded, and pc_offswitch_named's header says so.
+offsw_gap=$(pc_offswitch_named plugins) || true
+if [ -n "$offsw_gap" ]; then
   while IFS= read -r l; do
     [ -n "$l" ] || continue
-    warn "$l — a registered hook must start #!/bin/bash so the fail-open guarantee holds under a stripped PATH where \`env bash\` exits 127; or carry '# env-shebang-ok: <reason>'"
+    warn "$l — this hook can deny or block and reads that env switch, but names it in no text it emits; put '<VAR>=off disables this for the session' in the reason, or carry '# offswitch-ok: <why>'"
   done <<EOF
-$shebang_gap
+$offsw_gap
+EOF
+fi
+
+# A skill that promises version pinning must leave check-doc-staleness.sh --live
+# something to compare: an npm:/composer:/pypi: tail on its stamp. WARN TIER THIS RUN
+# (two offenders, both other plugins'). It gates the TAIL, never its truth —
+# pc_version_stamp_tail's header.
+stamptail_gap=$(pc_version_stamp_tail plugins) || true
+if [ -n "$stamptail_gap" ]; then
+  while IFS= read -r l; do
+    [ -n "$l" ] || continue
+    warn "$l — its frontmatter promises version pinning, so its 'Last verified' stamp needs an npm:/composer:/pypi: tail for check-doc-staleness.sh --live to read; or carry '<!-- version-tail-ok: <why> -->'"
+  done <<EOF
+$stamptail_gap
 EOF
 fi
 

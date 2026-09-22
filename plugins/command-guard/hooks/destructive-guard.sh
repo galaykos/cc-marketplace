@@ -579,11 +579,11 @@ allow_listed() { # normalised lowercased command
 # command with different quoting, and each attempt costs a turn.
 # ---------------------------------------------------------------------------
 deny_reason() {
-  printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. The guard cannot tell a local database from production from the command line, so it does not ask; this is a hard stop. Do NOT retry it with different quoting, a wrapper (bash -c, eval), a script file, or a split-up form — the guard reads those too, and working around a safety gate is not the task. Non-destructive path: ${V_ALT}. If the destructive command is genuinely what the task needs, stop and tell the user exactly which command you want run and why, and let them run it. Standing opt-out (the user's call, not yours): a regex line in .claude/${ALLOW_BASENAME}."
+  printf '%s' "BLOCKED by command-guard — this command ${V_WHAT}. The guard cannot tell a local database from production from the command line, so it does not ask; this is a hard stop. Do NOT retry it with different quoting, a wrapper (bash -c, eval), a script file, or a split-up form — the guard reads those too, and working around a safety gate is not the task. Non-destructive path: ${V_ALT}. If the destructive command is genuinely what the task needs, stop and tell the user exactly which command you want run and why, and let them run it. Standing opt-out (the user's call, not yours): a regex line in .claude/${ALLOW_BASENAME}, or CLAUDE_DESTRUCTIVE_GUARD=off in the SESSION's env (=ask downgrades every hard stop to a prompt) — the env is read from this hook's own process, so putting it in front of the command does nothing."
 }
 
 ask_reason() {
-  printf '%s' "command-guard: this command ${V_WHAT}. Confirm that is intended and that anything it removes is either recoverable or not needed. Less destructive path: ${V_ALT}."
+  printf '%s' "command-guard: this command ${V_WHAT}. Confirm that is intended and that anything it removes is either recoverable or not needed. Less destructive path: ${V_ALT}. CLAUDE_DESTRUCTIVE_GUARD=off in the session's env disables this guard; =deny-only keeps the hard stops and drops this prompt tier."
 }
 
 emit() {

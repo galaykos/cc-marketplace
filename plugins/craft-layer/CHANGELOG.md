@@ -7,6 +7,50 @@ build that previously passed. Earlier versions have no entries rather than
 invented ones — a backfilled history in the file whose job is history is worse
 than an honest starting point.
 
+## 0.53.0
+
+### Added
+- **A `Voice:` line on the build task, and a `voice-contract` assertion that reads it.**
+  Brand voice was a slot name: "editorial voice" was defined only as a typographic role, and
+  the marketplace's one operational rule about copy craft lived inside a per-section brief
+  the audit never opens. `skills/creative-direction/references/voice-contract.md` now owns the
+  four dimensions — person and address, a sentence-length band in words, what the copy does
+  with fragments/questions/imperatives, and 2–3 literal `NEVER "<string>"` items — and
+  `/craft-layer:craft` step 5 writes them onto `craft/build-task.md` as a sixth line beside
+  `Banned vocabulary:`. Standing is split on purpose: the LINE's presence and at least one
+  NEVER are a **gate** (`divergence.mjs` FAILs a resolved build task without them, SKIPs when
+  no build task exists at all), the NEVER literals in shipped copy are graded by
+  `copy-register`, and the voice itself — person, band, fragment rules — stays
+  **agent-graded**, because nothing here counts a sentence.
+
+### Fixed
+- **`hooks/ultra-craft.sh` starts `#!/bin/bash`, not `#!/usr/bin/env bash`.** The fail-open
+  promise the boost hooks make in their own headers has to survive a stripped PATH, where
+  `/usr/bin/env bash` exits 127 before the hook runs a line — a guard that cannot start
+  looks to the host exactly like a guard that allowed. Rendered from
+  `templates/boost-hook.sh.tmpl`, not edited here; `pc_hook_shebang` reads the claim back
+  and is a build failure now that every shipped hook agrees with it.
+- **The sameness-fingerprint "gate" read 1,683 of the registry's 13,951 characters.**
+  `copy-register`'s lexicon was six phrases frozen into `divergence.mjs`, and the only live
+  read of `sameness-fingerprint.md` was its `### Type families` section. A page reproducing
+  nine registry entries verbatim — magnetic CTA, glass-card grid, logo marquee,
+  tilt-on-hover, ALL-CAPS eyebrows, `01 / 02 / 03` — cleared every assertion the gate could
+  grade. The registry now carries a `copy-lexicon` block read LIVE (source, kind and date
+  printed every run, frozen snapshot as the fallback), and it arms the three rows the
+  registry's own note already named as mechanical: the tracked-out ALL-CAPS eyebrow, the
+  middle-dot meta string (`A · B · C`) and the trailing `→`. Re-run of that probe: three
+  FAILs, exit 1. Rows carry a `min` so a repetition tell needs repetition — one honest
+  `Read more →` and one footer middle dot stay clean, and `craft-gates.test.sh` ships the
+  control pair that proves it.
+- **Four gates were sold where one is scripted.** `README.md` named the offer-contract,
+  ambition-tier, content-depth and sameness-fingerprint "gates" without saying which has a
+  script behind it; eight `(teeth)` / `gate` headings sat over prose a reviewing agent reads.
+  Every one now names its standing: `gate` for what `divergence.mjs` asserts,
+  `agent-graded` for the rest — in the README, `content-depth.md`, `offer-contract.md`,
+  `content-source.md`, `section-ledger.md`, `asset-sourcing/SKILL.md`, `type-strategy.md`,
+  `creative-direction/SKILL.md` and `sameness-fingerprint.md` itself, whose "How divergence
+  is measured (teeth)" heading contradicted its own text forty lines above.
+
 ## 0.52.0
 
 ### Added

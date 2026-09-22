@@ -220,6 +220,10 @@ listing_cost() { # listing_cost <root> — stdout: entry chars of every leaf, pc
       desc=$(printf '%s\n' "$fm" | sed -n 's/^description:[[:space:]]*//p' | head -1)
       wtu=$(printf '%s\n' "$fm" | sed -n 's/^when_to_use:[[:space:]]*//p' | head -1)
       dl=$(printf '%s%s' "$desc" "${wtu:+ - $wtu}" | LC_ALL=C wc -c | tr -d ' ')
+      # 1536 is the host's skillListingMaxDescChars default. SOURCE OF TRUTH:
+      # scripts/host-constants.sh in the marketplace repo, which re-reads it out of the
+      # pinned CLI binary. This copy cannot source it — this script ships inside the
+      # plugin and runs on an installer's disk where that repo path does not exist.
       [ "$dl" -gt 1536 ] && dl=1536
       total=$(( total + ${#name} + 4 + dl ))
     done

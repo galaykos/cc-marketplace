@@ -142,8 +142,31 @@ A Claude Design handoff bundle (a folder of exported .html plus a README) goes t
 one row per value — `match`, `near (Δ)`, `no token` — and each `no token` row is a question, never a
 literal in the tree. The export is a reference; its HTML and class names never land in the project.
 
-What has teeth: the scratch-file cleanup (`--verify`) and the drift table are **gates** — scripts
-under `scripts/__tests__/` drive both. Consent before the first write is an AskUserQuestion, once
+Since 0.4.0 the same reader asks that question of the project's OWN components:
+
+```
+dk drift [PATHS | --staged | --diff <base>] [--ci]
+```
+
+It reads `.tsx/.jsx/.vue/.blade.php/.css/.scss` and reports two kinds of hit — a literal
+hex/rgb/hsl/oklch colour that resolves to no declared token, and a NAMED TAILWIND PALETTE
+utility (`bg-indigo-500`, `text-slate-700/50`) whose scale is not a declared token name. That
+second kind is the gap that made this exist: it never reaches a stylesheet, so `dk check` and
+the bundle table above both stay green while the components drift. `bg-primary` and
+`var(--primary)` are clean by construction, which is the whole test. Without `--ci` the table
+is the output and the exit is 0; with `--ci` any hit exits 1. No token source anywhere exits 2
+(`not measured`) — a drift check that cannot find the tokens has not cleared anything, and an
+empty `--staged`/`--diff` selection scans nothing rather than the whole tree.
+
+**Standing: `gate` only where you wire it.** Nothing in this plugin runs `dk drift` for you —
+no hook, no command step. It is a script with a harness (`scripts/__tests__/drift.test.sh`,
+run by CI's plugin-harness step), and `--ci` is what makes it block, in a CI step or a
+pre-commit hook you add. Not run is not clean. What it does NOT catch: spacing, radius, shadow
+and font drift; a colour computed at runtime; the right token used in the wrong role. The
+script's own header carries the full residual list.
+
+What has teeth: the scratch-file cleanup (`--verify`), the bundle drift table and `dk drift`'s
+scan are **gates** — scripts under `scripts/__tests__/` drive all three. Consent before the first write is an AskUserQuestion, once
 per session. Finding the right component, passing only real props, rendering all four states, and
 never touching a real file are **agent-graded**; `git status` after cleanup is the check.
 

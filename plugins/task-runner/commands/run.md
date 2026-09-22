@@ -91,8 +91,14 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    `"branch":"<git rev-parse --abbrev-ref HEAD>"}`; for a taskmaster-index run also
    include `"index_path":"<00-INDEX.md>"` — the hook uses it to require card counts in
    the gate pass). In the same step write the **arc phase sentinel**
-   `.claude/cc-phase.json` — `{"phase":"build","owner":"task-runner:run",`
-   `"session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}` — which is what
+   `.claude/cc-phase.json` with taskmaster's writer, never by hand —
+   `bash ${CLAUDE_PLUGIN_ROOT}/../taskmaster/scripts/phase-sentinel.sh write build --owner task-runner:run --session "<this session id>"`.
+   It ships in taskmaster, which may not be installed: if that path does not resolve, try
+   `find ~/.claude/plugins/cache -name phase-sentinel.sh`, and only if that misses too
+   write the JSON yourself —
+   `{"phase":"build","owner":"task-runner:run","session_id":"<this session id>","started_at":"<ISO-8601 UTC>"}`
+   — spelling `build` exactly, because the script exists to catch the typo that makes a
+   sentinel read to every hook as no sentinel at all. The sentinel is what
    tells the prompt-channel reminder hooks the arc has reached `build`, so the ones
    that own an earlier phase stand down instead of nagging about clarification on
    turn 40 of a run that is already executing. It is a different file from
@@ -122,8 +128,12 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    - the full project check suite (catches lint/type/build regressions), AND
    - the **behavioral-gate** on the run's changed files —
      `${CLAUDE_PLUGIN_ROOT}/scripts/behavioral-gate.sh --changed "<the run's touched
-     files>" [--entrypoint <bin>] [--differential 'flag::with::without']`, run from a
-     disposable checkout/temp so it never mutates the live tree. Pass
+     files>" [--entrypoint <bin>] [--differential 'flag::with::without']
+     [--runner '<cmd>::<empty-output-regex>']`, run from a
+     disposable checkout/temp so it never mutates the live tree. The gate resolves a
+     runner for py, js/ts, go, php, rust, ruby and java/kotlin on its own; for any other
+     language pass `--runner` with the suite command and the output that means it ran
+     nothing (`skills/behavioral-gate/references/runners.md`), or the run cannot close. Pass
      `--record-dir <live-repo>/.claude/task-runner/bg` so the gate's own verdict record
      lands in the repo the Stop hook reads, not in the copy that is about to be deleted. The repo suite may be a
      static linter that never executes the new code; the behavioral-gate is what proves
@@ -134,7 +144,8 @@ quality flag, not a dispatch flag — and never affects the `Dispatch:` decision
    `"index_path":"<00-INDEX.md>","cards_total":N,"cards_done":N,"cards_parked":N` from
    the index bookkeeping (JSON integers, all three counts together — never a second
    write that would clobber `head`) — and only THEN, with every card done or parked
-   and the counts recorded, remove `active-run.json` **and `.claude/cc-phase.json`**
+   and the counts recorded, remove `active-run.json` **and clear the phase sentinel**
+   (`phase-sentinel.sh clear`, else delete `.claude/cc-phase.json`)
    (removing `active-run.json` earlier, or with a
    card unaccounted for, is what the Stop hook exists to catch — the sentinel stays
    until the counts prove completeness), then print the

@@ -81,6 +81,17 @@
   fi
   [ -f "$cwd/components.json" ] && add shadcn-best-practices ui-ux
   if has 'Dockerfile*' || has 'docker-compose*.yml' || has 'compose*.yml'; then add docker-best-practices devops; fi
+  # The two rows skill-map.md declared and this file never primed — both were standing
+  # `map-unprimed` WARNs from pc_prime_coverage, and both are file-presence sniffs of the
+  # same shape as the rows above. LIMITATION: `.github/workflows/` is the GitHub signal
+  # only, so a GitLab, CircleCI, Jenkins or Buildkite pipeline primes nothing; and the
+  # MariaDB sniff reads the two canonical compose filenames at the repo root, so a
+  # `.yaml` spelling, a compose file in a subdirectory, or a MariaDB reached over the
+  # network is missed — the same known misses rules.tsv's mariadb rows carry.
+  [ -d "$cwd/.github/workflows" ] && add devops-practices devops
+  { dep docker-compose.yml 'image:[[:space:]]*"?[a-z0-9./-]*mariadb' \
+    || dep compose.yml 'image:[[:space:]]*"?[a-z0-9./-]*mariadb'; } \
+    && add mariadb-best-practices database
   if has_dir tests || has '*.test.*' || has '*.spec.*'; then add testing-best-practices testing; fi
 
   skills="${skills# }"

@@ -93,6 +93,12 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    division of labour. Exit 1 is a FINDING; exit 2 (`not measured`, no token
    source found) is a FAILURE here by the script's own contract, not a skip.
 
+   **`voice-contract` and the `voice NEVER` rows need the same `CRAFT_BUILD_TASK` path `spine-register`
+   does.** Both read the build task's `Voice:` line; omit the path and the voice gate reports
+   `no build task resolved` — a SKIP, which is the one state here that is NOT a finding. A build task
+   that resolved and carries no `Voice:` line IS one (exit 1), and the fix is step 5 writing the line,
+   never deleting the artifact (`.../references/voice-contract.md` carries the standing table).
+
    Pass the paths step 3 resolved: `divergence.mjs` resolves `craft/…` relative to the PROJECT ROOT while
    the craft flow persists to the run's working area — the session scratch on a project with no
    `taskmaster-docs/`, outside the project. Omit them and `spine-register` and `craft-stamp` both report
@@ -138,7 +144,7 @@ the `craft-reviewer` agent owns the gate checks — dispatch to it, never restat
    paths, and Read paths to the references its checks cite: `motion-tiers/references/tier-budgets.md` ·
    `creative-direction/references/` `sameness-fingerprint.md`, `content-depth.md`, `offer-contract.md`,
    `ambition-tiers.md`, `content-source.md`, `concept-deck.md`, `moves-taxonomy.md`, `type-strategy.md`,
-   `register-corpus.md` · `scroll-orchestration/references/scroll-acts.md` ·
+   `register-corpus.md`, `voice-contract.md` · `scroll-orchestration/references/scroll-acts.md` ·
    `asset-sourcing/references/` `licence-discipline.md`, `component-sourcing.md` ·
    `section-decisions/references/section-ledger.md` plus the ledger when one exists · and, when the
    contract's archetype is `app/CRM` or the target has a logged-in data-dense half,

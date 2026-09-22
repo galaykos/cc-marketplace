@@ -48,8 +48,9 @@ What happens:
 
 1. Reads `components.json`, the current `globals.css`, and the Tailwind major
    version from the lockfile — v4 gets oklch tokens, v3 gets HSL triplets.
-2. Generates up to 3 candidate token sets (light + dark, contrast-checked) and
-   serves them at the shared preview URL `http://localhost:${PREVIEW_PORT:-8123}/theme.html` —
+2. Generates up to 3 candidate token sets (light + dark, contrast-checked by
+   `scripts/contrast.mjs` — see below, and that claim is now a run, not a promise)
+   and serves them at the shared preview URL `http://localhost:${PREVIEW_PORT:-8123}/theme.html` —
    swatch grid plus real component mockups (buttons, card, alert, badges,
    chart strip), light and dark side by side.
 3. You pick per round (one axis at a time: hue → warmth → radius); the page
@@ -90,6 +91,63 @@ that looks great as a swatch can fail hard as a button.
   Laravel build shipped 23 indigo utilities across 5 Blade views with every gate
   green. This is the reach half of a rule craft-layer owns the depth of; the hook's
   own header carries the derivation.
+
+## The contrast checker
+
+`scripts/contrast.mjs` measures every ink/accent/status/chart pairing in a token
+block against its WCAG 2 threshold — exit 0 clean, exit 1 with the failing pairings
+listed, exit 2 when it resolved no token at all:
+
+```bash
+cd <project root> && node "${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs"
+CRAFT_TOKEN_SOURCE=path/to/tokens.css node "${CLAUDE_PLUGIN_ROOT}/scripts/contrast.mjs"
+```
+
+`/ui-ux:theme` runs it on the accepted token set before it offers the diff;
+`/ui-ux:audit` runs it whenever a token source exists and folds each FAIL in as an
+SC 1.4.3 / 1.4.11 violation.
+
+**It is a byte-identical twin of `plugins/craft-layer/template/craft-gates/contrast.mjs`**,
+held in step by `pc_twin_files` in `scripts/lib/plugin-checks.sh` (**gate** — it
+checks SAMENESS, not correctness; two identically wrong copies pass). craft-layer
+owns the original and depends on ui-ux, never the reverse, so before this copy
+existed a bare `ui-ux`, `frontend-suite` or `workflow-suite` install reached no
+contrast checker at all while three documents promised one.
+
+**Two honest limits.** It parses `oklch()` values under `:root` and `.dark` only:
+a Tailwind v3 HSL-triplet theme, a Bootstrap Sass target, or hex tokens resolve
+nothing and exit 2, which is reported as *not measured*, never as a pass. And it
+grades the TOKEN BLOCK, not the rendered page — text over an image, a gradient, or
+a colour written straight into a class string is outside what it can see.
+
+## Evals
+
+`evals/` holds two cases, and they are not the same kind of thing:
+
+```bash
+claude plugin eval ./plugins/ui-ux --ablation with-without --runs 5 \
+  --no-publish --trust-plugin
+```
+
+No `--allow-tools` grant is needed (both declare `Read, Glob, Grep, Skill`, none
+gated) and no `--scaffold`. `--max-cost-usd 0` load-checks the suite for free, which
+is what `scripts/eval-cases.sh` does in CI; nothing runs a model there.
+
+- **`a11y-older-criteria`** has headroom: a checkout form whose easy defects are
+  already fixed, leaving SC 1.3.5 (`autocomplete` tokens) and SC 4.1.3 (a live region
+  that must already be in the DOM before the message arrives). The control arm is
+  expected to call it clean.
+- **`design-tokens-control`** is a **removal measurement**, and by CLAUDE.md's own
+  ceiling rule a case whose control passes can never show a skill helping. That is
+  what it is for. `rationale/stack-skill-baselines.md` recorded the css3 control
+  producing a token scale unaided, and the 2026-09-22 panel proposed deleting
+  `design-tokens` on that neighbouring evidence. **`design-tokens` is removed only if
+  the measured delta is zero** — and the two paragraphs and the motion-source rule the
+  control did NOT produce have already moved into `theming-system`, so the removal
+  would lose nothing. Until the run happens the skill stays.
+
+Neither delta is measured. State the run count and the vote spread with a number or
+do not state the number.
 
 ## Pairs well with
 

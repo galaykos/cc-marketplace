@@ -51,7 +51,15 @@
   case "$tool" in Edit|Write|MultiEdit) ;; *) exit 0 ;; esac
 
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
-  [ -n "$cwd" ] || exit 0
+  # `-d`, not just `-n`: the payload cwd is a STRING the host supplies, and the mkdir
+  # below happily recreates a project directory the user has just deleted, three levels
+  # deep (live repro, AR 1 of the 2026-09-22 panel). A cwd that is not a directory now
+  # means "no state to keep" — exit, never create. The state dir is then anchored at the
+  # repo root when there is one, so a turn run from a subdirectory does not scatter a
+  # second .claude/task-runner/ beside it.
+  [ -n "$cwd" ] && [ -d "$cwd" ] || exit 0
+  root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || root="$cwd"
+  [ -d "$root" ] || root="$cwd"
 
   # STATE HYGIENE (0.34.4). .claude/task-runner/ is written by the run itself
   # (active-run.json, rv/, bg/, gate-pass.json) and by this plugin's scripts; none of
@@ -118,7 +126,7 @@ EOF
   # whose parents never existed — see authoring-hooks, references/one-shot-state.md.
   ctx=$(printf '%s%s' "$tp" "$ask" | cksum 2>/dev/null | cut -d' ' -f1)
   [ -n "$ctx" ] || exit 0
-  dir="$cwd/.claude/task-runner"
+  dir="$root/.claude/task-runner"
   mkdir -p "$dir" 2>/dev/null || exit 0
   [ -w "$dir" ] || exit 0
   [ -e "$dir/.gitignore" ] || printf '*\n' > "$dir/.gitignore" 2>/dev/null

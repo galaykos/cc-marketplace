@@ -7,10 +7,16 @@ layer derives a **spec** rather than an adjective.
 
 **Why this exists.** Typography carries the largest single weight in the only
 published award rubric, and it is the field a build most often defaults into.
-The craft audit already gates that a typeface DECISION was made and recorded —
-but a gate with no matching derivation turns a quality question into a
-paperwork question: a build can record "system stack" and pass while never
-having chosen anything. This file is the missing derivation.
+The craft audit asks whether a typeface DECISION was made and recorded — but a
+check with no matching derivation turns a quality question into a paperwork
+question: a build can record "system stack" and pass while never having chosen
+anything. This file is the missing derivation.
+
+**Standing of that check: `gate` only where a family is declared.**
+`divergence.mjs`'s `font-anti-corpus` and `utility-font` fail a build that reaches
+for an anti-corpus family in the stylesheet or the utility layer; a build that
+declares NO typeface at all is recorded `SKIP`, not `FAIL`. "A decision was made"
+is therefore `agent-graded` — the audit reads for it, no script enforces it.
 
 **Ownership boundary (binding).** Type SCALES — sizes, line-heights, weights,
 measure — are `plugins/ui-ux/skills/design-tokens/SKILL.md`. The static type
